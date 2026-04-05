@@ -1,0 +1,130 @@
+import Foundation
+
+public struct ProviderConfiguration: Codable, Sendable, Equatable {
+    public var endpoint: String
+    public var apiKey: String
+    public var modelName: String
+    public var utilityModel: String
+    public var fastModel: String
+    public var toolFormat: ToolCallFormat
+    public var timeoutInterval: TimeInterval
+    public var maxRetries: Int
+
+    public var temperature: Double?
+    public var maxTokens: Int?
+    public var topP: Double?
+    public var frequencyPenalty: Double?
+    public var presencePenalty: Double?
+    public var seed: Int?
+
+    public var generationParameters: GenerationParameters {
+        GenerationParameters(
+            temperature: temperature,
+            maxTokens: maxTokens,
+            topP: topP,
+            frequencyPenalty: frequencyPenalty,
+            presencePenalty: presencePenalty,
+            seed: seed
+        )
+    }
+
+    public init(
+        endpoint: String,
+        apiKey: String,
+        modelName: String,
+        utilityModel: String,
+        fastModel: String,
+        toolFormat: ToolCallFormat,
+        timeoutInterval: TimeInterval = 60.0,
+        maxRetries: Int = 3,
+        temperature: Double? = nil,
+        maxTokens: Int? = nil,
+        topP: Double? = nil,
+        frequencyPenalty: Double? = nil,
+        presencePenalty: Double? = nil,
+        seed: Int? = nil
+    ) {
+        self.endpoint = endpoint
+        self.apiKey = apiKey
+        self.modelName = modelName
+        self.utilityModel = utilityModel
+        self.fastModel = fastModel
+        self.toolFormat = toolFormat
+        self.timeoutInterval = timeoutInterval
+        self.maxRetries = maxRetries
+        self.temperature = temperature
+        self.maxTokens = maxTokens
+        self.topP = topP
+        self.frequencyPenalty = frequencyPenalty
+        self.presencePenalty = presencePenalty
+        self.seed = seed
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        endpoint = try container.decode(String.self, forKey: .endpoint)
+        apiKey = try container.decode(String.self, forKey: .apiKey)
+        modelName = try container.decode(String.self, forKey: .modelName)
+        utilityModel = try container.decode(String.self, forKey: .utilityModel)
+        fastModel = try container.decode(String.self, forKey: .fastModel)
+        toolFormat = try container.decodeIfPresent(ToolCallFormat.self, forKey: .toolFormat) ?? .openAI
+        timeoutInterval = try container.decodeIfPresent(TimeInterval.self, forKey: .timeoutInterval) ?? 60.0
+        maxRetries = try container.decodeIfPresent(Int.self, forKey: .maxRetries) ?? 3
+
+        temperature = try container.decodeIfPresent(Double.self, forKey: .temperature)
+        maxTokens = try container.decodeIfPresent(Int.self, forKey: .maxTokens)
+        topP = try container.decodeIfPresent(Double.self, forKey: .topP)
+        frequencyPenalty = try container.decodeIfPresent(Double.self, forKey: .frequencyPenalty)
+        presencePenalty = try container.decodeIfPresent(Double.self, forKey: .presencePenalty)
+        seed = try container.decodeIfPresent(Int.self, forKey: .seed)
+    }
+
+    public static func defaultFor(_ provider: LLMProvider) -> ProviderConfiguration {
+        switch provider {
+        case .openAI:
+            return ProviderConfiguration(
+                endpoint: "https://api.openai.com",
+                apiKey: "",
+                modelName: "gpt-4o",
+                utilityModel: "gpt-4o-mini",
+                fastModel: "gpt-4o-mini",
+                toolFormat: .openAI,
+                timeoutInterval: 60.0,
+                maxRetries: 3
+            )
+        case .openRouter:
+            return ProviderConfiguration(
+                endpoint: "https://openrouter.ai/api",
+                apiKey: "",
+                modelName: "openai/gpt-4o",
+                utilityModel: "openai/gpt-4o-mini",
+                fastModel: "openai/gpt-4o-mini",
+                toolFormat: .openAI,
+                timeoutInterval: 60.0,
+                maxRetries: 3
+            )
+        case .ollama:
+            return ProviderConfiguration(
+                endpoint: "http://localhost:11434/api",
+                apiKey: "",
+                modelName: "llama3",
+                utilityModel: "llama3",
+                fastModel: "llama3",
+                toolFormat: .json,
+                timeoutInterval: 120.0, // Local models can be slower
+                maxRetries: 3
+            )
+        case .openAICompatible:
+            return ProviderConfiguration(
+                endpoint: "http://localhost:1234/v1",
+                apiKey: "",
+                modelName: "model",
+                utilityModel: "model",
+                fastModel: "model",
+                toolFormat: .openAI,
+                timeoutInterval: 60.0,
+                maxRetries: 3
+            )
+        }
+    }
+}
