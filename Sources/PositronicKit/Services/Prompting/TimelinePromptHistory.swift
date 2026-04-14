@@ -8,6 +8,10 @@ public struct PromptSectionEntry: PipelineSnapshotEntry, Sendable {
     public let content: String
     public let cachePolicy: CachePolicy
     public let estimatedTokens: Int
+    public let path: [String]
+    public let parentEntryId: String?
+    public let order: Int?
+    public let sectionKind: PipelineSnapshotSectionKind?
 }
 
 public struct PromptSnapshot: PipelineSnapshot, Sendable {
@@ -40,6 +44,22 @@ public struct PromptDiff: Sendable {
 
     public var removed: [String] {
         journalDiff.removed
+    }
+
+    public var changedNodePaths: [[String]] {
+        journalDiff.subtreeDiff?.changedNodePaths ?? []
+    }
+
+    public var stableNodePaths: [[String]] {
+        journalDiff.subtreeDiff?.stableNodePaths ?? []
+    }
+
+    public var addedNodePaths: [[String]] {
+        journalDiff.subtreeDiff?.addedNodePaths ?? []
+    }
+
+    public var removedNodePaths: [[String]] {
+        journalDiff.subtreeDiff?.removedNodePaths ?? []
     }
 }
 
@@ -81,13 +101,17 @@ public actor TimelinePromptHistory {
     @discardableResult
     public func record(sections: [ContextSection], renderedContent: [String: String]) -> PromptDiff {
         var entries: [PromptSectionEntry] = []
-        for section in sections {
+        for (index, section) in sections.enumerated() {
             let content = renderedContent[section.id] ?? ""
             entries.append(PromptSectionEntry(
                 entryId: section.id,
                 content: content,
                 cachePolicy: section.cachePolicy,
-                estimatedTokens: section.estimatedTokens
+                estimatedTokens: section.estimatedTokens,
+                path: ["prompt", String(describing: section.cachePolicy), section.id],
+                parentEntryId: nil,
+                order: index,
+                sectionKind: section.type == .list ? .group : .section
             ))
         }
 
@@ -123,5 +147,32 @@ public actor TimelinePromptHistory {
         appendedMessageCount = 0
         appendedTokens = 0
         lastDiff = nil
+    }
+
+    public func structuredDiffHint() -> StructuredDiffHint? {
+        guard let lastDiff else { return nil }
+        return StructuredDiffHint(
+            changedNodePaths: lastDiff.changedNodePaths,
+            stableNodePaths: lastDiff.stableNodePaths,
+            addedNodePaths: lastDiff.addedNodePaths,
+            removedNodePaths: lastDiff.removedNodePaths
+        )
+    }
+
+    public func nodeMetadata(
+        sections: [ContextSection],
+        renderedContent: [String: String]
+    ) -> [String: StructuredNodeMetadata] {
+        var metadata: [String: StructuredNodeMetadata] = [:]
+        for section in sections {
+            let content = renderedContent[section.id] ?? ""
+            var hasher = Hasher()
+            hasher.combine(content)
+            metadata[section.id] = StructuredNodeMetadata(
+                path: ["prompt", String(describing: section.cachePolicy), section.id],
+                nodeHash: UInt64(bitPattern: Int64(hasher.finalize()))
+            )
+        }
+        return metadata
     }
 }

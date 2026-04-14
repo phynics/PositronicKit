@@ -40,7 +40,7 @@ public struct Memories: ContextSection {
     public let priority = 85
     public let cachePolicy: CachePolicy = .volatile
     public let strategy: CompressionStrategy = .summarize
-    public let type: ContextSectionType = .list(items: [])
+    public let type: ContextSectionType = .list
     public let memories: [Memory]
     public let summarizedContent: String?
 
@@ -87,7 +87,7 @@ public struct Tools: ContextSection {
     public let priority = 80
     public let cachePolicy: CachePolicy = .semiStable
     public let strategy: CompressionStrategy = .keep
-    public let type: ContextSectionType = .list(items: [])
+    public let type: ContextSectionType = .list
     public let tools: [AnyTool]
 
     /// Initializes a new tools section.
@@ -115,7 +115,7 @@ public struct ChatHistory: ContextSection {
     public let priority = 70
     public let cachePolicy: CachePolicy = .volatile
     public let strategy: CompressionStrategy = .truncate(tail: false)
-    public let type: ContextSectionType = .list(items: [])
+    public let type: ContextSectionType = .list
     public let messages: [Message]
 
     /// Initializes a new chat history section.
@@ -166,7 +166,7 @@ public struct ContextNotes: ContextSection {
     public let priority = 90
     public let cachePolicy: CachePolicy = .volatile
     public let strategy: CompressionStrategy = .truncate(tail: true)
-    public let type: ContextSectionType = .list(items: [])
+    public let type: ContextSectionType = .list
     public let notes: [ContextFile]
 
     /// Initializes a new context notes section.

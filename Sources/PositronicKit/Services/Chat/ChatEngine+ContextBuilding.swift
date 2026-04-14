@@ -97,12 +97,21 @@ extension ChatEngine {
             generationParameters: generationParameters
         )
 
+        let promptHistory = TimelinePromptHistory()
+        let structuredDiff = await promptHistory.structuredDiffHint()
+        let budget = generationParameters?.maxTokens.map {
+            TokenBudget(maxTokens: $0, reserveForResponse: max(256, $0 / 5))
+        }
+
         let prompt = try await PromptBuilder.buildContext(
             promptRequest,
             agentInstance: agentInstance,
             timeline: timeline,
             extensionSections: extensionSections,
-            overridePipeline: assemblyPipeline
+            overridePipeline: assemblyPipeline,
+            tokenBudget: budget,
+            compressor: nil,
+            structuredDiff: structuredDiff
         )
 
         // 5. Render once and reuse for messages + prompt history
@@ -110,11 +119,36 @@ extension ChatEngine {
         let initialMessages = await prompt.toMessages(preRendered: renderedContent)
 
         // 6. Record prompt snapshot for cache tracking
-        let promptHistory = TimelinePromptHistory()
         let diff = await promptHistory.record(sections: prompt.sections, renderedContent: renderedContent)
         logger.debug(
             "Prompt snapshot: \(prompt.sections.count) sections, ~\(prompt.estimatedTokens) tokens, \(diff.stablePrefixCount) stable prefix entries"
         )
+
+        if let report = prompt.compressionReport {
+            let metrics = StructuredCompressionMetrics(
+                totalNodes: report.nodeReports.count,
+                summarizedNodes: report.nodeReports.filter {
+                    if case .summarize = $0.action { return true }
+                    return false
+                }.count,
+                droppedNodes: report.nodeReports.filter {
+                    if case .drop = $0.action { return true }
+                    return false
+                }.count,
+                cacheHits: report.nodeReports.filter(\.cacheHit).count,
+                nodeMetrics: report.nodeReports.map {
+                    StructuredCompressionNodeMetric(
+                        nodeId: $0.nodeId,
+                        path: $0.path,
+                        action: String(describing: $0.action),
+                        beforeTokens: $0.beforeTokens,
+                        afterTokens: $0.afterTokens,
+                        cacheHit: $0.cacheHit
+                    )
+                }
+            )
+            logger.debug("Structured compression metrics: \(metrics)")
+        }
 
         let modelName = await llmService.configuration.modelName
 

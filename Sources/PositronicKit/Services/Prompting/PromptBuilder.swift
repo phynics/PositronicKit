@@ -47,7 +47,11 @@ public enum PromptBuilder {
         agentInstance: AgentInstance? = nil,
         timeline: Timeline? = nil,
         extensionSections: [any ContextSection] = [],
-        overridePipeline: PromptAssemblyPipeline? = nil
+        overridePipeline: PromptAssemblyPipeline? = nil,
+        tokenBudget: TokenBudget? = nil,
+        compressor: SectionCompressor? = nil,
+        structuredDiff: StructuredDiffHint? = nil,
+        structuredExecutor: StructuredCompressionExecutor = StructuredCompressionExecutor()
     ) async throws -> Prompt {
         let assemblyContext = PromptAssemblyContext(
             request: request,
@@ -62,7 +66,32 @@ public enum PromptBuilder {
         let stream = pipeline.execute(assemblyContext)
         for try await _ in stream {}
 
-        return Prompt(sections: await assemblyContext.sections)
+        let sections = await assemblyContext.sections
+
+        guard let tokenBudget else {
+            return Prompt(sections: sections)
+        }
+
+        let metadata = sections.reduce(into: [String: StructuredNodeMetadata]()) { acc, section in
+            var hasher = Hasher()
+            hasher.combine(section.id)
+            hasher.combine(section.estimatedTokens)
+            hasher.combine(String(describing: section.cachePolicy))
+            acc[section.id] = StructuredNodeMetadata(
+                path: ["prompt", String(describing: section.cachePolicy), section.id],
+                nodeHash: UInt64(bitPattern: Int64(hasher.finalize()))
+            )
+        }
+
+        let compressionResult = await tokenBudget.applyWithReport(
+            to: sections,
+            compressor: compressor,
+            structuredDiff: structuredDiff,
+            nodeMetadata: metadata,
+            executor: structuredExecutor
+        )
+
+        return Prompt(sections: compressionResult.sections, compressionReport: compressionResult.report)
     }
 
     /// Builds a prompt and prepares it for LLM submission.
