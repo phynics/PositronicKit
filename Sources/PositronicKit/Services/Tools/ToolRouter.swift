@@ -34,7 +34,7 @@ public struct ParsedToolCall: Sendable {
 public struct ToolHandlingResult: Sendable {
     /// Whether any tool calls were deferred to the client for execution.
     public let hasDeferred: Bool
-    /// OpenAI-format tool result messages for server-resolved calls (for LLM context continuation).
+    /// OpenAI-format tool result messages for runtime-resolved calls (for LLM context continuation).
     public let resolvedToolParams: [ChatQuery.ChatCompletionMessageParam]
 }
 
@@ -43,7 +43,7 @@ public struct ToolHandlingResult: Sendable {
 public enum ToolTurnResult: Sendable {
     /// No tool calls were produced — the turn is complete.
     case noToolCalls
-    /// All tool calls were resolved server-side; continue the loop with these messages.
+    /// All tool calls were resolved by this runtime; continue the loop with these messages.
     case continueWith([ChatQuery.ChatCompletionMessageParam])
     /// At least one tool call was deferred to the client — stop and wait.
     case deferredToClient
@@ -53,8 +53,8 @@ public enum ToolTurnResult: Sendable {
 
 /// Routes tool execution requests to the appropriate handler (local or remote).
 ///
-/// The primary entry point is `handlePendingToolCalls()`, which executes server-side tools
-/// immediately (persisting results to the message store) and defers client-side tools for
+/// The primary entry point is `handlePendingToolCalls()`, which executes runtime-managed tools
+/// immediately (persisting results to the message store) and defers externally hosted tools for
 /// async handling. `ChatEngine` calls this after each LLM turn that produces tool calls.
 public actor ToolRouter {
     private let logger = Logger.module(named: "com.positronickit.core.tools")
@@ -69,7 +69,7 @@ public actor ToolRouter {
     /// Processes tool calls from a completed LLM turn.
     ///
     /// Extracts streamed tool call accumulators from `TurnOutputs`, constructs the assistant
-    /// message (with tool call definitions for conversation history), executes server-side tools,
+    /// message (with tool call definitions for conversation history), executes runtime-managed tools,
     /// and returns a decision for the chat loop.
     func processToolCalls(
         outputs: TurnOutputs,
@@ -114,9 +114,9 @@ public actor ToolRouter {
 
     /// Handles all tool calls produced in an LLM turn.
     ///
-    /// - Server-side tools are executed immediately; results are persisted and returned.
-    /// - Client-side tools are skipped; the client executes and submits results asynchronously.
-    /// - Private timelines may not defer to client — an error is thrown instead.
+    /// - Runtime-managed tools are executed immediately; results are persisted and returned.
+    /// - External tools are skipped; the host executes and submits results asynchronously.
+    /// - Private timelines may not defer to external tools — an error is thrown instead.
     public func handlePendingToolCalls(
         timelineId: UUID,
         calls: [ParsedToolCall],
@@ -178,7 +178,7 @@ public actor ToolRouter {
             return .tool(.init(content: .textContent(.init(output)), toolCallId: call.callId))
 
         case .deferredToClient:
-            logger.info("Tool \(toolDisplayName) deferred to client")
+            logger.info("Tool \(toolDisplayName) deferred to host")
             return nil
         }
     }
@@ -206,7 +206,7 @@ public actor ToolRouter {
 
     // MARK: - Core Routing
 
-    /// Routes a single tool call to local or remote execution.
+    /// Routes a single tool call to local or external execution.
     public func execute(
         tool: ToolReference,
         arguments: [String: AnyCodable],
@@ -233,7 +233,7 @@ public actor ToolRouter {
         }
 
         switch workspace.hostType {
-        case .server, .serverTimeline:
+        case .runtime, .runtimeTimeline:
             let output = try await executeLocally(
                 tool: tool,
                 arguments: forwardedArguments,
@@ -242,7 +242,7 @@ public actor ToolRouter {
             )
             return .completed(output)
 
-        case .client:
+        case .external:
             guard !(await timelineManager.getTimeline(id: timelineId)?.isPrivate ?? false) else {
                 throw ToolError.clientToolsDisallowedOnPrivateTimeline
             }

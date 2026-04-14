@@ -38,9 +38,9 @@ public enum ToolError: PKError, Sendable, Equatable {
         case .workspaceNotFound:
             return "The target workspace for this tool could not be found."
         case .clientNotConnected:
-            return "The client machine providing this tool is not connected."
+            return "The host machine providing this tool is not connected."
         case .clientToolsDisallowedOnPrivateTimeline:
-            return "Private agent timelines do not support client-side tools."
+            return "Private agent timelines do not support external tools."
         }
     }
 
@@ -58,10 +58,10 @@ public enum ToolError: PKError, Sendable, Equatable {
         case let .workspaceNotFound(id):
             return "Verify that workspace \(id) exists and is currently attached."
         case .clientNotConnected:
-            return "Ensure the target client is online and registered with the server."
+            return "Ensure the target host is online and registered with this runtime."
         case .clientToolsDisallowedOnPrivateTimeline:
-            return "Only server-side tools are permitted on private timelines. " +
-                "Remove client workspace tools from the agent's configuration."
+            return "Only runtime-managed tools are permitted on private timelines. " +
+                "Remove external workspace tools from the agent's configuration."
         }
     }
 }

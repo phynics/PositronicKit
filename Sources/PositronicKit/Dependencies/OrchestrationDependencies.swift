@@ -8,7 +8,7 @@ public enum AgentWorkspaceServiceKey: DependencyKey {
     public static var liveValue: any AgentWorkspaceServiceProtocol {
         preconditionFailure(
             "AgentWorkspaceService requires an explicit workspaceRoot. " +
-                "Configure it via PositronicKitServerFactory or your test setup."
+                "Configure it via PositronicKitFactory or your test setup."
         )
     }
 

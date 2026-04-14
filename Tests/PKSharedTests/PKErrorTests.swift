@@ -28,7 +28,7 @@ struct PKErrorTests {
     func pkErrorDomains() {
         #expect(PKErrorDomain.shared == "com.positronickit.shared")
         #expect(PKErrorDomain.client == "com.positronickit.client")
-        #expect(PKErrorDomain.server == "com.positronickit.server")
+        #expect(PKErrorDomain.runtime == "com.positronickit.runtime")
         #expect(PKErrorDomain.llm == "com.positronickit.core.llm")
         #expect(PKErrorDomain.context == "com.positronickit.core.context")
     }

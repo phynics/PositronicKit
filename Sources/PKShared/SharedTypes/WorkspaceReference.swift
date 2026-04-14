@@ -11,7 +11,7 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
     public let id: UUID
     public let uri: WorkspaceURI
     public var hostType: WorkspaceHostType
-    public let ownerId: UUID? // ClientIdentity.id or nil for server-owned
+    public let ownerId: UUID? // ClientIdentity.id or nil for runtime-owned
     public var tools: [ToolReference] // Tools available in this workspace
     public var rootPath: String? // Filesystem root for the workspace
     public var trustLevel: WorkspaceTrustLevel
@@ -22,9 +22,27 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
     public let createdAt: Date
 
     public enum WorkspaceHostType: String, Codable, Sendable {
-        case server
-        case serverTimeline // A workspace specific to a timeline on the server
-        case client
+        case runtime
+        case runtimeTimeline // A workspace specific to a timeline in this runtime
+        case external
+
+        public init(from decoder: any Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            let rawValue = try container.decode(String.self)
+            switch rawValue {
+            case "runtime": self = .runtime
+            case "runtimeTimeline": self = .runtimeTimeline
+            case "external": self = .external
+            case "server": self = .runtime
+            case "serverTimeline": self = .runtimeTimeline
+            case "client": self = .external
+            default:
+                throw DecodingError.dataCorruptedError(
+                    in: container,
+                    debugDescription: "Unknown WorkspaceHostType: \(rawValue)"
+                )
+            }
+        }
     }
 
     public enum WorkspaceStatus: String, Codable, Sendable {
@@ -86,8 +104,8 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         metadata: [String: AnyCodable] = [:]
     ) -> WorkspaceReference {
         WorkspaceReference(
-            uri: .serverTimeline(timelineId),
-            hostType: .server,
+            uri: .timelineWorkspace(timelineId),
+            hostType: .runtime,
             rootPath: rootPath,
             trustLevel: .full,
             metadata: metadata

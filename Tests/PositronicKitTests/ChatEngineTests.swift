@@ -34,7 +34,7 @@ struct ChatEngineTests {
         } operation: {
             @Dependency(\.timelineManager) var timelineManager
             let wsId = UUID()
-            let workspaceRef = WorkspaceReference(id: wsId, uri: WorkspaceURI(parsing: "pk://local")!, hostType: .serverTimeline, ownerId: nil, rootPath: "/tmp")
+            let workspaceRef = WorkspaceReference(id: wsId, uri: WorkspaceURI(parsing: "pk://local")!, hostType: .runtimeTimeline, ownerId: nil, rootPath: "/tmp")
             try await mockPersistence.saveWorkspace(workspaceRef)
             try await timelineManager.attachWorkspace(wsId, to: timelineId)
             try await mockPersistence.addToolToWorkspace(workspaceId: wsId, tool: .known("mock_tool"))
@@ -179,7 +179,7 @@ struct ChatEngineTests {
         }
     }
 
-    @Test("Server-side tool call is executed and yields events")
+    @Test("Runtime tool call is executed and yields events")
     func serverToolCallExecuted() async throws {
         try await withChatEngineDependencies { engine, mockLLM, _ in
             let mockTool = MockTool()

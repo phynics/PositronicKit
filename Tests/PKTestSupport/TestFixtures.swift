@@ -29,8 +29,8 @@ import PKShared
     public extension WorkspaceReference {
         static func fixture(
             id: UUID = UUID(),
-            uri: WorkspaceURI = .serverTimeline(UUID()),
-            hostType: WorkspaceHostType = .server,
+            uri: WorkspaceURI = .timelineWorkspace(UUID()),
+            hostType: WorkspaceHostType = .runtime,
             ownerId: UUID? = nil,
             rootPath: String? = nil,
             tools: [ToolReference] = [],

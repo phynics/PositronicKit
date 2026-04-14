@@ -89,7 +89,7 @@ public struct PositronicKitCore: Sendable {
     /// Convenience initializer for Ollama with defaults.
     /// - Parameters:
     ///   - ollamaModel: The model name in Ollama (e.g. "llama3").
-    ///   - endpoint: The Ollama server endpoint (defaults to local).
+    ///   - endpoint: The Ollama endpoint (defaults to local).
     ///   - generationParameters: Optional default parameters for generation.
     public init(
         ollamaModel: String,
@@ -333,5 +333,4 @@ public extension PositronicKitCore {
 }
 
 // MARK: - Backward Compatibility
-
 

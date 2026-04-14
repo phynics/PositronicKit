@@ -221,8 +221,8 @@ public actor InMemoryToolPersistence: ToolPersistenceProtocol {
               let workspace = workspaces.first(where: { $0.id == wsId })
         else { return nil }
 
-        if workspace.hostType == .client {
-            return "Client Workspace"
+        if workspace.hostType == .external {
+            return "External Workspace"
         } else if workspace.id == primaryWorkspaceId {
             return "Primary Workspace"
         } else {

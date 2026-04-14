@@ -164,8 +164,8 @@ public extension TimelineManager {
         try writeDefaultNotes(at: timelineWorkspaceURL)
 
         let workspace = WorkspaceReference(
-            uri: .serverTimeline(timelineId),
-            hostType: .server,
+            uri: .timelineWorkspace(timelineId),
+            hostType: .runtime,
             rootPath: timelineWorkspaceURL.path,
             trustLevel: .full
         )
@@ -266,7 +266,7 @@ public extension TimelineManager {
         your behavior across turns.
 
         ## System Orientation
-        - Primary Workspace: Your server-side sandbox.
+        - Primary Workspace: Your runtime-managed sandbox.
         - Attached Workspaces: Directories mapped during this timeline.
         - Context Depth: Use `create_memory` for long-term facts and `Notes/` for project-specific guidance.
         """
@@ -572,7 +572,7 @@ public extension TimelineManager {
         var attached: [WorkspaceReference] = []
         for aid in attachedIds {
             if var workspace = try? await getWorkspace(aid) {
-                if workspace.hostType == .server, let path = workspace.rootPath {
+                if workspace.hostType == .runtime, let path = workspace.rootPath {
                     if !FileManager.default.fileExists(atPath: path) {
                         workspace.status = .missing
                     }
@@ -589,13 +589,13 @@ public extension TimelineManager {
             throw TimelineError.timelineNotFound
         }
 
-        if workspace.hostType == .server, let path = workspace.rootPath {
+        if workspace.hostType == .runtime, let path = workspace.rootPath {
             let timelineWorkspaceURL = URL(fileURLWithPath: path)
             let fileManager = FileManager.default
             if !fileManager.fileExists(atPath: path) {
                 try fileManager.createDirectory(at: timelineWorkspaceURL, withIntermediateDirectories: true)
 
-                if workspace.uri.host == "pk-server", workspace.uri.path.hasPrefix("/timelines/") {
+                if workspace.uri.host == "pk-runtime", workspace.uri.path.hasPrefix("/timelines/") {
                     let notesDir = timelineWorkspaceURL.appendingPathComponent("Notes", isDirectory: true)
                     try? fileManager.createDirectory(at: notesDir, withIntermediateDirectories: true)
                 }

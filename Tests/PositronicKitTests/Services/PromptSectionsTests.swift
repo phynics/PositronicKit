@@ -17,7 +17,7 @@ private func makeClientWS(
 ) -> WorkspaceReference {
     WorkspaceReference(
         uri: makeURI(),
-        hostType: .client,
+        hostType: .external,
         ownerId: ownerId,
         tools: tools,
         status: status,
@@ -25,13 +25,13 @@ private func makeClientWS(
     )
 }
 
-private func makeServerWS(
+private func makeRuntimeWS(
     tools: [ToolReference] = [],
     contextInjection: String? = nil
 ) -> WorkspaceReference {
     WorkspaceReference(
-        uri: makeURI("/agent/workspace", host: "server"),
-        hostType: .server,
+        uri: makeURI("/agent/workspace", host: "runtime"),
+        hostType: .runtime,
         tools: tools,
         contextInjection: contextInjection
     )
@@ -101,33 +101,33 @@ struct WorkspacesContextTests {
 
     // MARK: Environment labels
 
-    @Test("non-primary workspace shows Client label")
-    func nonPrimaryShowsClientLabel() async {
+    @Test("non-primary workspace shows External label")
+    func nonPrimaryShowsExternalLabel() async {
         let section = WorkspacesContext(
             workspaces: [makeClientWS()],
             primaryWorkspace: nil,
             clientName: nil
         )
         let output = await section.render() ?? ""
-        #expect(output.contains("Environment: Client"))
+        #expect(output.contains("Environment: External"))
     }
 
-    @Test("primary workspace shows Server (Primary) label")
-    func primaryShowsServerPrimaryLabel() async {
-        let primary = makeServerWS()
+    @Test("primary workspace shows Primary label")
+    func primaryShowsPrimaryLabel() async {
+        let primary = makeRuntimeWS()
         let section = WorkspacesContext(
             workspaces: [],
             primaryWorkspace: primary,
             clientName: nil
         )
         let output = await section.render() ?? ""
-        #expect(output.contains("Server (Primary)"))
-        #expect(!output.contains("Client"))
+        #expect(output.contains("Environment: Primary"))
+        #expect(!output.contains("Environment: External"))
     }
 
-    @Test("primary + attached: primary labeled Server (Primary), attached labeled Client")
+    @Test("primary + attached: primary labeled Primary, attached labeled External")
     func primaryAndAttachedLabels() async {
-        let primary = makeServerWS()
+        let primary = makeRuntimeWS()
         let attached = makeClientWS()
         let section = WorkspacesContext(
             workspaces: [attached],
@@ -135,15 +135,15 @@ struct WorkspacesContextTests {
             clientName: nil
         )
         let output = await section.render() ?? ""
-        #expect(output.contains("Server (Primary)"))
-        #expect(output.contains("Environment: Client"))
+        #expect(output.contains("Environment: Primary"))
+        #expect(output.contains("Environment: External"))
     }
 
     // MARK: Deduplication
 
     @Test("primary not duplicated when also in workspaces list")
     func primaryNotDuplicated() async {
-        let primary = makeServerWS()
+        let primary = makeRuntimeWS()
         let section = WorkspacesContext(
             workspaces: [primary],
             primaryWorkspace: primary,
@@ -180,7 +180,7 @@ struct WorkspacesContextTests {
     func multipleAttachedWorkspaces() async {
         let ws1 = makeClientWS()
         let ws2 = WorkspaceReference(
-            uri: makeURI("/other/project"), hostType: .client, status: .active
+            uri: makeURI("/other/project"), hostType: .external, status: .active
         )
         let section = WorkspacesContext(
             workspaces: [ws1, ws2], primaryWorkspace: nil, clientName: nil

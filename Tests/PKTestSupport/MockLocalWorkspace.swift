@@ -10,8 +10,8 @@ public actor MockLocalWorkspace: WorkspaceProtocol {
 
     public init(rootURL: URL) {
         let ref = WorkspaceReference(
-            uri: WorkspaceURI(host: "pk-server", path: rootURL.path),
-            hostType: .server,
+            uri: WorkspaceURI(host: "pk-runtime", path: rootURL.path),
+            hostType: .runtime,
             rootPath: rootURL.path
         )
         self.reference = ref

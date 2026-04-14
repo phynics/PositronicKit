@@ -301,9 +301,9 @@ public struct WorkspacesContext: ContextSection {
             output.append("`\n  Environment: ")
 
             if isPrimary {
-                output.append("Server (Primary)\n")
+                output.append("Primary\n")
             } else {
-                output.append("Client\n")
+                output.append("External\n")
             }
 
             if !workspace.tools.isEmpty {

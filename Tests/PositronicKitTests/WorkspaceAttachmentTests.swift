@@ -14,7 +14,7 @@ private struct AttachmentFixture {
     let workspaceRoot: URL
 
     /// Saved workspace references — pre-seeded into persistence before tests run.
-    let serverWS: WorkspaceReference
+    let runtimeWS: WorkspaceReference
     let clientWS: WorkspaceReference
     let extraWS: WorkspaceReference
 
@@ -22,21 +22,21 @@ private struct AttachmentFixture {
         let persistence = MockPersistenceService()
         let workspaceRoot = getTestWorkspaceRoot().appendingPathComponent(UUID().uuidString)
 
-        let serverWS = WorkspaceReference(
-            uri: WorkspaceURI(host: "pk-server", path: "/agent/primary"),
-            hostType: .server,
+        let runtimeWS = WorkspaceReference(
+            uri: WorkspaceURI(host: "pk-runtime", path: "/agent/primary"),
+            hostType: .runtime,
             rootPath: workspaceRoot.appendingPathComponent("primary").path
         )
         let clientWS = WorkspaceReference(
             uri: WorkspaceURI(host: "user-mac", path: "/projects/app"),
-            hostType: .client
+            hostType: .external
         )
         let extraWS = WorkspaceReference(
             uri: WorkspaceURI(host: "user-mac", path: "/projects/lib"),
-            hostType: .client
+            hostType: .external
         )
 
-        try await persistence.saveWorkspace(serverWS)
+        try await persistence.saveWorkspace(runtimeWS)
         try await persistence.saveWorkspace(clientWS)
         try await persistence.saveWorkspace(extraWS)
 
@@ -44,7 +44,7 @@ private struct AttachmentFixture {
             manager: TimelineManager(workspaceRoot: workspaceRoot),
             persistence: persistence,
             workspaceRoot: workspaceRoot,
-            serverWS: serverWS,
+            runtimeWS: runtimeWS,
             clientWS: clientWS,
             extraWS: extraWS
         )
@@ -140,7 +140,7 @@ struct AttachWorkspaceTests {
             let timeline = try await fix.manager.createTimeline()
             try await fix.manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
 
-            // New manager, same persistence — simulates server restart
+            // New manager, same persistence — simulates runtime restart
             let freshManager = TimelineManager(workspaceRoot: fix.workspaceRoot)
             let workspaces = await freshManager.getWorkspaces(for: timeline.id)
             let attached = workspaces?.attached ?? []
@@ -269,12 +269,12 @@ struct GetWorkspacesTests {
         }
     }
 
-    @Test("server workspace with missing rootPath is marked .missing")
+    @Test("runtime workspace with missing rootPath is marked .missing")
     func serverMissingPath() async throws {
         try await withFixture { fix in
             let missingWS = WorkspaceReference(
-                uri: WorkspaceURI(host: "pk-server", path: "/agent/gone"),
-                hostType: .server,
+                uri: WorkspaceURI(host: "pk-runtime", path: "/agent/gone"),
+                hostType: .runtime,
                 rootPath: "/tmp/pk-test-definitely-does-not-exist-\(UUID().uuidString)"
             )
             try await fix.persistence.saveWorkspace(missingWS)
@@ -293,7 +293,7 @@ struct GetWorkspacesTests {
         try await withFixture { fix in
             let clientWithPath = WorkspaceReference(
                 uri: WorkspaceURI(host: "user-mac", path: "/projects/gone"),
-                hostType: .client,
+                hostType: .external,
                 rootPath: "/tmp/pk-test-definitely-does-not-exist-\(UUID().uuidString)"
             )
             try await fix.persistence.saveWorkspace(clientWithPath)
@@ -303,19 +303,19 @@ struct GetWorkspacesTests {
 
             let workspaces = await fix.manager.getWorkspaces(for: timeline.id)
             let ws = workspaces?.attached.first { $0.id == clientWithPath.id }
-            #expect(ws?.status != .missing, "Client workspace paths are not validated server-side")
+            #expect(ws?.status != .missing, "Client workspace paths are not validated runtime")
         }
     }
 
-    @Test("server workspace with existing path stays .active")
+    @Test("runtime workspace with existing path stays .active")
     func serverExistingPathActive() async throws {
         try await withFixture { fix in
             let existingDir = fix.workspaceRoot.appendingPathComponent("present-ws")
             try FileManager.default.createDirectory(at: existingDir, withIntermediateDirectories: true)
 
             let ws = WorkspaceReference(
-                uri: WorkspaceURI(host: "pk-server", path: "/agent/present"),
-                hostType: .server,
+                uri: WorkspaceURI(host: "pk-runtime", path: "/agent/present"),
+                hostType: .runtime,
                 rootPath: existingDir.path
             )
             try await fix.persistence.saveWorkspace(ws)
@@ -333,8 +333,8 @@ struct GetWorkspacesTests {
     func nilRootPathNotMissing() async throws {
         try await withFixture { fix in
             let wsNoPath = WorkspaceReference(
-                uri: WorkspaceURI(host: "pk-server", path: "/agent/no-path"),
-                hostType: .server,
+                uri: WorkspaceURI(host: "pk-runtime", path: "/agent/no-path"),
+                hostType: .runtime,
                 rootPath: nil
             )
             try await fix.persistence.saveWorkspace(wsNoPath)
@@ -357,18 +357,18 @@ struct WorkspaceRoundTripTests {
     func detachAll() async throws {
         try await withFixture { fix in
             let timeline = try await fix.manager.createTimeline()
-            try await fix.manager.attachWorkspace(fix.serverWS.id, to: timeline.id)
+            try await fix.manager.attachWorkspace(fix.runtimeWS.id, to: timeline.id)
             try await fix.manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
             try await fix.manager.attachWorkspace(fix.extraWS.id, to: timeline.id)
 
-            try await fix.manager.detachWorkspace(fix.serverWS.id, from: timeline.id)
+            try await fix.manager.detachWorkspace(fix.runtimeWS.id, from: timeline.id)
             try await fix.manager.detachWorkspace(fix.clientWS.id, from: timeline.id)
             try await fix.manager.detachWorkspace(fix.extraWS.id, from: timeline.id)
 
             let workspaces = await fix.manager.getWorkspaces(for: timeline.id)
             #expect(workspaces?.primary == nil)
             let attached = workspaces?.attached ?? []
-            #expect(!attached.contains { $0.id == fix.serverWS.id })
+            #expect(!attached.contains { $0.id == fix.runtimeWS.id })
             #expect(!attached.contains { $0.id == fix.clientWS.id })
             #expect(!attached.contains { $0.id == fix.extraWS.id })
         }

@@ -1,7 +1,7 @@
 import Foundation
 
 /// SCP-like URI for identifying workspaces
-/// Format: `host:path` (e.g., `macbook:~/dev/project`, `pk-server:/sessions/abc123`)
+/// Format: `host:path` (e.g., `macbook:~/dev/project`, `pk-runtime:/timelines/abc123`)
 public struct WorkspaceURI: Codable, Sendable, Hashable, CustomStringConvertible {
     public let host: String
     public let path: String
@@ -10,14 +10,14 @@ public struct WorkspaceURI: Codable, Sendable, Hashable, CustomStringConvertible
         "\(host):\(path)"
     }
 
-    /// Whether this workspace is hosted on the server
-    public var isServer: Bool {
+    /// Whether this workspace is hosted by the runtime
+    public var isRuntime: Bool {
         host.hasPrefix("pk-")
     }
 
-    /// Whether this workspace is hosted on a client
-    public var isClient: Bool {
-        !isServer
+    /// Whether this workspace is hosted externally
+    public var isExternal: Bool {
+        !isRuntime
     }
 
     public init(host: String, path: String) {
@@ -34,12 +34,12 @@ public struct WorkspaceURI: Codable, Sendable, Hashable, CustomStringConvertible
 
     /// Create an agent workspace URI
     public static func agentWorkspace(_ agentId: UUID) -> WorkspaceURI {
-        WorkspaceURI(host: "pk-server", path: "/agents/\(agentId.uuidString)")
+        WorkspaceURI(host: "pk-runtime", path: "/agents/\(agentId.uuidString)")
     }
 
-    /// Create a server timeline workspace URI
-    public static func serverTimeline(_ timelineId: UUID) -> WorkspaceURI {
-        WorkspaceURI(host: "pk-server", path: "/sessions/\(timelineId.uuidString)")
+    /// Create a timeline workspace URI owned by this runtime
+    public static func timelineWorkspace(_ timelineId: UUID) -> WorkspaceURI {
+        WorkspaceURI(host: "pk-runtime", path: "/timelines/\(timelineId.uuidString)")
     }
 
     /// Create a client shell workspace URI

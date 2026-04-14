@@ -18,7 +18,7 @@ import Foundation
         let ref = WorkspaceReference(
             id: UUID(),
             uri: WorkspaceURI(host: "local", path: "/tmp/test"),
-            hostType: .server
+            hostType: .runtime
         )
         try assertCodable(ref)
     }
@@ -30,7 +30,7 @@ import Foundation
         let ref = WorkspaceReference(
             id: UUID(),
             uri: WorkspaceURI(host: "macbook", path: "/Users/dev"),
-            hostType: .client,
+            hostType: .external,
             ownerId: ownerId,
             status: .missing
         )

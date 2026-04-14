@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Client Identity
 
-/// Represents a registered client that can connect to the server
+/// Represents a registered host that can connect to the runtime
 public struct ClientIdentity: Codable, Sendable, Identifiable {
     public let id: UUID
     public let hostname: String

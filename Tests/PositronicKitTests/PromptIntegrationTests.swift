@@ -73,8 +73,8 @@ struct PromptIntegrationTests {
     @Test("workspaceSectionOmitsConnectionStatus")
     func workspaceSectionOmitsConnectionStatus() async {
         let uri = WorkspaceURI(host: "test-host", path: "/projects/test")
-        let activeWS = WorkspaceReference(uri: uri, hostType: .client, status: .active)
-        let missingWS = WorkspaceReference(uri: uri, hostType: .client, status: .missing)
+        let activeWS = WorkspaceReference(uri: uri, hostType: .external, status: .active)
+        let missingWS = WorkspaceReference(uri: uri, hostType: .external, status: .missing)
 
         let sectionActive = WorkspacesContext(
             workspaces: [activeWS], primaryWorkspace: nil, clientName: nil
@@ -90,7 +90,7 @@ struct PromptIntegrationTests {
         #expect(!outputActive.contains("Disconnected"), "Active workspace should not show connection status")
         #expect(!outputMissing.contains("Connected"), "Missing workspace should not show connection status")
         #expect(!outputMissing.contains("Disconnected"), "Missing workspace should not show connection status")
-        #expect(outputActive.contains("Client"), "Workspace environment label should still appear")
+        #expect(outputActive.contains("External"), "Workspace environment label should still appear")
     }
 
     @Test("userQueryPreventsLeakageIntoSystem")

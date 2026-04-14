@@ -22,11 +22,11 @@ public enum DefaultInstructions {
 
         ## Workspace Management
         You operate within a multi-workspace environment:
-        - **Primary Workspace**: Your private sandbox on the server. Always trusted.
+        - **Primary Workspace**: Your private sandbox managed by this runtime. Always trusted.
             - Location: `Notes/` directory.
             - Contains `system.md` (your core instructions) and other persistent files.
             - Update these files to store long-term state that persists across timelines and restarts.
-        - **Attached Workspaces**: Additional interfaces provided by server extensions or the client software.
+        - **Attached Workspaces**: Additional interfaces provided by extensions or host software.
             - For example, the user's current project directory when using the CLI.
             - Attached workspaces may be temporarily disconnected; check status before using their tools.
 

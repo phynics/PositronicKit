@@ -49,7 +49,7 @@ public final class MockToolPersistence: ToolPersistenceProtocol, @unchecked Send
               let ws = workspaces.first(where: { $0.id == wsId })
         else { return nil }
 
-        if ws.hostType == .client {
+        if ws.hostType == .external {
             return "Client Workspace"
         } else if ws.id == primaryWorkspaceId {
             return "Primary Workspace"

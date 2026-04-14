@@ -16,12 +16,12 @@ struct AgentWorkspaceServiceTests {
                 AgentWorkspaceService(workspaceRoot: FileManager.default.temporaryDirectory)
             }
 
-        let uri = WorkspaceURI(host: "pk-server", path: "/test")
+        let uri = WorkspaceURI(host: "pk-runtime", path: "/test")
         let metadata: [String: AnyCodable] = ["key": .string("value")]
 
         let ws = try await repository.createWorkspace(
             uri: uri,
-            hostType: .server,
+            hostType: .runtime,
             rootPath: "/tmp/ws",
             metadata: metadata
         )
@@ -46,8 +46,8 @@ struct AgentWorkspaceServiceTests {
             }
 
         let ws = WorkspaceReference(
-            uri: .serverTimeline(UUID()),
-            hostType: .server,
+            uri: .timelineWorkspace(UUID()),
+            hostType: .runtime,
             rootPath: "/path",
             metadata: ["test": .boolean(true)]
         )
@@ -68,8 +68,8 @@ struct AgentWorkspaceServiceTests {
                 AgentWorkspaceService(workspaceRoot: FileManager.default.temporaryDirectory)
             }
 
-        let ws1 = WorkspaceReference(uri: .serverTimeline(UUID()), hostType: .server)
-        let ws2 = WorkspaceReference(uri: .serverTimeline(UUID()), hostType: .server)
+        let ws1 = WorkspaceReference(uri: .timelineWorkspace(UUID()), hostType: .runtime)
+        let ws2 = WorkspaceReference(uri: .timelineWorkspace(UUID()), hostType: .runtime)
         try await persistence.saveWorkspace(ws1)
         try await persistence.saveWorkspace(ws2)
 
@@ -88,7 +88,7 @@ struct AgentWorkspaceServiceTests {
                 AgentWorkspaceService(workspaceRoot: FileManager.default.temporaryDirectory)
             }
 
-        let ws = WorkspaceReference(uri: .serverTimeline(UUID()), hostType: .server)
+        let ws = WorkspaceReference(uri: .timelineWorkspace(UUID()), hostType: .runtime)
         try await persistence.saveWorkspace(ws)
 
         try await repository.deleteWorkspace(id: ws.id)
@@ -105,7 +105,7 @@ struct AgentWorkspaceServiceTests {
                 AgentWorkspaceService(workspaceRoot: FileManager.default.temporaryDirectory)
             }
 
-        var ws = WorkspaceReference(uri: .serverTimeline(UUID()), hostType: .server)
+        var ws = WorkspaceReference(uri: .timelineWorkspace(UUID()), hostType: .runtime)
         try await persistence.saveWorkspace(ws)
 
         ws.status = .missing

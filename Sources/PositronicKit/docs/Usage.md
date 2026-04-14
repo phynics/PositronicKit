@@ -134,7 +134,7 @@ for try await event in stream {
 
 ### Handling Tool Outputs
 
-If the agent calls a tool that requires client-side execution (e.g., a local file system tool not handled by the server), you can submit the outputs in a follow-up turn.
+If the agent calls a tool that requires host-side execution (e.g., a local file system tool not handled by the runtime), you can submit the outputs in a follow-up turn.
 
 ```swift
 let toolOutputs = [

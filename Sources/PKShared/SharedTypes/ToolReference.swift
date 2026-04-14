@@ -2,8 +2,8 @@ import Foundation
 
 /// Reference to a tool available in a workspace
 public enum ToolReference: Codable, Sendable, Hashable {
-    case known(id: String)  // Server-known tool by ID
-    case custom(definition: WorkspaceToolDefinition)  // Client-provided definition
+    case known(id: String)  // Runtime-known tool by ID
+    case custom(definition: WorkspaceToolDefinition)  // Host-provided definition
 
     /// The tool ID regardless of type
     public var toolId: String {
@@ -19,7 +19,7 @@ public enum ToolReference: Codable, Sendable, Hashable {
     public var displayName: String {
         switch self {
         case .known(let id):
-            return id  // Server will resolve actual name
+            return id  // Runtime will resolve actual name
         case .custom(let definition):
             return definition.name
         }
@@ -29,7 +29,7 @@ public enum ToolReference: Codable, Sendable, Hashable {
     public var contextInjection: String? {
         switch self {
         case .known:
-            return nil  // Server tools don't have injected context yet
+            return nil  // Built-in tools don't have injected context yet
         case .custom(let definition):
             return definition.contextInjection
         }

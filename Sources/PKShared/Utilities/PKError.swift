@@ -22,7 +22,7 @@ public extension PKError {
 public enum PKErrorDomain {
     public static let shared = "com.positronickit.shared"
     public static let client = "com.positronickit.client"
-    public static let server = "com.positronickit.server"
+    public static let runtime = "com.positronickit.runtime"
     public static let llm = "com.positronickit.core.llm"
     public static let context = "com.positronickit.core.context"
     public static let workspace = "com.positronickit.core.workspace"

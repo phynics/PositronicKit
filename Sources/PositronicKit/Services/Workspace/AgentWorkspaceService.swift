@@ -67,7 +67,7 @@ public actor AgentWorkspaceService: AgentWorkspaceServiceProtocol {
         // 3. Persist and return reference
         return try await createWorkspace(
             uri: .agentWorkspace(instanceId),
-            hostType: .server,
+            hostType: .runtime,
             ownerId: nil,
             rootPath: agentWorkspaceURL.path,
             metadata: metadata

@@ -119,7 +119,7 @@ public struct ChatEngine: Sendable {
                 messages: loopMessages
             )
 
-            // Execute one turn (LLM call + automatic server-side tool routing)
+            // Execute one turn (LLM call + automatic runtime tool routing)
             let signal = await runOneTurn(continuation: continuation, context: turnContext)
 
             // Accumulate thinking and response manually from the current turn
