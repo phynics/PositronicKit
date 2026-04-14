@@ -149,4 +149,23 @@ struct PromptAssemblyTests {
         #expect(sections.count == 1)
         #expect(sections.first?.id == "override_assembly")
     }
+
+    @Test("PromptBuilder rejects duplicate section ids")
+    func promptBuilder_rejectsDuplicateSectionIDs() async {
+        struct DuplicateStage: PromptAssemblyStage {
+            func execute(_ context: PromptAssemblyContext) async throws {
+                await context.append([
+                    PromptAssemblyTests.MockSection(id: "duplicate", content: "one"),
+                    PromptAssemblyTests.MockSection(id: "duplicate", content: "two"),
+                ])
+            }
+        }
+
+        let request = makeRequest(userQuery: "test")
+        let pipeline = PromptAssemblyPipeline(stages: [DuplicateStage()])
+
+        await #expect(throws: PromptSectionValidationError.self) {
+            _ = try await PromptBuilder.buildContext(request, overridePipeline: pipeline)
+        }
+    }
 }

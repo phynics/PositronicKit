@@ -1,4 +1,5 @@
 import Foundation
+import PKShared
 
 /// Strategy for ensuring the prompt fits within a token limit
 public struct TokenBudget: Sendable {
@@ -42,6 +43,7 @@ public struct TokenBudget: Sendable {
         planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
         executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
     ) async -> (sections: [ContextSection], report: CompressionReport?) {
+        assertUniqueSectionIDs(sections, context: "TokenBudget.applyWithReport")
         let available = maxTokens - reserveForResponse
         let currentTotal = sections.reduce(0) { $0 + $1.estimatedTokens }
 
@@ -60,7 +62,7 @@ public struct TokenBudget: Sendable {
             )
             let structuredResult = await executor.execute(plan: plan, sections: sections, compressor: compressor)
             let structuredTotal = structuredResult.sections.reduce(0) { $0 + $1.estimatedTokens }
-            if structuredTotal <= available || plan.nodeActions.contains(where: { $0.strategy == .keep }) {
+            if structuredTotal <= available {
                 return (structuredResult.sections, structuredResult.report)
             }
         }
@@ -202,10 +204,12 @@ public struct TokenBudget: Sendable {
     }
 
     private func defaultNodeHash(for section: ContextSection) -> UInt64 {
-        var hasher = Hasher()
-        hasher.combine(section.id)
-        hasher.combine(section.estimatedTokens)
-        return UInt64(bitPattern: Int64(hasher.finalize()))
+        StableHash.hash(components: [
+            section.id,
+            String(section.estimatedTokens),
+            String(section.priority),
+            String(describing: section.cachePolicy),
+        ])
     }
 
     private enum SectionDecision {

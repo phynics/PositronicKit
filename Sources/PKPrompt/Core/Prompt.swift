@@ -10,6 +10,7 @@ public struct Prompt: Sendable {
     /// Initializes a new prompt from an array of sections.
     /// - Parameter sections: The raw sections to include. They will be sorted for optimal prompt construction.
     public init(sections: [ContextSection], compressionReport: CompressionReport? = nil) {
+        assertUniqueSectionIDs(sections, context: "Prompt.init(sections:)")
         self.sections = sections.sorted {
             if $0.cachePolicy != $1.cachePolicy {
                 return $0.cachePolicy < $1.cachePolicy // stable < semiStable < volatile
@@ -41,6 +42,7 @@ public struct Prompt: Sendable {
     /// Use this to avoid double-rendering when content is needed by multiple consumers
     /// (e.g. `toMessages()` and `TimelinePromptHistory.record()`).
     public func renderAll() async -> [String: String] {
+        assertUniqueSectionIDs(sections, context: "Prompt.renderAll")
         var result: [String: String] = [:]
         for section in sections {
             if let content = await section.render(), !content.isEmpty {

@@ -30,7 +30,7 @@ public struct TextSection: ContextSection {
     public var estimatedTokens: Int {
         // Fallback if no estimator is available at this level
         // In real usage, one would inject an estimator or use a more specific type
-        _estimatedTokens ?? (text.count / 4)
+        _estimatedTokens ?? (text.isEmpty ? 0 : max(1, text.count / 4))
     }
 }
 

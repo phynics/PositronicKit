@@ -34,7 +34,14 @@ public struct JournalDiff<Entry: PipelineSnapshotEntry>: Sendable {
     public let subtreeDiff: SubtreeDiff?
 
     public var hasChanges: Bool {
-        !changed.isEmpty || !added.isEmpty || !removed.isEmpty
+        !changed.isEmpty || !added.isEmpty || !removed.isEmpty || hasSubtreeChanges
+    }
+
+    private var hasSubtreeChanges: Bool {
+        guard let subtreeDiff else { return false }
+        return !subtreeDiff.changedNodePaths.isEmpty
+            || !subtreeDiff.addedNodePaths.isEmpty
+            || !subtreeDiff.removedNodePaths.isEmpty
     }
 
     public static func initial(entries: [Entry]) -> JournalDiff<Entry> {

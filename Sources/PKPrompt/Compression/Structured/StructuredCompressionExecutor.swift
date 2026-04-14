@@ -7,28 +7,36 @@ public actor StructuredCompressionExecutor {
     }
 
     private var summaryCache: [SummaryCacheKey: String] = [:]
+    private var summaryCacheInsertionOrder: [SummaryCacheKey] = []
+    private let maxSummaryCacheEntries: Int
 
-    public init() {}
+    public init(maxSummaryCacheEntries: Int = 256) {
+        self.maxSummaryCacheEntries = max(1, maxSummaryCacheEntries)
+    }
 
     public func execute(
         plan: StructuredCompressionPlan,
         sections: [ContextSection],
         compressor: SectionCompressor?
     ) async -> StructuredExecutionResult {
+        assertUniqueSectionIDs(sections, context: "StructuredCompressionExecutor.execute sections")
+        precondition(
+            Set(plan.nodeActions.map(\.nodeId)).count == plan.nodeActions.count,
+            "Duplicate planned node ids are not supported"
+        )
         let actionById = Dictionary(uniqueKeysWithValues: plan.nodeActions.map { ($0.nodeId, $0) })
+        let sectionsById = Dictionary(uniqueKeysWithValues: sections.map { ($0.id, $0) })
 
         let sortedPlanActions = plan.nodeActions.sorted { lhs, rhs in
             if lhs.path.count != rhs.path.count { return lhs.path.count > rhs.path.count }
             return lhs.path.lexicographicallyPrecedes(rhs.path)
         }
 
-        var processedIds: Set<String> = []
         var reportsById: [String: CompressionNodeReport] = [:]
         var transformedSectionsById: [String: ContextSection] = [:]
 
         for planned in sortedPlanActions {
-            processedIds.insert(planned.nodeId)
-            guard let section = sections.first(where: { $0.id == planned.nodeId }) else { continue }
+            guard let section = sectionsById[planned.nodeId] else { continue }
 
             let output = await applyAction(planned, section: section, compressor: compressor)
             transformedSectionsById[planned.nodeId] = output.section
@@ -165,7 +173,7 @@ public actor StructuredCompressionExecutor {
                     )
                 }
 
-                summaryCache[cacheKey] = summary
+                insertSummaryCache(summary, for: cacheKey)
                 let summaryTokens = max(1, summary.count / 4)
                 return (
                     SummarizedSection(base: section, summary: summary, estimatedTokens: summaryTokens),
@@ -209,6 +217,18 @@ public actor StructuredCompressionExecutor {
                     fallbackReason: nil
                 )
             )
+        }
+    }
+
+    private func insertSummaryCache(_ summary: String, for key: SummaryCacheKey) {
+        if summaryCache[key] == nil {
+            summaryCacheInsertionOrder.append(key)
+        }
+        summaryCache[key] = summary
+
+        while summaryCacheInsertionOrder.count > maxSummaryCacheEntries {
+            let evicted = summaryCacheInsertionOrder.removeFirst()
+            summaryCache.removeValue(forKey: evicted)
         }
     }
 }

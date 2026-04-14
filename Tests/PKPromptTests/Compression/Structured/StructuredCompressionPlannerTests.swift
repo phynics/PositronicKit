@@ -13,9 +13,7 @@ struct StructuredCompressionPlannerTests {
 
         let diff = StructuredDiffHint(
             changedNodePaths: [["prompt", "volatile", "history"]],
-            stableNodePaths: [["prompt", "stable", "system"]],
-            addedNodePaths: [],
-            removedNodePaths: []
+            stableNodePaths: [["prompt", "stable", "system"]]
         )
 
         let plan = planner.plan(nodes: nodes, availableTokens: 450, diff: diff)

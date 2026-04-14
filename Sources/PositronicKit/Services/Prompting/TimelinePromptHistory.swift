@@ -1,5 +1,6 @@
 import Foundation
 import PKPrompt
+import PKShared
 
 // MARK: - Snapshot Types
 
@@ -100,6 +101,7 @@ public actor TimelinePromptHistory {
     /// - Returns: A diff describing what changed since the last recording.
     @discardableResult
     public func record(sections: [ContextSection], renderedContent: [String: String]) -> PromptDiff {
+        assertUniqueSectionIDs(sections, context: "TimelinePromptHistory.record")
         var entries: [PromptSectionEntry] = []
         for (index, section) in sections.enumerated() {
             let content = renderedContent[section.id] ?? ""
@@ -153,9 +155,7 @@ public actor TimelinePromptHistory {
         guard let lastDiff else { return nil }
         return StructuredDiffHint(
             changedNodePaths: lastDiff.changedNodePaths,
-            stableNodePaths: lastDiff.stableNodePaths,
-            addedNodePaths: lastDiff.addedNodePaths,
-            removedNodePaths: lastDiff.removedNodePaths
+            stableNodePaths: lastDiff.stableNodePaths
         )
     }
 
@@ -166,11 +166,16 @@ public actor TimelinePromptHistory {
         var metadata: [String: StructuredNodeMetadata] = [:]
         for section in sections {
             let content = renderedContent[section.id] ?? ""
-            var hasher = Hasher()
-            hasher.combine(content)
+            let path = ["prompt", String(describing: section.cachePolicy), section.id]
             metadata[section.id] = StructuredNodeMetadata(
-                path: ["prompt", String(describing: section.cachePolicy), section.id],
-                nodeHash: UInt64(bitPattern: Int64(hasher.finalize()))
+                path: path,
+                nodeHash: StableHash.hash(components: [
+                    section.id,
+                    String(section.estimatedTokens),
+                    String(section.priority),
+                    String(describing: section.cachePolicy),
+                    content,
+                ])
             )
         }
         return metadata

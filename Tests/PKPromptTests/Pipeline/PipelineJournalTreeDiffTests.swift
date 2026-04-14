@@ -51,4 +51,20 @@ struct PipelineJournalTreeDiffTests {
         #expect(diff.changed.count == 1)
         #expect(diff.subtreeDiff == nil)
     }
+
+    @Test("Reports changes when hierarchy path changes without content hash changes")
+    func pathOnlyHierarchyChangeCountsAsChange() {
+        var journal = PipelineJournal<JournalSnapshot>()
+        _ = journal.record(.init(entries: [
+            .init(entryId: "node", content: "A", path: ["prompt", "stable", "node"], parentEntryId: nil, order: 0, sectionKind: .section),
+        ]))
+
+        let diff = journal.record(.init(entries: [
+            .init(entryId: "node", content: "A", path: ["prompt", "volatile", "node"], parentEntryId: nil, order: 0, sectionKind: .section),
+        ]))
+
+        #expect(diff.subtreeDiff?.addedNodePaths == [["prompt", "volatile", "node"]])
+        #expect(diff.subtreeDiff?.removedNodePaths == [["prompt", "stable", "node"]])
+        #expect(diff.hasChanges)
+    }
 }

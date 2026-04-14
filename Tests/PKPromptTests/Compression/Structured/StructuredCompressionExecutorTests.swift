@@ -71,6 +71,43 @@ struct StructuredCompressionExecutorTests {
 
         #expect(counter.value == 1)
     }
+
+    @Test("Evicts oldest summaries when cache reaches capacity")
+    func evictsOldestSummaries() async {
+        let section1: [ContextSection] = [
+            MockContextSection(id: "s1", priority: 1, estimatedTokens: 300, strategy: .summarize, renderedContent: "Body 1"),
+        ]
+        let section2: [ContextSection] = [
+            MockContextSection(id: "s2", priority: 1, estimatedTokens: 300, strategy: .summarize, renderedContent: "Body 2"),
+        ]
+
+        let plan1 = StructuredCompressionPlan(
+            availableTokens: 50,
+            totalEstimatedTokens: 300,
+            nodeActions: [
+                .init(nodeId: "s1", path: ["prompt", "volatile", "s1"], nodeHash: 100, strategy: .summarize, estimatedTokens: 300, action: .summarize(targetTokens: 20, reason: .budgetReduction)),
+            ]
+        )
+        let plan2 = StructuredCompressionPlan(
+            availableTokens: 50,
+            totalEstimatedTokens: 300,
+            nodeActions: [
+                .init(nodeId: "s2", path: ["prompt", "volatile", "s2"], nodeHash: 200, strategy: .summarize, estimatedTokens: 300, action: .summarize(targetTokens: 20, reason: .budgetReduction)),
+            ]
+        )
+
+        let counter = LockedCounter()
+        let compressor = RecordingCompressor(result: "summary") { _ in
+            counter.increment()
+        }
+        let executor = StructuredCompressionExecutor(maxSummaryCacheEntries: 1)
+
+        _ = await executor.execute(plan: plan1, sections: section1, compressor: compressor)
+        _ = await executor.execute(plan: plan2, sections: section2, compressor: compressor)
+        _ = await executor.execute(plan: plan1, sections: section1, compressor: compressor)
+
+        #expect(counter.value == 3)
+    }
 }
 
 private final class LockedCounter: @unchecked Sendable {

@@ -196,9 +196,7 @@ struct MockCompressor: SectionCompressor {
         ]
         let diff = StructuredDiffHint(
             changedNodePaths: [["prompt", "volatile", "changed"]],
-            stableNodePaths: [["prompt", "stable", "stable"]],
-            addedNodePaths: [],
-            removedNodePaths: []
+            stableNodePaths: [["prompt", "stable", "stable"]]
         )
         let metadata: [String: StructuredNodeMetadata] = [
             "stable": .init(path: ["prompt", "stable", "stable"], nodeHash: 1),
@@ -232,5 +230,27 @@ struct MockCompressor: SectionCompressor {
         )
 
         #expect(result.contains { $0.id == "must_keep" })
+    }
+
+    @Test
+    func testApplyStructuredFallsBackWhenStructuredResultStillOverBudget() async {
+        let budget = TokenBudget(maxTokens: 1000, reserveForResponse: 0)
+        let sections: [ContextSection] = [
+            MockContextSection(id: "keep_small", priority: 100, estimatedTokens: 100, strategy: .keep, renderedContent: "keep"),
+            MockContextSection(id: "summarize_large", priority: 1, estimatedTokens: 950, strategy: .summarize, renderedContent: "very long body")
+        ]
+
+        let metadata: [String: StructuredNodeMetadata] = [
+            "keep_small": .init(path: ["prompt", "volatile", "keep_small"], nodeHash: 1),
+            "summarize_large": .init(path: ["prompt", "volatile", "summarize_large"], nodeHash: 2),
+        ]
+
+        // Structured plan budgets summarize_large down, but executor can still return a huge summary.
+        // In that case we should run the default allocator fallback and drop summarize_large.
+        let compressor = MockCompressor(summarizedText: String(repeating: "x", count: 5000))
+        let result = await budget.apply(to: sections, compressor: compressor, nodeMetadata: metadata)
+
+        #expect(result.count == 1)
+        #expect(result[0].id == "keep_small")
     }
 }

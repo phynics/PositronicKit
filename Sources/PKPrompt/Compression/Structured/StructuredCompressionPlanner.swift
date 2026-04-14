@@ -8,6 +8,10 @@ public struct StructuredCompressionPlanner: Sendable {
         availableTokens: Int,
         diff: StructuredDiffHint?
     ) -> StructuredCompressionPlan {
+        precondition(
+            Set(nodes.map(\.id)).count == nodes.count,
+            "Duplicate structured node ids are not supported"
+        )
         let totalEstimated = nodes.reduce(0) { $0 + $1.estimatedTokens }
         guard totalEstimated > availableTokens else {
             return StructuredCompressionPlan(
@@ -107,14 +111,13 @@ public struct StructuredCompressionPlanner: Sendable {
         case .summarize:
             guard remainingTokens > 0 else { return .drop }
             let target = max(1, min(remainingTokens, node.estimatedTokens / 3))
-            let reason: CompressionReason = isStableNode ? .unchangedNode : .budgetReduction
-            return .summarize(targetTokens: target, reason: reason)
+            return .summarize(targetTokens: target, reason: .budgetReduction)
         case .drop:
             return .drop
         }
     }
 
     private func pathKey(_ path: [String]) -> String {
-        path.joined(separator: "/")
+        path.map { "\($0.count):\($0)" }.joined(separator: "|")
     }
 }

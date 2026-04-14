@@ -67,19 +67,24 @@ public enum PromptBuilder {
         for try await _ in stream {}
 
         let sections = await assemblyContext.sections
+        try validateUniqueSectionIDs(sections)
 
         guard let tokenBudget else {
             return Prompt(sections: sections)
         }
 
-        let metadata = sections.reduce(into: [String: StructuredNodeMetadata]()) { acc, section in
-            var hasher = Hasher()
-            hasher.combine(section.id)
-            hasher.combine(section.estimatedTokens)
-            hasher.combine(String(describing: section.cachePolicy))
-            acc[section.id] = StructuredNodeMetadata(
+        var metadata: [String: StructuredNodeMetadata] = [:]
+        for section in sections {
+            let rendered = await section.render() ?? ""
+            metadata[section.id] = StructuredNodeMetadata(
                 path: ["prompt", String(describing: section.cachePolicy), section.id],
-                nodeHash: UInt64(bitPattern: Int64(hasher.finalize()))
+                nodeHash: StableHash.hash(components: [
+                    section.id,
+                    String(section.estimatedTokens),
+                    String(section.priority),
+                    String(describing: section.cachePolicy),
+                    rendered,
+                ])
             )
         }
 

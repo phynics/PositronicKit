@@ -8,7 +8,7 @@ public struct PipelineJournal<S: PipelineSnapshot>: Sendable {
     public private(set) var tree: HashTree?
     
     /// The structural state hash of the pipeline.
-    /// This is an associative hash guaranteed to verify the exact state,
+    /// This is an associative hash used as a fast fingerprint,
     /// so that `hash(base + diff) = hash(base) &+ hash(diff)`.
     public var stateHash: UInt64 {
         tree?.stateHash ?? 0
@@ -107,7 +107,7 @@ public struct PipelineJournal<S: PipelineSnapshot>: Sendable {
 
     private func buildSubtreeDiff(previous: [S.Entry], current: [S.Entry]) -> JournalDiff<S.Entry>.SubtreeDiff {
         func pathKey(_ path: [String]) -> String {
-            path.joined(separator: "/")
+            path.map { "\($0.count):\($0)" }.joined(separator: "|")
         }
 
         var previousByPath: [String: UInt64] = [:]

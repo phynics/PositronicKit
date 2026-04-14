@@ -2,9 +2,6 @@ import Foundation
 
 public enum CompressionReason: String, Sendable, Equatable {
     case budgetReduction
-    case unchangedNode
-    case unavailableBudget
-    case explicitDropStrategy
 }
 
 public enum CompressionAction: Sendable, Equatable {
@@ -92,18 +89,12 @@ public struct StructuredNodeMetadata: Sendable, Equatable {
 public struct StructuredDiffHint: Sendable, Equatable {
     public let changedNodePaths: [[String]]
     public let stableNodePaths: [[String]]
-    public let addedNodePaths: [[String]]
-    public let removedNodePaths: [[String]]
 
     public init(
         changedNodePaths: [[String]],
-        stableNodePaths: [[String]],
-        addedNodePaths: [[String]],
-        removedNodePaths: [[String]]
+        stableNodePaths: [[String]]
     ) {
         self.changedNodePaths = changedNodePaths
         self.stableNodePaths = stableNodePaths
-        self.addedNodePaths = addedNodePaths
-        self.removedNodePaths = removedNodePaths
     }
 }

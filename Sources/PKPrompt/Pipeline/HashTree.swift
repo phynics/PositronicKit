@@ -25,14 +25,14 @@ public enum HashTreeNode: Sendable {
     }
 }
 
-/// A structure providing a verifiable, mathematical representation of pipeline state.
+/// A structure providing an associative structural fingerprint of pipeline state.
 public struct HashTree: Sendable {
     public let root: HashTreeNode?
     public let semanticRoots: [HashTreeHierarchyNode]
     
     /// The associative state hash.
     /// Because we use associative modular addition, `hash(base + diff) = hash(base) &+ hash(diff)`.
-    /// This allows API users to definitively identify the exact structural state of the pipeline.
+    /// This is useful as a fast fingerprint, but it is not a cryptographic proof of exact state.
     public let stateHash: UInt64
     
     public init(entries: [any PipelineSnapshotEntry]) {
