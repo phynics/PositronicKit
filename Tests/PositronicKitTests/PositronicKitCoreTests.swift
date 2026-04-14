@@ -23,7 +23,7 @@ struct PositronicKitCoreTests {
             message: message
         )
 
-        #expect(stream != nil)
+        for try await _ in stream {}
     }
 
     @Test

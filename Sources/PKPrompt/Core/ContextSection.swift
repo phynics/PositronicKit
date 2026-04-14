@@ -210,6 +210,16 @@ public extension ContextSection {
     func cachePolicy(_ value: CachePolicy) -> some ContextSection {
         CachePolicyModifier(content: self, cachePolicy: value)
     }
+
+    func render() async -> String? {
+        let parts = await resolve(in: ContextSectionResolutionContext()).asyncCompactMap { section in
+            await section.render()
+        }
+        guard !parts.isEmpty else {
+            return nil
+        }
+        return parts.joined(separator: "\n\n---\n\n")
+    }
 }
 
 public protocol PrimitiveContextSection: ContextSection {
@@ -439,5 +449,18 @@ public struct CachePolicyModifier<Content: ContextSection>: ContextSection {
 
     public func resolve(in context: ContextSectionResolutionContext) -> [ResolvedContextSection] {
         content.resolve(in: context.applying(cachePolicy: cachePolicy))
+    }
+}
+
+private extension Array {
+    func asyncCompactMap<T: Sendable>(_ transform: @escaping @Sendable (Element) async -> T?) async -> [T] {
+        var result: [T] = []
+        result.reserveCapacity(count)
+        for element in self {
+            if let value = await transform(element) {
+                result.append(value)
+            }
+        }
+        return result
     }
 }

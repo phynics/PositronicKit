@@ -2,30 +2,25 @@ import Foundation
 import PKPrompt
 import PKShared
 
-public struct SystemInstructions: PrimitiveContextSection {
-    public let id = "system"
-    public let role: PromptSectionRole = .system
-    public let priority = 100
-    public let cachePolicy: CachePolicy = .stable
-    public let compression: CompressionStrategy = .keep
-    public let type: ContextSectionType = .text
+public struct SystemInstructions: ContextSection {
     public let instructions: String
 
     public init(_ instructions: String) {
         self.instructions = instructions
     }
 
-    public func renderContent() async -> String? {
-        guard !instructions.isEmpty else { return nil }
-        return """
-        # System Instructions
+    @ContextBuilder
+    public var body: some ContextSection {
+        if !instructions.isEmpty {
+            SystemPrompt(
+                """
+                # System Instructions
 
-        \(instructions)
-        """
-    }
-
-    public var estimatedTokens: Int {
-        TokenEstimator.estimate(text: instructions)
+                \(instructions)
+                """,
+                estimatedTokens: TokenEstimator.estimate(text: instructions)
+            )
+        }
     }
 }
 
@@ -91,29 +86,15 @@ public struct Tools: PrimitiveContextSection {
     }
 }
 
-public struct ChatHistory: PrimitiveContextSection {
-    public let id = "chat_history"
-    public let role: PromptSectionRole = .chatHistory
-    public let priority = 70
-    public let cachePolicy: CachePolicy = .volatile
-    public let compression: CompressionStrategy = .truncate(tail: false)
-    public let type: ContextSectionType = .list
+public struct ChatHistory: ContextSection {
     public let messages: [Message]
 
     public init(_ messages: [Message]) {
         self.messages = messages
     }
 
-    public var historyMessages: [Message]? {
-        messages
-    }
-
-    public func renderContent() async -> String? {
-        nil
-    }
-
-    public var estimatedTokens: Int {
-        TokenEstimator.estimate(parts: messages.map(\.content))
+    public var body: some ContextSection {
+        HistoryPrompt(messages)
     }
 
     public func constrained(to tokens: Int) -> ChatHistory {
@@ -132,6 +113,10 @@ public struct ChatHistory: PrimitiveContextSection {
         }
 
         return ChatHistory(Array(messages.suffix(keepCount)))
+    }
+
+    public var estimatedTokens: Int {
+        TokenEstimator.estimate(parts: messages.map(\.content))
     }
 }
 
@@ -173,26 +158,15 @@ public struct ContextNotes: PrimitiveContextSection {
     }
 }
 
-public struct UserQuery: PrimitiveContextSection {
-    public let id = "user_query"
-    public let role: PromptSectionRole = .userQuery
-    public let priority = 10
-    public let cachePolicy: CachePolicy = .volatile
-    public let compression: CompressionStrategy = .keep
-    public let type: ContextSectionType = .text
+public struct UserQuery: ContextSection {
     public let query: String
 
     public init(_ query: String) {
         self.query = query
     }
 
-    public func renderContent() async -> String? {
-        guard !query.isEmpty else { return nil }
-        return query
-    }
-
-    public var estimatedTokens: Int {
-        TokenEstimator.estimate(text: query)
+    public var body: some ContextSection {
+        UserPrompt(query, estimatedTokens: TokenEstimator.estimate(text: query))
     }
 }
 
@@ -274,13 +248,7 @@ public struct WorkspacesContext: PrimitiveContextSection {
     }
 }
 
-public struct AgentContext: PrimitiveContextSection {
-    public let id = "agent_context"
-    public let role: PromptSectionRole = .system
-    public let priority = 95
-    public let cachePolicy: CachePolicy = .stable
-    public let compression: CompressionStrategy = .keep
-    public let type: ContextSectionType = .text
+public struct AgentContext: ContextSection {
     public let agent: AgentInstance
     public let timelineTitle: String?
 
@@ -289,7 +257,16 @@ public struct AgentContext: PrimitiveContextSection {
         self.timelineTitle = timelineTitle
     }
 
-    public func renderContent() async -> String? {
+    public var body: some ContextSection {
+        SystemPrompt(
+            text,
+            id: "agent_context",
+            priority: 95,
+            estimatedTokens: TokenEstimator.estimate(text: agent.name + agent.description) + 30
+        )
+    }
+
+    private var text: String {
         var lines: [String] = [
             "## Your Identity",
             "You are **\(agent.name)**.",
@@ -303,34 +280,26 @@ public struct AgentContext: PrimitiveContextSection {
         lines.append("Your private workspace contains your persistent memory (`Notes/` directory).")
         return lines.joined(separator: "\n")
     }
-
-    public var estimatedTokens: Int {
-        TokenEstimator.estimate(text: agent.name + agent.description) + 30
-    }
 }
 
-public struct TimelineContext: PrimitiveContextSection {
-    public let id = "timeline_context"
-    public let role: PromptSectionRole = .context
-    public let priority = 72
-    public let cachePolicy: CachePolicy = .semiStable
-    public let compression: CompressionStrategy = .keep
-    public let type: ContextSectionType = .text
+public struct TimelineContext: ContextSection {
     public let timeline: Timeline
 
     public init(_ timeline: Timeline) {
         self.timeline = timeline
     }
 
-    public func renderContent() async -> String? {
-        """
-        ## Current Timeline
-        - ID: `\(timeline.id.uuidString)`
-        - Title: \(timeline.title)
-        """
-    }
-
-    public var estimatedTokens: Int {
-        TokenEstimator.estimate(text: timeline.title) + 20
+    public var body: some ContextSection {
+        ContextPrompt(
+            """
+            ## Current Timeline
+            - ID: `\(timeline.id.uuidString)`
+            - Title: \(timeline.title)
+            """,
+            id: "timeline_context",
+            priority: 72,
+            cachePolicy: .semiStable,
+            estimatedTokens: TokenEstimator.estimate(text: timeline.title) + 20
+        )
     }
 }

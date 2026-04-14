@@ -38,7 +38,7 @@ struct GenerationParametersTests {
         for try await _ in stream {}
         
         // 3. Verify parameters reached the LLM client
-        let lastParams = await mockLLM.mockClient.lastParameters
+        let lastParams = mockLLM.mockClient.lastParameters
         #expect(lastParams?.temperature == 0.7)
         #expect(lastParams?.maxTokens == 100)
     }
@@ -78,7 +78,7 @@ struct GenerationParametersTests {
         for try await _ in stream {}
         
         // 3. Verify override parameters reached the LLM client
-        let lastParams = await mockLLM.mockClient.lastParameters
+        let lastParams = mockLLM.mockClient.lastParameters
         #expect(lastParams?.temperature == 0.2)
         #expect(lastParams?.maxTokens == 500)
         #expect(lastParams?.topP == 0.9)
@@ -87,7 +87,6 @@ struct GenerationParametersTests {
     @Test
     func testNilParametersPropagation() async throws {
         let mockLLM = MockLLMService()
-        let mockPersistence = MockPersistenceService()
         let timelineId = UUID()
         
         // 1. Setup PositronicKitCore without any default parameters
@@ -103,7 +102,7 @@ struct GenerationParametersTests {
         for try await _ in stream {}
         
         // 3. Verify nil parameters reached the LLM client (meaning it will fall back to LLM config)
-        let lastParams = await mockLLM.mockClient.lastParameters
+        let lastParams = mockLLM.mockClient.lastParameters
         #expect(lastParams == nil)
     }
 }

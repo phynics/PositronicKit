@@ -24,7 +24,7 @@ struct LoopDetectionTests {
     }
 
     @Test("Test loop detection triggers after 3 identical calls")
-    func loopDetection() async throws {
+    func loopDetection() async {
         let tool = MockTool()
         let toolManager = TimelineToolManager(availableTools: [AnyTool(tool)])
         let executor = ToolExecutor(toolManager: toolManager)
@@ -32,46 +32,46 @@ struct LoopDetectionTests {
         let toolCall = ToolCall(name: "mock_tool", arguments: ["arg": AnyCodable(1)])
 
         // Call 1
-        let res1 = try await executor.execute(toolCall)
+        let res1 = await executor.execute(toolCall)
         #expect(res1.content == "Executed")
 
         // Call 2
-        let res2 = try await executor.execute(toolCall)
+        let res2 = await executor.execute(toolCall)
         #expect(res2.content == "Executed")
 
         // Call 3 - should trigger loop detection
-        let res3 = try await executor.execute(toolCall)
+        let res3 = await executor.execute(toolCall)
         #expect(res3.content != "Executed") // Not the normal success output
         #expect(res3.role == .tool)
     }
 
     @Test("Test loop detection reset")
-    func loopDetectionReset() async throws {
+    func loopDetectionReset() async {
         let tool = MockTool()
         let toolManager = TimelineToolManager(availableTools: [AnyTool(tool)])
         let executor = ToolExecutor(toolManager: toolManager)
 
         let toolCall = ToolCall(name: "mock_tool", arguments: ["arg": AnyCodable(1)])
 
-        _ = try await executor.execute(toolCall)
-        _ = try await executor.execute(toolCall)
+        _ = await executor.execute(toolCall)
+        _ = await executor.execute(toolCall)
 
         await executor.reset()
 
         // Call after reset should be successful
-        let res = try await executor.execute(toolCall)
+        let res = await executor.execute(toolCall)
         #expect(res.content == "Executed")
     }
 
     @Test("Test different arguments do not trigger loop detection")
-    func differentArgs() async throws {
+    func differentArgs() async {
         let tool = MockTool()
         let toolManager = TimelineToolManager(availableTools: [AnyTool(tool)])
         let executor = ToolExecutor(toolManager: toolManager)
 
         for i in 1 ... 5 {
             let toolCall = ToolCall(name: "mock_tool", arguments: ["arg": AnyCodable(i)])
-            let res = try await executor.execute(toolCall)
+            let res = await executor.execute(toolCall)
             #expect(res.content == "Executed")
         }
     }
