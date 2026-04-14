@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 @testable import PKPrompt
+@testable import PKShared
 
 private struct StaticText: PrimitiveContextSection {
     let id: String
@@ -116,5 +117,23 @@ struct BodyBasedContextSectionTests {
         #expect(sections[1].priority == PromptPriority.high.rawValue)
         #expect(sections[1].compression == .summarize)
         #expect(sections[2].role == .userQuery)
+    }
+
+    @Test("HistoryPrompt resolves to chat history leaves")
+    func historyPromptResolvesToChatHistoryLeaves() async {
+        let prompt = Prompt {
+            HistoryPrompt([
+                Message(content: "First", role: .user),
+                Message(content: "Second", role: .assistant),
+            ])
+        }
+
+        let sections = await prompt.resolveSections()
+
+        #expect(sections.count == 1)
+        #expect(sections[0].id == "chat_history")
+        #expect(sections[0].role == PromptSectionRole.chatHistory)
+        #expect(sections[0].historyMessages?.count == 2)
+        #expect(await sections[0].render() == nil)
     }
 }
