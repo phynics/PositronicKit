@@ -24,3 +24,38 @@ import PositronicKit
 import PKPrompt
 import PKShared
 ```
+
+## PKPrompt
+
+`PKPrompt` now uses a body-based composition model inspired by SwiftUI:
+
+- compose prompt sections with `body`
+- use primitive leaves for actual rendered content
+- resolve prompt trees into semantic leaves before rendering, budgeting, hashing, or provider conversion
+
+```swift
+import PKPrompt
+
+struct ToolingSection: ContextSection {
+    let tools: [String]
+
+    private var toolSummary: String {
+        tools.map { "- \($0)" }.joined(separator: "\n")
+    }
+
+    @ContextBuilder
+    var body: some ContextSection {
+        SystemPrompt("You are helping with project tooling.")
+
+        ContextPrompt(toolSummary, id: "tools")
+            .priority(.high)
+            .compression(.summarize)
+            .cachePolicy(.semiStable)
+    }
+}
+
+let prompt = Prompt {
+    ToolingSection(tools: ["build", "test", "lint"])
+    UserPrompt("Recommend the safest next step.")
+}
+```

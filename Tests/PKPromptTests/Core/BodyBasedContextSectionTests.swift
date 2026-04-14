@@ -97,4 +97,24 @@ struct BodyBasedContextSectionTests {
         #expect(sections.allSatisfy { $0.priority == 90 })
         #expect(sections.allSatisfy { $0.cachePolicy == .stable })
     }
+
+    @Test("Convenience prompt leaves provide ergonomic authoring defaults")
+    func conveniencePromptLeavesProvideErgonomicDefaults() async {
+        let prompt = Prompt {
+            SystemPrompt("You are a careful assistant.")
+            ContextPrompt("Project uses Swift 6.", id: "project")
+                .priority(.high)
+                .compression(.summarize)
+            UserPrompt("Add a toolbar action.")
+        }
+
+        let sections = await prompt.resolveSections()
+
+        #expect(sections.map(\.id) == ["system", "project", "user_query"])
+        #expect(sections[0].role == .system)
+        #expect(sections[0].cachePolicy == .stable)
+        #expect(sections[1].priority == PromptPriority.high.rawValue)
+        #expect(sections[1].compression == .summarize)
+        #expect(sections[2].role == .userQuery)
+    }
 }

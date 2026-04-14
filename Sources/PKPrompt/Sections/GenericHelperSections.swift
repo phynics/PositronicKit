@@ -38,6 +38,123 @@ public struct TextSection: PrimitiveContextSection {
     }
 }
 
+public struct SystemPrompt: PrimitiveContextSection {
+    public let id: String
+    public let text: String
+    public let priority: Int
+    public let compression: CompressionStrategy
+    private let estimatedTokenOverride: Int?
+
+    public init(
+        _ text: String,
+        id: String = "system",
+        priority: Int = PromptPriority.critical.rawValue,
+        compression: CompressionStrategy = .keep,
+        estimatedTokens: Int? = nil
+    ) {
+        self.id = id
+        self.text = text
+        self.priority = priority
+        self.compression = compression
+        self.estimatedTokenOverride = estimatedTokens
+    }
+
+    public var role: PromptSectionRole {
+        .system
+    }
+
+    public var cachePolicy: CachePolicy {
+        .stable
+    }
+
+    public var estimatedTokens: Int {
+        estimatedTokenOverride ?? (text.isEmpty ? 0 : max(1, text.count / 4))
+    }
+
+    public func renderContent() async -> String? {
+        guard !text.isEmpty else { return nil }
+        return text
+    }
+}
+
+public struct ContextPrompt: PrimitiveContextSection {
+    public let id: String
+    public let text: String
+    public let priority: Int
+    public let compression: CompressionStrategy
+    public let cachePolicy: CachePolicy
+    private let estimatedTokenOverride: Int?
+
+    public init(
+        _ text: String,
+        id: String,
+        priority: Int = PromptPriority.medium.rawValue,
+        compression: CompressionStrategy = .keep,
+        cachePolicy: CachePolicy = .volatile,
+        estimatedTokens: Int? = nil
+    ) {
+        self.id = id
+        self.text = text
+        self.priority = priority
+        self.compression = compression
+        self.cachePolicy = cachePolicy
+        self.estimatedTokenOverride = estimatedTokens
+    }
+
+    public var role: PromptSectionRole {
+        .context
+    }
+
+    public var estimatedTokens: Int {
+        estimatedTokenOverride ?? (text.isEmpty ? 0 : max(1, text.count / 4))
+    }
+
+    public func renderContent() async -> String? {
+        guard !text.isEmpty else { return nil }
+        return text
+    }
+}
+
+public struct UserPrompt: PrimitiveContextSection {
+    public let id: String
+    public let text: String
+    public let priority: Int
+    private let estimatedTokenOverride: Int?
+
+    public init(
+        _ text: String,
+        id: String = "user_query",
+        priority: Int = 10,
+        estimatedTokens: Int? = nil
+    ) {
+        self.id = id
+        self.text = text
+        self.priority = priority
+        self.estimatedTokenOverride = estimatedTokens
+    }
+
+    public var role: PromptSectionRole {
+        .userQuery
+    }
+
+    public var compression: CompressionStrategy {
+        .keep
+    }
+
+    public var cachePolicy: CachePolicy {
+        .volatile
+    }
+
+    public var estimatedTokens: Int {
+        estimatedTokenOverride ?? (text.isEmpty ? 0 : max(1, text.count / 4))
+    }
+
+    public func renderContent() async -> String? {
+        guard !text.isEmpty else { return nil }
+        return text
+    }
+}
+
 public struct HistorySection: PrimitiveContextSection {
     public let id: String
     public let messages: [Message]
