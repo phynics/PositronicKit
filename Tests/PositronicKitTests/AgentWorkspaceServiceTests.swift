@@ -16,7 +16,7 @@ struct AgentWorkspaceServiceTests {
                 AgentWorkspaceService(workspaceRoot: FileManager.default.temporaryDirectory)
             }
 
-        let uri = WorkspaceURI(host: "monad-server", path: "/test")
+        let uri = WorkspaceURI(host: "pk-server", path: "/test")
         let metadata: [String: AnyCodable] = ["key": .string("value")]
 
         let ws = try await repository.createWorkspace(

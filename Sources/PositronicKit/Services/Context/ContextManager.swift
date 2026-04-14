@@ -8,7 +8,7 @@ import PKShared
 public actor ContextManager {
     public let workspace: (any WorkspaceProtocol)?
     public let pipeline: ContextPipeline
-    private let logger = Logger.module(named: "com.monad.ContextManager")
+    private let logger = Logger.module(named: "com.positronickit.ContextManager")
 
     public init(
         workspace: (any WorkspaceProtocol)? = nil,
@@ -26,7 +26,7 @@ public actor ContextManager {
             QueryAugmentationStage(),
             MemoryRetrievalStage(),
             NoteDiscoveryStage(workspace: workspace),
-            ContextAssemblyStage(logger: Logger.module(named: "com.monad.ContextAssemblyStage")),
+            ContextAssemblyStage(logger: Logger.module(named: "com.positronickit.ContextAssemblyStage")),
         ]
     }
 

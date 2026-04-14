@@ -164,9 +164,9 @@ public enum PipelineError: Error, Sendable {
     case cleanupFailed(id: String, underlyingError: Error)
 }
 
-extension PipelineError: MonadError {
+extension PipelineError: PKError {
     public var errorDomain: String {
-        MonadErrorDomain.pipeline
+        PKErrorDomain.pipeline
     }
 
     public var errorCode: Int {

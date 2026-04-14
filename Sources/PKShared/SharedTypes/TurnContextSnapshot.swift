@@ -4,7 +4,7 @@ import Foundation
 ///
 /// Mirrors the debug-relevant fields of `ChatTurnContext` and `ContextData`
 /// so that `/debug` and other consumers can inspect what the engine used
-/// without depending on internal `MonadCore` types.
+/// without depending on internal `PositronicKitCore` types.
 public struct TurnContextSnapshot: Sendable, Codable, Equatable {
     /// The assembled prompt messages sent to the LLM, in order.
     public let promptMessages: [PromptMessage]

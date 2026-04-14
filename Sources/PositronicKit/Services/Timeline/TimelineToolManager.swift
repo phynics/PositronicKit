@@ -68,7 +68,7 @@ public actor TimelineToolManager {
                         if availableTools.contains(where: { $0.id == toolId }) {
                             newKnownProvenance[toolId, default: []].insert(provenanceTag)
                         } else {
-                            let logger = Logger(label: "com.monad.session-tool-manager")
+                            let logger = Logger(label: "com.positronickit.session-tool-manager")
                             logger.warning(
                                 "Workspace declared .known tool '\(toolId)' but it is not a registered system tool"
                             )
@@ -79,7 +79,7 @@ public actor TimelineToolManager {
                     }
                 }
             } catch {
-                let logger = Logger(label: "com.monad.session-tool-manager")
+                let logger = Logger(label: "com.positronickit.session-tool-manager")
                 logger.error("Failed to list tools for workspace \(workspace.id): \(error)")
             }
         }

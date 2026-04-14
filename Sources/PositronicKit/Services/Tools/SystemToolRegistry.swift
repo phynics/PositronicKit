@@ -2,7 +2,7 @@ import Foundation
 import PKShared
 import OpenAI
 
-/// Registry for built-in system tools within the Monad framework
+/// Registry for built-in system tools within the PositronicKit framework
 public struct SystemToolRegistry: Sendable {
     public static let shared = SystemToolRegistry()
 

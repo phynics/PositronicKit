@@ -4,11 +4,11 @@ import ErrorKit
 /// Utility to safely resolve paths within a jail directory
 public enum PathSanitizer {
     /// Errors related to path sanitization
-    public enum PathError: MonadError {
+    public enum PathError: PKError {
         case accessDenied(String)
         case invalidPath(String)
 
-        public var errorDomain: String { MonadErrorDomain.filesystem }
+        public var errorDomain: String { PKErrorDomain.filesystem }
 
         public var errorCode: Int {
             switch self {

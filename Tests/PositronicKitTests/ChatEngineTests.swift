@@ -29,12 +29,12 @@ struct ChatEngineTests {
             $0.clientStore = mockPersistence
             $0.toolPersistence = mockPersistence
             $0.agentInstanceStore = mockPersistence
-            $0.timelineManager = TimelineManager(workspaceRoot: URL(fileURLWithPath: "/tmp/monad-test"), workspaceCreator: MockWorkspaceCreator())
+            $0.timelineManager = TimelineManager(workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"), workspaceCreator: MockWorkspaceCreator())
             $0.toolRouter = ToolRouter()
         } operation: {
             @Dependency(\.timelineManager) var timelineManager
             let wsId = UUID()
-            let workspaceRef = WorkspaceReference(id: wsId, uri: WorkspaceURI(parsing: "monad://local")!, hostType: .serverTimeline, ownerId: nil, rootPath: "/tmp")
+            let workspaceRef = WorkspaceReference(id: wsId, uri: WorkspaceURI(parsing: "pk://local")!, hostType: .serverTimeline, ownerId: nil, rootPath: "/tmp")
             try await mockPersistence.saveWorkspace(workspaceRef)
             try await timelineManager.attachWorkspace(wsId, to: timelineId)
             try await mockPersistence.addToolToWorkspace(workspaceId: wsId, tool: .known("mock_tool"))

@@ -1,11 +1,11 @@
 import PKShared
-# ``MonadCore``
+# ``PositronicKitCore``
 
-The foundational logic and state management framework for Monad AI Assistant.
+The foundational logic and state management framework for PositronicKit AI Assistant.
 
 ## Overview
 
-MonadCore provides the core engine for timeline management, context gathering, tool execution, and persistence. It is designed to be highly modular and decoupled, enabling easy testing and integration with various LLM providers.
+PositronicKitCore provides the core engine for timeline management, context gathering, tool execution, and persistence. It is designed to be highly modular and decoupled, enabling easy testing and integration with various LLM providers.
 
 ### Key Components
 

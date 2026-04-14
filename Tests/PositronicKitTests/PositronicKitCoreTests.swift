@@ -5,7 +5,7 @@ import PKPrompt
 import PKTestSupport
 import Testing
 
-struct MonadCoreTests {
+struct PositronicKitCoreTests {
     @Test
     func basicExecution() async throws {
         let mockLLM = MockLLMService()
@@ -60,8 +60,8 @@ struct MonadCoreTests {
     private func makeChat(
         llmService: any LLMServiceProtocol,
         persistence: MockPersistenceService
-    ) -> MonadCore {
-        MonadCore(
+    ) -> PositronicKitCore {
+        PositronicKitCore(
             llmService: llmService,
             persistence: .init(
                 messageStore: persistence,

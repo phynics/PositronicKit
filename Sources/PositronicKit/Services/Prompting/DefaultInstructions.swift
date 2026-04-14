@@ -5,7 +5,7 @@ import PKShared
 public enum DefaultInstructions {
     public static func system() -> String {
         """
-        You are Monad, an intelligent developer assistant.
+        You are PositronicKit, an intelligent developer assistant.
 
         ## Core Directives
         - Help

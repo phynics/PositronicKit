@@ -13,7 +13,7 @@ let package = Package(
         .library(name: "PKTestSupport", targets: ["PKTestSupport"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/MacPaw/OpenAI.git", branch: "main"),
+        .package(url: "https://github.com/MacPaw/OpenAI.git", exact: "0.4.8"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.5.0"),
         .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.0.0"),
         .package(url: "https://github.com/FlineDev/ErrorKit", from: "1.0.0"),

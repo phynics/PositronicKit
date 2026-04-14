@@ -111,7 +111,7 @@ final class TimelineToolManagerTests {
         let manager = TimelineToolManager(availableTools: [])
 
         let workspaceId = UUID()
-        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "monad://test")), hostType: .server, ownerId: nil)
+        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://test")), hostType: .server, ownerId: nil)
 
         let def = WorkspaceToolDefinition(
             id: "wsTool1",
@@ -153,7 +153,7 @@ final class TimelineToolManagerTests {
         let def = WorkspaceToolDefinition(id: "wsTool", name: "wsTool", description: "WS", parametersSchema: [:])
         let mockWS = try MockWorkspace(
             id: workspaceId,
-            reference: WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "monad://test")), hostType: .server, ownerId: nil),
+            reference: WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://test")), hostType: .server, ownerId: nil),
             toolsToReturn: [.custom(def)]
         )
         await manager.registerWorkspace(mockWS)
@@ -176,7 +176,7 @@ final class TimelineToolManagerTests {
     func workspaceToolsHaveProvenance() async throws {
         let manager = TimelineToolManager(availableTools: [])
         let workspaceId = UUID()
-        let uri = try #require(WorkspaceURI(parsing: "monad://test-workspace-prov"))
+        let uri = try #require(WorkspaceURI(parsing: "pk://test-workspace-prov"))
         let workspaceRef = WorkspaceReference(id: workspaceId, uri: uri, hostType: .server, ownerId: nil)
 
         let def = WorkspaceToolDefinition(id: "provTool", name: "provTool", description: "prov", parametersSchema: [:])
@@ -188,10 +188,10 @@ final class TimelineToolManagerTests {
         let available = await manager.getAvailableTools()
         let tool = available.first(where: { $0.name == "provTool" })
         try #require(tool != nil)
-        #expect(tool?.provenance?.contains("monad://test-workspace-prov") == true)
+        #expect(tool?.provenance?.contains("pk://test-workspace-prov") == true)
 
         let fetched = try await manager.getTool(id: #require(tool?.id))
-        #expect(fetched?.provenance?.contains("monad://test-workspace-prov") == true)
+        #expect(fetched?.provenance?.contains("pk://test-workspace-prov") == true)
     }
 
     @Test
@@ -201,7 +201,7 @@ final class TimelineToolManagerTests {
         let manager = TimelineToolManager(availableTools: [systemTool])
 
         let workspaceId = UUID()
-        let uri = try #require(WorkspaceURI(parsing: "monad://test-known-tool"))
+        let uri = try #require(WorkspaceURI(parsing: "pk://test-known-tool"))
         let workspaceRef = WorkspaceReference(id: workspaceId, uri: uri, hostType: .server, ownerId: nil)
 
         // Workspace declares it offers the "cat" known tool
@@ -213,9 +213,9 @@ final class TimelineToolManagerTests {
         let available = await manager.getAvailableTools()
         let tool = available.first(where: { $0.id == "cat" })
         try #require(tool != nil)
-        #expect(tool?.provenance == "Workspace: monad://test-known-tool")
+        #expect(tool?.provenance == "Workspace: pk://test-known-tool")
 
         let fetched = await manager.getTool(id: "cat")
-        #expect(fetched?.provenance == "Workspace: monad://test-known-tool")
+        #expect(fetched?.provenance == "Workspace: pk://test-known-tool")
     }
 }

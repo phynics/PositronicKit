@@ -53,7 +53,7 @@ import Testing
         // Setup session and local workspace
         let session = try await timelineManager.createTimeline()
         let workspaceId = UUID()
-        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "monad://local")), hostType: .server, ownerId: nil)
+        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://local")), hostType: .server, ownerId: nil)
 
         // Mock persistence expects WorkspaceReference
         try await mockPersistence.saveWorkspace(workspaceRef)
@@ -96,7 +96,7 @@ import Testing
         let workspaceId = UUID()
 
         // Setup remote workspace
-        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "monad://remote")), hostType: .client, ownerId: UUID())
+        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://remote")), hostType: .client, ownerId: UUID())
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await timelineManager.attachWorkspace(workspaceId, to: session.id)
 
@@ -131,7 +131,7 @@ import Testing
         let workspaceId = UUID()
 
         // Setup remote workspace missing an ownerId
-        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "monad://remote")), hostType: .client, ownerId: nil)
+        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://remote")), hostType: .client, ownerId: nil)
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await timelineManager.attachWorkspace(workspaceId, to: session.id)
 

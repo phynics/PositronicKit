@@ -34,12 +34,12 @@ public final class LocalEmbeddingService: EmbeddingServiceProtocol {
     }
 }
 
-public enum EmbeddingError: MonadError {
+public enum EmbeddingError: PKError {
     case modelUnavailable
     case generationFailed
     case platformNotSupported
 
-    public var errorDomain: String { MonadErrorDomain.embedding }
+    public var errorDomain: String { PKErrorDomain.embedding }
 
     public var errorCode: Int {
         switch self {

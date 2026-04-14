@@ -1,0 +1,35 @@
+import ErrorKit
+import Foundation
+@testable import PKShared
+import Testing
+
+struct PKErrorTests {
+    struct MockError: PKError {
+        let errorDomain: String
+        let errorCode: Int
+        let userFriendlyMessage: String
+        let remediation: String? = nil
+    }
+
+    @Test("PKError formatting includes domain and code")
+    func pkErrorFormatting() {
+        let error = MockError(
+            errorDomain: PKErrorDomain.shared,
+            errorCode: 123,
+            userFriendlyMessage: "Something failed"
+        )
+
+        #expect(error.errorDomain == PKErrorDomain.shared)
+        #expect(error.errorCode == 123)
+        #expect(error.userFriendlyMessage == "Something failed")
+    }
+
+    @Test("PKErrorDomain constants are correct")
+    func pkErrorDomains() {
+        #expect(PKErrorDomain.shared == "com.positronickit.shared")
+        #expect(PKErrorDomain.client == "com.positronickit.client")
+        #expect(PKErrorDomain.server == "com.positronickit.server")
+        #expect(PKErrorDomain.llm == "com.positronickit.core.llm")
+        #expect(PKErrorDomain.context == "com.positronickit.core.context")
+    }
+}

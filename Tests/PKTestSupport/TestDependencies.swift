@@ -23,11 +23,11 @@ import PKShared
             self.embedding = embedding
         }
 
-        /// Builds a `MonadCore` from the mock services in this context.
+        /// Builds a `PositronicKitCore` from the mock services in this context.
         /// Must be called inside a `withDependencies` scope that has a `TimelineManager` configured.
-        public func buildCoreChat() -> MonadCore {
+        public func buildCoreChat() -> PositronicKitCore {
             @Dependency(\.timelineManager) var timelineManager
-            return MonadCore(
+            return PositronicKitCore(
                 llmService: llm,
                 persistence: .init(
                     messageStore: persistence,

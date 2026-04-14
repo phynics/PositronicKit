@@ -23,7 +23,7 @@ private struct AttachmentFixture {
         let workspaceRoot = getTestWorkspaceRoot().appendingPathComponent(UUID().uuidString)
 
         let serverWS = WorkspaceReference(
-            uri: WorkspaceURI(host: "monad-server", path: "/agent/primary"),
+            uri: WorkspaceURI(host: "pk-server", path: "/agent/primary"),
             hostType: .server,
             rootPath: workspaceRoot.appendingPathComponent("primary").path
         )
@@ -273,9 +273,9 @@ struct GetWorkspacesTests {
     func serverMissingPath() async throws {
         try await withFixture { fix in
             let missingWS = WorkspaceReference(
-                uri: WorkspaceURI(host: "monad-server", path: "/agent/gone"),
+                uri: WorkspaceURI(host: "pk-server", path: "/agent/gone"),
                 hostType: .server,
-                rootPath: "/tmp/monad-test-definitely-does-not-exist-\(UUID().uuidString)"
+                rootPath: "/tmp/pk-test-definitely-does-not-exist-\(UUID().uuidString)"
             )
             try await fix.persistence.saveWorkspace(missingWS)
 
@@ -294,7 +294,7 @@ struct GetWorkspacesTests {
             let clientWithPath = WorkspaceReference(
                 uri: WorkspaceURI(host: "user-mac", path: "/projects/gone"),
                 hostType: .client,
-                rootPath: "/tmp/monad-test-definitely-does-not-exist-\(UUID().uuidString)"
+                rootPath: "/tmp/pk-test-definitely-does-not-exist-\(UUID().uuidString)"
             )
             try await fix.persistence.saveWorkspace(clientWithPath)
 
@@ -314,7 +314,7 @@ struct GetWorkspacesTests {
             try FileManager.default.createDirectory(at: existingDir, withIntermediateDirectories: true)
 
             let ws = WorkspaceReference(
-                uri: WorkspaceURI(host: "monad-server", path: "/agent/present"),
+                uri: WorkspaceURI(host: "pk-server", path: "/agent/present"),
                 hostType: .server,
                 rootPath: existingDir.path
             )
@@ -333,7 +333,7 @@ struct GetWorkspacesTests {
     func nilRootPathNotMissing() async throws {
         try await withFixture { fix in
             let wsNoPath = WorkspaceReference(
-                uri: WorkspaceURI(host: "monad-server", path: "/agent/no-path"),
+                uri: WorkspaceURI(host: "pk-server", path: "/agent/no-path"),
                 hostType: .server,
                 rootPath: nil
             )

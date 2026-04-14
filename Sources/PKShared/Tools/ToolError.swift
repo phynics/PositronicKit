@@ -2,7 +2,7 @@ import ErrorKit
 import Foundation
 
 /// Errors related to tool execution and routing
-public enum ToolError: MonadError, Sendable, Equatable {
+public enum ToolError: PKError, Sendable, Equatable {
     case missingArgument(String)
     case invalidArgument(String, expected: String, got: String)
     case executionFailed(String)
@@ -11,7 +11,7 @@ public enum ToolError: MonadError, Sendable, Equatable {
     case clientNotConnected
     case clientToolsDisallowedOnPrivateTimeline
 
-    public var errorDomain: String { MonadErrorDomain.tool }
+    public var errorDomain: String { PKErrorDomain.tool }
 
     public var errorCode: Int {
         switch self {

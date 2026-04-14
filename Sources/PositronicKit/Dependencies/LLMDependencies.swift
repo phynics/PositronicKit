@@ -34,7 +34,7 @@ public extension DependencyValues {
 public struct UnconfiguredLLMService: LLMServiceProtocol {
     public init() {}
     private func fail() -> Never {
-        fatalError("LLMService not configured. Call 'MonadCore.configure()'.")
+        fatalError("LLMService not configured. Call 'PositronicKitCore.configure()'.")
     }
 
     public var isConfigured: Bool {

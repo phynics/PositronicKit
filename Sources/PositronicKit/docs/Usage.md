@@ -1,4 +1,4 @@
-# MonadCore Usage Guide
+# PositronicKitCore Usage Guide
 
 This guide provides step-by-step examples for integrating `ChatEngine` and managing `AgentInstance` within your application.
 
@@ -46,10 +46,10 @@ The easiest way to get started is by providing your OpenAI API key or an Ollama 
 import PositronicKit
 
 // For OpenAI
-let chat = MonadCore(openAIKey: "sk-...")
+let chat = PositronicKitCore(openAIKey: "sk-...")
 
 // For Ollama
-let chat = MonadCore(ollamaModel: "llama3")
+let chat = PositronicKitCore(ollamaModel: "llama3")
 ```
 
 ### Full Initialization (Production)
@@ -60,7 +60,7 @@ For production, you should provide persistent stores and specific service config
 import PositronicKit
 import PKShared
 
-let chat = MonadCore(
+let chat = PositronicKitCore(
     llmService: myLLM,
     messageStore: myMessageStore,
     timelineManager: myTimelineManager,
@@ -84,7 +84,7 @@ The `run` method returns an `AsyncThrowingStream<ChatEvent, Error>`. This allows
 import PositronicKit
 import PKShared
 
-let chat = MonadCore(
+let chat = PositronicKitCore(
     llmService: myLLM,
     messageStore: myMessageStore,
     timelineManager: myTimelineManager,

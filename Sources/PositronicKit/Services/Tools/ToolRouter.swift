@@ -57,7 +57,7 @@ public enum ToolTurnResult: Sendable {
 /// immediately (persisting results to the message store) and defers client-side tools for
 /// async handling. `ChatEngine` calls this after each LLM turn that produces tool calls.
 public actor ToolRouter {
-    private let logger = Logger.module(named: "com.monad.core.tools")
+    private let logger = Logger.module(named: "com.positronickit.core.tools")
 
     @Dependency(\.timelineManager) private var timelineManager
     @Dependency(\.messageStore) private var messageStore

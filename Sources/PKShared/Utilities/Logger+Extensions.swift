@@ -3,7 +3,7 @@ import Logging
 
 extension Logger {
     private static var subsystem: String {
-        Bundle.main.bundleIdentifier ?? "com.monad.core"
+        Bundle.main.bundleIdentifier ?? "com.positronickit.core"
     }
 
     /// Logs for a specific module

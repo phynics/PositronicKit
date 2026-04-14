@@ -138,10 +138,10 @@ public actor OpenRouterClient {
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(
-            "https://github.com/monad-assistant/monad",
+            "https://github.com/your-org/PositronicKit",
             forHTTPHeaderField: "HTTP-Referer"
         )
-        request.setValue("Monad Assistant", forHTTPHeaderField: "X-Title")
+        request.setValue("PositronicKit Assistant", forHTTPHeaderField: "X-Title")
 
         request.httpBody = try? JSONEncoder().encode(query)
         return request

@@ -1,6 +1,6 @@
-# MonadCore
+# PositronicKitCore
 
-MonadCore is the core orchestration library for the Monad platform. It provides the infrastructure for autonomous agent execution, chat turn management, and tool routing.
+PositronicKitCore is the core orchestration library for the PositronicKit platform. It provides the infrastructure for autonomous agent execution, chat turn management, and tool routing.
 
 ## Documentation
 
@@ -10,8 +10,8 @@ MonadCore is the core orchestration library for the Monad platform. It provides 
 
 ## Key Components
 
-### MonadCore (Chat Facade)
-The interface boundary for MonadCore. Accepts all required services as init parameters and internally orchestrates the chat lifecycle — context gathering, LLM interaction, tool execution, and state persistence.
+### PositronicKitCore (Chat Facade)
+The interface boundary for PositronicKitCore. Accepts all required services as init parameters and internally orchestrates the chat lifecycle — context gathering, LLM interaction, tool execution, and state persistence.
 
 ### AgentInstance
 Represents a live, persistent agent entity. Each instance has its own private workspace (long-term memory) and private timeline (internal monologue).
@@ -21,17 +21,17 @@ Handles the lifecycle of `AgentInstance` entities, including creation from templ
 
 ## Getting Started
 
-To get started with MonadCore, refer to the [Usage Guide](docs/Usage.md).
+To get started with PositronicKitCore, refer to the [Usage Guide](docs/Usage.md).
 
 ```swift
 import PositronicKit
 import PKShared
 
 // Minimal — all stores default to in-memory:
-let chat = MonadCore(llmService: myLLM)
+let chat = PositronicKitCore(llmService: myLLM)
 
 // Production — with grouped persistence:
-let chat = MonadCore(
+let chat = PositronicKitCore(
     llmService: myLLM,
     persistence: .init(
         messageStore: myMessageStore,

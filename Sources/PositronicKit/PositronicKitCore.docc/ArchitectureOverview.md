@@ -1,11 +1,11 @@
 import PKShared
 # Architecture Overview
 
-Deep dive into the MonadCore system design.
+Deep dive into the PositronicKitCore system design.
 
 ## Modularity
 
-MonadCore follows a strict protocol-based architecture. Every major service is defined by a protocol, allowing for easy mocking during development and testing.
+PositronicKitCore follows a strict protocol-based architecture. Every major service is defined by a protocol, allowing for easy mocking during development and testing.
 
 ## Dependency Injection
 
@@ -25,6 +25,6 @@ func save() async throws {
 
 1. **User Query**: Received via `ChatEngine`.
 2. **Context Gathering**: `ContextManager` retrieves relevant memories and filesystem notes.
-3. **Prompt Construction**: `MonadPrompt` DSL builds a provider-specific prompt.
+3. **Prompt Construction**: `PKPrompt` DSL builds a provider-specific prompt.
 4. **Execution**: `LLMService` communicates with the AI provider.
 5. **Tool Routing**: If the AI calls a tool, `ToolRouter` dispatches the execution.

@@ -4,12 +4,12 @@ import PKShared
 import OpenAI
 import Synchronization
 
-/// A wrapper around the OpenAI SDK that provides a clean interface for the Monad Assistant
+/// A wrapper around the OpenAI SDK that provides a clean interface for the PositronicKit Assistant
 public actor OpenAIClient {
     private let client: OpenAI
     private let modelName: String
     private let maxRetries: Int
-    private let logger = Logger.module(named: "com.monad.openai-client")
+    private let logger = Logger.module(named: "com.positronickit.openai-client")
 
     public init(
         apiKey: String,

@@ -10,7 +10,7 @@ struct AgentInstanceManagerTests {
 
     @Test("Validation: Name too short")
     func nameTooShort() async throws {
-        let repo = AgentWorkspaceService(workspaceRoot: URL(fileURLWithPath: "/tmp/monad-test"))
+        let repo = AgentWorkspaceService(workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"))
         let manager = AgentInstanceManager(repository: repo)
 
         await #expect(throws: AgentInstanceError.self) {
@@ -20,7 +20,7 @@ struct AgentInstanceManagerTests {
 
     @Test("Validation: Description empty")
     func descriptionEmpty() async throws {
-        let repo = AgentWorkspaceService(workspaceRoot: URL(fileURLWithPath: "/tmp/monad-test"))
+        let repo = AgentWorkspaceService(workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"))
         let manager = AgentInstanceManager(repository: repo)
 
         await #expect(throws: AgentInstanceError.self) {
@@ -30,7 +30,7 @@ struct AgentInstanceManagerTests {
 
     @Test("Robustness: Cannot attach to private timeline")
     func cannotAttachToPrivate() async throws {
-        let repo = AgentWorkspaceService(workspaceRoot: URL(fileURLWithPath: "/tmp/monad-test"))
+        let repo = AgentWorkspaceService(workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"))
         let manager = AgentInstanceManager(repository: repo)
 
         let agentId = UUID()
@@ -58,7 +58,7 @@ struct AgentInstanceManagerTests {
 
     @Test("Robustness: Cannot detach agent from its own private timeline")
     func cannotDetachFromOwnPrivate() async throws {
-        let repo = AgentWorkspaceService(workspaceRoot: URL(fileURLWithPath: "/tmp/monad-test"))
+        let repo = AgentWorkspaceService(workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"))
         let manager = AgentInstanceManager(repository: repo)
 
         let agentId = UUID()
@@ -79,7 +79,7 @@ struct AgentInstanceManagerTests {
 
     @Test("Creation: Agent is automatically attached to private timeline")
     func createInstanceAttachesAgent() async throws {
-        let repo = AgentWorkspaceService(workspaceRoot: URL(fileURLWithPath: "/tmp/monad-test"))
+        let repo = AgentWorkspaceService(workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"))
         let manager = AgentInstanceManager(repository: repo)
 
         try await TestDependencies()
@@ -95,7 +95,7 @@ struct AgentInstanceManagerTests {
 
     @Test("Search: Find by name or description")
     func searchInstances() async throws {
-        let repo = AgentWorkspaceService(workspaceRoot: URL(fileURLWithPath: "/tmp/monad-test"))
+        let repo = AgentWorkspaceService(workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"))
         let manager = AgentInstanceManager(repository: repo)
 
         let agent1 = AgentInstance(id: UUID(), name: "Researcher", description: "Finds things", primaryWorkspaceId: UUID(), privateTimelineId: UUID())

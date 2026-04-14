@@ -1,8 +1,8 @@
 import Foundation
 import Logging
 
-/// A colorful log handler for Monad Server
-public struct MonadLogHandler: LogHandler {
+/// A colorful log handler for PositronicKit runtime
+public struct PKLogHandler: LogHandler {
     private let labelPrefix: String
     public var logLevel: Logger.Level = .info
     public var metadata = Logger.Metadata()

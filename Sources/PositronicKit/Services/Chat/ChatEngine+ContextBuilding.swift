@@ -6,12 +6,12 @@ import PKShared
 import OpenAI
 
 /// Errors thrown by `ChatEngine` during setup and execution.
-public enum ChatEngineError: MonadError {
+public enum ChatEngineError: PKError {
     case llmServiceNotConfigured
     case missingInput
 
     public var errorDomain: String {
-        MonadErrorDomain.chat
+        PKErrorDomain.chat
     }
 
     public var errorCode: Int {

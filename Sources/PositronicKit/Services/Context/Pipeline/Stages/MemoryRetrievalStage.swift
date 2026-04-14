@@ -10,7 +10,7 @@ public struct MemoryRetrievalStage: PipelineStage {
     @Dependency(\.memoryStore) var memoryStore
     @Dependency(\.embeddingService) var embeddingService
 
-    private let logger = Logger.module(named: "com.monad.MemoryRetrievalStage")
+    private let logger = Logger.module(named: "com.positronickit.MemoryRetrievalStage")
     private let ranker = ContextRanker()
 
     /// Initializes a new memory retrieval stage.

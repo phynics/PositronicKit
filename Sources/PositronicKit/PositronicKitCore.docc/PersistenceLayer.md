@@ -1,7 +1,7 @@
 import PKShared
 # Persistence Layer
 
-Modular storage architecture for MonadCore.
+Modular storage architecture for PositronicKitCore.
 
 ## Domain-Specific Protocols
 

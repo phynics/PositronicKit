@@ -3,13 +3,13 @@ import Foundation
 import PKShared
 
 /// Error types specific to ContextManager
-public enum ContextManagerError: MonadError {
+public enum ContextManagerError: PKError {
     /// Embedding generation failed
     case embeddingFailed(Error)
     /// Database retrieval failed
     case persistenceFailed(Error)
 
-    public var errorDomain: String { MonadErrorDomain.context }
+    public var errorDomain: String { PKErrorDomain.context }
 
     public var errorCode: Int {
         switch self {

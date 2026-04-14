@@ -1,10 +1,10 @@
-# MonadCore Setup Guide
+# PositronicKitCore Setup Guide
 
-This guide describes how to configure and use MonadCore in your application.
+This guide describes how to configure and use PositronicKitCore in your application.
 
 ## 1. Dependency Configuration
 
-MonadCore uses PointFree's `Dependencies` library. Before using any core services (like `ChatEngine`), you must configure the required dependencies. Accessing an unconfigured service will result in a `fatalError`.
+PositronicKitCore uses PointFree's `Dependencies` library. Before using any core services (like `ChatEngine`), you must configure the required dependencies. Accessing an unconfigured service will result in a `fatalError`.
 
 ### Required Services
 The two most critical services to configure are:
@@ -12,7 +12,7 @@ The two most critical services to configure are:
 2. `messageStore`: Handles persistence of chat messages and turn data.
 
 ### Configuration Example
-To configure MonadCore at app launch or within a specific task:
+To configure PositronicKitCore at app launch or within a specific task:
 
 ```swift
 import Dependencies
@@ -74,5 +74,5 @@ for try await event in stream {
 ## 3. Best Practices
 
 - **Immutability**: Always treat the `Context` object as immutable. If you need to accumulate state during a pipeline run, use an `actor` for thread-safe mutations.
-- **Error Handling**: Implement custom errors that conform to `MonadError` for consistent error reporting across the framework.
+- **Error Handling**: Implement custom errors that conform to `PKError` for consistent error reporting across the framework.
 - **Testing**: Use `withDependencies` in your unit tests to provide mock implementations of `LLMService` and `MessageStore`.

@@ -14,9 +14,9 @@ import Foundation
 
     @Test
     func testWorkspaceURIParsingHost() throws {
-        let uri = WorkspaceURI(parsing: "monad-server:/sessions/abc")
+        let uri = WorkspaceURI(parsing: "pk-server:/sessions/abc")
         try #require(uri != nil)
-        #expect(uri?.host == "monad-server")
+        #expect(uri?.host == "pk-server")
         #expect(uri?.path == "/sessions/abc")
         #expect(uri?.isServer == true)
         #expect(!(uri?.isClient == true))

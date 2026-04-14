@@ -29,7 +29,7 @@ public struct ChatEngine: Sendable {
     @Dependency(\.toolRouter) var toolRouter
     @Dependency(\.chatTurnPlugins) var chatTurnPlugins
 
-    let logger = Logger.module(named: "com.monad.chat-engine")
+    let logger = Logger.module(named: "com.positronickit.chat-engine")
 
     var additionalStages: [any PipelineStage<ChatTurnContext, ChatEvent>] = []
 

@@ -28,7 +28,7 @@ import PKShared
     }
 
     public func getTestWorkspaceRoot() -> URL {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("com.monad.test-workspaces")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("com.positronickit.test-workspaces")
         try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         return url
     }

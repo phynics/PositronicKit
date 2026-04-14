@@ -259,7 +259,7 @@ public extension TimelineManager {
         try FileManager.default.createDirectory(at: notesDir, withIntermediateDirectories: true)
 
         let welcomeNote = """
-        # Welcome to Your Monad Timeline
+        # Welcome to Your PositronicKit Timeline
 
         This timeline is your private workspace. You can use the `Notes/` directory \
         in the Primary Workspace to store information that should persist and influence \
@@ -595,7 +595,7 @@ public extension TimelineManager {
             if !fileManager.fileExists(atPath: path) {
                 try fileManager.createDirectory(at: timelineWorkspaceURL, withIntermediateDirectories: true)
 
-                if workspace.uri.host == "monad-server", workspace.uri.path.hasPrefix("/timelines/") {
+                if workspace.uri.host == "pk-server", workspace.uri.path.hasPrefix("/timelines/") {
                     let notesDir = timelineWorkspaceURL.appendingPathComponent("Notes", isDirectory: true)
                     try? fileManager.createDirectory(at: notesDir, withIntermediateDirectories: true)
                 }
@@ -610,10 +610,10 @@ public extension TimelineManager {
 
 // MARK: - Errors
 
-public enum TimelineError: MonadError {
+public enum TimelineError: PKError {
     case timelineNotFound
 
-    public var errorDomain: String { MonadErrorDomain.timeline }
+    public var errorDomain: String { PKErrorDomain.timeline }
 
     public var errorCode: Int {
         switch self {

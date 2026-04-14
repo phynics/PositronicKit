@@ -4,7 +4,7 @@ import PKShared
 
 // MARK: - Errors
 
-public enum AgentInstanceError: MonadError, Sendable {
+public enum AgentInstanceError: PKError, Sendable {
     case instanceNotFound(UUID)
     case timelineNotFound(UUID)
     case differentAgentAlreadyAttached(UUID)
@@ -14,7 +14,7 @@ public enum AgentInstanceError: MonadError, Sendable {
     case cannotAttachToPrivateTimeline(UUID)
     case cannotDetachFromOwnPrivateTimeline(UUID)
 
-    public var errorDomain: String { MonadErrorDomain.agent }
+    public var errorDomain: String { PKErrorDomain.agent }
 
     public var errorCode: Int {
         switch self {

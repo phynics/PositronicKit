@@ -6,14 +6,14 @@ import PKTestSupport
 
 struct GenerationParametersTests {
     @Test
-    func testDefaultGenerationParametersInMonadCore() async throws {
+    func testDefaultGenerationParametersInPositronicKitCore() async throws {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
         let timelineId = UUID()
         
-        // 1. Setup MonadCore with default generation parameters
+        // 1. Setup PositronicKitCore with default generation parameters
         let defaultParams = GenerationParameters(temperature: 0.7, maxTokens: 100)
-        let chat = MonadCore(
+        let chat = PositronicKitCore(
             llmService: mockLLM,
             persistence: .init(
                 messageStore: mockPersistence,
@@ -49,9 +49,9 @@ struct GenerationParametersTests {
         let mockPersistence = MockPersistenceService()
         let timelineId = UUID()
         
-        // 1. Setup MonadCore with initial default parameters
+        // 1. Setup PositronicKitCore with initial default parameters
         let defaultParams = GenerationParameters(temperature: 0.7, maxTokens: 100)
-        let chat = MonadCore(
+        let chat = PositronicKitCore(
             llmService: mockLLM,
             persistence: .init(
                 messageStore: mockPersistence,
@@ -90,8 +90,8 @@ struct GenerationParametersTests {
         let mockPersistence = MockPersistenceService()
         let timelineId = UUID()
         
-        // 1. Setup MonadCore without any default parameters
-        let chat = MonadCore(llmService: mockLLM)
+        // 1. Setup PositronicKitCore without any default parameters
+        let chat = PositronicKitCore(llmService: mockLLM)
         
         // 2. Run a chat turn without per-run parameters
         let stream = try await chat.run(

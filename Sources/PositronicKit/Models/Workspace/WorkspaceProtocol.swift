@@ -32,14 +32,14 @@ public protocol WorkspaceProtocol: Sendable {
     func healthCheck() async -> Bool
 }
 
-public enum WorkspaceError: MonadError, Sendable {
+public enum WorkspaceError: PKError, Sendable {
     case invalidWorkspaceType
     case accessDenied
     case toolExecutionNotSupported
     case workspaceNotFound
     case connectionFailed
 
-    public var errorDomain: String { MonadErrorDomain.workspace }
+    public var errorDomain: String { PKErrorDomain.workspace }
 
     public var errorCode: Int {
         switch self {
@@ -67,7 +67,7 @@ public enum WorkspaceError: MonadError, Sendable {
     }
 }
 
-/// Abstracts workspace instantiation to allow MonadCore to be decoupled from concrete implementations
+/// Abstracts workspace instantiation to allow PositronicKitCore to be decoupled from concrete implementations
 public protocol WorkspaceCreating: Sendable {
     func create(
         from reference: WorkspaceReference,

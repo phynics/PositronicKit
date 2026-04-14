@@ -8,7 +8,7 @@ import PKShared
 public struct NoteDiscoveryStage: PipelineStage {
     /// The workspace to search for notes.
     public let workspace: (any WorkspaceProtocol)?
-    private let logger = Logger.module(named: "com.monad.NoteDiscoveryStage")
+    private let logger = Logger.module(named: "com.positronickit.NoteDiscoveryStage")
 
     /// Initializes a new note discovery stage.
     /// - Parameter workspace: The workspace to search.

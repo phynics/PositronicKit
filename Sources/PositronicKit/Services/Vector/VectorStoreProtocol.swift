@@ -2,12 +2,12 @@ import ErrorKit
 import PKShared
 import Foundation
 
-public enum VectorStoreError: MonadError {
+public enum VectorStoreError: PKError {
     case countMismatch
     case dimensionMismatch
     case initializationFailed(String)
 
-    public var errorDomain: String { MonadErrorDomain.vector }
+    public var errorDomain: String { PKErrorDomain.vector }
 
     public var errorCode: Int {
         switch self {

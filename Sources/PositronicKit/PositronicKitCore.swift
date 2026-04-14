@@ -3,7 +3,7 @@ import Foundation
 import PKPrompt
 import PKShared
 
-/// The public facade for MonadCore's chat subsystem.
+/// The public facade for PositronicKitCore's chat subsystem.
 ///
 /// Accepts all required services as init parameters and injects them internally,
 /// so consumers never interact with `swift-dependencies` directly.
@@ -13,10 +13,10 @@ import PKShared
 ///
 /// ```swift
 /// // Minimal — prototyping with in-memory everything:
-/// let chat = MonadCore(llmService: myLLM)
+/// let chat = PositronicKitCore(llmService: myLLM)
 ///
 /// // Production — grouped persistence:
-/// let chat = MonadCore(
+/// let chat = PositronicKitCore(
 ///     llmService: llmService,
 ///     persistence: .init(
 ///         messageStore: repos.messageStore,
@@ -33,7 +33,7 @@ import PKShared
 ///     workspaceRoot: workspacesDir
 /// )
 /// ```
-public struct MonadCore: Sendable {
+public struct PositronicKitCore: Sendable {
     // MARK: - Direct ChatEngine dependencies
 
     internal let llmService: any LLMServiceProtocol
@@ -150,7 +150,7 @@ public struct MonadCore: Sendable {
         self.defaultGenerationParameters = generationParameters
 
         let resolvedWorkspaceRoot = workspaceRoot ?? FileManager.default.temporaryDirectory
-            .appendingPathComponent("monad-workspaces", isDirectory: true)
+            .appendingPathComponent("positronickit-workspaces", isDirectory: true)
         self.timelineManager = timelineManager ?? TimelineManager(workspaceRoot: resolvedWorkspaceRoot)
         self.toolRouter = toolRouter ?? ToolRouter()
     }
@@ -162,7 +162,7 @@ public struct MonadCore: Sendable {
     /// Adds a custom stage to the chat execution pipeline.
     /// - Parameter stage: The custom pipeline stage to add.
     /// - Returns: A new instance with the stage added.
-    public func addStage(_ stage: any PipelineStage<ChatTurnContext, ChatEvent>) -> MonadCore {
+    public func addStage(_ stage: any PipelineStage<ChatTurnContext, ChatEvent>) -> PositronicKitCore {
         var copy = self
         copy.chatEngine.additionalStages.append(stage)
         return copy
@@ -171,7 +171,7 @@ public struct MonadCore: Sendable {
     /// Adds a chat turn plugin that runs after each LLM turn.
     /// - Parameter plugin: The plugin to add.
     /// - Returns: A new instance with the plugin added.
-    public func addPlugin(_ plugin: any ChatTurnPlugin) -> MonadCore {
+    public func addPlugin(_ plugin: any ChatTurnPlugin) -> PositronicKitCore {
         var copy = self
         copy.chatTurnPlugins.append(plugin)
         return copy
@@ -242,7 +242,7 @@ public struct MonadCore: Sendable {
 
 // MARK: - PersistenceConfiguration
 
-public extension MonadCore {
+public extension PositronicKitCore {
     /// Groups all persistence stores for convenient initialization.
     ///
     /// Use this when your persistence layer provides all 8 stores (e.g., a GRDB-backed repository).
@@ -291,7 +291,7 @@ public extension MonadCore {
         }
     }
 
-    /// Creates a MonadCore with grouped persistence configuration.
+    /// Creates a PositronicKitCore with grouped persistence configuration.
     ///
     /// - Parameters:
     ///   - llmService: The LLM service to use for generation (required).

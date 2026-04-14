@@ -1,10 +1,10 @@
-# MonadCore Architecture
+# PositronicKitCore Architecture
 
-MonadCore is built on a modular, asynchronous processing architecture designed for scalability, thread safety, and clear separation of concerns.
+PositronicKitCore is built on a modular, asynchronous processing architecture designed for scalability, thread safety, and clear separation of concerns.
 
 ## 1. The Pipeline Pattern
 
-The core processing logic in MonadCore follows a generic **Pipeline** pattern. This allows for complex workflows (like a chat turn) to be broken down into discrete, reusable stages.
+The core processing logic in PositronicKitCore follows a generic **Pipeline** pattern. This allows for complex workflows (like a chat turn) to be broken down into discrete, reusable stages.
 
 ### PipelineStage Protocol
 A stage is any type that conforms to the `PipelineStage` protocol:
@@ -26,7 +26,7 @@ The `Pipeline` class orchestrates the execution of these stages:
 
 ## 2. Context & State Management
 
-MonadCore uses a dual-structure approach to state management during a pipeline execution.
+PositronicKitCore uses a dual-structure approach to state management during a pipeline execution.
 
 ### ChatTurnContext (Immutable Snapshot)
 The `ChatTurnContext` is a thread-safe, immutable struct that represents the state of a chat turn at a specific point in time. It contains:
@@ -41,7 +41,7 @@ Because multiple stages might need to update the results of a turn concurrently 
 
 ## 3. Dependency Injection
 
-MonadCore leverages PointFree's `Dependencies` library for robust service management.
+PositronicKitCore leverages PointFree's `Dependencies` library for robust service management.
 
 - **Centralized Registry**: All shared services (LLM, Storage, Tools) are registered in `DependencyValues`.
 - **Property Wrappers**: Components access services via the `@Dependency` property wrapper.

@@ -17,8 +17,8 @@ import Testing
 
     @Test("Test multi-byte character estimation")
     func multiByteCharacters() {
-        // "Monad Assistant 🚀" -> 2 words + emoji (which NL might not count as word, or treat separately)
-        let count = TokenEstimator.estimate(text: "Monad Assistant 🚀")
+        // "PositronicKit Assistant 🚀" -> 2 words + emoji (which NL might not count as word, or treat separately)
+        let count = TokenEstimator.estimate(text: "PositronicKit Assistant 🚀")
         #expect(count >= 2)
     }
 

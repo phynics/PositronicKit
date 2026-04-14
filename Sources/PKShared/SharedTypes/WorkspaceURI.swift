@@ -1,7 +1,7 @@
 import Foundation
 
 /// SCP-like URI for identifying workspaces
-/// Format: `host:path` (e.g., `macbook:~/dev/project`, `monad-server:/sessions/abc123`)
+/// Format: `host:path` (e.g., `macbook:~/dev/project`, `pk-server:/sessions/abc123`)
 public struct WorkspaceURI: Codable, Sendable, Hashable, CustomStringConvertible {
     public let host: String
     public let path: String
@@ -12,7 +12,7 @@ public struct WorkspaceURI: Codable, Sendable, Hashable, CustomStringConvertible
 
     /// Whether this workspace is hosted on the server
     public var isServer: Bool {
-        host.hasPrefix("monad-")
+        host.hasPrefix("pk-")
     }
 
     /// Whether this workspace is hosted on a client
@@ -34,12 +34,12 @@ public struct WorkspaceURI: Codable, Sendable, Hashable, CustomStringConvertible
 
     /// Create an agent workspace URI
     public static func agentWorkspace(_ agentId: UUID) -> WorkspaceURI {
-        WorkspaceURI(host: "monad-server", path: "/agents/\(agentId.uuidString)")
+        WorkspaceURI(host: "pk-server", path: "/agents/\(agentId.uuidString)")
     }
 
     /// Create a server timeline workspace URI
     public static func serverTimeline(_ timelineId: UUID) -> WorkspaceURI {
-        WorkspaceURI(host: "monad-server", path: "/sessions/\(timelineId.uuidString)")
+        WorkspaceURI(host: "pk-server", path: "/sessions/\(timelineId.uuidString)")
     }
 
     /// Create a client shell workspace URI

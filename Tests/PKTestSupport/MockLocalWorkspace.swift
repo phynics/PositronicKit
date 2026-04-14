@@ -10,7 +10,7 @@ public actor MockLocalWorkspace: WorkspaceProtocol {
 
     public init(rootURL: URL) {
         let ref = WorkspaceReference(
-            uri: WorkspaceURI(host: "monad-server", path: rootURL.path),
+            uri: WorkspaceURI(host: "pk-server", path: rootURL.path),
             hostType: .server,
             rootPath: rootURL.path
         )

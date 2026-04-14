@@ -96,7 +96,7 @@ public extension Tool {
             schema = decoded
         } else {
             var logger: Logger {
-                Logger(label: "com.monad.shared.tools")
+                Logger(label: "com.positronickit.shared.tools")
             }
             logger.warning(
                 "Failed to decode parametersSchema for tool '\(id)' — using empty schema. Raw: \(parametersSchema)"

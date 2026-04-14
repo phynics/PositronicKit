@@ -137,7 +137,7 @@ struct ContextManagerTests {
         try noteContent.write(to: notesDir.appendingPathComponent("FSNote.md"), atomically: true, encoding: .utf8)
 
         let ref = WorkspaceReference.fixture(
-            uri: WorkspaceURI(host: "monad-server", path: tempURL.path),
+            uri: WorkspaceURI(host: "pk-server", path: tempURL.path),
             rootPath: tempURL.path
         )
         let workspace = try MockLocalWorkspace(reference: ref)

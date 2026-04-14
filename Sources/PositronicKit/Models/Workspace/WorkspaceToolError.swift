@@ -2,10 +2,10 @@ import ErrorKit
 import PKShared
 import Foundation
 
-public enum WorkspaceToolError: MonadError {
+public enum WorkspaceToolError: PKError {
     case missingDefinition
 
-    public var errorDomain: String { MonadErrorDomain.workspace }
+    public var errorDomain: String { PKErrorDomain.workspace }
 
     public var errorCode: Int {
         switch self {
