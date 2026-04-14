@@ -1,108 +1,309 @@
 import Foundation
+import PKShared
 
 /// Defines the stability of a section's content across requests.
 /// Used to order sections to maximize LLM prompt caching effectiveness.
 public enum CachePolicy: Sendable, Comparable {
-    /// Content remains stable across multiple turns (e.g., system instructions, agent identity).
-    /// These are placed earliest in the prompt to create a consistent cache prefix.
     case stable
-    /// Content changes occasionally or between sessions (e.g., tools, workspace environment).
     case semiStable
-    /// Content changes with every request (e.g., latest user query, recent chat history).
     case volatile
 }
 
 /// Defines how a section should be handled when the total prompt token budget is exceeded.
 public enum CompressionStrategy: Sendable, Equatable {
-    /// Never compress or omit this section; it is critical for the prompt.
     case keep
-
-    /// Truncate the section text to fit the budget.
-    /// - Parameter tail: If true, truncate from the end. If false, truncate from the beginning.
     case truncate(tail: Bool)
-
-    /// Attempt to summarize the content using a secondary LLM pass.
     case summarize
-
-    /// Omit the entire section if it cannot fit within the allocated budget.
     case drop
 }
 
-/// Describes the structural nature of a section's content.
+/// Defines the structural nature of a section's content.
 public enum ContextSectionType: Sendable {
-    /// A continuous block of text.
     case text
-
-    /// A structured list of distinct items.
     case list
 }
 
-/// A protocol defining a distinct component of an LLM prompt.
-/// Implementations are responsible for rendering their specific context into a string.
-public protocol ContextSection: Sendable {
-    /// A unique identifier for this section type (e.g., "system", "history").
-    var id: String { get }
-
-    /// The priority of the section. Higher values typically result in earlier placement
-    /// or protected status during token budget allocation.
-    var priority: Int { get }
-
-    /// An estimate of the number of tokens required to represent this section.
-    var estimatedTokens: Int { get }
-
-    /// The strategy to employ if the section must be compressed to fit a token limit.
-    var strategy: CompressionStrategy { get }
-
-    /// The structural type of the content.
-    var type: ContextSectionType { get }
-
-    /// A hint about how frequently the content changes, used for cache optimization.
-    var cachePolicy: CachePolicy { get }
-
-    /// Renders the section into its final string representation.
-    /// - Returns: The rendered string, or nil if the section is empty or irrelevant.
-    func render() async -> String?
-
-    /// Renders the section, optionally applying a token constraint.
-    /// - Parameter tokens: The maximum number of tokens allowed for the rendered output.
-    /// - Returns: The rendered (and potentially truncated/summarized) string.
-    func render(constrainedTo tokens: Int?) async -> String?
-
-    /// Returns a version of this section that adheres to a specific token limit.
-    /// - Parameter tokens: The token limit to enforce.
-    /// - Returns: A new section that fits within the budget.
-    func constrained(to tokens: Int) -> ContextSection
+public enum PromptSectionRole: Sendable, Equatable {
+    case system
+    case context
+    case userQuery
+    case chatHistory
 }
 
-/// Default implementations for the `ContextSection` protocol.
+public enum PromptPriority: Int, Sendable {
+    case low = 25
+    case medium = 50
+    case high = 75
+    case critical = 100
+}
+
+public struct ContextSectionResolutionContext: Sendable {
+    public let ancestorPath: [String]
+    public let inheritedPriority: Int?
+    public let inheritedCompression: CompressionStrategy?
+    public let inheritedCachePolicy: CachePolicy?
+
+    public init(
+        ancestorPath: [String] = ["prompt"],
+        inheritedPriority: Int? = nil,
+        inheritedCompression: CompressionStrategy? = nil,
+        inheritedCachePolicy: CachePolicy? = nil
+    ) {
+        self.ancestorPath = ancestorPath
+        self.inheritedPriority = inheritedPriority
+        self.inheritedCompression = inheritedCompression
+        self.inheritedCachePolicy = inheritedCachePolicy
+    }
+
+    public func descending(into component: String?) -> ContextSectionResolutionContext {
+        guard let component, !component.isEmpty else {
+            return self
+        }
+
+        var path = ancestorPath
+        path.append(component)
+        return ContextSectionResolutionContext(
+            ancestorPath: path,
+            inheritedPriority: inheritedPriority,
+            inheritedCompression: inheritedCompression,
+            inheritedCachePolicy: inheritedCachePolicy
+        )
+    }
+
+    public func applying(priority: Int? = nil, compression: CompressionStrategy? = nil, cachePolicy: CachePolicy? = nil) -> ContextSectionResolutionContext {
+        ContextSectionResolutionContext(
+            ancestorPath: ancestorPath,
+            inheritedPriority: priority ?? inheritedPriority,
+            inheritedCompression: compression ?? inheritedCompression,
+            inheritedCachePolicy: cachePolicy ?? inheritedCachePolicy
+        )
+    }
+}
+
+public struct ResolvedContextSection: Sendable {
+    public let id: String
+    public let role: PromptSectionRole
+    public let priority: Int
+    public let estimatedTokens: Int
+    public let compression: CompressionStrategy
+    public let type: ContextSectionType
+    public let cachePolicy: CachePolicy
+    public let path: [String]
+    public let parentID: String?
+    public let historyMessages: [Message]?
+
+    private let renderImpl: @Sendable (Int?) async -> String?
+
+    public init(
+        id: String,
+        role: PromptSectionRole,
+        priority: Int,
+        estimatedTokens: Int,
+        compression: CompressionStrategy,
+        type: ContextSectionType,
+        cachePolicy: CachePolicy,
+        path: [String],
+        parentID: String? = nil,
+        historyMessages: [Message]? = nil,
+        render: @escaping @Sendable (Int?) async -> String?
+    ) {
+        self.id = id
+        self.role = role
+        self.priority = priority
+        self.estimatedTokens = estimatedTokens
+        self.compression = compression
+        self.type = type
+        self.cachePolicy = cachePolicy
+        self.path = path
+        self.parentID = parentID
+        self.historyMessages = historyMessages
+        self.renderImpl = render
+    }
+
+    public func render() async -> String? {
+        await renderImpl(nil)
+    }
+
+    public func render(constrainedTo tokens: Int?) async -> String? {
+        await renderImpl(tokens)
+    }
+
+    public func constrained(to tokens: Int) -> ResolvedContextSection {
+        ResolvedContextSection(
+            id: id,
+            role: role,
+            priority: priority,
+            estimatedTokens: min(estimatedTokens, tokens),
+            compression: compression,
+            type: type,
+            cachePolicy: cachePolicy,
+            path: path,
+            parentID: parentID,
+            historyMessages: historyMessages,
+            render: { limit in
+                await renderImpl(min(limit ?? tokens, tokens))
+            }
+        )
+    }
+
+    public func summarized(_ summary: String, estimatedTokens: Int) -> ResolvedContextSection {
+        ResolvedContextSection(
+            id: id,
+            role: role,
+            priority: priority,
+            estimatedTokens: estimatedTokens,
+            compression: .keep,
+            type: .text,
+            cachePolicy: cachePolicy,
+            path: path,
+            parentID: parentID,
+            historyMessages: historyMessages,
+            render: { _ in summary }
+        )
+    }
+
+    public func dropped() -> ResolvedContextSection {
+        ResolvedContextSection(
+            id: id,
+            role: role,
+            priority: priority,
+            estimatedTokens: 0,
+            compression: .drop,
+            type: type,
+            cachePolicy: cachePolicy,
+            path: path,
+            parentID: parentID,
+            historyMessages: historyMessages,
+            render: { _ in nil }
+        )
+    }
+}
+
+public protocol ContextSection: Sendable {
+    associatedtype Body: ContextSection = NeverSection
+    var body: Body { get }
+    var sectionPathComponent: String? { get }
+    func resolve(in context: ContextSectionResolutionContext) -> [ResolvedContextSection]
+}
+
 public extension ContextSection {
-    /// Default strategy is to keep the section as is.
-    var strategy: CompressionStrategy {
+    var sectionPathComponent: String? {
+        String(describing: Self.self)
+    }
+
+    func resolve(in context: ContextSectionResolutionContext = ContextSectionResolutionContext()) -> [ResolvedContextSection] {
+        body.resolve(in: context.descending(into: sectionPathComponent))
+    }
+
+    func priority(_ value: Int) -> some ContextSection {
+        PriorityModifier(content: self, priority: value)
+    }
+
+    func priority(_ value: PromptPriority) -> some ContextSection {
+        priority(value.rawValue)
+    }
+
+    func compression(_ value: CompressionStrategy) -> some ContextSection {
+        CompressionModifier(content: self, compression: value)
+    }
+
+    func cachePolicy(_ value: CachePolicy) -> some ContextSection {
+        CachePolicyModifier(content: self, cachePolicy: value)
+    }
+}
+
+public protocol PrimitiveContextSection: ContextSection {
+    var id: String { get }
+    var role: PromptSectionRole { get }
+    var priority: Int { get }
+    var estimatedTokens: Int { get }
+    var compression: CompressionStrategy { get }
+    var type: ContextSectionType { get }
+    var cachePolicy: CachePolicy { get }
+    var historyMessages: [Message]? { get }
+    func renderContent() async -> String?
+}
+
+public extension PrimitiveContextSection {
+    var body: NeverSection {
+        NeverSection()
+    }
+
+    var sectionPathComponent: String? {
+        nil
+    }
+
+    var role: PromptSectionRole {
+        .context
+    }
+
+    var compression: CompressionStrategy {
         .keep
     }
 
-    /// Default content type is simple text.
     var type: ContextSectionType {
         .text
     }
 
-    /// Default cache policy is volatile.
     var cachePolicy: CachePolicy {
         .volatile
     }
 
-    /// Default implementation that ignores constraints and calls `render()`.
+    var historyMessages: [Message]? {
+        nil
+    }
+
+    func render() async -> String? {
+        await resolve(in: ContextSectionResolutionContext()).first?.render()
+    }
+
     func render(constrainedTo tokens: Int?) async -> String? {
+        await resolve(in: ContextSectionResolutionContext()).first?.render(constrainedTo: tokens)
+    }
+
+    func resolve(in context: ContextSectionResolutionContext = ContextSectionResolutionContext()) -> [ResolvedContextSection] {
+        let effectivePriority = context.inheritedPriority ?? priority
+        let effectiveCompression = context.inheritedCompression ?? compression
+        let effectiveCachePolicy = context.inheritedCachePolicy ?? cachePolicy
+        let path = context.ancestorPath + [cachePolicyPathComponent(for: effectiveCachePolicy), id]
+
+        return [
+            ResolvedContextSection(
+                id: id,
+                role: role,
+                priority: effectivePriority,
+                estimatedTokens: estimatedTokens,
+                compression: effectiveCompression,
+                type: type,
+                cachePolicy: effectiveCachePolicy,
+                path: path,
+                historyMessages: historyMessages,
+                render: { tokens in
+                    await applyRenderConstraint(
+                        to: renderContent,
+                        tokens: tokens,
+                        strategy: effectiveCompression
+                    )
+                }
+            ),
+        ]
+    }
+
+    private func applyRenderConstraint(
+        to renderContent: @escaping @Sendable () async -> String?,
+        tokens: Int?,
+        strategy: CompressionStrategy
+    ) async -> String? {
         guard let tokens else {
-            return await render()
+            return await renderContent()
         }
 
-        guard let content = await render(), !content.isEmpty else {
+        guard let content = await renderContent(), !content.isEmpty else {
             return nil
         }
 
-        let estimatedTokens = max(1, content.count / 4)
-        guard estimatedTokens > tokens else {
+        let estimated = max(1, content.count / 4)
+        guard estimated > tokens else {
             return content
         }
 
@@ -111,71 +312,132 @@ public extension ContextSection {
         }
 
         let charLimit = max(0, tokens * 4)
-        if charLimit == 0 {
+        guard charLimit > 0 else {
             return nil
         }
 
         if tail {
             return String(content.prefix(charLimit)) + "\n... [Truncated]"
         }
+
         return "... [Truncated]\n" + String(content.suffix(charLimit))
     }
 
-    /// Default implementation that wraps the section in a `ConstrainedSection` wrapper.
-    func constrained(to tokens: Int) -> ContextSection {
-        ConstrainedSection(wrapped: self, limit: tokens)
+    private func cachePolicyPathComponent(for policy: CachePolicy) -> String {
+        switch policy {
+        case .stable:
+            return "stable"
+        case .semiStable:
+            return "semiStable"
+        case .volatile:
+            return "volatile"
+        }
     }
 }
 
-/// A decorator that enforces a token limit on a wrapped `ContextSection`.
-public struct ConstrainedSection: ContextSection {
-    /// The original section being constrained.
-    public let wrapped: ContextSection
-    /// The maximum number of tokens allowed.
-    public let limit: Int
+public struct NeverSection: ContextSection {
+    public init() {}
 
-    public var id: String {
-        wrapped.id
+    public var body: NeverSection {
+        self
     }
 
-    public var priority: Int {
-        wrapped.priority
+    public var sectionPathComponent: String? {
+        nil
     }
 
-    public var estimatedTokens: Int {
-        min(wrapped.estimatedTokens, limit)
+    public func resolve(in context: ContextSectionResolutionContext) -> [ResolvedContextSection] {
+        []
+    }
+}
+
+public struct SectionGroup: ContextSection {
+    public let sections: [any ContextSection]
+
+    public init(_ sections: [any ContextSection] = []) {
+        self.sections = sections
     }
 
-    public var strategy: CompressionStrategy {
-        wrapped.strategy
+    public init(@ContextBuilder _ content: () -> some ContextSection) {
+        self.sections = [content()]
     }
 
-    public var type: ContextSectionType {
-        wrapped.type
+    public var body: NeverSection {
+        NeverSection()
     }
 
-    /// Initializes a new constrained section wrapper.
-    /// - Parameters:
-    ///   - wrapped: The section to constrain.
-    ///   - limit: The token limit.
-    public init(wrapped: ContextSection, limit: Int) {
-        self.wrapped = wrapped
-        self.limit = limit
+    public var sectionPathComponent: String? {
+        nil
     }
 
-    /// Renders the wrapped section using the specified limit.
-    public func render() async -> String? {
-        await wrapped.render(constrainedTo: limit)
+    public func resolve(in context: ContextSectionResolutionContext) -> [ResolvedContextSection] {
+        sections.flatMap { $0.resolve(in: context) }
+    }
+}
+
+public struct EmptySection: ContextSection {
+    public init() {}
+
+    public var body: NeverSection {
+        NeverSection()
     }
 
-    /// Renders the wrapped section using the more restrictive of the two limits.
-    public func render(constrainedTo tokens: Int?) async -> String? {
-        let effectiveLimit = tokens.map { min($0, limit) } ?? limit
-        return await wrapped.render(constrainedTo: effectiveLimit)
+    public var sectionPathComponent: String? {
+        nil
     }
 
-    /// Returns a new constrained section with an even more restrictive limit if necessary.
-    public func constrained(to tokens: Int) -> ContextSection {
-        ConstrainedSection(wrapped: wrapped, limit: min(limit, tokens))
+    public func resolve(in context: ContextSectionResolutionContext) -> [ResolvedContextSection] {
+        []
+    }
+}
+
+public struct PriorityModifier<Content: ContextSection>: ContextSection {
+    let content: Content
+    let priority: Int
+
+    public var body: NeverSection {
+        NeverSection()
+    }
+
+    public var sectionPathComponent: String? {
+        nil
+    }
+
+    public func resolve(in context: ContextSectionResolutionContext) -> [ResolvedContextSection] {
+        content.resolve(in: context.applying(priority: priority))
+    }
+}
+
+public struct CompressionModifier<Content: ContextSection>: ContextSection {
+    let content: Content
+    let compression: CompressionStrategy
+
+    public var body: NeverSection {
+        NeverSection()
+    }
+
+    public var sectionPathComponent: String? {
+        nil
+    }
+
+    public func resolve(in context: ContextSectionResolutionContext) -> [ResolvedContextSection] {
+        content.resolve(in: context.applying(compression: compression))
+    }
+}
+
+public struct CachePolicyModifier<Content: ContextSection>: ContextSection {
+    let content: Content
+    let cachePolicy: CachePolicy
+
+    public var body: NeverSection {
+        NeverSection()
+    }
+
+    public var sectionPathComponent: String? {
+        nil
+    }
+
+    public func resolve(in context: ContextSectionResolutionContext) -> [ResolvedContextSection] {
+        content.resolve(in: context.applying(cachePolicy: cachePolicy))
     }
 }

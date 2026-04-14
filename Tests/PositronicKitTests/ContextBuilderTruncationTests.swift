@@ -17,20 +17,13 @@ struct ContextBuilderTruncationTests {
         let totalTokens = history.estimatedTokens
 
         let constrainedUnchanged = history.constrained(to: totalTokens + 100)
-        #expect(constrainedUnchanged is ChatHistory)
-        if let h = constrainedUnchanged as? ChatHistory {
-            #expect(h.messages.count == 10)
-        }
+        #expect(constrainedUnchanged.messages.count == 10)
 
         let limit = totalTokens / 2
         let constrained = history.constrained(to: limit)
-
-        #expect(constrained is ChatHistory)
-        if let h = constrained as? ChatHistory {
-            #expect(h.messages.count < 10)
-            #expect(h.messages.count > 0)
-            #expect(h.messages.last?.content == "Message 10 content")
-        }
+        #expect(constrained.messages.count < 10)
+        #expect(constrained.messages.count > 0)
+        #expect(constrained.messages.last?.content == "Message 10 content")
     }
 
     @Test("Context Notes Truncation")
@@ -58,7 +51,7 @@ struct ContextBuilderTruncationTests {
         let messages = (1...20).map { Message.fixture(content: "msg \($0)") }
         let history = ChatHistory(messages)
 
-        let sections: [ContextSection] = [system, history]
+        let sections: [any ContextSection] = [system, history]
         let budget = TokenBudget(maxTokens: 30, reserveForResponse: 0)
         let processed = await budget.apply(to: sections)
 
@@ -66,16 +59,9 @@ struct ContextBuilderTruncationTests {
 
         let processedSystem = processed.first(where: { $0.id == "system" })
         #expect(processedSystem != nil)
-        #expect(processedSystem is SystemInstructions)
 
         let processedHistory = processed.first(where: { $0.id == "chat_history" })
         #expect(processedHistory != nil)
-
-        if let h = processedHistory as? ChatHistory {
-             #expect(h.messages.count < 20)
-             #expect(h.messages.count > 0)
-        } else {
-            Issue.record("History should preserve ChatHistory type")
-        }
+        #expect(processedHistory?.estimatedTokens ?? 0 < history.estimatedTokens)
     }
 }

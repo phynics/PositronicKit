@@ -95,12 +95,12 @@ public actor TimelinePromptHistory {
     /// Record a prompt snapshot using pre-rendered content (avoids double-rendering).
     ///
     /// - Parameters:
-    ///   - sections: The prompt's ordered sections (used for metadata).
+    ///   - sections: The prompt's resolved ordered sections (used for metadata).
     ///   - renderedContent: Map of section ID to rendered string. Sections not in this map
     ///     are hashed as empty string.
     /// - Returns: A diff describing what changed since the last recording.
     @discardableResult
-    public func record(sections: [ContextSection], renderedContent: [String: String]) -> PromptDiff {
+    public func record(sections: [ResolvedContextSection], renderedContent: [String: String]) -> PromptDiff {
         assertUniqueSectionIDs(sections, context: "TimelinePromptHistory.record")
         var entries: [PromptSectionEntry] = []
         for (index, section) in sections.enumerated() {
@@ -110,8 +110,8 @@ public actor TimelinePromptHistory {
                 content: content,
                 cachePolicy: section.cachePolicy,
                 estimatedTokens: section.estimatedTokens,
-                path: ["prompt", String(describing: section.cachePolicy), section.id],
-                parentEntryId: nil,
+                path: section.path,
+                parentEntryId: section.parentID,
                 order: index,
                 sectionKind: section.type == .list ? .group : .section
             ))
@@ -160,13 +160,13 @@ public actor TimelinePromptHistory {
     }
 
     public func nodeMetadata(
-        sections: [ContextSection],
+        sections: [ResolvedContextSection],
         renderedContent: [String: String]
     ) -> [String: StructuredNodeMetadata] {
         var metadata: [String: StructuredNodeMetadata] = [:]
         for section in sections {
             let content = renderedContent[section.id] ?? ""
-            let path = ["prompt", String(describing: section.cachePolicy), section.id]
+            let path = section.path
             metadata[section.id] = StructuredNodeMetadata(
                 path: path,
                 nodeHash: StableHash.hash(components: [

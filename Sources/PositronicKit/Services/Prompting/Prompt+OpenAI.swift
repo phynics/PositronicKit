@@ -1,31 +1,28 @@
 import Foundation
+import OpenAI
 import PKPrompt
 import PKShared
-import OpenAI
 
 public extension Prompt {
-    /// Convert the assembled prompt into OpenAI chat messages.
-    /// - Parameter preRendered: Optional pre-rendered content map from `renderAll()`.
-    ///   When provided, sections use this content instead of re-rendering.
     func toMessages(preRendered: [String: String]? = nil) async -> [ChatQuery.ChatCompletionMessageParam] {
+        let resolved = await resolveSections()
         var messages: [ChatQuery.ChatCompletionMessageParam] = []
 
-        let systemMessage = await buildSystemMessage(preRendered: preRendered)
-        if let msg = systemMessage { messages.append(msg) }
+        if let systemMessage = await buildSystemMessage(from: resolved, preRendered: preRendered) {
+            messages.append(systemMessage)
+        }
 
-        let historyMessages = await buildHistoryMessages()
-        messages.append(contentsOf: historyMessages)
+        messages.append(contentsOf: buildHistoryMessages(from: resolved))
 
-        let queryMessage = await buildUserQueryMessage(preRendered: preRendered)
-        if let msg = queryMessage { messages.append(msg) }
+        if let queryMessage = await buildUserQueryMessage(from: resolved, preRendered: preRendered) {
+            messages.append(queryMessage)
+        }
 
         return messages
     }
 
-    // MARK: - Helpers
-
     private func resolvedContent(
-        for section: ContextSection,
+        for section: ResolvedContextSection,
         using cache: [String: String]?
     ) async -> String? {
         if let cache {
@@ -35,27 +32,41 @@ public extension Prompt {
     }
 
     private func buildSystemMessage(
+        from sections: [ResolvedContextSection],
         preRendered: [String: String]? = nil
     ) async -> ChatQuery.ChatCompletionMessageParam? {
         var systemParts: [String] = []
 
-        for section in sections {
-            if section.id == "chat_history" || section.id == "user_query" { continue }
+        for section in sections where section.role != .chatHistory && section.role != .userQuery {
             if let content = await resolvedContent(for: section, using: preRendered), !content.isEmpty {
                 systemParts.append(content)
             }
         }
 
         guard !systemParts.isEmpty else { return nil }
-        let combinedSystem = systemParts.joined(separator: "\n\n---\n\n")
-        return .system(.init(content: .textContent(combinedSystem), name: nil))
+        return .system(.init(content: .textContent(systemParts.joined(separator: "\n\n---\n\n")), name: nil))
     }
 
-    private func buildHistoryMessages() async -> [ChatQuery.ChatCompletionMessageParam] {
-        guard let historySection = sections.first(where: { $0.id == "chat_history" }) as? ChatHistory else {
-            return []
+    private func buildHistoryMessages(from sections: [ResolvedContextSection]) -> [ChatQuery.ChatCompletionMessageParam] {
+        sections
+            .filter { $0.role == .chatHistory }
+            .flatMap { $0.historyMessages ?? [] }
+            .map(convertHistoryMessage)
+    }
+
+    private func buildUserQueryMessage(
+        from sections: [ResolvedContextSection],
+        preRendered: [String: String]? = nil
+    ) async -> ChatQuery.ChatCompletionMessageParam? {
+        guard let querySection = sections.first(where: { $0.role == .userQuery }) else {
+            return nil
         }
-        return historySection.messages.map { convertHistoryMessage($0) }
+
+        guard let content = await resolvedContent(for: querySection, using: preRendered) else {
+            return nil
+        }
+
+        return .user(.init(content: .string(content), name: nil))
     }
 
     private func convertHistoryMessage(_ msg: Message) -> ChatQuery.ChatCompletionMessageParam {
@@ -100,18 +111,8 @@ public extension Prompt {
     }
 
     private func buildToolResponseMessage(_ msg: Message) -> ChatQuery.ChatCompletionMessageParam {
-        let hiddenInstruction =
-            "\n[System: This is a system message hidden from user; " +
-            "now respond to the user about this result.]"
+        let hiddenInstruction = "\n[System: This is a system message hidden from user; now respond to the user about this result.]"
         let responseContent = "<tool_response>\n\(msg.content)\n</tool_response>\(hiddenInstruction)"
         return .user(.init(content: .string(responseContent), name: nil))
-    }
-
-    private func buildUserQueryMessage(
-        preRendered: [String: String]? = nil
-    ) async -> ChatQuery.ChatCompletionMessageParam? {
-        guard let querySection = sections.first(where: { $0.id == "user_query" }) else { return nil }
-        guard let content = await resolvedContent(for: querySection, using: preRendered) else { return nil }
-        return .user(.init(content: .string(content), name: nil))
     }
 }

@@ -1,6 +1,18 @@
-import Testing
 import Foundation
+import Testing
 @testable import PKPrompt
+
+private struct ExecutorMockSection: PrimitiveContextSection {
+    let id: String
+    let priority: Int
+    let estimatedTokens: Int
+    let compression: CompressionStrategy
+    let renderedContent: String
+
+    func renderContent() async -> String? {
+        renderedContent
+    }
+}
 
 private struct RecordingCompressor: SectionCompressor {
     let result: String
@@ -21,20 +33,24 @@ private struct RecordingCompressor: SectionCompressor {
     }
 }
 
+private func resolveExecutorSections(_ sections: [ExecutorMockSection]) -> [ResolvedContextSection] {
+    sections.flatMap { $0.resolve(in: ContextSectionResolutionContext()) }
+}
+
 @Suite("StructuredCompressionExecutor")
 struct StructuredCompressionExecutorTests {
     @Test("Executes plan and preserves section ordering")
     func executesPlanInOrder() async {
-        let sections: [ContextSection] = [
-            MockContextSection(id: "s1", priority: 1, estimatedTokens: 300, strategy: .summarize, renderedContent: "A long body"),
-            MockContextSection(id: "s2", priority: 1, estimatedTokens: 100, strategy: .keep, renderedContent: "Keep me"),
-        ]
+        let sections = resolveExecutorSections([
+            ExecutorMockSection(id: "s1", priority: 1, estimatedTokens: 300, compression: .summarize, renderedContent: "A long body"),
+            ExecutorMockSection(id: "s2", priority: 1, estimatedTokens: 100, compression: .keep, renderedContent: "Keep me"),
+        ])
         let plan = StructuredCompressionPlan(
             availableTokens: 150,
             totalEstimatedTokens: 400,
             nodeActions: [
-                .init(nodeId: "s1", path: ["prompt", "volatile", "s1"], nodeHash: 11, strategy: .summarize, estimatedTokens: 300, action: .summarize(targetTokens: 50, reason: .budgetReduction)),
-                .init(nodeId: "s2", path: ["prompt", "stable", "s2"], nodeHash: 22, strategy: .keep, estimatedTokens: 100, action: .keep),
+                .init(nodeId: "s1", path: sections[0].path, nodeHash: 11, strategy: .summarize, estimatedTokens: 300, action: .summarize(targetTokens: 50, reason: .budgetReduction)),
+                .init(nodeId: "s2", path: sections[1].path, nodeHash: 22, strategy: .keep, estimatedTokens: 100, action: .keep),
             ]
         )
 
@@ -42,21 +58,19 @@ struct StructuredCompressionExecutorTests {
         let result = await executor.execute(plan: plan, sections: sections, compressor: RecordingCompressor(result: "summary"))
 
         #expect(result.sections.map(\.id) == ["s1", "s2"])
-        let rendered = await result.sections[0].render()
-        #expect(rendered == "summary")
+        #expect(await result.sections[0].render() == "summary")
     }
 
     @Test("Uses summary cache keyed by nodeHash and target tokens")
     func usesSummaryCache() async {
-        let sections: [ContextSection] = [
-            MockContextSection(id: "s1", priority: 1, estimatedTokens: 300, strategy: .summarize, renderedContent: "A long body"),
-        ]
-
+        let sections = resolveExecutorSections([
+            ExecutorMockSection(id: "s1", priority: 1, estimatedTokens: 300, compression: .summarize, renderedContent: "A long body"),
+        ])
         let plan = StructuredCompressionPlan(
             availableTokens: 50,
             totalEstimatedTokens: 300,
             nodeActions: [
-                .init(nodeId: "s1", path: ["prompt", "volatile", "s1"], nodeHash: 100, strategy: .summarize, estimatedTokens: 300, action: .summarize(targetTokens: 20, reason: .budgetReduction)),
+                .init(nodeId: "s1", path: sections[0].path, nodeHash: 100, strategy: .summarize, estimatedTokens: 300, action: .summarize(targetTokens: 20, reason: .budgetReduction)),
             ]
         )
 
@@ -74,25 +88,25 @@ struct StructuredCompressionExecutorTests {
 
     @Test("Evicts oldest summaries when cache reaches capacity")
     func evictsOldestSummaries() async {
-        let section1: [ContextSection] = [
-            MockContextSection(id: "s1", priority: 1, estimatedTokens: 300, strategy: .summarize, renderedContent: "Body 1"),
-        ]
-        let section2: [ContextSection] = [
-            MockContextSection(id: "s2", priority: 1, estimatedTokens: 300, strategy: .summarize, renderedContent: "Body 2"),
-        ]
+        let section1 = resolveExecutorSections([
+            ExecutorMockSection(id: "s1", priority: 1, estimatedTokens: 300, compression: .summarize, renderedContent: "Body 1"),
+        ])
+        let section2 = resolveExecutorSections([
+            ExecutorMockSection(id: "s2", priority: 1, estimatedTokens: 300, compression: .summarize, renderedContent: "Body 2"),
+        ])
 
         let plan1 = StructuredCompressionPlan(
             availableTokens: 50,
             totalEstimatedTokens: 300,
             nodeActions: [
-                .init(nodeId: "s1", path: ["prompt", "volatile", "s1"], nodeHash: 100, strategy: .summarize, estimatedTokens: 300, action: .summarize(targetTokens: 20, reason: .budgetReduction)),
+                .init(nodeId: "s1", path: section1[0].path, nodeHash: 100, strategy: .summarize, estimatedTokens: 300, action: .summarize(targetTokens: 20, reason: .budgetReduction)),
             ]
         )
         let plan2 = StructuredCompressionPlan(
             availableTokens: 50,
             totalEstimatedTokens: 300,
             nodeActions: [
-                .init(nodeId: "s2", path: ["prompt", "volatile", "s2"], nodeHash: 200, strategy: .summarize, estimatedTokens: 300, action: .summarize(targetTokens: 20, reason: .budgetReduction)),
+                .init(nodeId: "s2", path: section2[0].path, nodeHash: 200, strategy: .summarize, estimatedTokens: 300, action: .summarize(targetTokens: 20, reason: .budgetReduction)),
             ]
         )
 

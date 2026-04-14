@@ -1,70 +1,51 @@
-import Testing
 import Foundation
+import Testing
 @testable import PKPrompt
 
-@Suite final class GenericHelperSectionsTests {
-
-    @Test
-
-    func testTextSectionInitialization() {
+@Suite("Generic helper sections")
+struct GenericHelperSectionsTests {
+    @Test("TextSection stores explicit configuration")
+    func textSectionInitialization() {
         let section = TextSection(
             id: "system",
             text: "You are an AI.",
             priority: 100,
-            strategy: .drop,
+            compression: .drop,
             estimatedTokens: 5
         )
 
         #expect(section.id == "system")
         #expect(section.text == "You are an AI.")
         #expect(section.priority == 100)
-
-        if case .drop = section.strategy { /* expected */ } else {
-            Issue.record("Wrong strategy")
-        }
-
-        if case .text = section.type { /* expected */ } else {
-            Issue.record("Wrong type")
-        }
-
+        #expect(section.compression == .drop)
+        #expect(section.type == .text)
         #expect(section.estimatedTokens == 5)
     }
 
-    @Test
-
-    func testTextSectionDefaultEstimatedTokens() {
-        // Fallback uses string count / 4
-        let text = String(repeating: "char", count: 100) // 400 characters
+    @Test("TextSection derives estimated tokens from text")
+    func textSectionDefaultEstimatedTokens() {
+        let text = String(repeating: "char", count: 100)
         let section = TextSection(id: "t1", text: text)
         #expect(section.estimatedTokens == 100)
     }
 
-    @Test
-
-    func testTextSectionRender() async {
+    @Test("TextSection renders non-empty content")
+    func textSectionRender() async {
         let section = TextSection(id: "t1", text: "Hello")
-        let rendered = await section.render()
-        #expect(rendered == "Hello")
+        let resolved = section.resolve(in: ContextSectionResolutionContext())[0]
+        #expect(await resolved.render() == "Hello")
     }
 
-    @Test
-
-    func testTextSectionRenderEmptyReturnsNil() async {
+    @Test("TextSection renders nil for empty content")
+    func textSectionRenderEmptyReturnsNil() async {
         let section = TextSection(id: "t1", text: "")
-        let rendered = await section.render()
-        #expect(rendered == nil)
+        let resolved = section.resolve(in: ContextSectionResolutionContext())[0]
+        #expect(await resolved.render() == nil)
     }
 
-    @Test
-
-    func testEmptySection() async {
+    @Test("EmptySection resolves to no leaves")
+    func emptySection() {
         let section = EmptySection()
-
-        #expect(section.id == "empty")
-        #expect(section.priority == 0)
-        #expect(section.estimatedTokens == 0)
-
-        let rendered = await section.render()
-        #expect(rendered == nil)
+        #expect(section.resolve(in: ContextSectionResolutionContext()).isEmpty)
     }
 }

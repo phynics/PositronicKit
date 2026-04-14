@@ -1,13 +1,13 @@
-import Testing
 import PKPrompt
+import Testing
 @testable import PositronicKit
 
-private struct TimelineSection: ContextSection {
+private struct TimelineSection: PrimitiveContextSection {
     let id: String
     let priority: Int
     let estimatedTokens: Int
     let cachePolicy: CachePolicy
-    let strategy: CompressionStrategy
+    let compression: CompressionStrategy
     let type: ContextSectionType
     let text: String
 
@@ -16,7 +16,7 @@ private struct TimelineSection: ContextSection {
         priority: Int = 0,
         estimatedTokens: Int = 10,
         cachePolicy: CachePolicy,
-        strategy: CompressionStrategy = .keep,
+        compression: CompressionStrategy = .keep,
         type: ContextSectionType = .text,
         text: String
     ) {
@@ -24,12 +24,12 @@ private struct TimelineSection: ContextSection {
         self.priority = priority
         self.estimatedTokens = estimatedTokens
         self.cachePolicy = cachePolicy
-        self.strategy = strategy
+        self.compression = compression
         self.type = type
         self.text = text
     }
 
-    func render() async -> String? {
+    func renderContent() async -> String? {
         text
     }
 }
@@ -39,23 +39,16 @@ actor TimelinePromptHistoryTests {
     @Test("Exposes subtree diff node-path stats")
     func exposesSubtreeDiffStats() async {
         let history = TimelinePromptHistory()
-        let sections: [ContextSection] = [
+        let sections = [
             TimelineSection(id: "system", cachePolicy: .stable, text: "A"),
             TimelineSection(id: "query", cachePolicy: .volatile, text: "B"),
-        ]
+        ].flatMap { $0.resolve(in: ContextSectionResolutionContext()) }
 
-        _ = await history.record(sections: sections, renderedContent: [
-            "system": "A",
-            "query": "B",
-        ])
+        _ = await history.record(sections: sections, renderedContent: ["system": "A", "query": "B"])
+        let diff = await history.record(sections: sections, renderedContent: ["system": "A2", "query": "B"])
 
-        let diff = await history.record(sections: sections, renderedContent: [
-            "system": "A2",
-            "query": "B",
-        ])
-
-        #expect(diff.changedNodePaths == [["prompt", "stable", "system"]])
-        #expect(diff.stableNodePaths == [["prompt", "volatile", "query"]])
+        #expect(diff.changedNodePaths == [sections[0].path])
+        #expect(diff.stableNodePaths == [sections[1].path])
         #expect(diff.addedNodePaths.isEmpty)
         #expect(diff.removedNodePaths.isEmpty)
     }

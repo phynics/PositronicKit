@@ -69,15 +69,17 @@ public enum PromptBuilder {
         let sections = await assemblyContext.sections
         try validateUniqueSectionIDs(sections)
 
+        let resolvedSections = sections.flatMap { $0.resolve(in: ContextSectionResolutionContext()) }
+
         guard let tokenBudget else {
             return Prompt(sections: sections)
         }
 
         var metadata: [String: StructuredNodeMetadata] = [:]
-        for section in sections {
+        for section in resolvedSections {
             let rendered = await section.render() ?? ""
             metadata[section.id] = StructuredNodeMetadata(
-                path: ["prompt", String(describing: section.cachePolicy), section.id],
+                path: section.path,
                 nodeHash: StableHash.hash(components: [
                     section.id,
                     String(section.estimatedTokens),
@@ -89,14 +91,18 @@ public enum PromptBuilder {
         }
 
         let compressionResult = await tokenBudget.applyWithReport(
-            to: sections,
+            to: resolvedSections,
             compressor: compressor,
             structuredDiff: structuredDiff,
             nodeMetadata: metadata,
             executor: structuredExecutor
         )
 
-        return Prompt(sections: compressionResult.sections, compressionReport: compressionResult.report)
+        return Prompt(
+            sections: sections,
+            resolvedSections: compressionResult.sections,
+            compressionReport: compressionResult.report
+        )
     }
 
     /// Builds a prompt and prepares it for LLM submission.
@@ -107,7 +113,7 @@ public enum PromptBuilder {
         let prompt = try await buildContext(request)
         let renderedContent = await prompt.renderAll()
         let messages = await prompt.toMessages(preRendered: renderedContent)
-        let raw = prompt.render(preRendered: renderedContent)
+        let raw = await prompt.render(preRendered: renderedContent)
         return LLMPromptResult(messages: messages, rawPrompt: raw)
     }
 

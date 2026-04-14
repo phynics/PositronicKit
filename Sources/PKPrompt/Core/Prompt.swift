@@ -1,50 +1,52 @@
 import Foundation
 
-/// Represents a fully assembled LLM prompt consisting of multiple ordered sections.
-/// Sections are automatically sorted based on their cache policy and priority upon initialization.
 public struct Prompt: Sendable {
-    /// The ordered collection of sections that make up the prompt.
-    public let sections: [ContextSection]
+    public let sections: [any ContextSection]
     public let compressionReport: CompressionReport?
 
-    /// Initializes a new prompt from an array of sections.
-    /// - Parameter sections: The raw sections to include. They will be sorted for optimal prompt construction.
-    public init(sections: [ContextSection], compressionReport: CompressionReport? = nil) {
-        assertUniqueSectionIDs(sections, context: "Prompt.init(sections:)")
-        self.sections = sections.sorted {
-            if $0.cachePolicy != $1.cachePolicy {
-                return $0.cachePolicy < $1.cachePolicy // stable < semiStable < volatile
-            }
-            return $0.priority > $1.priority
-        }
+    private let resolvedSectionsStorage: [ResolvedContextSection]?
+
+    public init(sections: [any ContextSection], compressionReport: CompressionReport? = nil) {
+        try? validateUniqueSectionIDs(sections)
+        self.sections = sections
         self.compressionReport = compressionReport
+        self.resolvedSectionsStorage = nil
     }
 
-    /// Initializes a new prompt using a declarative `@ContextBuilder` block.
-    /// - Parameter content: A closure that returns an array of sections.
-    public init(@ContextBuilder _ content: () -> [ContextSection]) {
-        self.init(sections: content())
+    public init(@ContextBuilder _ content: () -> some ContextSection) {
+        self.init(sections: [content()])
     }
 
-    /// Renders the full prompt string by joining all non-empty sections with delimiters.
-    /// - Returns: The final rendered prompt string.
-    public func render() async -> String {
-        var parts: [String] = []
-        for section in sections {
-            if let content = await renderedContent(for: section), !content.isEmpty {
-                parts.append(content)
-            }
+    public init(
+        sections: [any ContextSection],
+        resolvedSections: [ResolvedContextSection],
+        compressionReport: CompressionReport? = nil
+    ) {
+        precondition(
+            duplicateSectionIDs(in: resolvedSections).isEmpty,
+            "Duplicate resolved context section ids: \(duplicateSectionIDs(in: resolvedSections).joined(separator: ", "))"
+        )
+        self.sections = sections
+        self.compressionReport = compressionReport
+        self.resolvedSectionsStorage = Prompt.sortResolvedSections(resolvedSections)
+    }
+
+    public func resolveSections() async -> [ResolvedContextSection] {
+        if let resolvedSectionsStorage {
+            return resolvedSectionsStorage
         }
+        return Prompt.sortResolvedSections(sections.flatMap { $0.resolve(in: ContextSectionResolutionContext()) })
+    }
+
+    public func render() async -> String {
+        let parts = await renderParts()
         return joinedRenderedParts(parts)
     }
 
-    /// Render all sections once, returning a map of section ID to rendered content.
-    /// Use this to avoid double-rendering when content is needed by multiple consumers
-    /// (e.g. `toMessages()` and `TimelinePromptHistory.record()`).
     public func renderAll() async -> [String: String] {
-        assertUniqueSectionIDs(sections, context: "Prompt.renderAll")
+        let resolved = await resolveSections()
         var result: [String: String] = [:]
-        for section in sections {
+        for section in resolved {
             if let content = await section.render(), !content.isEmpty {
                 result[section.id] = content
             }
@@ -52,15 +54,10 @@ public struct Prompt: Sendable {
         return result
     }
 
-    /// Renders the full prompt string using a pre-rendered content map.
-    /// - Parameter preRendered: A map of section IDs to their already-rendered content.
-    /// - Returns: The final rendered prompt string.
-    public func render(preRendered: [String: String]) -> String {
-        var parts: [String] = []
-        for section in sections {
-            if let content = renderedContent(for: section, preRendered: preRendered), !content.isEmpty {
-                parts.append(content)
-            }
+    public func render(preRendered: [String: String]) async -> String {
+        let resolved = await resolveSections()
+        let parts = resolved.compactMap { section in
+            preRendered[section.id]
         }
         return joinedRenderedParts(parts)
     }
@@ -70,20 +67,35 @@ public struct Prompt: Sendable {
         await renderAll()
     }
 
-    /// An estimate of the total number of tokens for all sections in the prompt.
     public var estimatedTokens: Int {
-        sections.reduce(0) { $0 + $1.estimatedTokens }
+        let resolved = resolvedSectionsStorage ?? Prompt.sortResolvedSections(sections.flatMap { $0.resolve(in: ContextSectionResolutionContext()) })
+        return resolved.reduce(0) { $0 + $1.estimatedTokens }
     }
 
-    private func renderedContent(for section: ContextSection) async -> String? {
-        await section.render()
-    }
-
-    private func renderedContent(for section: ContextSection, preRendered: [String: String]) -> String? {
-        preRendered[section.id]
+    private func renderParts() async -> [String] {
+        let resolved = await resolveSections()
+        var parts: [String] = []
+        for section in resolved {
+            if let content = await section.render(), !content.isEmpty {
+                parts.append(content)
+            }
+        }
+        return parts
     }
 
     private func joinedRenderedParts(_ parts: [String]) -> String {
         parts.joined(separator: "\n\n---\n\n")
+    }
+
+    private static func sortResolvedSections(_ sections: [ResolvedContextSection]) -> [ResolvedContextSection] {
+        sections.enumerated().sorted { lhs, rhs in
+            if lhs.element.cachePolicy != rhs.element.cachePolicy {
+                return lhs.element.cachePolicy < rhs.element.cachePolicy
+            }
+            if lhs.element.priority != rhs.element.priority {
+                return lhs.element.priority > rhs.element.priority
+            }
+            return lhs.offset < rhs.offset
+        }.map(\.element)
     }
 }

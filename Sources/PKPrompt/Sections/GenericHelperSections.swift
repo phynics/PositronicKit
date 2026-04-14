@@ -1,50 +1,100 @@
 import Foundation
+import PKShared
 
-/// A simple section containing a static text block
-public struct TextSection: ContextSection {
+public struct TextSection: PrimitiveContextSection {
     public let id: String
     public let text: String
+    public let role: PromptSectionRole
     public let priority: Int
-    public let strategy: CompressionStrategy
-    private let _estimatedTokens: Int?
+    public let compression: CompressionStrategy
+    public let cachePolicy: CachePolicy
+    private let estimatedTokenOverride: Int?
 
     public init(
         id: String,
         text: String,
+        role: PromptSectionRole = .context,
         priority: Int = 50,
-        strategy: CompressionStrategy = .keep,
+        compression: CompressionStrategy = .keep,
+        cachePolicy: CachePolicy = .volatile,
         estimatedTokens: Int? = nil
     ) {
         self.id = id
         self.text = text
+        self.role = role
         self.priority = priority
-        self.strategy = strategy
-        self._estimatedTokens = estimatedTokens
+        self.compression = compression
+        self.cachePolicy = cachePolicy
+        self.estimatedTokenOverride = estimatedTokens
     }
 
-    public func render() async -> String? {
+    public func renderContent() async -> String? {
         guard !text.isEmpty else { return nil }
         return text
     }
 
     public var estimatedTokens: Int {
-        // Fallback if no estimator is available at this level
-        // In real usage, one would inject an estimator or use a more specific type
-        _estimatedTokens ?? (text.isEmpty ? 0 : max(1, text.count / 4))
+        estimatedTokenOverride ?? (text.isEmpty ? 0 : max(1, text.count / 4))
     }
 }
 
-/// A no-op section that renders nothing
-public struct EmptySection: ContextSection {
-    public let id = "empty"
-    public let priority = 0
-    public let estimatedTokens = 0
-    public let strategy: CompressionStrategy = .drop
-    public let type: ContextSectionType = .text
+public struct HistorySection: PrimitiveContextSection {
+    public let id: String
+    public let messages: [Message]
+    public let priority: Int
+    public let cachePolicy: CachePolicy
 
+    public init(
+        id: String = "chat_history",
+        messages: [Message],
+        priority: Int = 70,
+        cachePolicy: CachePolicy = .volatile
+    ) {
+        self.id = id
+        self.messages = messages
+        self.priority = priority
+        self.cachePolicy = cachePolicy
+    }
+
+    public var role: PromptSectionRole {
+        .chatHistory
+    }
+
+    public var compression: CompressionStrategy {
+        .truncate(tail: false)
+    }
+
+    public var type: ContextSectionType {
+        .list
+    }
+
+    public var estimatedTokens: Int {
+        max(1, messages.reduce(into: 0) { partialResult, message in
+            partialResult += max(1, message.content.count / 4)
+        })
+    }
+
+    public var historyMessages: [Message]? {
+        messages
+    }
+
+    public func renderContent() async -> String? {
+        nil
+    }
+}
+
+public struct EmptyPromptSection: ContextSection {
     public init() {}
 
-    public func render() async -> String? {
-        return nil
+    public var body: some ContextSection {
+        NeverSection()
+    }
+
+    public var sectionPathComponent: String? {
+        nil
+    }
+
+    public func resolve(in context: ContextSectionResolutionContext) -> [ResolvedContextSection] {
+        []
     }
 }

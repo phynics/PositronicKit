@@ -1,92 +1,73 @@
-import Testing
 import Foundation
+import Testing
 @testable import PKPrompt
 
-struct MinimalSection: ContextSection {
-    let id: String = "min"
-    let priority: Int = 1
-    let estimatedTokens: Int = 100
+private struct MinimalPrimitiveSection: PrimitiveContextSection {
+    let id = "min"
+    let priority = 1
+    let estimatedTokens = 100
 
-    func render() async -> String? {
-        return "minimal text"
+    func renderContent() async -> String? {
+        "minimal text"
     }
 }
 
-struct TruncatableSection: ContextSection {
-    let id: String = "truncate"
-    let priority: Int = 1
-    let estimatedTokens: Int = 100
-    let strategy: CompressionStrategy
+private struct TruncatablePrimitiveSection: PrimitiveContextSection {
+    let id = "truncate"
+    let priority = 1
+    let estimatedTokens = 100
+    let compression: CompressionStrategy
     let text: String
 
-    func render() async -> String? {
+    func renderContent() async -> String? {
         text
     }
 }
 
-@Suite final class ContextSectionTests {
+@Suite("ContextSection core")
+struct ContextSectionTests {
+    @Test("Primitive sections use default traits")
+    func defaultImplementations() async {
+        let section = MinimalPrimitiveSection()
+        let resolved = section.resolve(in: ContextSectionResolutionContext())
 
-    @Test
+        #expect(resolved.count == 1)
+        #expect(resolved[0].compression == .keep)
+        #expect(resolved[0].type == .text)
 
-    func testDefaultImplementations() async {
-        let section = MinimalSection()
-
-        // Default strategy should be .keep
-        if case .keep = section.strategy { /* expected */ } else {
-            Issue.record("Default strategy should be .keep")
-        }
-
-        // Default type should be .text
-        if case .text = section.type { /* expected */ } else {
-            Issue.record("Default type should be .text")
-        }
-
-        // Default render(constrainedTo:) just calls render()
-        let constrainedRender = await section.render(constrainedTo: 50)
+        let constrainedRender = await resolved[0].render(constrainedTo: 50)
         #expect(constrainedRender == "minimal text")
     }
 
-    @Test
-
-    func testConstrainedSection() async {
-        let base = MinimalSection() // size 100
-        let constrained = ConstrainedSection(wrapped: base, limit: 50)
+    @Test("Resolved sections can be constrained")
+    func resolvedSectionConstraint() async {
+        let base = MinimalPrimitiveSection().resolve(in: ContextSectionResolutionContext())[0]
+        let constrained = base.constrained(to: 50)
 
         #expect(constrained.id == "min")
         #expect(constrained.priority == 1)
-        #expect(constrained.estimatedTokens == 50) // capped by limit
-
-        if case .keep = constrained.strategy { /* expected */ } else {
-            Issue.record("Strategy must pass through")
-        }
-
-        // Nesting constraints
-        let doublyConstrained = constrained.constrained(to: 30) as! ConstrainedSection
-        #expect(doublyConstrained.limit == 30)
-        #expect(doublyConstrained.estimatedTokens == 30)
-
-        // If we constrain to a larger amount, limit should reflect the min
-        let largerConstrained = doublyConstrained.constrained(to: 100) as! ConstrainedSection
-        #expect(largerConstrained.limit == 30)
+        #expect(constrained.estimatedTokens == 50)
     }
 
-    @Test
+    @Test("Truncate tail applies during constrained rendering")
+    func truncateTailRendering() async {
+        let resolved = TruncatablePrimitiveSection(
+            compression: .truncate(tail: true),
+            text: "abcdefghijklmnop"
+        ).resolve(in: ContextSectionResolutionContext())[0]
 
-    func testDefaultConstrainedRenderingTruncateTail() async {
-        let section = TruncatableSection(strategy: .truncate(tail: true), text: "abcdefghijklmnop")
-        let constrained = section.constrained(to: 2)
-
-        let rendered = await constrained.render()
+        let rendered = await resolved.render(constrainedTo: 2)
         #expect(rendered == "abcdefgh\n... [Truncated]")
     }
 
-    @Test
+    @Test("Truncate head applies during constrained rendering")
+    func truncateHeadRendering() async {
+        let resolved = TruncatablePrimitiveSection(
+            compression: .truncate(tail: false),
+            text: "abcdefghijklmnop"
+        ).resolve(in: ContextSectionResolutionContext())[0]
 
-    func testDefaultConstrainedRenderingTruncateHead() async {
-        let section = TruncatableSection(strategy: .truncate(tail: false), text: "abcdefghijklmnop")
-        let constrained = section.constrained(to: 2)
-
-        let rendered = await constrained.render()
+        let rendered = await resolved.render(constrainedTo: 2)
         #expect(rendered == "... [Truncated]\nijklmnop")
     }
 }

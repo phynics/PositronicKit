@@ -1,7 +1,6 @@
 import Foundation
 import PKShared
 
-/// Strategy for ensuring the prompt fits within a token limit
 public struct TokenBudget: Sendable {
     public let maxTokens: Int
     public let reserveForResponse: Int
@@ -11,19 +10,50 @@ public struct TokenBudget: Sendable {
         self.reserveForResponse = reserveForResponse
     }
 
-    /// Apply the budget to a list of sections, returning a potentially modified list
-    /// - Parameters:
-    ///   - sections: The sections to process
-    ///   - compressor: Optional compressor for .summarize strategy
-    /// - Returns: A new list of sections that fits within the budget (best effort)
     public func apply(
-        to sections: [ContextSection],
+        to sections: [any ContextSection],
         compressor: SectionCompressor? = nil,
         structuredDiff: StructuredDiffHint? = nil,
         nodeMetadata: [String: StructuredNodeMetadata] = [:],
         planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
         executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
-    ) async -> [ContextSection] {
+    ) async -> [ResolvedContextSection] {
+        await apply(
+            to: sections.flatMap { $0.resolve(in: ContextSectionResolutionContext()) },
+            compressor: compressor,
+            structuredDiff: structuredDiff,
+            nodeMetadata: nodeMetadata,
+            planner: planner,
+            executor: executor
+        )
+    }
+
+    public func applyWithReport(
+        to sections: [any ContextSection],
+        compressor: SectionCompressor? = nil,
+        structuredDiff: StructuredDiffHint? = nil,
+        nodeMetadata: [String: StructuredNodeMetadata] = [:],
+        planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
+        executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
+    ) async -> (sections: [ResolvedContextSection], report: CompressionReport?) {
+        await applyWithReport(
+            to: sections.flatMap { $0.resolve(in: ContextSectionResolutionContext()) },
+            compressor: compressor,
+            structuredDiff: structuredDiff,
+            nodeMetadata: nodeMetadata,
+            planner: planner,
+            executor: executor
+        )
+    }
+
+    public func apply(
+        to sections: [ResolvedContextSection],
+        compressor: SectionCompressor? = nil,
+        structuredDiff: StructuredDiffHint? = nil,
+        nodeMetadata: [String: StructuredNodeMetadata] = [:],
+        planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
+        executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
+    ) async -> [ResolvedContextSection] {
         let result = await applyWithReport(
             to: sections,
             compressor: compressor,
@@ -36,18 +66,17 @@ public struct TokenBudget: Sendable {
     }
 
     public func applyWithReport(
-        to sections: [ContextSection],
+        to sections: [ResolvedContextSection],
         compressor: SectionCompressor? = nil,
         structuredDiff: StructuredDiffHint? = nil,
         nodeMetadata: [String: StructuredNodeMetadata] = [:],
         planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
         executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
-    ) async -> (sections: [ContextSection], report: CompressionReport?) {
+    ) async -> (sections: [ResolvedContextSection], report: CompressionReport?) {
         assertUniqueSectionIDs(sections, context: "TokenBudget.applyWithReport")
         let available = maxTokens - reserveForResponse
         let currentTotal = sections.reduce(0) { $0 + $1.estimatedTokens }
 
-        // If we fit, return as is
         if currentTotal <= available {
             return (sections, nil)
         }
@@ -80,7 +109,7 @@ public struct TokenBudget: Sendable {
     }
 
     public func makeStructuredPlan(
-        sections: [ContextSection],
+        sections: [ResolvedContextSection],
         available: Int,
         structuredDiff: StructuredDiffHint?,
         nodeMetadata: [String: StructuredNodeMetadata],
@@ -90,11 +119,11 @@ public struct TokenBudget: Sendable {
             let metadata = nodeMetadata[section.id]
             return StructuredCompressionNode(
                 id: section.id,
-                path: metadata?.path ?? [section.id],
+                path: metadata?.path ?? section.path,
                 nodeHash: metadata?.nodeHash ?? defaultNodeHash(for: section),
                 priority: section.priority,
                 cachePolicy: section.cachePolicy,
-                strategy: section.strategy,
+                strategy: section.compression,
                 estimatedTokens: section.estimatedTokens
             )
         }
@@ -102,11 +131,8 @@ public struct TokenBudget: Sendable {
         return planner.plan(nodes: nodes, availableTokens: available, diff: structuredDiff)
     }
 
-    // MARK: - Budget Allocation
-
-    /// Allocate budget to sections sorted by priority, returning a decision per original index
     private func allocateBudget(
-        sortedByPriority: [(index: Int, section: ContextSection)],
+        sortedByPriority: [(index: Int, section: ResolvedContextSection)],
         available: Int,
         compressor: SectionCompressor?
     ) async -> [Int: SectionDecision] {
@@ -131,15 +157,13 @@ public struct TokenBudget: Sendable {
         return decisions
     }
 
-    /// Decide what to do with a section that does not fully fit in the remaining budget
     private func decideOverBudgetSection(
-        _ section: ContextSection,
+        _ section: ResolvedContextSection,
         remainingBudget: inout Int,
         compressor: SectionCompressor?
     ) async -> SectionDecision {
-        switch section.strategy {
+        switch section.compression {
         case .keep:
-            // Must keep — go into debt if needed
             remainingBudget -= section.estimatedTokens
             return .keepOriginal
 
@@ -176,12 +200,11 @@ public struct TokenBudget: Sendable {
         }
     }
 
-    /// Reconstruct sections in original order based on allocation decisions
     private func reconstructSections(
-        indexedSections: [(index: Int, section: ContextSection)],
+        indexedSections: [(index: Int, section: ResolvedContextSection)],
         decisions: [Int: SectionDecision]
-    ) -> [ContextSection] {
-        var result: [ContextSection] = []
+    ) -> [ResolvedContextSection] {
+        var result: [ResolvedContextSection] = []
         for (index, section) in indexedSections {
             guard let decision = decisions[index] else { continue }
 
@@ -191,7 +214,7 @@ public struct TokenBudget: Sendable {
             case let .constrain(limit):
                 result.append(section.constrained(to: limit))
             case let .replaceWithSummary(text, estimatedTokens):
-                result.append(SummarizedSection(base: section, summary: text, estimatedTokens: estimatedTokens))
+                result.append(section.summarized(text, estimatedTokens: estimatedTokens))
             case .drop:
                 break
             }
@@ -203,7 +226,7 @@ public struct TokenBudget: Sendable {
         max(1, text.count / 4)
     }
 
-    private func defaultNodeHash(for section: ContextSection) -> UInt64 {
+    private func defaultNodeHash(for section: ResolvedContextSection) -> UInt64 {
         StableHash.hash(components: [
             section.id,
             String(section.estimatedTokens),
@@ -217,21 +240,5 @@ public struct TokenBudget: Sendable {
         case constrain(limit: Int)
         case replaceWithSummary(text: String, estimatedTokens: Int)
         case drop
-    }
-}
-
-struct SummarizedSection: ContextSection {
-    let base: ContextSection
-    let summary: String
-    let estimatedTokens: Int
-
-    var id: String { base.id }
-    var priority: Int { base.priority }
-    var strategy: CompressionStrategy { .keep }
-    var type: ContextSectionType { .text }
-    var cachePolicy: CachePolicy { base.cachePolicy }
-
-    func render() async -> String? {
-        summary
     }
 }

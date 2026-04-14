@@ -16,7 +16,7 @@ public actor StructuredCompressionExecutor {
 
     public func execute(
         plan: StructuredCompressionPlan,
-        sections: [ContextSection],
+        sections: [ResolvedContextSection],
         compressor: SectionCompressor?
     ) async -> StructuredExecutionResult {
         assertUniqueSectionIDs(sections, context: "StructuredCompressionExecutor.execute sections")
@@ -33,7 +33,7 @@ public actor StructuredCompressionExecutor {
         }
 
         var reportsById: [String: CompressionNodeReport] = [:]
-        var transformedSectionsById: [String: ContextSection] = [:]
+        var transformedSectionsById: [String: ResolvedContextSection] = [:]
 
         for planned in sortedPlanActions {
             guard let section = sectionsById[planned.nodeId] else { continue }
@@ -43,12 +43,12 @@ public actor StructuredCompressionExecutor {
             reportsById[planned.nodeId] = output.report
         }
 
-        var resultingSections: [ContextSection] = []
+        var resultingSections: [ResolvedContextSection] = []
         var reports: [CompressionNodeReport] = []
 
         for section in sections {
             if let transformed = transformedSectionsById[section.id] {
-                if !(transformed is DroppedSection) {
+                if transformed.estimatedTokens > 0 || transformed.compression != .drop {
                     resultingSections.append(transformed)
                 }
             } else {
@@ -78,9 +78,9 @@ public actor StructuredCompressionExecutor {
 
     private func applyAction(
         _ planned: PlannedNodeAction,
-        section: ContextSection,
+        section: ResolvedContextSection,
         compressor: SectionCompressor?
-    ) async -> (section: ContextSection, report: CompressionNodeReport) {
+    ) async -> (section: ResolvedContextSection, report: CompressionNodeReport) {
         switch planned.action {
         case .keep:
             return (
@@ -116,7 +116,7 @@ public actor StructuredCompressionExecutor {
                   let content = await section.render(),
                   !content.isEmpty
             else {
-                let dropped = DroppedSection(base: section)
+                let dropped = section.dropped()
                 return (
                     dropped,
                     CompressionNodeReport(
@@ -135,7 +135,7 @@ public actor StructuredCompressionExecutor {
             if let cached = summaryCache[cacheKey] {
                 let summaryTokens = max(1, cached.count / 4)
                 return (
-                    SummarizedSection(base: section, summary: cached, estimatedTokens: summaryTokens),
+                    section.summarized(cached, estimatedTokens: summaryTokens),
                     CompressionNodeReport(
                         nodeId: planned.nodeId,
                         path: planned.path,
@@ -158,7 +158,7 @@ public actor StructuredCompressionExecutor {
                 )
                 let summary = try await compressor.summarize(request: request)
                 guard !summary.isEmpty else {
-                    let dropped = DroppedSection(base: section)
+                    let dropped = section.dropped()
                     return (
                         dropped,
                         CompressionNodeReport(
@@ -176,7 +176,7 @@ public actor StructuredCompressionExecutor {
                 insertSummaryCache(summary, for: cacheKey)
                 let summaryTokens = max(1, summary.count / 4)
                 return (
-                    SummarizedSection(base: section, summary: summary, estimatedTokens: summaryTokens),
+                    section.summarized(summary, estimatedTokens: summaryTokens),
                     CompressionNodeReport(
                         nodeId: planned.nodeId,
                         path: planned.path,
@@ -188,7 +188,7 @@ public actor StructuredCompressionExecutor {
                     )
                 )
             } catch {
-                let dropped = DroppedSection(base: section)
+                let dropped = section.dropped()
                 return (
                     dropped,
                     CompressionNodeReport(
@@ -204,7 +204,7 @@ public actor StructuredCompressionExecutor {
             }
 
         case .drop:
-            let dropped = DroppedSection(base: section)
+            let dropped = section.dropped()
             return (
                 dropped,
                 CompressionNodeReport(
@@ -230,20 +230,5 @@ public actor StructuredCompressionExecutor {
             let evicted = summaryCacheInsertionOrder.removeFirst()
             summaryCache.removeValue(forKey: evicted)
         }
-    }
-}
-
-private struct DroppedSection: ContextSection {
-    let base: ContextSection
-
-    var id: String { base.id }
-    var priority: Int { base.priority }
-    var estimatedTokens: Int { 0 }
-    var strategy: CompressionStrategy { .drop }
-    var type: ContextSectionType { base.type }
-    var cachePolicy: CachePolicy { base.cachePolicy }
-
-    func render() async -> String? {
-        nil
     }
 }
