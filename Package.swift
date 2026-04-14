@@ -7,10 +7,10 @@ let package = Package(
         .macOS(.v15),
     ],
     products: [
-        .library(name: "MonadCore", targets: ["MonadCore"]),
-        .library(name: "MonadPrompt", targets: ["MonadPrompt"]),
-        .library(name: "MonadShared", targets: ["MonadShared"]),
-        .library(name: "MonadTestSupport", targets: ["MonadTestSupport"]),
+        .library(name: "PositronicKit", targets: ["PositronicKit"]),
+        .library(name: "PKPrompt", targets: ["PKPrompt"]),
+        .library(name: "PKShared", targets: ["PKShared"]),
+        .library(name: "PKTestSupport", targets: ["PKTestSupport"]),
     ],
     dependencies: [
         .package(url: "https://github.com/MacPaw/OpenAI.git", branch: "main"),
@@ -20,62 +20,62 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "MonadShared",
+            name: "PKShared",
             dependencies: [
                 .product(name: "OpenAI", package: "OpenAI"),
                 .product(name: "ErrorKit", package: "ErrorKit"),
                 .product(name: "Logging", package: "swift-log"),
             ],
-            path: "Sources/MonadShared"
+            path: "Sources/PKShared"
         ),
         .target(
-            name: "MonadPrompt",
-            dependencies: ["MonadShared"],
-            path: "Sources/MonadPrompt"
+            name: "PKPrompt",
+            dependencies: ["PKShared"],
+            path: "Sources/PKPrompt"
         ),
         .target(
-            name: "MonadCore",
+            name: "PositronicKit",
             dependencies: [
-                "MonadShared",
-                "MonadPrompt",
+                "PKShared",
+                "PKPrompt",
                 .product(name: "OpenAI", package: "OpenAI"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "Dependencies", package: "swift-dependencies"),
                 .product(name: "ErrorKit", package: "ErrorKit"),
             ],
-            path: "Sources/MonadCore",
+            path: "Sources/PositronicKit",
             exclude: ["README.md", "docs"]
         ),
         .target(
-            name: "MonadTestSupport",
+            name: "PKTestSupport",
             dependencies: [
-                "MonadCore",
-                "MonadShared",
-                "MonadPrompt",
+                "PositronicKit",
+                "PKShared",
+                "PKPrompt",
                 .product(name: "OpenAI", package: "OpenAI"),
                 .product(name: "Dependencies", package: "swift-dependencies"),
             ],
-            path: "Tests/MonadTestSupport"
+            path: "Tests/PKTestSupport"
         ),
         .testTarget(
-            name: "MonadCoreTests",
+            name: "PositronicKitTests",
             dependencies: [
-                "MonadCore",
-                "MonadShared",
-                "MonadTestSupport",
+                "PositronicKit",
+                "PKShared",
+                "PKTestSupport",
                 .product(name: "Dependencies", package: "swift-dependencies"),
             ],
-            path: "Tests/MonadCoreTests"
+            path: "Tests/PositronicKitTests"
         ),
         .testTarget(
-            name: "MonadPromptTests",
-            dependencies: ["MonadPrompt", "MonadTestSupport"],
-            path: "Tests/MonadPromptTests"
+            name: "PKPromptTests",
+            dependencies: ["PKPrompt", "PKTestSupport"],
+            path: "Tests/PKPromptTests"
         ),
         .testTarget(
-            name: "MonadSharedTests",
-            dependencies: ["MonadShared", "MonadTestSupport"],
-            path: "Tests/MonadSharedTests"
+            name: "PKSharedTests",
+            dependencies: ["PKShared", "PKTestSupport"],
+            path: "Tests/PKSharedTests"
         ),
     ]
 )

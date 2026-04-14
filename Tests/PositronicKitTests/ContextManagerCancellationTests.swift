@@ -1,0 +1,89 @@
+import Dependencies
+import Foundation
+@testable import PositronicKit
+@testable import PKShared
+import PKTestSupport
+import Testing
+
+@Suite(.serialized) struct ContextManagerCancellationTests {
+    private func makeContextManager() async throws -> ContextManager {
+        return try await TestDependencies()
+            .withMocks()
+            .run {
+                ContextManager(workspace: nil)
+            }
+    }
+
+    @Test("gatherContext emits at least one progress event before completing")
+    func gatherContext_emitsEvents() async throws {
+        let manager = try await makeContextManager()
+        let stream = await manager.gatherContext(for: "test query")
+
+        var events: [ContextGatheringEvent] = []
+        for try await event in stream {
+            events.append(event)
+        }
+
+        #expect(!events.isEmpty, "Should emit at least one event")
+        // Last event should be .complete
+        if let last = events.last {
+            if case .complete = last { /* expected */ } else { Issue.record("Last event should be .complete, got \(last)") }
+        }
+    }
+
+    @Test("gatherContext can be cancelled without hanging")
+    func gatherContext_cancellation_doesNotHang() async throws {
+        let manager = try await makeContextManager()
+
+        let timeoutTask = Task {
+            // Cancel after a short delay to simulate mid-stream cancellation
+            try await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        }
+
+        let streamTask = Task {
+            let stream = await manager.gatherContext(for: "test query for cancellation")
+            var count = 0
+            for try await _ in stream {
+                count += 1
+            }
+            return count
+        }
+
+        // Wait a bit, then cancel
+        try await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        streamTask.cancel()
+        timeoutTask.cancel()
+
+        // The task should resolve (either completed or cancelled) without hanging
+        _ = await streamTask.result
+        // If we reach here, cancellation didn't deadlock
+    }
+
+    @Test("gatherContext with empty query produces complete event")
+    func gatherContext_emptyQuery_completesSuccessfully() async throws {
+        let manager = try await makeContextManager()
+        let stream = await manager.gatherContext(for: "")
+
+        var sawComplete = false
+        for try await event in stream {
+            if case .complete = event {
+                sawComplete = true
+            }
+        }
+        #expect(sawComplete)
+    }
+
+    @Test("Multiple sequential gatherContext calls complete successfully")
+    func gatherContext_sequentialCalls_allComplete() async throws {
+        let manager = try await makeContextManager()
+
+        for index in 1 ... 3 {
+            let stream = await manager.gatherContext(for: "query number \(index)")
+            var sawComplete = false
+            for try await event in stream {
+                if case .complete = event { sawComplete = true }
+            }
+            #expect(sawComplete, "Call \(index) should complete")
+        }
+    }
+}
