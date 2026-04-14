@@ -13,7 +13,7 @@ public enum CachePolicy: Sendable, Comparable {
 }
 
 /// Defines how a section should be handled when the total prompt token budget is exceeded.
-public enum CompressionStrategy: Sendable {
+public enum CompressionStrategy: Sendable, Equatable {
     /// Never compress or omit this section; it is critical for the prompt.
     case keep
 
@@ -34,7 +34,7 @@ public enum ContextSectionType: Sendable {
     case text
 
     /// A structured list of distinct items.
-    case list(items: [String])
+    case list
 }
 
 /// A protocol defining a distinct component of an LLM prompt.
@@ -92,8 +92,33 @@ public extension ContextSection {
     }
 
     /// Default implementation that ignores constraints and calls `render()`.
-    func render(constrainedTo _: Int?) async -> String? {
-        await render()
+    func render(constrainedTo tokens: Int?) async -> String? {
+        guard let tokens else {
+            return await render()
+        }
+
+        guard let content = await render(), !content.isEmpty else {
+            return nil
+        }
+
+        let estimatedTokens = max(1, content.count / 4)
+        guard estimatedTokens > tokens else {
+            return content
+        }
+
+        guard case let .truncate(tail) = strategy else {
+            return content
+        }
+
+        let charLimit = max(0, tokens * 4)
+        if charLimit == 0 {
+            return nil
+        }
+
+        if tail {
+            return String(content.prefix(charLimit)) + "\n... [Truncated]"
+        }
+        return "... [Truncated]\n" + String(content.suffix(charLimit))
     }
 
     /// Default implementation that wraps the section in a `ConstrainedSection` wrapper.

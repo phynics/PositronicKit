@@ -12,6 +12,18 @@ struct MinimalSection: ContextSection {
     }
 }
 
+struct TruncatableSection: ContextSection {
+    let id: String = "truncate"
+    let priority: Int = 1
+    let estimatedTokens: Int = 100
+    let strategy: CompressionStrategy
+    let text: String
+
+    func render() async -> String? {
+        text
+    }
+}
+
 @Suite final class ContextSectionTests {
 
     @Test
@@ -56,5 +68,25 @@ struct MinimalSection: ContextSection {
         // If we constrain to a larger amount, limit should reflect the min
         let largerConstrained = doublyConstrained.constrained(to: 100) as! ConstrainedSection
         #expect(largerConstrained.limit == 30)
+    }
+
+    @Test
+
+    func testDefaultConstrainedRenderingTruncateTail() async {
+        let section = TruncatableSection(strategy: .truncate(tail: true), text: "abcdefghijklmnop")
+        let constrained = section.constrained(to: 2)
+
+        let rendered = await constrained.render()
+        #expect(rendered == "abcdefgh\n... [Truncated]")
+    }
+
+    @Test
+
+    func testDefaultConstrainedRenderingTruncateHead() async {
+        let section = TruncatableSection(strategy: .truncate(tail: false), text: "abcdefghijklmnop")
+        let constrained = section.constrained(to: 2)
+
+        let rendered = await constrained.render()
+        #expect(rendered == "... [Truncated]\nijklmnop")
     }
 }

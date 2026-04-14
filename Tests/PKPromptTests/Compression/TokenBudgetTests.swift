@@ -33,6 +33,18 @@ struct MockContextSection: ContextSection {
     }
 }
 
+struct MockCompressor: SectionCompressor {
+    let summarizedText: String
+
+    func summarize(_: String) async throws -> String {
+        summarizedText
+    }
+
+    func summarize(request: SummaryRequest) async throws -> String {
+        summarizedText
+    }
+}
+
 @Suite final class TokenBudgetTests {
 
     @Test
@@ -133,5 +145,92 @@ struct MockContextSection: ContextSection {
         let result = await budget.apply(to: sections)
         #expect(result.count == 1)
         #expect(result[0].id == "s1")
+    }
+
+    @Test
+
+    func testApplySummarizeUsesCompressorWhenAvailable() async {
+        let budget = TokenBudget(maxTokens: 1000, reserveForResponse: 0) // available = 1000
+        let sections: [ContextSection] = [
+            MockContextSection(id: "s1", priority: 2, estimatedTokens: 800, strategy: .keep),
+            MockContextSection(id: "summarize", priority: 1, estimatedTokens: 500, strategy: .summarize, renderedContent: "A very long body")
+        ]
+
+        let compressor = MockCompressor(summarizedText: "short summary")
+        let result = await budget.apply(to: sections, compressor: compressor)
+
+        #expect(result.count == 2)
+        #expect(result[0].id == "s1")
+        if result.count == 2 {
+            #expect(result[1].id == "summarize")
+            #expect(result[1].estimatedTokens <= 200)
+
+            let rendered = await result[1].render()
+            #expect(rendered == "short summary")
+        }
+    }
+
+    @Test
+
+    func testApplySummarizeDropsWhenSummaryStillTooLarge() async {
+        let budget = TokenBudget(maxTokens: 1000, reserveForResponse: 0) // available = 1000
+        let sections: [ContextSection] = [
+            MockContextSection(id: "s1", priority: 2, estimatedTokens: 800, strategy: .keep),
+            MockContextSection(id: "summarize", priority: 1, estimatedTokens: 500, strategy: .summarize, renderedContent: "A very long body")
+        ]
+
+        let tooLongSummary = String(repeating: "x", count: 1000)
+        let compressor = MockCompressor(summarizedText: tooLongSummary)
+        let result = await budget.apply(to: sections, compressor: compressor)
+
+        #expect(result.count == 1)
+        #expect(result[0].id == "s1")
+    }
+
+    @Test
+    func testApplyStructuredCompressionRespectsDiffPriority() async {
+        let budget = TokenBudget(maxTokens: 500, reserveForResponse: 0)
+        let sections: [ContextSection] = [
+            MockContextSection(id: "stable", priority: 10, estimatedTokens: 300, strategy: .summarize, renderedContent: "stable body"),
+            MockContextSection(id: "changed", priority: 1, estimatedTokens: 300, strategy: .summarize, renderedContent: "changed body")
+        ]
+        let diff = StructuredDiffHint(
+            changedNodePaths: [["prompt", "volatile", "changed"]],
+            stableNodePaths: [["prompt", "stable", "stable"]],
+            addedNodePaths: [],
+            removedNodePaths: []
+        )
+        let metadata: [String: StructuredNodeMetadata] = [
+            "stable": .init(path: ["prompt", "stable", "stable"], nodeHash: 1),
+            "changed": .init(path: ["prompt", "volatile", "changed"], nodeHash: 2),
+        ]
+
+        let result = await budget.apply(
+            to: sections,
+            compressor: MockCompressor(summarizedText: "short"),
+            structuredDiff: diff,
+            nodeMetadata: metadata
+        )
+
+        #expect(result.count == 1)
+        #expect(result[0].id == "changed")
+    }
+
+    @Test
+    func testApplyStructuredCompressionNeverSummarizesKeepSections() async {
+        let budget = TokenBudget(maxTokens: 100, reserveForResponse: 0)
+        let sections: [ContextSection] = [
+            MockContextSection(id: "must_keep", priority: 10, estimatedTokens: 200, strategy: .keep, renderedContent: "must keep"),
+            MockContextSection(id: "other", priority: 1, estimatedTokens: 200, strategy: .summarize, renderedContent: "compress me")
+        ]
+
+        let result = await budget.apply(
+            to: sections,
+            compressor: MockCompressor(summarizedText: "tiny"),
+            structuredDiff: nil,
+            nodeMetadata: [:]
+        )
+
+        #expect(result.contains { $0.id == "must_keep" })
     }
 }
