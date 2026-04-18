@@ -57,9 +57,7 @@ struct LLMServiceTests {
         // Validate basic content presence
         #expect(rawPrompt.contains("System rules"))
         #expect(rawPrompt.contains("Note Content"))
-        // History isn't rendered in raw prompt usually unless debug, but let's check structured context
-        // Actually ContextBuilder sections render returns String?
-        // ChatHistory section returns nil by default for render().
+        // Chat history is emitted as provider messages rather than plain rendered prompt text.
 
         let messages = await prompt.toMessages()
 

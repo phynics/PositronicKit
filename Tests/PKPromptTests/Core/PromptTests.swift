@@ -46,7 +46,7 @@ struct PromptTests {
     }
 
     @Test("Prompt builder preserves composed sections for later assembly")
-    func promptContextBuilderInitialization() async {
+    func promptBuilderInitialization() async {
         let prompt = Prompt {
             DummyPromptSection(id: "s1", priority: 1, estimatedTokens: 10, text: "A")
             DummyPromptSection(id: "s2", priority: 100, estimatedTokens: 10, text: "B")

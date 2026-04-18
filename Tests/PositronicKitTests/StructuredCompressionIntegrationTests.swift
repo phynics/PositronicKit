@@ -46,12 +46,14 @@ struct StructuredCompressionIntegrationTests {
 
         let prompt = try await PromptAssembler.buildContext(
             request,
-            overridePipeline: PromptAssemblyPipeline(stages: [Stage()]),
-            tokenBudget: TokenBudget(maxTokens: 180, reserveForResponse: 0),
-            compressor: IntegrationCompressor(summary: "short"),
-            structuredDiff: StructuredDiffHint(
-                changedNodePaths: [["prompt", "volatile", "changed_node"]],
-                stableNodePaths: [["prompt", "stable", "stable_node"]]
+            options: PromptAssemblyOptions(
+                overridePipeline: PromptAssemblyPipeline(stages: [Stage()]),
+                tokenBudget: TokenBudget(maxTokens: 180, reserveForResponse: 0),
+                compressor: IntegrationCompressor(summary: "short"),
+                structuredDiff: StructuredDiffHint(
+                    changedNodePaths: [["prompt", "volatile", "changed_node"]],
+                    stableNodePaths: [["prompt", "stable", "stable_node"]]
+                )
             )
         )
 
@@ -82,8 +84,15 @@ struct StructuredCompressionIntegrationTests {
         let compressor = CountingCompressor(counter: counter)
         let budget = TokenBudget(maxTokens: 100, reserveForResponse: 0)
 
-        _ = try await PromptAssembler.buildContext(request, overridePipeline: PromptAssemblyPipeline(stages: [Stage()]), tokenBudget: budget, compressor: compressor, structuredDiff: nil, structuredExecutor: executor)
-        _ = try await PromptAssembler.buildContext(request, overridePipeline: PromptAssemblyPipeline(stages: [Stage()]), tokenBudget: budget, compressor: compressor, structuredDiff: nil, structuredExecutor: executor)
+        let options = PromptAssemblyOptions(
+            overridePipeline: PromptAssemblyPipeline(stages: [Stage()]),
+            tokenBudget: budget,
+            compressor: compressor,
+            structuredExecutor: executor
+        )
+
+        _ = try await PromptAssembler.buildContext(request, options: options)
+        _ = try await PromptAssembler.buildContext(request, options: options)
 
         #expect(await counter.value() == 1)
     }
@@ -119,9 +128,24 @@ struct StructuredCompressionIntegrationTests {
         let compressor = CountingCompressor(counter: counter)
         let budget = TokenBudget(maxTokens: 100, reserveForResponse: 0)
 
-        _ = try await PromptAssembler.buildContext(request, overridePipeline: PromptAssemblyPipeline(stages: [Stage(content: content)]), tokenBudget: budget, compressor: compressor, structuredDiff: nil, structuredExecutor: executor)
+        let options = PromptAssemblyOptions(
+            overridePipeline: PromptAssemblyPipeline(stages: [Stage(content: content)]),
+            tokenBudget: budget,
+            compressor: compressor,
+            structuredExecutor: executor
+        )
+
+        _ = try await PromptAssembler.buildContext(request, options: options)
         await content.set("version-2")
-        _ = try await PromptAssembler.buildContext(request, overridePipeline: PromptAssemblyPipeline(stages: [Stage(content: content)]), tokenBudget: budget, compressor: compressor, structuredDiff: nil, structuredExecutor: executor)
+        _ = try await PromptAssembler.buildContext(
+            request,
+            options: PromptAssemblyOptions(
+                overridePipeline: PromptAssemblyPipeline(stages: [Stage(content: content)]),
+                tokenBudget: budget,
+                compressor: compressor,
+                structuredExecutor: executor
+            )
+        )
 
         #expect(await counter.value() == 2)
     }

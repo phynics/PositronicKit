@@ -53,7 +53,7 @@ struct PromptAssemblyTests {
         #expect(resolved.map(\.id) == ["s1", "s2", "s3"])
     }
 
-    @Test("ContextBuilder composes sections")
+    @Test("PromptBuilder composes sections")
     func builderComposesSections() {
         @PromptBuilder
         func build() -> PromptGroup {
@@ -106,7 +106,10 @@ struct PromptAssemblyTests {
             }
         }
 
-        let prompt = try await PromptAssembler.buildContext(makeRequest(userQuery: "test"), overridePipeline: PromptAssemblyPipeline(stages: [CustomStage()]))
+        let prompt = try await PromptAssembler.buildContext(
+            makeRequest(userQuery: "test"),
+            options: PromptAssemblyOptions(overridePipeline: PromptAssemblyPipeline(stages: [CustomStage()]))
+        )
         let resolved = prompt.resolveSections()
 
         #expect(resolved.count == 1)
@@ -125,7 +128,26 @@ struct PromptAssemblyTests {
         }
 
         await #expect(throws: PromptSectionValidationError.self) {
-            _ = try await PromptAssembler.buildContext(makeRequest(userQuery: "test"), overridePipeline: PromptAssemblyPipeline(stages: [DuplicateStage()]))
+            _ = try await PromptAssembler.buildContext(
+                makeRequest(userQuery: "test"),
+                options: PromptAssemblyOptions(overridePipeline: PromptAssemblyPipeline(stages: [DuplicateStage()]))
+            )
         }
+    }
+
+    @Test("PromptAssembler accepts advanced options object")
+    func promptAssemblerUsesOptionsObject() async throws {
+        struct CustomStage: PromptAssemblyStage {
+            func execute(_ context: PromptAssemblyContext) async throws {
+                await context.append(PromptAssemblyTests.MockSection(id: "from_options"))
+            }
+        }
+
+        let prompt = try await PromptAssembler.buildContext(
+            makeRequest(userQuery: "test"),
+            options: PromptAssemblyOptions(overridePipeline: PromptAssemblyPipeline(stages: [CustomStage()]))
+        )
+
+        #expect(prompt.resolveSections().map(\.id) == ["from_options"])
     }
 }

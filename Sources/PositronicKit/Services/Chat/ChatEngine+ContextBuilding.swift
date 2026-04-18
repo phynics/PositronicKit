@@ -108,10 +108,11 @@ extension ChatEngine {
             agentInstance: agentInstance,
             timeline: timeline,
             extensionSections: extensionSections,
-            overridePipeline: assemblyPipeline,
-            tokenBudget: budget,
-            compressor: nil,
-            structuredDiff: structuredDiff
+            options: PromptAssemblyOptions(
+                overridePipeline: assemblyPipeline,
+                tokenBudget: budget,
+                structuredDiff: structuredDiff
+            )
         )
 
         // 5. Render once and reuse for messages + prompt history
@@ -136,7 +137,7 @@ extension ChatEngine {
                     if case .drop = $0.action { return true }
                     return false
                 }.count,
-                cacheHits: report.nodeReports.filter(\.cacheHit).count,
+                cacheHits: report.nodeReports.filter { $0.cacheHit }.count,
                 nodeMetrics: report.nodeReports.map {
                     StructuredCompressionNodeMetric(
                         nodeId: $0.nodeId,

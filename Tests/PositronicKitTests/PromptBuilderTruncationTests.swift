@@ -4,8 +4,8 @@ import Foundation
 @testable import PKShared
 @testable import PKPrompt
 
-@Suite("Context Builder Truncation Tests")
-struct ContextBuilderTruncationTests {
+@Suite("Prompt Builder Truncation Tests")
+struct PromptBuilderTruncationTests {
 
     @Test("Chat History Truncation")
     func testChatHistoryTruncation() async {
