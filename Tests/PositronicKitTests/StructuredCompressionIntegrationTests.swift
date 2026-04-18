@@ -44,7 +44,7 @@ struct StructuredCompressionIntegrationTests {
 
         let request = LLMPromptRequest(userQuery: "test", chatHistory: [], tools: [], workspaces: [], primaryWorkspace: nil, clientName: nil)
 
-        let prompt = try await PromptBuilder.buildContext(
+        let prompt = try await PromptAssembler.buildContext(
             request,
             overridePipeline: PromptAssemblyPipeline(stages: [Stage()]),
             tokenBudget: TokenBudget(maxTokens: 180, reserveForResponse: 0),
@@ -55,7 +55,7 @@ struct StructuredCompressionIntegrationTests {
             )
         )
 
-        let resolved = await prompt.resolveSections()
+        let resolved = prompt.resolveSections()
         #expect(resolved.count == 1)
         #expect(resolved.first?.id == "changed_node")
     }
@@ -82,8 +82,8 @@ struct StructuredCompressionIntegrationTests {
         let compressor = CountingCompressor(counter: counter)
         let budget = TokenBudget(maxTokens: 100, reserveForResponse: 0)
 
-        _ = try await PromptBuilder.buildContext(request, overridePipeline: PromptAssemblyPipeline(stages: [Stage()]), tokenBudget: budget, compressor: compressor, structuredDiff: nil, structuredExecutor: executor)
-        _ = try await PromptBuilder.buildContext(request, overridePipeline: PromptAssemblyPipeline(stages: [Stage()]), tokenBudget: budget, compressor: compressor, structuredDiff: nil, structuredExecutor: executor)
+        _ = try await PromptAssembler.buildContext(request, overridePipeline: PromptAssemblyPipeline(stages: [Stage()]), tokenBudget: budget, compressor: compressor, structuredDiff: nil, structuredExecutor: executor)
+        _ = try await PromptAssembler.buildContext(request, overridePipeline: PromptAssemblyPipeline(stages: [Stage()]), tokenBudget: budget, compressor: compressor, structuredDiff: nil, structuredExecutor: executor)
 
         #expect(await counter.value() == 1)
     }
@@ -119,9 +119,9 @@ struct StructuredCompressionIntegrationTests {
         let compressor = CountingCompressor(counter: counter)
         let budget = TokenBudget(maxTokens: 100, reserveForResponse: 0)
 
-        _ = try await PromptBuilder.buildContext(request, overridePipeline: PromptAssemblyPipeline(stages: [Stage(content: content)]), tokenBudget: budget, compressor: compressor, structuredDiff: nil, structuredExecutor: executor)
+        _ = try await PromptAssembler.buildContext(request, overridePipeline: PromptAssemblyPipeline(stages: [Stage(content: content)]), tokenBudget: budget, compressor: compressor, structuredDiff: nil, structuredExecutor: executor)
         await content.set("version-2")
-        _ = try await PromptBuilder.buildContext(request, overridePipeline: PromptAssemblyPipeline(stages: [Stage(content: content)]), tokenBudget: budget, compressor: compressor, structuredDiff: nil, structuredExecutor: executor)
+        _ = try await PromptAssembler.buildContext(request, overridePipeline: PromptAssemblyPipeline(stages: [Stage(content: content)]), tokenBudget: budget, compressor: compressor, structuredDiff: nil, structuredExecutor: executor)
 
         #expect(await counter.value() == 2)
     }

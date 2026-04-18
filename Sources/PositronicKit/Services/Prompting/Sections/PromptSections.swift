@@ -9,7 +9,7 @@ public struct SystemInstructions: PromptComposite {
         self.instructions = instructions
     }
 
-    @ContextBuilder
+    @PromptBuilder
     public var body: some PromptComposite {
         if !instructions.isEmpty {
             SystemPrompt(

@@ -55,7 +55,7 @@ struct PromptAssemblyTests {
 
     @Test("ContextBuilder composes sections")
     func builderComposesSections() {
-        @ContextBuilder
+        @PromptBuilder
         func build() -> PromptGroup {
             MockSection(id: "s1")
             [MockSection(id: "s2"), MockSection(id: "s3")]
@@ -88,17 +88,17 @@ struct PromptAssemblyTests {
         #expect(resolved.first?.id == "custom")
     }
 
-    @Test("PromptBuilder uses pipeline for default assembly")
+    @Test("PromptAssembler uses pipeline for default assembly")
     func promptBuilderUsesPipeline() async throws {
-        let prompt = try await PromptBuilder.buildContext(makeRequest(userQuery: "pipeline test"))
-        let resolved = await prompt.resolveSections()
+        let prompt = try await PromptAssembler.buildContext(makeRequest(userQuery: "pipeline test"))
+        let resolved = prompt.resolveSections()
 
         #expect(resolved.contains { $0.id == "system" })
         #expect(resolved.contains { $0.id == "user_query" })
         #expect(await resolved.first(where: { $0.id == "user_query" })?.render() == "pipeline test")
     }
 
-    @Test("PromptBuilder uses override pipeline in buildContext")
+    @Test("PromptAssembler uses override pipeline in buildContext")
     func promptBuilderUsesOverridePipeline() async throws {
         struct CustomStage: PromptAssemblyStage {
             func execute(_ context: PromptAssemblyContext) async throws {
@@ -106,14 +106,14 @@ struct PromptAssemblyTests {
             }
         }
 
-        let prompt = try await PromptBuilder.buildContext(makeRequest(userQuery: "test"), overridePipeline: PromptAssemblyPipeline(stages: [CustomStage()]))
-        let resolved = await prompt.resolveSections()
+        let prompt = try await PromptAssembler.buildContext(makeRequest(userQuery: "test"), overridePipeline: PromptAssemblyPipeline(stages: [CustomStage()]))
+        let resolved = prompt.resolveSections()
 
         #expect(resolved.count == 1)
         #expect(resolved.first?.id == "override_assembly")
     }
 
-    @Test("PromptBuilder rejects duplicate section ids")
+    @Test("PromptAssembler rejects duplicate section ids")
     func promptBuilderRejectsDuplicateSectionIDs() async {
         struct DuplicateStage: PromptAssemblyStage {
             func execute(_ context: PromptAssemblyContext) async throws {
@@ -125,7 +125,7 @@ struct PromptAssemblyTests {
         }
 
         await #expect(throws: PromptSectionValidationError.self) {
-            _ = try await PromptBuilder.buildContext(makeRequest(userQuery: "test"), overridePipeline: PromptAssemblyPipeline(stages: [DuplicateStage()]))
+            _ = try await PromptAssembler.buildContext(makeRequest(userQuery: "test"), overridePipeline: PromptAssemblyPipeline(stages: [DuplicateStage()]))
         }
     }
 }

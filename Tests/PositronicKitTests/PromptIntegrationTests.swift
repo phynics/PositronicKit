@@ -11,7 +11,7 @@ struct PromptIntegrationTests {
     func emptyUserQueryDoesNotAppendMessage() async throws {
         let history = [Message(content: "Hello", role: .user)]
 
-        let prompt = try await PromptBuilder.buildContext(
+        let prompt = try await PromptAssembler.buildContext(
             LLMPromptRequest(
                 userQuery: "",
                 contextNotes: [],
@@ -45,7 +45,7 @@ struct PromptIntegrationTests {
     func nonEmptyUserQueryAppendsMessage() async throws {
         let history = [Message(content: "Hello", role: .user)]
 
-        let prompt = try await PromptBuilder.buildContext(
+        let prompt = try await PromptAssembler.buildContext(
             LLMPromptRequest(
                 userQuery: "World",
                 contextNotes: [],
@@ -98,7 +98,7 @@ struct PromptIntegrationTests {
         let history = [Message(content: "Hi", role: .user)]
         let query = "UNIQUE_QUERY_STRING"
 
-        let prompt = try await PromptBuilder.buildContext(
+        let prompt = try await PromptAssembler.buildContext(
             LLMPromptRequest(
                 userQuery: query,
                 contextNotes: [],

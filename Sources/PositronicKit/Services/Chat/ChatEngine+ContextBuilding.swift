@@ -103,7 +103,7 @@ extension ChatEngine {
             TokenBudget(maxTokens: $0, reserveForResponse: max(256, $0 / 5))
         }
 
-        let prompt = try await PromptBuilder.buildContext(
+        let prompt = try await PromptAssembler.buildContext(
             promptRequest,
             agentInstance: agentInstance,
             timeline: timeline,
@@ -117,7 +117,7 @@ extension ChatEngine {
         // 5. Render once and reuse for messages + prompt history
         let renderedContent = await prompt.renderAll()
         let initialMessages = await prompt.toMessages(preRendered: renderedContent)
-        let resolvedSections = await prompt.resolveSections()
+        let resolvedSections = prompt.resolveSections()
 
         // 6. Record prompt snapshot for cache tracking
         let diff = await promptHistory.record(sections: resolvedSections, renderedContent: renderedContent)

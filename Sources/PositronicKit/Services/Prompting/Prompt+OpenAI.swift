@@ -3,9 +3,9 @@ import OpenAI
 import PKPrompt
 import PKShared
 
-public extension Prompt {
+public extension AssembledPrompt {
     func toMessages(preRendered: [String: String]? = nil) async -> [ChatQuery.ChatCompletionMessageParam] {
-        let resolved = await resolveSections()
+        let resolved = resolveSections()
         var messages: [ChatQuery.ChatCompletionMessageParam] = []
 
         if let systemMessage = await buildSystemMessage(from: resolved, preRendered: preRendered) {

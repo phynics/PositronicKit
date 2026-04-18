@@ -20,14 +20,14 @@ public extension PromptComposite {
         body.resolve(in: context.descending(into: sectionPathComponent))
     }
 
-    /// Renders the first resolved section produced by this composite.
+    /// Renders this composite by assembling it into an ordered prompt artifact first.
     func render() async -> String? {
-        await resolve(in: PromptResolutionContext()).first?.render()
+        let rendered = await assemble().render()
+        return rendered.isEmpty ? nil : rendered
     }
 
-    /// Renders the first resolved section produced by this composite using an optional token limit.
-    func render(constrainedTo tokens: Int?) async -> String? {
-        await resolve(in: PromptResolutionContext()).first?.render(constrainedTo: tokens)
+    /// Assembles this declarative prompt tree into an ordered prompt artifact.
+    func assemble() -> AssembledPrompt {
+        AssembledPrompt(resolvedSections: resolve(in: PromptResolutionContext()))
     }
-
 }

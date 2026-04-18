@@ -43,7 +43,7 @@ private struct ToolsSection: PromptComposite {
         tools.map { "- \($0)" }.joined(separator: "\n")
     }
 
-    @ContextBuilder
+    @PromptBuilder
     var body: some PromptComposite {
         StaticText(id: "tools", text: toolString, role: .system)
             .priority(.high)
@@ -56,11 +56,7 @@ private struct ToolsSection: PromptComposite {
 struct BodyBasedPromptCompositeTests {
     @Test("Composite sections flatten into effective prompt leaves")
     func compositeSectionsFlattenIntoEffectivePromptLeaves() async {
-        let prompt = Prompt {
-            ToolsSection(tools: ["read", "write"])
-        }
-
-        let sections = await prompt.resolveSections()
+        let sections = ToolsSection(tools: ["read", "write"]).assemble().resolveSections()
 
         #expect(sections.count == 1)
         #expect(sections[0].id == "tools")
@@ -77,7 +73,7 @@ struct BodyBasedPromptCompositeTests {
     @Test("Modifiers override prompt leaf defaults across nested groups")
     func modifiersOverridePrimitiveDefaultsAcrossNestedGroups() async {
         struct NestedSection: PromptComposite {
-            @ContextBuilder
+            @PromptBuilder
             var body: some PromptComposite {
                 PromptGroup {
                     StaticText(id: "low", text: "first")
@@ -88,11 +84,7 @@ struct BodyBasedPromptCompositeTests {
             }
         }
 
-        let prompt = Prompt {
-            NestedSection()
-        }
-
-        let sections = await prompt.resolveSections()
+        let sections = NestedSection().assemble().resolveSections()
 
         #expect(sections.map(\.id) == ["low", "high"])
         #expect(sections.allSatisfy { $0.priority == 90 })
@@ -109,7 +101,7 @@ struct BodyBasedPromptCompositeTests {
             UserPrompt("Add a toolbar action.")
         }
 
-        let sections = await prompt.resolveSections()
+        let sections = prompt.assemble().resolveSections()
 
         #expect(sections.map(\.id) == ["system", "project", "user_query"])
         #expect(sections[0].role == .system)
@@ -121,14 +113,10 @@ struct BodyBasedPromptCompositeTests {
 
     @Test("HistoryPrompt resolves to chat history leaves")
     func historyPromptResolvesToChatHistoryLeaves() async {
-        let prompt = Prompt {
-            HistoryPrompt([
-                Message(content: "First", role: .user),
-                Message(content: "Second", role: .assistant),
-            ])
-        }
-
-        let sections = await prompt.resolveSections()
+        let sections = HistoryPrompt([
+            Message(content: "First", role: .user),
+            Message(content: "Second", role: .assistant),
+        ]).assemble().resolveSections()
 
         #expect(sections.count == 1)
         #expect(sections[0].id == "chat_history")

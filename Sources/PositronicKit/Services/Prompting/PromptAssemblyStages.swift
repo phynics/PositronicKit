@@ -120,10 +120,7 @@ public struct ChatHistoryStage: PromptAssemblyStage {
     /// - Parameter context: The shared assembly context.
     public func execute(_ context: PromptAssemblyContext) async throws {
         let history = context.request.chatHistory
-        let optimized = PromptBuilder.optimizeHistory(
-            history,
-            availableTokens: PromptBuilder.maxHistoryTokens - PromptBuilder.historyTokenBuffer
-        )
+        let optimized = PromptHistoryOptimizer.optimizeForDefaultBudget(history)
         await context.append(ChatHistory(optimized))
     }
 }

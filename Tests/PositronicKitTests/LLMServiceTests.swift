@@ -37,7 +37,7 @@ struct LLMServiceTests {
             Message(content: "Previous assistant message", role: .assistant),
         ]
 
-        let prompt = try await PromptBuilder.buildContext(
+        let prompt = try await PromptAssembler.buildContext(
             LLMPromptRequest(
                 userQuery: "Current question",
                 contextNotes: contextFiles,
@@ -116,7 +116,7 @@ struct LLMServiceTests {
 
     @Test("Test prompt building with empty context")
     func promptBuildingEmptyContext() async throws {
-        let prompt = try await PromptBuilder.buildContext(
+        let prompt = try await PromptAssembler.buildContext(
             LLMPromptRequest(
                 userQuery: "Hello",
                 contextNotes: [],
@@ -161,7 +161,7 @@ struct LLMServiceTests {
         }
 
         // Call optimizeHistory directly
-        let optimized = PromptBuilder.optimizeHistory(largeHistory, availableTokens: limit)
+        let optimized = PromptHistoryOptimizer.optimize(largeHistory, availableTokens: limit)
 
         // Should have fewer messages than total history
         #expect(optimized.count < largeHistory.count)

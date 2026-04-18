@@ -25,12 +25,13 @@ struct ContextBuilderTests {
             MockSection(id: "2", priority: 100, content: "High Priority")
         }
 
-        let sections = await prompt.resolveSections()
+        let assembled = prompt.assemble()
+        let sections = assembled.resolveSections()
         #expect(sections.count == 2)
         #expect(sections[0].id == "2")
         #expect(sections[1].id == "1")
 
-        let rendered = await prompt.render()
+        let rendered = await assembled.render()
         #expect(rendered.contains("High Priority"))
         #expect(rendered.contains("Low Priority"))
     }
@@ -40,7 +41,7 @@ struct ContextBuilderTests {
         let includeSecret = false
         let includePublic = true
 
-        let prompt = Prompt {
+        let sections = PromptGroup {
             if includeSecret {
                 MockSection(id: "secret", priority: 50, content: "Secret")
             }
@@ -48,9 +49,7 @@ struct ContextBuilderTests {
             if includePublic {
                 MockSection(id: "public", priority: 50, content: "Public")
             }
-        }
-
-        let sections = await prompt.resolveSections()
+        }.assemble().resolveSections()
         #expect(sections.count == 1)
         #expect(sections[0].id == "public")
     }
@@ -65,7 +64,7 @@ struct ContextBuilderTests {
             }
         }
 
-        let sections = await prompt.resolveSections()
+        let sections = prompt.assemble().resolveSections()
         #expect(sections.count == 3)
     }
 }

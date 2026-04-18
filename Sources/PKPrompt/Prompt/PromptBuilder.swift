@@ -1,7 +1,7 @@
 import Foundation
 
 @resultBuilder
-public enum ContextBuilder {
+public enum PromptBuilder {
     public static func buildBlock(_ components: PromptGroup...) -> PromptGroup {
         PromptGroup(components.flatMap(\.sections))
     }

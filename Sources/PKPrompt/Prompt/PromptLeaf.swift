@@ -51,10 +51,6 @@ public extension PromptLeaf {
         nil
     }
 
-    func render() async -> String? {
-        await resolve(in: PromptResolutionContext()).first?.render()
-    }
-
     func render(constrainedTo tokens: Int?) async -> String? {
         await resolve(in: PromptResolutionContext()).first?.render(constrainedTo: tokens)
     }

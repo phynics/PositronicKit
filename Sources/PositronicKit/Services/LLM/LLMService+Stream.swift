@@ -17,7 +17,7 @@ public extension LLMServiceProtocol {
             systemInstructions: request.systemInstructions,
             generationParameters: request.generationParameters
         )
-        let result = try await PromptBuilder.buildPrompt(promptRequest)
+        let result = try await PromptAssembler.buildPrompt(promptRequest)
         let messages = result.messages
         let rawPrompt = result.rawPrompt
 

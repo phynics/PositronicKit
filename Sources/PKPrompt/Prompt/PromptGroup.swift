@@ -13,10 +13,10 @@ public struct PromptGroup: PromptComposite {
         self.sections = sections
     }
 
-    /// Creates a group from a ``ContextBuilder`` closure.
+    /// Creates a group from a ``PromptBuilder`` closure.
     ///
     /// - Parameter content: A builder that produces the section content for the group.
-    public init(@ContextBuilder _ content: () -> some PromptComposite) {
+    public init(@PromptBuilder _ content: () -> some PromptComposite) {
         self.sections = [content()]
     }
 
