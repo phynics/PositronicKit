@@ -1,3 +1,11 @@
+//
+//  PromptResolutionContext.swift
+//  PositronicKit
+//
+//  Created by Atakan Dulker on 18.04.26.
+//
+
+
 public struct PromptResolutionContext: Sendable {
     public let ancestorPath: [String]
     public let inheritedPriority: Int?
