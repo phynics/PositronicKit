@@ -76,13 +76,13 @@ public actor TimelineManager {
         timelineId: UUID,
         agentInstanceId: UUID?,
         message: String
-    ) async -> [any ContextSection] {
+    ) async -> [any PromptComposite] {
         let buildContext = PromptBuildContext(
             timelineId: timelineId,
             agentInstanceId: agentInstanceId,
             message: message
         )
-        var sections: [any ContextSection] = []
+        var sections: [any PromptComposite] = []
         for provider in sectionProviders {
             sections += await provider.sections(for: buildContext)
         }

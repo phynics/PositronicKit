@@ -2,7 +2,7 @@ import Foundation
 import PKPrompt
 import PKShared
 
-public struct SystemInstructions: ContextSection {
+public struct SystemInstructions: PromptComposite {
     public let instructions: String
 
     public init(_ instructions: String) {
@@ -10,7 +10,7 @@ public struct SystemInstructions: ContextSection {
     }
 
     @ContextBuilder
-    public var body: some ContextSection {
+    public var body: some PromptComposite {
         if !instructions.isEmpty {
             SystemPrompt(
                 """
@@ -24,13 +24,13 @@ public struct SystemInstructions: ContextSection {
     }
 }
 
-public struct Memories: PrimitiveContextSection {
+public struct Memories: PromptLeaf {
     public let id = "memories"
     public let role: PromptSectionRole = .context
     public let priority = 85
     public let cachePolicy: CachePolicy = .volatile
     public let compression: CompressionStrategy = .summarize
-    public let type: ContextSectionType = .list
+    public let type: PromptSectionType = .list
     public let memories: [Memory]
     public let summarizedContent: String?
 
@@ -63,13 +63,13 @@ public struct Memories: PrimitiveContextSection {
     }
 }
 
-public struct Tools: PrimitiveContextSection {
+public struct Tools: PromptLeaf {
     public let id = "tools"
     public let role: PromptSectionRole = .context
     public let priority = 80
     public let cachePolicy: CachePolicy = .semiStable
     public let compression: CompressionStrategy = .keep
-    public let type: ContextSectionType = .list
+    public let type: PromptSectionType = .list
     public let tools: [AnyTool]
 
     public init(_ tools: [AnyTool]) {
@@ -86,14 +86,14 @@ public struct Tools: PrimitiveContextSection {
     }
 }
 
-public struct ChatHistory: ContextSection {
+public struct ChatHistory: PromptComposite {
     public let messages: [Message]
 
     public init(_ messages: [Message]) {
         self.messages = messages
     }
 
-    public var body: some ContextSection {
+    public var body: some PromptComposite {
         HistoryPrompt(messages)
     }
 
@@ -120,13 +120,13 @@ public struct ChatHistory: ContextSection {
     }
 }
 
-public struct ContextNotes: PrimitiveContextSection {
+public struct ContextNotes: PromptLeaf {
     public let id = "context_notes"
     public let role: PromptSectionRole = .context
     public let priority = 90
     public let cachePolicy: CachePolicy = .volatile
     public let compression: CompressionStrategy = .truncate(tail: true)
-    public let type: ContextSectionType = .list
+    public let type: PromptSectionType = .list
     public let notes: [ContextFile]
 
     public init(_ notes: [ContextFile]) {
@@ -158,25 +158,25 @@ public struct ContextNotes: PrimitiveContextSection {
     }
 }
 
-public struct UserQuery: ContextSection {
+public struct UserQuery: PromptComposite {
     public let query: String
 
     public init(_ query: String) {
         self.query = query
     }
 
-    public var body: some ContextSection {
+    public var body: some PromptComposite {
         UserPrompt(query, estimatedTokens: TokenEstimator.estimate(text: query))
     }
 }
 
-public struct WorkspacesContext: PrimitiveContextSection {
+public struct WorkspacesContext: PromptLeaf {
     public let id = "workspaces"
     public let role: PromptSectionRole = .context
     public let priority = 75
     public let cachePolicy: CachePolicy = .semiStable
     public let compression: CompressionStrategy = .keep
-    public let type: ContextSectionType = .text
+    public let type: PromptSectionType = .text
     public let workspaces: [WorkspaceReference]
     public let primaryWorkspace: WorkspaceReference?
     public let clientName: String?
@@ -248,7 +248,7 @@ public struct WorkspacesContext: PrimitiveContextSection {
     }
 }
 
-public struct AgentContext: ContextSection {
+public struct AgentContext: PromptComposite {
     public let agent: AgentInstance
     public let timelineTitle: String?
 
@@ -257,7 +257,7 @@ public struct AgentContext: ContextSection {
         self.timelineTitle = timelineTitle
     }
 
-    public var body: some ContextSection {
+    public var body: some PromptComposite {
         SystemPrompt(
             text,
             id: "agent_context",
@@ -282,14 +282,14 @@ public struct AgentContext: ContextSection {
     }
 }
 
-public struct TimelineContext: ContextSection {
+public struct TimelineContext: PromptComposite {
     public let timeline: Timeline
 
     public init(_ timeline: Timeline) {
         self.timeline = timeline
     }
 
-    public var body: some ContextSection {
+    public var body: some PromptComposite {
         ContextPrompt(
             """
             ## Current Timeline

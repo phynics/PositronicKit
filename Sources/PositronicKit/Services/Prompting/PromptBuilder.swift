@@ -46,7 +46,7 @@ public enum PromptBuilder {
         _ request: LLMPromptRequest,
         agentInstance: AgentInstance? = nil,
         timeline: Timeline? = nil,
-        extensionSections: [any ContextSection] = [],
+        extensionSections: [any PromptComposite] = [],
         overridePipeline: PromptAssemblyPipeline? = nil,
         tokenBudget: TokenBudget? = nil,
         compressor: SectionCompressor? = nil,
@@ -69,7 +69,7 @@ public enum PromptBuilder {
         let sections = await assemblyContext.sections
         try validateUniqueSectionIDs(sections)
 
-        let resolvedSections = sections.flatMap { $0.resolve(in: ContextSectionResolutionContext()) }
+        let resolvedSections = sections.flatMap { $0.resolve(in: PromptResolutionContext()) }
 
         guard let tokenBudget else {
             return Prompt(sections: sections)

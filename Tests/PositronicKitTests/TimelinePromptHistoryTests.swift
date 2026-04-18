@@ -2,13 +2,13 @@ import PKPrompt
 import Testing
 @testable import PositronicKit
 
-private struct TimelineSection: PrimitiveContextSection {
+private struct TimelineSection: PromptLeaf {
     let id: String
     let priority: Int
     let estimatedTokens: Int
     let cachePolicy: CachePolicy
     let compression: CompressionStrategy
-    let type: ContextSectionType
+    let type: PromptSectionType
     let text: String
 
     init(
@@ -17,7 +17,7 @@ private struct TimelineSection: PrimitiveContextSection {
         estimatedTokens: Int = 10,
         cachePolicy: CachePolicy,
         compression: CompressionStrategy = .keep,
-        type: ContextSectionType = .text,
+        type: PromptSectionType = .text,
         text: String
     ) {
         self.id = id
@@ -42,7 +42,7 @@ actor TimelinePromptHistoryTests {
         let sections = [
             TimelineSection(id: "system", cachePolicy: .stable, text: "A"),
             TimelineSection(id: "query", cachePolicy: .volatile, text: "B"),
-        ].flatMap { $0.resolve(in: ContextSectionResolutionContext()) }
+        ].flatMap { $0.resolve(in: PromptResolutionContext()) }
 
         _ = await history.record(sections: sections, renderedContent: ["system": "A", "query": "B"])
         let diff = await history.record(sections: sections, renderedContent: ["system": "A2", "query": "B"])

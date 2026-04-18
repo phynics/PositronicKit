@@ -3,7 +3,7 @@ import PKPrompt
 import Testing
 @testable import PositronicKit
 
-private struct CompressionMockSection: PrimitiveContextSection, Sendable {
+private struct CompressionMockSection: PromptLeaf, Sendable {
     let id: String
     let priority: Int
     let estimatedTokens: Int

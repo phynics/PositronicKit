@@ -10,7 +10,7 @@ struct PromptAssemblyTests {
         LLMPromptRequest(userQuery: userQuery, chatHistory: [], tools: [], workspaces: [], primaryWorkspace: nil, clientName: nil)
     }
 
-    struct MockSection: PrimitiveContextSection, Sendable {
+    struct MockSection: PromptLeaf, Sendable {
         let id: String
         let priority: Int = 10
         let estimatedTokens: Int = 10
@@ -49,14 +49,14 @@ struct PromptAssemblyTests {
         await context.append([MockSection(id: "s2"), MockSection(id: "s3")])
 
         let sections = await context.sections
-        let resolved = sections.flatMap { $0.resolve(in: ContextSectionResolutionContext()) }
+        let resolved = sections.flatMap { $0.resolve(in: PromptResolutionContext()) }
         #expect(resolved.map(\.id) == ["s1", "s2", "s3"])
     }
 
     @Test("ContextBuilder composes sections")
     func builderComposesSections() {
         @ContextBuilder
-        func build() -> SectionGroup {
+        func build() -> PromptGroup {
             MockSection(id: "s1")
             [MockSection(id: "s2"), MockSection(id: "s3")]
             if true {
@@ -64,7 +64,7 @@ struct PromptAssemblyTests {
             }
         }
 
-        let resolved = build().resolve(in: ContextSectionResolutionContext())
+        let resolved = build().resolve(in: PromptResolutionContext())
         #expect(resolved.map(\.id) == ["s1", "s2", "s3", "s4"])
     }
 
@@ -83,7 +83,7 @@ struct PromptAssemblyTests {
         for try await _ in stream {}
 
         let sections = await context.sections
-        let resolved = sections.flatMap { $0.resolve(in: ContextSectionResolutionContext()) }
+        let resolved = sections.flatMap { $0.resolve(in: PromptResolutionContext()) }
         #expect(resolved.count == 1)
         #expect(resolved.first?.id == "custom")
     }

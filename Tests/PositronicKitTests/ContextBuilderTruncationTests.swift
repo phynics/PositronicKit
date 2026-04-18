@@ -51,7 +51,7 @@ struct ContextBuilderTruncationTests {
         let messages = (1...20).map { Message.fixture(content: "msg \($0)") }
         let history = ChatHistory(messages)
 
-        let sections: [any ContextSection] = [system, history]
+        let sections: [any PromptComposite] = [system, history]
         let budget = TokenBudget(maxTokens: 30, reserveForResponse: 0)
         let processed = await budget.apply(to: sections)
 

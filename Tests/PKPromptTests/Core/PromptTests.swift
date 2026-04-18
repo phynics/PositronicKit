@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import PKPrompt
 
-private struct DummyPromptSection: PrimitiveContextSection {
+private struct DummyPromptSection: PromptLeaf {
     let id: String
     let priority: Int
     let estimatedTokens: Int

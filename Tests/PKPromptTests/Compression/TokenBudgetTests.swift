@@ -2,12 +2,12 @@ import Foundation
 import Testing
 @testable import PKPrompt
 
-private struct MockPrimitiveSection: PrimitiveContextSection {
+private struct MockPrimitiveSection: PromptLeaf {
     let id: String
     let priority: Int
     let estimatedTokens: Int
     let compression: CompressionStrategy
-    let type: ContextSectionType
+    let type: PromptSectionType
     let renderedContent: String
 
     init(
@@ -15,7 +15,7 @@ private struct MockPrimitiveSection: PrimitiveContextSection {
         priority: Int,
         estimatedTokens: Int,
         compression: CompressionStrategy = .keep,
-        type: ContextSectionType = .text,
+        type: PromptSectionType = .text,
         renderedContent: String = "content"
     ) {
         self.id = id
@@ -43,8 +43,8 @@ private struct MockCompressor: SectionCompressor {
     }
 }
 
-private func resolve(_ sections: [MockPrimitiveSection]) -> [ResolvedContextSection] {
-    sections.flatMap { $0.resolve(in: ContextSectionResolutionContext()) }
+private func resolve(_ sections: [MockPrimitiveSection]) -> [ResolvedPromptSection] {
+    sections.flatMap { $0.resolve(in: PromptResolutionContext()) }
 }
 
 @Suite("TokenBudget")

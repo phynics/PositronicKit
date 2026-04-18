@@ -3,7 +3,7 @@ import Testing
 @testable import PKPrompt
 @testable import PKShared
 
-private struct StaticText: PrimitiveContextSection {
+private struct StaticText: PromptLeaf {
     let id: String
     let text: String
     let role: PromptSectionRole
@@ -36,7 +36,7 @@ private struct StaticText: PrimitiveContextSection {
     }
 }
 
-private struct ToolsSection: ContextSection {
+private struct ToolsSection: PromptComposite {
     let tools: [String]
 
     private var toolString: String {
@@ -44,7 +44,7 @@ private struct ToolsSection: ContextSection {
     }
 
     @ContextBuilder
-    var body: some ContextSection {
+    var body: some PromptComposite {
         StaticText(id: "tools", text: toolString, role: .system)
             .priority(.high)
             .compression(.drop)
@@ -53,7 +53,7 @@ private struct ToolsSection: ContextSection {
 }
 
 @Suite("Body-based context sections")
-struct BodyBasedContextSectionTests {
+struct BodyBasedPromptCompositeTests {
     @Test("Composite sections flatten into effective prompt leaves")
     func compositeSectionsFlattenIntoEffectivePromptLeaves() async {
         let prompt = Prompt {
@@ -74,12 +74,12 @@ struct BodyBasedContextSectionTests {
         #expect(rendered == "- read\n- write")
     }
 
-    @Test("Modifiers override primitive defaults across nested groups")
+    @Test("Modifiers override prompt leaf defaults across nested groups")
     func modifiersOverridePrimitiveDefaultsAcrossNestedGroups() async {
-        struct NestedSection: ContextSection {
+        struct NestedSection: PromptComposite {
             @ContextBuilder
-            var body: some ContextSection {
-                SectionGroup {
+            var body: some PromptComposite {
+                PromptGroup {
                     StaticText(id: "low", text: "first")
                     StaticText(id: "high", text: "second", priority: 5)
                 }

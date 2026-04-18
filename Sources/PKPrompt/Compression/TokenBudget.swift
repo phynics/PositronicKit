@@ -11,15 +11,15 @@ public struct TokenBudget: Sendable {
     }
 
     public func apply(
-        to sections: [any ContextSection],
+        to sections: [any PromptComposite],
         compressor: SectionCompressor? = nil,
         structuredDiff: StructuredDiffHint? = nil,
         nodeMetadata: [String: StructuredNodeMetadata] = [:],
         planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
         executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
-    ) async -> [ResolvedContextSection] {
+    ) async -> [ResolvedPromptSection] {
         await apply(
-            to: sections.flatMap { $0.resolve(in: ContextSectionResolutionContext()) },
+            to: sections.flatMap { $0.resolve(in: PromptResolutionContext()) },
             compressor: compressor,
             structuredDiff: structuredDiff,
             nodeMetadata: nodeMetadata,
@@ -29,15 +29,15 @@ public struct TokenBudget: Sendable {
     }
 
     public func applyWithReport(
-        to sections: [any ContextSection],
+        to sections: [any PromptComposite],
         compressor: SectionCompressor? = nil,
         structuredDiff: StructuredDiffHint? = nil,
         nodeMetadata: [String: StructuredNodeMetadata] = [:],
         planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
         executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
-    ) async -> (sections: [ResolvedContextSection], report: CompressionReport?) {
+    ) async -> (sections: [ResolvedPromptSection], report: CompressionReport?) {
         await applyWithReport(
-            to: sections.flatMap { $0.resolve(in: ContextSectionResolutionContext()) },
+            to: sections.flatMap { $0.resolve(in: PromptResolutionContext()) },
             compressor: compressor,
             structuredDiff: structuredDiff,
             nodeMetadata: nodeMetadata,
@@ -47,13 +47,13 @@ public struct TokenBudget: Sendable {
     }
 
     public func apply(
-        to sections: [ResolvedContextSection],
+        to sections: [ResolvedPromptSection],
         compressor: SectionCompressor? = nil,
         structuredDiff: StructuredDiffHint? = nil,
         nodeMetadata: [String: StructuredNodeMetadata] = [:],
         planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
         executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
-    ) async -> [ResolvedContextSection] {
+    ) async -> [ResolvedPromptSection] {
         let result = await applyWithReport(
             to: sections,
             compressor: compressor,
@@ -66,13 +66,13 @@ public struct TokenBudget: Sendable {
     }
 
     public func applyWithReport(
-        to sections: [ResolvedContextSection],
+        to sections: [ResolvedPromptSection],
         compressor: SectionCompressor? = nil,
         structuredDiff: StructuredDiffHint? = nil,
         nodeMetadata: [String: StructuredNodeMetadata] = [:],
         planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
         executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
-    ) async -> (sections: [ResolvedContextSection], report: CompressionReport?) {
+    ) async -> (sections: [ResolvedPromptSection], report: CompressionReport?) {
         assertUniqueSectionIDs(sections, context: "TokenBudget.applyWithReport")
         let available = maxTokens - reserveForResponse
         let currentTotal = sections.reduce(0) { $0 + $1.estimatedTokens }
@@ -109,7 +109,7 @@ public struct TokenBudget: Sendable {
     }
 
     public func makeStructuredPlan(
-        sections: [ResolvedContextSection],
+        sections: [ResolvedPromptSection],
         available: Int,
         structuredDiff: StructuredDiffHint?,
         nodeMetadata: [String: StructuredNodeMetadata],
@@ -132,7 +132,7 @@ public struct TokenBudget: Sendable {
     }
 
     private func allocateBudget(
-        sortedByPriority: [(index: Int, section: ResolvedContextSection)],
+        sortedByPriority: [(index: Int, section: ResolvedPromptSection)],
         available: Int,
         compressor: SectionCompressor?
     ) async -> [Int: SectionDecision] {
@@ -158,7 +158,7 @@ public struct TokenBudget: Sendable {
     }
 
     private func decideOverBudgetSection(
-        _ section: ResolvedContextSection,
+        _ section: ResolvedPromptSection,
         remainingBudget: inout Int,
         compressor: SectionCompressor?
     ) async -> SectionDecision {
@@ -201,10 +201,10 @@ public struct TokenBudget: Sendable {
     }
 
     private func reconstructSections(
-        indexedSections: [(index: Int, section: ResolvedContextSection)],
+        indexedSections: [(index: Int, section: ResolvedPromptSection)],
         decisions: [Int: SectionDecision]
-    ) -> [ResolvedContextSection] {
-        var result: [ResolvedContextSection] = []
+    ) -> [ResolvedPromptSection] {
+        var result: [ResolvedPromptSection] = []
         for (index, section) in indexedSections {
             guard let decision = decisions[index] else { continue }
 
@@ -226,7 +226,7 @@ public struct TokenBudget: Sendable {
         max(1, text.count / 4)
     }
 
-    private func defaultNodeHash(for section: ResolvedContextSection) -> UInt64 {
+    private func defaultNodeHash(for section: ResolvedPromptSection) -> UInt64 {
         StableHash.hash(components: [
             section.id,
             String(section.estimatedTokens),

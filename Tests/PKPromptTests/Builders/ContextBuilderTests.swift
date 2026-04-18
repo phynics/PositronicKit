@@ -4,12 +4,12 @@ import Testing
 
 @Suite("ContextBuilder")
 struct ContextBuilderTests {
-    struct MockSection: PrimitiveContextSection {
+    struct MockSection: PromptLeaf {
         let id: String
         let priority: Int
         let content: String
         let compression: CompressionStrategy = .keep
-        let type: ContextSectionType = .text
+        let type: PromptSectionType = .text
 
         var estimatedTokens: Int { content.count }
 

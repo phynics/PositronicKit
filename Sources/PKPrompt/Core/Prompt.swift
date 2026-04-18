@@ -1,25 +1,25 @@
 import Foundation
 
 public struct Prompt: Sendable {
-    public let sections: [any ContextSection]
+    public let sections: [any PromptComposite]
     public let compressionReport: CompressionReport?
 
-    private let resolvedSectionsStorage: [ResolvedContextSection]?
+    private let resolvedSectionsStorage: [ResolvedPromptSection]?
 
-    public init(sections: [any ContextSection], compressionReport: CompressionReport? = nil) {
+    public init(sections: [any PromptComposite], compressionReport: CompressionReport? = nil) {
         try? validateUniqueSectionIDs(sections)
         self.sections = sections
         self.compressionReport = compressionReport
         self.resolvedSectionsStorage = nil
     }
 
-    public init(@ContextBuilder _ content: () -> some ContextSection) {
+    public init(@ContextBuilder _ content: () -> some PromptComposite) {
         self.init(sections: [content()])
     }
 
     public init(
-        sections: [any ContextSection],
-        resolvedSections: [ResolvedContextSection],
+        sections: [any PromptComposite],
+        resolvedSections: [ResolvedPromptSection],
         compressionReport: CompressionReport? = nil
     ) {
         precondition(
@@ -31,11 +31,11 @@ public struct Prompt: Sendable {
         self.resolvedSectionsStorage = Prompt.sortResolvedSections(resolvedSections)
     }
 
-    public func resolveSections() async -> [ResolvedContextSection] {
+    public func resolveSections() async -> [ResolvedPromptSection] {
         if let resolvedSectionsStorage {
             return resolvedSectionsStorage
         }
-        return Prompt.sortResolvedSections(sections.flatMap { $0.resolve(in: ContextSectionResolutionContext()) })
+        return Prompt.sortResolvedSections(sections.flatMap { $0.resolve(in: PromptResolutionContext()) })
     }
 
     public func render() async -> String {
@@ -68,7 +68,7 @@ public struct Prompt: Sendable {
     }
 
     public var estimatedTokens: Int {
-        let resolved = resolvedSectionsStorage ?? Prompt.sortResolvedSections(sections.flatMap { $0.resolve(in: ContextSectionResolutionContext()) })
+        let resolved = resolvedSectionsStorage ?? Prompt.sortResolvedSections(sections.flatMap { $0.resolve(in: PromptResolutionContext()) })
         return resolved.reduce(0) { $0 + $1.estimatedTokens }
     }
 
@@ -87,7 +87,7 @@ public struct Prompt: Sendable {
         parts.joined(separator: "\n\n---\n\n")
     }
 
-    private static func sortResolvedSections(_ sections: [ResolvedContextSection]) -> [ResolvedContextSection] {
+    private static func sortResolvedSections(_ sections: [ResolvedPromptSection]) -> [ResolvedPromptSection] {
         sections.enumerated().sorted { lhs, rhs in
             if lhs.element.cachePolicy != rhs.element.cachePolicy {
                 return lhs.element.cachePolicy < rhs.element.cachePolicy

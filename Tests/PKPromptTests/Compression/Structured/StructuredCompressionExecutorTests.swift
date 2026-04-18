@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import PKPrompt
 
-private struct ExecutorMockSection: PrimitiveContextSection {
+private struct ExecutorMockSection: PromptLeaf {
     let id: String
     let priority: Int
     let estimatedTokens: Int
@@ -33,8 +33,8 @@ private struct RecordingCompressor: SectionCompressor {
     }
 }
 
-private func resolveExecutorSections(_ sections: [ExecutorMockSection]) -> [ResolvedContextSection] {
-    sections.flatMap { $0.resolve(in: ContextSectionResolutionContext()) }
+private func resolveExecutorSections(_ sections: [ExecutorMockSection]) -> [ResolvedPromptSection] {
+    sections.flatMap { $0.resolve(in: PromptResolutionContext()) }
 }
 
 @Suite("StructuredCompressionExecutor")

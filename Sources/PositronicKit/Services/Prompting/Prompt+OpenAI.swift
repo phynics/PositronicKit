@@ -22,7 +22,7 @@ public extension Prompt {
     }
 
     private func resolvedContent(
-        for section: ResolvedContextSection,
+        for section: ResolvedPromptSection,
         using cache: [String: String]?
     ) async -> String? {
         if let cache {
@@ -32,7 +32,7 @@ public extension Prompt {
     }
 
     private func buildSystemMessage(
-        from sections: [ResolvedContextSection],
+        from sections: [ResolvedPromptSection],
         preRendered: [String: String]? = nil
     ) async -> ChatQuery.ChatCompletionMessageParam? {
         var systemParts: [String] = []
@@ -47,7 +47,7 @@ public extension Prompt {
         return .system(.init(content: .textContent(systemParts.joined(separator: "\n\n---\n\n")), name: nil))
     }
 
-    private func buildHistoryMessages(from sections: [ResolvedContextSection]) -> [ChatQuery.ChatCompletionMessageParam] {
+    private func buildHistoryMessages(from sections: [ResolvedPromptSection]) -> [ChatQuery.ChatCompletionMessageParam] {
         sections
             .filter { $0.role == .chatHistory }
             .flatMap { $0.historyMessages ?? [] }
@@ -55,7 +55,7 @@ public extension Prompt {
     }
 
     private func buildUserQueryMessage(
-        from sections: [ResolvedContextSection],
+        from sections: [ResolvedPromptSection],
         preRendered: [String: String]? = nil
     ) async -> ChatQuery.ChatCompletionMessageParam? {
         guard let querySection = sections.first(where: { $0.role == .userQuery }) else {
