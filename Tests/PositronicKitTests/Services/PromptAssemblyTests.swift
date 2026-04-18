@@ -56,7 +56,7 @@ struct PromptAssemblyTests {
     @Test("PromptBuilder composes sections")
     func builderComposesSections() {
         @PromptBuilder
-        func build() -> PromptGroup {
+        func build() -> some PromptComposite {
             MockSection(id: "s1")
             [MockSection(id: "s2"), MockSection(id: "s3")]
             if true {

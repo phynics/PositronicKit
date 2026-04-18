@@ -31,6 +31,8 @@ import PKShared
 
 - compose prompt sections with `body`
 - use primitive leaves for actual rendered content
+- let `Prompt` store the builder's typed root composite directly
+- use `Group` only when you want to make a nested grouping explicit
 - resolve prompt trees into semantic leaves before rendering, budgeting, hashing, or provider conversion
 
 ```swift
@@ -59,3 +61,6 @@ let prompt = Prompt {
     UserPrompt("Recommend the safest next step.")
 }
 ```
+
+`Prompt` is generic over its root composite, so the wrapper stays lightweight while `PromptBuilder`
+preserves concrete types for blocks, conditionals, loops, and optionals.

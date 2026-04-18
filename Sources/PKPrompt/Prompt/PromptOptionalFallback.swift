@@ -5,18 +5,18 @@ import PKShared
 ///
 /// ``PromptBuilder`` lowers optional branches into this composite so the prompt tree keeps
 /// track of the authored optional shape while still resolving transparently at assembly time.
-public struct PromptOptionalFallback: PromptComposite {
+public struct PromptOptional<Primary: PromptComposite, Fallback: PromptComposite>: PromptComposite {
     /// The preferred prompt content when available.
-    public let primary: (any PromptComposite)?
+    public let primary: Primary?
     /// The fallback prompt content when the primary branch is absent.
-    public let fallback: (any PromptComposite)?
+    public let fallback: Fallback?
 
     /// Creates an optional prompt wrapper.
     ///
     /// - Parameters:
     ///   - primary: The preferred prompt content.
     ///   - fallback: Fallback content when the primary branch is absent.
-    public init(primary: (any PromptComposite)?, fallback: (any PromptComposite)? = nil) {
+    public init(primary: Primary?, fallback: Fallback? = nil) {
         self.primary = primary
         self.fallback = fallback
     }

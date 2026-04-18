@@ -18,7 +18,7 @@ struct PromptBuilderTests {
         }
     }
 
-    private func buildComposite(@PromptBuilder _ content: () -> PromptGroup) -> PromptGroup {
+    private func buildComposite<Content: PromptComposite>(@PromptBuilder _ content: () -> Content) -> Content {
         content()
     }
 
@@ -72,14 +72,14 @@ struct PromptBuilderTests {
         #expect(sections.count == 3)
     }
 
-    @Test("Builder lowers blocks to PromptGroup")
-    func blockLowersToGroup() {
+    @Test("Builder preserves typed block structure without PromptGroup wrapping")
+    func blockPreservesTypedStructure() {
         let composite = buildComposite {
             MockSection(id: "1", priority: 10, content: "One")
             MockSection(id: "2", priority: 20, content: "Two")
         }
 
-        #expect(composite.sections.count == 2)
+        #expect(type(of: composite) == PromptSequence<MockSection, MockSection>.self)
     }
 
     @Test("Group alias composes nested prompt content")
@@ -104,8 +104,7 @@ struct PromptBuilderTests {
             }
         }
 
-        #expect(composite.sections.count == 1)
-        #expect(composite.sections.first is PromptConditional)
+        #expect(type(of: composite) == PromptConditional<MockSection, MockSection>.self)
     }
 
     @Test("Builder lowers loops to PromptForEach")
@@ -118,19 +117,17 @@ struct PromptBuilderTests {
             }
         }
 
-        #expect(composite.sections.count == 1)
-        #expect(composite.sections.first is PromptForEach)
+        #expect(type(of: composite) == PromptForEach<MockSection>.self)
     }
 
-    @Test("Builder lowers optional branches to PromptOptionalFallback")
-    func optionalLowersToOptionalFallbackComposite() {
+    @Test("Builder lowers optional branches to PromptOptional")
+    func optionalLowersToPromptOptionalComposite() {
         let composite = buildComposite {
             if false {
                 MockSection(id: "hidden", priority: 50, content: "Hidden")
             }
         }
 
-        #expect(composite.sections.count == 1)
-        #expect(composite.sections.first is PromptOptionalFallback)
+        #expect(type(of: composite) == PromptOptional<MockSection, EmptySection>.self)
     }
 }

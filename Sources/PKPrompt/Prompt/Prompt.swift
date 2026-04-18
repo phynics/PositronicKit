@@ -1,23 +1,23 @@
 import Foundation
 
 /// Lightweight wrapper for a declarative prompt definition.
-public struct Prompt: Sendable {
-    /// The root prompt composites that make up this declarative prompt tree.
-    public let sections: [any PromptComposite]
+public struct Prompt<Content: PromptComposite>: Sendable {
+    /// The typed root composite that makes up this declarative prompt tree.
+    public let content: Content
 
-    /// Creates a prompt from an explicit list of root sections.
+    /// Creates a prompt from an explicit root composite.
     ///
-    /// - Parameter sections: The declarative sections to validate and store.
-    public init(sections: [any PromptComposite]) {
-        try? validateUniqueSectionIDs(sections)
-        self.sections = sections
+    /// - Parameter content: The declarative root composite to validate and store.
+    public init(_ content: Content) {
+        try? validateUniqueSectionIDs([content])
+        self.content = content
     }
 
     /// Creates a prompt from a ``PromptBuilder`` closure.
     ///
     /// - Parameter content: A builder that produces the root prompt composite.
-    public init(@PromptBuilder _ content: () -> some PromptComposite) {
-        self.init(sections: [content()])
+    public init(@PromptBuilder _ content: () -> Content) {
+        self.init(content())
     }
 
     /// Resolves the declarative prompt tree into an ordered ``AssembledPrompt``.
@@ -28,7 +28,7 @@ public struct Prompt: Sendable {
     /// - Returns: A fully assembled prompt artifact.
     public func assemble() -> AssembledPrompt {
         AssembledPrompt(
-            resolvedSections: sections.flatMap { $0.resolve(in: PromptResolutionContext()) }
+            resolvedSections: content.resolve(in: PromptResolutionContext())
         )
     }
 }

@@ -30,13 +30,13 @@ private struct DummyPromptSection: PromptLeaf {
 
 @Suite("Prompt")
 struct PromptTests {
-    @Test("Prompt keeps declarative sections and assembles them on demand")
-    func promptAssemblesSections() async {
+    @Test("Prompt wraps a typed root composite and assembles it on demand")
+    func promptWrapsTypedRootComposite() async {
         let sec1 = DummyPromptSection(id: "s1", priority: 1, estimatedTokens: 10, text: "Low")
         let sec2 = DummyPromptSection(id: "s2", priority: 100, estimatedTokens: 10, text: "High")
 
-        let prompt = Prompt(sections: [sec1, sec2])
-        #expect(prompt.sections.count == 2)
+        let prompt = Prompt(PromptGroup([sec1, sec2]))
+        #expect(prompt.content.sections.count == 2)
 
         let resolved = prompt.assemble().resolveSections()
 
@@ -45,14 +45,14 @@ struct PromptTests {
         #expect(resolved[1].id == "s1")
     }
 
-    @Test("Prompt builder preserves composed sections for later assembly")
+    @Test("Prompt builder stores the lowered builder output")
     func promptBuilderInitialization() async {
         let prompt = Prompt {
             DummyPromptSection(id: "s1", priority: 1, estimatedTokens: 10, text: "A")
             DummyPromptSection(id: "s2", priority: 100, estimatedTokens: 10, text: "B")
         }
 
-        #expect(prompt.sections.count == 1)
+        #expect(type(of: prompt.content) == PromptSequence<DummyPromptSection, DummyPromptSection>.self)
 
         let resolved = prompt.assemble().resolveSections()
         #expect(resolved.count == 2)

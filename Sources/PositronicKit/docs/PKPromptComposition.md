@@ -7,6 +7,8 @@
 - Use composite `ContextSection` types to group reusable prompt structure.
 - Use primitive leaves like `TextSection` and `HistorySection` when a type emits the final prompt content directly.
 - Use convenience wrappers like `SystemPrompt`, `ContextPrompt`, `UserPrompt`, and `HistoryPrompt` for common leaf roles.
+- `Prompt` stores the builder's typed root composite directly instead of eagerly erasing to an array.
+- `Group` stays available when you want to introduce an explicit nested grouping boundary.
 
 ```swift
 import PKPrompt
@@ -27,6 +29,11 @@ struct ToolingSection: ContextSection {
             .compression(.summarize)
             .cachePolicy(.semiStable)
     }
+}
+
+let prompt = Prompt {
+    ToolingSection(tools: ["build", "test", "lint"])
+    UserPrompt("Recommend the safest next step.")
 }
 ```
 

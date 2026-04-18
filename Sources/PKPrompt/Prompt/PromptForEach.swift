@@ -5,14 +5,14 @@ import PKShared
 ///
 /// ``PromptBuilder`` lowers `for` loops into this composite so repeated authoring intent
 /// remains explicit in the prompt tree before final resolution.
-public struct PromptForEach: PromptComposite {
+public struct PromptForEach<Content: PromptComposite>: PromptComposite {
     /// The repeated prompt content instances produced by the loop.
-    public let content: [any PromptComposite]
+    public let content: [Content]
 
     /// Creates a wrapper for repeated prompt content.
     ///
     /// - Parameter content: The prompt content instances produced by iteration.
-    public init(_ content: [any PromptComposite]) {
+    public init(_ content: [Content]) {
         self.content = content
     }
 
