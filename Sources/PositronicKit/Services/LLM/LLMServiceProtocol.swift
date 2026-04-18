@@ -16,6 +16,7 @@ public struct LLMChatRequest: Sendable {
     public let primaryWorkspace: WorkspaceReference?
     public let clientName: String?
     public let systemInstructions: String?
+    public let structuredOutput: StructuredOutputRequest?
     public let responseFormat: ChatQuery.ResponseFormat?
     public let generationParameters: GenerationParameters?
     public let useFastModel: Bool
@@ -30,6 +31,37 @@ public struct LLMChatRequest: Sendable {
         primaryWorkspace: WorkspaceReference?,
         clientName: String?,
         systemInstructions: String? = nil,
+        structuredOutput: StructuredOutputRequest? = nil,
+        generationParameters: GenerationParameters? = nil,
+        useFastModel: Bool = false
+    ) {
+        self.userQuery = userQuery
+        self.contextNotes = contextNotes
+        self.memories = memories
+        self.chatHistory = chatHistory
+        self.tools = tools
+        self.workspaces = workspaces
+        self.primaryWorkspace = primaryWorkspace
+        self.clientName = clientName
+        self.systemInstructions = systemInstructions
+        self.structuredOutput = structuredOutput
+        self.responseFormat = nil
+        self.generationParameters = generationParameters
+        self.useFastModel = useFastModel
+    }
+
+    @available(*, deprecated, message: "Use structuredOutput for structured generation requests.")
+    public init(
+        userQuery: String,
+        contextNotes: [ContextFile] = [],
+        memories: [Memory] = [],
+        chatHistory: [Message],
+        tools: [AnyTool],
+        workspaces: [WorkspaceReference],
+        primaryWorkspace: WorkspaceReference?,
+        clientName: String?,
+        systemInstructions: String? = nil,
+        structuredOutput: StructuredOutputRequest? = nil,
         responseFormat: ChatQuery.ResponseFormat? = nil,
         generationParameters: GenerationParameters? = nil,
         useFastModel: Bool = false
@@ -43,6 +75,7 @@ public struct LLMChatRequest: Sendable {
         self.primaryWorkspace = primaryWorkspace
         self.clientName = clientName
         self.systemInstructions = systemInstructions
+        self.structuredOutput = structuredOutput
         self.responseFormat = responseFormat
         self.generationParameters = generationParameters
         self.useFastModel = useFastModel
@@ -158,6 +191,7 @@ public protocol LLMServiceProtocol: HealthCheckable, Sendable {
     func chatStream(
         messages: [ChatQuery.ChatCompletionMessageParam],
         tools: [ChatQuery.ChatCompletionToolParam]?,
+        toolChoice: ChatQuery.ChatCompletionFunctionCallOptionParam?,
         responseFormat: ChatQuery.ResponseFormat?,
         generationParameters: GenerationParameters?,
         useUtilityModel: Bool,
@@ -176,6 +210,7 @@ public extension LLMServiceProtocol {
     func chatStream(
         messages: [ChatQuery.ChatCompletionMessageParam],
         tools: [ChatQuery.ChatCompletionToolParam]? = nil,
+        toolChoice: ChatQuery.ChatCompletionFunctionCallOptionParam? = nil,
         responseFormat: ChatQuery.ResponseFormat? = nil,
         generationParameters: GenerationParameters? = nil,
         useUtilityModel: Bool = false,
@@ -184,6 +219,7 @@ public extension LLMServiceProtocol {
         await chatStream(
             messages: messages,
             tools: tools,
+            toolChoice: toolChoice,
             responseFormat: responseFormat,
             generationParameters: generationParameters,
             useUtilityModel: useUtilityModel,

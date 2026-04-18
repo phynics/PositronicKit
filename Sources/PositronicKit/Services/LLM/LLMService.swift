@@ -11,6 +11,7 @@ public protocol LLMClientProtocol: Sendable {
     func chatStream(
         messages: [ChatQuery.ChatCompletionMessageParam],
         tools: [ChatQuery.ChatCompletionToolParam]?,
+        toolChoice: ChatQuery.ChatCompletionFunctionCallOptionParam?,
         responseFormat: ChatQuery.ResponseFormat?,
         generationParameters: GenerationParameters?
     ) async -> AsyncThrowingStream<ChatStreamResult, Error>

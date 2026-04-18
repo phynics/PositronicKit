@@ -47,6 +47,7 @@ public actor OllamaClient {
     public func chatStream(
         messages: [ChatQuery.ChatCompletionMessageParam],
         tools: [ChatQuery.ChatCompletionToolParam]? = nil,
+        toolChoice _: ChatQuery.ChatCompletionFunctionCallOptionParam? = nil,
         responseFormat: ChatQuery.ResponseFormat? = nil,
         generationParameters: GenerationParameters? = nil
     ) -> AsyncThrowingStream<ChatStreamResult, Error> {

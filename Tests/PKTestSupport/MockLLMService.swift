@@ -8,6 +8,9 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
     public var nextResponse: String = ""
     public var nextResponses: [String] = []
     public var lastMessages: [ChatQuery.ChatCompletionMessageParam] = []
+    public var lastTools: [ChatQuery.ChatCompletionToolParam]?
+    public var lastToolChoice: ChatQuery.ChatCompletionFunctionCallOptionParam?
+    public var lastResponseFormat: ChatQuery.ResponseFormat?
     public var lastParameters: GenerationParameters?
     public var shouldThrowError: Bool = false
 
@@ -25,11 +28,15 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
 
     public func chatStream(
         messages: [ChatQuery.ChatCompletionMessageParam],
-        tools _: [ChatQuery.ChatCompletionToolParam]?,
-        responseFormat _: ChatQuery.ResponseFormat?,
+        tools: [ChatQuery.ChatCompletionToolParam]?,
+        toolChoice: ChatQuery.ChatCompletionFunctionCallOptionParam?,
+        responseFormat: ChatQuery.ResponseFormat?,
         generationParameters: GenerationParameters?
     ) async -> AsyncThrowingStream<ChatStreamResult, Error> {
         lastMessages = messages
+        lastTools = tools
+        lastToolChoice = toolChoice
+        lastResponseFormat = responseFormat
         lastParameters = generationParameters
 
         if shouldThrowError {
@@ -96,7 +103,7 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
 
     public func sendMessage(
         _ content: String,
-        responseFormat _: ChatQuery.ResponseFormat?,
+        responseFormat: ChatQuery.ResponseFormat?,
         generationParameters: GenerationParameters?
     ) async throws -> String {
         if shouldThrowError {
@@ -106,6 +113,9 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
             )
         }
         lastMessages = [.user(.init(content: .string(content)))]
+        lastTools = nil
+        lastToolChoice = nil
+        lastResponseFormat = responseFormat
         lastParameters = generationParameters
         return nextResponse
     }
@@ -179,8 +189,11 @@ public final class MockLLMService: LLMServiceProtocol, @unchecked Sendable, Heal
         let stream = await chatStream(
             messages: [],
             tools: nil,
+            toolChoice: nil,
             responseFormat: request.responseFormat,
-            generationParameters: request.generationParameters
+            generationParameters: request.generationParameters,
+            useUtilityModel: false,
+            useFastModel: request.useFastModel
         )
         return LLMStreamResult(stream: stream, rawPrompt: "mock prompt")
     }
@@ -188,6 +201,7 @@ public final class MockLLMService: LLMServiceProtocol, @unchecked Sendable, Heal
     public func chatStream(
         messages: [ChatQuery.ChatCompletionMessageParam],
         tools: [ChatQuery.ChatCompletionToolParam]?,
+        toolChoice: ChatQuery.ChatCompletionFunctionCallOptionParam?,
         responseFormat: ChatQuery.ResponseFormat?,
         generationParameters: GenerationParameters?,
         useUtilityModel _: Bool,
@@ -199,6 +213,7 @@ public final class MockLLMService: LLMServiceProtocol, @unchecked Sendable, Heal
         return await mockClient.chatStream(
             messages: messages,
             tools: tools,
+            toolChoice: toolChoice,
             responseFormat: responseFormat,
             generationParameters: generationParameters
         )

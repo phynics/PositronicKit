@@ -15,29 +15,13 @@ public extension LLMServiceProtocol {
         """
 
         do {
-            let response = try await self.sendMessage(
+            let tagResponse = try await self.sendStructured(
                 prompt,
-                responseFormat: .jsonObject,
+                structuredOutput: .jsonObject,
+                as: LLMTagResponse.self,
                 generationParameters: nil,
                 useUtilityModel: true
             )
-
-            // Clean up response (some models might still include markdown)
-            var cleanJson = response.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
-            if cleanJson.hasPrefix("```json") {
-                cleanJson = cleanJson.replacingOccurrences(of: "```json", with: "")
-            }
-            if cleanJson.hasPrefix("```") {
-                cleanJson = cleanJson.replacingOccurrences(of: "```", with: "")
-            }
-            cleanJson = cleanJson.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
-
-            guard let data = cleanJson.data(using: String.Encoding.utf8),
-                  let tagResponse = try? JSONDecoder().decode(LLMTagResponse.self, from: data)
-            else {
-                Logger.module(named: "llm").warning("Failed to parse tags from LLM response: \(response)")
-                return []
-            }
 
             return tagResponse.tags.map { $0.lowercased() }
         } catch {
@@ -120,31 +104,13 @@ public extension LLMServiceProtocol {
         """
 
         do {
-            let response = try await self.sendMessage(
+            let scores = try await self.sendStructured(
                 prompt,
-                responseFormat: .jsonObject,
+                structuredOutput: .jsonObject,
+                as: [String: Double].self,
                 generationParameters: nil,
                 useUtilityModel: true
             )
-
-            // Clean up response
-            var cleanJson = response.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
-            if cleanJson.hasPrefix("```json") {
-                cleanJson = cleanJson.replacingOccurrences(of: "```json", with: "")
-            }
-            if cleanJson.hasPrefix("```") {
-                cleanJson = cleanJson.replacingOccurrences(of: "```", with: "")
-            }
-            cleanJson = cleanJson.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
-
-            guard let data = cleanJson.data(using: String.Encoding.utf8),
-                  let scores = try? JSONDecoder().decode([String: Double].self, from: data)
-            else {
-                Logger.module(named: "llm").warning(
-                    "Failed to parse recall evaluation from LLM response: \(response)"
-                )
-                return [:]
-            }
 
             return scores
         } catch {

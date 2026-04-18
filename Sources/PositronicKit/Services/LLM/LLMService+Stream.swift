@@ -18,15 +18,26 @@ public extension LLMServiceProtocol {
             generationParameters: request.generationParameters
         )
         let result = try await PromptAssembler.buildPrompt(promptRequest)
-        let messages = result.messages
-        let rawPrompt = result.rawPrompt
+        let provider = await configuration.provider
+        let resolvedOutput = request.structuredOutput.map {
+            StructuredOutputExecution.apply(
+                to: result.messages,
+                rawPrompt: result.rawPrompt,
+                provider: provider,
+                output: $0
+            )
+        }
+
+        let messages = resolvedOutput?.messages ?? result.messages
+        let rawPrompt = resolvedOutput?.rawPrompt ?? result.rawPrompt
+        let responseFormat = resolvedOutput?.responseFormat ?? request.responseFormat
 
         // Delegate to client for streaming
         let toolParams = request.tools.isEmpty ? nil : request.tools.map { $0.toToolParam() }
         let stream = await chatStream(
             messages: messages,
             tools: toolParams,
-            responseFormat: request.responseFormat,
+            responseFormat: responseFormat,
             generationParameters: request.generationParameters,
             useUtilityModel: false,
             useFastModel: request.useFastModel
@@ -41,6 +52,7 @@ public extension LLMService {
     func chatStream(
         messages: [ChatQuery.ChatCompletionMessageParam],
         tools: [ChatQuery.ChatCompletionToolParam]?,
+        toolChoice: ChatQuery.ChatCompletionFunctionCallOptionParam?,
         responseFormat: ChatQuery.ResponseFormat?,
         generationParameters: GenerationParameters?,
         useUtilityModel: Bool,
@@ -67,6 +79,7 @@ public extension LLMService {
         return await client.chatStream(
             messages: messages,
             tools: tools,
+            toolChoice: toolChoice,
             responseFormat: responseFormat,
             generationParameters: params
         )

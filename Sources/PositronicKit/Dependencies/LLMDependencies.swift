@@ -103,6 +103,7 @@ public struct UnconfiguredLLMService: LLMServiceProtocol {
     public func chatStream(
         messages _: [ChatQuery.ChatCompletionMessageParam],
         tools _: [ChatQuery.ChatCompletionToolParam]?,
+        toolChoice _: ChatQuery.ChatCompletionFunctionCallOptionParam?,
         responseFormat _: ChatQuery.ResponseFormat?,
         generationParameters _: GenerationParameters?,
         useUtilityModel _: Bool,

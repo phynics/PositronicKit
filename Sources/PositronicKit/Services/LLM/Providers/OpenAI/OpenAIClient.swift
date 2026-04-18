@@ -38,6 +38,7 @@ public actor OpenAIClient {
     public func chatStream(
         messages: [ChatQuery.ChatCompletionMessageParam],
         tools: [ChatQuery.ChatCompletionToolParam]? = nil,
+        toolChoice: ChatQuery.ChatCompletionFunctionCallOptionParam? = nil,
         responseFormat: ChatQuery.ResponseFormat? = nil,
         generationParameters: GenerationParameters? = nil
     ) -> AsyncThrowingStream<ChatStreamResult, Error> {
@@ -57,7 +58,7 @@ public actor OpenAIClient {
             responseFormat: responseFormat,
             seed: generationParameters?.seed,
             temperature: generationParameters?.temperature,
-            toolChoice: tools != nil ? .auto : nil,
+            toolChoice: toolChoice ?? (tools != nil ? .auto : nil),
             tools: tools,
             topP: generationParameters?.topP,
             stream: true,
