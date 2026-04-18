@@ -101,7 +101,7 @@ public actor TimelinePromptHistory {
     /// - Returns: A diff describing what changed since the last recording.
     @discardableResult
     public func record(sections: [ResolvedPromptSection], renderedContent: [String: String]) -> PromptDiff {
-        assertUniqueSectionIDs(sections, context: "TimelinePromptHistory.record")
+        PromptSectionValidator.assertUniqueIDs(in: sections, context: "TimelinePromptHistory.record")
         var entries: [PromptSectionEntry] = []
         for (index, section) in sections.enumerated() {
             let content = renderedContent[section.id] ?? ""

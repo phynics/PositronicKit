@@ -9,7 +9,7 @@ public struct Prompt<Content: PromptComposite>: Sendable {
     ///
     /// - Parameter content: The declarative root composite to validate and store.
     public init(_ content: Content) {
-        try? validateUniqueSectionIDs([content])
+        try? PromptSectionValidator.validateUniqueIDs(in: [content])
         self.content = content
     }
 

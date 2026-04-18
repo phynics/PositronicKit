@@ -10,8 +10,8 @@ public struct AssembledPrompt: Sendable {
         compressionReport: CompressionReport? = nil
     ) {
         precondition(
-            duplicateSectionIDs(in: resolvedSections).isEmpty,
-            "Duplicate resolved context section ids: \(duplicateSectionIDs(in: resolvedSections).joined(separator: ", "))"
+            PromptSectionValidator.duplicateIDs(in: resolvedSections).isEmpty,
+            "Duplicate resolved context section ids: \(PromptSectionValidator.duplicateIDs(in: resolvedSections).joined(separator: ", "))"
         )
         self.resolvedSections = AssembledPrompt.sortResolvedSections(resolvedSections)
         self.compressionReport = compressionReport

@@ -117,7 +117,7 @@ public enum PromptAssembler {
         for try await _ in stream {}
 
         let sections = await context.sections
-        try validateUniqueSectionIDs(sections)
+        try PromptSectionValidator.validateUniqueIDs(in: sections)
         return sections
     }
 

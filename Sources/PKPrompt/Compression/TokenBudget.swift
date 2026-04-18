@@ -73,7 +73,7 @@ public struct TokenBudget: Sendable {
         planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
         executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
     ) async -> (sections: [ResolvedPromptSection], report: CompressionReport?) {
-        assertUniqueSectionIDs(sections, context: "TokenBudget.applyWithReport")
+        PromptSectionValidator.assertUniqueIDs(in: sections, context: "TokenBudget.applyWithReport")
         let available = maxTokens - reserveForResponse
         let currentTotal = sections.reduce(0) { $0 + $1.estimatedTokens }
 

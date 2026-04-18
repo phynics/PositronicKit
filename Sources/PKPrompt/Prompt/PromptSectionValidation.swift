@@ -4,40 +4,42 @@ public enum PromptSectionValidationError: Error, Sendable, Equatable {
     case duplicateSectionIDs([String])
 }
 
-public func validateUniqueSectionIDs(_ sections: [any PromptComposite]) throws {
-    try validateUniqueSectionIDs(sections.flatMap { $0.resolve(in: PromptResolutionContext()) })
-}
-
-public func validateUniqueSectionIDs(_ sections: [ResolvedPromptSection]) throws {
-    let duplicates = duplicateSectionIDs(in: sections)
-    guard duplicates.isEmpty else {
-        throw PromptSectionValidationError.duplicateSectionIDs(duplicates)
+public enum PromptSectionValidator {
+    public static func validateUniqueIDs(in sections: [any PromptComposite]) throws {
+        try validateUniqueIDs(in: sections.flatMap { $0.resolve(in: PromptResolutionContext()) })
     }
-}
 
-public func assertUniqueSectionIDs(_ sections: [any PromptComposite], context: String) {
-    let duplicates = duplicateSectionIDs(in: sections.flatMap { $0.resolve(in: PromptResolutionContext()) })
-    precondition(
-        duplicates.isEmpty,
-        "Duplicate context section ids in \(context): \(duplicates.joined(separator: ", "))"
-    )
-}
-
-public func assertUniqueSectionIDs(_ sections: [ResolvedPromptSection], context: String) {
-    let duplicates = duplicateSectionIDs(in: sections)
-    precondition(
-        duplicates.isEmpty,
-        "Duplicate context section ids in \(context): \(duplicates.joined(separator: ", "))"
-    )
-}
-
-func duplicateSectionIDs(in sections: [ResolvedPromptSection]) -> [String] {
-    var counts: [String: Int] = [:]
-    for section in sections {
-        counts[section.id, default: 0] += 1
+    public static func validateUniqueIDs(in sections: [ResolvedPromptSection]) throws {
+        let duplicates = duplicateIDs(in: sections)
+        guard duplicates.isEmpty else {
+            throw PromptSectionValidationError.duplicateSectionIDs(duplicates)
+        }
     }
-    return counts
-        .filter { $0.value > 1 }
-        .map(\.key)
-        .sorted()
+
+    public static func assertUniqueIDs(in sections: [any PromptComposite], context: String) {
+        let duplicates = duplicateIDs(in: sections.flatMap { $0.resolve(in: PromptResolutionContext()) })
+        precondition(
+            duplicates.isEmpty,
+            "Duplicate context section ids in \(context): \(duplicates.joined(separator: ", "))"
+        )
+    }
+
+    public static func assertUniqueIDs(in sections: [ResolvedPromptSection], context: String) {
+        let duplicates = duplicateIDs(in: sections)
+        precondition(
+            duplicates.isEmpty,
+            "Duplicate context section ids in \(context): \(duplicates.joined(separator: ", "))"
+        )
+    }
+
+    static func duplicateIDs(in sections: [ResolvedPromptSection]) -> [String] {
+        var counts: [String: Int] = [:]
+        for section in sections {
+            counts[section.id, default: 0] += 1
+        }
+        return counts
+            .filter { $0.value > 1 }
+            .map(\.key)
+            .sorted()
+    }
 }
