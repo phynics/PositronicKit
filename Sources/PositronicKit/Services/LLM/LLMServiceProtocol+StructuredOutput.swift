@@ -81,27 +81,10 @@ public extension LLMServiceProtocol {
 enum StructuredOutputExecution {
     private static let syntheticToolName = "emit_structured_response"
 
-    struct Request {
-        let prompt: String
-        let responseFormat: ChatQuery.ResponseFormat?
-    }
-
     struct PreparedMessages {
         let messages: [ChatQuery.ChatCompletionMessageParam]
         let rawPrompt: String
         let responseFormat: ChatQuery.ResponseFormat?
-    }
-
-    static func request(
-        for provider: LLMProvider,
-        prompt: String,
-        output: StructuredOutputRequest
-    ) -> Request {
-        let prepared = prepare(for: provider, output: output)
-        return Request(
-            prompt: prepared.promptAugmentation.map { prompt + $0 } ?? prompt,
-            responseFormat: prepared.responseFormat
-        )
     }
 
     static func apply(

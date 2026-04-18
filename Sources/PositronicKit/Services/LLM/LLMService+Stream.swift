@@ -30,7 +30,7 @@ public extension LLMServiceProtocol {
 
         let messages = resolvedOutput?.messages ?? result.messages
         let rawPrompt = resolvedOutput?.rawPrompt ?? result.rawPrompt
-        let responseFormat = resolvedOutput?.responseFormat ?? request.responseFormat
+        let responseFormat = resolvedOutput?.responseFormat
 
         // Delegate to client for streaming
         let toolParams = request.tools.isEmpty ? nil : request.tools.map { $0.toToolParam() }

@@ -190,7 +190,7 @@ public final class MockLLMService: LLMServiceProtocol, @unchecked Sendable, Heal
             messages: [],
             tools: nil,
             toolChoice: nil,
-            responseFormat: request.responseFormat,
+            responseFormat: nil,
             generationParameters: request.generationParameters,
             useUtilityModel: false,
             useFastModel: request.useFastModel

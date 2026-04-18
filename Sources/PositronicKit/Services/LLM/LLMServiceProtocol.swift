@@ -17,7 +17,6 @@ public struct LLMChatRequest: Sendable {
     public let clientName: String?
     public let systemInstructions: String?
     public let structuredOutput: StructuredOutputRequest?
-    public let responseFormat: ChatQuery.ResponseFormat?
     public let generationParameters: GenerationParameters?
     public let useFastModel: Bool
 
@@ -45,38 +44,6 @@ public struct LLMChatRequest: Sendable {
         self.clientName = clientName
         self.systemInstructions = systemInstructions
         self.structuredOutput = structuredOutput
-        self.responseFormat = nil
-        self.generationParameters = generationParameters
-        self.useFastModel = useFastModel
-    }
-
-    @available(*, deprecated, message: "Use structuredOutput for structured generation requests.")
-    public init(
-        userQuery: String,
-        contextNotes: [ContextFile] = [],
-        memories: [Memory] = [],
-        chatHistory: [Message],
-        tools: [AnyTool],
-        workspaces: [WorkspaceReference],
-        primaryWorkspace: WorkspaceReference?,
-        clientName: String?,
-        systemInstructions: String? = nil,
-        structuredOutput: StructuredOutputRequest? = nil,
-        responseFormat: ChatQuery.ResponseFormat? = nil,
-        generationParameters: GenerationParameters? = nil,
-        useFastModel: Bool = false
-    ) {
-        self.userQuery = userQuery
-        self.contextNotes = contextNotes
-        self.memories = memories
-        self.chatHistory = chatHistory
-        self.tools = tools
-        self.workspaces = workspaces
-        self.primaryWorkspace = primaryWorkspace
-        self.clientName = clientName
-        self.systemInstructions = systemInstructions
-        self.structuredOutput = structuredOutput
-        self.responseFormat = responseFormat
         self.generationParameters = generationParameters
         self.useFastModel = useFastModel
     }
