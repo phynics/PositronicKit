@@ -5,7 +5,7 @@ import PKShared
 
 public extension AssembledPrompt {
     func toMessages(preRendered: [String: String]? = nil) async -> [ChatQuery.ChatCompletionMessageParam] {
-        let resolved = resolveSections()
+        let resolved = resolvedSections
         var messages: [ChatQuery.ChatCompletionMessageParam] = []
 
         if let systemMessage = await buildSystemMessage(from: resolved, preRendered: preRendered) {
@@ -25,8 +25,8 @@ public extension AssembledPrompt {
         for section: ResolvedPromptSection,
         using cache: [String: String]?
     ) async -> String? {
-        if let cache {
-            return cache[section.id]
+        if let cached = cache?[section.id] {
+            return cached
         }
         return await section.render()
     }

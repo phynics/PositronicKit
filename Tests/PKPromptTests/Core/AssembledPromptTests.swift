@@ -70,6 +70,18 @@ struct AssembledPromptTests {
         #expect(context["s2"] == nil)
     }
 
+    @Test("Assembled prompt render with partial preRendered falls back to live rendering")
+    func renderWithPartialPreRenderedFallsBackToLiveRendering() async {
+        let prompt = AssembledPrompt(resolvedSections: [
+            DummyPromptSection(id: "s1", priority: 10, estimatedTokens: 10, text: "Cached").resolve()[0],
+            DummyPromptSection(id: "s2", priority: 5, estimatedTokens: 10, text: "Rendered").resolve()[0],
+        ])
+
+        let result = await prompt.render(preRendered: ["s1": "Cached"])
+
+        #expect(result == "Cached\n\n---\n\nRendered")
+    }
+
     @Test("Assembled prompt estimatedTokens sums resolved tokens")
     func estimatedTokens() {
         let prompt = AssembledPrompt(resolvedSections: [

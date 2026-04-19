@@ -123,4 +123,44 @@ struct PromptIntegrationTests {
 
         #expect(!systemContent.contains(query), "User query content leaked into system prompt")
     }
+
+    @Test("partial preRendered content still produces system and user messages")
+    func partialPreRenderedContentStillBuildsMessages() async throws {
+        let prompt = try await PromptAssembler.buildContext(
+            LLMPromptRequest(
+                userQuery: "Current question",
+                contextNotes: [ContextFile(name: "Note", content: "Context note", source: "note")],
+                memories: [],
+                chatHistory: [],
+                tools: [],
+                workspaces: [],
+                primaryWorkspace: nil,
+                clientName: nil,
+                systemInstructions: "System rules"
+            )
+        )
+
+        let messages = await prompt.toMessages(preRendered: ["system": "System rules"])
+
+        #expect(messages.count == 2)
+
+        if let first = messages.first,
+           case let .system(systemParam) = first,
+           case let .textContent(systemContent) = systemParam.content
+        {
+            #expect(systemContent.contains("System rules"))
+            #expect(systemContent.contains("Context note"))
+        } else {
+            #expect(Bool(false), "First message should be a system message")
+        }
+
+        if let last = messages.last,
+           case let .user(userParam) = last,
+           case let .string(userContent) = userParam.content
+        {
+            #expect(userContent == "Current question")
+        } else {
+            #expect(Bool(false), "Last message should be a user query")
+        }
+    }
 }

@@ -9,16 +9,13 @@ public struct AssembledPrompt: Sendable {
         resolvedSections: [ResolvedPromptSection],
         compressionReport: CompressionReport? = nil
     ) {
+        let duplicateIds = PromptSectionValidator.duplicateIDs(in: resolvedSections)
         precondition(
-            PromptSectionValidator.duplicateIDs(in: resolvedSections).isEmpty,
-            "Duplicate resolved context section ids: \(PromptSectionValidator.duplicateIDs(in: resolvedSections).joined(separator: ", "))"
+            duplicateIds.isEmpty,
+            "Duplicate resolved context section ids: \(duplicateIds.joined(separator: ", "))"
         )
         self.resolvedSections = AssembledPrompt.sortResolvedSections(resolvedSections)
         self.compressionReport = compressionReport
-    }
-
-    public func resolveSections() -> [ResolvedPromptSection] {
-        resolvedSections
     }
 
     public func render() async -> String {
@@ -37,10 +34,23 @@ public struct AssembledPrompt: Sendable {
     }
 
     public func render(preRendered: [String: String]) async -> String {
-        let parts = resolvedSections.compactMap { section in
-            preRendered[section.id]
+        var parts: [String] = []
+        for section in resolvedSections {
+            let content: String?
+            if let cached = preRendered[section.id] {
+                content = cached
+            } else {
+                content = await section.render()
+            }
+            if let content, !content.isEmpty {
+                parts.append(content)
+            }
         }
         return joinedRenderedParts(parts)
+    }
+
+    public func resolveSections() -> [ResolvedPromptSection] {
+        resolvedSections
     }
 
     @available(*, deprecated, renamed: "renderAll")
