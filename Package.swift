@@ -11,6 +11,7 @@ let package = Package(
         .library(name: "PKPrompt", targets: ["PKPrompt"]),
         .library(name: "PKShared", targets: ["PKShared"]),
         .library(name: "PKTestSupport", targets: ["PKTestSupport"]),
+        .executable(name: "PositronicKitExamples", targets: ["PositronicKitExamples"]),
     ],
     dependencies: [
         .package(url: "https://github.com/MacPaw/OpenAI.git", exact: "0.4.8"),
@@ -51,6 +52,16 @@ let package = Package(
             path: "Sources/PositronicKit",
             exclude: ["README.md", "docs"]
         ),
+        .executableTarget(
+            name: "PositronicKitExamples",
+            dependencies: [
+                "PositronicKit",
+                "PKPrompt",
+                "PKShared",
+                .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
+            ],
+            path: "Sources/PositronicKitExamples"
+        ),
         .target(
             name: "PKTestSupport",
             dependencies: [
@@ -67,6 +78,7 @@ let package = Package(
             name: "PositronicKitTests",
             dependencies: [
                 "PositronicKit",
+                "PositronicKitExamples",
                 "PKShared",
                 "PKTestSupport",
                 .product(name: "Dependencies", package: "swift-dependencies"),

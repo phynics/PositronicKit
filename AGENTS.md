@@ -36,4 +36,5 @@
 - Preserve module boundaries: `PKShared` for contracts/utilities, `PKPrompt` for prompt construction, `PositronicKit` for runtime orchestration.
 - Resolve prompt trees into stable leaves before hashing, token budgeting, history diffs, or provider message conversion.
 - Use builder modifiers like `.priority(...)`, `.compression(...)`, and `.cachePolicy(...)` to set inherited prompt traits instead of duplicating metadata across composite sections.
+- Prefer `JSONSchema`/`JSONSchemaBuilder` schema definitions over ad-hoc JSON dictionaries; when a schema mirrors a Swift model, use the provided `@Schemable` macro on a `Codable` type and derive the schema from its generated `schema` property.
 - Validate changes locally with `swift build` and `swift test` before opening or updating a PR.
