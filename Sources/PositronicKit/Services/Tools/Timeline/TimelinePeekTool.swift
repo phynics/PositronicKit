@@ -1,4 +1,5 @@
 import Foundation
+import JSONSchemaBuilder
 import PKShared
 
 /// Allows an agent to read recent messages from a timeline without attaching to it.
@@ -19,9 +20,14 @@ public struct TimelinePeekTool: PKShared.Tool, Sendable {
     }
 
     public var parametersSchema: [String: AnyCodable] {
-        ToolParameterSchema.object { builder in
-            builder.string("timeline_id", description: "UUID of the timeline to peek at.", required: true)
-            builder.integer("limit", description: "Maximum number of recent messages to return (default: 10, max: 50).")
+        ToolParameterSchema.object {
+            JSONProperty(key: "timeline_id") {
+                JSONString().description("UUID of the timeline to peek at.")
+            }
+            .required()
+            JSONProperty(key: "limit") {
+                JSONInteger().description("Maximum number of recent messages to return (default: 10, max: 50).")
+            }
         }.schema
     }
 

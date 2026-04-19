@@ -1,4 +1,5 @@
 import Foundation
+import JSONSchemaBuilder
 import PKShared
 
 /// Allows an agent to list available (non-private) timelines it can observe.
@@ -17,7 +18,7 @@ public struct TimelineListTool: PKShared.Tool, Sendable {
     }
 
     public var parametersSchema: [String: AnyCodable] {
-        ToolParameterSchema.object { _ in }.schema
+        ToolParameterSchema.object {}.schema
     }
 
     public func canExecute() async -> Bool {

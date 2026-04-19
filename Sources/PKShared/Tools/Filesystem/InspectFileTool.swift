@@ -1,4 +1,5 @@
 import Foundation
+import JSONSchemaBuilder
 
 /// Tool to inspect file metadata and type (similar to unix 'file' command)
 public struct InspectFileTool: Tool, Sendable {
@@ -31,9 +32,14 @@ public struct InspectFileTool: Tool, Sendable {
     }
 
     public var parametersSchema: [String: AnyCodable] {
-        ToolParameterSchema.object { builder in
-            builder.string("path", description: "The path to the file to inspect", required: true)
-            builder.string("workspaceID", description: "The UUID of the workspace to target (optional)")
+        ToolParameterSchema.object {
+            JSONProperty(key: "path") {
+                JSONString().description("The path to the file to inspect")
+            }
+            .required()
+            JSONProperty(key: "workspaceID") {
+                JSONString().description("The UUID of the workspace to target (optional)")
+            }
         }.schema
     }
 

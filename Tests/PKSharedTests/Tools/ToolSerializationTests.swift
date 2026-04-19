@@ -1,4 +1,5 @@
 import Foundation
+import JSONSchemaBuilder
 import OpenAI
 import Testing
 @testable import PKShared
@@ -12,10 +13,16 @@ import Testing
         let requiresPermission = false
 
         var parametersSchema: [String: AnyCodable] {
-            ToolParameterSchema.object { b in
-                b.string("query", description: "Search query")
-                b.integer("count", description: "number of items")
-                b.boolean("recursive", description: "Whether to search recursively")
+            ToolParameterSchema.object {
+                JSONProperty(key: "query") {
+                    JSONString().description("Search query")
+                }
+                JSONProperty(key: "count") {
+                    JSONInteger().description("number of items")
+                }
+                JSONProperty(key: "recursive") {
+                    JSONBoolean().description("Whether to search recursively")
+                }
             }.schema
         }
 

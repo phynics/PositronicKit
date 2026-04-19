@@ -17,6 +17,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-log.git", from: "1.5.0"),
         .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.0.0"),
         .package(url: "https://github.com/FlineDev/ErrorKit", from: "1.0.0"),
+        .package(url: "https://github.com/ajevans99/swift-json-schema", from: "0.11.2"),
     ],
     targets: [
         .target(
@@ -25,6 +26,8 @@ let package = Package(
                 .product(name: "OpenAI", package: "OpenAI"),
                 .product(name: "ErrorKit", package: "ErrorKit"),
                 .product(name: "Logging", package: "swift-log"),
+                .product(name: "JSONSchema", package: "swift-json-schema"),
+                .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
             ],
             path: "Sources/PKShared"
         ),
@@ -42,6 +45,8 @@ let package = Package(
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "Dependencies", package: "swift-dependencies"),
                 .product(name: "ErrorKit", package: "ErrorKit"),
+                .product(name: "JSONSchema", package: "swift-json-schema"),
+                .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
             ],
             path: "Sources/PositronicKit",
             exclude: ["README.md", "docs"]
@@ -54,6 +59,7 @@ let package = Package(
                 "PKPrompt",
                 .product(name: "OpenAI", package: "OpenAI"),
                 .product(name: "Dependencies", package: "swift-dependencies"),
+                .product(name: "JSONSchema", package: "swift-json-schema"),
             ],
             path: "Tests/PKTestSupport"
         ),
@@ -74,7 +80,12 @@ let package = Package(
         ),
         .testTarget(
             name: "PKSharedTests",
-            dependencies: ["PKShared", "PKTestSupport"],
+            dependencies: [
+                "PKShared",
+                "PKTestSupport",
+                .product(name: "JSONSchema", package: "swift-json-schema"),
+                .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
+            ],
             path: "Tests/PKSharedTests"
         ),
     ]

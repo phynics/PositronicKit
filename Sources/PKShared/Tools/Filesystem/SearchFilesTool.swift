@@ -1,4 +1,5 @@
 import Foundation
+import JSONSchemaBuilder
 
 /// Enhanced tool to search text content in files (search_files)
 public struct SearchFilesTool: Tool, Sendable {
@@ -31,11 +32,20 @@ public struct SearchFilesTool: Tool, Sendable {
     }
 
     public var parametersSchema: [String: AnyCodable] {
-        ToolParameterSchema.object { builder in
-            builder.string("pattern", description: "The text pattern to search for (regex supported)", required: true)
-            builder.string("path", description: "The directory to search within (default: current directory)")
-            builder.string("include", description: "Optional glob pattern for files to include (e.g. '*.swift')")
-            builder.string("workspaceID", description: "The UUID of the workspace to target (optional)")
+        ToolParameterSchema.object {
+            JSONProperty(key: "pattern") {
+                JSONString().description("The text pattern to search for (regex supported)")
+            }
+            .required()
+            JSONProperty(key: "path") {
+                JSONString().description("The directory to search within (default: current directory)")
+            }
+            JSONProperty(key: "include") {
+                JSONString().description("Optional glob pattern for files to include (e.g. '*.swift')")
+            }
+            JSONProperty(key: "workspaceID") {
+                JSONString().description("The UUID of the workspace to target (optional)")
+            }
         }.schema
     }
 

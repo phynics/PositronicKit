@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import JSONSchemaBuilder
 @testable import PKShared
 import OpenAI
 
@@ -13,7 +14,7 @@ struct ToolErrorSurfaceTests {
         let name = "fail_tool"
         let description = "Always fails"
         let requiresPermission = false
-        var parametersSchema: [String: AnyCodable] { ToolParameterSchema.object { _ in }.schema }
+        var parametersSchema: [String: AnyCodable] { ToolParameterSchema.object {}.schema }
         func canExecute() async -> Bool { true }
         func execute(parameters: [String: Any]) async throws -> ToolResult {
             return .failure("Execution failed intentionally")

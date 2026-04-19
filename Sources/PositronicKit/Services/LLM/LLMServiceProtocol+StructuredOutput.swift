@@ -1,6 +1,7 @@
 import Foundation
-import PKShared
+import enum OpenAI.JSONSchema
 import OpenAI
+import PKShared
 
 public extension LLMServiceProtocol {
     func sendStructuredMessage(
@@ -206,7 +207,12 @@ enum StructuredOutputExecution {
     }
 
     private static func fallbackPromptSuffix(schema: StructuredOutputSchema) -> String {
-        let schemaString = (try? schema.schema.toJsonString()) ?? "{}"
+        let schemaString: String
+        if let data = try? JSONEncoder().encode(schema.schema) {
+            schemaString = String(decoding: data, as: UTF8.self)
+        } else {
+            schemaString = "{}"
+        }
         return """
 
         Return ONLY valid JSON that matches this JSON Schema exactly.

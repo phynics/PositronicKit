@@ -1,5 +1,5 @@
 {
-  "originHash" : "7edca40497cfa1e98666d65e92040e6b40d811a4fa851c30a2feb1bc2c0c8be8",
+  "originHash" : "13fb84fae22c9d871136cafb93d5af9053699bbde11f41c59ce6f3aaa2e7af44",
   "pins" : [
     {
       "identity" : "combine-schedulers",
@@ -80,6 +80,15 @@
       "state" : {
         "revision" : "45eb0224913ea070ec4fba17291b9e7ecf4749ca",
         "version" : "1.5.1"
+      }
+    },
+    {
+      "identity" : "swift-json-schema",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ajevans99/swift-json-schema",
+      "state" : {
+        "revision" : "c71bf0161454e2950368b3269650eae7967f0c5d",
+        "version" : "0.11.2"
       }
     },
     {

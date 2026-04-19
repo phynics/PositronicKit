@@ -1,4 +1,5 @@
 import Foundation
+import struct JSONSchema.Schema
 
 public enum StructuredOutputRequest: Sendable, Equatable, Codable {
     case jsonObject
@@ -8,13 +9,13 @@ public enum StructuredOutputRequest: Sendable, Equatable, Codable {
 public struct StructuredOutputSchema: Sendable, Equatable, Codable {
     public let name: String
     public let description: String?
-    public let schema: [String: AnyCodable]
+    public let schema: Schema
     public let strict: Bool
 
     public init(
         name: String,
         description: String? = nil,
-        schema: [String: AnyCodable],
+        schema: Schema,
         strict: Bool = true
     ) {
         self.name = name

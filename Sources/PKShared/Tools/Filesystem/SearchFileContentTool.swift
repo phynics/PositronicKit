@@ -1,4 +1,5 @@
 import Foundation
+import JSONSchemaBuilder
 
 /// Tool to search text content in files (grep-like)
 public struct SearchFileContentTool: Tool, Sendable {
@@ -31,11 +32,20 @@ public struct SearchFileContentTool: Tool, Sendable {
     }
 
     public var parametersSchema: [String: AnyCodable] {
-        ToolParameterSchema.object { builder in
-            builder.string("path", description: "The directory or file to search (default: .)")
-            builder.string("pattern", description: "The text pattern to search for", required: true)
-            builder.boolean("recursive", description: "Whether to search recursively (default: false)")
-            builder.string("workspaceID", description: "The UUID of the workspace to target (optional)")
+        ToolParameterSchema.object {
+            JSONProperty(key: "path") {
+                JSONString().description("The directory or file to search (default: .)")
+            }
+            JSONProperty(key: "pattern") {
+                JSONString().description("The text pattern to search for")
+            }
+            .required()
+            JSONProperty(key: "recursive") {
+                JSONBoolean().description("Whether to search recursively (default: false)")
+            }
+            JSONProperty(key: "workspaceID") {
+                JSONString().description("The UUID of the workspace to target (optional)")
+            }
         }.schema
     }
 

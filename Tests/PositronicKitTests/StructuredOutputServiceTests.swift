@@ -1,6 +1,7 @@
 import OpenAI
 import PKTestSupport
 import Testing
+import struct JSONSchema.Schema
 @testable import PositronicKit
 @testable import PKShared
 
@@ -10,6 +11,8 @@ struct StructuredOutputServiceTests {
     private struct TagPayload: Decodable, Equatable, Sendable {
         let tags: [String]
     }
+
+    private static let tagSchema = try! Schema(instance: #"{"type":"object","properties":{"tags":{"type":"array","items":{"type":"string"}}},"required":["tags"]}"#)
 
     @Test("Decodes typed structured output from native JSON mode")
     func decodesTypedStructuredOutput() async throws {
@@ -37,16 +40,7 @@ struct StructuredOutputServiceTests {
 
         let schema = StructuredOutputSchema(
             name: "tag_payload",
-            schema: [
-                "type": .string("object"),
-                "properties": .dictionary([
-                    "tags": .dictionary([
-                        "type": .string("array"),
-                        "items": .dictionary(["type": .string("string")])
-                    ])
-                ]),
-                "required": .array([.string("tags")])
-            ]
+            schema: Self.tagSchema
         )
 
         let result = try await service.sendStructured(
@@ -78,16 +72,7 @@ struct StructuredOutputServiceTests {
 
         let schema = StructuredOutputSchema(
             name: "tag_payload",
-            schema: [
-                "type": .string("object"),
-                "properties": .dictionary([
-                    "tags": .dictionary([
-                        "type": .string("array"),
-                        "items": .dictionary(["type": .string("string")])
-                    ])
-                ]),
-                "required": .array([.string("tags")])
-            ]
+            schema: Self.tagSchema
         )
 
         let stream = await service.chatStream(

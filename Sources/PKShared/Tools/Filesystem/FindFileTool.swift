@@ -1,4 +1,5 @@
 import Foundation
+import JSONSchemaBuilder
 
 /// Tool to find files matching a pattern
 public struct FindFileTool: Tool, Sendable {
@@ -31,14 +32,17 @@ public struct FindFileTool: Tool, Sendable {
     }
 
     public var parametersSchema: [String: AnyCodable] {
-        ToolParameterSchema.object { builder in
-            builder.string("path", description: "The root directory to start searching (default: .)")
-            builder.string(
-                "pattern",
-                description: "The filename pattern to match (contains check, case insensitive)",
-                required: true
-            )
-            builder.string("workspaceID", description: "The UUID of the workspace to target (optional)")
+        ToolParameterSchema.object {
+            JSONProperty(key: "path") {
+                JSONString().description("The root directory to start searching (default: .)")
+            }
+            JSONProperty(key: "pattern") {
+                JSONString().description("The filename pattern to match (contains check, case insensitive)")
+            }
+            .required()
+            JSONProperty(key: "workspaceID") {
+                JSONString().description("The UUID of the workspace to target (optional)")
+            }
         }.schema
     }
 

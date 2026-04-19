@@ -1,4 +1,5 @@
 import Foundation
+import JSONSchemaBuilder
 import PKShared
 
 /// Allows an agent to post a message to a timeline without attaching to it.
@@ -31,9 +32,15 @@ public struct TimelineSendTool: PKShared.Tool, Sendable {
     }
 
     public var parametersSchema: [String: AnyCodable] {
-        ToolParameterSchema.object { builder in
-            builder.string("timeline_id", description: "UUID of the destination timeline.", required: true)
-            builder.string("message", description: "The message content to post to the timeline.", required: true)
+        ToolParameterSchema.object {
+            JSONProperty(key: "timeline_id") {
+                JSONString().description("UUID of the destination timeline.")
+            }
+            .required()
+            JSONProperty(key: "message") {
+                JSONString().description("The message content to post to the timeline.")
+            }
+            .required()
         }.schema
     }
 

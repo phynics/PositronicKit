@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import JSONSchemaBuilder
 @testable import PKShared
 
 @Suite("Tool Parameter Schema Tests")
@@ -7,10 +8,17 @@ struct ToolParameterSchemaTests {
 
     @Test("Basic Object Building")
     func testBasicObject() {
-        let schema = ToolParameterSchema.object { b in
-            b.string("path", description: "File path", required: true)
-            b.integer("limit", description: "Max lines", required: false)
-            b.boolean("recursive", description: "Search recursively")
+        let schema = ToolParameterSchema.object {
+            JSONProperty(key: "path") {
+                JSONString().description("File path")
+            }
+            .required()
+            JSONProperty(key: "limit") {
+                JSONInteger().description("Max lines")
+            }
+            JSONProperty(key: "recursive") {
+                JSONBoolean().description("Search recursively")
+            }
         }
 
         let dict = schema.schema
@@ -39,8 +47,16 @@ struct ToolParameterSchemaTests {
 
     @Test("String Enum Building")
     func testStringEnum() {
-        let schema = ToolParameterSchema.object { b in
-            b.stringEnum("mode", description: "Execution mode", values: ["fast", "safe"], required: true)
+        let schema = ToolParameterSchema.object {
+            JSONProperty(key: "mode") {
+                JSONString()
+                    .description("Execution mode")
+                    .enumValues {
+                        "fast"
+                        "safe"
+                    }
+            }
+            .required()
         }
 
         let dict = schema.schema

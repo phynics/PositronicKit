@@ -1,11 +1,14 @@
 import PKTestSupport
 import Testing
+import struct JSONSchema.Schema
 @testable import PositronicKit
 @testable import PKShared
 
 @Suite("Structured Output Prompt Flow Tests")
 @MainActor
 struct StructuredOutputPromptFlowTests {
+    private static let tagSchema = try! Schema(instance: #"{"type":"object","properties":{"tags":{"type":"array","items":{"type":"string"}}},"required":["tags"]}"#)
+
     @Test("chatStreamWithContext preserves prompt context with json object output")
     func chatStreamWithContextPreservesPromptContext() async throws {
         let mockClient = MockLLMClient()
@@ -59,19 +62,7 @@ struct StructuredOutputPromptFlowTests {
             primaryWorkspace: nil,
             clientName: nil,
             systemInstructions: "System rules",
-            structuredOutput: .jsonSchema(StructuredOutputSchema(
-                name: "tag_payload",
-                schema: [
-                    "type": AnyCodable.string("object"),
-                    "properties": AnyCodable.dictionary([
-                        "tags": .dictionary([
-                            "type": .string("array"),
-                            "items": .dictionary(["type": .string("string")])
-                        ])
-                    ]),
-                    "required": AnyCodable.array([.string("tags")])
-                ]
-            ))
+            structuredOutput: .jsonSchema(StructuredOutputSchema(name: "tag_payload", schema: Self.tagSchema))
         )
 
         let result = try await service.chatStreamWithContext(request)

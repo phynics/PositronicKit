@@ -1,4 +1,5 @@
 import Foundation
+import JSONSchemaBuilder
 
 /// Tool to read file content (cat)
 public struct ReadFileTool: Tool, Sendable {
@@ -31,9 +32,14 @@ public struct ReadFileTool: Tool, Sendable {
     }
 
     public var parametersSchema: [String: AnyCodable] {
-        ToolParameterSchema.object { builder in
-            builder.string("path", description: "The path to the file to read", required: true)
-            builder.string("workspaceID", description: "The UUID of the workspace to target (optional)")
+        ToolParameterSchema.object {
+            JSONProperty(key: "path") {
+                JSONString().description("The path to the file to read")
+            }
+            .required()
+            JSONProperty(key: "workspaceID") {
+                JSONString().description("The UUID of the workspace to target (optional)")
+            }
         }.schema
     }
 

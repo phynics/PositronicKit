@@ -1,4 +1,5 @@
 import Foundation
+import JSONSchemaBuilder
 
 /// A tool used by the LLM to request permission to modify files in the active workspace.
 /// When executed on the client-side, this triggers a user prompt to upgrade the workspace trust level.
@@ -18,12 +19,13 @@ public struct RequestWriteAccessTool: Tool {
     }
 
     public var parametersSchema: [String: AnyCodable] {
-        return ToolParameterSchema.object { builder in
-            builder.string(
-                "reason",
-                description: "The reason why write access is needed. This will be shown to the user.",
-                required: true
-            )
+        ToolParameterSchema.object {
+            JSONProperty(key: "reason") {
+                JSONString().description(
+                    "The reason why write access is needed. This will be shown to the user."
+                )
+            }
+            .required()
         }.schema
     }
 

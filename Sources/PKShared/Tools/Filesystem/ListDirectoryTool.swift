@@ -1,4 +1,5 @@
 import Foundation
+import JSONSchemaBuilder
 
 /// Tool to list files in a directory
 public struct ListDirectoryTool: Tool, Sendable {
@@ -31,9 +32,13 @@ public struct ListDirectoryTool: Tool, Sendable {
     }
 
     public var parametersSchema: [String: AnyCodable] {
-        ToolParameterSchema.object { builder in
-            builder.string("path", description: "The path to the directory (defaults to current directory if omitted)")
-            builder.string("workspaceID", description: "The UUID of the workspace to target (optional)")
+        ToolParameterSchema.object {
+            JSONProperty(key: "path") {
+                JSONString().description("The path to the directory (defaults to current directory if omitted)")
+            }
+            JSONProperty(key: "workspaceID") {
+                JSONString().description("The UUID of the workspace to target (optional)")
+            }
         }.schema
     }
 
