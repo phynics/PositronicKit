@@ -5,6 +5,9 @@ import PKShared
 ///
 /// ``PromptBuilder`` lowers `for` loops into this composite so repeated authoring intent
 /// remains explicit in the prompt tree before final resolution.
+///
+/// Item identity participates in stable resolution paths, not leaf identity. Repeated
+/// children must still resolve to globally unique leaf `id` values.
 public struct PromptForEach<Content: PromptComposite>: PromptComposite {
     /// The repeated prompt content instances produced by the loop.
     public let content: [Content]

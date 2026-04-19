@@ -1,33 +1,33 @@
 import Foundation
 import PKShared
 
-/// A transparent grouping of prompt sections that resolves to the concatenated output of its children.
-public struct PromptGroup: PromptComposite {
-    /// The sections contained in the group.
+/// A transparent erased container for prompt sections that resolves to the concatenated output of its children.
+public struct PromptAny: PromptComposite {
+    /// The sections contained in the erased container.
     public let sections: [any PromptComposite]
 
-    /// Creates a group from an array of sections.
+    /// Creates an erased container from an array of sections.
     ///
     /// - Parameter sections: The sections to include in the group.
     public init(_ sections: [any PromptComposite] = []) {
         self.sections = sections
     }
 
-    /// Creates a group from a ``PromptBuilder`` closure.
+    /// Creates an erased container from a ``PromptBuilder`` closure.
     ///
-    /// - Parameter content: A builder that produces the section content for the group.
+    /// - Parameter content: A builder that produces the section content for the container.
     public init(@PromptBuilder _ content: () -> some PromptComposite) {
         self.sections = [content()]
     }
 
-    /// A placeholder body because ``PromptGroup`` resolves through its contained sections directly.
+    /// A placeholder body because ``PromptAny`` resolves through its contained sections directly.
     public var body: NeverSection {
         NeverSection()
     }
 
-    /// The path component for this prompt group.
+    /// The path component for this erased prompt container.
     ///
-    /// Prompt groups are transparent during path construction, so this value is always `nil`.
+    /// Erased prompt containers are transparent during path construction, so this value is always `nil`.
     public var sectionPathComponent: String? {
         nil
     }

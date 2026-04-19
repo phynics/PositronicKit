@@ -7,6 +7,31 @@
 
 import PKShared
 
+public enum CachePolicy: Sendable, Comparable {
+    case stable
+    case semiStable
+    case volatile
+}
+
+public enum CompressionStrategy: Sendable, Equatable {
+    case keep
+    case truncate(tail: Bool)
+    case summarize
+    case drop
+}
+
+public enum PromptSectionType: Sendable {
+    case text
+    case list
+}
+
+public enum PromptSectionRole: Sendable, Equatable {
+    case system
+    case context
+    case userQuery
+    case chatHistory
+}
+
 /// Prompt leaves render actual prompt content and resolve directly into concrete nodes.
 public protocol PromptLeaf: PromptComposite {
     var id: String { get }

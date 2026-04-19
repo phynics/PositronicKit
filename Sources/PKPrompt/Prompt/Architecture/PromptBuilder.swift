@@ -11,7 +11,7 @@ import Foundation
 ///     SystemPrompt("You are helpful.")
 ///
 ///     if includeHistory {
-///         Group {
+///         PromptAny {
 ///             HistoryPrompt(messages)
 ///         }
 ///     }
@@ -28,17 +28,16 @@ public enum PromptBuilder {
         EmptySection()
     }
 
-    /// Starts a builder block with its first authored component unchanged.
-    public static func buildPartialBlock<Content: PromptComposite>(first content: Content) -> Content {
+    /// Preserves a single authored component without wrapping it in a block.
+    public static func buildBlock<Content: PromptComposite>(_ content: Content) -> Content {
         content
     }
 
-    /// Appends a later sibling as a typed sequence wrapper.
-    public static func buildPartialBlock<Accumulated: PromptComposite, Next: PromptComposite>(
-        accumulated: Accumulated,
-        next: Next
-    ) -> PromptSequence<Accumulated, Next> {
-        PromptSequence(accumulated, next)
+    /// Wraps authored siblings in a typed block.
+    public static func buildBlock<each Content: PromptComposite>(
+        _ content: repeat each Content
+    ) -> PromptBlock<repeat each Content> {
+        PromptBlock(repeat each content)
     }
 
     /// Preserves a single prompt composite expression without extra wrapping.
@@ -47,8 +46,8 @@ public enum PromptBuilder {
     }
 
     /// Wraps an explicit list of prompt composites for further builder composition.
-    public static func buildExpression(_ sections: [any PromptComposite]) -> PromptGroup {
-        PromptGroup(sections)
+    public static func buildExpression(_ sections: [any PromptComposite]) -> PromptAny {
+        PromptAny(sections)
     }
 
     /// Lowers an optional branch into ``PromptOptional``.

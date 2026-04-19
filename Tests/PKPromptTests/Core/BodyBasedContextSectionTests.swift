@@ -75,7 +75,7 @@ struct BodyBasedPromptCompositeTests {
         struct NestedSection: PromptComposite {
             @PromptBuilder
             var body: some PromptComposite {
-                PromptGroup {
+                PromptAny {
                     StaticText(id: "low", text: "first")
                     StaticText(id: "high", text: "second", priority: 5)
                 }

@@ -20,7 +20,7 @@ struct PromptCompositeAssemblyTests {
 
     @Test("Composite builders assemble without wrapping in Prompt")
     func builderAssemblesDirectly() async {
-        let composite = PromptGroup {
+        let composite = PromptAny {
             MockSection(id: "1", priority: 10, content: "Low Priority")
             MockSection(id: "2", priority: 100, content: "High Priority")
         }
@@ -35,7 +35,7 @@ struct PromptCompositeAssemblyTests {
 
     @Test("Composite render convenience uses assembled prompt ordering")
     func compositeRenderUsesAssembledPrompt() async {
-        let composite = PromptGroup {
+        let composite = PromptAny {
             MockSection(id: "1", priority: 10, content: "Low Priority")
             MockSection(id: "2", priority: 100, content: "High Priority")
         }

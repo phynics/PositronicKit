@@ -55,7 +55,7 @@ struct PromptBuilderTests {
         let includeSecret = false
         let includePublic = true
 
-        let sections = PromptGroup {
+        let sections = PromptAny {
             if includeSecret {
                 MockSection(id: "secret", priority: 50, content: "Secret")
             }
@@ -82,20 +82,20 @@ struct PromptBuilderTests {
         #expect(sections.count == 3)
     }
 
-    @Test("Builder preserves typed block structure without PromptGroup wrapping")
+    @Test("Builder preserves typed block structure without PromptAny wrapping")
     func blockPreservesTypedStructure() {
         let composite = buildComposite {
             MockSection(id: "1", priority: 10, content: "One")
             MockSection(id: "2", priority: 20, content: "Two")
         }
 
-        #expect(type(of: composite) == PromptSequence<MockSection, MockSection>.self)
+        #expect(type(of: composite) == PromptBlock<MockSection, MockSection>.self)
     }
 
-    @Test("Group alias composes nested prompt content")
-    func groupAliasComposesNestedPromptContent() {
+    @Test("PromptAny composes nested prompt content")
+    func promptAnyComposesNestedPromptContent() {
         let prompt = Prompt {
-            PromptGroup {
+            PromptAny {
                 MockSection(id: "1", priority: 10, content: "One")
                 MockSection(id: "2", priority: 20, content: "Two")
             }
@@ -156,6 +156,22 @@ struct PromptBuilderTests {
         }
 
         #expect(composite.assemble().resolveSections().map { $0.id } == ["a", "b"])
+    }
+
+    @Test("PromptForEach ids only stabilize paths and do not replace leaf ids")
+    func forEachIDsDoNotOverrideLeafIdentity() {
+        let items = [
+            KeyedItem(key: "a", content: "Alpha"),
+            KeyedItem(key: "b", content: "Beta"),
+        ]
+
+        let composite = PromptForEach(items, id: \.key) { item in
+            MockSection(id: "shared", priority: 50, content: item.content)
+        }
+
+        #expect(throws: PromptSectionValidationError.duplicateSectionIDs(["shared"])) {
+            try PromptSectionValidator.validateUniqueIDs(in: [composite])
+        }
     }
 
     @Test("Builder lowers optional branches to PromptOptional")

@@ -30,7 +30,7 @@ public struct PromptConditional<First: PromptComposite, Second: PromptComposite>
         self.storage = .second(content)
     }
 
-    /// A placeholder body because this composite resolves through ``content`` directly.
+    /// A placeholder body because this composite resolves through its stored branch directly.
     public var body: NeverSection {
         NeverSection()
     }
