@@ -18,6 +18,16 @@ struct PromptBuilderTests {
         }
     }
 
+    struct IdentifiableItem: Identifiable, Sendable {
+        let id: String
+        let content: String
+    }
+
+    struct KeyedItem: Sendable {
+        let key: String
+        let content: String
+    }
+
     private func buildComposite<Content: PromptComposite>(@PromptBuilder _ content: () -> Content) -> Content {
         content()
     }
@@ -85,13 +95,13 @@ struct PromptBuilderTests {
     @Test("Group alias composes nested prompt content")
     func groupAliasComposesNestedPromptContent() {
         let prompt = Prompt {
-            Group {
+            PromptGroup {
                 MockSection(id: "1", priority: 10, content: "One")
                 MockSection(id: "2", priority: 20, content: "Two")
             }
         }
 
-        #expect(prompt.assemble().resolveSections().map(\.id) == ["2", "1"])
+        #expect(prompt.assemble().resolveSections().map { $0.id } == ["2", "1"])
     }
 
     @Test("Builder lowers conditionals to PromptConditional")
@@ -118,6 +128,34 @@ struct PromptBuilderTests {
         }
 
         #expect(type(of: composite) == PromptForEach<MockSection>.self)
+    }
+
+    @Test("PromptForEach supports Identifiable data")
+    func forEachSupportsIdentifiableData() {
+        let items = [
+            IdentifiableItem(id: "a", content: "Alpha"),
+            IdentifiableItem(id: "b", content: "Beta"),
+        ]
+
+        let composite = PromptForEach(items) { item in
+            MockSection(id: item.id, priority: 50, content: item.content)
+        }
+
+        #expect(composite.assemble().resolveSections().map { $0.id } == ["a", "b"])
+    }
+
+    @Test("PromptForEach supports explicit id key paths")
+    func forEachSupportsExplicitIDKeyPath() {
+        let items = [
+            KeyedItem(key: "a", content: "Alpha"),
+            KeyedItem(key: "b", content: "Beta"),
+        ]
+
+        let composite = PromptForEach(items, id: \.key) { item in
+            MockSection(id: item.key, priority: 50, content: item.content)
+        }
+
+        #expect(composite.assemble().resolveSections().map { $0.id } == ["a", "b"])
     }
 
     @Test("Builder lowers optional branches to PromptOptional")
