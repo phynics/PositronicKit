@@ -19,14 +19,17 @@ public struct AssembledPrompt: Sendable {
     }
 
     public func render() async -> String {
-        let parts = await renderParts()
-        return joinedRenderedParts(parts)
+        joinedRenderedParts(await renderAll())
     }
 
     public func renderAll() async -> [String: String] {
+        await renderAll(preRendered: nil)
+    }
+
+    private func renderAll(preRendered: [String: String]?) async -> [String: String] {
         var result: [String: String] = [:]
         for section in resolvedSections {
-            if let content = await section.render(), !content.isEmpty {
+            if let content = await renderedContent(for: section, preRendered: preRendered) {
                 result[section.id] = content
             }
         }
@@ -34,46 +37,37 @@ public struct AssembledPrompt: Sendable {
     }
 
     public func render(preRendered: [String: String]) async -> String {
-        var parts: [String] = []
-        for section in resolvedSections {
-            let content: String?
-            if let cached = preRendered[section.id] {
-                content = cached
-            } else {
-                content = await section.render()
-            }
-            if let content, !content.isEmpty {
-                parts.append(content)
-            }
-        }
-        return joinedRenderedParts(parts)
+        joinedRenderedParts(await renderAll(preRendered: preRendered))
     }
 
     public func resolveSections() -> [ResolvedPromptSection] {
         resolvedSections
     }
 
-    @available(*, deprecated, renamed: "renderAll")
-    public func structuredContext() async -> [String: String] {
-        await renderAll()
-    }
-
     public var estimatedTokens: Int {
         resolvedSections.reduce(0) { $0 + $1.estimatedTokens }
     }
 
-    private func renderParts() async -> [String] {
-        var parts: [String] = []
-        for section in resolvedSections {
-            if let content = await section.render(), !content.isEmpty {
-                parts.append(content)
-            }
+    private func renderedContent(
+        for section: ResolvedPromptSection,
+        preRendered: [String: String]? = nil
+    ) async -> String? {
+        let content: String?
+        if let cached = preRendered?[section.id] {
+            content = cached
+        } else {
+            content = await section.render()
         }
-        return parts
+
+        guard let content, !content.isEmpty else {
+            return nil
+        }
+
+        return content
     }
 
-    private func joinedRenderedParts(_ parts: [String]) -> String {
-        parts.joined(separator: "\n\n---\n\n")
+    private func joinedRenderedParts(_ renderedSections: [String: String]) -> String {
+        resolvedSections.compactMap { renderedSections[$0.id] }.joined(separator: "\n\n---\n\n")
     }
 
     static func sortResolvedSections(_ sections: [ResolvedPromptSection]) -> [ResolvedPromptSection] {
