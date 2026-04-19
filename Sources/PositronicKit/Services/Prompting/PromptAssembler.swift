@@ -90,7 +90,7 @@ public enum PromptAssembler {
     public static func prepare(_ request: LLMPromptRequest) async throws -> LLMPromptResult {
         let prompt = try await assemble(request)
         let renderedPrompt = await prompt.render()
-        return LLMPromptResult(messages: renderedPrompt.toMessages(), rawPrompt: renderedPrompt.text)
+        return LLMPromptResult(messages: renderedPrompt.toMessages(), rawPrompt: renderedPrompt.joinedText)
     }
 
     /// Builds a prompt for LLM submission using explicit advanced assembly options.
@@ -100,7 +100,7 @@ public enum PromptAssembler {
     ) async throws -> LLMPromptResult {
         let prompt = try await assemble(request, options: options)
         let renderedPrompt = await prompt.render()
-        return LLMPromptResult(messages: renderedPrompt.toMessages(), rawPrompt: renderedPrompt.text)
+        return LLMPromptResult(messages: renderedPrompt.toMessages(), rawPrompt: renderedPrompt.joinedText)
     }
 
     private static func runPipeline(
@@ -129,7 +129,7 @@ public enum PromptAssembler {
         structuredExecutor: StructuredCompressionExecutor
     ) async throws -> AssembledPrompt {
         guard let tokenBudget else {
-            return try AssembledPrompt.assemble(sections: resolvedSections)
+            return try AssembledPrompt(resolvedSections: resolvedSections)
         }
 
         let metadata = await buildStructuredMetadata(for: resolvedSections)
@@ -142,9 +142,8 @@ public enum PromptAssembler {
             executor: structuredExecutor
         )
 
-        return try AssembledPrompt.assemble(
-            sections: compressionResult.sections,
-            compressionReport: compressionResult.report
+        return try AssembledPrompt(
+            resolvedSections: compressionResult.sections
         )
     }
 

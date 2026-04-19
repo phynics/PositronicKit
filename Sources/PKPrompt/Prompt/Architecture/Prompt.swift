@@ -26,10 +26,9 @@ public struct Prompt<Content: PromptComposite>: Sendable {
     }
 
     /// Assembles the declarative prompt tree into an ordered ``AssembledPrompt``.
-    public func assembledPrompt() -> AssembledPrompt {
-        AssembledPrompt.assembleOrPreconditionFailure(
-            sections: resolvedSections(),
-            context: "Prompt.assembledPrompt"
+    public func assembledPrompt() throws -> AssembledPrompt {
+        try AssembledPrompt(
+            resolvedSections: resolvedSections()
         )
     }
 }

@@ -12,7 +12,7 @@ func runExamples() async throws {
         userQuery: "What should I run before opening a pull request?"
     )
 
-    let assembled = prompt.assembledPrompt()
+    let assembled = try! prompt.assembledPrompt()
     let renderedPrompt = await assembled.render()
     let toolPrompt = await formatToolsForPrompt(PositronicKitUsageExamples.makeTools())
     let structuredOutput = PositronicKitUsageExamples.makeStructuredOutputSchema()
@@ -21,7 +21,7 @@ func runExamples() async throws {
     _ = PositronicKitUsageExamples.makeConfiguredRuntime()
 
     print("# PKPrompt Example\n")
-    print(renderedPrompt.text)
+    print(renderedPrompt.joinedText)
     print("\nResolved sections: \(assembled.resolvedSections.map(\.id))")
     print("\n# PositronicKit Example\n")
         print("Prototype runtime and fully configured runtime both initialized successfully.")
