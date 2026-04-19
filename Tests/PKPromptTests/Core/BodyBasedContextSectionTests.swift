@@ -56,7 +56,7 @@ private struct ToolsSection: PromptComposite {
 struct BodyBasedPromptCompositeTests {
     @Test("Composite sections flatten into effective prompt leaves")
     func compositeSectionsFlattenIntoEffectivePromptLeaves() async {
-        let sections = ToolsSection(tools: ["read", "write"]).assemble().resolveSections()
+        let sections = ToolsSection(tools: ["read", "write"]).assemble().resolvedSections
 
         #expect(sections.count == 1)
         #expect(sections[0].id == "tools")
@@ -84,7 +84,7 @@ struct BodyBasedPromptCompositeTests {
             }
         }
 
-        let sections = NestedSection().assemble().resolveSections()
+        let sections = NestedSection().assemble().resolvedSections
 
         #expect(sections.map(\.id) == ["low", "high"])
         #expect(sections.allSatisfy { $0.priority == 90 })
@@ -101,7 +101,7 @@ struct BodyBasedPromptCompositeTests {
             UserPrompt("Add a toolbar action.")
         }
 
-        let sections = prompt.assemble().resolveSections()
+        let sections = prompt.assemble().resolvedSections
 
         #expect(sections.map(\.id) == ["system", "project", "user_query"])
         #expect(sections[0].role == .system)
@@ -116,7 +116,7 @@ struct BodyBasedPromptCompositeTests {
         let sections = HistoryPrompt([
             Message(content: "First", role: .user),
             Message(content: "Second", role: .assistant),
-        ]).assemble().resolveSections()
+        ]).assemble().resolvedSections
 
         #expect(sections.count == 1)
         #expect(sections[0].id == "chat_history")

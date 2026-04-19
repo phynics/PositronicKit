@@ -2,6 +2,7 @@ import Foundation
 
 public enum PromptSectionValidationError: Error, Sendable, Equatable {
     case duplicateSectionIDs([String])
+    case multipleUserQuerySections([String])
 }
 
 public enum PromptSectionValidator {
@@ -10,8 +11,9 @@ public enum PromptSectionValidator {
     }
 
     public static func validateUniqueIDs(in sections: [ResolvedPromptSection]) throws {
-        let duplicates = duplicateIDs(in: sections)
-        guard duplicates.isEmpty else {
+        do {
+            try sections.assertUniqueIDs(idKeyPath: \.id)
+        } catch let CollectionUniqueIDError.duplicateIDs(duplicates) {
             throw PromptSectionValidationError.duplicateSectionIDs(duplicates)
         }
     }
@@ -33,13 +35,6 @@ public enum PromptSectionValidator {
     }
 
     static func duplicateIDs(in sections: [ResolvedPromptSection]) -> [String] {
-        var counts: [String: Int] = [:]
-        for section in sections {
-            counts[section.id, default: 0] += 1
-        }
-        return counts
-            .filter { $0.value > 1 }
-            .map(\.key)
-            .sorted()
+        sections.duplicateIDs(idKeyPath: \.id)
     }
 }

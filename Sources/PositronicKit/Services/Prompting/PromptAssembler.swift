@@ -74,7 +74,7 @@ public enum PromptAssembler {
             overridePipeline: options.overridePipeline
         )
         let resolvedSections = resolveSections(from: sections)
-        return await assemblePrompt(
+        return try await assemblePrompt(
             from: resolvedSections,
             tokenBudget: options.tokenBudget,
             compressor: options.compressor,
@@ -89,10 +89,8 @@ public enum PromptAssembler {
     /// - Throws: An error if assembly fails.
     public static func buildPrompt(_ request: LLMPromptRequest) async throws -> LLMPromptResult {
         let prompt = try await buildContext(request)
-        let renderedContent = await prompt.renderAll()
-        let messages = await prompt.toMessages(preRendered: renderedContent)
-        let raw = await prompt.render(preRendered: renderedContent)
-        return LLMPromptResult(messages: messages, rawPrompt: raw)
+        let renderedPrompt = await prompt.render()
+        return LLMPromptResult(messages: renderedPrompt.toMessages(), rawPrompt: renderedPrompt.text)
     }
 
     /// Builds a prompt for LLM submission using explicit advanced assembly options.
@@ -101,10 +99,8 @@ public enum PromptAssembler {
         options: PromptAssemblyOptions
     ) async throws -> LLMPromptResult {
         let prompt = try await buildContext(request, options: options)
-        let renderedContent = await prompt.renderAll()
-        let messages = await prompt.toMessages(preRendered: renderedContent)
-        let raw = await prompt.render(preRendered: renderedContent)
-        return LLMPromptResult(messages: messages, rawPrompt: raw)
+        let renderedPrompt = await prompt.render()
+        return LLMPromptResult(messages: renderedPrompt.toMessages(), rawPrompt: renderedPrompt.text)
     }
 
     private static func runPipeline(
@@ -131,9 +127,9 @@ public enum PromptAssembler {
         compressor: SectionCompressor?,
         structuredDiff: StructuredDiffHint?,
         structuredExecutor: StructuredCompressionExecutor
-    ) async -> AssembledPrompt {
+    ) async throws -> AssembledPrompt {
         guard let tokenBudget else {
-            return AssembledPrompt(resolvedSections: resolvedSections)
+            return try AssembledPrompt(resolvedSections: resolvedSections)
         }
 
         let metadata = await buildStructuredMetadata(for: resolvedSections)
@@ -146,7 +142,7 @@ public enum PromptAssembler {
             executor: structuredExecutor
         )
 
-        return AssembledPrompt(
+        return try AssembledPrompt(
             resolvedSections: compressionResult.sections,
             compressionReport: compressionResult.report
         )

@@ -51,15 +51,15 @@ struct LLMServiceTests {
             )
         )
 
-        // Render content to check presence
-        let rawPrompt = await prompt.render()
+        let renderedPrompt = await prompt.render()
 
-        // Validate basic content presence
-        #expect(rawPrompt.contains("System rules"))
-        #expect(rawPrompt.contains("Note Content"))
-        // Chat history is emitted as provider messages rather than plain rendered prompt text.
+        #expect(renderedPrompt.text.contains("System rules"))
+        #expect(renderedPrompt.text.contains("Note Content"))
+        #expect(renderedPrompt.text.contains("Previous user message"))
+        #expect(renderedPrompt.text.contains("Previous assistant message"))
+        #expect(renderedPrompt.text.contains("Current question"))
 
-        let messages = await prompt.toMessages()
+        let messages = renderedPrompt.toMessages()
 
         // Validate message ordering and roles
         #expect(!messages.isEmpty)
@@ -127,7 +127,7 @@ struct LLMServiceTests {
                 systemInstructions: "System Only"
             )
         )
-        let messages = await prompt.toMessages()
+        let messages = (await prompt.render()).toMessages()
 
         #expect(messages.count >= 2) // System + User
 

@@ -91,7 +91,7 @@ struct PromptAssemblyTests {
     @Test("PromptAssembler uses pipeline for default assembly")
     func promptBuilderUsesPipeline() async throws {
         let prompt = try await PromptAssembler.buildContext(makeRequest(userQuery: "pipeline test"))
-        let resolved = prompt.resolveSections()
+        let resolved = prompt.resolvedSections
 
         #expect(resolved.contains { $0.id == "system" })
         #expect(resolved.contains { $0.id == "user_query" })
@@ -110,7 +110,7 @@ struct PromptAssemblyTests {
             makeRequest(userQuery: "test"),
             options: PromptAssemblyOptions(overridePipeline: PromptAssemblyPipeline(stages: [CustomStage()]))
         )
-        let resolved = prompt.resolveSections()
+        let resolved = prompt.resolvedSections
 
         #expect(resolved.count == 1)
         #expect(resolved.first?.id == "override_assembly")
@@ -148,6 +148,6 @@ struct PromptAssemblyTests {
             options: PromptAssemblyOptions(overridePipeline: PromptAssemblyPipeline(stages: [CustomStage()]))
         )
 
-        #expect(prompt.resolveSections().map(\.id) == ["from_options"])
+        #expect(prompt.resolvedSections.map(\.id) == ["from_options"])
     }
 }

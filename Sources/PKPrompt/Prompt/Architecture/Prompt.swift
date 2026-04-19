@@ -27,7 +27,7 @@ public struct Prompt<Content: PromptComposite>: Sendable {
     ///
     /// - Returns: A fully assembled prompt artifact.
     public func assemble() -> AssembledPrompt {
-        AssembledPrompt(
+        try! AssembledPrompt(
             resolvedSections: content.resolve(in: PromptResolutionContext())
         )
     }

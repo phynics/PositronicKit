@@ -21,8 +21,8 @@ func runExamples() async throws {
     _ = PositronicKitUsageExamples.makeConfiguredRuntime()
 
     print("# PKPrompt Example\n")
-    print(renderedPrompt)
-    print("\nResolved sections: \(assembled.resolveSections().map(\.id))")
+    print(renderedPrompt.text)
+    print("\nResolved sections: \(assembled.resolvedSections.map(\.id))")
     print("\n# PositronicKit Example\n")
         print("Prototype runtime and fully configured runtime both initialized successfully.")
         print(toolPrompt)

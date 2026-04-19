@@ -3,42 +3,31 @@ import OpenAI
 import PKPrompt
 import PKShared
 
-public extension AssembledPrompt {
-    func toMessages(preRendered: [String: String]? = nil) async -> [ChatQuery.ChatCompletionMessageParam] {
-        let resolved = resolvedSections
+public extension RenderedPrompt {
+    func toMessages() -> [ChatQuery.ChatCompletionMessageParam] {
+        let resolved = sections
         var messages: [ChatQuery.ChatCompletionMessageParam] = []
 
-        if let systemMessage = await buildSystemMessage(from: resolved, preRendered: preRendered) {
+        if let systemMessage = buildSystemMessage(from: resolved) {
             messages.append(systemMessage)
         }
 
         messages.append(contentsOf: buildHistoryMessages(from: resolved))
 
-        if let queryMessage = await buildUserQueryMessage(from: resolved, preRendered: preRendered) {
+        if let queryMessage = buildUserQueryMessage(from: resolved) {
             messages.append(queryMessage)
         }
 
         return messages
     }
 
-    private func resolvedContent(
-        for section: ResolvedPromptSection,
-        using cache: [String: String]?
-    ) async -> String? {
-        if let cached = cache?[section.id] {
-            return cached
-        }
-        return await section.render()
-    }
-
     private func buildSystemMessage(
-        from sections: [ResolvedPromptSection],
-        preRendered: [String: String]? = nil
-    ) async -> ChatQuery.ChatCompletionMessageParam? {
+        from sections: [RenderedPromptSection]
+    ) -> ChatQuery.ChatCompletionMessageParam? {
         var systemParts: [String] = []
 
         for section in sections where section.role != .chatHistory && section.role != .userQuery {
-            if let content = await resolvedContent(for: section, using: preRendered), !content.isEmpty {
+            if let content = section.content, !content.isEmpty {
                 systemParts.append(content)
             }
         }
@@ -47,7 +36,7 @@ public extension AssembledPrompt {
         return .system(.init(content: .textContent(systemParts.joined(separator: "\n\n---\n\n")), name: nil))
     }
 
-    private func buildHistoryMessages(from sections: [ResolvedPromptSection]) -> [ChatQuery.ChatCompletionMessageParam] {
+    private func buildHistoryMessages(from sections: [RenderedPromptSection]) -> [ChatQuery.ChatCompletionMessageParam] {
         sections
             .filter { $0.role == .chatHistory }
             .flatMap { $0.historyMessages ?? [] }
@@ -55,14 +44,13 @@ public extension AssembledPrompt {
     }
 
     private func buildUserQueryMessage(
-        from sections: [ResolvedPromptSection],
-        preRendered: [String: String]? = nil
-    ) async -> ChatQuery.ChatCompletionMessageParam? {
+        from sections: [RenderedPromptSection]
+    ) -> ChatQuery.ChatCompletionMessageParam? {
         guard let querySection = sections.first(where: { $0.role == .userQuery }) else {
             return nil
         }
 
-        guard let content = await resolvedContent(for: querySection, using: preRendered) else {
+        guard let content = querySection.content else {
             return nil
         }
 

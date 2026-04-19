@@ -40,14 +40,14 @@ struct PromptBuilderTests {
         }
 
         let assembled = prompt.assemble()
-        let sections = assembled.resolveSections()
+        let sections = assembled.resolvedSections
         #expect(sections.count == 2)
         #expect(sections[0].id == "2")
         #expect(sections[1].id == "1")
 
         let rendered = await assembled.render()
-        #expect(rendered.contains("High Priority"))
-        #expect(rendered.contains("Low Priority"))
+        #expect(rendered.text.contains("High Priority"))
+        #expect(rendered.text.contains("Low Priority"))
     }
 
     @Test("Builder supports conditionals")
@@ -63,7 +63,7 @@ struct PromptBuilderTests {
             if includePublic {
                 MockSection(id: "public", priority: 50, content: "Public")
             }
-        }.assemble().resolveSections()
+        }.assemble().resolvedSections
         #expect(sections.count == 1)
         #expect(sections[0].id == "public")
     }
@@ -78,7 +78,7 @@ struct PromptBuilderTests {
             }
         }
 
-        let sections = prompt.assemble().resolveSections()
+        let sections = prompt.assemble().resolvedSections
         #expect(sections.count == 3)
     }
 
@@ -101,7 +101,7 @@ struct PromptBuilderTests {
             }
         }
 
-        #expect(prompt.assemble().resolveSections().map { $0.id } == ["2", "1"])
+        #expect(prompt.assemble().resolvedSections.map { $0.id } == ["2", "1"])
     }
 
     @Test("Builder lowers conditionals to PromptConditional")
@@ -141,7 +141,7 @@ struct PromptBuilderTests {
             MockSection(id: item.id, priority: 50, content: item.content)
         }
 
-        #expect(composite.assemble().resolveSections().map { $0.id } == ["a", "b"])
+        #expect(composite.assemble().resolvedSections.map { $0.id } == ["a", "b"])
     }
 
     @Test("PromptForEach supports explicit id key paths")
@@ -155,7 +155,7 @@ struct PromptBuilderTests {
             MockSection(id: item.key, priority: 50, content: item.content)
         }
 
-        #expect(composite.assemble().resolveSections().map { $0.id } == ["a", "b"])
+        #expect(composite.assemble().resolvedSections.map { $0.id } == ["a", "b"])
     }
 
     @Test("PromptForEach ids only stabilize paths and do not replace leaf ids")

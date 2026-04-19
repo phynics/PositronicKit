@@ -57,7 +57,7 @@ struct StructuredCompressionIntegrationTests {
             )
         )
 
-        let resolved = prompt.resolveSections()
+        let resolved = prompt.resolvedSections
         #expect(resolved.count == 1)
         #expect(resolved.first?.id == "changed_node")
     }

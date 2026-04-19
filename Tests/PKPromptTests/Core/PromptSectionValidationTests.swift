@@ -4,6 +4,14 @@ import Testing
 
 @Suite("Prompt section validation")
 struct PromptSectionValidationTests {
+    private struct IdentifiableValue: Identifiable {
+        let id: String
+    }
+
+    private struct KeyedValue {
+        let key: String
+    }
+
     private struct MockSection: PromptLeaf {
         let id: String
         let priority: Int = 0
@@ -57,5 +65,23 @@ struct PromptSectionValidationTests {
         ]
 
         #expect(PromptSectionValidator.duplicateIDs(in: sections) == ["a", "b"])
+    }
+
+    @Test("Collection uniqueness assertion uses Identifiable ids")
+    func collectionAssertUniqueIDsForIdentifiable() {
+        let values = [IdentifiableValue(id: "b"), IdentifiableValue(id: "a"), IdentifiableValue(id: "b")]
+
+        #expect(throws: CollectionUniqueIDError.duplicateIDs(["b"])) {
+            try values.assertUniqueIDs()
+        }
+    }
+
+    @Test("Collection uniqueness assertion uses explicit key path")
+    func collectionAssertUniqueIDsForExplicitKeyPath() {
+        let values = [KeyedValue(key: "b"), KeyedValue(key: "a"), KeyedValue(key: "a")]
+
+        #expect(throws: CollectionUniqueIDError.duplicateIDs(["a"])) {
+            try values.assertUniqueIDs(idKeyPath: \.key)
+        }
     }
 }
