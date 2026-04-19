@@ -32,6 +32,11 @@ public enum PromptSectionRole: Sendable, Equatable {
     case chatHistory
 }
 
+public enum PromptLeafContent: Sendable {
+    case text(@Sendable () async -> String?)
+    case messages([Message])
+}
+
 /// Prompt leaves render actual prompt content and resolve directly into concrete nodes.
 public protocol PromptLeaf: PromptComposite {
     var id: String { get }
@@ -41,7 +46,7 @@ public protocol PromptLeaf: PromptComposite {
     var compression: CompressionStrategy { get }
     var type: PromptSectionType { get }
     var cachePolicy: CachePolicy { get }
-    var historyMessages: [Message]? { get }
+    var content: PromptLeafContent { get }
     func renderContent() async -> String?
 }
 
@@ -72,8 +77,8 @@ public extension PromptLeaf {
         .volatile
     }
 
-    var historyMessages: [Message]? {
-        nil
+    var content: PromptLeafContent {
+        .text { await renderContent() }
     }
 
     func render(constrainedTo tokens: Int?) async -> String? {
@@ -86,6 +91,7 @@ public extension PromptLeaf {
         let effectiveCompression = context.inheritedCompression ?? compression
         let effectiveCachePolicy = context.inheritedCachePolicy ?? cachePolicy
         let path = context.ancestorPath + [cachePolicyPathComponent(for: effectiveCachePolicy), id]
+        let leafContent = content
 
         return [
             ResolvedPromptSection(
@@ -97,13 +103,24 @@ public extension PromptLeaf {
                 type: type,
                 cachePolicy: effectiveCachePolicy,
                 path: path,
-                historyMessages: historyMessages,
                 render: { tokens in
-                    await applyRenderConstraint(
-                        to: renderContent,
-                        tokens: tokens,
-                        strategy: effectiveCompression
-                    )
+                    switch leafContent {
+                    case let .text(renderContent):
+                        guard let content = await applyRenderConstraint(
+                            to: renderContent,
+                            tokens: tokens,
+                            strategy: effectiveCompression
+                        ) else {
+                            return nil
+                        }
+                        return .text(content)
+
+                    case let .messages(messages):
+                        guard !messages.isEmpty else {
+                            return nil
+                        }
+                        return .messages(messages)
+                    }
                 }
             ),
         ]

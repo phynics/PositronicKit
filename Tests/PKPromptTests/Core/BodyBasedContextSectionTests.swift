@@ -121,7 +121,12 @@ struct BodyBasedPromptCompositeTests {
         #expect(sections.count == 1)
         #expect(sections[0].id == "chat_history")
         #expect(sections[0].role == PromptSectionRole.chatHistory)
-        #expect(sections[0].historyMessages?.count == 2)
+        if case let .messages(messages)? = await sections[0].renderedContent() {
+            #expect(messages.map(\.role) == [.user, .assistant])
+            #expect(messages.map(\.content) == ["First", "Second"])
+        } else {
+            #expect(Bool(false), "History section should render message content")
+        }
         #expect(await sections[0].render() == nil)
     }
 }

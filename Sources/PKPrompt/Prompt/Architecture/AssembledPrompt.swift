@@ -4,8 +4,7 @@ import PKShared
 public struct RenderedPromptSection: Sendable {
     public let id: String
     public let role: PromptSectionRole
-    public let content: String?
-    public let historyMessages: [Message]?
+    public let content: RenderedPromptSectionContent
 }
 
 public struct RenderedPrompt: Sendable {
@@ -15,7 +14,7 @@ public struct RenderedPrompt: Sendable {
     public var sectionsByID: [String: String] {
         var result: [String: String] = [:]
         for section in sections {
-            if let content = section.content, !content.isEmpty {
+            if case let .text(content) = section.content, !content.isEmpty {
                 result[section.id] = content
             }
         }
@@ -31,7 +30,6 @@ public struct AssembledPrompt: Sendable {
     private init(
         resolvedSections: [ResolvedPromptSection],
         compressionReport: CompressionReport? = nil,
-        validatedAndSorted: Bool
     ) {
         self.resolvedSections = AssembledPrompt.sortResolvedSections(resolvedSections)
         self.compressionReport = compressionReport
@@ -45,7 +43,6 @@ public struct AssembledPrompt: Sendable {
         return AssembledPrompt(
             resolvedSections: resolvedSections,
             compressionReport: compressionReport,
-            validatedAndSorted: true
         )
     }
 
@@ -64,14 +61,12 @@ public struct AssembledPrompt: Sendable {
     public func render() async -> RenderedPrompt {
         var renderedSections: [RenderedPromptSection] = []
         for section in resolvedSections {
-            let content = await renderedContent(for: section)
-            if content != nil || section.role == .chatHistory {
+            if let content = await section.renderedContent() {
                 renderedSections.append(
                     RenderedPromptSection(
                         id: section.id,
                         role: section.role,
-                        content: content,
-                        historyMessages: section.historyMessages
+                        content: content
                     )
                 )
             }
@@ -87,35 +82,22 @@ public struct AssembledPrompt: Sendable {
         resolvedSections.reduce(0) { $0 + $1.estimatedTokens }
     }
 
-    private func renderedContent(for section: ResolvedPromptSection) async -> String? {
-        if section.role == .chatHistory {
-            return renderedHistoryContent(for: section)
-        }
-
-        let content = await section.render()
-        guard let content, !content.isEmpty else {
-            return nil
-        }
-
-        return content
-    }
-
-    private func renderedHistoryContent(for section: ResolvedPromptSection) -> String? {
-        guard let messages = section.historyMessages, !messages.isEmpty else {
-            return nil
-        }
-
-        let content = messages
-            .map(formatHistoryMessage)
-            .joined(separator: "\n\n")
-
-        return content.isEmpty ? nil : content
-    }
-
     private func joinedRenderedParts(_ renderedSections: [RenderedPromptSection]) -> String {
         renderedSections
-            .compactMap(\.content)
+            .compactMap(textContent)
             .joined(separator: "\n\n---\n\n")
+    }
+
+    private func textContent(for section: RenderedPromptSection) -> String? {
+        switch section.content {
+        case let .text(content):
+            return content
+        case let .messages(messages):
+            let content = messages
+                .map(formatHistoryMessage)
+                .joined(separator: "\n\n")
+            return content.isEmpty ? nil : content
+        }
     }
 
     private func formatHistoryMessage(_ message: Message) -> String {

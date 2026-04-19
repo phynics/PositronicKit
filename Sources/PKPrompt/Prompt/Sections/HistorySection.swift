@@ -37,8 +37,8 @@ public struct HistorySection: PromptLeaf {
         })
     }
 
-    public var historyMessages: [Message]? {
-        messages
+    public var content: PromptLeafContent {
+        .messages(messages)
     }
 
     public func renderContent() async -> String? {

@@ -33,7 +33,7 @@ struct PromptSectionValidationTests {
             type: .text,
             cachePolicy: .volatile,
             path: [id],
-            render: { _ in id }
+            render: { _ in .text(id) }
         )
     }
 

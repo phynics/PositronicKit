@@ -27,7 +27,7 @@ public extension RenderedPrompt {
         var systemParts: [String] = []
 
         for section in sections where section.role != .chatHistory && section.role != .userQuery {
-            if let content = section.content, !content.isEmpty {
+            if case let .text(content) = section.content, !content.isEmpty {
                 systemParts.append(content)
             }
         }
@@ -38,8 +38,8 @@ public extension RenderedPrompt {
 
     private func buildHistoryMessages(from sections: [RenderedPromptSection]) -> [ChatQuery.ChatCompletionMessageParam] {
         sections
-            .filter { $0.role == .chatHistory }
-            .flatMap { $0.historyMessages ?? [] }
+            .compactMap(messagesContent)
+            .flatMap { $0 }
             .map(convertHistoryMessage)
     }
 
@@ -50,7 +50,7 @@ public extension RenderedPrompt {
             return nil
         }
 
-        guard let content = querySection.content else {
+        guard case let .text(content) = querySection.content else {
             return nil
         }
 
@@ -102,5 +102,12 @@ public extension RenderedPrompt {
         let hiddenInstruction = "\n[System: This is a system message hidden from user; now respond to the user about this result.]"
         let responseContent = "<tool_response>\n\(msg.content)\n</tool_response>\(hiddenInstruction)"
         return .user(.init(content: .string(responseContent), name: nil))
+    }
+
+    private func messagesContent(for section: RenderedPromptSection) -> [Message]? {
+        guard case let .messages(messages) = section.content else {
+            return nil
+        }
+        return messages
     }
 }

@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 @testable import PKPrompt
+import PKShared
 
 private struct DummyPromptSection: PromptLeaf {
     let id: String
@@ -71,6 +72,35 @@ struct AssembledPromptTests {
         #expect(rendered.sectionsByID["s2"] == nil)
     }
 
+    @Test("Assembled prompt snapshot preserves history as message content")
+    func renderedHistoryUsesMessageContent() async {
+        let messages = [
+            Message(content: "Hello", role: .user),
+            Message(content: "Hi", role: .assistant),
+        ]
+        let prompt = try! AssembledPrompt.assemble(sections: [
+            HistorySection(messages: messages).resolve()[0],
+        ])
+
+        let rendered = await prompt.render()
+
+        #expect(rendered.sections.count == 1)
+        #expect(rendered.sections[0].content == RenderedPromptSectionContent.messages(messages))
+    }
+
+    @Test("Dropped history sections do not survive rendered snapshots")
+    func droppedHistoryDoesNotRender() async {
+        let droppedHistory = HistorySection(messages: [
+            Message(content: "Hello", role: .user),
+        ]).resolve()[0].dropped()
+        let prompt = try! AssembledPrompt.assemble(sections: [droppedHistory])
+
+        let rendered = await prompt.render()
+
+        #expect(rendered.sections.isEmpty)
+        #expect(rendered.text.isEmpty)
+    }
+
     @Test("Assembled prompt estimatedTokens sums resolved tokens")
     func estimatedTokens() {
         let prompt = try! AssembledPrompt.assemble(sections: [
@@ -115,7 +145,9 @@ struct AssembledPromptTests {
                     type: .text,
                     cachePolicy: query1.cachePolicy,
                     path: [query1.id],
-                    render: { _ in query1.text }
+                    render: { _ in
+                        query1.text.map(RenderedPromptSectionContent.text)
+                    }
                 ),
                 ResolvedPromptSection(
                     id: query2.id,
@@ -126,7 +158,9 @@ struct AssembledPromptTests {
                     type: .text,
                     cachePolicy: query2.cachePolicy,
                     path: [query2.id],
-                    render: { _ in query2.text }
+                    render: { _ in
+                        query2.text.map(RenderedPromptSectionContent.text)
+                    }
                 ),
             ])
         }

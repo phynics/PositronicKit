@@ -1,6 +1,11 @@
 import Foundation
 import PKShared
 
+public enum RenderedPromptSectionContent: Sendable, Equatable {
+    case text(String)
+    case messages([Message])
+}
+
 /// A fully resolved prompt node with inherited traits applied and a concrete render closure.
 public struct ResolvedPromptSection: Sendable {
     public let id: String
@@ -12,10 +17,9 @@ public struct ResolvedPromptSection: Sendable {
     public let cachePolicy: CachePolicy
     public let path: [String]
     public let parentID: String?
-    public let historyMessages: [Message]?
 
     /// Stores the final rendering behavior after resolution and any compression constraints.
-    private let renderImpl: @Sendable (Int?) async -> String?
+    private let renderImpl: @Sendable (Int?) async -> RenderedPromptSectionContent?
 
     public init(
         id: String,
@@ -27,8 +31,7 @@ public struct ResolvedPromptSection: Sendable {
         cachePolicy: CachePolicy,
         path: [String],
         parentID: String? = nil,
-        historyMessages: [Message]? = nil,
-        render: @escaping @Sendable (Int?) async -> String?
+        render: @escaping @Sendable (Int?) async -> RenderedPromptSectionContent?
     ) {
         self.id = id
         self.role = role
@@ -39,16 +42,29 @@ public struct ResolvedPromptSection: Sendable {
         self.cachePolicy = cachePolicy
         self.path = path
         self.parentID = parentID
-        self.historyMessages = historyMessages
         self.renderImpl = render
     }
 
-    public func render() async -> String? {
+    public func renderedContent() async -> RenderedPromptSectionContent? {
         await renderImpl(nil)
     }
 
-    public func render(constrainedTo tokens: Int?) async -> String? {
+    public func renderedContent(constrainedTo tokens: Int?) async -> RenderedPromptSectionContent? {
         await renderImpl(tokens)
+    }
+
+    public func render() async -> String? {
+        guard case let .text(content)? = await renderedContent() else {
+            return nil
+        }
+        return content
+    }
+
+    public func render(constrainedTo tokens: Int?) async -> String? {
+        guard case let .text(content)? = await renderedContent(constrainedTo: tokens) else {
+            return nil
+        }
+        return content
     }
 
     /// Returns a copy that never renders more than the given token budget.
@@ -63,7 +79,6 @@ public struct ResolvedPromptSection: Sendable {
             cachePolicy: cachePolicy,
             path: path,
             parentID: parentID,
-            historyMessages: historyMessages,
             render: { limit in
                 await renderImpl(min(limit ?? tokens, tokens))
             }
@@ -82,8 +97,7 @@ public struct ResolvedPromptSection: Sendable {
             cachePolicy: cachePolicy,
             path: path,
             parentID: parentID,
-            historyMessages: historyMessages,
-            render: { _ in summary }
+            render: { _ in .text(summary) }
         )
     }
 
@@ -99,7 +113,6 @@ public struct ResolvedPromptSection: Sendable {
             cachePolicy: cachePolicy,
             path: path,
             parentID: parentID,
-            historyMessages: historyMessages,
             render: { _ in nil }
         )
     }
