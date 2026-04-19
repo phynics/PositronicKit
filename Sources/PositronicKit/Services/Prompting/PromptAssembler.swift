@@ -24,7 +24,7 @@ public enum PromptAssembler {
         ]
     }
 
-    // MARK: - Build Context
+    // MARK: - Assemble
 
     /// Assembles a prompt using the default pipeline and default assembly behavior.
     ///
@@ -36,13 +36,13 @@ public enum PromptAssembler {
     ///   - extensionSections: Optional additional sections from external extensions.
     /// - Returns: A fully assembled prompt artifact.
     /// - Throws: An error if pipeline execution fails.
-    public static func buildContext(
+    public static func assemble(
         _ request: LLMPromptRequest,
         agentInstance: AgentInstance? = nil,
         timeline: Timeline? = nil,
         extensionSections: [any PromptComposite] = []
     ) async throws -> AssembledPrompt {
-        try await buildContext(
+        try await assemble(
             request,
             agentInstance: agentInstance,
             timeline: timeline,
@@ -55,7 +55,7 @@ public enum PromptAssembler {
     ///
     /// Use this overload when you need pipeline overrides, token budgeting, or structured
     /// compression configuration.
-    public static func buildContext(
+    public static func assemble(
         _ request: LLMPromptRequest,
         agentInstance: AgentInstance? = nil,
         timeline: Timeline? = nil,
@@ -87,18 +87,18 @@ public enum PromptAssembler {
     /// - Parameter request: The prompt request data.
     /// - Returns: A result containing structured messages and the raw prompt string.
     /// - Throws: An error if assembly fails.
-    public static func buildPrompt(_ request: LLMPromptRequest) async throws -> LLMPromptResult {
-        let prompt = try await buildContext(request)
+    public static func prepare(_ request: LLMPromptRequest) async throws -> LLMPromptResult {
+        let prompt = try await assemble(request)
         let renderedPrompt = await prompt.render()
         return LLMPromptResult(messages: renderedPrompt.toMessages(), rawPrompt: renderedPrompt.text)
     }
 
     /// Builds a prompt for LLM submission using explicit advanced assembly options.
-    public static func buildPrompt(
+    public static func prepare(
         _ request: LLMPromptRequest,
         options: PromptAssemblyOptions
     ) async throws -> LLMPromptResult {
-        let prompt = try await buildContext(request, options: options)
+        let prompt = try await assemble(request, options: options)
         let renderedPrompt = await prompt.render()
         return LLMPromptResult(messages: renderedPrompt.toMessages(), rawPrompt: renderedPrompt.text)
     }
@@ -129,7 +129,7 @@ public enum PromptAssembler {
         structuredExecutor: StructuredCompressionExecutor
     ) async throws -> AssembledPrompt {
         guard let tokenBudget else {
-            return try AssembledPrompt(resolvedSections: resolvedSections)
+            return try AssembledPrompt.assemble(sections: resolvedSections)
         }
 
         let metadata = await buildStructuredMetadata(for: resolvedSections)
@@ -142,8 +142,8 @@ public enum PromptAssembler {
             executor: structuredExecutor
         )
 
-        return try AssembledPrompt(
-            resolvedSections: compressionResult.sections,
+        return try AssembledPrompt.assemble(
+            sections: compressionResult.sections,
             compressionReport: compressionResult.report
         )
     }

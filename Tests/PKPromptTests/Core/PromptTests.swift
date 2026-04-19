@@ -38,7 +38,7 @@ struct PromptTests {
         let prompt = Prompt(PromptAny([sec1, sec2]))
         #expect(prompt.content.sections.count == 2)
 
-        let resolved = prompt.assemble().resolvedSections
+        let resolved = prompt.assembledPrompt().resolvedSections
 
         #expect(resolved.count == 2)
         #expect(resolved[0].id == "s2")
@@ -54,7 +54,7 @@ struct PromptTests {
 
         #expect(type(of: prompt.content) == PromptBlock<DummyPromptSection, DummyPromptSection>.self)
 
-        let resolved = prompt.assemble().resolvedSections
+        let resolved = prompt.assembledPrompt().resolvedSections
         #expect(resolved.count == 2)
         #expect(resolved[0].id == "s2")
     }

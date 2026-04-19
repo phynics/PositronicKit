@@ -35,7 +35,7 @@ struct AssembledPromptTests {
         let sec1 = DummyPromptSection(id: "s1", priority: 1, estimatedTokens: 10, text: "Low")
         let sec2 = DummyPromptSection(id: "s2", priority: 100, estimatedTokens: 10, text: "High")
 
-        let prompt = try! AssembledPrompt(resolvedSections: [sec1.resolve()[0], sec2.resolve()[0]])
+        let prompt = try! AssembledPrompt.assemble(sections: [sec1.resolve()[0], sec2.resolve()[0]])
         let resolved = prompt.resolvedSections
 
         #expect(resolved.count == 2)
@@ -45,7 +45,7 @@ struct AssembledPromptTests {
 
     @Test("Assembled prompt render returns canonical ordered snapshot")
     func render() async {
-        let prompt = try! AssembledPrompt(resolvedSections: [
+        let prompt = try! AssembledPrompt.assemble(sections: [
             DummyPromptSection(id: "s1", priority: 10, estimatedTokens: 10, text: "First block").resolve()[0],
             DummyPromptSection(id: "s2", priority: 5, estimatedTokens: 10, text: nil).resolve()[0],
             DummyPromptSection(id: "s3", priority: 1, estimatedTokens: 10, text: "Second block").resolve()[0],
@@ -58,7 +58,7 @@ struct AssembledPromptTests {
 
     @Test("Assembled prompt snapshot skips empty content")
     func renderedSectionsByID() async {
-        let prompt = try! AssembledPrompt(resolvedSections: [
+        let prompt = try! AssembledPrompt.assemble(sections: [
             DummyPromptSection(id: "s1", priority: 10, estimatedTokens: 10, text: "Val1").resolve()[0],
             DummyPromptSection(id: "s2", priority: 5, estimatedTokens: 10, text: "").resolve()[0],
             DummyPromptSection(id: "s3", priority: 1, estimatedTokens: 10, text: "Val2").resolve()[0],
@@ -73,7 +73,7 @@ struct AssembledPromptTests {
 
     @Test("Assembled prompt estimatedTokens sums resolved tokens")
     func estimatedTokens() {
-        let prompt = try! AssembledPrompt(resolvedSections: [
+        let prompt = try! AssembledPrompt.assemble(sections: [
             DummyPromptSection(id: "s1", priority: 10, estimatedTokens: 50, text: "A").resolve()[0],
             DummyPromptSection(id: "s2", priority: 5, estimatedTokens: 100, text: "B").resolve()[0],
         ])
@@ -88,7 +88,7 @@ struct AssembledPromptTests {
         let stableMedium = DummyPromptSection(id: "stableMedium", priority: 50, estimatedTokens: 0, text: "M", cachePolicy: .stable)
         let stableHigh = DummyPromptSection(id: "stableHigh", priority: 100, estimatedTokens: 0, text: "H", cachePolicy: .stable)
 
-        let prompt = try! AssembledPrompt(resolvedSections: [
+        let prompt = try! AssembledPrompt.assemble(sections: [
             volatileHigh.resolve()[0],
             semiStableLow.resolve()[0],
             stableMedium.resolve()[0],
@@ -105,7 +105,7 @@ struct AssembledPromptTests {
         let query2 = DummyPromptSection(id: "q2", priority: 5, estimatedTokens: 5, text: "Two")
 
         #expect(throws: PromptSectionValidationError.multipleUserQuerySections(["q1", "q2"])) {
-            try AssembledPrompt(resolvedSections: [
+            try AssembledPrompt.assemble(sections: [
                 ResolvedPromptSection(
                     id: query1.id,
                     role: .userQuery,

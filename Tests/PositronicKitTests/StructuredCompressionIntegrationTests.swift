@@ -44,7 +44,7 @@ struct StructuredCompressionIntegrationTests {
 
         let request = LLMPromptRequest(userQuery: "test", chatHistory: [], tools: [], workspaces: [], primaryWorkspace: nil, clientName: nil)
 
-        let prompt = try await PromptAssembler.buildContext(
+        let prompt = try await PromptAssembler.assemble(
             request,
             options: PromptAssemblyOptions(
                 overridePipeline: PromptAssemblyPipeline(stages: [Stage()]),
@@ -91,8 +91,8 @@ struct StructuredCompressionIntegrationTests {
             structuredExecutor: executor
         )
 
-        _ = try await PromptAssembler.buildContext(request, options: options)
-        _ = try await PromptAssembler.buildContext(request, options: options)
+        _ = try await PromptAssembler.assemble(request, options: options)
+        _ = try await PromptAssembler.assemble(request, options: options)
 
         #expect(await counter.value() == 1)
     }
@@ -135,9 +135,9 @@ struct StructuredCompressionIntegrationTests {
             structuredExecutor: executor
         )
 
-        _ = try await PromptAssembler.buildContext(request, options: options)
+        _ = try await PromptAssembler.assemble(request, options: options)
         await content.set("version-2")
-        _ = try await PromptAssembler.buildContext(
+        _ = try await PromptAssembler.assemble(
             request,
             options: PromptAssemblyOptions(
                 overridePipeline: PromptAssemblyPipeline(stages: [Stage(content: content)]),

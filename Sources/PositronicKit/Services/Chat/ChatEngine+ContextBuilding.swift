@@ -103,7 +103,7 @@ extension ChatEngine {
             TokenBudget(maxTokens: $0, reserveForResponse: max(256, $0 / 5))
         }
 
-        let prompt = try await PromptAssembler.buildContext(
+        let prompt = try await PromptAssembler.assemble(
             promptRequest,
             agentInstance: agentInstance,
             timeline: timeline,

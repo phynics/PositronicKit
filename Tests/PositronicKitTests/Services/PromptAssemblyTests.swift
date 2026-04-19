@@ -88,9 +88,9 @@ struct PromptAssemblyTests {
         #expect(resolved.first?.id == "custom")
     }
 
-    @Test("PromptAssembler uses pipeline for default assembly")
+    @Test("PromptAssembler assembles runtime requests with the default pipeline")
     func promptBuilderUsesPipeline() async throws {
-        let prompt = try await PromptAssembler.buildContext(makeRequest(userQuery: "pipeline test"))
+        let prompt = try await PromptAssembler.assemble(makeRequest(userQuery: "pipeline test"))
         let resolved = prompt.resolvedSections
 
         #expect(resolved.contains { $0.id == "system" })
@@ -98,7 +98,7 @@ struct PromptAssemblyTests {
         #expect(await resolved.first(where: { $0.id == "user_query" })?.render() == "pipeline test")
     }
 
-    @Test("PromptAssembler uses override pipeline in buildContext")
+    @Test("PromptAssembler uses override pipeline in assemble")
     func promptBuilderUsesOverridePipeline() async throws {
         struct CustomStage: PromptAssemblyStage {
             func execute(_ context: PromptAssemblyContext) async throws {
@@ -106,7 +106,7 @@ struct PromptAssemblyTests {
             }
         }
 
-        let prompt = try await PromptAssembler.buildContext(
+        let prompt = try await PromptAssembler.assemble(
             makeRequest(userQuery: "test"),
             options: PromptAssemblyOptions(overridePipeline: PromptAssemblyPipeline(stages: [CustomStage()]))
         )
@@ -128,7 +128,7 @@ struct PromptAssemblyTests {
         }
 
         await #expect(throws: PromptSectionValidationError.self) {
-            _ = try await PromptAssembler.buildContext(
+            _ = try await PromptAssembler.assemble(
                 makeRequest(userQuery: "test"),
                 options: PromptAssemblyOptions(overridePipeline: PromptAssemblyPipeline(stages: [DuplicateStage()]))
             )
@@ -143,7 +143,7 @@ struct PromptAssemblyTests {
             }
         }
 
-        let prompt = try await PromptAssembler.buildContext(
+        let prompt = try await PromptAssembler.assemble(
             makeRequest(userQuery: "test"),
             options: PromptAssemblyOptions(overridePipeline: PromptAssemblyPipeline(stages: [CustomStage()]))
         )

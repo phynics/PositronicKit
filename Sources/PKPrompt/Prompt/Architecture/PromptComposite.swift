@@ -22,12 +22,20 @@ public extension PromptComposite {
 
     /// Renders this composite by assembling it into an ordered prompt artifact first.
     func render() async -> String? {
-        let rendered = await assemble().render().text
+        let rendered = await assembledPrompt().render().text
         return rendered.isEmpty ? nil : rendered
     }
 
+    /// Resolves this declarative prompt tree into concrete prompt sections.
+    func resolvedSections() -> [ResolvedPromptSection] {
+        resolve(in: PromptResolutionContext())
+    }
+
     /// Assembles this declarative prompt tree into an ordered prompt artifact.
-    func assemble() -> AssembledPrompt {
-        try! AssembledPrompt(resolvedSections: resolve(in: PromptResolutionContext()))
+    func assembledPrompt() -> AssembledPrompt {
+        AssembledPrompt.assembleOrPreconditionFailure(
+            sections: resolvedSections(),
+            context: "\(Self.self).assembledPrompt"
+        )
     }
 }

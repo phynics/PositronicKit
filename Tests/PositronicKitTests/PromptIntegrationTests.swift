@@ -11,7 +11,7 @@ struct PromptIntegrationTests {
     func emptyUserQueryDoesNotAppendMessage() async throws {
         let history = [Message(content: "Hello", role: .user)]
 
-        let prompt = try await PromptAssembler.buildContext(
+        let prompt = try await PromptAssembler.assemble(
             LLMPromptRequest(
                 userQuery: "",
                 contextNotes: [],
@@ -45,7 +45,7 @@ struct PromptIntegrationTests {
     func nonEmptyUserQueryAppendsMessage() async throws {
         let history = [Message(content: "Hello", role: .user)]
 
-        let prompt = try await PromptAssembler.buildContext(
+        let prompt = try await PromptAssembler.assemble(
             LLMPromptRequest(
                 userQuery: "World",
                 contextNotes: [],
@@ -98,7 +98,7 @@ struct PromptIntegrationTests {
         let history = [Message(content: "Hi", role: .user)]
         let query = "UNIQUE_QUERY_STRING"
 
-        let prompt = try await PromptAssembler.buildContext(
+        let prompt = try await PromptAssembler.assemble(
             LLMPromptRequest(
                 userQuery: query,
                 contextNotes: [],
@@ -126,7 +126,7 @@ struct PromptIntegrationTests {
 
     @Test("partial preRendered content still produces system and user messages")
     func partialPreRenderedContentStillBuildsMessages() async throws {
-        let prompt = try await PromptAssembler.buildContext(
+        let prompt = try await PromptAssembler.assemble(
             LLMPromptRequest(
                 userQuery: "Current question",
                 contextNotes: [ContextFile(name: "Note", content: "Context note", source: "note")],

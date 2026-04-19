@@ -15,7 +15,7 @@ struct PositronicKitExamplesTests {
             userQuery: "Which step should I run next?"
         )
 
-        let assembled = prompt.assemble()
+        let assembled = prompt.assembledPrompt()
         let sections = assembled.resolvedSections
 
         #expect(sections.map(\.id) == ["system", "available_tools", "chat_history", "user_query"])

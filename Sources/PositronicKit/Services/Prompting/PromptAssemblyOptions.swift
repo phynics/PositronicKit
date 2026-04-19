@@ -4,8 +4,8 @@ import PKShared
 
 /// Advanced options for prompt assembly.
 ///
-/// Most callers should use ``PromptAssembler/buildContext(_:agentInstance:timeline:extensionSections:)``
-/// or ``PromptAssembler/buildPrompt(_:)``. Use this type when you need to override the default
+/// Most callers should use ``PromptAssembler/assemble(_:agentInstance:timeline:extensionSections:)``
+/// or ``PromptAssembler/prepare(_:)``. Use this type when you need to override the default
 /// assembly pipeline or apply compression and structured diff configuration.
 public struct PromptAssemblyOptions: Sendable {
     public var overridePipeline: PromptAssemblyPipeline?

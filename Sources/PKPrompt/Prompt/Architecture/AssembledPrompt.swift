@@ -28,13 +28,37 @@ public struct AssembledPrompt: Sendable {
     public let resolvedSections: [ResolvedPromptSection]
     public let compressionReport: CompressionReport?
 
-    public init(
+    private init(
         resolvedSections: [ResolvedPromptSection],
-        compressionReport: CompressionReport? = nil
-    ) throws {
-        try AssembledPrompt.validatePromptShape(in: resolvedSections)
+        compressionReport: CompressionReport? = nil,
+        validatedAndSorted: Bool
+    ) {
         self.resolvedSections = AssembledPrompt.sortResolvedSections(resolvedSections)
         self.compressionReport = compressionReport
+    }
+
+    public static func assemble(
+        sections resolvedSections: [ResolvedPromptSection],
+        compressionReport: CompressionReport? = nil
+    ) throws -> AssembledPrompt {
+        try validatePromptShape(in: resolvedSections)
+        return AssembledPrompt(
+            resolvedSections: resolvedSections,
+            compressionReport: compressionReport,
+            validatedAndSorted: true
+        )
+    }
+
+    static func assembleOrPreconditionFailure(
+        sections resolvedSections: [ResolvedPromptSection],
+        compressionReport: CompressionReport? = nil,
+        context: String
+    ) -> AssembledPrompt {
+        do {
+            return try assemble(sections: resolvedSections, compressionReport: compressionReport)
+        } catch {
+            preconditionFailure("Invalid prompt assembly in \(context): \(error)")
+        }
     }
 
     public func render() async -> RenderedPrompt {

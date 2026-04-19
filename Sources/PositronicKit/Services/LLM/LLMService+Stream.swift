@@ -17,7 +17,7 @@ public extension LLMServiceProtocol {
             systemInstructions: request.systemInstructions,
             generationParameters: request.generationParameters
         )
-        let result = try await PromptAssembler.buildPrompt(promptRequest)
+        let result = try await PromptAssembler.prepare(promptRequest)
         let provider = await configuration.provider
         let resolvedOutput = request.structuredOutput.map {
             StructuredOutputExecution.apply(

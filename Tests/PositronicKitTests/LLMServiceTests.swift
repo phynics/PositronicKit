@@ -37,7 +37,7 @@ struct LLMServiceTests {
             Message(content: "Previous assistant message", role: .assistant),
         ]
 
-        let prompt = try await PromptAssembler.buildContext(
+        let prompt = try await PromptAssembler.assemble(
             LLMPromptRequest(
                 userQuery: "Current question",
                 contextNotes: contextFiles,
@@ -114,7 +114,7 @@ struct LLMServiceTests {
 
     @Test("Test prompt building with empty context")
     func promptBuildingEmptyContext() async throws {
-        let prompt = try await PromptAssembler.buildContext(
+        let prompt = try await PromptAssembler.assemble(
             LLMPromptRequest(
                 userQuery: "Hello",
                 contextNotes: [],

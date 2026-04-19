@@ -20,15 +20,16 @@ public struct Prompt<Content: PromptComposite>: Sendable {
         self.init(content())
     }
 
-    /// Resolves the declarative prompt tree into an ordered ``AssembledPrompt``.
-    ///
-    /// The resulting artifact applies inherited traits and section ordering so it can
-    /// be rendered, budgeted, or converted into provider-specific messages.
-    ///
-    /// - Returns: A fully assembled prompt artifact.
-    public func assemble() -> AssembledPrompt {
-        try! AssembledPrompt(
-            resolvedSections: content.resolve(in: PromptResolutionContext())
+    /// Resolves the declarative prompt tree into concrete prompt sections.
+    public func resolvedSections() -> [ResolvedPromptSection] {
+        content.resolve(in: PromptResolutionContext())
+    }
+
+    /// Assembles the declarative prompt tree into an ordered ``AssembledPrompt``.
+    public func assembledPrompt() -> AssembledPrompt {
+        AssembledPrompt.assembleOrPreconditionFailure(
+            sections: resolvedSections(),
+            context: "Prompt.assembledPrompt"
         )
     }
 }

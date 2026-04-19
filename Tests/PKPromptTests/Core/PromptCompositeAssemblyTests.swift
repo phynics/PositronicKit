@@ -25,7 +25,7 @@ struct PromptCompositeAssemblyTests {
             MockSection(id: "2", priority: 100, content: "High Priority")
         }
 
-        let prompt = composite.assemble()
+        let prompt = composite.assembledPrompt()
         let sections = prompt.resolvedSections
 
         #expect(sections.count == 2)
