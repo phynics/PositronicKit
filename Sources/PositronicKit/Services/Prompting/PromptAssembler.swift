@@ -143,7 +143,8 @@ public enum PromptAssembler {
         )
 
         return try AssembledPrompt(
-            resolvedSections: compressionResult.sections
+            resolvedSections: compressionResult.sections,
+            compressionReport: compressionResult.report
         )
     }
 
