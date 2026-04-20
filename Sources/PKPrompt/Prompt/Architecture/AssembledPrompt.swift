@@ -3,6 +3,12 @@ import PKShared
 
 /// Fully assembled prompt artifact with ordered concrete sections ready for rendering.
 public struct AssembledPrompt: Sendable {
+    public struct Section: Sendable {
+        public let id: String
+        public let role: PromptSectionRole
+        public let content: RenderedPromptSectionContent
+    }
+
     public let resolvedSections: [ResolvedPromptSection]
     public let compressionReport: CompressionReport?
 
@@ -15,12 +21,12 @@ public struct AssembledPrompt: Sendable {
         self.compressionReport = compressionReport
     }
 
-    public func render() async -> RenderedPrompt {
-        var renderedSections: [RenderedPrompt.Section] = []
+    public func buildSections() async -> [Section] {
+        var renderedSections: [Section] = []
         for section in resolvedSections {
             if let content = await section.renderedContent() {
                 renderedSections.append(
-                    RenderedPrompt.Section(
+                    Section(
                         id: section.id,
                         role: section.role,
                         content: content
@@ -28,7 +34,23 @@ public struct AssembledPrompt: Sendable {
                 )
             }
         }
-        return RenderedPrompt(sections: renderedSections)
+        return renderedSections
+    }
+
+    public func buildString() async -> String {
+        await buildSections()
+            .compactMap(textContent)
+            .joined(separator: "\n\n---\n\n")
+    }
+
+    public func buildSectionsByID() async -> [String: String] {
+        var result: [String: String] = [:]
+        for section in await buildSections() {
+            if case let .text(content) = section.content, !content.isEmpty {
+                result[section.id] = content
+            }
+        }
+        return result
     }
 
     public var estimatedTokens: Int {
@@ -58,6 +80,43 @@ public struct AssembledPrompt: Sendable {
 
         guard userQueryIDs.count <= 1 else {
             throw PromptSectionValidationError.multipleUserQuerySections(userQueryIDs)
+        }
+    }
+
+    private func textContent(for section: Section) -> String? {
+        switch section.content {
+        case let .text(content):
+            return content
+        case let .messages(messages):
+            let content = messages
+                .map(formatHistoryMessage)
+                .joined(separator: "\n\n")
+            return content.isEmpty ? nil : content
+        }
+    }
+
+    private func messagesContent(for section: Section) -> [Message]? {
+        guard case let .messages(messages) = section.content else {
+            return nil
+        }
+        return messages
+    }
+
+    private func formatHistoryMessage(_ message: Message) -> String {
+        switch message.role {
+        case .user:
+            return "User: \(message.content)"
+        case .assistant:
+            if let think = message.think, !think.isEmpty {
+                return "Assistant: <think>\(think)</think>\n\(message.content)"
+            }
+            return "Assistant: \(message.content)"
+        case .system:
+            return "System: \(message.content)"
+        case .tool:
+            return "Tool: \(message.content)"
+        case .summary:
+            return "Summary: \(message.content)"
         }
     }
 }

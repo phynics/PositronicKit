@@ -3,9 +3,9 @@ import OpenAI
 import PKPrompt
 import PKShared
 
-public extension RenderedPrompt {
-    func toMessages() -> [ChatQuery.ChatCompletionMessageParam] {
-        let resolved = sections
+public extension AssembledPrompt {
+    func buildMessages() async -> [ChatQuery.ChatCompletionMessageParam] {
+        let resolved = await buildSections()
         var messages: [ChatQuery.ChatCompletionMessageParam] = []
 
         if let systemMessage = buildSystemMessage(from: resolved) {
@@ -22,7 +22,7 @@ public extension RenderedPrompt {
     }
 
     private func buildSystemMessage(
-        from sections: [RenderedPrompt.Section]
+        from sections: [AssembledPrompt.Section]
     ) -> ChatQuery.ChatCompletionMessageParam? {
         var systemParts: [String] = []
 
@@ -36,7 +36,7 @@ public extension RenderedPrompt {
         return .system(.init(content: .textContent(systemParts.joined(separator: "\n\n---\n\n")), name: nil))
     }
 
-    private func buildHistoryMessages(from sections: [RenderedPrompt.Section]) -> [ChatQuery.ChatCompletionMessageParam] {
+    private func buildHistoryMessages(from sections: [AssembledPrompt.Section]) -> [ChatQuery.ChatCompletionMessageParam] {
         sections
             .compactMap(messagesContent)
             .flatMap { $0 }
@@ -44,7 +44,7 @@ public extension RenderedPrompt {
     }
 
     private func buildUserQueryMessage(
-        from sections: [RenderedPrompt.Section]
+        from sections: [AssembledPrompt.Section]
     ) -> ChatQuery.ChatCompletionMessageParam? {
         guard let querySection = sections.first(where: { $0.role == .userQuery }) else {
             return nil
@@ -104,7 +104,7 @@ public extension RenderedPrompt {
         return .user(.init(content: .string(responseContent), name: nil))
     }
 
-    private func messagesContent(for section: RenderedPrompt.Section) -> [Message]? {
+    private func messagesContent(for section: AssembledPrompt.Section) -> [Message]? {
         guard case let .messages(messages) = section.content else {
             return nil
         }

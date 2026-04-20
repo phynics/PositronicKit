@@ -89,8 +89,7 @@ public enum PromptAssembler {
     /// - Throws: An error if assembly fails.
     public static func prepare(_ request: LLMPromptRequest) async throws -> LLMPromptResult {
         let prompt = try await assemble(request)
-        let renderedPrompt = await prompt.render()
-        return LLMPromptResult(messages: renderedPrompt.toMessages(), rawPrompt: renderedPrompt.joinedText)
+        return LLMPromptResult(messages: await prompt.buildMessages(), rawPrompt: await prompt.buildString())
     }
 
     /// Builds a prompt for LLM submission using explicit advanced assembly options.
@@ -99,8 +98,7 @@ public enum PromptAssembler {
         options: PromptAssemblyOptions
     ) async throws -> LLMPromptResult {
         let prompt = try await assemble(request, options: options)
-        let renderedPrompt = await prompt.render()
-        return LLMPromptResult(messages: renderedPrompt.toMessages(), rawPrompt: renderedPrompt.joinedText)
+        return LLMPromptResult(messages: await prompt.buildMessages(), rawPrompt: await prompt.buildString())
     }
 
     private static func runPipeline(

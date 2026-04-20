@@ -45,9 +45,9 @@ struct PromptBuilderTests {
         #expect(sections[0].id == "2")
         #expect(sections[1].id == "1")
 
-        let rendered = await assembled.render()
-        #expect(rendered.text.contains("High Priority"))
-        #expect(rendered.text.contains("Low Priority"))
+        let rendered = await assembled.buildString()
+        #expect(rendered.contains("High Priority"))
+        #expect(rendered.contains("Low Priority"))
     }
 
     @Test("Builder supports conditionals")

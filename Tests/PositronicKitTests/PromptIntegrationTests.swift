@@ -24,7 +24,7 @@ struct PromptIntegrationTests {
                 systemInstructions: nil
             )
         )
-        let messages = (await prompt.render()).toMessages()
+        let messages = await prompt.buildMessages()
 
         let userMessages = messages.filter {
             if case .user = $0 { return true }
@@ -58,7 +58,7 @@ struct PromptIntegrationTests {
                 systemInstructions: nil
             )
         )
-        let messages = (await prompt.render()).toMessages()
+        let messages = await prompt.buildMessages()
 
         let userMessages = messages.filter {
             if case .user = $0 { return true }
@@ -111,7 +111,7 @@ struct PromptIntegrationTests {
                 systemInstructions: nil
             )
         )
-        let messages = (await prompt.render()).toMessages()
+        let messages = await prompt.buildMessages()
 
         guard let firstMsg = messages.first,
               case let .system(systemParam) = firstMsg,
@@ -140,7 +140,7 @@ struct PromptIntegrationTests {
             )
         )
 
-        let messages = (await prompt.render()).toMessages()
+        let messages = await prompt.buildMessages()
 
         #expect(messages.count == 2)
 
