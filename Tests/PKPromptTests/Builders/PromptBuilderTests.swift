@@ -170,7 +170,7 @@ struct PromptBuilderTests {
         }
 
         #expect(throws: PromptSectionValidationError.duplicateSectionIDs(["shared"])) {
-            try PromptSectionValidator.validateUniqueIDs(in: [composite])
+            try AssembledPrompt(resolvedSections: composite.resolvedSections())
         }
     }
 

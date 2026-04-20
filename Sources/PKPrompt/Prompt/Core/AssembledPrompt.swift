@@ -1,6 +1,11 @@
 import Foundation
 import PKShared
 
+public enum PromptSectionValidationError: Error, Sendable, Equatable {
+    case duplicateSectionIDs([String])
+    case multipleUserQuerySections([String])
+}
+
 /// Fully assembled prompt artifact with ordered concrete sections ready for rendering.
 public struct AssembledPrompt: Sendable {
     public struct Section: Sendable {
@@ -71,7 +76,10 @@ public struct AssembledPrompt: Sendable {
     }
 
     private static func validatePromptShape(in sections: [ResolvedPromptSection]) throws {
-        try PromptSectionValidator.validateUniqueIDs(in: sections)
+        let duplicateIDs = sections.duplicateIDs(idKeyPath: \.id)
+        guard duplicateIDs.isEmpty else {
+            throw PromptSectionValidationError.duplicateSectionIDs(duplicateIDs)
+        }
 
         let userQueryIDs = sections
             .filter { $0.role == .userQuery }

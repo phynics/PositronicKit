@@ -23,23 +23,15 @@ import Foundation
 /// ```
 @resultBuilder
 public enum PromptBuilder {
-    /// Produces an empty section for blocks with no authored prompt content.
-    public static func buildBlock() -> EmptySection {
-        EmptySection()
-    }
-
-    /// Preserves a single authored component without wrapping it in a block.
-    public static func buildBlock<Content: PromptComposite>(_ content: Content) -> Content {
-        content
-    }
-
+    public typealias Component = PromptBlock
+    
     /// Wraps authored siblings in a typed block.
     public static func buildBlock<each Content: PromptComposite>(
         _ content: repeat each Content
     ) -> PromptBlock<repeat each Content> {
         PromptBlock(repeat each content)
     }
-
+    
     /// Preserves a single prompt composite expression without extra wrapping.
     public static func buildExpression<S: PromptComposite>(_ section: S) -> S {
         section

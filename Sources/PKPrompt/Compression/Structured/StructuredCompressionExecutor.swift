@@ -19,7 +19,11 @@ public actor StructuredCompressionExecutor {
         sections: [ResolvedPromptSection],
         compressor: SectionCompressor?
     ) async -> StructuredExecutionResult {
-        PromptSectionValidator.assertUniqueIDs(in: sections, context: "StructuredCompressionExecutor.execute sections")
+        let duplicateIDs = sections.duplicateIDs(idKeyPath: \.id)
+        precondition(
+            duplicateIDs.isEmpty,
+            "Duplicate context section ids in StructuredCompressionExecutor.execute sections: \(duplicateIDs.joined(separator: ", "))"
+        )
         precondition(
             Set(plan.nodeActions.map(\.nodeId)).count == plan.nodeActions.count,
             "Duplicate planned node ids are not supported"

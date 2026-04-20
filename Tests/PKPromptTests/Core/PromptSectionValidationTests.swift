@@ -37,26 +37,28 @@ struct PromptSectionValidationTests {
         )
     }
 
-    @Test("Validator rejects duplicate ids in resolved sections")
-    func validatorRejectsDuplicateResolvedSectionIDs() throws {
+    @Test("AssembledPrompt rejects duplicate ids in resolved sections")
+    func assembledPromptRejectsDuplicateResolvedSectionIDs() throws {
         let sections = [makeResolvedSection(id: "dup"), makeResolvedSection(id: "dup")]
 
         #expect(throws: PromptSectionValidationError.duplicateSectionIDs(["dup"])) {
-            try PromptSectionValidator.validateUniqueIDs(in: sections)
+            try AssembledPrompt(resolvedSections: sections)
         }
     }
 
-    @Test("Validator rejects duplicate ids in composite sections")
-    func validatorRejectsDuplicateCompositeSectionIDs() throws {
+    @Test("Prompt rejects duplicate ids in composite sections")
+    func promptRejectsDuplicateCompositeSectionIDs() throws {
         let sections: [any PromptComposite] = [MockSection(id: "dup"), MockSection(id: "dup")]
 
-        #expect(throws: PromptSectionValidationError.duplicateSectionIDs(["dup"])) {
-            try PromptSectionValidator.validateUniqueIDs(in: sections)
-        }
+        let duplicateIDs = sections
+            .flatMap { $0.resolve(in: PromptResolutionContext()) }
+            .duplicateIDs(idKeyPath: \.id)
+
+        #expect(duplicateIDs == ["dup"])
     }
 
-    @Test("Validator reports sorted duplicate ids")
-    func validatorReportsSortedDuplicateIDs() {
+    @Test("Collection helper reports sorted duplicate ids")
+    func collectionReportsSortedDuplicateIDs() {
         let sections = [
             makeResolvedSection(id: "b"),
             makeResolvedSection(id: "a"),
@@ -64,7 +66,7 @@ struct PromptSectionValidationTests {
             makeResolvedSection(id: "a"),
         ]
 
-        #expect(PromptSectionValidator.duplicateIDs(in: sections) == ["a", "b"])
+        #expect(sections.duplicateIDs(idKeyPath: \.id) == ["a", "b"])
     }
 
     @Test("Collection uniqueness assertion uses Identifiable ids")

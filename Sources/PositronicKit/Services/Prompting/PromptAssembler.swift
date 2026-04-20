@@ -111,8 +111,23 @@ public enum PromptAssembler {
         for try await _ in stream {}
 
         let sections = await context.sections
-        try PromptSectionValidator.validateUniqueIDs(in: sections)
+        let duplicateIDs = duplicateResolvedSectionIDs(in: sections.flatMap { $0.resolve(in: PromptResolutionContext()) })
+        guard duplicateIDs.isEmpty else {
+            throw PromptSectionValidationError.duplicateSectionIDs(duplicateIDs)
+        }
         return sections
+    }
+
+    private static func duplicateResolvedSectionIDs(in sections: [ResolvedPromptSection]) -> [String] {
+        var counts: [String: Int] = [:]
+        for section in sections {
+            counts[section.id, default: 0] += 1
+        }
+
+        return counts
+            .filter { $0.value > 1 }
+            .map(\.key)
+            .sorted()
     }
 
     private static func resolveSections(from sections: [any PromptComposite]) -> [ResolvedPromptSection] {

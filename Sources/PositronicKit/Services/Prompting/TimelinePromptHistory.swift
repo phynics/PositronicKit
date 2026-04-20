@@ -101,7 +101,11 @@ public actor TimelinePromptHistory {
     /// - Returns: A diff describing what changed since the last recording.
     @discardableResult
     public func record(sections: [ResolvedPromptSection], renderedContent: [String: String]) -> PromptDiff {
-        PromptSectionValidator.assertUniqueIDs(in: sections, context: "TimelinePromptHistory.record")
+        let duplicateIDs = duplicateResolvedSectionIDs(in: sections)
+        precondition(
+            duplicateIDs.isEmpty,
+            "Duplicate context section ids in TimelinePromptHistory.record: \(duplicateIDs.joined(separator: ", "))"
+        )
         var entries: [PromptSectionEntry] = []
         for (index, section) in sections.enumerated() {
             let content = renderedContent[section.id] ?? ""
@@ -179,5 +183,17 @@ public actor TimelinePromptHistory {
             )
         }
         return metadata
+    }
+
+    private func duplicateResolvedSectionIDs(in sections: [ResolvedPromptSection]) -> [String] {
+        var counts: [String: Int] = [:]
+        for section in sections {
+            counts[section.id, default: 0] += 1
+        }
+
+        return counts
+            .filter { $0.value > 1 }
+            .map(\.key)
+            .sorted()
     }
 }

@@ -9,7 +9,13 @@ public struct Prompt<Content: PromptComposite>: Sendable {
     ///
     /// - Parameter content: The declarative root composite to validate and store.
     public init(_ content: Content) {
-        PromptSectionValidator.assertUniqueIDs(in: [content], context: "Prompt.init")
+        let duplicateIDs = content
+            .resolve(in: PromptResolutionContext())
+            .duplicateIDs(idKeyPath: \.id)
+        precondition(
+            duplicateIDs.isEmpty,
+            "Duplicate context section ids in Prompt.init: \(duplicateIDs.joined(separator: ", "))"
+        )
         self.content = content
     }
 
