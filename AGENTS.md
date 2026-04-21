@@ -26,7 +26,9 @@
 - Keep `PositronicKitExamples` runnable and aligned with current public APIs; prefer test-backed examples over doc-only snippets.
 - When adding tests, prefer using existing helpers in `Tests/PKTestSupport`.
 - In `PKPrompt`, prefer composite `ContextSection` types for reuse and primitive leaf sections for actual rendered content.
-- Route prompt semantics via `PromptSectionRole` and resolved leaves rather than stringly-typed section ID checks.
+- Route prompt semantics via `PromptSectionRole` and `ConcretePromptSection` metadata rather than stringly-typed section ID checks.
+- Prefer `prompt.sections()` when a call site needs concrete prompt sections and `try prompt.assembledPrompt()` only when ordering validation or canonical assembled rendering is needed.
+- Prefer `await assembled.rendered()` as the canonical rendered prompt product; derive plain text, section snapshots, and provider messages from that one rendered value.
 
 ## Best Practices
 - Follow Swift 6 strict concurrency defaults (`Sendable`, actor isolation, `@MainActor`) and avoid introducing shared mutable state.
@@ -37,7 +39,7 @@
 - Add or update tests with every behavioral change; cover happy paths, edge cases, and failure paths.
 - Keep fixtures deterministic and lightweight; prefer reusable builders/helpers over duplicated inline setup.
 - Preserve module boundaries: `PKShared` for contracts/utilities, `PKPrompt` for prompt construction, `PositronicKit` for runtime orchestration.
-- Resolve prompt trees into stable leaves before hashing, token budgeting, history diffs, or provider message conversion.
+- Resolve prompt trees into stable `ConcretePromptSection` values before hashing, token budgeting, history diffs, or provider message conversion.
 - Use builder modifiers like `.priority(...)`, `.compression(...)`, and `.cachePolicy(...)` to set inherited prompt traits instead of duplicating metadata across composite sections.
 - Prefer `JSONSchema`/`JSONSchemaBuilder` over ad-hoc JSON dictionaries; when a schema mirrors a Swift model, use `@Schemable` on a `Codable` type and derive it from `Type.schema`.
 - Validate changes locally with `swift build` and `swift test` before opening or updating a PR.
