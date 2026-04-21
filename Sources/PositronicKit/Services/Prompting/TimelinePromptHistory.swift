@@ -92,6 +92,30 @@ public actor TimelinePromptHistory {
         self.thresholds = thresholds
     }
 
+    /// Render and record an assembled prompt in one step.
+    ///
+    /// Use this when prompt structure itself is the unit you want to journal for stable-prefix
+    /// detection and prefix-caching-aware history tracking.
+    @discardableResult
+    public func record(prompt: AssembledPrompt) async -> PromptDiff {
+        let rendered = await prompt.rendered()
+        return record(prompt: prompt, rendered: rendered)
+    }
+
+    /// Record an assembled prompt from an existing canonical rendered product.
+    ///
+    /// - Parameters:
+    ///   - prompt: The assembled prompt that provides section metadata and ordering.
+    ///   - rendered: The canonical rendered prompt product previously produced from `prompt`.
+    /// - Returns: A diff describing what changed since the last recording.
+    @discardableResult
+    public func record(
+        prompt: AssembledPrompt,
+        rendered: AssembledPrompt.RenderedPrompt
+    ) -> PromptDiff {
+        record(sections: prompt.sections, renderedContent: rendered.sectionsByID)
+    }
+
     /// Record a prompt snapshot using pre-rendered content (avoids double-rendering).
     ///
     /// - Parameters:
@@ -138,6 +162,17 @@ public actor TimelinePromptHistory {
     public func recordAppend(messageCount: Int, estimatedTokens: Int) {
         appendedMessageCount += messageCount
         appendedTokens += estimatedTokens
+    }
+
+    /// Track concrete messages appended during the agentic loop.
+    ///
+    /// This is useful when a caller already has the appended messages and wants the history layer
+    /// to estimate append pressure directly.
+    public func recordAppend(messages: [Message]) {
+        recordAppend(
+            messageCount: messages.count,
+            estimatedTokens: TokenEstimator.estimate(parts: messages.map(\.content))
+        )
     }
 
     /// Whether the append chain has grown past thresholds.

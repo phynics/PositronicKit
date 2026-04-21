@@ -20,26 +20,24 @@
 - Clean: `make clean`
 
 ## Working Conventions
-- Prefer small, focused changes that keep target/module boundaries clear.
-- Keep shared data contracts in the shared module; keep orchestration in the core runtime module.
-- Update `Package.swift`, imports, and docs together when renaming modules/targets.
+- Prefer small, focused changes that keep module boundaries clear: `PKShared` for contracts/utilities, `PKPrompt` for prompt construction, `PositronicKit` for runtime orchestration.
+- Update `Package.swift`, imports, docs, and examples together when renaming or reshaping public APIs.
 - Keep `PositronicKitExamples` runnable and aligned with current public APIs; prefer test-backed examples over doc-only snippets.
-- When adding tests, prefer using existing helpers in `Tests/PKTestSupport`.
-- In `PKPrompt`, prefer composite `ContextSection` types for reuse and primitive leaf sections for actual rendered content.
-- Route prompt semantics via `PromptSectionRole` and `ConcretePromptSection` metadata rather than stringly-typed section ID checks.
-- Prefer `prompt.sections()` when a call site needs concrete prompt sections and `try prompt.assembledPrompt()` only when ordering validation or canonical assembled rendering is needed.
-- Prefer `await assembled.rendered()` as the canonical rendered prompt product; derive plain text, section snapshots, and provider messages from that one rendered value.
+- Add or update tests with every behavioral change, using helpers from `Tests/PKTestSupport` when they fit.
+- Follow Swift 6 concurrency defaults (`Sendable`, actor isolation, `@MainActor`) and avoid shared mutable state.
+- Prefer composition over inheritance, narrow protocols, explicit `throws`, and structured logging via `PKShared`.
 
-## Best Practices
-- Follow Swift 6 strict concurrency defaults (`Sendable`, actor isolation, `@MainActor`) and avoid introducing shared mutable state.
-- Keep public API changes intentional: update access control, docs, and tests together when adding or changing exported types.
-- Prefer composition over inheritance, and keep protocols narrow and role-focused to reduce coupling between targets.
-- Use explicit error propagation (`throws`) for recoverable failures; avoid silently swallowing errors.
-- Keep logging structured and consistent via shared logging utilities in `PKShared`.
-- Add or update tests with every behavioral change; cover happy paths, edge cases, and failure paths.
-- Keep fixtures deterministic and lightweight; prefer reusable builders/helpers over duplicated inline setup.
-- Preserve module boundaries: `PKShared` for contracts/utilities, `PKPrompt` for prompt construction, `PositronicKit` for runtime orchestration.
-- Resolve prompt trees into stable `ConcretePromptSection` values before hashing, token budgeting, history diffs, or provider message conversion.
-- Use builder modifiers like `.priority(...)`, `.compression(...)`, and `.cachePolicy(...)` to set inherited prompt traits instead of duplicating metadata across composite sections.
-- Prefer `JSONSchema`/`JSONSchemaBuilder` over ad-hoc JSON dictionaries; when a schema mirrors a Swift model, use `@Schemable` on a `Codable` type and derive it from `Type.schema`.
+## PKPrompt Guidance
+- Prefer composite `ContextSection` types for reuse and primitive leaf sections for actual rendered content.
+- Route prompt semantics via `PromptSectionRole` and `ConcretePromptSection` metadata rather than stringly-typed section ID checks.
+- Think of PKPrompt in three layers: `Prompt -> String`, `Prompt -> Structured Prompt`, and `Prompt -> Structured Prompt History`.
+- Prefer `prompt.sections()` when a call site needs concrete sections and `try prompt.assembledPrompt()` only when ordering validation or canonical assembled rendering is needed.
+- Prefer `await assembled.rendered()` as the canonical rendered prompt product; derive plain text, snapshots, and provider messages from that one value.
+- For prompt history and prefix caching flows, pair `assembled.sections` with `rendered.sectionsByID` and record them through `TimelinePromptHistory` instead of re-deriving ad-hoc diffs.
+- Resolve prompt trees into stable `ConcretePromptSection` values before hashing, token budgeting, history diffs, or provider conversion.
+- Use builder modifiers like `.priority(...)`, `.compression(...)`, and `.cachePolicy(...)` to inherit prompt traits instead of duplicating metadata.
+
+## Additional Notes
+- Keep fixtures deterministic and lightweight; prefer reusable builders over duplicated inline setup.
+- Prefer `JSONSchema`/`JSONSchemaBuilder` over ad-hoc JSON dictionaries; when a schema mirrors a Swift model, use `@Schemable` and derive it from `Type.schema`.
 - Validate changes locally with `swift build` and `swift test` before opening or updating a PR.

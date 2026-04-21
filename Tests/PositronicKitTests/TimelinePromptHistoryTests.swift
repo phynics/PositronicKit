@@ -1,4 +1,5 @@
 import PKPrompt
+import PKShared
 import Testing
 @testable import PositronicKit
 
@@ -36,6 +37,43 @@ private struct TimelineSection: PromptLeaf {
 
 @Suite("TimelinePromptHistory")
 actor TimelinePromptHistoryTests {
+    @Test("Records an assembled prompt directly")
+    func recordsAssembledPromptDirectly() async throws {
+        let history = TimelinePromptHistory()
+        let prompt = try AnyPrompt.build {
+            TimelineSection(id: "system", cachePolicy: .stable, text: "A")
+            TimelineSection(id: "query", cachePolicy: .volatile, text: "B")
+        }.assembledPrompt()
+
+        let initialDiff = await history.record(prompt: prompt)
+        let updatedPrompt = try AnyPrompt.build {
+            TimelineSection(id: "system", cachePolicy: .stable, text: "A2")
+            TimelineSection(id: "query", cachePolicy: .volatile, text: "B")
+        }.assembledPrompt()
+
+        let diff = await history.record(prompt: updatedPrompt)
+
+        #expect(initialDiff.added.map(\.entryId) == ["system", "query"])
+        #expect(diff.changed.map(\.entryId) == ["system"])
+        #expect(diff.stableNodePaths == [updatedPrompt.sections[1].path])
+    }
+
+    @Test("Tracks appended messages directly")
+    func tracksAppendedMessages() async {
+        let history = TimelinePromptHistory()
+        let messages = [
+            Message(content: "Tool output", role: .tool),
+            Message(content: "Assistant follow-up", role: .assistant),
+        ]
+
+        await history.recordAppend(messages: messages)
+
+        let shouldCompact = await history.shouldCompact
+        #expect(shouldCompact == false)
+        #expect(await history.appendedMessageCount == 2)
+        #expect(await history.appendedTokens > 0)
+    }
+
     @Test("Exposes subtree diff node-path stats")
     func exposesSubtreeDiffStats() async {
         let history = TimelinePromptHistory()
