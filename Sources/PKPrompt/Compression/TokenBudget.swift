@@ -19,7 +19,7 @@ public struct TokenBudget: Sendable {
         executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
     ) async -> [ConcretePromptSection] {
         await apply(
-            to: sections.flatMap { $0.resolve(in: PromptResolutionContext()) },
+            to: sections.flatMap { $0.resolveSections(in: PromptResolutionContext()) },
             compressor: compressor,
             structuredDiff: structuredDiff,
             nodeMetadata: nodeMetadata,
@@ -37,7 +37,7 @@ public struct TokenBudget: Sendable {
         executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
     ) async -> (sections: [ConcretePromptSection], report: CompressionReport?) {
         await applyWithReport(
-            to: sections.flatMap { $0.resolve(in: PromptResolutionContext()) },
+            to: sections.flatMap { $0.resolveSections(in: PromptResolutionContext()) },
             compressor: compressor,
             structuredDiff: structuredDiff,
             nodeMetadata: nodeMetadata,

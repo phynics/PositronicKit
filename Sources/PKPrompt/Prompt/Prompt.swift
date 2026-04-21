@@ -3,10 +3,10 @@ import PKShared
 
 /// Base protocol for prompt sections. Composite sections usually resolve by delegating to `body`.
 public protocol Prompt: Sendable {
-    associatedtype Body: Prompt = NeverSection
+    associatedtype Body: Prompt = EmptyPrompt
     var body: Body { get }
     var sectionPathComponent: String? { get }
-    func resolve(in context: PromptResolutionContext) -> [ConcretePromptSection]
+    func resolveSections(in context: PromptResolutionContext) -> [ConcretePromptSection]
 }
 
 public extension Prompt {
@@ -16,24 +16,21 @@ public extension Prompt {
     }
 
     /// Default resolution walks into the section's `body` with an updated path context.
-    func resolve(in context: PromptResolutionContext = PromptResolutionContext()) -> [ConcretePromptSection] {
-        body.resolve(in: context.descending(into: sectionPathComponent))
+    func resolveSections(in context: PromptResolutionContext = PromptResolutionContext()) -> [ConcretePromptSection] {
+        body.resolveSections(in: context.descending(into: sectionPathComponent))
     }
-    
-    /// Renders this composite prompt into its canonical plain-text representation.
-    ///
-    /// This convenience API assembles the prompt first so ordering and validation match
-    /// ``assembledPrompt()``.
+
+    /// Resolves this prompt tree into concrete prompt sections.
+    func sections() -> [ConcretePromptSection] {
+        resolveSections(in: PromptResolutionContext())
+    }
+
+    /// Renders this prompt into its canonical plain-text representation.
     func render() async -> String? {
         let rendered = try! await assembledPrompt().rendered().string
         return rendered.isEmpty ? nil : rendered
     }
     
-    /// Resolves this declarative prompt tree into concrete prompt sections.
-    func sections() -> [ConcretePromptSection] {
-        resolve(in: PromptResolutionContext())
-    }
-
     /// Assembles this declarative prompt tree into a validated, ordered prompt artifact.
     ///
     /// - Throws: ``AssembledPrompt/ValidationError`` when the concrete section graph is invalid.

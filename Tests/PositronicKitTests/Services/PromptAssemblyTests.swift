@@ -49,7 +49,7 @@ struct PromptAssemblyTests {
         await context.append([MockSection(id: "s2"), MockSection(id: "s3")])
 
         let sections = await context.sections
-        let resolved = sections.flatMap { $0.resolve(in: PromptResolutionContext()) }
+        let resolved = sections.flatMap { $0.resolveSections(in: PromptResolutionContext()) }
         #expect(resolved.map(\.id) == ["s1", "s2", "s3"])
     }
 
@@ -64,7 +64,7 @@ struct PromptAssemblyTests {
             }
         }
 
-        let resolved = build().resolve(in: PromptResolutionContext())
+        let resolved = build().resolveSections(in: PromptResolutionContext())
         #expect(resolved.map(\.id) == ["s1", "s2", "s3", "s4"])
     }
 
@@ -83,7 +83,7 @@ struct PromptAssemblyTests {
         for try await _ in stream {}
 
         let sections = await context.sections
-        let resolved = sections.flatMap { $0.resolve(in: PromptResolutionContext()) }
+        let resolved = sections.flatMap { $0.resolveSections(in: PromptResolutionContext()) }
         #expect(resolved.count == 1)
         #expect(resolved.first?.id == "custom")
     }

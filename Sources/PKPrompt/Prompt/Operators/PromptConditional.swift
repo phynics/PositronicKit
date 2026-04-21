@@ -31,8 +31,8 @@ public struct PromptConditional<First: Prompt, Second: Prompt>: Prompt {
     }
 
     /// A placeholder body because this composite resolves through its stored branch directly.
-    public var body: NeverSection {
-        NeverSection()
+    public var body: EmptySection {
+        EmptySection()
     }
 
     /// Conditional wrappers are transparent during path construction.
@@ -44,12 +44,12 @@ public struct PromptConditional<First: Prompt, Second: Prompt>: Prompt {
     ///
     /// - Parameter context: The resolution context to pass into the selected branch.
     /// - Returns: The resolved output of the selected branch.
-    public func resolve(in context: PromptResolutionContext) -> [ConcretePromptSection] {
+    public func resolveSections(in context: PromptResolutionContext) -> [ConcretePromptSection] {
         switch storage {
         case let .first(content):
-            return content.resolve(in: context)
+            return content.resolveSections(in: context)
         case let .second(content):
-            return content.resolve(in: context)
+            return content.resolveSections(in: context)
         }
     }
 }

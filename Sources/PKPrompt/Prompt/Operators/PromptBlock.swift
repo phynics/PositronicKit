@@ -12,8 +12,8 @@ public struct PromptBlock<each Content: Prompt>: Prompt {
     }
 
     /// A placeholder body because blocks resolve through their stored children directly.
-    public var body: NeverSection {
-        NeverSection()
+    public var body: EmptySection {
+        EmptySection()
     }
 
     /// Blocks are transparent during path construction.
@@ -22,9 +22,9 @@ public struct PromptBlock<each Content: Prompt>: Prompt {
     }
 
     /// Resolves each child in source order.
-    public func resolve(in context: PromptResolutionContext) -> [ConcretePromptSection] {
+    public func resolveSections(in context: PromptResolutionContext) -> [ConcretePromptSection] {
         var resolvedSections: [ConcretePromptSection] = []
-        repeat resolvedSections += (each content).resolve(in: context)
+        repeat resolvedSections += (each content).resolveSections(in: context)
         return resolvedSections
     }
 }

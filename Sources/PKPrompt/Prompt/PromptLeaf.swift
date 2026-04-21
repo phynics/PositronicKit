@@ -52,8 +52,8 @@ public protocol PromptLeaf: Prompt {
 
 public extension PromptLeaf {
     /// Prompt leaves never expose nested body content.
-    var body: NeverSection {
-        NeverSection()
+    var body: EmptyPrompt {
+        EmptyPrompt()
     }
 
     /// Leaves identify themselves through `id`, not an extra path component.
@@ -82,11 +82,11 @@ public extension PromptLeaf {
     }
 
     func render(constrainedTo tokens: Int?) async -> String? {
-        await resolve(in: PromptResolutionContext()).first?.renderText(constrainedTo: tokens)
+        await resolveSections(in: PromptResolutionContext()).first?.renderText(constrainedTo: tokens)
     }
 
     /// Resolves a prompt leaf into a single concrete node with inherited traits applied.
-    func resolve(in context: PromptResolutionContext = PromptResolutionContext()) -> [ConcretePromptSection] {
+    func resolveSections(in context: PromptResolutionContext = PromptResolutionContext()) -> [ConcretePromptSection] {
         let effectivePriority = context.inheritedPriority ?? priority
         let effectiveCompression = context.inheritedCompression ?? compression
         let effectiveCachePolicy = context.inheritedCachePolicy ?? cachePolicy
@@ -171,5 +171,9 @@ public extension PromptLeaf {
         case .volatile:
             return "volatile"
         }
+    }
+    
+    func estimatedTokenCount(for text: String) -> Int {
+        text.isEmpty ? 0 : max(1, text.count / 4)
     }
 }

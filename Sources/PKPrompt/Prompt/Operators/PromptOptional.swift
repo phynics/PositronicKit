@@ -22,8 +22,8 @@ public struct PromptOptional<Primary: Prompt, Fallback: Prompt>: Prompt {
     }
 
     /// A placeholder body because this composite resolves through its stored branches directly.
-    public var body: NeverSection {
-        NeverSection()
+    public var body: EmptySection {
+        EmptySection()
     }
 
     /// Optional wrappers are transparent during path construction.
@@ -35,10 +35,10 @@ public struct PromptOptional<Primary: Prompt, Fallback: Prompt>: Prompt {
     ///
     /// - Parameter context: The resolution context to pass into the chosen branch.
     /// - Returns: The resolved output of the chosen branch, or an empty array if neither exists.
-    public func resolve(in context: PromptResolutionContext) -> [ConcretePromptSection] {
+    public func resolveSections(in context: PromptResolutionContext) -> [ConcretePromptSection] {
         if let primary {
-            return primary.resolve(in: context)
+            return primary.resolveSections(in: context)
         }
-        return fallback?.resolve(in: context) ?? []
+        return fallback?.resolveSections(in: context) ?? []
     }
 }

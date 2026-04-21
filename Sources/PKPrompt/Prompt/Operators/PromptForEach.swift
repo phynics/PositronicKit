@@ -50,8 +50,8 @@ public struct PromptForEach<Content: Prompt>: Prompt {
     }
 
     /// A placeholder body because this composite resolves through ``content`` directly.
-    public var body: NeverSection {
-        NeverSection()
+    public var body: EmptySection {
+        EmptySection()
     }
 
     /// Loop wrappers are transparent during path construction.
@@ -63,9 +63,9 @@ public struct PromptForEach<Content: Prompt>: Prompt {
     ///
     /// - Parameter context: The resolution context to pass to each repeated child.
     /// - Returns: The concatenated resolved output of all repeated children.
-    public func resolve(in context: PromptResolutionContext) -> [ConcretePromptSection] {
+    public func resolveSections(in context: PromptResolutionContext) -> [ConcretePromptSection] {
         zip(content, iterationPathComponents).flatMap { child, pathComponent in
-            child.resolve(in: context.descending(into: pathComponent))
+            child.resolveSections(in: context.descending(into: pathComponent))
         }
     }
 }

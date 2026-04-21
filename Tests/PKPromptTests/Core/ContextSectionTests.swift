@@ -29,7 +29,7 @@ struct PromptCoreTests {
     @Test("Prompt leaves use default traits")
     func defaultImplementations() async {
         let section = MinimalPromptLeaf()
-        let resolved = section.resolve(in: PromptResolutionContext())
+        let resolved = section.resolveSections(in: PromptResolutionContext())
 
         #expect(resolved.count == 1)
         #expect(resolved[0].compression == .keep)
@@ -41,7 +41,7 @@ struct PromptCoreTests {
 
     @Test("Concrete sections can be constrained")
     func concreteSectionConstraint() async {
-        let base = MinimalPromptLeaf().resolve(in: PromptResolutionContext())[0]
+        let base = MinimalPromptLeaf().resolveSections(in: PromptResolutionContext())[0]
         let constrained = base.constrained(to: 50)
 
         #expect(constrained.id == "min")
@@ -54,7 +54,7 @@ struct PromptCoreTests {
         let resolved = TruncatablePromptLeaf(
             compression: .truncate(tail: true),
             text: "abcdefghijklmnop"
-        ).resolve(in: PromptResolutionContext())[0]
+        ).resolveSections(in: PromptResolutionContext())[0]
 
         let rendered = await resolved.renderText(constrainedTo: 2)
         #expect(rendered == "abcdefgh\n... [Truncated]")
@@ -65,7 +65,7 @@ struct PromptCoreTests {
         let resolved = TruncatablePromptLeaf(
             compression: .truncate(tail: false),
             text: "abcdefghijklmnop"
-        ).resolve(in: PromptResolutionContext())[0]
+        ).resolveSections(in: PromptResolutionContext())[0]
 
         let rendered = await resolved.renderText(constrainedTo: 2)
         #expect(rendered == "... [Truncated]\nijklmnop")

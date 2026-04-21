@@ -30,15 +30,15 @@ public struct PriorityModifier<Content: Prompt>: Prompt {
     let content: Content
     let priority: Int
 
-    public var body: NeverSection {
-        NeverSection()
+    public var body: EmptyPrompt {
+        EmptyPrompt()
     }
 
     public var sectionPathComponent: String? {
         nil
     }
 
-    public func resolve(in context: PromptResolutionContext) -> [ConcretePromptSection] {
-        content.resolve(in: context.applying(priority: priority))
+    public func resolveSections(in context: PromptResolutionContext) -> [ConcretePromptSection] {
+        content.resolveSections(in: context.applying(priority: priority))
     }
 }

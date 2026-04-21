@@ -38,8 +38,8 @@ struct PromptTests {
         }
 
         #expect(type(of: prompt) == AnyPrompt.self)
-        #expect(prompt.sections.count == 1)
-        #expect(type(of: prompt.sections[0]) == PromptBlock<DummyPromptSection, DummyPromptSection>.self)
+        #expect(prompt.prompts.count == 1)
+        #expect(type(of: prompt.prompts[0]) == PromptBlock<DummyPromptSection, DummyPromptSection>.self)
         #expect(try! prompt.assembledPrompt().sections.map { $0.id } == ["s2", "s1"])
     }
 
@@ -49,7 +49,7 @@ struct PromptTests {
         let sec2 = DummyPromptSection(id: "s2", priority: 100, estimatedTokens: 10, text: "High")
 
         let prompt = AnyPrompt([sec1, sec2])
-        #expect(prompt.sections.count == 2)
+        #expect(prompt.prompts.count == 2)
 
         let resolved = try! prompt.assembledPrompt().sections
 
@@ -65,8 +65,8 @@ struct PromptTests {
             DummyPromptSection(id: "s2", priority: 100, estimatedTokens: 10, text: "B")
         }
 
-        #expect(prompt.sections.count == 1)
-        #expect(type(of: prompt.sections[0]) == PromptBlock<DummyPromptSection, DummyPromptSection>.self)
+        #expect(prompt.prompts.count == 1)
+        #expect(type(of: prompt.prompts[0]) == PromptBlock<DummyPromptSection, DummyPromptSection>.self)
 
         let resolved = try! prompt.assembledPrompt().sections
         #expect(resolved.count == 2)

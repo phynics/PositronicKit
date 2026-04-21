@@ -19,15 +19,15 @@ public struct CompressionModifier<Content: Prompt>: Prompt {
     let content: Content
     let compression: CompressionStrategy
 
-    public var body: NeverSection {
-        NeverSection()
+    public var body: EmptyPrompt {
+        EmptyPrompt()
     }
 
     public var sectionPathComponent: String? {
         nil
     }
 
-    public func resolve(in context: PromptResolutionContext) -> [ConcretePromptSection] {
-        content.resolve(in: context.applying(compression: compression))
+    public func resolveSections(in context: PromptResolutionContext) -> [ConcretePromptSection] {
+        content.resolveSections(in: context.applying(compression: compression))
     }
 }

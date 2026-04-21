@@ -34,7 +34,7 @@ private struct RecordingCompressor: SectionCompressor {
 }
 
 private func resolveExecutorSections(_ sections: [ExecutorMockSection]) -> [ConcretePromptSection] {
-    sections.flatMap { $0.resolve(in: PromptResolutionContext()) }
+    sections.flatMap { $0.resolveSections(in: PromptResolutionContext()) }
 }
 
 @Suite("StructuredCompressionExecutor")

@@ -67,7 +67,7 @@ struct PromptSectionValidationTests {
         let sections: [any Prompt] = [MockSection(id: "dup"), MockSection(id: "dup")]
 
         let duplicateIDs = sections
-            .flatMap { $0.resolve(in: PromptResolutionContext()) }
+            .flatMap { $0.resolveSections(in: PromptResolutionContext()) }
             .duplicateIDs(idKeyPath: \.id)
 
         #expect(duplicateIDs == ["dup"])

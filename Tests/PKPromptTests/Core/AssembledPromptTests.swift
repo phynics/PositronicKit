@@ -36,7 +36,7 @@ struct AssembledPromptTests {
         let sec1 = DummyPromptSection(id: "s1", priority: 1, estimatedTokens: 10, text: "Low")
         let sec2 = DummyPromptSection(id: "s2", priority: 100, estimatedTokens: 10, text: "High")
 
-        let prompt = try! AssembledPrompt(sections: [sec1.resolve()[0], sec2.resolve()[0]])
+        let prompt = try! AssembledPrompt(sections: [sec1.resolveSections()[0], sec2.resolveSections()[0]])
         let resolved = prompt.sections
 
         #expect(resolved.count == 2)
@@ -47,9 +47,9 @@ struct AssembledPromptTests {
     @Test("Assembled prompt builds canonical ordered string")
     func buildString() async {
         let prompt = try! AssembledPrompt(sections: [
-            DummyPromptSection(id: "s1", priority: 10, estimatedTokens: 10, text: "First block").resolve()[0],
-            DummyPromptSection(id: "s2", priority: 5, estimatedTokens: 10, text: nil).resolve()[0],
-            DummyPromptSection(id: "s3", priority: 1, estimatedTokens: 10, text: "Second block").resolve()[0],
+            DummyPromptSection(id: "s1", priority: 10, estimatedTokens: 10, text: "First block").resolveSections()[0],
+            DummyPromptSection(id: "s2", priority: 5, estimatedTokens: 10, text: nil).resolveSections()[0],
+            DummyPromptSection(id: "s3", priority: 1, estimatedTokens: 10, text: "Second block").resolveSections()[0],
         ])
 
         let rendered = await prompt.rendered().string
@@ -59,9 +59,9 @@ struct AssembledPromptTests {
     @Test("Assembled prompt snapshot skips empty content")
     func renderedSectionsByID() async {
         let prompt = try! AssembledPrompt(sections: [
-            DummyPromptSection(id: "s1", priority: 10, estimatedTokens: 10, text: "Val1").resolve()[0],
-            DummyPromptSection(id: "s2", priority: 5, estimatedTokens: 10, text: "").resolve()[0],
-            DummyPromptSection(id: "s3", priority: 1, estimatedTokens: 10, text: "Val2").resolve()[0],
+            DummyPromptSection(id: "s1", priority: 10, estimatedTokens: 10, text: "Val1").resolveSections()[0],
+            DummyPromptSection(id: "s2", priority: 5, estimatedTokens: 10, text: "").resolveSections()[0],
+            DummyPromptSection(id: "s3", priority: 1, estimatedTokens: 10, text: "Val2").resolveSections()[0],
         ])
 
         let rendered = await prompt.rendered().sectionsByID
@@ -78,7 +78,7 @@ struct AssembledPromptTests {
             Message(content: "Hi", role: .assistant),
         ]
         let prompt = try! AssembledPrompt(sections: [
-            HistorySection(messages: messages).resolve()[0],
+            HistorySection(messages: messages).resolveSections()[0],
         ])
 
         let rendered = await prompt.rendered().sections
@@ -94,8 +94,8 @@ struct AssembledPromptTests {
             Message(content: "Hi", role: .assistant),
         ]
         let prompt = try! AssembledPrompt(sections: [
-            DummyPromptSection(id: "system", priority: 100, estimatedTokens: 10, text: "Rules").resolve()[0],
-            HistorySection(messages: messages).resolve()[0],
+            DummyPromptSection(id: "system", priority: 100, estimatedTokens: 10, text: "Rules").resolveSections()[0],
+            HistorySection(messages: messages).resolveSections()[0],
         ])
 
         let rendered = await prompt.rendered()
@@ -110,7 +110,7 @@ struct AssembledPromptTests {
     func droppedHistoryDoesNotRender() async {
         let droppedHistory = HistorySection(messages: [
             Message(content: "Hello", role: .user),
-        ]).resolve()[0].dropped()
+        ]).resolveSections()[0].dropped()
         let prompt = try! AssembledPrompt(sections: [droppedHistory])
 
         let rendered = await prompt.rendered().sections
@@ -122,8 +122,8 @@ struct AssembledPromptTests {
     @Test("Assembled prompt estimatedTokens sums resolved tokens")
     func estimatedTokens() {
         let prompt = try! AssembledPrompt(sections: [
-            DummyPromptSection(id: "s1", priority: 10, estimatedTokens: 50, text: "A").resolve()[0],
-            DummyPromptSection(id: "s2", priority: 5, estimatedTokens: 100, text: "B").resolve()[0],
+            DummyPromptSection(id: "s1", priority: 10, estimatedTokens: 50, text: "A").resolveSections()[0],
+            DummyPromptSection(id: "s2", priority: 5, estimatedTokens: 100, text: "B").resolveSections()[0],
         ])
 
         #expect(prompt.estimatedTokens == 150)
@@ -137,10 +137,10 @@ struct AssembledPromptTests {
         let stableHigh = DummyPromptSection(id: "stableHigh", priority: 100, estimatedTokens: 0, text: "H", cachePolicy: .stable)
 
         let prompt = try! AssembledPrompt(sections: [
-            volatileHigh.resolve()[0],
-            semiStableLow.resolve()[0],
-            stableMedium.resolve()[0],
-            stableHigh.resolve()[0],
+            volatileHigh.resolveSections()[0],
+            semiStableLow.resolveSections()[0],
+            stableMedium.resolveSections()[0],
+            stableHigh.resolveSections()[0],
         ])
         let resolved = prompt.sections
 

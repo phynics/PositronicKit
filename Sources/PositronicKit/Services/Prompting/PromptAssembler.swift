@@ -113,7 +113,7 @@ public enum PromptAssembler {
         for try await _ in stream {}
 
         let sections = await context.sections
-        let duplicateIDs = duplicateResolvedSectionIDs(in: sections.flatMap { $0.resolve(in: PromptResolutionContext()) })
+        let duplicateIDs = duplicateResolvedSectionIDs(in: sections.flatMap { $0.resolveSections(in: PromptResolutionContext()) })
         guard duplicateIDs.isEmpty else {
             throw AssembledPrompt.ValidationError.duplicateSectionIDs(duplicateIDs)
         }
@@ -133,7 +133,7 @@ public enum PromptAssembler {
     }
 
     private static func resolveSections(from sections: [any Prompt]) -> [ConcretePromptSection] {
-        sections.flatMap { $0.resolve(in: PromptResolutionContext()) }
+        sections.flatMap { $0.resolveSections(in: PromptResolutionContext()) }
     }
 
     private static func assemblePrompt(

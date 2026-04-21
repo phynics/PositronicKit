@@ -173,7 +173,7 @@ actor TimelinePromptHistoryTests {
         let sections = [
             TimelineSection(id: "system", cachePolicy: .stable, text: "A"),
             TimelineSection(id: "query", cachePolicy: .volatile, text: "B"),
-        ].flatMap { $0.resolve(in: PromptResolutionContext()) }
+        ].flatMap { $0.resolveSections(in: PromptResolutionContext()) }
 
         _ = await history.record(sections: sections, renderedContent: ["system": "A", "query": "B"])
         let diff = await history.record(sections: sections, renderedContent: ["system": "A2", "query": "B"])
