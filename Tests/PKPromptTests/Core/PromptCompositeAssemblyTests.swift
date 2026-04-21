@@ -2,8 +2,8 @@ import Foundation
 import Testing
 @testable import PKPrompt
 
-@Suite("PromptComposite assembly")
-struct PromptCompositeAssemblyTests {
+@Suite("Prompt assembly")
+struct PromptAssemblyTests {
     struct MockSection: PromptLeaf {
         let id: String
         let priority: Int
@@ -18,14 +18,14 @@ struct PromptCompositeAssemblyTests {
         }
     }
 
-    @Test("Composite builders assemble without wrapping in Prompt")
+    @Test("Prompt builders assemble without an extra wrapper")
     func builderAssemblesDirectly() async {
-        let composite = PromptAny {
+        let composite = AnyPrompt {
             MockSection(id: "1", priority: 10, content: "Low Priority")
             MockSection(id: "2", priority: 100, content: "High Priority")
         }
 
-        let prompt = composite.assembledPrompt()
+        let prompt = try! composite.assembledPrompt()
         let sections = prompt.resolvedSections
 
         #expect(sections.count == 2)
@@ -33,9 +33,9 @@ struct PromptCompositeAssemblyTests {
         #expect(sections[1].id == "1")
     }
 
-    @Test("Composite render convenience uses assembled prompt ordering")
+    @Test("Prompt render convenience uses assembled prompt ordering")
     func compositeRenderUsesAssembledPrompt() async {
-        let composite = PromptAny {
+        let composite = AnyPrompt {
             MockSection(id: "1", priority: 10, content: "Low Priority")
             MockSection(id: "2", priority: 100, content: "High Priority")
         }

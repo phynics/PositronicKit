@@ -2,7 +2,7 @@ import Foundation
 import PKShared
 
 /// A lightweight typed wrapper for sibling prompt content authored in a builder block.
-public struct PromptBlock<each Content: PromptComposite>: PromptComposite {
+public struct PromptBlock<each Content: Prompt>: Prompt {
     /// The children in source order.
     public let content: (repeat each Content)
 

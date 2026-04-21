@@ -1,38 +1,43 @@
 import Foundation
+import PKShared
 
-/// Lightweight wrapper for a declarative prompt definition.
-public struct Prompt<Content: PromptComposite>: Sendable {
-    /// The typed root composite that makes up this declarative prompt tree.
-    public let content: Content
+/// Base protocol for prompt sections. Composite sections usually resolve by delegating to `body`.
+public protocol Prompt: Sendable {
+    associatedtype Body: Prompt = NeverSection
+    var body: Body { get }
+    var sectionPathComponent: String? { get }
+    func resolve(in context: PromptResolutionContext) -> [ResolvedPromptSection]
+}
 
-    /// Creates a prompt from an explicit root composite.
+public extension Prompt {
+    /// By default, composite sections contribute their type name to the resolution path.
+    var sectionPathComponent: String? {
+        String(describing: Self.self)
+    }
+
+    /// Default resolution walks into the section's `body` with an updated path context.
+    func resolve(in context: PromptResolutionContext = PromptResolutionContext()) -> [ResolvedPromptSection] {
+        body.resolve(in: context.descending(into: sectionPathComponent))
+    }
+    
+    /// Renders this composite prompt into its canonical plain-text representation.
     ///
-    /// - Parameter content: The declarative root composite to validate and store.
-    public init(_ content: Content) {
-        let duplicateIDs = content
-            .resolve(in: PromptResolutionContext())
-            .duplicateIDs(idKeyPath: \.id)
-        precondition(
-            duplicateIDs.isEmpty,
-            "Duplicate context section ids in Prompt.init: \(duplicateIDs.joined(separator: ", "))"
-        )
-        self.content = content
+    /// This convenience API assembles the prompt first so ordering and validation match
+    /// ``assembledPrompt()``.
+    func render() async -> String? {
+        let rendered = try! await assembledPrompt().rendered().string
+        return rendered.isEmpty ? nil : rendered
+    }
+    
+    /// Resolves this declarative prompt tree into concrete prompt sections.
+    func resolvedSections() -> [ResolvedPromptSection] {
+        resolve(in: PromptResolutionContext())
     }
 
-    /// Creates a prompt from a ``PromptBuilder`` closure.
+    /// Assembles this declarative prompt tree into a validated, ordered prompt artifact.
     ///
-    /// - Parameter content: A builder that produces the root prompt composite.
-    public init(@PromptBuilder _ content: () -> Content) {
-        self.init(content())
-    }
-
-    /// Resolves the declarative prompt tree into concrete prompt sections.
-    public func resolvedSections() -> [ResolvedPromptSection] {
-        content.resolve(in: PromptResolutionContext())
-    }
-
-    /// Assembles the declarative prompt tree into an ordered ``AssembledPrompt``.
-    public func assembledPrompt() -> AssembledPrompt {
-        try! AssembledPrompt(resolvedSections: resolvedSections())
+    /// - Throws: ``AssembledPrompt/ValidationError`` when the resolved section graph is invalid.
+    func assembledPrompt() throws -> AssembledPrompt {
+        try AssembledPrompt(resolvedSections: resolvedSections())
     }
 }

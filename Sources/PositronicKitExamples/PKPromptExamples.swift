@@ -7,10 +7,10 @@ public enum PKPromptExamples {
         tools: [String],
         history: [Message],
         userQuery: String
-    ) -> Prompt<some PromptComposite> {
+    ) -> some Prompt {
         let toolSummary = tools.map { "- \($0)" }.joined(separator: "\n")
 
-        return Prompt {
+        return AnyPrompt.build {
             SystemPrompt("You are helping with PositronicKit setup.")
 
             ContextPrompt(

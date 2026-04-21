@@ -36,7 +36,7 @@ private struct StaticText: PromptLeaf {
     }
 }
 
-private struct ToolsSection: PromptComposite {
+private struct ToolsSection: Prompt {
     let tools: [String]
 
     private var toolString: String {
@@ -44,7 +44,7 @@ private struct ToolsSection: PromptComposite {
     }
 
     @PromptBuilder
-    var body: some PromptComposite {
+    var body: some Prompt {
         StaticText(id: "tools", text: toolString, role: .system)
             .priority(.high)
             .compression(.drop)
@@ -53,10 +53,10 @@ private struct ToolsSection: PromptComposite {
 }
 
 @Suite("Body-based context sections")
-struct BodyBasedPromptCompositeTests {
+struct BodyBasedPromptTests {
     @Test("Composite sections flatten into effective prompt leaves")
     func compositeSectionsFlattenIntoEffectivePromptLeaves() async {
-        let sections = ToolsSection(tools: ["read", "write"]).assembledPrompt().resolvedSections
+        let sections = try! ToolsSection(tools: ["read", "write"]).assembledPrompt().resolvedSections
 
         #expect(sections.count == 1)
         #expect(sections[0].id == "tools")
@@ -72,10 +72,10 @@ struct BodyBasedPromptCompositeTests {
 
     @Test("Modifiers override prompt leaf defaults across nested groups")
     func modifiersOverridePrimitiveDefaultsAcrossNestedGroups() async {
-        struct NestedSection: PromptComposite {
+        struct NestedSection: Prompt {
             @PromptBuilder
-            var body: some PromptComposite {
-                PromptAny {
+            var body: some Prompt {
+                AnyPrompt {
                     StaticText(id: "low", text: "first")
                     StaticText(id: "high", text: "second", priority: 5)
                 }
@@ -84,7 +84,7 @@ struct BodyBasedPromptCompositeTests {
             }
         }
 
-        let sections = NestedSection().assembledPrompt().resolvedSections
+        let sections = try! NestedSection().assembledPrompt().resolvedSections
 
         #expect(sections.map(\.id) == ["low", "high"])
         #expect(sections.allSatisfy { $0.priority == 90 })
@@ -93,7 +93,7 @@ struct BodyBasedPromptCompositeTests {
 
     @Test("Convenience prompt leaves provide ergonomic authoring defaults")
     func conveniencePromptLeavesProvideErgonomicDefaults() async {
-        let prompt = Prompt {
+        let prompt = AnyPrompt {
             SystemPrompt("You are a careful assistant.")
             ContextPrompt("Project uses Swift 6.", id: "project")
                 .priority(.high)
@@ -101,7 +101,7 @@ struct BodyBasedPromptCompositeTests {
             UserPrompt("Add a toolbar action.")
         }
 
-        let sections = prompt.assembledPrompt().resolvedSections
+        let sections = try! prompt.assembledPrompt().resolvedSections
 
         #expect(sections.map(\.id) == ["system", "project", "user_query"])
         #expect(sections[0].role == .system)
@@ -113,7 +113,7 @@ struct BodyBasedPromptCompositeTests {
 
     @Test("HistoryPrompt resolves to chat history leaves")
     func historyPromptResolvesToChatHistoryLeaves() async {
-        let sections = HistoryPrompt([
+        let sections = try! HistoryPrompt([
             Message(content: "First", role: .user),
             Message(content: "Second", role: .assistant),
         ]).assembledPrompt().resolvedSections

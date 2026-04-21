@@ -1,7 +1,7 @@
 import Foundation
 import PKShared
 
-public struct NeverSection: PromptComposite {
+public struct NeverSection: Prompt {
     public init() {}
     public var body: NeverSection { self }
     public var sectionPathComponent: String? { nil }

@@ -40,7 +40,7 @@ public enum PromptAssembler {
         _ request: LLMPromptRequest,
         agentInstance: AgentInstance? = nil,
         timeline: Timeline? = nil,
-        extensionSections: [any PromptComposite] = []
+        extensionSections: [any Prompt] = []
     ) async throws -> AssembledPrompt {
         try await assemble(
             request,
@@ -59,7 +59,7 @@ public enum PromptAssembler {
         _ request: LLMPromptRequest,
         agentInstance: AgentInstance? = nil,
         timeline: Timeline? = nil,
-        extensionSections: [any PromptComposite] = [],
+        extensionSections: [any Prompt] = [],
         options: PromptAssemblyOptions
     ) async throws -> AssembledPrompt {
         let assemblyContext = PromptAssemblyContext(
@@ -89,7 +89,8 @@ public enum PromptAssembler {
     /// - Throws: An error if assembly fails.
     public static func prepare(_ request: LLMPromptRequest) async throws -> LLMPromptResult {
         let prompt = try await assemble(request)
-        return LLMPromptResult(messages: await prompt.buildMessages(), rawPrompt: await prompt.buildString())
+        let rendered = await prompt.rendered()
+        return LLMPromptResult(messages: prompt.buildMessages(from: rendered), rawPrompt: rendered.string)
     }
 
     /// Builds a prompt for LLM submission using explicit advanced assembly options.
@@ -98,13 +99,14 @@ public enum PromptAssembler {
         options: PromptAssemblyOptions
     ) async throws -> LLMPromptResult {
         let prompt = try await assemble(request, options: options)
-        return LLMPromptResult(messages: await prompt.buildMessages(), rawPrompt: await prompt.buildString())
+        let rendered = await prompt.rendered()
+        return LLMPromptResult(messages: prompt.buildMessages(from: rendered), rawPrompt: rendered.string)
     }
 
     private static func runPipeline(
         context: PromptAssemblyContext,
         overridePipeline: PromptAssemblyPipeline?
-    ) async throws -> [any PromptComposite] {
+    ) async throws -> [any Prompt] {
         let pipeline = overridePipeline ?? PromptAssemblyPipeline(stages: defaultAssemblyStages())
 
         let stream = pipeline.execute(context)
@@ -113,7 +115,7 @@ public enum PromptAssembler {
         let sections = await context.sections
         let duplicateIDs = duplicateResolvedSectionIDs(in: sections.flatMap { $0.resolve(in: PromptResolutionContext()) })
         guard duplicateIDs.isEmpty else {
-            throw PromptSectionValidationError.duplicateSectionIDs(duplicateIDs)
+            throw AssembledPrompt.ValidationError.duplicateSectionIDs(duplicateIDs)
         }
         return sections
     }
@@ -130,7 +132,7 @@ public enum PromptAssembler {
             .sorted()
     }
 
-    private static func resolveSections(from sections: [any PromptComposite]) -> [ResolvedPromptSection] {
+    private static func resolveSections(from sections: [any Prompt]) -> [ResolvedPromptSection] {
         sections.flatMap { $0.resolve(in: PromptResolutionContext()) }
     }
 

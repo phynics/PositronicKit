@@ -23,6 +23,15 @@ struct PromptSectionValidationTests {
         }
     }
 
+    private struct DuplicateSectionsPrompt: Prompt {
+        var body: some Prompt {
+            AnyPrompt {
+                MockSection(id: "dup")
+                MockSection(id: "dup")
+            }
+        }
+    }
+
     private func makeResolvedSection(id: String) -> ResolvedPromptSection {
         ResolvedPromptSection(
             id: id,
@@ -41,14 +50,21 @@ struct PromptSectionValidationTests {
     func assembledPromptRejectsDuplicateResolvedSectionIDs() throws {
         let sections = [makeResolvedSection(id: "dup"), makeResolvedSection(id: "dup")]
 
-        #expect(throws: PromptSectionValidationError.duplicateSectionIDs(["dup"])) {
+        #expect(throws: AssembledPrompt.ValidationError.duplicateSectionIDs(["dup"])) {
             try AssembledPrompt(resolvedSections: sections)
+        }
+    }
+
+    @Test("Prompt assembledPrompt surfaces validation errors")
+    func promptAssembledPromptSurfacesValidationErrors() throws {
+        #expect(throws: AssembledPrompt.ValidationError.duplicateSectionIDs(["dup"])) {
+            try DuplicateSectionsPrompt().assembledPrompt()
         }
     }
 
     @Test("Prompt rejects duplicate ids in composite sections")
     func promptRejectsDuplicateCompositeSectionIDs() throws {
-        let sections: [any PromptComposite] = [MockSection(id: "dup"), MockSection(id: "dup")]
+        let sections: [any Prompt] = [MockSection(id: "dup"), MockSection(id: "dup")]
 
         let duplicateIDs = sections
             .flatMap { $0.resolve(in: PromptResolutionContext()) }

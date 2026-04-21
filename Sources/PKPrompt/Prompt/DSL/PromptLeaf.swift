@@ -38,7 +38,7 @@ public enum PromptLeafContent: Sendable {
 }
 
 /// Prompt leaves render actual prompt content and resolve directly into concrete nodes.
-public protocol PromptLeaf: PromptComposite {
+public protocol PromptLeaf: Prompt {
     var id: String { get }
     var role: PromptSectionRole { get }
     var priority: Int { get }

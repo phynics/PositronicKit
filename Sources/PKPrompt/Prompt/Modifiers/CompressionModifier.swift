@@ -9,13 +9,13 @@
 import Foundation
 import PKShared
 
-public extension PromptComposite {
-    func compression(_ value: CompressionStrategy) -> some PromptComposite {
+public extension Prompt {
+    func compression(_ value: CompressionStrategy) -> some Prompt {
         CompressionModifier(content: self, compression: value)
     }
 }
 
-public struct CompressionModifier<Content: PromptComposite>: PromptComposite {
+public struct CompressionModifier<Content: Prompt>: Prompt {
     let content: Content
     let compression: CompressionStrategy
 

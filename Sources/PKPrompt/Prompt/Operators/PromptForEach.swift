@@ -8,7 +8,7 @@ import PKShared
 ///
 /// Item identity participates in stable resolution paths, not leaf identity. Repeated
 /// children must still resolve to globally unique leaf `id` values.
-public struct PromptForEach<Content: PromptComposite>: PromptComposite {
+public struct PromptForEach<Content: Prompt>: Prompt {
     /// The repeated prompt content instances produced by the loop.
     public let content: [Content]
     private let iterationPathComponents: [String?]

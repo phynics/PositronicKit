@@ -16,17 +16,17 @@ public enum PromptPriority: Int, Sendable {
     case critical = 100
 }
 
-public extension PromptComposite {
-    func priority(_ value: Int) -> some PromptComposite {
+public extension Prompt {
+    func priority(_ value: Int) -> some Prompt {
         PriorityModifier(content: self, priority: value)
     }
 
-    func priority(_ value: PromptPriority) -> some PromptComposite {
+    func priority(_ value: PromptPriority) -> some Prompt {
         priority(value.rawValue)
     }
 }
 
-public struct PriorityModifier<Content: PromptComposite>: PromptComposite {
+public struct PriorityModifier<Content: Prompt>: Prompt {
     let content: Content
     let priority: Int
 

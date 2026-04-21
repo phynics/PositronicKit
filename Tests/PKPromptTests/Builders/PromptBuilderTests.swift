@@ -28,24 +28,24 @@ struct PromptBuilderTests {
         let content: String
     }
 
-    private func buildComposite<Content: PromptComposite>(@PromptBuilder _ content: () -> Content) -> Content {
+    private func buildComposite<Content: Prompt>(@PromptBuilder _ content: () -> Content) -> Content {
         content()
     }
 
     @Test("Builder composes multiple sections")
     func exampleBuilder() async {
-        let prompt = Prompt {
+        let prompt = AnyPrompt {
             MockSection(id: "1", priority: 10, content: "Low Priority")
             MockSection(id: "2", priority: 100, content: "High Priority")
         }
 
-        let assembled = prompt.assembledPrompt()
+        let assembled = try! prompt.assembledPrompt()
         let sections = assembled.resolvedSections
         #expect(sections.count == 2)
         #expect(sections[0].id == "2")
         #expect(sections[1].id == "1")
 
-        let rendered = await assembled.buildString()
+        let rendered = await assembled.rendered().string
         #expect(rendered.contains("High Priority"))
         #expect(rendered.contains("Low Priority"))
     }
@@ -55,7 +55,7 @@ struct PromptBuilderTests {
         let includeSecret = false
         let includePublic = true
 
-        let sections = PromptAny {
+        let sections = try! AnyPrompt {
             if includeSecret {
                 MockSection(id: "secret", priority: 50, content: "Secret")
             }
@@ -72,7 +72,7 @@ struct PromptBuilderTests {
     func loop() async {
         let items = ["A", "B", "C"]
 
-        let prompt = Prompt {
+        let prompt = AnyPrompt {
             for item in items {
                 MockSection(id: item, priority: 50, content: item)
             }
@@ -82,7 +82,7 @@ struct PromptBuilderTests {
         #expect(sections.count == 3)
     }
 
-    @Test("Builder preserves typed block structure without PromptAny wrapping")
+    @Test("Builder preserves typed block structure")
     func blockPreservesTypedStructure() {
         let composite = buildComposite {
             MockSection(id: "1", priority: 10, content: "One")
@@ -92,16 +92,14 @@ struct PromptBuilderTests {
         #expect(type(of: composite) == PromptBlock<MockSection, MockSection>.self)
     }
 
-    @Test("PromptAny composes nested prompt content")
-    func promptAnyComposesNestedPromptContent() {
-        let prompt = Prompt {
-            PromptAny {
-                MockSection(id: "1", priority: 10, content: "One")
-                MockSection(id: "2", priority: 20, content: "Two")
-            }
+    @Test("AnyPrompt composes nested prompt content")
+    func anyPromptComposesNestedPromptContent() {
+        let prompt = AnyPrompt {
+            MockSection(id: "1", priority: 10, content: "One")
+            MockSection(id: "2", priority: 20, content: "Two")
         }
 
-        #expect(prompt.assembledPrompt().resolvedSections.map { $0.id } == ["2", "1"])
+        #expect(try! prompt.assembledPrompt().resolvedSections.map { $0.id } == ["2", "1"])
     }
 
     @Test("Builder lowers conditionals to PromptConditional")
@@ -141,7 +139,7 @@ struct PromptBuilderTests {
             MockSection(id: item.id, priority: 50, content: item.content)
         }
 
-        #expect(composite.assembledPrompt().resolvedSections.map { $0.id } == ["a", "b"])
+        #expect(try! composite.assembledPrompt().resolvedSections.map { $0.id } == ["a", "b"])
     }
 
     @Test("PromptForEach supports explicit id key paths")
@@ -155,7 +153,7 @@ struct PromptBuilderTests {
             MockSection(id: item.key, priority: 50, content: item.content)
         }
 
-        #expect(composite.assembledPrompt().resolvedSections.map { $0.id } == ["a", "b"])
+        #expect(try! composite.assembledPrompt().resolvedSections.map { $0.id } == ["a", "b"])
     }
 
     @Test("PromptForEach ids only stabilize paths and do not replace leaf ids")
@@ -169,7 +167,7 @@ struct PromptBuilderTests {
             MockSection(id: "shared", priority: 50, content: item.content)
         }
 
-        #expect(throws: PromptSectionValidationError.duplicateSectionIDs(["shared"])) {
+        #expect(throws: AssembledPrompt.ValidationError.duplicateSectionIDs(["shared"])) {
             try AssembledPrompt(resolvedSections: composite.resolvedSections())
         }
     }

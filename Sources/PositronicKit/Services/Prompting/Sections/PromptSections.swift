@@ -2,7 +2,7 @@ import Foundation
 import PKPrompt
 import PKShared
 
-public struct SystemInstructions: PromptComposite {
+public struct SystemInstructions: Prompt {
     public let instructions: String
 
     public init(_ instructions: String) {
@@ -10,7 +10,7 @@ public struct SystemInstructions: PromptComposite {
     }
 
     @PromptBuilder
-    public var body: some PromptComposite {
+    public var body: some Prompt {
         if !instructions.isEmpty {
             SystemPrompt(
                 """
@@ -86,14 +86,14 @@ public struct Tools: PromptLeaf {
     }
 }
 
-public struct ChatHistory: PromptComposite {
+public struct ChatHistory: Prompt {
     public let messages: [Message]
 
     public init(_ messages: [Message]) {
         self.messages = messages
     }
 
-    public var body: some PromptComposite {
+    public var body: some Prompt {
         HistoryPrompt(messages)
     }
 
@@ -158,14 +158,14 @@ public struct ContextNotes: PromptLeaf {
     }
 }
 
-public struct UserQuery: PromptComposite {
+public struct UserQuery: Prompt {
     public let query: String
 
     public init(_ query: String) {
         self.query = query
     }
 
-    public var body: some PromptComposite {
+    public var body: some Prompt {
         UserPrompt(query, estimatedTokens: TokenEstimator.estimate(text: query))
     }
 }
@@ -248,7 +248,7 @@ public struct WorkspacesContext: PromptLeaf {
     }
 }
 
-public struct AgentContext: PromptComposite {
+public struct AgentContext: Prompt {
     public let agent: AgentInstance
     public let timelineTitle: String?
 
@@ -257,7 +257,7 @@ public struct AgentContext: PromptComposite {
         self.timelineTitle = timelineTitle
     }
 
-    public var body: some PromptComposite {
+    public var body: some Prompt {
         SystemPrompt(
             text,
             id: "agent_context",
@@ -282,14 +282,14 @@ public struct AgentContext: PromptComposite {
     }
 }
 
-public struct TimelineContext: PromptComposite {
+public struct TimelineContext: Prompt {
     public let timeline: Timeline
 
     public init(_ timeline: Timeline) {
         self.timeline = timeline
     }
 
-    public var body: some PromptComposite {
+    public var body: some Prompt {
         ContextPrompt(
             """
             ## Current Timeline

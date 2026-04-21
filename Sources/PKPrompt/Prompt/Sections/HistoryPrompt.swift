@@ -1,7 +1,7 @@
 import Foundation
 import PKShared
 
-public struct HistoryPrompt: PromptComposite {
+public struct HistoryPrompt: Prompt {
     public let id: String
     public let messages: [Message]
     public let priority: Int
@@ -19,7 +19,7 @@ public struct HistoryPrompt: PromptComposite {
         self.cachePolicy = cachePolicy
     }
 
-    public var body: some PromptComposite {
+    public var body: some Prompt {
         HistorySection(
             id: id,
             messages: messages,

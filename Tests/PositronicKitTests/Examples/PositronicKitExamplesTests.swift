@@ -15,13 +15,13 @@ struct PositronicKitExamplesTests {
             userQuery: "Which step should I run next?"
         )
 
-        let assembled = prompt.assembledPrompt()
+        let assembled = try! prompt.assembledPrompt()
         let sections = assembled.resolvedSections
 
         #expect(sections.map(\.id) == ["system", "available_tools", "chat_history", "user_query"])
         #expect(sections.map(\.role) == [.system, .context, .chatHistory, .userQuery])
 
-        let rendered = await assembled.buildString()
+        let rendered = await assembled.rendered().string
         #expect(rendered.contains("You are helping with PositronicKit setup."))
         #expect(rendered.contains("- build"))
         #expect(rendered.contains("Which step should I run next?"))

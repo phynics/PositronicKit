@@ -52,7 +52,7 @@ struct AssembledPromptTests {
             DummyPromptSection(id: "s3", priority: 1, estimatedTokens: 10, text: "Second block").resolve()[0],
         ])
 
-        let rendered = await prompt.buildString()
+        let rendered = await prompt.rendered().string
         #expect(rendered == "First block\n\n---\n\nSecond block")
     }
 
@@ -64,7 +64,7 @@ struct AssembledPromptTests {
             DummyPromptSection(id: "s3", priority: 1, estimatedTokens: 10, text: "Val2").resolve()[0],
         ])
 
-        let rendered = await prompt.buildSectionsByID()
+        let rendered = await prompt.rendered().sectionsByID
         #expect(rendered.count == 2)
         #expect(rendered["s1"] == "Val1")
         #expect(rendered["s3"] == "Val2")
@@ -81,10 +81,29 @@ struct AssembledPromptTests {
             HistorySection(messages: messages).resolve()[0],
         ])
 
-        let rendered = await prompt.buildSections()
+        let rendered = await prompt.rendered().sections
 
         #expect(rendered.count == 1)
         #expect(rendered[0].content == RenderedPromptSectionContent.messages(messages))
+    }
+
+    @Test("Assembled prompt renders a canonical product from one pass")
+    func renderedProductIncludesHistorySnapshots() async {
+        let messages = [
+            Message(content: "Hello", role: .user),
+            Message(content: "Hi", role: .assistant),
+        ]
+        let prompt = try! AssembledPrompt(resolvedSections: [
+            DummyPromptSection(id: "system", priority: 100, estimatedTokens: 10, text: "Rules").resolve()[0],
+            HistorySection(messages: messages).resolve()[0],
+        ])
+
+        let rendered = await prompt.rendered()
+
+        #expect(rendered.sections.count == 2)
+        #expect(rendered.string == "Rules\n\n---\n\nUser: Hello\n\nAssistant: Hi")
+        #expect(rendered.sectionsByID["system"] == "Rules")
+        #expect(rendered.sectionsByID["chat_history"] == "User: Hello\n\nAssistant: Hi")
     }
 
     @Test("Dropped history sections do not survive rendered snapshots")
@@ -94,10 +113,10 @@ struct AssembledPromptTests {
         ]).resolve()[0].dropped()
         let prompt = try! AssembledPrompt(resolvedSections: [droppedHistory])
 
-        let rendered = await prompt.buildSections()
+        let rendered = await prompt.rendered().sections
 
         #expect(rendered.isEmpty)
-        #expect(await prompt.buildString().isEmpty)
+        #expect(await prompt.rendered().string.isEmpty)
     }
 
     @Test("Assembled prompt estimatedTokens sums resolved tokens")
@@ -133,7 +152,7 @@ struct AssembledPromptTests {
         let query1 = DummyPromptSection(id: "q1", priority: 10, estimatedTokens: 5, text: "One")
         let query2 = DummyPromptSection(id: "q2", priority: 5, estimatedTokens: 5, text: "Two")
 
-        #expect(throws: PromptSectionValidationError.multipleUserQuerySections(["q1", "q2"])) {
+        #expect(throws: AssembledPrompt.ValidationError.multipleUserQuerySections(["q1", "q2"])) {
             try AssembledPrompt(resolvedSections: [
                 ResolvedPromptSection(
                     id: query1.id,

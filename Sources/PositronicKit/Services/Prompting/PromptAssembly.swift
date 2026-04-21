@@ -22,9 +22,9 @@ public actor PromptAssemblyContext: Sendable {
     /// The conversation timeline context, if any.
     public let timeline: Timeline?
     /// Additional context sections provided by extensions or plugins.
-    public let extensionSections: [any PromptComposite]
+    public let extensionSections: [any Prompt]
     /// The ordered collection of gathered prompt sections.
-    public private(set) var sections: [any PromptComposite] = []
+    public private(set) var sections: [any Prompt] = []
 
     /// Initializes a new prompt assembly context.
     /// - Parameters:
@@ -36,7 +36,7 @@ public actor PromptAssemblyContext: Sendable {
         request: LLMPromptRequest,
         agentInstance: AgentInstance? = nil,
         timeline: Timeline? = nil,
-        extensionSections: [any PromptComposite] = []
+        extensionSections: [any Prompt] = []
     ) {
         self.request = request
         self.agentInstance = agentInstance
@@ -46,13 +46,13 @@ public actor PromptAssemblyContext: Sendable {
 
     /// Appends a single section to the assembled prompt.
     /// - Parameter section: The context section to add.
-    public func append(_ section: any PromptComposite) {
+    public func append(_ section: any Prompt) {
         sections.append(section)
     }
 
     /// Appends multiple sections to the assembled prompt.
     /// - Parameter sections: An array of context sections to add.
-    public func append(_ sections: [any PromptComposite]) {
+    public func append(_ sections: [any Prompt]) {
         self.sections.append(contentsOf: sections)
     }
 }

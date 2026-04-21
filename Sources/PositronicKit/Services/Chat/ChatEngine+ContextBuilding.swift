@@ -116,12 +116,12 @@ extension ChatEngine {
         )
 
         // 5. Render once and reuse for messages + prompt history
-        let initialMessages = await prompt.buildMessages()
+        let renderedPrompt = await prompt.rendered()
+        let initialMessages = prompt.buildMessages(from: renderedPrompt)
         let resolvedSections = prompt.resolvedSections
 
         // 6. Record prompt snapshot for cache tracking
-        let renderedSectionsByID = await prompt.buildSectionsByID()
-        let diff = await promptHistory.record(sections: resolvedSections, renderedContent: renderedSectionsByID)
+        let diff = await promptHistory.record(sections: resolvedSections, renderedContent: renderedPrompt.sectionsByID)
         logger.debug(
             "Prompt snapshot: \(resolvedSections.count) sections, ~\(prompt.estimatedTokens) tokens, \(diff.stablePrefixCount) stable prefix entries"
         )

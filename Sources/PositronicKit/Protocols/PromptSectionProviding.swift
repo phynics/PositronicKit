@@ -18,9 +18,9 @@ public struct PromptBuildContext: Sendable {
 
 // MARK: - PromptSectionProviding
 
-/// Implement to inject `PromptComposite`(s) into every chat prompt for a timeline.
+/// Implement to inject `Prompt`(s) into every chat prompt for a timeline.
 /// Register instances via `TimelineManager.init(sectionProviders:)`.
 /// Sections participate in priority sorting and token-budget decisions automatically.
 public protocol PromptSectionProviding: Sendable {
-    func sections(for context: PromptBuildContext) async -> [any PromptComposite]
+    func sections(for context: PromptBuildContext) async -> [any Prompt]
 }

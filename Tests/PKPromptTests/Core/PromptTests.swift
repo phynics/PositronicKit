@@ -30,31 +30,45 @@ private struct DummyPromptSection: PromptLeaf {
 
 @Suite("Prompt")
 struct PromptTests {
-    @Test("Prompt wraps a typed root composite and assembles it on demand")
-    func promptWrapsTypedRootComposite() async {
+    @Test("AnyPrompt.build wraps builder content in a transparent prompt container")
+    func anyPromptBuild() {
+        let prompt = AnyPrompt.build {
+            DummyPromptSection(id: "s1", priority: 1, estimatedTokens: 10, text: "A")
+            DummyPromptSection(id: "s2", priority: 100, estimatedTokens: 10, text: "B")
+        }
+
+        #expect(type(of: prompt) == AnyPrompt.self)
+        #expect(prompt.sections.count == 1)
+        #expect(type(of: prompt.sections[0]) == PromptBlock<DummyPromptSection, DummyPromptSection>.self)
+        #expect(try! prompt.assembledPrompt().resolvedSections.map { $0.id } == ["s2", "s1"])
+    }
+
+    @Test("Prompt composites assemble directly without a wrapper")
+    func promptCompositesAssembleDirectly() async {
         let sec1 = DummyPromptSection(id: "s1", priority: 1, estimatedTokens: 10, text: "Low")
         let sec2 = DummyPromptSection(id: "s2", priority: 100, estimatedTokens: 10, text: "High")
 
-        let prompt = Prompt(PromptAny([sec1, sec2]))
-        #expect(prompt.content.sections.count == 2)
+        let prompt = AnyPrompt([sec1, sec2])
+        #expect(prompt.sections.count == 2)
 
-        let resolved = prompt.assembledPrompt().resolvedSections
+        let resolved = try! prompt.assembledPrompt().resolvedSections
 
         #expect(resolved.count == 2)
         #expect(resolved[0].id == "s2")
         #expect(resolved[1].id == "s1")
     }
 
-    @Test("Prompt builder stores the lowered builder output")
+    @Test("AnyPrompt builder stores the lowered builder output")
     func promptBuilderInitialization() async {
-        let prompt = Prompt {
+        let prompt = AnyPrompt {
             DummyPromptSection(id: "s1", priority: 1, estimatedTokens: 10, text: "A")
             DummyPromptSection(id: "s2", priority: 100, estimatedTokens: 10, text: "B")
         }
 
-        #expect(type(of: prompt.content) == PromptBlock<DummyPromptSection, DummyPromptSection>.self)
+        #expect(prompt.sections.count == 1)
+        #expect(type(of: prompt.sections[0]) == PromptBlock<DummyPromptSection, DummyPromptSection>.self)
 
-        let resolved = prompt.assembledPrompt().resolvedSections
+        let resolved = try! prompt.assembledPrompt().resolvedSections
         #expect(resolved.count == 2)
         #expect(resolved[0].id == "s2")
     }

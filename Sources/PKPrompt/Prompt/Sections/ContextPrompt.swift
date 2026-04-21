@@ -1,6 +1,6 @@
 import Foundation
 
-public struct ContextPrompt: PromptComposite {
+public struct ContextPrompt: Prompt {
     public let id: String
     public let text: String
     public let priority: Int
@@ -24,7 +24,7 @@ public struct ContextPrompt: PromptComposite {
         self.estimatedTokens = estimatedTokens
     }
 
-    public var body: some PromptComposite {
+    public var body: some Prompt {
         TextSection(
             id: id,
             text: text,

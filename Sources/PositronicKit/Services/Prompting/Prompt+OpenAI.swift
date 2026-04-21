@@ -4,8 +4,19 @@ import PKPrompt
 import PKShared
 
 public extension AssembledPrompt {
+    /// Builds OpenAI chat messages from a freshly rendered canonical prompt product.
+    ///
+    /// Use this overload when no rendered product is already available.
     func buildMessages() async -> [ChatQuery.ChatCompletionMessageParam] {
-        let resolved = await buildSections()
+        buildMessages(from: await rendered())
+    }
+
+    /// Builds OpenAI chat messages from an existing canonical rendered prompt product.
+    ///
+    /// - Parameter rendered: A rendered prompt previously produced by ``AssembledPrompt/rendered()``.
+    /// - Returns: Provider message parameters derived from the rendered section list.
+    func buildMessages(from rendered: Rendered) -> [ChatQuery.ChatCompletionMessageParam] {
+        let resolved = rendered.sections
         var messages: [ChatQuery.ChatCompletionMessageParam] = []
 
         if let systemMessage = buildSystemMessage(from: resolved) {
@@ -38,8 +49,12 @@ public extension AssembledPrompt {
 
     private func buildHistoryMessages(from sections: [AssembledPrompt.Section]) -> [ChatQuery.ChatCompletionMessageParam] {
         sections
-            .compactMap(messagesContent)
-            .flatMap { $0 }
+            .flatMap { section -> [Message] in
+                guard case let .messages(messages) = section.content else {
+                    return []
+                }
+                return messages
+            }
             .map(convertHistoryMessage)
     }
 
@@ -102,12 +117,5 @@ public extension AssembledPrompt {
         let hiddenInstruction = "\n[System: This is a system message hidden from user; now respond to the user about this result.]"
         let responseContent = "<tool_response>\n\(msg.content)\n</tool_response>\(hiddenInstruction)"
         return .user(.init(content: .string(responseContent), name: nil))
-    }
-
-    private func messagesContent(for section: AssembledPrompt.Section) -> [Message]? {
-        guard case let .messages(messages) = section.content else {
-            return nil
-        }
-        return messages
     }
 }

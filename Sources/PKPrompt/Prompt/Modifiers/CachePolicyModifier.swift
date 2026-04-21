@@ -9,13 +9,13 @@
 import Foundation
 import PKShared
 
-public extension PromptComposite {
-    func cachePolicy(_ value: CachePolicy) -> some PromptComposite {
+public extension Prompt {
+    func cachePolicy(_ value: CachePolicy) -> some Prompt {
         CachePolicyModifier(content: self, cachePolicy: value)
     }
 }
 
-public struct CachePolicyModifier<Content: PromptComposite>: PromptComposite {
+public struct CachePolicyModifier<Content: Prompt>: Prompt {
     let content: Content
     let cachePolicy: CachePolicy
 

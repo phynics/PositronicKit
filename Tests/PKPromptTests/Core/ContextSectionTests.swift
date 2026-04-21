@@ -24,8 +24,8 @@ private struct TruncatablePromptLeaf: PromptLeaf {
     }
 }
 
-@Suite("PromptComposite core")
-struct PromptCompositeTests {
+@Suite("Prompt core")
+struct PromptCoreTests {
     @Test("Prompt leaves use default traits")
     func defaultImplementations() async {
         let section = MinimalPromptLeaf()

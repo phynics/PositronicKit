@@ -6,7 +6,7 @@ import PKShared
 /// ``PromptBuilder`` lowers `if` / `else` branches into this composite so the authored
 /// prompt tree retains the fact that a branch was selected, even though resolution is
 /// transparent to downstream assembly.
-public struct PromptConditional<First: PromptComposite, Second: PromptComposite>: PromptComposite {
+public struct PromptConditional<First: Prompt, Second: Prompt>: Prompt {
     /// The selected branch content.
     public let storage: Storage
 

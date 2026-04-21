@@ -11,7 +11,7 @@ public struct TokenBudget: Sendable {
     }
 
     public func apply(
-        to sections: [any PromptComposite],
+        to sections: [any Prompt],
         compressor: SectionCompressor? = nil,
         structuredDiff: StructuredDiffHint? = nil,
         nodeMetadata: [String: StructuredNodeMetadata] = [:],
@@ -29,7 +29,7 @@ public struct TokenBudget: Sendable {
     }
 
     public func applyWithReport(
-        to sections: [any PromptComposite],
+        to sections: [any Prompt],
         compressor: SectionCompressor? = nil,
         structuredDiff: StructuredDiffHint? = nil,
         nodeMetadata: [String: StructuredNodeMetadata] = [:],

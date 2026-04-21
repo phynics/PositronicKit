@@ -56,7 +56,7 @@ struct PromptAssemblyTests {
     @Test("PromptBuilder composes sections")
     func builderComposesSections() {
         @PromptBuilder
-        func build() -> some PromptComposite {
+        func build() -> some Prompt {
             MockSection(id: "s1")
             [MockSection(id: "s2"), MockSection(id: "s3")]
             if true {
@@ -127,7 +127,7 @@ struct PromptAssemblyTests {
             }
         }
 
-        await #expect(throws: PromptSectionValidationError.self) {
+        await #expect(throws: AssembledPrompt.ValidationError.self) {
             _ = try await PromptAssembler.assemble(
                 makeRequest(userQuery: "test"),
                 options: PromptAssemblyOptions(overridePipeline: PromptAssemblyPipeline(stages: [DuplicateStage()]))
