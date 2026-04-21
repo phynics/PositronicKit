@@ -121,10 +121,16 @@ extension ChatEngine {
         let resolvedSections = prompt.sections
 
         // 6. Record prompt snapshot for cache tracking
-        let diff = await promptHistory.record(sections: resolvedSections, renderedContent: renderedPrompt.sectionsByID)
+        let update = await promptHistory.update(prompt: prompt, rendered: renderedPrompt)
+        guard let diff = update.diff else {
+            preconditionFailure("Prompt updates must always produce a prompt diff")
+        }
         logger.debug(
             "Prompt snapshot: \(resolvedSections.count) sections, ~\(prompt.estimatedTokens) tokens, \(diff.stablePrefixCount) stable prefix entries"
         )
+        if update.didCompact {
+            logger.debug("Prompt history append state compacted after prompt update")
+        }
 
         if let report = prompt.compressionReport {
             let metrics = StructuredCompressionMetrics(

@@ -165,7 +165,7 @@ public struct ChatEngine: Sendable {
                 // Track appended messages for compaction awareness
                 if let history = context.promptHistory {
                     let responseText = await turnContext.outputs.fullResponse + turnContext.outputs.fullThinking
-                    await history.recordAppend(
+                    _ = await history.append(
                         messageCount: newMessages.count,
                         estimatedTokens: TokenEstimator.estimate(text: responseText)
                     )

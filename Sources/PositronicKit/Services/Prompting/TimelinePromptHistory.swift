@@ -64,6 +64,11 @@ public struct PromptDiff: Sendable {
     }
 }
 
+public struct PromptHistoryUpdate: Sendable {
+    public let diff: PromptDiff?
+    public let didCompact: Bool
+}
+
 // MARK: - Thresholds
 
 public struct CompactionThresholds: Sendable {
@@ -90,6 +95,47 @@ public actor TimelinePromptHistory {
     public init(thresholds: CompactionThresholds = .default) {
         journal = PipelineJournal<PromptSnapshot>()
         self.thresholds = thresholds
+    }
+
+    /// Record a prompt snapshot and compact append state if thresholds were exceeded.
+    @discardableResult
+    public func update(prompt: AssembledPrompt) async -> PromptHistoryUpdate {
+        let rendered = await prompt.rendered()
+        return update(prompt: prompt, rendered: rendered)
+    }
+
+    /// Record a prompt snapshot from an existing rendered product and compact append state if needed.
+    @discardableResult
+    public func update(
+        prompt: AssembledPrompt,
+        rendered: AssembledPrompt.RenderedPrompt
+    ) -> PromptHistoryUpdate {
+        let diff = record(prompt: prompt, rendered: rendered)
+        return PromptHistoryUpdate(diff: diff, didCompact: compactIfNeeded())
+    }
+
+    /// Record a prompt snapshot from concrete sections and rendered content, compacting if needed.
+    @discardableResult
+    public func update(
+        sections: [ConcretePromptSection],
+        renderedContent: [String: String]
+    ) -> PromptHistoryUpdate {
+        let diff = record(sections: sections, renderedContent: renderedContent)
+        return PromptHistoryUpdate(diff: diff, didCompact: compactIfNeeded())
+    }
+
+    /// Track appended messages and compact append state if thresholds were exceeded.
+    @discardableResult
+    public func append(messages: [Message]) -> PromptHistoryUpdate {
+        recordAppend(messages: messages)
+        return PromptHistoryUpdate(diff: nil, didCompact: compactIfNeeded())
+    }
+
+    /// Track append pressure and compact append state if thresholds were exceeded.
+    @discardableResult
+    public func append(messageCount: Int, estimatedTokens: Int) -> PromptHistoryUpdate {
+        recordAppend(messageCount: messageCount, estimatedTokens: estimatedTokens)
+        return PromptHistoryUpdate(diff: nil, didCompact: compactIfNeeded())
     }
 
     /// Render and record an assembled prompt in one step.
@@ -230,5 +276,13 @@ public actor TimelinePromptHistory {
             .filter { $0.value > 1 }
             .map(\.key)
             .sorted()
+    }
+
+    private func compactIfNeeded() -> Bool {
+        guard shouldCompact else {
+            return false
+        }
+        compact()
+        return true
     }
 }
