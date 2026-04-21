@@ -5,7 +5,7 @@ import PKShared
 ///
 /// `AssembledPrompt` is the bridge between declarative prompt composition and concrete output.
 /// It preserves the resolved section metadata used by downstream systems and renders those
-/// sections into a single canonical ``Rendered`` product that can be reused by downstream
+/// sections into a single canonical ``RenderedPrompt`` product that can be reused by downstream
 /// projections such as provider message arrays.
 public struct AssembledPrompt: Sendable {
     // MARK: - Internal Types
@@ -21,7 +21,7 @@ public struct AssembledPrompt: Sendable {
         public let role: PromptSectionRole
 
         /// Concrete rendered content for the section.
-        public let content: RenderedPromptSectionContent
+        public let content: RenderedPromptSection.SectionContent
     }
 
     /// Errors raised when resolved sections cannot form a valid assembled prompt.
@@ -38,7 +38,7 @@ public struct AssembledPrompt: Sendable {
     /// Use this type when multiple consumers need to work from the same rendered prompt without
     /// re-running section render closures. The projections stored here are intentionally aligned:
     /// they all come from the same ordered section list.
-    public struct Rendered: Sendable {
+    public struct RenderedPrompt: Sendable {
         /// Rendered sections in canonical prompt order.
         public let sections: [Section]
 
@@ -91,7 +91,7 @@ public struct AssembledPrompt: Sendable {
     ///
     /// Prefer this API when multiple downstream consumers need access to the same rendered prompt,
     /// such as plain-text rendering, snapshot recording, and provider message generation.
-    public func rendered() async -> Rendered {
+    public func rendered() async -> RenderedPrompt {
         var renderedSections: [Section] = []
         var sectionsByID: [String: String] = [:]
         var stringParts: [String] = []
@@ -112,7 +112,7 @@ public struct AssembledPrompt: Sendable {
             stringParts.append(text)
         }
 
-        return Rendered(
+        return RenderedPrompt(
             sections: renderedSections,
             string: stringParts.joined(separator: "\n\n---\n\n"),
             sectionsByID: sectionsByID

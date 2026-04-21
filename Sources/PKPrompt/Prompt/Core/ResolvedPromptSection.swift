@@ -1,13 +1,13 @@
 import Foundation
 import PKShared
 
-public enum RenderedPromptSectionContent: Sendable, Equatable {
-    case text(String)
-    case messages([Message])
-}
-
 /// A fully resolved prompt node with inherited traits applied and a concrete render closure.
 public struct ResolvedPromptSection: Sendable {
+    public enum SectionContent: Sendable, Equatable {
+        case text(String)
+        case messages([Message])
+    }
+    
     public let id: String
     public let role: PromptSectionRole
     public let priority: Int
@@ -19,7 +19,7 @@ public struct ResolvedPromptSection: Sendable {
     public let parentID: String?
 
     /// Stores the final rendering behavior after resolution and any compression constraints.
-    private let renderImpl: @Sendable (Int?) async -> RenderedPromptSectionContent?
+    private let renderImpl: @Sendable (Int?) async -> SectionContent?
 
     public init(
         id: String,
@@ -31,7 +31,7 @@ public struct ResolvedPromptSection: Sendable {
         cachePolicy: CachePolicy,
         path: [String],
         parentID: String? = nil,
-        render: @escaping @Sendable (Int?) async -> RenderedPromptSectionContent?
+        render: @escaping @Sendable (Int?) async -> SectionContent?
     ) {
         self.id = id
         self.role = role
@@ -45,11 +45,11 @@ public struct ResolvedPromptSection: Sendable {
         self.renderImpl = render
     }
 
-    public func renderedContent() async -> RenderedPromptSectionContent? {
+    public func renderedContent() async -> SectionContent? {
         await renderImpl(nil)
     }
 
-    public func renderedContent(constrainedTo tokens: Int?) async -> RenderedPromptSectionContent? {
+    public func renderedContent(constrainedTo tokens: Int?) async -> SectionContent? {
         await renderImpl(tokens)
     }
 

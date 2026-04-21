@@ -15,7 +15,7 @@ public extension AssembledPrompt {
     ///
     /// - Parameter rendered: A rendered prompt previously produced by ``AssembledPrompt/rendered()``.
     /// - Returns: Provider message parameters derived from the rendered section list.
-    func buildMessages(from rendered: Rendered) -> [ChatQuery.ChatCompletionMessageParam] {
+    func buildMessages(from rendered: RenderedPrompt) -> [ChatQuery.ChatCompletionMessageParam] {
         let resolved = rendered.sections
         var messages: [ChatQuery.ChatCompletionMessageParam] = []
 
