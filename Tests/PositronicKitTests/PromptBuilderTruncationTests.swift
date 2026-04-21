@@ -31,11 +31,13 @@ struct PromptBuilderTruncationTests {
         let longNote = String(repeating: "A long note content. ", count: 50)
         let file = ContextFile(name: "test", content: longNote, source: "test")
         let section = ContextNotes([file])
+        let assembled = try! section.assemblePrompt()
+        let resolvedSection = assembled.sections[0]
 
         let fullRender = await section.render()
         #expect(fullRender != nil)
 
-        let constrainedRender = await section.render(constrainedTo: 10)
+        let constrainedRender = await resolvedSection.renderText(constrainedTo: 10)
         #expect(constrainedRender != nil)
 
         let constrainedCount = constrainedRender?.count ?? 0

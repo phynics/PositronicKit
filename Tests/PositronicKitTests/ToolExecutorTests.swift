@@ -35,7 +35,7 @@ struct ToolExecutorTests {
         let executor = ToolExecutor(toolManager: manager)
 
         let toolCall = ToolCall(name: "test_tool", arguments: [:])
-        let resultMessage = try await executor.execute(toolCall)
+        let resultMessage = await executor.execute(toolCall)
 
         #expect(resultMessage.role == .tool)
         #expect(resultMessage.content == "Executed test_tool")
@@ -48,7 +48,7 @@ struct ToolExecutorTests {
         let executor = ToolExecutor(toolManager: manager)
 
         let toolCall = ToolCall(name: "fail_tool", arguments: [:])
-        let resultMessage = try await executor.execute(toolCall)
+        let resultMessage = await executor.execute(toolCall)
 
         #expect(resultMessage.role == .tool)
         #expect(!resultMessage.content.contains("Executed")) // Not the success path
@@ -61,7 +61,7 @@ struct ToolExecutorTests {
 
         let toolCall = ToolCall(name: "unknown_tool", arguments: [:])
 
-        let resultMessage = try await executor.execute(toolCall)
+        let resultMessage = await executor.execute(toolCall)
 
         #expect(resultMessage.role == .tool)
         #expect(!resultMessage.content.isEmpty)

@@ -4,182 +4,91 @@ import Testing
 
 @Suite("PromptBuilder")
 struct PromptBuilderTests {
-    struct MockSection: PromptLeaf {
-        let id: String
-        let priority: Int
-        let content: String
-        let compression: CompressionStrategy = .keep
-        let type: PromptSectionType = .text
-
-        var estimatedTokens: Int { content.count }
-
-        func renderContent() async -> String? {
-            content
-        }
-    }
-
     struct IdentifiableItem: Identifiable, Sendable {
         let id: String
         let content: String
     }
 
-    struct KeyedItem: Sendable {
-        let key: String
-        let content: String
-    }
-
-    private func buildComposite<Content: Prompt>(@PromptBuilder _ content: () -> Content) -> Content {
-        content()
-    }
-
     @Test("Builder composes multiple sections")
     func exampleBuilder() async {
         let prompt = AnyPrompt {
-            MockSection(id: "1", priority: 10, content: "Low Priority")
-            MockSection(id: "2", priority: 100, content: "High Priority")
+            ContextPrompt("Low Priority", id: "1", priority: 10)
+            ContextPrompt("High Priority", id: "2", priority: 100)
         }
 
-        let assembled = try! prompt.assembledPrompt()
-        let sections = assembled.sections
-        #expect(sections.count == 2)
-        #expect(sections[0].id == "2")
-        #expect(sections[1].id == "1")
+        let assembled = try! prompt.assemblePrompt()
+        #expect(assembled.sections.map(\.id) == ["2", "1"])
 
-        let rendered = await assembled.rendered().string
-        #expect(rendered.contains("High Priority"))
-        #expect(rendered.contains("Low Priority"))
+        let rendered = await assembled.render()
+        #expect(rendered.string.contains("High Priority"))
+        #expect(rendered.string.contains("Low Priority"))
     }
 
     @Test("Builder supports conditionals")
-    func conditionals() async {
+    func conditionals() {
         let includeSecret = false
         let includePublic = true
 
         let sections = try! AnyPrompt {
             if includeSecret {
-                MockSection(id: "secret", priority: 50, content: "Secret")
+                ContextPrompt("Secret", id: "secret")
             }
 
             if includePublic {
-                MockSection(id: "public", priority: 50, content: "Public")
+                ContextPrompt("Public", id: "public")
             }
-        }.assembledPrompt().sections
+        }.assemblePrompt().sections
+
         #expect(sections.count == 1)
         #expect(sections[0].id == "public")
     }
 
     @Test("Builder supports loops")
-    func loop() async {
-        let items = ["A", "B", "C"]
+    func loop() {
+        let items = [
+            IdentifiableItem(id: "A", content: "Alpha"),
+            IdentifiableItem(id: "B", content: "Beta"),
+            IdentifiableItem(id: "C", content: "Gamma"),
+        ]
 
         let prompt = AnyPrompt {
             for item in items {
-                MockSection(id: item, priority: 50, content: item)
+                ContextPrompt(item.content, id: item.id)
             }
         }
 
-        let sections = prompt.sections()
-        #expect(sections.count == 3)
+        let sections = try! prompt.assemblePrompt().sections
+        #expect(sections.map(\.id) == ["A", "B", "C"])
     }
 
-    @Test("Builder preserves typed block structure")
-    func blockPreservesTypedStructure() {
-        let composite = buildComposite {
-            MockSection(id: "1", priority: 10, content: "One")
-            MockSection(id: "2", priority: 20, content: "Two")
-        }
-
-        #expect(type(of: composite) == PromptBlock<MockSection, MockSection>.self)
-    }
-
-    @Test("AnyPrompt composes nested prompt content")
-    func anyPromptComposesNestedPromptContent() {
-        let prompt = AnyPrompt {
-            MockSection(id: "1", priority: 10, content: "One")
-            MockSection(id: "2", priority: 20, content: "Two")
-        }
-
-        #expect(try! prompt.assembledPrompt().sections.map { $0.id } == ["2", "1"])
-    }
-
-    @Test("Builder lowers conditionals to PromptConditional")
-    func conditionalLowersToConditionalComposite() {
-        let composite = buildComposite {
+    @Test("Builder supports arrays of prompt expressions")
+    func arrayExpression() {
+        @PromptBuilder
+        func build() -> some Prompt {
+            [
+                ContextPrompt("One", id: "1"),
+                ContextPrompt("Two", id: "2"),
+            ]
             if true {
-                MockSection(id: "1", priority: 10, content: "One")
-            } else {
-                MockSection(id: "2", priority: 20, content: "Two")
+                ContextPrompt("Three", id: "3")
             }
         }
 
-        #expect(type(of: composite) == PromptConditional<MockSection, MockSection>.self)
+        let sections = try! build().assemblePrompt().sections
+        #expect(sections.map(\.id) == ["1", "2", "3"])
     }
 
-    @Test("Builder lowers loops to PromptForEach")
-    func loopLowersToForEachComposite() {
-        let items = ["A", "B", "C"]
+    @Test("Builder optional branches omit nil content")
+    func optionalBranch() {
+        let includeExtra = false
 
-        let composite = buildComposite {
-            for item in items {
-                MockSection(id: item, priority: 50, content: item)
+        let sections = try! AnyPrompt {
+            ContextPrompt("Base", id: "base")
+            if includeExtra {
+                ContextPrompt("Extra", id: "extra")
             }
-        }
+        }.assemblePrompt().sections
 
-        #expect(type(of: composite) == PromptForEach<MockSection>.self)
-    }
-
-    @Test("PromptForEach supports Identifiable data")
-    func forEachSupportsIdentifiableData() {
-        let items = [
-            IdentifiableItem(id: "a", content: "Alpha"),
-            IdentifiableItem(id: "b", content: "Beta"),
-        ]
-
-        let composite = PromptForEach(items) { item in
-            MockSection(id: item.id, priority: 50, content: item.content)
-        }
-
-        #expect(try! composite.assembledPrompt().sections.map { $0.id } == ["a", "b"])
-    }
-
-    @Test("PromptForEach supports explicit id key paths")
-    func forEachSupportsExplicitIDKeyPath() {
-        let items = [
-            KeyedItem(key: "a", content: "Alpha"),
-            KeyedItem(key: "b", content: "Beta"),
-        ]
-
-        let composite = PromptForEach(items, id: \.key) { item in
-            MockSection(id: item.key, priority: 50, content: item.content)
-        }
-
-        #expect(try! composite.assembledPrompt().sections.map { $0.id } == ["a", "b"])
-    }
-
-    @Test("PromptForEach ids only stabilize paths and do not replace leaf ids")
-    func forEachIDsDoNotOverrideLeafIdentity() {
-        let items = [
-            KeyedItem(key: "a", content: "Alpha"),
-            KeyedItem(key: "b", content: "Beta"),
-        ]
-
-        let composite = PromptForEach(items, id: \.key) { item in
-            MockSection(id: "shared", priority: 50, content: item.content)
-        }
-
-        #expect(throws: AssembledPrompt.ValidationError.duplicateSectionIDs(["shared"])) {
-            try AssembledPrompt(sections: composite.sections())
-        }
-    }
-
-    @Test("Builder lowers optional branches to PromptOptional")
-    func optionalLowersToPromptOptionalComposite() {
-        let composite = buildComposite {
-            if false {
-                MockSection(id: "hidden", priority: 50, content: "Hidden")
-            }
-        }
-
-        #expect(type(of: composite) == PromptOptional<MockSection, EmptySection>.self)
+        #expect(sections.map(\.id) == ["base"])
     }
 }

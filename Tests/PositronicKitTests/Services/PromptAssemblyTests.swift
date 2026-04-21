@@ -10,10 +10,8 @@ struct PromptAssemblyTests {
         LLMPromptRequest(userQuery: userQuery, chatHistory: [], tools: [], workspaces: [], primaryWorkspace: nil, clientName: nil)
     }
 
-    struct MockSection: PromptLeaf, Sendable {
+    struct MockSection: Prompt, Sendable {
         let id: String
-        let priority: Int = 10
-        let estimatedTokens: Int = 10
         let content: String
 
         init(id: String, content: String = "test content") {
@@ -21,8 +19,8 @@ struct PromptAssemblyTests {
             self.content = content
         }
 
-        func renderContent() async -> String? {
-            content
+        var body: some Prompt {
+            ContextPrompt(content, id: id, priority: 10)
         }
     }
 
@@ -49,7 +47,7 @@ struct PromptAssemblyTests {
         await context.append([MockSection(id: "s2"), MockSection(id: "s3")])
 
         let sections = await context.sections
-        let resolved = sections.flatMap { $0.resolveSections(in: PromptResolutionContext()) }
+        let resolved = sections.flatMap { try! $0.assemblePrompt().sections }
         #expect(resolved.map(\.id) == ["s1", "s2", "s3"])
     }
 
@@ -64,7 +62,7 @@ struct PromptAssemblyTests {
             }
         }
 
-        let resolved = build().resolveSections(in: PromptResolutionContext())
+        let resolved = try! build().assemblePrompt().sections
         #expect(resolved.map(\.id) == ["s1", "s2", "s3", "s4"])
     }
 
@@ -83,7 +81,7 @@ struct PromptAssemblyTests {
         for try await _ in stream {}
 
         let sections = await context.sections
-        let resolved = sections.flatMap { $0.resolveSections(in: PromptResolutionContext()) }
+        let resolved = sections.flatMap { try! $0.assemblePrompt().sections }
         #expect(resolved.count == 1)
         #expect(resolved.first?.id == "custom")
     }
@@ -110,10 +108,8 @@ struct PromptAssemblyTests {
             makeRequest(userQuery: "test"),
             options: PromptAssemblyOptions(overridePipeline: PromptAssemblyPipeline(stages: [CustomStage()]))
         )
-        let resolved = prompt.sections
 
-        #expect(resolved.count == 1)
-        #expect(resolved.first?.id == "override_assembly")
+        #expect(prompt.sections.map(\.id) == ["override_assembly"])
     }
 
     @Test("PromptAssembler rejects duplicate section ids")

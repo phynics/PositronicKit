@@ -2,9 +2,9 @@ import Foundation
 import PKShared
 
 /// A transparent root container for prompt sections that resolves to the concatenated output of its children.
-public struct AnyPrompt: Prompt {
+public struct AnyPrompt: Prompt, PromptAssemblyNode {
     /// The prompt values contained in the root container.
-    public let prompts: [any Prompt]
+    package let prompts: [any Prompt]
 
     /// Creates a root container from an array of sections.
     ///
@@ -25,19 +25,8 @@ public struct AnyPrompt: Prompt {
         EmptyPrompt()
     }
 
-    /// The path component for this root prompt container.
-    ///
-    /// Root prompt containers are transparent during path construction, so this value is always `nil`.
-    public var sectionPathComponent: String? {
-        nil
-    }
-
-    /// Resolves each contained section and returns their combined resolved output.
-    ///
-    /// - Parameter context: The resolution context to use for each child section.
-    /// - Returns: The concatenated concrete sections produced by the group's children.
-    public func resolveSections(in context: PromptResolutionContext) -> [ConcretePromptSection] {
-        prompts.flatMap { $0.resolveSections(in: context) }
+    package func assembleSections(in context: PromptAssembly.Context) -> [AssembledPrompt.Section] {
+        prompts.flatMap { PromptAssembly.resolve($0, in: context) }
     }
 
     /// Preferred root entry point for prompt builder content.

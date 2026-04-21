@@ -24,13 +24,7 @@ public struct SystemInstructions: Prompt {
     }
 }
 
-public struct Memories: PromptLeaf {
-    public let id = "memories"
-    public let role: PromptSectionRole = .context
-    public let priority = 85
-    public let cachePolicy: CachePolicy = .volatile
-    public let compression: CompressionStrategy = .summarize
-    public let type: PromptSectionType = .list
+public struct Memories: Prompt {
     public let memories: [Memory]
     public let summarizedContent: String?
 
@@ -39,7 +33,18 @@ public struct Memories: PromptLeaf {
         self.summarizedContent = summarizedContent
     }
 
-    public func renderContent() async -> String? {
+    public var body: some Prompt {
+        ContextPrompt(
+            id: "memories",
+            priority: 85,
+            compression: .summarize,
+            cachePolicy: .volatile,
+            estimatedTokens: estimatedTokens,
+            render: renderContent
+        )
+    }
+
+    private func renderContent() async -> String? {
         if let summary = summarizedContent {
             return """
             === MEMORY CONTEXT (SUMMARIZED) ===
@@ -55,7 +60,7 @@ public struct Memories: PromptLeaf {
         """
     }
 
-    public var estimatedTokens: Int {
+    private var estimatedTokens: Int {
         if let summary = summarizedContent {
             return TokenEstimator.estimate(text: summary)
         }
@@ -63,26 +68,27 @@ public struct Memories: PromptLeaf {
     }
 }
 
-public struct Tools: PromptLeaf {
-    public let id = "tools"
-    public let role: PromptSectionRole = .context
-    public let priority = 80
-    public let cachePolicy: CachePolicy = .semiStable
-    public let compression: CompressionStrategy = .keep
-    public let type: PromptSectionType = .list
+public struct Tools: Prompt {
     public let tools: [AnyTool]
 
     public init(_ tools: [AnyTool]) {
         self.tools = tools
     }
 
-    public func renderContent() async -> String? {
-        guard !tools.isEmpty else { return nil }
-        return await formatToolsForPrompt(tools)
+    public var body: some Prompt {
+        ContextPrompt(
+            id: "tools",
+            priority: 80,
+            compression: .keep,
+            cachePolicy: .semiStable,
+            estimatedTokens: tools.count * 50,
+            render: renderContent
+        )
     }
 
-    public var estimatedTokens: Int {
-        tools.count * 50
+    private func renderContent() async -> String? {
+        guard !tools.isEmpty else { return nil }
+        return await formatToolsForPrompt(tools)
     }
 }
 
@@ -120,20 +126,25 @@ public struct ChatHistory: Prompt {
     }
 }
 
-public struct ContextNotes: PromptLeaf {
-    public let id = "context_notes"
-    public let role: PromptSectionRole = .context
-    public let priority = 90
-    public let cachePolicy: CachePolicy = .volatile
-    public let compression: CompressionStrategy = .truncate(tail: true)
-    public let type: PromptSectionType = .list
+public struct ContextNotes: Prompt {
     public let notes: [ContextFile]
 
     public init(_ notes: [ContextFile]) {
         self.notes = notes
     }
 
-    public func renderContent() async -> String? {
+    public var body: some Prompt {
+        ContextPrompt(
+            id: "context_notes",
+            priority: 90,
+            compression: .truncate(tail: true),
+            cachePolicy: .volatile,
+            estimatedTokens: TokenEstimator.estimate(parts: notes.map(\.content)),
+            render: renderContent
+        )
+    }
+
+    private func renderContent() async -> String? {
         guard !notes.isEmpty else { return nil }
 
         let notesText = notes.map { note in
@@ -152,10 +163,6 @@ public struct ContextNotes: PromptLeaf {
         \(notesText)
         """
     }
-
-    public var estimatedTokens: Int {
-        TokenEstimator.estimate(parts: notes.map(\.content))
-    }
 }
 
 public struct UserQuery: Prompt {
@@ -170,13 +177,7 @@ public struct UserQuery: Prompt {
     }
 }
 
-public struct WorkspacesContext: PromptLeaf {
-    public let id = "workspaces"
-    public let role: PromptSectionRole = .context
-    public let priority = 75
-    public let cachePolicy: CachePolicy = .semiStable
-    public let compression: CompressionStrategy = .keep
-    public let type: PromptSectionType = .text
+public struct WorkspacesContext: Prompt {
     public let workspaces: [WorkspaceReference]
     public let primaryWorkspace: WorkspaceReference?
     public let clientName: String?
@@ -191,7 +192,18 @@ public struct WorkspacesContext: PromptLeaf {
         self.clientName = clientName
     }
 
-    public func renderContent() async -> String? {
+    public var body: some Prompt {
+        ContextPrompt(
+            id: "workspaces",
+            priority: 75,
+            compression: .keep,
+            cachePolicy: .semiStable,
+            estimatedTokens: estimatedTokens,
+            render: renderContent
+        )
+    }
+
+    private func renderContent() async -> String? {
         var output = ""
 
         if let clientName {
@@ -243,7 +255,7 @@ public struct WorkspacesContext: PromptLeaf {
         return output
     }
 
-    public var estimatedTokens: Int {
+    private var estimatedTokens: Int {
         TokenEstimator.estimate(text: "Workspaces section placeholder") + workspaces.count * 50
     }
 }

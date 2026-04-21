@@ -119,7 +119,7 @@ struct ToolCallRegressionTests {
         let toolCall = ToolCall(name: "complex_tool", arguments: args)
 
         // Execute
-        let resultMessage = try await executor.execute(toolCall)
+        let resultMessage = await executor.execute(toolCall)
 
         // Verify success
         #expect(resultMessage.role == .tool)

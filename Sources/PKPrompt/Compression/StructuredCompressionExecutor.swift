@@ -16,7 +16,7 @@ public actor StructuredCompressionExecutor {
 
     public func execute(
         plan: StructuredCompressionPlan,
-        sections: [ConcretePromptSection],
+        sections: [AssembledPrompt.Section],
         compressor: SectionCompressor?
     ) async -> StructuredExecutionResult {
         let duplicateIDs = sections.duplicateIDs(idKeyPath: \.id)
@@ -37,7 +37,7 @@ public actor StructuredCompressionExecutor {
         }
 
         var reportsById: [String: CompressionNodeReport] = [:]
-        var transformedSectionsById: [String: ConcretePromptSection] = [:]
+        var transformedSectionsById: [String: AssembledPrompt.Section] = [:]
 
         for planned in sortedPlanActions {
             guard let section = sectionsById[planned.nodeId] else { continue }
@@ -47,7 +47,7 @@ public actor StructuredCompressionExecutor {
             reportsById[planned.nodeId] = output.report
         }
 
-        var resultingSections: [ConcretePromptSection] = []
+        var resultingSections: [AssembledPrompt.Section] = []
         var reports: [CompressionNodeReport] = []
 
         for section in sections {
@@ -82,9 +82,9 @@ public actor StructuredCompressionExecutor {
 
     private func applyAction(
         _ planned: PlannedNodeAction,
-        section: ConcretePromptSection,
+        section: AssembledPrompt.Section,
         compressor: SectionCompressor?
-    ) async -> (section: ConcretePromptSection, report: CompressionNodeReport) {
+    ) async -> (section: AssembledPrompt.Section, report: CompressionNodeReport) {
         switch planned.action {
         case .keep:
             return (

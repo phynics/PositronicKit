@@ -3,7 +3,7 @@ import PKPrompt
 import Testing
 @testable import PositronicKit
 
-private struct CompressionMockSection: PromptLeaf, Sendable {
+private struct CompressionMockSection: Prompt, Sendable {
     let id: String
     let priority: Int
     let estimatedTokens: Int
@@ -11,8 +11,15 @@ private struct CompressionMockSection: PromptLeaf, Sendable {
     let cachePolicy: CachePolicy
     let text: String
 
-    func renderContent() async -> String? {
-        text
+    var body: some Prompt {
+        ContextPrompt(
+            id: id,
+            priority: priority,
+            compression: compression,
+            cachePolicy: cachePolicy,
+            estimatedTokens: estimatedTokens,
+            render: { text }
+        )
     }
 }
 
@@ -51,15 +58,13 @@ struct StructuredCompressionIntegrationTests {
                 tokenBudget: TokenBudget(maxTokens: 180, reserveForResponse: 0),
                 compressor: IntegrationCompressor(summary: "short"),
                 structuredDiff: StructuredDiffHint(
-                    changedNodePaths: [["prompt", "volatile", "changed_node"]],
-                    stableNodePaths: [["prompt", "stable", "stable_node"]]
+                    changedNodePaths: [["prompt", "CompressionMockSection", "ContextPrompt", "volatile", "changed_node"]],
+                    stableNodePaths: [["prompt", "CompressionMockSection", "ContextPrompt", "stable", "stable_node"]]
                 )
             )
         )
 
-        let resolved = prompt.sections
-        #expect(resolved.count == 1)
-        #expect(resolved.first?.id == "changed_node")
+        #expect(prompt.sections.map(\.id) == ["changed_node"])
     }
 
     @Test("Shared executor preserves summary cache across builds")

@@ -32,13 +32,13 @@ public enum PromptSectionRole: Sendable, Equatable {
     case chatHistory
 }
 
-public enum PromptLeafContent: Sendable {
+package enum PromptPrimitiveContent: Sendable {
     case text(@Sendable () async -> String?)
     case messages([Message])
 }
 
-/// Prompt leaves render actual prompt content and resolve directly into concrete nodes.
-public protocol PromptLeaf: Prompt {
+/// Prompt primitives render actual prompt content and resolve directly into assembled sections.
+package protocol PromptPrimitive: Prompt {
     var id: String { get }
     var role: PromptSectionRole { get }
     var priority: Int { get }
@@ -46,19 +46,14 @@ public protocol PromptLeaf: Prompt {
     var compression: CompressionStrategy { get }
     var type: PromptSectionType { get }
     var cachePolicy: CachePolicy { get }
-    var content: PromptLeafContent { get }
+    var content: PromptPrimitiveContent { get }
     func renderContent() async -> String?
 }
 
-public extension PromptLeaf {
-    /// Prompt leaves never expose nested body content.
+package extension PromptPrimitive {
+    /// Prompt primitives never expose nested body content.
     var body: EmptyPrompt {
         EmptyPrompt()
-    }
-
-    /// Leaves identify themselves through `id`, not an extra path component.
-    var sectionPathComponent: String? {
-        nil
     }
 
     var role: PromptSectionRole {
@@ -77,16 +72,12 @@ public extension PromptLeaf {
         .volatile
     }
 
-    var content: PromptLeafContent {
+    var content: PromptPrimitiveContent {
         .text { await renderContent() }
     }
 
-    func render(constrainedTo tokens: Int?) async -> String? {
-        await resolveSections(in: PromptResolutionContext()).first?.renderText(constrainedTo: tokens)
-    }
-
-    /// Resolves a prompt leaf into a single concrete node with inherited traits applied.
-    func resolveSections(in context: PromptResolutionContext = PromptResolutionContext()) -> [ConcretePromptSection] {
+    /// Resolves a prompt primitive into a single concrete node with inherited traits applied.
+    func assembleSections(in context: PromptAssembly.Context = PromptAssembly.Context()) -> [AssembledPrompt.Section] {
         let effectivePriority = context.inheritedPriority ?? priority
         let effectiveCompression = context.inheritedCompression ?? compression
         let effectiveCachePolicy = context.inheritedCachePolicy ?? cachePolicy
@@ -94,7 +85,7 @@ public extension PromptLeaf {
         let leafContent = content
 
         return [
-            ConcretePromptSection(
+            AssembledPrompt.Section(
                 id: id,
                 role: role,
                 priority: effectivePriority,

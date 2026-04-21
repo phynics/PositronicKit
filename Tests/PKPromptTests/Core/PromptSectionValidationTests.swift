@@ -12,7 +12,7 @@ struct PromptSectionValidationTests {
         let key: String
     }
 
-    private struct MockSection: PromptLeaf {
+    private struct MockSection: PromptPrimitive {
         let id: String
         let priority: Int = 0
         let estimatedTokens: Int = 1
@@ -32,8 +32,8 @@ struct PromptSectionValidationTests {
         }
     }
 
-    private func makeResolvedSection(id: String) -> ConcretePromptSection {
-        ConcretePromptSection(
+    private func makeResolvedSection(id: String) -> AssembledPrompt.Section {
+        AssembledPrompt.Section(
             id: id,
             role: .context,
             priority: 0,
@@ -58,7 +58,7 @@ struct PromptSectionValidationTests {
     @Test("Prompt assembledPrompt surfaces validation errors")
     func promptAssembledPromptSurfacesValidationErrors() throws {
         #expect(throws: AssembledPrompt.ValidationError.duplicateSectionIDs(["dup"])) {
-            try DuplicateSectionsPrompt().assembledPrompt()
+            try DuplicateSectionsPrompt().assemblePrompt()
         }
     }
 
@@ -67,8 +67,8 @@ struct PromptSectionValidationTests {
         let sections: [any Prompt] = [MockSection(id: "dup"), MockSection(id: "dup")]
 
         let duplicateIDs = sections
-            .flatMap { $0.resolveSections(in: PromptResolutionContext()) }
-            .duplicateIDs(idKeyPath: \.id)
+            .flatMap { try! $0.assemblePrompt().sections }
+            .duplicateIDs(idKeyPath: \AssembledPrompt.Section.id)
 
         #expect(duplicateIDs == ["dup"])
     }

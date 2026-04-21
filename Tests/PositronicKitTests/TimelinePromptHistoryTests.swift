@@ -3,13 +3,12 @@ import PKShared
 import Testing
 @testable import PositronicKit
 
-private struct TimelineSection: PromptLeaf {
+private struct TimelineSection: Prompt {
     let id: String
     let priority: Int
     let estimatedTokens: Int
     let cachePolicy: CachePolicy
     let compression: CompressionStrategy
-    let type: PromptSectionType
     let text: String
 
     init(
@@ -18,7 +17,6 @@ private struct TimelineSection: PromptLeaf {
         estimatedTokens: Int = 10,
         cachePolicy: CachePolicy,
         compression: CompressionStrategy = .keep,
-        type: PromptSectionType = .text,
         text: String
     ) {
         self.id = id
@@ -26,12 +24,18 @@ private struct TimelineSection: PromptLeaf {
         self.estimatedTokens = estimatedTokens
         self.cachePolicy = cachePolicy
         self.compression = compression
-        self.type = type
         self.text = text
     }
 
-    func renderContent() async -> String? {
-        text
+    var body: some Prompt {
+        ContextPrompt(
+            id: id,
+            priority: priority,
+            compression: compression,
+            cachePolicy: cachePolicy,
+            estimatedTokens: estimatedTokens,
+            render: { text }
+        )
     }
 }
 
@@ -43,7 +47,7 @@ actor TimelinePromptHistoryTests {
         let prompt = try AnyPrompt.build {
             TimelineSection(id: "system", cachePolicy: .stable, text: "System")
             TimelineSection(id: "query", cachePolicy: .volatile, text: "Question")
-        }.assembledPrompt()
+        }.assemblePrompt()
 
         let initialUpdate = await history.update(prompt: prompt)
         #expect(initialUpdate.diff?.added.map(\.entryId) == ["system", "query"])
@@ -74,10 +78,9 @@ actor TimelinePromptHistoryTests {
             TimelineSection(id: "system", cachePolicy: .stable, text: "System")
             TimelineSection(id: "context", cachePolicy: .semiStable, text: "Context v1")
             TimelineSection(id: "query", cachePolicy: .volatile, text: "Question")
-        }.assembledPrompt()
+        }.assemblePrompt()
 
         let initialDiff = await history.record(prompt: initialPrompt)
-
         #expect(initialDiff.hasChanges)
         #expect(initialDiff.added.map(\.entryId) == ["system", "context", "query"])
         #expect(initialDiff.stablePrefixCount == 0)
@@ -86,7 +89,7 @@ actor TimelinePromptHistoryTests {
             TimelineSection(id: "system", cachePolicy: .stable, text: "System")
             TimelineSection(id: "context", cachePolicy: .semiStable, text: "Context v2")
             TimelineSection(id: "query", cachePolicy: .volatile, text: "Question")
-        }.assembledPrompt()
+        }.assemblePrompt()
 
         let diff = await history.record(prompt: updatedPrompt)
 
@@ -103,13 +106,13 @@ actor TimelinePromptHistoryTests {
         let prompt = try AnyPrompt.build {
             TimelineSection(id: "system", cachePolicy: .stable, text: "A")
             TimelineSection(id: "query", cachePolicy: .volatile, text: "B")
-        }.assembledPrompt()
+        }.assemblePrompt()
 
         let initialDiff = await history.record(prompt: prompt)
         let updatedPrompt = try AnyPrompt.build {
             TimelineSection(id: "system", cachePolicy: .stable, text: "A2")
             TimelineSection(id: "query", cachePolicy: .volatile, text: "B")
-        }.assembledPrompt()
+        }.assemblePrompt()
 
         let diff = await history.record(prompt: updatedPrompt)
 
@@ -128,8 +131,7 @@ actor TimelinePromptHistoryTests {
 
         await history.recordAppend(messages: messages)
 
-        let shouldCompact = await history.shouldCompact
-        #expect(shouldCompact == false)
+        #expect(await history.shouldCompact == false)
         #expect(await history.appendedMessageCount == 2)
         #expect(await history.appendedTokens > 0)
     }
@@ -140,7 +142,7 @@ actor TimelinePromptHistoryTests {
         let prompt = try AnyPrompt.build {
             TimelineSection(id: "system", cachePolicy: .stable, text: "System")
             TimelineSection(id: "query", cachePolicy: .volatile, text: "Question")
-        }.assembledPrompt()
+        }.assemblePrompt()
 
         _ = await history.record(prompt: prompt)
         await history.recordAppend(messages: [
@@ -170,10 +172,10 @@ actor TimelinePromptHistoryTests {
     @Test("Exposes subtree diff node-path stats")
     func exposesSubtreeDiffStats() async {
         let history = TimelinePromptHistory()
-        let sections = [
+        let sections = try! AnyPrompt([
             TimelineSection(id: "system", cachePolicy: .stable, text: "A"),
             TimelineSection(id: "query", cachePolicy: .volatile, text: "B"),
-        ].flatMap { $0.resolveSections(in: PromptResolutionContext()) }
+        ]).assemblePrompt().sections
 
         _ = await history.record(sections: sections, renderedContent: ["system": "A", "query": "B"])
         let diff = await history.record(sections: sections, renderedContent: ["system": "A2", "query": "B"])

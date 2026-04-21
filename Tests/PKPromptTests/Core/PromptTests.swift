@@ -2,73 +2,37 @@ import Foundation
 import Testing
 @testable import PKPrompt
 
-private struct DummyPromptSection: PromptLeaf {
-    let id: String
-    let priority: Int
-    let estimatedTokens: Int
-    let text: String?
-    let cachePolicy: CachePolicy
-
-    init(
-        id: String,
-        priority: Int,
-        estimatedTokens: Int,
-        text: String?,
-        cachePolicy: CachePolicy = .volatile
-    ) {
-        self.id = id
-        self.priority = priority
-        self.estimatedTokens = estimatedTokens
-        self.text = text
-        self.cachePolicy = cachePolicy
-    }
-
-    func renderContent() async -> String? {
-        text
-    }
-}
-
 @Suite("Prompt")
 struct PromptTests {
-    @Test("AnyPrompt.build wraps builder content in a transparent prompt container")
+    @Test("AnyPrompt.build assembles builder content in prompt order")
     func anyPromptBuild() {
         let prompt = AnyPrompt.build {
-            DummyPromptSection(id: "s1", priority: 1, estimatedTokens: 10, text: "A")
-            DummyPromptSection(id: "s2", priority: 100, estimatedTokens: 10, text: "B")
+            ContextPrompt("A", id: "s1", priority: 1)
+            ContextPrompt("B", id: "s2", priority: 100)
         }
 
-        #expect(type(of: prompt) == AnyPrompt.self)
-        #expect(prompt.prompts.count == 1)
-        #expect(type(of: prompt.prompts[0]) == PromptBlock<DummyPromptSection, DummyPromptSection>.self)
-        #expect(try! prompt.assembledPrompt().sections.map { $0.id } == ["s2", "s1"])
+        #expect(try! prompt.assemblePrompt().sections.map(\.id) == ["s2", "s1"])
     }
 
-    @Test("Prompt composites assemble directly without a wrapper")
-    func promptCompositesAssembleDirectly() async {
-        let sec1 = DummyPromptSection(id: "s1", priority: 1, estimatedTokens: 10, text: "Low")
-        let sec2 = DummyPromptSection(id: "s2", priority: 100, estimatedTokens: 10, text: "High")
+    @Test("AnyPrompt array initializer assembles directly")
+    func promptCompositesAssembleDirectly() {
+        let prompt = AnyPrompt([
+            ContextPrompt("Low", id: "s1", priority: 1),
+            ContextPrompt("High", id: "s2", priority: 100),
+        ])
 
-        let prompt = AnyPrompt([sec1, sec2])
-        #expect(prompt.prompts.count == 2)
-
-        let resolved = try! prompt.assembledPrompt().sections
-
-        #expect(resolved.count == 2)
-        #expect(resolved[0].id == "s2")
-        #expect(resolved[1].id == "s1")
+        let resolved = try! prompt.assemblePrompt().sections
+        #expect(resolved.map(\.id) == ["s2", "s1"])
     }
 
-    @Test("AnyPrompt builder stores the lowered builder output")
-    func promptBuilderInitialization() async {
+    @Test("AnyPrompt builder initializer stores semantic prompt content")
+    func promptBuilderInitialization() {
         let prompt = AnyPrompt {
-            DummyPromptSection(id: "s1", priority: 1, estimatedTokens: 10, text: "A")
-            DummyPromptSection(id: "s2", priority: 100, estimatedTokens: 10, text: "B")
+            ContextPrompt("A", id: "s1", priority: 1)
+            ContextPrompt("B", id: "s2", priority: 100)
         }
 
-        #expect(prompt.prompts.count == 1)
-        #expect(type(of: prompt.prompts[0]) == PromptBlock<DummyPromptSection, DummyPromptSection>.self)
-
-        let resolved = try! prompt.assembledPrompt().sections
+        let resolved = try! prompt.assemblePrompt().sections
         #expect(resolved.count == 2)
         #expect(resolved[0].id == "s2")
     }

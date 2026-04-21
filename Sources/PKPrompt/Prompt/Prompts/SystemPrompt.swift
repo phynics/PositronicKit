@@ -22,7 +22,7 @@ public struct SystemPrompt: Prompt {
     }
 
     public var body: some Prompt {
-        TextSection(
+        PromptPrimitives.Text(
             id: id,
             text: text,
             role: .system,

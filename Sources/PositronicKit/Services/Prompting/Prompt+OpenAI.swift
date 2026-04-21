@@ -8,7 +8,7 @@ public extension AssembledPrompt {
     ///
     /// Use this overload when no rendered product is already available.
     func buildMessages() async -> [ChatQuery.ChatCompletionMessageParam] {
-        buildMessages(from: await rendered())
+        buildMessages(from: await render())
     }
 
     /// Builds OpenAI chat messages from an existing canonical rendered prompt product.
@@ -33,7 +33,7 @@ public extension AssembledPrompt {
     }
 
     private func buildSystemMessage(
-        from sections: [ConcretePromptSection.Rendered]
+        from sections: [AssembledPrompt.Section.Rendered]
     ) -> ChatQuery.ChatCompletionMessageParam? {
         var systemParts: [String] = []
 
@@ -47,7 +47,7 @@ public extension AssembledPrompt {
         return .system(.init(content: .textContent(systemParts.joined(separator: "\n\n---\n\n")), name: nil))
     }
 
-    private func buildHistoryMessages(from sections: [ConcretePromptSection.Rendered]) -> [ChatQuery.ChatCompletionMessageParam] {
+    private func buildHistoryMessages(from sections: [AssembledPrompt.Section.Rendered]) -> [ChatQuery.ChatCompletionMessageParam] {
         sections
             .flatMap { section -> [Message] in
                 guard case let .messages(messages) = section.content else {
@@ -59,7 +59,7 @@ public extension AssembledPrompt {
     }
 
     private func buildUserQueryMessage(
-        from sections: [ConcretePromptSection.Rendered]
+        from sections: [AssembledPrompt.Section.Rendered]
     ) -> ChatQuery.ChatCompletionMessageParam? {
         guard let querySection = sections.first(where: { $0.role == .userQuery }) else {
             return nil

@@ -4,44 +4,25 @@ import Testing
 
 @Suite("Prompt assembly")
 struct PromptAssemblyTests {
-    struct MockSection: PromptLeaf {
-        let id: String
-        let priority: Int
-        let content: String
-        let compression: CompressionStrategy = .keep
-        let type: PromptSectionType = .text
-
-        var estimatedTokens: Int { content.count }
-
-        func renderContent() async -> String? {
-            content
-        }
-    }
-
     @Test("Prompt builders assemble without an extra wrapper")
-    func builderAssemblesDirectly() async {
+    func builderAssemblesDirectly() {
         let composite = AnyPrompt {
-            MockSection(id: "1", priority: 10, content: "Low Priority")
-            MockSection(id: "2", priority: 100, content: "High Priority")
+            ContextPrompt("Low Priority", id: "1", priority: 10)
+            ContextPrompt("High Priority", id: "2", priority: 100)
         }
 
-        let prompt = try! composite.assembledPrompt()
-        let sections = prompt.sections
-
-        #expect(sections.count == 2)
-        #expect(sections[0].id == "2")
-        #expect(sections[1].id == "1")
+        let prompt = try! composite.assemblePrompt()
+        #expect(prompt.sections.map(\.id) == ["2", "1"])
     }
 
     @Test("Prompt render convenience uses assembled prompt ordering")
     func compositeRenderUsesAssembledPrompt() async {
         let composite = AnyPrompt {
-            MockSection(id: "1", priority: 10, content: "Low Priority")
-            MockSection(id: "2", priority: 100, content: "High Priority")
+            ContextPrompt("Low Priority", id: "1", priority: 10)
+            ContextPrompt("High Priority", id: "2", priority: 100)
         }
 
         let rendered = await composite.render()
-
         #expect(rendered == "High Priority\n\n---\n\nLow Priority")
     }
 }

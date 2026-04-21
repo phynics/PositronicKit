@@ -12,8 +12,8 @@ func runExamples() async throws {
         userQuery: "What should I run before opening a pull request?"
     )
 
-    let assembled = try prompt.assembledPrompt()
-    let renderedPrompt = await assembled.rendered().string
+    let assembled = try prompt.assemblePrompt()
+    let renderedPrompt = await assembled.render().string
     let toolPrompt = await formatToolsForPrompt(PositronicKitUsageExamples.makeTools())
     let structuredOutput = PositronicKitUsageExamples.makeStructuredOutputSchema()
 

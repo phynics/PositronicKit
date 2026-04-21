@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import PKPrompt
 
-private struct MinimalPromptLeaf: PromptLeaf {
+private struct MinimalPromptPrimitive: PromptPrimitive {
     let id = "min"
     let priority = 1
     let estimatedTokens = 100
@@ -12,7 +12,7 @@ private struct MinimalPromptLeaf: PromptLeaf {
     }
 }
 
-private struct TruncatablePromptLeaf: PromptLeaf {
+private struct TruncatablePromptPrimitive: PromptPrimitive {
     let id = "truncate"
     let priority = 1
     let estimatedTokens = 100
@@ -26,10 +26,10 @@ private struct TruncatablePromptLeaf: PromptLeaf {
 
 @Suite("Prompt core")
 struct PromptCoreTests {
-    @Test("Prompt leaves use default traits")
+    @Test("Prompt primitives use default traits")
     func defaultImplementations() async {
-        let section = MinimalPromptLeaf()
-        let resolved = section.resolveSections(in: PromptResolutionContext())
+        let section = MinimalPromptPrimitive()
+        let resolved = section.assembleSections()
 
         #expect(resolved.count == 1)
         #expect(resolved[0].compression == .keep)
@@ -41,7 +41,7 @@ struct PromptCoreTests {
 
     @Test("Concrete sections can be constrained")
     func concreteSectionConstraint() async {
-        let base = MinimalPromptLeaf().resolveSections(in: PromptResolutionContext())[0]
+        let base = MinimalPromptPrimitive().assembleSections()[0]
         let constrained = base.constrained(to: 50)
 
         #expect(constrained.id == "min")
@@ -51,10 +51,10 @@ struct PromptCoreTests {
 
     @Test("Truncate tail applies during constrained rendering")
     func truncateTailRendering() async {
-        let resolved = TruncatablePromptLeaf(
+        let resolved = TruncatablePromptPrimitive(
             compression: .truncate(tail: true),
             text: "abcdefghijklmnop"
-        ).resolveSections(in: PromptResolutionContext())[0]
+        ).assembleSections()[0]
 
         let rendered = await resolved.renderText(constrainedTo: 2)
         #expect(rendered == "abcdefgh\n... [Truncated]")
@@ -62,10 +62,10 @@ struct PromptCoreTests {
 
     @Test("Truncate head applies during constrained rendering")
     func truncateHeadRendering() async {
-        let resolved = TruncatablePromptLeaf(
+        let resolved = TruncatablePromptPrimitive(
             compression: .truncate(tail: false),
             text: "abcdefghijklmnop"
-        ).resolveSections(in: PromptResolutionContext())[0]
+        ).assembleSections()[0]
 
         let rendered = await resolved.renderText(constrainedTo: 2)
         #expect(rendered == "... [Truncated]\nijklmnop")

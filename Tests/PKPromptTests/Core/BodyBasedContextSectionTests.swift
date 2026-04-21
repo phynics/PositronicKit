@@ -3,7 +3,7 @@ import Testing
 @testable import PKPrompt
 @testable import PKShared
 
-private struct StaticText: PromptLeaf {
+private struct StaticText: PromptPrimitive {
     let id: String
     let text: String
     let role: PromptSectionRole
@@ -56,7 +56,7 @@ private struct ToolsSection: Prompt {
 struct BodyBasedPromptTests {
     @Test("Composite sections flatten into effective prompt leaves")
     func compositeSectionsFlattenIntoEffectivePromptLeaves() async {
-        let sections = try! ToolsSection(tools: ["read", "write"]).assembledPrompt().sections
+        let sections = try! ToolsSection(tools: ["read", "write"]).assemblePrompt().sections
 
         #expect(sections.count == 1)
         #expect(sections[0].id == "tools")
@@ -70,7 +70,7 @@ struct BodyBasedPromptTests {
         #expect(rendered == "- read\n- write")
     }
 
-    @Test("Modifiers override prompt leaf defaults across nested groups")
+    @Test("Modifiers override prompt primitive defaults across nested groups")
     func modifiersOverridePrimitiveDefaultsAcrossNestedGroups() async {
         struct NestedSection: Prompt {
             @PromptBuilder
@@ -84,7 +84,7 @@ struct BodyBasedPromptTests {
             }
         }
 
-        let sections = try! NestedSection().assembledPrompt().sections
+        let sections = try! NestedSection().assemblePrompt().sections
 
         #expect(sections.map(\.id) == ["low", "high"])
         #expect(sections.allSatisfy { $0.priority == 90 })
@@ -101,7 +101,7 @@ struct BodyBasedPromptTests {
             UserPrompt("Add a toolbar action.")
         }
 
-        let sections = try! prompt.assembledPrompt().sections
+        let sections = try! prompt.assemblePrompt().sections
 
         #expect(sections.map(\.id) == ["system", "project", "user_query"])
         #expect(sections[0].role == .system)
@@ -111,12 +111,35 @@ struct BodyBasedPromptTests {
         #expect(sections[2].role == .userQuery)
     }
 
+    @Test("ContextPrompt supports deferred rendering for composed custom prompts")
+    func contextPromptSupportsDeferredRendering() async {
+        let prompt = ContextPrompt(
+            id: "dynamic_context",
+            priority: PromptPriority.high.rawValue,
+            compression: .truncate(tail: true),
+            cachePolicy: .semiStable,
+            estimatedTokens: 12,
+            render: {
+                "Deferred context"
+            }
+        )
+
+        let sections = try! prompt.assemblePrompt().sections
+
+        #expect(sections.count == 1)
+        #expect(sections[0].id == "dynamic_context")
+        #expect(sections[0].priority == PromptPriority.high.rawValue)
+        #expect(sections[0].compression == CompressionStrategy.truncate(tail: true))
+        #expect(sections[0].cachePolicy == CachePolicy.semiStable)
+        #expect(await sections[0].renderText() == "Deferred context")
+    }
+
     @Test("HistoryPrompt resolves to chat history leaves")
     func historyPromptResolvesToChatHistoryLeaves() async {
         let sections = try! HistoryPrompt([
             Message(content: "First", role: .user),
             Message(content: "Second", role: .assistant),
-        ]).assembledPrompt().sections
+        ]).assemblePrompt().sections
 
         #expect(sections.count == 1)
         #expect(sections[0].id == "chat_history")

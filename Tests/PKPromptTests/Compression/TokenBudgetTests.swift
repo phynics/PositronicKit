@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import PKPrompt
 
-private struct MockPrimitiveSection: PromptLeaf {
+private struct MockPrimitiveSection: PromptPrimitive {
     let id: String
     let priority: Int
     let estimatedTokens: Int
@@ -43,8 +43,8 @@ private struct MockCompressor: SectionCompressor {
     }
 }
 
-private func resolve(_ sections: [MockPrimitiveSection]) -> [ConcretePromptSection] {
-    sections.flatMap { $0.resolveSections(in: PromptResolutionContext()) }
+private func resolve(_ sections: [MockPrimitiveSection]) -> [AssembledPrompt.Section] {
+    sections.flatMap { $0.assembleSections() }
 }
 
 @Suite("TokenBudget")

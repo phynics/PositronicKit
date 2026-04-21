@@ -51,7 +51,7 @@ struct LLMServiceTests {
             )
         )
 
-        let renderedPrompt = await prompt.rendered().string
+        let renderedPrompt = await prompt.render().string
 
         #expect(renderedPrompt.contains("System rules"))
         #expect(renderedPrompt.contains("Note Content"))

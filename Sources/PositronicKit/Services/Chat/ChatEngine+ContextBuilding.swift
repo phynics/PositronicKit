@@ -116,7 +116,7 @@ extension ChatEngine {
         )
 
         // 5. Render once and reuse for messages + prompt history
-        let renderedPrompt = await prompt.rendered()
+        let renderedPrompt = await prompt.render()
         let initialMessages = prompt.buildMessages(from: renderedPrompt)
         let resolvedSections = prompt.sections
 

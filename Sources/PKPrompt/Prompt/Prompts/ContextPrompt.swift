@@ -2,11 +2,11 @@ import Foundation
 
 public struct ContextPrompt: Prompt {
     public let id: String
-    public let text: String
     public let priority: Int
     public let compression: CompressionStrategy
     public let cachePolicy: CachePolicy
     public let estimatedTokens: Int?
+    private let renderText: @Sendable () async -> String?
 
     public init(
         _ text: String,
@@ -16,23 +16,41 @@ public struct ContextPrompt: Prompt {
         cachePolicy: CachePolicy = .volatile,
         estimatedTokens: Int? = nil
     ) {
+        self.init(
+            id: id,
+            priority: priority,
+            compression: compression,
+            cachePolicy: cachePolicy,
+            estimatedTokens: estimatedTokens,
+            render: { text }
+        )
+    }
+
+    public init(
+        id: String,
+        priority: Int = PromptPriority.medium.rawValue,
+        compression: CompressionStrategy = .keep,
+        cachePolicy: CachePolicy = .volatile,
+        estimatedTokens: Int? = nil,
+        render: @escaping @Sendable () async -> String?
+    ) {
         self.id = id
-        self.text = text
         self.priority = priority
         self.compression = compression
         self.cachePolicy = cachePolicy
         self.estimatedTokens = estimatedTokens
+        self.renderText = render
     }
 
     public var body: some Prompt {
-        TextSection(
+        PromptPrimitives.Text(
             id: id,
-            text: text,
             role: .context,
             priority: priority,
             compression: compression,
             cachePolicy: cachePolicy,
-            estimatedTokens: estimatedTokens
+            estimatedTokens: estimatedTokens,
+            render: renderText
         )
     }
 }

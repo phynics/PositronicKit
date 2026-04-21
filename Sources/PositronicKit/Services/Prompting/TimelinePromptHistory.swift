@@ -100,7 +100,7 @@ public actor TimelinePromptHistory {
     /// Record a prompt snapshot and compact append state if thresholds were exceeded.
     @discardableResult
     public func update(prompt: AssembledPrompt) async -> PromptHistoryUpdate {
-        let rendered = await prompt.rendered()
+        let rendered = await prompt.render()
         return update(prompt: prompt, rendered: rendered)
     }
 
@@ -117,7 +117,7 @@ public actor TimelinePromptHistory {
     /// Record a prompt snapshot from concrete sections and rendered content, compacting if needed.
     @discardableResult
     public func update(
-        sections: [ConcretePromptSection],
+        sections: [AssembledPrompt.Section],
         renderedContent: [String: String]
     ) -> PromptHistoryUpdate {
         let diff = record(sections: sections, renderedContent: renderedContent)
@@ -144,7 +144,7 @@ public actor TimelinePromptHistory {
     /// detection and prefix-caching-aware history tracking.
     @discardableResult
     public func record(prompt: AssembledPrompt) async -> PromptDiff {
-        let rendered = await prompt.rendered()
+        let rendered = await prompt.render()
         return record(prompt: prompt, rendered: rendered)
     }
 
@@ -170,7 +170,7 @@ public actor TimelinePromptHistory {
     ///     are hashed as empty string.
     /// - Returns: A diff describing what changed since the last recording.
     @discardableResult
-    public func record(sections: [ConcretePromptSection], renderedContent: [String: String]) -> PromptDiff {
+    public func record(sections: [AssembledPrompt.Section], renderedContent: [String: String]) -> PromptDiff {
         let duplicateIDs = duplicateResolvedSectionIDs(in: sections)
         precondition(
             duplicateIDs.isEmpty,
@@ -245,7 +245,7 @@ public actor TimelinePromptHistory {
     }
 
     public func nodeMetadata(
-        sections: [ConcretePromptSection],
+        sections: [AssembledPrompt.Section],
         renderedContent: [String: String]
     ) -> [String: StructuredNodeMetadata] {
         var metadata: [String: StructuredNodeMetadata] = [:]
@@ -266,7 +266,7 @@ public actor TimelinePromptHistory {
         return metadata
     }
 
-    private func duplicateResolvedSectionIDs(in sections: [ConcretePromptSection]) -> [String] {
+    private func duplicateResolvedSectionIDs(in sections: [AssembledPrompt.Section]) -> [String] {
         var counts: [String: Int] = [:]
         for section in sections {
             counts[section.id, default: 0] += 1

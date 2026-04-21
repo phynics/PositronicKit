@@ -44,7 +44,7 @@ import Testing
 
     func executeLocally() async throws {
         let (timelineManager, mockPersistence) = try await setupTimelineManager()
-        let toolRouter = try await withDependencies {
+        let toolRouter = withDependencies {
             $0.timelineManager = timelineManager
         } operation: {
             ToolRouter()
@@ -86,7 +86,7 @@ import Testing
 
     func executeRemotelyThrowsClientExecutionRequired() async throws {
         let (timelineManager, mockPersistence) = try await setupTimelineManager()
-        let toolRouter = try await withDependencies {
+        let toolRouter = withDependencies {
             $0.timelineManager = timelineManager
         } operation: {
             ToolRouter()
@@ -121,7 +121,7 @@ import Testing
 
     func executeRemotelyWithoutClientThrowsClientNotConnected() async throws {
         let (timelineManager, mockPersistence) = try await setupTimelineManager()
-        let toolRouter = try await withDependencies {
+        let toolRouter = withDependencies {
             $0.timelineManager = timelineManager
         } operation: {
             ToolRouter()
@@ -156,7 +156,7 @@ import Testing
 
     func executeToolNotFound() async throws {
         let (timelineManager, _) = try await setupTimelineManager()
-        let toolRouter = try await withDependencies {
+        let toolRouter = withDependencies {
             $0.timelineManager = timelineManager
         } operation: {
             ToolRouter()

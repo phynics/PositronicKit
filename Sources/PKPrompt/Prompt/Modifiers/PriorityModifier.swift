@@ -18,27 +18,53 @@ public enum PromptPriority: Int, Sendable {
 
 public extension Prompt {
     func priority(_ value: Int) -> some Prompt {
-        PriorityModifier(content: self, priority: value)
+        PromptModifiers.Priority(content: self, priority: value)
     }
 
     func priority(_ value: PromptPriority) -> some Prompt {
         priority(value.rawValue)
     }
+
+    func compression(_ value: CompressionStrategy) -> some Prompt {
+        PromptModifiers.Compression(content: self, compression: value)
+    }
+
+    func cachePolicy(_ value: CachePolicy) -> some Prompt {
+        PromptModifiers.CachePolicy(content: self, cachePolicy: value)
+    }
 }
 
-public struct PriorityModifier<Content: Prompt>: Prompt {
-    let content: Content
-    let priority: Int
+package enum PromptModifiers {
+    package struct Priority<Content: Prompt>: Prompt, PromptAssemblyNode {
+        package let content: Content
+        package let priority: Int
 
-    public var body: EmptyPrompt {
-        EmptyPrompt()
+        package var body: EmptyPrompt { EmptyPrompt() }
+
+        package func assembleSections(in context: PromptAssembly.Context) -> [AssembledPrompt.Section] {
+            PromptAssembly.resolve(content, in: context.applying(priority: priority))
+        }
     }
 
-    public var sectionPathComponent: String? {
-        nil
+    package struct Compression<Content: Prompt>: Prompt, PromptAssemblyNode {
+        package let content: Content
+        package let compression: CompressionStrategy
+
+        package var body: EmptyPrompt { EmptyPrompt() }
+
+        package func assembleSections(in context: PromptAssembly.Context) -> [AssembledPrompt.Section] {
+            PromptAssembly.resolve(content, in: context.applying(compression: compression))
+        }
     }
 
-    public func resolveSections(in context: PromptResolutionContext) -> [ConcretePromptSection] {
-        content.resolveSections(in: context.applying(priority: priority))
+    package struct CachePolicy<Content: Prompt>: Prompt, PromptAssemblyNode {
+        package let content: Content
+        package let cachePolicy: PKPrompt.CachePolicy
+
+        package var body: EmptyPrompt { EmptyPrompt() }
+
+        package func assembleSections(in context: PromptAssembly.Context) -> [AssembledPrompt.Section] {
+            PromptAssembly.resolve(content, in: context.applying(cachePolicy: cachePolicy))
+        }
     }
 }
