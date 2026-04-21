@@ -33,7 +33,7 @@ private struct RecordingCompressor: SectionCompressor {
     }
 }
 
-private func resolveExecutorSections(_ sections: [ExecutorMockSection]) -> [ResolvedPromptSection] {
+private func resolveExecutorSections(_ sections: [ExecutorMockSection]) -> [ConcretePromptSection] {
     sections.flatMap { $0.resolve(in: PromptResolutionContext()) }
 }
 
@@ -58,7 +58,7 @@ struct StructuredCompressionExecutorTests {
         let result = await executor.execute(plan: plan, sections: sections, compressor: RecordingCompressor(result: "summary"))
 
         #expect(result.sections.map(\.id) == ["s1", "s2"])
-        #expect(await result.sections[0].render() == "summary")
+        #expect(await result.sections[0].renderText() == "summary")
     }
 
     @Test("Uses summary cache keyed by nodeHash and target tokens")

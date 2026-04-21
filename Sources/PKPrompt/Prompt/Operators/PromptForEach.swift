@@ -63,7 +63,7 @@ public struct PromptForEach<Content: Prompt>: Prompt {
     ///
     /// - Parameter context: The resolution context to pass to each repeated child.
     /// - Returns: The concatenated resolved output of all repeated children.
-    public func resolve(in context: PromptResolutionContext) -> [ResolvedPromptSection] {
+    public func resolve(in context: PromptResolutionContext) -> [ConcretePromptSection] {
         zip(content, iterationPathComponents).flatMap { child, pathComponent in
             child.resolve(in: context.descending(into: pathComponent))
         }

@@ -33,14 +33,14 @@ struct GenericHelperSectionsTests {
     func textSectionRender() async {
         let section = TextSection(id: "t1", text: "Hello")
         let resolved = section.resolve(in: PromptResolutionContext())[0]
-        #expect(await resolved.render() == "Hello")
+        #expect(await resolved.renderText() == "Hello")
     }
 
     @Test("TextSection renders nil for empty content")
     func textSectionRenderEmptyReturnsNil() async {
         let section = TextSection(id: "t1", text: "")
         let resolved = section.resolve(in: PromptResolutionContext())[0]
-        #expect(await resolved.render() == nil)
+        #expect(await resolved.renderText() == nil)
     }
 
     @Test("EmptySection resolves to no leaves")

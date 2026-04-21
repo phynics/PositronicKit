@@ -37,10 +37,10 @@ public struct CompressionReport: Sendable, Equatable {
 }
 
 public struct StructuredExecutionResult: Sendable {
-    public let sections: [ResolvedPromptSection]
+    public let sections: [ConcretePromptSection]
     public let report: CompressionReport
 
-    public init(sections: [ResolvedPromptSection], report: CompressionReport) {
+    public init(sections: [ConcretePromptSection], report: CompressionReport) {
         self.sections = sections
         self.report = report
     }

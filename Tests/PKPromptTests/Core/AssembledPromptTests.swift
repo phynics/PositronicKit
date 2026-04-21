@@ -36,8 +36,8 @@ struct AssembledPromptTests {
         let sec1 = DummyPromptSection(id: "s1", priority: 1, estimatedTokens: 10, text: "Low")
         let sec2 = DummyPromptSection(id: "s2", priority: 100, estimatedTokens: 10, text: "High")
 
-        let prompt = try! AssembledPrompt(resolvedSections: [sec1.resolve()[0], sec2.resolve()[0]])
-        let resolved = prompt.resolvedSections
+        let prompt = try! AssembledPrompt(sections: [sec1.resolve()[0], sec2.resolve()[0]])
+        let resolved = prompt.sections
 
         #expect(resolved.count == 2)
         #expect(resolved[0].id == "s2")
@@ -46,7 +46,7 @@ struct AssembledPromptTests {
 
     @Test("Assembled prompt builds canonical ordered string")
     func buildString() async {
-        let prompt = try! AssembledPrompt(resolvedSections: [
+        let prompt = try! AssembledPrompt(sections: [
             DummyPromptSection(id: "s1", priority: 10, estimatedTokens: 10, text: "First block").resolve()[0],
             DummyPromptSection(id: "s2", priority: 5, estimatedTokens: 10, text: nil).resolve()[0],
             DummyPromptSection(id: "s3", priority: 1, estimatedTokens: 10, text: "Second block").resolve()[0],
@@ -58,7 +58,7 @@ struct AssembledPromptTests {
 
     @Test("Assembled prompt snapshot skips empty content")
     func renderedSectionsByID() async {
-        let prompt = try! AssembledPrompt(resolvedSections: [
+        let prompt = try! AssembledPrompt(sections: [
             DummyPromptSection(id: "s1", priority: 10, estimatedTokens: 10, text: "Val1").resolve()[0],
             DummyPromptSection(id: "s2", priority: 5, estimatedTokens: 10, text: "").resolve()[0],
             DummyPromptSection(id: "s3", priority: 1, estimatedTokens: 10, text: "Val2").resolve()[0],
@@ -77,14 +77,14 @@ struct AssembledPromptTests {
             Message(content: "Hello", role: .user),
             Message(content: "Hi", role: .assistant),
         ]
-        let prompt = try! AssembledPrompt(resolvedSections: [
+        let prompt = try! AssembledPrompt(sections: [
             HistorySection(messages: messages).resolve()[0],
         ])
 
         let rendered = await prompt.rendered().sections
 
         #expect(rendered.count == 1)
-        #expect(rendered[0].content == RenderedPromptSectionContent.messages(messages))
+        #expect(rendered[0].content == ConcretePromptSection.SectionContent.messages(messages))
     }
 
     @Test("Assembled prompt renders a canonical product from one pass")
@@ -93,7 +93,7 @@ struct AssembledPromptTests {
             Message(content: "Hello", role: .user),
             Message(content: "Hi", role: .assistant),
         ]
-        let prompt = try! AssembledPrompt(resolvedSections: [
+        let prompt = try! AssembledPrompt(sections: [
             DummyPromptSection(id: "system", priority: 100, estimatedTokens: 10, text: "Rules").resolve()[0],
             HistorySection(messages: messages).resolve()[0],
         ])
@@ -111,7 +111,7 @@ struct AssembledPromptTests {
         let droppedHistory = HistorySection(messages: [
             Message(content: "Hello", role: .user),
         ]).resolve()[0].dropped()
-        let prompt = try! AssembledPrompt(resolvedSections: [droppedHistory])
+        let prompt = try! AssembledPrompt(sections: [droppedHistory])
 
         let rendered = await prompt.rendered().sections
 
@@ -121,7 +121,7 @@ struct AssembledPromptTests {
 
     @Test("Assembled prompt estimatedTokens sums resolved tokens")
     func estimatedTokens() {
-        let prompt = try! AssembledPrompt(resolvedSections: [
+        let prompt = try! AssembledPrompt(sections: [
             DummyPromptSection(id: "s1", priority: 10, estimatedTokens: 50, text: "A").resolve()[0],
             DummyPromptSection(id: "s2", priority: 5, estimatedTokens: 100, text: "B").resolve()[0],
         ])
@@ -136,13 +136,13 @@ struct AssembledPromptTests {
         let stableMedium = DummyPromptSection(id: "stableMedium", priority: 50, estimatedTokens: 0, text: "M", cachePolicy: .stable)
         let stableHigh = DummyPromptSection(id: "stableHigh", priority: 100, estimatedTokens: 0, text: "H", cachePolicy: .stable)
 
-        let prompt = try! AssembledPrompt(resolvedSections: [
+        let prompt = try! AssembledPrompt(sections: [
             volatileHigh.resolve()[0],
             semiStableLow.resolve()[0],
             stableMedium.resolve()[0],
             stableHigh.resolve()[0],
         ])
-        let resolved = prompt.resolvedSections
+        let resolved = prompt.sections
 
         #expect(resolved.map { $0.id } == ["stableHigh", "stableMedium", "semiStableLow", "volatileHigh"])
     }
@@ -153,8 +153,8 @@ struct AssembledPromptTests {
         let query2 = DummyPromptSection(id: "q2", priority: 5, estimatedTokens: 5, text: "Two")
 
         #expect(throws: AssembledPrompt.ValidationError.multipleUserQuerySections(["q1", "q2"])) {
-            try AssembledPrompt(resolvedSections: [
-                ResolvedPromptSection(
+            try AssembledPrompt(sections: [
+                ConcretePromptSection(
                     id: query1.id,
                     role: .userQuery,
                     priority: query1.priority,
@@ -164,10 +164,10 @@ struct AssembledPromptTests {
                     cachePolicy: query1.cachePolicy,
                     path: [query1.id],
                     render: { _ in
-                        query1.text.map(RenderedPromptSectionContent.text)
+                        query1.text.map(ConcretePromptSection.SectionContent.text)
                     }
                 ),
-                ResolvedPromptSection(
+                ConcretePromptSection(
                     id: query2.id,
                     role: .userQuery,
                     priority: query2.priority,
@@ -177,7 +177,7 @@ struct AssembledPromptTests {
                     cachePolicy: query2.cachePolicy,
                     path: [query2.id],
                     render: { _ in
-                        query2.text.map(RenderedPromptSectionContent.text)
+                        query2.text.map(ConcretePromptSection.SectionContent.text)
                     }
                 ),
             ])

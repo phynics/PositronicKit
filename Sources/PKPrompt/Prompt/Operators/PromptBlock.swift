@@ -22,8 +22,8 @@ public struct PromptBlock<each Content: Prompt>: Prompt {
     }
 
     /// Resolves each child in source order.
-    public func resolve(in context: PromptResolutionContext) -> [ResolvedPromptSection] {
-        var resolvedSections: [ResolvedPromptSection] = []
+    public func resolve(in context: PromptResolutionContext) -> [ConcretePromptSection] {
+        var resolvedSections: [ConcretePromptSection] = []
         repeat resolvedSections += (each content).resolve(in: context)
         return resolvedSections
     }

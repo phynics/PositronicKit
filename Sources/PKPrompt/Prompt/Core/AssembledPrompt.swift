@@ -1,35 +1,19 @@
 import Foundation
 import PKShared
 
-/// A validated, ordered prompt artifact built from resolved prompt sections.
+/// A validated, ordered prompt artifact built from concrete prompt sections.
 ///
 /// `AssembledPrompt` is the bridge between declarative prompt composition and concrete output.
-/// It preserves the resolved section metadata used by downstream systems and renders those
+/// It preserves the concrete section metadata used by downstream systems and renders those
 /// sections into a single canonical ``RenderedPrompt`` product that can be reused by downstream
 /// projections such as provider message arrays.
 public struct AssembledPrompt: Sendable {
-    // MARK: - Internal Types
-
-    /// A rendered prompt section paired with its stable identifier and semantic role.
-    ///
-    /// Instances of `Section` only include sections whose render closure produced concrete output.
-    public struct Section: Sendable {
-        /// Stable section identifier inherited from the resolved prompt graph.
-        public let id: String
-
-        /// Semantic role that determines how downstream renderers treat this section.
-        public let role: PromptSectionRole
-
-        /// Concrete rendered content for the section.
-        public let content: RenderedPromptSection.SectionContent
-    }
-
-    /// Errors raised when resolved sections cannot form a valid assembled prompt.
+    /// Errors raised when concrete sections cannot form a valid assembled prompt.
     public enum ValidationError: Error, Sendable, Equatable {
-        /// Two or more resolved sections shared the same stable identifier.
+        /// Two or more concrete sections shared the same stable identifier.
         case duplicateSectionIDs([String])
 
-        /// More than one resolved section declared itself as the active user query.
+        /// More than one concrete section declared itself as the active user query.
         case multipleUserQuerySections([String])
     }
 
@@ -40,7 +24,7 @@ public struct AssembledPrompt: Sendable {
     /// they all come from the same ordered section list.
     public struct RenderedPrompt: Sendable {
         /// Rendered sections in canonical prompt order.
-        public let sections: [Section]
+        public let sections: [ConcretePromptSection.Rendered]
 
         /// Canonical plain-text prompt representation built from ``sections``.
         ///
@@ -57,33 +41,33 @@ public struct AssembledPrompt: Sendable {
 
     // MARK: - Properties
 
-    /// Ordered resolved sections that make up this prompt.
+    /// Ordered concrete sections that make up this prompt.
     ///
     /// Sections are sorted during initialization by cache policy, then priority, while preserving
     /// source order as a final tiebreaker.
-    public let resolvedSections: [ResolvedPromptSection]
+    public let sections: [ConcretePromptSection]
 
     /// Optional compression details captured when assembly applied a token budget.
     public let compressionReport: CompressionReport?
 
-    /// Estimated token count across the ordered resolved sections.
+    /// Estimated token count across the ordered concrete sections.
     public var estimatedTokens: Int {
-        resolvedSections.reduce(0) { $0 + $1.estimatedTokens }
+        sections.reduce(0) { $0 + $1.estimatedTokens }
     }
 
-    /// Creates an assembled prompt from resolved sections after validating prompt shape.
+    /// Creates an assembled prompt from concrete sections after validating prompt shape.
     ///
     /// - Parameters:
-    ///   - resolvedSections: Concrete prompt sections to validate and order.
+    ///   - sections: Concrete prompt sections to validate and order.
     ///   - compressionReport: Optional report describing compression applied during assembly.
     /// - Throws: ``ValidationError`` when duplicate section identifiers are present or the prompt
     ///   contains more than one user-query section.
     public init(
-        resolvedSections: [ResolvedPromptSection],
+        sections: [ConcretePromptSection],
         compressionReport: CompressionReport? = nil,
     ) throws {
-        try Self.validatePromptShape(in: resolvedSections)
-        self.resolvedSections = AssembledPrompt.sortResolvedSections(resolvedSections)
+        try Self.validatePromptShape(in: sections)
+        self.sections = AssembledPrompt.sortSections(sections)
         self.compressionReport = compressionReport
     }
 
@@ -92,16 +76,14 @@ public struct AssembledPrompt: Sendable {
     /// Prefer this API when multiple downstream consumers need access to the same rendered prompt,
     /// such as plain-text rendering, snapshot recording, and provider message generation.
     public func rendered() async -> RenderedPrompt {
-        var renderedSections: [Section] = []
+        var renderedSections: [ConcretePromptSection.Rendered] = []
         var sectionsByID: [String: String] = [:]
         var stringParts: [String] = []
 
-        for section in resolvedSections {
-            guard let content = await section.renderedContent() else {
+        for section in sections {
+            guard let renderedSection = await section.rendered() else {
                 continue
             }
-
-            let renderedSection = Section(id: section.id, role: section.role, content: content)
             renderedSections.append(renderedSection)
 
             guard let text = textContent(for: renderedSection), !text.isEmpty else {
@@ -120,7 +102,7 @@ public struct AssembledPrompt: Sendable {
     }
 
     // MARK: - Private Utilities
-    private static func sortResolvedSections(_ sections: [ResolvedPromptSection]) -> [ResolvedPromptSection] {
+    private static func sortSections(_ sections: [ConcretePromptSection]) -> [ConcretePromptSection] {
         sections.enumerated().sorted { lhs, rhs in
             if lhs.element.cachePolicy != rhs.element.cachePolicy {
                 return lhs.element.cachePolicy < rhs.element.cachePolicy
@@ -132,7 +114,7 @@ public struct AssembledPrompt: Sendable {
         }.map(\.element)
     }
 
-    private static func validatePromptShape(in sections: [ResolvedPromptSection]) throws {
+    private static func validatePromptShape(in sections: [ConcretePromptSection]) throws {
         let duplicateIDs = sections.duplicateIDs(idKeyPath: \.id)
         guard duplicateIDs.isEmpty else {
             throw ValidationError.duplicateSectionIDs(duplicateIDs)
@@ -148,7 +130,7 @@ public struct AssembledPrompt: Sendable {
         }
     }
 
-    private func textContent(for section: Section) -> String? {
+    private func textContent(for section: ConcretePromptSection.Rendered) -> String? {
         switch section.content {
         case let .text(content):
             return content

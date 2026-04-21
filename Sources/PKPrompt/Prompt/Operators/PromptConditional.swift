@@ -44,7 +44,7 @@ public struct PromptConditional<First: Prompt, Second: Prompt>: Prompt {
     ///
     /// - Parameter context: The resolution context to pass into the selected branch.
     /// - Returns: The resolved output of the selected branch.
-    public func resolve(in context: PromptResolutionContext) -> [ResolvedPromptSection] {
+    public func resolve(in context: PromptResolutionContext) -> [ConcretePromptSection] {
         switch storage {
         case let .first(content):
             return content.resolve(in: context)

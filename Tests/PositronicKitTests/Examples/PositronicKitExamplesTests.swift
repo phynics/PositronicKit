@@ -16,7 +16,7 @@ struct PositronicKitExamplesTests {
         )
 
         let assembled = try! prompt.assembledPrompt()
-        let sections = assembled.resolvedSections
+        let sections = assembled.sections
 
         #expect(sections.map(\.id) == ["system", "available_tools", "chat_history", "user_query"])
         #expect(sections.map(\.role) == [.system, .context, .chatHistory, .userQuery])

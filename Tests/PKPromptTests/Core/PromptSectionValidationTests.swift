@@ -32,8 +32,8 @@ struct PromptSectionValidationTests {
         }
     }
 
-    private func makeResolvedSection(id: String) -> ResolvedPromptSection {
-        ResolvedPromptSection(
+    private func makeResolvedSection(id: String) -> ConcretePromptSection {
+        ConcretePromptSection(
             id: id,
             role: .context,
             priority: 0,
@@ -51,7 +51,7 @@ struct PromptSectionValidationTests {
         let sections = [makeResolvedSection(id: "dup"), makeResolvedSection(id: "dup")]
 
         #expect(throws: AssembledPrompt.ValidationError.duplicateSectionIDs(["dup"])) {
-            try AssembledPrompt(resolvedSections: sections)
+            try AssembledPrompt(sections: sections)
         }
     }
 

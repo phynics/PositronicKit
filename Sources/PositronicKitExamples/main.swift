@@ -22,7 +22,7 @@ func runExamples() async throws {
 
     print("# PKPrompt Example\n")
     print(renderedPrompt)
-    print("\nResolved sections: \(assembled.resolvedSections.map(\.id))")
+    print("\nPrompt sections: \(assembled.sections.map(\.id))")
     print("\n# PositronicKit Example\n")
         print("Prototype runtime and fully configured runtime both initialized successfully.")
         print(toolPrompt)

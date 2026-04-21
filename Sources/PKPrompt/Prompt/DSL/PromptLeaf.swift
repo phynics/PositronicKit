@@ -82,11 +82,11 @@ public extension PromptLeaf {
     }
 
     func render(constrainedTo tokens: Int?) async -> String? {
-        await resolve(in: PromptResolutionContext()).first?.render(constrainedTo: tokens)
+        await resolve(in: PromptResolutionContext()).first?.renderText(constrainedTo: tokens)
     }
 
     /// Resolves a prompt leaf into a single concrete node with inherited traits applied.
-    func resolve(in context: PromptResolutionContext = PromptResolutionContext()) -> [ResolvedPromptSection] {
+    func resolve(in context: PromptResolutionContext = PromptResolutionContext()) -> [ConcretePromptSection] {
         let effectivePriority = context.inheritedPriority ?? priority
         let effectiveCompression = context.inheritedCompression ?? compression
         let effectiveCachePolicy = context.inheritedCachePolicy ?? cachePolicy
@@ -94,7 +94,7 @@ public extension PromptLeaf {
         let leafContent = content
 
         return [
-            ResolvedPromptSection(
+            ConcretePromptSection(
                 id: id,
                 role: role,
                 priority: effectivePriority,

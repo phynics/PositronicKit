@@ -35,7 +35,7 @@ public struct PromptOptional<Primary: Prompt, Fallback: Prompt>: Prompt {
     ///
     /// - Parameter context: The resolution context to pass into the chosen branch.
     /// - Returns: The resolved output of the chosen branch, or an empty array if neither exists.
-    public func resolve(in context: PromptResolutionContext) -> [ResolvedPromptSection] {
+    public func resolve(in context: PromptResolutionContext) -> [ConcretePromptSection] {
         if let primary {
             return primary.resolve(in: context)
         }

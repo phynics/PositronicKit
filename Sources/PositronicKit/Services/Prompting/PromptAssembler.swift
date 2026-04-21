@@ -120,7 +120,7 @@ public enum PromptAssembler {
         return sections
     }
 
-    private static func duplicateResolvedSectionIDs(in sections: [ResolvedPromptSection]) -> [String] {
+    private static func duplicateResolvedSectionIDs(in sections: [ConcretePromptSection]) -> [String] {
         var counts: [String: Int] = [:]
         for section in sections {
             counts[section.id, default: 0] += 1
@@ -132,19 +132,19 @@ public enum PromptAssembler {
             .sorted()
     }
 
-    private static func resolveSections(from sections: [any Prompt]) -> [ResolvedPromptSection] {
+    private static func resolveSections(from sections: [any Prompt]) -> [ConcretePromptSection] {
         sections.flatMap { $0.resolve(in: PromptResolutionContext()) }
     }
 
     private static func assemblePrompt(
-        from resolvedSections: [ResolvedPromptSection],
+        from resolvedSections: [ConcretePromptSection],
         tokenBudget: TokenBudget?,
         compressor: SectionCompressor?,
         structuredDiff: StructuredDiffHint?,
         structuredExecutor: StructuredCompressionExecutor
     ) async throws -> AssembledPrompt {
         guard let tokenBudget else {
-            return try AssembledPrompt(resolvedSections: resolvedSections)
+            return try AssembledPrompt(sections: resolvedSections)
         }
 
         let metadata = await buildStructuredMetadata(for: resolvedSections)
@@ -158,17 +158,17 @@ public enum PromptAssembler {
         )
 
         return try AssembledPrompt(
-            resolvedSections: compressionResult.sections,
+            sections: compressionResult.sections,
             compressionReport: compressionResult.report
         )
     }
 
     private static func buildStructuredMetadata(
-        for resolvedSections: [ResolvedPromptSection]
+        for resolvedSections: [ConcretePromptSection]
     ) async -> [String: StructuredNodeMetadata] {
         var metadata: [String: StructuredNodeMetadata] = [:]
         for section in resolvedSections {
-            let rendered = await section.render() ?? ""
+            let rendered = await section.renderText() ?? ""
             // Include both resolved content and inherited traits in the cache key so
             // structured compression invalidates whenever a materially relevant field changes.
             metadata[section.id] = StructuredNodeMetadata(

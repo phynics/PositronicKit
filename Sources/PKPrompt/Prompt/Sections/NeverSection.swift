@@ -5,7 +5,7 @@ public struct NeverSection: Prompt {
     public init() {}
     public var body: NeverSection { self }
     public var sectionPathComponent: String? { nil }
-    public func resolve(in context: PromptResolutionContext) -> [ResolvedPromptSection] { [] }
+    public func resolve(in context: PromptResolutionContext) -> [ConcretePromptSection] { [] }
 }
 
 /// Semantic alias for a section that intentionally resolves to no output.

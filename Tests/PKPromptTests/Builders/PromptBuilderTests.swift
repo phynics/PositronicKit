@@ -40,7 +40,7 @@ struct PromptBuilderTests {
         }
 
         let assembled = try! prompt.assembledPrompt()
-        let sections = assembled.resolvedSections
+        let sections = assembled.sections
         #expect(sections.count == 2)
         #expect(sections[0].id == "2")
         #expect(sections[1].id == "1")
@@ -63,7 +63,7 @@ struct PromptBuilderTests {
             if includePublic {
                 MockSection(id: "public", priority: 50, content: "Public")
             }
-        }.assembledPrompt().resolvedSections
+        }.assembledPrompt().sections
         #expect(sections.count == 1)
         #expect(sections[0].id == "public")
     }
@@ -78,7 +78,7 @@ struct PromptBuilderTests {
             }
         }
 
-        let sections = prompt.resolvedSections()
+        let sections = prompt.sections()
         #expect(sections.count == 3)
     }
 
@@ -99,7 +99,7 @@ struct PromptBuilderTests {
             MockSection(id: "2", priority: 20, content: "Two")
         }
 
-        #expect(try! prompt.assembledPrompt().resolvedSections.map { $0.id } == ["2", "1"])
+        #expect(try! prompt.assembledPrompt().sections.map { $0.id } == ["2", "1"])
     }
 
     @Test("Builder lowers conditionals to PromptConditional")
@@ -139,7 +139,7 @@ struct PromptBuilderTests {
             MockSection(id: item.id, priority: 50, content: item.content)
         }
 
-        #expect(try! composite.assembledPrompt().resolvedSections.map { $0.id } == ["a", "b"])
+        #expect(try! composite.assembledPrompt().sections.map { $0.id } == ["a", "b"])
     }
 
     @Test("PromptForEach supports explicit id key paths")
@@ -153,7 +153,7 @@ struct PromptBuilderTests {
             MockSection(id: item.key, priority: 50, content: item.content)
         }
 
-        #expect(try! composite.assembledPrompt().resolvedSections.map { $0.id } == ["a", "b"])
+        #expect(try! composite.assembledPrompt().sections.map { $0.id } == ["a", "b"])
     }
 
     @Test("PromptForEach ids only stabilize paths and do not replace leaf ids")
@@ -168,7 +168,7 @@ struct PromptBuilderTests {
         }
 
         #expect(throws: AssembledPrompt.ValidationError.duplicateSectionIDs(["shared"])) {
-            try AssembledPrompt(resolvedSections: composite.resolvedSections())
+            try AssembledPrompt(sections: composite.sections())
         }
     }
 

@@ -56,7 +56,7 @@ private struct ToolsSection: Prompt {
 struct BodyBasedPromptTests {
     @Test("Composite sections flatten into effective prompt leaves")
     func compositeSectionsFlattenIntoEffectivePromptLeaves() async {
-        let sections = try! ToolsSection(tools: ["read", "write"]).assembledPrompt().resolvedSections
+        let sections = try! ToolsSection(tools: ["read", "write"]).assembledPrompt().sections
 
         #expect(sections.count == 1)
         #expect(sections[0].id == "tools")
@@ -66,7 +66,7 @@ struct BodyBasedPromptTests {
         #expect(sections[0].cachePolicy == .semiStable)
         #expect(sections[0].path.suffix(3).elementsEqual(["ToolsSection", "semiStable", "tools"]))
 
-        let rendered = await sections[0].render()
+        let rendered = await sections[0].renderText()
         #expect(rendered == "- read\n- write")
     }
 
@@ -84,7 +84,7 @@ struct BodyBasedPromptTests {
             }
         }
 
-        let sections = try! NestedSection().assembledPrompt().resolvedSections
+        let sections = try! NestedSection().assembledPrompt().sections
 
         #expect(sections.map(\.id) == ["low", "high"])
         #expect(sections.allSatisfy { $0.priority == 90 })
@@ -101,7 +101,7 @@ struct BodyBasedPromptTests {
             UserPrompt("Add a toolbar action.")
         }
 
-        let sections = try! prompt.assembledPrompt().resolvedSections
+        let sections = try! prompt.assembledPrompt().sections
 
         #expect(sections.map(\.id) == ["system", "project", "user_query"])
         #expect(sections[0].role == .system)
@@ -116,17 +116,17 @@ struct BodyBasedPromptTests {
         let sections = try! HistoryPrompt([
             Message(content: "First", role: .user),
             Message(content: "Second", role: .assistant),
-        ]).assembledPrompt().resolvedSections
+        ]).assembledPrompt().sections
 
         #expect(sections.count == 1)
         #expect(sections[0].id == "chat_history")
         #expect(sections[0].role == PromptSectionRole.chatHistory)
-        if case let .messages(messages)? = await sections[0].renderedContent() {
+        if case let .messages(messages)? = await sections[0].renderedContent(constrainedTo: nil) {
             #expect(messages.map(\.role) == [.user, .assistant])
             #expect(messages.map(\.content) == ["First", "Second"])
         } else {
             #expect(Bool(false), "History section should render message content")
         }
-        #expect(await sections[0].render() == nil)
+        #expect(await sections[0].renderText() == nil)
     }
 }

@@ -40,7 +40,7 @@ struct PromptTests {
         #expect(type(of: prompt) == AnyPrompt.self)
         #expect(prompt.sections.count == 1)
         #expect(type(of: prompt.sections[0]) == PromptBlock<DummyPromptSection, DummyPromptSection>.self)
-        #expect(try! prompt.assembledPrompt().resolvedSections.map { $0.id } == ["s2", "s1"])
+        #expect(try! prompt.assembledPrompt().sections.map { $0.id } == ["s2", "s1"])
     }
 
     @Test("Prompt composites assemble directly without a wrapper")
@@ -51,7 +51,7 @@ struct PromptTests {
         let prompt = AnyPrompt([sec1, sec2])
         #expect(prompt.sections.count == 2)
 
-        let resolved = try! prompt.assembledPrompt().resolvedSections
+        let resolved = try! prompt.assembledPrompt().sections
 
         #expect(resolved.count == 2)
         #expect(resolved[0].id == "s2")
@@ -68,7 +68,7 @@ struct PromptTests {
         #expect(prompt.sections.count == 1)
         #expect(type(of: prompt.sections[0]) == PromptBlock<DummyPromptSection, DummyPromptSection>.self)
 
-        let resolved = try! prompt.assembledPrompt().resolvedSections
+        let resolved = try! prompt.assembledPrompt().sections
         #expect(resolved.count == 2)
         #expect(resolved[0].id == "s2")
     }

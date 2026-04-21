@@ -43,7 +43,7 @@ private struct MockCompressor: SectionCompressor {
     }
 }
 
-private func resolve(_ sections: [MockPrimitiveSection]) -> [ResolvedPromptSection] {
+private func resolve(_ sections: [MockPrimitiveSection]) -> [ConcretePromptSection] {
     sections.flatMap { $0.resolve(in: PromptResolutionContext()) }
 }
 
@@ -99,7 +99,7 @@ struct TokenBudgetTests {
         #expect(result[1].id == "truncate")
         #expect(result[1].estimatedTokens == 200)
 
-        let rendered = await result[1].render()
+        let rendered = await result[1].renderText()
         #expect(rendered?.count == 7)
     }
 
@@ -143,7 +143,7 @@ struct TokenBudgetTests {
         #expect(result.count == 2)
         #expect(result[1].id == "summarize")
         #expect(result[1].estimatedTokens <= 200)
-        #expect(await result[1].render() == "short summary")
+        #expect(await result[1].renderText() == "short summary")
     }
 
     @Test("Summarize drops when summary still does not fit")

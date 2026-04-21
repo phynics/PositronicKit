@@ -6,7 +6,7 @@ public protocol Prompt: Sendable {
     associatedtype Body: Prompt = NeverSection
     var body: Body { get }
     var sectionPathComponent: String? { get }
-    func resolve(in context: PromptResolutionContext) -> [ResolvedPromptSection]
+    func resolve(in context: PromptResolutionContext) -> [ConcretePromptSection]
 }
 
 public extension Prompt {
@@ -16,7 +16,7 @@ public extension Prompt {
     }
 
     /// Default resolution walks into the section's `body` with an updated path context.
-    func resolve(in context: PromptResolutionContext = PromptResolutionContext()) -> [ResolvedPromptSection] {
+    func resolve(in context: PromptResolutionContext = PromptResolutionContext()) -> [ConcretePromptSection] {
         body.resolve(in: context.descending(into: sectionPathComponent))
     }
     
@@ -30,14 +30,14 @@ public extension Prompt {
     }
     
     /// Resolves this declarative prompt tree into concrete prompt sections.
-    func resolvedSections() -> [ResolvedPromptSection] {
+    func sections() -> [ConcretePromptSection] {
         resolve(in: PromptResolutionContext())
     }
 
     /// Assembles this declarative prompt tree into a validated, ordered prompt artifact.
     ///
-    /// - Throws: ``AssembledPrompt/ValidationError`` when the resolved section graph is invalid.
+    /// - Throws: ``AssembledPrompt/ValidationError`` when the concrete section graph is invalid.
     func assembledPrompt() throws -> AssembledPrompt {
-        try AssembledPrompt(resolvedSections: resolvedSections())
+        try AssembledPrompt(sections: sections())
     }
 }

@@ -91,11 +91,11 @@ struct PromptAssemblyTests {
     @Test("PromptAssembler assembles runtime requests with the default pipeline")
     func promptBuilderUsesPipeline() async throws {
         let prompt = try await PromptAssembler.assemble(makeRequest(userQuery: "pipeline test"))
-        let resolved = prompt.resolvedSections
+        let resolved = prompt.sections
 
         #expect(resolved.contains { $0.id == "system" })
         #expect(resolved.contains { $0.id == "user_query" })
-        #expect(await resolved.first(where: { $0.id == "user_query" })?.render() == "pipeline test")
+        #expect(await resolved.first(where: { $0.id == "user_query" })?.renderText() == "pipeline test")
     }
 
     @Test("PromptAssembler uses override pipeline in assemble")
@@ -110,7 +110,7 @@ struct PromptAssemblyTests {
             makeRequest(userQuery: "test"),
             options: PromptAssemblyOptions(overridePipeline: PromptAssemblyPipeline(stages: [CustomStage()]))
         )
-        let resolved = prompt.resolvedSections
+        let resolved = prompt.sections
 
         #expect(resolved.count == 1)
         #expect(resolved.first?.id == "override_assembly")
@@ -148,6 +148,6 @@ struct PromptAssemblyTests {
             options: PromptAssemblyOptions(overridePipeline: PromptAssemblyPipeline(stages: [CustomStage()]))
         )
 
-        #expect(prompt.resolvedSections.map(\.id) == ["from_options"])
+        #expect(prompt.sections.map(\.id) == ["from_options"])
     }
 }

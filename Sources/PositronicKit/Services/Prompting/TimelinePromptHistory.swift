@@ -100,7 +100,7 @@ public actor TimelinePromptHistory {
     ///     are hashed as empty string.
     /// - Returns: A diff describing what changed since the last recording.
     @discardableResult
-    public func record(sections: [ResolvedPromptSection], renderedContent: [String: String]) -> PromptDiff {
+    public func record(sections: [ConcretePromptSection], renderedContent: [String: String]) -> PromptDiff {
         let duplicateIDs = duplicateResolvedSectionIDs(in: sections)
         precondition(
             duplicateIDs.isEmpty,
@@ -164,7 +164,7 @@ public actor TimelinePromptHistory {
     }
 
     public func nodeMetadata(
-        sections: [ResolvedPromptSection],
+        sections: [ConcretePromptSection],
         renderedContent: [String: String]
     ) -> [String: StructuredNodeMetadata] {
         var metadata: [String: StructuredNodeMetadata] = [:]
@@ -185,7 +185,7 @@ public actor TimelinePromptHistory {
         return metadata
     }
 
-    private func duplicateResolvedSectionIDs(in sections: [ResolvedPromptSection]) -> [String] {
+    private func duplicateResolvedSectionIDs(in sections: [ConcretePromptSection]) -> [String] {
         var counts: [String: Int] = [:]
         for section in sections {
             counts[section.id, default: 0] += 1

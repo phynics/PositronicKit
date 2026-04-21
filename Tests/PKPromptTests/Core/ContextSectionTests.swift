@@ -35,12 +35,12 @@ struct PromptCoreTests {
         #expect(resolved[0].compression == .keep)
         #expect(resolved[0].type == .text)
 
-        let constrainedRender = await resolved[0].render(constrainedTo: 50)
+        let constrainedRender = await resolved[0].renderText(constrainedTo: 50)
         #expect(constrainedRender == "minimal text")
     }
 
-    @Test("Resolved sections can be constrained")
-    func resolvedSectionConstraint() async {
+    @Test("Concrete sections can be constrained")
+    func concreteSectionConstraint() async {
         let base = MinimalPromptLeaf().resolve(in: PromptResolutionContext())[0]
         let constrained = base.constrained(to: 50)
 
@@ -56,7 +56,7 @@ struct PromptCoreTests {
             text: "abcdefghijklmnop"
         ).resolve(in: PromptResolutionContext())[0]
 
-        let rendered = await resolved.render(constrainedTo: 2)
+        let rendered = await resolved.renderText(constrainedTo: 2)
         #expect(rendered == "abcdefgh\n... [Truncated]")
     }
 
@@ -67,7 +67,7 @@ struct PromptCoreTests {
             text: "abcdefghijklmnop"
         ).resolve(in: PromptResolutionContext())[0]
 
-        let rendered = await resolved.render(constrainedTo: 2)
+        let rendered = await resolved.renderText(constrainedTo: 2)
         #expect(rendered == "... [Truncated]\nijklmnop")
     }
 }

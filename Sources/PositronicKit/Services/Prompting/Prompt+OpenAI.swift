@@ -33,7 +33,7 @@ public extension AssembledPrompt {
     }
 
     private func buildSystemMessage(
-        from sections: [AssembledPrompt.Section]
+        from sections: [ConcretePromptSection.Rendered]
     ) -> ChatQuery.ChatCompletionMessageParam? {
         var systemParts: [String] = []
 
@@ -47,7 +47,7 @@ public extension AssembledPrompt {
         return .system(.init(content: .textContent(systemParts.joined(separator: "\n\n---\n\n")), name: nil))
     }
 
-    private func buildHistoryMessages(from sections: [AssembledPrompt.Section]) -> [ChatQuery.ChatCompletionMessageParam] {
+    private func buildHistoryMessages(from sections: [ConcretePromptSection.Rendered]) -> [ChatQuery.ChatCompletionMessageParam] {
         sections
             .flatMap { section -> [Message] in
                 guard case let .messages(messages) = section.content else {
@@ -59,7 +59,7 @@ public extension AssembledPrompt {
     }
 
     private func buildUserQueryMessage(
-        from sections: [AssembledPrompt.Section]
+        from sections: [ConcretePromptSection.Rendered]
     ) -> ChatQuery.ChatCompletionMessageParam? {
         guard let querySection = sections.first(where: { $0.role == .userQuery }) else {
             return nil

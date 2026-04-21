@@ -27,7 +27,7 @@ public struct CompressionModifier<Content: Prompt>: Prompt {
         nil
     }
 
-    public func resolve(in context: PromptResolutionContext) -> [ResolvedPromptSection] {
+    public func resolve(in context: PromptResolutionContext) -> [ConcretePromptSection] {
         content.resolve(in: context.applying(compression: compression))
     }
 }

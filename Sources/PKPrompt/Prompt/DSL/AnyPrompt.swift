@@ -35,8 +35,8 @@ public struct AnyPrompt: Prompt {
     /// Resolves each contained section and returns their combined resolved output.
     ///
     /// - Parameter context: The resolution context to use for each child section.
-    /// - Returns: The concatenated resolved sections produced by the group's children.
-    public func resolve(in context: PromptResolutionContext) -> [ResolvedPromptSection] {
+    /// - Returns: The concatenated concrete sections produced by the group's children.
+    public func resolve(in context: PromptResolutionContext) -> [ConcretePromptSection] {
         sections.flatMap { $0.resolve(in: context) }
     }
 

@@ -26,7 +26,7 @@ struct PromptAssemblyTests {
         }
 
         let prompt = try! composite.assembledPrompt()
-        let sections = prompt.resolvedSections
+        let sections = prompt.sections
 
         #expect(sections.count == 2)
         #expect(sections[0].id == "2")
