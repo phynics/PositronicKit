@@ -2,7 +2,7 @@ import Foundation
 import PKShared
 
 /// A transparent root container for prompt sections that resolves to the concatenated output of its children.
-public struct AnyPrompt: Prompt, PromptAssemblyNode {
+public struct AnyPrompt: Prompt, PromptNodeConvertible {
     /// The prompt values contained in the root container.
     package let prompts: [any Prompt]
 
@@ -25,8 +25,9 @@ public struct AnyPrompt: Prompt, PromptAssemblyNode {
         EmptyPrompt()
     }
 
-    package func assembleSections(in context: PromptAssembly.Context) -> [AssembledPrompt.Section] {
-        prompts.flatMap { PromptAssembly.resolve($0, in: context) }
+    package func makePromptNode() -> PromptNode? {
+        let children = prompts.compactMap { PromptAssembly.makeNode(from: $0) }
+        return children.isEmpty ? nil : PromptNode.group(children: children)
     }
 
     /// Preferred root entry point for prompt builder content.

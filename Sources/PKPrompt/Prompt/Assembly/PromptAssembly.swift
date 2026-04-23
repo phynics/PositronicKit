@@ -7,26 +7,30 @@
 
 
 package enum PromptAssembly {
+    package static func makeNode(from prompt: some Prompt) -> PromptNode? {
+        if prompt is EmptyPrompt {
+            return nil
+        }
+
+        if let prompt = prompt as? any PromptNodeConvertible {
+            return prompt.makePromptNode()
+        }
+
+        guard let bodyNode = makeNode(from: prompt.body) else {
+            return nil
+        }
+
+        return PromptNode(
+            pathComponent: String(describing: type(of: prompt)),
+            children: [bodyNode]
+        )
+    }
+
     package static func resolve(
         _ prompt: some Prompt,
         in context: Context = Context()
-    ) -> [AssembledPrompt.Section] {
-        if prompt is EmptyPrompt {
-            return []
-        }
-
-        if let prompt = prompt as? any PromptPrimitive {
-            return prompt.assembleSections(in: context)
-        }
-
-        if let prompt = prompt as? any PromptAssemblyNode {
-            return prompt.assembleSections(in: context)
-        }
-
-        return resolve(
-            prompt.body,
-            in: context.descending(into: String(describing: type(of: prompt)))
-        )
+    ) -> [PromptSection] {
+        makeNode(from: prompt)?.resolve(in: context) ?? []
     }
 
     package struct Context: Sendable {

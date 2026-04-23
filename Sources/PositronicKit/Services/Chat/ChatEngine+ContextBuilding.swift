@@ -103,7 +103,7 @@ extension ChatEngine {
             TokenBudget(maxTokens: $0, reserveForResponse: max(256, $0 / 5))
         }
 
-        let prompt = try await PromptAssembler.assemble(
+        let renderedPrompt = try await PromptAssembler.assemble(
             promptRequest,
             agentInstance: agentInstance,
             timeline: timeline,
@@ -115,24 +115,23 @@ extension ChatEngine {
             )
         )
 
-        // 5. Render once and reuse for messages + prompt history
-        let renderedPrompt = await prompt.render()
-        let initialMessages = prompt.buildMessages(from: renderedPrompt)
-        let resolvedSections = prompt.sections
+        // 5. Reuse the final rendered artifact for messages + prompt history
+        let initialMessages = renderedPrompt.buildMessages()
+        let resolvedSections = renderedPrompt.sections
 
         // 6. Record prompt snapshot for cache tracking
-        let update = await promptHistory.update(prompt: prompt, rendered: renderedPrompt)
+        let update = await promptHistory.update(prompt: renderedPrompt)
         guard let diff = update.diff else {
             preconditionFailure("Prompt updates must always produce a prompt diff")
         }
         logger.debug(
-            "Prompt snapshot: \(resolvedSections.count) sections, ~\(prompt.estimatedTokens) tokens, \(diff.stablePrefixCount) stable prefix entries"
+            "Prompt snapshot: \(resolvedSections.count) sections, ~\(renderedPrompt.estimatedTokens) tokens, \(diff.stablePrefixCount) stable prefix entries"
         )
         if update.didCompact {
             logger.debug("Prompt history append state compacted after prompt update")
         }
 
-        if let report = prompt.compressionReport {
+        if let report = renderedPrompt.compressionReport {
             let metrics = StructuredCompressionMetrics(
                 totalNodes: report.nodeReports.count,
                 summarizedNodes: report.nodeReports.filter {

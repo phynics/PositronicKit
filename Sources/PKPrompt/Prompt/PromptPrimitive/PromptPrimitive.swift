@@ -53,7 +53,7 @@ package enum PromptPrimitives {}
 // MARK: - PromptPrimitive
 
 /// Prompt primitives render actual prompt content and resolve directly into assembled sections.
-package protocol PromptPrimitive: Prompt {
+package protocol PromptPrimitive: PromptNodeConvertible {
     var id: String { get }
     var role: PromptSectionRole { get }
     var priority: Int { get }
@@ -91,16 +91,30 @@ package extension PromptPrimitive {
         .text { await renderContent() }
     }
 
+    func makePromptNode() -> PromptNode? {
+        let leafContent = content
+
+        return PromptNode.leaf(assembleLeaf: { context in
+            assembleSections(in: context, content: leafContent)
+        })
+    }
+
     /// Resolves a prompt primitive into a single concrete node with inherited traits applied.
-    func assembleSections(in context: PromptAssembly.Context = PromptAssembly.Context()) -> [AssembledPrompt.Section] {
+    func assembleSections(in context: PromptAssembly.Context = PromptAssembly.Context()) -> [PromptSection] {
+        makePromptNode()?.resolve(in: context) ?? []
+    }
+
+    private func assembleSections(
+        in context: PromptAssembly.Context,
+        content leafContent: PromptPrimitiveContent
+    ) -> [PromptSection] {
         let effectivePriority = context.inheritedPriority ?? priority
         let effectiveCompression = context.inheritedCompression ?? compression
         let effectiveCachePolicy = context.inheritedCachePolicy ?? cachePolicy
         let path = context.ancestorPath + [cachePolicyPathComponent(for: effectiveCachePolicy), id]
-        let leafContent = content
 
         return [
-            AssembledPrompt.Section(
+            PromptSection(
                 id: id,
                 role: role,
                 priority: effectivePriority,

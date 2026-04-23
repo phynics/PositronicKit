@@ -97,27 +97,21 @@ public actor TimelinePromptHistory {
         self.thresholds = thresholds
     }
 
-    /// Record a prompt snapshot and compact append state if thresholds were exceeded.
+    /// Record a rendered prompt snapshot and compact append state if thresholds were exceeded.
     @discardableResult
-    public func update(prompt: AssembledPrompt) async -> PromptHistoryUpdate {
-        let rendered = await prompt.render()
-        return update(prompt: prompt, rendered: rendered)
-    }
-
-    /// Record a prompt snapshot from an existing rendered product and compact append state if needed.
-    @discardableResult
-    public func update(
-        prompt: AssembledPrompt,
-        rendered: AssembledPrompt.RenderedPrompt
-    ) -> PromptHistoryUpdate {
-        let diff = record(prompt: prompt, rendered: rendered)
+    public func update(prompt: RenderedPrompt) -> PromptHistoryUpdate {
+        let diff = record(prompt: prompt)
         return PromptHistoryUpdate(diff: diff, didCompact: compactIfNeeded())
     }
 
-    /// Record a prompt snapshot from concrete sections and rendered content, compacting if needed.
+    @discardableResult
+    public func update(prompt: AssembledPrompt) async -> PromptHistoryUpdate {
+        update(prompt: await prompt.render())
+    }
+
     @discardableResult
     public func update(
-        sections: [AssembledPrompt.Section],
+        sections: [PromptSection],
         renderedContent: [String: String]
     ) -> PromptHistoryUpdate {
         let diff = record(sections: sections, renderedContent: renderedContent)
@@ -138,47 +132,17 @@ public actor TimelinePromptHistory {
         return PromptHistoryUpdate(diff: nil, didCompact: compactIfNeeded())
     }
 
-    /// Render and record an assembled prompt in one step.
-    ///
-    /// Use this when prompt structure itself is the unit you want to journal for stable-prefix
-    /// detection and prefix-caching-aware history tracking.
+    /// Record a rendered prompt snapshot without re-running prompt rendering.
     @discardableResult
-    public func record(prompt: AssembledPrompt) async -> PromptDiff {
-        let rendered = await prompt.render()
-        return record(prompt: prompt, rendered: rendered)
-    }
-
-    /// Record an assembled prompt from an existing canonical rendered product.
-    ///
-    /// - Parameters:
-    ///   - prompt: The assembled prompt that provides section metadata and ordering.
-    ///   - rendered: The canonical rendered prompt product previously produced from `prompt`.
-    /// - Returns: A diff describing what changed since the last recording.
-    @discardableResult
-    public func record(
-        prompt: AssembledPrompt,
-        rendered: AssembledPrompt.RenderedPrompt
-    ) -> PromptDiff {
-        record(sections: prompt.sections, renderedContent: rendered.sectionsByID)
-    }
-
-    /// Record a prompt snapshot using pre-rendered content (avoids double-rendering).
-    ///
-    /// - Parameters:
-    ///   - sections: The prompt's resolved ordered sections (used for metadata).
-    ///   - renderedContent: Map of section ID to rendered string. Sections not in this map
-    ///     are hashed as empty string.
-    /// - Returns: A diff describing what changed since the last recording.
-    @discardableResult
-    public func record(sections: [AssembledPrompt.Section], renderedContent: [String: String]) -> PromptDiff {
-        let duplicateIDs = duplicateResolvedSectionIDs(in: sections)
+    public func record(prompt: RenderedPrompt) -> PromptDiff {
+        let duplicateIDs = duplicateResolvedSectionIDs(in: prompt.sections)
         precondition(
             duplicateIDs.isEmpty,
             "Duplicate context section ids in TimelinePromptHistory.record: \(duplicateIDs.joined(separator: ", "))"
         )
         var entries: [PromptSectionEntry] = []
-        for (index, section) in sections.enumerated() {
-            let content = renderedContent[section.id] ?? ""
+        for (index, section) in prompt.sections.enumerated() {
+            let content = prompt.sectionsByID[section.id] ?? ""
             entries.append(PromptSectionEntry(
                 entryId: section.id,
                 content: content,
@@ -202,6 +166,37 @@ public actor TimelinePromptHistory {
         )
         lastDiff = diff
         return diff
+    }
+
+    @discardableResult
+    public func record(prompt: AssembledPrompt) async -> PromptDiff {
+        record(prompt: await prompt.render())
+    }
+
+    @discardableResult
+    public func record(sections: [PromptSection], renderedContent: [String: String]) -> PromptDiff {
+        let renderedSections = sections.compactMap { section in
+            renderedContent[section.id].map { content in
+                PromptSection.Rendered(
+                    id: section.id,
+                    role: section.role,
+                    priority: section.priority,
+                    estimatedTokens: section.estimatedTokens,
+                    compression: section.compression,
+                    type: section.type,
+                    cachePolicy: section.cachePolicy,
+                    path: section.path,
+                    parentID: section.parentID,
+                    content: .text(content)
+                )
+            }
+        }
+
+        return record(prompt: RenderedPrompt(
+            sections: renderedSections,
+            string: renderedSections.compactMap { renderedContent[$0.id] }.joined(separator: "\n\n---\n\n"),
+            sectionsByID: renderedContent
+        ))
     }
 
     /// Track messages appended during the agentic loop (assistant responses, tool results).
@@ -245,12 +240,11 @@ public actor TimelinePromptHistory {
     }
 
     public func nodeMetadata(
-        sections: [AssembledPrompt.Section],
-        renderedContent: [String: String]
+        prompt: RenderedPrompt
     ) -> [String: StructuredNodeMetadata] {
         var metadata: [String: StructuredNodeMetadata] = [:]
-        for section in sections {
-            let content = renderedContent[section.id] ?? ""
+        for section in prompt.sections {
+            let content = prompt.sectionsByID[section.id] ?? ""
             let path = section.path
             metadata[section.id] = StructuredNodeMetadata(
                 path: path,
@@ -266,7 +260,7 @@ public actor TimelinePromptHistory {
         return metadata
     }
 
-    private func duplicateResolvedSectionIDs(in sections: [AssembledPrompt.Section]) -> [String] {
+    private func duplicateResolvedSectionIDs(in sections: [PromptSection.Rendered]) -> [String] {
         var counts: [String: Int] = [:]
         for section in sections {
             counts[section.id, default: 0] += 1

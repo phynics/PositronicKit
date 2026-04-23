@@ -93,7 +93,7 @@ struct PromptAssemblyTests {
 
         #expect(resolved.contains { $0.id == "system" })
         #expect(resolved.contains { $0.id == "user_query" })
-        #expect(await resolved.first(where: { $0.id == "user_query" })?.renderText() == "pipeline test")
+        #expect(resolved.first(where: { $0.id == "user_query" })?.content.text == "pipeline test")
     }
 
     @Test("PromptAssembler uses override pipeline in assemble")
@@ -145,5 +145,15 @@ struct PromptAssemblyTests {
         )
 
         #expect(prompt.sections.map(\.id) == ["from_options"])
+    }
+
+    @Test("PromptAssembler returns a final rendered prompt artifact")
+    func promptAssemblerReturnsRenderedPrompt() async throws {
+        let rendered = try await PromptAssembler.assemble(makeRequest(userQuery: "final artifact"))
+
+        #expect(rendered.sectionsByID["user_query"] == "final artifact")
+
+        let messages = rendered.buildMessages()
+        #expect(messages.count >= 1)
     }
 }

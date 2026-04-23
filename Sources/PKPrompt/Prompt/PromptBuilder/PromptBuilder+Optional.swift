@@ -1,7 +1,7 @@
 import Foundation
 
 extension PromptBuilder {
-    package struct Optional<Primary: Prompt, Fallback: Prompt>: Prompt, PromptAssemblyNode {
+    package struct Optional<Primary: Prompt, Fallback: Prompt>: Prompt, PromptNodeConvertible {
         package let primary: Primary?
         package let fallback: Fallback?
 
@@ -12,11 +12,11 @@ extension PromptBuilder {
 
         package var body: EmptySection { EmptySection() }
 
-        package func assembleSections(in context: PromptAssembly.Context) -> [AssembledPrompt.Section] {
+        package func makePromptNode() -> PromptNode? {
             if let primary {
-                return PromptAssembly.resolve(primary, in: context)
+                return PromptAssembly.makeNode(from: primary)
             }
-            return fallback.map { PromptAssembly.resolve($0, in: context) } ?? []
+            return fallback.flatMap { PromptAssembly.makeNode(from: $0) }
         }
     }
 }
