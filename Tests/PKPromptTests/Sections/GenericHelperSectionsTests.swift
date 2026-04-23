@@ -6,7 +6,7 @@ import Testing
 struct GenericHelperSectionsTests {
     @Test("ContextPrompt stores explicit configuration")
     func contextPromptInitialization() {
-        let section = try! ContextPrompt(
+        let section = try! TextPrompt(
             "You are an AI.",
             id: "system",
             priority: 100,
@@ -25,13 +25,13 @@ struct GenericHelperSectionsTests {
 
     @Test("ContextPrompt renders non-empty content")
     func contextPromptRender() async {
-        let section = try! ContextPrompt("Hello", id: "t1").assemblePrompt().sections[0]
+        let section = try! TextPrompt("Hello", id: "t1").assemblePrompt().sections[0]
         #expect(await section.renderText() == "Hello")
     }
 
     @Test("ContextPrompt renders nil for empty content")
     func contextPromptRenderEmptyReturnsNil() async {
-        let section = try! ContextPrompt("", id: "t1").assemblePrompt().sections[0]
+        let section = try! TextPrompt("", id: "t1").assemblePrompt().sections[0]
         #expect(await section.renderText() == nil)
     }
 

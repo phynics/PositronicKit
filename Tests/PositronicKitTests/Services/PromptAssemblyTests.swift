@@ -20,7 +20,7 @@ struct PromptAssemblyTests {
         }
 
         var body: some Prompt {
-            ContextPrompt(content, id: id, priority: 10)
+            TextPrompt(content, id: id, priority: 10)
         }
     }
 

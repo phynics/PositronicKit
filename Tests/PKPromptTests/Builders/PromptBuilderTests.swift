@@ -12,8 +12,8 @@ struct PromptBuilderTests {
     @Test("Builder composes multiple sections")
     func exampleBuilder() async {
         let prompt = AnyPrompt {
-            ContextPrompt("Low Priority", id: "1", priority: 10)
-            ContextPrompt("High Priority", id: "2", priority: 100)
+            TextPrompt("Low Priority", id: "1", priority: 10)
+            TextPrompt("High Priority", id: "2", priority: 100)
         }
 
         let assembled = try! prompt.assemblePrompt()
@@ -31,11 +31,11 @@ struct PromptBuilderTests {
 
         let sections = try! AnyPrompt {
             if includeSecret {
-                ContextPrompt("Secret", id: "secret")
+                TextPrompt("Secret", id: "secret")
             }
 
             if includePublic {
-                ContextPrompt("Public", id: "public")
+                TextPrompt("Public", id: "public")
             }
         }.assemblePrompt().sections
 
@@ -53,7 +53,7 @@ struct PromptBuilderTests {
 
         let prompt = AnyPrompt {
             for item in items {
-                ContextPrompt(item.content, id: item.id)
+                TextPrompt(item.content, id: item.id)
             }
         }
 
@@ -66,11 +66,11 @@ struct PromptBuilderTests {
         @PromptBuilder
         func build() -> some Prompt {
             [
-                ContextPrompt("One", id: "1"),
-                ContextPrompt("Two", id: "2"),
+                TextPrompt("One", id: "1"),
+                TextPrompt("Two", id: "2"),
             ]
             if true {
-                ContextPrompt("Three", id: "3")
+                TextPrompt("Three", id: "3")
             }
         }
 
@@ -83,9 +83,9 @@ struct PromptBuilderTests {
         let includeExtra = false
 
         let sections = try! AnyPrompt {
-            ContextPrompt("Base", id: "base")
+            TextPrompt("Base", id: "base")
             if includeExtra {
-                ContextPrompt("Extra", id: "extra")
+                TextPrompt("Extra", id: "extra")
             }
         }.assemblePrompt().sections
 

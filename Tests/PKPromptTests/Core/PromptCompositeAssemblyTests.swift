@@ -7,8 +7,8 @@ struct PromptAssemblyTests {
     @Test("Prompt builders assemble without an extra wrapper")
     func builderAssemblesDirectly() {
         let composite = AnyPrompt {
-            ContextPrompt("Low Priority", id: "1", priority: 10)
-            ContextPrompt("High Priority", id: "2", priority: 100)
+            TextPrompt("Low Priority", id: "1", priority: 10)
+            TextPrompt("High Priority", id: "2", priority: 100)
         }
 
         let prompt = try! composite.assemblePrompt()
@@ -18,8 +18,8 @@ struct PromptAssemblyTests {
     @Test("Prompt render convenience uses assembled prompt ordering")
     func compositeRenderUsesAssembledPrompt() async {
         let composite = AnyPrompt {
-            ContextPrompt("Low Priority", id: "1", priority: 10)
-            ContextPrompt("High Priority", id: "2", priority: 100)
+            TextPrompt("Low Priority", id: "1", priority: 10)
+            TextPrompt("High Priority", id: "2", priority: 100)
         }
 
         let rendered = await composite.render()

@@ -28,7 +28,7 @@ private struct TimelineSection: Prompt {
     }
 
     var body: some Prompt {
-        ContextPrompt(
+        TextPrompt(
             id: id,
             priority: priority,
             compression: compression,

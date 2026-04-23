@@ -34,7 +34,7 @@ public struct Memories: Prompt {
     }
 
     public var body: some Prompt {
-        ContextPrompt(
+        TextPrompt(
             id: "memories",
             priority: 85,
             compression: .summarize,
@@ -76,7 +76,7 @@ public struct Tools: Prompt {
     }
 
     public var body: some Prompt {
-        ContextPrompt(
+        TextPrompt(
             id: "tools",
             priority: 80,
             compression: .keep,
@@ -134,7 +134,7 @@ public struct ContextNotes: Prompt {
     }
 
     public var body: some Prompt {
-        ContextPrompt(
+        TextPrompt(
             id: "context_notes",
             priority: 90,
             compression: .truncate(tail: true),
@@ -193,7 +193,7 @@ public struct WorkspacesContext: Prompt {
     }
 
     public var body: some Prompt {
-        ContextPrompt(
+        TextPrompt(
             id: "workspaces",
             priority: 75,
             compression: .keep,
@@ -302,7 +302,7 @@ public struct TimelineContext: Prompt {
     }
 
     public var body: some Prompt {
-        ContextPrompt(
+        TextPrompt(
             """
             ## Current Timeline
             - ID: `\(timeline.id.uuidString)`

@@ -7,6 +7,8 @@
 
 import PKShared
 
+// MARK: - Supporting Types
+
 public enum CachePolicy: Sendable, Comparable {
     case stable
     case semiStable
@@ -32,10 +34,23 @@ public enum PromptSectionRole: Sendable, Equatable {
     case chatHistory
 }
 
+public enum PromptPriority: Int, Sendable {
+    case low = 25
+    case medium = 50
+    case high = 75
+    case critical = 100
+}
+
 package enum PromptPrimitiveContent: Sendable {
     case text(@Sendable () async -> String?)
     case messages([Message])
 }
+
+/// Utility namespace for Primitives
+package enum PromptPrimitives {}
+
+
+// MARK: - PromptPrimitive
 
 /// Prompt primitives render actual prompt content and resolve directly into assembled sections.
 package protocol PromptPrimitive: Prompt {

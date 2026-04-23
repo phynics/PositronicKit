@@ -1,7 +1,7 @@
 import Foundation
 import PKShared
 
-package enum PromptPrimitives {
+extension PromptPrimitives {
     package struct Text: PromptPrimitive {
         package let id: String
         package let role: PromptSectionRole

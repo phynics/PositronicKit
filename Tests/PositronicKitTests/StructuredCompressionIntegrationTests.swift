@@ -12,7 +12,7 @@ private struct CompressionMockSection: Prompt, Sendable {
     let text: String
 
     var body: some Prompt {
-        ContextPrompt(
+        TextPrompt(
             id: id,
             priority: priority,
             compression: compression,
@@ -58,8 +58,8 @@ struct StructuredCompressionIntegrationTests {
                 tokenBudget: TokenBudget(maxTokens: 180, reserveForResponse: 0),
                 compressor: IntegrationCompressor(summary: "short"),
                 structuredDiff: StructuredDiffHint(
-                    changedNodePaths: [["prompt", "CompressionMockSection", "ContextPrompt", "volatile", "changed_node"]],
-                    stableNodePaths: [["prompt", "CompressionMockSection", "ContextPrompt", "stable", "stable_node"]]
+                    changedNodePaths: [["prompt", "CompressionMockSection", "TextPrompt", "volatile", "changed_node"]],
+                    stableNodePaths: [["prompt", "CompressionMockSection", "TextPrompt", "stable", "stable_node"]]
                 )
             )
         )

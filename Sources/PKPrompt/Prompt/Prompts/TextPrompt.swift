@@ -1,6 +1,6 @@
 import Foundation
 
-public struct ContextPrompt: Prompt {
+public struct TextPrompt: Prompt {
     public let id: String
     public let priority: Int
     public let compression: CompressionStrategy

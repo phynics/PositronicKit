@@ -13,7 +13,7 @@ public enum PKPromptExamples {
         return AnyPrompt.build {
             SystemPrompt("You are helping with PositronicKit setup.")
 
-            ContextPrompt(
+            TextPrompt(
                 toolSummary,
                 id: "available_tools",
                 priority: PromptPriority.high.rawValue,

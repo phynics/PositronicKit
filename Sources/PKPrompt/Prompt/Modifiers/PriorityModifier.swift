@@ -9,20 +9,13 @@
 import Foundation
 import PKShared
 
-public enum PromptPriority: Int, Sendable {
-    case low = 25
-    case medium = 50
-    case high = 75
-    case critical = 100
-}
-
 public extension Prompt {
     func priority(_ value: Int) -> some Prompt {
         PromptModifiers.Priority(content: self, priority: value)
     }
 
     func priority(_ value: PromptPriority) -> some Prompt {
-        priority(value.rawValue)
+        PromptModifiers.Priority(content: self, priority: value.rawValue)
     }
 
     func compression(_ value: CompressionStrategy) -> some Prompt {

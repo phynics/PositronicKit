@@ -95,7 +95,7 @@ struct BodyBasedPromptTests {
     func conveniencePromptLeavesProvideErgonomicDefaults() async {
         let prompt = AnyPrompt {
             SystemPrompt("You are a careful assistant.")
-            ContextPrompt("Project uses Swift 6.", id: "project")
+            TextPrompt("Project uses Swift 6.", id: "project")
                 .priority(.high)
                 .compression(.summarize)
             UserPrompt("Add a toolbar action.")
@@ -113,7 +113,7 @@ struct BodyBasedPromptTests {
 
     @Test("ContextPrompt supports deferred rendering for composed custom prompts")
     func contextPromptSupportsDeferredRendering() async {
-        let prompt = ContextPrompt(
+        let prompt = TextPrompt(
             id: "dynamic_context",
             priority: PromptPriority.high.rawValue,
             compression: .truncate(tail: true),
