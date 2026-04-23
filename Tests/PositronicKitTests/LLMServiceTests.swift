@@ -51,7 +51,7 @@ struct LLMServiceTests {
             )
         )
 
-        let renderedPrompt = await prompt.render().string
+        let renderedPrompt = prompt.string
 
         #expect(renderedPrompt.contains("System rules"))
         #expect(renderedPrompt.contains("Note Content"))
@@ -59,7 +59,7 @@ struct LLMServiceTests {
         #expect(renderedPrompt.contains("Previous assistant message"))
         #expect(renderedPrompt.contains("Current question"))
 
-        let messages = await prompt.buildMessages()
+        let messages = prompt.buildMessages()
 
         // Validate message ordering and roles
         #expect(!messages.isEmpty)
@@ -127,7 +127,7 @@ struct LLMServiceTests {
                 systemInstructions: "System Only"
             )
         )
-        let messages = await prompt.buildMessages()
+        let messages = prompt.buildMessages()
 
         #expect(messages.count >= 2) // System + User
 

@@ -1,7 +1,7 @@
 import Foundation
 
 extension PromptBuilder {
-    package struct ForEach<Content: Prompt>: Prompt, PromptAssemblyNode {
+    package struct ForEach<Content: Prompt>: Prompt, PromptNodeConvertible {
         package let content: [Content]
         package let iterationPathComponents: [String]
 
@@ -29,10 +29,13 @@ extension PromptBuilder {
 
         package var body: EmptySection { EmptySection() }
 
-        package func assembleSections(in context: PromptAssembly.Context) -> [AssembledPrompt.Section] {
-            zip(content, iterationPathComponents).flatMap { child, pathComponent in
-                PromptAssembly.resolve(child, in: context.descending(into: pathComponent))
+        package func makePromptNode() -> PromptNode? {
+            let children: [PromptNode] = zip(content, iterationPathComponents).compactMap { child, pathComponent in
+                guard let childNode = PromptAssembly.makeNode(from: child) else { return nil }
+                return PromptNode.group(pathComponent: pathComponent, children: [childNode])
             }
+
+            return children.isEmpty ? nil : PromptNode.group(children: children)
         }
     }
 }

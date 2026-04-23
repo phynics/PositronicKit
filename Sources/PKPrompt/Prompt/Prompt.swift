@@ -7,8 +7,8 @@ public protocol Prompt: Sendable {
     var body: Body { get }
 }
 
-package protocol PromptAssemblyNode: Prompt {
-    func assembleSections(in context: PromptAssembly.Context) -> [AssembledPrompt.Section]
+package protocol PromptNodeConvertible: Prompt {
+    func makePromptNode() -> PromptNode?
 }
 
 public extension Prompt {
@@ -22,14 +22,14 @@ public extension Prompt {
 
     /// Assembles this declarative prompt tree into a validated, ordered prompt artifact.
     ///
-    /// - Throws: ``AssembledPrompt/ValidationError`` when the concrete section graph is invalid.
+    /// - Throws: ``PromptValidationError`` when the concrete section graph is invalid.
     func assemblePrompt() throws -> AssembledPrompt {
         try AssembledPrompt(sections: promptSections())
     }
 }
 
 package extension Prompt {
-    func promptSections() -> [AssembledPrompt.Section] {
+    func promptSections() -> [PromptSection] {
         PromptAssembly.resolve(self)
     }
 }

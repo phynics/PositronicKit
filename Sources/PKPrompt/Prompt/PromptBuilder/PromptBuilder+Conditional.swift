@@ -1,7 +1,7 @@
 import Foundation
 
 extension PromptBuilder {
-    package struct Conditional<First: Prompt, Second: Prompt>: Prompt, PromptAssemblyNode {
+    package struct Conditional<First: Prompt, Second: Prompt>: Prompt, PromptNodeConvertible {
         package enum Storage: Sendable {
             case first(First)
             case second(Second)
@@ -14,12 +14,12 @@ extension PromptBuilder {
 
         package var body: EmptySection { EmptySection() }
 
-        package func assembleSections(in context: PromptAssembly.Context) -> [AssembledPrompt.Section] {
+        package func makePromptNode() -> PromptNode? {
             switch storage {
             case let .first(content):
-                return PromptAssembly.resolve(content, in: context)
+                return PromptAssembly.makeNode(from: content)
             case let .second(content):
-                return PromptAssembly.resolve(content, in: context)
+                return PromptAssembly.makeNode(from: content)
             }
         }
     }

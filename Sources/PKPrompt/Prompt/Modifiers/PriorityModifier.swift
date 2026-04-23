@@ -28,36 +28,45 @@ public extension Prompt {
 }
 
 package enum PromptModifiers {
-    package struct Priority<Content: Prompt>: Prompt, PromptAssemblyNode {
+    package struct Priority<Content: Prompt>: Prompt, PromptNodeConvertible {
         package let content: Content
         package let priority: Int
 
         package var body: EmptyPrompt { EmptyPrompt() }
 
-        package func assembleSections(in context: PromptAssembly.Context) -> [AssembledPrompt.Section] {
-            PromptAssembly.resolve(content, in: context.applying(priority: priority))
+        package func makePromptNode() -> PromptNode? {
+            guard let child = PromptAssembly.makeNode(from: content) else {
+                return nil
+            }
+            return PromptNode.group(priority: priority, children: [child])
         }
     }
 
-    package struct Compression<Content: Prompt>: Prompt, PromptAssemblyNode {
+    package struct Compression<Content: Prompt>: Prompt, PromptNodeConvertible {
         package let content: Content
         package let compression: CompressionStrategy
 
         package var body: EmptyPrompt { EmptyPrompt() }
 
-        package func assembleSections(in context: PromptAssembly.Context) -> [AssembledPrompt.Section] {
-            PromptAssembly.resolve(content, in: context.applying(compression: compression))
+        package func makePromptNode() -> PromptNode? {
+            guard let child = PromptAssembly.makeNode(from: content) else {
+                return nil
+            }
+            return PromptNode.group(compression: compression, children: [child])
         }
     }
 
-    package struct CachePolicy<Content: Prompt>: Prompt, PromptAssemblyNode {
+    package struct CachePolicy<Content: Prompt>: Prompt, PromptNodeConvertible {
         package let content: Content
         package let cachePolicy: PKPrompt.CachePolicy
 
         package var body: EmptyPrompt { EmptyPrompt() }
 
-        package func assembleSections(in context: PromptAssembly.Context) -> [AssembledPrompt.Section] {
-            PromptAssembly.resolve(content, in: context.applying(cachePolicy: cachePolicy))
+        package func makePromptNode() -> PromptNode? {
+            guard let child = PromptAssembly.makeNode(from: content) else {
+                return nil
+            }
+            return PromptNode.group(cachePolicy: cachePolicy, children: [child])
         }
     }
 }

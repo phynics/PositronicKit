@@ -13,7 +13,38 @@ public struct AssembledPrompt: Sendable {
         public struct Rendered: Sendable {
             public let id: String
             public let role: PromptSectionRole
+            public let priority: Int
+            public let estimatedTokens: Int
+            public let compression: CompressionStrategy
+            public let type: PromptSectionType
+            public let cachePolicy: CachePolicy
+            public let path: [String]
+            public let parentID: String?
             public let content: Content
+
+            public init(
+                id: String,
+                role: PromptSectionRole,
+                priority: Int,
+                estimatedTokens: Int,
+                compression: CompressionStrategy,
+                type: PromptSectionType,
+                cachePolicy: CachePolicy,
+                path: [String],
+                parentID: String?,
+                content: Content
+            ) {
+                self.id = id
+                self.role = role
+                self.priority = priority
+                self.estimatedTokens = estimatedTokens
+                self.compression = compression
+                self.type = type
+                self.cachePolicy = cachePolicy
+                self.path = path
+                self.parentID = parentID
+                self.content = content
+            }
         }
 
         public enum Content: Sendable, Equatable {
@@ -76,7 +107,18 @@ public struct AssembledPrompt: Sendable {
             guard let content = await renderedContent(constrainedTo: tokens) else {
                 return nil
             }
-            return Rendered(id: id, role: role, content: content)
+            return Rendered(
+                id: id,
+                role: role,
+                priority: priority,
+                estimatedTokens: estimatedTokens,
+                compression: compression,
+                type: type,
+                cachePolicy: cachePolicy,
+                path: path,
+                parentID: parentID,
+                content: content
+            )
         }
 
         public func renderText(constrainedTo tokens: Int? = nil) async -> String? {
@@ -160,6 +202,26 @@ public struct AssembledPrompt: Sendable {
         /// This snapshot is intended for hashing, journaling, and other section-oriented consumers
         /// that need a stable textual representation of the rendered prompt.
         public let sectionsByID: [String: String]
+
+        /// Optional compression details captured before rendering.
+        public let compressionReport: CompressionReport?
+
+        /// Estimated token count across rendered sections.
+        public var estimatedTokens: Int {
+            sections.reduce(0) { $0 + $1.estimatedTokens }
+        }
+
+        public init(
+            sections: [Section.Rendered],
+            string: String,
+            sectionsByID: [String: String],
+            compressionReport: CompressionReport? = nil
+        ) {
+            self.sections = sections
+            self.string = string
+            self.sectionsByID = sectionsByID
+            self.compressionReport = compressionReport
+        }
     }
 
     // MARK: - Properties
@@ -220,7 +282,8 @@ public struct AssembledPrompt: Sendable {
         return RenderedPrompt(
             sections: renderedSections,
             string: stringParts.joined(separator: "\n\n---\n\n"),
-            sectionsByID: sectionsByID
+            sectionsByID: sectionsByID,
+            compressionReport: compressionReport
         )
     }
 

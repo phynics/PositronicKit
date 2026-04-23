@@ -3,20 +3,10 @@ import OpenAI
 import PKPrompt
 import PKShared
 
-public extension AssembledPrompt {
-    /// Builds OpenAI chat messages from a freshly rendered canonical prompt product.
-    ///
-    /// Use this overload when no rendered product is already available.
-    func buildMessages() async -> [ChatQuery.ChatCompletionMessageParam] {
-        buildMessages(from: await render())
-    }
-
-    /// Builds OpenAI chat messages from an existing canonical rendered prompt product.
-    ///
-    /// - Parameter rendered: A rendered prompt previously produced by ``AssembledPrompt/rendered()``.
-    /// - Returns: Provider message parameters derived from the rendered section list.
-    func buildMessages(from rendered: RenderedPrompt) -> [ChatQuery.ChatCompletionMessageParam] {
-        let resolved = rendered.sections
+public extension RenderedPrompt {
+    /// Builds OpenAI chat messages from the canonical rendered prompt product.
+    func buildMessages() -> [ChatQuery.ChatCompletionMessageParam] {
+        let resolved = sections
         var messages: [ChatQuery.ChatCompletionMessageParam] = []
 
         if let systemMessage = buildSystemMessage(from: resolved) {
@@ -33,7 +23,7 @@ public extension AssembledPrompt {
     }
 
     private func buildSystemMessage(
-        from sections: [AssembledPrompt.Section.Rendered]
+        from sections: [PromptSection.Rendered]
     ) -> ChatQuery.ChatCompletionMessageParam? {
         var systemParts: [String] = []
 
@@ -47,7 +37,7 @@ public extension AssembledPrompt {
         return .system(.init(content: .textContent(systemParts.joined(separator: "\n\n---\n\n")), name: nil))
     }
 
-    private func buildHistoryMessages(from sections: [AssembledPrompt.Section.Rendered]) -> [ChatQuery.ChatCompletionMessageParam] {
+    private func buildHistoryMessages(from sections: [PromptSection.Rendered]) -> [ChatQuery.ChatCompletionMessageParam] {
         sections
             .flatMap { section -> [Message] in
                 guard case let .messages(messages) = section.content else {
@@ -59,7 +49,7 @@ public extension AssembledPrompt {
     }
 
     private func buildUserQueryMessage(
-        from sections: [AssembledPrompt.Section.Rendered]
+        from sections: [PromptSection.Rendered]
     ) -> ChatQuery.ChatCompletionMessageParam? {
         guard let querySection = sections.first(where: { $0.role == .userQuery }) else {
             return nil

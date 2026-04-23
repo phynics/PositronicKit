@@ -1,7 +1,7 @@
 import Foundation
 
 extension PromptBuilder {
-    package struct Block<each Content: Prompt>: Prompt, PromptAssemblyNode {
+    package struct Block<each Content: Prompt>: Prompt, PromptNodeConvertible {
         package let content: (repeat each Content)
 
         package init(_ content: repeat each Content) {
@@ -10,10 +10,14 @@ extension PromptBuilder {
 
         package var body: EmptySection { EmptySection() }
 
-        package func assembleSections(in context: PromptAssembly.Context) -> [AssembledPrompt.Section] {
-            var resolvedSections: [AssembledPrompt.Section] = []
-            repeat resolvedSections += PromptAssembly.resolve((each content), in: context)
-            return resolvedSections
+        package func makePromptNode() -> PromptNode? {
+            var nodes: [PromptNode] = []
+            for node in repeat PromptAssembly.makeNode(from: each content) {
+                if let node {
+                    nodes.append(node)
+                }
+            }
+            return nodes.isEmpty ? nil : PromptNode.group(children: nodes)
         }
     }
 }
