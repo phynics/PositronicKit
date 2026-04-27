@@ -71,7 +71,7 @@ public enum WorkspaceError: PKError, Sendable {
 public protocol WorkspaceCreating: Sendable {
     func create(
         from reference: WorkspaceReference,
-        connectionManager: (any ClientConnectionManagerProtocol)?
+        connectionManager: (any ExternalWorkspaceConnectionManagerProtocol)?
     ) throws -> any WorkspaceProtocol
 }
 
@@ -81,7 +81,7 @@ public struct NullWorkspaceCreator: WorkspaceCreating {
     public init() {}
     public func create(
         from reference: WorkspaceReference,
-        connectionManager: (any ClientConnectionManagerProtocol)?
+        connectionManager: (any ExternalWorkspaceConnectionManagerProtocol)?
     ) throws -> any WorkspaceProtocol {
         throw WorkspaceError.workspaceNotFound
     }

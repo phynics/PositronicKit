@@ -3,13 +3,17 @@ import Foundation
 import PKPrompt
 import PKShared
 
-/// The public facade for PositronicKitCore's chat subsystem.
+/// The public facade for PositronicKitCore's agent runtime subsystem.
 ///
 /// Accepts all required services as init parameters and injects them internally,
 /// so consumers never interact with `swift-dependencies` directly.
 ///
 /// Only `llmService` is required. All other parameters have sensible in-memory defaults
 /// suitable for development and prototyping. For production, provide persistent stores.
+///
+/// PositronicKit intentionally stays transport-neutral. Concepts like timelines, workspaces,
+/// agents, tool routing, and prompt assembly live here; concrete client/server hosting models are
+/// expected to be provided downstream via injected stores, workspace creators, and connection hooks.
 ///
 /// ```swift
 /// // Minimal — prototyping with in-memory everything:

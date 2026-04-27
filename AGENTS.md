@@ -27,6 +27,15 @@
 - Follow Swift 6 concurrency defaults (`Sendable`, actor isolation, `@MainActor`) and avoid shared mutable state.
 - Prefer composition over inheritance, narrow protocols, explicit `throws`, and structured logging via `PKShared`.
 
+## PositronicKit Guidance
+- Treat `PositronicKit` as an agent-building toolkit centered on timelines, workspaces, agents, tools, and orchestration stages.
+- Keep concrete transport, RPC, and client/server hosting models downstream of `PositronicKit`. Core code may expose extension hooks for externally hosted workspaces or request origins, but it should not assume a bundled network topology.
+- Prefer neutral boundaries like workspace creators, connection hooks, persistence protocols, tool routers, and prompt section providers over embedding downstream deployment concerns in runtime logic.
+- `TimelineManager`, `WorkspaceManager`, `ToolRouter`, and `ChatEngine` should stay transport-neutral. If a feature needs externally hosted execution, model it as an injected protocol or reference type rather than a built-in runtime subsystem.
+- Favor `Timeline`, `WorkspaceReference`, `AgentInstance`, and tool metadata as the stable core concepts. Avoid leaking downstream-specific terms through public APIs unless there is no neutral alternative.
+- Keep provider projection and prompt assembly separate from orchestration. `PositronicKit` should consume `PKPrompt` artifacts, not reimplement prompt-tree semantics.
+- When changing orchestration APIs, preserve the ability for downstream applications to plug in their own persistence, workspace resolution, externally hosted tool execution, and UI/network layers.
+
 ## PKPrompt Guidance
 - Treat `PromptNode` as the canonical internal IR. `PromptBuilder` lowers authored syntax directly into prompt nodes; `AssembledPrompt.Section` is the validated concrete artifact that downstream systems consume.
 - Prefer composite `Prompt` types for reuse and primitive leaves like `SystemPrompt`, `TextPrompt`, `HistoryPrompt`, and `UserPrompt` for final content.

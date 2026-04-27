@@ -44,7 +44,7 @@ public actor TimelineManager {
 
     let vectorStore: (any VectorStoreProtocol)?
     let workspaceRoot: URL
-    let connectionManager: (any ClientConnectionManagerProtocol)?
+    let connectionManager: (any ExternalWorkspaceConnectionManagerProtocol)?
     public let workspaceManager: any WorkspaceManagerProtocol
     let sectionProviders: [any PromptSectionProviding]
 
@@ -53,7 +53,7 @@ public actor TimelineManager {
     public init(
         vectorStore: (any VectorStoreProtocol)? = nil,
         workspaceRoot: URL,
-        connectionManager: (any ClientConnectionManagerProtocol)? = nil,
+        connectionManager: (any ExternalWorkspaceConnectionManagerProtocol)? = nil,
         workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = []
     ) {

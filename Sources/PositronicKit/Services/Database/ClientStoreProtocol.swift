@@ -1,4 +1,4 @@
-/// Protocol for managing remote client identities and their connection state.
+/// Protocol for persisting external request-origin identities and their hosted tool metadata.
 
 import PKShared
 import Foundation

@@ -1,6 +1,6 @@
 # PositronicKit
 
-PositronicKit encapsulates the core logic, context gathering, prompt pipelines, and cross-cutting components for advanced agent interactions. This includes `PositronicKit`, `PKPrompt`, and `PKShared`.
+PositronicKit is an agent-building toolkit for Swift. It packages transport-neutral runtime orchestration, prompt composition, and shared contracts into `PositronicKit`, `PKPrompt`, and `PKShared`.
 
 ## Package Products
 
@@ -24,6 +24,44 @@ import PositronicKit
 import PKPrompt
 import PKShared
 ```
+
+## PositronicKit
+
+`PositronicKit` is the runtime/orchestration layer. Its core concepts are:
+
+- `Timeline`: a unit of conversation and execution state
+- `WorkspaceReference` and `WorkspaceProtocol`: the execution/data environments available to a timeline
+- `AgentInstance`: reusable agent identity and configuration
+- `ToolRouter`, `TimelineManager`, and `ChatEngine`: the orchestration surfaces that tie prompts, tools, and persistence together
+
+Condensed design intent:
+
+- `PositronicKit` is transport-neutral
+- client/server hosting models belong downstream of this package
+- the core should expose extension points, not bundled transport implementations
+- externally hosted workspaces and tools should be modeled through injected protocols and references
+- prompt construction remains a `PKPrompt` concern; `PositronicKit` consumes assembled/rendered prompt artifacts
+
+### Architecture
+
+Typical `PositronicKit` flow:
+
+1. Resolve timeline, agent, and workspace state through injected stores and managers.
+2. Gather context and prompt sections through orchestration stages and providers.
+3. Assemble prompts via `PKPrompt`.
+4. Route tool calls through timeline/workspace-aware tool infrastructure.
+5. Persist messages, timeline state, and related artifacts through injected persistence protocols.
+
+### Extension Boundaries
+
+Use these seams when integrating a downstream hosting model:
+
+- persistence protocols for timelines, messages, workspaces, tools, agents, and request origins
+- `WorkspaceCreating` and `WorkspaceManager` for resolving concrete workspace implementations
+- `ExternalWorkspaceConnectionManagerProtocol` for bridging externally hosted workspaces without shipping a built-in RPC runtime
+- `PromptSectionProviding` and chat/context pipeline hooks for app-specific orchestration
+
+This means `PositronicKit` can support downstream client/server or multi-process hosting models without treating them as core runtime assumptions.
 
 ## PKPrompt
 

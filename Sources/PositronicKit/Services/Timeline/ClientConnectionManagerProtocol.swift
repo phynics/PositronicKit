@@ -1,17 +1,20 @@
 import PKShared
 import Foundation
 
-/// Defines the contract for managing client connections and sending RPC requests.
-public protocol ClientConnectionManagerProtocol: Actor, Sendable {
-    /// Checks if a client with the given ID is currently connected.
+/// Transport hook for externally hosted workspaces.
+///
+/// PositronicKit does not ship a client/server runtime. Downstream hosts can implement this
+/// protocol to bridge workspace references or tool execution onto another process or machine.
+public protocol ExternalWorkspaceConnectionManagerProtocol: Actor, Sendable {
+    /// Checks whether an external owner/host is currently reachable.
     func isConnected(clientId: UUID) async -> Bool
 
-    /// Sends an RPC request to a connected client.
+    /// Sends a request to an externally hosted workspace owner.
     /// - Parameters:
     ///   - method: The RPC method name.
     ///   - params: The parameters for the RPC method.
     ///   - expecting: The expected return type.
-    ///   - clientId: The ID of the client to send the request to.
+    ///   - clientId: The owner identifier to send the request to.
     /// - Returns: The result of the RPC call.
     func send<T: Codable & Sendable>(
         method: String,
@@ -20,3 +23,6 @@ public protocol ClientConnectionManagerProtocol: Actor, Sendable {
         to clientId: UUID
     ) async throws -> T
 }
+
+@available(*, deprecated, renamed: "ExternalWorkspaceConnectionManagerProtocol")
+public typealias ClientConnectionManagerProtocol = ExternalWorkspaceConnectionManagerProtocol
