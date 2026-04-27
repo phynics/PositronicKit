@@ -4,7 +4,7 @@ import PKShared
 
 // MARK: - Snapshot Types
 
-public struct PromptSectionEntry: PipelineSnapshotEntry, Sendable {
+public struct PromptSectionEntry: Sendable {
     public let entryId: String
     public let content: String
     public let cachePolicy: CachePolicy
@@ -12,17 +12,53 @@ public struct PromptSectionEntry: PipelineSnapshotEntry, Sendable {
     public let path: [String]
     public let parentEntryId: String?
     public let order: Int?
-    public let sectionKind: PipelineSnapshotSectionKind?
+    public let sectionKind: PromptHistorySectionKind?
+
+    var contentHash: UInt64 {
+        var hasher = Hasher()
+        content.hash(into: &hasher)
+        return UInt64(bitPattern: Int64(hasher.finalize()))
+    }
 }
 
-public struct PromptSnapshot: PipelineSnapshot, Sendable {
+public struct PromptSnapshot: Sendable {
     public let entries: [PromptSectionEntry]
+}
+
+public enum PromptHistorySectionKind: String, Sendable, Codable, Hashable {
+    case section
+    case group
+    case synthetic
+}
+
+struct PromptHistoryJournalDiff<Entry: Sendable>: Sendable {
+    struct SubtreeDiff: Sendable {
+        let changedNodePaths: [[String]]
+        let stableNodePaths: [[String]]
+        let addedNodePaths: [[String]]
+        let removedNodePaths: [[String]]
+    }
+
+    let stablePrefixCount: Int
+    let changed: [Entry]
+    let added: [Entry]
+    let removed: [String]
+    let subtreeDiff: SubtreeDiff?
+
+    var hasChanges: Bool {
+        !changed.isEmpty || !added.isEmpty || !removed.isEmpty || {
+            guard let subtreeDiff else { return false }
+            return !subtreeDiff.changedNodePaths.isEmpty
+                || !subtreeDiff.addedNodePaths.isEmpty
+                || !subtreeDiff.removedNodePaths.isEmpty
+        }()
+    }
 }
 
 // MARK: - PromptDiff
 
 public struct PromptDiff: Sendable {
-    let journalDiff: JournalDiff<PromptSectionEntry>
+    let journalDiff: PromptHistoryJournalDiff<PromptSectionEntry>
 
     /// Tokens in the positionally-stable prefix (cacheable by LLM).
     public let stablePrefixTokens: Int
@@ -86,14 +122,13 @@ public struct CompactionThresholds: Sendable {
 // MARK: - TimelinePromptHistory
 
 public actor TimelinePromptHistory {
-    private var journal: PipelineJournal<PromptSnapshot>
+    private var baseSnapshot: PromptSnapshot?
     public private(set) var appendedMessageCount: Int = 0
     public private(set) var appendedTokens: Int = 0
     public let thresholds: CompactionThresholds
     public private(set) var lastDiff: PromptDiff?
 
     public init(thresholds: CompactionThresholds = .default) {
-        journal = PipelineJournal<PromptSnapshot>()
         self.thresholds = thresholds
     }
 
@@ -155,7 +190,7 @@ public actor TimelinePromptHistory {
             ))
         }
 
-        let genericDiff = journal.record(PromptSnapshot(entries: entries))
+        let genericDiff = diffAndCommit(PromptSnapshot(entries: entries))
 
         let prefixTokens = entries.prefix(genericDiff.stablePrefixCount)
             .reduce(0) { $0 + $1.estimatedTokens }
@@ -226,7 +261,9 @@ public actor TimelinePromptHistory {
     /// Reset append counters. Base snapshot is preserved for accurate future diffs.
     /// Call with `hard: true` to also clear the base (next record treats everything as new).
     public func compact(hard: Bool = false) {
-        journal.compact(hard: hard)
+        if hard {
+            baseSnapshot = nil
+        }
         appendedMessageCount = 0
         appendedTokens = 0
         lastDiff = nil
@@ -279,5 +316,118 @@ public actor TimelinePromptHistory {
         }
         compact()
         return true
+    }
+
+    private func diffAndCommit(_ snapshot: PromptSnapshot) -> PromptHistoryJournalDiff<PromptSectionEntry> {
+        defer { baseSnapshot = snapshot }
+
+        guard let previous = baseSnapshot else {
+            let sortedAdded = snapshot.entries.map(\.path).sorted(by: pathLessThan)
+            return PromptHistoryJournalDiff(
+                stablePrefixCount: 0,
+                changed: [],
+                added: snapshot.entries,
+                removed: [],
+                subtreeDiff: .init(
+                    changedNodePaths: [],
+                    stableNodePaths: [],
+                    addedNodePaths: sortedAdded,
+                    removedNodePaths: []
+                )
+            )
+        }
+
+        var stablePrefixCount = 0
+        for idx in 0 ..< min(previous.entries.count, snapshot.entries.count) {
+            if previous.entries[idx].entryId == snapshot.entries[idx].entryId,
+               previous.entries[idx].contentHash == snapshot.entries[idx].contentHash
+            {
+                stablePrefixCount += 1
+            } else {
+                break
+            }
+        }
+
+        var previousById: [String: UInt64] = [:]
+        for entry in previous.entries {
+            previousById[entry.entryId] = entry.contentHash
+        }
+
+        var changed: [PromptSectionEntry] = []
+        var added: [PromptSectionEntry] = []
+        var seenIds: Set<String> = []
+        for entry in snapshot.entries {
+            seenIds.insert(entry.entryId)
+            if let prevHash = previousById[entry.entryId] {
+                if prevHash != entry.contentHash {
+                    changed.append(entry)
+                }
+            } else {
+                added.append(entry)
+            }
+        }
+
+        let removed = previous.entries.map(\.entryId).filter { !seenIds.contains($0) }
+
+        return PromptHistoryJournalDiff(
+            stablePrefixCount: stablePrefixCount,
+            changed: changed,
+            added: added,
+            removed: removed,
+            subtreeDiff: buildSubtreeDiff(previous: previous.entries, current: snapshot.entries)
+        )
+    }
+
+    private func buildSubtreeDiff(
+        previous: [PromptSectionEntry],
+        current: [PromptSectionEntry]
+    ) -> PromptHistoryJournalDiff<PromptSectionEntry>.SubtreeDiff {
+        func pathKey(_ path: [String]) -> String {
+            path.map { "\($0.count):\($0)" }.joined(separator: "|")
+        }
+
+        var previousByPath: [String: UInt64] = [:]
+        var pathLookup: [String: [String]] = [:]
+        for entry in previous {
+            let key = pathKey(entry.path)
+            previousByPath[key] = entry.contentHash
+            pathLookup[key] = entry.path
+        }
+
+        var stablePaths: [[String]] = []
+        var changedPaths: [[String]] = []
+        var addedPaths: [[String]] = []
+        var seenPathKeys: Set<String> = []
+
+        for entry in current {
+            let key = pathKey(entry.path)
+            seenPathKeys.insert(key)
+            pathLookup[key] = entry.path
+
+            if let previousHash = previousByPath[key] {
+                if previousHash == entry.contentHash {
+                    stablePaths.append(entry.path)
+                } else {
+                    changedPaths.append(entry.path)
+                }
+            } else {
+                addedPaths.append(entry.path)
+            }
+        }
+
+        let removedPaths = previousByPath.keys
+            .filter { !seenPathKeys.contains($0) }
+            .compactMap { pathLookup[$0] }
+
+        return .init(
+            changedNodePaths: changedPaths.sorted(by: pathLessThan),
+            stableNodePaths: stablePaths.sorted(by: pathLessThan),
+            addedNodePaths: addedPaths.sorted(by: pathLessThan),
+            removedNodePaths: removedPaths.sorted(by: pathLessThan)
+        )
+    }
+
+    private func pathLessThan(_ lhs: [String], _ rhs: [String]) -> Bool {
+        lhs.lexicographicallyPrecedes(rhs)
     }
 }

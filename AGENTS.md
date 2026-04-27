@@ -28,14 +28,18 @@
 - Prefer composition over inheritance, narrow protocols, explicit `throws`, and structured logging via `PKShared`.
 
 ## PKPrompt Guidance
-- Prefer composite `ContextSection` types for reuse and primitive leaf sections for actual rendered content.
-- Route prompt semantics via `PromptSectionRole` and `ConcretePromptSection` metadata rather than stringly-typed section ID checks.
-- Think of PKPrompt in three layers: `Prompt -> String`, `Prompt -> Structured Prompt`, and `Prompt -> Structured Prompt History`.
-- Prefer `prompt.sections()` when a call site needs concrete sections and `try prompt.assembledPrompt()` only when ordering validation or canonical assembled rendering is needed.
-- Prefer `await assembled.rendered()` as the canonical rendered prompt product; derive plain text, snapshots, and provider messages from that one value.
-- For prompt history and prefix caching flows, pair `assembled.sections` with `rendered.sectionsByID` and record them through `TimelinePromptHistory` instead of re-deriving ad-hoc diffs.
-- Resolve prompt trees into stable `ConcretePromptSection` values before hashing, token budgeting, history diffs, or provider conversion.
+- Treat `PromptNode` as the canonical internal IR. `PromptBuilder` lowers authored syntax directly into prompt nodes; `AssembledPrompt.Section` is the validated concrete artifact that downstream systems consume.
+- Prefer composite `Prompt` types for reuse and primitive leaves like `SystemPrompt`, `TextPrompt`, `HistoryPrompt`, and `UserPrompt` for final content.
+- Use `AnyPrompt.build { ... }` as the explicit root prompt container.
+- Plain `for` loops inside `PromptBuilder` use positional identity; use `ForEach(...)`, `PromptForEach(...)`, or `PromptBuilder.forEach(...)` when loop identity needs stable domain-derived paths.
+- Route prompt semantics via `PromptSectionRole`, section paths, and cache policy metadata rather than stringly-typed section ID checks.
+- Think of PKPrompt in four layers: `Prompt -> String`, `Prompt -> AssembledPrompt`, `Prompt -> RenderedPrompt`, and `RenderedPrompt -> PromptJournal`.
+- Prefer `try prompt.assemblePrompt()` when a call site needs validated ordering and concrete sections. Prefer `await assembled.render()` as the canonical rendered product; derive plain text, snapshots, and provider projections from that one value.
+- `AssembledPrompt.render()` is the canonical render pass. Do not re-render sections ad hoc for hashes, history, or provider conversion unless a test explicitly requires it.
+- Compression has two pieces of state: requested strategy (`compression`) and realized outcome (`compressionOutcome` / `compressionReport`). Preserve both when adding budgeting or summarization behavior.
 - Use builder modifiers like `.priority(...)`, `.compression(...)`, and `.cachePolicy(...)` to inherit prompt traits instead of duplicating metadata.
+- Keep structural paths provider-neutral. If you need journaling-specific layering like base/overlay/volatile, derive a journal path in `PromptJournal` rather than mutating the source section path.
+- `PromptJournal` is PKPrompt’s prompt-history primitive: stable sections stay materialized in the base, semi-stable changes become overlays until `compact()`, volatile sections remain current-only, and stable changes require a hard reset plan.
 
 ## Additional Notes
 - Keep fixtures deterministic and lightweight; prefer reusable builders over duplicated inline setup.

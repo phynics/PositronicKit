@@ -27,7 +27,33 @@ import PKShared
 
 ## PKPrompt
 
-`PKPrompt` builds prompts as structured section graphs. You can consume the same prompt at three layers depending on how much structure and history you need.
+`PKPrompt` builds prompts as structured prompt trees and exposes one canonical render pass for downstream consumers.
+
+Condensed design intent:
+
+- authored prompts are `Prompt` values, usually built with `AnyPrompt.build { ... }`
+- `PromptBuilder` lowers directly into `PromptNode`, the internal prompt IR
+- `AssembledPrompt.Section` is the validated concrete section artifact
+- `AssembledPrompt.RenderedPrompt` is the canonical rendered product for strings, snapshots, journaling, and provider projections
+- requested compression strategy and realized compression outcome are both preserved
+- prompt journaling is a `PKPrompt` concern via `PromptJournal`, not an ad-hoc diffing layer
+
+### Architecture
+
+Typical flow:
+
+1. Author a prompt tree with reusable `Prompt` composites and primitive leaves.
+2. Lower that tree into `PromptNode` through `PromptBuilder`.
+3. Resolve and validate concrete sections with `try prompt.assemblePrompt()`.
+4. Render once with `await assembled.render()`.
+5. Feed the rendered prompt into `PromptJournal` when stable-prefix and overlay semantics matter.
+
+The layers are:
+
+- `Prompt -> String`
+- `Prompt -> AssembledPrompt`
+- `AssembledPrompt -> RenderedPrompt`
+- `RenderedPrompt -> PromptJournal`
 
 ### Layer 1: Prompt -> String
 
@@ -35,114 +61,112 @@ Use this when you want the simplest path from prompt composition to canonical re
 
 ```swift
 import PKPrompt
-import PKShared
 
-struct ToolingSection: ContextSection {
+struct ToolingPrompt: Prompt {
     let tools: [String]
 
-    private var toolSummary: String {
-        tools.map { "- \($0)" }.joined(separator: "\n")
-    }
-
-    @ContextBuilder
-    var body: some ContextSection {
+    @PromptBuilder
+    var body: some Prompt {
         SystemPrompt("You are helping with project tooling.")
 
-        ContextPrompt(toolSummary, id: "tools")
-            .priority(.high)
+        TextPrompt(tools.map { "- \($0)" }.joined(separator: "\n"), id: "tools")
             .compression(.summarize)
             .cachePolicy(.semiStable)
     }
 }
 
 let prompt = AnyPrompt.build {
-    ToolingSection(tools: ["build", "test", "lint"])
+    ToolingPrompt(tools: ["build", "test", "lint"])
     UserPrompt("Recommend the safest next step.")
 }
 
-let assembled = try prompt.assembledPrompt()
-let rendered = await assembled.rendered()
-
-print(rendered.string)
+print(await prompt.render() ?? "")
 ```
 
-This path gives you ordering validation plus a single canonical plain-text prompt.
+This path is the smallest surface: author a prompt and ask for canonical plain text.
 
-### Layer 2: Prompt -> Structured Prompt
+### Layer 2: Prompt -> AssembledPrompt and RenderedPrompt
 
-Use this when the prompt itself is the product and you need access to concrete sections, rendered sections, or stable section snapshots.
+Use this when the prompt itself is the product and you need validated section structure, rendered sections, or canonical section text.
 
 ```swift
 import PKPrompt
-import PKShared
 
 let prompt = AnyPrompt.build {
     SystemPrompt("You are helping with project tooling.")
-    ContextPrompt("- build\n- test\n- lint", id: "tools")
-        .priority(.high)
+    TextPrompt("- build\n- test\n- lint", id: "tools")
         .compression(.summarize)
         .cachePolicy(.semiStable)
     UserPrompt("Recommend the safest next step.")
 }
 
-let sections = prompt.sections()
-let assembled = try prompt.assembledPrompt()
-let rendered = await assembled.rendered()
+let assembled = try prompt.assemblePrompt()
+let rendered = await assembled.render()
 
-print(sections.map(\.id))
+print(assembled.sections.map(\.id))
 print(rendered.sections.map(\.id))
 print(rendered.sectionsByID)
 ```
 
 This layer exposes the full prompt structure:
 
-- `prompt.sections()` returns `[ConcretePromptSection]`
-- `try prompt.assembledPrompt()` validates ordering and prompt shape
-- `await assembled.rendered()` returns the canonical rendered product used for strings, snapshots, and provider conversion
+- `try prompt.assemblePrompt()` returns validated, ordered `AssembledPrompt.Section` values
+- `await assembled.render()` returns the canonical rendered product used for strings, snapshots, journaling, and provider conversion
+- `compression` is the requested strategy; `compressionOutcome` and `compressionReport` describe what actually happened under token pressure
 
-### Layer 3: Prompt -> Structured Prompt History
+### Layer 3: RenderedPrompt -> PromptJournal
 
-Use this when prompt structure needs to survive across turns so the runtime can detect stable prefixes, track what changed, and compact append-heavy histories later.
+Use this when prompt structure needs to survive across snapshots so stable content can remain materialized, semi-stable changes can be overlaid, and volatile content can stay current-only.
 
 ```swift
 import PKPrompt
-import PositronicKit
-import PKShared
 
-let prompt = AnyPrompt.build {
+var journal = PromptJournal()
+
+let first = await (try! AnyPrompt.build {
     SystemPrompt("You are helping with project tooling.")
-    ContextPrompt("- build\n- test\n- lint", id: "tools")
+    TextPrompt("- build\n- test\n- lint", id: "tools")
         .cachePolicy(.semiStable)
     UserPrompt("Recommend the safest next step.")
-}
+}.assemblePrompt()).render()
 
-let assembled = try prompt.assembledPrompt()
+let second = await (try! AnyPrompt.build {
+    SystemPrompt("You are helping with project tooling.")
+    TextPrompt("- build\n- test\n- lint\n- format", id: "tools")
+        .cachePolicy(.semiStable)
+    UserPrompt("Recommend the safest next step.")
+}.assemblePrompt()).render()
 
-let history = TimelinePromptHistory()
-let diff = await history.record(prompt: assembled)
+let initialPlan = journal.observe(first)
+let updatedPlan = journal.observe(second)
+let compactedPlan = journal.compact()
 
-await history.recordAppend(messageCount: 2, estimatedTokens: 400)
-
-print(diff.stablePrefixCount)
-print(diff.changedNodePaths)
-print(await history.shouldCompact)
+print(initialPlan.baseSections.map(\.journalPath))
+print(updatedPlan.overlaySections.map(\.journalPath))
+print(compactedPlan?.overlaySections.isEmpty ?? false)
 ```
 
-This layer is what enables prefix-caching-aware prompt evolution:
+This layer is what enables prompt journaling:
 
-- rendered section snapshots are journaled by stable section identity and path
-- prompt diffs report stable prefixes, changed nodes, added nodes, and removed nodes
-- appended assistant/tool updates can be tracked separately from the base prompt snapshot
-- compaction resets append pressure while preserving the journal base unless you explicitly clear it
+- stable sections stay materialized in the committed base
+- semi-stable changes become overlay sections until `compact()`
+- volatile sections never enter the committed base
+- stable changes produce a hard-reset plan instead of an overlay
 
-That means the runtime can preserve cache-friendly prompt prefixes, represent turn-to-turn changes incrementally, and clean up the append chain later during compaction.
+`PromptJournal` is intentionally provider-neutral. It produces layered prompt sections and journal paths; a higher layer can later decide how to project overlays into provider-specific update messages.
 
-`PromptBuilder` preserves concrete types for blocks, conditionals, loops, and optionals, while `AnyPrompt`
-provides the explicit top-level root container.
+### PromptBuilder Notes
+
+`PromptBuilder` now lowers directly into prompt nodes instead of creating intermediate block/conditional wrapper prompts.
+
+- use `AnyPrompt.build { ... }` for an explicit root container
+- plain `for` loops use positional identity (`item_0`, `item_1`, ...)
+- use `ForEach(...)`, `PromptForEach(...)`, or `PromptBuilder.forEach(...)` when loop identity must come from domain data
+- trait modifiers like `.priority(...)`, `.compression(...)`, and `.cachePolicy(...)` inherit through the subtree and are resolved once during assembly
 
 Typical PKPrompt flow:
 
-1. Compose a `Prompt` tree from primitive leaves and reusable composite sections.
+1. Compose a `Prompt` tree from primitive leaves and reusable composite prompts.
 2. Use Layer 1 when you only need canonical plain-text prompt output.
-3. Use Layer 2 when you need concrete or rendered section structure.
-4. Use Layer 3 when prompt history, stable prefixes, and compaction behavior matter across turns.
+3. Use Layer 2 when you need validated sections or the canonical rendered prompt artifact.
+4. Use Layer 3 when prompt journaling, stable prefixes, and compaction behavior matter across snapshots.
