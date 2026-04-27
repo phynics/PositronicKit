@@ -57,8 +57,6 @@ public actor PromptAssemblyContext: Sendable {
     }
 }
 
-/// A specialized pipeline for orchestrating the assembly of an LLM prompt.
-public typealias PromptAssemblyPipeline = Pipeline<PromptAssemblyContext, PromptAssemblyEvent>
 
 /// Protocol defining a single stage in the prompt assembly pipeline.
 /// Stages are responsible for retrieving specific pieces of context and appending them as sections.
@@ -105,6 +103,3 @@ public extension PromptAssemblyStage {
         }
     }
 }
-
-/// A result builder for constructing prompt assembly pipelines from stages.
-public typealias PromptAssemblyPipelineBuilder = PipelineBuilder<PromptAssemblyContext, PromptAssemblyEvent>

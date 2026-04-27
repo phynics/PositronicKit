@@ -100,21 +100,21 @@ package extension PromptPrimitive {
     }
 
     /// Resolves a prompt primitive into a single concrete node with inherited traits applied.
-    func assembleSections(in context: PromptAssembly.Context = PromptAssembly.Context()) -> [PromptSection] {
+    func assembleSections(in context: PromptAssembly.Context = PromptAssembly.Context()) -> [AssembledPrompt.Section] {
         makePromptNode()?.resolve(in: context) ?? []
     }
 
     private func assembleSections(
         in context: PromptAssembly.Context,
         content leafContent: PromptPrimitiveContent
-    ) -> [PromptSection] {
+    ) -> [AssembledPrompt.Section] {
         let effectivePriority = context.inheritedPriority ?? priority
         let effectiveCompression = context.inheritedCompression ?? compression
         let effectiveCachePolicy = context.inheritedCachePolicy ?? cachePolicy
         let path = context.ancestorPath + [cachePolicyPathComponent(for: effectiveCachePolicy), id]
 
         return [
-            PromptSection(
+            AssembledPrompt.Section(
                 id: id,
                 role: role,
                 priority: effectivePriority,

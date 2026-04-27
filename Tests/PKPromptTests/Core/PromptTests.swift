@@ -4,6 +4,10 @@ import Testing
 
 @Suite("Prompt")
 struct PromptTests {
+    private func expectSections(_ sections: [AssembledPrompt.Section], ids: [String]) {
+        #expect(sections.map(\.id) == ids)
+    }
+
     @Test("AnyPrompt.build assembles builder content in prompt order")
     func anyPromptBuild() {
         let prompt = AnyPrompt.build {
@@ -11,7 +15,7 @@ struct PromptTests {
             TextPrompt("B", id: "s2", priority: 100)
         }
 
-        #expect(try! prompt.assemblePrompt().sections.map(\.id) == ["s2", "s1"])
+        expectSections(try! prompt.assemblePrompt().sections, ids: ["s2", "s1"])
     }
 
     @Test("AnyPrompt array initializer assembles directly")

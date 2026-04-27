@@ -44,8 +44,8 @@ extension ChatEngine {
         agentInstanceId: UUID?,
         maxTurns: Int,
         generationParameters: GenerationParameters?,
-        contextPipeline: ContextPipeline? = nil,
-        assemblyPipeline: PromptAssemblyPipeline? = nil
+        contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
+        assemblyPipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>? = nil
     ) async throws -> ChatTurnContext {
         // 1. Save new inputs (user message or tool outputs from client)
         try await saveConversationSteps(timelineId: timelineId, message: message, toolOutputs: toolOutputs)
@@ -207,7 +207,7 @@ extension ChatEngine {
         contextManager: ContextManager?,
         message: String,
         history: [Message],
-        pipeline: ContextPipeline? = nil
+        pipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil
     ) async -> ContextData {
         guard let contextManager else { return ContextData() }
 

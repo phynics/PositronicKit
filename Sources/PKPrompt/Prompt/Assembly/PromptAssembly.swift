@@ -29,7 +29,7 @@ package enum PromptAssembly {
     package static func resolve(
         _ prompt: some Prompt,
         in context: Context = Context()
-    ) -> [PromptSection] {
+    ) -> [AssembledPrompt.Section] {
         makeNode(from: prompt)?.resolve(in: context) ?? []
     }
 

@@ -22,14 +22,14 @@ public extension Prompt {
 
     /// Assembles this declarative prompt tree into a validated, ordered prompt artifact.
     ///
-    /// - Throws: ``PromptValidationError`` when the concrete section graph is invalid.
+    /// - Throws: ``AssembledPrompt/ValidationError`` when the concrete section graph is invalid.
     func assemblePrompt() throws -> AssembledPrompt {
         try AssembledPrompt(sections: promptSections())
     }
 }
 
 package extension Prompt {
-    func promptSections() -> [PromptSection] {
+    func promptSections() -> [AssembledPrompt.Section] {
         PromptAssembly.resolve(self)
     }
 }

@@ -203,8 +203,8 @@ public struct PositronicKitCore: Sendable {
         agentInstanceId: UUID? = nil,
         maxTurns: Int = ChatEngine.Constants.defaultMaxTurns,
         generationParameters: GenerationParameters? = nil,
-        contextPipeline: ContextPipeline? = nil,
-        assemblyPipeline: PromptAssemblyPipeline? = nil
+        contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
+        assemblyPipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>? = nil
     ) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         try await withDependencies {
             // Direct ChatEngine deps
@@ -333,4 +333,3 @@ public extension PositronicKitCore {
 }
 
 // MARK: - Backward Compatibility
-

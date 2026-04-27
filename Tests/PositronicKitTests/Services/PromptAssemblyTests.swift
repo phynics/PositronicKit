@@ -66,7 +66,7 @@ struct PromptAssemblyTests {
         #expect(resolved.map(\.id) == ["s1", "s2", "s3", "s4"])
     }
 
-    @Test("PromptAssemblyPipeline executes stages")
+    @Test("Prompt assembly pipeline executes stages")
     func pipelineExecutesStages() async throws {
         let context = PromptAssemblyContext(request: makeRequest())
 
@@ -76,7 +76,7 @@ struct PromptAssemblyTests {
             }
         }
 
-        let pipeline = PromptAssemblyPipeline(stages: [CustomStage()])
+        let pipeline = Pipeline<PromptAssemblyContext, PromptAssemblyEvent>(stages: [CustomStage()])
         let stream = pipeline.execute(context)
         for try await _ in stream {}
 
@@ -106,10 +106,12 @@ struct PromptAssemblyTests {
 
         let prompt = try await PromptAssembler.assemble(
             makeRequest(userQuery: "test"),
-            options: PromptAssemblyOptions(overridePipeline: PromptAssemblyPipeline(stages: [CustomStage()]))
+            options: PromptAssemblyOptions(
+                overridePipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>(stages: [CustomStage()])
+            )
         )
 
-        #expect(prompt.sections.map(\.id) == ["override_assembly"])
+        #expect(prompt.sections.map { $0.id } == ["override_assembly"])
     }
 
     @Test("PromptAssembler rejects duplicate section ids")
@@ -126,7 +128,9 @@ struct PromptAssemblyTests {
         await #expect(throws: AssembledPrompt.ValidationError.self) {
             _ = try await PromptAssembler.assemble(
                 makeRequest(userQuery: "test"),
-                options: PromptAssemblyOptions(overridePipeline: PromptAssemblyPipeline(stages: [DuplicateStage()]))
+                options: PromptAssemblyOptions(
+                    overridePipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>(stages: [DuplicateStage()])
+                )
             )
         }
     }
@@ -141,10 +145,12 @@ struct PromptAssemblyTests {
 
         let prompt = try await PromptAssembler.assemble(
             makeRequest(userQuery: "test"),
-            options: PromptAssemblyOptions(overridePipeline: PromptAssemblyPipeline(stages: [CustomStage()]))
+            options: PromptAssemblyOptions(
+                overridePipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>(stages: [CustomStage()])
+            )
         )
 
-        #expect(prompt.sections.map(\.id) == ["from_options"])
+        #expect(prompt.sections.map { $0.id } == ["from_options"])
     }
 
     @Test("PromptAssembler returns a final rendered prompt artifact")

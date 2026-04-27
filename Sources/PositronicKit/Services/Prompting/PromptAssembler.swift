@@ -41,7 +41,7 @@ public enum PromptAssembler {
         agentInstance: AgentInstance? = nil,
         timeline: Timeline? = nil,
         extensionSections: [any Prompt] = []
-    ) async throws -> RenderedPrompt {
+    ) async throws -> AssembledPrompt.RenderedPrompt {
         try await assemble(
             request,
             agentInstance: agentInstance,
@@ -61,7 +61,7 @@ public enum PromptAssembler {
         timeline: Timeline? = nil,
         extensionSections: [any Prompt] = [],
         options: PromptAssemblyOptions
-    ) async throws -> RenderedPrompt {
+    ) async throws -> AssembledPrompt.RenderedPrompt {
         let assemblyContext = PromptAssemblyContext(
             request: request,
             agentInstance: agentInstance,
@@ -104,9 +104,9 @@ public enum PromptAssembler {
 
     private static func runPipeline(
         context: PromptAssemblyContext,
-        overridePipeline: PromptAssemblyPipeline?
+        overridePipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>?
     ) async throws -> [any Prompt] {
-        let pipeline = overridePipeline ?? PromptAssemblyPipeline(stages: defaultAssemblyStages())
+        let pipeline = overridePipeline ?? Pipeline(stages: defaultAssemblyStages())
 
         let stream = pipeline.execute(context)
         for try await _ in stream {}
@@ -114,12 +114,12 @@ public enum PromptAssembler {
         let sections = await context.sections
         let duplicateIDs = duplicateResolvedSectionIDs(in: sections.flatMap { $0.promptSections() })
         guard duplicateIDs.isEmpty else {
-            throw PromptValidationError.duplicateSectionIDs(duplicateIDs)
+            throw AssembledPrompt.ValidationError.duplicateSectionIDs(duplicateIDs)
         }
         return sections
     }
 
-    private static func duplicateResolvedSectionIDs(in sections: [PromptSection]) -> [String] {
+    private static func duplicateResolvedSectionIDs(in sections: [AssembledPrompt.Section]) -> [String] {
         var counts: [String: Int] = [:]
         for section in sections {
             counts[section.id, default: 0] += 1
@@ -131,12 +131,12 @@ public enum PromptAssembler {
             .sorted()
     }
 
-    private static func resolveSections(from sections: [any Prompt]) -> [PromptSection] {
+    private static func resolveSections(from sections: [any Prompt]) -> [AssembledPrompt.Section] {
         sections.flatMap { $0.promptSections() }
     }
 
     private static func assemblePrompt(
-        from resolvedSections: [PromptSection],
+        from resolvedSections: [AssembledPrompt.Section],
         tokenBudget: TokenBudget?,
         compressor: SectionCompressor?,
         structuredDiff: StructuredDiffHint?,
@@ -163,7 +163,7 @@ public enum PromptAssembler {
     }
 
     private static func buildStructuredMetadata(
-        for resolvedSections: [PromptSection]
+        for resolvedSections: [AssembledPrompt.Section]
     ) async -> [String: StructuredNodeMetadata] {
         var metadata: [String: StructuredNodeMetadata] = [:]
         for section in resolvedSections {

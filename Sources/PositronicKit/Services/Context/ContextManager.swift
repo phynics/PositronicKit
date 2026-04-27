@@ -7,15 +7,15 @@ import PKShared
 /// Manages the retrieval and organization of context for the chat
 public actor ContextManager {
     public let workspace: (any WorkspaceProtocol)?
-    public let pipeline: ContextPipeline
+    public let pipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>
     private let logger = Logger.module(named: "com.positronickit.ContextManager")
 
     public init(
         workspace: (any WorkspaceProtocol)? = nil,
-        pipeline: ContextPipeline? = nil
+        pipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil
     ) {
         self.workspace = workspace
-        self.pipeline = pipeline ?? ContextPipeline(stages: Self.defaultStages(workspace: workspace))
+        self.pipeline = pipeline ?? Pipeline(stages: Self.defaultStages(workspace: workspace))
     }
 
     /// Provides the standard stages for context gathering.
@@ -43,7 +43,7 @@ public actor ContextManager {
         history: [Message] = [],
         limit: Int = 5,
         tagGenerator: (@Sendable (String) async throws -> [String])? = nil,
-        overridePipeline: ContextPipeline? = nil
+        overridePipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil
     ) -> AsyncThrowingStream<ContextGatheringEvent, Error> {
         return AsyncThrowingStream<ContextGatheringEvent, Error> { continuation in
             let task = Task {

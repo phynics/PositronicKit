@@ -1,5 +1,6 @@
 import Foundation
 import PKPrompt
+import PKShared
 import Testing
 @testable import PositronicKit
 
@@ -54,7 +55,7 @@ struct StructuredCompressionIntegrationTests {
         let prompt = try await PromptAssembler.assemble(
             request,
             options: PromptAssemblyOptions(
-                overridePipeline: PromptAssemblyPipeline(stages: [Stage()]),
+                overridePipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>(stages: [Stage()]),
                 tokenBudget: TokenBudget(maxTokens: 180, reserveForResponse: 0),
                 compressor: IntegrationCompressor(summary: "short"),
                 structuredDiff: StructuredDiffHint(
@@ -64,7 +65,7 @@ struct StructuredCompressionIntegrationTests {
             )
         )
 
-        #expect(prompt.sections.map(\.id) == ["changed_node"])
+        #expect(prompt.sections.map { $0.id } == ["changed_node"])
     }
 
     @Test("Shared executor preserves summary cache across builds")
@@ -90,7 +91,7 @@ struct StructuredCompressionIntegrationTests {
         let budget = TokenBudget(maxTokens: 100, reserveForResponse: 0)
 
         let options = PromptAssemblyOptions(
-            overridePipeline: PromptAssemblyPipeline(stages: [Stage()]),
+            overridePipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>(stages: [Stage()]),
             tokenBudget: budget,
             compressor: compressor,
             structuredExecutor: executor
@@ -134,7 +135,7 @@ struct StructuredCompressionIntegrationTests {
         let budget = TokenBudget(maxTokens: 100, reserveForResponse: 0)
 
         let options = PromptAssemblyOptions(
-            overridePipeline: PromptAssemblyPipeline(stages: [Stage(content: content)]),
+            overridePipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>(stages: [Stage(content: content)]),
             tokenBudget: budget,
             compressor: compressor,
             structuredExecutor: executor
@@ -145,7 +146,7 @@ struct StructuredCompressionIntegrationTests {
         _ = try await PromptAssembler.assemble(
             request,
             options: PromptAssemblyOptions(
-                overridePipeline: PromptAssemblyPipeline(stages: [Stage(content: content)]),
+                overridePipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>(stages: [Stage(content: content)]),
                 tokenBudget: budget,
                 compressor: compressor,
                 structuredExecutor: executor

@@ -58,8 +58,8 @@ public struct ChatEngine: Sendable {
         agentInstanceId: UUID? = nil,
         maxTurns: Int = Constants.defaultMaxTurns,
         generationParameters: GenerationParameters? = nil,
-        contextPipeline: ContextPipeline? = nil,
-        assemblyPipeline: PromptAssemblyPipeline? = nil
+        contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
+        assemblyPipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>? = nil
     ) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         let sid = ANSIColors.colorize(timelineId.uuidString.prefix(8).lowercased(), color: ANSIColors.brightBlue)
         logger.info("Starting chat stream for timeline \(sid)")

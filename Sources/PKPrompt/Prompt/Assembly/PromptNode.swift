@@ -1,7 +1,7 @@
 import Foundation
 
 package struct PromptNode: Sendable {
-    package typealias LeafAssembler = @Sendable (PromptAssembly.Context) -> [PromptSection]
+    package typealias LeafAssembler = @Sendable (PromptAssembly.Context) -> [AssembledPrompt.Section]
 
     package let pathComponent: String?
     package let priority: Int?
@@ -62,7 +62,7 @@ package struct PromptNode: Sendable {
         assembleLeaf != nil
     }
 
-    package func resolve(in context: PromptAssembly.Context) -> [PromptSection] {
+    package func resolve(in context: PromptAssembly.Context) -> [AssembledPrompt.Section] {
         let resolvedContext = context
             .descending(into: pathComponent)
             .applying(priority: priority, compression: compression, cachePolicy: cachePolicy)

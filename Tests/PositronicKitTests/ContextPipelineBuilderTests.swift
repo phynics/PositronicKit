@@ -12,7 +12,7 @@ import Testing
     @Test("DSL builds pipeline that executes correct number of stages")
     func builder_executesCorrectStageCount() async throws {
         let tracker = StageRunTracker()
-        let pipeline = ContextPipeline {
+        let pipeline = Pipeline<ContextPipelineContext, ContextGatheringEvent> {
             TrackingStage(tracker: tracker, stageID: "a")
             TrackingStage(tracker: tracker, stageID: "b")
             TrackingStage(tracker: tracker, stageID: "c")
@@ -33,7 +33,7 @@ import Testing
     func builder_supportsConditionalStages() async throws {
         let tracker = StageRunTracker()
         let includeExtra = false
-        let pipeline = ContextPipeline {
+        let pipeline = Pipeline<ContextPipelineContext, ContextGatheringEvent> {
             TrackingStage(tracker: tracker, stageID: "always")
             if includeExtra {
                 TrackingStage(tracker: tracker, stageID: "conditional")
@@ -56,7 +56,7 @@ import Testing
     @Test("ContextManager uses injected custom pipeline")
     func contextManager_usesCustomPipeline() async throws {
         let tracker = StageRunTracker()
-        let customPipeline = ContextPipeline {
+        let customPipeline = Pipeline<ContextPipelineContext, ContextGatheringEvent> {
             TrackingStage(tracker: tracker, stageID: "custom")
             CompletionStage()
         }
@@ -81,7 +81,7 @@ import Testing
     @Test("ContextManager uses override pipeline in gatherContext")
     func contextManager_usesOverridePipeline() async throws {
         let tracker = StageRunTracker()
-        let overridePipeline = ContextPipeline {
+        let overridePipeline = Pipeline<ContextPipelineContext, ContextGatheringEvent> {
             TrackingStage(tracker: tracker, stageID: "override")
             CompletionStage()
         }
