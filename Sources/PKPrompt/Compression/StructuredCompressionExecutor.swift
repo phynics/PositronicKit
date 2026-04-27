@@ -52,7 +52,13 @@ public actor StructuredCompressionExecutor {
 
         for section in sections {
             if let transformed = transformedSectionsById[section.id] {
-                if transformed.estimatedTokens > 0 || transformed.compression != .drop {
+                if let report = reportsById[section.id] {
+                    if case .drop = report.action {
+                        // Keep dropped nodes in the report, but omit them from the rendered section list.
+                    } else {
+                        resultingSections.append(transformed)
+                    }
+                } else {
                     resultingSections.append(transformed)
                 }
             } else {
@@ -87,32 +93,34 @@ public actor StructuredCompressionExecutor {
     ) async -> (section: AssembledPrompt.Section, report: CompressionNodeReport) {
         switch planned.action {
         case .keep:
+            let report = CompressionNodeReport(
+                nodeId: planned.nodeId,
+                path: planned.path,
+                action: planned.action,
+                beforeTokens: planned.estimatedTokens,
+                afterTokens: planned.estimatedTokens,
+                cacheHit: false,
+                fallbackReason: nil
+            )
             return (
-                section,
-                CompressionNodeReport(
-                    nodeId: planned.nodeId,
-                    path: planned.path,
-                    action: planned.action,
-                    beforeTokens: planned.estimatedTokens,
-                    afterTokens: planned.estimatedTokens,
-                    cacheHit: false,
-                    fallbackReason: nil
-                )
+                section.withCompressionOutcome(report),
+                report
             )
 
         case let .truncate(limit, _):
-            let constrained = section.constrained(to: max(0, limit))
+            let report = CompressionNodeReport(
+                nodeId: planned.nodeId,
+                path: planned.path,
+                action: planned.action,
+                beforeTokens: planned.estimatedTokens,
+                afterTokens: max(0, limit),
+                cacheHit: false,
+                fallbackReason: nil
+            )
+            let constrained = section.constrained(to: max(0, limit), compressionOutcome: report)
             return (
                 constrained,
-                CompressionNodeReport(
-                    nodeId: planned.nodeId,
-                    path: planned.path,
-                    action: planned.action,
-                    beforeTokens: planned.estimatedTokens,
-                    afterTokens: constrained.estimatedTokens,
-                    cacheHit: false,
-                    fallbackReason: nil
-                )
+                report
             )
 
         case let .summarize(targetTokens, reason):
@@ -120,35 +128,37 @@ public actor StructuredCompressionExecutor {
                   let content = await section.renderText(),
                   !content.isEmpty
             else {
-                let dropped = section.dropped()
+                let report = CompressionNodeReport(
+                    nodeId: planned.nodeId,
+                    path: planned.path,
+                    action: .drop,
+                    beforeTokens: planned.estimatedTokens,
+                    afterTokens: 0,
+                    cacheHit: false,
+                    fallbackReason: "missing_compressor_or_content"
+                )
+                let dropped = section.dropped(compressionOutcome: report)
                 return (
                     dropped,
-                    CompressionNodeReport(
-                        nodeId: planned.nodeId,
-                        path: planned.path,
-                        action: .drop,
-                        beforeTokens: planned.estimatedTokens,
-                        afterTokens: 0,
-                        cacheHit: false,
-                        fallbackReason: "missing_compressor_or_content"
-                    )
+                    report
                 )
             }
 
             let cacheKey = SummaryCacheKey(nodeHash: planned.nodeHash, targetTokens: targetTokens)
             if let cached = summaryCache[cacheKey] {
                 let summaryTokens = max(1, cached.count / 4)
+                let report = CompressionNodeReport(
+                    nodeId: planned.nodeId,
+                    path: planned.path,
+                    action: planned.action,
+                    beforeTokens: planned.estimatedTokens,
+                    afterTokens: summaryTokens,
+                    cacheHit: true,
+                    fallbackReason: nil
+                )
                 return (
-                    section.summarized(cached, estimatedTokens: summaryTokens),
-                    CompressionNodeReport(
-                        nodeId: planned.nodeId,
-                        path: planned.path,
-                        action: planned.action,
-                        beforeTokens: planned.estimatedTokens,
-                        afterTokens: summaryTokens,
-                        cacheHit: true,
-                        fallbackReason: nil
-                    )
+                    section.summarized(cached, estimatedTokens: summaryTokens, compressionOutcome: report),
+                    report
                 )
             }
 
@@ -162,64 +172,68 @@ public actor StructuredCompressionExecutor {
                 )
                 let summary = try await compressor.summarize(request: request)
                 guard !summary.isEmpty else {
-                    let dropped = section.dropped()
-                    return (
-                        dropped,
-                        CompressionNodeReport(
-                            nodeId: planned.nodeId,
-                            path: planned.path,
-                            action: .drop,
-                            beforeTokens: planned.estimatedTokens,
-                            afterTokens: 0,
-                            cacheHit: false,
-                            fallbackReason: "empty_summary"
-                        )
-                    )
-                }
-
-                insertSummaryCache(summary, for: cacheKey)
-                let summaryTokens = max(1, summary.count / 4)
-                return (
-                    section.summarized(summary, estimatedTokens: summaryTokens),
-                    CompressionNodeReport(
-                        nodeId: planned.nodeId,
-                        path: planned.path,
-                        action: planned.action,
-                        beforeTokens: planned.estimatedTokens,
-                        afterTokens: summaryTokens,
-                        cacheHit: false,
-                        fallbackReason: nil
-                    )
-                )
-            } catch {
-                let dropped = section.dropped()
-                return (
-                    dropped,
-                    CompressionNodeReport(
+                    let report = CompressionNodeReport(
                         nodeId: planned.nodeId,
                         path: planned.path,
                         action: .drop,
                         beforeTokens: planned.estimatedTokens,
                         afterTokens: 0,
                         cacheHit: false,
-                        fallbackReason: "summary_failed"
+                        fallbackReason: "empty_summary"
                     )
-                )
-            }
+                    let dropped = section.dropped(compressionOutcome: report)
+                    return (
+                        dropped,
+                        report
+                    )
+                }
 
-        case .drop:
-            let dropped = section.dropped()
-            return (
-                dropped,
-                CompressionNodeReport(
+                insertSummaryCache(summary, for: cacheKey)
+                let summaryTokens = max(1, summary.count / 4)
+                let report = CompressionNodeReport(
+                    nodeId: planned.nodeId,
+                    path: planned.path,
+                    action: planned.action,
+                    beforeTokens: planned.estimatedTokens,
+                    afterTokens: summaryTokens,
+                    cacheHit: false,
+                    fallbackReason: nil
+                )
+                return (
+                    section.summarized(summary, estimatedTokens: summaryTokens, compressionOutcome: report),
+                    report
+                )
+            } catch {
+                let report = CompressionNodeReport(
                     nodeId: planned.nodeId,
                     path: planned.path,
                     action: .drop,
                     beforeTokens: planned.estimatedTokens,
                     afterTokens: 0,
                     cacheHit: false,
-                    fallbackReason: nil
+                    fallbackReason: "summary_failed"
                 )
+                let dropped = section.dropped(compressionOutcome: report)
+                return (
+                    dropped,
+                    report
+                )
+            }
+
+        case .drop:
+            let report = CompressionNodeReport(
+                nodeId: planned.nodeId,
+                path: planned.path,
+                action: .drop,
+                beforeTokens: planned.estimatedTokens,
+                afterTokens: 0,
+                cacheHit: false,
+                fallbackReason: nil
+            )
+            let dropped = section.dropped(compressionOutcome: report)
+            return (
+                dropped,
+                report
             )
         }
     }

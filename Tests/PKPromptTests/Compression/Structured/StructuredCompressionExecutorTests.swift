@@ -58,6 +58,8 @@ struct StructuredCompressionExecutorTests {
         let result = await executor.execute(plan: plan, sections: sections, compressor: RecordingCompressor(result: "summary"))
 
         #expect(result.sections.map(\.id) == ["s1", "s2"])
+        #expect(result.sections[0].compression == .summarize)
+        #expect(result.sections[0].compressionOutcome?.action == .summarize(targetTokens: 50, reason: .budgetReduction))
         #expect(await result.sections[0].renderText() == "summary")
     }
 

@@ -117,6 +117,39 @@ struct AssembledPromptTests {
         #expect(rendered.string.isEmpty)
     }
 
+    @Test("Rendered sections preserve compression outcome metadata")
+    func renderedSectionsPreserveCompressionOutcome() async {
+        let report = CompressionNodeReport(
+            nodeId: "s1",
+            path: ["prompt", "s1"],
+            action: .summarize(targetTokens: 10, reason: .budgetReduction),
+            beforeTokens: 50,
+            afterTokens: 10,
+            cacheHit: false,
+            fallbackReason: nil
+        )
+        let prompt = try! AssembledPrompt(sections: [
+            AssembledPrompt.Section(
+                id: "s1",
+                role: .context,
+                priority: 10,
+                estimatedTokens: 10,
+                compression: .summarize,
+                type: .text,
+                cachePolicy: .volatile,
+                path: ["prompt", "s1"],
+                compressionOutcome: report,
+                render: { _ in .text("summary") }
+            )
+        ], compressionReport: CompressionReport(nodeReports: [report]))
+
+        let rendered = await prompt.render()
+        #expect(rendered.sections.count == 1)
+        #expect(rendered.sections[0].compression == .summarize)
+        #expect(rendered.sections[0].compressionOutcome == report)
+        #expect(rendered.compressionReport?.nodeReports == [report])
+    }
+
     @Test("Assembled prompt estimatedTokens sums resolved tokens")
     func estimatedTokens() {
         let prompt = try! AssembledPrompt(sections: [

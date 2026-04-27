@@ -109,7 +109,8 @@ public struct TokenBudget: Sendable {
             compressor: compressor
         )
 
-        return (reconstructSections(indexedSections: indexedSections, decisions: decisions), nil)
+        let reconstructed = reconstructSections(indexedSections: indexedSections, decisions: decisions)
+        return (reconstructed.sections, CompressionReport(nodeReports: reconstructed.reports))
     }
 
     public func makeStructuredPlan(
@@ -177,53 +178,58 @@ public struct TokenBudget: Sendable {
                 remainingBudget = 0
                 return .constrain(limit: limit)
             }
-            return .drop
+            return .drop(fallbackReason: "no_remaining_budget")
 
         case .summarize:
-            guard
-                remainingBudget > 0,
-                let compressor,
-                let content = await section.renderText(),
-                !content.isEmpty,
-                let summary = try? await compressor.summarize(content),
-                !summary.isEmpty
-            else {
-                return .drop
+            guard remainingBudget > 0 else {
+                return .drop(fallbackReason: "no_remaining_budget")
+            }
+            guard let compressor else {
+                return .drop(fallbackReason: "missing_compressor")
+            }
+            guard let content = await section.renderText(), !content.isEmpty else {
+                return .drop(fallbackReason: "missing_content")
+            }
+            guard let summary = try? await compressor.summarize(content), !summary.isEmpty else {
+                return .drop(fallbackReason: "summary_failed_or_empty")
             }
 
             let summaryTokens = estimateTokenCount(summary)
             guard summaryTokens <= remainingBudget else {
-                return .drop
+                return .drop(fallbackReason: "summary_exceeds_budget")
             }
 
             remainingBudget -= summaryTokens
             return .replaceWithSummary(text: summary, estimatedTokens: summaryTokens)
 
         case .drop:
-            return .drop
+            return .drop(fallbackReason: nil)
         }
     }
 
     private func reconstructSections(
         indexedSections: [(index: Int, section: AssembledPrompt.Section)],
         decisions: [Int: SectionDecision]
-    ) -> [AssembledPrompt.Section] {
+    ) -> (sections: [AssembledPrompt.Section], reports: [CompressionNodeReport]) {
         var result: [AssembledPrompt.Section] = []
+        var reports: [CompressionNodeReport] = []
         for (index, section) in indexedSections {
             guard let decision = decisions[index] else { continue }
+            let report = compressionReport(for: section, decision: decision)
+            reports.append(report)
 
             switch decision {
             case .keepOriginal:
-                result.append(section)
+                result.append(section.withCompressionOutcome(report))
             case let .constrain(limit):
-                result.append(section.constrained(to: limit))
+                result.append(section.constrained(to: limit, compressionOutcome: report))
             case let .replaceWithSummary(text, estimatedTokens):
-                result.append(section.summarized(text, estimatedTokens: estimatedTokens))
+                result.append(section.summarized(text, estimatedTokens: estimatedTokens, compressionOutcome: report))
             case .drop:
                 break
             }
         }
-        return result
+        return (result, reports)
     }
 
     private func estimateTokenCount(_ text: String) -> Int {
@@ -243,6 +249,60 @@ public struct TokenBudget: Sendable {
         case keepOriginal
         case constrain(limit: Int)
         case replaceWithSummary(text: String, estimatedTokens: Int)
-        case drop
+        case drop(fallbackReason: String?)
+    }
+
+    private func compressionReport(
+        for section: AssembledPrompt.Section,
+        decision: SectionDecision
+    ) -> CompressionNodeReport {
+        switch decision {
+        case .keepOriginal:
+            return CompressionNodeReport(
+                nodeId: section.id,
+                path: section.path,
+                action: .keep,
+                beforeTokens: section.estimatedTokens,
+                afterTokens: section.estimatedTokens,
+                cacheHit: false,
+                fallbackReason: nil
+            )
+        case let .constrain(limit):
+            let tail: Bool
+            if case let .truncate(value) = section.compression {
+                tail = value
+            } else {
+                tail = true
+            }
+            return CompressionNodeReport(
+                nodeId: section.id,
+                path: section.path,
+                action: .truncate(limit: limit, tail: tail),
+                beforeTokens: section.estimatedTokens,
+                afterTokens: min(section.estimatedTokens, limit),
+                cacheHit: false,
+                fallbackReason: nil
+            )
+        case let .replaceWithSummary(_, estimatedTokens):
+            return CompressionNodeReport(
+                nodeId: section.id,
+                path: section.path,
+                action: .summarize(targetTokens: estimatedTokens, reason: .budgetReduction),
+                beforeTokens: section.estimatedTokens,
+                afterTokens: estimatedTokens,
+                cacheHit: false,
+                fallbackReason: nil
+            )
+        case let .drop(fallbackReason):
+            return CompressionNodeReport(
+                nodeId: section.id,
+                path: section.path,
+                action: .drop,
+                beforeTokens: section.estimatedTokens,
+                afterTokens: 0,
+                cacheHit: false,
+                fallbackReason: fallbackReason
+            )
+        }
     }
 }

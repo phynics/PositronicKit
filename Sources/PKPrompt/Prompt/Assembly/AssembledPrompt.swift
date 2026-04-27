@@ -20,6 +20,7 @@ public struct AssembledPrompt: Sendable {
             public let cachePolicy: CachePolicy
             public let path: [String]
             public let parentID: String?
+            public let compressionOutcome: CompressionNodeReport?
             public let content: Content
 
             public init(
@@ -32,6 +33,7 @@ public struct AssembledPrompt: Sendable {
                 cachePolicy: CachePolicy,
                 path: [String],
                 parentID: String?,
+                compressionOutcome: CompressionNodeReport? = nil,
                 content: Content
             ) {
                 self.id = id
@@ -43,6 +45,7 @@ public struct AssembledPrompt: Sendable {
                 self.cachePolicy = cachePolicy
                 self.path = path
                 self.parentID = parentID
+                self.compressionOutcome = compressionOutcome
                 self.content = content
             }
         }
@@ -73,6 +76,7 @@ public struct AssembledPrompt: Sendable {
         public let cachePolicy: CachePolicy
         public let path: [String]
         public let parentID: String?
+        public let compressionOutcome: CompressionNodeReport?
         private let renderClosure: RenderClosure
 
         public init(
@@ -85,6 +89,7 @@ public struct AssembledPrompt: Sendable {
             cachePolicy: CachePolicy,
             path: [String],
             parentID: String? = nil,
+            compressionOutcome: CompressionNodeReport? = nil,
             render: @escaping RenderClosure
         ) {
             self.id = id
@@ -96,6 +101,7 @@ public struct AssembledPrompt: Sendable {
             self.cachePolicy = cachePolicy
             self.path = path
             self.parentID = parentID
+            self.compressionOutcome = compressionOutcome
             self.renderClosure = render
         }
 
@@ -117,6 +123,7 @@ public struct AssembledPrompt: Sendable {
                 cachePolicy: cachePolicy,
                 path: path,
                 parentID: parentID,
+                compressionOutcome: compressionOutcome,
                 content: content
             )
         }
@@ -125,7 +132,7 @@ public struct AssembledPrompt: Sendable {
             await renderedContent(constrainedTo: tokens)?.text
         }
 
-        public func constrained(to tokens: Int) -> Section {
+        public func constrained(to tokens: Int, compressionOutcome: CompressionNodeReport? = nil) -> Section {
             Section(
                 id: id,
                 role: role,
@@ -136,39 +143,62 @@ public struct AssembledPrompt: Sendable {
                 cachePolicy: cachePolicy,
                 path: path,
                 parentID: parentID,
+                compressionOutcome: compressionOutcome ?? self.compressionOutcome,
                 render: { limit in
                     await renderClosure(min(limit ?? tokens, tokens))
                 }
             )
         }
 
-        public func summarized(_ summary: String, estimatedTokens: Int) -> Section {
+        public func summarized(
+            _ summary: String,
+            estimatedTokens: Int,
+            compressionOutcome: CompressionNodeReport? = nil
+        ) -> Section {
             Section(
                 id: id,
                 role: role,
                 priority: priority,
                 estimatedTokens: estimatedTokens,
-                compression: .keep,
+                compression: compression,
                 type: .text,
                 cachePolicy: cachePolicy,
                 path: path,
                 parentID: parentID,
+                compressionOutcome: compressionOutcome ?? self.compressionOutcome,
                 render: { _ in .text(summary) }
             )
         }
 
-        public func dropped() -> Section {
+        public func dropped(compressionOutcome: CompressionNodeReport? = nil) -> Section {
             Section(
                 id: id,
                 role: role,
                 priority: priority,
                 estimatedTokens: 0,
-                compression: .drop,
+                compression: compression,
                 type: type,
                 cachePolicy: cachePolicy,
                 path: path,
                 parentID: parentID,
+                compressionOutcome: compressionOutcome ?? self.compressionOutcome,
                 render: { _ in nil }
+            )
+        }
+
+        public func withCompressionOutcome(_ compressionOutcome: CompressionNodeReport?) -> Section {
+            Section(
+                id: id,
+                role: role,
+                priority: priority,
+                estimatedTokens: estimatedTokens,
+                compression: compression,
+                type: type,
+                cachePolicy: cachePolicy,
+                path: path,
+                parentID: parentID,
+                compressionOutcome: compressionOutcome,
+                render: renderClosure
             )
         }
     }

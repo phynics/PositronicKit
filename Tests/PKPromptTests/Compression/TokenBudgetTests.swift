@@ -146,6 +146,28 @@ struct TokenBudgetTests {
         #expect(await result[1].renderText() == "short summary")
     }
 
+    @Test("Fallback compression reports summarized sections and preserves requested strategy")
+    func fallbackCompressionReportsSummaries() async {
+        let budget = TokenBudget(maxTokens: 1000, reserveForResponse: 0)
+        let sections = resolve([
+            MockPrimitiveSection(id: "s1", priority: 2, estimatedTokens: 800, compression: .keep),
+            MockPrimitiveSection(id: "summarize", priority: 1, estimatedTokens: 500, compression: .summarize, renderedContent: "A very long body"),
+        ])
+
+        let result = await budget.applyWithReport(
+            to: sections,
+            compressor: MockCompressor(summarizedText: "short summary")
+        )
+
+        #expect(result.report != nil)
+        #expect(result.sections.count == 2)
+        #expect(result.sections[1].compression == .summarize)
+        #expect(result.sections[1].compressionOutcome?.action == .summarize(targetTokens: result.sections[1].estimatedTokens, reason: .budgetReduction))
+        #expect(result.report?.nodeReports.contains(where: {
+            $0.nodeId == "summarize" && $0.action == .summarize(targetTokens: result.sections[1].estimatedTokens, reason: .budgetReduction)
+        }) == true)
+    }
+
     @Test("Summarize drops when summary still does not fit")
     func applySummarizeDropsWhenSummaryStillTooLarge() async {
         let budget = TokenBudget(maxTokens: 1000, reserveForResponse: 0)

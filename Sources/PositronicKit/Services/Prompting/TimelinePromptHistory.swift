@@ -187,6 +187,7 @@ public actor TimelinePromptHistory {
                     cachePolicy: section.cachePolicy,
                     path: section.path,
                     parentID: section.parentID,
+                    compressionOutcome: section.compressionOutcome,
                     content: .text(content)
                 )
             }
