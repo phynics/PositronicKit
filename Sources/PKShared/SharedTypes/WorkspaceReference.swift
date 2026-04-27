@@ -105,11 +105,58 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         metadata: [String: AnyCodable] = [:]
     ) -> WorkspaceReference {
         WorkspaceReference(
-            uri: .timelineWorkspace(timelineId),
+            uri: .serverTimeline(timelineId),
             location: .runtime,
             rootPath: rootPath,
             trustLevel: .full,
             metadata: metadata
         )
     }
+}
+
+public extension WorkspaceReference {
+    typealias WorkspaceHostType = WorkspaceLocation
+
+    var hostType: WorkspaceLocation {
+        get { location }
+        set { location = newValue }
+    }
+
+    var ownerId: UUID? { originId }
+
+    init(
+        id: UUID = UUID(),
+        uri: WorkspaceURI,
+        hostType: WorkspaceLocation,
+        ownerId: UUID? = nil,
+        tools: [ToolReference] = [],
+        rootPath: String? = nil,
+        trustLevel: WorkspaceTrustLevel = .full,
+        lastModifiedBy: UUID? = nil,
+        status: WorkspaceStatus = .active,
+        metadata: [String: AnyCodable] = [:],
+        contextInjection: String? = nil,
+        createdAt: Date = Date()
+    ) {
+        self.init(
+            id: id,
+            uri: uri,
+            location: hostType,
+            originId: ownerId,
+            tools: tools,
+            rootPath: rootPath,
+            trustLevel: trustLevel,
+            lastModifiedBy: lastModifiedBy,
+            status: status,
+            metadata: metadata,
+            contextInjection: contextInjection,
+            createdAt: createdAt
+        )
+    }
+}
+
+public extension WorkspaceReference.WorkspaceLocation {
+    static var server: Self { .runtime }
+    static var serverTimeline: Self { .runtimeTimeline }
+    static var client: Self { .attached }
 }

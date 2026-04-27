@@ -160,7 +160,7 @@ public extension TimelineManager {
         try writeDefaultNotes(at: timelineWorkspaceURL)
 
         let workspace = WorkspaceReference(
-            uri: .timelineWorkspace(timelineId),
+            uri: .serverTimeline(timelineId),
             location: .runtime,
             rootPath: timelineWorkspaceURL.path,
             trustLevel: .full

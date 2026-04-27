@@ -42,6 +42,10 @@ public struct WorkspaceURI: Codable, Sendable, Hashable, CustomStringConvertible
         WorkspaceURI(host: "pk-runtime", path: "/timelines/\(timelineId.uuidString)")
     }
 
+    public static func serverTimeline(_ timelineId: UUID) -> WorkspaceURI {
+        WorkspaceURI(host: "pk-runtime", path: "/sessions/\(timelineId.uuidString)")
+    }
+
     /// Create an attached shell workspace URI.
     public static func clientShell(hostname: String) -> WorkspaceURI {
         WorkspaceURI(host: hostname, path: "~")

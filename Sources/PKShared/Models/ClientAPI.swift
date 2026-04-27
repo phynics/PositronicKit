@@ -23,3 +23,14 @@ public struct RequestOriginRegistrationResponse: Codable, Sendable {
         self.defaultWorkspace = defaultWorkspace
     }
 }
+
+public typealias ClientRegistrationRequest = RequestOriginRegistrationRequest
+public typealias ClientRegistrationResponse = RequestOriginRegistrationResponse
+
+public extension RequestOriginRegistrationResponse {
+    var client: ClientIdentity { origin }
+
+    init(client: ClientIdentity, defaultWorkspace: WorkspaceReference) {
+        self.init(origin: client, defaultWorkspace: defaultWorkspace)
+    }
+}

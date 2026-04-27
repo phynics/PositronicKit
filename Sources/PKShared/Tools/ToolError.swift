@@ -65,3 +65,8 @@ public enum ToolError: PKError, Sendable, Equatable {
         }
     }
 }
+
+public extension ToolError {
+    static var clientNotConnected: Self { .requestOriginUnavailable }
+    static var clientToolsDisallowedOnPrivateTimeline: Self { .attachedToolsDisallowedOnPrivateTimeline }
+}

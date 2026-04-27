@@ -19,6 +19,11 @@ public struct ChatRequest: Codable, Sendable {
     }
 }
 
+public extension ChatRequest {
+    var clientId: UUID? { requestOriginId }
+    var clientTools: [ToolReference]? { attachedTools }
+}
+
 public struct ChatResponse: Codable, Sendable {
     public let response: String
 

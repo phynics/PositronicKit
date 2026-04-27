@@ -32,3 +32,5 @@ public struct RequestOriginIdentity: Codable, Sendable, Identifiable {
         WorkspaceURI.clientShell(hostname: hostname)
     }
 }
+
+public typealias ClientIdentity = RequestOriginIdentity

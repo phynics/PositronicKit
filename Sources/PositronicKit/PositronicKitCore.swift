@@ -337,3 +337,29 @@ public extension PositronicKitCore {
 }
 
 // MARK: - Backward Compatibility
+
+public typealias MonadCore = PositronicKitCore
+
+public extension PositronicKitCore.PersistenceConfiguration {
+    init(
+        messageStore: any MessageStoreProtocol,
+        timelinePersistence: any TimelinePersistenceProtocol,
+        workspacePersistence: any WorkspacePersistenceProtocol,
+        memoryStore: any MemoryStoreProtocol,
+        toolPersistence: any ToolPersistenceProtocol,
+        agentInstanceStore: any AgentInstanceStoreProtocol,
+        clientStore: any ClientStoreProtocol,
+        agentTemplateStore: any AgentTemplateStoreProtocol
+    ) {
+        self.init(
+            messageStore: messageStore,
+            timelinePersistence: timelinePersistence,
+            workspacePersistence: workspacePersistence,
+            memoryStore: memoryStore,
+            toolPersistence: toolPersistence,
+            agentInstanceStore: agentInstanceStore,
+            requestOriginStore: clientStore,
+            agentTemplateStore: agentTemplateStore
+        )
+    }
+}

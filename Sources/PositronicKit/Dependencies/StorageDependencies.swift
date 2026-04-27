@@ -76,6 +76,11 @@ public extension DependencyValues {
         set { self[RequestOriginStoreKey.self] = newValue }
     }
 
+    var clientStore: any ClientStoreProtocol {
+        get { self[RequestOriginStoreKey.self] as! any ClientStoreProtocol }
+        set { self[RequestOriginStoreKey.self] = newValue }
+    }
+
     var agentTemplateStore: any AgentTemplateStoreProtocol {
         get { self[AgentTemplateStoreKey.self] }
         set { self[AgentTemplateStoreKey.self] = newValue }
