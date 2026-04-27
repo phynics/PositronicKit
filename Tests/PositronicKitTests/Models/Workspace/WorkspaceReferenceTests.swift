@@ -18,24 +18,24 @@ import Foundation
         let ref = WorkspaceReference(
             id: UUID(),
             uri: WorkspaceURI(host: "local", path: "/tmp/test"),
-            hostType: .runtime
+            location: .runtime
         )
         try assertCodable(ref)
     }
 
     @Test
 
-    func testWorkspaceReferenceWithClientHost() throws {
-        let ownerId = UUID()
+    func testWorkspaceReferenceWithAttachedOrigin() throws {
+        let originId = UUID()
         let ref = WorkspaceReference(
             id: UUID(),
             uri: WorkspaceURI(host: "macbook", path: "/Users/dev"),
-            hostType: .external,
-            ownerId: ownerId,
+            location: .attached,
+            originId: originId,
             status: .missing
         )
         try assertCodable(ref)
-        #expect(ref.ownerId == ownerId)
+        #expect(ref.originId == originId)
         #expect(ref.status == .missing)
     }
 }

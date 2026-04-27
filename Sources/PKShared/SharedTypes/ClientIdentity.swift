@@ -1,9 +1,9 @@
 import Foundation
 
-// MARK: - Client Identity
+// MARK: - Request Origin Identity
 
-/// Represents a registered host that can connect to the runtime
-public struct ClientIdentity: Codable, Sendable, Identifiable {
+/// Represents a registered request origin known to the runtime.
+public struct RequestOriginIdentity: Codable, Sendable, Identifiable {
     public let id: UUID
     public let hostname: String
     public let displayName: String
@@ -27,7 +27,7 @@ public struct ClientIdentity: Codable, Sendable, Identifiable {
         self.lastSeenAt = lastSeenAt
     }
 
-    /// Default shell workspace URI for this client
+    /// Default shell workspace URI for this origin.
     public var shellWorkspaceURI: WorkspaceURI {
         WorkspaceURI.clientShell(hostname: hostname)
     }

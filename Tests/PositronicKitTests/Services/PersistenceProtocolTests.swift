@@ -141,7 +141,7 @@ final class MockPersistenceStore:
         []
     }
 
-    func fetchClientTools(clientId _: UUID) async throws -> [ToolReference] {
+    func fetchOriginTools(originId _: UUID) async throws -> [ToolReference] {
         []
     }
 

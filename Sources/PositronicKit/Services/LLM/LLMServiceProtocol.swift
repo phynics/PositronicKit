@@ -14,7 +14,7 @@ public struct LLMChatRequest: Sendable {
     public let tools: [AnyTool]
     public let workspaces: [WorkspaceReference]
     public let primaryWorkspace: WorkspaceReference?
-    public let clientName: String?
+    public let requestOriginName: String?
     public let systemInstructions: String?
     public let structuredOutput: StructuredOutputRequest?
     public let generationParameters: GenerationParameters?
@@ -28,7 +28,7 @@ public struct LLMChatRequest: Sendable {
         tools: [AnyTool],
         workspaces: [WorkspaceReference],
         primaryWorkspace: WorkspaceReference?,
-        clientName: String?,
+        requestOriginName: String?,
         systemInstructions: String? = nil,
         structuredOutput: StructuredOutputRequest? = nil,
         generationParameters: GenerationParameters? = nil,
@@ -41,12 +41,13 @@ public struct LLMChatRequest: Sendable {
         self.tools = tools
         self.workspaces = workspaces
         self.primaryWorkspace = primaryWorkspace
-        self.clientName = clientName
+        self.requestOriginName = requestOriginName
         self.systemInstructions = systemInstructions
         self.structuredOutput = structuredOutput
         self.generationParameters = generationParameters
         self.useFastModel = useFastModel
     }
+
 }
 
 /// The result of a high-level LLM chat stream request.
@@ -86,7 +87,7 @@ public struct LLMPromptRequest: Sendable {
     public let tools: [AnyTool]
     public let workspaces: [WorkspaceReference]
     public let primaryWorkspace: WorkspaceReference?
-    public let clientName: String?
+    public let requestOriginName: String?
     public let systemInstructions: String?
     public let generationParameters: GenerationParameters?
 
@@ -98,7 +99,7 @@ public struct LLMPromptRequest: Sendable {
         tools: [AnyTool],
         workspaces: [WorkspaceReference],
         primaryWorkspace: WorkspaceReference?,
-        clientName: String?,
+        requestOriginName: String?,
         systemInstructions: String? = nil,
         generationParameters: GenerationParameters? = nil
     ) {
@@ -109,10 +110,11 @@ public struct LLMPromptRequest: Sendable {
         self.tools = tools
         self.workspaces = workspaces
         self.primaryWorkspace = primaryWorkspace
-        self.clientName = clientName
+        self.requestOriginName = requestOriginName
         self.systemInstructions = systemInstructions
         self.generationParameters = generationParameters
     }
+
 }
 
 /// Parsed endpoint components.

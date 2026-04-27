@@ -46,7 +46,7 @@ struct LLMServiceTests {
                 tools: [],
                 workspaces: [],
                 primaryWorkspace: nil,
-                clientName: nil,
+                requestOriginName: nil,
                 systemInstructions: "System rules"
             )
         )
@@ -123,7 +123,7 @@ struct LLMServiceTests {
                 tools: [],
                 workspaces: [],
                 primaryWorkspace: nil,
-                clientName: nil,
+                requestOriginName: nil,
                 systemInstructions: "System Only"
             )
         )

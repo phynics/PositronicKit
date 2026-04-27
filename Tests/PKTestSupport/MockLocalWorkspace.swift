@@ -11,7 +11,7 @@ public actor MockLocalWorkspace: WorkspaceProtocol {
     public init(rootURL: URL) {
         let ref = WorkspaceReference(
             uri: WorkspaceURI(host: "pk-runtime", path: rootURL.path),
-            hostType: .runtime,
+            location: .runtime,
             rootPath: rootURL.path
         )
         self.reference = ref
@@ -74,7 +74,7 @@ public actor MockLocalWorkspace: WorkspaceProtocol {
 
 public struct MockWorkspaceCreator: WorkspaceCreating {
     public init() {}
-    public func create(from reference: WorkspaceReference, connectionManager: (any ClientConnectionManagerProtocol)?) throws -> any WorkspaceProtocol {
+    public func create(from reference: WorkspaceReference) throws -> any WorkspaceProtocol {
         return try MockLocalWorkspace(reference: reference)
     }
 }

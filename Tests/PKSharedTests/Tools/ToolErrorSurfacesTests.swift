@@ -12,8 +12,8 @@ final class ToolErrorSurfacesTests {
     }
 
     @Test
-    func clientToolsDisallowedOnPrivateTimeline() {
-        let error = ToolError.clientToolsDisallowedOnPrivateTimeline
+    func attachedToolsDisallowedOnPrivateTimeline() {
+        let error = ToolError.attachedToolsDisallowedOnPrivateTimeline
         #expect(error.errorDomain == PKErrorDomain.tool)
         #expect(error.errorCode == 207)
     }
@@ -28,8 +28,8 @@ final class ToolErrorSurfacesTests {
     }
 
     @Test
-    func clientNotConnected() {
-        let error = ToolError.clientNotConnected
+    func requestOriginUnavailable() {
+        let error = ToolError.requestOriginUnavailable
         #expect(error.errorDomain == PKErrorDomain.tool)
         #expect(error.errorCode == 206)
     }

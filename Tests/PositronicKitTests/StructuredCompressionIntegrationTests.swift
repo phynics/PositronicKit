@@ -50,7 +50,7 @@ struct StructuredCompressionIntegrationTests {
             }
         }
 
-        let request = LLMPromptRequest(userQuery: "test", chatHistory: [], tools: [], workspaces: [], primaryWorkspace: nil, clientName: nil)
+        let request = LLMPromptRequest(userQuery: "test", chatHistory: [], tools: [], workspaces: [], primaryWorkspace: nil, requestOriginName: nil)
 
         let prompt = try await PromptAssembler.assemble(
             request,
@@ -84,7 +84,7 @@ struct StructuredCompressionIntegrationTests {
             func summarize(request: SummaryRequest) async throws -> String { await counter.increment(); return "cached-summary" }
         }
 
-        let request = LLMPromptRequest(userQuery: "test", chatHistory: [], tools: [], workspaces: [], primaryWorkspace: nil, clientName: nil)
+        let request = LLMPromptRequest(userQuery: "test", chatHistory: [], tools: [], workspaces: [], primaryWorkspace: nil, requestOriginName: nil)
         let executor = StructuredCompressionExecutor()
         let counter = IntegrationCounter()
         let compressor = CountingCompressor(counter: counter)
@@ -127,7 +127,7 @@ struct StructuredCompressionIntegrationTests {
             func summarize(request: SummaryRequest) async throws -> String { await counter.increment(); return "summary" }
         }
 
-        let request = LLMPromptRequest(userQuery: "test", chatHistory: [], tools: [], workspaces: [], primaryWorkspace: nil, clientName: nil)
+        let request = LLMPromptRequest(userQuery: "test", chatHistory: [], tools: [], workspaces: [], primaryWorkspace: nil, requestOriginName: nil)
         let content = ContentBox("version-1")
         let executor = StructuredCompressionExecutor()
         let counter = IntegrationCounter()

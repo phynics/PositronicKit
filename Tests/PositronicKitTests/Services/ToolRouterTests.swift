@@ -23,7 +23,7 @@ import Testing
 
         func execute(parameters _: [String: Any]) async throws -> ToolResult {
             if !result.success, result.error == "client_tools_disallowed_on_private_timeline" {
-                throw ToolError.clientToolsDisallowedOnPrivateTimeline
+                throw ToolError.attachedToolsDisallowedOnPrivateTimeline
             }
             return result
         }
@@ -53,7 +53,7 @@ import Testing
         // Setup session and local workspace
         let session = try await timelineManager.createTimeline()
         let workspaceId = UUID()
-        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://local")), hostType: .runtime, ownerId: nil)
+        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://local")), location: .runtime, originId: nil)
 
         // Mock persistence expects WorkspaceReference
         try await mockPersistence.saveWorkspace(workspaceRef)
@@ -84,7 +84,7 @@ import Testing
 
     @Test
 
-    func executeRemotelyThrowsClientExecutionRequired() async throws {
+    func executeRemotelyDefersExternalExecution() async throws {
         let (timelineManager, mockPersistence) = try await setupTimelineManager()
         let toolRouter = withDependencies {
             $0.timelineManager = timelineManager
@@ -96,7 +96,7 @@ import Testing
         let workspaceId = UUID()
 
         // Setup remote workspace
-        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://remote")), hostType: .external, ownerId: UUID())
+        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://remote")), location: .attached, originId: UUID())
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await timelineManager.attachWorkspace(workspaceId, to: session.id)
 
@@ -108,8 +108,8 @@ import Testing
 
         do {
             let result = try await toolRouter.execute(tool: toolRef, arguments: arguments, timelineId: session.id)
-            guard case .deferredToClient = result else {
-                Issue.record("Expected .deferredToClient")
+            guard case .deferredExternally = result else {
+                Issue.record("Expected .deferredExternally")
                 return
             }
         } catch {
@@ -119,7 +119,7 @@ import Testing
 
     @Test
 
-    func executeRemotelyWithoutClientThrowsClientNotConnected() async throws {
+    func executeRemotelyWithoutOriginStillDefers() async throws {
         let (timelineManager, mockPersistence) = try await setupTimelineManager()
         let toolRouter = withDependencies {
             $0.timelineManager = timelineManager
@@ -130,8 +130,8 @@ import Testing
         let session = try await timelineManager.createTimeline()
         let workspaceId = UUID()
 
-        // Setup remote workspace missing an ownerId
-        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://remote")), hostType: .external, ownerId: nil)
+        // Setup attached workspace missing an originId
+        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://remote")), location: .attached, originId: nil)
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await timelineManager.attachWorkspace(workspaceId, to: session.id)
 
@@ -143,8 +143,8 @@ import Testing
 
         do {
             let result = try await toolRouter.execute(tool: toolRef, arguments: arguments, timelineId: session.id)
-            guard case .deferredToClient = result else {
-                Issue.record("Expected .deferredToClient")
+            guard case .deferredExternally = result else {
+                Issue.record("Expected .deferredExternally")
                 return
             }
         } catch {

@@ -14,9 +14,9 @@ public enum AgentInstanceStoreKey: DependencyKey {
     public static let testValue: any AgentInstanceStoreProtocol = InMemoryAgentInstanceStore()
 }
 
-public enum ClientStoreKey: DependencyKey {
-    public static let liveValue: any ClientStoreProtocol = InMemoryClientStore()
-    public static let testValue: any ClientStoreProtocol = InMemoryClientStore()
+public enum RequestOriginStoreKey: DependencyKey {
+    public static let liveValue: any RequestOriginStoreProtocol = InMemoryRequestOriginStore()
+    public static let testValue: any RequestOriginStoreProtocol = InMemoryRequestOriginStore()
 }
 
 public enum AgentTemplateStoreKey: DependencyKey {
@@ -71,9 +71,9 @@ public extension DependencyValues {
         set { self[AgentInstanceStoreKey.self] = newValue }
     }
 
-    var clientStore: any ClientStoreProtocol {
-        get { self[ClientStoreKey.self] }
-        set { self[ClientStoreKey.self] = newValue }
+    var requestOriginStore: any RequestOriginStoreProtocol {
+        get { self[RequestOriginStoreKey.self] }
+        set { self[RequestOriginStoreKey.self] = newValue }
     }
 
     var agentTemplateStore: any AgentTemplateStoreProtocol {

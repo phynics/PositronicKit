@@ -180,16 +180,16 @@ public struct UserQuery: Prompt {
 public struct WorkspacesContext: Prompt {
     public let workspaces: [WorkspaceReference]
     public let primaryWorkspace: WorkspaceReference?
-    public let clientName: String?
+    public let requestOriginName: String?
 
     public init(
         workspaces: [WorkspaceReference],
         primaryWorkspace: WorkspaceReference?,
-        clientName: String?
+        requestOriginName: String?
     ) {
         self.workspaces = workspaces
         self.primaryWorkspace = primaryWorkspace
-        self.clientName = clientName
+        self.requestOriginName = requestOriginName
     }
 
     public var body: some Prompt {
@@ -206,8 +206,8 @@ public struct WorkspacesContext: Prompt {
     private func renderContent() async -> String? {
         var output = ""
 
-        if let clientName {
-            output += "User Query Origin: **\(clientName)**\n\n"
+        if let requestOriginName {
+            output += "User Query Origin: **\(requestOriginName)**\n\n"
         }
 
         let allWorkspaces = (primaryWorkspace.map { [$0] } ?? []) + workspaces.filter { $0.id != primaryWorkspace?.id }
@@ -224,7 +224,7 @@ public struct WorkspacesContext: Prompt {
             output.append("`\n  Location: `")
             output.append(workspace.uri.description)
             output.append("`\n  Environment: ")
-            output.append(isPrimary ? "Primary\n" : "External\n")
+            output.append(isPrimary ? "Primary\n" : "Attached\n")
 
             if !workspace.tools.isEmpty {
                 output.append("  Available Tools:\n")

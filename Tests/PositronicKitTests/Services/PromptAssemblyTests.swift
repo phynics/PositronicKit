@@ -7,7 +7,7 @@ import Testing
 @Suite("PromptAssembly")
 struct PromptAssemblyTests {
     private func makeRequest(userQuery: String = "hello") -> LLMPromptRequest {
-        LLMPromptRequest(userQuery: userQuery, chatHistory: [], tools: [], workspaces: [], primaryWorkspace: nil, clientName: nil)
+        LLMPromptRequest(userQuery: userQuery, chatHistory: [], tools: [], workspaces: [], primaryWorkspace: nil, requestOriginName: nil)
     }
 
     struct MockSection: Prompt, Sendable {

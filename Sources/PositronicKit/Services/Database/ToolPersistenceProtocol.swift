@@ -10,7 +10,7 @@ public protocol ToolPersistenceProtocol: Sendable {
     /// Existing tool IDs not present in the new list are removed; new ones are inserted.
     func syncTools(workspaceId: UUID, tools: [ToolReference]) async throws
     func fetchTools(forWorkspaces workspaceIds: [UUID]) async throws -> [ToolReference]
-    func fetchClientTools(clientId: UUID) async throws -> [ToolReference]
+    func fetchOriginTools(originId: UUID) async throws -> [ToolReference]
     func findWorkspaceId(forToolId toolId: String, in workspaceIds: [UUID]) async throws -> UUID?
     func fetchToolSource(toolId: String, workspaceIds: [UUID], primaryWorkspaceId: UUID?) async throws -> String?
 }

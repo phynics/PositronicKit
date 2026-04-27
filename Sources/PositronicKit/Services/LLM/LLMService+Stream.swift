@@ -13,7 +13,7 @@ public extension LLMServiceProtocol {
             tools: request.tools,
             workspaces: request.workspaces,
             primaryWorkspace: request.primaryWorkspace,
-            clientName: request.clientName,
+            requestOriginName: request.requestOriginName,
             systemInstructions: request.systemInstructions,
             generationParameters: request.generationParameters
         )
@@ -32,7 +32,7 @@ public extension LLMServiceProtocol {
         let rawPrompt = resolvedOutput?.rawPrompt ?? result.rawPrompt
         let responseFormat = resolvedOutput?.responseFormat
 
-        // Delegate to client for streaming
+        // Delegate to the configured provider implementation for streaming.
         let toolParams = request.tools.isEmpty ? nil : request.tools.map { $0.toToolParam() }
         let stream = await chatStream(
             messages: messages,

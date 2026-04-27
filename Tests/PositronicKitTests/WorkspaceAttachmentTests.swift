@@ -24,16 +24,16 @@ private struct AttachmentFixture {
 
         let runtimeWS = WorkspaceReference(
             uri: WorkspaceURI(host: "pk-runtime", path: "/agent/primary"),
-            hostType: .runtime,
+            location: .runtime,
             rootPath: workspaceRoot.appendingPathComponent("primary").path
         )
         let clientWS = WorkspaceReference(
             uri: WorkspaceURI(host: "user-mac", path: "/projects/app"),
-            hostType: .external
+            location: .attached
         )
         let extraWS = WorkspaceReference(
             uri: WorkspaceURI(host: "user-mac", path: "/projects/lib"),
-            hostType: .external
+            location: .attached
         )
 
         try await persistence.saveWorkspace(runtimeWS)
@@ -274,7 +274,7 @@ struct GetWorkspacesTests {
         try await withFixture { fix in
             let missingWS = WorkspaceReference(
                 uri: WorkspaceURI(host: "pk-runtime", path: "/agent/gone"),
-                hostType: .runtime,
+                location: .runtime,
                 rootPath: "/tmp/pk-test-definitely-does-not-exist-\(UUID().uuidString)"
             )
             try await fix.persistence.saveWorkspace(missingWS)
@@ -288,12 +288,12 @@ struct GetWorkspacesTests {
         }
     }
 
-    @Test("client workspace with missing rootPath is NOT marked .missing")
+    @Test("attached workspace with missing rootPath is NOT marked .missing")
     func clientMissingPathIgnored() async throws {
         try await withFixture { fix in
             let clientWithPath = WorkspaceReference(
                 uri: WorkspaceURI(host: "user-mac", path: "/projects/gone"),
-                hostType: .external,
+                location: .attached,
                 rootPath: "/tmp/pk-test-definitely-does-not-exist-\(UUID().uuidString)"
             )
             try await fix.persistence.saveWorkspace(clientWithPath)
@@ -303,7 +303,7 @@ struct GetWorkspacesTests {
 
             let workspaces = await fix.manager.getWorkspaces(for: timeline.id)
             let ws = workspaces?.attached.first { $0.id == clientWithPath.id }
-            #expect(ws?.status != .missing, "Client workspace paths are not validated runtime")
+            #expect(ws?.status != .missing, "Attached workspace paths are not validated runtime")
         }
     }
 
@@ -315,7 +315,7 @@ struct GetWorkspacesTests {
 
             let ws = WorkspaceReference(
                 uri: WorkspaceURI(host: "pk-runtime", path: "/agent/present"),
-                hostType: .runtime,
+                location: .runtime,
                 rootPath: existingDir.path
             )
             try await fix.persistence.saveWorkspace(ws)
@@ -329,12 +329,12 @@ struct GetWorkspacesTests {
         }
     }
 
-    @Test("workspace with nil rootPath is not marked missing regardless of hostType")
+    @Test("workspace with nil rootPath is not marked missing regardless of location")
     func nilRootPathNotMissing() async throws {
         try await withFixture { fix in
             let wsNoPath = WorkspaceReference(
                 uri: WorkspaceURI(host: "pk-runtime", path: "/agent/no-path"),
-                hostType: .runtime,
+                location: .runtime,
                 rootPath: nil
             )
             try await fix.persistence.saveWorkspace(wsNoPath)

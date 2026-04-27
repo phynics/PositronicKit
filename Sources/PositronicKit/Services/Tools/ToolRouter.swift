@@ -10,7 +10,7 @@ import OpenAI
 /// The outcome of routing a single tool execution attempt.
 public enum ToolExecutionOutcome: Sendable {
     case completed(String)
-    case deferredToClient
+    case deferredExternally
 }
 
 /// A fully parsed tool call from the LLM response, ready for routing.
@@ -32,7 +32,7 @@ public struct ParsedToolCall: Sendable {
 
 /// Result of handling all pending tool calls in a turn.
 public struct ToolHandlingResult: Sendable {
-    /// Whether any tool calls were deferred to the client for execution.
+    /// Whether any tool calls were deferred for external execution.
     public let hasDeferred: Bool
     /// OpenAI-format tool result messages for runtime-resolved calls (for LLM context continuation).
     public let resolvedToolParams: [ChatQuery.ChatCompletionMessageParam]
@@ -45,13 +45,13 @@ public enum ToolTurnResult: Sendable {
     case noToolCalls
     /// All tool calls were resolved by this runtime; continue the loop with these messages.
     case continueWith([ChatQuery.ChatCompletionMessageParam])
-    /// At least one tool call was deferred to the client — stop and wait.
-    case deferredToClient
+    /// At least one tool call was deferred for external execution — stop and wait.
+    case deferredExternally
 }
 
 // MARK: - ToolRouter
 
-/// Routes tool execution requests to the appropriate handler (local or remote).
+/// Routes tool execution requests to the appropriate handler (local or externally hosted).
 ///
 /// The primary entry point is `handlePendingToolCalls()`, which executes runtime-managed tools
 /// immediately (persisting results to the message store) and defers externally hosted tools for
@@ -106,7 +106,7 @@ public actor ToolRouter {
             continuation: continuation
         )
 
-        if result.hasDeferred { return .deferredToClient }
+        if result.hasDeferred { return .deferredExternally }
         return .continueWith([assistantParam] + result.resolvedToolParams)
     }
 
@@ -116,7 +116,7 @@ public actor ToolRouter {
     ///
     /// - Runtime-managed tools are executed immediately; results are persisted and returned.
     /// - External tools are skipped; the host executes and submits results asynchronously.
-    /// - Private timelines may not defer to external tools — an error is thrown instead.
+    /// - Private timelines may not defer to externally hosted tools — an error is thrown instead.
     public func handlePendingToolCalls(
         timelineId: UUID,
         calls: [ParsedToolCall],
@@ -145,7 +145,7 @@ public actor ToolRouter {
                     timelineId: timelineId, continuation: continuation
                 )
                 if let param { resolvedToolParams.append(param) }
-                if case .deferredToClient = outcome { hasDeferred = true }
+                if case .deferredExternally = outcome { hasDeferred = true }
             } catch {
                 let param = try await handleToolError(
                     error, call: call, toolRef: toolRef,
@@ -177,8 +177,8 @@ public actor ToolRouter {
             )
             return .tool(.init(content: .textContent(.init(output)), toolCallId: call.callId))
 
-        case .deferredToClient:
-            logger.info("Tool \(toolDisplayName) deferred to host")
+        case .deferredExternally:
+            logger.info("Tool \(toolDisplayName) deferred for external execution")
             return nil
         }
     }
@@ -232,7 +232,7 @@ public actor ToolRouter {
             throw ToolError.workspaceNotFound(workspaceId)
         }
 
-        switch workspace.hostType {
+        switch workspace.location {
         case .runtime, .runtimeTimeline:
             let output = try await executeLocally(
                 tool: tool,
@@ -242,11 +242,11 @@ public actor ToolRouter {
             )
             return .completed(output)
 
-        case .external:
+        case .attached:
             guard !(await timelineManager.getTimeline(id: timelineId)?.isPrivate ?? false) else {
-                throw ToolError.clientToolsDisallowedOnPrivateTimeline
+                throw ToolError.attachedToolsDisallowedOnPrivateTimeline
             }
-            return .deferredToClient
+            return .deferredExternally
         }
     }
 

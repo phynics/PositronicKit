@@ -31,7 +31,7 @@ public struct RequestWriteAccessTool: Tool {
 
     public func execute(parameters _: [String: Any]) async throws -> ToolResult {
         // This tool is client-side only. ToolRouter defers it automatically based on the
-        // workspace hostType. This execute() path is only reached as a fallback.
+        // workspace location. This execute() path is only reached as a fallback.
         .failure("This tool requires client-side execution")
     }
 }

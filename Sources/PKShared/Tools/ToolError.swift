@@ -8,8 +8,8 @@ public enum ToolError: PKError, Sendable, Equatable {
     case executionFailed(String)
     case toolNotFound(String)
     case workspaceNotFound(UUID)
-    case clientNotConnected
-    case clientToolsDisallowedOnPrivateTimeline
+    case requestOriginUnavailable
+    case attachedToolsDisallowedOnPrivateTimeline
 
     public var errorDomain: String { PKErrorDomain.tool }
 
@@ -20,8 +20,8 @@ public enum ToolError: PKError, Sendable, Equatable {
         case .executionFailed: return 203
         case .toolNotFound: return 204
         case .workspaceNotFound: return 205
-        case .clientNotConnected: return 206
-        case .clientToolsDisallowedOnPrivateTimeline: return 207
+        case .requestOriginUnavailable: return 206
+        case .attachedToolsDisallowedOnPrivateTimeline: return 207
         }
     }
 
@@ -37,10 +37,10 @@ public enum ToolError: PKError, Sendable, Equatable {
             return "The requested tool '\(name)' could not be found."
         case .workspaceNotFound:
             return "The target workspace for this tool could not be found."
-        case .clientNotConnected:
-            return "The host machine providing this tool is not connected."
-        case .clientToolsDisallowedOnPrivateTimeline:
-            return "Private agent timelines do not support external tools."
+        case .requestOriginUnavailable:
+            return "The request origin associated with this tool is currently unavailable."
+        case .attachedToolsDisallowedOnPrivateTimeline:
+            return "Private agent timelines do not support attached-workspace tools."
         }
     }
 
@@ -57,11 +57,11 @@ public enum ToolError: PKError, Sendable, Equatable {
             return "Ensure the tool '\(name)' is registered in the TimelineToolManager."
         case let .workspaceNotFound(id):
             return "Verify that workspace \(id) exists and is currently attached."
-        case .clientNotConnected:
-            return "Ensure the target host is online and registered with this runtime."
-        case .clientToolsDisallowedOnPrivateTimeline:
+        case .requestOriginUnavailable:
+            return "Ensure the request origin for this workspace is reachable and registered with the runtime."
+        case .attachedToolsDisallowedOnPrivateTimeline:
             return "Only runtime-managed tools are permitted on private timelines. " +
-                "Remove external workspace tools from the agent's configuration."
+                "Remove attached-workspace tools from the agent's configuration."
         }
     }
 }

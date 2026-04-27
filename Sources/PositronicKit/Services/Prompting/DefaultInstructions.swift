@@ -26,7 +26,7 @@ public enum DefaultInstructions {
             - Location: `Notes/` directory.
             - Contains `system.md` (your core instructions) and other persistent files.
             - Update these files to store long-term state that persists across timelines and restarts.
-        - **Attached Workspaces**: Additional interfaces provided by extensions or host software.
+        - **Attached Workspaces**: Additional interfaces provided by extensions or downstream integrations.
             - For example, the user's current project directory when using the CLI.
             - Attached workspaces may be temporarily disconnected; check status before using their tools.
 

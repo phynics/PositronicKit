@@ -22,7 +22,7 @@ struct GenerationParametersTests {
                 memoryStore: mockPersistence,
                 toolPersistence: mockPersistence,
                 agentInstanceStore: mockPersistence,
-                clientStore: mockPersistence,
+                requestOriginStore: mockPersistence,
                 agentTemplateStore: mockPersistence
             ),
             generationParameters: defaultParams
@@ -60,7 +60,7 @@ struct GenerationParametersTests {
                 memoryStore: mockPersistence,
                 toolPersistence: mockPersistence,
                 agentInstanceStore: mockPersistence,
-                clientStore: mockPersistence,
+                requestOriginStore: mockPersistence,
                 agentTemplateStore: mockPersistence
             ),
             generationParameters: defaultParams

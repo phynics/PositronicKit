@@ -17,15 +17,15 @@ public actor AgentWorkspaceService: AgentWorkspaceServiceProtocol {
     /// Creates a new workspace and saves it to persistence.
     public func createWorkspace(
         uri: WorkspaceURI,
-        hostType: WorkspaceReference.WorkspaceHostType,
-        ownerId: UUID?,
+        location: WorkspaceReference.WorkspaceLocation,
+        originId: UUID?,
         rootPath: String?,
         metadata: [String: AnyCodable]
     ) async throws -> WorkspaceReference {
         let workspace = WorkspaceReference(
             uri: uri,
-            hostType: hostType,
-            ownerId: ownerId,
+            location: location,
+            originId: originId,
             rootPath: rootPath,
             metadata: metadata
         )
@@ -67,8 +67,8 @@ public actor AgentWorkspaceService: AgentWorkspaceServiceProtocol {
         // 3. Persist and return reference
         return try await createWorkspace(
             uri: .agentWorkspace(instanceId),
-            hostType: .runtime,
-            ownerId: nil,
+            location: .runtime,
+            originId: nil,
             rootPath: agentWorkspaceURL.path,
             metadata: metadata
         )

@@ -31,7 +31,7 @@ import Testing
     @Test
 
     func chatAPIModels() throws {
-        let req = ChatRequest(message: "Ping", toolOutputs: nil, clientId: UUID())
+        let req = ChatRequest(message: "Ping", toolOutputs: nil, requestOriginId: UUID())
         // ChatRequest only conforms to Codable, skip Equatable assertion for now
         let data = try JSONEncoder().encode(req)
         #expect(data.count > 0)
@@ -67,11 +67,11 @@ import Testing
 
     @Test
 
-    func clientIdentityCodable() throws {
-        let client = ClientIdentity(hostname: "macbook", displayName: "Atakan's Mac", platform: "macos")
-        let data = try JSONEncoder().encode(client)
+    func requestOriginIdentityCodable() throws {
+        let origin = RequestOriginIdentity(hostname: "macbook", displayName: "Atakan's Mac", platform: "macos")
+        let data = try JSONEncoder().encode(origin)
         #expect(data.count > 0)
 
-        #expect(client.shellWorkspaceURI.host == "macbook")
+        #expect(origin.shellWorkspaceURI.host == "macbook")
     }
 }

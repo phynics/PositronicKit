@@ -31,8 +31,8 @@ public final class MockToolPersistence: ToolPersistenceProtocol, @unchecked Send
         return workspaces.filter { workspaceIds.contains($0.id) }.flatMap { $0.tools }
     }
 
-    public func fetchClientTools(clientId: UUID) async throws -> [ToolReference] {
-        return workspaces.filter { $0.ownerId == clientId }.flatMap { $0.tools }
+    public func fetchOriginTools(originId: UUID) async throws -> [ToolReference] {
+        return workspaces.filter { $0.originId == originId }.flatMap { $0.tools }
     }
 
     public func findWorkspaceId(forToolId toolId: String, in workspaceIds: [UUID]) async throws -> UUID? {
@@ -49,8 +49,8 @@ public final class MockToolPersistence: ToolPersistenceProtocol, @unchecked Send
               let ws = workspaces.first(where: { $0.id == wsId })
         else { return nil }
 
-        if ws.hostType == .external {
-            return "Client Workspace"
+        if ws.location == .attached {
+            return "Attached Workspace"
         } else if ws.id == primaryWorkspaceId {
             return "Primary Workspace"
         } else {

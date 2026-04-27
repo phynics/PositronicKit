@@ -1,6 +1,6 @@
 import Foundation
 
-public struct ClientRegistrationRequest: Codable, Sendable {
+public struct RequestOriginRegistrationRequest: Codable, Sendable {
     public let hostname: String
     public let displayName: String
     public let platform: String
@@ -14,12 +14,12 @@ public struct ClientRegistrationRequest: Codable, Sendable {
     }
 }
 
-public struct ClientRegistrationResponse: Codable, Sendable {
-    public let client: ClientIdentity
+public struct RequestOriginRegistrationResponse: Codable, Sendable {
+    public let origin: RequestOriginIdentity
     public let defaultWorkspace: WorkspaceReference
 
-    public init(client: ClientIdentity, defaultWorkspace: WorkspaceReference) {
-        self.client = client
+    public init(origin: RequestOriginIdentity, defaultWorkspace: WorkspaceReference) {
+        self.origin = origin
         self.defaultWorkspace = defaultWorkspace
     }
 }

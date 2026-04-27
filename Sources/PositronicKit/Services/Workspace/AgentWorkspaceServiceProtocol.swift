@@ -6,8 +6,8 @@ public protocol AgentWorkspaceServiceProtocol: Sendable {
     /// Creates a new workspace and saves it to persistence.
     func createWorkspace(
         uri: WorkspaceURI,
-        hostType: WorkspaceReference.WorkspaceHostType,
-        ownerId: UUID?,
+        location: WorkspaceReference.WorkspaceLocation,
+        originId: UUID?,
         rootPath: String?,
         metadata: [String: AnyCodable]
     ) async throws -> WorkspaceReference
@@ -35,15 +35,15 @@ public protocol AgentWorkspaceServiceProtocol: Sendable {
 extension AgentWorkspaceServiceProtocol {
     public func createWorkspace(
         uri: WorkspaceURI,
-        hostType: WorkspaceReference.WorkspaceHostType,
-        ownerId: UUID? = nil,
+        location: WorkspaceReference.WorkspaceLocation,
+        originId: UUID? = nil,
         rootPath: String? = nil,
         metadata: [String: AnyCodable] = [:]
     ) async throws -> WorkspaceReference {
         try await createWorkspace(
             uri: uri,
-            hostType: hostType,
-            ownerId: ownerId,
+            location: location,
+            originId: originId,
             rootPath: rootPath,
             metadata: metadata
         )

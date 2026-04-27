@@ -9,16 +9,16 @@ private func makeURI(_ path: String = "/projects/test", host: String = "test-hos
     WorkspaceURI(host: host, path: path)
 }
 
-private func makeClientWS(
+private func makeAttachedWS(
     tools: [ToolReference] = [],
     status: WorkspaceReference.WorkspaceStatus = .active,
     contextInjection: String? = nil,
-    ownerId: UUID? = nil
+    originId: UUID? = nil
 ) -> WorkspaceReference {
     WorkspaceReference(
         uri: makeURI(),
-        hostType: .external,
-        ownerId: ownerId,
+        location: .attached,
+        originId: originId,
         tools: tools,
         status: status,
         contextInjection: contextInjection
@@ -31,7 +31,7 @@ private func makeRuntimeWS(
 ) -> WorkspaceReference {
     WorkspaceReference(
         uri: makeURI("/agent/workspace", host: "runtime"),
-        hostType: .runtime,
+        location: .runtime,
         tools: tools,
         contextInjection: contextInjection
     )
@@ -46,16 +46,16 @@ private func makeAgent(name: String = "TestAgent", description: String = "") -> 
 struct WorkspacesContextTests {
     // MARK: Empty / Nil cases
 
-    @Test("renders nil when no workspaces and no client name")
+    @Test("renders nil when no workspaces and no request origin name")
     func nilWhenEmpty() async {
-        let section = WorkspacesContext(workspaces: [], primaryWorkspace: nil, clientName: nil)
+        let section = WorkspacesContext(workspaces: [], primaryWorkspace: nil, requestOriginName: nil)
         let output = await section.render()
         #expect(output == nil)
     }
 
-    @Test("renders client name only when workspaces list is empty")
-    func clientNameOnlyWhenNoWorkspaces() async {
-        let section = WorkspacesContext(workspaces: [], primaryWorkspace: nil, clientName: "Alice")
+    @Test("renders request origin name only when workspaces list is empty")
+    func requestOriginNameOnlyWhenNoWorkspaces() async {
+        let section = WorkspacesContext(workspaces: [], primaryWorkspace: nil, requestOriginName: "Alice")
         let output = await section.render() ?? ""
         #expect(output.contains("Alice"))
         #expect(!output.contains("Available Workspaces"))
@@ -63,24 +63,24 @@ struct WorkspacesContextTests {
 
     // MARK: Connection status (regression)
 
-    @Test("active client workspace omits connection status")
+    @Test("active attached workspace omits connection status")
     func activeClientOmitsStatus() async {
         let section = WorkspacesContext(
-            workspaces: [makeClientWS(status: .active)],
+            workspaces: [makeAttachedWS(status: .active)],
             primaryWorkspace: nil,
-            clientName: nil
+            requestOriginName: nil
         )
         let output = await section.render() ?? ""
         #expect(!output.contains("Connected"))
         #expect(!output.contains("Disconnected"))
     }
 
-    @Test("missing client workspace omits connection status")
+    @Test("missing attached workspace omits connection status")
     func missingClientOmitsStatus() async {
         let section = WorkspacesContext(
-            workspaces: [makeClientWS(status: .missing)],
+            workspaces: [makeAttachedWS(status: .missing)],
             primaryWorkspace: nil,
-            clientName: nil
+            requestOriginName: nil
         )
         let output = await section.render() ?? ""
         #expect(!output.contains("Connected"))
@@ -90,9 +90,9 @@ struct WorkspacesContextTests {
     @Test("unknown status workspace omits connection status")
     func unknownStatusOmitsStatus() async {
         let section = WorkspacesContext(
-            workspaces: [makeClientWS(status: .unknown)],
+            workspaces: [makeAttachedWS(status: .unknown)],
             primaryWorkspace: nil,
-            clientName: nil
+            requestOriginName: nil
         )
         let output = await section.render() ?? ""
         #expect(!output.contains("Connected"))
@@ -101,15 +101,15 @@ struct WorkspacesContextTests {
 
     // MARK: Environment labels
 
-    @Test("non-primary workspace shows External label")
-    func nonPrimaryShowsExternalLabel() async {
+    @Test("non-primary workspace shows Attached label")
+    func nonPrimaryShowsAttachedLabel() async {
         let section = WorkspacesContext(
-            workspaces: [makeClientWS()],
+            workspaces: [makeAttachedWS()],
             primaryWorkspace: nil,
-            clientName: nil
+            requestOriginName: nil
         )
         let output = await section.render() ?? ""
-        #expect(output.contains("Environment: External"))
+        #expect(output.contains("Environment: Attached"))
     }
 
     @Test("primary workspace shows Primary label")
@@ -118,25 +118,25 @@ struct WorkspacesContextTests {
         let section = WorkspacesContext(
             workspaces: [],
             primaryWorkspace: primary,
-            clientName: nil
+            requestOriginName: nil
         )
         let output = await section.render() ?? ""
         #expect(output.contains("Environment: Primary"))
-        #expect(!output.contains("Environment: External"))
+        #expect(!output.contains("Environment: Attached"))
     }
 
-    @Test("primary + attached: primary labeled Primary, attached labeled External")
+    @Test("primary + attached: primary labeled Primary, attached labeled Attached")
     func primaryAndAttachedLabels() async {
         let primary = makeRuntimeWS()
-        let attached = makeClientWS()
+        let attached = makeAttachedWS()
         let section = WorkspacesContext(
             workspaces: [attached],
             primaryWorkspace: primary,
-            clientName: nil
+            requestOriginName: nil
         )
         let output = await section.render() ?? ""
         #expect(output.contains("Environment: Primary"))
-        #expect(output.contains("Environment: External"))
+        #expect(output.contains("Environment: Attached"))
     }
 
     // MARK: Deduplication
@@ -147,7 +147,7 @@ struct WorkspacesContextTests {
         let section = WorkspacesContext(
             workspaces: [primary],
             primaryWorkspace: primary,
-            clientName: nil
+            requestOriginName: nil
         )
         let output = await section.render() ?? ""
         // ID should appear exactly once in the output
@@ -159,18 +159,18 @@ struct WorkspacesContextTests {
 
     @Test("workspace ID and URI appear in output")
     func idAndURIPresent() async {
-        let ws = makeClientWS()
-        let section = WorkspacesContext(workspaces: [ws], primaryWorkspace: nil, clientName: nil)
+        let ws = makeAttachedWS()
+        let section = WorkspacesContext(workspaces: [ws], primaryWorkspace: nil, requestOriginName: nil)
         let output = await section.render() ?? ""
         #expect(output.contains(ws.id.uuidString))
         #expect(output.contains(ws.uri.description))
     }
 
-    @Test("client name shown at top of output")
-    func clientNameAtTop() async {
-        let ws = makeClientWS()
+    @Test("request origin name shown at top of output")
+    func requestOriginNameAtTop() async {
+        let ws = makeAttachedWS()
         let section = WorkspacesContext(
-            workspaces: [ws], primaryWorkspace: nil, clientName: "Bob"
+            workspaces: [ws], primaryWorkspace: nil, requestOriginName: "Bob"
         )
         let output = await section.render() ?? ""
         #expect(output.hasPrefix("User Query Origin: **Bob**"))
@@ -178,12 +178,12 @@ struct WorkspacesContextTests {
 
     @Test("multiple attached workspaces all appear in output")
     func multipleAttachedWorkspaces() async {
-        let ws1 = makeClientWS()
+        let ws1 = makeAttachedWS()
         let ws2 = WorkspaceReference(
-            uri: makeURI("/other/project"), hostType: .external, status: .active
+            uri: makeURI("/other/project"), location: .attached, status: .active
         )
         let section = WorkspacesContext(
-            workspaces: [ws1, ws2], primaryWorkspace: nil, clientName: nil
+            workspaces: [ws1, ws2], primaryWorkspace: nil, requestOriginName: nil
         )
         let output = await section.render() ?? ""
         #expect(output.contains(ws1.id.uuidString))
@@ -195,9 +195,9 @@ struct WorkspacesContextTests {
     @Test("workspace with no tools shows 'None specific to this workspace'")
     func noToolsMessage() async {
         let section = WorkspacesContext(
-            workspaces: [makeClientWS(tools: [])],
+            workspaces: [makeAttachedWS(tools: [])],
             primaryWorkspace: nil,
-            clientName: nil
+            requestOriginName: nil
         )
         let output = await section.render() ?? ""
         #expect(output.contains("None specific to this workspace"))
@@ -207,9 +207,9 @@ struct WorkspacesContextTests {
     func knownToolsListed() async {
         let tools: [ToolReference] = [.known(id: "cat"), .known(id: "ls"), .known(id: "grep")]
         let section = WorkspacesContext(
-            workspaces: [makeClientWS(tools: tools)],
+            workspaces: [makeAttachedWS(tools: tools)],
             primaryWorkspace: nil,
-            clientName: nil
+            requestOriginName: nil
         )
         let output = await section.render() ?? ""
         #expect(output.contains("`cat`"))
@@ -228,9 +228,9 @@ struct WorkspacesContextTests {
         )
         let tools: [ToolReference] = [.custom(def)]
         let section = WorkspacesContext(
-            workspaces: [makeClientWS(tools: tools)],
+            workspaces: [makeAttachedWS(tools: tools)],
             primaryWorkspace: nil,
-            clientName: nil
+            requestOriginName: nil
         )
         let output = await section.render() ?? ""
         #expect(output.contains("`my_tool`"))
@@ -243,9 +243,9 @@ struct WorkspacesContextTests {
             id: "silent_tool", name: "Silent", description: "Quiet"
         )
         let section = WorkspacesContext(
-            workspaces: [makeClientWS(tools: [.custom(def)])],
+            workspaces: [makeAttachedWS(tools: [.custom(def)])],
             primaryWorkspace: nil,
-            clientName: nil
+            requestOriginName: nil
         )
         let output = await section.render() ?? ""
         #expect(output.contains("`silent_tool`"))
@@ -256,16 +256,16 @@ struct WorkspacesContextTests {
 
     @Test("workspace context injection appears in output")
     func workspaceContextInjection() async {
-        let ws = makeClientWS(contextInjection: "This workspace is the main project repo.")
-        let section = WorkspacesContext(workspaces: [ws], primaryWorkspace: nil, clientName: nil)
+        let ws = makeAttachedWS(contextInjection: "This workspace is the main project repo.")
+        let section = WorkspacesContext(workspaces: [ws], primaryWorkspace: nil, requestOriginName: nil)
         let output = await section.render() ?? ""
         #expect(output.contains("Workspace Instructions: This workspace is the main project repo."))
     }
 
     @Test("workspace without context injection shows no Workspace Instructions line")
     func noWorkspaceContextInjection() async {
-        let ws = makeClientWS(contextInjection: nil)
-        let section = WorkspacesContext(workspaces: [ws], primaryWorkspace: nil, clientName: nil)
+        let ws = makeAttachedWS(contextInjection: nil)
+        let section = WorkspacesContext(workspaces: [ws], primaryWorkspace: nil, requestOriginName: nil)
         let output = await section.render() ?? ""
         #expect(!output.contains("Workspace Instructions:"))
     }
@@ -275,7 +275,7 @@ struct WorkspacesContextTests {
     @Test("output ends with usage guidance footer")
     func footerPresent() async {
         let section = WorkspacesContext(
-            workspaces: [makeClientWS()], primaryWorkspace: nil, clientName: nil
+            workspaces: [makeAttachedWS()], primaryWorkspace: nil, requestOriginName: nil
         )
         let output = await section.render() ?? ""
         #expect(output.hasSuffix("When a user asks you to operate on files or perform actions in these workspaces, you can use the appropriate tools with the workspace's URI or ID.\n"))

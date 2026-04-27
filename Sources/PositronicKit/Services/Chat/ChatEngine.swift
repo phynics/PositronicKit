@@ -23,7 +23,7 @@ public struct ChatEngine: Sendable {
 
     @Dependency(\.timelineManager) var timelineManager
     @Dependency(\.agentInstanceStore) var agentInstanceStore
-    @Dependency(\.clientStore) var clientStore
+    @Dependency(\.requestOriginStore) var requestOriginStore
     @Dependency(\.messageStore) var messageStore
     @Dependency(\.llmService) var llmService
     @Dependency(\.toolRouter) var toolRouter
@@ -42,7 +42,7 @@ public struct ChatEngine: Sendable {
     ///   - timelineId: The unique identifier for the chat session.
     ///   - message: The user's input message.
     ///   - tools: Pre-resolved tools available for this turn.
-    ///   - toolOutputs: Optional list of tool outputs submitted by the client from a previous turn.
+    ///   - toolOutputs: Optional list of tool outputs submitted from a previous externally executed turn.
     ///   - contextManager: Optional context manager for RAG. If nil, no context is gathered.
     ///   - systemInstructions: Optional system instructions to override the default.
     ///   - agentInstanceId: Optional identifier for the agent instance.
@@ -217,7 +217,7 @@ public struct ChatEngine: Sendable {
         )
 
         switch result {
-        case .noToolCalls, .deferredToClient:
+        case .noToolCalls, .deferredExternally:
             return .stop
         case let .continueWith(messages):
             return .continueWith(messages)

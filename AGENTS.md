@@ -29,8 +29,8 @@
 
 ## PositronicKit Guidance
 - Treat `PositronicKit` as an agent-building toolkit centered on timelines, workspaces, agents, tools, and orchestration stages.
-- Keep concrete transport, RPC, and client/server hosting models downstream of `PositronicKit`. Core code may expose extension hooks for externally hosted workspaces or request origins, but it should not assume a bundled network topology.
-- Prefer neutral boundaries like workspace creators, connection hooks, persistence protocols, tool routers, and prompt section providers over embedding downstream deployment concerns in runtime logic.
+- Keep concrete transport, RPC, and client/server hosting models downstream of `PositronicKit`. Core code should depend on workspace implementations and persistence/request-origin protocols, not on bundled networking primitives.
+- Prefer neutral boundaries like workspace creators, persistence protocols, tool routers, and prompt section providers over embedding downstream deployment concerns in runtime logic.
 - `TimelineManager`, `WorkspaceManager`, `ToolRouter`, and `ChatEngine` should stay transport-neutral. If a feature needs externally hosted execution, model it as an injected protocol or reference type rather than a built-in runtime subsystem.
 - Favor `Timeline`, `WorkspaceReference`, `AgentInstance`, and tool metadata as the stable core concepts. Avoid leaking downstream-specific terms through public APIs unless there is no neutral alternative.
 - Keep provider projection and prompt assembly separate from orchestration. `PositronicKit` should consume `PKPrompt` artifacts, not reimplement prompt-tree semantics.

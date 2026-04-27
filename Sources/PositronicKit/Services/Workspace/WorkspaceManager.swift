@@ -9,7 +9,6 @@ import PKShared
 /// and coordinating their lifecycle (creation, health checks, and shutdown).
 public actor WorkspaceManager: WorkspaceManagerProtocol {
     private let repository: any AgentWorkspaceServiceProtocol
-    private let connectionManager: (any ExternalWorkspaceConnectionManagerProtocol)?
     private let workspaceCreator: any WorkspaceCreating
 
     /// Cache of active workspace instances.
@@ -17,11 +16,9 @@ public actor WorkspaceManager: WorkspaceManagerProtocol {
 
     public init(
         repository: any AgentWorkspaceServiceProtocol,
-        connectionManager: (any ExternalWorkspaceConnectionManagerProtocol)? = nil,
         workspaceCreator: any WorkspaceCreating
     ) {
         self.repository = repository
-        self.connectionManager = connectionManager
         self.workspaceCreator = workspaceCreator
     }
 
@@ -43,10 +40,7 @@ public actor WorkspaceManager: WorkspaceManagerProtocol {
         }
 
         // Create concrete implementation via injected creator
-        let workspace = try workspaceCreator.create(
-            from: reference,
-            connectionManager: connectionManager
-        )
+        let workspace = try workspaceCreator.create(from: reference)
 
         // Cache and return
         activeWorkspaces[id] = workspace

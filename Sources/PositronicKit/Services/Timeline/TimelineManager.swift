@@ -39,12 +39,11 @@ public actor TimelineManager {
     @Dependency(\.memoryStore) var memoryStore
     @Dependency(\.toolPersistence) var toolPersistence
     @Dependency(\.agentTemplateStore) var agentTemplateStore
-    @Dependency(\.clientStore) var clientStore
+    @Dependency(\.requestOriginStore) var requestOriginStore
     @Dependency(\.agentInstanceStore) var agentInstanceStore
 
     let vectorStore: (any VectorStoreProtocol)?
     let workspaceRoot: URL
-    let connectionManager: (any ExternalWorkspaceConnectionManagerProtocol)?
     public let workspaceManager: any WorkspaceManagerProtocol
     let sectionProviders: [any PromptSectionProviding]
 
@@ -53,18 +52,15 @@ public actor TimelineManager {
     public init(
         vectorStore: (any VectorStoreProtocol)? = nil,
         workspaceRoot: URL,
-        connectionManager: (any ExternalWorkspaceConnectionManagerProtocol)? = nil,
         workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = []
     ) {
         self.vectorStore = vectorStore
         self.workspaceRoot = workspaceRoot
-        self.connectionManager = connectionManager
         self.sectionProviders = sectionProviders
 
         workspaceManager = WorkspaceManager(
             repository: AgentWorkspaceService(workspaceRoot: workspaceRoot),
-            connectionManager: connectionManager,
             workspaceCreator: workspaceCreator
         )
     }
@@ -165,7 +161,7 @@ public extension TimelineManager {
 
         let workspace = WorkspaceReference(
             uri: .timelineWorkspace(timelineId),
-            hostType: .runtime,
+            location: .runtime,
             rootPath: timelineWorkspaceURL.path,
             trustLevel: .full
         )
@@ -462,16 +458,16 @@ public extension TimelineManager {
         return try await toolPersistence.fetchTools(forWorkspaces: workspaceIds)
     }
 
-    func getClientTools(clientId: UUID) async throws -> [ToolReference] {
-        return try await clientStore.fetchClientTools(clientId: clientId)
+    func getRequestOriginTools(originId: UUID) async throws -> [ToolReference] {
+        return try await requestOriginStore.fetchOriginTools(originId: originId)
     }
 
-    /// Aggregates all available tool references for a session, including those from the client.
-    func getAllToolReferences(timelineId: UUID, clientTools: [ToolReference]? = nil) async throws -> [ToolReference] {
+    /// Aggregates all available tool references for a session, including externally hosted tools.
+    func getAllToolReferences(timelineId: UUID, requestOriginTools: [ToolReference]? = nil) async throws -> [ToolReference] {
         var references = try await getAggregatedTools(for: timelineId)
 
-        if let clientTools = clientTools {
-            references.append(contentsOf: clientTools)
+        if let requestOriginTools = requestOriginTools {
+            references.append(contentsOf: requestOriginTools)
         }
 
         // Deduplicate by ID
@@ -572,7 +568,7 @@ public extension TimelineManager {
         var attached: [WorkspaceReference] = []
         for aid in attachedIds {
             if var workspace = try? await getWorkspace(aid) {
-                if workspace.hostType == .runtime, let path = workspace.rootPath {
+                if workspace.location == .runtime, let path = workspace.rootPath {
                     if !FileManager.default.fileExists(atPath: path) {
                         workspace.status = .missing
                     }
@@ -589,7 +585,7 @@ public extension TimelineManager {
             throw TimelineError.timelineNotFound
         }
 
-        if workspace.hostType == .runtime, let path = workspace.rootPath {
+        if workspace.location == .runtime, let path = workspace.rootPath {
             let timelineWorkspaceURL = URL(fileURLWithPath: path)
             let fileManager = FileManager.default
             if !fileManager.fileExists(atPath: path) {

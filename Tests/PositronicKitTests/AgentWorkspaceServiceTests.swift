@@ -21,7 +21,7 @@ struct AgentWorkspaceServiceTests {
 
         let ws = try await repository.createWorkspace(
             uri: uri,
-            hostType: .runtime,
+            location: .runtime,
             rootPath: "/tmp/ws",
             metadata: metadata
         )
@@ -47,7 +47,7 @@ struct AgentWorkspaceServiceTests {
 
         let ws = WorkspaceReference(
             uri: .timelineWorkspace(UUID()),
-            hostType: .runtime,
+            location: .runtime,
             rootPath: "/path",
             metadata: ["test": .boolean(true)]
         )
@@ -68,8 +68,8 @@ struct AgentWorkspaceServiceTests {
                 AgentWorkspaceService(workspaceRoot: FileManager.default.temporaryDirectory)
             }
 
-        let ws1 = WorkspaceReference(uri: .timelineWorkspace(UUID()), hostType: .runtime)
-        let ws2 = WorkspaceReference(uri: .timelineWorkspace(UUID()), hostType: .runtime)
+        let ws1 = WorkspaceReference(uri: .timelineWorkspace(UUID()), location: .runtime)
+        let ws2 = WorkspaceReference(uri: .timelineWorkspace(UUID()), location: .runtime)
         try await persistence.saveWorkspace(ws1)
         try await persistence.saveWorkspace(ws2)
 
@@ -88,7 +88,7 @@ struct AgentWorkspaceServiceTests {
                 AgentWorkspaceService(workspaceRoot: FileManager.default.temporaryDirectory)
             }
 
-        let ws = WorkspaceReference(uri: .timelineWorkspace(UUID()), hostType: .runtime)
+        let ws = WorkspaceReference(uri: .timelineWorkspace(UUID()), location: .runtime)
         try await persistence.saveWorkspace(ws)
 
         try await repository.deleteWorkspace(id: ws.id)
@@ -105,7 +105,7 @@ struct AgentWorkspaceServiceTests {
                 AgentWorkspaceService(workspaceRoot: FileManager.default.temporaryDirectory)
             }
 
-        var ws = WorkspaceReference(uri: .timelineWorkspace(UUID()), hostType: .runtime)
+        var ws = WorkspaceReference(uri: .timelineWorkspace(UUID()), location: .runtime)
         try await persistence.saveWorkspace(ws)
 
         ws.status = .missing

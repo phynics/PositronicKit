@@ -18,7 +18,7 @@ public enum PositronicKitUsageExamples {
             timelineManager: TimelineManager(workspaceRoot: workspaceRoot),
             toolRouter: ToolRouter(),
             agentInstanceStore: InMemoryAgentInstanceStore(),
-            clientStore: InMemoryClientStore(),
+            requestOriginStore: InMemoryRequestOriginStore(),
             timelinePersistence: InMemoryTimelinePersistence(),
             workspacePersistence: InMemoryWorkspacePersistence(),
             memoryStore: InMemoryMemoryStore(),

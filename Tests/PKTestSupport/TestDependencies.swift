@@ -36,7 +36,7 @@ import PKShared
                     memoryStore: persistence,
                     toolPersistence: persistence,
                     agentInstanceStore: persistence,
-                    clientStore: persistence,
+                    requestOriginStore: persistence,
                     agentTemplateStore: persistence
                 ),
                 embeddingService: embedding,

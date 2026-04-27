@@ -47,7 +47,7 @@ extension ChatEngine {
         contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
         assemblyPipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>? = nil
     ) async throws -> ChatTurnContext {
-        // 1. Save new inputs (user message or tool outputs from client)
+        // 1. Save new inputs (user message or externally submitted tool outputs)
         try await saveConversationSteps(timelineId: timelineId, message: message, toolOutputs: toolOutputs)
 
         // 2. Load conversation history and context
@@ -70,11 +70,11 @@ extension ChatEngine {
             agentInstance = try? await agentInstanceStore.fetchAgentInstance(id: agentId)
         }
 
-        var clientName: String?
-        if let ownerId = workspaceResult?.primary?.ownerId,
-           let client = try? await clientStore.fetchClient(id: ownerId)
+        var requestOriginName: String?
+        if let originId = workspaceResult?.primary?.originId,
+            let origin = try? await requestOriginStore.fetchOrigin(id: originId)
         {
-            clientName = client.displayName
+            requestOriginName = origin.displayName
         }
 
         // 4. Build the initial prompt messages
@@ -92,7 +92,7 @@ extension ChatEngine {
             tools: tools,
             workspaces: workspaceResult?.attached ?? [],
             primaryWorkspace: workspaceResult?.primary,
-            clientName: clientName,
+            requestOriginName: requestOriginName,
             systemInstructions: systemInstructions,
             generationParameters: generationParameters
         )

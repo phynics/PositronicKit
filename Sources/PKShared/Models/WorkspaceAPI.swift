@@ -2,23 +2,23 @@ import Foundation
 
 public struct CreateWorkspaceRequest: Codable, Sendable {
     public let uri: String
-    public let hostType: WorkspaceReference.WorkspaceHostType
-    public let ownerId: UUID?
+    public let location: WorkspaceReference.WorkspaceLocation
+    public let originId: UUID?
     public let rootPath: String?
     public let trustLevel: WorkspaceTrustLevel?
     public let tools: [ToolReference]
 
     public init(
         uri: String,
-        hostType: WorkspaceReference.WorkspaceHostType,
-        ownerId: UUID?,
+        location: WorkspaceReference.WorkspaceLocation,
+        originId: UUID?,
         rootPath: String?,
         trustLevel: WorkspaceTrustLevel?,
         tools: [ToolReference] = []
     ) {
         self.uri = uri
-        self.hostType = hostType
-        self.ownerId = ownerId
+        self.location = location
+        self.originId = originId
         self.rootPath = rootPath
         self.trustLevel = trustLevel
         self.tools = tools

@@ -10,8 +10,8 @@ public enum WorkspaceTrustLevel: String, Codable, Sendable {
 public struct WorkspaceReference: Codable, Sendable, Identifiable {
     public let id: UUID
     public let uri: WorkspaceURI
-    public var hostType: WorkspaceHostType
-    public let ownerId: UUID? // ClientIdentity.id or nil for runtime-owned
+    public var location: WorkspaceLocation
+    public let originId: UUID? // RequestOriginIdentity.id or nil for runtime-owned
     public var tools: [ToolReference] // Tools available in this workspace
     public var rootPath: String? // Filesystem root for the workspace
     public var trustLevel: WorkspaceTrustLevel
@@ -21,10 +21,10 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
     public var contextInjection: String?
     public let createdAt: Date
 
-    public enum WorkspaceHostType: String, Codable, Sendable {
+    public enum WorkspaceLocation: String, Codable, Sendable {
         case runtime
         case runtimeTimeline // A workspace specific to a timeline in this runtime
-        case external
+        case attached
 
         public init(from decoder: any Decoder) throws {
             let container = try decoder.singleValueContainer()
@@ -32,14 +32,15 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
             switch rawValue {
             case "runtime": self = .runtime
             case "runtimeTimeline": self = .runtimeTimeline
-            case "external": self = .external
+            case "attached": self = .attached
+            case "external": self = .attached
             case "server": self = .runtime
             case "serverTimeline": self = .runtimeTimeline
-            case "client": self = .external
+            case "client": self = .attached
             default:
                 throw DecodingError.dataCorruptedError(
                     in: container,
-                    debugDescription: "Unknown WorkspaceHostType: \(rawValue)"
+                    debugDescription: "Unknown WorkspaceLocation: \(rawValue)"
                 )
             }
         }
@@ -54,8 +55,8 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
     public init(
         id: UUID = UUID(),
         uri: WorkspaceURI,
-        hostType: WorkspaceHostType,
-        ownerId: UUID? = nil,
+        location: WorkspaceLocation,
+        originId: UUID? = nil,
         tools: [ToolReference] = [],
         rootPath: String? = nil,
         trustLevel: WorkspaceTrustLevel = .full,
@@ -67,8 +68,8 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
     ) {
         self.id = id
         self.uri = uri
-        self.hostType = hostType
-        self.ownerId = ownerId
+        self.location = location
+        self.originId = originId
         self.tools = tools
         self.rootPath = rootPath
         self.trustLevel = trustLevel
@@ -84,8 +85,8 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         WorkspaceReference(
             id: id,
             uri: uri,
-            hostType: hostType,
-            ownerId: ownerId,
+            location: location,
+            originId: originId,
             tools: newTools,
             rootPath: rootPath,
             trustLevel: trustLevel,
@@ -105,7 +106,7 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
     ) -> WorkspaceReference {
         WorkspaceReference(
             uri: .timelineWorkspace(timelineId),
-            hostType: .runtime,
+            location: .runtime,
             rootPath: rootPath,
             trustLevel: .full,
             metadata: metadata

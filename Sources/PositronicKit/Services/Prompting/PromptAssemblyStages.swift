@@ -77,20 +77,20 @@ public struct ToolsStage: PromptAssemblyStage {
     }
 }
 
-/// Appends workspace and client context to the prompt.
-/// Provides information about the file system environment and the requesting client.
+/// Appends workspace and request-origin context to the prompt.
+/// Provides information about the file system environment and the requesting origin.
 public struct WorkspacesContextStage: PromptAssemblyStage {
     /// Initializes a new workspaces context stage.
     public init() {}
     
-    /// Appends workspace and client information to the context.
+    /// Appends workspace and request-origin information to the context.
     /// - Parameter context: The shared assembly context.
     public func execute(_ context: PromptAssemblyContext) async throws {
         let request = context.request
         await context.append(WorkspacesContext(
             workspaces: request.workspaces,
             primaryWorkspace: request.primaryWorkspace,
-            clientName: request.clientName
+            requestOriginName: request.requestOriginName
         ))
     }
 }

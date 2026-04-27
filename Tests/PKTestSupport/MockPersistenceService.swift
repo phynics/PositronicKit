@@ -3,7 +3,7 @@ import Foundation
 import PositronicKit
 import PKShared
 
-public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProtocol, TimelinePersistenceProtocol, WorkspacePersistenceProtocol, AgentTemplateStoreProtocol, ClientStoreProtocol, ToolPersistenceProtocol, AgentInstanceStoreProtocol, HealthCheckable, @unchecked Sendable {
+public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProtocol, TimelinePersistenceProtocol, WorkspacePersistenceProtocol, AgentTemplateStoreProtocol, RequestOriginStoreProtocol, ToolPersistenceProtocol, AgentInstanceStoreProtocol, HealthCheckable, @unchecked Sendable {
     private let memoriesMock = MockMemoryStore()
     private let messagesMock = MockMessageStore()
     private let timelinesMock = MockTimelinePersistence()
@@ -15,10 +15,10 @@ public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProt
     public var mockHealthDetails: [String: String]? = ["mock": "true"]
 
     // Mocks
-    public var saveClientMock: ((ClientIdentity) async throws -> Void)?
-    public var fetchClientMock: ((UUID) async throws -> ClientIdentity?)?
-    public var fetchAllClientsMock: (() async throws -> [ClientIdentity])?
-    public var deleteClientMock: ((UUID) async throws -> Bool)?
+    public var saveOriginMock: ((RequestOriginIdentity) async throws -> Void)?
+    public var fetchOriginMock: ((UUID) async throws -> RequestOriginIdentity?)?
+    public var fetchAllOriginsMock: (() async throws -> [RequestOriginIdentity])?
+    public var deleteOriginMock: ((UUID) async throws -> Bool)?
 
     public init() {}
 
@@ -223,8 +223,8 @@ public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProt
         try await toolsMock.fetchTools(forWorkspaces: workspaceIds)
     }
 
-    public func fetchClientTools(clientId: UUID) async throws -> [ToolReference] {
-        try await toolsMock.fetchClientTools(clientId: clientId)
+    public func fetchOriginTools(originId: UUID) async throws -> [ToolReference] {
+        try await toolsMock.fetchOriginTools(originId: originId)
     }
 
     public func findWorkspaceId(forToolId toolId: String, in workspaceIds: [UUID]) async throws -> UUID? {
@@ -235,24 +235,24 @@ public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProt
         try await toolsMock.fetchToolSource(toolId: toolId, workspaceIds: workspaceIds, primaryWorkspaceId: primaryWorkspaceId)
     }
 
-    // MARK: - ClientStoreProtocol
+    // MARK: - RequestOriginStoreProtocol
 
-    public func saveClient(_ client: ClientIdentity) async throws {
-        if let mock = saveClientMock { try await mock(client) }
+    public func saveOrigin(_ origin: RequestOriginIdentity) async throws {
+        if let mock = saveOriginMock { try await mock(origin) }
     }
 
-    public func fetchClient(id: UUID) async throws -> ClientIdentity? {
-        if let mock = fetchClientMock { return try await mock(id) }
+    public func fetchOrigin(id: UUID) async throws -> RequestOriginIdentity? {
+        if let mock = fetchOriginMock { return try await mock(id) }
         return nil
     }
 
-    public func fetchAllClients() async throws -> [ClientIdentity] {
-        if let mock = fetchAllClientsMock { return try await mock() }
+    public func fetchAllOrigins() async throws -> [RequestOriginIdentity] {
+        if let mock = fetchAllOriginsMock { return try await mock() }
         return []
     }
 
-    public func deleteClient(id: UUID) async throws -> Bool {
-        if let mock = deleteClientMock {
+    public func deleteOrigin(id: UUID) async throws -> Bool {
+        if let mock = deleteOriginMock {
             return try await mock(id)
         }
         return false
@@ -304,7 +304,7 @@ public extension DependencyValues {
             timelinePersistence = newValue
             memoryStore = newValue
             messageStore = newValue
-            clientStore = newValue
+            requestOriginStore = newValue
             toolPersistence = newValue
             agentTemplateStore = newValue
             agentInstanceStore = newValue

@@ -201,8 +201,8 @@ public actor InMemoryToolPersistence: ToolPersistenceProtocol {
         workspaces.filter { workspaceIds.contains($0.id) }.flatMap(\.tools)
     }
 
-    public func fetchClientTools(clientId: UUID) async throws -> [ToolReference] {
-        workspaces.filter { $0.ownerId == clientId }.flatMap(\.tools)
+    public func fetchOriginTools(originId: UUID) async throws -> [ToolReference] {
+        workspaces.filter { $0.originId == originId }.flatMap(\.tools)
     }
 
     public func findWorkspaceId(forToolId toolId: String, in workspaceIds: [UUID]) async throws -> UUID? {
@@ -221,8 +221,8 @@ public actor InMemoryToolPersistence: ToolPersistenceProtocol {
               let workspace = workspaces.first(where: { $0.id == wsId })
         else { return nil }
 
-        if workspace.hostType == .external {
-            return "External Workspace"
+        if workspace.location == .attached {
+            return "Attached Workspace"
         } else if workspace.id == primaryWorkspaceId {
             return "Primary Workspace"
         } else {
@@ -264,37 +264,37 @@ public actor InMemoryAgentInstanceStore: AgentInstanceStoreProtocol {
     }
 }
 
-// MARK: - InMemoryClientStore
+// MARK: - InMemoryRequestOriginStore
 
-/// Thread-safe in-memory client store for prototyping and development.
-public actor InMemoryClientStore: ClientStoreProtocol {
-    private var clients: [ClientIdentity] = []
+/// Thread-safe in-memory request-origin store for prototyping and development.
+public actor InMemoryRequestOriginStore: RequestOriginStoreProtocol {
+    private var origins: [RequestOriginIdentity] = []
 
     public init() {}
 
-    public func saveClient(_ client: ClientIdentity) async throws {
-        if let index = clients.firstIndex(where: { $0.id == client.id }) {
-            clients[index] = client
+    public func saveOrigin(_ origin: RequestOriginIdentity) async throws {
+        if let index = origins.firstIndex(where: { $0.id == origin.id }) {
+            origins[index] = origin
         } else {
-            clients.append(client)
+            origins.append(origin)
         }
     }
 
-    public func fetchClient(id: UUID) async throws -> ClientIdentity? {
-        clients.first { $0.id == id }
+    public func fetchOrigin(id: UUID) async throws -> RequestOriginIdentity? {
+        origins.first { $0.id == id }
     }
 
-    public func fetchAllClients() async throws -> [ClientIdentity] {
-        clients
+    public func fetchAllOrigins() async throws -> [RequestOriginIdentity] {
+        origins
     }
 
-    public func deleteClient(id: UUID) async throws -> Bool {
-        let count = clients.count
-        clients.removeAll { $0.id == id }
-        return clients.count < count
+    public func deleteOrigin(id: UUID) async throws -> Bool {
+        let count = origins.count
+        origins.removeAll { $0.id == id }
+        return origins.count < count
     }
 
-    public func fetchClientTools(clientId _: UUID) async throws -> [ToolReference] {
+    public func fetchOriginTools(originId _: UUID) async throws -> [ToolReference] {
         []
     }
 }

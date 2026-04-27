@@ -30,8 +30,8 @@ import PKShared
         static func fixture(
             id: UUID = UUID(),
             uri: WorkspaceURI = .timelineWorkspace(UUID()),
-            hostType: WorkspaceHostType = .runtime,
-            ownerId: UUID? = nil,
+            location: WorkspaceLocation = .runtime,
+            originId: UUID? = nil,
             rootPath: String? = nil,
             tools: [ToolReference] = [],
             status: WorkspaceStatus = .active
@@ -39,8 +39,8 @@ import PKShared
             WorkspaceReference(
                 id: id,
                 uri: uri,
-                hostType: hostType,
-                ownerId: ownerId,
+                location: location,
+                originId: originId,
                 tools: tools,
                 rootPath: rootPath,
                 trustLevel: .full,

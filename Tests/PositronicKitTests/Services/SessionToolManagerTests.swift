@@ -111,7 +111,7 @@ final class TimelineToolManagerTests {
         let manager = TimelineToolManager(availableTools: [])
 
         let workspaceId = UUID()
-        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://test")), hostType: .runtime, ownerId: nil)
+        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://test")), location: .runtime, originId: nil)
 
         let def = WorkspaceToolDefinition(
             id: "wsTool1",
@@ -153,7 +153,7 @@ final class TimelineToolManagerTests {
         let def = WorkspaceToolDefinition(id: "wsTool", name: "wsTool", description: "WS", parametersSchema: [:])
         let mockWS = try MockWorkspace(
             id: workspaceId,
-            reference: WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://test")), hostType: .runtime, ownerId: nil),
+            reference: WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://test")), location: .runtime, originId: nil),
             toolsToReturn: [.custom(def)]
         )
         await manager.registerWorkspace(mockWS)
@@ -177,7 +177,7 @@ final class TimelineToolManagerTests {
         let manager = TimelineToolManager(availableTools: [])
         let workspaceId = UUID()
         let uri = try #require(WorkspaceURI(parsing: "pk://test-workspace-prov"))
-        let workspaceRef = WorkspaceReference(id: workspaceId, uri: uri, hostType: .runtime, ownerId: nil)
+        let workspaceRef = WorkspaceReference(id: workspaceId, uri: uri, location: .runtime, originId: nil)
 
         let def = WorkspaceToolDefinition(id: "provTool", name: "provTool", description: "prov", parametersSchema: [:])
         let mockWS = MockWorkspace(id: workspaceId, reference: workspaceRef, toolsToReturn: [.custom(def)])
@@ -202,7 +202,7 @@ final class TimelineToolManagerTests {
 
         let workspaceId = UUID()
         let uri = try #require(WorkspaceURI(parsing: "pk://test-known-tool"))
-        let workspaceRef = WorkspaceReference(id: workspaceId, uri: uri, hostType: .runtime, ownerId: nil)
+        let workspaceRef = WorkspaceReference(id: workspaceId, uri: uri, location: .runtime, originId: nil)
 
         // Workspace declares it offers the "cat" known tool
         let mockWS = MockWorkspace(id: workspaceId, reference: workspaceRef, toolsToReturn: [.known(id: "cat")])

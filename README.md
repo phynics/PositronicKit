@@ -37,9 +37,9 @@ import PKShared
 Condensed design intent:
 
 - `PositronicKit` is transport-neutral
-- client/server hosting models belong downstream of this package
+- networking and multi-process hosting models belong downstream of this package
 - the core should expose extension points, not bundled transport implementations
-- externally hosted workspaces and tools should be modeled through injected protocols and references
+- downstream systems should provide concrete workspace implementations behind `WorkspaceProtocol` and `WorkspaceCreating`
 - prompt construction remains a `PKPrompt` concern; `PositronicKit` consumes assembled/rendered prompt artifacts
 
 ### Architecture
@@ -58,10 +58,10 @@ Use these seams when integrating a downstream hosting model:
 
 - persistence protocols for timelines, messages, workspaces, tools, agents, and request origins
 - `WorkspaceCreating` and `WorkspaceManager` for resolving concrete workspace implementations
-- `ExternalWorkspaceConnectionManagerProtocol` for bridging externally hosted workspaces without shipping a built-in RPC runtime
+- `WorkspaceProtocol` and `WorkspaceCreating` for downstream-owned workspace resolution and execution behavior
 - `PromptSectionProviding` and chat/context pipeline hooks for app-specific orchestration
 
-This means `PositronicKit` can support downstream client/server or multi-process hosting models without treating them as core runtime assumptions.
+This means `PositronicKit` can support downstream networking or multi-process hosting models without treating them as core runtime assumptions.
 
 ## PKPrompt
 

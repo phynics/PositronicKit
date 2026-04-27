@@ -26,7 +26,7 @@ struct ChatEngineTests {
             $0.memoryStore = mockPersistence
             $0.messageStore = mockPersistence
             $0.agentTemplateStore = mockPersistence
-            $0.clientStore = mockPersistence
+            $0.requestOriginStore = mockPersistence
             $0.toolPersistence = mockPersistence
             $0.agentInstanceStore = mockPersistence
             $0.timelineManager = TimelineManager(workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"), workspaceCreator: MockWorkspaceCreator())
@@ -34,7 +34,7 @@ struct ChatEngineTests {
         } operation: {
             @Dependency(\.timelineManager) var timelineManager
             let wsId = UUID()
-            let workspaceRef = WorkspaceReference(id: wsId, uri: WorkspaceURI(parsing: "pk://local")!, hostType: .runtimeTimeline, ownerId: nil, rootPath: "/tmp")
+            let workspaceRef = WorkspaceReference(id: wsId, uri: WorkspaceURI(parsing: "pk://local")!, location: .runtimeTimeline, originId: nil, rootPath: "/tmp")
             try await mockPersistence.saveWorkspace(workspaceRef)
             try await timelineManager.attachWorkspace(wsId, to: timelineId)
             try await mockPersistence.addToolToWorkspace(workspaceId: wsId, tool: .known("mock_tool"))
@@ -173,7 +173,7 @@ struct ChatEngineTests {
         func execute(parameters _: [String: Any]) async throws -> ToolResult {
             if shouldWait { try? await Task.sleep(nanoseconds: 100_000_000) }
             if !result.success && result.error == "client_tools_disallowed_on_private_timeline" {
-                throw ToolError.clientToolsDisallowedOnPrivateTimeline
+                throw ToolError.attachedToolsDisallowedOnPrivateTimeline
             }
             return result
         }
@@ -270,8 +270,8 @@ struct ChatEngineTests {
         }
     }
 
-    @Test("Client tool execution pauses the stream")
-    func clientToolCallPausesStream() async throws {
+    @Test("Deferred external tool execution pauses the stream")
+    func deferredExternalToolCallPausesStream() async throws {
         try await withChatEngineDependencies { engine, mockLLM, _ in
             var mockTool = MockTool()
             mockTool.result = .failure("client_tools_disallowed_on_private_timeline")
@@ -281,13 +281,13 @@ struct ChatEngineTests {
 
             let stream = try await engine.execute(
                 timelineId: timelineId,
-                message: "Run client tool",
+                message: "Run attached tool",
                 tools: [mockTool.toAnyTool()]
             )
 
             let events = try await collect(stream)
 
-            // Should emit attempt (delta) but NOT success/failure (handled by client)
+            // Should emit attempt (delta) but NOT success/failure because execution is deferred.
             #expect(events.contains(where: {
                 if case let .delta(event: .toolExecution(id, status)) = $0 {
                     if case .attempting = status { return id == "call_1" }

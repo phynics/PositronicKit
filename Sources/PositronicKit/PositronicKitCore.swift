@@ -12,7 +12,7 @@ import PKShared
 /// suitable for development and prototyping. For production, provide persistent stores.
 ///
 /// PositronicKit intentionally stays transport-neutral. Concepts like timelines, workspaces,
-/// agents, tool routing, and prompt assembly live here; concrete client/server hosting models are
+/// agents, tool routing, and prompt assembly live here; concrete networking or multi-process hosting models are
 /// expected to be provided downstream via injected stores, workspace creators, and connection hooks.
 ///
 /// ```swift
@@ -29,7 +29,7 @@ import PKShared
 ///         memoryStore: repos.memoryStore,
 ///         toolPersistence: repos.toolPersistence,
 ///         agentInstanceStore: repos.agentInstanceStore,
-///         clientStore: repos.clientStore,
+///         requestOriginStore: repos.requestOriginStore,
 ///         agentTemplateStore: repos.agentTemplateStore
 ///     ),
 ///     embeddingService: embeddingService,
@@ -45,7 +45,7 @@ public struct PositronicKitCore: Sendable {
     private let timelineManager: TimelineManager
     private let toolRouter: ToolRouter
     private let agentInstanceStore: any AgentInstanceStoreProtocol
-    private let clientStore: any ClientStoreProtocol
+    private let requestOriginStore: any RequestOriginStoreProtocol
     private var chatTurnPlugins: [any ChatTurnPlugin]
     private let defaultGenerationParameters: GenerationParameters?
 
@@ -113,7 +113,7 @@ public struct PositronicKitCore: Sendable {
     ///   - timelineManager: Manages timeline state, workspaces, and extensions. Auto-constructed if nil.
     ///   - toolRouter: Routes tool calls to the appropriate executor. Auto-constructed if nil.
     ///   - agentInstanceStore: Persistence for agent instance data. Defaults to in-memory if nil.
-    ///   - clientStore: Persistence for client identity data. Defaults to in-memory if nil.
+    ///   - requestOriginStore: Persistence for request-origin identity data. Defaults to in-memory if nil.
     ///   - timelinePersistence: Persistence for timeline records. Defaults to in-memory if nil.
     ///   - workspacePersistence: Persistence for workspace records. Defaults to in-memory if nil.
     ///   - memoryStore: Persistence for memory records. Defaults to in-memory if nil.
@@ -129,7 +129,7 @@ public struct PositronicKitCore: Sendable {
         timelineManager: TimelineManager? = nil,
         toolRouter: ToolRouter? = nil,
         agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,
-        clientStore: (any ClientStoreProtocol)? = nil,
+        requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
         timelinePersistence: (any TimelinePersistenceProtocol)? = nil,
         workspacePersistence: (any WorkspacePersistenceProtocol)? = nil,
         memoryStore: (any MemoryStoreProtocol)? = nil,
@@ -143,7 +143,7 @@ public struct PositronicKitCore: Sendable {
         self.llmService = llmService
         self.messageStore = messageStore ?? InMemoryMessageStore()
         self.agentInstanceStore = agentInstanceStore ?? InMemoryAgentInstanceStore()
-        self.clientStore = clientStore ?? InMemoryClientStore()
+        self.requestOriginStore = requestOriginStore ?? InMemoryRequestOriginStore()
         self.timelinePersistence = timelinePersistence ?? InMemoryTimelinePersistence()
         self.workspacePersistence = workspacePersistence ?? InMemoryWorkspacePersistence()
         self.memoryStore = memoryStore ?? InMemoryMemoryStore()
@@ -188,7 +188,7 @@ public struct PositronicKitCore: Sendable {
     ///   - timelineId: The unique identifier for the chat session.
     ///   - message: The user's input message.
     ///   - tools: Pre-resolved tools available for this turn.
-    ///   - toolOutputs: Optional list of tool outputs submitted by the client from a previous turn.
+    ///   - toolOutputs: Optional list of tool outputs submitted from a previous externally executed turn.
     ///   - contextManager: Optional context manager for RAG. If nil, no context is gathered.
     ///   - systemInstructions: Optional system instructions to override the default.
     ///   - agentInstanceId: Optional identifier for the agent instance.
@@ -217,7 +217,7 @@ public struct PositronicKitCore: Sendable {
             $0.timelineManager = self.timelineManager
             $0.toolRouter = self.toolRouter
             $0.agentInstanceStore = self.agentInstanceStore
-            $0.clientStore = self.clientStore
+            $0.requestOriginStore = self.requestOriginStore
             $0.chatTurnPlugins = self.chatTurnPlugins
             // Transitive deps
             $0.timelinePersistence = self.timelinePersistence
@@ -257,7 +257,7 @@ public extension PositronicKitCore {
         public let memoryStore: any MemoryStoreProtocol
         public let toolPersistence: any ToolPersistenceProtocol
         public let agentInstanceStore: any AgentInstanceStoreProtocol
-        public let clientStore: any ClientStoreProtocol
+        public let requestOriginStore: any RequestOriginStoreProtocol
         public let agentTemplateStore: any AgentTemplateStoreProtocol
 
         public init(
@@ -267,7 +267,7 @@ public extension PositronicKitCore {
             memoryStore: any MemoryStoreProtocol,
             toolPersistence: any ToolPersistenceProtocol,
             agentInstanceStore: any AgentInstanceStoreProtocol,
-            clientStore: any ClientStoreProtocol,
+            requestOriginStore: any RequestOriginStoreProtocol,
             agentTemplateStore: any AgentTemplateStoreProtocol
         ) {
             self.messageStore = messageStore
@@ -276,7 +276,7 @@ public extension PositronicKitCore {
             self.memoryStore = memoryStore
             self.toolPersistence = toolPersistence
             self.agentInstanceStore = agentInstanceStore
-            self.clientStore = clientStore
+            self.requestOriginStore = requestOriginStore
             self.agentTemplateStore = agentTemplateStore
         }
 
@@ -289,7 +289,7 @@ public extension PositronicKitCore {
                 memoryStore: InMemoryMemoryStore(),
                 toolPersistence: InMemoryToolPersistence(),
                 agentInstanceStore: InMemoryAgentInstanceStore(),
-                clientStore: InMemoryClientStore(),
+                requestOriginStore: InMemoryRequestOriginStore(),
                 agentTemplateStore: InMemoryAgentTemplateStore()
             )
         }
@@ -322,7 +322,7 @@ public extension PositronicKitCore {
             timelineManager: timelineManager,
             toolRouter: toolRouter,
             agentInstanceStore: persistence.agentInstanceStore,
-            clientStore: persistence.clientStore,
+            requestOriginStore: persistence.requestOriginStore,
             timelinePersistence: persistence.timelinePersistence,
             workspacePersistence: persistence.workspacePersistence,
             memoryStore: persistence.memoryStore,
