@@ -24,11 +24,9 @@ struct PromptNodeLoweringTests {
         }.makePromptNode()
 
         #expect(node != nil)
-        #expect(node?.children.count == 1)
+        #expect(node?.children.count == 2)
         #expect(node?.isLeaf == false)
-        #expect(node?.children[0].isLeaf == false)
-        #expect(node?.children[0].children.count == 2)
-        #expect(node?.children[0].children.allSatisfy { $0.isLeaf } == true)
+        #expect(node?.children.allSatisfy { $0.isLeaf } == true)
     }
 
     @Test("Prompt modifiers lower into passthrough nodes carrying inherited traits")
@@ -45,5 +43,20 @@ struct PromptNodeLoweringTests {
         #expect(lowered?.children.count == 1)
         #expect(lowered?.children[0].compression == .summarize)
         #expect(lowered?.children[0].children[0].priority == PromptPriority.high.rawValue)
+    }
+
+    @Test("Body-based prompts preserve type path boundaries after builder lowering")
+    func bodyBasedPromptsPreserveTypePathBoundaries() {
+        struct NestedPrompt: Prompt {
+            @PromptBuilder
+            var body: some Prompt {
+                LoweringStaticText(id: "leaf", text: "value")
+            }
+        }
+
+        let sections = try! NestedPrompt().assemblePrompt().sections
+        #expect(sections.count == 1)
+        #expect(sections[0].path.contains("NestedPrompt"))
+        #expect(sections[0].path.last == "leaf")
     }
 }

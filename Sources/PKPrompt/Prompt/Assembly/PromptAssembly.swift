@@ -13,7 +13,7 @@ package enum PromptAssembly {
         }
 
         if let prompt = prompt as? any PromptNodeConvertible {
-            return prompt.makePromptNode()
+            return prompt.makePromptNode()?.normalized()
         }
 
         guard let bodyNode = makeNode(from: prompt.body) else {
@@ -35,20 +35,14 @@ package enum PromptAssembly {
 
     package struct Context: Sendable {
         package let ancestorPath: [String]
-        package let inheritedPriority: Int?
-        package let inheritedCompression: CompressionStrategy?
-        package let inheritedCachePolicy: CachePolicy?
+        package let inheritedTraits: PromptTraits
 
         package init(
             ancestorPath: [String] = ["prompt"],
-            inheritedPriority: Int? = nil,
-            inheritedCompression: CompressionStrategy? = nil,
-            inheritedCachePolicy: CachePolicy? = nil
+            inheritedTraits: PromptTraits = PromptTraits()
         ) {
             self.ancestorPath = ancestorPath
-            self.inheritedPriority = inheritedPriority
-            self.inheritedCompression = inheritedCompression
-            self.inheritedCachePolicy = inheritedCachePolicy
+            self.inheritedTraits = inheritedTraits
         }
 
         package func descending(into component: String?) -> Context {
@@ -60,22 +54,18 @@ package enum PromptAssembly {
             path.append(component)
             return Context(
                 ancestorPath: path,
-                inheritedPriority: inheritedPriority,
-                inheritedCompression: inheritedCompression,
-                inheritedCachePolicy: inheritedCachePolicy
+                inheritedTraits: inheritedTraits
             )
         }
 
-        package func applying(
-            priority: Int? = nil,
-            compression: CompressionStrategy? = nil,
-            cachePolicy: CachePolicy? = nil
-        ) -> Context {
+        package func applying(_ traits: PromptTraits) -> Context {
             Context(
                 ancestorPath: ancestorPath,
-                inheritedPriority: priority ?? inheritedPriority,
-                inheritedCompression: compression ?? inheritedCompression,
-                inheritedCachePolicy: cachePolicy ?? inheritedCachePolicy
+                inheritedTraits: inheritedTraits.applying(
+                    priority: traits.priority,
+                    compression: traits.compression,
+                    cachePolicy: traits.cachePolicy
+                )
             )
         }
     }

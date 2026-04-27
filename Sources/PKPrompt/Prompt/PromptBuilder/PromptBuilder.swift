@@ -2,9 +2,12 @@ import Foundation
 
 /// Result builder for authoring declarative prompt trees.
 ///
-/// The builder lowers authored control flow into semantic composites such as
-/// ``PromptBuilder/Conditional``, ``PromptBuilder/ForEach``, and ``PromptBuilder/Optional`` while preserving the
-/// concrete authored composite types wherever possible.
+/// The builder lowers authored syntax directly into the internal prompt-node tree used by prompt
+/// assembly. Ordinary sibling composition becomes transparent groups, conditionals select the
+/// active branch, and plain `for` loops use positional iteration path components.
+///
+/// Use ``PromptForEach`` or ``PromptBuilder/forEach(_:id:content:)`` when loop identity should
+/// come from stable domain data instead of loop position.
 ///
 /// ```swift
 /// let prompt = AnyPrompt.build {
@@ -23,67 +26,98 @@ import Foundation
 /// ```
 @resultBuilder
 public enum PromptBuilder {
-    public typealias Content = Prompt
-    
-    /// Wraps authored siblings in a typed block.
-    public static func buildBlock<Content: Prompt>(_ content: Content) -> Content {
+    public struct Partial: Prompt, PromptNodeConvertible {
+        package let node: PromptNode?
+
+        package init(node: PromptNode?) {
+            self.node = node
+        }
+
+        public var body: EmptyPrompt { EmptyPrompt() }
+
+        package func makePromptNode() -> PromptNode? {
+            node
+        }
+    }
+
+    public static func buildBlock(_ content: Partial) -> Partial {
         content
     }
 
-    /// Wraps authored siblings in a typed block.
-    public static func buildBlock<each Content: Prompt>(
-        _ content: repeat each Content
-    ) -> some Prompt {
-        Block(repeat each content)
-    }
-    
-    /// Preserves a single prompt composite expression without extra wrapping.
-    public static func buildExpression<S: Prompt>(_ section: S) -> S {
-        section
+    /// Wraps authored siblings in a transparent node group.
+    public static func buildBlock(_ content: Partial...) -> Partial {
+        Partial(node: PromptNode.group(children: content.compactMap(\.node)))
     }
 
-    /// Wraps an explicit list of prompt composites for further builder composition.
-    public static func buildExpression(_ sections: [any Prompt]) -> AnyPrompt {
-        AnyPrompt(sections)
+    /// Preserves a single prompt expression by lowering it to a prompt node immediately.
+    public static func buildExpression<S: Prompt>(_ section: S) -> Partial {
+        Partial(node: PromptAssembly.makeNode(from: section))
     }
 
-    /// Lowers an optional branch into ``PromptBuilder/Optional``.
-    public static func buildOptional<Content: Prompt>(
-        _ component: Content?
-    ) -> some Prompt {
-        // Preserve the authored optional node even when the branch resolves to nil so
-        // downstream prompt introspection can still see that an optional boundary existed.
-        Optional<Content, EmptySection>(primary: component)
+    /// Wraps an explicit list of prompt composites in a transparent node group.
+    public static func buildExpression(_ sections: [any Prompt]) -> Partial {
+        Partial(node: PromptNode.group(children: sections.compactMap { PromptAssembly.makeNode(from: $0) }))
     }
 
-    /// Lowers the selected `if` branch into ``PromptBuilder/Conditional``.
-    public static func buildEither<TrueContent: Prompt, FalseContent: Prompt>(
-        first component: TrueContent
-    ) -> some Prompt {
-        Conditional<TrueContent, FalseContent>(first: component)
+    /// Omits missing optional branches.
+    public static func buildOptional(_ component: Partial?) -> Partial {
+        component ?? Partial(node: nil)
     }
 
-    /// Lowers the selected `else` branch into ``PromptBuilder/Conditional``.
-    public static func buildEither<TrueContent: Prompt, FalseContent: Prompt>(
-        second component: FalseContent
-    ) -> some Prompt {
-        Conditional<TrueContent, FalseContent>(second: component)
+    /// Preserves the selected `if` branch.
+    public static func buildEither(first component: Partial) -> Partial {
+        component
     }
 
-    /// Lowers repeated builder output into ``PromptBuilder/ForEach``.
-    public static func buildArray<Content: Prompt>(_ components: [Content]) -> some Prompt {
-        // Keep the loop as a first-class composite instead of flattening immediately so
-        // later phases can distinguish authored repetition from ordinary sibling sections.
-        ForEach(components)
+    /// Preserves the selected `else` branch.
+    public static func buildEither(second component: Partial) -> Partial {
+        component
+    }
+
+    /// Lowers repeated builder output into positional per-item path groups.
+    public static func buildArray(_ components: [Partial]) -> Partial {
+        Partial(node: PromptNode.group(children: components.enumerated().compactMap { index, component in
+            guard let node = component.node else { return nil }
+            return PromptNode.group(pathComponent: "item_\(index)", children: [node])
+        }))
     }
 
     /// Ignores expressions that produce no prompt content.
-    public static func buildExpression(_: Void) -> EmptySection {
-        EmptySection()
+    public static func buildExpression(_: Void) -> Partial {
+        Partial(node: nil)
     }
 
     /// Returns the fully lowered root prompt content.
-    public static func buildFinalResult<Content: Prompt>(_ component: Content) -> Content {
+    public static func buildFinalResult(_ component: Partial) -> some Prompt {
         component
+    }
+
+    /// Convenience entry point for stable loop identity inside prompt builder call sites.
+    public static func forEach<Data, Content>(
+        _ data: Data,
+        @PromptBuilder content: (Data.Element) -> Content
+    ) -> PromptForEach<Content>
+    where Data: RandomAccessCollection, Data.Element: Identifiable, Content: Prompt {
+        PromptForEach(data, content: content)
+    }
+
+    /// Convenience entry point for stable loop identity keyed by a source property.
+    public static func forEach<Data, ID, Content>(
+        _ data: Data,
+        id: KeyPath<Data.Element, ID>,
+        @PromptBuilder content: (Data.Element) -> Content
+    ) -> PromptForEach<Content>
+    where Data: RandomAccessCollection, Content: Prompt {
+        PromptForEach(data, id: id, content: content)
+    }
+
+    /// Convenience entry point for stable loop identity derived from a closure.
+    public static func forEach<Data, Content>(
+        _ data: Data,
+        id: (Data.Element) -> String,
+        @PromptBuilder content: (Data.Element) -> Content
+    ) -> PromptForEach<Content>
+    where Data: RandomAccessCollection, Content: Prompt {
+        PromptForEach(data, id: id, content: content)
     }
 }

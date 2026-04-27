@@ -108,9 +108,9 @@ package extension PromptPrimitive {
         in context: PromptAssembly.Context,
         content leafContent: PromptPrimitiveContent
     ) -> [AssembledPrompt.Section] {
-        let effectivePriority = context.inheritedPriority ?? priority
-        let effectiveCompression = context.inheritedCompression ?? compression
-        let effectiveCachePolicy = context.inheritedCachePolicy ?? cachePolicy
+        let effectivePriority = context.inheritedTraits.priority ?? priority
+        let effectiveCompression = context.inheritedTraits.compression ?? compression
+        let effectiveCachePolicy = context.inheritedTraits.cachePolicy ?? cachePolicy
         let path = context.ancestorPath + [cachePolicyPathComponent(for: effectiveCachePolicy), id]
 
         return [

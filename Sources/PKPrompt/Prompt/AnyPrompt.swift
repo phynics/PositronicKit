@@ -27,6 +27,9 @@ public struct AnyPrompt: Prompt, PromptNodeConvertible {
 
     package func makePromptNode() -> PromptNode? {
         let children = prompts.compactMap { PromptAssembly.makeNode(from: $0) }
+        if children.count == 1 {
+            return children[0]
+        }
         return children.isEmpty ? nil : PromptNode.group(children: children)
     }
 
