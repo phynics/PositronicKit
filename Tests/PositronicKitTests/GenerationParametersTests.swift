@@ -37,7 +37,7 @@ struct GenerationParametersTests {
         // Drain stream
         for try await _ in stream {}
         
-        // 3. Verify parameters reached the LLM client
+        // 3. Verify parameters reached the mock LLM transport
         let lastParams = mockLLM.mockClient.lastParameters
         #expect(lastParams?.temperature == 0.7)
         #expect(lastParams?.maxTokens == 100)
@@ -77,7 +77,7 @@ struct GenerationParametersTests {
         // Drain stream
         for try await _ in stream {}
         
-        // 3. Verify override parameters reached the LLM client
+        // 3. Verify override parameters reached the mock LLM transport
         let lastParams = mockLLM.mockClient.lastParameters
         #expect(lastParams?.temperature == 0.2)
         #expect(lastParams?.maxTokens == 500)
@@ -101,7 +101,7 @@ struct GenerationParametersTests {
         // Drain stream
         for try await _ in stream {}
         
-        // 3. Verify nil parameters reached the LLM client (meaning it will fall back to LLM config)
+        // 3. Verify nil parameters reached the mock LLM transport (meaning it will fall back to LLM config)
         let lastParams = mockLLM.mockClient.lastParameters
         #expect(lastParams == nil)
     }

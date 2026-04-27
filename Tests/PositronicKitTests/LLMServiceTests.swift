@@ -188,7 +188,7 @@ struct LLMServiceTests {
         let mockClient = MockLLMClient()
         mockClient.nextResponse = "SwiftUI Basics"
 
-        let service = LLMService(storage: MockConfigurationService(), client: mockClient) // Use client directly if possible or utilityClient
+        let service = LLMService(storage: MockConfigurationService(), client: mockClient) // Inject mock transport directly for focused testing.
 
         let messages = [
             Message(content: "How do I use SwiftUI?", role: .user),

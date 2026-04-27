@@ -270,7 +270,7 @@ struct ChatEngineTests {
         }
     }
 
-    @Test("Deferred external tool execution pauses the stream")
+    @Test("Deferred attached-workspace tool execution pauses the stream")
     func deferredExternalToolCallPausesStream() async throws {
         try await withChatEngineDependencies { engine, mockLLM, _ in
             var mockTool = MockTool()

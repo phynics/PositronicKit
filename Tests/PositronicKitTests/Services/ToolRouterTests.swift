@@ -84,7 +84,7 @@ import Testing
 
     @Test
 
-    func executeRemotelyDefersExternalExecution() async throws {
+    func attachedWorkspaceToolDefersExternalExecution() async throws {
         let (timelineManager, mockPersistence) = try await setupTimelineManager()
         let toolRouter = withDependencies {
             $0.timelineManager = timelineManager
@@ -95,12 +95,12 @@ import Testing
         let session = try await timelineManager.createTimeline()
         let workspaceId = UUID()
 
-        // Setup remote workspace
+        // Setup attached workspace
         let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://remote")), location: .attached, originId: UUID())
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await timelineManager.attachWorkspace(workspaceId, to: session.id)
 
-        let toolId = "remote_tool"
+        let toolId = "attached_tool"
         try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known(toolId))
 
         let toolRef = ToolReference.known(toolId)
@@ -119,7 +119,7 @@ import Testing
 
     @Test
 
-    func executeRemotelyWithoutOriginStillDefers() async throws {
+    func attachedWorkspaceToolWithoutOriginStillDefers() async throws {
         let (timelineManager, mockPersistence) = try await setupTimelineManager()
         let toolRouter = withDependencies {
             $0.timelineManager = timelineManager
@@ -135,7 +135,7 @@ import Testing
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await timelineManager.attachWorkspace(workspaceId, to: session.id)
 
-        let toolId = "remote_tool"
+        let toolId = "attached_tool"
         try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known(toolId))
 
         let toolRef = ToolReference.known(toolId)

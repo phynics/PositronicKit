@@ -2,7 +2,7 @@ import Foundation
 import Logging
 import OpenAI
 
-/// A tool that the LLM can call to interact with the external world or perform computations.
+/// A tool that the LLM can call to interact with workspaces, data, or computations.
 ///
 /// Implement this protocol to add new capabilities to the AI assistant. Tools are automatically
 /// registered and exposed to the LLM during context construction.

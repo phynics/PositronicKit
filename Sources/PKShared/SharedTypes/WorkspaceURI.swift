@@ -42,12 +42,12 @@ public struct WorkspaceURI: Codable, Sendable, Hashable, CustomStringConvertible
         WorkspaceURI(host: "pk-runtime", path: "/timelines/\(timelineId.uuidString)")
     }
 
-    /// Create a client shell workspace URI
+    /// Create an attached shell workspace URI.
     public static func clientShell(hostname: String) -> WorkspaceURI {
         WorkspaceURI(host: hostname, path: "~")
     }
 
-    /// Create a client project workspace URI
+    /// Create an attached project workspace URI.
     public static func clientProject(hostname: String, path: String) -> WorkspaceURI {
         WorkspaceURI(host: hostname, path: path)
     }

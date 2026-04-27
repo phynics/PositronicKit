@@ -12,7 +12,7 @@ The persistence layer is split into focused protocols to ensure high cohesion an
 - `TimelinePersistenceProtocol`: Conversation timeline lifecycle.
 - `AgentTemplateStoreProtocol`: Static agent definitions.
 - `WorkspacePersistenceProtocol`: Virtual document workspace tracking.
-- `ClientStoreProtocol`: Remote client identity and state.
+- `RequestOriginStoreProtocol`: Request-origin identity and attached-tool metadata.
 - `ToolPersistenceProtocol`: Tool registry and routing metadata.
 
 ## Implementation

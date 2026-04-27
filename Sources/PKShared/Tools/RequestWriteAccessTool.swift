@@ -2,7 +2,7 @@ import Foundation
 import JSONSchemaBuilder
 
 /// A tool used by the LLM to request permission to modify files in the active workspace.
-/// When executed on the client-side, this triggers a user prompt to upgrade the workspace trust level.
+/// When executed downstream, this triggers a user prompt to upgrade the workspace trust level.
 public struct RequestWriteAccessTool: Tool {
     public let id = "request_write_access"
     public let name = "Request Write Access"
@@ -30,8 +30,8 @@ public struct RequestWriteAccessTool: Tool {
     }
 
     public func execute(parameters _: [String: Any]) async throws -> ToolResult {
-        // This tool is client-side only. ToolRouter defers it automatically based on the
+        // This tool is handled downstream. ToolRouter defers it automatically based on the
         // workspace location. This execute() path is only reached as a fallback.
-        .failure("This tool requires client-side execution")
+        .failure("This tool requires downstream handling")
     }
 }

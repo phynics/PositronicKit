@@ -3,7 +3,7 @@ import Foundation
 /// A delta representing a part of a tool call in a streaming response.
 ///
 /// LLMs typically stream tool calls incrementally. `ToolCallDelta` captures each chunk,
-/// which must be accumulated by the client to form a complete `ToolCall`.
+/// which must be accumulated by the consumer to form a complete `ToolCall`.
 public struct ToolCallDelta: Sendable, Codable {
     /// The index of the tool call in the array of calls for this turn.
     public let index: Int
