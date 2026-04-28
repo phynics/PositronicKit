@@ -90,7 +90,7 @@ struct PromptIntegrationTests {
         #expect(!outputActive.contains("Disconnected"), "Active workspace should not show connection status")
         #expect(!outputMissing.contains("Connected"), "Missing workspace should not show connection status")
         #expect(!outputMissing.contains("Disconnected"), "Missing workspace should not show connection status")
-        #expect(outputActive.contains("Attached"), "Workspace environment label should still appear")
+        #expect(outputActive.contains("Available Workspaces"), "Workspace section should still render")
     }
 
     @Test("userQueryPreventsLeakageIntoSystem")

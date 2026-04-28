@@ -227,12 +227,17 @@ public struct PositronicKitCore: Sendable {
             $0.agentTemplateStore = self.agentTemplateStore
             $0.embeddingService = self.embeddingService
         } operation: {
-            try await chatEngine.execute(
+            let resolvedContextManager = await self.resolveContextManager(
+                explicit: contextManager,
+                timelineId: timelineId
+            )
+
+            return try await chatEngine.execute(
                 timelineId: timelineId,
                 message: message,
                 tools: tools,
                 toolOutputs: toolOutputs,
-                contextManager: contextManager,
+                contextManager: resolvedContextManager,
                 systemInstructions: systemInstructions,
                 agentInstanceId: agentInstanceId,
                 maxTurns: maxTurns,
@@ -241,6 +246,22 @@ public struct PositronicKitCore: Sendable {
                 assemblyPipeline: assemblyPipeline
             )
         }
+    }
+
+    private func resolveContextManager(
+        explicit contextManager: ContextManager?,
+        timelineId: UUID
+    ) async -> ContextManager? {
+        if let contextManager {
+            return contextManager
+        }
+
+        if let existing = await timelineManager.getContextManager(for: timelineId) {
+            return existing
+        }
+
+        try? await timelineManager.hydrateTimeline(id: timelineId)
+        return await timelineManager.getContextManager(for: timelineId)
     }
 }
 
@@ -332,34 +353,6 @@ public extension PositronicKitCore {
             workspaceRoot: workspaceRoot,
             chatTurnPlugins: chatTurnPlugins,
             generationParameters: generationParameters
-        )
-    }
-}
-
-// MARK: - Backward Compatibility
-
-public typealias MonadCore = PositronicKitCore
-
-public extension PositronicKitCore.PersistenceConfiguration {
-    init(
-        messageStore: any MessageStoreProtocol,
-        timelinePersistence: any TimelinePersistenceProtocol,
-        workspacePersistence: any WorkspacePersistenceProtocol,
-        memoryStore: any MemoryStoreProtocol,
-        toolPersistence: any ToolPersistenceProtocol,
-        agentInstanceStore: any AgentInstanceStoreProtocol,
-        clientStore: any ClientStoreProtocol,
-        agentTemplateStore: any AgentTemplateStoreProtocol
-    ) {
-        self.init(
-            messageStore: messageStore,
-            timelinePersistence: timelinePersistence,
-            workspacePersistence: workspacePersistence,
-            memoryStore: memoryStore,
-            toolPersistence: toolPersistence,
-            agentInstanceStore: agentInstanceStore,
-            requestOriginStore: clientStore,
-            agentTemplateStore: agentTemplateStore
         )
     }
 }

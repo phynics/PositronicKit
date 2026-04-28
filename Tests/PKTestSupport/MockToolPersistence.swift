@@ -50,7 +50,7 @@ public final class MockToolPersistence: ToolPersistenceProtocol, @unchecked Send
         else { return nil }
 
         if ws.location == .attached {
-            return "Attached Workspace"
+            return "Additional Workspace"
         } else if ws.id == primaryWorkspaceId {
             return "Primary Workspace"
         } else {

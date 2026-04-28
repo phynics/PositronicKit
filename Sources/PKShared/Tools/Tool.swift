@@ -1,6 +1,4 @@
 import Foundation
-import Logging
-import OpenAI
 
 /// A tool that the LLM can call to interact with workspaces, data, or computations.
 ///
@@ -46,9 +44,6 @@ public protocol Tool: Sendable, PromptFormattable {
     /// - Returns: A compact summary string, e.g. "[read_file(path=...)] → 45 lines".
     func summarize(parameters: [String: Any], result: ToolResult) -> String
 
-    /// Converts the tool definition into a format recognized by the OpenAI API.
-    func toToolParam() -> ChatQuery.ChatCompletionToolParam
-
     /// Type-erases the tool to ``AnyTool``.
     func toAnyTool() -> AnyTool
 }
@@ -84,34 +79,6 @@ public extension Tool {
         }
 
         return "[\(id)(\(paramSummary))] → \(resultSummary)"
-    }
-
-    /// Converts the tool's parameter schema into an OpenAI-compatible JSONSchema.
-    func toToolParam() -> ChatQuery.ChatCompletionToolParam {
-        // parametersSchema is [String: AnyCodable] — use JSONEncoder (Codable-aware) not
-        // JSONSerialization, which cannot handle the AnyCodable wrapper (__SwiftValue crash).
-        let schema: JSONSchema
-        if let data = try? JSONEncoder().encode(parametersSchema),
-           let decoded = try? JSONDecoder().decode(JSONSchema.self, from: data) {
-            schema = decoded
-        } else {
-            var logger: Logger {
-                Logger(label: "com.positronickit.shared.tools")
-            }
-            logger.warning(
-                "Failed to decode parametersSchema for tool '\(id)' — using empty schema. Raw: \(parametersSchema)"
-            )
-            // Fallback to empty object if conversion fails
-            schema = .object([:])
-        }
-
-        return .init(
-            function: .init(
-                name: id,
-                description: description,
-                parameters: schema
-            )
-        )
     }
 
     /// Wraps the current tool in an ``AnyTool`` container.
@@ -240,11 +207,6 @@ public struct AnyTool: Tool, Sendable {
     public func summarize(parameters: [String: Any], result: ToolResult) -> String {
         wrapped.summarize(parameters: parameters, result: result)
     }
-
-    public func toToolParam() -> ChatQuery.ChatCompletionToolParam {
-        wrapped.toToolParam()
-    }
-
     /// Returns the ``ToolReference`` for this tool, used for internal routing and event emission.
     public var toolReference: ToolReference {
         if let provider = wrapped as? ToolReferenceProviding {

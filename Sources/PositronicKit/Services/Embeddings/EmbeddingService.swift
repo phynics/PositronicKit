@@ -1,7 +1,8 @@
 import PKShared
 import Foundation
 
-/// Protocol for a service that can generate vector embeddings for text
+@available(*, deprecated, message: "Use EmbeddingServiceProtocol. This older protocol duplicates the embedding API with a different vector element type.")
+/// Legacy embedding protocol kept for source compatibility.
 public protocol EmbeddingService: Sendable {
     /// Generate embedding vector for a single string
     /// - Parameter text: The text to vectorize

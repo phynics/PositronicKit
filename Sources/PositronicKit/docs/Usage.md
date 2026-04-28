@@ -1,6 +1,6 @@
 # PositronicKitCore Usage Guide
 
-This guide provides step-by-step examples for integrating `ChatEngine` and managing `AgentInstance` within your application.
+This guide provides step-by-step examples for integrating `PositronicKitCore` and managing `AgentInstance` within your application.
 
 ## 1. Managing Agent Instances
 
@@ -13,9 +13,8 @@ To create a new agent instance, use the `createInstance` method. You can optiona
 ```swift
 import PositronicKit
 import PKShared
-import Dependencies
 
-@Dependency(\.agentInstanceManager) var manager
+let manager = AgentInstanceManager(repository: myWorkspaceRepository)
 
 // Create a new agent instance
 let instance = try await manager.createInstance(
@@ -66,12 +65,12 @@ let chat = PositronicKitCore(
     timelineManager: myTimelineManager,
     toolRouter: myToolRouter,
     agentInstanceStore: myAgentInstanceStore,
-    clientStore: myClientStore,
     timelinePersistence: myTimelinePersistence,
     workspacePersistence: myWorkspacePersistence,
     memoryStore: myMemoryStore,
     toolPersistence: myToolPersistence,
     agentTemplateStore: myAgentTemplateStore,
+    requestOriginStore: myRequestOriginStore,
     embeddingService: myEmbeddingService
 )
 ```
@@ -90,12 +89,12 @@ let chat = PositronicKitCore(
     timelineManager: myTimelineManager,
     toolRouter: myToolRouter,
     agentInstanceStore: myAgentInstanceStore,
-    clientStore: myClientStore,
     timelinePersistence: myTimelinePersistence,
     workspacePersistence: myWorkspacePersistence,
     memoryStore: myMemoryStore,
     toolPersistence: myToolPersistence,
     agentTemplateStore: myAgentTemplateStore,
+    requestOriginStore: myRequestOriginStore,
     embeddingService: myEmbeddingService
 )
 

@@ -33,7 +33,7 @@ public extension LLMServiceProtocol {
         let responseFormat = resolvedOutput?.responseFormat
 
         // Delegate to the configured provider implementation for streaming.
-        let toolParams = request.tools.isEmpty ? nil : request.tools.map { $0.toToolParam() }
+        let toolParams = request.tools.isEmpty ? nil : request.tools.map { $0.toOpenAIToolParam() }
         let stream = await chatStream(
             messages: messages,
             tools: toolParams,

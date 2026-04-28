@@ -33,10 +33,6 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
             case "runtime": self = .runtime
             case "runtimeTimeline": self = .runtimeTimeline
             case "attached": self = .attached
-            case "external": self = .attached
-            case "server": self = .runtime
-            case "serverTimeline": self = .runtimeTimeline
-            case "client": self = .attached
             default:
                 throw DecodingError.dataCorruptedError(
                     in: container,
@@ -105,58 +101,11 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         metadata: [String: AnyCodable] = [:]
     ) -> WorkspaceReference {
         WorkspaceReference(
-            uri: .serverTimeline(timelineId),
+            uri: .timelineWorkspace(timelineId),
             location: .runtime,
             rootPath: rootPath,
             trustLevel: .full,
             metadata: metadata
         )
     }
-}
-
-public extension WorkspaceReference {
-    typealias WorkspaceHostType = WorkspaceLocation
-
-    var hostType: WorkspaceLocation {
-        get { location }
-        set { location = newValue }
-    }
-
-    var ownerId: UUID? { originId }
-
-    init(
-        id: UUID = UUID(),
-        uri: WorkspaceURI,
-        hostType: WorkspaceLocation,
-        ownerId: UUID? = nil,
-        tools: [ToolReference] = [],
-        rootPath: String? = nil,
-        trustLevel: WorkspaceTrustLevel = .full,
-        lastModifiedBy: UUID? = nil,
-        status: WorkspaceStatus = .active,
-        metadata: [String: AnyCodable] = [:],
-        contextInjection: String? = nil,
-        createdAt: Date = Date()
-    ) {
-        self.init(
-            id: id,
-            uri: uri,
-            location: hostType,
-            originId: ownerId,
-            tools: tools,
-            rootPath: rootPath,
-            trustLevel: trustLevel,
-            lastModifiedBy: lastModifiedBy,
-            status: status,
-            metadata: metadata,
-            contextInjection: contextInjection,
-            createdAt: createdAt
-        )
-    }
-}
-
-public extension WorkspaceReference.WorkspaceLocation {
-    static var server: Self { .runtime }
-    static var serverTimeline: Self { .runtimeTimeline }
-    static var client: Self { .attached }
 }

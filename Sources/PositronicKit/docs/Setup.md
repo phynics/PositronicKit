@@ -4,34 +4,39 @@ This guide describes how to configure and use PositronicKitCore in your applicat
 
 ## 1. Dependency Configuration
 
-PositronicKitCore uses PointFree's `Dependencies` library. Before using any core services (like `ChatEngine`), you must configure the required dependencies. Accessing an unconfigured service will result in a `fatalError`.
+`PositronicKitCore` uses PointFree's `Dependencies` library internally, but normal consumers should configure the runtime through `PositronicKitCore` initializers rather than mutating `DependencyValues` directly.
 
 ### Required Services
-The two most critical services to configure are:
-1. `llmService`: Provides access to LLM providers (e.g., OpenAI).
-2. `messageStore`: Handles persistence of chat messages and turn data.
+The only required service is:
+1. `llmService`: Provides access to an LLM provider.
+
+Everything else has in-memory defaults suitable for local development and tests.
 
 ### Configuration Example
-To configure PositronicKitCore at app launch or within a specific task:
+Use the facade directly:
 
 ```swift
-import Dependencies
 import PositronicKit
+import PKShared
 
-// Override default unconfigured values in DependencyValues
-withDependencies {
-    $0.llmService = MyLLMServiceLive()
-    $0.messageStore = MyMessageStoreLive()
-} operation: {
-    // Services are now safely accessible here
-    let engine = ChatEngine()
-    // ...
-}
+let chat = PositronicKitCore(
+    llmService: MyLLMServiceLive(),
+    messageStore: MyMessageStoreLive(),
+    timelinePersistence: MyTimelineStoreLive(),
+    workspacePersistence: MyWorkspaceStoreLive(),
+    memoryStore: MyMemoryStoreLive(),
+    toolPersistence: MyToolStoreLive(),
+    agentInstanceStore: MyAgentStoreLive(),
+    requestOriginStore: MyRequestOriginStoreLive(),
+    agentTemplateStore: MyTemplateStoreLive()
+)
 ```
+
+Direct `withDependencies` configuration is still useful in tests or advanced internal integrations, but it is not the primary public integration path.
 
 ## 2. Setting Up a Pipeline
 
-While `ChatEngine` provides a default pipeline, you can create custom pipelines for specialized tasks.
+The runtime uses the generic `Pipeline` type internally for chat turns, prompt assembly, and context gathering. You can also use `Pipeline` directly for independent workflows.
 
 ### Step 1: Define Your Context and Events
 ```swift
@@ -75,4 +80,4 @@ for try await event in stream {
 
 - **Immutability**: Always treat the `Context` object as immutable. If you need to accumulate state during a pipeline run, use an `actor` for thread-safe mutations.
 - **Error Handling**: Implement custom errors that conform to `PKError` for consistent error reporting across the framework.
-- **Testing**: Use `withDependencies` in your unit tests to provide mock implementations of `LLMService` and `MessageStore`.
+- **Testing**: Use `withDependencies` in tests when you need to override internals, but prefer exercising `PositronicKitCore` through its public initializers where possible.

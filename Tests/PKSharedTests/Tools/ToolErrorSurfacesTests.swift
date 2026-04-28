@@ -16,6 +16,8 @@ final class ToolErrorSurfacesTests {
         let error = ToolError.attachedToolsDisallowedOnPrivateTimeline
         #expect(error.errorDomain == PKErrorDomain.tool)
         #expect(error.errorCode == 207)
+        #expect(!error.userFriendlyMessage.contains("attached-workspace"))
+        #expect(!((error.remediation ?? "").contains("attached-workspace")))
     }
 
     @Test

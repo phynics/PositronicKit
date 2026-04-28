@@ -24,7 +24,6 @@ let package = Package(
         .target(
             name: "PKShared",
             dependencies: [
-                .product(name: "OpenAI", package: "OpenAI"),
                 .product(name: "ErrorKit", package: "ErrorKit"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "JSONSchema", package: "swift-json-schema"),

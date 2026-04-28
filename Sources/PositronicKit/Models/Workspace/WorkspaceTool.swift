@@ -1,6 +1,7 @@
 import PKShared
 import Foundation
-/// Database model for a tool available in a workspace
+@available(*, deprecated, message: "Use ToolReference and WorkspaceToolDefinition directly. This storage wrapper is no longer used on the live runtime path.")
+/// Legacy database model for a tool available in a workspace.
 public struct WorkspaceTool: Codable, Sendable, Identifiable {
     public let id: UUID
     public let workspaceId: UUID

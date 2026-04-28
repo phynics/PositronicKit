@@ -4,6 +4,7 @@ import PKShared
 import Observation
 import OpenAI
 
+@available(*, deprecated, message: "Use the live chat streaming pipeline built around LLMStreamingStage, StreamingParser, and TurnOutputs.")
 @MainActor
 @Observable
 public final class StreamingCoordinator {

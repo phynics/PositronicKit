@@ -1,3 +1,4 @@
+import Dependencies
 import Foundation
 @testable import PositronicKit
 import PKPrompt
@@ -53,6 +54,64 @@ struct PositronicKitCoreTests {
 
         let didRun = await tracker.didRun
         #expect(didRun, "Custom stage should have been executed")
+    }
+
+    @Test
+    func runUsesTimelineContextManagerByDefault() async throws {
+        let mockLLM = MockLLMService()
+        let mockPersistence = MockPersistenceService()
+        let workspace = TestWorkspace()
+        let timelineManager = TimelineManager(
+            workspaceRoot: workspace.root,
+            workspaceCreator: MockWorkspaceCreator()
+        )
+
+        let timeline = try await withDependencies {
+            $0.timelinePersistence = mockPersistence
+            $0.workspacePersistence = mockPersistence
+            $0.memoryStore = mockPersistence
+            $0.messageStore = mockPersistence
+            $0.agentTemplateStore = mockPersistence
+            $0.requestOriginStore = mockPersistence
+            $0.toolPersistence = mockPersistence
+            $0.agentInstanceStore = mockPersistence
+        } operation: {
+            try await timelineManager.createTimeline(title: "Context Enabled")
+        }
+
+        mockLLM.mockClient.nextResponse = "Hello with context"
+
+        let chat = PositronicKitCore(
+            llmService: mockLLM,
+            messageStore: mockPersistence,
+            timelineManager: timelineManager,
+            agentInstanceStore: mockPersistence,
+            requestOriginStore: mockPersistence,
+            timelinePersistence: mockPersistence,
+            workspacePersistence: mockPersistence,
+            memoryStore: mockPersistence,
+            toolPersistence: mockPersistence,
+            agentTemplateStore: mockPersistence
+        )
+
+        let events = try await chat.run(
+            timelineId: timeline.id,
+            message: "Use default context manager"
+        ).collect()
+
+        guard let generationContext = events.first(where: {
+            if case .meta(event: .generationContext) = $0 { return true }
+            return false
+        }) else {
+            Issue.record("Expected generationContext event")
+            return
+        }
+
+        if case let .meta(event: .generationContext(metadata)) = generationContext {
+            #expect(!metadata.files.isEmpty, "Timeline-managed Notes should be discovered by default")
+        } else {
+            Issue.record("First matching event was not generationContext")
+        }
     }
 
     // MARK: - Helpers

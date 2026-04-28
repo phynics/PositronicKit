@@ -21,4 +21,4 @@ The standard implementation uses **GRDB.swift** with SQLite for robust, thread-s
 
 ### Composition
 
-While individual protocols are used for specific services, the `FullPersistenceService` typealias can be used when a component requires complete access to the database.
+Live runtime code depends on focused store protocols directly. `PositronicKitCore.PersistenceConfiguration` groups the commonly required stores for initialization, but runtime services should continue to depend on narrow protocols rather than a monolithic persistence facade.

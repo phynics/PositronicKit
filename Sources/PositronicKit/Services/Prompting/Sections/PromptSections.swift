@@ -214,17 +214,14 @@ public struct WorkspacesContext: Prompt {
         guard !allWorkspaces.isEmpty else { return output.isEmpty ? nil : output }
 
         output += "## Available Workspaces\n"
-        output += "You have access to the following attached workspaces natively within this session:\n\n"
+        output += "You have access to the following workspaces within this session:\n\n"
 
         for workspace in allWorkspaces {
-            let isPrimary = workspace.id == primaryWorkspace?.id
-
             output.append("- Workspace ID: `")
             output.append(workspace.id.uuidString)
             output.append("`\n  Location: `")
             output.append(workspace.uri.description)
-            output.append("`\n  Environment: ")
-            output.append(isPrimary ? "Primary\n" : "Attached\n")
+            output.append("`\n")
 
             if !workspace.tools.isEmpty {
                 output.append("  Available Tools:\n")

@@ -68,7 +68,7 @@ struct StructuredCompressionIntegrationTests {
         #expect(prompt.sections.map { $0.id } == ["changed_node"])
     }
 
-    @Test("Shared executor preserves summary cache across builds")
+    @Test("Shared executor re-summarizes repeated builds without a summary cache")
     func cachePreservedAcrossBuilds() async throws {
         struct Stage: PromptAssemblyStage {
             func execute(_ context: PromptAssemblyContext) async throws {
@@ -100,7 +100,7 @@ struct StructuredCompressionIntegrationTests {
         _ = try await PromptAssembler.assemble(request, options: options)
         _ = try await PromptAssembler.assemble(request, options: options)
 
-        #expect(await counter.value() == 1)
+        #expect(await counter.value() == 2)
     }
 
     @Test("Default node metadata hash changes when section content changes")

@@ -1,11 +1,12 @@
 import Foundation
 import JSONSchemaBuilder
 import OpenAI
+import PKShared
 import Testing
-@testable import PKShared
+@testable import PositronicKit
 
-@Suite struct ToolSerializationTests {
-
+@Suite("OpenAI tool conversion")
+struct OpenAIToolConversionTests {
     struct ComplexMockTool: PKShared.Tool {
         let id = "complex_tool"
         let name = "Complex Tool"
@@ -27,23 +28,19 @@ import Testing
         }
 
         func canExecute() async -> Bool { true }
+
         func execute(parameters: [String: Any]) async throws -> ToolResult {
             .success("Executed")
         }
     }
 
-    @Test("Test Tool.toToolParam encoding")
-    func testToToolParamSerialization() {
+    @Test("converts PKShared tool definitions into OpenAI tool params in PositronicKit")
+    func convertsToolToOpenAIParam() {
         let tool = ComplexMockTool()
-
-        // This should not crash or fallback to an empty dictionary
-        let param = tool.toToolParam()
+        let param = tool.toOpenAIToolParam()
 
         #expect(param.function.name == "complex_tool")
         #expect(param.function.description == "A tool with nested parameters")
-
-        // Verify the properties encoded correctly. 
-        // We know parametersSchema was processed cleanly if JSONSchema isn't empty.
 
         guard case .object(let properties) = param.function.parameters else {
             Issue.record("Parameters should be of type .object")
@@ -53,8 +50,6 @@ import Testing
         #expect(properties != [:], "Schema encoding failed, resulted in empty properties")
 
         let schemaString = String(data: try! JSONEncoder().encode(properties), encoding: .utf8)!
-
-        // Ensure complex types carried over
         #expect(schemaString.contains("\"query\""))
         #expect(schemaString.contains("\"count\""))
         #expect(schemaString.contains("\"recursive\""))

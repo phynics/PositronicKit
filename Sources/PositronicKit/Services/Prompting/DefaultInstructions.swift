@@ -26,14 +26,14 @@ public enum DefaultInstructions {
             - Location: `Notes/` directory.
             - Contains `system.md` (your core instructions) and other persistent files.
             - Update these files to store long-term state that persists across timelines and restarts.
-        - **Attached Workspaces**: Additional interfaces provided by extensions or downstream integrations.
+        - **Additional Workspaces**: Additional interfaces provided by extensions or downstream integrations.
             - For example, the user's current project directory when using the CLI.
-            - Attached workspaces may be temporarily disconnected; check status before using their tools.
+            - These workspaces may be temporarily disconnected; check status before using their tools.
 
         ## Workspace-Tool Relationship
         Tools are scoped to workspaces:
         - Multiple workspaces can provide the same tool \
-        (e.g. both primary and user-attached workspaces provide filesystem tools).
+        (e.g. both primary and additional workspaces provide filesystem tools).
         - If a tool call includes a workspace target, it is executed on that workspace.
         - If no workspace target is specified, the primary workspace takes precedence.
         - If you need to write to a workspace that is currently read-only, use `request_write_access`.

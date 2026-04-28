@@ -70,8 +70,11 @@ extension ChatEngine {
             agentInstance = try? await agentInstanceStore.fetchAgentInstance(id: agentId)
         }
 
+        let requestOriginId = workspaceResult?.primary?.originId
+            ?? workspaceResult?.attached.lazy.compactMap(\.originId).first
+
         var requestOriginName: String?
-        if let originId = workspaceResult?.primary?.originId,
+        if let originId = requestOriginId,
             let origin = try? await requestOriginStore.fetchOrigin(id: originId)
         {
             requestOriginName = origin.displayName

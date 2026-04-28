@@ -40,7 +40,7 @@ public enum ToolError: PKError, Sendable, Equatable {
         case .requestOriginUnavailable:
             return "The request origin associated with this tool is currently unavailable."
         case .attachedToolsDisallowedOnPrivateTimeline:
-            return "Private agent timelines do not support attached-workspace tools."
+            return "Private agent timelines do not support additional workspace tools."
         }
     }
 
@@ -61,12 +61,7 @@ public enum ToolError: PKError, Sendable, Equatable {
             return "Ensure the request origin for this workspace is reachable and registered with the runtime."
         case .attachedToolsDisallowedOnPrivateTimeline:
             return "Only runtime-managed tools are permitted on private timelines. " +
-                "Remove attached-workspace tools from the agent's configuration."
+                "Remove additional workspace tools from the agent's configuration."
         }
     }
-}
-
-public extension ToolError {
-    static var clientNotConnected: Self { .requestOriginUnavailable }
-    static var clientToolsDisallowedOnPrivateTimeline: Self { .attachedToolsDisallowedOnPrivateTimeline }
 }

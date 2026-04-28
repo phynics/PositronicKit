@@ -50,38 +50,6 @@ public struct LLMChatRequest: Sendable {
 
 }
 
-public extension LLMChatRequest {
-    init(
-        userQuery: String,
-        contextNotes: [ContextFile] = [],
-        memories: [Memory] = [],
-        chatHistory: [Message],
-        tools: [AnyTool],
-        workspaces: [WorkspaceReference],
-        primaryWorkspace: WorkspaceReference?,
-        clientName: String?,
-        systemInstructions: String? = nil,
-        structuredOutput: StructuredOutputRequest? = nil,
-        generationParameters: GenerationParameters? = nil,
-        useFastModel: Bool = false
-    ) {
-        self.init(
-            userQuery: userQuery,
-            contextNotes: contextNotes,
-            memories: memories,
-            chatHistory: chatHistory,
-            tools: tools,
-            workspaces: workspaces,
-            primaryWorkspace: primaryWorkspace,
-            requestOriginName: clientName,
-            systemInstructions: systemInstructions,
-            structuredOutput: structuredOutput,
-            generationParameters: generationParameters,
-            useFastModel: useFastModel
-        )
-    }
-}
-
 /// The result of a high-level LLM chat stream request.
 public struct LLMStreamResult: Sendable {
     public let stream: AsyncThrowingStream<ChatStreamResult, Error>

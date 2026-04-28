@@ -254,6 +254,19 @@ struct GetWorkspacesTests {
         }
     }
 
+    @Test("createTimeline exposes its runtime workspace as primary")
+    func createTimelinePrimaryWorkspace() async throws {
+        try await withFixture { fix in
+            let timeline = try await fix.manager.createTimeline()
+
+            let workspaces = await fix.manager.getWorkspaces(for: timeline.id)
+
+            #expect(workspaces?.primary != nil)
+            #expect(workspaces?.primary?.location == .runtime)
+            #expect(workspaces?.attached.isEmpty == true)
+        }
+    }
+
     @Test("reflects attach then detach in sequence")
     func attachThenDetach() async throws {
         try await withFixture { fix in
@@ -366,7 +379,7 @@ struct WorkspaceRoundTripTests {
             try await fix.manager.detachWorkspace(fix.extraWS.id, from: timeline.id)
 
             let workspaces = await fix.manager.getWorkspaces(for: timeline.id)
-            #expect(workspaces?.primary == nil)
+            #expect(workspaces?.primary?.location == .runtime)
             let attached = workspaces?.attached ?? []
             #expect(!attached.contains { $0.id == fix.runtimeWS.id })
             #expect(!attached.contains { $0.id == fix.clientWS.id })

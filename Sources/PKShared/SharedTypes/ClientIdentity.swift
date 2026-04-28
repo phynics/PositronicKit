@@ -29,8 +29,6 @@ public struct RequestOriginIdentity: Codable, Sendable, Identifiable {
 
     /// Default shell workspace URI for this origin.
     public var shellWorkspaceURI: WorkspaceURI {
-        WorkspaceURI.clientShell(hostname: hostname)
+        WorkspaceURI.requestOriginShell(hostname: hostname)
     }
 }
-
-public typealias ClientIdentity = RequestOriginIdentity

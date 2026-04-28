@@ -2,7 +2,8 @@ import Foundation
 import PKShared
 import OpenAI
 
-/// Protocol for defining tools that can be called by the AI
+@available(*, deprecated, message: "Use Tool, AnyTool, and Tool+OpenAI for provider-facing tool definitions.")
+/// Legacy protocol for defining tools that can be called by the AI.
 public protocol ToolDefinition {
     /// The name of the tool
     static var name: String { get }
@@ -17,7 +18,8 @@ public protocol ToolDefinition {
     func execute(arguments: [String: Any]) async throws -> String
 }
 
-/// Helper for converting tool definitions to OpenAI format
+@available(*, deprecated, message: "Use Tool+OpenAI for provider-facing conversion.")
+/// Legacy helper for converting tool definitions to OpenAI format.
 public enum ToolConverter {
     public static func convert(_ tool: ToolDefinition.Type) -> ChatQuery.ChatCompletionToolParam {
         let function = ChatQuery.ChatCompletionToolParam.FunctionDefinition(
@@ -32,6 +34,7 @@ public enum ToolConverter {
 
 // MARK: - Example Tool Definitions
 
+@available(*, deprecated, message: "Example-only legacy tool definition.")
 /// Example: Get current time
 public struct GetCurrentTimeTool: ToolDefinition {
     public static let name = "get_current_time"
@@ -65,6 +68,7 @@ public struct GetCurrentTimeTool: ToolDefinition {
     }
 }
 
+@available(*, deprecated, message: "Example-only legacy tool definition.")
 /// Example: Calculate math expression
 public struct CalculatorTool: ToolDefinition {
     public static let name = "calculator"

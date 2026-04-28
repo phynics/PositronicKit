@@ -1,18 +1,18 @@
 import PKShared
 # ``PositronicKitCore``
 
-The foundational logic and state management framework for PositronicKit AI Assistant.
+The transport-neutral runtime facade for PositronicKit.
 
 ## Overview
 
-PositronicKitCore provides the core engine for timeline management, context gathering, tool execution, and persistence. It is designed to be highly modular and decoupled, enabling easy testing and integration with various LLM providers.
+PositronicKitCore provides the public runtime entry point for timeline management, prompt assembly, context gathering, tool execution, and persistence. It injects runtime dependencies internally so downstream applications integrate through normal Swift initializers instead of configuring the dependency container directly.
 
 ### Key Components
 
 - **ChatEngine**: Orchestrates the interaction between users, agent templates, and LLMs.
 - **ContextManager**: Handles semantic retrieval and context window optimization.
-- **Persistence Layer**: A suite of domain-specific protocols for SQLite/GRDB storage.
-- **Tool System**: Type-safe DSL for defining and executing AI tools.
+- **Persistence Layer**: A suite of domain-specific store protocols.
+- **Tool System**: Runtime-managed and host-attached tool routing over shared tool contracts.
 
 ## Topics
 

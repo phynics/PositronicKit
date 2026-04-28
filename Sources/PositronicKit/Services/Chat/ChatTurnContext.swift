@@ -135,7 +135,7 @@ public struct ChatTurnContext: Sendable {
 
     /// Tool parameters derived from availableTools.
     public var toolParams: [ChatQuery.ChatCompletionToolParam] {
-        availableTools.map { $0.toToolParam() }
+        availableTools.map { $0.toOpenAIToolParam() }
     }
 
     /// Creates a new snapshot for the next turn while keeping the same session config.

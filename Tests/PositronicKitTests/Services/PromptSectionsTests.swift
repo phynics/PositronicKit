@@ -101,42 +101,18 @@ struct WorkspacesContextTests {
 
     // MARK: Environment labels
 
-    @Test("non-primary workspace shows Attached label")
-    func nonPrimaryShowsAttachedLabel() async {
+    @Test("workspace section uses neutral workspace wording")
+    func workspaceSectionUsesNeutralWording() async {
         let section = WorkspacesContext(
             workspaces: [makeAttachedWS()],
             primaryWorkspace: nil,
             requestOriginName: nil
         )
         let output = await section.render() ?? ""
-        #expect(output.contains("Environment: Attached"))
-    }
-
-    @Test("primary workspace shows Primary label")
-    func primaryShowsPrimaryLabel() async {
-        let primary = makeRuntimeWS()
-        let section = WorkspacesContext(
-            workspaces: [],
-            primaryWorkspace: primary,
-            requestOriginName: nil
-        )
-        let output = await section.render() ?? ""
-        #expect(output.contains("Environment: Primary"))
+        #expect(output.contains("You have access to the following workspaces within this session:"))
+        #expect(!output.contains("attached workspaces"))
         #expect(!output.contains("Environment: Attached"))
-    }
-
-    @Test("primary + attached: primary labeled Primary, attached labeled Attached")
-    func primaryAndAttachedLabels() async {
-        let primary = makeRuntimeWS()
-        let attached = makeAttachedWS()
-        let section = WorkspacesContext(
-            workspaces: [attached],
-            primaryWorkspace: primary,
-            requestOriginName: nil
-        )
-        let output = await section.render() ?? ""
-        #expect(output.contains("Environment: Primary"))
-        #expect(output.contains("Environment: Attached"))
+        #expect(!output.contains("Environment: Primary"))
     }
 
     // MARK: Deduplication

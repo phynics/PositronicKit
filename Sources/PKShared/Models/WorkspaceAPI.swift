@@ -25,29 +25,6 @@ public struct CreateWorkspaceRequest: Codable, Sendable {
     }
 }
 
-public extension CreateWorkspaceRequest {
-    var hostType: WorkspaceReference.WorkspaceLocation { location }
-    var ownerId: UUID? { originId }
-
-    init(
-        uri: String,
-        hostType: WorkspaceReference.WorkspaceLocation,
-        ownerId: UUID?,
-        rootPath: String?,
-        trustLevel: WorkspaceTrustLevel?,
-        tools: [ToolReference] = []
-    ) {
-        self.init(
-            uri: uri,
-            location: hostType,
-            originId: ownerId,
-            rootPath: rootPath,
-            trustLevel: trustLevel,
-            tools: tools
-        )
-    }
-}
-
 public struct RegisterToolRequest: Codable, Sendable {
     public let tool: ToolReference
 

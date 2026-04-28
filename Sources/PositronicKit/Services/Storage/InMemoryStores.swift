@@ -222,7 +222,7 @@ public actor InMemoryToolPersistence: ToolPersistenceProtocol {
         else { return nil }
 
         if workspace.location == .attached {
-            return "Attached Workspace"
+            return "Additional Workspace"
         } else if workspace.id == primaryWorkspaceId {
             return "Primary Workspace"
         } else {
@@ -294,9 +294,6 @@ public actor InMemoryRequestOriginStore: RequestOriginStoreProtocol {
         return origins.count < count
     }
 
-    public func fetchOriginTools(originId _: UUID) async throws -> [ToolReference] {
-        []
-    }
 }
 
 // MARK: - InMemoryAgentTemplateStore

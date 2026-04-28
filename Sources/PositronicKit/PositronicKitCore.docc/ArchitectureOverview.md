@@ -1,24 +1,20 @@
 import PKShared
 # Architecture Overview
 
-Deep dive into the PositronicKitCore system design.
+Deep dive into the current PositronicKitCore runtime design.
 
 ## Modularity
 
-PositronicKitCore follows a strict protocol-based architecture. Every major service is defined by a protocol, allowing for easy mocking during development and testing.
+PositronicKitCore keeps transport-neutral runtime orchestration in `PositronicKit`, shared contracts in `PKShared`, and prompt composition/rendering in `PKPrompt`.
 
 ## Dependency Injection
 
-We use the `swift-dependencies` library to manage shared state and service instances. This ensures that services like `PersistenceService` or `LLMService` can be swapped globally within a specific context.
+The runtime uses `swift-dependencies` internally so its orchestration services can collaborate without leaking dependency container setup into downstream applications.
 
 ### Example Usage
 
 ```swift
-@Dependency(\.persistenceService) var persistence
-
-func save() async throws {
-    try await persistence.saveMemory(myMemory)
-}
+let chat = PositronicKitCore(llmService: myLLM)
 ```
 
 ## Data Flow
@@ -27,4 +23,4 @@ func save() async throws {
 2. **Context Gathering**: `ContextManager` retrieves relevant memories and filesystem notes.
 3. **Prompt Construction**: `PKPrompt` DSL builds a provider-specific prompt.
 4. **Execution**: `LLMService` communicates with the AI provider.
-5. **Tool Routing**: If the AI calls a tool, `ToolRouter` dispatches the execution.
+5. **Tool Routing**: If the AI calls a tool, `ToolRouter` executes runtime-managed tools and defers attached tools for host-side execution when needed.

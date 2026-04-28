@@ -1,7 +1,16 @@
+import Foundation
 import PKPrompt
 import PKShared
 import Testing
 @testable import PositronicKit
+
+private func makePromptWorkspace(id: UUID = UUID(), path: String) -> WorkspaceReference {
+    WorkspaceReference(
+        id: id,
+        uri: WorkspaceURI(host: "test-host", path: path),
+        location: .attached
+    )
+}
 
 private struct TimelineSection: Prompt {
     let id: String
@@ -184,5 +193,40 @@ actor TimelinePromptHistoryTests {
         #expect(diff.stableNodePaths == [sections[1].path])
         #expect(diff.addedNodePaths.isEmpty)
         #expect(diff.removedNodePaths.isEmpty)
+    }
+
+    @Test("Changing attached workspaces only invalidates the workspaces section")
+    func changingWorkspacesOnlyInvalidatesWorkspaceSection() async throws {
+        let history = TimelinePromptHistory()
+
+        let requestV1 = LLMPromptRequest(
+            userQuery: "Current question",
+            chatHistory: [],
+            tools: [],
+            workspaces: [makePromptWorkspace(path: "/repo-a")],
+            primaryWorkspace: nil,
+            requestOriginName: nil
+        )
+        let requestV2 = LLMPromptRequest(
+            userQuery: "Current question",
+            chatHistory: [],
+            tools: [],
+            workspaces: [
+                makePromptWorkspace(path: "/repo-a"),
+                makePromptWorkspace(path: "/repo-b"),
+            ],
+            primaryWorkspace: nil,
+            requestOriginName: nil
+        )
+
+        let initialPrompt = try await PromptAssembler.assemble(requestV1)
+        _ = await history.record(prompt: initialPrompt)
+
+        let updatedPrompt = try await PromptAssembler.assemble(requestV2)
+        let diff = await history.record(prompt: updatedPrompt)
+
+        #expect(diff.changed.map { $0.entryId } == ["workspaces"])
+        #expect(diff.added.isEmpty)
+        #expect(diff.removed.isEmpty)
     }
 }

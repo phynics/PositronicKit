@@ -9,7 +9,7 @@ import PKShared
 ///
 /// The `TimelineManager` is responsible for the lifecycle of `Timeline` objects,
 /// including their creation, hydration from persistence, and cleanup. It also coordinates
-/// timeline-specific components like `ContextManager` and `ToolExecutor`.
+/// timeline-specific components like `ContextManager` and `TimelineToolManager`.
 public actor TimelineManager {
     // MARK: - State
 
@@ -22,12 +22,6 @@ public actor TimelineManager {
     /// Tool managers handling tool registration and availability for each timeline.
     var toolManagers: [UUID: TimelineToolManager] = [:]
 
-    /// Tool executors that perform the actual tool calls for each timeline.
-    var toolExecutors: [UUID: ToolExecutor] = [:]
-
-    /// State management for tool execution context within a timeline.
-    var toolContextTimelines: [UUID: ToolTimelineContext] = [:]
-
     /// Ongoing generation tasks for each timeline.
     var activeTasks: [UUID: Task<Void, Never>] = [:]
 
@@ -36,13 +30,8 @@ public actor TimelineManager {
     @Dependency(\.timelinePersistence) var timelineStore
     @Dependency(\.messageStore) var messageStore
     @Dependency(\.workspacePersistence) var workspaceStore
-    @Dependency(\.memoryStore) var memoryStore
     @Dependency(\.toolPersistence) var toolPersistence
-    @Dependency(\.agentTemplateStore) var agentTemplateStore
-    @Dependency(\.requestOriginStore) var requestOriginStore
-    @Dependency(\.agentInstanceStore) var agentInstanceStore
 
-    let vectorStore: (any VectorStoreProtocol)?
     let workspaceRoot: URL
     public let workspaceManager: any WorkspaceManagerProtocol
     let sectionProviders: [any PromptSectionProviding]
@@ -50,12 +39,10 @@ public actor TimelineManager {
     // MARK: - Initialization
 
     public init(
-        vectorStore: (any VectorStoreProtocol)? = nil,
         workspaceRoot: URL,
         workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = []
     ) {
-        self.vectorStore = vectorStore
         self.workspaceRoot = workspaceRoot
         self.sectionProviders = sectionProviders
 
@@ -104,7 +91,6 @@ public actor TimelineManager {
         contextManagers[timeline.id] = contextManager
 
         let toolContextTimeline = ToolTimelineContext()
-        toolContextTimelines[timeline.id] = toolContextTimeline
 
         let toolManager = await createToolManager(
             for: timeline, jailRoot: workspaceURL.path,
@@ -118,12 +104,6 @@ public actor TimelineManager {
                 await toolManager.registerWorkspace(workspace)
             }
         }
-
-        let toolExecutor = ToolExecutor(
-            toolManager: toolManager,
-            timelineContext: toolContextTimeline
-        )
-        toolExecutors[timeline.id] = toolExecutor
     }
 
     // MARK: - Task Management
@@ -160,7 +140,7 @@ public extension TimelineManager {
         try writeDefaultNotes(at: timelineWorkspaceURL)
 
         let workspace = WorkspaceReference(
-            uri: .serverTimeline(timelineId),
+            uri: .timelineWorkspace(timelineId),
             location: .runtime,
             rootPath: timelineWorkspaceURL.path,
             trustLevel: .full
@@ -184,7 +164,7 @@ public extension TimelineManager {
 
     /// Reconstructs a timeline and its components from persistence.
     func hydrateTimeline(id: UUID, parentId: UUID? = nil) async throws {
-        if toolExecutors[id] != nil { return }
+        if toolManagers[id] != nil { return }
 
         guard let timeline = try await timelineStore.fetchTimeline(id: id) else {
             throw TimelineError.timelineNotFound
@@ -232,8 +212,6 @@ public extension TimelineManager {
         timelines.removeValue(forKey: id)
         contextManagers.removeValue(forKey: id)
         toolManagers.removeValue(forKey: id)
-        toolExecutors.removeValue(forKey: id)
-        toolContextTimelines.removeValue(forKey: id)
     }
 
     /// Removes active timelines from memory that have not been updated within the specified interval.
@@ -309,11 +287,6 @@ public extension TimelineManager {
         return contextManagers[timelineId]
     }
 
-    /// Retrieves the tool executor for a timeline if it is active.
-    func getToolExecutor(for timelineId: UUID) -> ToolExecutor? {
-        return toolExecutors[timelineId]
-    }
-
     /// Retrieves the tool manager for a timeline if it is active.
     func getToolManager(for timelineId: UUID) -> TimelineToolManager? {
         return toolManagers[timelineId]
@@ -330,54 +303,6 @@ public extension TimelineManager {
         return try await timelineStore.fetchAllTimelines(includeArchived: false)
     }
 
-    // MARK: - Agent Support
-
-    /// Returns the agent instance attached to a timeline, cleaning up dangling references.
-    func getAttachedAgentInstance(for timelineId: UUID) async -> AgentInstance? {
-        let agentId: UUID?
-        if let cached = timelines[timelineId] {
-            agentId = cached.attachedAgentInstanceId
-        } else if let fetched = try? await timelineStore.fetchTimeline(id: timelineId) {
-            agentId = fetched.attachedAgentInstanceId
-        } else {
-            return nil
-        }
-
-        guard let agentId else { return nil }
-
-        if let agent = try? await agentInstanceStore.fetchAgentInstance(id: agentId) {
-            return agent
-        }
-
-        // Dangling reference cleanup
-        await cleanupDanglingAgentReference(timelineId: timelineId, agentId: agentId)
-        return nil
-    }
-
-    /// Reads Notes/system.md from the attached agent's workspace, if any.
-    func getAgentSystemInstructions(for timelineId: UUID) async -> String? {
-        guard let agent = await getAttachedAgentInstance(for: timelineId),
-              let workspaceId = agent.primaryWorkspaceId,
-              let workspace = try? await workspaceStore.fetchWorkspace(id: workspaceId, includeTools: false),
-              let rootPath = workspace.rootPath
-        else { return nil }
-
-        let systemMdPath = rootPath + "/Notes/system.md"
-        return try? String(contentsOfFile: systemMdPath, encoding: .utf8)
-    }
-
-    // MARK: - Private Agent Helpers
-
-    internal func cleanupDanglingAgentReference(timelineId: UUID, agentId: UUID) async {
-        if var stale = try? await timelineStore.fetchTimeline(id: timelineId) {
-            stale.attachedAgentInstanceId = nil
-            try? await timelineStore.saveTimeline(stale)
-            timelines[timelineId] = stale
-            Logger.module(named: "timeline-manager").warning(
-                "Cleared dangling agent \(agentId) reference on timeline \(timelineId)"
-            )
-        }
-    }
 }
 
 // MARK: - Tool Management
@@ -428,55 +353,10 @@ public extension TimelineManager {
         )
     }
 
-    /// Returns the set of system tools available to any session, using the workspace root as a
-    /// placeholder path. Intended for metadata queries (listing), not actual execution.
-    func systemTools() async -> [AnyTool] {
-        let jailRoot = workspaceRoot.path
-        let dummyId = UUID()
-        let toolTimelineContext = ToolTimelineContext()
-        let dummyTimeline = Timeline(id: dummyId, workingDirectory: jailRoot)
-        let manager = await createToolManager(
-            for: dummyTimeline,
-            jailRoot: jailRoot,
-            toolContextTimeline: toolTimelineContext
-        )
-        return await manager.getAvailableTools()
-    }
-
     func findWorkspaceForTool(_ tool: ToolReference, in workspaceIds: [UUID]) async throws
         -> UUID?
     {
         return try await toolPersistence.findWorkspaceId(forToolId: tool.toolId, in: workspaceIds)
-    }
-
-    func getAggregatedTools(for timelineId: UUID) async throws -> [ToolReference] {
-        guard let timeline = timelines[timelineId] else { return [] }
-
-        let workspaceIds = timeline.attachedWorkspaceIds
-        guard !workspaceIds.isEmpty else { return [] }
-
-        return try await toolPersistence.fetchTools(forWorkspaces: workspaceIds)
-    }
-
-    func getRequestOriginTools(originId: UUID) async throws -> [ToolReference] {
-        return try await requestOriginStore.fetchOriginTools(originId: originId)
-    }
-
-    /// Aggregates all available tool references for a session, including externally hosted tools.
-    func getAllToolReferences(timelineId: UUID, requestOriginTools: [ToolReference]? = nil) async throws -> [ToolReference] {
-        var references = try await getAggregatedTools(for: timelineId)
-
-        if let requestOriginTools = requestOriginTools {
-            references.append(contentsOf: requestOriginTools)
-        }
-
-        // Deduplicate by ID
-        var seenIds = Set<String>()
-        return references.filter { ref in
-            if seenIds.contains(ref.toolId) { return false }
-            seenIds.insert(ref.toolId)
-            return true
-        }
     }
 
     func getToolSource(toolId: String, for timelineId: UUID) async -> String? {
@@ -565,38 +445,32 @@ public extension TimelineManager {
             return nil
         }
 
+        var primary: WorkspaceReference?
         var attached: [WorkspaceReference] = []
         for aid in attachedIds {
-            if var workspace = try? await getWorkspace(aid) {
-                if workspace.location == .runtime, let path = workspace.rootPath {
-                    if !FileManager.default.fileExists(atPath: path) {
-                        workspace.status = .missing
-                    }
+            if let workspace = try? await getWorkspace(aid) {
+                let normalizedWorkspace = normalizeWorkspaceStatus(workspace)
+
+                if primary == nil,
+                   normalizedWorkspace.location == .runtime || normalizedWorkspace.location == .runtimeTimeline {
+                    primary = normalizedWorkspace
+                } else {
+                    attached.append(normalizedWorkspace)
                 }
-                attached.append(workspace)
             }
         }
 
-        return (nil, attached)
+        return (primary, attached)
     }
 
-    func restoreWorkspace(_ id: UUID) async throws {
-        guard let workspace = try await getWorkspace(id) else {
-            throw TimelineError.timelineNotFound
+    private func normalizeWorkspaceStatus(_ workspace: WorkspaceReference) -> WorkspaceReference {
+        var normalizedWorkspace = workspace
+        if normalizedWorkspace.location == .runtime,
+           let path = normalizedWorkspace.rootPath,
+           !FileManager.default.fileExists(atPath: path) {
+            normalizedWorkspace.status = .missing
         }
-
-        if workspace.location == .runtime, let path = workspace.rootPath {
-            let timelineWorkspaceURL = URL(fileURLWithPath: path)
-            let fileManager = FileManager.default
-            if !fileManager.fileExists(atPath: path) {
-                try fileManager.createDirectory(at: timelineWorkspaceURL, withIntermediateDirectories: true)
-
-                if workspace.uri.host == "pk-runtime", workspace.uri.path.hasPrefix("/timelines/") {
-                    let notesDir = timelineWorkspaceURL.appendingPathComponent("Notes", isDirectory: true)
-                    try? fileManager.createDirectory(at: notesDir, withIntermediateDirectories: true)
-                }
-            }
-        }
+        return normalizedWorkspace
     }
 
     func getWorkspace(_ id: UUID) async throws -> WorkspaceReference? {

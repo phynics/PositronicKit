@@ -1,6 +1,6 @@
 # PositronicKitCore
 
-PositronicKitCore is the core orchestration library for the PositronicKit platform. It provides the infrastructure for autonomous agent execution, chat turn management, and tool routing.
+PositronicKitCore is the transport-neutral runtime facade for PositronicKit. It orchestrates chat turns, prompt assembly, tool routing, timelines, workspaces, and persistence without requiring downstream callers to interact with `swift-dependencies` directly.
 
 ## Documentation
 
@@ -10,8 +10,8 @@ PositronicKitCore is the core orchestration library for the PositronicKit platfo
 
 ## Key Components
 
-### PositronicKitCore (Chat Facade)
-The interface boundary for PositronicKitCore. Accepts all required services as init parameters and internally orchestrates the chat lifecycle — context gathering, LLM interaction, tool execution, and state persistence.
+### PositronicKitCore (Runtime Facade)
+The public interface boundary for the runtime. It accepts required services as init parameters and injects them internally, so downstream applications use a normal Swift API instead of configuring `DependencyValues` around `ChatEngine`.
 
 ### AgentInstance
 Represents a live, persistent agent entity. Each instance has its own private workspace (long-term memory) and private timeline (internal monologue).
@@ -30,19 +30,17 @@ import PKShared
 // Minimal — all stores default to in-memory:
 let chat = PositronicKitCore(llmService: myLLM)
 
-// Production — with grouped persistence:
+// Production — explicit persistence stores:
 let chat = PositronicKitCore(
     llmService: myLLM,
-    persistence: .init(
-        messageStore: myMessageStore,
-        timelinePersistence: myTimelinePersistence,
-        workspacePersistence: myWorkspacePersistence,
-        memoryStore: myMemoryStore,
-        toolPersistence: myToolPersistence,
-        agentInstanceStore: myAgentInstanceStore,
-        clientStore: myClientStore,
-        agentTemplateStore: myAgentTemplateStore
-    ),
+    messageStore: myMessageStore,
+    timelinePersistence: myTimelinePersistence,
+    workspacePersistence: myWorkspacePersistence,
+    memoryStore: myMemoryStore,
+    toolPersistence: myToolPersistence,
+    agentInstanceStore: myAgentInstanceStore,
+    requestOriginStore: myRequestOriginStore,
+    agentTemplateStore: myAgentTemplateStore,
     embeddingService: myEmbeddingService,
     timelineManager: myTimelineManager
 )

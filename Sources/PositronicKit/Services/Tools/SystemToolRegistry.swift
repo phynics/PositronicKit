@@ -2,7 +2,8 @@ import Foundation
 import PKShared
 import OpenAI
 
-/// Registry for built-in system tools within the PositronicKit framework
+@available(*, deprecated, message: "Use AnyTool and Tool+OpenAI provider conversion on the live runtime path.")
+/// Legacy registry for built-in system tools.
 public struct SystemToolRegistry: Sendable {
     public static let shared = SystemToolRegistry()
 

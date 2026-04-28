@@ -1,7 +1,8 @@
 import Foundation
 import JSONSchemaBuilder
 
-/// A tool used by the LLM to request permission to modify files in the active workspace.
+@available(*, deprecated, message: "Downstream hosts should model write-access escalation explicitly instead of relying on this legacy tool stub.")
+/// A legacy tool used by the LLM to request permission to modify files in the active workspace.
 /// When executed downstream, this triggers a user prompt to upgrade the workspace trust level.
 public struct RequestWriteAccessTool: Tool {
     public let id = "request_write_access"
