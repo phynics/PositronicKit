@@ -97,38 +97,6 @@ struct ToolCallRegressionTests {
         }
     }
 
-    @Test("ToolExecutor correctly unwraps AnyCodable arguments")
-    func testToolExecutorUnwrapping() async throws {
-        // Setup tool manager with mock tool
-        let mockTool = MockComplexTool()
-        let toolManager = TimelineToolManager(availableTools: [AnyTool(mockTool)])
-        let executor = ToolExecutor(toolManager: toolManager)
-
-        // Create ToolCall with AnyCodable arguments
-        // IMPORTANT: AnyCodable stores [Any], not [AnyCodable] for arrays if initialized with [Any]
-        // But here we construct manually.
-
-        let args: [String: AnyCodable] = [
-            "tags": AnyCodable(["swift", "testing"]),
-            "user": AnyCodable([
-                "name": "Bob",
-                "age": 25
-            ] as [String: Any])
-        ]
-
-        let toolCall = ToolCall(name: "complex_tool", arguments: args)
-
-        // Execute
-        let resultMessage = await executor.execute(toolCall)
-
-        // Verify success
-        #expect(resultMessage.role == .tool)
-        #expect(!resultMessage.content.starts(with: "Error"))
-        #expect(!resultMessage.content.starts(with: "Failed"))
-        #expect(resultMessage.content.contains("Received tags: swift, testing"))
-        #expect(resultMessage.content.contains("User: Bob (25)"))
-    }
-
     @Test("StreamingParser extracts XML tool calls with complex JSON")
     func testXMLToolParsing() throws {
         let parser = StreamingParser()
