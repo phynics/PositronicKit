@@ -12,10 +12,10 @@ import Foundation
 /// }
 /// ```
 public struct PromptForEach<Content: Prompt>: Prompt, PromptNodeConvertible {
-    package let children: [PromptBuilder.Partial]
+    package let children: [AnyPrompt]
     package let iterationPathComponents: [String]
 
-    package init(children: [PromptBuilder.Partial], iterationPathComponents: [String]) {
+    package init(children: [AnyPrompt], iterationPathComponents: [String]) {
         self.children = children
         self.iterationPathComponents = iterationPathComponents
     }
@@ -76,7 +76,7 @@ public struct PromptForEach<Content: Prompt>: Prompt, PromptNodeConvertible {
     package func makePromptNode() -> PromptNode? {
         let nodes: [PromptNode] = zip(children, iterationPathComponents).compactMap { pair in
             let (child, pathComponent) = pair
-            guard let node = child.node else {
+            guard let node = PromptAssembly.makeNode(from: child) else {
                 return nil
             }
             return PromptNode(pathComponent: pathComponent, .fork([node]))

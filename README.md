@@ -174,7 +174,7 @@ Cache policies drive the journaling behavior:
 
 ### PromptBuilder Notes
 
-`PromptBuilder` lowers authored prompt syntax directly into `PromptNode` — the canonical internal IR — without creating intermediate wrapper types.
+`PromptBuilder` normalizes authored prompt syntax into structural `Prompt` values. `PromptAssembly` then lowers those values into `PromptNode` — the canonical internal IR.
 
 - Use `AnyPrompt.build { ... }` for an explicit root container.
 - Plain `for` loops use positional identity (`item_0`, `item_1`, ...).

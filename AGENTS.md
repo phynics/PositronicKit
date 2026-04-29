@@ -50,7 +50,7 @@ make clean
 
 ## PKPrompt Invariants
 
-- `PromptNode` = canonical internal IR. `PromptBuilder` lowers `Prompt` values directly to nodes.
+- `PromptNode` = canonical internal IR. `PromptBuilder` first composes structural `Prompt` values; `PromptAssembly` lowers them to nodes.
 - `AssembledPrompt` = validated section artifact. `RenderedPrompt` = canonical render output.
 - `PromptJournal` = prompt-history primitive. Cache policies determine lifecycle: stable → materialized base, semi-stable → overlays until `compact()`, volatile → current-only, stable mutations → hard reset.
 - Author prompts via `var body: some Prompt`, composing `SystemPrompt`, `TextPrompt`, `UserPrompt`, `HistoryPrompt`, and custom `Prompt` types.

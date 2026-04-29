@@ -1,7 +1,7 @@
 import Foundation
 import PKShared
 
-/// A transparent root container for prompt sections that resolves to the concatenated output of its children.
+/// A transparent prompt container that resolves to the concatenated output of its children.
 public struct AnyPrompt: Prompt, PromptNodeConvertible {
     /// The prompt values contained in the root container.
     package let prompts: [any Prompt]
@@ -17,7 +17,12 @@ public struct AnyPrompt: Prompt, PromptNodeConvertible {
     ///
     /// - Parameter content: A builder that produces the section content for the container.
     public init(@PromptBuilder _ content: () -> some Prompt) {
-        self.prompts = [content()]
+        let prompt = content()
+        if let prompt = prompt as? AnyPrompt {
+            self.prompts = prompt.prompts
+        } else {
+            self.prompts = [prompt]
+        }
     }
 
     /// A placeholder body because ``AnyPrompt`` resolves through its contained sections directly.

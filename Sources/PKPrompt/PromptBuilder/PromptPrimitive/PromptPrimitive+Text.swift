@@ -4,12 +4,12 @@ import PKShared
 extension PromptPrimitives {
     package struct Text: PromptPrimitive {
         package let id: String
-        package let text: String
         package let role: PromptSectionRole
         package let priority: Int
         package let compression: CompressionStrategy
         package let cachePolicy: CachePolicy
         private let estimatedTokenOverride: Int?
+        private let renderText: @Sendable () async -> String?
 
         package init(
             id: String,
@@ -21,16 +21,34 @@ extension PromptPrimitives {
             estimatedTokens: Int? = nil
         ) {
             self.id = id
-            self.text = text
             self.role = role
             self.priority = priority
             self.compression = compression
             self.cachePolicy = cachePolicy
             self.estimatedTokenOverride = estimatedTokens
+            self.renderText = { text }
+        }
+
+        package init(
+            id: String,
+            role: PromptSectionRole = .context,
+            priority: Int = 50,
+            compression: CompressionStrategy = .keep,
+            cachePolicy: CachePolicy = .volatile,
+            estimatedTokens: Int? = nil,
+            render: @escaping @Sendable () async -> String?
+        ) {
+            self.id = id
+            self.role = role
+            self.priority = priority
+            self.compression = compression
+            self.cachePolicy = cachePolicy
+            self.estimatedTokenOverride = estimatedTokens
+            self.renderText = render
         }
 
         package func renderContent() async -> String? {
-            guard !text.isEmpty else { return nil }
+            guard let text = await renderText(), !text.isEmpty else { return nil }
             return text
         }
 

@@ -40,4 +40,21 @@ struct PromptTests {
         #expect(resolved.count == 2)
         #expect(resolved[0].id == "s2")
     }
+
+    @Test("PromptBuilder returns structural prompt values before node lowering")
+    func promptBuilderReturnsStructuralPromptValues() {
+        @PromptBuilder
+        func build() -> some Prompt {
+            TextPrompt("A", id: "s1")
+            TextPrompt("B", id: "s2")
+        }
+
+        let built = build()
+        let prompt = built as? AnyPrompt
+
+        #expect(prompt != nil)
+        #expect(prompt?.prompts.count == 2)
+        #expect(prompt?.prompts[0] is TextPrompt)
+        #expect(prompt?.prompts[1] is TextPrompt)
+    }
 }
