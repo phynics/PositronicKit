@@ -1,42 +1,58 @@
 # AGENTS
-`PositronicKit` is a Swift package for agent runtime and prompt composition.
 
-## Repository Layout
-- `Package.swift`: Package graph and target definitions.
-- `Sources/PositronicKit` (target: `PositronicKit`): Runtime orchestration, chat lifecycle, tools, context, timelines, and LLM services.
-- `Sources/PKPrompt` (target: `PKPrompt`): Prompt composition, prompt update mechanisms, compression, and PromptBuilder DSL.
-- `Sources/PKShared` (target: `PKShared`): Shared API models, tool contracts, utility types, logging, etc.
-- `Sources/PositronicKitExamples` (target: `PositronicKitExamples`): Runnable `PKPrompt` and `PositronicKit` examples.
-- `Tests/*`: Tests and test support files.
+`PositronicKit` — Swift package for agent runtime and prompt composition.
 
-## Build and Test
-- Build: `swift build` (or `make build`)
-- Test: `swift test` (or `make test`)
-- Run examples: `swift run PositronicKitExamples`
-- Clean: `make clean`
+## Layout
 
-## Working Conventions
-- Prefer small, focused changes that keep module boundaries clear: `PKShared` for contracts/utilities, `PKPrompt` for prompt construction, `PositronicKit` for runtime orchestration.
-- Keep `PositronicKitExamples` runnable and aligned with current public APIs. They should also function as documentation.
-- Add or update tests with every behavioral change, using helpers from `Tests/PKTestSupport` when they fit.
-- Follow Swift 6 concurrency defaults (`Sendable`, actor isolation, `@MainActor`) and avoid shared mutable state.
-- Prefer composition over inheritance, narrow protocols, explicit `throws`, and structured logging via `PKShared`.
+- `Package.swift` — package manifest.
+- `Sources/PositronicKit` — runtime: orchestration stages, chat engine, tool routing, timelines, workspaces, LLM services.
+- `Sources/PKPrompt` — prompt composition: `PromptBuilder` DSL, `PromptNode` IR, assembly, compression, `PromptJournal`.
+- `Sources/PKShared` — shared contracts: API models, tool protocols, error types, logging, utilities.
+- `Sources/PositronicKitExamples` — runnable examples; double as living documentation.
+- `Tests/PKTestSupport` — mocks, fixtures, test helpers (library product).
+- `Tests/PositronicKitTests`, `Tests/PKPromptTests`, `Tests/PKSharedTests` — per-module test targets.
 
-## PositronicKit Guidance
-- Treat `PositronicKit` as an agent-building toolkit centered on timelines, workspaces, agents, tools, and orchestration stages.
-- Keep concrete transport, RPC, and client/server hosting models downstream of `PositronicKit`.
-- Prefer neutral boundaries like workspace creators, persistence protocols, tool routers, and prompt section providers over embedding downstream deployment concerns in runtime logic.
-- Keep provider projection and prompt assembly separate from orchestration. `PositronicKit` should consume `PKPrompt` artifacts, not reimplement prompt-tree semantics.
-- When changing orchestration APIs, preserve the ability for downstream applications to plug in their own persistence, workspace resolution, externally hosted tool execution, custom prompting behaviour, and UI/network layers.
+## Commands
 
-## PKPrompt Guidance
-- Treat `PromptNode` as the canonical internal IR. `PromptBuilder` lowers authored syntax directly into prompt nodes; `AssembledPrompt` is the validated concrete artifact that downstream systems consume.
-- `PromptJournal` is PKPrompt’s prompt-history primitive: stable sections stay materialized in the base, semi-stable changes become overlays until `compact()`, volatile sections remain current-only, and stable changes require a hard reset plan.
-- Consumers create their own Prompt types and compose their own Prompts within the `var body: some Prompt`, by composing primitives like `TextPrompt`, `SystemPrompt` and prompt modifiers.
-- Think of PKPrompt in three layers: `Prompt -> String` for simplest use case, `Prompt -> AssembledPrompt` for more control over render, `Prompt -> PromptJournal` for managing Prompt updates.
-- Use builder modifiers like `.priority(...)`, `.compression(...)`, and `.cachePolicy(...)` to inherit prompt traits instead of duplicating metadata.
+```
+swift build                        # or: make build
+swift test                         # or: make test
+swift run PositronicKitExamples
+make clean
+```
 
-## Additional Notes
-- Keep fixtures deterministic and lightweight; prefer reusable builders over duplicated inline setup.
-- Prefer `JSONSchema`/`JSONSchemaBuilder` over ad-hoc JSON dictionaries; when a schema mirrors a Swift model, use `@Schemable` and derive it from `Type.schema`.
-- Validate changes locally with `swift build` and `swift test` before opening or updating a PR.
+## Module Boundaries
+
+| Module | Owns | Does Not Own |
+|--------|------|--------------|
+| `PKShared` | API models, tool contracts, logging, utilities | Prompt logic, orchestration, persistence |
+| `PKPrompt` | Prompt IR, assembly, rendering, compression, journaling | Runtime, persistence, transport |
+| `PositronicKit` | Orchestration, chat lifecycle, tool routing, timeline/workspace mgmt | Transport, RPC, hosting, prompt-tree internals |
+
+## Conventions
+
+- Swift 6 concurrency: `Sendable`, actor isolation, no shared mutable state.
+- Composition over inheritance. Narrow protocols. Explicit `throws`.
+- Structured logging via `PKShared`.
+- Tests accompany every behavioral change; use `PKTestSupport` helpers.
+- Keep `PositronicKitExamples` compiling and current with public APIs.
+- Prefer `JSONSchema`/`JSONSchemaBuilder`; derive from `@Schemable` when schema mirrors a Swift model.
+- Fixtures: deterministic, lightweight; prefer reusable builders over inline setup.
+- `swift build && swift test` before opening or updating PRs.
+
+## PositronicKit Invariants
+
+- Transport-neutral. Concrete networking, RPC, and hosting belong downstream.
+- Downstream pluggability is non-negotiable: persistence, workspace resolution, tool execution, prompting, and UI/network layers are all injectable.
+- Consume `PKPrompt` artifacts (`AssembledPrompt`, `RenderedPrompt`). Never reimplement prompt-tree semantics.
+- Extension points: persistence protocols, `WorkspaceCreating`/`WorkspaceProtocol`, `PromptSectionProviding`, `ToolRouter`, `ChatTurnPlugin`.
+- Core types: `Timeline`, `AgentInstance`, `ChatEngine`, `TimelineManager`, `ToolRouter`, `WorkspaceManager`.
+
+## PKPrompt Invariants
+
+- `PromptNode` = canonical internal IR. `PromptBuilder` lowers `Prompt` values directly to nodes.
+- `AssembledPrompt` = validated section artifact. `RenderedPrompt` = canonical render output.
+- `PromptJournal` = prompt-history primitive. Cache policies determine lifecycle: stable → materialized base, semi-stable → overlays until `compact()`, volatile → current-only, stable mutations → hard reset.
+- Author prompts via `var body: some Prompt`, composing `SystemPrompt`, `TextPrompt`, `UserPrompt`, `HistoryPrompt`, and custom `Prompt` types.
+- Trait modifiers (`.priority(...)`, `.compression(...)`, `.cachePolicy(...)`) inherit through subtree; resolved once at assembly.
+- Three consumption layers: `Prompt → String` | `Prompt → AssembledPrompt → RenderedPrompt` | `RenderedPrompt → PromptJournal`.
