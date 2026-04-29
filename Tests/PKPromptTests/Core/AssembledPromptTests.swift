@@ -30,7 +30,7 @@ private struct DummyPromptSection: PromptPrimitive {
 }
 
 private func resolved(_ section: DummyPromptSection) -> AssembledPrompt.Section {
-    section.assembleSections()[0]
+    section.makeSection()
 }
 
 private func historySection(_ messages: [Message]) -> AssembledPrompt.Section {

@@ -31,7 +31,7 @@ package struct PromptNode: Sendable {
 
         switch nodeType {
         case let .leaf(primitive):
-            return primitive.assembleSections(in: resolvedContext)
+            return [primitive.makeSection(in: resolvedContext)]
         case let .fork(children):
             return children.flatMap { $0.resolve(in: resolvedContext) }
         }

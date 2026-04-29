@@ -69,7 +69,7 @@ package enum PromptPrimitives {}
 
 // MARK: - PromptPrimitive
 
-/// Prompt primitives render actual prompt content and resolve directly into assembled sections.
+/// Prompt primitives render actual prompt content and lower to leaf prompt nodes.
 package protocol PromptPrimitive: PromptNodeConvertible {
     var id: String { get }
     var role: PromptSectionRole { get }
@@ -112,80 +112,81 @@ package extension PromptPrimitive {
         PromptNode(.leaf(self))
     }
 
-    /// Resolves a prompt primitive into a single concrete node with inherited traits applied.
-    func assembleSections(in context: PromptAssembly.Context = PromptAssembly.Context()) -> [AssembledPrompt.Section] {
+    /// Materializes a primitive leaf into a concrete section with inherited traits applied.
+    func makeSection(in context: PromptAssembly.Context = PromptAssembly.Context()) -> AssembledPrompt.Section {
         let effectivePriority = context.inheritedTraits.priority ?? priority
         let effectiveCompression = context.inheritedTraits.compression ?? compression
         let effectiveCachePolicy = context.inheritedTraits.cachePolicy ?? cachePolicy
         let path = context.ancestorPath + [effectiveCachePolicy.pathComponent, id]
         let leafContent = content
 
-        return [
-            AssembledPrompt.Section(
-                id: id,
-                role: role,
-                priority: effectivePriority,
-                estimatedTokens: estimatedTokens,
-                compression: effectiveCompression,
-                type: type,
-                cachePolicy: effectiveCachePolicy,
-                path: path,
-                render: { tokens in
-                    switch leafContent {
-                    case let .text(renderContent):
-                        guard let content = await applyRenderConstraint(
-                            to: renderContent,
-                            tokens: tokens,
-                            strategy: effectiveCompression
-                        ) else {
-                            return nil
-                        }
-                        return .text(content)
-
-                    case let .messages(messages):
-                        guard !messages.isEmpty else {
-                            return nil
-                        }
-                        return .messages(messages)
+        return AssembledPrompt.Section(
+            id: id,
+            role: role,
+            priority: effectivePriority,
+            estimatedTokens: estimatedTokens,
+            compression: effectiveCompression,
+            type: type,
+            cachePolicy: effectiveCachePolicy,
+            path: path,
+            render: { tokens in
+                switch leafContent {
+                case let .text(renderContent):
+                    guard let content = await applyRenderConstraint(
+                        to: renderContent,
+                        tokens: tokens,
+                        strategy: effectiveCompression
+                    ) else {
+                        return nil
                     }
+                    return .text(content)
+
+                case let .messages(messages):
+                    guard !messages.isEmpty else {
+                        return nil
+                    }
+                    return .messages(messages)
                 }
-            ),
-        ]
+            }
+        )
     }
 
     /// Applies truncation constraints after rendering when a token limit is provided.
     private func applyRenderConstraint(
         to renderContent: @escaping @Sendable () async -> String?,
-        tokens: Int?,
+        tokens tokenLimit: Int?,
         strategy: CompressionStrategy
     ) async -> String? {
-        guard let tokens else {
-            return await renderContent()
-        }
-
         guard let content = await renderContent(), !content.isEmpty else {
             return nil
         }
-
-        let estimated = content.estimatedTokenCount
-        guard estimated > tokens else {
+        
+        guard let tokenLimit else {
             return content
         }
+        assert(tokenLimit > 0)
 
-        guard case let .truncate(tail) = strategy else {
+        let tokenEstimate = content.estimatedTokenCount
+        guard tokenEstimate > tokenLimit else {
             return content
         }
-
-        let charLimit = max(0, tokens * 4)
-        guard charLimit > 0 else {
+        
+        switch strategy {
+        case .keep:
+            return content
+        case .truncate(let tail):
+            let charLimit = tokenLimit * 2
+            if tail {
+                return String(content.prefix(charLimit)) + "\n... [Truncated]"
+            } else {
+                return "... [Truncated]\n" + String(content.suffix(charLimit))
+            }
+        case .summarize:
+            // TODO
+            preconditionFailure("Summarization isn't yet plugged in.")
+        case .drop:
             return nil
         }
-
-        if tail {
-            return String(content.prefix(charLimit)) + "\n... [Truncated]"
-        }
-
-        return "... [Truncated]\n" + String(content.suffix(charLimit))
     }
 
 }

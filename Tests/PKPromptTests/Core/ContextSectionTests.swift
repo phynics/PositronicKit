@@ -29,7 +29,7 @@ struct PromptCoreTests {
     @Test("Prompt primitives use default traits")
     func defaultImplementations() async {
         let section = MinimalPromptPrimitive()
-        let resolved = section.assembleSections()
+        let resolved = [section.makeSection()]
 
         #expect(resolved.count == 1)
         #expect(resolved[0].compression == .keep)
@@ -41,7 +41,7 @@ struct PromptCoreTests {
 
     @Test("Concrete sections can be constrained")
     func concreteSectionConstraint() async {
-        let base = MinimalPromptPrimitive().assembleSections()[0]
+        let base = MinimalPromptPrimitive().makeSection()
         let constrained = base.constrained(to: 50)
 
         #expect(constrained.id == "min")
@@ -54,10 +54,10 @@ struct PromptCoreTests {
         let resolved = TruncatablePromptPrimitive(
             compression: .truncate(tail: true),
             text: "abcdefghijklmnop"
-        ).assembleSections()[0]
+        ).makeSection()
 
         let rendered = await resolved.renderText(constrainedTo: 2)
-        #expect(rendered == "abcdefgh\n... [Truncated]")
+        #expect(rendered == "abcd\n... [Truncated]")
     }
 
     @Test("Truncate head applies during constrained rendering")
@@ -65,9 +65,9 @@ struct PromptCoreTests {
         let resolved = TruncatablePromptPrimitive(
             compression: .truncate(tail: false),
             text: "abcdefghijklmnop"
-        ).assembleSections()[0]
+        ).makeSection()
 
         let rendered = await resolved.renderText(constrainedTo: 2)
-        #expect(rendered == "... [Truncated]\nijklmnop")
+        #expect(rendered == "... [Truncated]\nmnop")
     }
 }

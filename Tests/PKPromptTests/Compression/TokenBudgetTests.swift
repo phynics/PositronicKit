@@ -44,7 +44,7 @@ private struct MockCompressor: SectionCompressor {
 }
 
 private func resolve(_ sections: [MockPrimitiveSection]) -> [AssembledPrompt.Section] {
-    sections.flatMap { $0.assembleSections() }
+    sections.map { $0.makeSection() }
 }
 
 @Suite("TokenBudget")
