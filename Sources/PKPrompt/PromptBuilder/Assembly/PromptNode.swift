@@ -3,101 +3,39 @@ import Foundation
 package struct PromptNode: Sendable {
     package typealias LeafAssembler = @Sendable (PromptAssembly.Context) -> [AssembledPrompt.Section]
 
+    package enum NodeType {
+        case leaf(LeafAssembler)
+        case fork([PromptNode])
+    }
+
     package let pathComponent: String?
     package let traits: PromptTraits
-    package let children: [PromptNode]
-    private let assembleLeaf: LeafAssembler?
+    package let nodeType: NodeType
 
     package init(
         pathComponent: String? = nil,
         traits: PromptTraits = PromptTraits(),
-        children: [PromptNode] = [],
-        assembleLeaf: LeafAssembler? = nil
+        _ nodeType: NodeType
     ) {
         self.pathComponent = pathComponent
         self.traits = traits
-        self.children = children
-        self.assembleLeaf = assembleLeaf
+        self.nodeType = nodeType
     }
 
     package var priority: Int? { traits.priority }
     package var compression: CompressionStrategy? { traits.compression }
     package var cachePolicy: CachePolicy? { traits.cachePolicy }
 
-    package static func group(
-        pathComponent: String? = nil,
-        priority: Int? = nil,
-        compression: CompressionStrategy? = nil,
-        cachePolicy: CachePolicy? = nil,
-        children: [PromptNode]
-    ) -> PromptNode {
-        PromptNode(
-            pathComponent: pathComponent,
-            traits: PromptTraits(
-                priority: priority,
-                compression: compression,
-                cachePolicy: cachePolicy
-            ),
-            children: children
-        )
-    }
-
-    package static func leaf(
-        pathComponent: String? = nil,
-        priority: Int? = nil,
-        compression: CompressionStrategy? = nil,
-        cachePolicy: CachePolicy? = nil,
-        assembleLeaf: @escaping LeafAssembler
-    ) -> PromptNode {
-        PromptNode(
-            pathComponent: pathComponent,
-            traits: PromptTraits(
-                priority: priority,
-                compression: compression,
-                cachePolicy: cachePolicy
-            ),
-            assembleLeaf: assembleLeaf
-        )
-    }
-
-    package var isLeaf: Bool {
-        assembleLeaf != nil
-    }
-
-    package func normalized() -> PromptNode? {
-        if let assembleLeaf {
-            return PromptNode(
-                pathComponent: pathComponent,
-                traits: traits,
-                assembleLeaf: assembleLeaf
-            )
-        }
-
-        let normalizedChildren = children.compactMap { $0.normalized() }
-        guard !normalizedChildren.isEmpty else {
-            return nil
-        }
-
-        if pathComponent == nil, traits.isEmpty, normalizedChildren.count == 1 {
-            return normalizedChildren[0]
-        }
-
-        return PromptNode(
-            pathComponent: pathComponent,
-            traits: traits,
-            children: normalizedChildren
-        )
-    }
-
     package func resolve(in context: PromptAssembly.Context) -> [AssembledPrompt.Section] {
         let resolvedContext = context
             .descending(into: pathComponent)
             .applying(traits)
 
-        if let assembleLeaf {
+        switch nodeType {
+        case let .leaf(assembleLeaf):
             return assembleLeaf(resolvedContext)
+        case let .fork(children):
+            return children.flatMap { $0.resolve(in: resolvedContext) }
         }
-
-        return children.flatMap { $0.resolve(in: resolvedContext) }
     }
 }

@@ -38,7 +38,7 @@ package enum PromptModifiers {
             guard let child = PromptAssembly.makeNode(from: content) else {
                 return nil
             }
-            return PromptNode.group(priority: priority, children: [child])
+            return PromptNode(traits: PromptTraits(priority: priority), .fork([child]))
         }
     }
 
@@ -52,7 +52,7 @@ package enum PromptModifiers {
             guard let child = PromptAssembly.makeNode(from: content) else {
                 return nil
             }
-            return PromptNode.group(compression: compression, children: [child])
+            return PromptNode(traits: PromptTraits(compression: compression), .fork([child]))
         }
     }
 
@@ -66,7 +66,7 @@ package enum PromptModifiers {
             guard let child = PromptAssembly.makeNode(from: content) else {
                 return nil
             }
-            return PromptNode.group(cachePolicy: cachePolicy, children: [child])
+            return PromptNode(traits: PromptTraits(cachePolicy: cachePolicy), .fork([child]))
         }
     }
 }

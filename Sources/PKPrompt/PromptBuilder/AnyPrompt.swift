@@ -30,7 +30,7 @@ public struct AnyPrompt: Prompt, PromptNodeConvertible {
         if children.count == 1 {
             return children[0]
         }
-        return children.isEmpty ? nil : PromptNode.group(children: children)
+        return children.isEmpty ? nil : PromptNode(.fork(children))
     }
 
     /// Preferred root entry point for prompt builder content.

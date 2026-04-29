@@ -24,9 +24,12 @@ struct PromptNodeLoweringTests {
         }.makePromptNode()
 
         #expect(node != nil)
-        #expect(node?.children.count == 2)
-        #expect(node?.isLeaf == false)
-        #expect(node?.children.allSatisfy { $0.isLeaf } == true)
+        if case let .fork(children) = node?.nodeType {
+            #expect(children.count == 2)
+            #expect(children.allSatisfy { if case .leaf = $0.nodeType { return true } else { return false } } == true)
+        } else {
+            Issue.record("Expected fork node")
+        }
     }
 
     @Test("Prompt modifiers lower into passthrough nodes carrying inherited traits")
@@ -40,9 +43,17 @@ struct PromptNodeLoweringTests {
 
         #expect(lowered != nil)
         #expect(lowered?.cachePolicy == .stable)
-        #expect(lowered?.children.count == 1)
-        #expect(lowered?.children[0].compression == .summarize)
-        #expect(lowered?.children[0].children[0].priority == PromptPriority.high.rawValue)
+        if case let .fork(children1) = lowered?.nodeType {
+            #expect(children1.count == 1)
+            #expect(children1[0].compression == .summarize)
+            if case let .fork(children2) = children1[0].nodeType {
+                #expect(children2[0].priority == PromptPriority.high.rawValue)
+            } else {
+                Issue.record("Expected nested fork node")
+            }
+        } else {
+            Issue.record("Expected fork node")
+        }
     }
 
     @Test("Body-based prompts preserve type path boundaries after builder lowering")

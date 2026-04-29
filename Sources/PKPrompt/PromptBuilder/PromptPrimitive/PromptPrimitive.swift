@@ -94,9 +94,9 @@ package extension PromptPrimitive {
     func makePromptNode() -> PromptNode? {
         let leafContent = content
 
-        return PromptNode.leaf(assembleLeaf: { context in
+        return PromptNode(.leaf({ context in
             assembleSections(in: context, content: leafContent)
-        })
+        }))
     }
 
     /// Resolves a prompt primitive into a single concrete node with inherited traits applied.

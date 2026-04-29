@@ -79,9 +79,9 @@ public struct PromptForEach<Content: Prompt>: Prompt, PromptNodeConvertible {
             guard let node = child.node else {
                 return nil
             }
-            return PromptNode.group(pathComponent: pathComponent, children: [node])
+            return PromptNode(pathComponent: pathComponent, .fork([node]))
         }
 
-        return nodes.isEmpty ? nil : PromptNode.group(children: nodes)
+        return nodes.isEmpty ? nil : PromptNode(.fork(nodes))
     }
 }

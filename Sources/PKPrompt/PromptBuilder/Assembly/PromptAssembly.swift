@@ -13,7 +13,7 @@ package enum PromptAssembly {
         }
 
         if let prompt = prompt as? any PromptNodeConvertible {
-            return prompt.makePromptNode()?.normalized()
+            return prompt.makePromptNode()
         }
 
         guard let bodyNode = makeNode(from: prompt.body) else {
@@ -22,7 +22,7 @@ package enum PromptAssembly {
 
         return PromptNode(
             pathComponent: String(describing: type(of: prompt)),
-            children: [bodyNode]
+            .fork([bodyNode])
         )
     }
 

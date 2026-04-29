@@ -46,7 +46,7 @@ public enum PromptBuilder {
 
     /// Wraps authored siblings in a transparent node group.
     public static func buildBlock(_ content: Partial...) -> Partial {
-        Partial(node: PromptNode.group(children: content.compactMap(\.node)))
+        Partial(node: PromptNode(.fork(content.compactMap(\.node))))
     }
 
     /// Preserves a single prompt expression by lowering it to a prompt node immediately.
@@ -56,7 +56,7 @@ public enum PromptBuilder {
 
     /// Wraps an explicit list of prompt composites in a transparent node group.
     public static func buildExpression(_ sections: [any Prompt]) -> Partial {
-        Partial(node: PromptNode.group(children: sections.compactMap { PromptAssembly.makeNode(from: $0) }))
+        Partial(node: PromptNode(.fork(sections.compactMap { PromptAssembly.makeNode(from: $0) })))
     }
 
     /// Omits missing optional branches.
@@ -76,10 +76,10 @@ public enum PromptBuilder {
 
     /// Lowers repeated builder output into positional per-item path groups.
     public static func buildArray(_ components: [Partial]) -> Partial {
-        Partial(node: PromptNode.group(children: components.enumerated().compactMap { index, component in
+        Partial(node: PromptNode(.fork(components.enumerated().compactMap { index, component in
             guard let node = component.node else { return nil }
-            return PromptNode.group(pathComponent: "item_\(index)", children: [node])
-        }))
+            return PromptNode(pathComponent: "item_\(index)", .fork([node]))
+        })))
     }
 
     /// Ignores expressions that produce no prompt content.
