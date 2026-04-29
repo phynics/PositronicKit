@@ -13,6 +13,23 @@ public enum CachePolicy: Sendable, Comparable {
     case stable
     case semiStable
     case volatile
+
+    package var pathComponent: String {
+        switch self {
+        case .stable:
+            return "stable"
+        case .semiStable:
+            return "semiStable"
+        case .volatile:
+            return "volatile"
+        }
+    }
+}
+
+package extension String {
+    var estimatedTokenCount: Int {
+        isEmpty ? 0 : Swift.max(1, count / 4)
+    }
 }
 
 public enum CompressionStrategy: Sendable, Equatable {
@@ -92,26 +109,16 @@ package extension PromptPrimitive {
     }
 
     func makePromptNode() -> PromptNode? {
-        let leafContent = content
-
-        return PromptNode(.leaf({ context in
-            assembleSections(in: context, content: leafContent)
-        }))
+        PromptNode(.leaf(self))
     }
 
     /// Resolves a prompt primitive into a single concrete node with inherited traits applied.
     func assembleSections(in context: PromptAssembly.Context = PromptAssembly.Context()) -> [AssembledPrompt.Section] {
-        makePromptNode()?.resolve(in: context) ?? []
-    }
-
-    private func assembleSections(
-        in context: PromptAssembly.Context,
-        content leafContent: PromptPrimitiveContent
-    ) -> [AssembledPrompt.Section] {
         let effectivePriority = context.inheritedTraits.priority ?? priority
         let effectiveCompression = context.inheritedTraits.compression ?? compression
         let effectiveCachePolicy = context.inheritedTraits.cachePolicy ?? cachePolicy
-        let path = context.ancestorPath + [cachePolicyPathComponent(for: effectiveCachePolicy), id]
+        let path = context.ancestorPath + [effectiveCachePolicy.pathComponent, id]
+        let leafContent = content
 
         return [
             AssembledPrompt.Section(
@@ -160,7 +167,7 @@ package extension PromptPrimitive {
             return nil
         }
 
-        let estimated = max(1, content.count / 4)
+        let estimated = content.estimatedTokenCount
         guard estimated > tokens else {
             return content
         }
@@ -181,19 +188,4 @@ package extension PromptPrimitive {
         return "... [Truncated]\n" + String(content.suffix(charLimit))
     }
 
-    /// Cache policy participates in the stable path used by downstream hashing and journaling.
-    private func cachePolicyPathComponent(for policy: CachePolicy) -> String {
-        switch policy {
-        case .stable:
-            return "stable"
-        case .semiStable:
-            return "semiStable"
-        case .volatile:
-            return "volatile"
-        }
-    }
-    
-    func estimatedTokenCount(for text: String) -> Int {
-        text.isEmpty ? 0 : max(1, text.count / 4)
-    }
 }

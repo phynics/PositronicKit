@@ -26,7 +26,7 @@ package extension PromptPrimitives {
 
         package var estimatedTokens: Int {
             max(1, messages.reduce(into: 0) { partialResult, message in
-                partialResult += estimatedTokenCount(for: message.content)
+                partialResult += message.content.estimatedTokenCount
             })
         }
 

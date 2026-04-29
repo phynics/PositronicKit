@@ -1,10 +1,8 @@
 import Foundation
 
 package struct PromptNode: Sendable {
-    package typealias LeafAssembler = @Sendable (PromptAssembly.Context) -> [AssembledPrompt.Section]
-
     package enum NodeType {
-        case leaf(LeafAssembler)
+        case leaf(any PromptPrimitive)
         case fork([PromptNode])
     }
 
@@ -32,8 +30,8 @@ package struct PromptNode: Sendable {
             .applying(traits)
 
         switch nodeType {
-        case let .leaf(assembleLeaf):
-            return assembleLeaf(resolvedContext)
+        case let .leaf(primitive):
+            return primitive.assembleSections(in: resolvedContext)
         case let .fork(children):
             return children.flatMap { $0.resolve(in: resolvedContext) }
         }
