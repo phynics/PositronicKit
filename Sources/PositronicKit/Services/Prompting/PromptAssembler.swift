@@ -53,8 +53,11 @@ public enum PromptAssembler {
 
     /// Assembles a prompt using explicit advanced assembly options.
     ///
-    /// Use this overload when you need pipeline overrides, token budgeting, or structured
-    /// compression configuration.
+    /// Use this overload when you need pipeline overrides or token-budgeted compression.
+    ///
+    /// When `options.tokenBudget` is present and the resolved prompt is over budget, prompt
+    /// assembly first runs the structured compression pass with section metadata and then falls
+    /// back to the simpler priority-based token allocator if the prompt is still over budget.
     public static func assemble(
         _ request: LLMPromptRequest,
         agentInstance: AgentInstance? = nil,
@@ -146,6 +149,8 @@ public enum PromptAssembler {
             return try AssembledPrompt(sections: resolvedSections)
         }
 
+        // Prompt assembly always provides node metadata for budgeted prompts, so the structured
+        // compression pass runs first and the simple allocator acts as a fallback.
         let metadata = await buildStructuredMetadata(for: resolvedSections)
 
         let compressionResult = await tokenBudget.applyWithReport(

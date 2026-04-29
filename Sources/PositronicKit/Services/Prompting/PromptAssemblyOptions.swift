@@ -6,12 +6,23 @@ import PKShared
 ///
 /// Most callers should use ``PromptAssembler/assemble(_:agentInstance:timeline:extensionSections:)``
 /// or ``PromptAssembler/prepare(_:)``. Use this type when you need to override the default
-/// assembly pipeline or apply compression and structured diff configuration.
+/// assembly pipeline or apply compression configuration.
+///
+/// When `tokenBudget` is set, `PromptAssembler` first attempts structured compression using
+/// resolved section metadata and `structuredExecutor`. If the structured result is still over
+/// budget, it falls back to the simpler priority-based `TokenBudget` path.
 public struct PromptAssemblyOptions: Sendable {
     public var overridePipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>?
     public var tokenBudget: TokenBudget?
+    /// Optional summarization service used by `.summarize` compression actions once a prompt is
+    /// over budget and token reduction is required.
+    ///
+    /// If omitted, summarize actions degrade to drop behavior in the compression pipeline.
     public var compressor: SectionCompressor?
+    /// Optional diff hint that helps the structured planner prioritize changed nodes.
     public var structuredDiff: StructuredDiffHint?
+    /// Executor used for the structured compression pass that runs before fallback budgeting
+    /// whenever prompt assembly applies a token budget.
     public var structuredExecutor: StructuredCompressionExecutor
 
     public init(

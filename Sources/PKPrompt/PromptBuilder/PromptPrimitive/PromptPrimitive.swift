@@ -182,8 +182,9 @@ package extension PromptPrimitive {
                 return "... [Truncated]\n" + String(content.suffix(charLimit))
             }
         case .summarize:
-            // TODO
-            preconditionFailure("Summarization isn't yet plugged in.")
+            // Summaries are produced by TokenBudget/StructuredCompressionExecutor via
+            // an injected SectionCompressor, not during primitive render-time constraints.
+            return content
         case .drop:
             return nil
         }

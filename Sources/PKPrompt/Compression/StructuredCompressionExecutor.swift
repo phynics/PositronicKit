@@ -5,6 +5,10 @@ import Foundation
 /// This actor applies planned per-node actions (keep, truncate, summarize, drop)
 /// and produces both the transformed sections and a detailed `CompressionReport`
 /// for auditing and analytics.
+///
+/// In the `PromptAssembler` token-budgeted path, this executor runs as the first reduction pass
+/// only after the assembled prompt is found to be over budget, before the simpler priority-based
+/// fallback allocator.
 public actor StructuredCompressionExecutor {
 
     /// Create an executor.

@@ -85,6 +85,10 @@ public struct TokenBudget: Sendable {
             return (sections, nil)
         }
 
+        // Structured compression runs only after the prompt is already known to be over budget,
+        // and only when callers provide a diff hint or precomputed node metadata. In the
+        // PromptAssembler code path, metadata is always supplied for budgeted prompts, so this
+        // becomes the first reduction pass rather than an uncommon optional branch.
         if structuredDiff != nil || !nodeMetadata.isEmpty {
             let plan = makeStructuredPlan(
                 sections: sections,
@@ -100,6 +104,8 @@ public struct TokenBudget: Sendable {
             }
         }
 
+        // Fall back to the simpler priority-ordered allocator if the structured pass was not
+        // requested or could not reduce the prompt enough.
         let indexedSections = sections.enumerated().map { (index: $0.offset, section: $0.element) }
         let sortedByPriority = indexedSections.sorted { $0.section.priority > $1.section.priority }
 
