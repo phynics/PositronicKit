@@ -19,7 +19,7 @@ public struct UserPrompt: Prompt {
     }
 
     public var body: some Prompt {
-        PromptPrimitives.Text(
+        TextPromptPrimitive(
             id: id,
             text: text,
             role: .userQuery,

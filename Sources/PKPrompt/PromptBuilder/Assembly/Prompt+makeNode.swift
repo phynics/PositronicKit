@@ -12,18 +12,7 @@ package extension Prompt {
             return nil
         }
 
-        if let prompt = self as? any PromptNodeConvertible {
-            return prompt.makePromptNode()
-        }
-
-        guard let bodyNode = self.body.makeNode() else {
-            return nil
-        }
-
-        return PromptNode(
-            pathComponent: String(describing: type(of: self)),
-            .fork([bodyNode])
-        )
+        return makePromptNode()
     }
 }
 

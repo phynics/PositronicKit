@@ -70,4 +70,23 @@ struct PromptNodeLoweringTests {
         #expect(sections[0].path.contains("NestedPrompt"))
         #expect(sections[0].path.last == "leaf")
     }
+
+    @Test("Identifiable prompts include their stable identity in path boundaries")
+    func identifiablePromptsPreserveIdentityInPaths() {
+        struct IdentifiedPrompt: Prompt, Identifiable {
+            let id: String
+
+            @PromptBuilder
+            var body: some Prompt {
+                LoweringStaticText(id: "leaf", text: "value")
+            }
+        }
+
+        let prompt = IdentifiedPrompt(id: "alpha")
+        let sections = try! prompt.assemblePrompt().sections
+
+        #expect(sections.count == 1)
+        #expect(sections[0].path.contains("IdentifiedPrompt \(AnyHashable(prompt.id).hashValue)"))
+        #expect(sections[0].path.last == "leaf")
+    }
 }

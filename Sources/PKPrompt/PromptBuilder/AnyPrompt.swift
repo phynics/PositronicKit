@@ -2,7 +2,7 @@ import Foundation
 import PKShared
 
 /// A transparent prompt container that resolves to the concatenated output of its children.
-public struct AnyPrompt: Prompt, PromptNodeConvertible {
+public struct AnyPrompt: Prompt {
     /// The prompt values contained in the root container.
     package let prompts: [any Prompt]
 
@@ -30,7 +30,7 @@ public struct AnyPrompt: Prompt, PromptNodeConvertible {
         EmptyPrompt()
     }
 
-    package func makePromptNode() -> PromptNode? {
+    public func makePromptNode() -> PromptNode? {
         let children = prompts.compactMap { $0.makeNode() }
         if children.count == 1 {
             return children[0]

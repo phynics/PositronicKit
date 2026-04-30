@@ -26,12 +26,6 @@ public enum CachePolicy: Sendable, Comparable {
     }
 }
 
-package extension String {
-    var estimatedTokenCount: Int {
-        isEmpty ? 0 : Swift.max(1, count / 4)
-    }
-}
-
 public enum CompressionStrategy: Sendable, Equatable {
     case keep
     case truncate(tail: Bool)
@@ -70,7 +64,7 @@ package enum PromptPrimitives {}
 // MARK: - PromptPrimitive
 
 /// Prompt primitives render actual prompt content and lower to leaf prompt nodes.
-package protocol PromptPrimitive: PromptNodeConvertible {
+package protocol PromptPrimitive: Prompt {
     var id: String { get }
     var role: PromptSectionRole { get }
     var priority: Int { get }

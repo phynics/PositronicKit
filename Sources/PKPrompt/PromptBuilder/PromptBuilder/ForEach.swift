@@ -11,7 +11,7 @@ import Foundation
 ///     TextPrompt(workspace.summary, id: "workspace-\(workspace.id)")
 /// }
 /// ```
-public struct ForEach<Content: Prompt>: Prompt, PromptNodeConvertible {
+public struct ForEach<Content: Prompt>: Prompt {
     package let children: [AnyPrompt]
     package let iterationPathComponents: [String]
 
@@ -73,7 +73,7 @@ public struct ForEach<Content: Prompt>: Prompt, PromptNodeConvertible {
 
     public var body: EmptyPrompt { EmptyPrompt() }
 
-    package func makePromptNode() -> PromptNode? {
+    public func makePromptNode() -> PromptNode? {
         let nodes: [PromptNode] = zip(children, iterationPathComponents).compactMap { pair in
             let (child, pathComponent) = pair
             guard let node = child.makeNode() else {

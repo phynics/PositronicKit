@@ -28,7 +28,7 @@ public extension Prompt {
 }
 
 package enum PromptModifiers {
-    package struct Priority<Content: Prompt>: Prompt, PromptNodeConvertible {
+    package struct Priority<Content: Prompt>: Prompt {
         package let content: Content
         package let priority: Int
 
@@ -42,7 +42,7 @@ package enum PromptModifiers {
         }
     }
 
-    package struct Compression<Content: Prompt>: Prompt, PromptNodeConvertible {
+    package struct Compression<Content: Prompt>: Prompt {
         package let content: Content
         package let compression: CompressionStrategy
 
@@ -56,7 +56,7 @@ package enum PromptModifiers {
         }
     }
 
-    package struct CachePolicy<Content: Prompt>: Prompt, PromptNodeConvertible {
+    package struct CachePolicy<Content: Prompt>: Prompt {
         package let content: Content
         package let cachePolicy: PKPrompt.CachePolicy
 

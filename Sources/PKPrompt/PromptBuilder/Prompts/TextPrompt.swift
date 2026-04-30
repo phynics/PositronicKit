@@ -43,7 +43,7 @@ public struct TextPrompt: Prompt {
     }
 
     public var body: some Prompt {
-        PromptPrimitives.Text(
+        TextPromptPrimitive(
             id: id,
             role: .context,
             priority: priority,

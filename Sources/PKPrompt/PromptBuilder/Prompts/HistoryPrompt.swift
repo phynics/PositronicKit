@@ -20,7 +20,7 @@ public struct HistoryPrompt: Prompt {
     }
 
     public var body: some Prompt {
-        PromptPrimitives.History(
+        HistoryPromptPrimitive(
             id: id,
             messages: messages,
             priority: priority,
