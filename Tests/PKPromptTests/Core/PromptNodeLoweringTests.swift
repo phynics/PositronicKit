@@ -39,7 +39,7 @@ struct PromptNodeLoweringTests {
             .compression(.summarize)
             .cachePolicy(.stable)
 
-        let lowered = PromptAssembly.makeNode(from: node)
+        let lowered = node.makeNode()
 
         #expect(lowered != nil)
         #expect(lowered?.cachePolicy == .stable)

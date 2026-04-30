@@ -41,7 +41,7 @@ public enum PromptAssembler {
         agentInstance: AgentInstance? = nil,
         timeline: Timeline? = nil,
         extensionSections: [any Prompt] = []
-    ) async throws -> AssembledPrompt.RenderedPrompt {
+    ) async throws -> RenderedPrompt {
         try await assemble(
             request,
             agentInstance: agentInstance,
@@ -64,7 +64,7 @@ public enum PromptAssembler {
         timeline: Timeline? = nil,
         extensionSections: [any Prompt] = [],
         options: PromptAssemblyOptions
-    ) async throws -> AssembledPrompt.RenderedPrompt {
+    ) async throws -> RenderedPrompt {
         let assemblyContext = PromptAssemblyContext(
             request: request,
             agentInstance: agentInstance,
@@ -115,14 +115,14 @@ public enum PromptAssembler {
         for try await _ in stream {}
 
         let sections = await context.sections
-        let duplicateIDs = duplicateResolvedSectionIDs(in: sections.flatMap { $0.promptSections() })
+        let duplicateIDs = duplicateResolvedSectionIDs(in: sections.flatMap { $0.resolveSections() })
         guard duplicateIDs.isEmpty else {
             throw AssembledPrompt.ValidationError.duplicateSectionIDs(duplicateIDs)
         }
         return sections
     }
 
-    private static func duplicateResolvedSectionIDs(in sections: [AssembledPrompt.Section]) -> [String] {
+    private static func duplicateResolvedSectionIDs(in sections: [PromptSection]) -> [String] {
         var counts: [String: Int] = [:]
         for section in sections {
             counts[section.id, default: 0] += 1
@@ -134,12 +134,12 @@ public enum PromptAssembler {
             .sorted()
     }
 
-    private static func resolveSections(from sections: [any Prompt]) -> [AssembledPrompt.Section] {
-        sections.flatMap { $0.promptSections() }
+    private static func resolveSections(from sections: [any Prompt]) -> [PromptSection] {
+        sections.flatMap { $0.resolveSections() }
     }
 
     private static func assemblePrompt(
-        from resolvedSections: [AssembledPrompt.Section],
+        from resolvedSections: [PromptSection],
         tokenBudget: TokenBudget?,
         compressor: SectionCompressor?,
         structuredDiff: StructuredDiffHint?,
@@ -168,7 +168,7 @@ public enum PromptAssembler {
     }
 
     private static func buildStructuredMetadata(
-        for resolvedSections: [AssembledPrompt.Section]
+        for resolvedSections: [PromptSection]
     ) async -> [String: StructuredNodeMetadata] {
         var metadata: [String: StructuredNodeMetadata] = [:]
         for section in resolvedSections {

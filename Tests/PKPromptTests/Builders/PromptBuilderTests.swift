@@ -73,7 +73,7 @@ struct PromptBuilderTests {
         ]
 
         let prompt = AnyPrompt {
-            PromptForEach(items) { item in
+            ForEach(items) { item in
                 TextPrompt(item.content, id: "leaf-\(item.id)")
             }
         }
@@ -93,13 +93,13 @@ struct PromptBuilderTests {
         let reordered = [original[1], original[0]]
 
         let originalSections = try! AnyPrompt {
-            PromptForEach(original, id: \.id) { item in
+            ForEach(original, id: \.id) { item in
                 TextPrompt(item.content, id: "leaf-\(item.id)")
             }
         }.assemblePrompt().sections
 
         let reorderedSections = try! AnyPrompt {
-            PromptForEach(reordered, id: \.id) { item in
+            ForEach(reordered, id: \.id) { item in
                 TextPrompt(item.content, id: "leaf-\(item.id)")
             }
         }.assemblePrompt().sections
@@ -117,7 +117,7 @@ struct PromptBuilderTests {
         ]
 
         let sections = try! AnyPrompt {
-            PromptForEach(items, id: { "note-\($0.id)" }) { item in
+            ForEach(items, id: { "note-\($0.id)" }) { item in
                 TextPrompt(item.content, id: item.id)
             }
         }.assemblePrompt().sections

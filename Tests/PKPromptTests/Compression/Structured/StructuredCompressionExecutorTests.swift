@@ -33,7 +33,7 @@ private struct RecordingCompressor: SectionCompressor {
     }
 }
 
-private func resolveExecutorSections(_ sections: [ExecutorMockSection]) -> [AssembledPrompt.Section] {
+private func resolveExecutorSections(_ sections: [ExecutorMockSection]) -> [PromptSection] {
     sections.map { $0.makeSection() }
 }
 

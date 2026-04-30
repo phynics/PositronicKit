@@ -28,7 +28,7 @@ public actor StructuredCompressionExecutor {
     /// - Returns: The transformed sections and a detailed compression report.
     public func execute(
         plan: StructuredCompressionPlan,
-        sections: [AssembledPrompt.Section],
+        sections: [PromptSection],
         compressor: SectionCompressor?
     ) async -> StructuredExecutionResult {
         let duplicateIDs = sections.duplicateIDs(idKeyPath: \.id)
@@ -51,7 +51,7 @@ public actor StructuredCompressionExecutor {
         }
 
         var reportsById: [String: CompressionNodeReport] = [:]
-        var transformedSectionsById: [String: AssembledPrompt.Section] = [:]
+        var transformedSectionsById: [String: PromptSection] = [:]
 
         for planned in sortedPlanActions {
             guard let section = sectionsById[planned.nodeId] else { continue }
@@ -62,7 +62,7 @@ public actor StructuredCompressionExecutor {
         }
 
         // Reconstruct the final section list in original order, omitting any that were dropped.
-        var resultingSections: [AssembledPrompt.Section] = []
+        var resultingSections: [PromptSection] = []
         var reports: [CompressionNodeReport] = []
 
         for section in sections {
@@ -105,9 +105,9 @@ public actor StructuredCompressionExecutor {
     /// - Returns: The transformed section (or dropped) and the corresponding report.
     private func applyAction(
         _ planned: PlannedNodeAction,
-        section: AssembledPrompt.Section,
+        section: PromptSection,
         compressor: SectionCompressor?
-    ) async -> (section: AssembledPrompt.Section, report: CompressionNodeReport) {
+    ) async -> (section: PromptSection, report: CompressionNodeReport) {
         switch planned.action {
         case .keep:
             let report = makeReport(

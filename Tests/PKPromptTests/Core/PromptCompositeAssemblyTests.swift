@@ -22,7 +22,7 @@ struct PromptAssemblyTests {
             TextPrompt("High Priority", id: "2", priority: 100)
         }
 
-        let rendered = await composite.render()
+        let rendered = await composite.renderToString()
         #expect(rendered == "High Priority\n\n---\n\nLow Priority")
     }
 }

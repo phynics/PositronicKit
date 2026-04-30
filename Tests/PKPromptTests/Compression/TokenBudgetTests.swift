@@ -43,7 +43,7 @@ private struct MockCompressor: SectionCompressor {
     }
 }
 
-private func resolve(_ sections: [MockPrimitiveSection]) -> [AssembledPrompt.Section] {
+private func resolve(_ sections: [MockPrimitiveSection]) -> [PromptSection] {
     sections.map { $0.makeSection() }
 }
 

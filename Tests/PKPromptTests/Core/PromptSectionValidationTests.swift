@@ -32,8 +32,8 @@ struct PromptSectionValidationTests {
         }
     }
 
-    private func makeResolvedSection(id: String) -> AssembledPrompt.Section {
-        AssembledPrompt.Section(
+    private func makeResolvedSection(id: String) -> PromptSection {
+        PromptSection(
             id: id,
             role: .context,
             priority: 0,
@@ -68,7 +68,7 @@ struct PromptSectionValidationTests {
 
         let duplicateIDs = sections
             .flatMap { try! $0.assemblePrompt().sections }
-            .duplicateIDs(idKeyPath: \AssembledPrompt.Section.id)
+            .duplicateIDs(idKeyPath: \PromptSection.id)
 
         #expect(duplicateIDs == ["dup"])
     }

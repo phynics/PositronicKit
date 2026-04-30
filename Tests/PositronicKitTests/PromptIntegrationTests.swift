@@ -83,8 +83,8 @@ struct PromptIntegrationTests {
             workspaces: [missingWS], primaryWorkspace: nil, requestOriginName: nil
         )
 
-        let outputActive = await sectionActive.render() ?? ""
-        let outputMissing = await sectionMissing.render() ?? ""
+        let outputActive = await sectionActive.renderToString() ?? ""
+        let outputMissing = await sectionMissing.renderToString() ?? ""
 
         #expect(!outputActive.contains("Connected"), "Active workspace should not show connection status")
         #expect(!outputActive.contains("Disconnected"), "Active workspace should not show connection status")

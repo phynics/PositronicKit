@@ -24,7 +24,7 @@ package struct PromptNode: Sendable {
     package var compression: CompressionStrategy? { traits.compression }
     package var cachePolicy: CachePolicy? { traits.cachePolicy }
 
-    package func resolve(in context: PromptAssembly.Context) -> [AssembledPrompt.Section] {
+    package func resolve(in context: PromptResolutionContext) -> [PromptSection] {
         let resolvedContext = context
             .descending(into: pathComponent)
             .applying(traits)

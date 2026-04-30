@@ -27,17 +27,6 @@ import Foundation
 /// ```
 @resultBuilder
 public enum PromptBuilder {
-    private static func normalize(_ prompt: some Prompt) -> AnyPrompt {
-        if let prompt = prompt as? AnyPrompt {
-            return prompt
-        }
-        return AnyPrompt([prompt])
-    }
-
-    private static func flatten(_ content: [AnyPrompt]) -> [any Prompt] {
-        content.flatMap(\.prompts)
-    }
-
     public static func buildBlock(_ content: AnyPrompt) -> AnyPrompt {
         content
     }
@@ -75,7 +64,7 @@ public enum PromptBuilder {
     /// Lowers repeated builder output into positional per-item path groups.
     public static func buildArray(_ components: [AnyPrompt]) -> AnyPrompt {
         AnyPrompt([
-            PromptForEach<AnyPrompt>(
+            ForEach<AnyPrompt>(
                 children: components,
                 iterationPathComponents: components.indices.map { "item_\($0)" }
             )
@@ -96,9 +85,9 @@ public enum PromptBuilder {
     public static func forEach<Data, Content>(
         _ data: Data,
         @PromptBuilder content: (Data.Element) -> Content
-    ) -> PromptForEach<Content>
+    ) -> ForEach<Content>
     where Data: RandomAccessCollection, Data.Element: Identifiable, Content: Prompt {
-        PromptForEach(data, content: content)
+        ForEach(data, content: content)
     }
 
     /// Convenience entry point for stable loop identity keyed by a source property.
@@ -106,9 +95,9 @@ public enum PromptBuilder {
         _ data: Data,
         id: KeyPath<Data.Element, ID>,
         @PromptBuilder content: (Data.Element) -> Content
-    ) -> PromptForEach<Content>
+    ) -> ForEach<Content>
     where Data: RandomAccessCollection, Content: Prompt {
-        PromptForEach(data, id: id, content: content)
+        ForEach(data, id: id, content: content)
     }
 
     /// Convenience entry point for stable loop identity derived from a closure.
@@ -116,8 +105,22 @@ public enum PromptBuilder {
         _ data: Data,
         id: (Data.Element) -> String,
         @PromptBuilder content: (Data.Element) -> Content
-    ) -> PromptForEach<Content>
+    ) -> ForEach<Content>
     where Data: RandomAccessCollection, Content: Prompt {
-        PromptForEach(data, id: id, content: content)
+        ForEach(data, id: id, content: content)
     }
+}
+
+
+// MARK: -  Utilities
+
+private func normalize(_ prompt: some Prompt) -> AnyPrompt {
+    if let prompt = prompt as? AnyPrompt {
+        return prompt
+    }
+    return AnyPrompt([prompt])
+}
+
+private func flatten(_ content: [AnyPrompt]) -> [any Prompt] {
+    content.flatMap(\.prompts)
 }

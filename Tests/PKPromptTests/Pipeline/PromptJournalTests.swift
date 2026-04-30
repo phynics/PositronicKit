@@ -3,7 +3,7 @@ import Testing
 
 @Suite("PromptJournal")
 struct PromptJournalTests {
-    private func renderPrompt(system: String, context: String, query: String) async -> AssembledPrompt.RenderedPrompt {
+    private func renderPrompt(system: String, context: String, query: String) async -> RenderedPrompt {
         let prompt = try! AnyPrompt.build {
             SystemPrompt(system)
             TextPrompt(context, id: "context", cachePolicy: .semiStable)

@@ -3,7 +3,7 @@ import OpenAI
 import PKPrompt
 import PKShared
 
-public extension AssembledPrompt.RenderedPrompt {
+public extension RenderedPrompt {
     /// Builds OpenAI chat messages from the canonical rendered prompt product.
     func buildMessages() -> [ChatQuery.ChatCompletionMessageParam] {
         let resolved = sections
@@ -23,7 +23,7 @@ public extension AssembledPrompt.RenderedPrompt {
     }
 
     private func buildSystemMessage(
-        from sections: [AssembledPrompt.Section.Rendered]
+        from sections: [RenderedPromptSection]
     ) -> ChatQuery.ChatCompletionMessageParam? {
         var systemParts: [String] = []
 
@@ -37,7 +37,7 @@ public extension AssembledPrompt.RenderedPrompt {
         return .system(.init(content: .textContent(systemParts.joined(separator: "\n\n---\n\n")), name: nil))
     }
 
-    private func buildHistoryMessages(from sections: [AssembledPrompt.Section.Rendered]) -> [ChatQuery.ChatCompletionMessageParam] {
+    private func buildHistoryMessages(from sections: [RenderedPromptSection]) -> [ChatQuery.ChatCompletionMessageParam] {
         sections
             .flatMap { section -> [Message] in
                 guard case let .messages(messages) = section.content else {
@@ -49,7 +49,7 @@ public extension AssembledPrompt.RenderedPrompt {
     }
 
     private func buildUserQueryMessage(
-        from sections: [AssembledPrompt.Section.Rendered]
+        from sections: [RenderedPromptSection]
     ) -> ChatQuery.ChatCompletionMessageParam? {
         guard let querySection = sections.first(where: { $0.role == .userQuery }) else {
             return nil

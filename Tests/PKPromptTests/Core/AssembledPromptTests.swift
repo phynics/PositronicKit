@@ -29,16 +29,55 @@ private struct DummyPromptSection: PromptPrimitive {
     }
 }
 
-private func resolved(_ section: DummyPromptSection) -> AssembledPrompt.Section {
+private func resolved(_ section: DummyPromptSection) -> PromptSection {
     section.makeSection()
 }
 
-private func historySection(_ messages: [Message]) -> AssembledPrompt.Section {
+private func historySection(_ messages: [Message]) -> PromptSection {
     try! HistoryPrompt(messages).assemblePrompt().sections[0]
 }
 
 @Suite("AssembledPrompt")
 struct AssembledPromptTests {
+    @Test("Prompt sections validate and sort before wrapping in AssembledPrompt")
+    func promptSectionsValidateAndSort() {
+        let sec1 = resolved(DummyPromptSection(id: "s1", priority: 1, estimatedTokens: 10, text: "Low"))
+        let sec2 = resolved(DummyPromptSection(id: "s2", priority: 100, estimatedTokens: 10, text: "High"))
+
+        let sections = try! [sec1, sec2].validatedAndSorted()
+        #expect(sections.map(\.id) == ["s2", "s1"])
+    }
+
+    @Test("Prompt sections render directly into RenderedPrompt")
+    func promptSectionsRenderDirectly() async {
+        let sections = try! [
+            resolved(DummyPromptSection(id: "s1", priority: 10, estimatedTokens: 10, text: "First block")),
+            resolved(DummyPromptSection(id: "s2", priority: 5, estimatedTokens: 10, text: nil)),
+            resolved(DummyPromptSection(id: "s3", priority: 1, estimatedTokens: 10, text: "Second block")),
+        ].validatedAndSorted()
+
+        let rendered = await sections.renderPrompt()
+        #expect(rendered.string == "First block\n\n---\n\nSecond block")
+    }
+
+    @Test("PromptSection renders into RenderedPromptSection")
+    func promptSectionRendersIntoRenderedPromptSection() async {
+        let section = PromptSection(
+            id: "s1",
+            role: .context,
+            priority: 10,
+            estimatedTokens: 5,
+            compression: .keep,
+            type: .text,
+            cachePolicy: .volatile,
+            path: ["prompt", "s1"],
+            render: { _ in .text("value") }
+        )
+
+        let rendered = await section.rendered()
+        #expect(rendered?.content == .text("value"))
+    }
+
     @Test("Assembled prompt sorts resolved sections by priority descending")
     func initializationSortsByPriorityDesc() {
         let sec1 = DummyPromptSection(id: "s1", priority: 1, estimatedTokens: 10, text: "Low")
@@ -85,7 +124,7 @@ struct AssembledPromptTests {
 
         let rendered = await prompt.render()
         #expect(rendered.sections.count == 1)
-        #expect(rendered.sections[0].content == AssembledPrompt.Section.Content.messages(messages))
+        #expect(rendered.sections[0].content == PromptSectionContent.messages(messages))
     }
 
     @Test("Assembled prompt renders a canonical product from one pass")
@@ -129,7 +168,7 @@ struct AssembledPromptTests {
             fallbackReason: nil
         )
         let prompt = try! AssembledPrompt(sections: [
-            AssembledPrompt.Section(
+            PromptSection(
                 id: "s1",
                 role: .context,
                 priority: 10,
@@ -184,7 +223,7 @@ struct AssembledPromptTests {
 
         #expect(throws: AssembledPrompt.ValidationError.multipleUserQuerySections(["q1", "q2"])) {
             try AssembledPrompt(sections: [
-                AssembledPrompt.Section(
+                PromptSection(
                     id: query1.id,
                     role: .userQuery,
                     priority: query1.priority,
@@ -193,9 +232,9 @@ struct AssembledPromptTests {
                     type: .text,
                     cachePolicy: query1.cachePolicy,
                     path: [query1.id],
-                    render: { _ in query1.text.map(AssembledPrompt.Section.Content.text) }
+                    render: { _ in query1.text.map(PromptSectionContent.text) }
                 ),
-                AssembledPrompt.Section(
+                PromptSection(
                     id: query2.id,
                     role: .userQuery,
                     priority: query2.priority,
@@ -204,7 +243,7 @@ struct AssembledPromptTests {
                     type: .text,
                     cachePolicy: query2.cachePolicy,
                     path: [query2.id],
-                    render: { _ in query2.text.map(AssembledPrompt.Section.Content.text) }
+                    render: { _ in query2.text.map(PromptSectionContent.text) }
                 ),
             ])
         }

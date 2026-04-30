@@ -49,14 +49,14 @@ struct WorkspacesContextTests {
     @Test("renders nil when no workspaces and no request origin name")
     func nilWhenEmpty() async {
         let section = WorkspacesContext(workspaces: [], primaryWorkspace: nil, requestOriginName: nil)
-        let output = await section.render()
+        let output = await section.renderToString()
         #expect(output == nil)
     }
 
     @Test("renders request origin name only when workspaces list is empty")
     func requestOriginNameOnlyWhenNoWorkspaces() async {
         let section = WorkspacesContext(workspaces: [], primaryWorkspace: nil, requestOriginName: "Alice")
-        let output = await section.render() ?? ""
+        let output = await section.renderToString() ?? ""
         #expect(output.contains("Alice"))
         #expect(!output.contains("Available Workspaces"))
     }
@@ -70,7 +70,7 @@ struct WorkspacesContextTests {
             primaryWorkspace: nil,
             requestOriginName: nil
         )
-        let output = await section.render() ?? ""
+        let output = await section.renderToString() ?? ""
         #expect(!output.contains("Connected"))
         #expect(!output.contains("Disconnected"))
     }
@@ -82,7 +82,7 @@ struct WorkspacesContextTests {
             primaryWorkspace: nil,
             requestOriginName: nil
         )
-        let output = await section.render() ?? ""
+        let output = await section.renderToString() ?? ""
         #expect(!output.contains("Connected"))
         #expect(!output.contains("Disconnected"))
     }
@@ -94,7 +94,7 @@ struct WorkspacesContextTests {
             primaryWorkspace: nil,
             requestOriginName: nil
         )
-        let output = await section.render() ?? ""
+        let output = await section.renderToString() ?? ""
         #expect(!output.contains("Connected"))
         #expect(!output.contains("Disconnected"))
     }
@@ -108,7 +108,7 @@ struct WorkspacesContextTests {
             primaryWorkspace: nil,
             requestOriginName: nil
         )
-        let output = await section.render() ?? ""
+        let output = await section.renderToString() ?? ""
         #expect(output.contains("You have access to the following workspaces within this session:"))
         #expect(!output.contains("attached workspaces"))
         #expect(!output.contains("Environment: Attached"))
@@ -125,7 +125,7 @@ struct WorkspacesContextTests {
             primaryWorkspace: primary,
             requestOriginName: nil
         )
-        let output = await section.render() ?? ""
+        let output = await section.renderToString() ?? ""
         // ID should appear exactly once in the output
         let count = output.components(separatedBy: primary.id.uuidString).count - 1
         #expect(count == 1, "Primary workspace ID should appear exactly once, found \(count)")
@@ -137,7 +137,7 @@ struct WorkspacesContextTests {
     func idAndURIPresent() async {
         let ws = makeAttachedWS()
         let section = WorkspacesContext(workspaces: [ws], primaryWorkspace: nil, requestOriginName: nil)
-        let output = await section.render() ?? ""
+        let output = await section.renderToString() ?? ""
         #expect(output.contains(ws.id.uuidString))
         #expect(output.contains(ws.uri.description))
     }
@@ -148,7 +148,7 @@ struct WorkspacesContextTests {
         let section = WorkspacesContext(
             workspaces: [ws], primaryWorkspace: nil, requestOriginName: "Bob"
         )
-        let output = await section.render() ?? ""
+        let output = await section.renderToString() ?? ""
         #expect(output.hasPrefix("User Query Origin: **Bob**"))
     }
 
@@ -161,7 +161,7 @@ struct WorkspacesContextTests {
         let section = WorkspacesContext(
             workspaces: [ws1, ws2], primaryWorkspace: nil, requestOriginName: nil
         )
-        let output = await section.render() ?? ""
+        let output = await section.renderToString() ?? ""
         #expect(output.contains(ws1.id.uuidString))
         #expect(output.contains(ws2.id.uuidString))
     }
@@ -175,7 +175,7 @@ struct WorkspacesContextTests {
             primaryWorkspace: nil,
             requestOriginName: nil
         )
-        let output = await section.render() ?? ""
+        let output = await section.renderToString() ?? ""
         #expect(output.contains("None specific to this workspace"))
     }
 
@@ -187,7 +187,7 @@ struct WorkspacesContextTests {
             primaryWorkspace: nil,
             requestOriginName: nil
         )
-        let output = await section.render() ?? ""
+        let output = await section.renderToString() ?? ""
         #expect(output.contains("`cat`"))
         #expect(output.contains("`ls`"))
         #expect(output.contains("`grep`"))
@@ -208,7 +208,7 @@ struct WorkspacesContextTests {
             primaryWorkspace: nil,
             requestOriginName: nil
         )
-        let output = await section.render() ?? ""
+        let output = await section.renderToString() ?? ""
         #expect(output.contains("`my_tool`"))
         #expect(output.contains("Always call this first."))
     }
@@ -223,7 +223,7 @@ struct WorkspacesContextTests {
             primaryWorkspace: nil,
             requestOriginName: nil
         )
-        let output = await section.render() ?? ""
+        let output = await section.renderToString() ?? ""
         #expect(output.contains("`silent_tool`"))
         #expect(!output.contains("Instructions:"))
     }
@@ -234,7 +234,7 @@ struct WorkspacesContextTests {
     func workspaceContextInjection() async {
         let ws = makeAttachedWS(contextInjection: "This workspace is the main project repo.")
         let section = WorkspacesContext(workspaces: [ws], primaryWorkspace: nil, requestOriginName: nil)
-        let output = await section.render() ?? ""
+        let output = await section.renderToString() ?? ""
         #expect(output.contains("Workspace Instructions: This workspace is the main project repo."))
     }
 
@@ -242,7 +242,7 @@ struct WorkspacesContextTests {
     func noWorkspaceContextInjection() async {
         let ws = makeAttachedWS(contextInjection: nil)
         let section = WorkspacesContext(workspaces: [ws], primaryWorkspace: nil, requestOriginName: nil)
-        let output = await section.render() ?? ""
+        let output = await section.renderToString() ?? ""
         #expect(!output.contains("Workspace Instructions:"))
     }
 
@@ -253,7 +253,7 @@ struct WorkspacesContextTests {
         let section = WorkspacesContext(
             workspaces: [makeAttachedWS()], primaryWorkspace: nil, requestOriginName: nil
         )
-        let output = await section.render() ?? ""
+        let output = await section.renderToString() ?? ""
         #expect(output.hasSuffix("When a user asks you to operate on files or perform actions in these workspaces, you can use the appropriate tools with the workspace's URI or ID.\n"))
     }
 }
@@ -263,13 +263,13 @@ struct WorkspacesContextTests {
 struct SystemInstructionsTests {
     @Test("empty instructions renders nil")
     func emptyRendersNil() async {
-        let output = await SystemInstructions("").render()
+        let output = await SystemInstructions("").renderToString()
         #expect(output == nil)
     }
 
     @Test("non-empty instructions wraps with header")
     func nonEmptyRendersWithHeader() async {
-        let output = await SystemInstructions("Be helpful.").render() ?? ""
+        let output = await SystemInstructions("Be helpful.").renderToString() ?? ""
         #expect(output.contains("# System Instructions"))
         #expect(output.contains("Be helpful."))
     }
@@ -277,7 +277,7 @@ struct SystemInstructionsTests {
     @Test("multiline instructions preserved")
     func multilinePreserved() async {
         let instructions = "Line one.\nLine two.\nLine three."
-        let output = await SystemInstructions(instructions).render() ?? ""
+        let output = await SystemInstructions(instructions).renderToString() ?? ""
         #expect(output.contains("Line one."))
         #expect(output.contains("Line two."))
         #expect(output.contains("Line three."))
@@ -289,38 +289,38 @@ struct SystemInstructionsTests {
 struct AgentContextTests {
     @Test("contains identity header and agent name")
     func headerAndName() async {
-        let output = await AgentContext(makeAgent(name: "Aria")).render() ?? ""
+        let output = await AgentContext(makeAgent(name: "Aria")).renderToString() ?? ""
         #expect(output.contains("## Your Identity"))
         #expect(output.contains("**Aria**"))
     }
 
     @Test("agent with description includes description line")
     func withDescription() async {
-        let output = await AgentContext(makeAgent(description: "A code reviewer")).render() ?? ""
+        let output = await AgentContext(makeAgent(description: "A code reviewer")).renderToString() ?? ""
         #expect(output.contains("A code reviewer"))
     }
 
     @Test("agent without description omits description line")
     func withoutDescription() async {
-        let output = await AgentContext(makeAgent(description: "")).render() ?? ""
+        let output = await AgentContext(makeAgent(description: "")).renderToString() ?? ""
         #expect(!output.contains("Description:"))
     }
 
     @Test("timeline title included when provided")
     func withTimelineTitle() async {
-        let output = await AgentContext(makeAgent(), timelineTitle: "Sprint Planning").render() ?? ""
+        let output = await AgentContext(makeAgent(), timelineTitle: "Sprint Planning").renderToString() ?? ""
         #expect(output.contains("Sprint Planning"))
     }
 
     @Test("no timeline line when title is nil")
     func noTimelineTitle() async {
-        let output = await AgentContext(makeAgent(), timelineTitle: nil).render() ?? ""
+        let output = await AgentContext(makeAgent(), timelineTitle: nil).renderToString() ?? ""
         #expect(!output.contains("operating on timeline"))
     }
 
     @Test("always mentions private workspace and Notes directory")
     func mentionsNotes() async {
-        let output = await AgentContext(makeAgent()).render() ?? ""
+        let output = await AgentContext(makeAgent()).renderToString() ?? ""
         #expect(output.contains("Notes/"))
         #expect(output.contains("private workspace"))
     }
@@ -332,7 +332,7 @@ struct TimelineContextTests {
     @Test("contains timeline ID and title")
     func idAndTitle() async {
         let timeline = Timeline(title: "My Project")
-        let output = await TimelineContext(timeline).render() ?? ""
+        let output = await TimelineContext(timeline).renderToString() ?? ""
         #expect(output.contains(timeline.id.uuidString))
         #expect(output.contains("My Project"))
     }
@@ -340,13 +340,13 @@ struct TimelineContextTests {
     @Test("default title used when no custom title")
     func defaultTitle() async {
         let timeline = Timeline()
-        let output = await TimelineContext(timeline).render() ?? ""
+        let output = await TimelineContext(timeline).renderToString() ?? ""
         #expect(output.contains("New Conversation"))
     }
 
     @Test("contains Current Timeline header")
     func header() async {
-        let output = await TimelineContext(Timeline()).render() ?? ""
+        let output = await TimelineContext(Timeline()).renderToString() ?? ""
         #expect(output.contains("## Current Timeline"))
     }
 }

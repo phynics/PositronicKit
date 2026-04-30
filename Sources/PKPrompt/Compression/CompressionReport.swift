@@ -69,12 +69,12 @@ public struct CompressionReport: Sendable, Equatable {
 /// what actions were taken for each node.
 public struct StructuredExecutionResult: Sendable {
     /// Sections after applying the structured plan/execution.
-    public let sections: [AssembledPrompt.Section]
+    public let sections: [PromptSection]
     /// Detailed compression report collected during execution.
     public let report: CompressionReport
 
     /// Create a structured execution result with transformed sections and report.
-    public init(sections: [AssembledPrompt.Section], report: CompressionReport) {
+    public init(sections: [PromptSection], report: CompressionReport) {
         self.sections = sections
         self.report = report
     }

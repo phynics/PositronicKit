@@ -7,13 +7,13 @@ public enum PromptJournalLayer: Sendable, Equatable {
 }
 
 public struct JournaledPromptSection: Sendable {
-    public let section: AssembledPrompt.Section.Rendered
+    public let section: RenderedPromptSection
     public let layer: PromptJournalLayer
     public let sourcePath: [String]
     public let journalPath: [String]
 
     public init(
-        section: AssembledPrompt.Section.Rendered,
+        section: RenderedPromptSection,
         layer: PromptJournalLayer,
         sourcePath: [String],
         journalPath: [String]
@@ -68,12 +68,12 @@ public struct PromptJournalPlan: Sendable {
 }
 
 public struct PromptJournal: Sendable {
-    private var committedBaseSections: [AssembledPrompt.Section.Rendered] = []
-    private var latestObservedSections: [AssembledPrompt.Section.Rendered] = []
+    private var committedBaseSections: [RenderedPromptSection] = []
+    private var latestObservedSections: [RenderedPromptSection] = []
 
     public init() {}
 
-    public mutating func observe(_ prompt: AssembledPrompt.RenderedPrompt) -> PromptJournalPlan {
+    public mutating func observe(_ prompt: RenderedPrompt) -> PromptJournalPlan {
         let currentSections = prompt.sections
         defer { latestObservedSections = currentSections }
 
@@ -131,19 +131,19 @@ public struct PromptJournal: Sendable {
         }
     }
 
-    private func hasStableChanges(comparedTo currentSections: [AssembledPrompt.Section.Rendered]) -> Bool {
+    private func hasStableChanges(comparedTo currentSections: [RenderedPromptSection]) -> Bool {
         let committedStable = committedBaseSections.filter { $0.cachePolicy == .stable }
         let currentStable = currentSections.filter { $0.cachePolicy == .stable }
         return stableSignature(for: committedStable) != stableSignature(for: currentStable)
     }
 
-    private func stableSignature(for sections: [AssembledPrompt.Section.Rendered]) -> [SectionSignature] {
+    private func stableSignature(for sections: [RenderedPromptSection]) -> [SectionSignature] {
         sections.map(SectionSignature.init)
     }
 
     private func computeSemiStableOverlay(
-        currentSections: [AssembledPrompt.Section.Rendered]
-    ) -> (sections: [AssembledPrompt.Section.Rendered], diff: PromptJournalDiff) {
+        currentSections: [RenderedPromptSection]
+    ) -> (sections: [RenderedPromptSection], diff: PromptJournalDiff) {
         let committed = committedBaseSections.filter { $0.cachePolicy == .semiStable }
         let current = currentSections.filter { $0.cachePolicy == .semiStable }
 
@@ -180,9 +180,9 @@ public struct PromptJournal: Sendable {
     }
 
     private func makePlan(
-        committedBaseSections: [AssembledPrompt.Section.Rendered],
-        currentSections: [AssembledPrompt.Section.Rendered],
-        overlaySections: [AssembledPrompt.Section.Rendered],
+        committedBaseSections: [RenderedPromptSection],
+        currentSections: [RenderedPromptSection],
+        overlaySections: [RenderedPromptSection],
         requiresHardReset: Bool,
         diff: PromptJournalDiff
     ) -> PromptJournalPlan {
@@ -234,7 +234,7 @@ private struct SectionSignature: Equatable {
     let estimatedTokens: Int
     let type: PromptSectionType
 
-    init(_ section: AssembledPrompt.Section.Rendered) {
+    init(_ section: RenderedPromptSection) {
         self.id = section.id
         self.contentHash = SectionSignature.hashContent(section.content)
         self.path = section.path
@@ -243,7 +243,7 @@ private struct SectionSignature: Equatable {
         self.type = section.type
     }
 
-    private static func hashContent(_ content: AssembledPrompt.Section.Content) -> Int {
+    private static func hashContent(_ content: PromptSectionContent) -> Int {
         var hasher = Hasher()
         switch content {
         case let .text(text):

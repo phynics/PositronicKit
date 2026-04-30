@@ -134,7 +134,7 @@ public actor TimelinePromptHistory {
 
     /// Record a rendered prompt snapshot and compact append state if thresholds were exceeded.
     @discardableResult
-    public func update(prompt: AssembledPrompt.RenderedPrompt) -> PromptHistoryUpdate {
+    public func update(prompt: RenderedPrompt) -> PromptHistoryUpdate {
         let diff = record(prompt: prompt)
         return PromptHistoryUpdate(diff: diff, didCompact: compactIfNeeded())
     }
@@ -146,7 +146,7 @@ public actor TimelinePromptHistory {
 
     @discardableResult
     public func update(
-        sections: [AssembledPrompt.Section],
+        sections: [PromptSection],
         renderedContent: [String: String]
     ) -> PromptHistoryUpdate {
         let diff = record(sections: sections, renderedContent: renderedContent)
@@ -169,7 +169,7 @@ public actor TimelinePromptHistory {
 
     /// Record a rendered prompt snapshot without re-running prompt rendering.
     @discardableResult
-    public func record(prompt: AssembledPrompt.RenderedPrompt) -> PromptDiff {
+    public func record(prompt: RenderedPrompt) -> PromptDiff {
         let duplicateIDs = duplicateResolvedSectionIDs(in: prompt.sections)
         precondition(
             duplicateIDs.isEmpty,
@@ -209,10 +209,10 @@ public actor TimelinePromptHistory {
     }
 
     @discardableResult
-    public func record(sections: [AssembledPrompt.Section], renderedContent: [String: String]) -> PromptDiff {
+    public func record(sections: [PromptSection], renderedContent: [String: String]) -> PromptDiff {
         let renderedSections = sections.compactMap { section in
             renderedContent[section.id].map { content in
-                AssembledPrompt.Section.Rendered(
+                RenderedPromptSection(
                     id: section.id,
                     role: section.role,
                     priority: section.priority,
@@ -228,7 +228,7 @@ public actor TimelinePromptHistory {
             }
         }
 
-        return record(prompt: AssembledPrompt.RenderedPrompt(
+        return record(prompt: RenderedPrompt(
             sections: renderedSections,
             string: renderedSections.compactMap { renderedContent[$0.id] }.joined(separator: "\n\n---\n\n"),
             sectionsByID: renderedContent
@@ -278,7 +278,7 @@ public actor TimelinePromptHistory {
     }
 
     public func nodeMetadata(
-        prompt: AssembledPrompt.RenderedPrompt
+        prompt: RenderedPrompt
     ) -> [String: StructuredNodeMetadata] {
         var metadata: [String: StructuredNodeMetadata] = [:]
         for section in prompt.sections {
@@ -298,7 +298,7 @@ public actor TimelinePromptHistory {
         return metadata
     }
 
-    private func duplicateResolvedSectionIDs(in sections: [AssembledPrompt.Section.Rendered]) -> [String] {
+    private func duplicateResolvedSectionIDs(in sections: [RenderedPromptSection]) -> [String] {
         var counts: [String: Int] = [:]
         for section in sections {
             counts[section.id, default: 0] += 1

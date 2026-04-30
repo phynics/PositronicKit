@@ -34,7 +34,7 @@ struct PromptBuilderTruncationTests {
         let assembled = try! section.assemblePrompt()
         let resolvedSection = assembled.sections[0]
 
-        let fullRender = await section.render()
+        let fullRender = await section.renderToString()
         #expect(fullRender != nil)
 
         let constrainedRender = await resolvedSection.renderText(constrainedTo: 10)
