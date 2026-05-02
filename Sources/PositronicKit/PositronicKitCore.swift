@@ -159,8 +159,6 @@ public struct PositronicKitCore: Sendable {
         self.toolRouter = toolRouter ?? ToolRouter()
     }
 
-
-
     // MARK: - Builder
 
     /// Adds a custom stage to the chat execution pipeline.

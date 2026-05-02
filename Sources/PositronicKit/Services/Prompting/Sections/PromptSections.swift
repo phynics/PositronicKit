@@ -280,7 +280,7 @@ public struct AgentContext: Prompt {
     private var text: String {
         var lines: [String] = [
             "## Your Identity",
-            "You are **\(agent.name)**.",
+            "You are **\(agent.name)**."
         ]
         if !agent.description.isEmpty {
             lines.append("Description: \(agent.description)")

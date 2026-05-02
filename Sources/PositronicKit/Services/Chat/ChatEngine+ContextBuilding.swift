@@ -75,8 +75,7 @@ extension ChatEngine {
 
         var requestOriginName: String?
         if let originId = requestOriginId,
-            let origin = try? await requestOriginStore.fetchOrigin(id: originId)
-        {
+            let origin = try? await requestOriginStore.fetchOrigin(id: originId) {
             requestOriginName = origin.displayName
         }
 

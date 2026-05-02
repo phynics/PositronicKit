@@ -1,14 +1,20 @@
 import Foundation
 
 public struct JournaledPromptSection: Sendable {
+    public enum JournalLayer: Sendable, Equatable {
+        case base
+        case overlay
+        case volatile
+    }
+
     public let section: RenderedPrompt.Section
-    public let layer: PromptJournalLayer
+    public let layer: JournalLayer
     public let sourcePath: [String]
     public let journalPath: [String]
 
     public init(
         section: RenderedPrompt.Section,
-        layer: PromptJournalLayer,
+        layer: JournalLayer,
         sourcePath: [String],
         journalPath: [String]
     ) {

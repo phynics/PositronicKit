@@ -7,7 +7,7 @@ func runExamples() async throws {
         tools: ["swift build", "swift test", "swift package dump-package"],
         history: [
             Message(content: "How should I validate my package changes?", role: .user),
-            Message(content: "Start with swift build, then run swift test.", role: .assistant),
+            Message(content: "Start with swift build, then run swift test.", role: .assistant)
         ],
         userQuery: "What should I run before opening a pull request?"
     )

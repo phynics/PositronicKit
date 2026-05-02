@@ -26,7 +26,7 @@ public actor ContextManager {
             QueryAugmentationStage(),
             MemoryRetrievalStage(),
             NoteDiscoveryStage(workspace: workspace),
-            ContextAssemblyStage(logger: Logger.module(named: "com.positronickit.ContextAssemblyStage")),
+            ContextAssemblyStage(logger: Logger.module(named: "com.positronickit.ContextAssemblyStage"))
         ]
     }
 

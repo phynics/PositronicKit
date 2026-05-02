@@ -14,7 +14,7 @@ public enum PromptAssemblyEvent: Sendable {
 
 /// Manages the shared state during prompt assembly.
 /// This actor holds the request context and accumulates rendered sections.
-public actor PromptAssemblyContext: Sendable {
+public actor PromptAssemblyContext {
     /// The original prompt request containing user input and context.
     public let request: LLMPromptRequest
     /// The agent instance associated with the prompt, if any.
@@ -56,7 +56,6 @@ public actor PromptAssemblyContext: Sendable {
         self.sections.append(contentsOf: sections)
     }
 }
-
 
 /// Protocol defining a single stage in the prompt assembly pipeline.
 /// Stages are responsible for retrieving specific pieces of context and appending them as sections.

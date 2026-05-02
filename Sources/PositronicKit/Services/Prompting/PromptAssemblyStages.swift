@@ -9,7 +9,7 @@ import PKShared
 public struct SystemInstructionsStage: PromptAssemblyStage {
     /// Initializes a new system instructions stage.
     public init() {}
-    
+
     /// Appends system instructions from the request or default instructions to the context.
     /// - Parameter context: The shared assembly context.
     public func execute(_ context: PromptAssemblyContext) async throws {
@@ -24,7 +24,7 @@ public struct SystemInstructionsStage: PromptAssemblyStage {
 public struct AgentContextStage: PromptAssemblyStage {
     /// Initializes a new agent context stage.
     public init() {}
-    
+
     /// Appends agent instance and timeline title information to the context.
     /// - Parameter context: The shared assembly context.
     public func execute(_ context: PromptAssemblyContext) async throws {
@@ -40,7 +40,7 @@ public struct AgentContextStage: PromptAssemblyStage {
 public struct ContextNotesStage: PromptAssemblyStage {
     /// Initializes a new context notes stage.
     public init() {}
-    
+
     /// Appends discovered notes from the request to the context.
     /// - Parameter context: The shared assembly context.
     public func execute(_ context: PromptAssemblyContext) async throws {
@@ -54,7 +54,7 @@ public struct ContextNotesStage: PromptAssemblyStage {
 public struct MemoriesStage: PromptAssemblyStage {
     /// Initializes a new memories stage.
     public init() {}
-    
+
     /// Appends retrieved memories from the request to the context.
     /// - Parameter context: The shared assembly context.
     public func execute(_ context: PromptAssemblyContext) async throws {
@@ -68,7 +68,7 @@ public struct MemoriesStage: PromptAssemblyStage {
 public struct ToolsStage: PromptAssemblyStage {
     /// Initializes a new tools stage.
     public init() {}
-    
+
     /// Appends available tools from the request to the context.
     /// - Parameter context: The shared assembly context.
     public func execute(_ context: PromptAssemblyContext) async throws {
@@ -82,7 +82,7 @@ public struct ToolsStage: PromptAssemblyStage {
 public struct WorkspacesContextStage: PromptAssemblyStage {
     /// Initializes a new workspaces context stage.
     public init() {}
-    
+
     /// Appends workspace and request-origin information to the context.
     /// - Parameter context: The shared assembly context.
     public func execute(_ context: PromptAssemblyContext) async throws {
@@ -100,7 +100,7 @@ public struct WorkspacesContextStage: PromptAssemblyStage {
 public struct TimelineContextStage: PromptAssemblyStage {
     /// Initializes a new timeline context stage.
     public init() {}
-    
+
     /// Appends timeline information to the context if available.
     /// - Parameter context: The shared assembly context.
     public func execute(_ context: PromptAssemblyContext) async throws {
@@ -115,7 +115,7 @@ public struct TimelineContextStage: PromptAssemblyStage {
 public struct ChatHistoryStage: PromptAssemblyStage {
     /// Initializes a new chat history stage.
     public init() {}
-    
+
     /// Optimizes and appends conversation history to the context.
     /// - Parameter context: The shared assembly context.
     public func execute(_ context: PromptAssemblyContext) async throws {
@@ -130,7 +130,7 @@ public struct ChatHistoryStage: PromptAssemblyStage {
 public struct UserQueryStage: PromptAssemblyStage {
     /// Initializes a new user query stage.
     public init() {}
-    
+
     /// Appends the latest user query to the context.
     /// - Parameter context: The shared assembly context.
     public func execute(_ context: PromptAssemblyContext) async throws {
@@ -144,7 +144,7 @@ public struct UserQueryStage: PromptAssemblyStage {
 public struct ExtensionSectionsStage: PromptAssemblyStage {
     /// Initializes a new extension sections stage.
     public init() {}
-    
+
     /// Appends any additional sections provided by extensions to the context.
     /// - Parameter context: The shared assembly context.
     public func execute(_ context: PromptAssemblyContext) async throws {

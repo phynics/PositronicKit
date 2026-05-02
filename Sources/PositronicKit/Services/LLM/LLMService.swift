@@ -59,7 +59,7 @@ public actor LLMService: LLMServiceProtocol, HealthCheckable {
             "model": configuration.modelName,
             "provider": configuration.endpoint.contains("openai")
                 ? "openai"
-                : (configuration.endpoint.contains("openrouter") ? "openrouter" : "custom"),
+                : (configuration.endpoint.contains("openrouter") ? "openrouter" : "custom")
         ]
     }
 

@@ -264,8 +264,7 @@ public actor ToolRouter {
 
         // Check for explicit intent in arguments
         if let explicitIdString = arguments["workspaceID"]?.value as? String,
-           let explicitId = UUID(uuidString: explicitIdString.trimmingCharacters(in: .whitespacesAndNewlines))
-        {
+           let explicitId = UUID(uuidString: explicitIdString.trimmingCharacters(in: .whitespacesAndNewlines)) {
             guard candidates.contains(explicitId) else {
                 logger.warning("Requested workspaceID \(explicitId) not found in timeline context. Falling back to default resolution.")
                 return try await timelineManager.findWorkspaceForTool(tool, in: candidates)

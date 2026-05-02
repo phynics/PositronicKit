@@ -1,5 +1,4 @@
 import Foundation
-import enum OpenAI.JSONSchema
 import OpenAI
 import PKShared
 

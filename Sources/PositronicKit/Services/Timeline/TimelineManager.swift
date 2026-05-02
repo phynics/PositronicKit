@@ -335,7 +335,7 @@ public extension TimelineManager {
 
             // Timeline Observation Tools (always available)
             AnyTool(TimelineListTool(timelineStore: timelineStore)),
-            AnyTool(TimelinePeekTool(messageStore: messageStore, timelineStore: timelineStore)),
+            AnyTool(TimelinePeekTool(messageStore: messageStore, timelineStore: timelineStore))
         ]
 
         // Timeline Send: only available when an agent is attached (needs sender identity)
@@ -354,8 +354,7 @@ public extension TimelineManager {
     }
 
     func findWorkspaceForTool(_ tool: ToolReference, in workspaceIds: [UUID]) async throws
-        -> UUID?
-    {
+        -> UUID? {
         return try await toolPersistence.findWorkspaceId(forToolId: tool.toolId, in: workspaceIds)
     }
 
