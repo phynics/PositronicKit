@@ -59,7 +59,6 @@ struct PromptNodeLoweringTests {
     @Test("Body-based prompts preserve type path boundaries after builder lowering")
     func bodyBasedPromptsPreserveTypePathBoundaries() {
         struct NestedPrompt: Prompt {
-            @PromptBuilder
             var body: some Prompt {
                 LoweringStaticText(id: "leaf", text: "value")
             }
@@ -76,7 +75,6 @@ struct PromptNodeLoweringTests {
         struct IdentifiedPrompt: Prompt, Identifiable {
             let id: String
 
-            @PromptBuilder
             var body: some Prompt {
                 LoweringStaticText(id: "leaf", text: "value")
             }

@@ -43,7 +43,6 @@ private struct ToolsSection: Prompt {
         tools.map { "- \($0)" }.joined(separator: "\n")
     }
 
-    @PromptBuilder
     var body: some Prompt {
         StaticText(id: "tools", text: toolString, role: .system)
             .priority(.high)
@@ -73,7 +72,6 @@ struct BodyBasedPromptTests {
     @Test("Modifiers override prompt primitive defaults across nested groups")
     func modifiersOverridePrimitiveDefaultsAcrossNestedGroups() async {
         struct NestedSection: Prompt {
-            @PromptBuilder
             var body: some Prompt {
                 AnyPrompt {
                     StaticText(id: "low", text: "first")

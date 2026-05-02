@@ -20,7 +20,6 @@ struct ToolingSection: Prompt {
         tools.map { "- \($0)" }.joined(separator: "\n")
     }
 
-    @PromptBuilder
     var body: some Prompt {
         SystemPrompt("You are helping with project tooling.")
 

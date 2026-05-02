@@ -119,7 +119,6 @@ import PKPrompt
 struct ToolingPrompt: Prompt {
     let tools: [String]
 
-    @PromptBuilder
     var body: some Prompt {
         SystemPrompt("You are helping with project tooling.")
 

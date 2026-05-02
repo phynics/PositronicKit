@@ -9,7 +9,6 @@ public struct SystemInstructions: Prompt {
         self.instructions = instructions
     }
 
-    @PromptBuilder
     public var body: some Prompt {
         if !instructions.isEmpty {
             SystemPrompt(

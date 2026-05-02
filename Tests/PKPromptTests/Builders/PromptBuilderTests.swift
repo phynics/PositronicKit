@@ -9,6 +9,13 @@ struct PromptBuilderTests {
         let content: String
     }
 
+    struct ImplicitBodyBuilderPrompt: Prompt {
+        var body: some Prompt {
+            TextPrompt("One", id: "1")
+            TextPrompt("Two", id: "2")
+        }
+    }
+
     @Test("Builder composes multiple sections")
     func exampleBuilder() async {
         @PromptBuilder
@@ -23,6 +30,12 @@ struct PromptBuilderTests {
         let rendered = await assembled.render()
         #expect(rendered.string.contains("High Priority"))
         #expect(rendered.string.contains("Low Priority"))
+    }
+
+    @Test("Prompt.body uses PromptBuilder implicitly")
+    func promptBodyUsesPromptBuilderImplicitly() {
+        let sections = try! ImplicitBodyBuilderPrompt().assemblePrompt().sections
+        #expect(sections.map(\.id) == ["1", "2"])
     }
 
     @Test("Builder supports conditionals")
