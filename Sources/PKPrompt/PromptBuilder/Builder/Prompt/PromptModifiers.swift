@@ -1,5 +1,5 @@
 //
-//  PriorityModifier.swift
+//  PromptModifiers.swift
 //  PositronicKit
 //
 //  Created by Atakan Dulker on 14.04.26.

@@ -102,7 +102,7 @@ struct PromptTests {
         let sections = TextPrompt("A", id: "s1")
             .priority(.high)
             .cachePolicy(.stable)
-            .resolveSections(in: PromptResolutionContext(ancestorPath: ["custom"]))
+            .resolveSections(in: PromptBuildContext(ancestorPath: ["custom"]))
 
         #expect(sections.count == 1)
         #expect(sections[0].priority == PromptPriority.high.rawValue)

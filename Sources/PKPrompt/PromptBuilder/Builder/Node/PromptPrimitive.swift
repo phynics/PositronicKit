@@ -106,7 +106,7 @@ package extension PromptPrimitive {
     }
 
     /// Materializes a primitive leaf into a concrete section with inherited traits applied.
-    func makeSection(in context: PromptResolutionContext = PromptResolutionContext()) -> PromptSection {
+    func makeSection(in context: PromptBuildContext = PromptBuildContext()) -> PromptSection {
         let effectivePriority = context.inheritedTraits.priority ?? priority
         let effectiveCompression = context.inheritedTraits.compression ?? compression
         let effectiveCachePolicy = context.inheritedTraits.cachePolicy ?? cachePolicy

@@ -1,7 +1,7 @@
 import Foundation
 
 /// Resolution-time context carried while lowering prompt nodes into concrete sections.
-package struct PromptResolutionContext: Sendable {
+package struct PromptBuildContext: Sendable {
     /// Canonical ancestor path accumulated from enclosing prompt structure.
     package let ancestorPath: [String]
 
@@ -16,21 +16,21 @@ package struct PromptResolutionContext: Sendable {
         self.inheritedTraits = inheritedTraits
     }
 
-    package func descending(into component: String?) -> PromptResolutionContext {
+    package func descending(into component: String?) -> PromptBuildContext {
         guard let component, !component.isEmpty else {
             return self
         }
 
         var path = ancestorPath
         path.append(component)
-        return PromptResolutionContext(
+        return PromptBuildContext(
             ancestorPath: path,
             inheritedTraits: inheritedTraits
         )
     }
 
-    package func applying(_ traits: PromptTraits) -> PromptResolutionContext {
-        PromptResolutionContext(
+    package func applying(_ traits: PromptTraits) -> PromptBuildContext {
+        PromptBuildContext(
             ancestorPath: ancestorPath,
             inheritedTraits: inheritedTraits.applying(
                 priority: traits.priority,

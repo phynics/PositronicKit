@@ -24,7 +24,7 @@ public struct AssembledPrompt: Sendable {
 
     /// Estimated token count across the ordered concrete sections.
     public var estimatedTokens: Int {
-        PromptSection.estimatedTokens(in: sections)
+        sections.reduce(0) { $0 + $1.estimatedTokens }
     }
 
     /// Creates an assembled prompt from concrete sections after validating prompt shape.
@@ -47,6 +47,64 @@ public struct AssembledPrompt: Sendable {
     /// Prefer this API when multiple downstream consumers need access to the same rendered prompt,
     /// such as plain-text rendering, snapshot recording, and provider message generation.
     public func render() async -> RenderedPrompt {
-        await RenderedPrompt.render(sections: sections, compressionReport: compressionReport)
+        var renderedSections: [RenderedPrompt.Section] = []
+        var sectionsByID: [String: String] = [:]
+        var stringParts: [String] = []
+
+        for section in sections {
+            guard let renderedSection = await section.rendered() else {
+                continue
+            }
+            renderedSections.append(renderedSection)
+
+            guard let text = renderedTextContent(for: renderedSection),
+                !text.isEmpty
+            else {
+                continue
+            }
+
+            sectionsByID[renderedSection.id] = text
+            stringParts.append(text)
+        }
+
+        return RenderedPrompt(
+            sections: renderedSections,
+            string: stringParts.joined(separator: "\n\n---\n\n"),
+            sectionsByID: sectionsByID,
+            compressionReport: compressionReport
+        )
+    }
+
+    private func renderedTextContent(for section: RenderedPrompt.Section)
+        -> String?
+    {
+        switch section.content {
+        case .text(let content):
+            return content
+        case .messages(let messages):
+            let content =
+                messages
+                .map(Self.formatHistoryMessage)
+                .joined(separator: "\n\n")
+            return content.isEmpty ? nil : content
+        }
+    }
+
+    private static func formatHistoryMessage(_ message: Message) -> String {
+        switch message.role {
+        case .user:
+            return "User: \(message.content)"
+        case .assistant:
+            if let think = message.think, !think.isEmpty {
+                return "Assistant: <think>\(think)</think>\n\(message.content)"
+            }
+            return "Assistant: \(message.content)"
+        case .system:
+            return "System: \(message.content)"
+        case .tool:
+            return "Tool: \(message.content)"
+        case .summary:
+            return "Summary: \(message.content)"
+        }
     }
 }

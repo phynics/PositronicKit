@@ -56,11 +56,11 @@ struct AssembledPromptTests {
             resolved(DummyPromptSection(id: "s3", priority: 1, estimatedTokens: 10, text: "Second block")),
         ])
 
-        let rendered = await RenderedPrompt.render(sections: sections)
+        let rendered = await (try! AssembledPrompt(sections: sections)).render()
         #expect(rendered.string == "First block\n\n---\n\nSecond block")
     }
 
-    @Test("PromptSection renders into RenderedPromptSection")
+    @Test("PromptSection renders into RenderedPrompt.Section")
     func promptSectionRendersIntoRenderedPromptSection() async {
         let section = PromptSection(
             id: "s1",
@@ -124,7 +124,7 @@ struct AssembledPromptTests {
 
         let rendered = await prompt.render()
         #expect(rendered.sections.count == 1)
-        #expect(rendered.sections[0].content == PromptSectionContent.messages(messages))
+        #expect(rendered.sections[0].content == PromptSection.Content.messages(messages))
     }
 
     @Test("Assembled prompt renders a canonical product from one pass")
@@ -232,7 +232,7 @@ struct AssembledPromptTests {
                     type: .text,
                     cachePolicy: query1.cachePolicy,
                     path: [query1.id],
-                    render: { _ in query1.text.map(PromptSectionContent.text) }
+                    render: { _ in query1.text.map(PromptSection.Content.text) }
                 ),
                 PromptSection(
                     id: query2.id,
@@ -243,7 +243,7 @@ struct AssembledPromptTests {
                     type: .text,
                     cachePolicy: query2.cachePolicy,
                     path: [query2.id],
-                    render: { _ in query2.text.map(PromptSectionContent.text) }
+                    render: { _ in query2.text.map(PromptSection.Content.text) }
                 ),
             ])
         }

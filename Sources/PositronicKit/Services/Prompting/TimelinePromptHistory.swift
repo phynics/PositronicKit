@@ -212,7 +212,7 @@ public actor TimelinePromptHistory {
     public func record(sections: [PromptSection], renderedContent: [String: String]) -> PromptDiff {
         let renderedSections = sections.compactMap { section in
             renderedContent[section.id].map { content in
-                RenderedPromptSection(
+                RenderedPrompt.Section(
                     id: section.id,
                     role: section.role,
                     priority: section.priority,
@@ -291,14 +291,14 @@ public actor TimelinePromptHistory {
                     String(section.estimatedTokens),
                     String(section.priority),
                     String(describing: section.cachePolicy),
-                    content,
+                    content
                 ])
             )
         }
         return metadata
     }
 
-    private func duplicateResolvedSectionIDs(in sections: [RenderedPromptSection]) -> [String] {
+    private func duplicateResolvedSectionIDs(in sections: [RenderedPrompt.Section]) -> [String] {
         var counts: [String: Int] = [:]
         for section in sections {
             counts[section.id, default: 0] += 1
@@ -340,8 +340,7 @@ public actor TimelinePromptHistory {
         var stablePrefixCount = 0
         for idx in 0 ..< min(previous.entries.count, snapshot.entries.count) {
             if previous.entries[idx].entryId == snapshot.entries[idx].entryId,
-               previous.entries[idx].contentHash == snapshot.entries[idx].contentHash
-            {
+               previous.entries[idx].contentHash == snapshot.entries[idx].contentHash {
                 stablePrefixCount += 1
             } else {
                 break

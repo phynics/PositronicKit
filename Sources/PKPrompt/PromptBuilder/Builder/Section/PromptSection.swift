@@ -4,7 +4,7 @@ import PKShared
 /// A validated prompt section with concrete metadata and deferred rendering.
 public struct PromptSection: Sendable {
     /// Async renderer used to materialize section content, optionally under a token cap.
-    public typealias RenderClosure = @Sendable (Int?) async -> PromptSectionContent?
+    public typealias RenderClosure = @Sendable (Int?) async -> PromptSection.Content?
 
     /// Stable section identifier.
     public let id: String
@@ -64,11 +64,6 @@ public struct PromptSection: Sendable {
         self.renderClosure = render
     }
 
-    /// Estimated token count across all prompt sections in their current order.
-    package static func estimatedTokens(in sections: [PromptSection]) -> Int {
-        sections.reduce(0) { $0 + $1.estimatedTokens }
-    }
-
     /// Validates prompt shape and returns sections in canonical assembly order.
     ///
     /// Sections are sorted by cache policy, then priority, while preserving source order as a
@@ -99,16 +94,16 @@ public struct PromptSection: Sendable {
     }
 
     /// Renders the section content, optionally under a token constraint.
-    package func renderedContent(constrainedTo tokens: Int? = nil) async -> PromptSectionContent? {
+    package func renderedContent(constrainedTo tokens: Int? = nil) async -> PromptSection.Content? {
         await renderClosure(tokens)
     }
 
     /// Renders the section into an immutable snapshot.
-    package func rendered(constrainedTo tokens: Int? = nil) async -> RenderedPromptSection? {
+    package func rendered(constrainedTo tokens: Int? = nil) async -> RenderedPrompt.Section? {
         guard let content = await renderedContent(constrainedTo: tokens) else {
             return nil
         }
-        return RenderedPromptSection(
+        return RenderedPrompt.Section(
             id: id,
             role: role,
             priority: priority,

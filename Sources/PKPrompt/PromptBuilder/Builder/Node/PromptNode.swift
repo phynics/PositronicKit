@@ -41,7 +41,7 @@ public struct PromptNode: Sendable {
     package var cachePolicy: CachePolicy? { traits.cachePolicy }
 
     /// Resolves this node and all descendants into concrete prompt sections.
-    package func resolve(in context: PromptResolutionContext) -> [PromptSection] {
+    package func resolve(in context: PromptBuildContext) -> [PromptSection] {
         let resolvedContext = context
             .descending(into: pathComponent)
             .applying(traits)
