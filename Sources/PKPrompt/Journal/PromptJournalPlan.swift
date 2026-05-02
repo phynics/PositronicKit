@@ -1,12 +1,19 @@
 import Foundation
 
+/// Describes how a rendered prompt should be materialized into journal layers.
 public struct PromptJournalPlan: Sendable {
+    /// Sections that belong in the committed base layer.
     public let baseSections: [JournaledPromptSection]
+    /// Semistable sections that should be written as an overlay for the current observation.
     public let overlaySections: [JournaledPromptSection]
+    /// Sections that are always current-only and should not enter the committed base.
     public let volatileSections: [JournaledPromptSection]
+    /// Indicates that stable content changed and downstream storage should discard prior journal state.
     public let requiresHardReset: Bool
+    /// Semistable changes detected while producing this plan.
     public let diff: PromptJournalDiff
 
+    /// Creates a journal plan.
     public init(
         baseSections: [JournaledPromptSection],
         overlaySections: [JournaledPromptSection],
@@ -19,25 +26,5 @@ public struct PromptJournalPlan: Sendable {
         self.volatileSections = volatileSections
         self.requiresHardReset = requiresHardReset
         self.diff = diff
-    }
-}
-
-public struct PromptJournalDiff: Sendable, Equatable {
-    public let changedSemiStableIDs: [String]
-    public let addedSemiStableIDs: [String]
-    public let removedSemiStableIDs: [String]
-
-    public init(
-        changedSemiStableIDs: [String] = [],
-        addedSemiStableIDs: [String] = [],
-        removedSemiStableIDs: [String] = []
-    ) {
-        self.changedSemiStableIDs = changedSemiStableIDs
-        self.addedSemiStableIDs = addedSemiStableIDs
-        self.removedSemiStableIDs = removedSemiStableIDs
-    }
-
-    public var hasOverlayChanges: Bool {
-        !changedSemiStableIDs.isEmpty || !addedSemiStableIDs.isEmpty || !removedSemiStableIDs.isEmpty
     }
 }
