@@ -140,7 +140,7 @@ public actor StructuredCompressionExecutor {
         case let .summarize(targetTokens, reason):
             // Summarize requires a compressor and non-empty text content; otherwise we drop with a fallback reason.
             guard let compressor,
-                  let content = await section.renderText(),
+                  let content = await section.renderedContent()?.text,
                   !content.isEmpty
             else {
                 let report = makeReport(
@@ -227,7 +227,7 @@ public actor StructuredCompressionExecutor {
             )
         }
     }
-    
+
     /// Build a `CompressionNodeReport` with common defaults.
     private func makeReport(
         nodeId: String,

@@ -24,7 +24,7 @@ public struct AssembledPrompt: Sendable {
 
     /// Estimated token count across the ordered concrete sections.
     public var estimatedTokens: Int {
-        sections.estimatedTokens
+        PromptSection.estimatedTokens(in: sections)
     }
 
     /// Creates an assembled prompt from concrete sections after validating prompt shape.
@@ -38,7 +38,7 @@ public struct AssembledPrompt: Sendable {
         sections: [PromptSection],
         compressionReport: CompressionReport? = nil,
     ) throws {
-        self.sections = try sections.validatedAndSorted()
+        self.sections = try PromptSection.validateAndSort(sections: sections)
         self.compressionReport = compressionReport
     }
 
@@ -47,6 +47,6 @@ public struct AssembledPrompt: Sendable {
     /// Prefer this API when multiple downstream consumers need access to the same rendered prompt,
     /// such as plain-text rendering, snapshot recording, and provider message generation.
     public func render() async -> RenderedPrompt {
-        await sections.renderPrompt(compressionReport: compressionReport)
+        await RenderedPrompt.render(sections: sections, compressionReport: compressionReport)
     }
 }

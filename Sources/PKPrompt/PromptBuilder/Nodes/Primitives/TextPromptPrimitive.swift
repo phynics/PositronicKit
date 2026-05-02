@@ -9,7 +9,7 @@ package struct TextPromptPrimitive: PromptPrimitive {
     package let cachePolicy: CachePolicy
     private let estimatedTokenOverride: Int?
     private let renderText: @Sendable () async -> String?
-    
+
     package init(
         id: String,
         text: String,
@@ -27,7 +27,7 @@ package struct TextPromptPrimitive: PromptPrimitive {
         self.estimatedTokenOverride = estimatedTokens
         self.renderText = { text }
     }
-    
+
     package init(
         id: String,
         role: PromptSectionRole = .context,
@@ -45,12 +45,12 @@ package struct TextPromptPrimitive: PromptPrimitive {
         self.estimatedTokenOverride = estimatedTokens
         self.renderText = render
     }
-    
+
     package func renderContent() async -> String? {
         guard let text = await renderText(), !text.isEmpty else { return nil }
         return text
     }
-    
+
     package var estimatedTokens: Int {
         estimatedTokenOverride ?? 0
     }

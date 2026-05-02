@@ -66,7 +66,7 @@ struct BodyBasedPromptTests {
         #expect(sections[0].cachePolicy == .semiStable)
         #expect(sections[0].path.suffix(3).elementsEqual(["ToolsSection", "semiStable", "tools"]))
 
-        let rendered = await sections[0].renderText()
+        let rendered = await sections[0].renderedContent()?.text
         #expect(rendered == "- read\n- write")
     }
 
@@ -131,7 +131,7 @@ struct BodyBasedPromptTests {
         #expect(sections[0].priority == PromptPriority.high.rawValue)
         #expect(sections[0].compression == CompressionStrategy.truncate(tail: true))
         #expect(sections[0].cachePolicy == CachePolicy.semiStable)
-        #expect(await sections[0].renderText() == "Deferred context")
+        #expect(await sections[0].renderedContent()?.text == "Deferred context")
     }
 
     @Test("HistoryPrompt resolves to chat history leaves")
@@ -150,6 +150,6 @@ struct BodyBasedPromptTests {
         } else {
             #expect(Bool(false), "History section should render message content")
         }
-        #expect(await sections[0].renderText() == nil)
+        #expect(await sections[0].renderedContent()?.text == nil)
     }
 }

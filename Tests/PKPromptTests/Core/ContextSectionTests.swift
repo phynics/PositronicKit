@@ -35,7 +35,7 @@ struct PromptCoreTests {
         #expect(resolved[0].compression == .keep)
         #expect(resolved[0].type == .text)
 
-        let constrainedRender = await resolved[0].renderText(constrainedTo: 50)
+        let constrainedRender = await resolved[0].renderedContent(constrainedTo: 50)?.text
         #expect(constrainedRender == "minimal text")
     }
 
@@ -56,7 +56,7 @@ struct PromptCoreTests {
             text: "abcdefghijklmnop"
         ).makeSection()
 
-        let rendered = await resolved.renderText(constrainedTo: 2)
+        let rendered = await resolved.renderedContent(constrainedTo: 2)?.text
         #expect(rendered == "abcd\n... [Truncated]")
     }
 
@@ -67,7 +67,7 @@ struct PromptCoreTests {
             text: "abcdefghijklmnop"
         ).makeSection()
 
-        let rendered = await resolved.renderText(constrainedTo: 2)
+        let rendered = await resolved.renderedContent(constrainedTo: 2)?.text
         #expect(rendered == "... [Truncated]\nmnop")
     }
 }

@@ -26,13 +26,13 @@ struct GenericHelperSectionsTests {
     @Test("ContextPrompt renders non-empty content")
     func contextPromptRender() async {
         let section = try! TextPrompt("Hello", id: "t1").assemblePrompt().sections[0]
-        #expect(await section.renderText() == "Hello")
+        #expect(await section.renderedContent()?.text == "Hello")
     }
 
     @Test("ContextPrompt renders nil for empty content")
     func contextPromptRenderEmptyReturnsNil() async {
         let section = try! TextPrompt("", id: "t1").assemblePrompt().sections[0]
-        #expect(await section.renderText() == nil)
+        #expect(await section.renderedContent()?.text == nil)
     }
 
     @Test("EmptySection assembles to no leaves")

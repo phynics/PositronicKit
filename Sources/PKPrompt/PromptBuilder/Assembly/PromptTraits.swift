@@ -5,7 +5,6 @@
 //  Created by Atakan Dulker on 29.04.26.
 //
 
-
 package struct PromptTraits: Sendable {
     package let priority: Int?
     package let compression: CompressionStrategy?

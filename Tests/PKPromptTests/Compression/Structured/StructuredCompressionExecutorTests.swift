@@ -60,7 +60,7 @@ struct StructuredCompressionExecutorTests {
         #expect(result.sections.map(\.id) == ["s1", "s2"])
         #expect(result.sections[0].compression == .summarize)
         #expect(result.sections[0].compressionOutcome?.action == .summarize(targetTokens: 50, reason: .budgetReduction))
-        #expect(await result.sections[0].renderText() == "summary")
+        #expect(await result.sections[0].renderedContent()?.text == "summary")
     }
 
     @Test("Repeated executions summarize each time without a summary cache")

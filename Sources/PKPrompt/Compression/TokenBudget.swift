@@ -193,7 +193,7 @@ public struct TokenBudget: Sendable {
             guard let compressor else {
                 return .drop(fallbackReason: "missing_compressor")
             }
-            guard let content = await section.renderText(), !content.isEmpty else {
+            guard let content = await section.renderedContent()?.text, !content.isEmpty else {
                 return .drop(fallbackReason: "missing_content")
             }
             guard let summary = try? await compressor.summarize(content), !summary.isEmpty else {
@@ -247,7 +247,7 @@ public struct TokenBudget: Sendable {
             section.id,
             String(section.estimatedTokens),
             String(section.priority),
-            String(describing: section.cachePolicy),
+            String(describing: section.cachePolicy)
         ])
     }
 

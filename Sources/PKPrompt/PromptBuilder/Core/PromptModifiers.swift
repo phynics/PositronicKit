@@ -5,27 +5,8 @@
 //  Created by Atakan Dulker on 14.04.26.
 //
 
-
 import Foundation
 import PKShared
-
-public extension Prompt {
-    func priority(_ value: Int) -> some Prompt {
-        PromptModifiers.Priority(content: self, priority: value)
-    }
-
-    func priority(_ value: PromptPriority) -> some Prompt {
-        PromptModifiers.Priority(content: self, priority: value.rawValue)
-    }
-
-    func compression(_ value: CompressionStrategy) -> some Prompt {
-        PromptModifiers.Compression(content: self, compression: value)
-    }
-
-    func cachePolicy(_ value: CachePolicy) -> some Prompt {
-        PromptModifiers.CachePolicy(content: self, cachePolicy: value)
-    }
-}
 
 package enum PromptModifiers {
     package struct Priority<Content: Prompt>: Prompt {

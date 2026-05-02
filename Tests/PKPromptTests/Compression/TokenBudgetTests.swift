@@ -99,7 +99,7 @@ struct TokenBudgetTests {
         #expect(result[1].id == "truncate")
         #expect(result[1].estimatedTokens == 200)
 
-        let rendered = await result[1].renderText()
+        let rendered = await result[1].renderedContent()?.text
         #expect(rendered?.count == 7)
     }
 
@@ -143,7 +143,7 @@ struct TokenBudgetTests {
         #expect(result.count == 2)
         #expect(result[1].id == "summarize")
         #expect(result[1].estimatedTokens <= 200)
-        #expect(await result[1].renderText() == "short summary")
+        #expect(await result[1].renderedContent()?.text == "short summary")
     }
 
     @Test("Fallback compression reports summarized sections and preserves requested strategy")

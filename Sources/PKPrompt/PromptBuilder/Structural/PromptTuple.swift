@@ -15,13 +15,13 @@ public struct PromptTuple<each Content: Prompt>: Prompt {
 
     public func makePromptNode() -> PromptNode? {
         var children: [PromptNode] = []
-        
+
         for prompt in repeat each prompts {
             if let node = prompt.makePromptNode() {
                 children.append(node)
             }
         }
-        
+
         if children.count == 1 {
             return children[0]
         }

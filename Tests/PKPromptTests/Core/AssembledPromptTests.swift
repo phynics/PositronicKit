@@ -44,19 +44,19 @@ struct AssembledPromptTests {
         let sec1 = resolved(DummyPromptSection(id: "s1", priority: 1, estimatedTokens: 10, text: "Low"))
         let sec2 = resolved(DummyPromptSection(id: "s2", priority: 100, estimatedTokens: 10, text: "High"))
 
-        let sections = try! [sec1, sec2].validatedAndSorted()
+        let sections = try! PromptSection.validateAndSort(sections: [sec1, sec2])
         #expect(sections.map(\.id) == ["s2", "s1"])
     }
 
     @Test("Prompt sections render directly into RenderedPrompt")
     func promptSectionsRenderDirectly() async {
-        let sections = try! [
+        let sections = try! PromptSection.validateAndSort(sections: [
             resolved(DummyPromptSection(id: "s1", priority: 10, estimatedTokens: 10, text: "First block")),
             resolved(DummyPromptSection(id: "s2", priority: 5, estimatedTokens: 10, text: nil)),
             resolved(DummyPromptSection(id: "s3", priority: 1, estimatedTokens: 10, text: "Second block")),
-        ].validatedAndSorted()
+        ])
 
-        let rendered = await sections.renderPrompt()
+        let rendered = await RenderedPrompt.render(sections: sections)
         #expect(rendered.string == "First block\n\n---\n\nSecond block")
     }
 

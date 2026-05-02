@@ -20,18 +20,17 @@ public struct ForEach<Data: Sendable, Content: Prompt & Sendable>: Prompt {
         self.content = content
     }
 
-
     public var body: EmptyPrompt { EmptyPrompt() }
 
     public func makePromptNode() -> PromptNode? {
         let nodes: [PromptNode] = data.compactMap {
             content($0).makePromptNode()
         }
-        
+
         guard !nodes.isEmpty else {
             return nil
         }
-        
+
         return PromptNode(.fork(nodes))
     }
 }

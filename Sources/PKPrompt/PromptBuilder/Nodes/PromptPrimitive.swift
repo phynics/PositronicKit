@@ -60,7 +60,6 @@ package enum PromptPrimitiveContent: Sendable {
 /// Utility namespace for Primitives
 package enum PromptPrimitives {}
 
-
 // MARK: - PromptPrimitive
 
 /// Prompt primitives render actual prompt content and lower to leaf prompt nodes.
@@ -154,7 +153,7 @@ package extension PromptPrimitive {
         guard let content = await renderContent(), !content.isEmpty else {
             return nil
         }
-        
+
         guard let tokenLimit else {
             return content
         }
@@ -164,7 +163,7 @@ package extension PromptPrimitive {
         guard tokenEstimate > tokenLimit else {
             return content
         }
-        
+
         switch strategy {
         case .keep:
             return content

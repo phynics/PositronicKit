@@ -20,7 +20,7 @@ public enum PromptAssembler {
             TimelineContextStage(),
             ChatHistoryStage(),
             UserQueryStage(),
-            ExtensionSectionsStage(),
+            ExtensionSectionsStage()
         ]
     }
 
@@ -172,7 +172,7 @@ public enum PromptAssembler {
     ) async -> [String: StructuredNodeMetadata] {
         var metadata: [String: StructuredNodeMetadata] = [:]
         for section in resolvedSections {
-            let rendered = await section.renderText() ?? ""
+            let rendered = await section.renderedContent()?.text ?? ""
             // Include both resolved content and inherited traits in the cache key so
             // structured compression invalidates whenever a materially relevant field changes.
             metadata[section.id] = StructuredNodeMetadata(
@@ -182,7 +182,7 @@ public enum PromptAssembler {
                     String(section.estimatedTokens),
                     String(section.priority),
                     String(describing: section.cachePolicy),
-                    rendered,
+                    rendered
                 ])
             )
         }
