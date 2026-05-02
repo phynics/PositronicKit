@@ -1,4 +1,5 @@
 import Foundation
+import PKShared
 import Testing
 @testable import PKPrompt
 
@@ -62,6 +63,19 @@ struct PromptSectionValidationTests {
         }
     }
 
+    @Test("Prompt assembly errors expose PKError metadata")
+    func promptAssemblyErrorsExposePKErrorMetadata() {
+        let error = PromptAssemblyError.duplicateSectionIDs(["alpha", "beta"])
+
+        #expect(error.errorDomain == PKErrorDomain.prompt)
+        #expect(error.errorCode == 1001)
+        #expect(
+            error.userFriendlyMessage ==
+                "Prompt assembly found duplicate section identifiers: alpha, beta."
+        )
+        #expect(error.remediation == "Ensure each prompt section uses a unique stable identifier.")
+    }
+
     @Test("Prompt rejects duplicate ids in composite sections")
     func promptRejectsDuplicateCompositeSectionIDs() throws {
         let sections: [any Prompt] = [MockSection(id: "dup"), MockSection(id: "dup")]
@@ -101,5 +115,18 @@ struct PromptSectionValidationTests {
         #expect(throws: CollectionUniqueIDError.duplicateIDs(["a"])) {
             try values.assertUniqueIDs(idKeyPath: \.key)
         }
+    }
+
+    @Test("Collection uniqueness errors expose PKError metadata")
+    func collectionUniqueIDErrorsExposePKErrorMetadata() {
+        let error = CollectionUniqueIDError.duplicateIDs(["dup"])
+
+        #expect(error.errorDomain == PKErrorDomain.prompt)
+        #expect(error.errorCode == 1101)
+        #expect(error.userFriendlyMessage == "Duplicate identifiers were found: dup.")
+        #expect(
+            error.remediation ==
+                "Ensure each value in the collection has a unique identifier before continuing."
+        )
     }
 }

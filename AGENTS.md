@@ -34,6 +34,8 @@ make clean
 - Swift 6 concurrency: `Sendable`, actor isolation, no shared mutable state.
 - Composition over inheritance. Narrow protocols. Explicit `throws`.
 - Structured logging via `PKShared`.
+- Error handling uses `ErrorKit` through `PKShared.PKError`: package-defined errors should conform to `PKError`, use `PKErrorDomain`, provide stable `errorCode` values, and implement `userFriendlyMessage` (plus `remediation` when the caller has a concrete recovery step).
+- When surfacing nested errors to users, tools, or higher-level logs, prefer `ErrorKit.userFriendlyMessage(for:)`; reserve `localizedDescription` for low-level diagnostics.
 - Tests accompany every behavioral change; use `PKTestSupport` helpers.
 - Keep `PositronicKitExamples` compiling and current with public APIs.
 - Prefer `JSONSchema`/`JSONSchemaBuilder`; derive from `@Schemable` when schema mirrors a Swift model.

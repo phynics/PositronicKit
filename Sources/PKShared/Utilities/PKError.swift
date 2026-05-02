@@ -21,6 +21,7 @@ public extension PKError {
 /// Common error domains for PositronicKitCore modules.
 public enum PKErrorDomain {
     public static let shared = "com.positronickit.shared"
+    public static let prompt = "com.positronickit.core.prompt"
     public static let client = "com.positronickit.client"
     public static let runtime = "com.positronickit.runtime"
     public static let llm = "com.positronickit.core.llm"

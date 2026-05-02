@@ -1,7 +1,30 @@
 import Foundation
+import PKShared
 
-public enum CollectionUniqueIDError: Error, Sendable, Equatable {
+public enum CollectionUniqueIDError: PKError, Sendable, Equatable {
     case duplicateIDs([String])
+
+    public var errorDomain: String { PKErrorDomain.prompt }
+
+    public var errorCode: Int {
+        switch self {
+        case .duplicateIDs: return 1101
+        }
+    }
+
+    public var userFriendlyMessage: String {
+        switch self {
+        case let .duplicateIDs(ids):
+            return "Duplicate identifiers were found: \(ids.joined(separator: ", "))."
+        }
+    }
+
+    public var remediation: String? {
+        switch self {
+        case .duplicateIDs:
+            return "Ensure each value in the collection has a unique identifier before continuing."
+        }
+    }
 }
 
 extension Collection where Element: Identifiable, Element.ID: Hashable & Comparable {

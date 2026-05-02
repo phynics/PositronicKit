@@ -27,6 +27,7 @@ struct PKErrorTests {
     @Test("PKErrorDomain constants are correct")
     func pkErrorDomains() {
         #expect(PKErrorDomain.shared == "com.positronickit.shared")
+        #expect(PKErrorDomain.prompt == "com.positronickit.core.prompt")
         #expect(PKErrorDomain.client == "com.positronickit.client")
         #expect(PKErrorDomain.runtime == "com.positronickit.runtime")
         #expect(PKErrorDomain.llm == "com.positronickit.core.llm")

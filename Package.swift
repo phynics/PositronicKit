@@ -86,7 +86,7 @@ let package = Package(
         ),
         .testTarget(
             name: "PKPromptTests",
-            dependencies: ["PKPrompt", "PKTestSupport"],
+            dependencies: ["PKPrompt", "PKShared", "PKTestSupport"],
             path: "Tests/PKPromptTests"
         ),
         .testTarget(
