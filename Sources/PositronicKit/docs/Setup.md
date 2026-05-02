@@ -34,7 +34,28 @@ let chat = PositronicKitCore(
 
 Direct `withDependencies` configuration is still useful in tests or advanced internal integrations, but it is not the primary public integration path.
 
-## 2. Setting Up a Pipeline
+## 2. Logging
+
+PositronicKit uses `swift-log` only.
+
+- The library does not call `LoggingSystem.bootstrap(...)`.
+- Your host application or CLI should bootstrap logging once, at process startup.
+- Runtime services emit normal operational logs through `Logger.module(...)`.
+- Prompt assembly emits verbose diagnostics only when you pass a `Logger` through `PromptAssemblyOptions`.
+
+```swift
+import Logging
+import PositronicKit
+
+LoggingSystem.bootstrap { label in
+    StreamLogHandler.standardOutput(label: label)
+}
+
+let logger = Logger(label: "com.example.prompt")
+let options = PromptAssemblyOptions(logger: logger)
+```
+
+## 3. Setting Up a Pipeline
 
 The runtime uses the generic `Pipeline` type internally for chat turns, prompt assembly, and context gathering. You can also use `Pipeline` directly for independent workflows.
 
@@ -76,8 +97,8 @@ for try await event in stream {
 }
 ```
 
-## 3. Best Practices
+## 4. Best Practices
 
 - **Immutability**: Always treat the `Context` object as immutable. If you need to accumulate state during a pipeline run, use an `actor` for thread-safe mutations.
-- **Error Handling**: Implement custom errors that conform to `PKError` for consistent error reporting across the framework.
+- **Error Handling**: Implement custom errors that conform to `PKError`, use stable `PKErrorDomain`/`errorCode` values, and prefer `ErrorKit.userFriendlyMessage(for:)` when surfacing nested failures.
 - **Testing**: Use `withDependencies` in tests when you need to override internals, but prefer exercising `PositronicKitCore` through its public initializers where possible.

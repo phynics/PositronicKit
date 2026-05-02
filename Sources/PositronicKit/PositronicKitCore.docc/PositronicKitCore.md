@@ -14,6 +14,13 @@ PositronicKitCore provides the public runtime entry point for timeline managemen
 - **Persistence Layer**: A suite of domain-specific store protocols.
 - **Tool System**: Runtime-managed and host-attached tool routing over shared tool contracts.
 
+### Logging And Errors
+
+- Runtime diagnostics use `swift-log`.
+- Hosts own logging bootstrap and log-level configuration.
+- Prompt assembly diagnostics are enabled with `PromptAssemblyOptions(logger:)`.
+- Package-defined errors conform to `PKError` and surface user-facing messages through `ErrorKit`.
+
 ## Topics
 
 ### Architecture

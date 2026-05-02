@@ -37,6 +37,34 @@ swift test                         # run the full test suite
 swift run PositronicKitExamples    # run the example harness
 ```
 
+## Logging And Errors
+
+PositronicKit uses `swift-log` as its only logging API.
+
+- Library code never calls `LoggingSystem.bootstrap(...)` for you.
+- Downstream apps, CLIs, or tests own logging bootstrap and log-level selection.
+- Long-lived runtime services log through `Logger.module(...)` in `PKShared`.
+- Prompt assembly diagnostics are opt-in: pass a `Logger` in `PromptAssemblyOptions` and use log levels to control verbosity.
+
+```swift
+import Logging
+import PositronicKit
+
+let logger = Logger(label: "com.example.prompt-assembly")
+
+let rendered = try await PromptAssembler.assemble(
+    request,
+    options: PromptAssemblyOptions(logger: logger)
+)
+```
+
+For package-defined errors, PositronicKit uses `ErrorKit` through `PKShared.PKError`.
+
+- Package error types conform to `PKError`.
+- Stable `PKErrorDomain` and `errorCode` values identify failures.
+- `userFriendlyMessage` is the preferred surfaced message.
+- When propagating nested failures, prefer `ErrorKit.userFriendlyMessage(for:)` over raw `localizedDescription`.
+
 ## Runtime: PositronicKit
 
 PositronicKit is the orchestration layer. It manages the full lifecycle of an agent interaction — from resolving state, through prompt assembly and tool execution, to persisting results.
@@ -68,6 +96,14 @@ This means a downstream package can wire up its own persistence, networking, and
 4. Stream the LLM response and extract tool calls.
 5. Route tool calls through timeline/workspace-aware tool infrastructure.
 6. Persist messages, timeline state, and related artifacts through injected persistence protocols.
+
+### Prompt Assembly Diagnostics
+
+Runtime prompt assembly uses PKPrompt underneath, but the runtime surface exposes a small control point through `PromptAssemblyOptions`.
+
+- `overridePipeline` swaps the default assembly stages.
+- `tokenBudget`, `compressor`, `structuredDiff`, and `structuredExecutor` control compression.
+- `logger` enables `swift-log` diagnostics for stage execution, section resolution, and token-budget decisions.
 
 ## Prompt Composition: PKPrompt
 

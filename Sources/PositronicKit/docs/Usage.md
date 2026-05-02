@@ -106,29 +106,59 @@ let stream = try await chat.run(
 
 for try await event in stream {
     switch event {
-    case .delta(let text):
-        // Received a text delta (streaming response)
-        print(text, terminator: "")
-        
-    case .status(let status):
-        // Agent status changed (e.g., "Thinking...", "Using tool...")
-        print("\nStatus: \(status)")
-        
-    case .toolCall(let name, let arguments):
-        // Agent is calling a tool
-        print("\nCalling tool: \(name)")
-        
-    case .generationContext(let metadata):
-        // Initial context gathered for the turn (RAG memories, files)
-        print("\nContext: \(metadata.files.count) files referenced")
-        
-    case .generationFinished:
-        print("\nDone.")
-        
+    case .delta(let event):
+        switch event {
+        case .thinking(let text):
+            print("\nThinking: \(text)", terminator: "")
+        case .generation(let text):
+            print(text, terminator: "")
+        case .toolCall(let delta):
+            print("\nTool delta: \(delta.name ?? "<continuation>")")
+        case .toolExecution(let toolCallId, let status):
+            print("\nTool execution [\(toolCallId)]: \(status)")
+        }
+
+    case .meta(let event):
+        switch event {
+        case .generationContext(let metadata):
+            print("\nContext: \(metadata.files.count) files referenced")
+        case .generationCompleted(let message, let metadata):
+            print("\nMeta completion: \(message.content) (\(metadata.totalTokens ?? 0) tokens)")
+        }
+
+    case .completion(let event):
+        switch event {
+        case .generationCompleted(let message, _):
+            print("\nDone: \(message.content)")
+        case .toolExecution(let toolCallId, let status):
+            print("\nTool completed [\(toolCallId)]: \(status)")
+        case .streamCompleted:
+            print("\nStream finished.")
+        }
+
+    case .error(let event):
+        print("\nError: \(event)")
+
     default:
         break
     }
 }
+```
+
+### Enabling Prompt Assembly Logs
+
+If you need verbose prompt assembly diagnostics, pass a `Logger` through `PromptAssemblyOptions`.
+
+```swift
+import Logging
+import PositronicKit
+
+let promptLogger = Logger(label: "com.example.prompt")
+
+let result = try await PromptAssembler.prepare(
+    request,
+    options: PromptAssemblyOptions(logger: promptLogger)
+)
 ```
 
 ### Handling Tool Outputs
@@ -153,11 +183,11 @@ let stream = try await chat.run(
 
 ### ChatEvent Stream
 The stream provides a rich set of events:
-- `.delta`: Incremental text updates.
-- `.status`: High-level agent activity status.
-- `.toolCall`: Notification of a tool being invoked.
-- `.generationContext`: Metadata about the RAG context used.
-- `.generationCancelled`: Sent if the task is cancelled.
+- `.delta(.thinking)` and `.delta(.generation)` for streaming text.
+- `.delta(.toolCall)` and `.delta(.toolExecution)` for tool progress.
+- `.meta(.generationContext)` for retrieved context metadata.
+- `.completion(.generationCompleted)` and `.completion(.streamCompleted)` for terminal events.
+- `.error(...)` for tool-call, cancellation, and general failure events.
 
 ### Agent Persistence
 Agents are persistent. Their workspace (`primaryWorkspaceId`) contains their long-term memory, while their private timeline (`privateTimelineId`) stores their internal monologue and history.

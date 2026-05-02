@@ -8,6 +8,22 @@ PositronicKitCore is the transport-neutral runtime facade for PositronicKit. It 
 - [Setup & Configuration](docs/Setup.md) - How to configure LLM providers, database storage, and dependency injection.
 - [Usage & Examples](docs/Usage.md) - Step-by-step guide to initializing agents and running chat streams.
 
+## Logging
+
+PositronicKitCore uses `swift-log` for runtime diagnostics.
+
+- The library does not bootstrap logging globally.
+- Hosts should call `LoggingSystem.bootstrap(...)` themselves when they want output.
+- Prompt assembly diagnostics are enabled by passing `logger:` in `PromptAssemblyOptions`.
+
+```swift
+import Logging
+import PositronicKit
+
+let logger = Logger(label: "com.example.prompt")
+let options = PromptAssemblyOptions(logger: logger)
+```
+
 ## Key Components
 
 ### PositronicKitCore (Runtime Facade)

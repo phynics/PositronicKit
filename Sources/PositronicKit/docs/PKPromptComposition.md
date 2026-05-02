@@ -4,8 +4,8 @@
 
 ## Authoring Model
 
-- Use composite `ContextSection` types to group reusable prompt structure.
-- Use primitive leaves like `TextSection` and `HistorySection` when a type emits the final prompt content directly.
+- Use composite `Prompt` types to group reusable prompt structure.
+- Use primitive leaves like `TextPrompt` and `HistoryPrompt` when a type emits final prompt content directly.
 - Use convenience wrappers like `SystemPrompt`, `ContextPrompt`, `UserPrompt`, and `HistoryPrompt` for common leaf roles.
 - Use `AnyPrompt.build { ... }` as the explicit top-level prompt root.
 - `Group` stays available when you want to introduce an explicit nested grouping boundary.
@@ -13,18 +13,18 @@
 ```swift
 import PKPrompt
 
-struct ToolingSection: ContextSection {
+struct ToolingSection: Prompt {
     let tools: [String]
 
     private var toolSummary: String {
         tools.map { "- \($0)" }.joined(separator: "\n")
     }
 
-    @ContextBuilder
-    var body: some ContextSection {
+    @PromptBuilder
+    var body: some Prompt {
         SystemPrompt("You are helping with project tooling.")
 
-        ContextPrompt(toolSummary, id: "tools")
+        TextPrompt(toolSummary, id: "tools")
             .priority(.high)
             .compression(.summarize)
             .cachePolicy(.semiStable)
@@ -53,3 +53,7 @@ Before prompt content is consumed by the runtime, composed sections are resolved
 - provider message conversion uses `PromptSectionRole` on resolved leaves rather than stringly-typed section IDs
 
 This separation keeps the builder API ergonomic while preserving stable prompt semantics for caching and compression.
+
+## Runtime Integration
+
+`PKPrompt` itself stays transport-neutral and does not own a logging backend. When used through `PromptAssembler`, verbose diagnostics flow through `swift-log` by passing `PromptAssemblyOptions(logger:)` from the runtime layer.
