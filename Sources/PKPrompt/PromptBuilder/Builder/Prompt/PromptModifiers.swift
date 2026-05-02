@@ -51,3 +51,21 @@ package enum PromptModifiers {
         }
     }
 }
+
+public extension Prompt {
+    func priority(_ value: Int) -> some Prompt {
+        PromptModifiers.Priority(content: self, priority: value)
+    }
+
+    func priority(_ value: PromptPriority) -> some Prompt {
+        PromptModifiers.Priority(content: self, priority: value.rawValue)
+    }
+
+    func compression(_ value: CompressionStrategy) -> some Prompt {
+        PromptModifiers.Compression(content: self, compression: value)
+    }
+
+    func cachePolicy(_ value: CachePolicy) -> some Prompt {
+        PromptModifiers.CachePolicy(content: self, cachePolicy: value)
+    }
+}
