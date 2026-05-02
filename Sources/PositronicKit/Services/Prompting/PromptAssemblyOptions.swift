@@ -1,4 +1,5 @@
 import Foundation
+import Logging
 import PKPrompt
 import PKShared
 
@@ -14,6 +15,7 @@ import PKShared
 public struct PromptAssemblyOptions: Sendable {
     public var overridePipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>?
     public var tokenBudget: TokenBudget?
+    public var logger: Logger?
     /// Optional summarization service used by `.summarize` compression actions once a prompt is
     /// over budget and token reduction is required.
     ///
@@ -28,12 +30,14 @@ public struct PromptAssemblyOptions: Sendable {
     public init(
         overridePipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>? = nil,
         tokenBudget: TokenBudget? = nil,
+        logger: Logger? = nil,
         compressor: SectionCompressor? = nil,
         structuredDiff: StructuredDiffHint? = nil,
         structuredExecutor: StructuredCompressionExecutor = StructuredCompressionExecutor()
     ) {
         self.overridePipeline = overridePipeline
         self.tokenBudget = tokenBudget
+        self.logger = logger
         self.compressor = compressor
         self.structuredDiff = structuredDiff
         self.structuredExecutor = structuredExecutor

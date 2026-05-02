@@ -1,8 +1,49 @@
 import Foundation
+import Logging
 import PKPrompt
 import PKShared
 import PositronicKit
 import Testing
+
+private final class PromptAssemblyLogSink: @unchecked Sendable {
+    private let lock = NSLock()
+    private var entries: [(Logger.Level, String)] = []
+
+    func append(_ level: Logger.Level, _ message: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        entries.append((level, message))
+    }
+
+    func messages() -> [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return entries.map(\.1)
+    }
+}
+
+private struct PromptAssemblyTestLogHandler: LogHandler {
+    let sink: PromptAssemblyLogSink
+    var logLevel: Logger.Level = .debug
+    var metadata = Logger.Metadata()
+
+    subscript(metadataKey key: String) -> Logger.MetadataValue? {
+        get { metadata[key] }
+        set { metadata[key] = newValue }
+    }
+
+    func log(
+        level: Logger.Level,
+        message: Logger.Message,
+        metadata _: Logger.Metadata?,
+        source _: String,
+        file _: String,
+        function _: String,
+        line _: UInt
+    ) {
+        sink.append(level, message.description)
+    }
+}
 
 @Suite("PromptAssembly")
 struct PromptAssemblyTests {
@@ -112,6 +153,33 @@ struct PromptAssemblyTests {
         )
 
         #expect(prompt.sections.map { $0.id } == ["override_assembly"])
+    }
+
+    @Test("PromptAssembler emits verbose assembly logs when requested")
+    func promptAssemblerEmitsVerboseLogs() async throws {
+        struct CustomStage: PromptAssemblyStage {
+            func execute(_ context: PromptAssemblyContext) async throws {
+                await context.append(PromptAssemblyTests.MockSection(id: "verbose_assembly"))
+            }
+        }
+
+        let sink = PromptAssemblyLogSink()
+        let logger = Logger(label: "test.prompt-assembly") { _ in
+            PromptAssemblyTestLogHandler(sink: sink)
+        }
+
+        _ = try await PromptAssembler.assemble(
+            makeRequest(userQuery: "test"),
+            options: PromptAssemblyOptions(
+                overridePipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>(stages: [CustomStage()]),
+                logger: logger
+            )
+        )
+
+        let messages = sink.messages()
+        #expect(messages.contains("Starting pipeline stage: CustomStage"))
+        #expect(messages.contains(where: { $0.hasPrefix("Completed pipeline stage: CustomStage in ") }))
+        #expect(messages.contains("Resolved 1 prompt section(s) from 1 prompt fragment(s)."))
     }
 
     @Test("PromptAssembler rejects duplicate section ids")

@@ -1,4 +1,5 @@
 import Foundation
+import Logging
 import PKPrompt
 import PKShared
 
@@ -74,15 +75,20 @@ public enum PromptAssembler {
 
         let sections = try await runPipeline(
             context: assemblyContext,
-            overridePipeline: options.overridePipeline
+            overridePipeline: options.overridePipeline,
+            logger: options.logger
         )
         let resolvedSections = resolveSections(from: sections)
+        options.logger?.debug(
+            "Resolved \(resolvedSections.count) prompt section(s) from \(sections.count) prompt fragment(s)."
+        )
         let prompt = try await assemblePrompt(
             from: resolvedSections,
             tokenBudget: options.tokenBudget,
             compressor: options.compressor,
             structuredDiff: options.structuredDiff,
-            structuredExecutor: options.structuredExecutor
+            structuredExecutor: options.structuredExecutor,
+            logger: options.logger
         )
         return await prompt.render()
     }
@@ -107,9 +113,15 @@ public enum PromptAssembler {
 
     private static func runPipeline(
         context: PromptAssemblyContext,
-        overridePipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>?
+        overridePipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>?,
+        logger: Logger?
     ) async throws -> [any Prompt] {
-        let pipeline = overridePipeline ?? Pipeline(stages: defaultAssemblyStages())
+        let basePipeline = overridePipeline ?? Pipeline(stages: defaultAssemblyStages())
+        let pipeline = if let logger {
+            basePipeline.withLogger(logger)
+        } else {
+            basePipeline
+        }
 
         let stream = pipeline.execute(context)
         for try await _ in stream {}
@@ -143,11 +155,17 @@ public enum PromptAssembler {
         tokenBudget: TokenBudget?,
         compressor: SectionCompressor?,
         structuredDiff: StructuredDiffHint?,
-        structuredExecutor: StructuredCompressionExecutor
+        structuredExecutor: StructuredCompressionExecutor,
+        logger: Logger?
     ) async throws -> AssembledPrompt {
         guard let tokenBudget else {
+            logger?.debug("Assembling prompt without token budget.")
             return try AssembledPrompt(sections: resolvedSections)
         }
+
+        logger?.debug(
+            "Applying token budget with maxTokens=\(tokenBudget.maxTokens) reserveForResponse=\(tokenBudget.reserveForResponse)."
+        )
 
         // Prompt assembly always provides node metadata for budgeted prompts, so the structured
         // compression pass runs first and the simple allocator acts as a fallback.
@@ -159,6 +177,10 @@ public enum PromptAssembler {
             structuredDiff: structuredDiff,
             nodeMetadata: metadata,
             executor: structuredExecutor
+        )
+
+        logger?.debug(
+            "Token budgeting produced \(compressionResult.sections.count) prompt section(s)."
         )
 
         return try AssembledPrompt(

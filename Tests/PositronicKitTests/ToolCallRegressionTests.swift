@@ -1,7 +1,9 @@
 import Foundation
+import Logging
 import Testing
 @testable import PositronicKit
 @testable import PKShared
+import PKTestSupport
 struct MockComplexTool: Tool, @unchecked Sendable {
     let id = "complex_tool"
     let name = "Complex Tool"
@@ -36,11 +38,25 @@ struct MockComplexTool: Tool, @unchecked Sendable {
 @Suite("Tool Call Regression Tests")
 @MainActor
 struct ToolCallRegressionTests {
+    private let logger = Logger(label: "test.tool-call-regression")
 
     @Test("StreamingCoordinator parses complex JSON arguments from native tool calls")
     func testComplexNativeToolCalls() async throws {
-        let coordinator = StreamingCoordinator()
-        coordinator.startStreaming()
+        let persistence = MockPersistenceService()
+        let stage = MessagePersistenceStage(messageStore: persistence, logger: logger)
+        let context = ChatTurnContext(
+            timelineId: UUID(),
+            agentInstanceId: nil,
+            modelName: "test-model",
+            maxTurns: 1,
+            systemInstructions: nil,
+            availableTools: [],
+            contextData: ContextData(),
+            remoteDepth: 0,
+            currentMessages: [],
+            turnCount: 1,
+            outputs: TurnOutputs()
+        )
 
         // Chunk 1: Tool call start
         let chunk1 = ToolCallDelta(
@@ -66,12 +82,30 @@ struct ToolCallRegressionTests {
             arguments: "\"user\": {\"name\": \"Alice\", \"age\": 30}}"
         )
 
-        // Process chunks (wrapped in array as processToolCalls expects)
-        coordinator.processToolCalls([chunk1])
-        coordinator.processToolCalls([chunk2])
-        coordinator.processToolCalls([chunk3])
+        await context.outputs.accumulateToolCall(
+            index: chunk1.index,
+            id: chunk1.id,
+            name: chunk1.name,
+            args: chunk1.arguments
+        )
+        await context.outputs.accumulateToolCall(
+            index: chunk2.index,
+            id: chunk2.id,
+            name: chunk2.name,
+            args: chunk2.arguments
+        )
+        await context.outputs.accumulateToolCall(
+            index: chunk3.index,
+            id: chunk3.id,
+            name: chunk3.name,
+            args: chunk3.arguments
+        )
 
-        let message = coordinator.finalize()
+        let stream = try await stage.process(context)
+        for try await _ in stream {}
+
+        #expect(persistence.messages.count == 1)
+        let message = persistence.messages[0].toMessage()
 
         #expect(message.toolCalls?.count == 1)
         let toolCall = message.toolCalls?.first
