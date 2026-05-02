@@ -5,7 +5,7 @@
 //  Created by Atakan Dulker on 02.05.26.
 //
 
-extension Prompt {
+public extension Prompt {
     /// Assembles this declarative prompt tree into a validated, ordered prompt artifact.
     ///
     /// - Throws: ``AssembledPrompt/ValidationError`` when the concrete section graph is invalid.

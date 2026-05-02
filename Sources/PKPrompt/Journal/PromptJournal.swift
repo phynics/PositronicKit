@@ -1,72 +1,5 @@
 import Foundation
 
-public enum PromptJournalLayer: Sendable, Equatable {
-    case base
-    case overlay
-    case volatile
-}
-
-public struct JournaledPromptSection: Sendable {
-    public let section: RenderedPrompt.Section
-    public let layer: PromptJournalLayer
-    public let sourcePath: [String]
-    public let journalPath: [String]
-
-    public init(
-        section: RenderedPrompt.Section,
-        layer: PromptJournalLayer,
-        sourcePath: [String],
-        journalPath: [String]
-    ) {
-        self.section = section
-        self.layer = layer
-        self.sourcePath = sourcePath
-        self.journalPath = journalPath
-    }
-}
-
-public struct PromptJournalDiff: Sendable, Equatable {
-    public let changedSemiStableIDs: [String]
-    public let addedSemiStableIDs: [String]
-    public let removedSemiStableIDs: [String]
-
-    public init(
-        changedSemiStableIDs: [String] = [],
-        addedSemiStableIDs: [String] = [],
-        removedSemiStableIDs: [String] = []
-    ) {
-        self.changedSemiStableIDs = changedSemiStableIDs
-        self.addedSemiStableIDs = addedSemiStableIDs
-        self.removedSemiStableIDs = removedSemiStableIDs
-    }
-
-    public var hasOverlayChanges: Bool {
-        !changedSemiStableIDs.isEmpty || !addedSemiStableIDs.isEmpty || !removedSemiStableIDs.isEmpty
-    }
-}
-
-public struct PromptJournalPlan: Sendable {
-    public let baseSections: [JournaledPromptSection]
-    public let overlaySections: [JournaledPromptSection]
-    public let volatileSections: [JournaledPromptSection]
-    public let requiresHardReset: Bool
-    public let diff: PromptJournalDiff
-
-    public init(
-        baseSections: [JournaledPromptSection],
-        overlaySections: [JournaledPromptSection],
-        volatileSections: [JournaledPromptSection],
-        requiresHardReset: Bool,
-        diff: PromptJournalDiff
-    ) {
-        self.baseSections = baseSections
-        self.overlaySections = overlaySections
-        self.volatileSections = volatileSections
-        self.requiresHardReset = requiresHardReset
-        self.diff = diff
-    }
-}
-
 public struct PromptJournal: Sendable {
     private var committedBaseSections: [RenderedPrompt.Section] = []
     private var latestObservedSections: [RenderedPrompt.Section] = []
@@ -223,41 +156,5 @@ public struct PromptJournal: Sendable {
             return path[index...]
         }
         return ArraySlice(path.dropFirst())
-    }
-}
-
-private struct SectionSignature: Equatable {
-    let id: String
-    let contentHash: Int
-    let path: [String]
-    let parentID: String?
-    let estimatedTokens: Int
-    let type: PromptSectionType
-
-    init(_ section: RenderedPrompt.Section) {
-        self.id = section.id
-        self.contentHash = SectionSignature.hashContent(section.content)
-        self.path = section.path
-        self.parentID = section.parentID
-        self.estimatedTokens = section.estimatedTokens
-        self.type = section.type
-    }
-
-    private static func hashContent(_ content: PromptSection.Content) -> Int {
-        var hasher = Hasher()
-        switch content {
-        case let .text(text):
-            hasher.combine(0)
-            hasher.combine(text)
-        case let .messages(messages):
-            hasher.combine(1)
-            for message in messages {
-                hasher.combine(message.content)
-                hasher.combine(String(describing: message.role))
-                hasher.combine(message.think)
-                hasher.combine(message.isSummary)
-            }
-        }
-        return hasher.finalize()
     }
 }
