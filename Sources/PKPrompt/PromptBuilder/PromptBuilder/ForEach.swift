@@ -11,77 +11,27 @@ import Foundation
 ///     TextPrompt(workspace.summary, id: "workspace-\(workspace.id)")
 /// }
 /// ```
-public struct ForEach<Content: Prompt>: Prompt {
-    package let children: [AnyPrompt]
-    package let iterationPathComponents: [String]
+public struct ForEach<Data: Sendable, Content: Prompt & Sendable>: Prompt {
+    package let data: [Data]
+    package let content: @Sendable (Data) -> Content
 
-    package init(children: [AnyPrompt], iterationPathComponents: [String]) {
-        self.children = children
-        self.iterationPathComponents = iterationPathComponents
+    public init(data: [Data], @PromptBuilder content: @Sendable @escaping (Data) -> Content) {
+        self.data = data
+        self.content = content
     }
 
-    /// Creates a loop with positional iteration identity.
-    public init<Data>(
-        _ data: Data,
-        @PromptBuilder content: (Data.Element) -> Content
-    ) where Data: RandomAccessCollection {
-        self.init(
-            children: data.map { PromptBuilder.buildExpression(content($0)) },
-            iterationPathComponents: data.indices.enumerated().map { offset, _ in "item_\(offset)" }
-        )
-    }
-
-    /// Creates a loop whose iteration identity comes from a stable key path on the source data.
-    public init<Data, ID>(
-        _ data: Data,
-        id: KeyPath<Data.Element, ID>,
-        @PromptBuilder content: (Data.Element) -> Content
-    ) where Data: RandomAccessCollection {
-        self.init(
-            data,
-            id: { String(describing: $0[keyPath: id]) },
-            content: content
-        )
-    }
-
-    /// Creates a loop whose iteration identity comes from a stable closure over the source data.
-    ///
-    /// Use this overload when the loop identity needs light transformation or when a key path is
-    /// less readable than an inline expression.
-    public init<Data>(
-        _ data: Data,
-        id: (Data.Element) -> String,
-        @PromptBuilder content: (Data.Element) -> Content
-    ) where Data: RandomAccessCollection {
-        self.init(
-            children: data.map { PromptBuilder.buildExpression(content($0)) },
-            iterationPathComponents: data.map(id)
-        )
-    }
-
-    /// Creates a loop whose iteration identity comes from the element's `Identifiable` id.
-    public init<Data>(
-        _ data: Data,
-        @PromptBuilder content: (Data.Element) -> Content
-    ) where Data: RandomAccessCollection, Data.Element: Identifiable {
-        self.init(
-            data,
-            id: { String(describing: $0.id) },
-            content: content
-        )
-    }
 
     public var body: EmptyPrompt { EmptyPrompt() }
 
     public func makePromptNode() -> PromptNode? {
-        let nodes: [PromptNode] = zip(children, iterationPathComponents).compactMap { pair in
-            let (child, pathComponent) = pair
-            guard let node = child.makeNode() else {
-                return nil
-            }
-            return PromptNode(pathComponent: pathComponent, .fork([node]))
+        let nodes: [PromptNode] = data.compactMap {
+            content($0).makePromptNode()
         }
-
-        return nodes.isEmpty ? nil : PromptNode(.fork(nodes))
+        
+        guard !nodes.isEmpty else {
+            return nil
+        }
+        
+        return PromptNode(.fork(nodes))
     }
 }

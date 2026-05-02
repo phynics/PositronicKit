@@ -50,12 +50,41 @@ struct PromptTests {
         }
 
         let built = build()
-        let prompt = built as? AnyPrompt
+        let prompt = built as? PromptTuple<TextPrompt, TextPrompt>
 
         #expect(prompt != nil)
-        #expect(prompt?.prompts.count == 2)
-        #expect(prompt?.prompts[0] is TextPrompt)
-        #expect(prompt?.prompts[1] is TextPrompt)
+        if let prompt {
+            let node = prompt.makePromptNode()
+            if case let .fork(children) = node?.nodeType {
+                #expect(children.count == 2)
+            } else {
+                Issue.record("Expected fork node")
+            }
+        }
+    }
+
+    @Test("EmptyPrompt resolves to no sections")
+    func emptyPromptResolvesToNoSections() {
+        #expect(EmptyPrompt().resolveSections().isEmpty)
+    }
+
+    @Test("PromptBuilder supports conditional branches with different prompt types")
+    func conditionalBranchesWithDifferentPromptTypes() {
+        @PromptBuilder
+        func build(includeSystem: Bool) -> some Prompt {
+            if includeSystem {
+                SystemPrompt("System")
+            } else {
+                EmptyPrompt()
+            }
+        }
+
+        let included = try! build(includeSystem: true).assemblePrompt().sections
+        let omitted = try! build(includeSystem: false).assemblePrompt().sections
+
+        #expect(included.count == 1)
+        #expect(included[0].role == .system)
+        #expect(omitted.isEmpty)
     }
 
     @Test("Prompt resolves concrete sections directly in authored order")

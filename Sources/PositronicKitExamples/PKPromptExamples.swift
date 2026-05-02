@@ -43,7 +43,7 @@ public enum PKPromptExamples {
         AnyPrompt.build {
             SystemPrompt("You are helping with PositronicKit setup.")
 
-            ForEach(tools) { tool in
+            ForEach(data: tools) { tool in
                 TextPrompt(
                     tool.summary,
                     id: "tool-\(tool.id)",

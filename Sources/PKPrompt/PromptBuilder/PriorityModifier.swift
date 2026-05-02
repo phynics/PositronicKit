@@ -35,7 +35,7 @@ package enum PromptModifiers {
         package var body: EmptyPrompt { EmptyPrompt() }
 
         package func makePromptNode() -> PromptNode? {
-            guard let child = content.makeNode() else {
+            guard let child = content.makePromptNode() else {
                 return nil
             }
             return PromptNode(traits: PromptTraits(priority: priority), .fork([child]))
@@ -49,7 +49,7 @@ package enum PromptModifiers {
         package var body: EmptyPrompt { EmptyPrompt() }
 
         package func makePromptNode() -> PromptNode? {
-            guard let child = content.makeNode() else {
+            guard let child = content.makePromptNode() else {
                 return nil
             }
             return PromptNode(traits: PromptTraits(compression: compression), .fork([child]))
@@ -63,7 +63,7 @@ package enum PromptModifiers {
         package var body: EmptyPrompt { EmptyPrompt() }
 
         package func makePromptNode() -> PromptNode? {
-            guard let child = content.makeNode() else {
+            guard let child = content.makePromptNode() else {
                 return nil
             }
             return PromptNode(traits: PromptTraits(cachePolicy: cachePolicy), .fork([child]))

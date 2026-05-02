@@ -20,6 +20,8 @@ public struct SystemInstructions: Prompt {
                 """,
                 estimatedTokens: TokenEstimator.estimate(text: instructions)
             )
+        } else {
+            EmptyPrompt()
         }
     }
 }

@@ -31,7 +31,7 @@ public struct AnyPrompt: Prompt {
     }
 
     public func makePromptNode() -> PromptNode? {
-        let children = prompts.compactMap { $0.makeNode() }
+        let children = prompts.compactMap { $0.makePromptNode() }
         if children.count == 1 {
             return children[0]
         }

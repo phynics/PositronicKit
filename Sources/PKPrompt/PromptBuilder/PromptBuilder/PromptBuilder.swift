@@ -2,12 +2,12 @@ import Foundation
 
 /// Result builder for authoring declarative prompt trees.
 ///
-/// The builder normalizes authored syntax into structural ``Prompt`` values that are lowered to
+/// The builder normalizes authored syntax into structural `Prompt` values that are lowered to
 /// the internal prompt-node tree during prompt assembly. Ordinary sibling composition becomes
 /// transparent groups, conditionals select the active branch, and plain `for` loops use
 /// positional iteration path components.
 ///
-/// Use ``PromptForEach`` or ``PromptBuilder/forEach(_:id:content:)`` when loop identity should
+/// Use `PromptForEach` or `PromptBuilder/forEach(_:id:content:)` when loop identity should
 /// come from stable domain data instead of loop position.
 ///
 /// ```swift
@@ -27,100 +27,58 @@ import Foundation
 /// ```
 @resultBuilder
 public enum PromptBuilder {
-    public static func buildBlock(_ content: AnyPrompt) -> AnyPrompt {
-        content
-    }
+    // MARK: - Core
 
-    /// Wraps authored siblings in a transparent node group.
-    public static func buildBlock(_ content: AnyPrompt...) -> AnyPrompt {
-        AnyPrompt(flatten(content))
+    public static func buildBlock<each Content>(_ content: repeat each Content) -> PromptTuple<repeat each Content>
+    where repeat each Content: Prompt {
+        PromptTuple<repeat each Content>(repeat each content)
     }
 
     /// Preserves a single prompt expression as structural prompt content.
-    public static func buildExpression<S: Prompt>(_ section: S) -> AnyPrompt {
-        normalize(section)
-    }
+    /// Prefer returning the concrete `S` to avoid type-erasure when possible.
+    public static func buildExpression<S: Prompt>(_ section: S) -> S { section }
 
-    /// Wraps an explicit list of prompt composites in a transparent node group.
-    public static func buildExpression(_ sections: [any Prompt]) -> AnyPrompt {
-        AnyPrompt(sections)
-    }
-
-    /// Omits missing optional branches.
-    public static func buildOptional(_ component: AnyPrompt?) -> AnyPrompt {
-        component ?? AnyPrompt()
-    }
-
-    /// Preserves the selected `if` branch.
-    public static func buildEither(first component: AnyPrompt) -> AnyPrompt {
-        component
-    }
-
-    /// Preserves the selected `else` branch.
-    public static func buildEither(second component: AnyPrompt) -> AnyPrompt {
-        component
-    }
-
-    /// Lowers repeated builder output into positional per-item path groups.
-    public static func buildArray(_ components: [AnyPrompt]) -> AnyPrompt {
-        AnyPrompt([
-            ForEach<AnyPrompt>(
-                children: components,
-                iterationPathComponents: components.indices.map { "item_\($0)" }
-            )
-        ])
+    /// Preserves homogeneous prompt arrays as structural prompt content.
+    public static func buildExpression<S: Prompt>(_ sections: [S]) -> PromptArray<S> {
+        PromptArray(sections)
     }
 
     /// Ignores expressions that produce no prompt content.
-    public static func buildExpression(_: Void) -> AnyPrompt {
-        AnyPrompt()
+    public static func buildExpression(_: Void) -> EmptyPrompt { EmptyPrompt() }
+
+    /// Returns the fully lowered root prompt content. Using `some Prompt` preserves structure.
+    public static func buildFinalResult<T: Prompt>(_ component: T) -> T { component }
+
+    // MARK: - Blocks (siblings)
+
+    /// Single-item block passthrough. Keeps structural type.
+    public static func buildBlock<T: Prompt>(_ content: T) -> T { content }
+
+    // MARK: - Conditionals
+    public static func buildOptional<Content: Prompt>(_ component: Content?) -> OptionalPrompt<Content> {
+        OptionalPrompt(component)
     }
 
-    /// Returns the fully lowered root prompt content.
-    public static func buildFinalResult(_ component: AnyPrompt) -> some Prompt {
-        component
+    /// Preserves the selected `if` branch.
+    public static func buildEither<First: Prompt, Second: Prompt>(
+        first component: First
+    ) -> EitherPrompt<First, Second> {
+        EitherPrompt(first: component)
     }
 
-    /// Convenience entry point for stable loop identity inside prompt builder call sites.
-    public static func forEach<Data, Content>(
-        _ data: Data,
-        @PromptBuilder content: (Data.Element) -> Content
-    ) -> ForEach<Content>
-    where Data: RandomAccessCollection, Data.Element: Identifiable, Content: Prompt {
-        ForEach(data, content: content)
+    /// Preserves the selected `else` branch.
+    public static func buildEither<First: Prompt, Second: Prompt>(
+        second component: Second
+    ) -> EitherPrompt<First, Second> {
+        EitherPrompt(second: component)
     }
 
-    /// Convenience entry point for stable loop identity keyed by a source property.
-    public static func forEach<Data, ID, Content>(
-        _ data: Data,
-        id: KeyPath<Data.Element, ID>,
-        @PromptBuilder content: (Data.Element) -> Content
-    ) -> ForEach<Content>
-    where Data: RandomAccessCollection, Content: Prompt {
-        ForEach(data, id: id, content: content)
+    // MARK: - Arrays and loops
+
+    /// Lowers repeated builder output into positional per-item path groups.
+    public static func buildArray<Content: Prompt & Sendable>(_ components: [Content]) -> ForEach<Int, Content> {
+        ForEach(data: (0..<components.count).map { Int($0) }) {
+            components[$0]
+        }
     }
-
-    /// Convenience entry point for stable loop identity derived from a closure.
-    public static func forEach<Data, Content>(
-        _ data: Data,
-        id: (Data.Element) -> String,
-        @PromptBuilder content: (Data.Element) -> Content
-    ) -> ForEach<Content>
-    where Data: RandomAccessCollection, Content: Prompt {
-        ForEach(data, id: id, content: content)
-    }
-}
-
-
-// MARK: -  Utilities
-
-private func normalize(_ prompt: some Prompt) -> AnyPrompt {
-    if let prompt = prompt as? AnyPrompt {
-        return prompt
-    }
-    return AnyPrompt([prompt])
-}
-
-private func flatten(_ content: [AnyPrompt]) -> [any Prompt] {
-    content.flatMap(\.prompts)
 }

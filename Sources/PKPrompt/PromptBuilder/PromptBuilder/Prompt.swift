@@ -2,7 +2,7 @@ import Foundation
 import PKShared
 
 /// Base protocol for declarative prompt composition.
-public protocol Prompt: Sendable {
+public protocol Prompt<Body>: Sendable {
     associatedtype Body: Prompt
     var body: Body { get }
     func makePromptNode() -> PromptNode?
@@ -10,7 +10,7 @@ public protocol Prompt: Sendable {
 
 public extension Prompt {
     func makePromptNode() -> PromptNode? {
-        guard let bodyNode = self.body.makeNode() else {
+        guard let bodyNode = self.body.makePromptNode() else {
             return nil
         }
 
