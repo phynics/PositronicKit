@@ -2,7 +2,9 @@
 
 PositronicKit is a Swift toolkit for building AI agents. It gives you transport-neutral runtime orchestration, a structured prompt composition DSL, and the shared contracts to tie them together — without imposing a specific networking or hosting model.
 
-The package is organized into three modules:
+## Package Layout
+
+The package is organized into three primary modules:
 
 - **PositronicKit** — the runtime layer: chat engine, orchestration stages, tool routing, timeline and workspace management, and LLM service integration.
 - **PKPrompt** — the prompt layer: a SwiftUI-style `@PromptBuilder` DSL, structured compression, cache-aware assembly, and prompt journaling for stable-prefix workflows.
@@ -13,7 +15,7 @@ Two additional targets ship with the package:
 - **PositronicKitExamples** — runnable examples that double as living documentation.
 - **PKTestSupport** — shared mocks, fixtures, and test helpers, available as a library product for downstream test targets.
 
-## Getting Started
+## Quick Start
 
 Add PositronicKit as a Swift Package dependency:
 
@@ -37,33 +39,13 @@ swift test                         # run the full test suite
 swift run PositronicKitExamples    # run the example harness
 ```
 
-## Logging And Errors
+## Choosing A Layer
 
-PositronicKit uses `swift-log` as its only logging API.
+Use **PositronicKit** when you want the runtime orchestration layer: timelines, context gathering, prompt assembly, tool routing, streaming, and persistence hooks.
 
-- Library code never calls `LoggingSystem.bootstrap(...)` for you.
-- Downstream apps, CLIs, or tests own logging bootstrap and log-level selection.
-- Long-lived runtime services log through `Logger.module(...)` in `PKShared`.
-- Prompt assembly diagnostics are opt-in: pass a `Logger` in `PromptAssemblyOptions` and use log levels to control verbosity.
+Use **PKPrompt** when you want prompt composition without the runtime: authored prompt trees, validated sections, token-budget-aware assembly, rendering, and journaling.
 
-```swift
-import Logging
-import PositronicKit
-
-let logger = Logger(label: "com.example.prompt-assembly")
-
-let rendered = try await PromptAssembler.assemble(
-    request,
-    options: PromptAssemblyOptions(logger: logger)
-)
-```
-
-For package-defined errors, PositronicKit uses `ErrorKit` through `PKShared.PKError`.
-
-- Package error types conform to `PKError`.
-- Stable `PKErrorDomain` and `errorCode` values identify failures.
-- `userFriendlyMessage` is the preferred surfaced message.
-- When propagating nested failures, prefer `ErrorKit.userFriendlyMessage(for:)` over raw `localizedDescription`.
+Use **PKShared** when you need the shared contracts directly: API models, tool protocols, errors, logging helpers, and utilities.
 
 ## Runtime: PositronicKit
 
@@ -78,16 +60,6 @@ PositronicKit is the orchestration layer. It manages the full lifecycle of an ag
 - **TimelineManager** — manages timeline lifecycle, archiving, and tool state.
 - **WorkspaceManager** — resolves concrete workspace implementations behind `WorkspaceProtocol`.
 
-### Design Intent
-
-PositronicKit is deliberately transport-neutral. It does not bundle networking, RPC, or multi-process hosting — those concerns belong in downstream packages that plug into PositronicKit's extension points.
-
-This means a downstream package can wire up its own persistence, networking, and UI layers without forking or patching PositronicKit itself. The key extension boundaries are:
-
-- **Persistence protocols** for timelines, messages, workspaces, tools, agents, and request origins.
-- **`WorkspaceCreating` and `WorkspaceProtocol`** for downstream-owned workspace resolution and execution behavior.
-- **`PromptSectionProviding`** and **`ChatTurnPlugin`** for app-specific orchestration and context hooks.
-
 ### Typical Flow
 
 1. Resolve timeline, agent, and workspace state through injected stores and managers.
@@ -96,6 +68,16 @@ This means a downstream package can wire up its own persistence, networking, and
 4. Stream the LLM response and extract tool calls.
 5. Route tool calls through timeline/workspace-aware tool infrastructure.
 6. Persist messages, timeline state, and related artifacts through injected persistence protocols.
+
+### Extension Points
+
+PositronicKit is deliberately transport-neutral. It does not bundle networking, RPC, or multi-process hosting — those concerns belong in downstream packages that plug into PositronicKit's extension points.
+
+The key boundaries are:
+
+- **Persistence protocols** for timelines, messages, workspaces, tools, agents, and request origins.
+- **`WorkspaceCreating` and `WorkspaceProtocol`** for downstream-owned workspace resolution and execution behavior.
+- **`PromptSectionProviding`** and **`ChatTurnPlugin`** for app-specific orchestration and context hooks.
 
 ### Prompt Assembly Diagnostics
 
@@ -215,3 +197,31 @@ Cache policies drive the journaling behavior:
 - Plain `for` loops use positional identity (`item_0`, `item_1`, ...).
 - Use `ForEach(...)`, `PromptForEach(...)`, or `PromptBuilder.forEach(...)` when loop identity must come from domain data.
 - Trait modifiers like `.priority(...)`, `.compression(...)`, and `.cachePolicy(...)` inherit through the subtree and are resolved once during assembly.
+
+## Logging And Errors
+
+PositronicKit uses `swift-log` as its only logging API.
+
+- Library code never calls `LoggingSystem.bootstrap(...)` for you.
+- Downstream apps, CLIs, or tests own logging bootstrap and log-level selection.
+- Long-lived runtime services log through `Logger.module(...)` in `PKShared`.
+- Prompt assembly diagnostics are opt-in: pass a `Logger` in `PromptAssemblyOptions` and use log levels to control verbosity.
+
+```swift
+import Logging
+import PositronicKit
+
+let logger = Logger(label: "com.example.prompt-assembly")
+
+let rendered = try await PromptAssembler.assemble(
+    request,
+    options: PromptAssemblyOptions(logger: logger)
+)
+```
+
+For package-defined errors, PositronicKit uses `ErrorKit` through `PKShared.PKError`.
+
+- Package error types conform to `PKError`.
+- Stable `PKErrorDomain` and `errorCode` values identify failures.
+- `userFriendlyMessage` is the preferred surfaced message.
+- When propagating nested failures, prefer `ErrorKit.userFriendlyMessage(for:)` over raw `localizedDescription`.
