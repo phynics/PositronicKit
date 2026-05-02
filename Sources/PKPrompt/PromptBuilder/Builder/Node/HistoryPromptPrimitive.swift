@@ -24,9 +24,7 @@ package struct HistoryPromptPrimitive: PromptPrimitive {
     package var type: PromptSectionType { .list }
 
     package var estimatedTokens: Int {
-        max(1, messages.reduce(into: 0) { partialResult, message in
-            partialResult += message.content.estimatedTokenCount
-        })
+        TokenEstimator.estimate(parts: messages.map(\.content))
     }
 
     package var content: PromptPrimitiveContent { .messages(messages) }

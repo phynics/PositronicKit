@@ -35,7 +35,8 @@ public struct PromptJournal: Sendable {
             currentSections: currentSections,
             overlaySections: evaluation.overlaySections,
             requiresHardReset: evaluation.requiresHardReset,
-            diff: evaluation.diff
+            diff: evaluation.diff,
+            emissionMode: evaluation.emissionMode
         )
     }
 
@@ -56,7 +57,8 @@ public struct PromptJournal: Sendable {
             currentSections: latestObservedSections,
             overlaySections: [],
             requiresHardReset: false,
-            diff: PromptJournalDiff()
+            diff: PromptJournalDiff(),
+            emissionMode: .snapshot
         )
     }
 

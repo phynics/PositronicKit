@@ -167,7 +167,7 @@ public struct ChatEngine: Sendable {
                     let responseText = await turnContext.outputs.fullResponse + turnContext.outputs.fullThinking
                     _ = await history.append(
                         messageCount: newMessages.count,
-                        estimatedTokens: TokenEstimator.estimate(text: responseText)
+                        estimatedTokens: PKShared.TokenEstimator.estimate(text: responseText)
                     )
                 }
             }

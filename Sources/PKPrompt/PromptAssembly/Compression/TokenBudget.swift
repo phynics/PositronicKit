@@ -239,7 +239,7 @@ public struct TokenBudget: Sendable {
     }
 
     private func estimateTokenCount(_ text: String) -> Int {
-        max(1, text.count / 4)
+        TokenEstimator.estimate(text: text)
     }
 
     private func defaultNodeHash(for section: PromptSection) -> UInt64 {

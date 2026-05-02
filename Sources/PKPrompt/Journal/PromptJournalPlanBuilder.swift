@@ -11,7 +11,8 @@ package enum PromptJournalPlanBuilder {
         currentSections: [RenderedPrompt.Section],
         overlaySections: [RenderedPrompt.Section],
         requiresHardReset: Bool,
-        diff: PromptJournalDiff
+        diff: PromptJournalDiff,
+        emissionMode: PromptJournalPlan.EmissionMode
     ) -> PromptJournalPlan {
         PromptJournalPlan(
             baseSections: committedBaseSections.map { journaledSection($0, layer: .base, root: ["prompt", "base"]) },
@@ -20,7 +21,8 @@ package enum PromptJournalPlanBuilder {
                 .filter { $0.cachePolicy == .volatile }
                 .map { journaledSection($0, layer: .volatile, root: ["prompt"]) },
             requiresHardReset: requiresHardReset,
-            diff: diff
+            diff: diff,
+            emissionMode: emissionMode
         )
     }
 

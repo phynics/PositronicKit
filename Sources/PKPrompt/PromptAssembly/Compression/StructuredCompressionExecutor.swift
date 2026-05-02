@@ -1,4 +1,5 @@
 import Foundation
+import PKShared
 
 /// Executes a structured compression plan against a set of prompt sections.
 ///
@@ -184,7 +185,7 @@ public actor StructuredCompressionExecutor {
                     )
                 }
 
-                let summaryTokens = max(1, summary.count / 4)
+                let summaryTokens = TokenEstimator.estimate(text: summary)
                 let report = makeReport(
                     nodeId: planned.nodeId,
                     path: planned.path,

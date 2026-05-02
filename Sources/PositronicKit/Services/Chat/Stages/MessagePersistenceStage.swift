@@ -95,7 +95,7 @@ struct MessagePersistenceStage: PipelineStage {
             return TurnContextSnapshot.PromptMessage(
                 role: role,
                 content: content,
-                tokenCount: TokenEstimator.estimate(text: content)
+                tokenCount: PKShared.TokenEstimator.estimate(text: content)
             )
         }
 

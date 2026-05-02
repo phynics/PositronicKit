@@ -15,7 +15,8 @@ package enum PromptJournalDiffer {
                 nextCommittedBaseSections: currentSections.filter { $0.cachePolicy != .volatile },
                 overlaySections: [],
                 requiresHardReset: false,
-                diff: PromptJournalDiff()
+                diff: PromptJournalDiff(),
+                emissionMode: .snapshot
             )
         }
 
@@ -27,7 +28,8 @@ package enum PromptJournalDiffer {
                 nextCommittedBaseSections: currentSections.filter { $0.cachePolicy != .volatile },
                 overlaySections: [],
                 requiresHardReset: true,
-                diff: PromptJournalDiff()
+                diff: PromptJournalDiff(),
+                emissionMode: .snapshot
             )
         }
 
@@ -39,7 +41,8 @@ package enum PromptJournalDiffer {
             nextCommittedBaseSections: committedBaseSections,
             overlaySections: overlay.sections,
             requiresHardReset: false,
-            diff: overlay.diff
+            diff: overlay.diff,
+            emissionMode: .delta
         )
     }
 
@@ -95,6 +98,7 @@ package struct PromptJournalEvaluation {
     let overlaySections: [RenderedPrompt.Section]
     let requiresHardReset: Bool
     let diff: PromptJournalDiff
+    let emissionMode: PromptJournalPlan.EmissionMode
 }
 
 /// Content fingerprint used when comparing rendered sections for journal diffing.

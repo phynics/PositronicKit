@@ -1,5 +1,6 @@
 import Testing
 @testable import PKPrompt
+import PKShared
 
 @Suite("PromptJournal")
 struct PromptJournalTests {
@@ -7,6 +8,18 @@ struct PromptJournalTests {
         let prompt = try! AnyPrompt.build {
             SystemPrompt(system)
             TextPrompt(context, id: "context", cachePolicy: .semiStable)
+            UserPrompt(query)
+        }.assemblePrompt()
+
+        return await prompt.render()
+    }
+
+    private func renderPrompt(system: String, context: String?, query: String) async -> RenderedPrompt {
+        let prompt = try! AnyPrompt.build {
+            SystemPrompt(system)
+            if let context {
+                TextPrompt(context, id: "context", cachePolicy: .semiStable)
+            }
             UserPrompt(query)
         }.assemblePrompt()
 
@@ -89,6 +102,60 @@ struct PromptJournalTests {
         #expect(plan.overlaySections.isEmpty)
         #expect(plan.baseSections.map(\.section.id) == ["system", "context"])
         #expect(plan.baseSections[0].renderedText == "System v2")
+    }
+
+    @Test("Initial observation emits a snapshot message set")
+    func initialObservationBuildsSnapshotMessages() async {
+        var journal = PromptJournal()
+        let plan = journal.observe(await renderPrompt(system: "System v1", context: "Context v1", query: "Question"))
+
+        #expect(plan.emissionMode == .snapshot)
+
+        let messages = plan.buildMessages()
+        #expect(messages.count == 4)
+        #expect(messages[0].role == .system)
+        #expect(messages[1].content.contains("<prompt_journal_snapshot"))
+        #expect(messages[1].content.contains("id=\"system\""))
+        #expect(messages[2].content.contains("<prompt_journal_snapshot"))
+        #expect(messages[2].content.contains("id=\"context\""))
+        #expect(messages[3].role == .user)
+        #expect(messages[3].content == "Question")
+    }
+
+    @Test("Semistable changes emit delta update messages")
+    func semistableChangesBuildDeltaMessages() async {
+        var journal = PromptJournal()
+        _ = journal.observe(await renderPrompt(system: "System v1", context: "Context v1", query: "Question"))
+
+        let plan = journal.observe(await renderPrompt(system: "System v1", context: "Context v2", query: "Question"))
+
+        #expect(plan.emissionMode == .delta)
+
+        let messages = plan.buildMessages()
+        #expect(messages.count == 2)
+        #expect(messages[0].role == .system)
+        #expect(messages[0].content.contains("<prompt_journal_replace"))
+        #expect(messages[0].content.contains("id=\"context\""))
+        #expect(messages[0].content.contains("Context v2"))
+        #expect(messages[1].role == .user)
+        #expect(messages[1].content == "Question")
+    }
+
+    @Test("Semistable removals emit remove update messages")
+    func semistableRemovalBuildsRemoveMessage() async {
+        var journal = PromptJournal()
+        _ = journal.observe(await renderPrompt(system: "System v1", context: "Context v1", query: "Question"))
+
+        let plan = journal.observe(await renderPrompt(system: "System v1", context: nil, query: "Question"))
+
+        #expect(plan.emissionMode == .delta)
+        #expect(plan.diff.removedSemiStableIDs == ["context"])
+
+        let messages = plan.buildMessages()
+        #expect(messages.count == 2)
+        #expect(messages[0].content.contains("<prompt_journal_remove"))
+        #expect(messages[0].content.contains("id=\"context\""))
+        #expect(messages[1].role == .user)
     }
 }
 

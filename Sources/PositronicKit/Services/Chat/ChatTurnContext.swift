@@ -73,7 +73,7 @@ public actor TurnOutputs {
     func finalizeTurn(startTime: Date) {
         turnDuration = Date().timeIntervalSince(startTime)
         let completionTokens = streamUsage?.completionTokens
-            ?? TokenEstimator.estimate(text: fullResponse + fullThinking)
+            ?? PKShared.TokenEstimator.estimate(text: fullResponse + fullThinking)
         tokensPerSecond = turnDuration > 0 ? Double(completionTokens) / turnDuration : nil
     }
 }

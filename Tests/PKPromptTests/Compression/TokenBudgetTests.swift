@@ -146,6 +146,20 @@ struct TokenBudgetTests {
         #expect(await result[1].renderedContent()?.text == "short summary")
     }
 
+    @Test("Summaries are re-estimated with shared token estimator")
+    func applySummarizeReestimatesSummaryTokens() async {
+        let budget = TokenBudget(maxTokens: 1000, reserveForResponse: 0)
+        let sections = resolve([
+            MockPrimitiveSection(id: "s1", priority: 2, estimatedTokens: 800, compression: .keep),
+            MockPrimitiveSection(id: "summarize", priority: 1, estimatedTokens: 500, compression: .summarize, renderedContent: "A very long body"),
+        ])
+
+        let result = await budget.apply(to: sections, compressor: MockCompressor(summarizedText: "你好世界"))
+
+        #expect(result.count == 2)
+        #expect(result[1].estimatedTokens == 4)
+    }
+
     @Test("Fallback compression reports summarized sections and preserves requested strategy")
     func fallbackCompressionReportsSummaries() async {
         let budget = TokenBudget(maxTokens: 1000, reserveForResponse: 0)
@@ -176,7 +190,7 @@ struct TokenBudgetTests {
             MockPrimitiveSection(id: "summarize", priority: 1, estimatedTokens: 500, compression: .summarize, renderedContent: "A very long body"),
         ])
 
-        let tooLongSummary = String(repeating: "x", count: 1000)
+        let tooLongSummary = String(repeating: "你", count: 1000)
         let result = await budget.apply(to: sections, compressor: MockCompressor(summarizedText: tooLongSummary))
 
         #expect(result.count == 1)
@@ -231,7 +245,7 @@ struct TokenBudgetTests {
         let metadata = Dictionary(uniqueKeysWithValues: sections.map { ($0.id, StructuredNodeMetadata(path: $0.path, nodeHash: 1)) })
         let result = await budget.apply(
             to: sections,
-            compressor: MockCompressor(summarizedText: String(repeating: "x", count: 5000)),
+            compressor: MockCompressor(summarizedText: String(repeating: "你", count: 1000)),
             nodeMetadata: metadata
         )
 

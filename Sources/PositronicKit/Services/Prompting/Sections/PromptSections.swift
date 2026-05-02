@@ -18,7 +18,7 @@ public struct SystemInstructions: Prompt {
 
                 \(instructions)
                 """,
-                estimatedTokens: TokenEstimator.estimate(text: instructions)
+                estimatedTokens: PKShared.TokenEstimator.estimate(text: instructions)
             )
         } else {
             EmptyPrompt()
@@ -64,9 +64,9 @@ public struct Memories: Prompt {
 
     private var estimatedTokens: Int {
         if let summary = summarizedContent {
-            return TokenEstimator.estimate(text: summary)
+            return PKShared.TokenEstimator.estimate(text: summary)
         }
-        return TokenEstimator.estimate(parts: memories.map(\.content))
+        return PKShared.TokenEstimator.estimate(parts: memories.map(\.content))
     }
 }
 
@@ -112,7 +112,7 @@ public struct ChatHistory: Prompt {
         var keepCount = 0
 
         for message in messages.reversed() {
-            let count = TokenEstimator.estimate(text: message.content) + 10
+            let count = PKShared.TokenEstimator.estimate(text: message.content) + 10
             if accumulated + count > tokens {
                 break
             }
@@ -124,7 +124,7 @@ public struct ChatHistory: Prompt {
     }
 
     public var estimatedTokens: Int {
-        TokenEstimator.estimate(parts: messages.map(\.content))
+        PKShared.TokenEstimator.estimate(parts: messages.map(\.content))
     }
 }
 
@@ -141,7 +141,7 @@ public struct ContextNotes: Prompt {
             priority: 90,
             compression: .truncate(tail: true),
             cachePolicy: .volatile,
-            estimatedTokens: TokenEstimator.estimate(parts: notes.map(\.content)),
+            estimatedTokens: PKShared.TokenEstimator.estimate(parts: notes.map(\.content)),
             render: renderContent
         )
     }
@@ -175,7 +175,7 @@ public struct UserQuery: Prompt {
     }
 
     public var body: some Prompt {
-        UserPrompt(query, estimatedTokens: TokenEstimator.estimate(text: query))
+        UserPrompt(query, estimatedTokens: PKShared.TokenEstimator.estimate(text: query))
     }
 }
 
@@ -255,7 +255,7 @@ public struct WorkspacesContext: Prompt {
     }
 
     private var estimatedTokens: Int {
-        TokenEstimator.estimate(text: "Workspaces section placeholder") + workspaces.count * 50
+        PKShared.TokenEstimator.estimate(text: "Workspaces section placeholder") + workspaces.count * 50
     }
 }
 
@@ -273,7 +273,7 @@ public struct AgentContext: Prompt {
             text,
             id: "agent_context",
             priority: 95,
-            estimatedTokens: TokenEstimator.estimate(text: agent.name + agent.description) + 30
+            estimatedTokens: PKShared.TokenEstimator.estimate(text: agent.name + agent.description) + 30
         )
     }
 
@@ -310,7 +310,7 @@ public struct TimelineContext: Prompt {
             id: "timeline_context",
             priority: 72,
             cachePolicy: .semiStable,
-            estimatedTokens: TokenEstimator.estimate(text: timeline.title) + 20
+            estimatedTokens: PKShared.TokenEstimator.estimate(text: timeline.title) + 20
         )
     }
 }

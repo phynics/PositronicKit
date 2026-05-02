@@ -159,7 +159,7 @@ package extension PromptPrimitive {
         }
         assert(tokenLimit > 0)
 
-        let tokenEstimate = content.estimatedTokenCount
+        let tokenEstimate = TokenEstimator.estimate(text: content)
         guard tokenEstimate > tokenLimit else {
             return content
         }

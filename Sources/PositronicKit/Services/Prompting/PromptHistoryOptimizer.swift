@@ -24,7 +24,7 @@ public enum PromptHistoryOptimizer {
         var usedTokens = 0
 
         for message in messages.reversed() {
-            let tokens = TokenEstimator.estimate(text: message.content)
+            let tokens = PKShared.TokenEstimator.estimate(text: message.content)
             if usedTokens + tokens <= availableTokens {
                 result.insert(message, at: 0)
                 usedTokens += tokens

@@ -248,7 +248,7 @@ public actor TimelinePromptHistory {
     public func recordAppend(messages: [Message]) {
         recordAppend(
             messageCount: messages.count,
-            estimatedTokens: TokenEstimator.estimate(parts: messages.map(\.content))
+            estimatedTokens: PKShared.TokenEstimator.estimate(parts: messages.map(\.content))
         )
     }
 

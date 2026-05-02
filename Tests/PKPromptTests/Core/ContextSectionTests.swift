@@ -70,4 +70,15 @@ struct PromptCoreTests {
         let rendered = await resolved.renderedContent(constrainedTo: 2)?.text
         #expect(rendered == "... [Truncated]\nmnop")
     }
+
+    @Test("Constrained rendering uses shared token estimator for CJK text")
+    func constrainedRenderingUsesSharedEstimator() async {
+        let resolved = TruncatablePromptPrimitive(
+            compression: .truncate(tail: true),
+            text: "你好世界"
+        ).makeSection()
+
+        let rendered = await resolved.renderedContent(constrainedTo: 2)?.text
+        #expect(rendered == "你好世界\n... [Truncated]")
+    }
 }

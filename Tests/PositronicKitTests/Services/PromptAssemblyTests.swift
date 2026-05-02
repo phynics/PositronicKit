@@ -162,4 +162,15 @@ struct PromptAssemblyTests {
         let messages = rendered.buildMessages()
         #expect(messages.count >= 1)
     }
+
+    @Test("RenderedPrompt builds provider-neutral conversation messages")
+    func renderedPromptBuildsConversationMessages() async throws {
+        let rendered = try await PromptAssembler.assemble(makeRequest(userQuery: "final artifact"))
+
+        let messages = rendered.buildConversationMessages()
+
+        #expect(messages.count >= 1)
+        #expect(messages.last?.role == .user)
+        #expect(messages.last?.content == "final artifact")
+    }
 }
