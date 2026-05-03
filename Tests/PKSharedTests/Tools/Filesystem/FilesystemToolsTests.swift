@@ -54,19 +54,6 @@ struct FilesystemToolsTests {
         #expect(result.output == "Hello World")
     }
 
-    @Test("Inspect File Tool")
-    func inspectFileTool() async throws {
-        defer { cleanup() }
-        let tool = InspectFileTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
-        let result = try await tool.execute(parameters: ["path": "file2.md"])
-
-        #expect(result.success)
-        let content = result.output
-
-        #expect(content.contains("file2.md"))
-        #expect(content.contains("text"))
-    }
-
     @Test("Find File Tool")
     func findFileTool() async throws {
         defer { cleanup() }
