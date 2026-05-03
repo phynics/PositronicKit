@@ -1,7 +1,6 @@
 import Foundation
 import Logging
 import PKShared
-import OpenAI
 
 /// Policy for vacuuming memories during archival
 public enum MemoryVacuumPolicy: Sendable {
@@ -132,7 +131,7 @@ public actor TimelineArchiver {
 
         let response = try await llmService.sendMessage(
             prompt,
-            responseFormat: nil as ChatQuery.ResponseFormat?,
+            responseFormat: nil as LLMResponseFormat?,
             generationParameters: nil,
             useUtilityModel: true
         )

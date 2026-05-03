@@ -1,6 +1,5 @@
 import Foundation
 import PKShared
-import OpenAI
 
 /// Accumulates parts of a streamed tool call.
 public struct StreamedToolCall: Sendable {
@@ -21,7 +20,7 @@ public actor TurnOutputs {
     public private(set) var fullResponse: String = ""
     public private(set) var fullThinking: String = ""
     public private(set) var toolCallAccumulators: [Int: StreamedToolCall] = [:]
-    public private(set) var streamUsage: ChatResult.CompletionUsage?
+    public private(set) var streamUsage: LLMTokenUsage?
     public private(set) var turnDuration: TimeInterval = 0
     public private(set) var tokensPerSecond: Double?
     public private(set) var debugToolCalls: [ToolCallRecord] = []
@@ -31,7 +30,7 @@ public actor TurnOutputs {
 
     // MARK: - Mutation Methods (internal — only built-in stages should mutate)
 
-    func setStreamUsage(_ usage: ChatResult.CompletionUsage) {
+    func setStreamUsage(_ usage: LLMTokenUsage) {
         streamUsage = usage
     }
 
@@ -97,7 +96,7 @@ public struct ChatTurnContext: Sendable {
     public let promptHistory: TimelinePromptHistory?
 
     // Per-turn snapshot (changes each iteration)
-    public let currentMessages: [ChatQuery.ChatCompletionMessageParam]
+    public let currentMessages: [LLMMessage]
     public let turnCount: Int
 
     /// Mutable stage outputs shared via actor reference across struct copies.
@@ -114,7 +113,7 @@ public struct ChatTurnContext: Sendable {
         remoteDepth: Int,
         generationParameters: GenerationParameters? = nil,
         promptHistory: TimelinePromptHistory? = nil,
-        currentMessages: [ChatQuery.ChatCompletionMessageParam],
+        currentMessages: [LLMMessage],
         turnCount: Int,
         outputs: TurnOutputs = TurnOutputs()
     ) {
@@ -134,14 +133,14 @@ public struct ChatTurnContext: Sendable {
     }
 
     /// Tool parameters derived from availableTools.
-    public var toolParams: [ChatQuery.ChatCompletionToolParam] {
-        availableTools.map { $0.toOpenAIToolParam() }
+    public var toolParams: [LLMToolDefinition] {
+        availableTools.map { $0.toLLMToolDefinition() }
     }
 
     /// Creates a new snapshot for the next turn while keeping the same session config.
     public func forTurn(
         turnCount: Int,
-        messages: [ChatQuery.ChatCompletionMessageParam]
+        messages: [LLMMessage]
     ) -> ChatTurnContext {
         ChatTurnContext(
             timelineId: timelineId,

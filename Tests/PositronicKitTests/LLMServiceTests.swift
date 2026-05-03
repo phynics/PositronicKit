@@ -2,7 +2,6 @@
 import PKPrompt
 @testable import PKShared
 import PKTestSupport
-import OpenAI
 import Testing
 
 @MainActor
@@ -65,7 +64,7 @@ struct LLMServiceTests {
         #expect(!messages.isEmpty)
 
         // 1. System message should be first
-        if let first = messages.first, case .system = first {
+        if let first = messages.first, first.role == .system {
             // Success
         } else {
             #expect(Bool(false), "First message should be system message")
@@ -78,7 +77,8 @@ struct LLMServiceTests {
         // Find "Previous user message"
         var foundHistoryUser = false
         for msg in historyStart {
-            if case let .user(m) = msg, case let .string(content) = m.content {
+            if msg.role == .user {
+                let content = msg.content
                 if content == "Previous user message" {
                     foundHistoryUser = true
                     break
@@ -90,7 +90,8 @@ struct LLMServiceTests {
         // Find "Previous assistant message"
         var foundHistoryAssistant = false
         for msg in historyStart {
-            if case let .assistant(m) = msg, let contentWrap = m.content, case let .textContent(content) = contentWrap {
+            if msg.role == .assistant {
+                let content = msg.content
                 if content == "Previous assistant message" {
                     foundHistoryAssistant = true
                     break
@@ -105,7 +106,8 @@ struct LLMServiceTests {
             return
         }
 
-        if case let .user(m) = lastMessage, case let .string(content) = m.content {
+        if lastMessage.role == .user {
+            let content = lastMessage.content
             #expect(content == "Current question")
         } else {
             #expect(Bool(false), "Last message should be user query")
@@ -131,13 +133,15 @@ struct LLMServiceTests {
 
         #expect(messages.count >= 2) // System + User
 
-        if let first = messages.first, case let .system(s) = first, case let .textContent(content) = s.content {
+        if let first = messages.first, first.role == .system {
+            let content = first.content
             #expect(content.contains("System Only"))
         } else {
             #expect(Bool(false), "First message should be system")
         }
 
-        if let last = messages.last, case let .user(u) = last, case let .string(content) = u.content {
+        if let last = messages.last, last.role == .user {
+            let content = last.content
             #expect(content == "Hello")
         } else {
             #expect(Bool(false), "Last message should be user query")
@@ -200,7 +204,8 @@ struct LLMServiceTests {
 
         // Verify transcript was sent in the prompt
         if let lastMessage = mockClient.lastMessages.last {
-            if case let .user(m) = lastMessage, case let .string(content) = m.content {
+            if lastMessage.role == .user {
+                let content = lastMessage.content
                 #expect(content.contains("How do I use SwiftUI?"))
                 #expect(content.contains("You use it by declaring views."))
             }

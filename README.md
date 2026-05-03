@@ -4,11 +4,17 @@ PositronicKit is a Swift toolkit for building AI agents. It gives you transport-
 
 ## Package Layout
 
-The package is organized into three primary modules:
+The package is organized into three core modules plus provider adapters:
 
-- **PositronicKit** — the runtime layer: chat engine, orchestration stages, tool routing, timeline and workspace management, and LLM service integration.
+- **PositronicKit** — the runtime layer: chat engine, orchestration stages, tool routing, timeline and workspace management, and provider-neutral LLM orchestration.
 - **PKPrompt** — the prompt layer: a SwiftUI-style `@PromptBuilder` DSL, structured compression, cache-aware assembly, and prompt journaling for stable-prefix workflows.
-- **PKShared** — the contract layer: API models, tool protocols, error types, structured logging, and shared utilities consumed by both modules above.
+- **PKShared** — the contract layer: API models, tool protocols, provider contracts, error types, structured logging, and shared utilities consumed by both modules above.
+
+Provider targets ship separately so downstream users can opt in only to the concrete integrations they want:
+
+- **PKOpenAIProvider** — OpenAI SDK adapter, OpenAI-specific message/tool conversion, embedding service, and convenience registration APIs.
+- **PKOpenRouterProvider** — OpenRouter adapter and convenience registration APIs.
+- **PKOllamaProvider** — Ollama adapter and convenience registration APIs.
 
 Two additional targets ship with the package:
 
@@ -29,6 +35,7 @@ Then import the modules you need:
 import PositronicKit   // runtime orchestration
 import PKPrompt        // prompt composition
 import PKShared        // shared contracts
+import PKOpenAIProvider // optional concrete provider
 ```
 
 Build and run:
@@ -45,7 +52,9 @@ Use **PositronicKit** when you want the runtime orchestration layer: timelines, 
 
 Use **PKPrompt** when you want prompt composition without the runtime: authored prompt trees, validated sections, token-budget-aware assembly, rendering, and journaling.
 
-Use **PKShared** when you need the shared contracts directly: API models, tool protocols, errors, logging helpers, and utilities.
+Use **PKShared** when you need the shared contracts directly: API models, tool protocols, provider contracts, errors, logging helpers, and utilities.
+
+Use **PKOpenAIProvider**, **PKOpenRouterProvider**, or **PKOllamaProvider** when you want a concrete provider implementation without putting that SDK dependency into the core runtime target.
 
 ## Runtime: PositronicKit
 
@@ -71,13 +80,38 @@ PositronicKit is the orchestration layer. It manages the full lifecycle of an ag
 
 ### Extension Points
 
-PositronicKit is deliberately transport-neutral. It does not bundle networking, RPC, or multi-process hosting — those concerns belong in downstream packages that plug into PositronicKit's extension points.
+PositronicKit is deliberately transport-neutral. It does not bundle networking, RPC, or multi-process hosting, and it no longer embeds concrete provider SDK adapters in the core target. Those concerns belong in downstream packages or the optional provider targets.
 
 The key boundaries are:
 
 - **Persistence protocols** for timelines, messages, workspaces, tools, agents, and request origins.
 - **`WorkspaceCreating` and `WorkspaceProtocol`** for downstream-owned workspace resolution and execution behavior.
 - **`PromptSectionProviding`** and **`ChatTurnPlugin`** for app-specific orchestration and context hooks.
+- **Provider contracts in `PKShared`** for downstream-owned LLM adapters and tool/message projections.
+
+### Provider Registration
+
+Concrete providers register factories against the shared provider registry. Import the provider module you want and register it before constructing an `LLMService` from configuration.
+
+```swift
+import PositronicKit
+import PKOpenAIProvider
+
+PKOpenAIProvider.register()
+
+let service = LLMService(configuration: .init(
+    apiKey: ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? "",
+    provider: .openAI
+))
+```
+
+Provider targets also expose convenience APIs where appropriate, for example:
+
+```swift
+import PKOpenAIProvider
+
+let core = PositronicKitCore(openAIKey: "sk-...")
+```
 
 ### Prompt Assembly Diagnostics
 

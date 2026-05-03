@@ -3,7 +3,6 @@ import ErrorKit
 import Foundation
 import Logging
 import PKShared
-import OpenAI
 
 // MARK: - Supporting Types
 
@@ -34,8 +33,8 @@ public struct ParsedToolCall: Sendable {
 public struct ToolHandlingResult: Sendable {
     /// Whether any tool calls were deferred for external execution.
     public let hasDeferred: Bool
-    /// OpenAI-format tool result messages for runtime-resolved calls (for LLM context continuation).
-    public let resolvedToolParams: [ChatQuery.ChatCompletionMessageParam]
+    /// Provider-neutral tool result messages for runtime-resolved calls.
+    public let resolvedToolParams: [LLMMessage]
 }
 
 /// Result of processing tool calls from a completed LLM turn.
@@ -44,7 +43,7 @@ public enum ToolTurnResult: Sendable {
     /// No tool calls were produced — the turn is complete.
     case noToolCalls
     /// All tool calls were resolved by this runtime; continue the loop with these messages.
-    case continueWith([ChatQuery.ChatCompletionMessageParam])
+    case continueWith([LLMMessage])
     /// At least one tool call was deferred for external execution — stop and wait.
     case deferredExternally
 }
@@ -89,13 +88,13 @@ public actor ToolRouter {
 
         // Build the assistant message with tool_calls for conversation history
         let toolCallsParam = sortedCalls.map { _, value in
-            ChatQuery.ChatCompletionMessageParam.AssistantMessageParam.ToolCallParam(
-                id: value.callId, function: .init(arguments: value.args, name: value.name)
-            )
+            LLMToolCall(id: value.callId, name: value.name, arguments: value.args)
         }
         let fullResponse = await outputs.fullResponse
-        let assistantParam = ChatQuery.ChatCompletionMessageParam.assistant(
-            .init(content: .textContent(.init(fullResponse)), toolCalls: toolCallsParam)
+        let assistantParam = LLMMessage(
+            role: .assistant,
+            content: fullResponse,
+            toolCalls: toolCallsParam
         )
 
         // Route and execute
@@ -124,7 +123,7 @@ public actor ToolRouter {
         continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
     ) async throws -> ToolHandlingResult {
         var hasDeferred = false
-        var resolvedToolParams: [ChatQuery.ChatCompletionMessageParam] = []
+        var resolvedToolParams: [LLMMessage] = []
 
         for call in calls {
             let toolRef = availableTools.first(where: { $0.id == call.name })?.toolReference
@@ -166,7 +165,7 @@ public actor ToolRouter {
         toolRef _: ToolReference,
         timelineId: UUID,
         continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
-    ) async throws -> ChatQuery.ChatCompletionMessageParam? {
+    ) async throws -> LLMMessage? {
         let toolDisplayName = ANSIColors.colorize(call.name, color: ANSIColors.brightCyan)
         switch outcome {
         case let .completed(output):
@@ -175,7 +174,7 @@ public actor ToolRouter {
             try await messageStore.saveMessage(
                 ConversationMessage(timelineId: timelineId, role: .tool, content: output, toolCallId: call.callId)
             )
-            return .tool(.init(content: .textContent(.init(output)), toolCallId: call.callId))
+            return LLMMessage(role: .tool, content: output, toolCallID: call.callId)
 
         case .deferredExternally:
             logger.info("Tool \(toolDisplayName) deferred for external execution")
@@ -189,7 +188,7 @@ public actor ToolRouter {
         toolRef: ToolReference,
         timelineId: UUID,
         continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
-    ) async throws -> ChatQuery.ChatCompletionMessageParam {
+    ) async throws -> LLMMessage {
         let toolDisplayName = ANSIColors.colorize(call.name, color: ANSIColors.brightCyan)
         let errorMsg = ErrorKit.userFriendlyMessage(for: error)
         logger.error("Tool \(toolDisplayName) error: \(error.localizedDescription)")
@@ -201,7 +200,7 @@ public actor ToolRouter {
         try await messageStore.saveMessage(
             ConversationMessage(timelineId: timelineId, role: .tool, content: errorOutput, toolCallId: call.callId)
         )
-        return .tool(.init(content: .textContent(.init(errorOutput)), toolCallId: call.callId))
+        return LLMMessage(role: .tool, content: errorOutput, toolCallID: call.callId)
     }
 
     // MARK: - Core Routing

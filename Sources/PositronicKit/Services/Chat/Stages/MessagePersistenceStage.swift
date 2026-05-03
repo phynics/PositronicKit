@@ -2,7 +2,6 @@ import Foundation
 import Logging
 import PKPrompt
 import PKShared
-import OpenAI
 
 /// Pipeline stage responsible for persisting the assistant message and emitting the completion event.
 ///
@@ -141,30 +140,8 @@ struct MessagePersistenceStage: PipelineStage {
     // MARK: - Message Extraction
 
     private static func extractRoleAndContent(
-        from param: ChatQuery.ChatCompletionMessageParam
+        from param: LLMMessage
     ) -> (role: String, content: String) {
-        switch param {
-        case let .system(msg):
-            let text: String
-            if case let .textContent(t) = msg.content { text = t } else { text = "\(msg.content)" }
-            return ("system", text)
-        case let .user(msg):
-            let text: String
-            if case let .string(t) = msg.content { text = t } else { text = "\(msg.content)" }
-            return ("user", text)
-        case let .assistant(msg):
-            guard let content = msg.content else { return ("assistant", "") }
-            let text: String
-            if case let .textContent(t) = content { text = t } else { text = "\(content)" }
-            return ("assistant", text)
-        case let .tool(msg):
-            let text: String
-            if case let .textContent(t) = msg.content { text = t } else { text = "\(msg.content)" }
-            return ("tool", text)
-        case let .developer(msg):
-            let text: String
-            if case let .textContent(t) = msg.content { text = t } else { text = "\(msg.content)" }
-            return ("developer", text)
-        }
+        (param.role.rawValue, param.content)
     }
 }

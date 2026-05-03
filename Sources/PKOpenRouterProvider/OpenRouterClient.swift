@@ -1,0 +1,369 @@
+import Foundation
+import struct JSONSchema.Schema
+import Logging
+import PKShared
+import PositronicKit
+import Synchronization
+
+private struct OpenRouterModelsResponse: Codable {
+    struct Model: Codable { let id: String }
+    let data: [Model]
+}
+
+private struct OpenRouterChatRequest: Codable {
+    let messages: [OpenRouterMessage]
+    let model: String
+    let frequencyPenalty: Double?
+    let maxCompletionTokens: Int?
+    let presencePenalty: Double?
+    let responseFormat: OpenRouterResponseFormat?
+    let seed: Int?
+    let temperature: Double?
+    let toolChoice: OpenRouterToolChoice?
+    let tools: [OpenRouterTool]?
+    let topP: Double?
+    let stream: Bool
+    let streamOptions: OpenRouterStreamOptions?
+
+    enum CodingKeys: String, CodingKey {
+        case messages, model, seed, temperature, tools, stream
+        case frequencyPenalty = "frequency_penalty"
+        case maxCompletionTokens = "max_completion_tokens"
+        case presencePenalty = "presence_penalty"
+        case responseFormat = "response_format"
+        case toolChoice = "tool_choice"
+        case topP = "top_p"
+        case streamOptions = "stream_options"
+    }
+}
+
+private struct OpenRouterMessage: Codable {
+    let role: String
+    let content: String
+    let name: String?
+    let toolCallID: String?
+    let toolCalls: [OpenRouterToolCall]?
+
+    enum CodingKeys: String, CodingKey {
+        case role, content, name
+        case toolCallID = "tool_call_id"
+        case toolCalls = "tool_calls"
+    }
+
+    init(_ message: LLMMessage) {
+        role = message.role.rawValue
+        content = message.content
+        name = message.name
+        toolCallID = message.toolCallID
+        toolCalls = message.toolCalls?.map(OpenRouterToolCall.init)
+    }
+}
+
+private struct OpenRouterToolCall: Codable {
+    let id: String
+    let type: String
+    let function: OpenRouterToolCallFunction
+
+    init(_ call: LLMToolCall) {
+        id = call.id
+        type = "function"
+        function = .init(name: call.name, arguments: call.arguments)
+    }
+}
+
+private struct OpenRouterToolCallFunction: Codable {
+    let name: String
+    let arguments: String
+}
+
+private struct OpenRouterTool: Codable {
+    let type: String
+    let function: OpenRouterToolDefinition
+
+    init(_ tool: LLMToolDefinition) {
+        type = "function"
+        function = .init(name: tool.name, description: tool.description, parameters: tool.parameters, strict: tool.strict)
+    }
+}
+
+private struct OpenRouterToolDefinition: Codable {
+    let name: String
+    let description: String?
+    let parameters: Schema?
+    let strict: Bool?
+}
+
+private enum OpenRouterToolChoice: Codable {
+    case auto
+    case function(String)
+
+    private struct FunctionWrapper: Codable {
+        let type: String
+        let function: NamedFunction
+    }
+
+    private struct NamedFunction: Codable { let name: String }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .auto:
+            try container.encode("auto")
+        case .function(let name):
+            try container.encode(FunctionWrapper(type: "function", function: NamedFunction(name: name)))
+        }
+    }
+}
+
+private enum OpenRouterResponseFormat: Codable {
+    case jsonObject
+    case jsonSchema(OpenRouterResponseSchema)
+
+    private struct KindOnly: Codable { let type: String }
+
+    private struct SchemaWrapper: Codable {
+        let type: String
+        let jsonSchema: OpenRouterResponseSchema
+
+        enum CodingKeys: String, CodingKey {
+            case type
+            case jsonSchema = "json_schema"
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .jsonObject:
+            try container.encode(KindOnly(type: "json_object"))
+        case .jsonSchema(let schema):
+            try container.encode(SchemaWrapper(type: "json_schema", jsonSchema: schema))
+        }
+    }
+}
+
+private struct OpenRouterResponseSchema: Codable {
+    let name: String
+    let description: String?
+    let schema: Schema?
+    let strict: Bool?
+}
+
+private struct OpenRouterStreamOptions: Codable {
+    let includeUsage: Bool
+    enum CodingKeys: String, CodingKey { case includeUsage = "include_usage" }
+}
+
+public actor OpenRouterClient: LLMClientProtocol {
+    private let apiKey: String
+    private let modelName: String
+    private let endpoint: URL
+    private let maxRetries: Int
+    private let logger = Logger.module(named: "openrouter-client")
+    private let session: URLSession
+
+    public init(
+        apiKey: String,
+        modelName: String = "openai/gpt-4o",
+        host: String = "openrouter.ai",
+        port: Int = 443,
+        scheme: String = "https",
+        timeoutInterval: TimeInterval = 60.0,
+        maxRetries: Int = 3
+    ) {
+        self.apiKey = apiKey
+        self.modelName = modelName
+        self.maxRetries = maxRetries
+
+        var urlString = "\(scheme)://\(host)"
+        if port != 443, port != 80 { urlString += ":\(port)" }
+        if !urlString.contains("/api") { urlString += "/api" }
+        endpoint = URL(string: urlString) ?? URL(string: "https://openrouter.ai/api")!
+
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = timeoutInterval
+        session = URLSession(configuration: config)
+    }
+
+    public func chatStream(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        let endpoint = self.endpoint
+        let apiKey = self.apiKey
+        let modelName = self.modelName
+        let logger = self.logger
+        let maxRetries = self.maxRetries
+        let chatURL = endpoint.appendingPathComponent("v1/chat/completions")
+
+        return AsyncThrowingStream<LLMStreamChunk, Error> { continuation in
+            Task {
+                let hasYielded = Mutex(false)
+
+                do {
+                    try await RetryPolicy.retry(
+                        maxRetries: maxRetries,
+                        shouldRetry: { error in
+                            !hasYielded.withLock { $0 } && RetryPolicy.isTransient(error: error)
+                        },
+                        operation: {
+                            let request = self.buildChatRequest(
+                                chatURL: chatURL,
+                                apiKey: apiKey,
+                                query: OpenRouterChatRequest(
+                                    messages: messages.map(OpenRouterMessage.init),
+                                    model: modelName,
+                                    frequencyPenalty: generationParameters?.frequencyPenalty,
+                                    maxCompletionTokens: generationParameters?.maxTokens,
+                                    presencePenalty: generationParameters?.presencePenalty,
+                                    responseFormat: self.mapResponseFormat(responseFormat),
+                                    seed: generationParameters?.seed,
+                                    temperature: generationParameters?.temperature,
+                                    toolChoice: self.mapToolChoice(toolChoice ?? (tools != nil ? .auto : nil)),
+                                    tools: tools?.map(OpenRouterTool.init),
+                                    topP: generationParameters?.topP,
+                                    stream: true,
+                                    streamOptions: .init(includeUsage: true)
+                                )
+                            )
+                            try await self.streamChatResponse(
+                                request: request,
+                                hasYielded: hasYielded,
+                                logger: logger,
+                                continuation: continuation
+                            )
+                        }
+                    )
+                    continuation.finish()
+                } catch {
+                    logger.error("OpenRouter stream error: \(error.localizedDescription)")
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
+    }
+
+    private nonisolated func buildChatRequest(chatURL: URL, apiKey: String, query: OpenRouterChatRequest) -> URLRequest {
+        var request = URLRequest(url: chatURL)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("https://github.com/your-org/PositronicKit", forHTTPHeaderField: "HTTP-Referer")
+        request.setValue("PositronicKit Assistant", forHTTPHeaderField: "X-Title")
+        request.httpBody = try? JSONEncoder().encode(query)
+        return request
+    }
+
+    private func streamChatResponse(
+        request: URLRequest,
+        hasYielded: borrowing Mutex<Bool>,
+        logger: Logger,
+        continuation: AsyncThrowingStream<LLMStreamChunk, Error>.Continuation
+    ) async throws {
+        let (stream, response) = try await session.bytes(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw LLMServiceError.networkError("Invalid response type from OpenRouter")
+        }
+        guard (200 ... 299).contains(httpResponse.statusCode) else {
+            var errorBody = ""
+            for try await line in stream.lines { errorBody += line }
+            throw LLMServiceError.networkError("OpenRouter API Error: \(httpResponse.statusCode) - \(errorBody)")
+        }
+        for try await line in stream.lines {
+            processSSELine(line, hasYielded: hasYielded, logger: logger, continuation: continuation)
+        }
+    }
+
+    private nonisolated func processSSELine(
+        _ line: String,
+        hasYielded: borrowing Mutex<Bool>,
+        logger: Logger,
+        continuation: AsyncThrowingStream<LLMStreamChunk, Error>.Continuation
+    ) {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty, trimmed.hasPrefix("data: ") else { return }
+        let dataString = String(trimmed.dropFirst(6))
+        guard dataString != "[DONE]", let data = dataString.data(using: .utf8) else { return }
+
+        do {
+            let result = try JSONDecoder().decode(LLMStreamChunk.self, from: data)
+            if let content = result.choices.first?.delta.content, !content.isEmpty {
+                hasYielded.withLock { $0 = true }
+            }
+            if result.choices.first?.delta.toolCalls != nil {
+                hasYielded.withLock { $0 = true }
+            }
+            continuation.yield(result)
+        } catch {
+            logger.error("Failed to decode OpenRouter chunk: \(error.localizedDescription). Raw: \(dataString)")
+        }
+    }
+
+    public func sendMessage(
+        _ content: String,
+        responseFormat: LLMResponseFormat? = nil,
+        generationParameters: GenerationParameters? = nil
+    ) async throws -> String {
+        let maxRetries = self.maxRetries
+        return try await RetryPolicy.retry(maxRetries: maxRetries) {
+            let messages = [LLMMessage(role: .user, content: content)]
+            var fullContent = ""
+            let stream = await self.chatStream(
+                messages: messages,
+                tools: nil,
+                toolChoice: nil,
+                responseFormat: responseFormat,
+                generationParameters: generationParameters
+            )
+            for try await result in stream {
+                if let delta = result.choices.first?.delta.content { fullContent += delta }
+            }
+            return fullContent
+        }
+    }
+
+    public func fetchAvailableModels() async throws -> [String]? {
+        let maxRetries = self.maxRetries
+        let endpoint = self.endpoint
+        return try await RetryPolicy.retry(maxRetries: maxRetries) {
+            let url = endpoint.appendingPathComponent("v1/models")
+            let request = URLRequest(url: url)
+            let (data, response) = try await self.session.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw LLMServiceError.networkError("Invalid response type from OpenRouter models API")
+            }
+            guard (200 ... 299).contains(httpResponse.statusCode) else {
+                throw LLMServiceError.networkError("OpenRouter API Error: \(httpResponse.statusCode)")
+            }
+            let modelsResponse = try JSONDecoder().decode(OpenRouterModelsResponse.self, from: data)
+            return modelsResponse.data.map { $0.id }.sorted()
+        }
+    }
+
+    private nonisolated func mapToolChoice(_ choice: LLMToolChoice?) -> OpenRouterToolChoice? {
+        switch choice {
+        case .none: return nil
+        case .auto: return .auto
+        case .function(let name): return .function(name)
+        }
+    }
+
+    private nonisolated func mapResponseFormat(_ format: LLMResponseFormat?) -> OpenRouterResponseFormat? {
+        switch format {
+        case .none, .text:
+            return nil
+        case .jsonObject:
+            return .jsonObject
+        case .jsonSchema(let schema):
+            return .jsonSchema(.init(
+                name: schema.name,
+                description: schema.description,
+                schema: schema.schema,
+                strict: schema.strict
+            ))
+        }
+    }
+}

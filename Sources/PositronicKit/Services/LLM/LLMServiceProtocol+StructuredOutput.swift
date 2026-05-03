@@ -1,5 +1,5 @@
 import Foundation
-import OpenAI
+import struct JSONSchema.Schema
 import PKShared
 
 public extension LLMServiceProtocol {
@@ -10,7 +10,7 @@ public extension LLMServiceProtocol {
         useUtilityModel: Bool = false
     ) async throws -> String {
         let stream = await chatStream(
-            messages: [.user(.init(content: .string(content), name: nil))],
+            messages: [LLMMessage(role: .user, content: content)],
             tools: nil,
             structuredOutput: structuredOutput,
             generationParameters: generationParameters,
@@ -27,13 +27,13 @@ public extension LLMServiceProtocol {
     }
 
     func chatStream(
-        messages: [ChatQuery.ChatCompletionMessageParam],
-        tools: [ChatQuery.ChatCompletionToolParam]? = nil,
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]? = nil,
         structuredOutput: StructuredOutputRequest,
         generationParameters: GenerationParameters? = nil,
         useUtilityModel: Bool = false,
         useFastModel: Bool = false
-    ) async -> AsyncThrowingStream<ChatStreamResult, Error> {
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
         let provider = await configuration.provider
         let prepared = StructuredOutputExecution.prepareStreamRequest(
             messages: messages,
@@ -82,13 +82,13 @@ enum StructuredOutputExecution {
     private static let syntheticToolName = "emit_structured_response"
 
     struct PreparedMessages {
-        let messages: [ChatQuery.ChatCompletionMessageParam]
+        let messages: [LLMMessage]
         let rawPrompt: String
-        let responseFormat: ChatQuery.ResponseFormat?
+        let responseFormat: LLMResponseFormat?
     }
 
     static func apply(
-        to messages: [ChatQuery.ChatCompletionMessageParam],
+        to messages: [LLMMessage],
         rawPrompt: String,
         provider: LLMProvider,
         output: StructuredOutputRequest
@@ -110,15 +110,15 @@ enum StructuredOutputExecution {
     }
 
     private struct PreparedRequest {
-        let responseFormat: ChatQuery.ResponseFormat?
+        let responseFormat: LLMResponseFormat?
         let promptAugmentation: String?
     }
 
     struct StreamRequest {
-        let messages: [ChatQuery.ChatCompletionMessageParam]
-        let tools: [ChatQuery.ChatCompletionToolParam]?
-        let toolChoice: ChatQuery.ChatCompletionFunctionCallOptionParam?
-        let responseFormat: ChatQuery.ResponseFormat?
+        let messages: [LLMMessage]
+        let tools: [LLMToolDefinition]?
+        let toolChoice: LLMToolChoice?
+        let responseFormat: LLMResponseFormat?
         let syntheticToolName: String?
     }
 
@@ -132,9 +132,9 @@ enum StructuredOutputExecution {
         case .jsonSchema(let schema):
             switch provider {
             case .openAI, .openRouter:
-                let jsonSchema: JSONSchema?
+                let jsonSchema: Schema?
                 if let data = try? JSONEncoder().encode(schema.schema) {
-                    jsonSchema = try? JSONDecoder().decode(JSONSchema.self, from: data)
+                    jsonSchema = try? JSONDecoder().decode(Schema.self, from: data)
                 } else {
                     jsonSchema = nil
                 }
@@ -143,7 +143,7 @@ enum StructuredOutputExecution {
                     responseFormat: .jsonSchema(.init(
                         name: schema.name,
                         description: schema.description,
-                        schema: jsonSchema.map { .jsonSchema($0) },
+                        schema: jsonSchema,
                         strict: schema.strict
                     )),
                     promptAugmentation: nil
@@ -158,8 +158,8 @@ enum StructuredOutputExecution {
     }
 
     static func prepareStreamRequest(
-        messages: [ChatQuery.ChatCompletionMessageParam],
-        tools: [ChatQuery.ChatCompletionToolParam]?,
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
         provider: LLMProvider,
         output: StructuredOutputRequest
     ) -> StreamRequest {
@@ -223,42 +223,49 @@ enum StructuredOutputExecution {
 
     private static func applyPromptAugmentation(
         _ augmentation: String,
-        to messages: [ChatQuery.ChatCompletionMessageParam]
-    ) -> [ChatQuery.ChatCompletionMessageParam] {
+        to messages: [LLMMessage]
+    ) -> [LLMMessage] {
         var updatedMessages = messages
 
         for index in updatedMessages.indices.reversed() {
-            guard case let .user(message) = updatedMessages[index] else { continue }
-            guard case let .string(content) = message.content else { continue }
-
-            updatedMessages[index] = .user(.init(content: .string(content + augmentation), name: message.name))
+            guard updatedMessages[index].role == .user else { continue }
+            updatedMessages[index] = LLMMessage(
+                role: .user,
+                content: updatedMessages[index].content + augmentation,
+                name: updatedMessages[index].name,
+                toolCallID: updatedMessages[index].toolCallID,
+                toolCalls: updatedMessages[index].toolCalls
+            )
             return updatedMessages
         }
 
-        updatedMessages.append(.user(.init(content: .string(augmentation.trimmingCharacters(in: .whitespacesAndNewlines)), name: nil)))
+        updatedMessages.append(LLMMessage(
+            role: .user,
+            content: augmentation.trimmingCharacters(in: .whitespacesAndNewlines)
+        ))
         return updatedMessages
     }
 
-    private static func syntheticTool(for schema: StructuredOutputSchema) -> ChatQuery.ChatCompletionToolParam {
-        let parameters: JSONSchema?
+    private static func syntheticTool(for schema: StructuredOutputSchema) -> LLMToolDefinition {
+        let parameters: Schema?
         if let data = try? JSONEncoder().encode(schema.schema) {
-            parameters = try? JSONDecoder().decode(JSONSchema.self, from: data)
+            parameters = try? JSONDecoder().decode(Schema.self, from: data)
         } else {
             parameters = nil
         }
 
-        return .init(function: .init(
+        return LLMToolDefinition(
             name: syntheticToolName,
             description: schema.description ?? "Emit the final structured response payload for \(schema.name).",
             parameters: parameters,
             strict: schema.strict
-        ))
+        )
     }
 
     static func rewriteSyntheticToolStream(
-        _ stream: AsyncThrowingStream<ChatStreamResult, Error>,
+        _ stream: AsyncThrowingStream<LLMStreamChunk, Error>,
         syntheticToolName: String
-    ) -> AsyncThrowingStream<ChatStreamResult, Error> {
+    ) -> AsyncThrowingStream<LLMStreamChunk, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
@@ -280,9 +287,9 @@ enum StructuredOutputExecution {
     }
 
     private static func rewriteSyntheticToolChunk(
-        _ result: ChatStreamResult,
+        _ result: LLMStreamChunk,
         syntheticToolName: String
-    ) -> ChatStreamResult? {
+    ) -> LLMStreamChunk? {
         guard let choice = result.choices.first else { return result }
         let toolCalls = choice.delta.toolCalls ?? []
         let syntheticCalls = toolCalls.filter { $0.function?.name == syntheticToolName }
@@ -294,26 +301,15 @@ enum StructuredOutputExecution {
 
         guard !mergedContent.isEmpty else { return nil }
 
-        var choiceDict: [String: Any] = [
-            "index": choice.index,
-            "delta": ["role": "assistant", "content": mergedContent]
-        ]
-        if let finishReason = choice.finishReason {
-            choiceDict["finish_reason"] = finishReason.rawValue
-        }
-
-        let jsonDict: [String: Any] = [
-            "id": result.id,
-            "object": "chat.completion.chunk",
-            "created": Int(Date().timeIntervalSince1970),
-            "model": result.model,
-            "choices": [choiceDict]
-        ]
-
-        guard let data = try? JSONSerialization.data(withJSONObject: jsonDict) else {
-            return nil
-        }
-
-        return try? JSONDecoder().decode(ChatStreamResult.self, from: data)
+        return LLMStreamChunk(
+            id: result.id,
+            model: result.model,
+            choices: [LLMStreamChoice(
+                index: choice.index,
+                delta: LLMStreamDelta(role: .assistant, content: mergedContent),
+                finishReason: choice.finishReason
+            )],
+            usage: result.usage
+        )
     }
 }

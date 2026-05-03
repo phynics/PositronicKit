@@ -1,7 +1,6 @@
 import Dependencies
 import Foundation
 import PKShared
-import OpenAI
 
 // MARK: - Dependency Keys
 
@@ -89,7 +88,7 @@ public struct UnconfiguredLLMService: LLMServiceProtocol {
 
     public func sendMessage(
         _: String,
-        responseFormat _: ChatQuery.ResponseFormat?,
+        responseFormat _: LLMResponseFormat?,
         generationParameters _: GenerationParameters?,
         useUtilityModel _: Bool
     ) async throws -> String {
@@ -101,14 +100,14 @@ public struct UnconfiguredLLMService: LLMServiceProtocol {
     }
 
     public func chatStream(
-        messages _: [ChatQuery.ChatCompletionMessageParam],
-        tools _: [ChatQuery.ChatCompletionToolParam]?,
-        toolChoice _: ChatQuery.ChatCompletionFunctionCallOptionParam?,
-        responseFormat _: ChatQuery.ResponseFormat?,
+        messages _: [LLMMessage],
+        tools _: [LLMToolDefinition]?,
+        toolChoice _: LLMToolChoice?,
+        responseFormat _: LLMResponseFormat?,
         generationParameters _: GenerationParameters?,
         useUtilityModel _: Bool,
         useFastModel _: Bool
-    ) async -> AsyncThrowingStream<ChatStreamResult, any Error> {
+    ) async -> AsyncThrowingStream<LLMStreamChunk, any Error> {
         return AsyncThrowingStream { _ in }
     }
 

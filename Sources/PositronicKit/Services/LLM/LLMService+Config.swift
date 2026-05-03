@@ -1,7 +1,6 @@
 import Foundation
 import Logging
 import PKShared
-import OpenAI
 
 extension LLMService {
     // MARK: - Internal Configuration Helpers
@@ -26,41 +25,81 @@ extension LLMService {
         switch config.provider {
         case .ollama:
             return (
-                main: makeOllamaClient(config: config, timeout: timeout, retries: retries),
-                utility: makeOllamaClient(
-                    config: config, timeout: timeout, retries: retries, model: config.utilityModel
+                main: makeExternalClient(
+                    provider: config.provider,
+                    config: config,
+                    components: components,
+                    timeout: timeout,
+                    retries: retries
                 ),
-                fast: makeOllamaClient(
-                    config: config, timeout: timeout, retries: retries, model: config.fastModel
+                utility: makeExternalClient(
+                    provider: config.provider,
+                    config: config,
+                    components: components,
+                    timeout: timeout,
+                    retries: retries,
+                    model: config.utilityModel
+                ),
+                fast: makeExternalClient(
+                    provider: config.provider,
+                    config: config,
+                    components: components,
+                    timeout: timeout,
+                    retries: retries,
+                    model: config.fastModel
                 )
             )
 
         case .openRouter:
             return (
-                main: makeOpenRouterClient(
-                    config: config, components: components, timeout: timeout, retries: retries
+                main: makeExternalClient(
+                    provider: config.provider,
+                    config: config,
+                    components: components,
+                    timeout: timeout,
+                    retries: retries
                 ),
-                utility: makeOpenRouterClient(
-                    config: config, components: components, timeout: timeout, retries: retries,
+                utility: makeExternalClient(
+                    provider: config.provider,
+                    config: config,
+                    components: components,
+                    timeout: timeout,
+                    retries: retries,
                     model: config.utilityModel
                 ),
-                fast: makeOpenRouterClient(
-                    config: config, components: components, timeout: timeout, retries: retries,
+                fast: makeExternalClient(
+                    provider: config.provider,
+                    config: config,
+                    components: components,
+                    timeout: timeout,
+                    retries: retries,
                     model: config.fastModel
                 )
             )
 
         case .openAI, .openAICompatible:
             return (
-                main: makeOpenAIClient(
-                    config: config, components: components, timeout: timeout, retries: retries
+                main: makeExternalClient(
+                    provider: config.provider,
+                    config: config,
+                    components: components,
+                    timeout: timeout,
+                    retries: retries
                 ),
-                utility: makeOpenAIClient(
-                    config: config, components: components, timeout: timeout, retries: retries,
+                utility: makeExternalClient(
+                    provider: config.provider,
+                    config: config,
+                    components: components,
+                    timeout: timeout,
+                    retries: retries,
                     model: config.utilityModel
                 ),
-                fast: makeOpenAIClient(
-                    config: config, components: components, timeout: timeout, retries: retries,
+                fast: makeExternalClient(
+                    provider: config.provider,
+                    config: config,
+                    components: components,
+                    timeout: timeout,
+                    retries: retries,
                     model: config.fastModel
                 )
             )
@@ -93,53 +132,20 @@ extension LLMService {
 
     // MARK: - Client Factories
 
-    private static func makeOllamaClient(
-        config: LLMConfiguration,
-        timeout: TimeInterval,
-        retries: Int,
-        model: String? = nil
-    ) -> OllamaClient {
-        OllamaClient(
-            endpoint: config.endpoint,
-            modelName: model ?? config.modelName,
-            timeoutInterval: timeout,
-            maxRetries: retries
-        )
-    }
-
-    private static func makeOpenRouterClient(
+    private static func makeExternalClient(
+        provider: LLMProvider,
         config: LLMConfiguration,
         components: EndpointComponents,
         timeout: TimeInterval,
         retries: Int,
         model: String? = nil
-    ) -> OpenRouterClient {
-        OpenRouterClient(
-            apiKey: config.apiKey,
-            modelName: model ?? config.modelName,
-            host: components.host,
-            port: components.port,
-            scheme: components.scheme,
-            timeoutInterval: timeout,
-            maxRetries: retries
-        )
-    }
-
-    private static func makeOpenAIClient(
-        config: LLMConfiguration,
-        components: EndpointComponents,
-        timeout: TimeInterval,
-        retries: Int,
-        model: String? = nil
-    ) -> OpenAIClient {
-        OpenAIClient(
-            apiKey: config.apiKey,
-            modelName: model ?? config.modelName,
-            host: components.host,
-            port: components.port,
-            scheme: components.scheme,
-            timeoutInterval: timeout,
-            maxRetries: retries
+    ) -> (any LLMClientProtocol)? {
+        ExternalLLMProviderRegistry.factory(for: provider)?(
+            config,
+            components,
+            timeout,
+            retries,
+            model
         )
     }
 }

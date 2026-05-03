@@ -1,13 +1,12 @@
 import Foundation
-import OpenAI
 import PKPrompt
 import PKShared
 
 public extension RenderedPrompt {
-    /// Builds OpenAI chat messages from the canonical rendered prompt product.
-    func buildMessages() -> [ChatQuery.ChatCompletionMessageParam] {
+    /// Builds provider-neutral chat messages from the canonical rendered prompt product.
+    func buildMessages() -> [LLMMessage] {
         let resolved = sections
-        var messages: [ChatQuery.ChatCompletionMessageParam] = []
+        var messages: [LLMMessage] = []
 
         if let systemMessage = buildSystemMessage(from: resolved) {
             messages.append(systemMessage)
@@ -24,7 +23,7 @@ public extension RenderedPrompt {
 
     private func buildSystemMessage(
         from sections: [Section]
-    ) -> ChatQuery.ChatCompletionMessageParam? {
+    ) -> LLMMessage? {
         var systemParts: [String] = []
 
         for section in sections where section.role != .chatHistory && section.role != .userQuery {
@@ -34,10 +33,10 @@ public extension RenderedPrompt {
         }
 
         guard !systemParts.isEmpty else { return nil }
-        return .system(.init(content: .textContent(systemParts.joined(separator: "\n\n---\n\n")), name: nil))
+        return LLMMessage(role: .system, content: systemParts.joined(separator: "\n\n---\n\n"))
     }
 
-    private func buildHistoryMessages(from sections: [Section]) -> [ChatQuery.ChatCompletionMessageParam] {
+    private func buildHistoryMessages(from sections: [Section]) -> [LLMMessage] {
         sections
             .flatMap { section -> [Message] in
                 guard case let .messages(messages) = section.content else {
@@ -50,7 +49,7 @@ public extension RenderedPrompt {
 
     private func buildUserQueryMessage(
         from sections: [Section]
-    ) -> ChatQuery.ChatCompletionMessageParam? {
+    ) -> LLMMessage? {
         guard let querySection = sections.first(where: { $0.role == .userQuery }) else {
             return nil
         }
@@ -59,53 +58,51 @@ public extension RenderedPrompt {
             return nil
         }
 
-        return .user(.init(content: .string(content), name: nil))
+        return LLMMessage(role: .user, content: content)
     }
 
-    private func convertHistoryMessage(_ msg: Message) -> ChatQuery.ChatCompletionMessageParam {
+    private func convertHistoryMessage(_ msg: Message) -> LLMMessage {
         switch msg.role {
         case .user:
-            return .user(.init(content: .string(msg.content), name: nil))
+            return LLMMessage(role: .user, content: msg.content)
 
         case .assistant:
             return buildAssistantMessage(msg)
 
         case .system:
-            return .system(.init(content: .textContent(msg.content), name: nil))
+            return LLMMessage(role: .system, content: msg.content)
 
         case .tool:
             return buildToolResponseMessage(msg)
 
         case .summary:
-            return .system(.init(content: .textContent(msg.content), name: nil))
+            return LLMMessage(role: .system, content: msg.content)
         }
     }
 
-    private func buildAssistantMessage(_ msg: Message) -> ChatQuery.ChatCompletionMessageParam {
+    private func buildAssistantMessage(_ msg: Message) -> LLMMessage {
         var messageContent = msg.content
         if let think = msg.think {
             messageContent = "<think>\(think)</think>\n\(messageContent)"
         }
 
-        var toolCalls: [ChatQuery.ChatCompletionMessageParam.AssistantMessageParam.ToolCallParam]?
+        var toolCalls: [LLMToolCall]?
         if let calls = msg.toolCalls, !calls.isEmpty {
             toolCalls = calls.map { call in
-                .init(
+                LLMToolCall(
                     id: call.id.uuidString,
-                    function: .init(
-                        arguments: (try? toJsonString(call.arguments)) ?? "{}",
-                        name: call.name
-                    )
+                    name: call.name,
+                    arguments: (try? toJsonString(call.arguments)) ?? "{}"
                 )
             }
         }
 
-        return .assistant(.init(content: .textContent(messageContent), name: nil, toolCalls: toolCalls))
+        return LLMMessage(role: .assistant, content: messageContent, toolCalls: toolCalls)
     }
 
-    private func buildToolResponseMessage(_ msg: Message) -> ChatQuery.ChatCompletionMessageParam {
+    private func buildToolResponseMessage(_ msg: Message) -> LLMMessage {
         let hiddenInstruction = "\n[System: This is a system message hidden from user; now respond to the user about this result.]"
         let responseContent = "<tool_response>\n\(msg.content)\n</tool_response>\(hiddenInstruction)"
-        return .user(.init(content: .string(responseContent), name: nil))
+        return LLMMessage(role: .user, content: responseContent)
     }
 }

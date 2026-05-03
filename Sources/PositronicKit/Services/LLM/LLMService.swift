@@ -4,42 +4,6 @@ import Foundation
 import Logging
 import PKShared
 import Observation
-import OpenAI
-
-/// Protocol for LLM Clients
-public protocol LLMClientProtocol: Sendable {
-    func chatStream(
-        messages: [ChatQuery.ChatCompletionMessageParam],
-        tools: [ChatQuery.ChatCompletionToolParam]?,
-        toolChoice: ChatQuery.ChatCompletionFunctionCallOptionParam?,
-        responseFormat: ChatQuery.ResponseFormat?,
-        generationParameters: GenerationParameters?
-    ) async -> AsyncThrowingStream<ChatStreamResult, Error>
-
-    func sendMessage(
-        _ content: String,
-        responseFormat: ChatQuery.ResponseFormat?,
-        generationParameters: GenerationParameters?
-    ) async throws -> String
-
-    /// Optional: Fetch available models from the service. Returns nil if not supported.
-    func fetchAvailableModels() async throws -> [String]?
-}
-
-public extension LLMClientProtocol {
-    func fetchAvailableModels() async throws -> [String]? {
-        return nil
-    }
-}
-
-/// Conform OpenAIClient (Retroactive - now in same module)
-extension OpenAIClient: LLMClientProtocol {}
-
-/// Conform OllamaClient
-extension OllamaClient: LLMClientProtocol {}
-
-/// Conform OpenRouterClient
-extension OpenRouterClient: LLMClientProtocol {}
 
 /// Service for managing LLM interactions with configuration support
 public actor LLMService: LLMServiceProtocol, HealthCheckable {
@@ -247,7 +211,7 @@ public actor LLMService: LLMServiceProtocol, HealthCheckable {
 
     public func sendMessage(
         _ content: String,
-        responseFormat: ChatQuery.ResponseFormat?,
+        responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?,
         useUtilityModel: Bool
     ) async throws -> String {

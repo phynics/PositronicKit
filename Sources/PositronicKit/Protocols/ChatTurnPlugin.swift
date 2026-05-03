@@ -1,5 +1,5 @@
 import Foundation
-import OpenAI
+import PKShared
 
 // MARK: - CompletedTurn
 
@@ -31,5 +31,5 @@ public struct CompletedTurn: Sendable {
 /// Called after each complete turn (LLM response + all tool calls resolved).
 /// Return messages to inject and trigger a follow-up turn; return [] to let the loop end.
 public protocol ChatTurnPlugin: Sendable {
-    func afterTurn(_ turn: CompletedTurn) async throws -> [ChatQuery.ChatCompletionMessageParam]
+    func afterTurn(_ turn: CompletedTurn) async throws -> [LLMMessage]
 }

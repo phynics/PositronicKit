@@ -2,7 +2,6 @@ import Foundation
 import Logging
 import PKShared
 import Observation
-import OpenAI
 
 @available(*, deprecated, message: "Use the live chat streaming pipeline built around LLMStreamingStage, StreamingParser, and TurnOutputs.")
 @MainActor
@@ -15,7 +14,7 @@ public final class StreamingCoordinator {
     public var streamingThinking: String = ""
     public var isStreaming: Bool = false
     public var startTime: Date?
-    public var usage: ChatResult.CompletionUsage?
+    public var usage: LLMTokenUsage?
 
     // Accumulators
     private var accumulatedToolCalls: [Int: ToolCallAccumulator] = [:]
@@ -48,7 +47,7 @@ public final class StreamingCoordinator {
         logger.debug("Stopped streaming. Final content length: \(streamingContent.count)")
     }
 
-    public func updateMetadata(from result: ChatStreamResult) {
+    public func updateMetadata(from result: LLMStreamChunk) {
         // Update usage stats if provided in stream
         if let usage = result.usage {
             self.usage = usage

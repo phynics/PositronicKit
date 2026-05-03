@@ -3,7 +3,6 @@ import Logging
 @testable import PositronicKit
 import PKShared
 import PKTestSupport
-import OpenAI
 import Testing
 
 // MARK: - Helpers
@@ -13,7 +12,7 @@ private let testLogger = Logger(label: "test.pipeline")
 private func makeContext(
     fullResponse: String = "",
     toolCallAccumulators: [Int: (id: String, name: String, args: String)] = [:],
-    currentMessages: [ChatQuery.ChatCompletionMessageParam] = []
+    currentMessages: [LLMMessage] = []
 ) async -> ChatTurnContext {
     let outputs = TurnOutputs()
     for chunk in fullResponse {
@@ -82,7 +81,7 @@ final class MessagePersistenceStageBehavior {
         let stage = MessagePersistenceStage(messageStore: store, logger: testLogger)
         let context = await makeContext(
             fullResponse: "done",
-            currentMessages: [.user(.init(content: .string("query")))]
+            currentMessages: [LLMMessage(role: .user, content: "query")]
         )
 
         let events = try await drain(await stage.process(context))

@@ -2,7 +2,6 @@ import Foundation
 import PositronicKit
 import PKPrompt
 import PKShared
-import OpenAI
 import Testing
 
 @MainActor
@@ -26,17 +25,13 @@ struct PromptIntegrationTests {
         )
         let messages = prompt.buildMessages()
 
-        let userMessages = messages.filter {
-            if case .user = $0 { return true }
-            return false
-        }
+        let userMessages = messages.filter { $0.role == .user }
 
         // Should only contain the one from history (mapped as user)
         #expect(userMessages.count == 1)
 
-        if let first = userMessages.first, case let .user(params) = first,
-           case let .string(content) = params.content
-        {
+        if let first = userMessages.first {
+            let content = first.content
             #expect(content == "Hello")
         }
     }
@@ -60,10 +55,7 @@ struct PromptIntegrationTests {
         )
         let messages = prompt.buildMessages()
 
-        let userMessages = messages.filter {
-            if case .user = $0 { return true }
-            return false
-        }
+        let userMessages = messages.filter { $0.role == .user }
 
         #expect(userMessages.count == 2)
     }
@@ -113,13 +105,11 @@ struct PromptIntegrationTests {
         )
         let messages = prompt.buildMessages()
 
-        guard let firstMsg = messages.first,
-              case let .system(systemParam) = firstMsg,
-              case let .textContent(systemContent) = systemParam.content
-        else {
+        guard let firstMsg = messages.first, firstMsg.role == .system else {
             // If no system message (empty instructions), then leakage is impossible in system message
             return
         }
+        let systemContent = firstMsg.content
 
         #expect(!systemContent.contains(query), "User query content leaked into system prompt")
     }
@@ -144,20 +134,16 @@ struct PromptIntegrationTests {
 
         #expect(messages.count == 2)
 
-        if let first = messages.first,
-           case let .system(systemParam) = first,
-           case let .textContent(systemContent) = systemParam.content
-        {
+        if let first = messages.first, first.role == .system {
+            let systemContent = first.content
             #expect(systemContent.contains("System rules"))
             #expect(systemContent.contains("Context note"))
         } else {
             #expect(Bool(false), "First message should be a system message")
         }
 
-        if let last = messages.last,
-           case let .user(userParam) = last,
-           case let .string(userContent) = userParam.content
-        {
+        if let last = messages.last, last.role == .user {
+            let userContent = last.content
             #expect(userContent == "Current question")
         } else {
             #expect(Bool(false), "Last message should be a user query")

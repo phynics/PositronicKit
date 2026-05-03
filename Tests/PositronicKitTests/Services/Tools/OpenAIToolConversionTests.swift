@@ -1,11 +1,10 @@
 import Foundation
 import JSONSchemaBuilder
-import OpenAI
 import PKShared
 import Testing
 @testable import PositronicKit
 
-@Suite("OpenAI tool conversion")
+@Suite("LLM tool conversion")
 struct OpenAIToolConversionTests {
     struct ComplexMockTool: PKShared.Tool {
         let id = "complex_tool"
@@ -34,22 +33,22 @@ struct OpenAIToolConversionTests {
         }
     }
 
-    @Test("converts PKShared tool definitions into OpenAI tool params in PositronicKit")
-    func convertsToolToOpenAIParam() {
+    @Test("converts PKShared tool definitions into neutral LLM tool definitions")
+    func convertsToolToLLMToolDefinition() {
         let tool = ComplexMockTool()
-        let param = tool.toOpenAIToolParam()
+        let param = tool.toLLMToolDefinition()
 
-        #expect(param.function.name == "complex_tool")
-        #expect(param.function.description == "A tool with nested parameters")
+        #expect(param.name == "complex_tool")
+        #expect(param.description == "A tool with nested parameters")
 
-        guard case .object(let properties) = param.function.parameters else {
+        guard let schema = param.parameters,
+              let data = try? JSONEncoder().encode(schema),
+              let schemaString = String(data: data, encoding: .utf8)
+        else {
             Issue.record("Parameters should be of type .object")
             return
         }
 
-        #expect(properties != [:], "Schema encoding failed, resulted in empty properties")
-
-        let schemaString = String(data: try! JSONEncoder().encode(properties), encoding: .utf8)!
         #expect(schemaString.contains("\"query\""))
         #expect(schemaString.contains("\"count\""))
         #expect(schemaString.contains("\"recursive\""))

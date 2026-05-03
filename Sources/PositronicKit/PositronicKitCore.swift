@@ -75,36 +75,6 @@ public struct PositronicKitCore: Sendable {
         )
     }
 
-    /// Convenience initializer for OpenAI with defaults.
-    /// - Parameters:
-    ///   - openAIKey: Your OpenAI API key.
-    ///   - model: The model to use (defaults to gpt-4o).
-    ///   - generationParameters: Optional default parameters for generation.
-    public init(
-        openAIKey: String,
-        model: String = "gpt-4o",
-        generationParameters: GenerationParameters? = nil
-    ) {
-        let config = LLMConfiguration(modelName: model, apiKey: openAIKey, provider: .openAI)
-        let llm = LLMService(configuration: config)
-        self.init(llmService: llm, generationParameters: generationParameters)
-    }
-
-    /// Convenience initializer for Ollama with defaults.
-    /// - Parameters:
-    ///   - ollamaModel: The model name in Ollama (e.g. "llama3").
-    ///   - endpoint: The Ollama endpoint (defaults to local).
-    ///   - generationParameters: Optional default parameters for generation.
-    public init(
-        ollamaModel: String,
-        endpoint: String = "http://localhost:11434",
-        generationParameters: GenerationParameters? = nil
-    ) {
-        let config = LLMConfiguration(endpoint: endpoint, modelName: ollamaModel, provider: .ollama)
-        let llm = LLMService(configuration: config)
-        self.init(llmService: llm, generationParameters: generationParameters)
-    }
-
     /// Initializes with all services required by the chat subsystem.
     ///
     /// - Parameters:

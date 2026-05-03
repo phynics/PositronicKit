@@ -2,7 +2,6 @@ import Foundation
 import Logging
 import PKPrompt
 import PKShared
-import OpenAI
 
 /// Pipeline stage responsible for streaming the response from the LLM and parsing deltas.
 struct LLMStreamingStage: PipelineStage {
@@ -47,14 +46,14 @@ struct LLMStreamingStage: PipelineStage {
 
     // MARK: - Helpers
 
-    private func handleStreamUsage(_ result: ChatStreamResult, context: ChatTurnContext) async {
+    private func handleStreamUsage(_ result: LLMStreamChunk, context: ChatTurnContext) async {
         if let usage = result.usage {
             await context.outputs.setStreamUsage(usage)
         }
     }
 
     private func handleContentDelta(
-        _ result: ChatStreamResult,
+        _ result: LLMStreamChunk,
         parser: inout StreamingParser,
         context: ChatTurnContext,
         continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
@@ -89,7 +88,7 @@ struct LLMStreamingStage: PipelineStage {
     }
 
     private func handleToolCallDeltas(
-        _ result: ChatStreamResult,
+        _ result: LLMStreamChunk,
         context: ChatTurnContext,
         continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
     ) async {

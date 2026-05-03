@@ -1,6 +1,5 @@
 import Foundation
 import PKShared
-import OpenAI
 
 public extension LLMServiceProtocol {
     /// Stream chat with full prompt building (includes notes, history, etc.)
@@ -33,7 +32,7 @@ public extension LLMServiceProtocol {
         let responseFormat = resolvedOutput?.responseFormat
 
         // Delegate to the configured provider implementation for streaming.
-        let toolParams = request.tools.isEmpty ? nil : request.tools.map { $0.toOpenAIToolParam() }
+        let toolParams = request.tools.isEmpty ? nil : request.tools.map { $0.toLLMToolDefinition() }
         let stream = await chatStream(
             messages: messages,
             tools: toolParams,
@@ -50,14 +49,14 @@ public extension LLMServiceProtocol {
 public extension LLMService {
     /// Stream chat responses (low-level API)
     func chatStream(
-        messages: [ChatQuery.ChatCompletionMessageParam],
-        tools: [ChatQuery.ChatCompletionToolParam]?,
-        toolChoice: ChatQuery.ChatCompletionFunctionCallOptionParam?,
-        responseFormat: ChatQuery.ResponseFormat?,
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?,
         useUtilityModel: Bool,
         useFastModel: Bool
-    ) async -> AsyncThrowingStream<ChatStreamResult, Error> {
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
         let selectedClient: (any LLMClientProtocol)?
         if useFastModel {
             selectedClient = getFastClient() ?? getClient()

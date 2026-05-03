@@ -3,7 +3,6 @@ import Foundation
 import Logging
 import PKPrompt
 import PKShared
-import OpenAI
 
 /// Unified chat engine that handles both interactive chat and autonomous agent execution.
 /// Returns `AsyncThrowingStream<ChatEvent>` for all use cases — callers decide how to consume.
@@ -92,7 +91,7 @@ public struct ChatEngine: Sendable {
 
     private enum LoopContinuation {
         case stop
-        case continueWith([ChatQuery.ChatCompletionMessageParam])
+        case continueWith([LLMMessage])
     }
 
     /// The heart of the agentic loop. Orchestrates multiple turns until the agent finishes
@@ -131,7 +130,7 @@ public struct ChatEngine: Sendable {
             switch signal {
             case .stop:
                 // Turn finished without further internal actions required
-                var pluginMessages: [ChatQuery.ChatCompletionMessageParam] = []
+                var pluginMessages: [LLMMessage] = []
                 let completedTurn = CompletedTurn(
                     timelineId: context.timelineId,
                     agentInstanceId: context.agentInstanceId,

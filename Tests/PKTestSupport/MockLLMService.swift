@@ -2,15 +2,14 @@ import Dependencies
 import Foundation
 import PositronicKit
 import PKShared
-import OpenAI
 
 public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
     public var nextResponse: String = ""
     public var nextResponses: [String] = []
-    public var lastMessages: [ChatQuery.ChatCompletionMessageParam] = []
-    public var lastTools: [ChatQuery.ChatCompletionToolParam]?
-    public var lastToolChoice: ChatQuery.ChatCompletionFunctionCallOptionParam?
-    public var lastResponseFormat: ChatQuery.ResponseFormat?
+    public var lastMessages: [LLMMessage] = []
+    public var lastTools: [LLMToolDefinition]?
+    public var lastToolChoice: LLMToolChoice?
+    public var lastResponseFormat: LLMResponseFormat?
     public var lastParameters: GenerationParameters?
     public var shouldThrowError: Bool = false
 
@@ -27,12 +26,12 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
     public init() {}
 
     public func chatStream(
-        messages: [ChatQuery.ChatCompletionMessageParam],
-        tools: [ChatQuery.ChatCompletionToolParam]?,
-        toolChoice: ChatQuery.ChatCompletionFunctionCallOptionParam?,
-        responseFormat: ChatQuery.ResponseFormat?,
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?
-    ) async -> AsyncThrowingStream<ChatStreamResult, Error> {
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
         lastMessages = messages
         lastTools = tools
         lastToolChoice = toolChoice
@@ -61,7 +60,7 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
         }
         let ctx = StreamContext(responses: responses, toolCalls: toolCalls, wait: wait, clock: clock)
 
-        return AsyncThrowingStream { continuation in
+        return AsyncThrowingStream<LLMStreamChunk, Error> { continuation in
             let task = Task {
                 for (index, chunk) in ctx.responses.enumerated() {
                     if Task.isCancelled {
@@ -84,7 +83,7 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
                     }
 
                     let isLast = index == ctx.responses.count - 1
-                    let result: ChatStreamResult
+                    let result: LLMStreamChunk
                     if let toolCalls = ctx.toolCalls, isLast {
                         result = ChatStreamResultFactory.toolCallChunk(calls: toolCalls, content: chunk)
                     } else {
@@ -103,7 +102,7 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
 
     public func sendMessage(
         _ content: String,
-        responseFormat: ChatQuery.ResponseFormat?,
+        responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?
     ) async throws -> String {
         if shouldThrowError {
@@ -112,7 +111,7 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
                 userInfo: [NSLocalizedDescriptionKey: "Simulated failure"]
             )
         }
-        lastMessages = [.user(.init(content: .string(content)))]
+        lastMessages = [LLMMessage(role: .user, content: content)]
         lastTools = nil
         lastToolChoice = nil
         lastResponseFormat = responseFormat
@@ -152,7 +151,7 @@ public final class MockLLMService: LLMServiceProtocol, @unchecked Sendable, Heal
     public var mockClient = MockLLMClient()
 
     /// Allows tests to provide a custom stream for chatStream calls.
-    public var stubbedStream: AsyncThrowingStream<ChatStreamResult, Error>?
+    public var stubbedStream: AsyncThrowingStream<LLMStreamChunk, Error>?
 
     public init() {}
 
@@ -178,7 +177,7 @@ public final class MockLLMService: LLMServiceProtocol, @unchecked Sendable, Heal
 
     public func sendMessage(
         _: String,
-        responseFormat _: ChatQuery.ResponseFormat?,
+        responseFormat _: LLMResponseFormat?,
         generationParameters _: GenerationParameters?,
         useUtilityModel _: Bool
     ) async throws -> String {
@@ -199,14 +198,14 @@ public final class MockLLMService: LLMServiceProtocol, @unchecked Sendable, Heal
     }
 
     public func chatStream(
-        messages: [ChatQuery.ChatCompletionMessageParam],
-        tools: [ChatQuery.ChatCompletionToolParam]?,
-        toolChoice: ChatQuery.ChatCompletionFunctionCallOptionParam?,
-        responseFormat: ChatQuery.ResponseFormat?,
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?,
         useUtilityModel _: Bool,
         useFastModel _: Bool
-    ) async -> AsyncThrowingStream<ChatStreamResult, Error> {
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
         if let stubbed = stubbedStream {
             return stubbed
         }

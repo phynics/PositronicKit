@@ -3,7 +3,6 @@ import Foundation
 import Logging
 import PKPrompt
 import PKShared
-import OpenAI
 
 /// Errors thrown by `ChatEngine` during setup and execution.
 public enum ChatEngineError: PKError {

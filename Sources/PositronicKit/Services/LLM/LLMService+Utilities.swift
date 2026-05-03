@@ -1,7 +1,6 @@
 import Foundation
 import Logging
 import PKShared
-import OpenAI
 
 public extension LLMServiceProtocol {
     /// Generate tags/keywords for a given text using the LLM

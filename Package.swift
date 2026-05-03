@@ -10,6 +10,9 @@ let package = Package(
         .library(name: "PositronicKit", targets: ["PositronicKit"]),
         .library(name: "PKPrompt", targets: ["PKPrompt"]),
         .library(name: "PKShared", targets: ["PKShared"]),
+        .library(name: "PKOpenAIProvider", targets: ["PKOpenAIProvider"]),
+        .library(name: "PKOpenRouterProvider", targets: ["PKOpenRouterProvider"]),
+        .library(name: "PKOllamaProvider", targets: ["PKOllamaProvider"]),
         .library(name: "PKTestSupport", targets: ["PKTestSupport"]),
         .executable(name: "PositronicKitExamples", targets: ["PositronicKitExamples"]),
     ],
@@ -41,7 +44,6 @@ let package = Package(
             dependencies: [
                 "PKShared",
                 "PKPrompt",
-                .product(name: "OpenAI", package: "OpenAI"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "Dependencies", package: "swift-dependencies"),
                 .product(name: "ErrorKit", package: "ErrorKit"),
@@ -51,10 +53,42 @@ let package = Package(
             path: "Sources/PositronicKit",
             exclude: ["README.md", "docs"]
         ),
+        .target(
+            name: "PKOpenAIProvider",
+            dependencies: [
+                "PositronicKit",
+                "PKPrompt",
+                "PKShared",
+                .product(name: "OpenAI", package: "OpenAI"),
+                .product(name: "Logging", package: "swift-log"),
+            ],
+            path: "Sources/PKOpenAIProvider"
+        ),
+        .target(
+            name: "PKOpenRouterProvider",
+            dependencies: [
+                "PositronicKit",
+                "PKShared",
+                .product(name: "Logging", package: "swift-log"),
+            ],
+            path: "Sources/PKOpenRouterProvider"
+        ),
+        .target(
+            name: "PKOllamaProvider",
+            dependencies: [
+                "PositronicKit",
+                "PKShared",
+                .product(name: "Logging", package: "swift-log"),
+            ],
+            path: "Sources/PKOllamaProvider"
+        ),
         .executableTarget(
             name: "PositronicKitExamples",
             dependencies: [
                 "PositronicKit",
+                "PKOpenAIProvider",
+                "PKOpenRouterProvider",
+                "PKOllamaProvider",
                 "PKPrompt",
                 "PKShared",
                 .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
@@ -67,7 +101,6 @@ let package = Package(
                 "PositronicKit",
                 "PKShared",
                 "PKPrompt",
-                .product(name: "OpenAI", package: "OpenAI"),
                 .product(name: "Dependencies", package: "swift-dependencies"),
                 .product(name: "JSONSchema", package: "swift-json-schema"),
             ],
@@ -77,6 +110,9 @@ let package = Package(
             name: "PositronicKitTests",
             dependencies: [
                 "PositronicKit",
+                "PKOpenAIProvider",
+                "PKOpenRouterProvider",
+                "PKOllamaProvider",
                 "PositronicKitExamples",
                 "PKShared",
                 "PKTestSupport",

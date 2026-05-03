@@ -2,7 +2,6 @@ import Foundation
 import Logging
 import PKPrompt
 import PKShared
-import OpenAI
 
 /// Pipeline stage responsible for extracting and normalising tool calls from the LLM response.
 ///

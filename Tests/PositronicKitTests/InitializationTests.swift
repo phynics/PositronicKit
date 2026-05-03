@@ -1,17 +1,20 @@
 import Foundation
 @testable import PositronicKit
+import PKOllamaProvider
 @testable import PKShared
 import PKTestSupport
 import Testing
 
 @Suite struct InitializationTests {
-    @Test("Simplified OpenAI initialization")
-    func openAIInitialization() async throws {
+    @Test("Configured OpenAI initialization")
+    func configuredOpenAIInitialization() async throws {
         let apiKey = "sk-test-key"
-        let chat = PositronicKitCore(openAIKey: apiKey)
+        let chat = PositronicKitCore(
+            llmService: LLMService(configuration: LLMConfiguration(apiKey: apiKey, provider: LLMProvider.openAI))
+        )
         
         let config = await chat.llmService.configuration
-        #expect(config.provider == .openAI)
+        #expect(config.provider == LLMProvider.openAI)
         #expect(config.apiKey == apiKey)
         #expect(config.modelName == "gpt-4o")
         

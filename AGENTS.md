@@ -8,6 +8,7 @@
 - `Sources/PositronicKit` — runtime: orchestration stages, chat engine, tool routing, timelines, workspaces, LLM services.
 - `Sources/PKPrompt` — prompt composition: `PromptBuilder` DSL, `PromptNode` IR, assembly, compression, `PromptJournal`.
 - `Sources/PKShared` — shared contracts: API models, tool protocols, error types, logging, utilities.
+- `Sources/PKOpenAIProvider`, `Sources/PKOpenRouterProvider`, `Sources/PKOllamaProvider` — concrete provider adapters and provider-specific convenience APIs.
 - `Sources/PositronicKitExamples` — runnable examples; double as living documentation.
 - `Tests/PKTestSupport` — mocks, fixtures, test helpers (library product).
 - `Tests/PositronicKitTests`, `Tests/PKPromptTests`, `Tests/PKSharedTests` — per-module test targets.
@@ -27,7 +28,8 @@ make clean
 |--------|------|--------------|
 | `PKShared` | API models, tool contracts, logging, utilities | Prompt logic, orchestration, persistence |
 | `PKPrompt` | Prompt IR, assembly, rendering, compression, journaling | Runtime, persistence, transport |
-| `PositronicKit` | Orchestration, chat lifecycle, tool routing, timeline/workspace mgmt | Transport, RPC, hosting, prompt-tree internals |
+| `PositronicKit` | Orchestration, chat lifecycle, tool routing, timeline/workspace mgmt | Concrete provider SDK integrations, transport, RPC, hosting, prompt-tree internals |
+| `PKOpenAIProvider` / `PKOpenRouterProvider` / `PKOllamaProvider` | Concrete provider clients, provider-specific conversions, convenience registration/init APIs | Runtime orchestration, prompt-tree internals |
 
 ## Conventions
 
@@ -39,12 +41,14 @@ make clean
 - Tests accompany every behavioral change; use `PKTestSupport` helpers.
 - Keep `PositronicKitExamples` compiling and current with public APIs.
 - Prefer `JSONSchema`/`JSONSchemaBuilder`; derive from `@Schemable` when schema mirrors a Swift model.
+- Do not introduce custom schema wrapper types when `JSONSchema`, `Schema`, `JSONSchemaBuilder`, or `@Schemable` already cover the use case.
 - Fixtures: deterministic, lightweight; prefer reusable builders over inline setup.
 - `swift build && swift test` before opening or updating PRs.
 
 ## PositronicKit Invariants
 
 - Transport-neutral. Concrete networking, RPC, and hosting belong downstream.
+- Concrete provider implementations are downstream from `PositronicKit`: keep provider SDK adapters in dedicated provider targets, not in the core runtime target.
 - Downstream pluggability is non-negotiable: persistence, workspace resolution, tool execution, prompting, and UI/network layers are all injectable.
 - Consume `PKPrompt` artifacts (`AssembledPrompt`, `RenderedPrompt`). Never reimplement prompt-tree semantics.
 - Extension points: persistence protocols, `WorkspaceCreating`/`WorkspaceProtocol`, `PromptSectionProviding`, `ToolRouter`, `ChatTurnPlugin`.

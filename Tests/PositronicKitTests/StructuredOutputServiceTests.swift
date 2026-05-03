@@ -1,4 +1,3 @@
-import OpenAI
 import PKTestSupport
 import Testing
 @testable import PositronicKit
@@ -46,8 +45,8 @@ struct StructuredOutputServiceTests {
         #expect(result == TagPayload(tags: ["swift"]))
         #expect(mockClient.lastResponseFormat == .jsonObject)
         if let lastMessage = mockClient.lastMessages.last,
-           case let .user(message) = lastMessage,
-           case let .string(content) = message.content {
+           lastMessage.role == .user {
+            let content = lastMessage.content
             #expect(content.contains("tag_payload"))
             #expect(content.contains("JSON Schema"))
         } else {
@@ -67,7 +66,7 @@ struct StructuredOutputServiceTests {
         let schema = StructuredOutputFixtures.tagSchemaDefinition()
 
         let stream = await service.chatStream(
-            messages: [.user(.init(content: .string("Extract tags")))],
+            messages: [LLMMessage(role: .user, content: "Extract tags")],
             structuredOutput: .jsonSchema(schema)
         )
 
@@ -82,6 +81,6 @@ struct StructuredOutputServiceTests {
         #expect(content == "{" + #""tags":["swift"]"# + "}")
         #expect(mockClient.lastResponseFormat == nil)
         #expect(mockClient.lastToolChoice == .function("emit_structured_response"))
-        #expect(mockClient.lastTools?.contains(where: { $0.function.name == "emit_structured_response" }) == true)
+        #expect(mockClient.lastTools?.contains(where: { $0.name == "emit_structured_response" }) == true)
     }
 }

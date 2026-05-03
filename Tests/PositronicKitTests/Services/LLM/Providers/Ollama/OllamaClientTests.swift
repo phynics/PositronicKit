@@ -1,7 +1,7 @@
 import Testing
 import Foundation
-import OpenAI
-@testable import PositronicKit
+import PKShared
+@testable import PKOllamaProvider
 
 @Suite struct OllamaClientTests {
 
@@ -18,24 +18,22 @@ import OpenAI
     }
 
     @Test func testOllamaMessageInitialization() {
-        let systemParam = ChatQuery.ChatCompletionMessageParam.system(.init(content: .textContent("system prompt")))
+        let systemParam = LLMMessage(role: .system, content: "system prompt")
         let message = OllamaMessage(from: systemParam)
         #expect(message.role == "system")
         #expect(message.content == "system prompt")
 
-        let userParam = ChatQuery.ChatCompletionMessageParam.user(.init(content: .string("hello")))
+        let userParam = LLMMessage(role: .user, content: "hello")
         let userMsg = OllamaMessage(from: userParam)
         #expect(userMsg.role == "user")
         #expect(userMsg.content == "hello")
     }
 
     @Test func testOllamaToolInitialization() {
-        let toolParam = ChatQuery.ChatCompletionToolParam(
-            function: .init(
-                name: "test_tool",
-                description: "test description",
-                parameters: .object([:])
-            )
+        let toolParam = LLMToolDefinition(
+            name: "test_tool",
+            description: "test description",
+            parameters: makeEmptyObjectSchema()
         )
         let tool = OllamaTool(from: toolParam)
         #expect(tool.type == "function")
