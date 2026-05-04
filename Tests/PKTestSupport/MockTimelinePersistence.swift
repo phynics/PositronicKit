@@ -23,7 +23,7 @@ public final class MockTimelinePersistence: TimelinePersistenceProtocol, @unchec
         if includeArchived {
             return timelines
         } else {
-            return timelines.filter { !$0.isArchived }
+            return timelines.filter { !$0.isArchived && !$0.isPrivate }
         }
     }
 
