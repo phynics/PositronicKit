@@ -116,6 +116,8 @@ struct LLMStreamingStage: PipelineStage {
         continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
     ) async {
         guard !parser.buffer.isEmpty else { return }
+        let kind = parser.isThinking ? "thinking" : "content"
+        logger.debug("Flushing remaining \(kind) buffer (\(parser.buffer.count) chars)")
         if parser.isThinking {
             let buffer = parser.buffer
             await context.outputs.appendThinking(buffer)

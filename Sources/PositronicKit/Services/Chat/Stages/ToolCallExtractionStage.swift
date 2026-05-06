@@ -19,8 +19,16 @@ struct ToolCallExtractionStage: PipelineStage {
     func process(_ context: ChatTurnContext) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         var eventsToYield: [ChatEvent] = []
 
-        // Fallback: parse tool calls from response text when structured calls are absent.
         let accumulators = await context.outputs.toolCallAccumulators
+        logger.debug("ToolCallExtractionStage: \(accumulators.count) accumulator(s) before fallback/cleanup")
+        for (index, acc) in accumulators.sorted(by: { $0.key < $1.key }) {
+            let name = acc.name.isEmpty ? "(empty)" : acc.name
+            logger.debug(
+                "  [accumulator \(index)] id=\(acc.callId) name=\(String(reflecting: name)) args=\(String(reflecting: acc.args))"
+            )
+        }
+
+        // Fallback: parse tool calls from response text when structured calls are absent.
         if accumulators.isEmpty {
             let fallbackCalls = ToolOutputParser.parse(from: await context.outputs.fullResponse)
             if !fallbackCalls.isEmpty {
@@ -48,10 +56,16 @@ struct ToolCallExtractionStage: PipelineStage {
         }
 
         // Remove sentinel/empty calls so downstream stages see only actionable tool calls.
+        let beforeFilter = await context.outputs.toolCallAccumulators.count
         await context.outputs.removeSentinelAndEmptyToolCalls(sentinel: ChatEngine.Constants.sentinelToolName)
+        let afterFilter = await context.outputs.toolCallAccumulators.count
+        if beforeFilter != afterFilter {
+            logger.info("Stripped \(beforeFilter - afterFilter) sentinel/empty tool-call accumulator(s)")
+        }
 
         // Record for the debug snapshot.
         let finalAccumulators = await context.outputs.toolCallAccumulators
+        logger.debug("ToolCallExtractionStage: \(finalAccumulators.count) accumulator(s) after cleanup")
         for (_, value) in finalAccumulators.sorted(by: { $0.key < $1.key }) {
             await context.outputs.addDebugToolCall(
                 ToolCallRecord(name: value.name, arguments: value.args, turn: context.turnCount)
