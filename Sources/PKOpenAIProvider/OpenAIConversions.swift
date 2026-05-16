@@ -108,6 +108,47 @@ extension ChatStreamResult {
     }
 }
 
+extension ChatResult {
+    func toLLMToolCallRecoveryChunk() -> LLMStreamChunk? {
+        guard let choice = choices.first else { return nil }
+        guard choice.finishReason == ChatResult.Choice.FinishReason.toolCalls.rawValue else { return nil }
+        guard let toolCalls = choice.message.toolCalls, !toolCalls.isEmpty else { return nil }
+
+        let mappedToolCalls = toolCalls.enumerated().map { index, call in
+            LLMToolCallDelta(
+                index: index,
+                id: call.id,
+                function: LLMToolCallDeltaFunction(
+                    name: call.function.name,
+                    arguments: call.function.arguments
+                )
+            )
+        }
+
+        return LLMStreamChunk(
+            id: id,
+            model: model,
+            choices: [LLMStreamChoice(
+                index: choice.index,
+                delta: LLMStreamDelta(
+                    role: .assistant,
+                    content: choice.message.content,
+                    toolCalls: mappedToolCalls
+                ),
+                finishReason: choice.finishReason
+            )],
+            usage: usage.map {
+                LLMTokenUsage(
+                    promptTokens: $0.promptTokens,
+                    completionTokens: $0.completionTokens,
+                    totalTokens: $0.totalTokens,
+                    promptTokensDetails: .init(cachedTokens: $0.promptTokensDetails?.cachedTokens)
+                )
+            }
+        )
+    }
+}
+
 private func convertToOpenAISchema(_ schema: Schema) -> JSONSchema? {
     guard let data = try? JSONEncoder().encode(schema) else { return nil }
     return try? JSONDecoder().decode(JSONSchema.self, from: data)

@@ -64,6 +64,8 @@ public actor OpenAIClient: LLMClientProtocol {
         return AsyncThrowingStream<LLMStreamChunk, Error> { continuation in
             Task {
                 let hasYielded = Mutex(false)
+                let sawStreamedToolCalls = Mutex(false)
+                let finishedWithToolCalls = Mutex(false)
 
                 do {
                     try await RetryPolicy.retry(
@@ -80,9 +82,23 @@ public actor OpenAIClient: LLMClientProtocol {
                                 }
                                 if result.choices.first?.delta.toolCalls != nil {
                                     hasYielded.withLock { $0 = true }
+                                    sawStreamedToolCalls.withLock { $0 = true }
+                                }
+                                if result.choices.contains(where: { $0.finishReason == .toolCalls }) {
+                                    finishedWithToolCalls.withLock { $0 = true }
                                 }
 
                                 continuation.yield(result.toLLMStreamChunk())
+                            }
+
+                            if finishedWithToolCalls.withLock({ $0 }) && !sawStreamedToolCalls.withLock({ $0 }) {
+                                logger.warning("OpenAI stream finished with tool_calls but no streamed delta.toolCalls were received. Recovering tool calls from non-stream response.")
+                                var recoveryQuery = query
+                                recoveryQuery.stream = false
+                                let recoveryResult = try await client.chats(query: recoveryQuery)
+                                if let recoveryChunk = recoveryResult.toLLMToolCallRecoveryChunk() {
+                                    continuation.yield(recoveryChunk)
+                                }
                             }
                         }
                     )

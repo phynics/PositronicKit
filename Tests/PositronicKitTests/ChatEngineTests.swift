@@ -376,6 +376,89 @@ struct ChatEngineTests {
         }
     }
 
+    @Test("Fragmented native tool-call chunks execute end-to-end without assistant text in the first turn")
+    func fragmentedNativeToolCallExecutesWithoutAssistantText() async throws {
+        try await withChatEngineDependencies { engine, mockLLM, _ in
+            let mockTool = MockTool()
+
+            mockLLM.mockClient.nextRawStreamChunks = [[
+                LLMStreamChunk(
+                    id: "mock-1",
+                    model: "mock-model",
+                    choices: [LLMStreamChoice(
+                        index: 0,
+                        delta: LLMStreamDelta(
+                            role: .assistant,
+                            content: nil,
+                            toolCalls: [
+                                LLMToolCallDelta(
+                                    index: 0,
+                                    id: "call_frag",
+                                    function: LLMToolCallDeltaFunction(name: "mock_", arguments: "{")
+                                )
+                            ]
+                        ),
+                        finishReason: nil
+                    )]
+                ),
+                LLMStreamChunk(
+                    id: "mock-2",
+                    model: "mock-model",
+                    choices: [LLMStreamChoice(
+                        index: 0,
+                        delta: LLMStreamDelta(
+                            role: .assistant,
+                            content: nil,
+                            toolCalls: [
+                                LLMToolCallDelta(
+                                    index: 0,
+                                    id: nil,
+                                    function: LLMToolCallDeltaFunction(name: "tool", arguments: "}")
+                                )
+                            ]
+                        ),
+                        finishReason: "tool_calls"
+                    )]
+                )
+            ]]
+            mockLLM.mockClient.nextResponses = ["Processed fragmented tool"]
+
+            let stream = try await engine.execute(
+                timelineId: timelineId,
+                message: "Run fragmented tool",
+                tools: [mockTool.toAnyTool()]
+            )
+
+            let events = try await collect(stream)
+
+            #expect(events.contains(where: {
+                if case let .delta(event: .toolCall(delta)) = $0 {
+                    return delta.id == "call_frag"
+                }
+                return false
+            }))
+            #expect(events.contains(where: {
+                if case let .completion(event: .toolExecution(id, status)) = $0,
+                   case let .success(result) = status {
+                    return id == "call_frag" && result.output == "Tool result"
+                }
+                return false
+            }))
+            #expect(events.contains(where: {
+                if case let .delta(event: .generation(text)) = $0 {
+                    return text == "Processed fragmented tool"
+                }
+                return false
+            }))
+
+            let completedCount = events.filter {
+                if case .completion(event: .generationCompleted) = $0 { return true }
+                return false
+            }.count
+            #expect(completedCount == 1)
+        }
+    }
+
     // MARK: - Group 5: Multi-Turn & Loop Control
 
     @Test("maxTurns limits the generation loop")

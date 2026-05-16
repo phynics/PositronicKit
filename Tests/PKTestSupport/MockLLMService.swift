@@ -19,6 +19,10 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
     /// Support for multi-chunk streaming. If not empty, this takes precedence over nextResponse.
     public var nextChunks: [[String]] = []
 
+    /// Raw stream chunks for cases where tests need full control over tool-call delta fragmentation.
+    /// Each inner array represents one `chatStream` invocation.
+    public var nextRawStreamChunks: [[LLMStreamChunk]] = []
+
     /// Optional delay between chunks for testing cancellation.
     /// Uses `ContinuousClock` dependency — inject `ImmediateClock` in tests for instant execution.
     public var nextStreamWait: TimeInterval?
@@ -41,6 +45,52 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
         if shouldThrowError {
             return AsyncThrowingStream { continuation in
                 continuation.finish(throwing: NSError(domain: "MockError", code: 1, userInfo: nil))
+            }
+        }
+
+        if !nextRawStreamChunks.isEmpty {
+            let rawChunks = nextRawStreamChunks.removeFirst()
+            let wait = nextStreamWait
+
+            @Dependency(\.continuousClock) var clock
+
+            struct RawStreamContext: @unchecked Sendable {
+                let chunks: [LLMStreamChunk]
+                let wait: TimeInterval?
+                let clock: any Clock<Duration>
+            }
+            let ctx = RawStreamContext(chunks: rawChunks, wait: wait, clock: clock)
+
+            return AsyncThrowingStream<LLMStreamChunk, Error> { continuation in
+                let task = Task {
+                    for chunk in ctx.chunks {
+                        if Task.isCancelled {
+                            continuation.finish(throwing: CancellationError())
+                            return
+                        }
+
+                        if let wait = ctx.wait {
+                            do {
+                                try await ctx.clock.sleep(for: .seconds(wait))
+                            } catch {
+                                continuation.finish(throwing: error)
+                                return
+                            }
+                        }
+
+                        if Task.isCancelled {
+                            continuation.finish(throwing: CancellationError())
+                            return
+                        }
+
+                        continuation.yield(chunk)
+                    }
+                    continuation.finish()
+                }
+
+                continuation.onTermination = { @Sendable _ in
+                    task.cancel()
+                }
             }
         }
 

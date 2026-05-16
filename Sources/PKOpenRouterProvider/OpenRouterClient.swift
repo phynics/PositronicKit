@@ -10,6 +10,36 @@ private struct OpenRouterModelsResponse: Codable {
     let data: [Model]
 }
 
+private struct OpenRouterChatResponse: Codable {
+    struct Choice: Codable {
+        let index: Int
+        let message: OpenRouterMessage
+        let finishReason: String
+
+        enum CodingKeys: String, CodingKey {
+            case index, message
+            case finishReason = "finish_reason"
+        }
+    }
+
+    let id: String
+    let model: String
+    let choices: [Choice]
+    let usage: OpenRouterUsage?
+}
+
+private struct OpenRouterUsage: Codable {
+    let promptTokens: Int?
+    let completionTokens: Int?
+    let totalTokens: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case promptTokens = "prompt_tokens"
+        case completionTokens = "completion_tokens"
+        case totalTokens = "total_tokens"
+    }
+}
+
 private struct OpenRouterChatRequest: Codable {
     let messages: [OpenRouterMessage]
     let model: String
@@ -202,6 +232,8 @@ public actor OpenRouterClient: LLMClientProtocol {
         return AsyncThrowingStream<LLMStreamChunk, Error> { continuation in
             Task {
                 let hasYielded = Mutex(false)
+                let sawStreamedToolCalls = Mutex(false)
+                let finishedWithToolCalls = Mutex(false)
 
                 do {
                     try await RetryPolicy.retry(
@@ -232,9 +264,38 @@ public actor OpenRouterClient: LLMClientProtocol {
                             try await self.streamChatResponse(
                                 request: request,
                                 hasYielded: hasYielded,
+                                sawStreamedToolCalls: sawStreamedToolCalls,
+                                finishedWithToolCalls: finishedWithToolCalls,
                                 logger: logger,
                                 continuation: continuation
                             )
+
+                            if finishedWithToolCalls.withLock({ $0 }) && !sawStreamedToolCalls.withLock({ $0 }) {
+                                logger.warning("OpenRouter stream finished with tool_calls but no streamed delta.toolCalls were received. Recovering tool calls from non-stream response.")
+                                let recoveryRequest = self.buildChatRequest(
+                                    chatURL: chatURL,
+                                    apiKey: apiKey,
+                                    query: OpenRouterChatRequest(
+                                        messages: messages.map(OpenRouterMessage.init),
+                                        model: modelName,
+                                        frequencyPenalty: generationParameters?.frequencyPenalty,
+                                        maxCompletionTokens: generationParameters?.maxTokens,
+                                        presencePenalty: generationParameters?.presencePenalty,
+                                        responseFormat: self.mapResponseFormat(responseFormat),
+                                        seed: generationParameters?.seed,
+                                        temperature: generationParameters?.temperature,
+                                        toolChoice: self.mapToolChoice(toolChoice ?? (tools != nil ? .auto : nil)),
+                                        tools: tools?.map(OpenRouterTool.init),
+                                        topP: generationParameters?.topP,
+                                        stream: false,
+                                        streamOptions: nil
+                                    )
+                                )
+                                let recoveryResult = try await self.fetchChatResponse(request: recoveryRequest)
+                                if let recoveryChunk = self.makeToolCallRecoveryChunk(from: recoveryResult) {
+                                    continuation.yield(recoveryChunk)
+                                }
+                            }
                         }
                     )
                     continuation.finish()
@@ -260,6 +321,8 @@ public actor OpenRouterClient: LLMClientProtocol {
     private func streamChatResponse(
         request: URLRequest,
         hasYielded: borrowing Mutex<Bool>,
+        sawStreamedToolCalls: borrowing Mutex<Bool>,
+        finishedWithToolCalls: borrowing Mutex<Bool>,
         logger: Logger,
         continuation: AsyncThrowingStream<LLMStreamChunk, Error>.Continuation
     ) async throws {
@@ -273,13 +336,34 @@ public actor OpenRouterClient: LLMClientProtocol {
             throw LLMServiceError.networkError("OpenRouter API Error: \(httpResponse.statusCode) - \(errorBody)")
         }
         for try await line in stream.lines {
-            processSSELine(line, hasYielded: hasYielded, logger: logger, continuation: continuation)
+            processSSELine(
+                line,
+                hasYielded: hasYielded,
+                sawStreamedToolCalls: sawStreamedToolCalls,
+                finishedWithToolCalls: finishedWithToolCalls,
+                logger: logger,
+                continuation: continuation
+            )
         }
+    }
+
+    private func fetchChatResponse(request: URLRequest) async throws -> OpenRouterChatResponse {
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw LLMServiceError.networkError("Invalid response type from OpenRouter")
+        }
+        guard (200 ... 299).contains(httpResponse.statusCode) else {
+            let body = String(data: data, encoding: .utf8) ?? ""
+            throw LLMServiceError.networkError("OpenRouter API Error: \(httpResponse.statusCode) - \(body)")
+        }
+        return try JSONDecoder().decode(OpenRouterChatResponse.self, from: data)
     }
 
     private nonisolated func processSSELine(
         _ line: String,
         hasYielded: borrowing Mutex<Bool>,
+        sawStreamedToolCalls: borrowing Mutex<Bool>,
+        finishedWithToolCalls: borrowing Mutex<Bool>,
         logger: Logger,
         continuation: AsyncThrowingStream<LLMStreamChunk, Error>.Continuation
     ) {
@@ -295,11 +379,58 @@ public actor OpenRouterClient: LLMClientProtocol {
             }
             if result.choices.first?.delta.toolCalls != nil {
                 hasYielded.withLock { $0 = true }
+                sawStreamedToolCalls.withLock { $0 = true }
+            }
+            if result.choices.contains(where: { $0.finishReason == "tool_calls" }) {
+                finishedWithToolCalls.withLock { $0 = true }
             }
             continuation.yield(result)
         } catch {
             logger.error("Failed to decode OpenRouter chunk: \(error.localizedDescription). Raw: \(dataString)")
         }
+    }
+
+    nonisolated func makeToolCallRecoveryChunk(from responseData: Data) throws -> LLMStreamChunk? {
+        let response = try JSONDecoder().decode(OpenRouterChatResponse.self, from: responseData)
+        return makeToolCallRecoveryChunk(from: response)
+    }
+
+    private nonisolated func makeToolCallRecoveryChunk(from response: OpenRouterChatResponse) -> LLMStreamChunk? {
+        guard let choice = response.choices.first else { return nil }
+        guard choice.finishReason == "tool_calls" else { return nil }
+        guard let toolCalls = choice.message.toolCalls, !toolCalls.isEmpty else { return nil }
+
+        let mappedToolCalls = toolCalls.enumerated().map { index, call in
+            LLMToolCallDelta(
+                index: index,
+                id: call.id,
+                function: LLMToolCallDeltaFunction(
+                    name: call.function.name,
+                    arguments: call.function.arguments
+                )
+            )
+        }
+
+        return LLMStreamChunk(
+            id: response.id,
+            model: response.model,
+            choices: [LLMStreamChoice(
+                index: choice.index,
+                delta: LLMStreamDelta(
+                    role: .assistant,
+                    content: choice.message.content,
+                    toolCalls: mappedToolCalls
+                ),
+                finishReason: choice.finishReason
+            )],
+            usage: response.usage.map {
+                LLMTokenUsage(
+                    promptTokens: $0.promptTokens,
+                    completionTokens: $0.completionTokens,
+                    totalTokens: $0.totalTokens
+                )
+            }
+        )
     }
 
     public func sendMessage(

@@ -45,6 +45,22 @@ private func drain(_ stream: AsyncThrowingStream<ChatEvent, Error>) async throws
     return events
 }
 
+private func makeChunk(
+    content: String? = nil,
+    toolCalls: [LLMToolCallDelta]? = nil,
+    finishReason: String? = nil
+) -> LLMStreamChunk {
+    LLMStreamChunk(
+        id: "mock",
+        model: "mock-model",
+        choices: [LLMStreamChoice(
+            index: 0,
+            delta: LLMStreamDelta(role: .assistant, content: content, toolCalls: toolCalls),
+            finishReason: finishReason
+        )]
+    )
+}
+
 // MARK: - MessagePersistenceStage Tests
 
 final class MessagePersistenceStageBehavior {
@@ -90,6 +106,33 @@ final class MessagePersistenceStageBehavior {
         let data = try #require(completed?.metadata.turnSnapshotData)
         let snapshot = try SerializationUtils.jsonDecoder.decode(TurnSnapshot.self, from: data)
         #expect(snapshot.fullResponse == "done")
+    }
+
+    @Test
+    func persistedToolCallsPreserveAccumulatedArguments() async throws {
+        let store = MockPersistenceService()
+        let stage = MessagePersistenceStage(messageStore: store, logger: testLogger)
+        let context = await makeContext(
+            toolCallAccumulators: [
+                0: (
+                    id: "call-1",
+                    name: "complex_tool",
+                    args: #"{"tags":["a","b"],"nested":{"value":1}}"#
+                )
+            ]
+        )
+
+        _ = try await drain(await stage.process(context))
+
+        #expect(store.messages.count == 1)
+        let message = store.messages[0].toMessage()
+        #expect(message.toolCalls?.count == 1)
+        let toolCall = try #require(message.toolCalls?.first)
+        #expect(toolCall.name == "complex_tool")
+        let tags = toolCall.arguments["tags"]?.value as? [Any]
+        #expect(tags?.count == 2)
+        let nested = toolCall.arguments["nested"]?.value as? [String: Any]
+        #expect(nested?["value"] as? Double == 1.0)
     }
 }
 
@@ -182,5 +225,92 @@ final class LLMStreamingStageBehavior {
         #expect(!toolCallDeltas.isEmpty)
         let accumulators = await context.outputs.toolCallAccumulators
         #expect(!accumulators.isEmpty)
+    }
+
+    @Test
+    func fragmentedToolCallDeltasAccumulateIntoSingleCall() async throws {
+        let mockService = MockLLMService()
+        mockService.stubbedStream = AsyncThrowingStream { continuation in
+            continuation.yield(makeChunk(toolCalls: [
+                LLMToolCallDelta(
+                    index: 0,
+                    id: "tc-1",
+                    function: LLMToolCallDeltaFunction(name: "complex_", arguments: "{\"tags\":[")
+                )
+            ]))
+            continuation.yield(makeChunk(toolCalls: [
+                LLMToolCallDelta(
+                    index: 0,
+                    id: nil,
+                    function: LLMToolCallDeltaFunction(name: "tool", arguments: "\"a\",")
+                )
+            ]))
+            continuation.yield(makeChunk(toolCalls: [
+                LLMToolCallDelta(
+                    index: 0,
+                    id: nil,
+                    function: LLMToolCallDeltaFunction(name: nil, arguments: "\"b\"]}")
+                )
+            ], finishReason: "tool_calls"))
+            continuation.finish()
+        }
+
+        let stage = LLMStreamingStage(llmService: mockService, logger: testLogger)
+        let context = await makeContext()
+
+        _ = try await drain(await stage.process(context))
+
+        let accumulators = await context.outputs.toolCallAccumulators
+        let call = try #require(accumulators[0])
+        #expect(call.callId == "tc-1")
+        #expect(call.name == "complex_tool")
+        #expect(call.args == #"{"tags":["a","b"]}"#)
+    }
+
+    @Test
+    func interleavedMultipleToolCallsPreservePerIndexState() async throws {
+        let mockService = MockLLMService()
+        mockService.stubbedStream = AsyncThrowingStream { continuation in
+            continuation.yield(makeChunk(toolCalls: [
+                LLMToolCallDelta(
+                    index: 0,
+                    id: "tc-1",
+                    function: LLMToolCallDeltaFunction(name: "first_", arguments: "{\"x\":")
+                ),
+                LLMToolCallDelta(
+                    index: 1,
+                    id: "tc-2",
+                    function: LLMToolCallDeltaFunction(name: "second_", arguments: "{\"y\":")
+                ),
+            ]))
+            continuation.yield(makeChunk(toolCalls: [
+                LLMToolCallDelta(
+                    index: 1,
+                    id: nil,
+                    function: LLMToolCallDeltaFunction(name: "tool", arguments: "2}")
+                ),
+                LLMToolCallDelta(
+                    index: 0,
+                    id: nil,
+                    function: LLMToolCallDeltaFunction(name: "tool", arguments: "1}")
+                ),
+            ], finishReason: "tool_calls"))
+            continuation.finish()
+        }
+
+        let stage = LLMStreamingStage(llmService: mockService, logger: testLogger)
+        let context = await makeContext()
+
+        _ = try await drain(await stage.process(context))
+
+        let accumulators = await context.outputs.toolCallAccumulators
+        let first = try #require(accumulators[0])
+        let second = try #require(accumulators[1])
+        #expect(first.callId == "tc-1")
+        #expect(first.name == "first_tool")
+        #expect(first.args == #"{"x":1}"#)
+        #expect(second.callId == "tc-2")
+        #expect(second.name == "second_tool")
+        #expect(second.args == #"{"y":2}"#)
     }
 }
