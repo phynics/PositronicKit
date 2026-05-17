@@ -2,12 +2,12 @@ import Foundation
 import PKShared
 
 /// Accumulates parts of a streamed tool call.
-public struct StreamedToolCall: Sendable {
-    public var callId: String
-    public var name: String
-    public var args: String
+struct StreamedToolCall: Sendable {
+    var callId: String
+    var name: String
+    var args: String
 
-    public init(callId: String = "", name: String = "", args: String = "") {
+    init(callId: String = "", name: String = "", args: String = "") {
         self.callId = callId
         self.name = name
         self.args = args
@@ -16,17 +16,17 @@ public struct StreamedToolCall: Sendable {
 
 /// Actor-isolated mutable outputs for a single pipeline turn.
 /// Each stage writes into this via dedicated mutation methods; reads from outside use `await`.
-public actor TurnOutputs {
-    public private(set) var fullResponse: String = ""
-    public private(set) var fullThinking: String = ""
-    public private(set) var toolCallAccumulators: [Int: StreamedToolCall] = [:]
-    public private(set) var streamUsage: LLMTokenUsage?
-    public private(set) var turnDuration: TimeInterval = 0
-    public private(set) var tokensPerSecond: Double?
-    public private(set) var debugToolCalls: [ToolCallRecord] = []
-    public private(set) var debugToolResults: [ToolResultRecord] = []
+actor TurnOutputs {
+    private(set) var fullResponse: String = ""
+    private(set) var fullThinking: String = ""
+    private(set) var toolCallAccumulators: [Int: StreamedToolCall] = [:]
+    private(set) var streamUsage: LLMTokenUsage?
+    private(set) var turnDuration: TimeInterval = 0
+    private(set) var tokensPerSecond: Double?
+    private(set) var debugToolCalls: [ToolCallRecord] = []
+    private(set) var debugToolResults: [ToolResultRecord] = []
 
-    public init() {}
+    init() {}
 
     // MARK: - Mutation Methods (internal — only built-in stages should mutate)
 
@@ -79,30 +79,30 @@ public actor TurnOutputs {
 
 /// Immutable snapshot of a single chat turn as it moves through the pipeline.
 /// Mutable stage outputs are stored in `outputs`, a shared actor reference.
-public struct ChatTurnContext: Sendable {
+struct ChatTurnContext: Sendable {
     // Session-level configuration (constant across turns)
-    public let timelineId: UUID
-    public let agentInstanceId: UUID?
-    public let modelName: String
-    public let maxTurns: Int
-    public let systemInstructions: String?
-    public let availableTools: [AnyTool]
-    public let contextData: ContextData
-    public let remoteDepth: Int
-    public let generationParameters: GenerationParameters?
+    let timelineId: UUID
+    let agentInstanceId: UUID?
+    let modelName: String
+    let maxTurns: Int
+    let systemInstructions: String?
+    let availableTools: [AnyTool]
+    let contextData: ContextData
+    let remoteDepth: Int
+    let generationParameters: GenerationParameters?
 
     /// Shared actor tracking prompt snapshots and append chain growth across turns.
     /// Created once per `prepareSession()` call and threaded through all turns in the loop.
-    public let promptHistory: TimelinePromptHistory?
+    let promptHistory: TimelinePromptHistory?
 
     // Per-turn snapshot (changes each iteration)
-    public let currentMessages: [LLMMessage]
-    public let turnCount: Int
+    let currentMessages: [LLMMessage]
+    let turnCount: Int
 
     /// Mutable stage outputs shared via actor reference across struct copies.
-    public let outputs: TurnOutputs
+    let outputs: TurnOutputs
 
-    public init(
+    init(
         timelineId: UUID,
         agentInstanceId: UUID?,
         modelName: String,
@@ -133,12 +133,12 @@ public struct ChatTurnContext: Sendable {
     }
 
     /// Tool parameters derived from availableTools.
-    public var toolParams: [LLMToolDefinition] {
+    var toolParams: [LLMToolDefinition] {
         availableTools.map { $0.toLLMToolDefinition() }
     }
 
     /// Creates a new snapshot for the next turn while keeping the same session config.
-    public func forTurn(
+    func forTurn(
         turnCount: Int,
         messages: [LLMMessage]
     ) -> ChatTurnContext {

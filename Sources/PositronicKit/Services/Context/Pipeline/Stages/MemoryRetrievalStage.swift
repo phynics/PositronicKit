@@ -6,7 +6,7 @@ import PKPrompt
 import PKShared
 
 /// Pipeline stage responsible for retrieving relevant semantic memories and tags.
-public struct MemoryRetrievalStage: PipelineStage {
+struct MemoryRetrievalStage: PipelineStage {
     @Dependency(\.memoryStore) var memoryStore
     @Dependency(\.embeddingService) var embeddingService
 

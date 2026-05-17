@@ -21,29 +21,26 @@ public actor LLMService: LLMServiceProtocol, HealthCheckable {
         await preparationTask?.value
         return [
             "model": configuration.modelName,
-            "provider": configuration.endpoint.contains("openai")
-                ? "openai"
-                : (configuration.endpoint.contains("openrouter") ? "openrouter" : "custom")
+            "provider": configuration.provider.rawValue,
         ]
     }
 
     public func checkHealth() async -> HealthStatus {
         await preparationTask?.value
-        // Basic check: is configured
+        // Not configured at all → degraded
         guard isConfigured else { return .degraded }
 
-        // Optional: Proactive check by trying to list models (if supported)
+        // Configured but no client instantiated → degraded (configuration may be incomplete)
+        guard let client = client else { return .degraded }
+
+        // Proactive connectivity check: if the provider supports model listing,
+        // try it; on failure report degraded rather than silently claiming ok.
         do {
-            if let client = client {
-                _ = try await client.fetchAvailableModels()
-                return .ok
-            }
-            return .degraded
+            _ = try await client.fetchAvailableModels()
+            return .ok
         } catch {
             logger.warning("LLM health check connectivity warning: \(error)")
-            // We return ok if configured even if network check fails,
-            // but we could return degraded if we want to be strict.
-            return .ok
+            return .degraded
         }
     }
 

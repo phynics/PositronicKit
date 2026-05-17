@@ -245,6 +245,10 @@ public enum ExternalLLMProviderRegistry {
     private static let lock = NSLock()
     nonisolated(unsafe) private static var factories: [LLMProvider: Factory] = [:]
 
+    /// Registers or replaces the factory for a provider.
+    ///
+    /// Re-registration is allowed and simply overwrites the existing factory for that provider.
+    /// Provider modules rely on this behavior so hosts can call `register()` defensively at startup.
     public static func register(factory: @escaping Factory, for provider: LLMProvider) {
         lock.lock()
         factories[provider] = factory

@@ -10,6 +10,9 @@ import PKShared
 /// The `TimelineManager` is responsible for the lifecycle of `Timeline` objects,
 /// including their creation, hydration from persistence, and cleanup. It also coordinates
 /// timeline-specific components like `ContextManager` and `TimelineToolManager`.
+/// It owns runtime coordination policy for timelines, but concrete workspace behavior remains
+/// behind `WorkspaceManager` / `WorkspaceCreating` / `WorkspaceProtocol` so hosts can supply
+/// local or remote workspace implementations without changing core orchestration.
 public actor TimelineManager {
     // MARK: - State
 
@@ -282,11 +285,6 @@ public extension TimelineManager {
         return timeline
     }
 
-    /// Retrieves the context manager for a timeline if it is active.
-    func getContextManager(for timelineId: UUID) -> ContextManager? {
-        return contextManagers[timelineId]
-    }
-
     /// Retrieves the tool manager for a timeline if it is active.
     func getToolManager(for timelineId: UUID) -> TimelineToolManager? {
         return toolManagers[timelineId]
@@ -318,6 +316,9 @@ public extension TimelineManager {
     ) async -> TimelineToolManager {
         let currentWD = session.workingDirectory ?? jailRoot
 
+        // V1 runtime policy: these filesystem and timeline observation tools are installed by
+        // default for every timeline-managed session. Timeline send is additionally installed when
+        // an attached agent identity is available, because it requires a sender identity.
         var availableTools: [AnyTool] = [
             // Filesystem Tools
             AnyTool(ChangeDirectoryTool(
@@ -495,5 +496,14 @@ public enum TimelineError: PKError {
         case .timelineNotFound:
             return "The requested chat timeline could not be found."
         }
+    }
+}
+
+// MARK: - Internal ContextManager Access
+
+extension TimelineManager {
+    /// Retrieves the context manager for a timeline if it is active.
+    func getContextManager(for timelineId: UUID) -> ContextManager? {
+        return contextManagers[timelineId]
     }
 }

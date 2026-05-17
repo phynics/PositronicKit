@@ -4,15 +4,15 @@ import PKShared
 
 // MARK: - Snapshot Types
 
-public struct PromptSectionEntry: Sendable {
-    public let entryId: String
-    public let content: String
-    public let cachePolicy: CachePolicy
-    public let estimatedTokens: Int
-    public let path: [String]
-    public let parentEntryId: String?
-    public let order: Int?
-    public let sectionKind: PromptHistorySectionKind?
+struct PromptSectionEntry: Sendable {
+    let entryId: String
+    let content: String
+    let cachePolicy: CachePolicy
+    let estimatedTokens: Int
+    let path: [String]
+    let parentEntryId: String?
+    let order: Int?
+    let sectionKind: PromptHistorySectionKind?
 
     var contentHash: UInt64 {
         var hasher = Hasher()
@@ -21,11 +21,11 @@ public struct PromptSectionEntry: Sendable {
     }
 }
 
-public struct PromptSnapshot: Sendable {
-    public let entries: [PromptSectionEntry]
+struct PromptSnapshot: Sendable {
+    let entries: [PromptSectionEntry]
 }
 
-public enum PromptHistorySectionKind: String, Sendable, Codable, Hashable {
+enum PromptHistorySectionKind: String, Sendable, Codable, Hashable {
     case section
     case group
     case synthetic
@@ -57,95 +57,101 @@ struct PromptHistoryJournalDiff<Entry: Sendable>: Sendable {
 
 // MARK: - PromptDiff
 
-public struct PromptDiff: Sendable {
+struct PromptDiff: Sendable {
     let journalDiff: PromptHistoryJournalDiff<PromptSectionEntry>
 
     /// Tokens in the positionally-stable prefix (cacheable by LLM).
-    public let stablePrefixTokens: Int
+    let stablePrefixTokens: Int
 
-    public var hasChanges: Bool {
+    var hasChanges: Bool {
         journalDiff.hasChanges
     }
 
-    public var stablePrefixCount: Int {
+    var stablePrefixCount: Int {
         journalDiff.stablePrefixCount
     }
 
-    public var changed: [PromptSectionEntry] {
+    var changed: [PromptSectionEntry] {
         journalDiff.changed
     }
 
-    public var added: [PromptSectionEntry] {
+    var added: [PromptSectionEntry] {
         journalDiff.added
     }
 
-    public var removed: [String] {
+    var removed: [String] {
         journalDiff.removed
     }
 
-    public var changedNodePaths: [[String]] {
+    var changedNodePaths: [[String]] {
         journalDiff.subtreeDiff?.changedNodePaths ?? []
     }
 
-    public var stableNodePaths: [[String]] {
+    var stableNodePaths: [[String]] {
         journalDiff.subtreeDiff?.stableNodePaths ?? []
     }
 
-    public var addedNodePaths: [[String]] {
+    var addedNodePaths: [[String]] {
         journalDiff.subtreeDiff?.addedNodePaths ?? []
     }
 
-    public var removedNodePaths: [[String]] {
+    var removedNodePaths: [[String]] {
         journalDiff.subtreeDiff?.removedNodePaths ?? []
     }
 }
 
-public struct PromptHistoryUpdate: Sendable {
-    public let diff: PromptDiff?
-    public let didCompact: Bool
+struct PromptHistoryUpdate: Sendable {
+    let diff: PromptDiff?
+    let didCompact: Bool
 }
 
 // MARK: - Thresholds
 
-public struct CompactionThresholds: Sendable {
-    public let maxAppendedTokens: Int
-    public let maxAppendedMessages: Int
+struct CompactionThresholds: Sendable {
+    let maxAppendedTokens: Int
+    let maxAppendedMessages: Int
 
-    public init(maxAppendedTokens: Int = 50000, maxAppendedMessages: Int = 40) {
+    init(maxAppendedTokens: Int = 50000, maxAppendedMessages: Int = 40) {
         self.maxAppendedTokens = maxAppendedTokens
         self.maxAppendedMessages = maxAppendedMessages
     }
 
-    public static let `default` = CompactionThresholds()
+    static let `default` = CompactionThresholds()
 }
 
 // MARK: - TimelinePromptHistory
 
-public actor TimelinePromptHistory {
-    private var baseSnapshot: PromptSnapshot?
-    public private(set) var appendedMessageCount: Int = 0
-    public private(set) var appendedTokens: Int = 0
-    public let thresholds: CompactionThresholds
-    public private(set) var lastDiff: PromptDiff?
+/// Runtime-only prompt diff/cache bookkeeping used by `PositronicKitCore` across turns.
+///
+/// This is not the primary prompt-facing journaling API. Public prompt journaling belongs to
+/// `PKPrompt.PromptJournal`; this actor exists to support runtime stable-prefix reuse, append
+/// pressure tracking, and compaction heuristics inside the chat loop.
 
-    public init(thresholds: CompactionThresholds = .default) {
+actor TimelinePromptHistory {
+    private var baseSnapshot: PromptSnapshot?
+    private(set) var appendedMessageCount: Int = 0
+    private(set) var appendedTokens: Int = 0
+    let thresholds: CompactionThresholds
+    private(set) var lastDiff: PromptDiff?
+
+    init(thresholds: CompactionThresholds = .default) {
         self.thresholds = thresholds
     }
 
     /// Record a rendered prompt snapshot and compact append state if thresholds were exceeded.
     @discardableResult
-    public func update(prompt: RenderedPrompt) -> PromptHistoryUpdate {
+    func update(prompt: RenderedPrompt) -> PromptHistoryUpdate {
         let diff = record(prompt: prompt)
         return PromptHistoryUpdate(diff: diff, didCompact: compactIfNeeded())
     }
 
     @discardableResult
-    public func update(prompt: AssembledPrompt) async -> PromptHistoryUpdate {
+    func update(prompt: AssembledPrompt) async -> PromptHistoryUpdate {
         update(prompt: await prompt.render())
     }
 
     @discardableResult
-    public func update(
+    func update(
         sections: [PromptSection],
         renderedContent: [String: String]
     ) -> PromptHistoryUpdate {
@@ -155,21 +161,21 @@ public actor TimelinePromptHistory {
 
     /// Track appended messages and compact append state if thresholds were exceeded.
     @discardableResult
-    public func append(messages: [Message]) -> PromptHistoryUpdate {
+    func append(messages: [Message]) -> PromptHistoryUpdate {
         recordAppend(messages: messages)
         return PromptHistoryUpdate(diff: nil, didCompact: compactIfNeeded())
     }
 
     /// Track append pressure and compact append state if thresholds were exceeded.
     @discardableResult
-    public func append(messageCount: Int, estimatedTokens: Int) -> PromptHistoryUpdate {
+    func append(messageCount: Int, estimatedTokens: Int) -> PromptHistoryUpdate {
         recordAppend(messageCount: messageCount, estimatedTokens: estimatedTokens)
         return PromptHistoryUpdate(diff: nil, didCompact: compactIfNeeded())
     }
 
     /// Record a rendered prompt snapshot without re-running prompt rendering.
     @discardableResult
-    public func record(prompt: RenderedPrompt) -> PromptDiff {
+    func record(prompt: RenderedPrompt) -> PromptDiff {
         let duplicateIDs = duplicateResolvedSectionIDs(in: prompt.sections)
         precondition(
             duplicateIDs.isEmpty,
@@ -204,12 +210,12 @@ public actor TimelinePromptHistory {
     }
 
     @discardableResult
-    public func record(prompt: AssembledPrompt) async -> PromptDiff {
+    func record(prompt: AssembledPrompt) async -> PromptDiff {
         record(prompt: await prompt.render())
     }
 
     @discardableResult
-    public func record(sections: [PromptSection], renderedContent: [String: String]) -> PromptDiff {
+    func record(sections: [PromptSection], renderedContent: [String: String]) -> PromptDiff {
         let renderedSections = sections.compactMap { section in
             renderedContent[section.id].map { content in
                 RenderedPrompt.Section(
@@ -236,7 +242,7 @@ public actor TimelinePromptHistory {
     }
 
     /// Track messages appended during the agentic loop (assistant responses, tool results).
-    public func recordAppend(messageCount: Int, estimatedTokens: Int) {
+    func recordAppend(messageCount: Int, estimatedTokens: Int) {
         appendedMessageCount += messageCount
         appendedTokens += estimatedTokens
     }
@@ -245,7 +251,7 @@ public actor TimelinePromptHistory {
     ///
     /// This is useful when a caller already has the appended messages and wants the history layer
     /// to estimate append pressure directly.
-    public func recordAppend(messages: [Message]) {
+    func recordAppend(messages: [Message]) {
         recordAppend(
             messageCount: messages.count,
             estimatedTokens: PKShared.TokenEstimator.estimate(parts: messages.map(\.content))
@@ -253,7 +259,7 @@ public actor TimelinePromptHistory {
     }
 
     /// Whether the append chain has grown past thresholds.
-    public var shouldCompact: Bool {
+    var shouldCompact: Bool {
         appendedTokens > thresholds.maxAppendedTokens
             || appendedMessageCount > thresholds.maxAppendedMessages
     }

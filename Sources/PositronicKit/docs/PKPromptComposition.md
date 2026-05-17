@@ -56,3 +56,36 @@ This separation keeps the builder API ergonomic while preserving stable prompt s
 ## Runtime Integration
 
 `PKPrompt` itself stays transport-neutral and does not own a logging backend. When used through `PromptAssembler`, verbose diagnostics flow through `swift-log` by passing `PromptAssemblyOptions(logger:)` from the runtime layer.
+
+## Journaling vs. Runtime Prompt History
+
+There are two related but different concepts in the codebase:
+
+- **`PromptJournal`** is the public prompt-layer API you should use when you want to observe prompt snapshots, reason about base/overlay/volatile sections, and decide when an accepted overlay should become the new baseline.
+- **`TimelinePromptHistory`** is runtime-side bookkeeping used by `PositronicKitCore` to track prompt diffs, stable-prefix reuse, and append-pressure compaction across turns.
+
+### When to use `PromptJournal`
+
+Use `PromptJournal` when your application needs a prompt-facing abstraction, for example:
+
+- visualizing prompt evolution over time
+- deciding when a semistable overlay should be compacted into a new base
+- working with prompt sections and journal layers directly outside the runtime loop
+
+In that role, `PromptJournal` is the recommended public abstraction.
+
+### What `TimelinePromptHistory` is for
+
+`TimelinePromptHistory` belongs to the runtime layer. It records rendered prompt snapshots and append pressure so the runtime can:
+
+- estimate the stable prefix that can benefit downstream LLM caching
+- track changed / added / removed prompt entries between turns
+- compact append state when message-count or token thresholds are exceeded
+
+If you are adopting `PositronicKitCore`, you usually do not need to instantiate or manage `TimelinePromptHistory` directly. It is runtime machinery, not the primary prompt-facing journaling surface.
+
+### Canonical recommendation
+
+- For **prompt journaling use cases**, prefer `PromptJournal`.
+- For **runtime diff/cache behavior**, let `PositronicKitCore` manage `TimelinePromptHistory` internally.
+- If you need both, treat `PromptJournal` as the user-facing API and `TimelinePromptHistory` as runtime implementation support.

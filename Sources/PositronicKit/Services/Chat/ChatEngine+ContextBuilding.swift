@@ -5,22 +5,22 @@ import PKPrompt
 import PKShared
 
 /// Errors thrown by `ChatEngine` during setup and execution.
-public enum ChatEngineError: PKError {
+enum ChatEngineError: PKError {
     case llmServiceNotConfigured
     case missingInput
 
-    public var errorDomain: String {
+    var errorDomain: String {
         PKErrorDomain.chat
     }
 
-    public var errorCode: Int {
+    var errorCode: Int {
         switch self {
         case .llmServiceNotConfigured: return 9001
         case .missingInput: return 9002
         }
     }
 
-    public var userFriendlyMessage: String {
+    var userFriendlyMessage: String {
         switch self {
         case .llmServiceNotConfigured:
             return "The LLM service is not configured. Please set up your API endpoint and key."

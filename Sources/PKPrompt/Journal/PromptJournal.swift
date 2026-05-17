@@ -5,6 +5,9 @@ import Foundation
 /// `PromptJournal` keeps a committed non-volatile base, compares new rendered prompts against
 /// that base, and produces a `PromptJournalPlan` describing which sections belong in the base,
 /// overlay, and volatile layers for the current observation.
+///
+/// This is the prompt-layer journaling abstraction intended for public use. Reach for it when you
+/// want to reason about prompt evolution directly, outside the runtime loop.
 public struct PromptJournal: Sendable {
     private var committedBaseSections: [RenderedPrompt.Section] = []
     private var latestObservedSections: [RenderedPrompt.Section] = []

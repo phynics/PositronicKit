@@ -459,6 +459,136 @@ struct ChatEngineTests {
         }
     }
 
+    @Test("Recovered tool-call chunk resumes tool execution after finish_reason-only stream chunk")
+    func recoveredToolCallChunkExecutesAfterFinishReasonOnlyChunk() async throws {
+        try await withChatEngineDependencies { engine, mockLLM, _ in
+            let mockTool = MockTool()
+
+            mockLLM.mockClient.nextRawStreamChunks = [[
+                LLMStreamChunk(
+                    id: "mock-1",
+                    model: "mock-model",
+                    choices: [LLMStreamChoice(
+                        index: 0,
+                        delta: LLMStreamDelta(role: .assistant, content: "Checking tool availability..."),
+                        finishReason: nil
+                    )]
+                ),
+                LLMStreamChunk(
+                    id: "mock-2",
+                    model: "mock-model",
+                    choices: [LLMStreamChoice(
+                        index: 0,
+                        delta: LLMStreamDelta(role: .assistant, content: nil, toolCalls: nil),
+                        finishReason: "tool_calls"
+                    )]
+                ),
+                LLMStreamChunk(
+                    id: "mock-3",
+                    model: "mock-model",
+                    choices: [LLMStreamChoice(
+                        index: 0,
+                        delta: LLMStreamDelta(
+                            role: .assistant,
+                            content: nil,
+                            toolCalls: [
+                                LLMToolCallDelta(
+                                    index: 0,
+                                    id: "call_recovered",
+                                    function: LLMToolCallDeltaFunction(name: "mock_tool", arguments: "{}")
+                                )
+                            ]
+                        ),
+                        finishReason: "tool_calls"
+                    )]
+                ),
+            ]]
+            mockLLM.mockClient.nextResponses = ["Recovered tool handled"]
+
+            let stream = try await engine.execute(
+                timelineId: timelineId,
+                message: "Recover omitted tool call",
+                tools: [mockTool.toAnyTool()]
+            )
+
+            let events = try await collect(stream)
+
+            let toolCallIndices = events.enumerated().compactMap { index, event -> Int? in
+                if case let .delta(event: .toolCall(delta)) = event, delta.id == "call_recovered" {
+                    return index
+                }
+                return nil
+            }
+            #expect(toolCallIndices.count == 1)
+
+            let toolCompletionIndex = events.enumerated().first { _, event in
+                if case let .completion(event: .toolExecution(id, status)) = event,
+                   case let .success(result) = status {
+                    return id == "call_recovered" && result.output == "Tool result"
+                }
+                return false
+            }?.offset
+            let generationCompletedIndex = events.enumerated().first { _, event in
+                if case .completion(event: .generationCompleted) = event { return true }
+                return false
+            }?.offset
+
+            let toolCallIndex = try #require(toolCallIndices.first)
+            let completedToolIndex = try #require(toolCompletionIndex)
+            let finalCompletionIndex = try #require(generationCompletedIndex)
+
+            #expect(toolCallIndex < completedToolIndex)
+            #expect(completedToolIndex < finalCompletionIndex)
+            #expect(events.contains(where: {
+                if case let .delta(event: .generation(text)) = $0 {
+                    return text == "Recovered tool handled"
+                }
+                return false
+            }))
+        }
+    }
+
+    @Test("finish_reason tool_calls without recovered deltas does not invent a tool execution")
+    func finishReasonOnlyChunkDoesNotInventToolExecution() async throws {
+        try await withChatEngineDependencies { engine, mockLLM, mockPersistence in
+            let mockTool = MockTool()
+
+            mockLLM.mockClient.nextRawStreamChunks = [[
+                LLMStreamChunk(
+                    id: "mock-1",
+                    model: "mock-model",
+                    choices: [LLMStreamChoice(
+                        index: 0,
+                        delta: LLMStreamDelta(role: .assistant, content: nil, toolCalls: nil),
+                        finishReason: "tool_calls"
+                    )]
+                )
+            ]]
+
+            let stream = try await engine.execute(
+                timelineId: timelineId,
+                message: "No recovered tool call",
+                tools: [mockTool.toAnyTool()]
+            )
+
+            let events = try await collect(stream)
+
+            #expect(!events.contains(where: {
+                if case .completion(event: .toolExecution) = $0 { return true }
+                return false
+            }))
+            #expect(events.contains(where: {
+                if case .completion(event: .generationCompleted) = $0 { return true }
+                return false
+            }))
+
+            let messages = try await mockPersistence.fetchMessages(for: timelineId)
+            let assistantMessages = messages.filter { $0.role == "assistant" }
+            #expect(assistantMessages.count == 1)
+            #expect(assistantMessages[0].toolCalls == "[]")
+        }
+    }
+
     // MARK: - Group 5: Multi-Turn & Loop Control
 
     @Test("maxTurns limits the generation loop")

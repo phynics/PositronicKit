@@ -2,7 +2,11 @@ import ErrorKit
 import Foundation
 import PKShared
 
-/// Defines the capabilities and behaviors of a workspace
+/// Defines the host-owned execution and storage boundary for a workspace.
+///
+/// `PositronicKitCore` depends on this protocol but does not prescribe how a workspace is backed.
+/// Local filesystem workspaces, remote execution environments, or app-specific attachment models
+/// all belong on the host side behind this abstraction.
 public protocol WorkspaceProtocol: Sendable {
     /// The unique identifier of the workspace
     var id: UUID { get }
@@ -67,7 +71,7 @@ public enum WorkspaceError: PKError, Sendable {
     }
 }
 
-/// Abstracts workspace instantiation to allow PositronicKitCore to be decoupled from concrete implementations
+/// Abstracts workspace instantiation so the runtime can stay decoupled from concrete workspace backends.
 public protocol WorkspaceCreating: Sendable {
     func create(from reference: WorkspaceReference) throws -> any WorkspaceProtocol
 }

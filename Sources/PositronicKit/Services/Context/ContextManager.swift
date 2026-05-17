@@ -5,12 +5,12 @@ import PKPrompt
 import PKShared
 
 /// Manages the retrieval and organization of context for the chat
-public actor ContextManager {
-    public let workspace: (any WorkspaceProtocol)?
-    public let pipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>
+actor ContextManager {
+    let workspace: (any WorkspaceProtocol)?
+    let pipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>
     private let logger = Logger.module(named: "com.positronickit.ContextManager")
 
-    public init(
+    init(
         workspace: (any WorkspaceProtocol)? = nil,
         pipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil
     ) {
@@ -19,7 +19,7 @@ public actor ContextManager {
     }
 
     /// Provides the standard stages for context gathering.
-    public static func defaultStages(
+    static func defaultStages(
         workspace: (any WorkspaceProtocol)? = nil
     ) -> [any PipelineStage<ContextPipelineContext, ContextGatheringEvent>] {
         return [
@@ -38,7 +38,7 @@ public actor ContextManager {
     ///   - tagGenerator: A function to generate tags from the query (e.g. via LLM)
     ///   - overridePipeline: An optional pipeline to use instead of the default one
     /// - Returns: A stream of progress events, finishing with the structured context
-    public func gatherContext(
+    func gatherContext(
         for query: String,
         history: [Message] = [],
         limit: Int = 5,

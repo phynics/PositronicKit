@@ -33,6 +33,13 @@ public protocol Tool: Sendable, PromptFormattable {
     ///
     /// - Parameter parameters: Dictionary of argument names to values.
     /// - Returns: A ``ToolResult`` containing the output or error message.
+    ///
+    /// Use ``ToolParameters`` to decode and validate arguments with precise error reporting:
+    /// ```swift
+    /// let params = ToolParameters(parameters)
+    /// let path = try params.require("path", as: String.self)
+    /// let limit = params.optional("limit", as: Int.self) ?? 10
+    /// ```
     func execute(parameters: [String: Any]) async throws -> ToolResult
 
     /// Generates a compact summary of the tool execution for context compression.

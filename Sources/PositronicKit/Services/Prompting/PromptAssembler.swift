@@ -5,7 +5,7 @@ import PKShared
 
 /// Pure, stateless prompt assembly service.
 /// Provides high-level methods to build prompts and optimize conversation history.
-public enum PromptAssembler {
+enum PromptAssembler {
     // MARK: - Default Stages
 
     /// Returns the standard sequence of stages used to assemble a prompt.

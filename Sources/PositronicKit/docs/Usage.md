@@ -43,6 +43,8 @@ The easiest way to get started is by providing your OpenAI API key or an Ollama 
 
 ```swift
 import PositronicKit
+import PKOpenAIProvider
+import PKOllamaProvider
 
 // For OpenAI
 let chat = PositronicKitCore(openAIKey: "sk-...")
@@ -51,9 +53,11 @@ let chat = PositronicKitCore(openAIKey: "sk-...")
 let chat = PositronicKitCore(ollamaModel: "llama3")
 ```
 
+This provider-backed path is the canonical convenience setup when you want a concrete provider module to supply the runtime initializer.
+
 ### Full Initialization (Production)
 
-For production, you should provide persistent stores and specific service configurations.
+For production, you should provide persistent stores through the grouped `persistence:` initializer.
 
 ```swift
 import PositronicKit
@@ -61,17 +65,19 @@ import PKShared
 
 let chat = PositronicKitCore(
     llmService: myLLM,
-    messageStore: myMessageStore,
+    persistence: .init(
+        messageStore: myMessageStore,
+        timelinePersistence: myTimelinePersistence,
+        workspacePersistence: myWorkspacePersistence,
+        memoryStore: myMemoryStore,
+        toolPersistence: myToolPersistence,
+        agentInstanceStore: myAgentInstanceStore,
+        requestOriginStore: myRequestOriginStore,
+        agentTemplateStore: myAgentTemplateStore
+    ),
+    embeddingService: myEmbeddingService,
     timelineManager: myTimelineManager,
-    toolRouter: myToolRouter,
-    agentInstanceStore: myAgentInstanceStore,
-    timelinePersistence: myTimelinePersistence,
-    workspacePersistence: myWorkspacePersistence,
-    memoryStore: myMemoryStore,
-    toolPersistence: myToolPersistence,
-    agentTemplateStore: myAgentTemplateStore,
-    requestOriginStore: myRequestOriginStore,
-    embeddingService: myEmbeddingService
+    toolRouter: myToolRouter
 )
 ```
 
@@ -85,17 +91,19 @@ import PKShared
 
 let chat = PositronicKitCore(
     llmService: myLLM,
-    messageStore: myMessageStore,
+    persistence: .init(
+        messageStore: myMessageStore,
+        timelinePersistence: myTimelinePersistence,
+        workspacePersistence: myWorkspacePersistence,
+        memoryStore: myMemoryStore,
+        toolPersistence: myToolPersistence,
+        agentInstanceStore: myAgentInstanceStore,
+        requestOriginStore: myRequestOriginStore,
+        agentTemplateStore: myAgentTemplateStore
+    ),
+    embeddingService: myEmbeddingService,
     timelineManager: myTimelineManager,
-    toolRouter: myToolRouter,
-    agentInstanceStore: myAgentInstanceStore,
-    timelinePersistence: myTimelinePersistence,
-    workspacePersistence: myWorkspacePersistence,
-    memoryStore: myMemoryStore,
-    toolPersistence: myToolPersistence,
-    agentTemplateStore: myAgentTemplateStore,
-    requestOriginStore: myRequestOriginStore,
-    embeddingService: myEmbeddingService
+    toolRouter: myToolRouter
 )
 
 let stream = try await chat.run(
@@ -137,10 +145,14 @@ for try await event in stream {
         }
 
     case .error(let event):
-        print("\nError: \(event)")
-
-    default:
-        break
+        switch event {
+        case .toolCallError(let toolCallId, let name, let error):
+            print("\nTool call error [\(toolCallId)] for \(name): \(error)")
+        case .error(let message):
+            print("\nError: \(message)")
+        case .generationCancelled:
+            print("\nGeneration cancelled.")
+        }
     }
 }
 ```
@@ -167,7 +179,7 @@ If the agent calls a tool that requires host-side execution (e.g., a local file 
 
 ```swift
 let toolOutputs = [
-    ToolOutputSubmission(callId: "call_123", output: "File contents...")
+    ToolOutputSubmission(toolCallId: "call_123", output: "File contents...")
 ]
 
 let stream = try await chat.run(
@@ -186,8 +198,9 @@ The stream provides a rich set of events:
 - `.delta(.thinking)` and `.delta(.generation)` for streaming text.
 - `.delta(.toolCall)` and `.delta(.toolExecution)` for tool progress.
 - `.meta(.generationContext)` for retrieved context metadata.
+- `.meta(.generationCompleted)` for informational completion metadata.
 - `.completion(.generationCompleted)` and `.completion(.streamCompleted)` for terminal events.
-- `.error(...)` for tool-call, cancellation, and general failure events.
+- `.error(.toolCallError)`, `.error(.error)`, and `.error(.generationCancelled)` for failure and cancellation handling.
 
 ### Agent Persistence
 Agents are persistent. Their workspace (`primaryWorkspaceId`) contains their long-term memory, while their private timeline (`privateTimelineId`) stores their internal monologue and history.

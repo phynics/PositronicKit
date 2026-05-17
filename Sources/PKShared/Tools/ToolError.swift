@@ -1,10 +1,23 @@
 import ErrorKit
 import Foundation
 
-/// Errors related to tool execution and routing
+/// Errors related to tool execution and routing.
+///
+/// v1 error categories:
+/// - **malformedArguments**: JSON payload could not be parsed or is not a JSON object.
+/// - **schemaMismatch**: Arguments decoded but violated the tool's parameter schema.
+/// - **missingArgument**: A required parameter was absent from the arguments dictionary.
+/// - **invalidArgument**: A parameter had the wrong type (e.g. string where int was expected).
+/// - **toolNotFound**: The requested tool is not registered in any of the timeline's workspaces.
+/// - **workspaceNotFound**: The target workspace for the tool could not be resolved.
+/// - **executionFailed**: The tool implementation threw during execution.
+/// - **requestOriginUnavailable**: The workspace's request origin is not reachable.
+/// - **attachedToolsDisallowedOnPrivateTimeline**: Private timelines reject externally hosted tools.
 public enum ToolError: PKError, Sendable, Equatable {
     case missingArgument(String)
     case invalidArgument(String, expected: String, got: String)
+    case malformedArguments(String)
+    case schemaMismatch(String)
     case executionFailed(String)
     case toolNotFound(String)
     case workspaceNotFound(UUID)
@@ -17,6 +30,8 @@ public enum ToolError: PKError, Sendable, Equatable {
         switch self {
         case .missingArgument: return 201
         case .invalidArgument: return 202
+        case .malformedArguments: return 208
+        case .schemaMismatch: return 209
         case .executionFailed: return 203
         case .toolNotFound: return 204
         case .workspaceNotFound: return 205
@@ -31,6 +46,10 @@ public enum ToolError: PKError, Sendable, Equatable {
             return "A required argument '\(arg)' is missing from the tool call."
         case let .invalidArgument(arg, expected, got):
             return "The argument '\(arg)' has the wrong type. Expected \(expected) but got \(got)."
+        case let .malformedArguments(detail):
+            return "The tool call arguments could not be parsed: \(detail)"
+        case let .schemaMismatch(detail):
+            return "The tool call arguments do not match the tool's schema: \(detail)"
         case let .executionFailed(message):
             return "Failed to execute the tool: \(message)"
         case let .toolNotFound(name):
@@ -51,6 +70,10 @@ public enum ToolError: PKError, Sendable, Equatable {
             return "Check the tool definition and ensure '\(arg)' is provided in the arguments dictionary."
         case let .invalidArgument(arg, expected, got):
             return "Convert the value for '\(arg)' to the expected type (\(expected)). Currently it is \(got)."
+        case .malformedArguments:
+            return "Check the LLM output for valid JSON argument formatting."
+        case .schemaMismatch:
+            return "Check the tool's parameter schema and ensure the LLM supplies matching types and required fields."
         case let .executionFailed(message):
             return "Review the tool logs or debug the tool implementation. Error: \(message)"
         case let .toolNotFound(name):

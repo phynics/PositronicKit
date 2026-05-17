@@ -3,43 +3,37 @@ import PKPrompt
 import PKShared
 
 /// Shared context state during the gathering pipeline
-public actor ContextPipelineContext {
+actor ContextPipelineContext {
     /// The original user query.
-    public let query: String
+    let query: String
     /// Recent conversation history.
-    public let history: [Message]
+    let history: [Message]
     /// Maximum number of results to retrieve.
-    public let limit: Int
+    let limit: Int
     /// Optional closure to generate tags from a string.
-    public let tagGenerator: (@Sendable (String) async throws -> [String])?
+    let tagGenerator: (@Sendable (String) async throws -> [String])?
     /// The time when the pipeline execution started.
-    public let startTime: CFAbsoluteTime
+    let startTime: CFAbsoluteTime
 
     /// The query after being augmented with history/context.
-    public private(set) var augmentedQuery: String = ""
+    private(set) var augmentedQuery: String = ""
     /// Discovered filesystem notes.
-    public private(set) var notes: [ContextFile] = []
+    private(set) var notes: [ContextFile] = []
     /// Final merged semantic memories.
-    public private(set) var memories: [SemanticSearchResult] = []
+    private(set) var memories: [SemanticSearchResult] = []
     /// Tags generated for the current query.
-    public private(set) var generatedTags: [String] = []
+    private(set) var generatedTags: [String] = []
     /// Vector representation of the query.
-    public private(set) var queryVector: [Double] = []
+    private(set) var queryVector: [Double] = []
     /// Raw semantic search results before ranking.
-    public private(set) var semanticResults: [SemanticSearchResult] = []
+    private(set) var semanticResults: [SemanticSearchResult] = []
     /// Raw tag-based search results before ranking.
-    public private(set) var tagResults: [Memory] = []
+    private(set) var tagResults: [Memory] = []
     /// The final assembled context data.
-    public private(set) var contextData: ContextData?
+    private(set) var contextData: ContextData?
 
     /// Initializes a new pipeline context.
-    /// - Parameters:
-    ///   - query: The user's input query.
-    ///   - history: Recent conversation messages.
-    ///   - limit: Result limit for retrieval.
-    ///   - tagGenerator: Optional tag generation logic.
-    ///   - startTime: Pipeline start timestamp.
-    public init(
+    init(
         query: String,
         history: [Message],
         limit: Int,
@@ -54,10 +48,8 @@ public actor ContextPipelineContext {
     }
 
     /// Assembles and sets the final context data object.
-    /// - Parameter executionTime: The total time taken (in seconds) to gather all context data.
-    /// - Returns: A fully populated `ContextData` object containing notes, memories, and metadata.
     @discardableResult
-    public func finalize(executionTime: TimeInterval) -> ContextData {
+    func finalize(executionTime: TimeInterval) -> ContextData {
         let data = ContextData(
             notes: notes,
             memories: memories,
@@ -73,20 +65,12 @@ public actor ContextPipelineContext {
     }
 
     /// Sets the augmented version of the search query.
-    /// - Parameter query: The final augmented query string used for retrieval.
-    public func setAugmentedQuery(_ query: String) {
+    func setAugmentedQuery(_ query: String) {
         augmentedQuery = query
     }
 
     /// Updates the gathered results in the context with new data from pipeline stages.
-    /// - Parameters:
-    ///   - notes: Discovered filesystem notes, if any.
-    ///   - memories: Final ranked and merged semantic memories, if any.
-    ///   - tags: Collection of generated search tags, if any.
-    ///   - vector: The embedding vector generated for the query, if any.
-    ///   - semanticResults: Raw results from semantic search before ranking, if any.
-    ///   - tagResults: Raw memories discovered via tag matching before ranking, if any.
-    public func setResults(
+    func setResults(
         notes: [ContextFile]? = nil,
         memories: [SemanticSearchResult]? = nil,
         tags: [String]? = nil,

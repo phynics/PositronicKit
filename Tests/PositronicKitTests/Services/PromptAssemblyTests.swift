@@ -2,7 +2,7 @@ import Foundation
 import Logging
 import PKPrompt
 import PKShared
-import PositronicKit
+@testable import PositronicKit
 import Testing
 
 private final class PromptAssemblyLogSink: @unchecked Sendable {

@@ -6,6 +6,8 @@ import PKShared
 ///
 /// Handles workspace CRUD (delegating to `workspacePersistence`) and agent-specific
 /// provisioning: creating sandboxed directories and seeding them from ``AgentTemplate`` files.
+/// This is the default local/runtime provisioning service shipped with PositronicKitCore, not a
+/// universal workspace model that hosts are required to adopt.
 public actor AgentWorkspaceService: AgentWorkspaceServiceProtocol {
     @Dependency(\.workspacePersistence) private var persistenceService
     private let workspaceRoot: URL

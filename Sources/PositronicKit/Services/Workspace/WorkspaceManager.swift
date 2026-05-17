@@ -7,6 +7,8 @@ import PKShared
 /// WorkspaceManager is responsible for resolving WorkspaceReferences into concrete
 /// WorkspaceProtocol implementations, maintaining a cache of active workspaces,
 /// and coordinating their lifecycle (creation, health checks, and shutdown).
+/// It does not define the concrete workspace behavior itself; that remains host-owned via
+/// `WorkspaceCreating` and `WorkspaceProtocol`.
 public actor WorkspaceManager: WorkspaceManagerProtocol {
     private let repository: any AgentWorkspaceServiceProtocol
     private let workspaceCreator: any WorkspaceCreating

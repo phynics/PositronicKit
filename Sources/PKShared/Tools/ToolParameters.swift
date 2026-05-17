@@ -1,6 +1,22 @@
 import Foundation
 
-/// Type-safe wrapper around tool parameter dictionaries
+/// Type-safe wrapper around tool parameter dictionaries.
+///
+/// Use `ToolParameters` in your `Tool.execute` implementation to decode and validate
+/// arguments with precise error reporting. It handles type coercion (e.g. Double → Int)
+/// and throws appropriate `ToolError` cases for missing or invalid arguments.
+///
+/// ```swift
+/// func execute(parameters: [String: Any]) async throws -> ToolResult {
+///     let params = ToolParameters(parameters)
+///     let path = try params.require("path", as: String.self)
+///     let limit = params.optional("limit", as: Int.self) ?? 10
+///     // ...
+/// }
+/// ```
+///
+/// Prefer `ToolParameters` over ad-hoc `[String: Any]` dictionary access to get
+/// consistent error messages and automatic type coercion.
 public struct ToolParameters: Sendable {
     private let raw: [String: AnySendable]
 

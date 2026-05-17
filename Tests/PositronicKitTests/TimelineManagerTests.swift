@@ -78,4 +78,57 @@ import Testing
         let cancelledFinal = isCancelled.withLock { $0 }
         #expect(cancelledFinal, "Task should have been cancelled")
     }
+
+    @Test("Default runtime tool set includes filesystem and timeline observation tools")
+    func defaultToolManagerContract() async throws {
+        let workspace = TestWorkspace()
+
+        try await TestDependencies()
+            .withMocks()
+            .run {
+                let timelineManager = TimelineManager(workspaceRoot: workspace.root)
+                let timeline = Timeline(workingDirectory: workspace.root.path)
+                let toolManager = await timelineManager.createToolManager(
+                    for: timeline,
+                    jailRoot: workspace.root.path,
+                    toolContextTimeline: ToolTimelineContext()
+                )
+
+                let toolIds = Set(await toolManager.getAvailableTools().map(\.id))
+                #expect(toolIds == [
+                    "change_directory",
+                    "ls",
+                    "find",
+                    "grep",
+                    "search_files",
+                    "cat",
+                    "timeline_list",
+                    "timeline_peek",
+                ])
+                #expect(!toolIds.contains("timeline_send"))
+            }
+    }
+
+    @Test("Timeline send is installed only when an agent is attached")
+    func timelineSendRequiresAttachedAgent() async throws {
+        let workspace = TestWorkspace()
+
+        try await TestDependencies()
+            .withMocks()
+            .run {
+                let timelineManager = TimelineManager(workspaceRoot: workspace.root)
+                let timeline = Timeline(
+                    workingDirectory: workspace.root.path,
+                    attachedAgentInstanceId: UUID()
+                )
+                let toolManager = await timelineManager.createToolManager(
+                    for: timeline,
+                    jailRoot: workspace.root.path,
+                    toolContextTimeline: ToolTimelineContext()
+                )
+
+                let toolIds = Set(await toolManager.getAvailableTools().map(\.id))
+                #expect(toolIds.contains("timeline_send"))
+            }
+    }
 }

@@ -5,7 +5,7 @@ import PKPrompt
 import PKShared
 
 /// Pipeline stage responsible for discovering relevant filesystem notes in the workspace.
-public struct NoteDiscoveryStage: PipelineStage {
+struct NoteDiscoveryStage: PipelineStage {
     /// The workspace to search for notes.
     public let workspace: (any WorkspaceProtocol)?
     private let logger = Logger.module(named: "com.positronickit.NoteDiscoveryStage")

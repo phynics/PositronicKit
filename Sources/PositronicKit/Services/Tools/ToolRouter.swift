@@ -17,15 +17,15 @@ public struct ParsedToolCall: Sendable {
     public let callId: String
     public let name: String
     public let argumentsJSON: String
-    /// Arguments decoded once at init time. Malformed JSON silently produces an empty dictionary.
-    public let arguments: [String: AnyCodable]
+    /// Arguments decoded once at init time. `nil` when JSON is malformed or not a JSON object.
+    public let arguments: [String: AnyCodable]?
 
     public init(callId: String, name: String, argumentsJSON: String) {
         self.callId = callId
         self.name = name
         self.argumentsJSON = argumentsJSON
         let data = argumentsJSON.data(using: .utf8) ?? Data()
-        arguments = (try? JSONDecoder().decode([String: AnyCodable].self, from: data)) ?? [:]
+        arguments = try? JSONDecoder().decode([String: AnyCodable].self, from: data)
     }
 }
 
@@ -135,8 +135,13 @@ public actor ToolRouter {
             ))
 
             do {
+                guard let arguments = call.arguments else {
+                    throw ToolError.malformedArguments(
+                        "Tool '\(call.name)' produced arguments that are not valid JSON or not a JSON object: \(call.argumentsJSON.prefix(100))"
+                    )
+                }
                 let outcome = try await execute(
-                    tool: toolRef, arguments: call.arguments,
+                    tool: toolRef, arguments: arguments,
                     timelineId: timelineId, availableTools: availableTools
                 )
                 let param = try await handleOutcome(

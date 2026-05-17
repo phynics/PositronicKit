@@ -12,8 +12,21 @@ The only required service is:
 
 Everything else has in-memory defaults suitable for local development and tests.
 
-### Configuration Example
-Use the facade directly:
+### Minimal Configuration
+
+Use the simplified facade initializer for prototyping or test harnesses:
+
+```swift
+import PositronicKit
+
+let chat = PositronicKitCore(
+    llmService: MyLLMServiceLive()
+)
+```
+
+### Production Configuration
+
+When you have a real persistence layer, prefer the grouped persistence initializer so the supported facade stays explicit:
 
 ```swift
 import PositronicKit
@@ -21,18 +34,34 @@ import PKShared
 
 let chat = PositronicKitCore(
     llmService: MyLLMServiceLive(),
-    messageStore: MyMessageStoreLive(),
-    timelinePersistence: MyTimelineStoreLive(),
-    workspacePersistence: MyWorkspaceStoreLive(),
-    memoryStore: MyMemoryStoreLive(),
-    toolPersistence: MyToolStoreLive(),
-    agentInstanceStore: MyAgentStoreLive(),
-    requestOriginStore: MyRequestOriginStoreLive(),
-    agentTemplateStore: MyTemplateStoreLive()
+    persistence: .init(
+        messageStore: MyMessageStoreLive(),
+        timelinePersistence: MyTimelineStoreLive(),
+        workspacePersistence: MyWorkspaceStoreLive(),
+        memoryStore: MyMemoryStoreLive(),
+        toolPersistence: MyToolStoreLive(),
+        agentInstanceStore: MyAgentStoreLive(),
+        requestOriginStore: MyRequestOriginStoreLive(),
+        agentTemplateStore: MyTemplateStoreLive()
+    ),
+    embeddingService: MyEmbeddingServiceLive(),
+    timelineManager: MyTimelineManagerLive()
 )
 ```
 
+The longer per-store initializer still exists, but the grouped `persistence:` path is the clearer supported production setup for most adopters.
+
 Direct `withDependencies` configuration is still useful in tests or advanced internal integrations, but it is not the primary public integration path.
+
+### Default Tool Installation
+
+`TimelineManager` currently applies a fixed default tool policy for v1:
+
+- filesystem tools are installed automatically
+- timeline observation tools are installed automatically
+- `timeline_send` is installed only when an attached agent identity is present
+
+These defaults are part of the current runtime contract and are not exposed as a separate configuration surface yet.
 
 ## 2. Logging
 

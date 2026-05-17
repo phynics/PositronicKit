@@ -1,11 +1,21 @@
 import Foundation
 import JSONSchemaBuilder
+import PKOpenAIProvider
+import PKOllamaProvider
 import PositronicKit
 import PKShared
 
 public enum PositronicKitUsageExamples {
     public static func makePrototypeRuntime() -> PositronicKitCore {
         PositronicKitCore(llmService: UnconfiguredLLMService())
+    }
+
+    public static func makeOpenAIRuntime(apiKey: String = "sk-example") -> PositronicKitCore {
+        PositronicKitCore(openAIKey: apiKey)
+    }
+
+    public static func makeOllamaRuntime(model: String = "llama3") -> PositronicKitCore {
+        PositronicKitCore(ollamaModel: model)
     }
 
     public static func makeConfiguredRuntime() -> PositronicKitCore {
@@ -27,6 +37,43 @@ public enum PositronicKitUsageExamples {
             embeddingService: NoOpEmbeddingService(),
             workspaceRoot: workspaceRoot
         )
+    }
+
+    public static func makeConfiguredOpenAIRuntime(apiKey: String = "sk-example") -> PositronicKitCore {
+        PKOpenAIProvider.register()
+        return PositronicKitCore(
+            llmService: LLMService(configuration: .init(
+                apiKey: apiKey,
+                provider: .openAI
+            ))
+        )
+    }
+
+    public static func makeProductionRuntime() -> PositronicKitCore {
+        let workspaceRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("positronickit-examples-production", isDirectory: true)
+
+        return PositronicKitCore(
+            llmService: UnconfiguredLLMService(),
+            persistence: .init(
+                messageStore: InMemoryMessageStore(),
+                timelinePersistence: InMemoryTimelinePersistence(),
+                workspacePersistence: InMemoryWorkspacePersistence(),
+                memoryStore: InMemoryMemoryStore(),
+                toolPersistence: InMemoryToolPersistence(),
+                agentInstanceStore: InMemoryAgentInstanceStore(),
+                requestOriginStore: InMemoryRequestOriginStore(),
+                agentTemplateStore: InMemoryAgentTemplateStore()
+            ),
+            embeddingService: NoOpEmbeddingService(),
+            timelineManager: TimelineManager(workspaceRoot: workspaceRoot),
+            toolRouter: ToolRouter(),
+            workspaceRoot: workspaceRoot
+        )
+    }
+
+    public static func makeToolOutputContinuation() -> [ToolOutputSubmission] {
+        [ToolOutputSubmission(toolCallId: "call_123", output: "File contents...")]
     }
 
     public static func makeTools() -> [AnyTool] {

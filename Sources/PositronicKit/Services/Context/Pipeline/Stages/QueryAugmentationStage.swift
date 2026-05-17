@@ -4,7 +4,7 @@ import PKPrompt
 import PKShared
 
 /// Pipeline stage responsible for augmenting the search query with recent conversation history.
-public struct QueryAugmentationStage: PipelineStage {
+struct QueryAugmentationStage: PipelineStage {
     private let logger = Logger.module(named: "com.positronickit.QueryAugmentationStage")
 
     /// Initializes a new query augmentation stage.

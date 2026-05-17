@@ -212,6 +212,47 @@ struct LLMServiceTests {
         }
     }
 
+    @Test("Health details report typed provider identity, not endpoint substrings")
+    func healthDetailsUseTypedProvider() async throws {
+        let openRouterConfig = LLMConfiguration(
+            endpoint: "https://my-proxy.example.com/v1",
+            modelName: "gpt-4o",
+            apiKey: "test-key",
+            provider: .openRouter
+        )
+        let service = LLMService(configuration: openRouterConfig)
+
+        let details = await service.getHealthDetails()
+        #expect(details?["provider"] == "OpenRouter")
+        #expect(details?["model"] == "gpt-4o")
+    }
+
+    @Test("Health status is degraded when not configured")
+    func healthStatusDegradedWhenNotConfigured() async throws {
+        let service = LLMService(storage: MockConfigurationService())
+        let status = await service.getHealthStatus()
+        #expect(status == .degraded)
+    }
+
+    @Test("Health check is degraded when configured but no client exists")
+    func healthCheckDegradedWhenNoClient() async throws {
+        // LLMService init with a valid config creates a client via the registry,
+        // but if the registry has no factory for that provider, the client is nil.
+        // Use a storage-backed init with no client to exercise this path.
+        let mockStorage = MockConfigurationService()
+        let service = LLMService(storage: mockStorage, client: nil, utilityClient: nil, fastClient: nil)
+        let status = await service.checkHealth()
+        #expect(status == .degraded)
+    }
+
+    @Test("Health check is ok when configured client responds")
+    func healthCheckOkWhenClientReachable() async throws {
+        let mockClient = MockLLMClient()
+        let service = LLMService(storage: MockConfigurationService(), client: mockClient)
+        let status = await service.checkHealth()
+        #expect(status == .ok)
+    }
+
     @Test("Test generation parameters passing")
     func generationParametersPassing() async throws {
         let mockClient = MockLLMClient()

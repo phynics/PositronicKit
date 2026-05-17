@@ -1,5 +1,5 @@
 import Foundation
-import PositronicKit
+@testable import PositronicKit
 import Testing
 
 @Suite struct EmbeddingServiceTests {

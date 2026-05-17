@@ -58,9 +58,38 @@ struct PositronicKitExamplesTests {
     @Test
     func runtimeExamplesBuildPrototypeAndConfiguredCores() {
         let prototype = PositronicKitUsageExamples.makePrototypeRuntime()
+        let openAI = PositronicKitUsageExamples.makeOpenAIRuntime()
+        let ollama = PositronicKitUsageExamples.makeOllamaRuntime()
         let configured = PositronicKitUsageExamples.makeConfiguredRuntime()
+        let production = PositronicKitUsageExamples.makeProductionRuntime()
+        let toolOutputs = PositronicKitUsageExamples.makeToolOutputContinuation()
 
         _ = prototype
+        _ = openAI
+        _ = ollama
         _ = configured
+        _ = production
+
+        #expect(toolOutputs.count == 1)
+        #expect(toolOutputs[0].toolCallId == "call_123")
+        #expect(toolOutputs[0].output == "File contents...")
+    }
+
+    @Test
+    func readmeQuickStartProviderExamplesBuild() {
+        let convenienceCore = PositronicKitUsageExamples.makeOpenAIRuntime()
+        let providerNeutralCore = PositronicKitUsageExamples.makeConfiguredOpenAIRuntime()
+
+        _ = convenienceCore
+        _ = providerNeutralCore
+    }
+
+    @Test
+    func setupGuideMinimalAndProductionExamplesBuild() {
+        let minimal = PositronicKitUsageExamples.makePrototypeRuntime()
+        let production = PositronicKitUsageExamples.makeProductionRuntime()
+
+        _ = minimal
+        _ = production
     }
 }

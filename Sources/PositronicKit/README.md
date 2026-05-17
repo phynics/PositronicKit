@@ -46,17 +46,19 @@ import PKShared
 // Minimal — all stores default to in-memory:
 let chat = PositronicKitCore(llmService: myLLM)
 
-// Production — explicit persistence stores:
+// Production — grouped persistence:
 let chat = PositronicKitCore(
     llmService: myLLM,
-    messageStore: myMessageStore,
-    timelinePersistence: myTimelinePersistence,
-    workspacePersistence: myWorkspacePersistence,
-    memoryStore: myMemoryStore,
-    toolPersistence: myToolPersistence,
-    agentInstanceStore: myAgentInstanceStore,
-    requestOriginStore: myRequestOriginStore,
-    agentTemplateStore: myAgentTemplateStore,
+    persistence: .init(
+        messageStore: myMessageStore,
+        timelinePersistence: myTimelinePersistence,
+        workspacePersistence: myWorkspacePersistence,
+        memoryStore: myMemoryStore,
+        toolPersistence: myToolPersistence,
+        agentInstanceStore: myAgentInstanceStore,
+        requestOriginStore: myRequestOriginStore,
+        agentTemplateStore: myAgentTemplateStore
+    ),
     embeddingService: myEmbeddingService,
     timelineManager: myTimelineManager
 )

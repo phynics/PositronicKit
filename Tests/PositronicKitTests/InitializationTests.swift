@@ -1,46 +1,95 @@
+import Dependencies
 import Foundation
-@testable import PositronicKit
+@testable import PKOpenAIProvider
+@testable import PKOpenRouterProvider
 import PKOllamaProvider
+@testable import PositronicKit
 @testable import PKShared
 import PKTestSupport
 import Testing
 
 @Suite struct InitializationTests {
-    @Test("Configured OpenAI initialization")
-    func configuredOpenAIInitialization() async throws {
+    @Test("OpenAI convenience initialization configures a registered OpenAI client")
+    func openAIConvenienceInitialization() async throws {
         let apiKey = "sk-test-key"
-        let chat = PositronicKitCore(
-            llmService: LLMService(configuration: LLMConfiguration(apiKey: apiKey, provider: LLMProvider.openAI))
-        )
-        
+        let chat = PositronicKitCore(openAIKey: apiKey, model: "gpt-4o-mini")
+
         let config = await chat.llmService.configuration
-        #expect(config.provider == LLMProvider.openAI)
+        #expect(config.provider == .openAI)
         #expect(config.apiKey == apiKey)
-        #expect(config.modelName == "gpt-4o")
-        
+        #expect(config.modelName == "gpt-4o-mini")
+
         let isConfigured = await chat.llmService.isConfigured
         #expect(isConfigured)
+
+        let llm = try #require(chat.llmService as? LLMService)
+        let client = await llm.getClient()
+        #expect(client is OpenAIClient)
     }
-    
-    @Test("Simplified Ollama initialization")
+
+    @Test("Provider registration is explicit, repeatable, and covers OpenAI-compatible")
+    func providerRegistrationContract() async throws {
+        PKOpenAIProvider.register()
+        PKOpenAIProvider.register()
+
+        #expect(ExternalLLMProviderRegistry.factory(for: .openAI) != nil)
+        #expect(ExternalLLMProviderRegistry.factory(for: .openAICompatible) != nil)
+
+        let llm = LLMService(configuration: .init(
+            endpoint: "https://example.com/v1",
+            modelName: "gpt-4o-mini",
+            apiKey: "sk-test-key",
+            provider: .openAICompatible
+        ))
+        let client = await llm.getClient()
+        #expect(client is OpenAIClient)
+    }
+
+    @Test("OpenRouter convenience initialization configures a registered OpenRouter client")
+    func openRouterConvenienceInitialization() async throws {
+        let chat = PositronicKitCore(
+            openRouterKey: "or-test-key",
+            model: "openai/gpt-4.1-mini",
+            endpoint: "https://openrouter.ai/api"
+        )
+
+        let config = await chat.llmService.configuration
+        #expect(config.provider == .openRouter)
+        #expect(config.apiKey == "or-test-key")
+        #expect(config.modelName == "openai/gpt-4.1-mini")
+        #expect(config.endpoint == "https://openrouter.ai/api")
+
+        let isConfigured = await chat.llmService.isConfigured
+        #expect(isConfigured)
+
+        let llm = try #require(chat.llmService as? LLMService)
+        let client = await llm.getClient()
+        #expect(client is OpenRouterClient)
+    }
+
+    @Test("Ollama convenience initialization configures a registered Ollama client")
     func ollamaInitialization() async throws {
         let model = "llama3"
         let chat = PositronicKitCore(ollamaModel: model)
-        
+
         let config = await chat.llmService.configuration
         #expect(config.provider == .ollama)
         #expect(config.modelName == model)
         #expect(config.endpoint == "http://localhost:11434")
-        
+
         let isConfigured = await chat.llmService.isConfigured
         #expect(isConfigured)
+
+        let llm = try #require(chat.llmService as? LLMService)
+        let client = await llm.getClient()
+        #expect(client is OllamaClient)
     }
-    
+
     @Test("Custom Ollama endpoint")
     func customOllamaEndpoint() async throws {
         let endpoint = "http://192.168.1.100:11434"
         let chat = PositronicKitCore(ollamaModel: "mistral", endpoint: endpoint)
-        
+
         let config = await chat.llmService.configuration
         #expect(config.endpoint == endpoint)
     }
@@ -50,5 +99,99 @@ import Testing
         let chat = PositronicKitCore()
         let isConfigured = await chat.llmService.isConfigured
         #expect(!isConfigured, "Default init should not be configured")
+    }
+
+    @Test("Unconfigured facade run fails before attempting execution")
+    func unconfiguredFacadeRunFails() async throws {
+        let mockPersistence = MockPersistenceService()
+        let workspace = TestWorkspace()
+        let timelineManager = TimelineManager(
+            workspaceRoot: workspace.root,
+            workspaceCreator: MockWorkspaceCreator()
+        )
+
+        let timeline = try await withDependencies {
+            $0.timelinePersistence = mockPersistence
+            $0.workspacePersistence = mockPersistence
+            $0.memoryStore = mockPersistence
+            $0.messageStore = mockPersistence
+            $0.agentTemplateStore = mockPersistence
+            $0.requestOriginStore = mockPersistence
+            $0.toolPersistence = mockPersistence
+            $0.agentInstanceStore = mockPersistence
+        } operation: {
+            try await timelineManager.createTimeline(title: "Unconfigured")
+        }
+
+        let chat = PositronicKitCore(
+            llmService: UnconfiguredLLMService(),
+            messageStore: mockPersistence,
+            timelineManager: timelineManager,
+            agentInstanceStore: mockPersistence,
+            requestOriginStore: mockPersistence,
+            timelinePersistence: mockPersistence,
+            workspacePersistence: mockPersistence,
+            memoryStore: mockPersistence,
+            toolPersistence: mockPersistence,
+            agentTemplateStore: mockPersistence
+        )
+
+        await #expect(throws: ChatEngineError.self) {
+            _ = try await chat.run(timelineId: timeline.id, message: "hello")
+        }
+    }
+
+    // MARK: - Configuration validation contract tests
+
+    @Test("Configuration with missing API key for non-Ollama provider is invalid")
+    func invalidConfigurationMissingApiKey() async throws {
+        let config = LLMConfiguration(
+            endpoint: "https://api.openai.com",
+            modelName: "gpt-4o",
+            apiKey: "",
+            provider: .openAI
+        )
+        #expect(!config.isValid)
+        #expect(throws: ConfigurationError.self) {
+            try config.validate()
+        }
+    }
+
+    @Test("Configuration with empty model name is invalid")
+    func invalidConfigurationEmptyModel() async throws {
+        let config = LLMConfiguration(
+            endpoint: "https://api.openai.com",
+            modelName: "",
+            apiKey: "sk-test",
+            provider: .openAI
+        )
+        #expect(!config.isValid)
+        #expect(throws: ConfigurationError.self) {
+            try config.validate()
+        }
+    }
+
+    @Test("Ollama configuration without API key is valid")
+    func ollamaConfigurationValidWithoutApiKey() async throws {
+        let config = LLMConfiguration(
+            endpoint: "http://localhost:11434",
+            modelName: "llama3",
+            apiKey: "",
+            provider: .ollama
+        )
+        #expect(config.isValid)
+    }
+
+    @Test("LLMService with invalid configuration is not configured")
+    func serviceNotConfiguredWithInvalidConfig() async throws {
+        let config = LLMConfiguration(
+            endpoint: "https://api.openai.com",
+            modelName: "",
+            apiKey: "",
+            provider: .openAI
+        )
+        let service = LLMService(configuration: config)
+        let isConfigured = await service.isConfigured
+        #expect(!isConfigured)
     }
 }

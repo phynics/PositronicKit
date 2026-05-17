@@ -176,3 +176,155 @@ import Testing
         }
     }
 }
+
+// MARK: - ParsedToolCall decode contract tests
+
+@Suite struct ParsedToolCallTests {
+    @Test("Valid JSON object decodes to non-nil arguments")
+    func validJSONDecodes() {
+        let call = ParsedToolCall(callId: "1", name: "test", argumentsJSON: "{\"key\": \"value\"}")
+        #expect(call.arguments != nil)
+        #expect(call.arguments?["key"]?.value as? String == "value")
+    }
+
+    @Test("Invalid JSON produces nil arguments, not empty dictionary")
+    func invalidJSONProducesNil() {
+        let call = ParsedToolCall(callId: "2", name: "test", argumentsJSON: "not json at all")
+        #expect(call.arguments == nil)
+    }
+
+    @Test("Non-object JSON (array) produces nil arguments")
+    func arrayJSONProducesNil() {
+        let call = ParsedToolCall(callId: "3", name: "test", argumentsJSON: "[1,2,3]")
+        #expect(call.arguments == nil)
+    }
+
+    @Test("Empty string produces nil arguments")
+    func emptyStringProducesNil() {
+        let call = ParsedToolCall(callId: "4", name: "test", argumentsJSON: "")
+        #expect(call.arguments == nil)
+    }
+
+    @Test("Empty JSON object decodes to empty dictionary")
+    func emptyObjectDecodes() {
+        let call = ParsedToolCall(callId: "5", name: "test", argumentsJSON: "{}")
+        #expect(call.arguments != nil)
+        #expect(call.arguments?.isEmpty == true)
+    }
+}
+
+// MARK: - ToolError v1 model contract tests
+
+@Suite struct ToolErrorModelTests {
+    @Test("All v1 error categories have distinct error codes")
+    func distinctErrorCodes() {
+        let codes: Set<Int> = [
+            ToolError.missingArgument("x").errorCode,
+            ToolError.invalidArgument("x", expected: "Int", got: "String").errorCode,
+            ToolError.malformedArguments("bad").errorCode,
+            ToolError.schemaMismatch("bad").errorCode,
+            ToolError.executionFailed("fail").errorCode,
+            ToolError.toolNotFound("t").errorCode,
+            ToolError.workspaceNotFound(UUID()).errorCode,
+            ToolError.requestOriginUnavailable.errorCode,
+            ToolError.attachedToolsDisallowedOnPrivateTimeline.errorCode,
+        ]
+        #expect(codes.count == 9)
+    }
+
+    @Test("All v1 error categories have non-empty user-friendly messages")
+    func nonEmptyUserFriendlyMessages() {
+        let errors: [ToolError] = [
+            .missingArgument("param"),
+            .invalidArgument("param", expected: "Int", got: "String"),
+            .malformedArguments("not JSON"),
+            .schemaMismatch("missing required field"),
+            .executionFailed("timeout"),
+            .toolNotFound("unknown"),
+            .workspaceNotFound(UUID()),
+            .requestOriginUnavailable,
+            .attachedToolsDisallowedOnPrivateTimeline,
+        ]
+        for err in errors {
+            #expect(!err.userFriendlyMessage.isEmpty, "Empty message for \(err)")
+        }
+    }
+
+    @Test("All v1 error categories have remediation guidance")
+    func allHaveRemediation() {
+        let errors: [ToolError] = [
+            .missingArgument("param"),
+            .invalidArgument("param", expected: "Int", got: "String"),
+            .malformedArguments("not JSON"),
+            .schemaMismatch("missing required field"),
+            .executionFailed("timeout"),
+            .toolNotFound("unknown"),
+            .workspaceNotFound(UUID()),
+            .requestOriginUnavailable,
+            .attachedToolsDisallowedOnPrivateTimeline,
+        ]
+        for err in errors {
+            #expect(err.remediation != nil, "Missing remediation for \(err)")
+        }
+    }
+}
+
+// MARK: - ToolParameters decode pattern tests
+
+@Suite struct ToolParametersTests {
+    @Test("require throws missingArgument when key absent")
+    func requireMissing() {
+        let params = ToolParameters([:])
+        do {
+            _ = try params.require("missing", as: String.self)
+            Issue.record("Should have thrown missingArgument")
+        } catch ToolError.missingArgument("missing") {
+            // Expected
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+    }
+
+    @Test("require returns value when present and correct type")
+    func requirePresent() throws {
+        let params = ToolParameters(["name": "test"])
+        let name = try params.require("name", as: String.self)
+        #expect(name == "test")
+    }
+
+    @Test("require coerces Double to Int")
+    func requireIntCoercion() throws {
+        let params = ToolParameters(["count": 3.0])
+        let count = try params.require("count", as: Int.self)
+        #expect(count == 3)
+    }
+
+    @Test("require throws invalidArgument on type mismatch")
+    func requireTypeMismatch() {
+        let params = ToolParameters(["value": "string"])
+        do {
+            _ = try params.require("value", as: Int.self)
+            Issue.record("Should have thrown invalidArgument")
+        } catch let ToolError.invalidArgument(key, expected, got) {
+            #expect(key == "value")
+            #expect(expected == "Int")
+            #expect(got == "String")
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+    }
+
+    @Test("optional returns nil when key absent")
+    func optionalMissing() {
+        let params = ToolParameters([:])
+        let value = params.optional("missing", as: String.self)
+        #expect(value == nil)
+    }
+
+    @Test("optional returns value when present")
+    func optionalPresent() {
+        let params = ToolParameters(["limit": 10])
+        let limit = params.optional("limit", as: Int.self)
+        #expect(limit == 10)
+    }
+}

@@ -3,7 +3,7 @@ import PKPrompt
 import PKShared
 
 /// Events emitted during the prompt assembly process.
-public enum PromptAssemblyEvent: Sendable {
+enum PromptAssemblyEvent: Sendable {
     /// Indicates a specific stage has started processing.
     /// - Parameter stageID: The unique identifier of the stage.
     case stageStarted(String)
@@ -14,17 +14,17 @@ public enum PromptAssemblyEvent: Sendable {
 
 /// Manages the shared state during prompt assembly.
 /// This actor holds the request context and accumulates rendered sections.
-public actor PromptAssemblyContext {
+actor PromptAssemblyContext {
     /// The original prompt request containing user input and context.
-    public let request: LLMPromptRequest
+    let request: LLMPromptRequest
     /// The agent instance associated with the prompt, if any.
-    public let agentInstance: AgentInstance?
+    let agentInstance: AgentInstance?
     /// The conversation timeline context, if any.
-    public let timeline: Timeline?
+    let timeline: Timeline?
     /// Additional context sections provided by extensions or plugins.
-    public let extensionSections: [any Prompt]
+    let extensionSections: [any Prompt]
     /// The ordered collection of gathered prompt sections.
-    public private(set) var sections: [any Prompt] = []
+    private(set) var sections: [any Prompt] = []
 
     /// Initializes a new prompt assembly context.
     /// - Parameters:
@@ -32,7 +32,7 @@ public actor PromptAssemblyContext {
     ///   - agentInstance: Optional agent instance for identity injection.
     ///   - timeline: Optional timeline for conversation context.
     ///   - extensionSections: Optional additional sections from extensions.
-    public init(
+    init(
         request: LLMPromptRequest,
         agentInstance: AgentInstance? = nil,
         timeline: Timeline? = nil,
@@ -46,26 +46,26 @@ public actor PromptAssemblyContext {
 
     /// Appends a single section to the assembled prompt.
     /// - Parameter section: The context section to add.
-    public func append(_ section: any Prompt) {
+    func append(_ section: any Prompt) {
         sections.append(section)
     }
 
     /// Appends multiple sections to the assembled prompt.
     /// - Parameter sections: An array of context sections to add.
-    public func append(_ sections: [any Prompt]) {
+    func append(_ sections: [any Prompt]) {
         self.sections.append(contentsOf: sections)
     }
 }
 
 /// Protocol defining a single stage in the prompt assembly pipeline.
 /// Stages are responsible for retrieving specific pieces of context and appending them as sections.
-public protocol PromptAssemblyStage: PipelineStage where Context == PromptAssemblyContext, Event == PromptAssemblyEvent {
+protocol PromptAssemblyStage: PipelineStage where Context == PromptAssemblyContext, Event == PromptAssemblyEvent {
     /// Executes the assembly logic for this stage.
     /// - Parameter context: The shared assembly context to modify.
     func execute(_ context: PromptAssemblyContext) async throws
 }
 
-public extension PromptAssemblyStage {
+extension PromptAssemblyStage {
     /// Default implementation returns the type name of the stage.
     var id: String {
         String(describing: Self.self)

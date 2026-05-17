@@ -134,7 +134,7 @@ public struct PositronicKitCore: Sendable {
     /// Adds a custom stage to the chat execution pipeline.
     /// - Parameter stage: The custom pipeline stage to add.
     /// - Returns: A new instance with the stage added.
-    public func addStage(_ stage: any PipelineStage<ChatTurnContext, ChatEvent>) -> PositronicKitCore {
+    func addStage(_ stage: any PipelineStage<ChatTurnContext, ChatEvent>) -> PositronicKitCore {
         var copy = self
         copy.chatEngine.additionalStages.append(stage)
         return copy
@@ -162,21 +162,16 @@ public struct PositronicKitCore: Sendable {
     ///   - agentInstanceId: Optional identifier for the agent instance.
     ///   - maxTurns: Maximum number of LLM turns before stopping. Defaults to 5.
     ///   - generationParameters: Optional parameters for generation (overrides defaults).
-    ///   - contextPipeline: Optional pipeline to use for context gathering (overrides default).
-    ///   - assemblyPipeline: Optional pipeline to use for prompt assembly (overrides default).
     /// - Returns: An asynchronous stream of chat events.
     public func run(
         timelineId: UUID,
         message: String,
         tools: [AnyTool] = [],
         toolOutputs: [ToolOutputSubmission]? = nil,
-        contextManager: ContextManager? = nil,
         systemInstructions: String? = nil,
         agentInstanceId: UUID? = nil,
-        maxTurns: Int = ChatEngine.Constants.defaultMaxTurns,
-        generationParameters: GenerationParameters? = nil,
-        contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
-        assemblyPipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>? = nil
+        maxTurns: Int = 5,
+        generationParameters: GenerationParameters? = nil
     ) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         try await withDependencies {
             // Direct ChatEngine deps
@@ -196,7 +191,7 @@ public struct PositronicKitCore: Sendable {
             $0.embeddingService = self.embeddingService
         } operation: {
             let resolvedContextManager = await self.resolveContextManager(
-                explicit: contextManager,
+                explicit: nil,
                 timelineId: timelineId
             )
 
@@ -209,9 +204,7 @@ public struct PositronicKitCore: Sendable {
                 systemInstructions: systemInstructions,
                 agentInstanceId: agentInstanceId,
                 maxTurns: maxTurns,
-                generationParameters: generationParameters ?? self.defaultGenerationParameters,
-                contextPipeline: contextPipeline,
-                assemblyPipeline: assemblyPipeline
+                generationParameters: generationParameters ?? self.defaultGenerationParameters
             )
         }
     }

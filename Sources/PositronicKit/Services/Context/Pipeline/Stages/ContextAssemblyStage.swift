@@ -4,7 +4,7 @@ import PKPrompt
 import PKShared
 
 /// Pipeline stage responsible for assembling the gathered results into a final `ContextData` object.
-public struct ContextAssemblyStage: PipelineStage {
+struct ContextAssemblyStage: PipelineStage {
     /// Logger for assembly progress.
     public let logger: Logger
 

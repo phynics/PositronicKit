@@ -2,11 +2,11 @@ import Foundation
 import PKShared
 
 /// Stateless history budgeting policy used during prompt assembly.
-public enum PromptHistoryOptimizer {
+enum PromptHistoryOptimizer {
     /// The maximum number of tokens allowed for chat history in a prompt.
-    public static let maxHistoryTokens = 120_000
+    static let maxHistoryTokens = 120_000
     /// A buffer reserved for non-history sections so history does not crowd them out.
-    public static let historyTokenBuffer = 4000
+    static let historyTokenBuffer = 4000
 
     public static func optimizeForDefaultBudget(_ messages: [Message]) -> [Message] {
         optimize(messages, availableTokens: maxHistoryTokens - historyTokenBuffer)

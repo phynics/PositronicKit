@@ -9,15 +9,15 @@ import PKShared
 ///
 /// The engine orchestrates the entire lifecycle of a chat turn, including context gathering,
 /// LLM interaction, tool execution, and state persistence.
-public struct ChatEngine: Sendable {
+struct ChatEngine: Sendable {
     // MARK: - Constants
 
-    public enum Constants {
-        public static let maxHistoryTokens = 120_000
-        public static let historyTokenBuffer = 4000
-        public static let sentinelToolName = "tool_call"
-        public static let defaultMaxTurns = 5
-        public static let maxRemoteDepth = 3
+    enum Constants {
+        static let maxHistoryTokens = 120_000
+        static let historyTokenBuffer = 4000
+        static let sentinelToolName = "tool_call"
+        static let defaultMaxTurns = 5
+        static let maxRemoteDepth = 3
     }
 
     @Dependency(\.timelineManager) var timelineManager
