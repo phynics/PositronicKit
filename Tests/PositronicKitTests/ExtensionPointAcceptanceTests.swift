@@ -190,8 +190,10 @@ import Testing
                 requestOriginStore: mockPersistence,
                 agentTemplateStore: mockPersistence
             ),
-            timelineManager: timelineManager,
-            toolRouter: ToolRouter()
+            runtime: .init(
+                timelineManager: timelineManager,
+                toolRouter: ToolRouter()
+            )
         )
 
         return (chat, mockLLM, mockPersistence, timeline.id, workspace, timelineManager)

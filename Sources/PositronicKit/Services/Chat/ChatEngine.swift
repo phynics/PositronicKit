@@ -4,11 +4,14 @@ import Logging
 import PKPrompt
 import PKShared
 
-/// Unified chat engine that handles both interactive chat and autonomous agent execution.
+/// Unified runtime turn orchestrator for both interactive chat and autonomous execution.
 /// Returns `AsyncThrowingStream<ChatEvent>` for all use cases — callers decide how to consume.
 ///
-/// The engine orchestrates the entire lifecycle of a chat turn, including context gathering,
-/// LLM interaction, tool execution, and state persistence.
+/// `ChatEngine` owns the internal turn loop policy for the runtime: session preparation, prompt
+/// assembly handoff, per-turn stage execution, runtime-managed tool continuation, and post-turn
+/// plugin follow-up. It is deliberately *not* the public customization surface for downstream
+/// applications; external callers are expected to integrate through `PositronicKitCore` and the
+/// higher-level extension protocols rather than depending on this concrete orchestrator directly.
 struct ChatEngine: Sendable {
     // MARK: - Constants
 
@@ -130,31 +133,28 @@ struct ChatEngine: Sendable {
             switch signal {
             case .stop:
                 // Turn finished without further internal actions required
-                var pluginMessages: [LLMMessage] = []
-                let completedTurn = CompletedTurn(
-                    timelineId: context.timelineId,
-                    agentInstanceId: context.agentInstanceId,
-                    turnCount: turnCount,
-                    fullResponse: priorOutput,
-                    modelName: context.modelName
-                )
-
-                // 3. Post-turn plugin execution (e.g. autonomous reactions, background jobs)
                 do {
-                    for plugin in chatTurnPlugins {
-                        pluginMessages += try await plugin.afterTurn(completedTurn)
+                    let pluginMessages = try await ChatTurnFollowUpPolicy.pluginMessages(
+                        for: context,
+                        turnCount: turnCount,
+                        accumulatedOutput: priorOutput,
+                        plugins: chatTurnPlugins,
+                        logger: logger
+                    )
+
+                    // If plugins added context, resume the loop for a follow-up turn.
+                    if ChatTurnFollowUpPolicy.shouldContinueWithPluginMessages(
+                        pluginMessages,
+                        turnCount: turnCount,
+                        maxTurns: context.maxTurns
+                    ) {
+                        loopMessages += pluginMessages
+                    } else {
+                        continuation.finish()
+                        return
                     }
                 } catch {
-                    logger.error("Plugin error after turn \(turnCount): \(error)")
                     continuation.finish(throwing: error)
-                    return
-                }
-
-                // If plugins added context, resume the loop for a follow-up turn
-                if !pluginMessages.isEmpty, turnCount < context.maxTurns {
-                    loopMessages += pluginMessages
-                } else {
-                    continuation.finish()
                     return
                 }
 
@@ -227,15 +227,12 @@ struct ChatEngine: Sendable {
         context: ChatTurnContext,
         continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
     ) async throws {
-        var pipeline = Pipeline<ChatTurnContext, ChatEvent>()
-            .add(LLMStreamingStage(llmService: llmService, logger: logger))
-            .add(ToolCallExtractionStage(logger: logger))
-            .add(MessagePersistenceStage(messageStore: messageStore, logger: logger))
-
-        for stage in additionalStages {
-            pipeline = pipeline.add(stage)
-        }
-
+        let pipeline = ChatTurnPipelineBuilder.makePipeline(
+            llmService: llmService,
+            messageStore: messageStore,
+            logger: logger,
+            additionalStages: additionalStages
+        )
         let stream = pipeline.execute(context)
         for try await event in stream {
             continuation.yield(event)

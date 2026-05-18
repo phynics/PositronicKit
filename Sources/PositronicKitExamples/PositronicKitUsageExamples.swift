@@ -21,21 +21,17 @@ public enum PositronicKitUsageExamples {
     public static func makeConfiguredRuntime() -> PositronicKitCore {
         let workspaceRoot = FileManager.default.temporaryDirectory
             .appendingPathComponent("positronickit-examples", isDirectory: true)
+        let runtime = PositronicKitCore.RuntimeConfiguration(
+            timelineManager: TimelineManager(workspaceRoot: workspaceRoot),
+            toolRouter: ToolRouter(),
+            workspaceRoot: workspaceRoot
+        )
 
         return PositronicKitCore(
             llmService: UnconfiguredLLMService(),
-            messageStore: InMemoryMessageStore(),
-            timelineManager: TimelineManager(workspaceRoot: workspaceRoot),
-            toolRouter: ToolRouter(),
-            agentInstanceStore: InMemoryAgentInstanceStore(),
-            requestOriginStore: InMemoryRequestOriginStore(),
-            timelinePersistence: InMemoryTimelinePersistence(),
-            workspacePersistence: InMemoryWorkspacePersistence(),
-            memoryStore: InMemoryMemoryStore(),
-            toolPersistence: InMemoryToolPersistence(),
-            agentTemplateStore: InMemoryAgentTemplateStore(),
+            persistence: .inMemory(),
             embeddingService: NoOpEmbeddingService(),
-            workspaceRoot: workspaceRoot
+            runtime: runtime
         )
     }
 
@@ -52,6 +48,11 @@ public enum PositronicKitUsageExamples {
     public static func makeProductionRuntime() -> PositronicKitCore {
         let workspaceRoot = FileManager.default.temporaryDirectory
             .appendingPathComponent("positronickit-examples-production", isDirectory: true)
+        let runtime = PositronicKitCore.RuntimeConfiguration(
+            timelineManager: TimelineManager(workspaceRoot: workspaceRoot),
+            toolRouter: ToolRouter(),
+            workspaceRoot: workspaceRoot
+        )
 
         return PositronicKitCore(
             llmService: UnconfiguredLLMService(),
@@ -66,9 +67,7 @@ public enum PositronicKitUsageExamples {
                 agentTemplateStore: InMemoryAgentTemplateStore()
             ),
             embeddingService: NoOpEmbeddingService(),
-            timelineManager: TimelineManager(workspaceRoot: workspaceRoot),
-            toolRouter: ToolRouter(),
-            workspaceRoot: workspaceRoot
+            runtime: runtime
         )
     }
 

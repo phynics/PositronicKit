@@ -46,7 +46,7 @@ import PKShared
 // Minimal — all stores default to in-memory:
 let chat = PositronicKitCore(llmService: myLLM)
 
-// Production — grouped persistence:
+// Production — grouped persistence and grouped runtime wiring:
 let chat = PositronicKitCore(
     llmService: myLLM,
     persistence: .init(
@@ -60,7 +60,9 @@ let chat = PositronicKitCore(
         agentTemplateStore: myAgentTemplateStore
     ),
     embeddingService: myEmbeddingService,
-    timelineManager: myTimelineManager
+    runtime: .init(
+        timelineManager: myTimelineManager
+    )
 )
 
 let stream = try await chat.run(

@@ -50,6 +50,69 @@ private struct TimelineSection: Prompt {
 
 @Suite("TimelinePromptHistory")
 actor TimelinePromptHistoryTests {
+    @Test("Runtime metadata hashing stays aligned between prompt assembly and timeline history")
+    func runtimeMetadataHashingStaysAligned() async throws {
+        let history = TimelinePromptHistory()
+        let rendered = try await PromptAssembler.assemble(LLMPromptRequest(
+            userQuery: "Current question",
+            contextNotes: [ContextFile(name: "note.md", content: "Context", source: "Notes")],
+            memories: [],
+            chatHistory: [],
+            tools: [],
+            workspaces: [makePromptWorkspace(path: "/repo-a")],
+            primaryWorkspace: nil,
+            requestOriginName: nil
+        ))
+
+        let historyMetadata = await history.nodeMetadata(prompt: rendered)
+
+        for section in rendered.sections {
+            let content = rendered.sectionsByID[section.id] ?? ""
+            let expected = StructuredPromptMetadata.makeNodeMetadata(
+                for: section,
+                renderedContent: content
+            )
+            #expect(historyMetadata[section.id] == expected)
+        }
+    }
+
+    @Test("Metadata hash changes when section traits change even if text stays the same")
+    func metadataHashChangesWhenTraitsChange() async throws {
+        let promptA = try await AnyPrompt.build {
+            TimelineSection(
+                id: "system",
+                priority: 0,
+                estimatedTokens: 10,
+                cachePolicy: .stable,
+                text: "Same"
+            )
+        }.assemblePrompt().render()
+
+        let promptB = try await AnyPrompt.build {
+            TimelineSection(
+                id: "system",
+                priority: 10,
+                estimatedTokens: 10,
+                cachePolicy: .stable,
+                text: "Same"
+            )
+        }.assemblePrompt().render()
+
+        let sectionA = try #require(promptA.sections.first)
+        let sectionB = try #require(promptB.sections.first)
+        let metadataA = StructuredPromptMetadata.makeNodeMetadata(
+            for: sectionA,
+            renderedContent: promptA.sectionsByID[sectionA.id] ?? ""
+        )
+        let metadataB = StructuredPromptMetadata.makeNodeMetadata(
+            for: sectionB,
+            renderedContent: promptB.sectionsByID[sectionB.id] ?? ""
+        )
+
+        #expect(metadataA != metadataB)
+        #expect(metadataA.path == metadataB.path)
+    }
+
     @Test("History updates compact appended state when thresholds are exceeded")
     func historyUpdatesCompactWhenThresholdsExceeded() async throws {
         let history = TimelinePromptHistory(thresholds: .init(maxAppendedTokens: 1, maxAppendedMessages: 1))

@@ -3,8 +3,12 @@ import Logging
 import PKPrompt
 import PKShared
 
-/// Pure, stateless prompt assembly service.
-/// Provides high-level methods to build prompts and optimize conversation history.
+/// Pure, stateless runtime adapter over `PKPrompt` assembly.
+///
+/// `PromptAssembler` is where the runtime turns timeline/chat/tool state into a concrete prompt
+/// artifact for provider submission. It is intentionally not the public prompt authoring surface;
+/// `PKPrompt` owns prompt composition and journaling APIs, while this type owns runtime-side stage
+/// ordering, token-budget policy, and compression metadata wiring.
 enum PromptAssembler {
     // MARK: - Default Stages
 
@@ -195,17 +199,12 @@ enum PromptAssembler {
         var metadata: [String: StructuredNodeMetadata] = [:]
         for section in resolvedSections {
             let rendered = await section.renderedContent()?.text ?? ""
-            // Include both resolved content and inherited traits in the cache key so
-            // structured compression invalidates whenever a materially relevant field changes.
-            metadata[section.id] = StructuredNodeMetadata(
-                path: section.path,
-                nodeHash: StableHash.hash(components: [
-                    section.id,
-                    String(section.estimatedTokens),
-                    String(section.priority),
-                    String(describing: section.cachePolicy),
-                    rendered
-                ])
+            // Include both resolved content and inherited traits in the cache key so structured
+            // compression invalidates whenever a materially relevant field changes. Keep this in
+            // sync with TimelinePromptHistory via StructuredPromptMetadata.
+            metadata[section.id] = StructuredPromptMetadata.makeNodeMetadata(
+                for: section,
+                renderedContent: rendered
             )
         }
         return metadata

@@ -76,8 +76,10 @@ let chat = PositronicKitCore(
         agentTemplateStore: myAgentTemplateStore
     ),
     embeddingService: myEmbeddingService,
-    timelineManager: myTimelineManager,
-    toolRouter: myToolRouter
+    runtime: .init(
+        timelineManager: myTimelineManager,
+        toolRouter: myToolRouter
+    )
 )
 ```
 
@@ -102,8 +104,10 @@ let chat = PositronicKitCore(
         agentTemplateStore: myAgentTemplateStore
     ),
     embeddingService: myEmbeddingService,
-    timelineManager: myTimelineManager,
-    toolRouter: myToolRouter
+    runtime: .init(
+        timelineManager: myTimelineManager,
+        toolRouter: myToolRouter
+    )
 )
 
 let stream = try await chat.run(

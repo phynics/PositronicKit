@@ -94,8 +94,10 @@ struct IntroductoryEndToEndTests {
                 requestOriginStore: persistence,
                 agentTemplateStore: persistence
             ),
-            timelineManager: timelineManager,
-            toolRouter: ToolRouter()
+            runtime: .init(
+                timelineManager: timelineManager,
+                toolRouter: ToolRouter()
+            )
         )
 
         let timeline = try await timelineManager.createTimeline(title: "Intro Example")

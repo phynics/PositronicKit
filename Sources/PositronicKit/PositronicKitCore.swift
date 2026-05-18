@@ -15,11 +15,17 @@ import PKShared
 /// agents, tool routing, and prompt assembly live here; concrete networking or multi-process hosting models are
 /// expected to be provided downstream via injected stores, workspace creators, and connection hooks.
 ///
+/// Intended extension seams for downstream applications are the facade itself plus stable runtime
+/// protocols such as persistence stores, `WorkspaceCreating` / `WorkspaceProtocol`,
+/// `PromptSectionProviding`, and `ChatTurnPlugin`. Internal coordinators like `ChatEngine`,
+/// `TimelinePromptHistory`, and the concrete turn pipeline remain runtime implementation details
+/// even when they are visible to tests inside this package.
+///
 /// ```swift
 /// // Minimal — prototyping with in-memory everything:
 /// let chat = PositronicKitCore(llmService: myLLM)
 ///
-/// // Production — grouped persistence:
+/// // Production — grouped persistence + grouped runtime wiring:
 /// let chat = PositronicKitCore(
 ///     llmService: llmService,
 ///     persistence: .init(
@@ -33,8 +39,11 @@ import PKShared
 ///         agentTemplateStore: repos.agentTemplateStore
 ///     ),
 ///     embeddingService: embeddingService,
-///     timelineManager: timelineManager,
-///     workspaceRoot: workspacesDir
+///     runtime: .init(
+///         timelineManager: timelineManager,
+///         toolRouter: ToolRouter(),
+///         workspaceRoot: workspacesDir
+///     )
 /// )
 /// ```
 public struct PositronicKitCore: Sendable {
@@ -76,6 +85,10 @@ public struct PositronicKitCore: Sendable {
     }
 
     /// Initializes with all services required by the chat subsystem.
+    ///
+    /// This is the most flexible initializer, but it exposes concrete runtime wiring types such as
+    /// `TimelineManager` and `ToolRouter`. Prefer the grouped `persistence:` and `runtime:`
+    /// initializers when you want the facade to remain the primary public boundary.
     ///
     /// - Parameters:
     ///   - llmService: The LLM service to use for generation.
@@ -134,6 +147,10 @@ public struct PositronicKitCore: Sendable {
     /// Adds a custom stage to the chat execution pipeline.
     /// - Parameter stage: The custom pipeline stage to add.
     /// - Returns: A new instance with the stage added.
+    ///
+    /// This remains package-internal on purpose: the stable downstream extension surface is the
+    /// facade plus higher-level hooks such as `ChatTurnPlugin` and `PromptSectionProviding`, not
+    /// the concrete runtime pipeline topology.
     func addStage(_ stage: any PipelineStage<ChatTurnContext, ChatEvent>) -> PositronicKitCore {
         var copy = self
         copy.chatEngine.additionalStages.append(stage)
@@ -277,6 +294,31 @@ public extension PositronicKitCore {
         }
     }
 
+    /// Groups runtime-owned coordinators and defaults that would otherwise require exposing the
+    /// concrete `TimelineManager` / `ToolRouter` pair directly in facade call sites.
+    struct RuntimeConfiguration: Sendable {
+        public let timelineManager: TimelineManager?
+        public let toolRouter: ToolRouter?
+        public let workspaceRoot: URL?
+        public let chatTurnPlugins: [any ChatTurnPlugin]
+
+        public init(
+            timelineManager: TimelineManager? = nil,
+            toolRouter: ToolRouter? = nil,
+            workspaceRoot: URL? = nil,
+            chatTurnPlugins: [any ChatTurnPlugin] = []
+        ) {
+            self.timelineManager = timelineManager
+            self.toolRouter = toolRouter
+            self.workspaceRoot = workspaceRoot
+            self.chatTurnPlugins = chatTurnPlugins
+        }
+
+        public static func `default`() -> RuntimeConfiguration {
+            RuntimeConfiguration()
+        }
+    }
+
     /// Creates a PositronicKitCore with grouped persistence configuration.
     ///
     /// - Parameters:
@@ -313,6 +355,33 @@ public extension PositronicKitCore {
             embeddingService: embeddingService,
             workspaceRoot: workspaceRoot,
             chatTurnPlugins: chatTurnPlugins,
+            generationParameters: generationParameters
+        )
+    }
+
+    /// Creates a PositronicKitCore with grouped persistence and grouped runtime configuration.
+    init(
+        llmService: any LLMServiceProtocol,
+        persistence: PersistenceConfiguration,
+        embeddingService: (any EmbeddingServiceProtocol)? = nil,
+        runtime: RuntimeConfiguration,
+        generationParameters: GenerationParameters? = nil
+    ) {
+        self.init(
+            llmService: llmService,
+            messageStore: persistence.messageStore,
+            timelineManager: runtime.timelineManager,
+            toolRouter: runtime.toolRouter,
+            agentInstanceStore: persistence.agentInstanceStore,
+            requestOriginStore: persistence.requestOriginStore,
+            timelinePersistence: persistence.timelinePersistence,
+            workspacePersistence: persistence.workspacePersistence,
+            memoryStore: persistence.memoryStore,
+            toolPersistence: persistence.toolPersistence,
+            agentTemplateStore: persistence.agentTemplateStore,
+            embeddingService: embeddingService,
+            workspaceRoot: runtime.workspaceRoot,
+            chatTurnPlugins: runtime.chatTurnPlugins,
             generationParameters: generationParameters
         )
     }

@@ -1,5 +1,4 @@
 import Dependencies
-import ErrorKit
 import Foundation
 import Logging
 import PKShared
@@ -55,6 +54,18 @@ public enum ToolTurnResult: Sendable {
 /// The primary entry point is `handlePendingToolCalls()`, which executes runtime-managed tools
 /// immediately (persisting results to the message store) and defers externally hosted tools for
 /// async handling. `ChatEngine` calls this after each LLM turn that produces tool calls.
+///
+/// Despite the name, this actor currently owns more than lookup-only routing:
+///
+/// - tool-call normalization for a completed turn
+/// - routing decisions between runtime-managed and externally attached execution
+/// - local execution coordination
+/// - persistence of tool outputs as conversation messages
+/// - projection of tool progress/completion events back into the chat stream
+///
+/// That broader responsibility is intentional for now so the chat loop has a single runtime seam
+/// for tool continuation policy. If this area is refactored later, those behaviors should remain
+/// pinned by tests rather than being silently redistributed.
 public actor ToolRouter {
     private let logger = Logger.module(named: "com.positronickit.core.tools")
 
@@ -126,8 +137,10 @@ public actor ToolRouter {
         var resolvedToolParams: [LLMMessage] = []
 
         for call in calls {
-            let toolRef = availableTools.first(where: { $0.id == call.name })?.toolReference
-                ?? ToolReference.known(id: call.name)
+            let toolRef = ToolRoutingDecision.resolveToolReference(
+                for: call,
+                availableTools: availableTools
+            )
 
             continuation.yield(.toolProgress(
                 toolCallId: call.callId,
@@ -144,68 +157,31 @@ public actor ToolRouter {
                     tool: toolRef, arguments: arguments,
                     timelineId: timelineId, availableTools: availableTools
                 )
-                let param = try await handleOutcome(
-                    outcome, call: call, toolRef: toolRef,
-                    timelineId: timelineId, continuation: continuation
+                let param = try await ToolTurnProjector.projectOutcome(
+                    outcome,
+                    call: call,
+                    timelineId: timelineId,
+                    logger: logger,
+                    messageStore: messageStore,
+                    continuation: continuation
                 )
                 if let param { resolvedToolParams.append(param) }
                 if case .deferredExternally = outcome { hasDeferred = true }
             } catch {
-                let param = try await handleToolError(
-                    error, call: call, toolRef: toolRef,
-                    timelineId: timelineId, continuation: continuation
+                let param = try await ToolTurnProjector.projectError(
+                    error,
+                    call: call,
+                    toolRef: toolRef,
+                    timelineId: timelineId,
+                    logger: logger,
+                    messageStore: messageStore,
+                    continuation: continuation
                 )
                 resolvedToolParams.append(param)
             }
         }
 
         return ToolHandlingResult(hasDeferred: hasDeferred, resolvedToolParams: resolvedToolParams)
-    }
-
-    // MARK: - Outcome Handling
-
-    private func handleOutcome(
-        _ outcome: ToolExecutionOutcome,
-        call: ParsedToolCall,
-        toolRef _: ToolReference,
-        timelineId: UUID,
-        continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
-    ) async throws -> LLMMessage? {
-        let toolDisplayName = ANSIColors.colorize(call.name, color: ANSIColors.brightCyan)
-        switch outcome {
-        case let .completed(output):
-            logger.info("Tool \(toolDisplayName) succeeded")
-            continuation.yield(.toolCompleted(toolCallId: call.callId, status: .success(ToolResult.success(output))))
-            try await messageStore.saveMessage(
-                ConversationMessage(timelineId: timelineId, role: .tool, content: output, toolCallId: call.callId)
-            )
-            return LLMMessage(role: .tool, content: output, toolCallID: call.callId)
-
-        case .deferredExternally:
-            logger.info("Tool \(toolDisplayName) deferred for external execution")
-            return nil
-        }
-    }
-
-    private func handleToolError(
-        _ error: Error,
-        call: ParsedToolCall,
-        toolRef: ToolReference,
-        timelineId: UUID,
-        continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
-    ) async throws -> LLMMessage {
-        let toolDisplayName = ANSIColors.colorize(call.name, color: ANSIColors.brightCyan)
-        let errorMsg = ErrorKit.userFriendlyMessage(for: error)
-        logger.error("Tool \(toolDisplayName) error: \(error.localizedDescription)")
-        let errorOutput = "Error: \(errorMsg)"
-        continuation.yield(.toolCompleted(
-            toolCallId: call.callId,
-            status: .failed(reference: toolRef, error: error.localizedDescription)
-        ))
-        try await messageStore.saveMessage(
-            ConversationMessage(timelineId: timelineId, role: .tool, content: errorOutput, toolCallId: call.callId)
-        )
-        return LLMMessage(role: .tool, content: errorOutput, toolCallID: call.callId)
     }
 
     // MARK: - Core Routing
@@ -236,8 +212,11 @@ public actor ToolRouter {
             throw ToolError.workspaceNotFound(workspaceId)
         }
 
-        switch workspace.location {
-        case .runtime, .runtimeTimeline:
+        switch try ToolRoutingDecision.outcomeForWorkspace(
+            location: workspace.location,
+            timelineIsPrivate: await timelineManager.getTimeline(id: timelineId)?.isPrivate ?? false
+        ) {
+        case .executeLocally:
             let output = try await executeLocally(
                 tool: tool,
                 arguments: forwardedArguments,
@@ -246,10 +225,7 @@ public actor ToolRouter {
             )
             return .completed(output)
 
-        case .attached:
-            guard !(await timelineManager.getTimeline(id: timelineId)?.isPrivate ?? false) else {
-                throw ToolError.attachedToolsDisallowedOnPrivateTimeline
-            }
+        case .deferExternally:
             return .deferredExternally
         }
     }

@@ -123,9 +123,15 @@ struct CompactionThresholds: Sendable {
 
 /// Runtime-only prompt diff/cache bookkeeping used by `PositronicKitCore` across turns.
 ///
-/// This is not the primary prompt-facing journaling API. Public prompt journaling belongs to
-/// `PKPrompt.PromptJournal`; this actor exists to support runtime stable-prefix reuse, append
-/// pressure tracking, and compaction heuristics inside the chat loop.
+/// This actor is intentionally separate from `PKPrompt.PromptJournal`.
+///
+/// - `PromptJournal` is the prompt-layer API for projecting prompt evolution into base/overlay /
+///   volatile journal sections.
+/// - `TimelinePromptHistory` is runtime machinery for stable-prefix reuse, append-pressure
+///   tracking, and compaction heuristics inside the chat loop.
+///
+/// In other words: `PromptJournal` is a prompt-facing product surface, while this type is an
+/// implementation detail of the runtime orchestration layer.
 
 actor TimelinePromptHistory {
     private var baseSnapshot: PromptSnapshot?
@@ -289,16 +295,9 @@ actor TimelinePromptHistory {
         var metadata: [String: StructuredNodeMetadata] = [:]
         for section in prompt.sections {
             let content = prompt.sectionsByID[section.id] ?? ""
-            let path = section.path
-            metadata[section.id] = StructuredNodeMetadata(
-                path: path,
-                nodeHash: StableHash.hash(components: [
-                    section.id,
-                    String(section.estimatedTokens),
-                    String(section.priority),
-                    String(describing: section.cachePolicy),
-                    content
-                ])
+            metadata[section.id] = StructuredPromptMetadata.makeNodeMetadata(
+                for: section,
+                renderedContent: content
             )
         }
         return metadata

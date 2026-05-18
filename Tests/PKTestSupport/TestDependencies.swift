@@ -40,7 +40,7 @@ import PKShared
                     agentTemplateStore: persistence
                 ),
                 embeddingService: embedding,
-                timelineManager: timelineManager
+                runtime: .init(timelineManager: timelineManager)
             )
         }
     }

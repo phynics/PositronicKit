@@ -52,6 +52,27 @@ struct PositronicKitCoreTests {
     }
 
     @Test
+    func groupedRuntimeFacadeInitializationSupportsOneTurnChat() async throws {
+        let (chat, mockLLM, mockPersistence, timelineId, _) = try await makeAcceptanceRuntime(useGroupedPersistence: true, useGroupedRuntime: true)
+        mockLLM.mockClient.nextResponse = "Grouped runtime reply"
+
+        let events = try await chat.run(
+            timelineId: timelineId,
+            message: "Use grouped runtime"
+        ).collect()
+
+        #expect(events.contains(where: {
+            if case let .completion(event: .generationCompleted(message, _)) = $0 {
+                return message.content == "Grouped runtime reply"
+            }
+            return false
+        }))
+
+        let messages = try await mockPersistence.fetchMessages(for: timelineId)
+        #expect(messages.last?.content == "Grouped runtime reply")
+    }
+
+    @Test
     func facadeToolCallTurnExecutesAndResumes() async throws {
         let (chat, mockLLM, _, timelineId, _) = try await makeAcceptanceRuntime()
         let mockTool = AcceptanceMockTool()
@@ -108,6 +129,26 @@ struct PositronicKitCoreTests {
         #expect(messages.map(\.role) == ["tool", "user", "assistant"])
         #expect(messages.first?.toolCallId == "call_1")
         #expect(messages.first?.content == "Tool result")
+    }
+
+    @Test
+    func facadePluginFollowUpWorksWithoutDirectDependencyContainerSetup() async throws {
+        let plugin = FacadeFollowUpPlugin()
+        let (baseChat, mockLLM, mockPersistence, timelineId, _) = try await makeAcceptanceRuntime(useGroupedPersistence: true)
+        let chat = baseChat.addPlugin(plugin)
+
+        mockLLM.mockClient.nextResponses = ["First reply", "Second reply"]
+
+        let events = try await chat.run(
+            timelineId: timelineId,
+            message: "Start plugin flow"
+        ).collect()
+
+        let assistantReplies = events.compactMap(\.completedMessage).map(\.message.content)
+        #expect(assistantReplies == ["First reply", "Second reply"])
+
+        let persisted = try await mockPersistence.fetchMessages(for: timelineId)
+        #expect(persisted.filter { $0.role == "assistant" }.map(\.content) == ["First reply", "Second reply"])
     }
 
     @Test
@@ -219,7 +260,8 @@ struct PositronicKitCoreTests {
     }
 
     private func makeAcceptanceRuntime(
-        useGroupedPersistence: Bool = false
+        useGroupedPersistence: Bool = false,
+        useGroupedRuntime: Bool = false
     ) async throws -> (PositronicKitCore, MockLLMService, MockPersistenceService, UUID, TestWorkspace) {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
@@ -256,20 +298,30 @@ struct PositronicKitCoreTests {
 
         let chat: PositronicKitCore
         if useGroupedPersistence {
-            chat = PositronicKitCore(
-                llmService: mockLLM,
-                persistence: .init(
-                    messageStore: mockPersistence,
-                    timelinePersistence: mockPersistence,
-                    workspacePersistence: mockPersistence,
-                    memoryStore: mockPersistence,
-                    toolPersistence: mockPersistence,
-                    agentInstanceStore: mockPersistence,
-                    requestOriginStore: mockPersistence,
-                    agentTemplateStore: mockPersistence
-                ),
-                timelineManager: timelineManager
+            let persistence = PositronicKitCore.PersistenceConfiguration(
+                messageStore: mockPersistence,
+                timelinePersistence: mockPersistence,
+                workspacePersistence: mockPersistence,
+                memoryStore: mockPersistence,
+                toolPersistence: mockPersistence,
+                agentInstanceStore: mockPersistence,
+                requestOriginStore: mockPersistence,
+                agentTemplateStore: mockPersistence
             )
+
+            if useGroupedRuntime {
+                chat = PositronicKitCore(
+                    llmService: mockLLM,
+                    persistence: persistence,
+                    runtime: .init(timelineManager: timelineManager)
+                )
+            } else {
+                chat = PositronicKitCore(
+                    llmService: mockLLM,
+                    persistence: persistence,
+                    timelineManager: timelineManager
+                )
+            }
         } else {
             chat = PositronicKitCore(
                 llmService: mockLLM,
@@ -286,6 +338,18 @@ struct PositronicKitCoreTests {
         }
 
         return (chat, mockLLM, mockPersistence, timeline.id, workspace)
+    }
+}
+
+private actor FacadeFollowUpPlugin: ChatTurnPlugin {
+    private var hasInjectedFollowUp = false
+
+    func afterTurn(_ turn: CompletedTurn) async throws -> [LLMMessage] {
+        guard !hasInjectedFollowUp, turn.fullResponse == "First reply" else {
+            return []
+        }
+        hasInjectedFollowUp = true
+        return [LLMMessage(role: .user, content: "Plugin follow-up")]
     }
 }
 

@@ -61,6 +61,37 @@ private func makeChunk(
     )
 }
 
+private actor PipelineStageRunTracker {
+    private(set) var didRun = false
+
+    func markRan() {
+        didRun = true
+    }
+}
+
+private struct MarkerStage: PipelineStage {
+    let tracker: PipelineStageRunTracker
+
+    func process(_ context: ChatTurnContext) async throws -> AsyncThrowingStream<ChatEvent, Error> {
+        await tracker.markRan()
+        return AsyncThrowingStream { continuation in
+            continuation.finish()
+        }
+    }
+}
+
+private actor AggregatingPlugin: ChatTurnPlugin {
+    private let suffix: String
+
+    init(suffix: String) {
+        self.suffix = suffix
+    }
+
+    func afterTurn(_ turn: CompletedTurn) async throws -> [LLMMessage] {
+        [LLMMessage(role: .user, content: "\(turn.fullResponse)-\(suffix)")]
+    }
+}
+
 // MARK: - MessagePersistenceStage Tests
 
 final class MessagePersistenceStageBehavior {
@@ -133,6 +164,70 @@ final class MessagePersistenceStageBehavior {
         #expect(tags?.count == 2)
         let nested = toolCall.arguments["nested"]?.value as? [String: Any]
         #expect(nested?["value"] as? Double == 1.0)
+    }
+}
+
+// MARK: - ChatTurnPipelineBuilder Tests
+
+final class ChatTurnPipelineBuilderTests {
+    @Test
+    func additionalStagesAreAppendedToDefaultTurnPipeline() async throws {
+        let persistence = MockPersistenceService()
+        let llm = MockLLMService()
+        llm.mockClient.nextResponse = "pipeline"
+        let tracker = PipelineStageRunTracker()
+
+        let pipeline = ChatTurnPipelineBuilder.makePipeline(
+            llmService: llm,
+            messageStore: persistence,
+            logger: testLogger,
+            additionalStages: [MarkerStage(tracker: tracker)]
+        )
+        let context = await makeContext()
+
+        _ = try await drain(pipeline.execute(context))
+
+        #expect(await tracker.didRun)
+        #expect(persistence.messages.last?.content == "pipeline")
+    }
+}
+
+// MARK: - ChatTurnFollowUpPolicy Tests
+
+final class ChatTurnFollowUpPolicyTests {
+    @Test
+    func pluginMessagesAggregateAcrossPlugins() async throws {
+        let context = await makeContext()
+        let messages = try await ChatTurnFollowUpPolicy.pluginMessages(
+            for: context,
+            turnCount: 2,
+            accumulatedOutput: "reply",
+            plugins: [AggregatingPlugin(suffix: "one"), AggregatingPlugin(suffix: "two")],
+            logger: testLogger
+        )
+
+        #expect(messages.map(\.content) == ["reply-one", "reply-two"])
+    }
+
+    @Test
+    func followUpContinuationRequiresMessagesAndRemainingTurns() {
+        #expect(ChatTurnFollowUpPolicy.shouldContinueWithPluginMessages(
+            [LLMMessage(role: .user, content: "next")],
+            turnCount: 1,
+            maxTurns: 2
+        ))
+
+        #expect(!ChatTurnFollowUpPolicy.shouldContinueWithPluginMessages(
+            [],
+            turnCount: 1,
+            maxTurns: 2
+        ))
+
+        #expect(!ChatTurnFollowUpPolicy.shouldContinueWithPluginMessages(
+            [LLMMessage(role: .user, content: "next")],
+            turnCount: 2,
+            maxTurns: 2
+        ))
     }
 }
 

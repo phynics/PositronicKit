@@ -1,9 +1,31 @@
 import Dependencies
 import Foundation
+import Logging
 @testable import PositronicKit
 @testable import PKShared
 import PKTestSupport
 import Testing
+
+private func captureProjectedToolEvents(
+    _ body: @Sendable @escaping (AsyncThrowingStream<ChatEvent, Error>.Continuation) async throws -> Void
+) async throws -> [ChatEvent] {
+    var events: [ChatEvent] = []
+    let stream = AsyncThrowingStream<ChatEvent, Error> { continuation in
+        Task {
+            do {
+                try await body(continuation)
+                continuation.finish()
+            } catch {
+                continuation.finish(throwing: error)
+            }
+        }
+    }
+
+    for try await event in stream {
+        events.append(event)
+    }
+    return events
+}
 
 @Suite final class ToolRouterTests {
     struct MockTool: PKShared.Tool, @unchecked Sendable {
@@ -174,6 +196,114 @@ import Testing
         } catch {
             Issue.record("Unexpected error thrown: \(error)")
         }
+    }
+}
+
+@Suite struct ToolRoutingDecisionTests {
+    private struct CustomReferenceTool: PKShared.Tool, ToolReferenceProviding, @unchecked Sendable {
+        let id: String
+        let name: String
+        let description = "custom ref tool"
+        let requiresPermission = false
+        let toolReference: ToolReference
+
+        var parametersSchema: [String: AnyCodable] { [:] }
+
+        func canExecute() async -> Bool { true }
+        func execute(parameters _: [String: Any]) async throws -> ToolResult { .success("ok") }
+    }
+
+    @Test("Dynamic available tools override fallback known-tool resolution")
+    func resolvesToolReferenceFromAvailableTools() {
+        let customRef = ToolReference.custom(definition: .init(
+            id: "dynamic_tool",
+            name: "dynamic_tool",
+            description: "dynamic"
+        ))
+        let tool = AnyTool(CustomReferenceTool(
+            id: "dynamic_tool",
+            name: "dynamic_tool",
+            toolReference: customRef
+        ))
+
+        let call = ParsedToolCall(callId: "1", name: "dynamic_tool", argumentsJSON: "{}")
+        let resolved = ToolRoutingDecision.resolveToolReference(for: call, availableTools: [tool])
+
+        #expect(resolved == customRef)
+    }
+
+    @Test("Attached workspaces defer unless timeline is private")
+    func workspaceDispositionFollowsPrivacyRule() throws {
+        #expect(try ToolRoutingDecision.outcomeForWorkspace(location: .attached, timelineIsPrivate: false) == .deferExternally)
+        #expect(try ToolRoutingDecision.outcomeForWorkspace(location: .runtime, timelineIsPrivate: true) == .executeLocally)
+
+        do {
+            _ = try ToolRoutingDecision.outcomeForWorkspace(location: .attached, timelineIsPrivate: true)
+            Issue.record("Expected attached-tools private-timeline error")
+        } catch ToolError.attachedToolsDisallowedOnPrivateTimeline {
+            // expected
+        }
+    }
+}
+
+@Suite struct ToolTurnProjectorTests {
+    @Test("Completed outcomes persist tool messages and emit success events")
+    func completedOutcomeProjection() async throws {
+        let store = MockPersistenceService()
+        let call = ParsedToolCall(callId: "call-1", name: "tool", argumentsJSON: "{}")
+
+        let events = try await captureProjectedToolEvents { continuation in
+            let message = try await ToolTurnProjector.projectOutcome(
+                .completed("done"),
+                call: call,
+                timelineId: UUID(),
+                logger: Logger(label: "test.projector"),
+                messageStore: store,
+                continuation: continuation
+            )
+            #expect(message?.content == "done")
+        }
+
+        #expect(store.messages.count == 1)
+        #expect(store.messages.first?.content == "done")
+        #expect(events.contains(where: {
+            if case let .completion(event) = $0,
+               case let .toolExecution(toolCallId, status) = event,
+               case let .success(result) = status {
+                return toolCallId == "call-1" && result.output == "done"
+            }
+            return false
+        }))
+    }
+
+    @Test("Error projection persists error output and emits failed events")
+    func errorProjection() async throws {
+        let store = MockPersistenceService()
+        let call = ParsedToolCall(callId: "call-2", name: "tool", argumentsJSON: "{}")
+
+        let events = try await captureProjectedToolEvents { continuation in
+            let message = try await ToolTurnProjector.projectError(
+                ToolError.executionFailed("boom"),
+                call: call,
+                toolRef: .known(id: "tool"),
+                timelineId: UUID(),
+                logger: Logger(label: "test.projector"),
+                messageStore: store,
+                continuation: continuation
+            )
+            #expect(message.content.contains("Error:"))
+        }
+
+        #expect(store.messages.count == 1)
+        #expect(store.messages.first?.content.contains("Error:") == true)
+        #expect(events.contains(where: {
+            if case let .completion(event) = $0,
+               case let .toolExecution(toolCallId, status) = event,
+               case .failed = status {
+                return toolCallId == "call-2"
+            }
+            return false
+        }))
     }
 }
 

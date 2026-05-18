@@ -123,17 +123,21 @@ import Testing
             try await timelineManager.createTimeline(title: "Unconfigured")
         }
 
-        let chat = PositronicKitCore(
-            llmService: UnconfiguredLLMService(),
+        let persistence = PositronicKitCore.PersistenceConfiguration(
             messageStore: mockPersistence,
-            timelineManager: timelineManager,
-            agentInstanceStore: mockPersistence,
-            requestOriginStore: mockPersistence,
             timelinePersistence: mockPersistence,
             workspacePersistence: mockPersistence,
             memoryStore: mockPersistence,
             toolPersistence: mockPersistence,
+            agentInstanceStore: mockPersistence,
+            requestOriginStore: mockPersistence,
             agentTemplateStore: mockPersistence
+        )
+
+        let chat = PositronicKitCore(
+            llmService: UnconfiguredLLMService(),
+            persistence: persistence,
+            runtime: .init(timelineManager: timelineManager)
         )
 
         await #expect(throws: ChatEngineError.self) {

@@ -45,11 +45,15 @@ let chat = PositronicKitCore(
         agentTemplateStore: MyTemplateStoreLive()
     ),
     embeddingService: MyEmbeddingServiceLive(),
-    timelineManager: MyTimelineManagerLive()
+    runtime: .init(
+        timelineManager: MyTimelineManagerLive(),
+        toolRouter: MyToolRouterLive(),
+        workspaceRoot: myWorkspaceRoot
+    )
 )
 ```
 
-The longer per-store initializer still exists, but the grouped `persistence:` path is the clearer supported production setup for most adopters.
+The longer per-store initializer still exists, but the grouped `persistence:` + `runtime:` path is the clearer supported production setup for most adopters.
 
 Direct `withDependencies` configuration is still useful in tests or advanced internal integrations, but it is not the primary public integration path.
 
