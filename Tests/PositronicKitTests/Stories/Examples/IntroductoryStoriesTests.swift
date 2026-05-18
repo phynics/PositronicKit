@@ -6,8 +6,8 @@ import PositronicKitExamples
 import Testing
 @testable import PositronicKit
 
-@Suite("Introductory End-to-End")
-struct IntroductoryEndToEndTests {
+@Suite("Introductory stories")
+struct IntroductoryStoriesTests {
     @Test("Prompt journaling example shows base overlay and compaction flow")
     func promptJournalingExample() async {
         var journal = PromptJournal()

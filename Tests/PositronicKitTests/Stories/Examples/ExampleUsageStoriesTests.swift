@@ -3,7 +3,8 @@ import Testing
 import PKShared
 import PositronicKitExamples
 
-struct PositronicKitExamplesTests {
+@Suite("Example usage stories")
+struct ExampleUsageStoriesTests {
     @Test
     func promptExampleAssemblesReusableSections() async {
         let prompt = PKPromptExamples.makeToolingPrompt(

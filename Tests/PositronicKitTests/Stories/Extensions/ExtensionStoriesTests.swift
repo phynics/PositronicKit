@@ -6,7 +6,7 @@ import PKPrompt
 import PKTestSupport
 import Testing
 
-@Suite struct ExtensionPointAcceptanceTests {
+@Suite("Extension stories") struct ExtensionStoriesTests {
     @Test("PromptSectionProviding injects custom prompt content into the assembled prompt")
     func promptSectionProviderInjectsPromptContent() async throws {
         let provider = AcceptancePromptSectionProvider()

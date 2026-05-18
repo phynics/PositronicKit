@@ -6,7 +6,8 @@ import PKPrompt
 import PKTestSupport
 import Testing
 
-struct PositronicKitCoreTests {
+@Suite("Public runtime stories")
+struct PublicRuntimeStoriesTests {
     @Test
     func directFacadeInitializationSupportsOneTurnChat() async throws {
         let (chat, mockLLM, mockPersistence, timelineId, _) = try await makeAcceptanceRuntime()
@@ -394,7 +395,7 @@ private struct AcceptanceMockTool: PKShared.Tool, @unchecked Sendable {
 
 // MARK: - Tool Argument Failure Mode Tests
 
-extension PositronicKitCoreTests {
+extension PublicRuntimeStoriesTests {
     @Test("Tool with malformed JSON arguments emits error to LLM")
     func toolWithMalformedArguments() async throws {
         let (chat, mockLLM, mockPersistence, timelineId, _) = try await makeAcceptanceRuntime()
