@@ -47,23 +47,21 @@ public struct ListDirectoryTool: Tool, Sendable {
         let pathString = params.optional("path", as: String.self) ?? "."
 
         let url: URL
-        do {
-            url = try PathSanitizer.safelyResolve(path: pathString, within: currentDirectory, jailRoot: jailRoot)
-        } catch {
-            return .failure(error.localizedDescription)
+        switch FilesystemToolSupport.resolvePath(pathString, currentDirectory: currentDirectory, jailRoot: jailRoot) {
+        case .success(let value):
+            url = value
+        case .failure(let result):
+            return result
         }
 
         let fileManager = FileManager.default
 
         do {
-            // Check if path exists and is a directory
-            var isDirectory: ObjCBool = false
-            guard fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory) else {
-                return .failure("Path not found: \(pathString)")
-            }
-
-            guard isDirectory.boolValue else {
-                return .failure("Path is not a directory: \(pathString)")
+            switch FilesystemToolSupport.requireExistingDirectory(at: url, displayPath: pathString) {
+            case .success:
+                break
+            case .failure(let result):
+                return result
             }
 
             let contents = try fileManager.contentsOfDirectory(

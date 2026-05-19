@@ -3,58 +3,36 @@ import PositronicKit
 import Foundation
 
 public final class MockToolPersistence: ToolPersistenceProtocol, @unchecked Sendable {
-    public var workspaces: [WorkspaceReference] = []
+    private let backing = InMemoryToolPersistence()
+
+    public var workspaces: [WorkspaceReference] {
+        get { (try? BlockingAsync.run { [self] in await self.backing.allWorkspaces() }) ?? [] }
+        set { _ = try? BlockingAsync.run { [self] in await self.backing.replaceWorkspaces(newValue) } }
+    }
 
     public init() {}
 
     public func addToolToWorkspace(workspaceId: UUID, tool: ToolReference) async throws {
-        if let index = workspaces.firstIndex(where: { $0.id == workspaceId }) {
-            var ws = workspaces[index]
-            ws.tools.append(tool)
-            workspaces[index] = ws
-        } else {
-            throw ToolError.workspaceNotFound(workspaceId)
-        }
+        try await backing.addToolToWorkspace(workspaceId: workspaceId, tool: tool)
     }
 
     public func syncTools(workspaceId: UUID, tools: [ToolReference]) async throws {
-        if let index = workspaces.firstIndex(where: { $0.id == workspaceId }) {
-            var ws = workspaces[index]
-            ws.tools = tools
-            workspaces[index] = ws
-        } else {
-            throw ToolError.workspaceNotFound(workspaceId)
-        }
+        try await backing.syncTools(workspaceId: workspaceId, tools: tools)
     }
 
     public func fetchTools(forWorkspaces workspaceIds: [UUID]) async throws -> [ToolReference] {
-        return workspaces.filter { workspaceIds.contains($0.id) }.flatMap { $0.tools }
+        try await backing.fetchTools(forWorkspaces: workspaceIds)
     }
 
     public func fetchOriginTools(originId: UUID) async throws -> [ToolReference] {
-        return workspaces.filter { $0.originId == originId }.flatMap { $0.tools }
+        try await backing.fetchOriginTools(originId: originId)
     }
 
     public func findWorkspaceId(forToolId toolId: String, in workspaceIds: [UUID]) async throws -> UUID? {
-        for ws in workspaces where workspaceIds.contains(ws.id) {
-            if ws.tools.contains(where: { $0.toolId == toolId }) {
-                return ws.id
-            }
-        }
-        return nil
+        try await backing.findWorkspaceId(forToolId: toolId, in: workspaceIds)
     }
 
     public func fetchToolSource(toolId: String, workspaceIds: [UUID], primaryWorkspaceId: UUID?) async throws -> String? {
-        guard let wsId = try await findWorkspaceId(forToolId: toolId, in: workspaceIds),
-              let ws = workspaces.first(where: { $0.id == wsId })
-        else { return nil }
-
-        if ws.location == .attached {
-            return "Additional Workspace"
-        } else if ws.id == primaryWorkspaceId {
-            return "Primary Workspace"
-        } else {
-            return "Workspace: \(ws.uri.description)"
-        }
+        try await backing.fetchToolSource(toolId: toolId, workspaceIds: workspaceIds, primaryWorkspaceId: primaryWorkspaceId)
     }
 }

@@ -3,32 +3,29 @@ import PositronicKit
 import Foundation
 
 public final class MockTimelinePersistence: TimelinePersistenceProtocol, @unchecked Sendable {
-    public var timelines: [Timeline] = []
+    private let backing = InMemoryTimelinePersistence()
+
+    public var timelines: [Timeline] {
+        get { (try? BlockingAsync.run { [self] in await self.backing.allTimelines() }) ?? [] }
+        set { _ = try? BlockingAsync.run { [self] in await self.backing.replaceTimelines(newValue) } }
+    }
 
     public init() {}
 
     public func saveTimeline(_ timeline: Timeline) async throws {
-        if let index = timelines.firstIndex(where: { $0.id == timeline.id }) {
-            timelines[index] = timeline
-        } else {
-            timelines.append(timeline)
-        }
+        try await backing.saveTimeline(timeline)
     }
 
     public func fetchTimeline(id: UUID) async throws -> Timeline? {
-        return timelines.first(where: { $0.id == id })
+        try await backing.fetchTimeline(id: id)
     }
 
     public func fetchAllTimelines(includeArchived: Bool) async throws -> [Timeline] {
-        if includeArchived {
-            return timelines
-        } else {
-            return timelines.filter { !$0.isArchived }
-        }
+        try await backing.fetchAllTimelines(includeArchived: includeArchived)
     }
 
     public func deleteTimeline(id: UUID) async throws {
-        timelines.removeAll(where: { $0.id == id })
+        try await backing.deleteTimeline(id: id)
     }
 
     public func pruneTimelines(olderThan timeInterval: TimeInterval, excluding excludedTimelineIds: [UUID], dryRun: Bool) async throws -> Int {

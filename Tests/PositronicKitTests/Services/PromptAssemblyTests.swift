@@ -241,4 +241,89 @@ struct PromptAssemblyTests {
         #expect(messages.last?.role == .user)
         #expect(messages.last?.content == "final artifact")
     }
+
+    @Test("RenderedPrompt projections stay aligned across message models")
+    func renderedPromptProjectionsStayAligned() async throws {
+        let rendered = RenderedPrompt(
+            sections: [
+                .init(
+                    id: "system",
+                    role: .system,
+                    priority: 100,
+                    estimatedTokens: 1,
+                    compression: .keep,
+                    type: .text,
+                    cachePolicy: .stable,
+                    path: ["prompt", "system"],
+                    parentID: nil,
+                    content: .text("System rules")
+                ),
+                .init(
+                    id: "history",
+                    role: .chatHistory,
+                    priority: 50,
+                    estimatedTokens: 1,
+                    compression: .keep,
+                    type: .list,
+                    cachePolicy: .volatile,
+                    path: ["prompt", "history"],
+                    parentID: nil,
+                    content: .messages([
+                        Message(content: "Question", role: .user),
+                        Message(
+                            content: "Answer",
+                            role: .assistant,
+                            think: "Reasoning",
+                            toolCalls: [ToolCall(name: "search", arguments: ["q": .string("x")])]
+                        ),
+                        Message(content: "Tool output", role: .tool),
+                    ])
+                ),
+                .init(
+                    id: "query",
+                    role: .userQuery,
+                    priority: 10,
+                    estimatedTokens: 1,
+                    compression: .keep,
+                    type: .text,
+                    cachePolicy: .volatile,
+                    path: ["prompt", "query"],
+                    parentID: nil,
+                    content: .text("Latest question")
+                ),
+            ],
+            string: "",
+            sectionsByID: [
+                "system": "System rules",
+                "query": "Latest question",
+            ]
+        )
+
+        let llmMessages = rendered.buildMessages()
+        let uiMessages = rendered.buildConversationMessages()
+
+        #expect(llmMessages.count == 5)
+        #expect(uiMessages.count == 5)
+
+        #expect(llmMessages.first?.role == LLMMessage.Role.system)
+        #expect(llmMessages.first?.content == uiMessages.first?.content)
+
+        #expect(llmMessages[1].role == LLMMessage.Role.user)
+        #expect(llmMessages[1].content == uiMessages[1].content)
+
+        #expect(llmMessages[2].role == LLMMessage.Role.assistant)
+        #expect(llmMessages[2].content == "<think>Reasoning</think>\nAnswer")
+        #expect(llmMessages[2].toolCalls?.first?.name == "search")
+        #expect(uiMessages[2].content == "Answer")
+        #expect(uiMessages[2].think == "Reasoning")
+
+        #expect(llmMessages[3].role == LLMMessage.Role.user)
+        #expect(llmMessages[3].content.contains("<tool_response>"))
+        #expect(uiMessages[3].role == Message.MessageRole.tool)
+        #expect(uiMessages[3].content == "Tool output")
+
+        #expect(llmMessages[4].role == LLMMessage.Role.user)
+        #expect(uiMessages[4].role == Message.MessageRole.user)
+        #expect(llmMessages[4].content == uiMessages[4].content)
+    }
 }

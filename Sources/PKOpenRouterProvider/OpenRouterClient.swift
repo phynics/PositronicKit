@@ -231,15 +231,13 @@ public actor OpenRouterClient: LLMClientProtocol {
 
         return AsyncThrowingStream<LLMStreamChunk, Error> { continuation in
             Task {
-                let hasYielded = Mutex(false)
-                let sawStreamedToolCalls = Mutex(false)
-                let finishedWithToolCalls = Mutex(false)
+                let recoveryState = Mutex(LLMToolCallRecoveryState())
 
                 do {
                     try await RetryPolicy.retry(
                         maxRetries: maxRetries,
                         shouldRetry: { error in
-                            !hasYielded.withLock { $0 } && RetryPolicy.isTransient(error: error)
+                            recoveryState.withLock { $0.shouldRetryAfterError } && RetryPolicy.isTransient(error: error)
                         },
                         operation: {
                             let request = self.buildChatRequest(
@@ -263,14 +261,12 @@ public actor OpenRouterClient: LLMClientProtocol {
                             )
                             try await self.streamChatResponse(
                                 request: request,
-                                hasYielded: hasYielded,
-                                sawStreamedToolCalls: sawStreamedToolCalls,
-                                finishedWithToolCalls: finishedWithToolCalls,
+                                recoveryState: recoveryState,
                                 logger: logger,
                                 continuation: continuation
                             )
 
-                            if finishedWithToolCalls.withLock({ $0 }) && !sawStreamedToolCalls.withLock({ $0 }) {
+                            if recoveryState.withLock(\.shouldRecoverToolCalls) {
                                 logger.warning("OpenRouter stream finished with tool_calls but no streamed delta.toolCalls were received. Recovering tool calls from non-stream response.")
                                 let recoveryRequest = self.buildChatRequest(
                                     chatURL: chatURL,
@@ -320,9 +316,7 @@ public actor OpenRouterClient: LLMClientProtocol {
 
     private func streamChatResponse(
         request: URLRequest,
-        hasYielded: borrowing Mutex<Bool>,
-        sawStreamedToolCalls: borrowing Mutex<Bool>,
-        finishedWithToolCalls: borrowing Mutex<Bool>,
+        recoveryState: borrowing Mutex<LLMToolCallRecoveryState>,
         logger: Logger,
         continuation: AsyncThrowingStream<LLMStreamChunk, Error>.Continuation
     ) async throws {
@@ -338,9 +332,7 @@ public actor OpenRouterClient: LLMClientProtocol {
         for try await line in stream.lines {
             processSSELine(
                 line,
-                hasYielded: hasYielded,
-                sawStreamedToolCalls: sawStreamedToolCalls,
-                finishedWithToolCalls: finishedWithToolCalls,
+                recoveryState: recoveryState,
                 logger: logger,
                 continuation: continuation
             )
@@ -361,9 +353,7 @@ public actor OpenRouterClient: LLMClientProtocol {
 
     private nonisolated func processSSELine(
         _ line: String,
-        hasYielded: borrowing Mutex<Bool>,
-        sawStreamedToolCalls: borrowing Mutex<Bool>,
-        finishedWithToolCalls: borrowing Mutex<Bool>,
+        recoveryState: borrowing Mutex<LLMToolCallRecoveryState>,
         logger: Logger,
         continuation: AsyncThrowingStream<LLMStreamChunk, Error>.Continuation
     ) {
@@ -374,15 +364,12 @@ public actor OpenRouterClient: LLMClientProtocol {
 
         do {
             let result = try JSONDecoder().decode(LLMStreamChunk.self, from: data)
-            if let content = result.choices.first?.delta.content, !content.isEmpty {
-                hasYielded.withLock { $0 = true }
-            }
-            if result.choices.first?.delta.toolCalls != nil {
-                hasYielded.withLock { $0 = true }
-                sawStreamedToolCalls.withLock { $0 = true }
-            }
-            if result.choices.contains(where: { $0.finishReason == "tool_calls" }) {
-                finishedWithToolCalls.withLock { $0 = true }
+            recoveryState.withLock {
+                $0.observe(
+                    yieldedContent: !(result.choices.first?.delta.content?.isEmpty ?? true),
+                    streamedToolCalls: result.choices.first?.delta.toolCalls != nil,
+                    finishedWithToolCalls: result.choices.contains(where: { $0.finishReason == "tool_calls" })
+                )
             }
             continuation.yield(result)
         } catch {

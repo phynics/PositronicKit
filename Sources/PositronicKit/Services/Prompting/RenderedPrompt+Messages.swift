@@ -5,50 +5,33 @@ import PKShared
 public extension RenderedPrompt {
     /// Builds provider-neutral conversation messages from the canonical rendered prompt product.
     func buildConversationMessages() -> [Message] {
+        let projection = RenderedPromptProjection(prompt: self)
         var messages: [Message] = []
 
-        if let systemMessage = buildSystemConversationMessage(from: sections) {
+        if let systemMessage = buildSystemConversationMessage(from: projection) {
             messages.append(systemMessage)
         }
 
-        messages.append(contentsOf: buildHistoryConversationMessages(from: sections))
+        messages.append(contentsOf: buildHistoryConversationMessages(from: projection))
 
-        if let queryMessage = buildUserQueryConversationMessage(from: sections) {
+        if let queryMessage = buildUserQueryConversationMessage(from: projection) {
             messages.append(queryMessage)
         }
 
         return messages
     }
 
-    private func buildSystemConversationMessage(from sections: [Section]) -> Message? {
-        var systemParts: [String] = []
-
-        for section in sections where section.role != .chatHistory && section.role != .userQuery {
-            if case let .text(content) = section.content, !content.isEmpty {
-                systemParts.append(content)
-            }
-        }
-
-        guard !systemParts.isEmpty else { return nil }
-        return Message(content: systemParts.joined(separator: "\n\n---\n\n"), role: .system)
+    private func buildSystemConversationMessage(from projection: RenderedPromptProjection) -> Message? {
+        guard let systemText = projection.systemText else { return nil }
+        return Message(content: systemText, role: .system)
     }
 
-    private func buildHistoryConversationMessages(from sections: [Section]) -> [Message] {
-        sections.flatMap { section -> [Message] in
-            guard case let .messages(messages) = section.content else {
-                return []
-            }
-            return messages
-        }
+    private func buildHistoryConversationMessages(from projection: RenderedPromptProjection) -> [Message] {
+        projection.historyMessages
     }
 
-    private func buildUserQueryConversationMessage(from sections: [Section]) -> Message? {
-        guard let querySection = sections.first(where: { $0.role == .userQuery }) else {
-            return nil
-        }
-        guard case let .text(content) = querySection.content, !content.isEmpty else {
-            return nil
-        }
-        return Message(content: content, role: .user)
+    private func buildUserQueryConversationMessage(from projection: RenderedPromptProjection) -> Message? {
+        guard let userQueryText = projection.userQueryText else { return nil }
+        return Message(content: userQueryText, role: .user)
     }
 }

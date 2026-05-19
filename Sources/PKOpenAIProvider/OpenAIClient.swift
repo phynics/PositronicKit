@@ -63,35 +63,30 @@ public actor OpenAIClient: LLMClientProtocol {
 
         return AsyncThrowingStream<LLMStreamChunk, Error> { continuation in
             Task {
-                let hasYielded = Mutex(false)
-                let sawStreamedToolCalls = Mutex(false)
-                let finishedWithToolCalls = Mutex(false)
+                let recoveryState = Mutex(LLMToolCallRecoveryState())
 
                 do {
                     try await RetryPolicy.retry(
                         maxRetries: maxRetries,
                         shouldRetry: { error in
-                            !hasYielded.withLock { $0 } && RetryPolicy.isTransient(error: error)
+                            recoveryState.withLock { $0.shouldRetryAfterError } && RetryPolicy.isTransient(error: error)
                         },
                         operation: {
                             let stream: AsyncThrowingStream<ChatStreamResult, Error> = client.chatsStream(query: query)
 
                             for try await result in stream {
-                                if let delta = result.choices.first?.delta.content, !delta.isEmpty {
-                                    hasYielded.withLock { $0 = true }
-                                }
-                                if result.choices.first?.delta.toolCalls != nil {
-                                    hasYielded.withLock { $0 = true }
-                                    sawStreamedToolCalls.withLock { $0 = true }
-                                }
-                                if result.choices.contains(where: { $0.finishReason == .toolCalls }) {
-                                    finishedWithToolCalls.withLock { $0 = true }
+                                recoveryState.withLock {
+                                    $0.observe(
+                                        yieldedContent: !(result.choices.first?.delta.content?.isEmpty ?? true),
+                                        streamedToolCalls: result.choices.first?.delta.toolCalls != nil,
+                                        finishedWithToolCalls: result.choices.contains(where: { $0.finishReason == .toolCalls })
+                                    )
                                 }
 
                                 continuation.yield(result.toLLMStreamChunk())
                             }
 
-                            if finishedWithToolCalls.withLock({ $0 }) && !sawStreamedToolCalls.withLock({ $0 }) {
+                            if recoveryState.withLock(\.shouldRecoverToolCalls) {
                                 logger.warning("OpenAI stream finished with tool_calls but no streamed delta.toolCalls were received. Recovering tool calls from non-stream response.")
                                 var recoveryQuery = query
                                 recoveryQuery.stream = false

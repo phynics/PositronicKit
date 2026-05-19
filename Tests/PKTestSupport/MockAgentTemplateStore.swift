@@ -3,40 +3,32 @@ import PositronicKit
 import Foundation
 
 public final class MockAgentTemplateStore: AgentTemplateStoreProtocol, @unchecked Sendable {
-    public var agentTemplates: [AgentTemplate] = []
+    private let backing = InMemoryAgentTemplateStore()
+
+    public var agentTemplates: [AgentTemplate] {
+        get { (try? BlockingAsync.run { [self] in await self.backing.allTemplates() }) ?? [] }
+        set { _ = try? BlockingAsync.run { [self] in await self.backing.replaceTemplates(newValue) } }
+    }
 
     public init() {}
 
     public func saveAgentTemplate(_ agent: AgentTemplate) async throws {
-        if let index = agentTemplates.firstIndex(where: { $0.id == agent.id }) {
-            agentTemplates[index] = agent
-        } else {
-            agentTemplates.append(agent)
-        }
+        try await backing.saveAgentTemplate(agent)
     }
 
     public func fetchAgentTemplate(id: UUID) async throws -> AgentTemplate? {
-        return agentTemplates.first(where: { $0.id == id })
+        try await backing.fetchAgentTemplate(id: id)
     }
 
     public func fetchAgentTemplate(key: String) async throws -> AgentTemplate? {
-        if key == "default" {
-            return agentTemplates.first
-        }
-        if let uuid = UUID(uuidString: key) {
-            return agentTemplates.first(where: { $0.id == uuid })
-        }
-        return nil
+        try await backing.fetchAgentTemplate(key: key)
     }
 
     public func fetchAllAgentTemplates() async throws -> [AgentTemplate] {
-        return agentTemplates
+        try await backing.fetchAllAgentTemplates()
     }
 
     public func hasAgentTemplate(id: String) async -> Bool {
-        if let uuid = UUID(uuidString: id) {
-             return agentTemplates.contains(where: { $0.id == uuid })
-        }
-        return false
+        await backing.hasAgentTemplate(id: id)
     }
 }

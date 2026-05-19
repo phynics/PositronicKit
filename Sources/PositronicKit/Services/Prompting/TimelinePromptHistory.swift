@@ -182,7 +182,7 @@ actor TimelinePromptHistory {
     /// Record a rendered prompt snapshot without re-running prompt rendering.
     @discardableResult
     func record(prompt: RenderedPrompt) -> PromptDiff {
-        let duplicateIDs = duplicateResolvedSectionIDs(in: prompt.sections)
+        let duplicateIDs = prompt.sections.duplicateRenderedPromptSectionIDs()
         precondition(
             duplicateIDs.isEmpty,
             "Duplicate context section ids in TimelinePromptHistory.record: \(duplicateIDs.joined(separator: ", "))"
@@ -301,18 +301,6 @@ actor TimelinePromptHistory {
             )
         }
         return metadata
-    }
-
-    private func duplicateResolvedSectionIDs(in sections: [RenderedPrompt.Section]) -> [String] {
-        var counts: [String: Int] = [:]
-        for section in sections {
-            counts[section.id, default: 0] += 1
-        }
-
-        return counts
-            .filter { $0.value > 1 }
-            .map(\.key)
-            .sorted()
     }
 
     private func compactIfNeeded() -> Bool {

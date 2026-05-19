@@ -3,20 +3,25 @@ import PositronicKit
 import PKShared
 
 public final class MockMessageStore: MessageStoreProtocol, @unchecked Sendable {
-    public var messages: [ConversationMessage] = []
+    private let backing = InMemoryMessageStore()
+
+    public var messages: [ConversationMessage] {
+        get { (try? BlockingAsync.run { [self] in await self.backing.allMessages() }) ?? [] }
+        set { _ = try? BlockingAsync.run { [self] in await self.backing.replaceMessages(newValue) } }
+    }
 
     public init() {}
 
     public func saveMessage(_ message: ConversationMessage) async throws {
-        messages.append(message)
+        try await backing.saveMessage(message)
     }
 
     public func fetchMessages(for timelineId: UUID) async throws -> [ConversationMessage] {
-        return messages.filter { $0.timelineId == timelineId }
+        try await backing.fetchMessages(for: timelineId)
     }
 
     public func deleteMessages(for timelineId: UUID) async throws {
-        messages.removeAll(where: { $0.timelineId == timelineId })
+        try await backing.deleteMessages(for: timelineId)
     }
 
     public func pruneMessages(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int {
@@ -24,11 +29,6 @@ public final class MockMessageStore: MessageStoreProtocol, @unchecked Sendable {
     }
 
     public func fetchSnapshots(for timelineId: UUID) async throws -> [TurnSnapshot] {
-        messages
-            .filter { $0.timelineId == timelineId && $0.role == "assistant" }
-            .compactMap { msg in
-                guard let data = msg.snapshotData else { return nil }
-                return try? SerializationUtils.jsonDecoder.decode(TurnSnapshot.self, from: data)
-            }
+        try await backing.fetchSnapshots(for: timelineId)
     }
 }

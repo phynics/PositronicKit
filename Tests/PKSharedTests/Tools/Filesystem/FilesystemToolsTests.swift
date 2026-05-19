@@ -101,6 +101,10 @@ struct FilesystemToolsTests {
         #expect(resultInclude.success)
         #expect(resultInclude.output.contains("file1.txt"))
         #expect(!resultInclude.output.contains("file2.md"))
+
+        let resultSingleFile = try await tool.execute(parameters: ["pattern": "Hello", "path": "file1.txt"])
+        #expect(resultSingleFile.success)
+        #expect(resultSingleFile.output.contains("file1.txt"))
     }
 
     @Test("Path Traversal Protection")

@@ -52,24 +52,22 @@ public struct SearchFileContentTool: Tool, Sendable {
     public func execute(parameters: [String: Any]) async throws -> ToolResult {
         let params = ToolParameters(parameters)
         let pattern: String
-        do {
-            pattern = try params.require("pattern", as: String.self)
-        } catch {
-            let errorMsg = error.localizedDescription
-            if let example = usageExample {
-                return .failure("\(errorMsg) Example: \(example)")
-            }
-            return .failure(errorMsg)
+        switch FilesystemToolSupport.requiredString("pattern", from: params, usageExample: usageExample) {
+        case .success(let value):
+            pattern = value
+        case .failure(let result):
+            return result
         }
 
         let pathString = params.optional("path", as: String.self) ?? "."
         let recursive = params.optional("recursive", as: Bool.self) ?? false
 
         let url: URL
-        do {
-            url = try PathSanitizer.safelyResolve(path: pathString, within: currentDirectory, jailRoot: jailRoot)
-        } catch {
-            return .failure(error.localizedDescription)
+        switch FilesystemToolSupport.resolvePath(pathString, currentDirectory: currentDirectory, jailRoot: jailRoot) {
+        case .success(let value):
+            url = value
+        case .failure(let result):
+            return result
         }
 
         let fileManager = FileManager.default
@@ -133,9 +131,7 @@ public struct SearchFileContentTool: Tool, Sendable {
         var results: [String] = []
         let lines = content.components(separatedBy: .newlines)
         for (index, line) in lines.enumerated() where line.localizedCaseInsensitiveContains(pattern) {
-            let relativePath = fileURL.path.replacingOccurrences(of: baseURL.path, with: "")
-                .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-            let displayPath = relativePath.isEmpty ? fileURL.lastPathComponent : relativePath
+            let displayPath = FilesystemToolSupport.relativeDisplayPath(for: fileURL, baseURL: baseURL)
             results.append("\(displayPath):\(index + 1): \(line.trimmingCharacters(in: .whitespaces))")
         }
         return results
@@ -146,9 +142,6 @@ public struct SearchFileContentTool: Tool, Sendable {
             return .success("No matches found for '\(pattern)'")
         }
 
-        return .success(
-            matches.prefix(50).joined(separator: "\n")
-                + (matches.count > 50 ? "\n... (limit reached)" : "")
-        )
+        return .success(FilesystemToolSupport.limitedOutput(matches, limit: 50))
     }
 }

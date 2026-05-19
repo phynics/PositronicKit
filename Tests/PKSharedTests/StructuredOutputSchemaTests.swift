@@ -21,3 +21,35 @@ struct StructuredOutputSchemaTests {
         #expect(encodedString.contains("\"tags\""))
     }
 }
+
+@Suite("LLM Tool Call Recovery State Tests")
+struct LLMToolCallRecoveryStateTests {
+    @Test("recovery state tracks yielded content and streamed tool calls")
+    func recoveryStateTracksObservedStreamSignals() {
+        var state = LLMToolCallRecoveryState()
+
+        #expect(state.shouldRetryAfterError)
+        #expect(!state.shouldRecoverToolCalls)
+
+        state.observe(yieldedContent: true, streamedToolCalls: false, finishedWithToolCalls: false)
+        #expect(!state.shouldRetryAfterError)
+        #expect(!state.shouldRecoverToolCalls)
+
+        state.observe(yieldedContent: false, streamedToolCalls: true, finishedWithToolCalls: true)
+        #expect(state.finishedWithToolCalls)
+        #expect(state.sawStreamedToolCalls)
+        #expect(!state.shouldRecoverToolCalls)
+    }
+
+    @Test("recovery state requests recovery only when finish reason arrives without streamed tool calls")
+    func recoveryStateRequestsRecoveryOnlyWhenNeeded() {
+        var state = LLMToolCallRecoveryState()
+
+        state.observe(yieldedContent: false, streamedToolCalls: false, finishedWithToolCalls: true)
+
+        #expect(state.finishedWithToolCalls)
+        #expect(!state.sawStreamedToolCalls)
+        #expect(state.shouldRecoverToolCalls)
+        #expect(state.shouldRetryAfterError)
+    }
+}

@@ -46,28 +46,29 @@ public struct ReadFileTool: Tool, Sendable {
     public func execute(parameters: [String: Any]) async throws -> ToolResult {
         let params = ToolParameters(parameters)
         let pathString: String
-        do {
-            pathString = try params.require("path", as: String.self)
-        } catch {
-            let errorMsg = error.localizedDescription
-            if let example = usageExample {
-                return .failure("\(errorMsg) Example: \(example)")
-            }
-            return .failure(errorMsg)
+        switch FilesystemToolSupport.requiredString("path", from: params, usageExample: usageExample) {
+        case .success(let value):
+            pathString = value
+        case .failure(let result):
+            return result
         }
 
         let url: URL
-        do {
-            url = try PathSanitizer.safelyResolve(path: pathString, within: currentDirectory, jailRoot: jailRoot)
-        } catch {
-            return .failure(error.localizedDescription)
+        switch FilesystemToolSupport.resolvePath(pathString, currentDirectory: currentDirectory, jailRoot: jailRoot) {
+        case .success(let value):
+            url = value
+        case .failure(let result):
+            return result
+        }
+
+        switch FilesystemToolSupport.requireExistingFile(at: url, displayPath: pathString) {
+        case .success:
+            break
+        case .failure(let result):
+            return result
         }
 
         let fileManager = FileManager.default
-
-        guard fileManager.fileExists(atPath: url.path) else {
-            return .failure("File not found: \(pathString)")
-        }
 
         do {
             // Check file size to prevent reading massive files accidentally

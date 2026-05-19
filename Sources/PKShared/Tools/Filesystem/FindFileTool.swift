@@ -49,34 +49,30 @@ public struct FindFileTool: Tool, Sendable {
     public func execute(parameters: [String: Any]) async throws -> ToolResult {
         let params = ToolParameters(parameters)
         let pattern: String
-        do {
-            pattern = try params.require("pattern", as: String.self)
-        } catch {
-            let errorMsg = error.localizedDescription
-            if let example = usageExample {
-                return .failure("\(errorMsg) Example: \(example)")
-            }
-            return .failure(errorMsg)
+        switch FilesystemToolSupport.requiredString("pattern", from: params, usageExample: usageExample) {
+        case .success(let value):
+            pattern = value
+        case .failure(let result):
+            return result
         }
 
         let pathString = params.optional("path", as: String.self) ?? "."
         let url: URL
-        do {
-            url = try PathSanitizer.safelyResolve(path: pathString, within: currentDirectory, jailRoot: jailRoot)
-        } catch {
-            return .failure(error.localizedDescription)
+        switch FilesystemToolSupport.resolvePath(pathString, currentDirectory: currentDirectory, jailRoot: jailRoot) {
+        case .success(let value):
+            url = value
+        case .failure(let result):
+            return result
+        }
+
+        switch FilesystemToolSupport.requireExistingDirectory(at: url, displayPath: pathString) {
+        case .success:
+            break
+        case .failure(let result):
+            return result
         }
 
         let fileManager = FileManager.default
-
-        var isDirectory: ObjCBool = false
-        guard fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory) else {
-            return .failure("Path not found: \(pathString)")
-        }
-
-        guard isDirectory.boolValue else {
-            return .failure("Path is not a directory: \(pathString)")
-        }
 
         var matches: [String] = []
         let enumerator = fileManager.enumerator(
@@ -87,10 +83,7 @@ public struct FindFileTool: Tool, Sendable {
 
         while let fileURL = enumerator?.nextObject() as? URL {
             if fileURL.lastPathComponent.localizedCaseInsensitiveContains(pattern) {
-                // Return relative path if possible, or full path
-                let path = fileURL.path.replacingOccurrences(of: url.path, with: "")
-                    .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-                matches.append(path.isEmpty ? fileURL.lastPathComponent : path)
+                matches.append(FilesystemToolSupport.relativeDisplayPath(for: fileURL, baseURL: url))
             }
 
             // Limit results to prevent massive outputs

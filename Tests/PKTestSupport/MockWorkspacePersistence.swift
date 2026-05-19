@@ -3,27 +3,28 @@ import PositronicKit
 import PKShared
 
 public final class MockWorkspacePersistence: WorkspacePersistenceProtocol, @unchecked Sendable {
-    public var workspaces: [WorkspaceReference] = []
+    private let backing = InMemoryWorkspacePersistence()
+
+    public var workspaces: [WorkspaceReference] {
+        get { (try? BlockingAsync.run { [self] in await self.backing.allWorkspaces() }) ?? [] }
+        set { _ = try? BlockingAsync.run { [self] in await self.backing.replaceWorkspaces(newValue) } }
+    }
 
     public init() {}
 
     public func saveWorkspace(_ workspace: WorkspaceReference) async throws {
-        if let index = workspaces.firstIndex(where: { $0.id == workspace.id }) {
-            workspaces[index] = workspace
-        } else {
-            workspaces.append(workspace)
-        }
+        try await backing.saveWorkspace(workspace)
     }
 
     public func fetchWorkspace(id: UUID, includeTools _: Bool = false) async throws -> WorkspaceReference? {
-        return workspaces.first(where: { $0.id == id })
+        try await backing.fetchWorkspace(id: id)
     }
 
     public func fetchAllWorkspaces() async throws -> [WorkspaceReference] {
-        return workspaces
+        try await backing.fetchAllWorkspaces()
     }
 
     public func deleteWorkspace(id: UUID) async throws {
-        workspaces.removeAll(where: { $0.id == id })
+        try await backing.deleteWorkspace(id: id)
     }
 }

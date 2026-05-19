@@ -5,16 +5,16 @@ import PKShared
 public extension RenderedPrompt {
     /// Builds provider-neutral chat messages from the canonical rendered prompt product.
     func buildMessages() -> [LLMMessage] {
-        let resolved = sections
+        let projection = RenderedPromptProjection(prompt: self)
         var messages: [LLMMessage] = []
 
-        if let systemMessage = buildSystemMessage(from: resolved) {
+        if let systemMessage = buildSystemMessage(from: projection) {
             messages.append(systemMessage)
         }
 
-        messages.append(contentsOf: buildHistoryMessages(from: resolved))
+        messages.append(contentsOf: buildHistoryMessages(from: projection))
 
-        if let queryMessage = buildUserQueryMessage(from: resolved) {
+        if let queryMessage = buildUserQueryMessage(from: projection) {
             messages.append(queryMessage)
         }
 
@@ -22,43 +22,21 @@ public extension RenderedPrompt {
     }
 
     private func buildSystemMessage(
-        from sections: [Section]
+        from projection: RenderedPromptProjection
     ) -> LLMMessage? {
-        var systemParts: [String] = []
-
-        for section in sections where section.role != .chatHistory && section.role != .userQuery {
-            if case let .text(content) = section.content, !content.isEmpty {
-                systemParts.append(content)
-            }
-        }
-
-        guard !systemParts.isEmpty else { return nil }
-        return LLMMessage(role: .system, content: systemParts.joined(separator: "\n\n---\n\n"))
+        guard let systemText = projection.systemText else { return nil }
+        return LLMMessage(role: .system, content: systemText)
     }
 
-    private func buildHistoryMessages(from sections: [Section]) -> [LLMMessage] {
-        sections
-            .flatMap { section -> [Message] in
-                guard case let .messages(messages) = section.content else {
-                    return []
-                }
-                return messages
-            }
-            .map(convertHistoryMessage)
+    private func buildHistoryMessages(from projection: RenderedPromptProjection) -> [LLMMessage] {
+        projection.historyMessages.map(convertHistoryMessage)
     }
 
     private func buildUserQueryMessage(
-        from sections: [Section]
+        from projection: RenderedPromptProjection
     ) -> LLMMessage? {
-        guard let querySection = sections.first(where: { $0.role == .userQuery }) else {
-            return nil
-        }
-
-        guard case let .text(content) = querySection.content else {
-            return nil
-        }
-
-        return LLMMessage(role: .user, content: content)
+        guard let userQueryText = projection.userQueryText else { return nil }
+        return LLMMessage(role: .user, content: userQueryText)
     }
 
     private func convertHistoryMessage(_ msg: Message) -> LLMMessage {

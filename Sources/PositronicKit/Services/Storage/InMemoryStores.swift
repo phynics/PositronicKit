@@ -33,6 +33,14 @@ public actor InMemoryMessageStore: MessageStoreProtocol {
                 return try? SerializationUtils.jsonDecoder.decode(TurnSnapshot.self, from: data)
             }
     }
+
+    package func allMessages() -> [ConversationMessage] {
+        messages
+    }
+
+    package func replaceMessages(_ messages: [ConversationMessage]) {
+        self.messages = messages
+    }
 }
 
 // MARK: - InMemoryTimelinePersistence
@@ -70,6 +78,14 @@ public actor InMemoryTimelinePersistence: TimelinePersistenceProtocol {
     public func pruneTimelines(olderThan _: TimeInterval, excluding _: [UUID], dryRun _: Bool) async throws -> Int {
         0
     }
+
+    package func allTimelines() -> [Timeline] {
+        timelines
+    }
+
+    package func replaceTimelines(_ timelines: [Timeline]) {
+        self.timelines = timelines
+    }
 }
 
 // MARK: - InMemoryWorkspacePersistence
@@ -98,6 +114,14 @@ public actor InMemoryWorkspacePersistence: WorkspacePersistenceProtocol {
 
     public func deleteWorkspace(id: UUID) async throws {
         workspaces.removeAll { $0.id == id }
+    }
+
+    package func allWorkspaces() -> [WorkspaceReference] {
+        workspaces
+    }
+
+    package func replaceWorkspaces(_ workspaces: [WorkspaceReference]) {
+        self.workspaces = workspaces
     }
 }
 
@@ -229,6 +253,14 @@ public actor InMemoryToolPersistence: ToolPersistenceProtocol {
             return "Workspace: \(workspace.uri.description)"
         }
     }
+
+    package func allWorkspaces() -> [WorkspaceReference] {
+        workspaces
+    }
+
+    package func replaceWorkspaces(_ workspaces: [WorkspaceReference]) {
+        self.workspaces = workspaces
+    }
 }
 
 // MARK: - InMemoryAgentInstanceStore
@@ -335,5 +367,13 @@ public actor InMemoryAgentTemplateStore: AgentTemplateStoreProtocol {
             return templates.contains { $0.id == uuid }
         }
         return false
+    }
+
+    package func allTemplates() -> [AgentTemplate] {
+        templates
+    }
+
+    package func replaceTemplates(_ templates: [AgentTemplate]) {
+        self.templates = templates
     }
 }

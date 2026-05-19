@@ -52,20 +52,29 @@ public struct SearchFilesTool: Tool, Sendable {
     public func execute(parameters: [String: Any]) async throws -> ToolResult {
         let params = ToolParameters(parameters)
         let pattern: String
-        do {
-            pattern = try params.require("pattern", as: String.self)
-        } catch {
-            return .failure(error.localizedDescription)
+        switch FilesystemToolSupport.requiredString("pattern", from: params, usageExample: usageExample) {
+        case .success(let value):
+            pattern = value
+        case .failure(let result):
+            return result
         }
 
         let pathString = params.optional("path", as: String.self) ?? "."
         let includePattern = params.optional("include", as: String.self)
 
         let url: URL
-        do {
-            url = try PathSanitizer.safelyResolve(path: pathString, within: currentDirectory, jailRoot: jailRoot)
-        } catch {
-            return .failure(error.localizedDescription)
+        switch FilesystemToolSupport.resolvePath(pathString, currentDirectory: currentDirectory, jailRoot: jailRoot) {
+        case .success(let value):
+            url = value
+        case .failure(let result):
+            return result
+        }
+
+        switch FilesystemToolSupport.requireExistingPath(at: url, displayPath: pathString) {
+        case .success:
+            break
+        case .failure(let result):
+            return result
         }
 
         return runGrepSearch(pattern: pattern, searchURL: url, includePattern: includePattern)
@@ -104,10 +113,7 @@ public struct SearchFilesTool: Tool, Sendable {
                 }
 
                 let lines = output.components(separatedBy: .newlines)
-                if lines.count > 100 {
-                    return .success(lines.prefix(100).joined(separator: "\n") + "\n... (limit reached)")
-                }
-                return .success(output)
+                return .success(FilesystemToolSupport.limitedOutput(lines, limit: 100))
             } else {
                 let errorOutput = String(data: errorData, encoding: .utf8)?
                     .trimmingCharacters(in: .whitespacesAndNewlines) ?? "Unknown error"
