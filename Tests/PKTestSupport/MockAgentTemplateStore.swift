@@ -1,34 +1,54 @@
 import PKShared
 import PositronicKit
 import Foundation
+import Synchronization
 
 public final class MockAgentTemplateStore: AgentTemplateStoreProtocol, @unchecked Sendable {
-    private let backing = InMemoryAgentTemplateStore()
+    private let templatesState = Mutex<[AgentTemplate]>([])
 
     public var agentTemplates: [AgentTemplate] {
-        get { (try? BlockingAsync.run { [self] in await self.backing.allTemplates() }) ?? [] }
-        set { _ = try? BlockingAsync.run { [self] in await self.backing.replaceTemplates(newValue) } }
+        get { templatesState.withLock { $0 } }
+        set { templatesState.withLock { $0 = newValue } }
     }
 
     public init() {}
 
     public func saveAgentTemplate(_ agent: AgentTemplate) async throws {
-        try await backing.saveAgentTemplate(agent)
+        templatesState.withLock {
+            if let index = $0.firstIndex(where: { $0.id == agent.id }) {
+                $0[index] = agent
+            } else {
+                $0.append(agent)
+            }
+        }
     }
 
     public func fetchAgentTemplate(id: UUID) async throws -> AgentTemplate? {
-        try await backing.fetchAgentTemplate(id: id)
+        templatesState.withLock {
+            $0.first { $0.id == id }
+        }
     }
 
     public func fetchAgentTemplate(key: String) async throws -> AgentTemplate? {
-        try await backing.fetchAgentTemplate(key: key)
+        templatesState.withLock {
+            if key == "default" {
+                return $0.first
+            }
+            if let uuid = UUID(uuidString: key) {
+                return $0.first { $0.id == uuid }
+            }
+            return nil
+        }
     }
 
     public func fetchAllAgentTemplates() async throws -> [AgentTemplate] {
-        try await backing.fetchAllAgentTemplates()
+        templatesState.withLock { $0 }
     }
 
     public func hasAgentTemplate(id: String) async -> Bool {
-        await backing.hasAgentTemplate(id: id)
+        guard let uuid = UUID(uuidString: id) else { return false }
+        return templatesState.withLock {
+            $0.contains { $0.id == uuid }
+        }
     }
 }

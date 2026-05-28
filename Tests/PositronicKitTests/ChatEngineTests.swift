@@ -6,7 +6,7 @@ import PKTestSupport
 import OpenAI
 import Testing
 
-@Suite @MainActor
+@Suite(.serialized) @MainActor
 struct ChatEngineTests {
     private let timelineId = UUID()
 
@@ -661,8 +661,9 @@ struct ChatEngineTests {
 
             var firstEvent: ChatEvent?
             for try await event in stream {
-                firstEvent = event
-                break
+                if firstEvent == nil {
+                    firstEvent = event
+                }
             }
 
             if let first = firstEvent {

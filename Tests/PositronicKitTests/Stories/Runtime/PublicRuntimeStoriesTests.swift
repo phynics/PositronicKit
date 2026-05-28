@@ -6,7 +6,7 @@ import PKPrompt
 import PKTestSupport
 import Testing
 
-@Suite("Public runtime stories")
+@Suite("Public runtime stories", .serialized)
 struct PublicRuntimeStoriesTests {
     @Test
     func directFacadeInitializationSupportsOneTurnChat() async throws {

@@ -231,7 +231,7 @@ struct DetachWorkspaceTests {
 
 // MARK: - getWorkspaces
 
-@Suite("TimelineManager.getWorkspaces")
+@Suite("TimelineManager.getWorkspaces", .serialized)
 struct GetWorkspacesTests {
     @Test("returns nil for unknown timeline")
     func nilForUnknown() async throws {

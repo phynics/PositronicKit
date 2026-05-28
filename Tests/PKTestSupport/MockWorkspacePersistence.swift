@@ -1,30 +1,41 @@
 import Foundation
 import PositronicKit
 import PKShared
+import Synchronization
 
 public final class MockWorkspacePersistence: WorkspacePersistenceProtocol, @unchecked Sendable {
-    private let backing = InMemoryWorkspacePersistence()
+    private let workspacesState = Mutex<[WorkspaceReference]>([])
 
     public var workspaces: [WorkspaceReference] {
-        get { (try? BlockingAsync.run { [self] in await self.backing.allWorkspaces() }) ?? [] }
-        set { _ = try? BlockingAsync.run { [self] in await self.backing.replaceWorkspaces(newValue) } }
+        get { workspacesState.withLock { $0 } }
+        set { workspacesState.withLock { $0 = newValue } }
     }
 
     public init() {}
 
     public func saveWorkspace(_ workspace: WorkspaceReference) async throws {
-        try await backing.saveWorkspace(workspace)
+        workspacesState.withLock {
+            if let index = $0.firstIndex(where: { $0.id == workspace.id }) {
+                $0[index] = workspace
+            } else {
+                $0.append(workspace)
+            }
+        }
     }
 
     public func fetchWorkspace(id: UUID, includeTools _: Bool = false) async throws -> WorkspaceReference? {
-        try await backing.fetchWorkspace(id: id)
+        workspacesState.withLock {
+            $0.first { $0.id == id }
+        }
     }
 
     public func fetchAllWorkspaces() async throws -> [WorkspaceReference] {
-        try await backing.fetchAllWorkspaces()
+        workspacesState.withLock { $0 }
     }
 
     public func deleteWorkspace(id: UUID) async throws {
-        try await backing.deleteWorkspace(id: id)
+        workspacesState.withLock {
+            $0.removeAll { $0.id == id }
+        }
     }
 }

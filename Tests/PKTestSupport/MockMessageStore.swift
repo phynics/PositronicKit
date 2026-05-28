@@ -1,27 +1,34 @@
 import Foundation
 import PositronicKit
 import PKShared
+import Synchronization
 
 public final class MockMessageStore: MessageStoreProtocol, @unchecked Sendable {
-    private let backing = InMemoryMessageStore()
+    private let messagesState = Mutex<[ConversationMessage]>([])
 
     public var messages: [ConversationMessage] {
-        get { (try? BlockingAsync.run { [self] in await self.backing.allMessages() }) ?? [] }
-        set { _ = try? BlockingAsync.run { [self] in await self.backing.replaceMessages(newValue) } }
+        get { messagesState.withLock { $0 } }
+        set { messagesState.withLock { $0 = newValue } }
     }
 
     public init() {}
 
     public func saveMessage(_ message: ConversationMessage) async throws {
-        try await backing.saveMessage(message)
+        messagesState.withLock {
+            $0.append(message)
+        }
     }
 
     public func fetchMessages(for timelineId: UUID) async throws -> [ConversationMessage] {
-        try await backing.fetchMessages(for: timelineId)
+        messagesState.withLock {
+            $0.filter { $0.timelineId == timelineId }
+        }
     }
 
     public func deleteMessages(for timelineId: UUID) async throws {
-        try await backing.deleteMessages(for: timelineId)
+        messagesState.withLock {
+            $0.removeAll { $0.timelineId == timelineId }
+        }
     }
 
     public func pruneMessages(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int {
@@ -29,6 +36,13 @@ public final class MockMessageStore: MessageStoreProtocol, @unchecked Sendable {
     }
 
     public func fetchSnapshots(for timelineId: UUID) async throws -> [TurnSnapshot] {
-        try await backing.fetchSnapshots(for: timelineId)
+        messagesState.withLock {
+            $0
+                .filter { $0.timelineId == timelineId && $0.role == "assistant" }
+                .compactMap { message in
+                    guard let data = message.snapshotData else { return nil }
+                    return try? SerializationUtils.jsonDecoder.decode(TurnSnapshot.self, from: data)
+                }
+        }
     }
 }
