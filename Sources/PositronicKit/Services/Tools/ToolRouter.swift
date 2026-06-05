@@ -70,13 +70,16 @@ public actor ToolRouter {
 
     private let timelineManager: TimelineManager
     private let messageStore: any MessageStoreProtocol
+    private let toolExecutionTimeout: TimeInterval
 
     public init(
         timelineManager: TimelineManager,
-        messageStore: any MessageStoreProtocol
+        messageStore: any MessageStoreProtocol,
+        toolExecutionTimeout: TimeInterval = 60
     ) {
         self.timelineManager = timelineManager
         self.messageStore = messageStore
+        self.toolExecutionTimeout = toolExecutionTimeout
     }
 
     public init() {
@@ -306,9 +309,11 @@ public actor ToolRouter {
             throw ToolError.toolNotFound(tool.displayName)
         }
 
-        let params = arguments.toAnyDictionary
-
-        let result = try await resolvedTool.execute(parameters: params)
+        let result = try await executeWithTimeout(
+            tool: resolvedTool,
+            arguments: arguments,
+            timeout: toolExecutionTimeout
+        )
         if result.success {
             logger.info("Success: \(toolName)")
             return result.output
@@ -317,5 +322,35 @@ public actor ToolRouter {
             logger.error("Failed: \(toolName) - \(errorMsg)")
             throw ToolError.executionFailed(errorMsg)
         }
+    }
+
+    private func executeWithTimeout(
+        tool: AnyTool,
+        arguments: [String: AnyCodable],
+        timeout: TimeInterval
+    ) async throws -> ToolResult {
+        try await withThrowingTaskGroup(of: ToolResult.self) { group in
+            group.addTask {
+                try await tool.execute(parameters: arguments.toAnyDictionary)
+            }
+            group.addTask {
+                let nanoseconds = UInt64(max(0, timeout) * 1_000_000_000)
+                try await Task.sleep(nanoseconds: nanoseconds)
+                throw ToolError.executionFailed("Tool execution timed out after \(Self.timeoutDescription(timeout))")
+            }
+
+            guard let result = try await group.next() else {
+                throw ToolError.executionFailed("Tool execution timed out after \(Self.timeoutDescription(timeout))")
+            }
+            group.cancelAll()
+            return result
+        }
+    }
+
+    private nonisolated static func timeoutDescription(_ timeout: TimeInterval) -> String {
+        if timeout.rounded() == timeout {
+            return "\(Int(timeout)) seconds"
+        }
+        return "\(timeout) seconds"
     }
 }

@@ -51,6 +51,21 @@ private func captureProjectedToolEvents(
         }
     }
 
+    struct NeverFinishingTool: PKShared.Tool, Sendable {
+        let id = "never_finishes"
+        let name = "never_finishes"
+        let description = "A tool that never finishes unless cancelled"
+        let requiresPermission = false
+        var parametersSchema: [String: AnyCodable] { [:] }
+
+        func canExecute() async -> Bool { true }
+
+        func execute(parameters _: [String: Any]) async throws -> ToolResult {
+            try await Task.sleep(for: .seconds(60))
+            return .success("late")
+        }
+    }
+
     private func setupTimelineManager() async throws -> (TimelineManager, MockPersistenceService) {
         let mockPersistence = MockPersistenceService()
         let workspace = TestWorkspace()
@@ -184,6 +199,57 @@ private func captureProjectedToolEvents(
         } catch {
             Issue.record("Unexpected error thrown: \(error)")
         }
+    }
+
+    @Test("Local tool execution timeout is projected as a tool error")
+    func localToolExecutionTimeoutIsProjectedAsToolError() async throws {
+        let (timelineManager, mockPersistence) = try await setupTimelineManager()
+        let toolRouter = ToolRouter(
+            timelineManager: timelineManager,
+            messageStore: mockPersistence,
+            toolExecutionTimeout: 0.01
+        )
+
+        let session = try await timelineManager.createTimeline()
+        let workspaceId = UUID()
+        let workspaceRef = try WorkspaceReference(
+            id: workspaceId,
+            uri: #require(WorkspaceURI(parsing: "pk://local")),
+            location: .runtime,
+            originId: nil
+        )
+        try await mockPersistence.saveWorkspace(workspaceRef)
+        try await timelineManager.attachWorkspace(workspaceId, to: session.id)
+        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("never_finishes"))
+
+        let toolManager = await timelineManager.getToolManager(for: session.id)
+        try #require(toolManager != nil)
+        await toolManager?.updateAvailableTools([NeverFinishingTool().toAnyTool()])
+
+        let call = ParsedToolCall(callId: "call-timeout", name: "never_finishes", argumentsJSON: "{}")
+        let events = try await captureProjectedToolEvents { continuation in
+            let result = try await toolRouter.handlePendingToolCalls(
+                timelineId: session.id,
+                calls: [call],
+                availableTools: [],
+                continuation: continuation
+            )
+
+            #expect(result.hasDeferred == false)
+            #expect(result.resolvedToolParams.count == 1)
+            #expect(result.resolvedToolParams.first?.content.contains("Tool execution timed out after 0.01 seconds") == true)
+        }
+
+        #expect(mockPersistence.messages.count == 1)
+        #expect(mockPersistence.messages.first?.content.contains("Tool execution timed out after 0.01 seconds") == true)
+        #expect(events.contains(where: {
+            if case let .completion(event) = $0,
+               case let .toolExecution(toolCallId, status) = event,
+               case .failed = status {
+                return toolCallId == "call-timeout"
+            }
+            return false
+        }))
     }
 }
 
