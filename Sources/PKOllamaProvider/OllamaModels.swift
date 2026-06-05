@@ -6,9 +6,33 @@ struct OllamaChatRequest: Codable {
     let model: String
     let messages: [OllamaMessage]
     let stream: Bool
-    let format: String?
+    let format: OllamaResponseFormat?
     let tools: [OllamaTool]?
     let options: OllamaOptions?
+}
+
+enum OllamaResponseFormat: Codable {
+    case jsonObject
+    case jsonSchema(Schema)
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .jsonObject:
+            try container.encode("json")
+        case .jsonSchema(let schema):
+            try container.encode(schema)
+        }
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let string = try? container.decode(String.self), string == "json" {
+            self = .jsonObject
+            return
+        }
+        self = .jsonSchema(try container.decode(Schema.self))
+    }
 }
 
 struct OllamaOptions: Codable {

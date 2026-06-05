@@ -134,10 +134,16 @@ public actor OllamaClient: LLMClientProtocol {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        let format: String?
+        let format: OllamaResponseFormat?
         switch responseFormat {
-        case .jsonObject, .jsonSchema:
-            format = "json"
+        case .jsonObject:
+            format = .jsonObject
+        case .jsonSchema(let schema):
+            if let schema = schema.schema {
+                format = .jsonSchema(schema)
+            } else {
+                format = .jsonObject
+            }
         default:
             format = nil
         }
