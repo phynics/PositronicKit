@@ -295,19 +295,3 @@ public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProt
         workspaces = []
     }
 }
-
-public extension DependencyValues {
-    var persistenceService: MockPersistenceService {
-        get { fatalError("persistenceService is deprecated. Use individual stores.") }
-        set {
-            workspacePersistence = newValue
-            timelinePersistence = newValue
-            memoryStore = newValue
-            messageStore = newValue
-            requestOriginStore = newValue
-            toolPersistence = newValue
-            agentTemplateStore = newValue
-            agentInstanceStore = newValue
-        }
-    }
-}

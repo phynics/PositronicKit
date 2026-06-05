@@ -2,8 +2,8 @@ import Foundation
 import PKShared
 
 /// Default system instructions for the LLM
-enum DefaultInstructions {
-    static func system() -> String {
+public enum DefaultInstructions {
+    public static func system() -> String {
         """
         You are PositronicKit, an intelligent developer assistant.
 

@@ -1,4 +1,3 @@
-import Dependencies
 import ErrorKit
 import Foundation
 import Logging
@@ -14,6 +13,25 @@ import PKShared
 /// behind `WorkspaceManager` / `WorkspaceCreating` / `WorkspaceProtocol` so hosts can supply
 /// local or remote workspace implementations without changing core orchestration.
 public actor TimelineManager {
+    public struct Stores: Sendable {
+        public let timelineStore: any TimelinePersistenceProtocol
+        public let messageStore: any MessageStoreProtocol
+        public let workspaceStore: any WorkspacePersistenceProtocol
+        public let toolPersistence: any ToolPersistenceProtocol
+
+        public init(
+            timelineStore: any TimelinePersistenceProtocol,
+            messageStore: any MessageStoreProtocol,
+            workspaceStore: any WorkspacePersistenceProtocol,
+            toolPersistence: any ToolPersistenceProtocol
+        ) {
+            self.timelineStore = timelineStore
+            self.messageStore = messageStore
+            self.workspaceStore = workspaceStore
+            self.toolPersistence = toolPersistence
+        }
+    }
+
     // MARK: - State
 
     /// In-memory cache of active timelines.
@@ -30,10 +48,10 @@ public actor TimelineManager {
 
     // MARK: - Dependencies
 
-    @Dependency(\.timelinePersistence) var timelineStore
-    @Dependency(\.messageStore) var messageStore
-    @Dependency(\.workspacePersistence) var workspaceStore
-    @Dependency(\.toolPersistence) var toolPersistence
+    let timelineStore: any TimelinePersistenceProtocol
+    let messageStore: any MessageStoreProtocol
+    let workspaceStore: any WorkspacePersistenceProtocol
+    let toolPersistence: any ToolPersistenceProtocol
 
     let workspaceRoot: URL
     public let workspaceManager: any WorkspaceManagerProtocol
@@ -42,16 +60,42 @@ public actor TimelineManager {
     // MARK: - Initialization
 
     public init(
+        stores: Stores,
         workspaceRoot: URL,
         workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = []
     ) {
+        self.timelineStore = stores.timelineStore
+        self.messageStore = stores.messageStore
+        self.workspaceStore = stores.workspaceStore
+        self.toolPersistence = stores.toolPersistence
         self.workspaceRoot = workspaceRoot
         self.sectionProviders = sectionProviders
 
         workspaceManager = WorkspaceManager(
-            repository: AgentWorkspaceService(workspaceRoot: workspaceRoot),
+            repository: AgentWorkspaceService(
+                workspaceRoot: workspaceRoot,
+                workspacePersistence: stores.workspaceStore
+            ),
             workspaceCreator: workspaceCreator
+        )
+    }
+
+    public init(
+        workspaceRoot: URL,
+        workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
+        sectionProviders: [any PromptSectionProviding] = []
+    ) {
+        self.init(
+            stores: .init(
+                timelineStore: InMemoryTimelinePersistence(),
+                messageStore: InMemoryMessageStore(),
+                workspaceStore: InMemoryWorkspacePersistence(),
+                toolPersistence: InMemoryToolPersistence()
+            ),
+            workspaceRoot: workspaceRoot,
+            workspaceCreator: workspaceCreator,
+            sectionProviders: sectionProviders
         )
     }
 

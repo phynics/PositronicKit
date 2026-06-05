@@ -54,11 +54,15 @@ private func captureProjectedToolEvents(
     private func setupTimelineManager() async throws -> (TimelineManager, MockPersistenceService) {
         let mockPersistence = MockPersistenceService()
         let workspace = TestWorkspace()
-        let timelineManager = try await TestDependencies()
-            .withMocks(persistence: mockPersistence)
-            .run {
-                TimelineManager(workspaceRoot: workspace.root)
-            }
+        let timelineManager = TimelineManager(
+            stores: .init(
+                timelineStore: mockPersistence,
+                messageStore: mockPersistence,
+                workspaceStore: mockPersistence,
+                toolPersistence: mockPersistence
+            ),
+            workspaceRoot: workspace.root
+        )
         return (timelineManager, mockPersistence)
     }
 
@@ -66,11 +70,7 @@ private func captureProjectedToolEvents(
 
     func executeLocally() async throws {
         let (timelineManager, mockPersistence) = try await setupTimelineManager()
-        let toolRouter = withDependencies {
-            $0.timelineManager = timelineManager
-        } operation: {
-            ToolRouter()
-        }
+        let toolRouter = ToolRouter(timelineManager: timelineManager, messageStore: mockPersistence)
 
         // Setup session and local workspace
         let session = try await timelineManager.createTimeline()
@@ -108,11 +108,7 @@ private func captureProjectedToolEvents(
 
     func attachedWorkspaceToolDefersExternalExecution() async throws {
         let (timelineManager, mockPersistence) = try await setupTimelineManager()
-        let toolRouter = withDependencies {
-            $0.timelineManager = timelineManager
-        } operation: {
-            ToolRouter()
-        }
+        let toolRouter = ToolRouter(timelineManager: timelineManager, messageStore: mockPersistence)
 
         let session = try await timelineManager.createTimeline()
         let workspaceId = UUID()
@@ -143,11 +139,7 @@ private func captureProjectedToolEvents(
 
     func attachedWorkspaceToolWithoutOriginStillDefers() async throws {
         let (timelineManager, mockPersistence) = try await setupTimelineManager()
-        let toolRouter = withDependencies {
-            $0.timelineManager = timelineManager
-        } operation: {
-            ToolRouter()
-        }
+        let toolRouter = ToolRouter(timelineManager: timelineManager, messageStore: mockPersistence)
 
         let session = try await timelineManager.createTimeline()
         let workspaceId = UUID()
@@ -177,12 +169,8 @@ private func captureProjectedToolEvents(
     @Test
 
     func executeToolNotFound() async throws {
-        let (timelineManager, _) = try await setupTimelineManager()
-        let toolRouter = withDependencies {
-            $0.timelineManager = timelineManager
-        } operation: {
-            ToolRouter()
-        }
+        let (timelineManager, mockPersistence) = try await setupTimelineManager()
+        let toolRouter = ToolRouter(timelineManager: timelineManager, messageStore: mockPersistence)
 
         let session = try await timelineManager.createTimeline()
         let toolRef = ToolReference.known("unknown")

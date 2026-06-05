@@ -1,4 +1,3 @@
-import Dependencies
 import ErrorKit
 import Foundation
 import Logging
@@ -13,16 +12,54 @@ import PKShared
 /// - `attach` is idempotent: re-attaching the same agent to the same timeline is a no-op.
 /// - If `attachedAgentInstanceId` references a deleted agent, it is nulled on access.
 public actor AgentInstanceManager: AgentInstanceManagerProtocol {
-    @Dependency(\.agentInstanceStore) private var instanceStore
-    @Dependency(\.timelinePersistence) private var timelineStore
-    @Dependency(\.messageStore) private var messageStore
-    @Dependency(\.workspacePersistence) private var workspaceStore
+    public struct Stores: Sendable {
+        public let instanceStore: any AgentInstanceStoreProtocol
+        public let timelineStore: any TimelinePersistenceProtocol
+        public let messageStore: any MessageStoreProtocol
+        public let workspaceStore: any WorkspacePersistenceProtocol
+
+        public init(
+            instanceStore: any AgentInstanceStoreProtocol,
+            timelineStore: any TimelinePersistenceProtocol,
+            messageStore: any MessageStoreProtocol,
+            workspaceStore: any WorkspacePersistenceProtocol
+        ) {
+            self.instanceStore = instanceStore
+            self.timelineStore = timelineStore
+            self.messageStore = messageStore
+            self.workspaceStore = workspaceStore
+        }
+    }
+
+    private let instanceStore: any AgentInstanceStoreProtocol
+    private let timelineStore: any TimelinePersistenceProtocol
+    private let messageStore: any MessageStoreProtocol
+    private let workspaceStore: any WorkspacePersistenceProtocol
 
     private let repository: any AgentWorkspaceServiceProtocol
     private let logger = Logger.module(named: "agent-instance-manager")
 
-    public init(repository: any AgentWorkspaceServiceProtocol) {
+    public init(
+        repository: any AgentWorkspaceServiceProtocol,
+        stores: Stores
+    ) {
         self.repository = repository
+        self.instanceStore = stores.instanceStore
+        self.timelineStore = stores.timelineStore
+        self.messageStore = stores.messageStore
+        self.workspaceStore = stores.workspaceStore
+    }
+
+    public init(repository: any AgentWorkspaceServiceProtocol) {
+        self.init(
+            repository: repository,
+            stores: .init(
+                instanceStore: InMemoryAgentInstanceStore(),
+                timelineStore: InMemoryTimelinePersistence(),
+                messageStore: InMemoryMessageStore(),
+                workspaceStore: InMemoryWorkspacePersistence()
+            )
+        )
     }
 
     // MARK: - Create

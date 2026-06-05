@@ -1,4 +1,3 @@
-import Dependencies
 import Foundation
 import Logging
 import PKShared
@@ -69,10 +68,26 @@ public enum ToolTurnResult: Sendable {
 public actor ToolRouter {
     private let logger = Logger.module(named: "com.positronickit.core.tools")
 
-    @Dependency(\.timelineManager) private var timelineManager
-    @Dependency(\.messageStore) private var messageStore
+    private let timelineManager: TimelineManager
+    private let messageStore: any MessageStoreProtocol
 
-    public init() {}
+    public init(
+        timelineManager: TimelineManager,
+        messageStore: any MessageStoreProtocol
+    ) {
+        self.timelineManager = timelineManager
+        self.messageStore = messageStore
+    }
+
+    public init() {
+        let timelineManager = TimelineManager(
+            workspaceRoot: FileManager.default.temporaryDirectory
+        )
+        self.init(
+            timelineManager: timelineManager,
+            messageStore: InMemoryMessageStore()
+        )
+    }
 
     // MARK: - Turn-Level API
 
@@ -200,7 +215,15 @@ public actor ToolRouter {
 
         // resolveWorkspace returns nil when the tool is not registered in any of the
         // timeline's workspaces, or when the timeline has no workspaces at all.
-        guard let workspaceId = try await resolveWorkspace(for: tool, in: timelineId, arguments: arguments) else {
+        let workspaceId: UUID
+        if let resolved = try await resolveWorkspace(for: tool, in: timelineId, arguments: arguments) {
+            workspaceId = resolved
+        } else if let dynamicTools = availableTools,
+                  dynamicTools.contains(where: { $0.toolReference == tool || $0.id == tool.toolId }),
+                  let primaryWorkspaceId = await timelineManager.getWorkspaces(for: timelineId)?.primary?.id {
+            // Dynamic/per-turn tools may not be persisted in workspace-tool mappings.
+            workspaceId = primaryWorkspaceId
+        } else {
             throw ToolError.toolNotFound(tool.displayName)
         }
 

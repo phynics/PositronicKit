@@ -1,171 +1,168 @@
-import Dependencies
 import Foundation
 import PositronicKit
 import PKShared
 
 #if DEBUG
 
-    // MARK: - MockContext
+public struct TestRuntimeOverrides: Sendable {
+    public var timelineManager: TimelineManager?
+    public var toolRouter: ToolRouter?
+    public var agentWorkspaceService: (any AgentWorkspaceServiceProtocol)?
+    public var agentInstanceManager: (any AgentInstanceManagerProtocol)?
+    public var continuousClock: ContinuousClock?
 
-    /// Provides access to the mock services created by `TestDependencies`.
-    public struct MockContext: Sendable {
-        public let persistence: MockPersistenceService
-        public let llm: MockLLMService
-        public let embedding: MockEmbeddingService
+    public init() {}
+}
 
-        public init(
-            persistence: MockPersistenceService,
-            llm: MockLLMService,
-            embedding: MockEmbeddingService
-        ) {
-            self.persistence = persistence
-            self.llm = llm
-            self.embedding = embedding
-        }
+public struct MockContext: Sendable {
+    public let persistence: MockPersistenceService
+    public let llm: MockLLMService
+    public let embedding: MockEmbeddingService
+    public let overrides: TestRuntimeOverrides
 
-        /// Builds a `PositronicKitCore` from the mock services in this context.
-        /// Must be called inside a `withDependencies` scope that has a `TimelineManager` configured.
-        public func buildCoreChat() -> PositronicKitCore {
-            @Dependency(\.timelineManager) var timelineManager
-            return PositronicKitCore(
-                llmService: llm,
-                persistence: .init(
-                    messageStore: persistence,
-                    timelinePersistence: persistence,
-                    workspacePersistence: persistence,
-                    memoryStore: persistence,
-                    toolPersistence: persistence,
-                    agentInstanceStore: persistence,
-                    requestOriginStore: persistence,
-                    agentTemplateStore: persistence
-                ),
-                embeddingService: embedding,
-                runtime: .init(timelineManager: timelineManager)
+    public init(
+        persistence: MockPersistenceService,
+        llm: MockLLMService,
+        embedding: MockEmbeddingService,
+        overrides: TestRuntimeOverrides
+    ) {
+        self.persistence = persistence
+        self.llm = llm
+        self.embedding = embedding
+        self.overrides = overrides
+    }
+
+    public func buildCoreChat() -> PositronicKitCore {
+        let timelineManager = overrides.timelineManager ?? TimelineManager(
+            stores: .init(
+                timelineStore: persistence,
+                messageStore: persistence,
+                workspaceStore: persistence,
+                toolPersistence: persistence
+            ),
+            workspaceRoot: FileManager.default.temporaryDirectory
+        )
+        let toolRouter = overrides.toolRouter ?? ToolRouter(
+            timelineManager: timelineManager,
+            messageStore: persistence
+        )
+
+        return PositronicKitCore(
+            llmService: llm,
+            persistence: .init(
+                messageStore: persistence,
+                timelinePersistence: persistence,
+                workspacePersistence: persistence,
+                memoryStore: persistence,
+                toolPersistence: persistence,
+                agentInstanceStore: persistence,
+                requestOriginStore: persistence,
+                agentTemplateStore: persistence
+            ),
+            embeddingService: embedding,
+            runtime: .init(
+                timelineManager: timelineManager,
+                toolRouter: toolRouter
             )
-        }
+        )
+    }
+}
+
+public struct TestDependencies: Sendable {
+    private var mockPersistence: MockPersistenceService?
+    private var mockLLM: MockLLMService?
+    private var mockEmbedding: MockEmbeddingService?
+    private var overrides = TestRuntimeOverrides()
+
+    public init() {}
+
+    public func withMocks(
+        persistence: MockPersistenceService? = nil,
+        llm: MockLLMService? = nil,
+        embedding: MockEmbeddingService? = nil
+    ) -> TestDependencies {
+        var copy = self
+        copy.mockPersistence = persistence ?? MockPersistenceService()
+        copy.mockLLM = llm ?? MockLLMService()
+        copy.mockEmbedding = embedding ?? MockEmbeddingService()
+        return copy
     }
 
-    // MARK: - TestDependencies
-
-    /// Fluent builder that replaces the 8-line persistence dependency boilerplate
-    /// repeated across test files with a single `.withMocks()` call.
-    ///
-    /// ```swift
-    /// try await TestDependencies()
-    ///     .withMocks()
-    ///     .run { mocks in
-    ///         let manager = TimelineManager(workspaceRoot: root)
-    ///         // ...
-    ///     }
-    /// ```
-    public struct TestDependencies: Sendable {
-        private var overrides: [@Sendable (inout DependencyValues) -> Void] = []
-        private var mockPersistence: MockPersistenceService?
-        private var mockLLM: MockLLMService?
-        private var mockEmbedding: MockEmbeddingService?
-
-        public init() {}
-
-        // MARK: - Chainable Configuration
-
-        /// Registers all standard mock services: persistence (8 keys), LLM, and embedding.
-        public func withMocks(
-            persistence: MockPersistenceService? = nil,
-            llm: MockLLMService? = nil,
-            embedding: MockEmbeddingService? = nil
-        ) -> TestDependencies {
-            let persistence = persistence ?? MockPersistenceService()
-            let llm = llm ?? MockLLMService()
-            let embedding = embedding ?? MockEmbeddingService()
-
-            var copy = self
-            copy.mockPersistence = persistence
-            copy.mockLLM = llm
-            copy.mockEmbedding = embedding
-            copy.overrides.append { deps in
-                deps.persistenceService = persistence
-                deps.embeddingService = embedding
-                deps.llmService = llm
-            }
-            return copy
-        }
-
-        /// Adds a `TimelineManager` dependency with the given workspace root.
-        public func withTimelineManager(
-            workspaceRoot: URL,
-            workspaceCreator: WorkspaceCreating? = nil
-        ) -> TestDependencies {
-            let creator = workspaceCreator ?? MockWorkspaceCreator()
-            var copy = self
-            copy.overrides.append { deps in
-                deps.timelineManager = TimelineManager(
-                    workspaceRoot: workspaceRoot,
-                    workspaceCreator: creator
-                )
-            }
-            return copy
-        }
-
-        /// Adds a `ToolRouter` dependency.
-        public func withToolRouter() -> TestDependencies {
-            var copy = self
-            copy.overrides.append { deps in
-                deps.toolRouter = ToolRouter()
-            }
-            return copy
-        }
-
-        /// Adds `TimelineManager` and `ToolRouter` in one call.
-        public func withOrchestration(workspaceRoot: URL) -> TestDependencies {
-            withTimelineManager(workspaceRoot: workspaceRoot)
-                .withToolRouter()
-        }
-
-        /// Adds an arbitrary dependency override.
-        public func with(_ override: @escaping @Sendable (inout DependencyValues) -> Void) -> TestDependencies {
-            var copy = self
-            copy.overrides.append(override)
-            return copy
-        }
-
-        // MARK: - Execution
-
-        /// Runs the operation inside `withDependencies` with all accumulated overrides.
-        @discardableResult
-        public func run<T: Sendable>(
-            _ operation: @Sendable (MockContext) async throws -> T
-        ) async throws -> T {
-            let persistence = mockPersistence ?? MockPersistenceService()
-            let llm = mockLLM ?? MockLLMService()
-            let embedding = mockEmbedding ?? MockEmbeddingService()
-            let context = MockContext(persistence: persistence, llm: llm, embedding: embedding)
-            let capturedOverrides = overrides
-
-            return try await withDependencies {
-                for override in capturedOverrides {
-                    override(&$0)
-                }
-            } operation: {
-                try await operation(context)
-            }
-        }
-
-        /// Runs the operation without providing a `MockContext` — useful when you only
-        /// need the dependency scope and don't need direct access to mock instances.
-        @discardableResult
-        public func run<T: Sendable>(
-            _ operation: @Sendable () async throws -> T
-        ) async throws -> T {
-            let capturedOverrides = overrides
-
-            return try await withDependencies {
-                for override in capturedOverrides {
-                    override(&$0)
-                }
-            } operation: {
-                try await operation()
-            }
-        }
+    public func withTimelineManager(
+        workspaceRoot: URL,
+        workspaceCreator: WorkspaceCreating? = nil
+    ) -> TestDependencies {
+        var copy = self
+        let persistence = copy.mockPersistence ?? MockPersistenceService()
+        copy.mockPersistence = persistence
+        copy.overrides.timelineManager = TimelineManager(
+            stores: .init(
+                timelineStore: persistence,
+                messageStore: persistence,
+                workspaceStore: persistence,
+                toolPersistence: persistence
+            ),
+            workspaceRoot: workspaceRoot,
+            workspaceCreator: workspaceCreator ?? MockWorkspaceCreator()
+        )
+        return copy
     }
+
+    public func withToolRouter() -> TestDependencies {
+        var copy = self
+        let persistence = copy.mockPersistence ?? MockPersistenceService()
+        copy.mockPersistence = persistence
+        let timelineManager = copy.overrides.timelineManager ?? TimelineManager(
+            stores: .init(
+                timelineStore: persistence,
+                messageStore: persistence,
+                workspaceStore: persistence,
+                toolPersistence: persistence
+            ),
+            workspaceRoot: FileManager.default.temporaryDirectory
+        )
+        copy.overrides.timelineManager = timelineManager
+        copy.overrides.toolRouter = ToolRouter(
+            timelineManager: timelineManager,
+            messageStore: persistence
+        )
+        return copy
+    }
+
+    public func withOrchestration(workspaceRoot: URL) -> TestDependencies {
+        withTimelineManager(workspaceRoot: workspaceRoot).withToolRouter()
+    }
+
+    public func with(
+        _ override: @escaping @Sendable (inout TestRuntimeOverrides) -> Void
+    ) -> TestDependencies {
+        var copy = self
+        override(&copy.overrides)
+        return copy
+    }
+
+    @discardableResult
+    public func run<T: Sendable>(
+        _ operation: @Sendable (MockContext) async throws -> T
+    ) async throws -> T {
+        let persistence = mockPersistence ?? MockPersistenceService()
+        let llm = mockLLM ?? MockLLMService()
+        let embedding = mockEmbedding ?? MockEmbeddingService()
+        let context = MockContext(
+            persistence: persistence,
+            llm: llm,
+            embedding: embedding,
+            overrides: overrides
+        )
+        return try await operation(context)
+    }
+
+    @discardableResult
+    public func run<T: Sendable>(
+        _ operation: @Sendable () async throws -> T
+    ) async throws -> T {
+        try await operation()
+    }
+}
 
 #endif

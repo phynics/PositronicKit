@@ -135,6 +135,12 @@ import Testing
         let mockPersistence = MockPersistenceService()
         let workspace = TestWorkspace()
         let timelineManager = TimelineManager(
+            stores: .init(
+                timelineStore: mockPersistence,
+                messageStore: mockPersistence,
+                workspaceStore: mockPersistence,
+                toolPersistence: mockPersistence
+            ),
             workspaceRoot: workspace.root,
             workspaceCreator: workspaceCreator,
             sectionProviders: sectionProviders
@@ -192,7 +198,7 @@ import Testing
             ),
             runtime: .init(
                 timelineManager: timelineManager,
-                toolRouter: ToolRouter()
+                toolRouter: ToolRouter(timelineManager: timelineManager, messageStore: mockPersistence)
             )
         )
 

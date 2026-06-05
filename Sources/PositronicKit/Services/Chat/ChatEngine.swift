@@ -1,4 +1,3 @@
-import Dependencies
 import Foundation
 import Logging
 import PKPrompt
@@ -13,6 +12,16 @@ import PKShared
 /// applications; external callers are expected to integrate through `PositronicKitCore` and the
 /// higher-level extension protocols rather than depending on this concrete orchestrator directly.
 struct ChatEngine: Sendable {
+    struct Dependencies: Sendable {
+        let timelineManager: TimelineManager
+        let agentInstanceStore: any AgentInstanceStoreProtocol
+        let requestOriginStore: any RequestOriginStoreProtocol
+        let messageStore: any MessageStoreProtocol
+        let llmService: any LLMServiceProtocol
+        let toolRouter: ToolRouter
+        let chatTurnPlugins: [any ChatTurnPlugin]
+    }
+
     // MARK: - Constants
 
     enum Constants {
@@ -23,19 +32,36 @@ struct ChatEngine: Sendable {
         static let maxRemoteDepth = 3
     }
 
-    @Dependency(\.timelineManager) var timelineManager
-    @Dependency(\.agentInstanceStore) var agentInstanceStore
-    @Dependency(\.requestOriginStore) var requestOriginStore
-    @Dependency(\.messageStore) var messageStore
-    @Dependency(\.llmService) var llmService
-    @Dependency(\.toolRouter) var toolRouter
-    @Dependency(\.chatTurnPlugins) var chatTurnPlugins
+    let dependencies: Dependencies
 
     let logger = Logger.module(named: "com.positronickit.chat-engine")
 
     var additionalStages: [any PipelineStage<ChatTurnContext, ChatEvent>] = []
 
-    public init() {}
+    public init(dependencies: Dependencies) {
+        self.dependencies = dependencies
+    }
+
+    public init() {
+        let timelineManager = TimelineManager(
+            workspaceRoot: FileManager.default.temporaryDirectory
+        )
+        let messageStore = InMemoryMessageStore()
+        self.init(
+            dependencies: .init(
+                timelineManager: timelineManager,
+                agentInstanceStore: InMemoryAgentInstanceStore(),
+                requestOriginStore: InMemoryRequestOriginStore(),
+                messageStore: messageStore,
+                llmService: UnconfiguredLLMService(),
+                toolRouter: ToolRouter(
+                    timelineManager: timelineManager,
+                    messageStore: messageStore
+                ),
+                chatTurnPlugins: []
+            )
+        )
+    }
 
     // MARK: - Public API
 
@@ -66,7 +92,7 @@ struct ChatEngine: Sendable {
         let sid = ANSIColors.colorize(timelineId.uuidString.prefix(8).lowercased(), color: ANSIColors.brightBlue)
         logger.info("Starting chat stream for timeline \(sid)")
 
-        guard await llmService.isConfigured else { throw ChatEngineError.llmServiceNotConfigured }
+        guard await dependencies.llmService.isConfigured else { throw ChatEngineError.llmServiceNotConfigured }
 
         let context = try await prepareSession(
             timelineId: timelineId,
@@ -138,7 +164,7 @@ struct ChatEngine: Sendable {
                         for: context,
                         turnCount: turnCount,
                         accumulatedOutput: priorOutput,
-                        plugins: chatTurnPlugins,
+                        plugins: dependencies.chatTurnPlugins,
                         logger: logger
                     )
 
@@ -208,7 +234,7 @@ struct ChatEngine: Sendable {
         context: ChatTurnContext,
         continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
     ) async throws -> LoopContinuation {
-        let result = try await toolRouter.processToolCalls(
+        let result = try await dependencies.toolRouter.processToolCalls(
             outputs: context.outputs,
             timelineId: context.timelineId,
             availableTools: context.availableTools,
@@ -228,8 +254,8 @@ struct ChatEngine: Sendable {
         continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
     ) async throws {
         let pipeline = ChatTurnPipelineBuilder.makePipeline(
-            llmService: llmService,
-            messageStore: messageStore,
+            llmService: dependencies.llmService,
+            messageStore: dependencies.messageStore,
             logger: logger,
             additionalStages: additionalStages
         )

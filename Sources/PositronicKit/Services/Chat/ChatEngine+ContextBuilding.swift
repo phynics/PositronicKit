@@ -50,7 +50,7 @@ extension ChatEngine {
         try await saveConversationSteps(timelineId: timelineId, message: message, toolOutputs: toolOutputs)
 
         // 2. Load conversation history and context
-        let conversationMessages = try await messageStore.fetchMessages(for: timelineId)
+        let conversationMessages = try await dependencies.messageStore.fetchMessages(for: timelineId)
         let history = conversationMessages.map { $0.toMessage() }
         let currentRemoteDepth = conversationMessages.map(\.remoteDepth).max() ?? 0
         let contextData = await fetchContext(
@@ -61,12 +61,12 @@ extension ChatEngine {
         )
 
         // 3. Resolve workspaces and session entities
-        let workspaceResult = await timelineManager.getWorkspaces(for: timelineId)
-        let timeline = await timelineManager.getTimeline(id: timelineId)
+        let workspaceResult = await dependencies.timelineManager.getWorkspaces(for: timelineId)
+        let timeline = await dependencies.timelineManager.getTimeline(id: timelineId)
 
         var agentInstance: AgentInstance?
         if let agentId = agentInstanceId {
-            agentInstance = try? await agentInstanceStore.fetchAgentInstance(id: agentId)
+            agentInstance = try? await dependencies.agentInstanceStore.fetchAgentInstance(id: agentId)
         }
 
         let requestOriginId = workspaceResult?.primary?.originId
@@ -74,12 +74,12 @@ extension ChatEngine {
 
         var requestOriginName: String?
         if let originId = requestOriginId,
-            let origin = try? await requestOriginStore.fetchOrigin(id: originId) {
+            let origin = try? await dependencies.requestOriginStore.fetchOrigin(id: originId) {
             requestOriginName = origin.displayName
         }
 
         // 4. Build the initial prompt messages
-        let extensionSections = await timelineManager.gatherExtensionSections(
+        let extensionSections = await dependencies.timelineManager.gatherExtensionSections(
             timelineId: timelineId,
             agentInstanceId: agentInstance?.id,
             message: message
@@ -158,7 +158,7 @@ extension ChatEngine {
             logger.debug("Structured compression metrics: \(metrics)")
         }
 
-        let modelName = await llmService.configuration.modelName
+        let modelName = await dependencies.llmService.configuration.modelName
 
         return ChatTurnContext(
             timelineId: timelineId,
@@ -192,13 +192,13 @@ extension ChatEngine {
                     content: output.output,
                     toolCallId: output.toolCallId
                 )
-                try await messageStore.saveMessage(msg)
+                try await dependencies.messageStore.saveMessage(msg)
             }
         }
 
         if !message.isEmpty {
             let userMsg = ConversationMessage(timelineId: timelineId, role: .user, content: message)
-            try await messageStore.saveMessage(userMsg)
+            try await dependencies.messageStore.saveMessage(userMsg)
         } else if toolOutputs?.isEmpty ?? true {
             throw ChatEngineError.missingInput
         }
@@ -216,7 +216,7 @@ extension ChatEngine {
             let stream = await contextManager.gatherContext(
                 for: message.isEmpty ? (history.last?.content ?? "") : message,
                 history: history,
-                tagGenerator: { [llmService] query in try await llmService.generateTags(for: query) },
+                tagGenerator: { [llmService = dependencies.llmService] query in try await llmService.generateTags(for: query) },
                 overridePipeline: pipeline
             )
 

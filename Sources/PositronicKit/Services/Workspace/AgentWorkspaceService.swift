@@ -1,4 +1,3 @@
-import Dependencies
 import Foundation
 import PKShared
 
@@ -9,11 +8,22 @@ import PKShared
 /// This is the default local/runtime provisioning service shipped with PositronicKitCore, not a
 /// universal workspace model that hosts are required to adopt.
 public actor AgentWorkspaceService: AgentWorkspaceServiceProtocol {
-    @Dependency(\.workspacePersistence) private var persistenceService
+    private let persistenceService: any WorkspacePersistenceProtocol
     private let workspaceRoot: URL
 
-    public init(workspaceRoot: URL) {
+    public init(
+        workspaceRoot: URL,
+        workspacePersistence: any WorkspacePersistenceProtocol
+    ) {
+        self.persistenceService = workspacePersistence
         self.workspaceRoot = workspaceRoot
+    }
+
+    public init(workspaceRoot: URL) {
+        self.init(
+            workspaceRoot: workspaceRoot,
+            workspacePersistence: InMemoryWorkspacePersistence()
+        )
     }
 
     /// Creates a new workspace and saves it to persistence.

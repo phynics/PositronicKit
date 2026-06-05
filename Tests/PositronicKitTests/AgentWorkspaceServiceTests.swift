@@ -13,7 +13,10 @@ struct AgentWorkspaceServiceTests {
         let repository = try await TestDependencies()
             .withMocks(persistence: persistence)
             .run {
-                AgentWorkspaceService(workspaceRoot: FileManager.default.temporaryDirectory)
+                AgentWorkspaceService(
+                    workspaceRoot: FileManager.default.temporaryDirectory,
+                    workspacePersistence: persistence
+                )
             }
 
         let uri = WorkspaceURI(host: "pk-runtime", path: "/test")
@@ -42,7 +45,10 @@ struct AgentWorkspaceServiceTests {
         let repository = try await TestDependencies()
             .withMocks(persistence: persistence)
             .run {
-                AgentWorkspaceService(workspaceRoot: FileManager.default.temporaryDirectory)
+                AgentWorkspaceService(
+                    workspaceRoot: FileManager.default.temporaryDirectory,
+                    workspacePersistence: persistence
+                )
             }
 
         let ws = WorkspaceReference(
@@ -65,7 +71,10 @@ struct AgentWorkspaceServiceTests {
         let repository = try await TestDependencies()
             .withMocks(persistence: persistence)
             .run {
-                AgentWorkspaceService(workspaceRoot: FileManager.default.temporaryDirectory)
+                AgentWorkspaceService(
+                    workspaceRoot: FileManager.default.temporaryDirectory,
+                    workspacePersistence: persistence
+                )
             }
 
         let ws1 = WorkspaceReference(uri: .timelineWorkspace(UUID()), location: .runtime)
@@ -85,7 +94,10 @@ struct AgentWorkspaceServiceTests {
         let repository = try await TestDependencies()
             .withMocks(persistence: persistence)
             .run {
-                AgentWorkspaceService(workspaceRoot: FileManager.default.temporaryDirectory)
+                AgentWorkspaceService(
+                    workspaceRoot: FileManager.default.temporaryDirectory,
+                    workspacePersistence: persistence
+                )
             }
 
         let ws = WorkspaceReference(uri: .timelineWorkspace(UUID()), location: .runtime)
@@ -102,7 +114,10 @@ struct AgentWorkspaceServiceTests {
         let repository = try await TestDependencies()
             .withMocks(persistence: persistence)
             .run {
-                AgentWorkspaceService(workspaceRoot: FileManager.default.temporaryDirectory)
+                AgentWorkspaceService(
+                    workspaceRoot: FileManager.default.temporaryDirectory,
+                    workspacePersistence: persistence
+                )
             }
 
         var ws = WorkspaceReference(uri: .timelineWorkspace(UUID()), location: .runtime)

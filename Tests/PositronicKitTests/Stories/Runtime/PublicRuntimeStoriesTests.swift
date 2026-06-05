@@ -1,4 +1,3 @@
-import Dependencies
 import Foundation
 @testable import PositronicKit
 import PKPrompt
@@ -187,22 +186,16 @@ struct PublicRuntimeStoriesTests {
         let mockPersistence = MockPersistenceService()
         let workspace = TestWorkspace()
         let timelineManager = TimelineManager(
+            stores: .init(
+                timelineStore: mockPersistence,
+                messageStore: mockPersistence,
+                workspaceStore: mockPersistence,
+                toolPersistence: mockPersistence
+            ),
             workspaceRoot: workspace.root,
             workspaceCreator: MockWorkspaceCreator()
         )
-
-        let timeline = try await withDependencies {
-            $0.timelinePersistence = mockPersistence
-            $0.workspacePersistence = mockPersistence
-            $0.memoryStore = mockPersistence
-            $0.messageStore = mockPersistence
-            $0.agentTemplateStore = mockPersistence
-            $0.requestOriginStore = mockPersistence
-            $0.toolPersistence = mockPersistence
-            $0.agentInstanceStore = mockPersistence
-        } operation: {
-            try await timelineManager.createTimeline(title: "Context Enabled")
-        }
+        let timeline = try await timelineManager.createTimeline(title: "Context Enabled")
 
         mockLLM.mockClient.nextResponse = "Hello with context"
 
@@ -268,22 +261,16 @@ struct PublicRuntimeStoriesTests {
         let mockPersistence = MockPersistenceService()
         let workspace = TestWorkspace()
         let timelineManager = TimelineManager(
+            stores: .init(
+                timelineStore: mockPersistence,
+                messageStore: mockPersistence,
+                workspaceStore: mockPersistence,
+                toolPersistence: mockPersistence
+            ),
             workspaceRoot: workspace.root,
             workspaceCreator: MockWorkspaceCreator()
         )
-
-        let timeline = try await withDependencies {
-            $0.timelinePersistence = mockPersistence
-            $0.workspacePersistence = mockPersistence
-            $0.memoryStore = mockPersistence
-            $0.messageStore = mockPersistence
-            $0.agentTemplateStore = mockPersistence
-            $0.requestOriginStore = mockPersistence
-            $0.toolPersistence = mockPersistence
-            $0.agentInstanceStore = mockPersistence
-        } operation: {
-            try await timelineManager.createTimeline(title: "Acceptance")
-        }
+        let timeline = try await timelineManager.createTimeline(title: "Acceptance")
 
         let workspaceId = UUID()
         let workspaceRef = WorkspaceReference(
@@ -314,13 +301,23 @@ struct PublicRuntimeStoriesTests {
                 chat = PositronicKitCore(
                     llmService: mockLLM,
                     persistence: persistence,
-                    runtime: .init(timelineManager: timelineManager)
+                    runtime: .init(
+                        timelineManager: timelineManager,
+                        toolRouter: ToolRouter(
+                            timelineManager: timelineManager,
+                            messageStore: mockPersistence
+                        )
+                    )
                 )
             } else {
                 chat = PositronicKitCore(
                     llmService: mockLLM,
                     persistence: persistence,
-                    timelineManager: timelineManager
+                    timelineManager: timelineManager,
+                    toolRouter: ToolRouter(
+                        timelineManager: timelineManager,
+                        messageStore: mockPersistence
+                    )
                 )
             }
         } else {
@@ -328,6 +325,10 @@ struct PublicRuntimeStoriesTests {
                 llmService: mockLLM,
                 messageStore: mockPersistence,
                 timelineManager: timelineManager,
+                toolRouter: ToolRouter(
+                    timelineManager: timelineManager,
+                    messageStore: mockPersistence
+                ),
                 agentInstanceStore: mockPersistence,
                 requestOriginStore: mockPersistence,
                 timelinePersistence: mockPersistence,

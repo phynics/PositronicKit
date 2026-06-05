@@ -41,7 +41,15 @@ private struct AttachmentFixture {
         try await persistence.saveWorkspace(extraWS)
 
         return Self(
-            manager: TimelineManager(workspaceRoot: workspaceRoot),
+            manager: TimelineManager(
+                stores: .init(
+                    timelineStore: persistence,
+                    messageStore: persistence,
+                    workspaceStore: persistence,
+                    toolPersistence: persistence
+                ),
+                workspaceRoot: workspaceRoot
+            ),
             persistence: persistence,
             workspaceRoot: workspaceRoot,
             runtimeWS: runtimeWS,
@@ -141,7 +149,15 @@ struct AttachWorkspaceTests {
             try await fix.manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
 
             // New manager, same persistence — simulates runtime restart
-            let freshManager = TimelineManager(workspaceRoot: fix.workspaceRoot)
+            let freshManager = TimelineManager(
+                stores: .init(
+                    timelineStore: fix.persistence,
+                    messageStore: fix.persistence,
+                    workspaceStore: fix.persistence,
+                    toolPersistence: fix.persistence
+                ),
+                workspaceRoot: fix.workspaceRoot
+            )
             let workspaces = await freshManager.getWorkspaces(for: timeline.id)
             let attached = workspaces?.attached ?? []
             #expect(attached.contains { $0.id == fix.clientWS.id })
@@ -212,7 +228,15 @@ struct DetachWorkspaceTests {
             try await fix.manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
             try await fix.manager.detachWorkspace(fix.clientWS.id, from: timeline.id)
 
-            let freshManager = TimelineManager(workspaceRoot: fix.workspaceRoot)
+            let freshManager = TimelineManager(
+                stores: .init(
+                    timelineStore: fix.persistence,
+                    messageStore: fix.persistence,
+                    workspaceStore: fix.persistence,
+                    toolPersistence: fix.persistence
+                ),
+                workspaceRoot: fix.workspaceRoot
+            )
             let workspaces = await freshManager.getWorkspaces(for: timeline.id)
             let attached = workspaces?.attached ?? []
             #expect(!attached.contains { $0.id == fix.clientWS.id })

@@ -1,4 +1,3 @@
-import Dependencies
 import ErrorKit
 import Foundation
 import Logging
@@ -7,14 +6,20 @@ import PKShared
 
 /// Pipeline stage responsible for retrieving relevant semantic memories and tags.
 struct MemoryRetrievalStage: PipelineStage {
-    @Dependency(\.memoryStore) var memoryStore
-    @Dependency(\.embeddingService) var embeddingService
+    private let memoryStore: any MemoryStoreProtocol
+    private let embeddingService: any EmbeddingServiceProtocol
 
     private let logger = Logger.module(named: "com.positronickit.MemoryRetrievalStage")
     private let ranker = ContextRanker()
 
     /// Initializes a new memory retrieval stage.
-    public init() {}
+    public init(
+        memoryStore: any MemoryStoreProtocol = InMemoryMemoryStore(),
+        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService()
+    ) {
+        self.memoryStore = memoryStore
+        self.embeddingService = embeddingService
+    }
 
     /// Retrieves relevant memories and tags for the query in the context.
     /// - Parameter context: The shared pipeline context.

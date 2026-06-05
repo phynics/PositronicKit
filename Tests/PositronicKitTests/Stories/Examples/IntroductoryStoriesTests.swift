@@ -49,7 +49,16 @@ struct IntroductoryStoriesTests {
         let workspace = TestWorkspace()
         let mockLLM = MockLLMService()
         let persistence = MockPersistenceService()
-        let timelineManager = TimelineManager(workspaceRoot: workspace.root, workspaceCreator: MockWorkspaceCreator())
+        let timelineManager = TimelineManager(
+            stores: .init(
+                timelineStore: persistence,
+                messageStore: persistence,
+                workspaceStore: persistence,
+                toolPersistence: persistence
+            ),
+            workspaceRoot: workspace.root,
+            workspaceCreator: MockWorkspaceCreator()
+        )
 
         struct IntroGreetingTool: Tool {
             let id = "intro_greet"
@@ -96,7 +105,7 @@ struct IntroductoryStoriesTests {
             ),
             runtime: .init(
                 timelineManager: timelineManager,
-                toolRouter: ToolRouter()
+                toolRouter: ToolRouter(timelineManager: timelineManager, messageStore: persistence)
             )
         )
 

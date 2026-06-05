@@ -1,4 +1,3 @@
-import Dependencies
 import ErrorKit
 import Foundation
 import Logging
@@ -45,7 +44,7 @@ public actor LLMService: LLMServiceProtocol, HealthCheckable {
     }
 
     /// Service for generating text embeddings
-    @Dependency(\.embeddingService) public var embeddingService
+    public let embeddingService: any EmbeddingServiceProtocol
 
     private var client: (any LLMClientProtocol)?
     private var utilityClient: (any LLMClientProtocol)?
@@ -83,7 +82,11 @@ public actor LLMService: LLMServiceProtocol, HealthCheckable {
     // MARK: - Initialization
 
     /// Initializes with a direct configuration using in-memory storage.
-    public init(configuration: LLMConfiguration) {
+    public init(
+        configuration: LLMConfiguration,
+        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService()
+    ) {
+        self.embeddingService = embeddingService
         self.storage = InMemoryConfigurationService(config: configuration)
         self.configuration = configuration
         self.isConfigured = configuration.isValid
@@ -102,10 +105,12 @@ public actor LLMService: LLMServiceProtocol, HealthCheckable {
 
     public init(
         storage: any ConfigurationServiceProtocol,
+        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
         client: (any LLMClientProtocol)? = nil,
         utilityClient: (any LLMClientProtocol)? = nil,
         fastClient: (any LLMClientProtocol)? = nil
     ) {
+        self.embeddingService = embeddingService
         self.storage = storage
         self.client = client
         self.utilityClient = utilityClient

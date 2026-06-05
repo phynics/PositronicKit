@@ -45,7 +45,6 @@ let package = Package(
                 "PKShared",
                 "PKPrompt",
                 .product(name: "Logging", package: "swift-log"),
-                .product(name: "Dependencies", package: "swift-dependencies"),
                 .product(name: "ErrorKit", package: "ErrorKit"),
                 .product(name: "JSONSchema", package: "swift-json-schema"),
                 .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),

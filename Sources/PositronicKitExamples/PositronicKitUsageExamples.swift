@@ -21,9 +21,22 @@ public enum PositronicKitUsageExamples {
     public static func makeConfiguredRuntime() -> PositronicKitCore {
         let workspaceRoot = FileManager.default.temporaryDirectory
             .appendingPathComponent("positronickit-examples", isDirectory: true)
+        let stores = TimelineManager.Stores(
+            timelineStore: InMemoryTimelinePersistence(),
+            messageStore: InMemoryMessageStore(),
+            workspaceStore: InMemoryWorkspacePersistence(),
+            toolPersistence: InMemoryToolPersistence()
+        )
+        let timelineManager = TimelineManager(
+            stores: stores,
+            workspaceRoot: workspaceRoot
+        )
         let runtime = PositronicKitCore.RuntimeConfiguration(
-            timelineManager: TimelineManager(workspaceRoot: workspaceRoot),
-            toolRouter: ToolRouter(),
+            timelineManager: timelineManager,
+            toolRouter: ToolRouter(
+                timelineManager: timelineManager,
+                messageStore: stores.messageStore
+            ),
             workspaceRoot: workspaceRoot
         )
 
@@ -48,9 +61,22 @@ public enum PositronicKitUsageExamples {
     public static func makeProductionRuntime() -> PositronicKitCore {
         let workspaceRoot = FileManager.default.temporaryDirectory
             .appendingPathComponent("positronickit-examples-production", isDirectory: true)
+        let stores = TimelineManager.Stores(
+            timelineStore: InMemoryTimelinePersistence(),
+            messageStore: InMemoryMessageStore(),
+            workspaceStore: InMemoryWorkspacePersistence(),
+            toolPersistence: InMemoryToolPersistence()
+        )
+        let timelineManager = TimelineManager(
+            stores: stores,
+            workspaceRoot: workspaceRoot
+        )
         let runtime = PositronicKitCore.RuntimeConfiguration(
-            timelineManager: TimelineManager(workspaceRoot: workspaceRoot),
-            toolRouter: ToolRouter(),
+            timelineManager: timelineManager,
+            toolRouter: ToolRouter(
+                timelineManager: timelineManager,
+                messageStore: stores.messageStore
+            ),
             workspaceRoot: workspaceRoot
         )
 

@@ -10,8 +10,19 @@ struct AgentInstanceManagerTests {
 
     @Test("Validation: Name too short")
     func nameTooShort() async throws {
-        let repo = AgentWorkspaceService(workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"))
-        let manager = AgentInstanceManager(repository: repo)
+        let repo = AgentWorkspaceService(
+            workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
+            workspacePersistence: mock
+        )
+        let manager = AgentInstanceManager(
+            repository: repo,
+            stores: .init(
+                instanceStore: mock,
+                timelineStore: mock,
+                messageStore: mock,
+                workspaceStore: mock
+            )
+        )
 
         await #expect(throws: AgentInstanceError.self) {
             _ = try await manager.createInstance(name: "Ab", description: "Valid desc")
@@ -20,8 +31,19 @@ struct AgentInstanceManagerTests {
 
     @Test("Validation: Description empty")
     func descriptionEmpty() async throws {
-        let repo = AgentWorkspaceService(workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"))
-        let manager = AgentInstanceManager(repository: repo)
+        let repo = AgentWorkspaceService(
+            workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
+            workspacePersistence: mock
+        )
+        let manager = AgentInstanceManager(
+            repository: repo,
+            stores: .init(
+                instanceStore: mock,
+                timelineStore: mock,
+                messageStore: mock,
+                workspaceStore: mock
+            )
+        )
 
         await #expect(throws: AgentInstanceError.self) {
             _ = try await manager.createInstance(name: "Valid Name", description: "  ")
@@ -30,8 +52,19 @@ struct AgentInstanceManagerTests {
 
     @Test("Robustness: Cannot attach to private timeline")
     func cannotAttachToPrivate() async throws {
-        let repo = AgentWorkspaceService(workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"))
-        let manager = AgentInstanceManager(repository: repo)
+        let repo = AgentWorkspaceService(
+            workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
+            workspacePersistence: mock
+        )
+        let manager = AgentInstanceManager(
+            repository: repo,
+            stores: .init(
+                instanceStore: mock,
+                timelineStore: mock,
+                messageStore: mock,
+                workspaceStore: mock
+            )
+        )
 
         let agentId = UUID()
         let agent = AgentInstance(id: agentId, name: "Test Agent", description: "Desc", primaryWorkspaceId: UUID(), privateTimelineId: UUID())
@@ -58,8 +91,19 @@ struct AgentInstanceManagerTests {
 
     @Test("Robustness: Cannot detach agent from its own private timeline")
     func cannotDetachFromOwnPrivate() async throws {
-        let repo = AgentWorkspaceService(workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"))
-        let manager = AgentInstanceManager(repository: repo)
+        let repo = AgentWorkspaceService(
+            workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
+            workspacePersistence: mock
+        )
+        let manager = AgentInstanceManager(
+            repository: repo,
+            stores: .init(
+                instanceStore: mock,
+                timelineStore: mock,
+                messageStore: mock,
+                workspaceStore: mock
+            )
+        )
 
         let agentId = UUID()
         let agent = AgentInstance(id: agentId, name: "Test Agent", description: "Desc", primaryWorkspaceId: UUID(), privateTimelineId: UUID())
@@ -79,8 +123,19 @@ struct AgentInstanceManagerTests {
 
     @Test("Creation: Agent is automatically attached to private timeline")
     func createInstanceAttachesAgent() async throws {
-        let repo = AgentWorkspaceService(workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"))
-        let manager = AgentInstanceManager(repository: repo)
+        let repo = AgentWorkspaceService(
+            workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
+            workspacePersistence: mock
+        )
+        let manager = AgentInstanceManager(
+            repository: repo,
+            stores: .init(
+                instanceStore: mock,
+                timelineStore: mock,
+                messageStore: mock,
+                workspaceStore: mock
+            )
+        )
 
         try await TestDependencies()
             .withMocks(persistence: mock)
@@ -95,8 +150,19 @@ struct AgentInstanceManagerTests {
 
     @Test("Search: Find by name or description")
     func searchInstances() async throws {
-        let repo = AgentWorkspaceService(workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"))
-        let manager = AgentInstanceManager(repository: repo)
+        let repo = AgentWorkspaceService(
+            workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
+            workspacePersistence: mock
+        )
+        let manager = AgentInstanceManager(
+            repository: repo,
+            stores: .init(
+                instanceStore: mock,
+                timelineStore: mock,
+                messageStore: mock,
+                workspaceStore: mock
+            )
+        )
 
         let agent1 = AgentInstance(id: UUID(), name: "Researcher", description: "Finds things", primaryWorkspaceId: UUID(), privateTimelineId: UUID())
         let agent2 = AgentInstance(id: UUID(), name: "Coder", description: "Writes Swift", primaryWorkspaceId: UUID(), privateTimelineId: UUID())

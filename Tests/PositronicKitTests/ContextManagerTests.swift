@@ -1,5 +1,6 @@
 import Dependencies
 import Foundation
+import Logging
 @testable import PositronicKit
 @testable import PKShared
 import PKTestSupport
@@ -7,6 +8,20 @@ import Testing
 
 @Suite("Context Manager Tests")
 struct ContextManagerTests {
+    private func makeContextManager(
+        workspace: (any WorkspaceProtocol)? = nil,
+        persistence: MockPersistenceService,
+        embedding: MockEmbeddingService
+    ) -> ContextManager {
+        let stages: [any PipelineStage<ContextPipelineContext, ContextGatheringEvent>] = [
+            QueryAugmentationStage(),
+            MemoryRetrievalStage(memoryStore: persistence, embeddingService: embedding),
+            NoteDiscoveryStage(workspace: workspace),
+            ContextAssemblyStage(logger: Logger(label: "test.context-assembly"))
+        ]
+        return ContextManager(workspace: workspace, pipeline: Pipeline(stages: stages))
+    }
+
     @Test("Gather Context: Semantic Retrieval")
     func gatherContextSemanticRetrieval() async throws {
         let mockPersistence = MockPersistenceService()
@@ -14,7 +29,7 @@ struct ContextManagerTests {
         let contextManager = try await TestDependencies()
             .withMocks(persistence: mockPersistence, embedding: mockEmbedding)
             .run {
-                ContextManager(workspace: nil)
+                makeContextManager(persistence: mockPersistence, embedding: mockEmbedding)
             }
 
         let expectedMemory = Memory.fixture(
@@ -49,7 +64,7 @@ struct ContextManagerTests {
         let contextManager = try await TestDependencies()
             .withMocks(persistence: mockPersistence, embedding: mockEmbedding)
             .run {
-                ContextManager(workspace: nil)
+                makeContextManager(persistence: mockPersistence, embedding: mockEmbedding)
             }
 
         let memory = Memory.fixture(title: "Project Alpha", tags: ["alpha"])
@@ -87,7 +102,7 @@ struct ContextManagerTests {
         let contextManager = try await TestDependencies()
             .withMocks(persistence: mockPersistence, embedding: mockEmbedding)
             .run {
-                ContextManager(workspace: nil)
+                makeContextManager(persistence: mockPersistence, embedding: mockEmbedding)
             }
 
         let memory1 = Memory.fixture(title: "Tag Match", tags: ["swift"])
@@ -145,7 +160,11 @@ struct ContextManagerTests {
         let manager = try await TestDependencies()
             .withMocks(persistence: mockPersistence, embedding: mockEmbedding)
             .run {
-                ContextManager(workspace: workspace)
+                makeContextManager(
+                    workspace: workspace,
+                    persistence: mockPersistence,
+                    embedding: mockEmbedding
+                )
             }
 
         let stream = await manager.gatherContext(for: "some query")
@@ -189,7 +208,11 @@ struct ContextManagerTests {
         let manager = try await TestDependencies()
             .withMocks(persistence: mockPersistence, embedding: mockEmbedding)
             .run {
-                ContextManager(workspace: workspace)
+                makeContextManager(
+                    workspace: workspace,
+                    persistence: mockPersistence,
+                    embedding: mockEmbedding
+                )
             }
 
         let stream = await manager.gatherContext(for: "some query")

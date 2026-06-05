@@ -1,4 +1,3 @@
-import Dependencies
 import Foundation
 import PKPrompt
 import PKShared
@@ -67,7 +66,7 @@ public struct PositronicKitCore: Sendable {
     private let agentTemplateStore: any AgentTemplateStoreProtocol
     private let embeddingService: any EmbeddingServiceProtocol
 
-    private var chatEngine = ChatEngine()
+    private var chatEngine: ChatEngine
 
     // MARK: - Init
 
@@ -138,8 +137,31 @@ public struct PositronicKitCore: Sendable {
 
         let resolvedWorkspaceRoot = workspaceRoot ?? FileManager.default.temporaryDirectory
             .appendingPathComponent("positronickit-workspaces", isDirectory: true)
-        self.timelineManager = timelineManager ?? TimelineManager(workspaceRoot: resolvedWorkspaceRoot)
-        self.toolRouter = toolRouter ?? ToolRouter()
+        let resolvedTimelineManager = timelineManager ?? TimelineManager(
+            stores: .init(
+                timelineStore: self.timelinePersistence,
+                messageStore: self.messageStore,
+                workspaceStore: self.workspacePersistence,
+                toolPersistence: self.toolPersistence
+            ),
+            workspaceRoot: resolvedWorkspaceRoot
+        )
+        self.timelineManager = resolvedTimelineManager
+        self.toolRouter = toolRouter ?? ToolRouter(
+            timelineManager: resolvedTimelineManager,
+            messageStore: self.messageStore
+        )
+        self.chatEngine = ChatEngine(
+            dependencies: .init(
+                timelineManager: resolvedTimelineManager,
+                agentInstanceStore: self.agentInstanceStore,
+                requestOriginStore: self.requestOriginStore,
+                messageStore: self.messageStore,
+                llmService: self.llmService,
+                toolRouter: self.toolRouter,
+                chatTurnPlugins: self.chatTurnPlugins
+            )
+        )
     }
 
     // MARK: - Builder
@@ -163,6 +185,19 @@ public struct PositronicKitCore: Sendable {
     public func addPlugin(_ plugin: any ChatTurnPlugin) -> PositronicKitCore {
         var copy = self
         copy.chatTurnPlugins.append(plugin)
+        let existingStages = copy.chatEngine.additionalStages
+        copy.chatEngine = ChatEngine(
+            dependencies: .init(
+                timelineManager: copy.timelineManager,
+                agentInstanceStore: copy.agentInstanceStore,
+                requestOriginStore: copy.requestOriginStore,
+                messageStore: copy.messageStore,
+                llmService: copy.llmService,
+                toolRouter: copy.toolRouter,
+                chatTurnPlugins: copy.chatTurnPlugins
+            )
+        )
+        copy.chatEngine.additionalStages = existingStages
         return copy
     }
 
@@ -190,40 +225,22 @@ public struct PositronicKitCore: Sendable {
         maxTurns: Int = 5,
         generationParameters: GenerationParameters? = nil
     ) async throws -> AsyncThrowingStream<ChatEvent, Error> {
-        try await withDependencies {
-            // Direct ChatEngine deps
-            $0.llmService = self.llmService
-            $0.messageStore = self.messageStore
-            $0.timelineManager = self.timelineManager
-            $0.toolRouter = self.toolRouter
-            $0.agentInstanceStore = self.agentInstanceStore
-            $0.requestOriginStore = self.requestOriginStore
-            $0.chatTurnPlugins = self.chatTurnPlugins
-            // Transitive deps
-            $0.timelinePersistence = self.timelinePersistence
-            $0.workspacePersistence = self.workspacePersistence
-            $0.memoryStore = self.memoryStore
-            $0.toolPersistence = self.toolPersistence
-            $0.agentTemplateStore = self.agentTemplateStore
-            $0.embeddingService = self.embeddingService
-        } operation: {
-            let resolvedContextManager = await self.resolveContextManager(
-                explicit: nil,
-                timelineId: timelineId
-            )
+        let resolvedContextManager = await self.resolveContextManager(
+            explicit: nil,
+            timelineId: timelineId
+        )
 
-            return try await chatEngine.execute(
-                timelineId: timelineId,
-                message: message,
-                tools: tools,
-                toolOutputs: toolOutputs,
-                contextManager: resolvedContextManager,
-                systemInstructions: systemInstructions,
-                agentInstanceId: agentInstanceId,
-                maxTurns: maxTurns,
-                generationParameters: generationParameters ?? self.defaultGenerationParameters
-            )
-        }
+        return try await chatEngine.execute(
+            timelineId: timelineId,
+            message: message,
+            tools: tools,
+            toolOutputs: toolOutputs,
+            contextManager: resolvedContextManager,
+            systemInstructions: systemInstructions,
+            agentInstanceId: agentInstanceId,
+            maxTurns: maxTurns,
+            generationParameters: generationParameters ?? self.defaultGenerationParameters
+        )
     }
 
     private func resolveContextManager(

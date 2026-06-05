@@ -1,4 +1,3 @@
-import Dependencies
 import Foundation
 @testable import PositronicKit
 @testable import PKShared
@@ -14,47 +13,55 @@ struct ChatEngineTests {
     private func withChatEngineDependencies<T>(_ test: @Sendable (ChatEngine, MockLLMService, MockPersistenceService) async throws -> T) async throws -> T {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
+        let timelineManager = TimelineManager(
+            stores: .init(
+                timelineStore: mockPersistence,
+                messageStore: mockPersistence,
+                workspaceStore: mockPersistence,
+                toolPersistence: mockPersistence
+            ),
+            workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
+            workspaceCreator: MockWorkspaceCreator()
+        )
+        let toolRouter = ToolRouter(
+            timelineManager: timelineManager,
+            messageStore: mockPersistence
+        )
+        let engine = ChatEngine(
+            dependencies: .init(
+                timelineManager: timelineManager,
+                agentInstanceStore: mockPersistence,
+                requestOriginStore: mockPersistence,
+                messageStore: mockPersistence,
+                llmService: mockLLM,
+                toolRouter: toolRouter,
+                chatTurnPlugins: []
+            )
+        )
 
         // Seed a session
         let session = Timeline(id: timelineId, title: "Test Session")
         try await mockPersistence.saveTimeline(session)
 
-        return try await withDependencies {
-            $0.llmService = mockLLM
-            $0.timelinePersistence = mockPersistence
-            $0.workspacePersistence = mockPersistence
-            $0.memoryStore = mockPersistence
-            $0.messageStore = mockPersistence
-            $0.agentTemplateStore = mockPersistence
-            $0.requestOriginStore = mockPersistence
-            $0.toolPersistence = mockPersistence
-            $0.agentInstanceStore = mockPersistence
-            $0.timelineManager = TimelineManager(workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"), workspaceCreator: MockWorkspaceCreator())
-            $0.toolRouter = ToolRouter()
-        } operation: {
-            @Dependency(\.timelineManager) var timelineManager
-            let wsId = UUID()
-            let workspaceRef = WorkspaceReference(id: wsId, uri: WorkspaceURI(parsing: "pk://local")!, location: .runtimeTimeline, originId: nil, rootPath: "/tmp")
-            try await mockPersistence.saveWorkspace(workspaceRef)
-            try await timelineManager.attachWorkspace(wsId, to: timelineId)
-            try await mockPersistence.addToolToWorkspace(workspaceId: wsId, tool: .known("mock_tool"))
+        let wsId = UUID()
+        let workspaceRef = WorkspaceReference(id: wsId, uri: WorkspaceURI(parsing: "pk://local")!, location: .runtimeTimeline, originId: nil, rootPath: "/tmp")
+        try await mockPersistence.saveWorkspace(workspaceRef)
+        try await timelineManager.attachWorkspace(wsId, to: timelineId)
+        try await mockPersistence.addToolToWorkspace(workspaceId: wsId, tool: .known("mock_tool"))
 
-            let engine = ChatEngine()
+        try await timelineManager.hydrateTimeline(id: timelineId)
 
-            try await timelineManager.hydrateTimeline(id: timelineId)
+        if let toolManager = await timelineManager.getToolManager(for: timelineId) {
+            var tools = await toolManager.getAvailableTools()
+            tools.append(MockTool().toAnyTool())
+            await toolManager.updateAvailableTools(tools)
 
-            if let toolManager = await timelineManager.getToolManager(for: timelineId) {
-                var tools = await toolManager.getAvailableTools()
-                tools.append(MockTool().toAnyTool())
-                await toolManager.updateAvailableTools(tools)
-
-                if let ws = try? await timelineManager.workspaceManager.getWorkspace(id: wsId) {
-                    await toolManager.registerWorkspace(ws)
-                }
+            if let ws = try? await timelineManager.workspaceManager.getWorkspace(id: wsId) {
+                await toolManager.registerWorkspace(ws)
             }
-
-            return try await test(engine, mockLLM, mockPersistence)
         }
+
+        return try await test(engine, mockLLM, mockPersistence)
     }
 
     /// Helper to collect events from a stream
