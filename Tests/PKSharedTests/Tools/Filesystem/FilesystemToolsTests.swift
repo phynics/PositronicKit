@@ -138,4 +138,76 @@ struct FilesystemToolsTests {
         let resultOutside = try await tool.execute(parameters: ["path": "../../.."])
         #expect(!resultOutside.success)
     }
+
+    @Test("Sibling prefix path is outside jail")
+    func siblingPrefixPathIsOutsideJail() async throws {
+        defer { cleanup() }
+        let siblingURL = URL(fileURLWithPath: tempURL.path + "-sibling", isDirectory: true)
+        try FileManager.default.createDirectory(at: siblingURL, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: siblingURL) }
+
+        let secretURL = siblingURL.appendingPathComponent("secret.txt")
+        try "Secret Data".write(to: secretURL, atomically: true, encoding: .utf8)
+
+        let tool = ReadFileTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
+        let result = try await tool.execute(parameters: ["path": secretURL.path])
+
+        #expect(!result.success)
+    }
+
+    @Test("Absolute path inside jail is allowed")
+    func absolutePathInsideJailIsAllowed() async throws {
+        defer { cleanup() }
+        let tool = ReadFileTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
+
+        let result = try await tool.execute(parameters: ["path": tempURL.appendingPathComponent("file1.txt").path])
+
+        #expect(result.success)
+        #expect(result.output == "Hello World")
+    }
+
+    @Test("Absolute path outside jail is rejected")
+    func absolutePathOutsideJailIsRejected() async throws {
+        defer { cleanup() }
+        let outsideURL = FileManager.default.temporaryDirectory.appendingPathComponent("outside_\(UUID().uuidString).txt")
+        try "Secret Data".write(to: outsideURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: outsideURL) }
+
+        let tool = ReadFileTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
+        let result = try await tool.execute(parameters: ["path": outsideURL.path])
+
+        #expect(!result.success)
+    }
+
+    @Test("Symlink inside jail pointing outside is rejected")
+    func symlinkInsideJailPointingOutsideIsRejected() async throws {
+        defer { cleanup() }
+        let outsideURL = FileManager.default.temporaryDirectory.appendingPathComponent("outside_\(UUID().uuidString).txt")
+        try "Secret Data".write(to: outsideURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: outsideURL) }
+
+        let linkURL = tempURL.appendingPathComponent("outside-link.txt")
+        try FileManager.default.createSymbolicLink(at: linkURL, withDestinationURL: outsideURL)
+
+        let tool = ReadFileTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
+        let result = try await tool.execute(parameters: ["path": "outside-link.txt"])
+
+        #expect(!result.success)
+    }
+
+    @Test("Symlink inside jail pointing inside is allowed")
+    func symlinkInsideJailPointingInsideIsAllowed() async throws {
+        defer { cleanup() }
+        let linkURL = tempURL.appendingPathComponent("inside-link.txt")
+        try FileManager.default.createSymbolicLink(
+            at: linkURL,
+            withDestinationURL: tempURL.appendingPathComponent("file1.txt")
+        )
+
+        let tool = ReadFileTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
+        let result = try await tool.execute(parameters: ["path": "inside-link.txt"])
+
+        #expect(result.success)
+        #expect(result.output == "Hello World")
+    }
 }

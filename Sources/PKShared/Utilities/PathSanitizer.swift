@@ -39,38 +39,51 @@ public enum PathSanitizer {
         within currentDirectory: String,
         jailRoot: String
     ) throws -> URL {
-        let rootURL = URL(fileURLWithPath: jailRoot).standardized
-        let currentURL = URL(fileURLWithPath: currentDirectory).standardized
+        let rootURL = canonicalURL(forPath: jailRoot)
+        let currentURL = canonicalURL(forPath: currentDirectory)
 
-        // Sanity check: currentDirectory must be within jailRoot
-        guard currentURL.path.hasPrefix(rootURL.path) else {
+        guard isContained(currentURL, in: rootURL) else {
             throw PathError.accessDenied("Current directory '\(currentDirectory)' is outside jail root.")
         }
 
         let resolvedURL: URL
         if pathString.hasPrefix("/") {
-            // Treat absolute paths as relative to jail root if they don't start with jail root?
-            // Actually, if a tool provides an absolute path, it MUST start with jail root.
             resolvedURL = URL(fileURLWithPath: pathString).standardized
         } else if pathString.hasPrefix("~") {
-            // Tilde expansion usually goes to home, which is likely outside jail.
-            // For now, let's treat ~ as jail root? Or just disallow.
-            // Let's resolve it then check.
             resolvedURL = URL(fileURLWithPath: (pathString as NSString).expandingTildeInPath).standardized
         } else {
             resolvedURL = currentURL.appendingPathComponent(pathString).standardized
         }
 
-        // Ensure the resolved path starts with the root path
-        guard resolvedURL.path.hasPrefix(rootURL.path) else {
+        let canonicalResolvedURL = canonicalURL(forURL: resolvedURL)
+        guard isContained(canonicalResolvedURL, in: rootURL) else {
             throw PathError.accessDenied(pathString)
         }
 
-        return resolvedURL
+        return canonicalResolvedURL
     }
 
     /// Legacy alias for safelyResolve(path:within:jailRoot:) where currentDirectory == jailRoot
     public static func safelyResolve(path pathString: String, within root: String) throws -> URL {
         return try safelyResolve(path: pathString, within: root, jailRoot: root)
+    }
+
+    private static func canonicalURL(forPath path: String) -> URL {
+        canonicalURL(forURL: URL(fileURLWithPath: path))
+    }
+
+    private static func canonicalURL(forURL url: URL) -> URL {
+        url.standardizedFileURL.resolvingSymlinksInPath()
+    }
+
+    private static func isContained(_ candidate: URL, in root: URL) -> Bool {
+        let rootComponents = root.standardizedFileURL.pathComponents
+        let candidateComponents = candidate.standardizedFileURL.pathComponents
+
+        guard candidateComponents.count >= rootComponents.count else {
+            return false
+        }
+
+        return zip(rootComponents, candidateComponents).allSatisfy(==)
     }
 }
