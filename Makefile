@@ -1,4 +1,4 @@
-.PHONY: help build clean test
+.PHONY: help build clean test test-parallel harden
 
 # Default target
 help:
@@ -10,6 +10,8 @@ help:
 	@echo ""
 	@echo "Development:"
 	@echo "  make test                  Run tests"
+	@echo "  make test-parallel         Run tests in parallel"
+	@echo "  make harden                Run build and parallel hardening test gate"
 
 build:
 	@echo "Building PositronicKit..."
@@ -25,3 +27,12 @@ clean:
 test:
 	@echo "Running tests..."
 	@swift test
+
+test-parallel:
+	@echo "Running tests in parallel..."
+	@swift test --parallel --num-workers 2
+
+harden:
+	@echo "Running hardening gate..."
+	@swift build
+	@swift test --parallel --num-workers 2
