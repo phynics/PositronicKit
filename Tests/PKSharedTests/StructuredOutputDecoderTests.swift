@@ -21,6 +21,37 @@ struct StructuredOutputDecoderTests {
         #expect(decoded == TagPayload(tags: ["swift", "json"]))
     }
 
+    @Test("Decodes uppercase and generic fenced JSON payloads")
+    func decodesAlternateFenceFormats() throws {
+        let uppercaseFence = """
+        ```JSON
+        {"tags":["swift","uppercase"]}
+        ```
+        """
+        let genericFence = """
+        ```
+        {"tags":["swift","generic"]}
+        ```
+        """
+
+        #expect(try StructuredOutputDecoder.decode(TagPayload.self, from: uppercaseFence) == TagPayload(tags: ["swift", "uppercase"]))
+        #expect(try StructuredOutputDecoder.decode(TagPayload.self, from: genericFence) == TagPayload(tags: ["swift", "generic"]))
+    }
+
+    @Test("Decodes fenced JSON payloads surrounded by prose")
+    func decodesFencedJSONPayloadsSurroundedByProse() throws {
+        let payload = """
+        Here is the structured response:
+        ```json
+        {"tags":["swift","prose"]}
+        ```
+        """
+
+        let decoded = try StructuredOutputDecoder.decode(TagPayload.self, from: payload)
+
+        #expect(decoded == TagPayload(tags: ["swift", "prose"]))
+    }
+
     @Test("Throws on invalid JSON payloads")
     func throwsOnInvalidJSONPayloads() {
         #expect(throws: StructuredOutputDecodingError.self) {

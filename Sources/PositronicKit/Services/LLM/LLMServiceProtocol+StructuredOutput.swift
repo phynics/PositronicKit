@@ -148,11 +148,24 @@ enum StructuredOutputExecution {
                     )),
                     promptAugmentation: nil
                 )
-            case .ollama, .openAICompatible:
-                if provider == .openAICompatible {
-                    return PreparedRequest(responseFormat: nil, promptAugmentation: nil)
+            case .ollama:
+                let jsonSchema: Schema?
+                if let data = try? JSONEncoder().encode(schema.schema) {
+                    jsonSchema = try? JSONDecoder().decode(Schema.self, from: data)
+                } else {
+                    jsonSchema = nil
                 }
-                return PreparedRequest(responseFormat: .jsonObject, promptAugmentation: fallbackPromptSuffix(schema: schema))
+                return PreparedRequest(
+                    responseFormat: .jsonSchema(.init(
+                        name: schema.name,
+                        description: schema.description,
+                        schema: jsonSchema,
+                        strict: schema.strict
+                    )),
+                    promptAugmentation: fallbackPromptSuffix(schema: schema)
+                )
+            case .openAICompatible:
+                return PreparedRequest(responseFormat: nil, promptAugmentation: nil)
             }
         }
     }
@@ -184,12 +197,13 @@ enum StructuredOutputExecution {
                     syntheticToolName: nil
                 )
             case .ollama:
+                let prepared = prepare(for: provider, output: output)
                 let augmentation = fallbackPromptSuffix(schema: schema)
                 return StreamRequest(
                     messages: applyPromptAugmentation(augmentation, to: messages),
                     tools: tools,
                     toolChoice: nil,
-                    responseFormat: .jsonObject,
+                    responseFormat: prepared.responseFormat,
                     syntheticToolName: nil
                 )
             case .openAICompatible:

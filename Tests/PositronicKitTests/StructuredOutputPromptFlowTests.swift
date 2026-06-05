@@ -72,7 +72,12 @@ struct StructuredOutputPromptFlowTests {
         }
 
         #expect(chunks.joined() == "{\"tags\":[\"swift\"]}")
-        #expect(mockClient.lastResponseFormat == .jsonObject)
+        guard case let .jsonSchema(responseSchema) = mockClient.lastResponseFormat else {
+            Issue.record("Expected Ollama schema requests to preserve JSON schema response format")
+            return
+        }
+        #expect(responseSchema.name == "tag_payload")
+        #expect(responseSchema.schema != nil)
         #expect(result.rawPrompt.contains("System rules"))
         #expect(result.rawPrompt.contains("Schema name: tag_payload"))
         #expect(result.rawPrompt.contains("JSON Schema"))
