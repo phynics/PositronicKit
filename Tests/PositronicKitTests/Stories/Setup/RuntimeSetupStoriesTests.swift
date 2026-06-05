@@ -45,6 +45,22 @@ import Testing
         #expect(client is OpenAIClient)
     }
 
+    @Test("Provider registry supports concurrent defensive registration")
+    func providerRegistrySupportsConcurrentDefensiveRegistration() async {
+        await withTaskGroup(of: Void.self) { group in
+            for index in 0 ..< 100 {
+                group.addTask {
+                    let provider: LLMProvider = index.isMultiple(of: 2) ? .openAI : .openAICompatible
+                    ExternalLLMProviderRegistry.register(factory: { _, _, _, _, _ in nil }, for: provider)
+                    _ = ExternalLLMProviderRegistry.factory(for: provider)
+                }
+            }
+        }
+
+        #expect(ExternalLLMProviderRegistry.factory(for: .openAI) != nil)
+        #expect(ExternalLLMProviderRegistry.factory(for: .openAICompatible) != nil)
+    }
+
     @Test("OpenRouter convenience initialization configures a registered OpenRouter client")
     func openRouterConvenienceInitialization() async throws {
         let chat = PositronicKitCore(

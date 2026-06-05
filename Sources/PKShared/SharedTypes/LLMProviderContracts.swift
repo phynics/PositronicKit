@@ -1,5 +1,6 @@
 import Foundation
 import struct JSONSchema.Schema
+import Synchronization
 
 public struct LLMToolDefinition: Sendable, Codable {
     public let name: String
@@ -242,24 +243,22 @@ public enum ExternalLLMProviderRegistry {
         String?
     ) -> (any LLMClientProtocol)?
 
-    private static let lock = NSLock()
-    nonisolated(unsafe) private static var factories: [LLMProvider: Factory] = [:]
+    private static let factories = Mutex<[LLMProvider: Factory]>([:])
 
     /// Registers or replaces the factory for a provider.
     ///
     /// Re-registration is allowed and simply overwrites the existing factory for that provider.
     /// Provider modules rely on this behavior so hosts can call `register()` defensively at startup.
     public static func register(factory: @escaping Factory, for provider: LLMProvider) {
-        lock.lock()
-        factories[provider] = factory
-        lock.unlock()
+        factories.withLock {
+            $0[provider] = factory
+        }
     }
 
     public static func factory(for provider: LLMProvider) -> Factory? {
-        lock.lock()
-        let factory = factories[provider]
-        lock.unlock()
-        return factory
+        factories.withLock {
+            $0[provider]
+        }
     }
 }
 
