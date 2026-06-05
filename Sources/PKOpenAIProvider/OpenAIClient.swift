@@ -61,48 +61,47 @@ public actor OpenAIClient: LLMClientProtocol {
             streamOptions: .init(includeUsage: true)
         )
 
-        return AsyncThrowingStream<LLMStreamChunk, Error> { continuation in
-            Task {
-                let recoveryState = Mutex(LLMToolCallRecoveryState())
+        return CancellableAsyncThrowingStream.make(of: LLMStreamChunk.self) { continuation in
+            let recoveryState = Mutex(LLMToolCallRecoveryState())
 
-                do {
-                    try await RetryPolicy.retry(
-                        maxRetries: maxRetries,
-                        shouldRetry: { error in
-                            recoveryState.withLock { $0.shouldRetryAfterError } && RetryPolicy.isTransient(error: error)
-                        },
-                        operation: {
-                            let stream: AsyncThrowingStream<ChatStreamResult, Error> = client.chatsStream(query: query)
+            do {
+                try await RetryPolicy.retry(
+                    maxRetries: maxRetries,
+                    shouldRetry: { error in
+                        recoveryState.withLock { $0.shouldRetryAfterError } && RetryPolicy.isTransient(error: error)
+                    },
+                    operation: {
+                        let stream: AsyncThrowingStream<ChatStreamResult, Error> = client.chatsStream(query: query)
 
-                            for try await result in stream {
-                                recoveryState.withLock {
-                                    $0.observe(
-                                        yieldedContent: !(result.choices.first?.delta.content?.isEmpty ?? true),
-                                        streamedToolCalls: result.choices.first?.delta.toolCalls != nil,
-                                        finishedWithToolCalls: result.choices.contains(where: { $0.finishReason == .toolCalls })
-                                    )
-                                }
-
-                                continuation.yield(result.toLLMStreamChunk())
+                        for try await result in stream {
+                            if Task.isCancelled { break }
+                            recoveryState.withLock {
+                                $0.observe(
+                                    yieldedContent: !(result.choices.first?.delta.content?.isEmpty ?? true),
+                                    streamedToolCalls: result.choices.first?.delta.toolCalls != nil,
+                                    finishedWithToolCalls: result.choices.contains(where: { $0.finishReason == .toolCalls })
+                                )
                             }
 
-                            if recoveryState.withLock(\.shouldRecoverToolCalls) {
-                                logger.warning("OpenAI stream finished with tool_calls but no streamed delta.toolCalls were received. Recovering tool calls from non-stream response.")
-                                var recoveryQuery = query
-                                recoveryQuery.stream = false
-                                let recoveryResult = try await client.chats(query: recoveryQuery)
-                                if let recoveryChunk = recoveryResult.toLLMToolCallRecoveryChunk() {
-                                    continuation.yield(recoveryChunk)
-                                }
+                            continuation.yield(result.toLLMStreamChunk())
+                        }
+
+                        if !Task.isCancelled, recoveryState.withLock(\.shouldRecoverToolCalls) {
+                            logger.warning("OpenAI stream finished with tool_calls but no streamed delta.toolCalls were received. Recovering tool calls from non-stream response.")
+                            var recoveryQuery = query
+                            recoveryQuery.stream = false
+                            let recoveryResult = try await client.chats(query: recoveryQuery)
+                            if !Task.isCancelled, let recoveryChunk = recoveryResult.toLLMToolCallRecoveryChunk() {
+                                continuation.yield(recoveryChunk)
                             }
                         }
-                    )
+                    }
+                )
 
-                    continuation.finish()
-                } catch {
-                    logger.error("OpenAI stream error: \(error.localizedDescription)")
-                    continuation.finish(throwing: error)
-                }
+                continuation.finish()
+            } catch {
+                logger.error("OpenAI stream error: \(error.localizedDescription)")
+                continuation.finish(throwing: error)
             }
         }
     }

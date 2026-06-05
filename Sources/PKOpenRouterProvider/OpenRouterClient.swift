@@ -229,18 +229,45 @@ public actor OpenRouterClient: LLMClientProtocol {
         let maxRetries = self.maxRetries
         let chatURL = endpoint.appendingPathComponent("v1/chat/completions")
 
-        return AsyncThrowingStream<LLMStreamChunk, Error> { continuation in
-            Task {
-                let recoveryState = Mutex(LLMToolCallRecoveryState())
+        return CancellableAsyncThrowingStream.make(of: LLMStreamChunk.self) { continuation in
+            let recoveryState = Mutex(LLMToolCallRecoveryState())
 
-                do {
-                    try await RetryPolicy.retry(
-                        maxRetries: maxRetries,
-                        shouldRetry: { error in
-                            recoveryState.withLock { $0.shouldRetryAfterError } && RetryPolicy.isTransient(error: error)
-                        },
-                        operation: {
-                            let request = self.buildChatRequest(
+            do {
+                try await RetryPolicy.retry(
+                    maxRetries: maxRetries,
+                    shouldRetry: { error in
+                        recoveryState.withLock { $0.shouldRetryAfterError } && RetryPolicy.isTransient(error: error)
+                    },
+                    operation: {
+                        let request = self.buildChatRequest(
+                            chatURL: chatURL,
+                            apiKey: apiKey,
+                            query: OpenRouterChatRequest(
+                                messages: messages.map(OpenRouterMessage.init),
+                                model: modelName,
+                                frequencyPenalty: generationParameters?.frequencyPenalty,
+                                maxCompletionTokens: generationParameters?.maxTokens,
+                                presencePenalty: generationParameters?.presencePenalty,
+                                responseFormat: self.mapResponseFormat(responseFormat),
+                                seed: generationParameters?.seed,
+                                temperature: generationParameters?.temperature,
+                                toolChoice: self.mapToolChoice(toolChoice ?? (tools != nil ? .auto : nil)),
+                                tools: tools?.map(OpenRouterTool.init),
+                                topP: generationParameters?.topP,
+                                stream: true,
+                                streamOptions: .init(includeUsage: true)
+                            )
+                        )
+                        try await self.streamChatResponse(
+                            request: request,
+                            recoveryState: recoveryState,
+                            logger: logger,
+                            continuation: continuation
+                        )
+
+                        if !Task.isCancelled, recoveryState.withLock(\.shouldRecoverToolCalls) {
+                            logger.warning("OpenRouter stream finished with tool_calls but no streamed delta.toolCalls were received. Recovering tool calls from non-stream response.")
+                            let recoveryRequest = self.buildChatRequest(
                                 chatURL: chatURL,
                                 apiKey: apiKey,
                                 query: OpenRouterChatRequest(
@@ -255,50 +282,21 @@ public actor OpenRouterClient: LLMClientProtocol {
                                     toolChoice: self.mapToolChoice(toolChoice ?? (tools != nil ? .auto : nil)),
                                     tools: tools?.map(OpenRouterTool.init),
                                     topP: generationParameters?.topP,
-                                    stream: true,
-                                    streamOptions: .init(includeUsage: true)
+                                    stream: false,
+                                    streamOptions: nil
                                 )
                             )
-                            try await self.streamChatResponse(
-                                request: request,
-                                recoveryState: recoveryState,
-                                logger: logger,
-                                continuation: continuation
-                            )
-
-                            if recoveryState.withLock(\.shouldRecoverToolCalls) {
-                                logger.warning("OpenRouter stream finished with tool_calls but no streamed delta.toolCalls were received. Recovering tool calls from non-stream response.")
-                                let recoveryRequest = self.buildChatRequest(
-                                    chatURL: chatURL,
-                                    apiKey: apiKey,
-                                    query: OpenRouterChatRequest(
-                                        messages: messages.map(OpenRouterMessage.init),
-                                        model: modelName,
-                                        frequencyPenalty: generationParameters?.frequencyPenalty,
-                                        maxCompletionTokens: generationParameters?.maxTokens,
-                                        presencePenalty: generationParameters?.presencePenalty,
-                                        responseFormat: self.mapResponseFormat(responseFormat),
-                                        seed: generationParameters?.seed,
-                                        temperature: generationParameters?.temperature,
-                                        toolChoice: self.mapToolChoice(toolChoice ?? (tools != nil ? .auto : nil)),
-                                        tools: tools?.map(OpenRouterTool.init),
-                                        topP: generationParameters?.topP,
-                                        stream: false,
-                                        streamOptions: nil
-                                    )
-                                )
-                                let recoveryResult = try await self.fetchChatResponse(request: recoveryRequest)
-                                if let recoveryChunk = self.makeToolCallRecoveryChunk(from: recoveryResult) {
-                                    continuation.yield(recoveryChunk)
-                                }
+                            let recoveryResult = try await self.fetchChatResponse(request: recoveryRequest)
+                            if !Task.isCancelled, let recoveryChunk = self.makeToolCallRecoveryChunk(from: recoveryResult) {
+                                continuation.yield(recoveryChunk)
                             }
                         }
-                    )
-                    continuation.finish()
-                } catch {
-                    logger.error("OpenRouter stream error: \(error.localizedDescription)")
-                    continuation.finish(throwing: error)
-                }
+                    }
+                )
+                continuation.finish()
+            } catch {
+                logger.error("OpenRouter stream error: \(error.localizedDescription)")
+                continuation.finish(throwing: error)
             }
         }
     }
@@ -325,11 +323,11 @@ public actor OpenRouterClient: LLMClientProtocol {
             throw LLMServiceError.networkError("Invalid response type from OpenRouter")
         }
         guard (200 ... 299).contains(httpResponse.statusCode) else {
-            var errorBody = ""
-            for try await line in stream.lines { errorBody += line }
+            let errorBody = try await LimitedErrorBodyCollector.collect(from: stream.lines)
             throw LLMServiceError.networkError("OpenRouter API Error: \(httpResponse.statusCode) - \(errorBody)")
         }
         for try await line in stream.lines {
+            if Task.isCancelled { break }
             processSSELine(
                 line,
                 recoveryState: recoveryState,

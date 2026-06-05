@@ -46,36 +46,34 @@ public actor OllamaClient: LLMClientProtocol {
         let maxRetries = self.maxRetries
         let logger = self.logger
 
-        return AsyncThrowingStream<LLMStreamChunk, Error> { continuation in
-            Task { [self] in
-                let hasYielded = Mutex(false)
+        return CancellableAsyncThrowingStream.make(of: LLMStreamChunk.self) { continuation in
+            let hasYielded = Mutex(false)
 
-                do {
-                    try await RetryPolicy.retry(
-                        maxRetries: maxRetries,
-                        shouldRetry: { error in
-                            hasYielded.withLock { !$0 } && RetryPolicy.isTransient(error: error)
-                        },
-                        operation: {
-                            let request = try await self.buildRequest(
-                                messages: messages,
-                                tools: tools,
-                                responseFormat: responseFormat,
-                                generationParameters: generationParameters
-                            )
-                            try await self.streamResponse(
-                                request: request,
-                                hasYielded: hasYielded,
-                                logger: logger,
-                                continuation: continuation
-                            )
-                        }
-                    )
-                    continuation.finish()
-                } catch {
-                    logger.error("Ollama stream error: \(error.localizedDescription)")
-                    continuation.finish(throwing: error)
-                }
+            do {
+                try await RetryPolicy.retry(
+                    maxRetries: maxRetries,
+                    shouldRetry: { error in
+                        hasYielded.withLock { !$0 } && RetryPolicy.isTransient(error: error)
+                    },
+                    operation: {
+                        let request = try await self.buildRequest(
+                            messages: messages,
+                            tools: tools,
+                            responseFormat: responseFormat,
+                            generationParameters: generationParameters
+                        )
+                        try await self.streamResponse(
+                            request: request,
+                            hasYielded: hasYielded,
+                            logger: logger,
+                            continuation: continuation
+                        )
+                    }
+                )
+                continuation.finish()
+            } catch {
+                logger.error("Ollama stream error: \(error.localizedDescription)")
+                continuation.finish(throwing: error)
             }
         }
     }
@@ -99,6 +97,7 @@ public actor OllamaClient: LLMClientProtocol {
         }
 
         for try await line in stream.lines {
+            if Task.isCancelled { break }
             guard !line.isEmpty, let data = line.data(using: .utf8) else { continue }
 
             if let ollamaResponse = try? JSONDecoder().decode(OllamaChatResponse.self, from: data),
@@ -110,9 +109,7 @@ public actor OllamaClient: LLMClientProtocol {
     }
 
     private func collectErrorBody(from stream: URLSession.AsyncBytes) async throws -> String {
-        var errorBody = ""
-        for try await line in stream.lines { errorBody += line }
-        return errorBody
+        try await LimitedErrorBodyCollector.collect(from: stream.lines)
     }
 
     private nonisolated func markYieldedIfNeeded(_ result: LLMStreamChunk, hasYielded: borrowing Mutex<Bool>) {
