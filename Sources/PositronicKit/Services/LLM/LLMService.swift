@@ -246,6 +246,7 @@ public enum LLMServiceError: PKError, Equatable {
     case notConfigured
     case invalidConfiguration
     case networkError(String)
+    case httpError(provider: String, statusCode: Int, responseBody: String, retryAfter: TimeInterval?)
 
     public var errorDomain: String { PKErrorDomain.llm }
 
@@ -254,6 +255,7 @@ public enum LLMServiceError: PKError, Equatable {
         case .notConfigured: return 1001
         case .invalidConfiguration: return 1002
         case .networkError: return 1003
+        case .httpError: return 1004
         }
     }
 
@@ -265,6 +267,12 @@ public enum LLMServiceError: PKError, Equatable {
             return "Invalid LLM configuration. Please check your settings."
         case let .networkError(message):
             return "Network error: \(message)"
+        case let .httpError(provider, statusCode, responseBody, _):
+            let trimmedBody = ProviderHTTPFailure.sanitize(responseBody)
+            guard !trimmedBody.isEmpty else {
+                return "\(provider) request failed with HTTP \(statusCode)."
+            }
+            return "\(provider) request failed with HTTP \(statusCode): \(trimmedBody)"
         }
     }
 }

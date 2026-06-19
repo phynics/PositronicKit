@@ -71,4 +71,46 @@ struct RetryPolicyTests {
         let finalAttempts = attempts.withLock { $0 }
         #expect(finalAttempts == 1)
     }
+
+    @Test("HTTP status retry classification matches provider policy")
+    func httpStatusRetryClassification() {
+        #expect(RetryPolicy.isTransient(error: LLMServiceError.httpError(provider: "test", statusCode: 408, responseBody: "", retryAfter: nil)))
+        #expect(RetryPolicy.isTransient(error: LLMServiceError.httpError(provider: "test", statusCode: 429, responseBody: "", retryAfter: 2)))
+        #expect(RetryPolicy.isTransient(error: LLMServiceError.httpError(provider: "test", statusCode: 500, responseBody: "", retryAfter: nil)))
+        #expect(!RetryPolicy.isTransient(error: LLMServiceError.httpError(provider: "test", statusCode: 400, responseBody: "", retryAfter: nil)))
+        #expect(!RetryPolicy.isTransient(error: LLMServiceError.httpError(provider: "test", statusCode: 401, responseBody: "", retryAfter: nil)))
+        #expect(!RetryPolicy.isTransient(error: LLMServiceError.httpError(provider: "test", statusCode: 403, responseBody: "", retryAfter: nil)))
+    }
+
+    @Test("Retry-After delay overrides exponential backoff")
+    func retryAfterOverridesDelay() async throws {
+        let attempts = Mutex(0)
+        let started = ContinuousClock.now
+
+        let result = try await RetryPolicy.retry(maxRetries: 2, baseDelay: 0.001) {
+            attempts.withLock { $0 += 1 }
+            if attempts.withLock({ $0 }) == 1 {
+                throw LLMServiceError.httpError(provider: "test", statusCode: 429, responseBody: "rate limited", retryAfter: 0.05)
+            }
+            return "ok"
+        }
+
+        #expect(result == "ok")
+        #expect(attempts.withLock { $0 } == 2)
+        #expect(started.duration(to: .now) >= .milliseconds(45))
+    }
+
+    @Test("Cancellation is preserved without retries")
+    func cancellationDoesNotRetry() async throws {
+        let attempts = Mutex(0)
+
+        await #expect(throws: CancellationError.self) {
+            try await RetryPolicy.retry(maxRetries: 3, baseDelay: 0.001) {
+                attempts.withLock { $0 += 1 }
+                throw CancellationError()
+            }
+        }
+
+        #expect(attempts.withLock { $0 } == 1)
+    }
 }

@@ -25,6 +25,10 @@ public enum RetryPolicy {
             do {
                 return try await operation()
             } catch {
+                if Task.isCancelled || error is CancellationError {
+                    throw error
+                }
+
                 if attempts >= maxRetries {
                     let msg = ErrorKit.userFriendlyMessage(for: error)
                     logger.error("Max retries (\(maxRetries)) reached. Final error: \(msg)")
@@ -38,11 +42,7 @@ public enum RetryPolicy {
 
                 attempts += 1
 
-                // Exponential backoff: base * 2^(attempt-1)
-                let delay = baseDelay * pow(2.0, Double(attempts - 1))
-                // Add jitter (0-10% of delay)
-                let jitter = Double.random(in: 0.0 ... (delay * 0.1))
-                let finalDelay = delay + jitter
+                let finalDelay = retryDelay(for: error, attempt: attempts, baseDelay: baseDelay)
 
                 let retryMsg = ErrorKit.userFriendlyMessage(for: error)
                 let delayStr = String(format: "%.2f", finalDelay)
@@ -55,8 +55,30 @@ public enum RetryPolicy {
         }
     }
 
+    private static func retryDelay(for error: Error, attempt: Int, baseDelay: TimeInterval) -> TimeInterval {
+        if let llmError = error as? LLMServiceError,
+           case let .httpError(_, _, _, retryAfter?) = llmError,
+           retryAfter > 0 {
+            return retryAfter
+        }
+
+        // Exponential backoff: base * 2^(attempt-1)
+        let delay = baseDelay * pow(2.0, Double(attempt - 1))
+        // Add jitter (0-10% of delay)
+        let jitter = Double.random(in: 0.0 ... (delay * 0.1))
+        return delay + jitter
+    }
+
+    private static func isRetryableHTTPStatus(_ statusCode: Int) -> Bool {
+        statusCode == 408 || statusCode == 429 || (500 ... 599).contains(statusCode)
+    }
+
     /// Default logic to determine if an error is transient
     public static func isTransient(error: Error) -> Bool {
+        if error is CancellationError || Task.isCancelled {
+            return false
+        }
+
         // Handle URLSession Errors
         if let urlError = error as? URLError {
             switch urlError.code {
@@ -78,11 +100,12 @@ public enum RetryPolicy {
             switch llmError {
             case .networkError:
                 return true
+            case .httpError(_, let statusCode, _, _):
+                return isRetryableHTTPStatus(statusCode)
             default:
                 return false
             }
         }
-
         // Handle Generic NSError (e.g., POSIX errors)
         let nsError = error as NSError
         if nsError.domain == NSURLErrorDomain {

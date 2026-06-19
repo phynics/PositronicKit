@@ -93,7 +93,11 @@ public actor OllamaClient: LLMClientProtocol {
         guard (200 ... 299).contains(httpResponse.statusCode) else {
             let errorBody = try await collectErrorBody(from: stream)
             logger.error("Ollama error response body: \(errorBody)")
-            throw LLMServiceError.networkError("Ollama API Error: \(httpResponse.statusCode) - \(errorBody)")
+            throw ProviderHTTPFailure.makeError(
+                provider: "Ollama",
+                response: httpResponse,
+                responseBody: errorBody
+            )
         }
 
         for try await line in stream.lines {
@@ -255,7 +259,11 @@ public actor OllamaClient: LLMClientProtocol {
                 throw LLMServiceError.networkError("Invalid response type from Ollama models API")
             }
             guard (200 ... 299).contains(httpResponse.statusCode) else {
-                throw LLMServiceError.networkError("Ollama API Error: \(httpResponse.statusCode)")
+                throw ProviderHTTPFailure.makeError(
+                    provider: "Ollama",
+                    response: httpResponse,
+                    responseBody: ProviderHTTPFailure.sanitize(String(data: data, encoding: .utf8) ?? "")
+                )
             }
 
             let tagsResponse = try JSONDecoder().decode(OllamaTagsResponse.self, from: data)

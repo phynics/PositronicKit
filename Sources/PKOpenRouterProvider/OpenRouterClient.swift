@@ -324,7 +324,11 @@ public actor OpenRouterClient: LLMClientProtocol {
         }
         guard (200 ... 299).contains(httpResponse.statusCode) else {
             let errorBody = try await LimitedErrorBodyCollector.collect(from: stream.lines)
-            throw LLMServiceError.networkError("OpenRouter API Error: \(httpResponse.statusCode) - \(errorBody)")
+            throw ProviderHTTPFailure.makeError(
+                provider: "OpenRouter",
+                response: httpResponse,
+                responseBody: errorBody
+            )
         }
         for try await line in stream.lines {
             if Task.isCancelled { break }
@@ -343,8 +347,12 @@ public actor OpenRouterClient: LLMClientProtocol {
             throw LLMServiceError.networkError("Invalid response type from OpenRouter")
         }
         guard (200 ... 299).contains(httpResponse.statusCode) else {
-            let body = String(data: data, encoding: .utf8) ?? ""
-            throw LLMServiceError.networkError("OpenRouter API Error: \(httpResponse.statusCode) - \(body)")
+            let body = ProviderHTTPFailure.sanitize(String(data: data, encoding: .utf8) ?? "")
+            throw ProviderHTTPFailure.makeError(
+                provider: "OpenRouter",
+                response: httpResponse,
+                responseBody: body
+            )
         }
         return try JSONDecoder().decode(OpenRouterChatResponse.self, from: data)
     }
@@ -452,7 +460,11 @@ public actor OpenRouterClient: LLMClientProtocol {
                 throw LLMServiceError.networkError("Invalid response type from OpenRouter models API")
             }
             guard (200 ... 299).contains(httpResponse.statusCode) else {
-                throw LLMServiceError.networkError("OpenRouter API Error: \(httpResponse.statusCode)")
+                throw ProviderHTTPFailure.makeError(
+                    provider: "OpenRouter",
+                    response: httpResponse,
+                    responseBody: ProviderHTTPFailure.sanitize(String(data: data, encoding: .utf8) ?? "")
+                )
             }
             let modelsResponse = try JSONDecoder().decode(OpenRouterModelsResponse.self, from: data)
             return modelsResponse.data.map { $0.id }.sorted()
