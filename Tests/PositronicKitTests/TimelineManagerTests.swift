@@ -131,4 +131,60 @@ import Testing
                 #expect(toolIds.contains("timeline_send"))
             }
     }
+
+    @Test("Selective runtime tool policy disables chosen categories only")
+    func selectiveRuntimeToolPolicy() async throws {
+        let workspace = TestWorkspace()
+
+        try await TestDependencies()
+            .withMocks()
+            .run {
+                let timelineManager = TimelineManager(
+                    workspaceRoot: workspace.root,
+                    runtimeToolPolicy: .init(
+                        installFilesystemTools: false,
+                        installTimelineObservationTools: true,
+                        installTimelineSendTool: true
+                    )
+                )
+                let timeline = Timeline(
+                    workingDirectory: workspace.root.path,
+                    attachedAgentInstanceId: UUID()
+                )
+                let toolManager = await timelineManager.createToolManager(
+                    for: timeline,
+                    jailRoot: workspace.root.path,
+                    toolContextTimeline: ToolTimelineContext()
+                )
+
+                let toolIds = Set(await toolManager.getAvailableTools().map(\.id))
+                #expect(toolIds == ["timeline_list", "timeline_peek", "timeline_send"])
+            }
+    }
+
+    @Test("Deny-all runtime tool policy installs no default tools")
+    func denyAllRuntimeToolPolicy() async throws {
+        let workspace = TestWorkspace()
+
+        try await TestDependencies()
+            .withMocks()
+            .run {
+                let timelineManager = TimelineManager(
+                    workspaceRoot: workspace.root,
+                    runtimeToolPolicy: .denyAll
+                )
+                let timeline = Timeline(
+                    workingDirectory: workspace.root.path,
+                    attachedAgentInstanceId: UUID()
+                )
+                let toolManager = await timelineManager.createToolManager(
+                    for: timeline,
+                    jailRoot: workspace.root.path,
+                    toolContextTimeline: ToolTimelineContext()
+                )
+
+                let toolIds = Set(await toolManager.getAvailableTools().map(\.id))
+                #expect(toolIds.isEmpty)
+            }
+    }
 }

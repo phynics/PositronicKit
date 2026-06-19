@@ -13,6 +13,29 @@ import PKShared
 /// behind `WorkspaceManager` / `WorkspaceCreating` / `WorkspaceProtocol` so hosts can supply
 /// local or remote workspace implementations without changing core orchestration.
 public actor TimelineManager {
+    public struct RuntimeToolPolicy: Sendable, Equatable {
+        public let installFilesystemTools: Bool
+        public let installTimelineObservationTools: Bool
+        public let installTimelineSendTool: Bool
+
+        public init(
+            installFilesystemTools: Bool = true,
+            installTimelineObservationTools: Bool = true,
+            installTimelineSendTool: Bool = true
+        ) {
+            self.installFilesystemTools = installFilesystemTools
+            self.installTimelineObservationTools = installTimelineObservationTools
+            self.installTimelineSendTool = installTimelineSendTool
+        }
+
+        public static let `default` = RuntimeToolPolicy()
+        public static let denyAll = RuntimeToolPolicy(
+            installFilesystemTools: false,
+            installTimelineObservationTools: false,
+            installTimelineSendTool: false
+        )
+    }
+
     public struct Stores: Sendable {
         public let timelineStore: any TimelinePersistenceProtocol
         public let messageStore: any MessageStoreProtocol
@@ -56,6 +79,7 @@ public actor TimelineManager {
     let workspaceRoot: URL
     public let workspaceManager: any WorkspaceManagerProtocol
     let sectionProviders: [any PromptSectionProviding]
+    let runtimeToolPolicy: RuntimeToolPolicy
 
     // MARK: - Initialization
 
@@ -63,7 +87,8 @@ public actor TimelineManager {
         stores: Stores,
         workspaceRoot: URL,
         workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
-        sectionProviders: [any PromptSectionProviding] = []
+        sectionProviders: [any PromptSectionProviding] = [],
+        runtimeToolPolicy: RuntimeToolPolicy = .default
     ) {
         self.timelineStore = stores.timelineStore
         self.messageStore = stores.messageStore
@@ -71,6 +96,7 @@ public actor TimelineManager {
         self.toolPersistence = stores.toolPersistence
         self.workspaceRoot = workspaceRoot
         self.sectionProviders = sectionProviders
+        self.runtimeToolPolicy = runtimeToolPolicy
 
         workspaceManager = WorkspaceManager(
             repository: AgentWorkspaceService(
@@ -84,7 +110,8 @@ public actor TimelineManager {
     public init(
         workspaceRoot: URL,
         workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
-        sectionProviders: [any PromptSectionProviding] = []
+        sectionProviders: [any PromptSectionProviding] = [],
+        runtimeToolPolicy: RuntimeToolPolicy = .default
     ) {
         self.init(
             stores: .init(
@@ -95,7 +122,8 @@ public actor TimelineManager {
             ),
             workspaceRoot: workspaceRoot,
             workspaceCreator: workspaceCreator,
-            sectionProviders: sectionProviders
+            sectionProviders: sectionProviders,
+            runtimeToolPolicy: runtimeToolPolicy
         )
     }
 
@@ -363,28 +391,34 @@ public extension TimelineManager {
         // V1 runtime policy: these filesystem and timeline observation tools are installed by
         // default for every timeline-managed session. Timeline send is additionally installed when
         // an attached agent identity is available, because it requires a sender identity.
-        var availableTools: [AnyTool] = [
-            // Filesystem Tools
-            AnyTool(ChangeDirectoryTool(
-                currentPath: currentWD,
-                root: jailRoot,
-                onChange: { _ in
-                    // Update working directory logic
-                }
-            )),
-            AnyTool(ListDirectoryTool(currentDirectory: currentWD, jailRoot: jailRoot)),
-            AnyTool(FindFileTool(currentDirectory: currentWD, jailRoot: jailRoot)),
-            AnyTool(SearchFileContentTool(currentDirectory: currentWD, jailRoot: jailRoot)),
-            AnyTool(SearchFilesTool(currentDirectory: currentWD, jailRoot: jailRoot)),
-            AnyTool(ReadFileTool(currentDirectory: currentWD, jailRoot: jailRoot)),
+        var availableTools: [AnyTool] = []
 
-            // Timeline Observation Tools (always available)
-            AnyTool(TimelineListTool(timelineStore: timelineStore)),
-            AnyTool(TimelinePeekTool(messageStore: messageStore, timelineStore: timelineStore))
-        ]
+        if runtimeToolPolicy.installFilesystemTools {
+            availableTools.append(contentsOf: [
+                AnyTool(ChangeDirectoryTool(
+                    currentPath: currentWD,
+                    root: jailRoot,
+                    onChange: { _ in
+                        // Update working directory logic
+                    }
+                )),
+                AnyTool(ListDirectoryTool(currentDirectory: currentWD, jailRoot: jailRoot)),
+                AnyTool(FindFileTool(currentDirectory: currentWD, jailRoot: jailRoot)),
+                AnyTool(SearchFileContentTool(currentDirectory: currentWD, jailRoot: jailRoot)),
+                AnyTool(SearchFilesTool(currentDirectory: currentWD, jailRoot: jailRoot)),
+                AnyTool(ReadFileTool(currentDirectory: currentWD, jailRoot: jailRoot)),
+            ])
+        }
+
+        if runtimeToolPolicy.installTimelineObservationTools {
+            availableTools.append(contentsOf: [
+                AnyTool(TimelineListTool(timelineStore: timelineStore)),
+                AnyTool(TimelinePeekTool(messageStore: messageStore, timelineStore: timelineStore)),
+            ])
+        }
 
         // Timeline Send: only available when an agent is attached (needs sender identity)
-        if let agentId = session.attachedAgentInstanceId {
+        if runtimeToolPolicy.installTimelineSendTool, let agentId = session.attachedAgentInstanceId {
             availableTools.append(AnyTool(TimelineSendTool(
                 messageStore: messageStore,
                 timelineStore: timelineStore,
