@@ -11,6 +11,7 @@ This task supersedes the narrower Linux-validation item in `2026-06-19-positroni
 - `PKShared`, `PKPrompt`, and `PositronicKit` build and test on both macOS and Linux.
 - `PKOpenRouterProvider`, `PKOllamaProvider`, `PKTestSupport`, and `PositronicKitExamples` build on Linux.
 - `PKOpenAIProvider` builds on Linux if the pinned MacPaw/OpenAI dependency supports it. Any remaining blocker must be demonstrated by CI or a reproducible build command and documented in the product support matrix.
+- `PKLocalEmbeddings` provides one in-process local embedder per platform: Apple Natural Language on Apple platforms and a fixed FastEmbed model on Linux.
 - Apple-only implementations are isolated and visibly marked in the manifest, source, documentation, and CI.
 - macOS continues to use Accelerate for vector operations while Linux uses a tested portable backend through the existing `VectorMath` API.
 - Linux CI prevents regressions in every product classified as portable.
@@ -55,6 +56,13 @@ The first two own their URLSession transports and should become portable by impo
 
 Apple-only code must use capability checks such as `#if canImport(NaturalLanguage)` and `#if canImport(FoundationModels)`, plus appropriate `@available` annotations. Comments in `Package.swift` and the README support matrix must identify why each capability is Apple-only and state the portable alternative when one exists.
 
+### Platform-Local Embeddings
+
+- `PKLocalEmbeddings` is an optional product with a single public `LocalEmbeddingService` API.
+- Apple builds use `NLEmbedding.sentenceEmbedding(for: .english)` from Natural Language.
+- Linux builds use FastEmbed in-process with one package-pinned `all-MiniLM-L6-v2` model configuration.
+- Provider adapters do not supply local embeddings and are not fallback paths for this product.
+
 ## Vector Math Design
 
 Keep the existing public surface:
@@ -76,11 +84,20 @@ Do not add `swift-numerics`, BLAS, or a C/C++ SIMD dependency for these two oper
 
 Tests must execute the portable backend on macOS as well as Linux. On macOS, differential tests must compare portable and Accelerate results within an explicit floating-point tolerance. Cover empty vectors, mismatched lengths, zero vectors, ordinary values, negative values, and large vectors.
 
-## Natural Language Embeddings
+## Local Embeddings
 
-Move `LocalEmbeddingService`, or its concrete `NLEmbedding` implementation, out of the portable core into an Apple-specific adapter target. The portable core retains `EmbeddingServiceProtocol` and related provider-neutral error contracts.
+Move `LocalEmbeddingService` out of the portable core and into a new optional `PKLocalEmbeddings` product. The portable core retains `EmbeddingServiceProtocol`, `NoOpEmbeddingService`, and provider-neutral embedding errors. Existing Apple callers must migrate from importing `PositronicKit` alone to also importing `PKLocalEmbeddings`; document this source change explicitly.
 
-Linux callers should not receive an Apple-branded concrete type whose only behavior is to throw `platformNotSupported`. The Apple adapter should only expose the type when `NaturalLanguage` is importable. Preserve source compatibility on Apple platforms where practical through a re-export or deprecated forwarding declaration, but do not compromise the Linux core target to retain it.
+`PKLocalEmbeddings` keeps the same `EmbeddingServiceProtocol` behavior on every platform but selects exactly one implementation at compile time:
+
+- On Apple platforms, use `NLEmbedding.sentenceEmbedding(for: .english)` and preserve the current behavior.
+- On Linux, call a narrow Swift-to-C bridge around FastEmbed. Inference, tokenization, pooling, and normalization all run in-process. The initial implementation supports only the package-pinned `all-MiniLM-L6-v2` configuration and returns 384-dimensional normalized vectors.
+
+Maintain the Linux native bridge as a companion `PKFastEmbed` package that publishes versioned Linux x86_64 and aarch64 native artifacts and exposes a C module to Swift. Pin the companion package to an exact release in PositronicKit. The bridge owns Rust memory, converts errors into stable C result codes, and copies completed vectors into Swift-owned memory. Its public C surface covers model initialization, single and batch embedding, vector dimensions, and teardown; do not expose FastEmbed or ONNX Runtime types through Swift APIs.
+
+Model files are not committed to the PositronicKit repository. On Linux, initialize with `LocalEmbeddingService(modelDirectory:)`; the directory must contain the package-pinned MiniLM model and tokenizer files, which the service verifies against hard-coded SHA-256 checksums before native initialization. Model downloading and cache ownership belong to the host application. Tests use a CI-cached copy of the pinned files and never resolve an unpinned latest model revision.
+
+This task does not add runtime model selection, provider fallback, or a general embedding profile registry. Embeddings are platform-local derived data: Apple Natural Language vectors and Linux MiniLM vectors must never share a similarity index. Moving persisted content between Apple and Linux requires rebuilding all embeddings on the destination platform. Document this constraint in the public API and README.
 
 ## Foundation Models Provider
 
@@ -108,8 +125,9 @@ Audit direct and transitive dependencies before source changes:
 | `ErrorKit` | Declares Linux conditionals | Verify actual compilation and errors. |
 | `swift-json-schema` | Candidate cross-platform | Verify macro/plugin and runtime products on Linux. |
 | MacPaw/OpenAI | Candidate cross-platform | Build its async path on Linux; capture any Combine-related blocker precisely. |
+| `fastembed-rs` and ONNX Runtime | Linux in-process local embeddings | Pin native runtime and model revisions; expose only a narrow C bridge to Swift. |
 | `Accelerate` | Apple-only | Retain only in optimized backend. |
-| `NaturalLanguage` | Apple-only | Move to Apple adapter target. |
+| `NaturalLanguage` | Apple-only | Use as the Apple backend of `PKLocalEmbeddings`. |
 | `FoundationModels` | Apple-only | Keep in optional provider target. |
 | `Observation` | Toolchain module | Verify on the minimum Linux Swift toolchain; isolate or replace only if compilation proves it unavailable. |
 
@@ -141,6 +159,7 @@ swift build --product PositronicKit
 swift build --product PKOpenRouterProvider
 swift build --product PKOllamaProvider
 swift build --product PKOpenAIProvider
+swift build --product PKLocalEmbeddings
 swift build --product PositronicKitExamples
 swift test
 ```
@@ -163,11 +182,12 @@ Linux verification must pass in CI or in a matching Linux container. A macOS-onl
 2. Remove the macOS-only package assumption and add `FoundationNetworking` imports to all networking sources.
 3. Introduce portable and Accelerate vector backends with shared and differential tests.
 4. Resolve remaining core compilation failures, including `Observation` or Foundation API differences, with the smallest platform-neutral changes.
-5. Move Natural Language embeddings into an Apple-only adapter while preserving core protocols.
-6. Build and repair OpenRouter, Ollama, OpenAI, examples, test support, and tests on Linux.
-7. Add the README support matrix and manifest Apple-only markers.
-8. Add `PKFoundationModelsProvider` as a separately reviewable Apple-only change.
-9. Run the full macOS and Linux verification matrix.
+5. Move `LocalEmbeddingService` into `PKLocalEmbeddings`, preserving Natural Language behavior on Apple platforms.
+6. Add the pinned FastEmbed native bridge and fixed MiniLM implementation for Linux.
+7. Build and repair OpenRouter, Ollama, OpenAI, examples, test support, and tests on Linux.
+8. Add the README support matrix, embedding portability warning, and manifest Apple-only markers.
+9. Add `PKFoundationModelsProvider` as a separately reviewable Apple-only change.
+10. Run the full macOS and Linux verification matrix.
 
 ## Acceptance Criteria
 
@@ -177,7 +197,10 @@ Linux verification must pass in CI or in a matching Linux container. A macOS-onl
 - [ ] Networking sources compile on Darwin and Linux using conditional `FoundationNetworking` imports.
 - [ ] `VectorMath` keeps its public API and selects the native Accelerate backend on supported Apple platforms.
 - [ ] Portable vector math is directly tested on macOS and Linux; Accelerate equivalence is tested on macOS.
-- [ ] Apple-only embeddings no longer force an unavailable concrete implementation into Linux core.
+- [ ] `PKLocalEmbeddings` uses Natural Language on Apple platforms and fixed, in-process FastEmbed/MiniLM inference on Linux.
+- [ ] Linux local embedding tests verify 384-dimensional normalized output, deterministic output for a fixture input, batch ordering, initialization failures, and checksum rejection.
+- [ ] No provider-backed or out-of-process embedding fallback exists in `PKLocalEmbeddings`.
+- [ ] Documentation requires re-embedding when persisted content moves between Apple and Linux.
 - [ ] Foundation Models types do not leak into core modules.
 - [ ] README and manifest clearly mark Apple-only dependencies and product support.
 - [ ] Existing macOS builds and tests remain green.
@@ -190,4 +213,6 @@ Linux verification must pass in CI or in a matching Linux container. A macOS-onl
 - Rewriting provider transports that already compile with FoundationNetworking.
 - Adding BLAS, LAPACK, or C++ SIMD solely for current vector operations.
 - Guaranteeing identical floating-point bit patterns across Accelerate and portable implementations.
+- Supporting multiple local embedding models, runtime model selection, or cross-platform-compatible embedding vectors.
+- Provider-backed or out-of-process embedding fallbacks.
 - Supporting Windows, Android, or WebAssembly in this task.
