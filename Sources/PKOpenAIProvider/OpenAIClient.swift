@@ -20,6 +20,30 @@ public actor OpenAIClient: LLMClientProtocol {
         timeoutInterval: TimeInterval = 60.0,
         maxRetries: Int = 3
     ) {
+        self.init(
+            apiKey: apiKey,
+            modelName: modelName,
+            host: host,
+            port: port,
+            scheme: scheme,
+            timeoutInterval: timeoutInterval,
+            maxRetries: maxRetries,
+            session: URLSession.shared,
+            middlewares: []
+        )
+    }
+
+    package init(
+        apiKey: String,
+        modelName: String = "gpt-4o",
+        host: String = "api.openai.com",
+        port: Int = 443,
+        scheme: String = "https",
+        timeoutInterval: TimeInterval = 60.0,
+        maxRetries: Int = 3,
+        session: URLSession,
+        middlewares: [OpenAIMiddleware]
+    ) {
         let configuration = OpenAI.Configuration(
             token: apiKey,
             host: host,
@@ -27,7 +51,7 @@ public actor OpenAIClient: LLMClientProtocol {
             scheme: scheme,
             timeoutInterval: timeoutInterval
         )
-        client = OpenAI(configuration: configuration)
+        client = OpenAI(configuration: configuration, session: session, middlewares: middlewares)
         self.modelName = modelName
         self.maxRetries = maxRetries
     }

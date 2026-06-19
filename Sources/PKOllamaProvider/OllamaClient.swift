@@ -16,7 +16,8 @@ public actor OllamaClient: LLMClientProtocol {
     private let endpoint: OllamaEndpoint
     private let modelName: String
     private let maxRetries: Int
-    private let session: URLSession
+    private let timeoutInterval: TimeInterval
+    private let transport: any ProviderHTTPTransport
     private let logger = Logger.module(named: "ollama-client")
 
     public init(
@@ -25,15 +26,31 @@ public actor OllamaClient: LLMClientProtocol {
         timeoutInterval: TimeInterval = 120.0,
         maxRetries: Int = 3
     ) {
+        self.init(
+            endpoint: endpoint,
+            modelName: modelName,
+            timeoutInterval: timeoutInterval,
+            maxRetries: maxRetries,
+            transport: URLSessionProviderHTTPTransport(
+                timeoutIntervalForRequest: timeoutInterval,
+                timeoutIntervalForResource: timeoutInterval * 5,
+                waitsForConnectivity: true
+            )
+        )
+    }
+
+    package init(
+        endpoint: String,
+        modelName: String,
+        timeoutInterval: TimeInterval = 120.0,
+        maxRetries: Int = 3,
+        transport: any ProviderHTTPTransport
+    ) {
         self.endpoint = OllamaEndpoint(rawValue: endpoint)
         self.modelName = modelName
+        self.timeoutInterval = timeoutInterval
         self.maxRetries = maxRetries
-
-        let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = timeoutInterval
-        config.timeoutIntervalForResource = timeoutInterval * 5
-        config.waitsForConnectivity = true
-        session = URLSession(configuration: config)
+        self.transport = transport
     }
 
     public func chatStream(
@@ -84,7 +101,7 @@ public actor OllamaClient: LLMClientProtocol {
         logger: Logger,
         continuation: AsyncThrowingStream<LLMStreamChunk, Error>.Continuation
     ) async throws {
-        let (stream, response) = try await session.bytes(for: request)
+        let (stream, response) = try await transport.lines(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw LLMServiceError.networkError("Invalid response type from Ollama")
@@ -100,7 +117,7 @@ public actor OllamaClient: LLMClientProtocol {
             )
         }
 
-        for try await line in stream.lines {
+        for try await line in stream {
             if Task.isCancelled { break }
             guard !line.isEmpty, let data = line.data(using: .utf8) else { continue }
 
@@ -112,8 +129,8 @@ public actor OllamaClient: LLMClientProtocol {
         }
     }
 
-    private func collectErrorBody(from stream: URLSession.AsyncBytes) async throws -> String {
-        try await LimitedErrorBodyCollector.collect(from: stream.lines)
+    private func collectErrorBody(from stream: AsyncThrowingStream<String, Error>) async throws -> String {
+        try await LimitedErrorBodyCollector.collect(from: stream)
     }
 
     private nonisolated func markYieldedIfNeeded(_ result: LLMStreamChunk, hasYielded: borrowing Mutex<Bool>) {
@@ -133,6 +150,7 @@ public actor OllamaClient: LLMClientProtocol {
     ) throws -> URLRequest {
         var request = URLRequest(url: endpoint.chatURL)
         request.httpMethod = "POST"
+        request.timeoutInterval = timeoutInterval
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         let format: OllamaResponseFormat?
@@ -251,10 +269,11 @@ public actor OllamaClient: LLMClientProtocol {
         let logger = self.logger
 
         return try await RetryPolicy.retry(maxRetries: maxRetries) {
-            let request = URLRequest(url: endpoint.tagsURL)
             logger.debug("Fetching Ollama models from: \(endpoint.tagsURL.absoluteString)")
 
-            let (data, response) = try await self.session.data(for: request)
+            var request = URLRequest(url: endpoint.tagsURL)
+            request.timeoutInterval = self.timeoutInterval
+            let (data, response) = try await self.transport.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw LLMServiceError.networkError("Invalid response type from Ollama models API")
             }

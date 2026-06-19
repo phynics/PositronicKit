@@ -190,7 +190,8 @@ public actor OpenRouterClient: LLMClientProtocol {
     private let endpoint: URL
     private let maxRetries: Int
     private let logger = Logger.module(named: "openrouter-client")
-    private let session: URLSession
+    private let timeoutInterval: TimeInterval
+    private let transport: any ProviderHTTPTransport
 
     public init(
         apiKey: String,
@@ -201,18 +202,38 @@ public actor OpenRouterClient: LLMClientProtocol {
         timeoutInterval: TimeInterval = 60.0,
         maxRetries: Int = 3
     ) {
+        self.init(
+            apiKey: apiKey,
+            modelName: modelName,
+            host: host,
+            port: port,
+            scheme: scheme,
+            timeoutInterval: timeoutInterval,
+            maxRetries: maxRetries,
+            transport: URLSessionProviderHTTPTransport(timeoutIntervalForRequest: timeoutInterval)
+        )
+    }
+
+    package init(
+        apiKey: String,
+        modelName: String = "openai/gpt-4o",
+        host: String = "openrouter.ai",
+        port: Int = 443,
+        scheme: String = "https",
+        timeoutInterval: TimeInterval = 60.0,
+        maxRetries: Int = 3,
+        transport: any ProviderHTTPTransport
+    ) {
         self.apiKey = apiKey
         self.modelName = modelName
+        self.timeoutInterval = timeoutInterval
         self.maxRetries = maxRetries
+        self.transport = transport
 
         var urlString = "\(scheme)://\(host)"
         if port != 443, port != 80 { urlString += ":\(port)" }
         if !urlString.contains("/api") { urlString += "/api" }
         endpoint = URL(string: urlString) ?? URL(string: "https://openrouter.ai/api")!
-
-        let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = timeoutInterval
-        session = URLSession(configuration: config)
     }
 
     public func chatStream(
@@ -242,6 +263,7 @@ public actor OpenRouterClient: LLMClientProtocol {
                         let request = self.buildChatRequest(
                             chatURL: chatURL,
                             apiKey: apiKey,
+                            timeoutInterval: self.timeoutInterval,
                             query: OpenRouterChatRequest(
                                 messages: messages.map(OpenRouterMessage.init),
                                 model: modelName,
@@ -270,6 +292,7 @@ public actor OpenRouterClient: LLMClientProtocol {
                             let recoveryRequest = self.buildChatRequest(
                                 chatURL: chatURL,
                                 apiKey: apiKey,
+                                timeoutInterval: self.timeoutInterval,
                                 query: OpenRouterChatRequest(
                                     messages: messages.map(OpenRouterMessage.init),
                                     model: modelName,
@@ -301,9 +324,15 @@ public actor OpenRouterClient: LLMClientProtocol {
         }
     }
 
-    private nonisolated func buildChatRequest(chatURL: URL, apiKey: String, query: OpenRouterChatRequest) -> URLRequest {
+    private nonisolated func buildChatRequest(
+        chatURL: URL,
+        apiKey: String,
+        timeoutInterval: TimeInterval,
+        query: OpenRouterChatRequest
+    ) -> URLRequest {
         var request = URLRequest(url: chatURL)
         request.httpMethod = "POST"
+        request.timeoutInterval = timeoutInterval
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("https://github.com/your-org/PositronicKit", forHTTPHeaderField: "HTTP-Referer")
@@ -318,19 +347,19 @@ public actor OpenRouterClient: LLMClientProtocol {
         logger: Logger,
         continuation: AsyncThrowingStream<LLMStreamChunk, Error>.Continuation
     ) async throws {
-        let (stream, response) = try await session.bytes(for: request)
+        let (stream, response) = try await transport.lines(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw LLMServiceError.networkError("Invalid response type from OpenRouter")
         }
         guard (200 ... 299).contains(httpResponse.statusCode) else {
-            let errorBody = try await LimitedErrorBodyCollector.collect(from: stream.lines)
+            let errorBody = try await LimitedErrorBodyCollector.collect(from: stream)
             throw ProviderHTTPFailure.makeError(
                 provider: "OpenRouter",
                 response: httpResponse,
                 responseBody: errorBody
             )
         }
-        for try await line in stream.lines {
+        for try await line in stream {
             if Task.isCancelled { break }
             processSSELine(
                 line,
@@ -342,7 +371,7 @@ public actor OpenRouterClient: LLMClientProtocol {
     }
 
     private func fetchChatResponse(request: URLRequest) async throws -> OpenRouterChatResponse {
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await transport.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw LLMServiceError.networkError("Invalid response type from OpenRouter")
         }
@@ -454,8 +483,9 @@ public actor OpenRouterClient: LLMClientProtocol {
         let endpoint = self.endpoint
         return try await RetryPolicy.retry(maxRetries: maxRetries) {
             let url = endpoint.appendingPathComponent("v1/models")
-            let request = URLRequest(url: url)
-            let (data, response) = try await self.session.data(for: request)
+            var request = URLRequest(url: url)
+            request.timeoutInterval = self.timeoutInterval
+            let (data, response) = try await self.transport.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw LLMServiceError.networkError("Invalid response type from OpenRouter models API")
             }
