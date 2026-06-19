@@ -87,7 +87,8 @@ struct ProviderTransportContractTests {
             apiKey: "secret",
             modelName: "openai/gpt-4o",
             timeoutInterval: 42,
-            transport: transport
+            transport: transport,
+            attribution: .init(applicationURL: "https://example.com/app", applicationTitle: "Example App")
         )
 
         let stream = await client.chatStream(messages: [LLMMessage(role: .user, content: "hello")], tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil)
@@ -97,8 +98,28 @@ struct ProviderTransportContractTests {
         #expect(request.url?.absoluteString == "https://openrouter.ai/api/v1/chat/completions")
         #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer secret")
         #expect(request.value(forHTTPHeaderField: "Content-Type") == "application/json")
+        #expect(request.value(forHTTPHeaderField: "HTTP-Referer") == "https://example.com/app")
+        #expect(request.value(forHTTPHeaderField: "X-Title") == "Example App")
         #expect(request.timeoutInterval == 42)
         #expect(request.httpBody != nil)
+    }
+
+    @Test("OpenRouter attribution headers are omitted when not configured")
+    func openRouterAttributionHeadersAreOptional() async throws {
+        let transport = TestProviderTransport { request in
+            .lines([
+                #"data: {"id":"chunk-1","model":"openai/gpt-4o","choices":[{"index":0,"delta":{"role":"assistant","content":"hi"}}]}"#,
+                "data: [DONE]",
+            ], self.response(url: "https://openrouter.ai/api/v1/chat/completions"))
+        }
+
+        let client = OpenRouterClient(apiKey: "secret", transport: transport, attribution: .init(applicationURL: nil, applicationTitle: nil))
+        let stream = await client.chatStream(messages: [], tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil)
+        _ = try await stream.collect()
+
+        let request = try #require(await transport.recordedRequests().first)
+        #expect(request.value(forHTTPHeaderField: "HTTP-Referer") == nil)
+        #expect(request.value(forHTTPHeaderField: "X-Title") == nil)
     }
 
     @Test("OpenRouter stream tolerates malformed and truncated payloads without hanging")

@@ -23,7 +23,9 @@ public extension PositronicKitCore {
         openRouterKey: String,
         model: String = "openai/gpt-4o",
         endpoint: String = "https://openrouter.ai/api",
-        generationParameters: GenerationParameters? = nil
+        generationParameters: GenerationParameters? = nil,
+        applicationURL _: String? = nil,
+        applicationTitle _: String? = nil
     ) {
         PKOpenRouterProvider.register()
         let config = LLMConfiguration(endpoint: endpoint, modelName: model, apiKey: openRouterKey, provider: .openRouter)

@@ -185,6 +185,16 @@ private struct OpenRouterStreamOptions: Codable {
 }
 
 public actor OpenRouterClient: LLMClientProtocol {
+    public struct Attribution: Sendable, Equatable {
+        public let applicationURL: String?
+        public let applicationTitle: String?
+
+        public init(applicationURL: String? = nil, applicationTitle: String? = nil) {
+            self.applicationURL = applicationURL
+            self.applicationTitle = applicationTitle
+        }
+    }
+
     private let apiKey: String
     private let modelName: String
     private let endpoint: URL
@@ -192,6 +202,7 @@ public actor OpenRouterClient: LLMClientProtocol {
     private let logger = Logger.module(named: "openrouter-client")
     private let timeoutInterval: TimeInterval
     private let transport: any ProviderHTTPTransport
+    private let attribution: Attribution
 
     public init(
         apiKey: String,
@@ -200,7 +211,8 @@ public actor OpenRouterClient: LLMClientProtocol {
         port: Int = 443,
         scheme: String = "https",
         timeoutInterval: TimeInterval = 60.0,
-        maxRetries: Int = 3
+        maxRetries: Int = 3,
+        attribution: Attribution = .init()
     ) {
         self.init(
             apiKey: apiKey,
@@ -210,7 +222,8 @@ public actor OpenRouterClient: LLMClientProtocol {
             scheme: scheme,
             timeoutInterval: timeoutInterval,
             maxRetries: maxRetries,
-            transport: URLSessionProviderHTTPTransport(timeoutIntervalForRequest: timeoutInterval)
+            transport: URLSessionProviderHTTPTransport(timeoutIntervalForRequest: timeoutInterval),
+            attribution: attribution
         )
     }
 
@@ -222,13 +235,15 @@ public actor OpenRouterClient: LLMClientProtocol {
         scheme: String = "https",
         timeoutInterval: TimeInterval = 60.0,
         maxRetries: Int = 3,
-        transport: any ProviderHTTPTransport
+        transport: any ProviderHTTPTransport,
+        attribution: Attribution = .init()
     ) {
         self.apiKey = apiKey
         self.modelName = modelName
         self.timeoutInterval = timeoutInterval
         self.maxRetries = maxRetries
         self.transport = transport
+        self.attribution = attribution
 
         var urlString = "\(scheme)://\(host)"
         if port != 443, port != 80 { urlString += ":\(port)" }
@@ -264,6 +279,7 @@ public actor OpenRouterClient: LLMClientProtocol {
                             chatURL: chatURL,
                             apiKey: apiKey,
                             timeoutInterval: self.timeoutInterval,
+                            attribution: self.attribution,
                             query: OpenRouterChatRequest(
                                 messages: messages.map(OpenRouterMessage.init),
                                 model: modelName,
@@ -293,6 +309,7 @@ public actor OpenRouterClient: LLMClientProtocol {
                                 chatURL: chatURL,
                                 apiKey: apiKey,
                                 timeoutInterval: self.timeoutInterval,
+                                attribution: self.attribution,
                                 query: OpenRouterChatRequest(
                                     messages: messages.map(OpenRouterMessage.init),
                                     model: modelName,
@@ -328,6 +345,7 @@ public actor OpenRouterClient: LLMClientProtocol {
         chatURL: URL,
         apiKey: String,
         timeoutInterval: TimeInterval,
+        attribution: Attribution,
         query: OpenRouterChatRequest
     ) -> URLRequest {
         var request = URLRequest(url: chatURL)
@@ -335,8 +353,12 @@ public actor OpenRouterClient: LLMClientProtocol {
         request.timeoutInterval = timeoutInterval
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("https://github.com/your-org/PositronicKit", forHTTPHeaderField: "HTTP-Referer")
-        request.setValue("PositronicKit Assistant", forHTTPHeaderField: "X-Title")
+        if let applicationURL = attribution.applicationURL {
+            request.setValue(applicationURL, forHTTPHeaderField: "HTTP-Referer")
+        }
+        if let applicationTitle = attribution.applicationTitle {
+            request.setValue(applicationTitle, forHTTPHeaderField: "X-Title")
+        }
         request.httpBody = try? JSONEncoder().encode(query)
         return request
     }
