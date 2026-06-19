@@ -4,8 +4,14 @@ import PKShared
 public struct UnconfiguredLLMService: LLMServiceProtocol {
     public init() {}
 
-    private func fail() -> Never {
-        fatalError("LLMService not configured. Provide a configured LLM service.")
+    private var error: LLMServiceError {
+        .notConfigured
+    }
+
+    private func failingStream() -> AsyncThrowingStream<LLMStreamChunk, any Error> {
+        AsyncThrowingStream { continuation in
+            continuation.finish(throwing: error)
+        }
     }
 
     public var isConfigured: Bool {
@@ -29,23 +35,23 @@ public struct UnconfiguredLLMService: LLMServiceProtocol {
     public func checkHealth() async -> HealthStatus { .down }
 
     public func loadConfiguration() async {}
-    public func updateConfiguration(_: LLMConfiguration) async throws { fail() }
+    public func updateConfiguration(_: LLMConfiguration) async throws { throw error }
     public func clearConfiguration() async {}
-    public func restoreFromBackup() async throws { fail() }
-    public func exportConfiguration() async throws -> Data { fail() }
-    public func importConfiguration(from _: Data) async throws { fail() }
+    public func restoreFromBackup() async throws { throw error }
+    public func exportConfiguration() async throws -> Data { throw error }
+    public func importConfiguration(from _: Data) async throws { throw error }
 
-    public func sendMessage(_: String) async throws -> String { fail() }
+    public func sendMessage(_: String) async throws -> String { throw error }
 
     public func sendMessage(
         _: String,
         responseFormat _: LLMResponseFormat?,
         generationParameters _: GenerationParameters?,
         useUtilityModel _: Bool
-    ) async throws -> String { fail() }
+    ) async throws -> String { throw error }
 
     public func chatStreamWithContext(_: LLMChatRequest) async throws -> LLMStreamResult {
-        LLMStreamResult(stream: AsyncThrowingStream { _ in }, rawPrompt: "")
+        LLMStreamResult(stream: failingStream(), rawPrompt: "")
     }
 
     public func chatStream(
@@ -57,10 +63,10 @@ public struct UnconfiguredLLMService: LLMServiceProtocol {
         useUtilityModel _: Bool,
         useFastModel _: Bool
     ) async -> AsyncThrowingStream<LLMStreamChunk, any Error> {
-        AsyncThrowingStream { _ in }
+        failingStream()
     }
 
     public func getClient() async -> (any LLMClientProtocol)? { nil }
     public func getUtilityClient() async -> (any LLMClientProtocol)? { nil }
-    public func fetchAvailableModels() async throws -> [String]? { nil }
+    public func fetchAvailableModels() async throws -> [String]? { throw error }
 }

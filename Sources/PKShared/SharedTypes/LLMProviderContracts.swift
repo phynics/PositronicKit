@@ -263,11 +263,10 @@ public enum ExternalLLMProviderRegistry {
 }
 
 public func makeEmptyObjectSchema() -> Schema {
-    if let data = "{\"type\":\"object\",\"properties\":{}}".data(using: .utf8),
-       let schema = try? JSONDecoder().decode(Schema.self, from: data) {
+    if let schema = try? Schema(instance: #"{"type":"object","properties":{}}"#) {
         return schema
     }
-    fatalError("Failed to construct empty object schema")
+    return ToolParameterSchema.object {}.schemaDefinition
 }
 
 private func encodeSchema(_ schema: Schema?) -> String? {
