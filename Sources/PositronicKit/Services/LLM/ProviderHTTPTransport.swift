@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 package protocol ProviderHTTPTransport: Sendable {
     func data(for request: URLRequest) async throws -> (Data, URLResponse)

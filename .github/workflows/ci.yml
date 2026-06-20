@@ -26,3 +26,46 @@ jobs:
 
       - name: Parallel test
         run: swift test --parallel --num-workers 2
+
+  linux-build-and-test:
+    name: Linux Build and Test
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Swift
+        uses: swift-actions/setup-swift@v3
+        with:
+          swift-version: "6.3.2"
+
+      - name: Show Swift version
+        run: swift --version
+
+      - name: Build PKShared
+        run: swift build --product PKShared
+
+      - name: Build PKPrompt
+        run: swift build --product PKPrompt
+
+      - name: Build PositronicKit
+        run: swift build --product PositronicKit
+
+      - name: Build PKLocalEmbeddings
+        run: swift build --product PKLocalEmbeddings
+
+      - name: Build PKOpenRouterProvider
+        run: swift build --product PKOpenRouterProvider
+
+      - name: Build PKOllamaProvider
+        run: swift build --product PKOllamaProvider
+
+      - name: Build PKOpenAIProvider
+        run: swift build --product PKOpenAIProvider
+
+      - name: Build PositronicKitExamples
+        run: swift build --product PositronicKitExamples
+
+      - name: Test
+        run: swift test

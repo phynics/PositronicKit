@@ -1,7 +1,9 @@
 import Foundation
 @testable import PositronicKit
+@testable import PKLocalEmbeddings
 import Testing
 
+#if canImport(NaturalLanguage)
 @Suite struct EmbeddingServiceTests {
     private let service = LocalEmbeddingService()
 
@@ -51,3 +53,15 @@ import Testing
         return dotProduct / (sqrt(magA) * sqrt(magB))
     }
 }
+#else
+@Suite struct EmbeddingServiceTests {
+    @Test("Local embedding service is blocked on non-Apple platforms")
+    func platformNotSupported() async throws {
+        let service = LocalEmbeddingService()
+
+        await #expect(throws: EmbeddingError.platformNotSupported) {
+            _ = try await service.generateEmbedding(for: "Hello world")
+        }
+    }
+}
+#endif

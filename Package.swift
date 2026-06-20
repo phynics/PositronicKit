@@ -1,4 +1,4 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.1
 import PackageDescription
 
 let package = Package(
@@ -10,6 +10,7 @@ let package = Package(
         .library(name: "PositronicKit", targets: ["PositronicKit"]),
         .library(name: "PKPrompt", targets: ["PKPrompt"]),
         .library(name: "PKShared", targets: ["PKShared"]),
+        .library(name: "PKLocalEmbeddings", targets: ["PKLocalEmbeddings"]),
         .library(name: "PKOpenAIProvider", targets: ["PKOpenAIProvider"]),
         .library(name: "PKOpenRouterProvider", targets: ["PKOpenRouterProvider"]),
         .library(name: "PKOllamaProvider", targets: ["PKOllamaProvider"]),
@@ -53,6 +54,11 @@ let package = Package(
             exclude: ["README.md", "docs"]
         ),
         .target(
+            name: "PKLocalEmbeddings",
+            dependencies: ["PositronicKit"],
+            path: "Sources/PKLocalEmbeddings"
+        ),
+        .target(
             name: "PKOpenAIProvider",
             dependencies: [
                 "PositronicKit",
@@ -85,6 +91,7 @@ let package = Package(
             name: "PositronicKitExamples",
             dependencies: [
                 "PositronicKit",
+                "PKLocalEmbeddings",
                 "PKOpenAIProvider",
                 "PKOpenRouterProvider",
                 "PKOllamaProvider",
@@ -109,6 +116,7 @@ let package = Package(
             name: "PositronicKitTests",
             dependencies: [
                 "PositronicKit",
+                "PKLocalEmbeddings",
                 "PKOpenAIProvider",
                 "PKOpenRouterProvider",
                 "PKOllamaProvider",

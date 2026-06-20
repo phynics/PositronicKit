@@ -9,6 +9,7 @@ The package is organized into three core modules plus provider adapters:
 - **PositronicKit** — the runtime layer: chat engine, orchestration stages, tool routing, timeline and workspace management, and provider-neutral LLM orchestration.
 - **PKPrompt** — the prompt layer: a SwiftUI-style `@PromptBuilder` DSL, structured compression, cache-aware assembly, and prompt journaling for stable-prefix workflows.
 - **PKShared** — the contract layer: API models, tool protocols, provider contracts, error types, structured logging, and shared utilities consumed by both modules above.
+- **PKLocalEmbeddings** — the platform-local embedding facade: import this when you want `LocalEmbeddingService`.
 
 Provider targets ship separately so downstream users can opt in only to the concrete integrations they want:
 
@@ -20,6 +21,16 @@ Two additional targets ship with the package:
 
 - **PositronicKitExamples** — runnable examples that double as living documentation.
 - **PKTestSupport** — shared mocks, fixtures, and test helpers, available as a library product for downstream test targets.
+
+## Support Matrix
+
+| Product | Apple Platforms | Linux | Notes |
+|---------|-----------------|-------|-------|
+| `PositronicKit`, `PKPrompt`, `PKShared` | Supported | Supported | Core portable modules. |
+| `PKLocalEmbeddings` | Supported | Blocked | Apple local embeddings live here; the Linux MiniLM bridge is not in this workspace yet. |
+| `PKOpenRouterProvider`, `PKOllamaProvider` | Supported | Portable candidate | Networking imports are Linux-safe. |
+| `PKOpenAIProvider` | Supported | Portable candidate | Linux support depends on the pinned OpenAI SDK build. |
+| `PKTestSupport`, `PositronicKitExamples` | Supported | Portable candidate | Verified through the package graph. |
 
 ## Quick Start
 
@@ -35,10 +46,13 @@ Then import the modules you need:
 import PositronicKit   // runtime orchestration
 import PKPrompt        // prompt composition
 import PKShared        // shared contracts
+import PKLocalEmbeddings // optional local embeddings facade
 import PKOpenAIProvider // optional concrete provider for OpenAI convenience APIs
 ```
 
 If you want the convenience runtime initializers like `PositronicKitCore(openAIKey:)` or `PositronicKitCore(ollamaModel:)`, import the matching provider target. Those initializers do not live in the core `PositronicKit` module.
+
+If you use `LocalEmbeddingService`, import `PKLocalEmbeddings` alongside `PositronicKit`.
 
 Build and run:
 
@@ -55,6 +69,8 @@ Use **PositronicKit** when you want the runtime orchestration layer: timelines, 
 Use **PKPrompt** when you want prompt composition without the runtime: authored prompt trees, validated sections, token-budget-aware assembly, rendering, and journaling.
 
 Use **PKShared** when you need the shared contracts directly: API models, tool protocols, provider contracts, errors, logging helpers, and utilities.
+
+Use **PKLocalEmbeddings** when you want the platform-local embedding service. It keeps the embedding facade separate from the runtime core.
 
 Use **PKOpenAIProvider**, **PKOpenRouterProvider**, or **PKOllamaProvider** when you want a concrete provider implementation without putting that SDK dependency into the core runtime target.
 
@@ -73,8 +89,13 @@ Common adoption paths:
 - **Prompt experimentation / prompt tooling** → start with `PKPrompt`.
 - **Single-process app or CLI agent runtime** → start with `PositronicKitCore`.
 - **Runtime + OpenAI/OpenRouter/Ollama convenience setup** → add the matching provider package.
+- **Local embedding service** → add `PKLocalEmbeddings` alongside `PositronicKit`.
 - **Host-owned execution environment** → start with `PositronicKitCore` plus your own workspace implementation.
 - **Typed JSON / schema-first integrations** → use `PKShared` structured output types, optionally with the runtime later.
+
+## Local Embeddings
+
+`PKLocalEmbeddings` keeps the local embedding facade separate from the runtime core. If you persist embedding vectors, treat them as platform-local derived data and rebuild them when moving stored content between platforms or embedding implementations.
 
 ## Runtime: PositronicKit
 

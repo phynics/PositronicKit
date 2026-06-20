@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import struct JSONSchema.Schema
 import Logging
 import PKShared
