@@ -388,7 +388,7 @@ public extension TimelineManager {
     ) async -> TimelineToolManager {
         let currentWD = session.workingDirectory ?? jailRoot
 
-        // V1 runtime policy: these filesystem and timeline observation tools are installed by
+        // Default runtime policy: these filesystem and timeline observation tools are installed by
         // default for every timeline-managed session. Timeline send is additionally installed when
         // an attached agent identity is available, because it requires a sender identity.
         var availableTools: [AnyTool] = []

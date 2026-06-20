@@ -39,13 +39,13 @@ Because multiple stages might need to update the results of a turn concurrently 
 - **Thread Safety**: All mutations (appending thinking, updating usage metrics) are performed via `await` calls to the actor.
 - **Safe Persistence**: At the end of the pipeline, the `TurnOutputs` are used to finalize the message state and persist it to the database.
 
-## 3. Dependency Injection
+## 3. Facade-Backed Wiring
 
-PositronicKitCore leverages PointFree's `Dependencies` library for robust service management.
+PositronicKitCore composes its runtime graph through explicit facade initializers.
 
-- **Centralized Registry**: All shared services (LLM, Storage, Tools) are registered in `DependencyValues`.
-- **Property Wrappers**: Components access services via the `@Dependency` property wrapper.
-- **Testability**: Dependencies can be easily overridden in tests or previews using `withDependencies`.
+- **Explicit services**: Callers pass concrete LLM, storage, workspace, and runtime services into `PositronicKitCore`.
+- **Narrow boundaries**: The runtime depends on focused store and protocol seams instead of a shared dependency container.
+- **Testability**: Tests can inject doubles directly through the same public initializers that production code uses.
 
 ## 4. Execution Flow: The Chat Engine
 

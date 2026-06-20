@@ -247,7 +247,9 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
     // MARK: - Delete
 
     /// Deletes an agent instance and optionally force-detaches it from all timelines.
-    /// - Parameter force: If false, throws if the agent is still attached to any timelines.
+    /// - Parameters:
+    ///   - id: The agent instance identifier to delete.
+    ///   - force: If false, throws if the agent is still attached to any timelines.
     public func deleteInstance(id: UUID, force: Bool) async throws {
         guard let instance = try await instanceStore.fetchAgentInstance(id: id) else {
             throw AgentInstanceError.instanceNotFound(id)

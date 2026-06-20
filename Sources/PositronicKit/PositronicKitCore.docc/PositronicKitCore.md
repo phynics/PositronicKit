@@ -1,11 +1,10 @@
-import PKShared
-# ``PositronicKitCore``
+# ``PositronicKit``
 
 The transport-neutral runtime facade for PositronicKit.
 
 ## Overview
 
-PositronicKitCore provides the public runtime entry point for timeline management, prompt assembly, context gathering, tool execution, and persistence. It injects runtime dependencies internally so downstream applications integrate through normal Swift initializers instead of configuring the dependency container directly.
+PositronicKitCore provides the public runtime entry point for timeline management, prompt assembly, context gathering, tool execution, and persistence. It assembles runtime dependencies internally from explicit initializer parameters so downstream applications integrate through normal Swift initializers instead of configuring a dependency container directly.
 
 ### Key Components
 
@@ -28,14 +27,6 @@ PositronicKitCore provides the public runtime entry point for timeline managemen
 - <doc:ArchitectureOverview>
 - <doc:PersistenceLayer>
 
-### Tool System
+### Runtime Surfaces
 
-- ``Tool``
-- ``ToolParameterSchema``
-- ``ToolParameters``
-
-### Context & Retrieval
-
-- ``ContextManager``
-- ``Memory``
-- ``Message``
+Use the module articles above for architecture and persistence guidance. Shared tool contracts and message models live in `PKShared`, while prompt construction APIs live in `PKPrompt`.

@@ -8,7 +8,7 @@ import PKOllamaProvider
 import PKTestSupport
 import Testing
 
-@Suite("Runtime setup stories") struct RuntimeSetupStoriesTests {
+@Suite("Runtime setup stories", .serialized) struct RuntimeSetupStoriesTests {
     @Test("OpenAI convenience initialization configures a registered OpenAI client")
     func openAIConvenienceInitialization() async throws {
         let apiKey = "sk-test-key"

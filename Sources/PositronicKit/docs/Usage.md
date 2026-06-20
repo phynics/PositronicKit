@@ -53,7 +53,7 @@ let chat = PositronicKitCore(openAIKey: "sk-...")
 let chat = PositronicKitCore(ollamaModel: "llama3")
 ```
 
-This provider-backed path is the canonical convenience setup when you want a concrete provider module to supply the runtime initializer.
+This provider-backed path keeps the convenience initializer in the matching provider module while the core facade stays provider-neutral.
 
 ### Full Initialization (Production)
 

@@ -4,8 +4,8 @@ import PKShared
 
 /// The public facade for PositronicKitCore's agent runtime subsystem.
 ///
-/// Accepts all required services as init parameters and injects them internally,
-/// so consumers never interact with `swift-dependencies` directly.
+/// Accepts all required services as init parameters and wires them internally,
+/// so consumers never need to assemble a shared dependency container.
 ///
 /// Only `llmService` is required. All other parameters have sensible in-memory defaults
 /// suitable for development and prototyping. For production, provide persistent stores.
@@ -14,37 +14,15 @@ import PKShared
 /// agents, tool routing, and prompt assembly live here; concrete networking or multi-process hosting models are
 /// expected to be provided downstream via injected stores, workspace creators, and connection hooks.
 ///
-/// Intended extension seams for downstream applications are the facade itself plus stable runtime
+/// Intended extension seams for downstream applications are the facade itself plus public runtime
 /// protocols such as persistence stores, `WorkspaceCreating` / `WorkspaceProtocol`,
 /// `PromptSectionProviding`, and `ChatTurnPlugin`. Internal coordinators like `ChatEngine`,
 /// `TimelinePromptHistory`, and the concrete turn pipeline remain runtime implementation details
 /// even when they are visible to tests inside this package.
 ///
-/// ```swift
-/// // Minimal — prototyping with in-memory everything:
-/// let chat = PositronicKitCore(llmService: myLLM)
-///
-/// // Production — grouped persistence + grouped runtime wiring:
-/// let chat = PositronicKitCore(
-///     llmService: llmService,
-///     persistence: .init(
-///         messageStore: repos.messageStore,
-///         timelinePersistence: repos.timelinePersistence,
-///         workspacePersistence: repos.workspacePersistence,
-///         memoryStore: repos.memoryStore,
-///         toolPersistence: repos.toolPersistence,
-///         agentInstanceStore: repos.agentInstanceStore,
-///         requestOriginStore: repos.requestOriginStore,
-///         agentTemplateStore: repos.agentTemplateStore
-///     ),
-///     embeddingService: embeddingService,
-///     runtime: .init(
-///         timelineManager: timelineManager,
-///         toolRouter: ToolRouter(),
-///         workspaceRoot: workspacesDir
-///     )
-/// )
-/// ```
+/// Example usage:
+/// - Minimal: `PositronicKitCore(llmService: myLLM)`
+/// - Production: use the grouped `persistence:` and `runtime:` initializers.
 public struct PositronicKitCore: Sendable {
     // MARK: - Direct ChatEngine dependencies
 
@@ -170,7 +148,7 @@ public struct PositronicKitCore: Sendable {
     /// - Parameter stage: The custom pipeline stage to add.
     /// - Returns: A new instance with the stage added.
     ///
-    /// This remains package-internal on purpose: the stable downstream extension surface is the
+    /// This remains package-internal on purpose: the documented downstream extension surface is the
     /// facade plus higher-level hooks such as `ChatTurnPlugin` and `PromptSectionProviding`, not
     /// the concrete runtime pipeline topology.
     func addStage(_ stage: any PipelineStage<ChatTurnContext, ChatEvent>) -> PositronicKitCore {
@@ -209,7 +187,6 @@ public struct PositronicKitCore: Sendable {
     ///   - message: The user's input message.
     ///   - tools: Pre-resolved tools available for this turn.
     ///   - toolOutputs: Optional list of tool outputs submitted from a previous externally executed turn.
-    ///   - contextManager: Optional context manager for RAG. If nil, no context is gathered.
     ///   - systemInstructions: Optional system instructions to override the default.
     ///   - agentInstanceId: Optional identifier for the agent instance.
     ///   - maxTurns: Maximum number of LLM turns before stopping. Defaults to 5.
@@ -265,7 +242,7 @@ public struct PositronicKitCore: Sendable {
 public extension PositronicKitCore {
     /// Groups all persistence stores for convenient initialization.
     ///
-    /// Use this when your persistence layer provides all 8 stores (e.g., a GRDB-backed repository).
+    /// Use this when your persistence layer provides all 8 stores.
     struct PersistenceConfiguration: Sendable {
         public let messageStore: any MessageStoreProtocol
         public let timelinePersistence: any TimelinePersistenceProtocol

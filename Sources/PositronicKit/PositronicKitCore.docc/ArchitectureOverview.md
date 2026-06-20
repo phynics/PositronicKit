@@ -1,4 +1,3 @@
-import PKShared
 # Architecture Overview
 
 Deep dive into the current PositronicKitCore runtime design.
@@ -7,9 +6,9 @@ Deep dive into the current PositronicKitCore runtime design.
 
 PositronicKitCore keeps transport-neutral runtime orchestration in `PositronicKit`, shared contracts in `PKShared`, and prompt composition/rendering in `PKPrompt`.
 
-## Dependency Injection
+## Facade-Backed Wiring
 
-The runtime uses `swift-dependencies` internally so its orchestration services can collaborate without leaking dependency container setup into downstream applications.
+The runtime is assembled through explicit facade initializers so orchestration services can collaborate without asking downstream applications to configure a shared dependency container.
 
 ### Example Usage
 

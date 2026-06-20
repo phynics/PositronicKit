@@ -165,13 +165,13 @@ The following public API surfaces are classified as **stable v1 extension points
 
 ### Default Runtime Tool Policy
 
-The v1 runtime ships with a fixed default tool policy through `TimelineManager`:
+`TimelineManager` applies a configurable default tool policy:
 
 - filesystem tools are installed by default for timeline-managed sessions
 - timeline observation tools (`timeline_list`, `timeline_peek`) are installed by default
 - `timeline_send` is installed only when the timeline has an attached agent identity
 
-This is currently an explicit runtime default, not a host-configurable policy surface.
+Use `RuntimeToolPolicy` to disable any category or start with no runtime tools.
 
 ### Provider Registration
 

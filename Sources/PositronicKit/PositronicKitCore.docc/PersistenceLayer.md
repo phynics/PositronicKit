@@ -1,4 +1,3 @@
-import PKShared
 # Persistence Layer
 
 Modular storage architecture for PositronicKitCore.
@@ -17,7 +16,7 @@ The persistence layer is split into focused protocols to ensure high cohesion an
 
 ## Implementation
 
-The standard implementation uses **GRDB.swift** with SQLite for robust, thread-safe persistence.
+PositronicKitCore does not ship a canonical database backend. Hosts provide the storage implementation that fits their environment, whether that is in-memory state, SQLite, cloud storage, or another persistence layer that conforms to the store protocols.
 
 ### Composition
 

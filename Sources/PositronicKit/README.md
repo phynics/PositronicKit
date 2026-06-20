@@ -1,11 +1,11 @@
 # PositronicKitCore
 
-PositronicKitCore is the transport-neutral runtime facade for PositronicKit. It orchestrates chat turns, prompt assembly, tool routing, timelines, workspaces, and persistence without requiring downstream callers to interact with `swift-dependencies` directly.
+PositronicKitCore is the transport-neutral runtime facade for PositronicKit. It orchestrates chat turns, prompt assembly, tool routing, timelines, workspaces, and persistence through explicit initializer injection rather than a shared dependency container.
 
 ## Documentation
 
 - [Architecture Overview](docs/Architecture.md) - Deep dive into the engine's design, pipeline stages, and ReAct loop.
-- [Setup & Configuration](docs/Setup.md) - How to configure LLM providers, database storage, and dependency injection.
+- [Setup & Configuration](docs/Setup.md) - How to configure LLM providers, storage, and runtime wiring.
 - [Usage & Examples](docs/Usage.md) - Step-by-step guide to initializing agents and running chat streams.
 
 ## Logging
@@ -27,7 +27,7 @@ let options = PromptAssemblyOptions(logger: logger)
 ## Key Components
 
 ### PositronicKitCore (Runtime Facade)
-The public interface boundary for the runtime. It accepts required services as init parameters and injects them internally, so downstream applications use a normal Swift API instead of configuring `DependencyValues` around `ChatEngine`.
+The public interface boundary for the runtime. It accepts required services as init parameters and wires them internally, so downstream applications use a normal Swift API instead of configuring a shared dependency registry around `ChatEngine`.
 
 ### AgentInstance
 Represents a live, persistent agent entity. Each instance has its own private workspace (long-term memory) and private timeline (internal monologue).

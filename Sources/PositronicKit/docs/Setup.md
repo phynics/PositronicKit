@@ -2,9 +2,9 @@
 
 This guide describes how to configure and use PositronicKitCore in your application.
 
-## 1. Dependency Configuration
+## 1. Facade Configuration
 
-`PositronicKitCore` uses PointFree's `Dependencies` library internally, but normal consumers should configure the runtime through `PositronicKitCore` initializers rather than mutating `DependencyValues` directly.
+`PositronicKitCore` is configured through its initializers. The runtime composes its internal graph from explicit services and stores, so callers do not rely on a shared dependency container.
 
 ### Required Services
 The only required service is:
@@ -55,17 +55,17 @@ let chat = PositronicKitCore(
 
 The longer per-store initializer still exists, but the grouped `persistence:` + `runtime:` path is the clearer supported production setup for most adopters.
 
-Direct `withDependencies` configuration is still useful in tests or advanced internal integrations, but it is not the primary public integration path.
+Tests and host code can inject doubles directly through the facade initializers; lower-level wiring should remain inside the components you own.
 
 ### Default Tool Installation
 
-`TimelineManager` currently applies a fixed default tool policy for v1:
+`TimelineManager` applies a configurable default tool policy:
 
-- filesystem tools are installed automatically
-- timeline observation tools are installed automatically
+- filesystem tools are installed automatically by the default policy
+- timeline observation tools are installed automatically by the default policy
 - `timeline_send` is installed only when an attached agent identity is present
 
-These defaults are part of the current runtime contract and are not exposed as a separate configuration surface yet.
+Use `RuntimeToolPolicy` to disable any category or start with no runtime tools.
 
 ## 2. Logging
 
@@ -134,4 +134,4 @@ for try await event in stream {
 
 - **Immutability**: Always treat the `Context` object as immutable. If you need to accumulate state during a pipeline run, use an `actor` for thread-safe mutations.
 - **Error Handling**: Implement custom errors that conform to `PKError`, use stable `PKErrorDomain`/`errorCode` values, and prefer `ErrorKit.userFriendlyMessage(for:)` when surfacing nested failures.
-- **Testing**: Use `withDependencies` in tests when you need to override internals, but prefer exercising `PositronicKitCore` through its public initializers where possible.
+- **Testing**: Prefer exercising `PositronicKitCore` through its public initializers with injected doubles where possible.
