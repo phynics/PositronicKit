@@ -1,0 +1,5 @@
+module CPKFastEmbed [system] {
+    header "include/pkfastembed.h"
+    link "pkfastembed"
+    export *
+}

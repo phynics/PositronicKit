@@ -9,7 +9,7 @@ The package is organized into three core modules plus provider adapters:
 - **PositronicKit** — the runtime layer: chat engine, orchestration stages, tool routing, timeline and workspace management, and provider-neutral LLM orchestration.
 - **PKPrompt** — the prompt layer: a SwiftUI-style `@PromptBuilder` DSL, structured compression, cache-aware assembly, and prompt journaling for stable-prefix workflows.
 - **PKShared** — the contract layer: API models, tool protocols, provider contracts, error types, structured logging, and shared utilities consumed by both modules above.
-- **PKLocalEmbeddings** — the platform-local embedding facade: import this when you want `LocalEmbeddingService`.
+- **PKLocalEmbeddings** — the platform-local embedding facade: import this when you want `LocalEmbeddingService`. Apple uses Natural Language by default; Linux support is temporarily blocked pending native CI qualification.
 
 Provider targets ship separately so downstream users can opt in only to the concrete integrations they want:
 
@@ -27,7 +27,7 @@ Two additional targets ship with the package:
 | Product | Apple Platforms | Linux | Notes |
 |---------|-----------------|-------|-------|
 | `PositronicKit`, `PKPrompt`, `PKShared` | Supported | Supported | Core portable modules. |
-| `PKLocalEmbeddings` | Supported | Blocked | Apple local embeddings live here; the Linux MiniLM bridge is not in this workspace yet. |
+| `PKLocalEmbeddings` | Supported | Temporarily blocked | The in-process MiniLM implementation is present, but Linux support is not advertised until all native CI jobs pass. |
 | `PKOpenRouterProvider`, `PKOllamaProvider` | Supported | Portable candidate | Networking imports are Linux-safe. |
 | `PKOpenAIProvider` | Supported | Portable candidate | Linux support depends on the pinned OpenAI SDK build. |
 | `PKTestSupport`, `PositronicKitExamples` | Supported | Portable candidate | Verified through the package graph. |
@@ -52,7 +52,11 @@ import PKOpenAIProvider // optional concrete provider for OpenAI convenience API
 
 If you want the convenience runtime initializers like `PositronicKitCore(openAIKey:)` or `PositronicKitCore(ollamaModel:)`, import the matching provider target. Those initializers do not live in the core `PositronicKit` module.
 
-If you use `LocalEmbeddingService`, import `PKLocalEmbeddings` alongside `PositronicKit`.
+If you use `LocalEmbeddingService`, import `PKLocalEmbeddings` alongside `PositronicKit`. On Apple, `LocalEmbeddingService()` uses Natural Language by default. The opt-in Apple MiniLM path is built with the `MiniLMEmbeddings` trait:
+
+```bash
+swift test --traits MiniLMEmbeddings
+```
 
 Build and run:
 
@@ -95,7 +99,13 @@ Common adoption paths:
 
 ## Local Embeddings
 
-`PKLocalEmbeddings` keeps the local embedding facade separate from the runtime core. If you persist embedding vectors, treat them as platform-local derived data and rebuild them when moving stored content between platforms or embedding implementations.
+`PKLocalEmbeddings` keeps the local embedding facade separate from the runtime core. The MiniLM backend is fully in-process: it has no provider or daemon fallback and accepts only host-provisioned model assets. Native setup is bootstrapped with `Packages/PKFastEmbed/bootstrap.sh --prefix <path>`, then discovered through `PKG_CONFIG_PATH`.
+
+The pinned assets are `Qdrant/all-MiniLM-L6-v2-onnx` revision `5f1b8cd78bc4fb444dd171e59b18f3a3af89a079`; exact checksums are in `Packages/PKFastEmbed/model-assets.sha256`. Applications own the model directory and cache lifecycle.
+
+On Linux, construct `LocalEmbeddingService(modelDirectory:)`. On Apple builds using the `MiniLMEmbeddings` trait, construct `LocalEmbeddingService(miniLMModelDirectory:)`. Default Apple builds construct `LocalEmbeddingService()` and neither build nor link PKFastEmbed.
+
+Natural Language and MiniLM vectors are not interchangeable and must not share an index. Re-embed source content whenever the backend or platform changes.
 
 ## Runtime: PositronicKit
 

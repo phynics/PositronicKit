@@ -2,73 +2,110 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
 
+env:
+  MINILM_REVISION: 5f1b8cd78bc4fb444dd171e59b18f3a3af89a079
+
 jobs:
-  build-and-test:
-    name: Build and Test
+  macos-default:
+    name: macOS Default
     runs-on: macos-15
-
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - run: swift --version
+      - name: Build default local embeddings
+        run: swift build --target PKLocalEmbeddings --verbose 2>&1 | tee default-build.log
+      - name: Reject native MiniLM linkage in default build
+        run: '! grep -E "libpkfastembed|-lpkfastembed|PKFastEmbed\\.build|PKMiniLMTraitBackend\\.build" default-build.log'
+      - run: bash Scripts/validate-docs.sh
+      - run: swift test
 
-      - name: Show Swift version
-        run: swift --version
-
-      - name: Build
-        run: swift build
-
-      - name: Validate docs
-        run: bash Scripts/validate-docs.sh
-
-      - name: Test
-        run: swift test
-
-      - name: Parallel test
-        run: swift test --parallel --num-workers 2
-
-  linux-build-and-test:
-    name: Linux Build and Test
-    runs-on: ubuntu-24.04
-
+  macos-minilm:
+    name: macOS MiniLM Trait
+    runs-on: macos-15
+    env:
+      PKFASTEMBED_PREFIX: ${{ runner.temp }}/pkfastembed
+      PK_MINILM_MODEL_DIR: ${{ runner.temp }}/minilm-model
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Swift
-        uses: swift-actions/setup-swift@v3
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
         with:
-          swift-version: "6.3.2"
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            Packages/PKFastEmbed/native/target
+            ${{ runner.temp }}/minilm-model
+          key: macos-minilm-${{ hashFiles('Packages/PKFastEmbed/native/Cargo.lock', 'Packages/PKFastEmbed/model-assets.sha256') }}
+      - run: bash Scripts/bootstrap-minilm-ci.sh
+      - run: echo "PKG_CONFIG_PATH=$PKFASTEMBED_PREFIX/lib/pkgconfig" >> "$GITHUB_ENV"
+      - run: swift test --traits MiniLMEmbeddings --filter MiniLMEmbeddingContractTests
 
-      - name: Show Swift version
-        run: swift --version
+  linux:
+    name: Linux Swift ${{ matrix.swift }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        swift: ["6.1.3", "6.3.2"]
+    env:
+      PKFASTEMBED_PREFIX: ${{ runner.temp }}/pkfastembed
+      PK_MINILM_MODEL_DIR: ${{ runner.temp }}/minilm-model
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-actions/setup-swift@v3
+        with:
+          swift-version: ${{ matrix.swift }}
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            Packages/PKFastEmbed/native/target
+            ${{ runner.temp }}/minilm-model
+          key: linux-${{ matrix.swift }}-${{ hashFiles('Packages/PKFastEmbed/native/Cargo.lock', 'Packages/PKFastEmbed/model-assets.sha256') }}
+      - run: bash Scripts/bootstrap-minilm-ci.sh
+      - run: echo "PKG_CONFIG_PATH=$PKFASTEMBED_PREFIX/lib/pkgconfig" >> "$GITHUB_ENV"
+      - run: swift --version
+      - run: swift build --product PKShared
+      - run: swift build --product PKPrompt
+      - run: swift build --product PositronicKit
+      - run: swift build --product PKLocalEmbeddings
+      - run: swift build --product PKOpenRouterProvider
+      - run: swift build --product PKOllamaProvider
+      - run: swift build --product PKOpenAIProvider
+      - run: swift build --product PositronicKitExamples
+      - run: swift test
 
-      - name: Build PKShared
-        run: swift build --product PKShared
-
-      - name: Build PKPrompt
-        run: swift build --product PKPrompt
-
-      - name: Build PositronicKit
-        run: swift build --product PositronicKit
-
-      - name: Build PKLocalEmbeddings
-        run: swift build --product PKLocalEmbeddings
-
-      - name: Build PKOpenRouterProvider
-        run: swift build --product PKOpenRouterProvider
-
-      - name: Build PKOllamaProvider
-        run: swift build --product PKOllamaProvider
-
-      - name: Build PKOpenAIProvider
-        run: swift build --product PKOpenAIProvider
-
-      - name: Build PositronicKitExamples
-        run: swift build --product PositronicKitExamples
-
-      - name: Test
-        run: swift test
+  companion-smoke:
+    name: PKFastEmbed ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: linux-x86_64
+          - runner: ubuntu-24.04-arm
+            arch: linux-aarch64
+          - runner: macos-15
+            arch: macos-arm64
+          - runner: macos-15-intel
+            arch: macos-x86_64
+    runs-on: ${{ matrix.runner }}
+    env:
+      PKFASTEMBED_PREFIX: ${{ runner.temp }}/pkfastembed
+      PK_MINILM_MODEL_DIR: ${{ runner.temp }}/minilm-model
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            Packages/PKFastEmbed/native/target
+            ${{ runner.temp }}/minilm-model
+          key: companion-${{ matrix.arch }}-${{ hashFiles('Packages/PKFastEmbed/native/Cargo.lock', 'Packages/PKFastEmbed/model-assets.sha256') }}
+      - run: bash Scripts/bootstrap-minilm-ci.sh
+      - run: echo "PKG_CONFIG_PATH=$PKFASTEMBED_PREFIX/lib/pkgconfig" >> "$GITHUB_ENV"
+      - run: swift test --package-path Packages/PKFastEmbed

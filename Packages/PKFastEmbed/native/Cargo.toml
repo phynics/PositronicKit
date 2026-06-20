@@ -1,0 +1,12 @@
+[package]
+name = "pkfastembed"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+anyhow = "1.0.100"
+fastembed = { version = "=5.13.1", default-features = false, features = ["ort-download-binaries-native-tls"] }
+libc = "0.2.177"

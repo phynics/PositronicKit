@@ -1,5 +1,4 @@
 import Foundation
-@testable import PositronicKit
 @testable import PKLocalEmbeddings
 import Testing
 
@@ -11,10 +10,9 @@ import Testing
     func generateSingle() async throws {
         let vector = try await service.generateEmbedding(for: "Hello world")
 
+        #expect(service.backendIdentifier == .naturalLanguage)
         #expect(!vector.isEmpty)
         #expect(vector.count > 0)
-
-        // NaturalLanguage sentence embeddings are typically 512 dimensions
         #expect(vector.count == 512)
     }
 
@@ -25,6 +23,8 @@ import Testing
 
         #expect(vectors.count == 3)
         #expect(vectors[0].count == 512)
+        #expect(vectors[1].count == 512)
+        #expect(vectors[2].count == 512)
     }
 
     @Test("Test semantic similarity logic")
@@ -36,9 +36,8 @@ import Testing
         let sim12 = cosineSimilarity(v1, v2)
         let sim13 = cosineSimilarity(v1, v3)
 
-        // v1 and v2 should be more similar than v1 and v3
         #expect(sim12 > sim13)
-        #expect(sim12 > 0.4) // NaturalLanguage embeddings can be quite sparse
+        #expect(sim12 > 0.4)
     }
 
     private func cosineSimilarity(_ a: [Float], _ b: [Float]) -> Float {
@@ -51,17 +50,6 @@ import Testing
             magB += b[i] * b[i]
         }
         return dotProduct / (sqrt(magA) * sqrt(magB))
-    }
-}
-#else
-@Suite struct EmbeddingServiceTests {
-    @Test("Local embedding service is blocked on non-Apple platforms")
-    func platformNotSupported() async throws {
-        let service = LocalEmbeddingService()
-
-        await #expect(throws: EmbeddingError.platformNotSupported) {
-            _ = try await service.generateEmbedding(for: "Hello world")
-        }
     }
 }
 #endif

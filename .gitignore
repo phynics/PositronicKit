@@ -1,6 +1,9 @@
 .DS_Store
 /.build
-/Packages
+/Packages/*
+!/Packages/PKFastEmbed/
+/Packages/PKFastEmbed/.build/
+/Packages/PKFastEmbed/native/target/
 /*.xcodeproj
 xcuserdata/
 DerivedData/

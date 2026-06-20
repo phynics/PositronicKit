@@ -17,12 +17,20 @@ let package = Package(
         .library(name: "PKTestSupport", targets: ["PKTestSupport"]),
         .executable(name: "PositronicKitExamples", targets: ["PositronicKitExamples"]),
     ],
+    traits: [
+        .trait(
+            name: "MiniLMEmbeddings",
+            description: "Build the in-process MiniLM embedding backend on Apple platforms."
+        ),
+    ],
     dependencies: [
         .package(url: "https://github.com/MacPaw/OpenAI.git", exact: "0.4.8"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.5.0"),
         .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.0.0"),
         .package(url: "https://github.com/FlineDev/ErrorKit", from: "1.0.0"),
         .package(url: "https://github.com/ajevans99/swift-json-schema", from: "0.11.2"),
+        .package(url: "https://github.com/apple/swift-crypto.git", exact: "3.15.1"),
+        .package(path: "Packages/PKFastEmbed"),
     ],
     targets: [
         .target(
@@ -55,8 +63,33 @@ let package = Package(
         ),
         .target(
             name: "PKLocalEmbeddings",
-            dependencies: ["PositronicKit"],
+            dependencies: [
+                "PositronicKit",
+                .product(name: "Crypto", package: "swift-crypto"),
+                .target(name: "PKMiniLMLinuxBackend", condition: .when(platforms: [.linux])),
+                .target(name: "PKMiniLMTraitBackend", condition: .when(traits: ["MiniLMEmbeddings"])),
+            ],
             path: "Sources/PKLocalEmbeddings"
+        ),
+        .target(
+            name: "PKMiniLMLinuxBackend",
+            dependencies: [
+                "PositronicKit",
+                .product(name: "PKFastEmbed", package: "PKFastEmbed"),
+            ],
+            path: "Sources/PKMiniLMLinuxBackend"
+        ),
+        .target(
+            name: "PKMiniLMTraitBackend",
+            dependencies: [
+                "PositronicKit",
+                .product(
+                    name: "PKFastEmbed",
+                    package: "PKFastEmbed",
+                    condition: .when(traits: ["MiniLMEmbeddings"])
+                ),
+            ],
+            path: "Sources/PKMiniLMTraitBackend"
         ),
         .target(
             name: "PKOpenAIProvider",
@@ -126,6 +159,17 @@ let package = Package(
                 .product(name: "Dependencies", package: "swift-dependencies"),
             ],
             path: "Tests/PositronicKitTests"
+        ),
+        .testTarget(
+            name: "PKLocalEmbeddingsTests",
+            dependencies: [
+                "PKLocalEmbeddings",
+                "PositronicKit",
+                "PKShared",
+                "PKTestSupport",
+            ],
+            path: "Tests/PKLocalEmbeddingsTests",
+            resources: [.copy("Fixtures")]
         ),
         .testTarget(
             name: "PKPromptTests",
