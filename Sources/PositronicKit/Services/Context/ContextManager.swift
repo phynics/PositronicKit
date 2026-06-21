@@ -12,21 +12,29 @@ actor ContextManager {
 
     init(
         workspace: (any WorkspaceProtocol)? = nil,
+        memoryStore: any MemoryStoreProtocol = InMemoryMemoryStore(),
+        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
         pipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil
     ) {
         self.workspace = workspace
-        self.pipeline = pipeline ?? Pipeline(stages: Self.defaultStages(workspace: workspace))
+        self.pipeline = pipeline ?? Pipeline(stages: Self.defaultStages(
+            workspace: workspace,
+            memoryStore: memoryStore,
+            embeddingService: embeddingService
+        ))
     }
 
     /// Provides the standard stages for context gathering.
     static func defaultStages(
-        workspace: (any WorkspaceProtocol)? = nil
+        workspace: (any WorkspaceProtocol)? = nil,
+        memoryStore: any MemoryStoreProtocol = InMemoryMemoryStore(),
+        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService()
     ) -> [any PipelineStage<ContextPipelineContext, ContextGatheringEvent>] {
         return [
             QueryAugmentationStage(),
-            MemoryRetrievalStage(),
+            MemoryRetrievalStage(memoryStore: memoryStore, embeddingService: embeddingService),
             NoteDiscoveryStage(workspace: workspace),
-            ContextAssemblyStage(logger: Logger.module(named: "com.positronickit.ContextAssemblyStage"))
+            ContextAssemblyStage(logger: Logger.module(named: "com.positronickit.ContextAssemblyStage")),
         ]
     }
 

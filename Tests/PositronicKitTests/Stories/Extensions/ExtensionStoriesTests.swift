@@ -161,8 +161,7 @@ import Testing
                 memoryStore: mockPersistence,
                 toolPersistence: mockPersistence,
                 agentInstanceStore: mockPersistence,
-                requestOriginStore: mockPersistence,
-                agentTemplateStore: mockPersistence
+                requestOriginStore: mockPersistence
             ),
             runtime: .init(
                 timelineManager: timelineManager,

@@ -18,17 +18,20 @@ public struct TimelineSendTool: PKShared.Tool, Sendable {
     private let messageStore: any MessageStoreProtocol
     private let timelineStore: any TimelinePersistenceProtocol
     private let agentInstanceId: UUID
-    private let currentRemoteDepth: Int
+    /// The timeline this tool sends *from*. The current remote depth is derived from this
+    /// timeline's message history at execution time, so the recursion guard reflects how deep
+    /// the cross-agent chain already is rather than a value captured when the tool was built.
+    private let sourceTimelineId: UUID
     public init(
         messageStore: any MessageStoreProtocol,
         timelineStore: any TimelinePersistenceProtocol,
         agentInstanceId: UUID,
-        currentRemoteDepth: Int = 0
+        sourceTimelineId: UUID
     ) {
         self.messageStore = messageStore
         self.timelineStore = timelineStore
         self.agentInstanceId = agentInstanceId
-        self.currentRemoteDepth = currentRemoteDepth
+        self.sourceTimelineId = sourceTimelineId
     }
 
     public var parametersSchema: [String: AnyCodable] {
@@ -64,6 +67,10 @@ public struct TimelineSendTool: PKShared.Tool, Sendable {
             return .failure("Invalid timeline_id: \(timelineIdStr)")
         }
 
+        // Derive the current depth from the source timeline's history: the deepest hop that
+        // reached this timeline. A fresh timeline has no remote messages and starts at 0.
+        let sourceMessages = (try? await messageStore.fetchMessages(for: sourceTimelineId)) ?? []
+        let currentRemoteDepth = sourceMessages.map(\.remoteDepth).max() ?? 0
         let nextDepth = currentRemoteDepth + 1
         if nextDepth > ChatEngine.Constants.maxRemoteDepth {
             return .failure(

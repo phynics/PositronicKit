@@ -72,8 +72,7 @@ let chat = PositronicKitCore(
         memoryStore: myMemoryStore,
         toolPersistence: myToolPersistence,
         agentInstanceStore: myAgentInstanceStore,
-        requestOriginStore: myRequestOriginStore,
-        agentTemplateStore: myAgentTemplateStore
+        requestOriginStore: myRequestOriginStore
     ),
     embeddingService: myEmbeddingService,
     runtime: .init(
@@ -100,8 +99,7 @@ let chat = PositronicKitCore(
         memoryStore: myMemoryStore,
         toolPersistence: myToolPersistence,
         agentInstanceStore: myAgentInstanceStore,
-        requestOriginStore: myRequestOriginStore,
-        agentTemplateStore: myAgentTemplateStore
+        requestOriginStore: myRequestOriginStore
     ),
     embeddingService: myEmbeddingService,
     runtime: .init(

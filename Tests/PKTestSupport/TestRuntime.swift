@@ -97,8 +97,7 @@ import PositronicKit
                     memoryStore: persistence,
                     toolPersistence: persistence,
                     agentInstanceStore: persistence,
-                    requestOriginStore: persistence,
-                    agentTemplateStore: persistence
+                    requestOriginStore: persistence
                 ),
                 embeddingService: embedding,
                 runtime: .init(

@@ -41,17 +41,20 @@ public actor TimelineManager {
         public let messageStore: any MessageStoreProtocol
         public let workspaceStore: any WorkspacePersistenceProtocol
         public let toolPersistence: any ToolPersistenceProtocol
+        public let memoryStore: any MemoryStoreProtocol
 
         public init(
             timelineStore: any TimelinePersistenceProtocol,
             messageStore: any MessageStoreProtocol,
             workspaceStore: any WorkspacePersistenceProtocol,
-            toolPersistence: any ToolPersistenceProtocol
+            toolPersistence: any ToolPersistenceProtocol,
+            memoryStore: any MemoryStoreProtocol = InMemoryMemoryStore()
         ) {
             self.timelineStore = timelineStore
             self.messageStore = messageStore
             self.workspaceStore = workspaceStore
             self.toolPersistence = toolPersistence
+            self.memoryStore = memoryStore
         }
     }
 
@@ -75,6 +78,8 @@ public actor TimelineManager {
     let messageStore: any MessageStoreProtocol
     let workspaceStore: any WorkspacePersistenceProtocol
     let toolPersistence: any ToolPersistenceProtocol
+    let memoryStore: any MemoryStoreProtocol
+    let embeddingService: any EmbeddingServiceProtocol
 
     let workspaceRoot: URL
     public let workspaceManager: any WorkspaceManagerProtocol
@@ -88,12 +93,15 @@ public actor TimelineManager {
         workspaceRoot: URL,
         workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = [],
-        runtimeToolPolicy: RuntimeToolPolicy = .default
+        runtimeToolPolicy: RuntimeToolPolicy = .default,
+        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService()
     ) {
-        self.timelineStore = stores.timelineStore
-        self.messageStore = stores.messageStore
-        self.workspaceStore = stores.workspaceStore
-        self.toolPersistence = stores.toolPersistence
+        timelineStore = stores.timelineStore
+        messageStore = stores.messageStore
+        workspaceStore = stores.workspaceStore
+        toolPersistence = stores.toolPersistence
+        memoryStore = stores.memoryStore
+        self.embeddingService = embeddingService
         self.workspaceRoot = workspaceRoot
         self.sectionProviders = sectionProviders
         self.runtimeToolPolicy = runtimeToolPolicy
@@ -152,8 +160,7 @@ public actor TimelineManager {
     /// Initializes and configures the internal components for a conversation timeline.
     func setupTimelineComponents(
         timeline: Timeline,
-        workspaceURL: URL,
-        parentId: UUID? = nil
+        workspaceURL: URL
     ) async {
         let contextWorkspace: (any WorkspaceProtocol)?
         if let firstId = timeline.attachedWorkspaceIds.first {
@@ -162,15 +169,18 @@ public actor TimelineManager {
             contextWorkspace = nil
         }
 
-        let contextManager = ContextManager(workspace: contextWorkspace)
+        let contextManager = ContextManager(
+            workspace: contextWorkspace,
+            memoryStore: memoryStore,
+            embeddingService: embeddingService
+        )
         contextManagers[timeline.id] = contextManager
 
         let toolContextTimeline = ToolTimelineContext()
 
         let toolManager = await createToolManager(
             for: timeline, jailRoot: workspaceURL.path,
-            toolContextTimeline: toolContextTimeline,
-            parentId: parentId
+            toolContextTimeline: toolContextTimeline
         )
         toolManagers[timeline.id] = toolManager
 
@@ -238,7 +248,7 @@ public extension TimelineManager {
     }
 
     /// Reconstructs a timeline and its components from persistence.
-    func hydrateTimeline(id: UUID, parentId: UUID? = nil) async throws {
+    func hydrateTimeline(id: UUID) async throws {
         if toolManagers[id] != nil { return }
 
         guard let timeline = try await timelineStore.fetchTimeline(id: id) else {
@@ -257,8 +267,7 @@ public extension TimelineManager {
         timelines[id] = timeline
         await setupTimelineComponents(
             timeline: timeline,
-            workspaceURL: timelineWorkspaceURL,
-            parentId: parentId
+            workspaceURL: timelineWorkspaceURL
         )
     }
 
@@ -372,19 +381,15 @@ public extension TimelineManager {
     func listTimelines() async throws -> [Timeline] {
         return try await timelineStore.fetchAllTimelines(includeArchived: false)
     }
-
 }
 
 // MARK: - Tool Management
 
 public extension TimelineManager {
-    // swiftlint:disable:next function_parameter_count
     internal func createToolManager(
         for session: Timeline,
         jailRoot: String,
-        toolContextTimeline: ToolTimelineContext,
-        parentId _: UUID? = nil,
-        remoteDepth: Int = 0
+        toolContextTimeline: ToolTimelineContext
     ) async -> TimelineToolManager {
         let currentWD = session.workingDirectory ?? jailRoot
 
@@ -423,7 +428,7 @@ public extension TimelineManager {
                 messageStore: messageStore,
                 timelineStore: timelineStore,
                 agentInstanceId: agentId,
-                currentRemoteDepth: remoteDepth
+                sourceTimelineId: session.id
             )))
         }
 
@@ -433,7 +438,8 @@ public extension TimelineManager {
     }
 
     func findWorkspaceForTool(_ tool: ToolReference, in workspaceIds: [UUID]) async throws
-        -> UUID? {
+        -> UUID?
+    {
         return try await toolPersistence.findWorkspaceId(forToolId: tool.toolId, in: workspaceIds)
     }
 
@@ -530,7 +536,8 @@ public extension TimelineManager {
                 let normalizedWorkspace = normalizeWorkspaceStatus(workspace)
 
                 if primary == nil,
-                   normalizedWorkspace.location == .runtime || normalizedWorkspace.location == .runtimeTimeline {
+                   normalizedWorkspace.location == .runtime || normalizedWorkspace.location == .runtimeTimeline
+                {
                     primary = normalizedWorkspace
                 } else {
                     attached.append(normalizedWorkspace)
@@ -545,7 +552,8 @@ public extension TimelineManager {
         var normalizedWorkspace = workspace
         if normalizedWorkspace.location == .runtime,
            let path = normalizedWorkspace.rootPath,
-           !FileManager.default.fileExists(atPath: path) {
+           !FileManager.default.fileExists(atPath: path)
+        {
             normalizedWorkspace.status = .missing
         }
         return normalizedWorkspace
@@ -561,7 +569,9 @@ public extension TimelineManager {
 public enum TimelineError: PKError {
     case timelineNotFound
 
-    public var errorDomain: String { PKErrorDomain.timeline }
+    public var errorDomain: String {
+        PKErrorDomain.timeline
+    }
 
     public var errorCode: Int {
         switch self {

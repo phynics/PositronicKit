@@ -208,8 +208,7 @@ struct PublicRuntimeStoriesTests {
             timelinePersistence: mockPersistence,
             workspacePersistence: mockPersistence,
             memoryStore: mockPersistence,
-            toolPersistence: mockPersistence,
-            agentTemplateStore: mockPersistence
+            toolPersistence: mockPersistence
         )
 
         let events = try await chat.run(
@@ -247,8 +246,7 @@ struct PublicRuntimeStoriesTests {
                 memoryStore: persistence,
                 toolPersistence: persistence,
                 agentInstanceStore: persistence,
-                requestOriginStore: persistence,
-                agentTemplateStore: persistence
+                requestOriginStore: persistence
             )
         )
     }
@@ -293,8 +291,7 @@ struct PublicRuntimeStoriesTests {
                 memoryStore: mockPersistence,
                 toolPersistence: mockPersistence,
                 agentInstanceStore: mockPersistence,
-                requestOriginStore: mockPersistence,
-                agentTemplateStore: mockPersistence
+                requestOriginStore: mockPersistence
             )
 
             if useGroupedRuntime {
@@ -334,8 +331,7 @@ struct PublicRuntimeStoriesTests {
                 timelinePersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
                 memoryStore: mockPersistence,
-                toolPersistence: mockPersistence,
-                agentTemplateStore: mockPersistence
+                toolPersistence: mockPersistence
             )
         }
 

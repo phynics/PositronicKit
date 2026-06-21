@@ -26,7 +26,7 @@ import PKShared
 public struct PositronicKitCore: Sendable {
     // MARK: - Direct ChatEngine dependencies
 
-    internal let llmService: any LLMServiceProtocol
+    let llmService: any LLMServiceProtocol
     private let messageStore: any MessageStoreProtocol
     // Non-private so DependencySafetyTests can assert the facade reuses the injected timeline manager.
     let timelineManager: TimelineManager
@@ -42,7 +42,6 @@ public struct PositronicKitCore: Sendable {
     private let workspacePersistence: any WorkspacePersistenceProtocol
     private let memoryStore: any MemoryStoreProtocol
     private let toolPersistence: any ToolPersistenceProtocol
-    private let agentTemplateStore: any AgentTemplateStoreProtocol
     private let embeddingService: any EmbeddingServiceProtocol
 
     private var chatEngine: ChatEngine
@@ -79,7 +78,6 @@ public struct PositronicKitCore: Sendable {
     ///   - workspacePersistence: Persistence for workspace records. Defaults to in-memory if nil.
     ///   - memoryStore: Persistence for memory records. Defaults to in-memory if nil.
     ///   - toolPersistence: Persistence for tool references. Defaults to in-memory if nil.
-    ///   - agentTemplateStore: Persistence for agent templates. Defaults to in-memory if nil.
     ///   - embeddingService: Embedding provider for context/memory search. Defaults to no-op if nil.
     ///   - workspaceRoot: Root directory for auto-constructed TimelineManager. Defaults to temp directory.
     ///   - chatTurnPlugins: Post-turn plugins (e.g. autonomous reactions).
@@ -95,7 +93,6 @@ public struct PositronicKitCore: Sendable {
         workspacePersistence: (any WorkspacePersistenceProtocol)? = nil,
         memoryStore: (any MemoryStoreProtocol)? = nil,
         toolPersistence: (any ToolPersistenceProtocol)? = nil,
-        agentTemplateStore: (any AgentTemplateStoreProtocol)? = nil,
         embeddingService: (any EmbeddingServiceProtocol)? = nil,
         workspaceRoot: URL? = nil,
         chatTurnPlugins: [any ChatTurnPlugin] = [],
@@ -109,10 +106,9 @@ public struct PositronicKitCore: Sendable {
         self.workspacePersistence = workspacePersistence ?? InMemoryWorkspacePersistence()
         self.memoryStore = memoryStore ?? InMemoryMemoryStore()
         self.toolPersistence = toolPersistence ?? InMemoryToolPersistence()
-        self.agentTemplateStore = agentTemplateStore ?? InMemoryAgentTemplateStore()
         self.embeddingService = embeddingService ?? NoOpEmbeddingService()
         self.chatTurnPlugins = chatTurnPlugins
-        self.defaultGenerationParameters = generationParameters
+        defaultGenerationParameters = generationParameters
 
         let resolvedWorkspaceRoot = workspaceRoot ?? FileManager.default.temporaryDirectory
             .appendingPathComponent("positronickit-workspaces", isDirectory: true)
@@ -121,16 +117,18 @@ public struct PositronicKitCore: Sendable {
                 timelineStore: self.timelinePersistence,
                 messageStore: self.messageStore,
                 workspaceStore: self.workspacePersistence,
-                toolPersistence: self.toolPersistence
+                toolPersistence: self.toolPersistence,
+                memoryStore: self.memoryStore
             ),
-            workspaceRoot: resolvedWorkspaceRoot
+            workspaceRoot: resolvedWorkspaceRoot,
+            embeddingService: self.embeddingService
         )
         self.timelineManager = resolvedTimelineManager
         self.toolRouter = toolRouter ?? ToolRouter(
             timelineManager: resolvedTimelineManager,
             messageStore: self.messageStore
         )
-        self.chatEngine = ChatEngine(
+        chatEngine = ChatEngine(
             dependencies: .init(
                 timelineManager: resolvedTimelineManager,
                 agentInstanceStore: self.agentInstanceStore,
@@ -203,7 +201,7 @@ public struct PositronicKitCore: Sendable {
         maxTurns: Int = 5,
         generationParameters: GenerationParameters? = nil
     ) async throws -> AsyncThrowingStream<ChatEvent, Error> {
-        let resolvedContextManager = await self.resolveContextManager(
+        let resolvedContextManager = await resolveContextManager(
             explicit: nil,
             timelineId: timelineId
         )
@@ -217,7 +215,7 @@ public struct PositronicKitCore: Sendable {
             systemInstructions: systemInstructions,
             agentInstanceId: agentInstanceId,
             maxTurns: maxTurns,
-            generationParameters: generationParameters ?? self.defaultGenerationParameters
+            generationParameters: generationParameters ?? defaultGenerationParameters
         )
     }
 
@@ -243,7 +241,7 @@ public struct PositronicKitCore: Sendable {
 public extension PositronicKitCore {
     /// Groups all persistence stores for convenient initialization.
     ///
-    /// Use this when your persistence layer provides all 8 stores.
+    /// Use this when your persistence layer provides all stores.
     struct PersistenceConfiguration: Sendable {
         public let messageStore: any MessageStoreProtocol
         public let timelinePersistence: any TimelinePersistenceProtocol
@@ -252,7 +250,6 @@ public extension PositronicKitCore {
         public let toolPersistence: any ToolPersistenceProtocol
         public let agentInstanceStore: any AgentInstanceStoreProtocol
         public let requestOriginStore: any RequestOriginStoreProtocol
-        public let agentTemplateStore: any AgentTemplateStoreProtocol
 
         public init(
             messageStore: any MessageStoreProtocol,
@@ -261,8 +258,7 @@ public extension PositronicKitCore {
             memoryStore: any MemoryStoreProtocol,
             toolPersistence: any ToolPersistenceProtocol,
             agentInstanceStore: any AgentInstanceStoreProtocol,
-            requestOriginStore: any RequestOriginStoreProtocol,
-            agentTemplateStore: any AgentTemplateStoreProtocol
+            requestOriginStore: any RequestOriginStoreProtocol
         ) {
             self.messageStore = messageStore
             self.timelinePersistence = timelinePersistence
@@ -271,7 +267,6 @@ public extension PositronicKitCore {
             self.toolPersistence = toolPersistence
             self.agentInstanceStore = agentInstanceStore
             self.requestOriginStore = requestOriginStore
-            self.agentTemplateStore = agentTemplateStore
         }
 
         /// Provides a configuration with sensible in-memory defaults for all stores.
@@ -283,8 +278,7 @@ public extension PositronicKitCore {
                 memoryStore: InMemoryMemoryStore(),
                 toolPersistence: InMemoryToolPersistence(),
                 agentInstanceStore: InMemoryAgentInstanceStore(),
-                requestOriginStore: InMemoryRequestOriginStore(),
-                agentTemplateStore: InMemoryAgentTemplateStore()
+                requestOriginStore: InMemoryRequestOriginStore()
             )
         }
     }
@@ -346,7 +340,6 @@ public extension PositronicKitCore {
             workspacePersistence: persistence.workspacePersistence,
             memoryStore: persistence.memoryStore,
             toolPersistence: persistence.toolPersistence,
-            agentTemplateStore: persistence.agentTemplateStore,
             embeddingService: embeddingService,
             workspaceRoot: workspaceRoot,
             chatTurnPlugins: chatTurnPlugins,
@@ -373,7 +366,6 @@ public extension PositronicKitCore {
             workspacePersistence: persistence.workspacePersistence,
             memoryStore: persistence.memoryStore,
             toolPersistence: persistence.toolPersistence,
-            agentTemplateStore: persistence.agentTemplateStore,
             embeddingService: embeddingService,
             workspaceRoot: runtime.workspaceRoot,
             chatTurnPlugins: runtime.chatTurnPlugins,

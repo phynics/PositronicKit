@@ -1,15 +1,14 @@
-import Testing
 import Foundation
-@testable import PositronicKit
 @testable import PKShared
+@testable import PositronicKit
+import Testing
 
-@Suite final class StreamingParserTests {
-
+final class StreamingParserTests {
     // MARK: - Thinking Tag Parsing
 
     @Test
 
-    func testStreamingParserNormalText() {
+    func streamingParserNormalText() {
         var parser = StreamingParser()
         parser.process("Hello")
         parser.process(" World")
@@ -21,7 +20,7 @@ import Foundation
 
     @Test
 
-    func testStreamingParserWithThinkingTags() {
+    func streamingParserWithThinkingTags() {
         var parser = StreamingParser()
         parser.process("Here is my reasoning: <th")
         #expect(parser.content == "Here is my reasoning: ") // "<th" buffered
@@ -39,7 +38,7 @@ import Foundation
 
     @Test
 
-    func testStreamingParserOrphanedClosingTag() {
+    func streamingParserOrphanedClosingTag() {
         var parser = StreamingParser()
         // DeepSeek and other models sometimes start sending </think> without opening it
         parser.process("Wait, let me think about this...\n</think>\nYes, the answer is 42.")
@@ -51,7 +50,20 @@ import Foundation
 
     @Test
 
-    func testStreamingParserCodeBlockAvoidance() {
+    func streamingParserLiteralReclassifyMarkerIsTreatedAsContent() {
+        var parser = StreamingParser()
+        // The reclassification signal must not be an in-band string: a model emitting the
+        // literal marker should be passed through verbatim as content, not reinterpreted.
+        parser.process("The constant RECLASSIFY_THINKING_MARKER is internal.")
+
+        #expect(parser.content == "The constant RECLASSIFY_THINKING_MARKER is internal.")
+        #expect(parser.thinking == "")
+        #expect(!(parser.hasReclassified))
+    }
+
+    @Test
+
+    func streamingParserCodeBlockAvoidance() {
         var parser = StreamingParser()
         parser.process("```xml\n<think>This should NOT be parsed as thinking</think>\n```")
 
@@ -64,7 +76,7 @@ import Foundation
 
     @Test
 
-    func testToolExtraction() throws {
+    func toolExtraction() {
         let parser = StreamingParser()
         let response = """
         I will use the tool now.
@@ -98,7 +110,7 @@ import Foundation
 
     @Test
 
-    func testMultipleToolExtractionsWithoutCodeFences() throws {
+    func multipleToolExtractionsWithoutCodeFences() {
         let parser = StreamingParser()
         let response = """
         <tool_call>
@@ -128,7 +140,7 @@ import Foundation
 
     @Test
 
-    func testStreamingParserStripsPipeDelimitedMarkers() {
+    func streamingParserStripsPipeDelimitedMarkers() {
         var parser = StreamingParser()
 
         parser.process("A: I'll help you. <|tool_calls_section_begin|> <|tool_call_begin|> functions.list_workspaces:0 <|tool_call_argument_begin|> {} <|tool_call_end|> <|tool_calls_section_end|>")
@@ -141,7 +153,7 @@ import Foundation
 
     @Test
 
-    func testStreamingParserPreservesNormalAngleBrackets() {
+    func streamingParserPreservesNormalAngleBrackets() {
         var parser = StreamingParser()
         parser.process("Use <div> tags in HTML")
 

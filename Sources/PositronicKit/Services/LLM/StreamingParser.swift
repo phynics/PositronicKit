@@ -34,32 +34,24 @@ public struct StreamingParser {
 
         // Process buffer exhaustively
         while let result = extractNextSegment() {
-            if result.isThinking {
+            if result.reclassify {
+                // An orphaned </think> closed a thinking block that never opened: everything
+                // emitted so far (plus this segment) was actually reasoning.
+                Logger.module(named: "parser").warning("[Parser] ORPHANED </think> DETECTED! Reclassifying.")
+                thinking = content + result.text
+                content = ""
+                hasReclassified = true
+            } else if result.isThinking {
                 thinking += result.text
             } else {
-                appendContentSegment(result.text)
+                content += result.text
             }
-        }
-    }
-
-    /// Appends a content segment, handling reclassification markers.
-    private mutating func appendContentSegment(_ text: String) {
-        if text.contains("RECLASSIFY_THINKING_MARKER") {
-            Logger.module(named: "parser").warning("[Parser] ORPHANED </think> DETECTED! Reclassifying.")
-            let actualText = text.replacingOccurrences(
-                of: "RECLASSIFY_THINKING_MARKER", with: ""
-            )
-            thinking = content + actualText
-            content = ""
-            hasReclassified = true
-        } else {
-            content += text
         }
     }
 
     // MARK: - Pipe-Delimited Marker Stripping
 
-    // Known LLM formatting token markers to strip from streaming output.
+    /// Known LLM formatting token markers to strip from streaming output.
     private let pipeMarkerPattern = try! NSRegularExpression(
         pattern: #"<\|[a-z_]+\|>"#,
         options: []
@@ -78,8 +70,13 @@ public struct StreamingParser {
 
     // MARK: - Core Parsing Logic
 
+    /// A parsed chunk of streamed output.
+    /// `reclassify` is set only when an orphaned `</think>` requires moving already-emitted
+    /// content into the thinking channel; it carries no payload through the text itself.
+    private typealias Segment = (text: String, isThinking: Bool, reclassify: Bool)
+
     /// Extracts the next valid text segment from the buffer, updating state.
-    private mutating func extractNextSegment() -> (text: String, isThinking: Bool)? {
+    private mutating func extractNextSegment() -> Segment? {
         guard !buffer.isEmpty else { return nil }
 
         if let result = tryExtractCodeBlock() { return result }
@@ -94,16 +91,16 @@ public struct StreamingParser {
     }
 
     /// Tries to extract content around a code block delimiter ("```").
-    private mutating func tryExtractCodeBlock() -> (text: String, isThinking: Bool)? {
+    private mutating func tryExtractCodeBlock() -> Segment? {
         guard let range = buffer.range(of: "```") else { return nil }
         let prefix = String(buffer[..<range.lowerBound])
         buffer.removeSubrange(..<range.upperBound)
         insideCodeBlock.toggle()
 
         if !prefix.isEmpty {
-            return (prefix, isThinking)
+            return (prefix, isThinking, false)
         }
-        return ("```", isThinking)
+        return ("```", isThinking, false)
     }
 
     /// Returns true if buffer ends with a partial code delimiter that needs more data.
@@ -119,7 +116,7 @@ public struct StreamingParser {
     }
 
     /// Tries to extract content around `<think>` / `</think>` tags.
-    private mutating func tryExtractThinkTags() -> (text: String, isThinking: Bool)? {
+    private mutating func tryExtractThinkTags() -> Segment? {
         if isThinking {
             return tryExtractClosingThinkTag()
         } else {
@@ -128,19 +125,19 @@ public struct StreamingParser {
     }
 
     /// Handles extraction when inside a `<think>` block.
-    private mutating func tryExtractClosingThinkTag() -> (text: String, isThinking: Bool)? {
+    private mutating func tryExtractClosingThinkTag() -> Segment? {
         if let range = buffer.range(of: "</think>") {
             let text = String(buffer[..<range.lowerBound])
             buffer.removeSubrange(..<range.upperBound)
             isThinking = false
-            return (text, true)
+            return (text, true, false)
         }
 
         return tryHoldPartialTag("</think>", asThinking: true)
     }
 
     /// Handles extraction when outside a `<think>` block.
-    private mutating func tryExtractOpeningThinkTag() -> (text: String, isThinking: Bool)? {
+    private mutating func tryExtractOpeningThinkTag() -> Segment? {
         // Check for opening <think>
         if let range = buffer.range(of: "<think>") {
             let text = String(buffer[..<range.lowerBound])
@@ -148,7 +145,7 @@ public struct StreamingParser {
             isThinking = true
 
             if !text.isEmpty {
-                return (text, false)
+                return (text, false, false)
             }
             return extractNextSegment()
         }
@@ -157,11 +154,12 @@ public struct StreamingParser {
         if let result = tryHoldPartialTag("<think>", asThinking: false) { return result }
         if let result = tryHoldPartialTag("</think>", asThinking: false) { return result }
 
-        // Check for full orphaned closing tag (Reclassify Workaround)
+        // Check for a full orphaned closing tag: a `</think>` with no matching opener. Signal
+        // reclassification via the segment flag rather than embedding a marker in the text.
         if let range = buffer.range(of: "</think>") {
             let contentBeforeTag = String(buffer[..<range.lowerBound])
             buffer.removeSubrange(..<range.upperBound)
-            return (contentBeforeTag + "RECLASSIFY_THINKING_MARKER", false)
+            return (contentBeforeTag, false, true)
         }
 
         return nil
@@ -170,7 +168,7 @@ public struct StreamingParser {
     /// Holds content before a partial tag at the end of the buffer.
     private mutating func tryHoldPartialTag(
         _ tag: String, asThinking: Bool
-    ) -> (text: String, isThinking: Bool)? {
+    ) -> Segment? {
         guard let start = buffer.lastIndex(of: "<") else { return nil }
         let suffix = buffer[start...]
         guard tag.hasPrefix(String(suffix)) else { return nil }
@@ -178,16 +176,16 @@ public struct StreamingParser {
         if start > buffer.startIndex {
             let text = String(buffer[..<start])
             buffer = String(suffix)
-            return (text, asThinking)
+            return (text, asThinking, false)
         }
         return nil
     }
 
     /// Flushes the remaining buffer as a single segment.
-    private mutating func flushBuffer() -> (text: String, isThinking: Bool) {
+    private mutating func flushBuffer() -> Segment {
         let text = buffer
         buffer = ""
-        return (text, isThinking)
+        return (text, isThinking, false)
     }
 
     // MARK: - Tool Parsing
@@ -219,7 +217,8 @@ public struct StreamingParser {
                 .trimmingCharacters(in: .whitespacesAndNewlines)
 
             if let jsonData = jsonString.data(using: .utf8),
-               let toolCall = try? JSONDecoder().decode(ToolCall.self, from: jsonData) {
+               let toolCall = try? JSONDecoder().decode(ToolCall.self, from: jsonData)
+            {
                 toolCalls.append(toolCall)
             } else {
                 Logger.module(named: "parser").error("Failed to parse tool call JSON: \(jsonString)")

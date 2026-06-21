@@ -100,8 +100,7 @@ struct IntroductoryStoriesTests {
                 memoryStore: persistence,
                 toolPersistence: persistence,
                 agentInstanceStore: persistence,
-                requestOriginStore: persistence,
-                agentTemplateStore: persistence
+                requestOriginStore: persistence
             ),
             runtime: .init(
                 timelineManager: timelineManager,

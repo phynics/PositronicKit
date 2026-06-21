@@ -89,8 +89,7 @@ public enum PositronicKitUsageExamples {
                 memoryStore: InMemoryMemoryStore(),
                 toolPersistence: InMemoryToolPersistence(),
                 agentInstanceStore: InMemoryAgentInstanceStore(),
-                requestOriginStore: InMemoryRequestOriginStore(),
-                agentTemplateStore: InMemoryAgentTemplateStore()
+                requestOriginStore: InMemoryRequestOriginStore()
             ),
             embeddingService: NoOpEmbeddingService(),
             runtime: runtime
