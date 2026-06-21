@@ -9,7 +9,7 @@ The package is organized into three core modules plus provider adapters:
 - **PositronicKit** — the runtime layer: chat engine, orchestration stages, tool routing, timeline and workspace management, and provider-neutral LLM orchestration.
 - **PKPrompt** — the prompt layer: a SwiftUI-style `@PromptBuilder` DSL, structured compression, cache-aware assembly, and prompt journaling for stable-prefix workflows.
 - **PKShared** — the contract layer: API models, tool protocols, provider contracts, error types, structured logging, and shared utilities consumed by both modules above.
-- **PKLocalEmbeddings** — the platform-local embedding facade: import this when you want `LocalEmbeddingService`. Apple uses Natural Language by default; Linux support is temporarily blocked pending native CI qualification.
+- **PKLocalEmbeddings** — the platform-local embedding facade: import this when you want `LocalEmbeddingService`. Apple uses Natural Language by default; Linux support is temporarily blocked pending recorded native qualification on every supported architecture.
 
 Provider targets ship separately so downstream users can opt in only to the concrete integrations they want:
 
@@ -27,7 +27,7 @@ Two additional targets ship with the package:
 | Product | Apple Platforms | Linux | Notes |
 |---------|-----------------|-------|-------|
 | `PositronicKit`, `PKPrompt`, `PKShared` | Supported | Supported | Core portable modules. |
-| `PKLocalEmbeddings` | Supported | Temporarily blocked | The in-process MiniLM implementation is present, but Linux support is not advertised until all native CI jobs pass. |
+| `PKLocalEmbeddings` | Supported | Temporarily blocked | The in-process MiniLM implementation is present, but Linux support is not advertised until the manual native verification gates pass on every supported architecture. |
 | `PKOpenRouterProvider`, `PKOllamaProvider` | Supported | Portable candidate | Networking imports are Linux-safe. |
 | `PKOpenAIProvider` | Supported | Portable candidate | Linux support depends on the pinned OpenAI SDK build. |
 | `PKTestSupport`, `PositronicKitExamples` | Supported | Portable candidate | Verified through the package graph. |
@@ -56,6 +56,26 @@ If you use `LocalEmbeddingService`, import `PKLocalEmbeddings` alongside `Positr
 
 ```bash
 swift test --traits MiniLMEmbeddings
+```
+
+## Manual verification
+
+Verification is run explicitly through the root Makefile:
+
+```bash
+make verify           # Default build, docs, linkage audit, and tests
+make verify-products  # Build every supported product on the current host
+make verify-minilm    # Bootstrap pinned assets/native bridge and run MiniLM tests
+```
+
+`make verify-minilm` downloads the pinned Hugging Face model assets on first
+use, validates their checksums, builds the Rust bridge, and stores the native
+prefix and model under `.build`. Override those locations when needed:
+
+```bash
+make verify-minilm \
+  PKFASTEMBED_PREFIX=/path/to/prefix \
+  PK_MINILM_MODEL_DIR=/path/to/model
 ```
 
 Build and run:

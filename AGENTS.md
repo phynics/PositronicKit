@@ -20,7 +20,22 @@ swift build                        # or: make build
 swift test                         # or: make test
 swift run PositronicKitExamples
 make clean
+make verify                       # pin, docs, linkage, and test gates
+make verify-products              # build every product on this host
+make verify-pin                   # check the pinned MiniLM artifact hashes are consistent
+make build-minilm                 # prepare assets/bridge and build the MiniLM trait product
+make verify-minilm                # prepare native MiniLM and run its tests
 ```
+
+`build-minilm` and `verify-minilm` both depend on `bootstrap-minilm`, which is
+idempotent: it downloads the pinned model assets on first use, verifies their
+checksums, and builds PKFastEmbed only when missing — so the MiniLM build/test
+pipeline prepares everything without a separate manual bootstrap step. Assets and
+the native prefix are stored under `.build` (gitignored) by default; override
+`PKFASTEMBED_PREFIX` and `PK_MINILM_MODEL_DIR` to relocate the cache. The pinned
+revision and per-file SHA-256 hashes live in `Packages/PKFastEmbed/model-assets.sha256`
+and `Sources/PKLocalEmbeddings/MiniLMModelAssets.swift`; `verify-pin` (run by
+`verify` and before every bootstrap) fails if those drift apart.
 
 ## Module Boundaries
 

@@ -99,10 +99,13 @@ fn checked_output_count(dimensions: usize, text_count: usize) -> anyhow::Result<
         .ok_or_else(|| anyhow::anyhow!("Requested output size overflowed usize."))
 }
 
-fn run_inference<T>(operation: impl FnOnce() -> anyhow::Result<T>) -> anyhow::Result<T> {
+fn contain_panics<T>(
+    context: &'static str,
+    operation: impl FnOnce() -> anyhow::Result<T>,
+) -> anyhow::Result<T> {
     match std::panic::catch_unwind(AssertUnwindSafe(operation)) {
         Ok(result) => result,
-        Err(_) => anyhow::bail!("Model inference panicked."),
+        Err(_) => anyhow::bail!("{context} panicked."),
     }
 }
 
@@ -189,7 +192,7 @@ pub extern "C" fn pkfe_model_create(
         }
     };
 
-    match load_model(&path) {
+    match contain_panics("Model creation", || load_model(&path)) {
         Ok(model) => {
             unsafe {
                 *out_model = Box::into_raw(Box::new(model));
@@ -275,7 +278,7 @@ pub extern "C" fn pkfe_model_embed(
         }
     };
 
-    let embeddings = match run_inference(|| guard.embed(vec![text], None)) {
+    let embeddings = match contain_panics("Model inference", || guard.embed(vec![text], None)) {
         Ok(embeddings) => embeddings,
         Err(error) => {
             set_error(out_error_message, error.to_string());
@@ -356,7 +359,7 @@ pub extern "C" fn pkfe_model_embed_batch(
         }
     };
 
-    let embeddings = match run_inference(|| guard.embed(decoded, None)) {
+    let embeddings = match contain_panics("Model inference", || guard.embed(decoded, None)) {
         Ok(embeddings) => embeddings,
         Err(error) => {
             set_error(out_error_message, error.to_string());
@@ -502,7 +505,7 @@ mod tests {
 
     #[test]
     fn panic_is_contained() {
-        let result = run_inference(|| -> anyhow::Result<()> {
+        let result = contain_panics("Test", || -> anyhow::Result<()> {
             std::panic::resume_unwind(Box::new("boom"));
         });
 

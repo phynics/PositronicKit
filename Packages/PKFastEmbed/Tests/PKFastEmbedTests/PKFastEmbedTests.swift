@@ -4,8 +4,6 @@ import Foundation
 import Testing
 import XCTest
 
-#if os(Linux) || MiniLMEmbeddings
-
 @Suite("PKFastEmbed wrapper")
 struct PKFastEmbedTests {
     @Test("missing model directory surfaces a model load failure")
@@ -71,7 +69,7 @@ struct PKFastEmbedTests {
             String(repeating: "prefix-", count: 20) + "tail-a",
             String(repeating: "prefix-", count: 20) + "tail-b",
         ]
-        let texts = (0..<128).map { fixtures[$0 % fixtures.count] }
+        let texts = (0 ..< 128).map { fixtures[$0 % fixtures.count] }
 
         let batch = try model.embed(texts)
         let singles = try texts.map { try model.embed($0) }
@@ -184,7 +182,7 @@ struct PKFastEmbedTests {
             dimensionsStatus: PKFE_STATUS_MODEL_LOAD_FAILED
         )
 
-        for _ in 0..<32 {
+        for _ in 0 ..< 32 {
             XCTAssertThrowsError(
                 try MiniLMEmbedder(
                     modelDirectory: URL(fileURLWithPath: "/fake/model"),
@@ -382,7 +380,7 @@ private final class NativeAPIHarness: @unchecked Sendable {
 
                 let inputPointers = UnsafeBufferPointer(start: utf8Bytes, count: textCount)
                 let inputLengths = UnsafeBufferPointer(start: utf8Lengths, count: textCount)
-                let inputs = (0..<textCount).map { index in
+                let inputs = (0 ..< textCount).map { index in
                     Self.captureBytes(from: inputPointers[index], length: inputLengths[index])
                 }
                 self.batchInputs = inputs
@@ -425,7 +423,6 @@ private final class NativeAPIHarness: @unchecked Sendable {
         let seed = bytes.reduce(into: 0) { result, byte in
             result = result &* 31 &+ Int(byte)
         }
-        return (0..<dimensions).map { Float((seed + $0) % 1_000) }
+        return (0 ..< dimensions).map { Float((seed + $0) % 1000) }
     }
 }
-#endif
