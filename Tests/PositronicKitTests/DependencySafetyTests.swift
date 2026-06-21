@@ -23,11 +23,10 @@ struct DependencySafetyTests {
         let resolved = try await runtime.agentWorkspaceService.getWorkspace(id: workspace.id)
         #expect(resolved?.id == workspace.id)
 
-        // buildCore() reuses the same persistence and timeline manager, so the earlier timeline
-        // remains observable after the facade is constructed.
-        _ = runtime.buildCore()
-        let afterCore = try await runtime.persistence.fetchTimeline(id: timeline.id)
-        #expect(afterCore?.id == timeline.id)
+        // buildCore() must reuse the runtime's own TimelineManager rather than fabricating a
+        // disconnected one.
+        let core = runtime.buildCore()
+        #expect(core.timelineManager === runtime.timelineManager)
     }
 
     @Test("AgentInstanceManager correctly resolves overridden agentWorkspaceService")

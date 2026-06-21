@@ -28,7 +28,8 @@ public struct PositronicKitCore: Sendable {
 
     internal let llmService: any LLMServiceProtocol
     private let messageStore: any MessageStoreProtocol
-    private let timelineManager: TimelineManager
+    // Non-private so DependencySafetyTests can assert the facade reuses the injected timeline manager.
+    let timelineManager: TimelineManager
     private let toolRouter: ToolRouter
     private let agentInstanceStore: any AgentInstanceStoreProtocol
     private let requestOriginStore: any RequestOriginStoreProtocol
