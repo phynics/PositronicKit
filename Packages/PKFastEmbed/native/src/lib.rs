@@ -7,6 +7,7 @@ use std::ffi::{CStr, CString};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::ptr;
+use std::panic::AssertUnwindSafe;
 use std::slice;
 use std::sync::Mutex;
 
@@ -90,6 +91,75 @@ fn decode_text(bytes: *const u8, length: usize) -> anyhow::Result<String> {
 
     let data = unsafe { slice::from_raw_parts(bytes, length) };
     Ok(std::str::from_utf8(data)?.to_owned())
+}
+
+fn checked_output_count(dimensions: usize, text_count: usize) -> anyhow::Result<usize> {
+    dimensions
+        .checked_mul(text_count)
+        .ok_or_else(|| anyhow::anyhow!("Requested output size overflowed usize."))
+}
+
+fn run_inference<T>(operation: impl FnOnce() -> anyhow::Result<T>) -> anyhow::Result<T> {
+    match std::panic::catch_unwind(AssertUnwindSafe(operation)) {
+        Ok(result) => result,
+        Err(_) => anyhow::bail!("Model inference panicked."),
+    }
+}
+
+fn write_single_embedding(
+    out_buffer: &mut [f32],
+    embeddings: &[Vec<f32>],
+    dimensions: usize,
+) -> anyhow::Result<()> {
+    anyhow::ensure!(
+        embeddings.len() == 1,
+        "Expected exactly 1 embedding, got {}.",
+        embeddings.len()
+    );
+
+    let embedding = &embeddings[0];
+    anyhow::ensure!(
+        embedding.len() == dimensions,
+        "Expected embedding length {}, got {}.",
+        dimensions,
+        embedding.len()
+    );
+
+    out_buffer.copy_from_slice(embedding);
+    Ok(())
+}
+
+fn write_batch_embeddings(
+    out_buffer: &mut [f32],
+    embeddings: &[Vec<f32>],
+    dimensions: usize,
+    text_count: usize,
+) -> anyhow::Result<()> {
+    anyhow::ensure!(
+        embeddings.len() == text_count,
+        "Expected {} embeddings, got {}.",
+        text_count,
+        embeddings.len()
+    );
+
+    for (index, embedding) in embeddings.iter().enumerate() {
+        anyhow::ensure!(
+            embedding.len() == dimensions,
+            "Expected embedding {} to contain {} values, got {}.",
+            index,
+            dimensions,
+            embedding.len()
+        );
+    }
+
+    for (index, embedding) in embeddings.iter().enumerate() {
+        let start = index
+            .checked_mul(dimensions)
+            .ok_or_else(|| anyhow::anyhow!("Output offset overflowed usize."))?;
+        out_buffer[start..start + dimensions].copy_from_slice(embedding);
+    }
+
+    Ok(())
 }
 
 #[no_mangle]
@@ -205,14 +275,17 @@ pub extern "C" fn pkfe_model_embed(
         }
     };
 
-    match guard.embed(vec![text], None) {
-        Ok(mut embeddings) => {
-            let embedding = embeddings.remove(0);
-            unsafe {
-                ptr::copy_nonoverlapping(embedding.as_ptr(), out_buffer, model.dimensions);
-            }
-            Status::Ok
+    let embeddings = match run_inference(|| guard.embed(vec![text], None)) {
+        Ok(embeddings) => embeddings,
+        Err(error) => {
+            set_error(out_error_message, error.to_string());
+            return Status::InferenceFailed;
         }
+    };
+
+    let output = unsafe { slice::from_raw_parts_mut(out_buffer, model.dimensions) };
+    match write_single_embedding(output, &embeddings, model.dimensions) {
+        Ok(()) => Status::Ok,
         Err(error) => {
             set_error(out_error_message, error.to_string());
             Status::InferenceFailed
@@ -249,7 +322,14 @@ pub extern "C" fn pkfe_model_embed_batch(
         return Status::InvalidArgument;
     }
 
-    let expected = model.dimensions * text_count;
+    let expected = match checked_output_count(model.dimensions, text_count) {
+        Ok(expected) => expected,
+        Err(error) => {
+            set_error(out_error_message, error.to_string());
+            return Status::InvalidArgument;
+        }
+    };
+
     if out_count < expected {
         set_error(out_error_message, format!("out_buffer capacity {} was smaller than {}", out_count, expected));
         return Status::BufferTooSmall;
@@ -276,14 +356,17 @@ pub extern "C" fn pkfe_model_embed_batch(
         }
     };
 
-    match guard.embed(decoded, None) {
-        Ok(embeddings) => {
-            let flattened: Vec<f32> = embeddings.into_iter().flatten().collect();
-            unsafe {
-                ptr::copy_nonoverlapping(flattened.as_ptr(), out_buffer, expected);
-            }
-            Status::Ok
+    let embeddings = match run_inference(|| guard.embed(decoded, None)) {
+        Ok(embeddings) => embeddings,
+        Err(error) => {
+            set_error(out_error_message, error.to_string());
+            return Status::InferenceFailed;
         }
+    };
+
+    let output = unsafe { slice::from_raw_parts_mut(out_buffer, expected) };
+    match write_batch_embeddings(output, &embeddings, model.dimensions, text_count) {
+        Ok(()) => Status::Ok,
         Err(error) => {
             set_error(out_error_message, error.to_string());
             Status::InferenceFailed
@@ -310,5 +393,119 @@ pub extern "C" fn pkfe_string_destroy(value: *mut c_char) {
 
     unsafe {
         drop(CString::from_raw(value));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sentinel_buffer(len: usize) -> Vec<f32> {
+        vec![99.0; len]
+    }
+
+    #[test]
+    fn single_writer_rejects_empty_output_without_mutating_buffer() {
+        let mut buffer = sentinel_buffer(4);
+
+        let result = write_single_embedding(&mut buffer, &[], 4);
+
+        assert!(result.is_err());
+        assert_eq!(buffer, sentinel_buffer(4));
+    }
+
+    #[test]
+    fn single_writer_rejects_too_many_embeddings_without_mutating_buffer() {
+        let mut buffer = sentinel_buffer(4);
+        let embeddings = vec![vec![1.0, 2.0, 3.0], vec![4.0, 5.0, 6.0]];
+
+        let result = write_single_embedding(&mut buffer, &embeddings, 3);
+
+        assert!(result.is_err());
+        assert_eq!(buffer, sentinel_buffer(4));
+    }
+
+    #[test]
+    fn single_writer_rejects_short_embedding_without_mutating_buffer() {
+        let mut buffer = sentinel_buffer(4);
+        let embeddings = vec![vec![1.0, 2.0, 3.0]];
+
+        let result = write_single_embedding(&mut buffer, &embeddings, 4);
+
+        assert!(result.is_err());
+        assert_eq!(buffer, sentinel_buffer(4));
+    }
+
+    #[test]
+    fn single_writer_rejects_long_embedding_without_mutating_buffer() {
+        let mut buffer = sentinel_buffer(2);
+        let embeddings = vec![vec![1.0, 2.0, 3.0]];
+
+        let result = write_single_embedding(&mut buffer, &embeddings, 2);
+
+        assert!(result.is_err());
+        assert_eq!(buffer, sentinel_buffer(2));
+    }
+
+    #[test]
+    fn batch_writer_rejects_too_few_embeddings_without_mutating_buffer() {
+        let mut buffer = sentinel_buffer(6);
+        let embeddings = vec![vec![1.0, 2.0, 3.0]];
+
+        let result = write_batch_embeddings(&mut buffer, &embeddings, 3, 2);
+
+        assert!(result.is_err());
+        assert_eq!(buffer, sentinel_buffer(6));
+    }
+
+    #[test]
+    fn batch_writer_rejects_too_many_embeddings_without_mutating_buffer() {
+        let mut buffer = sentinel_buffer(6);
+        let embeddings = vec![
+            vec![1.0, 2.0, 3.0],
+            vec![4.0, 5.0, 6.0],
+            vec![7.0, 8.0, 9.0],
+        ];
+
+        let result = write_batch_embeddings(&mut buffer, &embeddings, 3, 2);
+
+        assert!(result.is_err());
+        assert_eq!(buffer, sentinel_buffer(6));
+    }
+
+    #[test]
+    fn batch_writer_rejects_short_embedding_without_mutating_buffer() {
+        let mut buffer = sentinel_buffer(6);
+        let embeddings = vec![vec![1.0, 2.0], vec![4.0, 5.0, 6.0]];
+
+        let result = write_batch_embeddings(&mut buffer, &embeddings, 3, 2);
+
+        assert!(result.is_err());
+        assert_eq!(buffer, sentinel_buffer(6));
+    }
+
+    #[test]
+    fn batch_writer_rejects_long_embedding_without_mutating_buffer() {
+        let mut buffer = sentinel_buffer(6);
+        let embeddings = vec![vec![1.0, 2.0, 3.0], vec![4.0, 5.0, 6.0, 7.0]];
+
+        let result = write_batch_embeddings(&mut buffer, &embeddings, 3, 2);
+
+        assert!(result.is_err());
+        assert_eq!(buffer, sentinel_buffer(6));
+    }
+
+    #[test]
+    fn batch_output_count_overflow_is_rejected() {
+        assert!(checked_output_count(usize::MAX, 2).is_err());
+    }
+
+    #[test]
+    fn panic_is_contained() {
+        let result = run_inference(|| -> anyhow::Result<()> {
+            std::panic::resume_unwind(Box::new("boom"));
+        });
+
+        assert!(result.is_err());
     }
 }

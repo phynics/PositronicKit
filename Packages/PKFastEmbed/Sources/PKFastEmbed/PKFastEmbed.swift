@@ -12,36 +12,98 @@ public enum PKFastEmbedError: Error, Equatable, Sendable {
 }
 
 public final class MiniLMEmbedder: @unchecked Sendable {
+    package struct NativeAPI {
+        var abiVersion: @Sendable () -> UInt32
+        var modelCreate: @Sendable (
+            String,
+            UnsafeMutablePointer<OpaquePointer?>,
+            UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>
+        ) -> pkfe_status_t
+        var modelDimensions: @Sendable (
+            OpaquePointer,
+            UnsafeMutablePointer<Int>,
+            UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>
+        ) -> pkfe_status_t
+        var modelEmbed: @Sendable (
+            OpaquePointer,
+            UnsafePointer<UInt8>?,
+            Int,
+            UnsafeMutablePointer<Float>?,
+            Int,
+            UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>
+        ) -> pkfe_status_t
+        var modelEmbedBatch: @Sendable (
+            OpaquePointer,
+            UnsafePointer<UnsafePointer<UInt8>?>?,
+            UnsafePointer<Int>?,
+            Int,
+            UnsafeMutablePointer<Float>?,
+            Int,
+            UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>
+        ) -> pkfe_status_t
+        var modelDestroy: @Sendable (OpaquePointer) -> Void
+
+        package static let live = Self(
+            abiVersion: pkfe_abi_version,
+            modelCreate: { modelDirectory, outModel, outErrorMessage in
+                modelDirectory.withCString { cPath in
+                    pkfe_model_create(cPath, outModel, outErrorMessage)
+                }
+            },
+            modelDimensions: pkfe_model_dimensions,
+            modelEmbed: pkfe_model_embed,
+            modelEmbedBatch: pkfe_model_embed_batch,
+            modelDestroy: pkfe_model_destroy
+        )
+    }
+
     private let handle: OpaquePointer
     public let dimensions: Int
+    private let nativeAPI: NativeAPI
 
-    public init(modelDirectory: URL) throws {
-        guard pkfe_abi_version() == PKFASTEMBED_ABI_VERSION else {
+    public convenience init(modelDirectory: URL) throws {
+        try self.init(modelDirectory: modelDirectory, nativeAPI: .live)
+    }
+
+    package init(modelDirectory: URL, nativeAPI: NativeAPI) throws {
+        guard nativeAPI.abiVersion() == PKFASTEMBED_ABI_VERSION else {
             throw PKFastEmbedError.abiMismatch
         }
 
         var rawHandle: OpaquePointer?
+        defer {
+            if let rawHandle {
+                nativeAPI.modelDestroy(rawHandle)
+            }
+        }
+
         try Self.withNativeErrorMessage { errorPointer in
-            let status = pkfe_model_create(modelDirectory.path, &rawHandle, errorPointer)
+            let status = nativeAPI.modelCreate(modelDirectory.path, &rawHandle, errorPointer)
             try Self.throwIfNeeded(status, errorPointer: errorPointer)
         }
 
-        guard let rawHandle else {
+        guard let handle = rawHandle else {
             throw PKFastEmbedError.modelLoadFailed("Native initialization returned no model handle.")
         }
 
-        self.handle = rawHandle
-
         var nativeDimensions: Int = 0
         try Self.withNativeErrorMessage { errorPointer in
-            let status = pkfe_model_dimensions(rawHandle, &nativeDimensions, errorPointer)
+            let status = nativeAPI.modelDimensions(handle, &nativeDimensions, errorPointer)
             try Self.throwIfNeeded(status, errorPointer: errorPointer)
         }
+
+        guard nativeDimensions > 0 else {
+            throw PKFastEmbedError.modelLoadFailed("Native model reported invalid dimensions \(nativeDimensions).")
+        }
+
+        self.nativeAPI = nativeAPI
+        self.handle = handle
         self.dimensions = nativeDimensions
+        rawHandle = nil
     }
 
     deinit {
-        pkfe_model_destroy(handle)
+        nativeAPI.modelDestroy(handle)
     }
 
     public func embed(_ text: String) throws -> [Float] {
@@ -53,7 +115,7 @@ public final class MiniLMEmbedder: @unchecked Sendable {
                     UnsafeRawPointer($0).assumingMemoryBound(to: UInt8.self)
                 }
                 try Self.withNativeErrorMessage { errorPointer in
-                    let status = pkfe_model_embed(
+                    let status = nativeAPI.modelEmbed(
                         handle,
                         pointer,
                         count,
@@ -73,30 +135,22 @@ public final class MiniLMEmbedder: @unchecked Sendable {
             return []
         }
 
-        let utf8Storage: [ContiguousArray<CChar>] = texts.map(\.utf8CString)
-        var utf8Pointers: [UnsafePointer<UInt8>?] = utf8Storage.map { buffer in
-            buffer.withUnsafeBufferPointer { rawBuffer in
-                rawBuffer.baseAddress.map { UnsafeRawPointer($0).assumingMemoryBound(to: UInt8.self) }
-            }
-        }
-        let lengths = utf8Storage.map { max($0.count - 1, 0) }
-        var output = Array(repeating: Float.zero, count: texts.count * dimensions)
+        let outputCount = try Self.checkedOutputCount(textCount: texts.count, dimensions: dimensions)
+        var output = Array(repeating: Float.zero, count: outputCount)
 
-        try output.withUnsafeMutableBufferPointer { outputBuffer in
-            try utf8Pointers.withUnsafeMutableBufferPointer { pointerBuffer in
-                try lengths.withUnsafeBufferPointer { lengthBuffer in
-                    try Self.withNativeErrorMessage { errorPointer in
-                        let status = pkfe_model_embed_batch(
-                            handle,
-                            pointerBuffer.baseAddress,
-                            lengthBuffer.baseAddress,
-                            pointerBuffer.count,
-                            outputBuffer.baseAddress,
-                            outputBuffer.count,
-                            errorPointer
-                        )
-                        try Self.throwIfNeeded(status, errorPointer: errorPointer)
-                    }
+        try Self.withBatchUTF8Storage(for: texts) { utf8Pointers, lengths in
+            try output.withUnsafeMutableBufferPointer { outputBuffer in
+                try Self.withNativeErrorMessage { errorPointer in
+                    let status = nativeAPI.modelEmbedBatch(
+                        handle,
+                        utf8Pointers,
+                        lengths,
+                        texts.count,
+                        outputBuffer.baseAddress,
+                        outputBuffer.count,
+                        errorPointer
+                    )
+                    try Self.throwIfNeeded(status, errorPointer: errorPointer)
                 }
             }
         }
@@ -116,6 +170,53 @@ public final class MiniLMEmbedder: @unchecked Sendable {
             }
         }
         return try operation(&errorPointer)
+    }
+
+    private static func checkedOutputCount(textCount: Int, dimensions: Int) throws -> Int {
+        let (count, overflow) = textCount.multipliedReportingOverflow(by: dimensions)
+        guard !overflow else {
+            throw PKFastEmbedError.invalidArgument("Batch output size overflowed the available integer range.")
+        }
+        return count
+    }
+
+    private static func withBatchUTF8Storage<T>(
+        for texts: [String],
+        _ body: (_ utf8Pointers: UnsafePointer<UnsafePointer<UInt8>?>?, _ lengths: UnsafePointer<Int>?) throws -> T
+    ) throws -> T {
+        let totalBytes = try texts.reduce(into: 0) { result, text in
+            let (next, overflow) = result.addingReportingOverflow(text.utf8.count)
+            guard !overflow else {
+                throw PKFastEmbedError.invalidArgument("Batch UTF-8 input size overflowed the available integer range.")
+            }
+            result = next
+        }
+
+        return try withUnsafeTemporaryAllocation(of: UInt8.self, capacity: max(totalBytes, 1)) { byteStorage in
+            var utf8Pointers: [UnsafePointer<UInt8>?] = Array(repeating: nil, count: texts.count)
+            var lengths: [Int] = Array(repeating: 0, count: texts.count)
+            var byteOffset = 0
+
+            for (index, text) in texts.enumerated() {
+                let bytes = Array(text.utf8)
+                lengths[index] = bytes.count
+
+                guard !bytes.isEmpty else {
+                    continue
+                }
+
+                let destination = byteStorage.baseAddress!.advanced(by: byteOffset)
+                destination.initialize(from: bytes, count: bytes.count)
+                utf8Pointers[index] = UnsafePointer(destination)
+                byteOffset += bytes.count
+            }
+
+            return try utf8Pointers.withUnsafeBufferPointer { utf8Buffer in
+                try lengths.withUnsafeBufferPointer { lengthBuffer in
+                    try body(utf8Buffer.baseAddress, lengthBuffer.baseAddress)
+                }
+            }
+        }
     }
 
     private static func throwIfNeeded(
