@@ -1,10 +1,10 @@
-# PositronicKitCore Architecture
+# PositronicKit Architecture
 
-PositronicKitCore is built on a modular, asynchronous processing architecture designed for scalability, thread safety, and clear separation of concerns.
+PositronicKit is built on a modular, asynchronous processing architecture designed for scalability, thread safety, and clear separation of concerns.
 
 ## 1. The Pipeline Pattern
 
-The core processing logic in PositronicKitCore follows a generic **Pipeline** pattern. This allows for complex workflows (like a chat turn) to be broken down into discrete, reusable stages.
+The core processing logic in PositronicKit follows a generic **Pipeline** pattern. This allows for complex workflows (like a chat turn) to be broken down into discrete, reusable stages.
 
 ### PipelineStage Protocol
 A stage is any type that conforms to the `PipelineStage` protocol:
@@ -26,7 +26,7 @@ The `Pipeline` class orchestrates the execution of these stages:
 
 ## 2. Context & State Management
 
-PositronicKitCore uses a dual-structure approach to state management during a pipeline execution.
+PositronicKit uses a dual-structure approach to state management during a pipeline execution.
 
 ### ChatTurnContext (Immutable Snapshot)
 The `ChatTurnContext` is a thread-safe, immutable struct that represents the state of a chat turn at a specific point in time. It contains:
@@ -41,9 +41,9 @@ Because multiple stages might need to update the results of a turn concurrently 
 
 ## 3. Facade-Backed Wiring
 
-PositronicKitCore composes its runtime graph through explicit facade initializers.
+PositronicKit composes its runtime graph through explicit facade initializers.
 
-- **Explicit services**: Callers pass concrete LLM, storage, workspace, and runtime services into `PositronicKitCore`.
+- **Explicit services**: Callers pass concrete LLM, storage, workspace, and runtime services into `PositronicKit`.
 - **Narrow boundaries**: The runtime depends on focused store and protocol seams instead of a shared dependency container.
 - **Testability**: Tests can inject doubles directly through the same public initializers that production code uses.
 

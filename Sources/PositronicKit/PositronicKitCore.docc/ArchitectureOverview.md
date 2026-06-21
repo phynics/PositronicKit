@@ -1,10 +1,10 @@
 # Architecture Overview
 
-Deep dive into the current PositronicKitCore runtime design.
+Deep dive into the current PositronicKit runtime design.
 
 ## Modularity
 
-PositronicKitCore keeps transport-neutral runtime orchestration in `PositronicKit`, shared contracts in `PKShared`, and prompt composition/rendering in `PKPrompt`.
+PositronicKit keeps transport-neutral runtime orchestration in `PositronicKit`, shared contracts in `PKShared`, and prompt composition/rendering in `PKPrompt`.
 
 ## Facade-Backed Wiring
 
@@ -13,7 +13,7 @@ The runtime is assembled through explicit facade initializers so orchestration s
 ### Example Usage
 
 ```swift
-let chat = PositronicKitCore(llmService: myLLM)
+let chat = PositronicKit(llmService: myLLM)
 ```
 
 ## Data Flow

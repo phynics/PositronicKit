@@ -11,7 +11,7 @@ import Testing
     @Test("OpenAI convenience initialization configures a registered OpenAI client")
     func openAIConvenienceInitialization() async throws {
         let apiKey = "sk-test-key"
-        let chat = PositronicKitCore(openAIKey: apiKey, model: "gpt-4o-mini")
+        let chat = PositronicKit(openAIKey: apiKey, model: "gpt-4o-mini")
 
         let config = await chat.llmService.configuration
         #expect(config.provider == .openAI)
@@ -62,7 +62,7 @@ import Testing
 
     @Test("OpenRouter convenience initialization configures a registered OpenRouter client")
     func openRouterConvenienceInitialization() async throws {
-        let chat = PositronicKitCore(
+        let chat = PositronicKit(
             openRouterKey: "or-test-key",
             model: "openai/gpt-4.1-mini",
             endpoint: "https://openrouter.ai/api"
@@ -85,7 +85,7 @@ import Testing
     @Test("Ollama convenience initialization configures a registered Ollama client")
     func ollamaInitialization() async throws {
         let model = "llama3"
-        let chat = PositronicKitCore(ollamaModel: model)
+        let chat = PositronicKit(ollamaModel: model)
 
         let config = await chat.llmService.configuration
         #expect(config.provider == .ollama)
@@ -103,15 +103,15 @@ import Testing
     @Test("Custom Ollama endpoint")
     func customOllamaEndpoint() async {
         let endpoint = "http://192.168.1.100:11434"
-        let chat = PositronicKitCore(ollamaModel: "mistral", endpoint: endpoint)
+        let chat = PositronicKit(ollamaModel: "mistral", endpoint: endpoint)
 
         let config = await chat.llmService.configuration
         #expect(config.endpoint == endpoint)
     }
 
-    @Test("PositronicKitCore default initialization")
+    @Test("PositronicKit default initialization")
     func defaultInitialization() async {
-        let chat = PositronicKitCore()
+        let chat = PositronicKit()
         let isConfigured = await chat.llmService.isConfigured
         #expect(!isConfigured, "Default init should not be configured")
     }
@@ -127,7 +127,7 @@ import Testing
 
         let timeline = try await timelineManager.createTimeline(title: "Unconfigured")
 
-        let persistence = PositronicKitCore.PersistenceConfiguration(
+        let persistence = PositronicKit.PersistenceConfiguration(
             messageStore: mockPersistence,
             timelinePersistence: mockPersistence,
             workspacePersistence: mockPersistence,
@@ -137,7 +137,7 @@ import Testing
             requestOriginStore: mockPersistence
         )
 
-        let chat = PositronicKitCore(
+        let chat = PositronicKit(
             llmService: UnconfiguredLLMService(),
             persistence: persistence,
             runtime: .init(timelineManager: timelineManager)

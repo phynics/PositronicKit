@@ -2,7 +2,7 @@ import Foundation
 import PKPrompt
 import PKShared
 
-/// The public facade for PositronicKitCore's agent runtime subsystem.
+/// The public facade for PositronicKit's agent runtime subsystem.
 ///
 /// Accepts all required services as init parameters and wires them internally,
 /// so consumers never need to assemble a shared dependency container.
@@ -21,9 +21,9 @@ import PKShared
 /// even when they are visible to tests inside this package.
 ///
 /// Example usage:
-/// - Minimal: `PositronicKitCore(llmService: myLLM)`
+/// - Minimal: `PositronicKit(llmService: myLLM)`
 /// - Production: use the grouped `persistence:` and `runtime:` initializers.
-public struct PositronicKitCore: Sendable {
+public struct PositronicKit: Sendable {
     // MARK: - Direct ChatEngine dependencies
 
     let llmService: any LLMServiceProtocol
@@ -150,7 +150,7 @@ public struct PositronicKitCore: Sendable {
     /// This remains package-internal on purpose: the documented downstream extension surface is the
     /// facade plus higher-level hooks such as `ChatTurnPlugin` and `PromptSectionProviding`, not
     /// the concrete runtime pipeline topology.
-    func addStage(_ stage: any PipelineStage<ChatTurnContext, ChatEvent>) -> PositronicKitCore {
+    func addStage(_ stage: any PipelineStage<ChatTurnContext, ChatEvent>) -> PositronicKit {
         var copy = self
         copy.chatEngine.additionalStages.append(stage)
         return copy
@@ -159,7 +159,7 @@ public struct PositronicKitCore: Sendable {
     /// Adds a chat turn plugin that runs after each LLM turn.
     /// - Parameter plugin: The plugin to add.
     /// - Returns: A new instance with the plugin added.
-    public func addPlugin(_ plugin: any ChatTurnPlugin) -> PositronicKitCore {
+    public func addPlugin(_ plugin: any ChatTurnPlugin) -> PositronicKit {
         var copy = self
         copy.chatTurnPlugins.append(plugin)
         let existingStages = copy.chatEngine.additionalStages
@@ -238,7 +238,9 @@ public struct PositronicKitCore: Sendable {
 
 // MARK: - PersistenceConfiguration
 
-public extension PositronicKitCore {
+public extension PositronicKit {
+    typealias PromptBuildContext = PositronicKitPromptBuildContext
+
     /// Groups all persistence stores for convenient initialization.
     ///
     /// Use this when your persistence layer provides all stores.
@@ -308,7 +310,7 @@ public extension PositronicKitCore {
         }
     }
 
-    /// Creates a PositronicKitCore with grouped persistence configuration.
+    /// Creates a PositronicKit with grouped persistence configuration.
     ///
     /// - Parameters:
     ///   - llmService: The LLM service to use for generation (required).
@@ -347,7 +349,7 @@ public extension PositronicKitCore {
         )
     }
 
-    /// Creates a PositronicKitCore with grouped persistence and grouped runtime configuration.
+    /// Creates a PositronicKit with grouped persistence and grouped runtime configuration.
     init(
         llmService: any LLMServiceProtocol,
         persistence: PersistenceConfiguration,
@@ -373,3 +375,6 @@ public extension PositronicKitCore {
         )
     }
 }
+
+@available(*, deprecated, renamed: "PositronicKit")
+public typealias PositronicKitCore = PositronicKit

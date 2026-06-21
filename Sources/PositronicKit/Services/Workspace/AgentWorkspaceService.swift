@@ -5,7 +5,7 @@ import PKShared
 ///
 /// Handles workspace CRUD (delegating to `workspacePersistence`) and agent-specific
 /// provisioning: creating sandboxed directories and seeding them from template files.
-/// This is the default local/runtime provisioning service shipped with PositronicKitCore, not a
+/// This is the default local/runtime provisioning service shipped with PositronicKit, not a
 /// universal workspace model that hosts are required to adopt.
 public actor AgentWorkspaceService: AgentWorkspaceServiceProtocol {
     private let persistenceService: any WorkspacePersistenceProtocol

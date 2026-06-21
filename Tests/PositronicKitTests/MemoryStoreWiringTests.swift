@@ -32,7 +32,7 @@ struct MemoryStoreWiringTests {
         #expect(context.memories.contains { $0.memory.id == memory.id })
     }
 
-    @Test("PositronicKitCore wires the injected memory store into timeline context gathering")
+    @Test("PositronicKit wires the injected memory store into timeline context gathering")
     func facadeWiresMemoryStoreIntoRAG() async throws {
         let workspace = TestWorkspace()
         let memoryStore = MockMemoryStore()
@@ -40,7 +40,7 @@ struct MemoryStoreWiringTests {
         let memory = Memory.fixture(title: "Persisted Memory", content: "User prefers dark mode", tags: [])
         memoryStore.searchResults = [(memory, 0.92)]
 
-        let persistence = PositronicKitCore.PersistenceConfiguration(
+        let persistence = PositronicKit.PersistenceConfiguration(
             messageStore: InMemoryMessageStore(),
             timelinePersistence: InMemoryTimelinePersistence(),
             workspacePersistence: InMemoryWorkspacePersistence(),
@@ -49,7 +49,7 @@ struct MemoryStoreWiringTests {
             agentInstanceStore: InMemoryAgentInstanceStore(),
             requestOriginStore: InMemoryRequestOriginStore()
         )
-        let core = PositronicKitCore(
+        let core = PositronicKit(
             llmService: UnconfiguredLLMService(),
             persistence: persistence,
             embeddingService: embedding,

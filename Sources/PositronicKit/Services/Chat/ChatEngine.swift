@@ -9,7 +9,7 @@ import PKShared
 /// `ChatEngine` owns the internal turn loop policy for the runtime: session preparation, prompt
 /// assembly handoff, per-turn stage execution, runtime-managed tool continuation, and post-turn
 /// plugin follow-up. It is deliberately *not* the public customization surface for downstream
-/// applications; external callers are expected to integrate through `PositronicKitCore` and the
+/// applications; external callers are expected to integrate through `PositronicKit` and the
 /// higher-level extension protocols rather than depending on this concrete orchestrator directly.
 struct ChatEngine: Sendable {
     struct Dependencies: Sendable {

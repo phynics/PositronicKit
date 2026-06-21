@@ -120,7 +120,7 @@ import Testing
         workspaceCreator: any WorkspaceCreating = MockWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = [],
         includeDefaultToolWorkspace: Bool = true
-    ) async throws -> (PositronicKitCore, MockLLMService, MockPersistenceService, UUID, TestWorkspace, TimelineManager) {
+    ) async throws -> (PositronicKit, MockLLMService, MockPersistenceService, UUID, TestWorkspace, TimelineManager) {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
         let workspace = TestWorkspace()
@@ -152,7 +152,7 @@ import Testing
             try await timelineManager.attachWorkspace(workspaceId, to: timeline.id)
         }
 
-        let chat = PositronicKitCore(
+        let chat = PositronicKit(
             llmService: mockLLM,
             persistence: .init(
                 messageStore: mockPersistence,

@@ -16,6 +16,8 @@ public struct PromptBuildContext: Sendable {
     }
 }
 
+public typealias PositronicKitPromptBuildContext = PromptBuildContext
+
 // MARK: - PromptSectionProviding
 
 /// Implement to inject `Prompt`(s) into every chat prompt for a timeline.

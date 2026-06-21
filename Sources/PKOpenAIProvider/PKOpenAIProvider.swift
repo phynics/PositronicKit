@@ -30,7 +30,7 @@ public enum PKOpenAIProvider {
     }
 }
 
-public extension PositronicKitCore {
+public extension PositronicKit {
     init(
         openAIKey: String,
         model: String = "gpt-4o",

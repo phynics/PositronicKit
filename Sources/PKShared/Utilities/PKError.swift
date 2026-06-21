@@ -1,7 +1,7 @@
 import ErrorKit
 import Foundation
 
-/// A standardized error protocol for PositronicKitCore that extends ErrorKit.Throwable.
+/// A standardized error protocol for PositronicKit that extends ErrorKit.Throwable.
 /// Provides machine-readable identifiers (domain and code) for consistent error handling.
 public protocol PKError: Throwable {
     /// The error domain identifying the module where the error originated.
@@ -18,7 +18,7 @@ public extension PKError {
     }
 }
 
-/// Common error domains for PositronicKitCore modules.
+/// Common error domains for PositronicKit modules.
 public enum PKErrorDomain {
     public static let shared = "com.positronickit.shared"
     public static let prompt = "com.positronickit.core.prompt"

@@ -1,10 +1,10 @@
-# PositronicKitCore Setup Guide
+# PositronicKit Setup Guide
 
-This guide describes how to configure and use PositronicKitCore in your application.
+This guide describes how to configure and use PositronicKit in your application.
 
 ## 1. Facade Configuration
 
-`PositronicKitCore` is configured through its initializers. The runtime composes its internal graph from explicit services and stores, so callers do not rely on a shared dependency container.
+`PositronicKit` is configured through its initializers. The runtime composes its internal graph from explicit services and stores, so callers do not rely on a shared dependency container.
 
 ### Required Services
 The only required service is:
@@ -19,7 +19,7 @@ Use the simplified facade initializer for prototyping or test harnesses:
 ```swift
 import PositronicKit
 
-let chat = PositronicKitCore(
+let chat = PositronicKit(
     llmService: MyLLMServiceLive()
 )
 ```
@@ -32,7 +32,7 @@ When you have a real persistence layer, prefer the grouped persistence initializ
 import PositronicKit
 import PKShared
 
-let chat = PositronicKitCore(
+let chat = PositronicKit(
     llmService: MyLLMServiceLive(),
     persistence: .init(
         messageStore: MyMessageStoreLive(),
@@ -133,4 +133,4 @@ for try await event in stream {
 
 - **Immutability**: Always treat the `Context` object as immutable. If you need to accumulate state during a pipeline run, use an `actor` for thread-safe mutations.
 - **Error Handling**: Implement custom errors that conform to `PKError`, use stable `PKErrorDomain`/`errorCode` values, and prefer `ErrorKit.userFriendlyMessage(for:)` when surfacing nested failures.
-- **Testing**: Prefer exercising `PositronicKitCore` through its public initializers with injected doubles where possible.
+- **Testing**: Prefer exercising `PositronicKit` through its public initializers with injected doubles where possible.

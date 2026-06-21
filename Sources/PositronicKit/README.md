@@ -1,6 +1,6 @@
-# PositronicKitCore
+# PositronicKit
 
-PositronicKitCore is the transport-neutral runtime facade for PositronicKit. It orchestrates chat turns, prompt assembly, tool routing, timelines, workspaces, and persistence through explicit initializer injection rather than a shared dependency container.
+PositronicKit is the transport-neutral runtime facade for PositronicKit. It orchestrates chat turns, prompt assembly, tool routing, timelines, workspaces, and persistence through explicit initializer injection rather than a shared dependency container.
 
 ## Documentation
 
@@ -10,7 +10,7 @@ PositronicKitCore is the transport-neutral runtime facade for PositronicKit. It 
 
 ## Logging
 
-PositronicKitCore uses `swift-log` for runtime diagnostics.
+PositronicKit uses `swift-log` for runtime diagnostics.
 
 - The library does not bootstrap logging globally.
 - Hosts should call `LoggingSystem.bootstrap(...)` themselves when they want output.
@@ -26,7 +26,7 @@ let options = PromptAssemblyOptions(logger: logger)
 
 ## Key Components
 
-### PositronicKitCore (Runtime Facade)
+### PositronicKit (Runtime Facade)
 The public interface boundary for the runtime. It accepts required services as init parameters and wires them internally, so downstream applications use a normal Swift API instead of configuring a shared dependency registry around `ChatEngine`.
 
 ### AgentInstance
@@ -37,17 +37,17 @@ Handles the lifecycle of `AgentInstance` entities, including creation from templ
 
 ## Getting Started
 
-To get started with PositronicKitCore, refer to the [Usage Guide](docs/Usage.md).
+To get started with PositronicKit, refer to the [Usage Guide](docs/Usage.md).
 
 ```swift
 import PositronicKit
 import PKShared
 
 // Minimal — all stores default to in-memory:
-let chat = PositronicKitCore(llmService: myLLM)
+let chat = PositronicKit(llmService: myLLM)
 
 // Production — grouped persistence and grouped runtime wiring:
-let chat = PositronicKitCore(
+let chat = PositronicKit(
     llmService: myLLM,
     persistence: .init(
         messageStore: myMessageStore,

@@ -121,7 +121,7 @@ struct CompactionThresholds: Sendable {
 
 // MARK: - TimelinePromptHistory
 
-/// Runtime-only prompt diff/cache bookkeeping used by `PositronicKitCore` across turns.
+/// Runtime-only prompt diff/cache bookkeeping used by `PositronicKit` across turns.
 ///
 /// This actor is intentionally separate from `PKPrompt.PromptJournal`.
 ///

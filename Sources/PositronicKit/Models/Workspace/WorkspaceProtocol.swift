@@ -4,7 +4,7 @@ import PKShared
 
 /// Defines the host-owned execution and storage boundary for a workspace.
 ///
-/// `PositronicKitCore` depends on this protocol but does not prescribe how a workspace is backed.
+/// `PositronicKit` depends on this protocol but does not prescribe how a workspace is backed.
 /// Local filesystem workspaces, remote execution environments, or app-specific attachment models
 /// all belong on the host side behind this abstraction.
 public protocol WorkspaceProtocol: Sendable {

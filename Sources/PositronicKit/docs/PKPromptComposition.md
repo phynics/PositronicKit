@@ -62,7 +62,7 @@ This separation keeps the builder API ergonomic while preserving stable prompt s
 There are two related but different concepts in the codebase:
 
 - **`PromptJournal`** is the public prompt-layer API you should use when you want to observe prompt snapshots, reason about base/overlay/volatile sections, and decide when an accepted overlay should become the new baseline.
-- **`TimelinePromptHistory`** is runtime-side bookkeeping used by `PositronicKitCore` to track prompt diffs, stable-prefix reuse, and append-pressure compaction across turns.
+- **`TimelinePromptHistory`** is runtime-side bookkeeping used by `PositronicKit` to track prompt diffs, stable-prefix reuse, and append-pressure compaction across turns.
 
 ### When to use `PromptJournal`
 
@@ -82,10 +82,10 @@ In that role, `PromptJournal` is the recommended public abstraction.
 - track changed / added / removed prompt entries between turns
 - compact append state when message-count or token thresholds are exceeded
 
-If you are adopting `PositronicKitCore`, you usually do not need to instantiate or manage `TimelinePromptHistory` directly. It is runtime machinery, not the primary prompt-facing journaling surface.
+If you are adopting `PositronicKit`, you usually do not need to instantiate or manage `TimelinePromptHistory` directly. It is runtime machinery, not the primary prompt-facing journaling surface.
 
 ### Canonical recommendation
 
 - For **prompt journaling use cases**, prefer `PromptJournal`.
-- For **runtime diff/cache behavior**, let `PositronicKitCore` manage `TimelinePromptHistory` internally.
+- For **runtime diff/cache behavior**, let `PositronicKit` manage `TimelinePromptHistory` internally.
 - If you need both, treat `PromptJournal` as the user-facing API and `TimelinePromptHistory` as runtime implementation support.

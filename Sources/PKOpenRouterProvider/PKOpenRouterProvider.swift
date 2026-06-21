@@ -18,7 +18,7 @@ public enum PKOpenRouterProvider {
     }
 }
 
-public extension PositronicKitCore {
+public extension PositronicKit {
     init(
         openRouterKey: String,
         model: String = "openai/gpt-4o",

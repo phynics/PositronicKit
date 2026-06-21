@@ -91,9 +91,9 @@ struct IntroductoryStoriesTests {
         ]]
         mockLLM.mockClient.nextResponses = ["", "I greeted Taylor successfully."]
 
-        let runtime = PositronicKitCore(
+        let runtime = PositronicKit(
             llmService: mockLLM,
-            persistence: PositronicKitCore.PersistenceConfiguration(
+            persistence: PositronicKit.PersistenceConfiguration(
                 messageStore: persistence,
                 timelinePersistence: persistence,
                 workspacePersistence: persistence,

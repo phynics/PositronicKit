@@ -1,6 +1,6 @@
-# PositronicKitCore Usage Guide
+# PositronicKit Usage Guide
 
-This guide provides step-by-step examples for integrating `PositronicKitCore` and managing `AgentInstance` within your application.
+This guide provides step-by-step examples for integrating `PositronicKit` and managing `AgentInstance` within your application.
 
 ## 1. Managing Agent Instances
 
@@ -47,10 +47,10 @@ import PKOpenAIProvider
 import PKOllamaProvider
 
 // For OpenAI
-let chat = PositronicKitCore(openAIKey: "sk-...")
+let chat = PositronicKit(openAIKey: "sk-...")
 
 // For Ollama
-let chat = PositronicKitCore(ollamaModel: "llama3")
+let chat = PositronicKit(ollamaModel: "llama3")
 ```
 
 This provider-backed path keeps the convenience initializer in the matching provider module while the core facade stays provider-neutral.
@@ -63,7 +63,7 @@ For production, you should provide persistent stores through the grouped `persis
 import PositronicKit
 import PKShared
 
-let chat = PositronicKitCore(
+let chat = PositronicKit(
     llmService: myLLM,
     persistence: .init(
         messageStore: myMessageStore,
@@ -90,7 +90,7 @@ The `run` method returns an `AsyncThrowingStream<ChatEvent, Error>`. This allows
 import PositronicKit
 import PKShared
 
-let chat = PositronicKitCore(
+let chat = PositronicKit(
     llmService: myLLM,
     persistence: .init(
         messageStore: myMessageStore,

@@ -9,7 +9,7 @@ import PositronicKit
     /// `TestRuntime` replaces the former ambient dependency-injection machinery with plain
     /// constructor injection: every store, manager, and service is wired
     /// from a single `MockPersistenceService` so a test can rely on one coherent, shared
-    /// persistence backing across the timeline manager, tool router, and `PositronicKitCore`.
+    /// persistence backing across the timeline manager, tool router, and `PositronicKit`.
     ///
     /// Construct one per test with a unique `workspaceRoot`, then read its fields directly or
     /// call `buildCore()` for a fully-wired facade.
@@ -86,9 +86,9 @@ import PositronicKit
             )
         }
 
-        /// Builds a `PositronicKitCore` facade wired to this runtime's stores, managers, and services.
-        public func buildCore() -> PositronicKitCore {
-            PositronicKitCore(
+        /// Builds a `PositronicKit` facade wired to this runtime's stores, managers, and services.
+        public func buildCore() -> PositronicKit {
+            PositronicKit(
                 llmService: llm,
                 persistence: .init(
                     messageStore: persistence,

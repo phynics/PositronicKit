@@ -50,7 +50,7 @@ import PKLocalEmbeddings // optional local embeddings facade
 import PKOpenAIProvider // optional concrete provider for OpenAI convenience APIs
 ```
 
-If you want the convenience runtime initializers like `PositronicKitCore(openAIKey:)` or `PositronicKitCore(ollamaModel:)`, import the matching provider target. Those initializers do not live in the core `PositronicKit` module.
+If you want the convenience runtime initializers like `PositronicKit(openAIKey:)` or `PositronicKit(ollamaModel:)`, import the matching provider target. Those initializers do not live in the core `PositronicKit` module.
 
 If you use `LocalEmbeddingService`, import `PKLocalEmbeddings` alongside `PositronicKit`. On Apple, `LocalEmbeddingService()` uses Natural Language by default. The opt-in Apple MiniLM path is built with the `MiniLMEmbeddings` trait:
 
@@ -103,7 +103,7 @@ Use **PKOpenAIProvider**, **PKOpenRouterProvider**, or **PKOllamaProvider** when
 If you are starting fresh, pick the smallest surface that matches your need:
 
 - **Use `PKPrompt` only** when you just need prompt composition, rendering, journaling, or token-budget-aware prompt assembly without timelines, tools, or runtime orchestration.
-- **Use `PositronicKitCore`** when you want the transport-neutral runtime facade: chat turns, timelines, prompt assembly, tool routing, persistence hooks, and streamed `ChatEvent` handling.
+- **Use `PositronicKit`** when you want the transport-neutral runtime facade: chat turns, timelines, prompt assembly, tool routing, persistence hooks, and streamed `ChatEvent` handling.
 - **Use provider packages** (`PKOpenAIProvider`, `PKOpenRouterProvider`, `PKOllamaProvider`) when you want convenience initializers or concrete provider registration without embedding those adapters into your own runtime layer.
 - **Use custom workspaces** when your host app owns filesystem, remote execution, or attachment behavior. Implement `WorkspaceCreating` / `WorkspaceProtocol`, then inject that boundary into the runtime instead of forking core orchestration.
 - **Use structured output APIs** when your main need is schema-driven responses and typed decoding on top of the shared provider contracts, whether or not you adopt the full runtime facade.
@@ -111,10 +111,10 @@ If you are starting fresh, pick the smallest surface that matches your need:
 Common adoption paths:
 
 - **Prompt experimentation / prompt tooling** → start with `PKPrompt`.
-- **Single-process app or CLI agent runtime** → start with `PositronicKitCore`.
+- **Single-process app or CLI agent runtime** → start with `PositronicKit`.
 - **Runtime + OpenAI/OpenRouter/Ollama convenience setup** → add the matching provider package.
 - **Local embedding service** → add `PKLocalEmbeddings` alongside `PositronicKit`.
-- **Host-owned execution environment** → start with `PositronicKitCore` plus your own workspace implementation.
+- **Host-owned execution environment** → start with `PositronicKit` plus your own workspace implementation.
 - **Typed JSON / schema-first integrations** → use `PKShared` structured output types, optionally with the runtime later.
 
 ## Local Embeddings
@@ -232,7 +232,7 @@ Provider targets also expose convenience APIs where appropriate, for example:
 ```swift
 import PKOpenAIProvider
 
-let core = PositronicKitCore(openAIKey: "sk-...")
+let core = PositronicKit(openAIKey: "sk-...")
 ```
 
 Or, if you want to stay provider-neutral in the core runtime surface, register a provider explicitly and construct `LLMService` from configuration:
@@ -243,7 +243,7 @@ import PKOpenAIProvider
 
 PKOpenAIProvider.register()
 
-let core = PositronicKitCore(
+let core = PositronicKit(
     llmService: LLMService(configuration: .init(
         apiKey: ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? "",
         provider: .openAI

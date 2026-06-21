@@ -6,19 +6,19 @@ import PositronicKit
 import PKShared
 
 public enum PositronicKitUsageExamples {
-    public static func makePrototypeRuntime() -> PositronicKitCore {
-        PositronicKitCore(llmService: UnconfiguredLLMService())
+    public static func makePrototypeRuntime() -> PositronicKit {
+        PositronicKit(llmService: UnconfiguredLLMService())
     }
 
-    public static func makeOpenAIRuntime(apiKey: String = "sk-example") -> PositronicKitCore {
-        PositronicKitCore(openAIKey: apiKey)
+    public static func makeOpenAIRuntime(apiKey: String = "sk-example") -> PositronicKit {
+        PositronicKit(openAIKey: apiKey)
     }
 
-    public static func makeOllamaRuntime(model: String = "llama3") -> PositronicKitCore {
-        PositronicKitCore(ollamaModel: model)
+    public static func makeOllamaRuntime(model: String = "llama3") -> PositronicKit {
+        PositronicKit(ollamaModel: model)
     }
 
-    public static func makeConfiguredRuntime() -> PositronicKitCore {
+    public static func makeConfiguredRuntime() -> PositronicKit {
         let workspaceRoot = FileManager.default.temporaryDirectory
             .appendingPathComponent("positronickit-examples", isDirectory: true)
         let stores = TimelineManager.Stores(
@@ -31,7 +31,7 @@ public enum PositronicKitUsageExamples {
             stores: stores,
             workspaceRoot: workspaceRoot
         )
-        let runtime = PositronicKitCore.RuntimeConfiguration(
+        let runtime = PositronicKit.RuntimeConfiguration(
             timelineManager: timelineManager,
             toolRouter: ToolRouter(
                 timelineManager: timelineManager,
@@ -40,7 +40,7 @@ public enum PositronicKitUsageExamples {
             workspaceRoot: workspaceRoot
         )
 
-        return PositronicKitCore(
+        return PositronicKit(
             llmService: UnconfiguredLLMService(),
             persistence: .inMemory(),
             embeddingService: NoOpEmbeddingService(),
@@ -48,9 +48,9 @@ public enum PositronicKitUsageExamples {
         )
     }
 
-    public static func makeConfiguredOpenAIRuntime(apiKey: String = "sk-example") -> PositronicKitCore {
+    public static func makeConfiguredOpenAIRuntime(apiKey: String = "sk-example") -> PositronicKit {
         PKOpenAIProvider.register()
-        return PositronicKitCore(
+        return PositronicKit(
             llmService: LLMService(configuration: .init(
                 apiKey: apiKey,
                 provider: .openAI
@@ -58,7 +58,7 @@ public enum PositronicKitUsageExamples {
         )
     }
 
-    public static func makeProductionRuntime() -> PositronicKitCore {
+    public static func makeProductionRuntime() -> PositronicKit {
         let workspaceRoot = FileManager.default.temporaryDirectory
             .appendingPathComponent("positronickit-examples-production", isDirectory: true)
         let stores = TimelineManager.Stores(
@@ -71,7 +71,7 @@ public enum PositronicKitUsageExamples {
             stores: stores,
             workspaceRoot: workspaceRoot
         )
-        let runtime = PositronicKitCore.RuntimeConfiguration(
+        let runtime = PositronicKit.RuntimeConfiguration(
             timelineManager: timelineManager,
             toolRouter: ToolRouter(
                 timelineManager: timelineManager,
@@ -80,7 +80,7 @@ public enum PositronicKitUsageExamples {
             workspaceRoot: workspaceRoot
         )
 
-        return PositronicKitCore(
+        return PositronicKit(
             llmService: UnconfiguredLLMService(),
             persistence: .init(
                 messageStore: InMemoryMessageStore(),

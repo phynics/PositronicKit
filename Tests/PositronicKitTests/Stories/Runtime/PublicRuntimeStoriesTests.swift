@@ -199,7 +199,7 @@ struct PublicRuntimeStoriesTests {
 
         mockLLM.mockClient.nextResponse = "Hello with context"
 
-        let chat = PositronicKitCore(
+        let chat = PositronicKit(
             llmService: mockLLM,
             messageStore: mockPersistence,
             timelineManager: timelineManager,
@@ -236,8 +236,8 @@ struct PublicRuntimeStoriesTests {
     private func makeChat(
         llmService: any LLMServiceProtocol,
         persistence: MockPersistenceService
-    ) -> PositronicKitCore {
-        PositronicKitCore(
+    ) -> PositronicKit {
+        PositronicKit(
             llmService: llmService,
             persistence: .init(
                 messageStore: persistence,
@@ -254,7 +254,7 @@ struct PublicRuntimeStoriesTests {
     private func makeAcceptanceRuntime(
         useGroupedPersistence: Bool = false,
         useGroupedRuntime: Bool = false
-    ) async throws -> (PositronicKitCore, MockLLMService, MockPersistenceService, UUID, TestWorkspace) {
+    ) async throws -> (PositronicKit, MockLLMService, MockPersistenceService, UUID, TestWorkspace) {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
         let workspace = TestWorkspace()
@@ -282,9 +282,9 @@ struct PublicRuntimeStoriesTests {
         try await timelineManager.attachWorkspace(workspaceId, to: timeline.id)
         try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("mock_tool"))
 
-        let chat: PositronicKitCore
+        let chat: PositronicKit
         if useGroupedPersistence {
-            let persistence = PositronicKitCore.PersistenceConfiguration(
+            let persistence = PositronicKit.PersistenceConfiguration(
                 messageStore: mockPersistence,
                 timelinePersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
@@ -295,7 +295,7 @@ struct PublicRuntimeStoriesTests {
             )
 
             if useGroupedRuntime {
-                chat = PositronicKitCore(
+                chat = PositronicKit(
                     llmService: mockLLM,
                     persistence: persistence,
                     runtime: .init(
@@ -307,7 +307,7 @@ struct PublicRuntimeStoriesTests {
                     )
                 )
             } else {
-                chat = PositronicKitCore(
+                chat = PositronicKit(
                     llmService: mockLLM,
                     persistence: persistence,
                     timelineManager: timelineManager,
@@ -318,7 +318,7 @@ struct PublicRuntimeStoriesTests {
                 )
             }
         } else {
-            chat = PositronicKitCore(
+            chat = PositronicKit(
                 llmService: mockLLM,
                 messageStore: mockPersistence,
                 timelineManager: timelineManager,
