@@ -1,8 +1,7 @@
-import Dependencies
 import Foundation
-@testable import PositronicKit
 @testable import PKShared
 import PKTestSupport
+@testable import PositronicKit
 import Testing
 
 @Suite(.serialized) struct ToolRouterConcurrencyTests {
@@ -10,13 +9,16 @@ import Testing
         let persistence = MockPersistenceService()
         let workspace = TestWorkspace()
 
-        let router = ToolRouter()
-        let manager = try await TestDependencies()
-            .withMocks(persistence: persistence)
-            .withTimelineManager(workspaceRoot: workspace.root)
-            .run {
-                TimelineManager(workspaceRoot: workspace.root)
-            }
+        let manager = TimelineManager(
+            stores: .init(
+                timelineStore: persistence,
+                messageStore: persistence,
+                workspaceStore: persistence,
+                toolPersistence: persistence
+            ),
+            workspaceRoot: workspace.root
+        )
+        let router = ToolRouter(timelineManager: manager, messageStore: persistence)
         return (router, manager, persistence)
     }
 
@@ -24,12 +26,7 @@ import Testing
     func concurrentExecute_unknownTool_allThrow() async throws {
         let (router, manager, _) = try await makeSetup()
 
-        let timelineId = try await TestDependencies()
-            .withMocks()
-            .with { $0.timelineManager = manager }
-            .run {
-                try await manager.createTimeline().id
-            }
+        let timelineId = try await manager.createTimeline().id
 
         let tool = ToolReference.known(id: "nonexistent")
         let concurrency = 4
@@ -38,11 +35,7 @@ import Testing
             for _ in 0 ..< concurrency {
                 group.addTask {
                     do {
-                        _ = try await withDependencies {
-                            $0.timelineManager = manager
-                        } operation: {
-                            try await router.execute(tool: tool, arguments: [:], timelineId: timelineId)
-                        }
+                        _ = try await router.execute(tool: tool, arguments: [:], timelineId: timelineId)
                         return nil
                     } catch {
                         return error
@@ -65,16 +58,12 @@ import Testing
 
     @Test("ToolRouter.execute for disconnected session throws toolNotFound or workspaceNotFound")
     func execute_unknownSession_throws() async throws {
-        let (router, manager, _) = try await makeSetup()
+        let (router, _, _) = try await makeSetup()
         let unknownSessionId = UUID()
         let tool = ToolReference.known(id: "some-tool")
 
         do {
-            _ = try await withDependencies {
-                $0.timelineManager = manager
-            } operation: {
-                try await router.execute(tool: tool, arguments: [:], timelineId: unknownSessionId)
-            }
+            _ = try await router.execute(tool: tool, arguments: [:], timelineId: unknownSessionId)
             Issue.record("Expected error to be thrown")
         } catch {
             // Any ToolError is acceptable (toolNotFound, workspaceNotFound)

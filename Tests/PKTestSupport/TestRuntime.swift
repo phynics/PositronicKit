@@ -1,0 +1,112 @@
+import Foundation
+import PKShared
+import PositronicKit
+
+#if DEBUG
+
+    /// Explicit test composition root for PositronicKit runtime tests.
+    ///
+    /// `TestRuntime` replaces the former ambient dependency-injection machinery with plain
+    /// constructor injection: every store, manager, and service is wired
+    /// from a single `MockPersistenceService` so a test can rely on one coherent, shared
+    /// persistence backing across the timeline manager, tool router, and `PositronicKitCore`.
+    ///
+    /// Construct one per test with a unique `workspaceRoot`, then read its fields directly or
+    /// call `buildCore()` for a fully-wired facade.
+    public struct TestRuntime: Sendable {
+        public let persistence: MockPersistenceService
+        public let llm: MockLLMService
+        public let embedding: MockEmbeddingService
+
+        public let timelineManager: TimelineManager
+        public let toolRouter: ToolRouter
+
+        public let agentWorkspaceService: AgentWorkspaceService
+        public let agentInstanceManager: AgentInstanceManager
+        public let workspaceManager: WorkspaceManager
+
+        /// Creates a fully-wired runtime. All collaborators default to values built from the
+        /// supplied `persistence`, so the whole graph shares one backing store.
+        ///
+        /// - Parameters:
+        ///   - workspaceRoot: Unique root directory for this runtime's workspaces.
+        ///   - persistence: Backing store shared by every collaborator. Defaults to a fresh mock.
+        ///   - llm: Mock LLM service. Defaults to a fresh mock.
+        ///   - embedding: Mock embedding service. Defaults to a fresh mock.
+        ///   - workspaceCreator: Workspace factory for the timeline manager. Defaults to `MockWorkspaceCreator`.
+        ///   - timelineManager: Prepared timeline manager. Auto-constructed from `persistence` when nil.
+        ///   - toolRouter: Prepared tool router. Auto-constructed from the timeline manager when nil.
+        public init(
+            workspaceRoot: URL,
+            persistence: MockPersistenceService = MockPersistenceService(),
+            llm: MockLLMService = MockLLMService(),
+            embedding: MockEmbeddingService = MockEmbeddingService(),
+            workspaceCreator: any WorkspaceCreating = MockWorkspaceCreator(),
+            timelineManager: TimelineManager? = nil,
+            toolRouter: ToolRouter? = nil
+        ) {
+            self.persistence = persistence
+            self.llm = llm
+            self.embedding = embedding
+
+            let timelineManager = timelineManager ?? TimelineManager(
+                stores: .init(
+                    timelineStore: persistence,
+                    messageStore: persistence,
+                    workspaceStore: persistence,
+                    toolPersistence: persistence
+                ),
+                workspaceRoot: workspaceRoot,
+                workspaceCreator: workspaceCreator
+            )
+            self.timelineManager = timelineManager
+
+            self.toolRouter = toolRouter ?? ToolRouter(
+                timelineManager: timelineManager,
+                messageStore: persistence
+            )
+
+            let agentWorkspaceService = AgentWorkspaceService(
+                workspaceRoot: workspaceRoot,
+                workspacePersistence: persistence
+            )
+            self.agentWorkspaceService = agentWorkspaceService
+            agentInstanceManager = AgentInstanceManager(
+                repository: agentWorkspaceService,
+                stores: .init(
+                    instanceStore: persistence,
+                    timelineStore: persistence,
+                    messageStore: persistence,
+                    workspaceStore: persistence
+                )
+            )
+            workspaceManager = WorkspaceManager(
+                repository: agentWorkspaceService,
+                workspaceCreator: workspaceCreator
+            )
+        }
+
+        /// Builds a `PositronicKitCore` facade wired to this runtime's stores, managers, and services.
+        public func buildCore() -> PositronicKitCore {
+            PositronicKitCore(
+                llmService: llm,
+                persistence: .init(
+                    messageStore: persistence,
+                    timelinePersistence: persistence,
+                    workspacePersistence: persistence,
+                    memoryStore: persistence,
+                    toolPersistence: persistence,
+                    agentInstanceStore: persistence,
+                    requestOriginStore: persistence,
+                    agentTemplateStore: persistence
+                ),
+                embeddingService: embedding,
+                runtime: .init(
+                    timelineManager: timelineManager,
+                    toolRouter: toolRouter
+                )
+            )
+        }
+    }
+
+#endif

@@ -1,19 +1,13 @@
-import Dependencies
 import Foundation
-@testable import PositronicKit
 @testable import PKShared
 import PKTestSupport
+@testable import PositronicKit
 import Testing
 
 @Suite(.serialized) struct TimelineManagerConcurrencyTests {
     private func makeTimelineManager() async throws -> TimelineManager {
         let workspace = TestWorkspace()
-
-        return try await TestDependencies()
-            .withMocks()
-            .run {
-                TimelineManager(workspaceRoot: workspace.root)
-            }
+        return TimelineManager(workspaceRoot: workspace.root)
     }
 
     @Test("Concurrent createTimeline calls each produce a unique session ID")

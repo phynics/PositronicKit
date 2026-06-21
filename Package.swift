@@ -26,7 +26,6 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/MacPaw/OpenAI.git", exact: "0.4.8"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.5.0"),
-        .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.0.0"),
         .package(url: "https://github.com/FlineDev/ErrorKit", from: "1.0.0"),
         .package(url: "https://github.com/ajevans99/swift-json-schema", from: "0.11.2"),
         .package(url: "https://github.com/apple/swift-crypto.git", exact: "3.15.1"),
@@ -140,7 +139,6 @@ let package = Package(
                 "PositronicKit",
                 "PKShared",
                 "PKPrompt",
-                .product(name: "Dependencies", package: "swift-dependencies"),
                 .product(name: "JSONSchema", package: "swift-json-schema"),
             ],
             path: "Tests/PKTestSupport"
@@ -156,7 +154,6 @@ let package = Package(
                 "PositronicKitExamples",
                 "PKShared",
                 "PKTestSupport",
-                .product(name: "Dependencies", package: "swift-dependencies"),
             ],
             path: "Tests/PositronicKitTests"
         ),

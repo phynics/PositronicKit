@@ -1,9 +1,8 @@
-import Dependencies
 import Foundation
-@testable import PositronicKit
 import PKPrompt
 @testable import PKShared
 import PKTestSupport
+@testable import PositronicKit
 import Testing
 
 @Suite(.serialized) struct ContextPipelineBuilderTests {
@@ -61,11 +60,7 @@ import Testing
             CompletionStage()
         }
 
-        let manager = try await TestDependencies()
-            .withMocks()
-            .run {
-                ContextManager(workspace: nil, pipeline: customPipeline)
-            }
+        let manager = ContextManager(workspace: nil, pipeline: customPipeline)
 
         let stream = await manager.gatherContext(for: "test")
         var sawComplete = false
@@ -86,11 +81,7 @@ import Testing
             CompletionStage()
         }
 
-        let manager = try await TestDependencies()
-            .withMocks()
-            .run {
-                ContextManager(workspace: nil) // Uses default pipeline internally
-            }
+        let manager = ContextManager(workspace: nil) // Uses default pipeline internally
 
         let stream = await manager.gatherContext(for: "test", overridePipeline: overridePipeline)
         var sawComplete = false
@@ -105,11 +96,7 @@ import Testing
 
     @Test("ContextManager default pipeline emits complete event")
     func contextManager_defaultPipeline_completes() async throws {
-        let manager = try await TestDependencies()
-            .withMocks()
-            .run {
-                ContextManager(workspace: nil)
-            }
+        let manager = ContextManager(workspace: nil)
 
         let stream = await manager.gatherContext(for: "hello")
         var sawComplete = false

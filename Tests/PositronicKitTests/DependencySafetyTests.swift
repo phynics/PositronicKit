@@ -1,12 +1,35 @@
-import Dependencies
 import Foundation
-@testable import PositronicKit
 @testable import PKShared
 import PKTestSupport
+@testable import PositronicKit
 import Testing
 
 @Suite("Dependency Safety Tests")
 struct DependencySafetyTests {
+    @Test("TestRuntime shares one persistence across its managers, services, and core")
+    func runtimeSharesPersistence() async throws {
+        let workspaceRoot = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let runtime = TestRuntime(workspaceRoot: workspaceRoot)
+
+        // A timeline created via the runtime's timeline manager is visible through the shared persistence.
+        let timeline = try await runtime.timelineManager.createTimeline(title: "Shared")
+        let persistedTimeline = try await runtime.persistence.fetchTimeline(id: timeline.id)
+        #expect(persistedTimeline?.id == timeline.id)
+
+        // A workspace saved directly into persistence resolves through the agent workspace service,
+        // proving that service is backed by the same store.
+        let workspace = WorkspaceReference(uri: .timelineWorkspace(UUID()), location: .runtime)
+        try await runtime.persistence.saveWorkspace(workspace)
+        let resolved = try await runtime.agentWorkspaceService.getWorkspace(id: workspace.id)
+        #expect(resolved?.id == workspace.id)
+
+        // buildCore() reuses the same persistence and timeline manager, so the earlier timeline
+        // remains observable after the facade is constructed.
+        _ = runtime.buildCore()
+        let afterCore = try await runtime.persistence.fetchTimeline(id: timeline.id)
+        #expect(afterCore?.id == timeline.id)
+    }
+
     @Test("AgentInstanceManager correctly resolves overridden agentWorkspaceService")
     func agentInstanceManagerDependencyInjection() async throws {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -27,7 +50,8 @@ struct DependencySafetyTests {
 
         let instance = try await manager.createInstance(name: "Test", description: "Test")
         if let workspaceId = instance.primaryWorkspaceId,
-           let workspace = try await persistence.fetchWorkspace(id: workspaceId, includeTools: false) {
+           let workspace = try await persistence.fetchWorkspace(id: workspaceId, includeTools: false)
+        {
             #expect(workspace.rootPath?.contains(tempDir.path) ?? false)
         } else {
             Issue.record("Workspace not found for created instance")

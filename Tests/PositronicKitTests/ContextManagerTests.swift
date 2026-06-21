@@ -1,9 +1,8 @@
-import Dependencies
 import Foundation
 import Logging
-@testable import PositronicKit
 @testable import PKShared
 import PKTestSupport
+@testable import PositronicKit
 import Testing
 
 @Suite("Context Manager Tests")
@@ -17,7 +16,7 @@ struct ContextManagerTests {
             QueryAugmentationStage(),
             MemoryRetrievalStage(memoryStore: persistence, embeddingService: embedding),
             NoteDiscoveryStage(workspace: workspace),
-            ContextAssemblyStage(logger: Logger(label: "test.context-assembly"))
+            ContextAssemblyStage(logger: Logger(label: "test.context-assembly")),
         ]
         return ContextManager(workspace: workspace, pipeline: Pipeline(stages: stages))
     }
@@ -26,11 +25,7 @@ struct ContextManagerTests {
     func gatherContextSemanticRetrieval() async throws {
         let mockPersistence = MockPersistenceService()
         let mockEmbedding = MockEmbeddingService()
-        let contextManager = try await TestDependencies()
-            .withMocks(persistence: mockPersistence, embedding: mockEmbedding)
-            .run {
-                makeContextManager(persistence: mockPersistence, embedding: mockEmbedding)
-            }
+        let contextManager = makeContextManager(persistence: mockPersistence, embedding: mockEmbedding)
 
         let expectedMemory = Memory.fixture(
             title: "SwiftUI Guide",
@@ -61,11 +56,7 @@ struct ContextManagerTests {
     func gatherContextUsesHistoryForTagsButQueryForEmbedding() async throws {
         let mockPersistence = MockPersistenceService()
         let mockEmbedding = MockEmbeddingService()
-        let contextManager = try await TestDependencies()
-            .withMocks(persistence: mockPersistence, embedding: mockEmbedding)
-            .run {
-                makeContextManager(persistence: mockPersistence, embedding: mockEmbedding)
-            }
+        let contextManager = makeContextManager(persistence: mockPersistence, embedding: mockEmbedding)
 
         let memory = Memory.fixture(title: "Project Alpha", tags: ["alpha"])
         mockPersistence.memories = [memory]
@@ -99,11 +90,7 @@ struct ContextManagerTests {
     func rankingLogicWithTagBoost() async throws {
         let mockPersistence = MockPersistenceService()
         let mockEmbedding = MockEmbeddingService()
-        let contextManager = try await TestDependencies()
-            .withMocks(persistence: mockPersistence, embedding: mockEmbedding)
-            .run {
-                makeContextManager(persistence: mockPersistence, embedding: mockEmbedding)
-            }
+        let contextManager = makeContextManager(persistence: mockPersistence, embedding: mockEmbedding)
 
         let memory1 = Memory.fixture(title: "Tag Match", tags: ["swift"])
         let memory2 = Memory.fixture(title: "Semantic Match")
@@ -157,15 +144,11 @@ struct ContextManagerTests {
         )
         let workspace = try MockLocalWorkspace(reference: ref)
 
-        let manager = try await TestDependencies()
-            .withMocks(persistence: mockPersistence, embedding: mockEmbedding)
-            .run {
-                makeContextManager(
-                    workspace: workspace,
-                    persistence: mockPersistence,
-                    embedding: mockEmbedding
-                )
-            }
+        let manager = makeContextManager(
+            workspace: workspace,
+            persistence: mockPersistence,
+            embedding: mockEmbedding
+        )
 
         let stream = await manager.gatherContext(for: "some query")
         let events = try await stream.collect()
@@ -186,37 +169,43 @@ struct ContextManagerTests {
     @Test("Gather Context: Error Propagation")
     func gatherContextErrorPropagation() async throws {
         struct FailingWorkspace: WorkspaceProtocol {
-            var id: UUID = UUID()
+            var id: UUID = .init()
             var reference: WorkspaceReference = .fixture()
-            func listTools() async throws -> [ToolReference] { [] }
-            func executeTool(id: String, parameters: [String: AnyCodable]) async throws -> ToolResult {
+            func listTools() async throws -> [ToolReference] {
+                []
+            }
+
+            func executeTool(id _: String, parameters _: [String: AnyCodable]) async throws -> ToolResult {
                 throw WorkspaceError.toolExecutionNotSupported
             }
-            func listFiles(path: String) async throws -> [String] {
+
+            func listFiles(path _: String) async throws -> [String] {
                 throw WorkspaceError.connectionFailed
             }
-            func readFile(path: String) async throws -> String { "" }
-            func writeFile(path: String, content: String) async throws {}
-            func deleteFile(path: String) async throws {}
-            func healthCheck() async -> Bool { false }
+
+            func readFile(path _: String) async throws -> String {
+                ""
+            }
+
+            func writeFile(path _: String, content _: String) async throws {}
+            func deleteFile(path _: String) async throws {}
+            func healthCheck() async -> Bool {
+                false
+            }
         }
 
         let mockPersistence = MockPersistenceService()
         let mockEmbedding = MockEmbeddingService()
         let workspace = FailingWorkspace()
 
-        let manager = try await TestDependencies()
-            .withMocks(persistence: mockPersistence, embedding: mockEmbedding)
-            .run {
-                makeContextManager(
-                    workspace: workspace,
-                    persistence: mockPersistence,
-                    embedding: mockEmbedding
-                )
-            }
+        let manager = makeContextManager(
+            workspace: workspace,
+            persistence: mockPersistence,
+            embedding: mockEmbedding
+        )
 
         let stream = await manager.gatherContext(for: "some query")
-        
+
         await #expect(throws: Error.self) {
             for try await _ in stream {}
         }

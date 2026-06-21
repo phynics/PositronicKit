@@ -1,9 +1,8 @@
-import Dependencies
 import Foundation
 import Logging
-@testable import PositronicKit
 @testable import PKShared
 import PKTestSupport
+@testable import PositronicKit
 import Testing
 
 private func captureProjectedToolEvents(
@@ -27,7 +26,7 @@ private func captureProjectedToolEvents(
     return events
 }
 
-@Suite final class ToolRouterTests {
+final class ToolRouterTests {
     struct MockTool: PKShared.Tool, @unchecked Sendable {
         let id: String
         let name: String
@@ -51,14 +50,18 @@ private func captureProjectedToolEvents(
         }
     }
 
-    struct NeverFinishingTool: PKShared.Tool, Sendable {
+    struct NeverFinishingTool: PKShared.Tool {
         let id = "never_finishes"
         let name = "never_finishes"
         let description = "A tool that never finishes unless cancelled"
         let requiresPermission = false
-        var parametersSchema: [String: AnyCodable] { [:] }
+        var parametersSchema: [String: AnyCodable] {
+            [:]
+        }
 
-        func canExecute() async -> Bool { true }
+        func canExecute() async -> Bool {
+            true
+        }
 
         func execute(parameters _: [String: Any]) async throws -> ToolResult {
             try await Task.sleep(for: .seconds(60))
@@ -245,7 +248,8 @@ private func captureProjectedToolEvents(
         #expect(events.contains(where: {
             if case let .completion(event) = $0,
                case let .toolExecution(toolCallId, status) = event,
-               case .failed = status {
+               case .failed = status
+            {
                 return toolCallId == "call-timeout"
             }
             return false
@@ -253,7 +257,7 @@ private func captureProjectedToolEvents(
     }
 }
 
-@Suite struct ToolRoutingDecisionTests {
+struct ToolRoutingDecisionTests {
     private struct CustomReferenceTool: PKShared.Tool, ToolReferenceProviding, @unchecked Sendable {
         let id: String
         let name: String
@@ -261,10 +265,17 @@ private func captureProjectedToolEvents(
         let requiresPermission = false
         let toolReference: ToolReference
 
-        var parametersSchema: [String: AnyCodable] { [:] }
+        var parametersSchema: [String: AnyCodable] {
+            [:]
+        }
 
-        func canExecute() async -> Bool { true }
-        func execute(parameters _: [String: Any]) async throws -> ToolResult { .success("ok") }
+        func canExecute() async -> Bool {
+            true
+        }
+
+        func execute(parameters _: [String: Any]) async throws -> ToolResult {
+            .success("ok")
+        }
     }
 
     @Test("Dynamic available tools override fallback known-tool resolution")
@@ -300,7 +311,7 @@ private func captureProjectedToolEvents(
     }
 }
 
-@Suite struct ToolTurnProjectorTests {
+struct ToolTurnProjectorTests {
     @Test("Completed outcomes persist tool messages and emit success events")
     func completedOutcomeProjection() async throws {
         let store = MockPersistenceService()
@@ -323,7 +334,8 @@ private func captureProjectedToolEvents(
         #expect(events.contains(where: {
             if case let .completion(event) = $0,
                case let .toolExecution(toolCallId, status) = event,
-               case let .success(result) = status {
+               case let .success(result) = status
+            {
                 return toolCallId == "call-1" && result.output == "done"
             }
             return false
@@ -353,7 +365,8 @@ private func captureProjectedToolEvents(
         #expect(events.contains(where: {
             if case let .completion(event) = $0,
                case let .toolExecution(toolCallId, status) = event,
-               case .failed = status {
+               case .failed = status
+            {
                 return toolCallId == "call-2"
             }
             return false
@@ -363,7 +376,7 @@ private func captureProjectedToolEvents(
 
 // MARK: - ParsedToolCall decode contract tests
 
-@Suite struct ParsedToolCallTests {
+struct ParsedToolCallTests {
     @Test("Valid JSON object decodes to non-nil arguments")
     func validJSONDecodes() {
         let call = ParsedToolCall(callId: "1", name: "test", argumentsJSON: "{\"key\": \"value\"}")
@@ -399,7 +412,7 @@ private func captureProjectedToolEvents(
 
 // MARK: - ToolError v1 model contract tests
 
-@Suite struct ToolErrorModelTests {
+struct ToolErrorModelTests {
     @Test("All v1 error categories have distinct error codes")
     func distinctErrorCodes() {
         let codes: Set<Int> = [
@@ -455,7 +468,7 @@ private func captureProjectedToolEvents(
 
 // MARK: - ToolParameters decode pattern tests
 
-@Suite struct ToolParametersTests {
+struct ToolParametersTests {
     @Test("require throws missingArgument when key absent")
     func requireMissing() {
         let params = ToolParameters([:])

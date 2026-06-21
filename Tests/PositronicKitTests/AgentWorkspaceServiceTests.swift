@@ -1,8 +1,7 @@
-import Dependencies
 import Foundation
-@testable import PositronicKit
 @testable import PKShared
 import PKTestSupport
+@testable import PositronicKit
 import Testing
 
 @Suite("AgentWorkspaceService Tests")
@@ -10,14 +9,10 @@ struct AgentWorkspaceServiceTests {
     @Test("Create Workspace")
     func testCreateWorkspace() async throws {
         let persistence = MockPersistenceService()
-        let repository = try await TestDependencies()
-            .withMocks(persistence: persistence)
-            .run {
-                AgentWorkspaceService(
-                    workspaceRoot: FileManager.default.temporaryDirectory,
-                    workspacePersistence: persistence
-                )
-            }
+        let repository = AgentWorkspaceService(
+            workspaceRoot: FileManager.default.temporaryDirectory,
+            workspacePersistence: persistence
+        )
 
         let uri = WorkspaceURI(host: "pk-runtime", path: "/test")
         let metadata: [String: AnyCodable] = ["key": .string("value")]
@@ -42,14 +37,10 @@ struct AgentWorkspaceServiceTests {
     @Test("Get Workspace")
     func testGetWorkspace() async throws {
         let persistence = MockPersistenceService()
-        let repository = try await TestDependencies()
-            .withMocks(persistence: persistence)
-            .run {
-                AgentWorkspaceService(
-                    workspaceRoot: FileManager.default.temporaryDirectory,
-                    workspacePersistence: persistence
-                )
-            }
+        let repository = AgentWorkspaceService(
+            workspaceRoot: FileManager.default.temporaryDirectory,
+            workspacePersistence: persistence
+        )
 
         let ws = WorkspaceReference(
             uri: .timelineWorkspace(UUID()),
@@ -68,14 +59,10 @@ struct AgentWorkspaceServiceTests {
     @Test("List Workspaces")
     func testListWorkspaces() async throws {
         let persistence = MockPersistenceService()
-        let repository = try await TestDependencies()
-            .withMocks(persistence: persistence)
-            .run {
-                AgentWorkspaceService(
-                    workspaceRoot: FileManager.default.temporaryDirectory,
-                    workspacePersistence: persistence
-                )
-            }
+        let repository = AgentWorkspaceService(
+            workspaceRoot: FileManager.default.temporaryDirectory,
+            workspacePersistence: persistence
+        )
 
         let ws1 = WorkspaceReference(uri: .timelineWorkspace(UUID()), location: .runtime)
         let ws2 = WorkspaceReference(uri: .timelineWorkspace(UUID()), location: .runtime)
@@ -91,14 +78,10 @@ struct AgentWorkspaceServiceTests {
     @Test("Delete Workspace")
     func testDeleteWorkspace() async throws {
         let persistence = MockPersistenceService()
-        let repository = try await TestDependencies()
-            .withMocks(persistence: persistence)
-            .run {
-                AgentWorkspaceService(
-                    workspaceRoot: FileManager.default.temporaryDirectory,
-                    workspacePersistence: persistence
-                )
-            }
+        let repository = AgentWorkspaceService(
+            workspaceRoot: FileManager.default.temporaryDirectory,
+            workspacePersistence: persistence
+        )
 
         let ws = WorkspaceReference(uri: .timelineWorkspace(UUID()), location: .runtime)
         try await persistence.saveWorkspace(ws)
@@ -111,14 +94,10 @@ struct AgentWorkspaceServiceTests {
     @Test("Update Workspace")
     func testUpdateWorkspace() async throws {
         let persistence = MockPersistenceService()
-        let repository = try await TestDependencies()
-            .withMocks(persistence: persistence)
-            .run {
-                AgentWorkspaceService(
-                    workspaceRoot: FileManager.default.temporaryDirectory,
-                    workspacePersistence: persistence
-                )
-            }
+        let repository = AgentWorkspaceService(
+            workspaceRoot: FileManager.default.temporaryDirectory,
+            workspacePersistence: persistence
+        )
 
         var ws = WorkspaceReference(uri: .timelineWorkspace(UUID()), location: .runtime)
         try await persistence.saveWorkspace(ws)

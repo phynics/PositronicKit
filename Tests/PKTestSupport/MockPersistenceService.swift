@@ -1,7 +1,6 @@
-import Dependencies
 import Foundation
-import PositronicKit
 import PKShared
+import PositronicKit
 
 public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProtocol, TimelinePersistenceProtocol, WorkspacePersistenceProtocol, AgentTemplateStoreProtocol, RequestOriginStoreProtocol, ToolPersistenceProtocol, AgentInstanceStoreProtocol, HealthCheckable, @unchecked Sendable {
     private let memoriesMock = MockMemoryStore()

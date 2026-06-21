@@ -1,8 +1,7 @@
-import Dependencies
 import Foundation
-@testable import PositronicKit
 import PKShared
 import PKTestSupport
+@testable import PositronicKit
 import Testing
 
 struct AgentInstanceManagerTests {
@@ -72,21 +71,17 @@ struct AgentInstanceManagerTests {
         let otherAgent = AgentInstance(id: otherAgentId, name: "Other Agent", description: "Desc", primaryWorkspaceId: UUID(), privateTimelineId: UUID())
         let privateTimeline = Timeline(id: UUID(), title: "Private", attachedAgentInstanceId: agentId, isPrivate: true)
 
-        try await TestDependencies()
-            .withMocks(persistence: mock)
-            .run {
-                try await mock.saveAgentInstance(agent)
-                try await mock.saveAgentInstance(otherAgent)
-                try await mock.saveTimeline(privateTimeline)
+        try await mock.saveAgentInstance(agent)
+        try await mock.saveAgentInstance(otherAgent)
+        try await mock.saveTimeline(privateTimeline)
 
-                // Fails: attaching different agent to private timeline
-                await #expect(throws: AgentInstanceError.self) {
-                    try await manager.attach(agentId: otherAgentId, to: privateTimeline.id)
-                }
+        // Fails: attaching different agent to private timeline
+        await #expect(throws: AgentInstanceError.self) {
+            try await manager.attach(agentId: otherAgentId, to: privateTimeline.id)
+        }
 
-                // Succeeds: attaching owner (idempotent)
-                try await manager.attach(agentId: agent.id, to: privateTimeline.id)
-            }
+        // Succeeds: attaching owner (idempotent)
+        try await manager.attach(agentId: agent.id, to: privateTimeline.id)
     }
 
     @Test("Robustness: Cannot detach agent from its own private timeline")
@@ -109,16 +104,12 @@ struct AgentInstanceManagerTests {
         let agent = AgentInstance(id: agentId, name: "Test Agent", description: "Desc", primaryWorkspaceId: UUID(), privateTimelineId: UUID())
         let privateTimeline = Timeline(id: agent.privateTimelineId, title: "Private", attachedAgentInstanceId: agentId, isPrivate: true)
 
-        try await TestDependencies()
-            .withMocks(persistence: mock)
-            .run {
-                try await mock.saveAgentInstance(agent)
-                try await mock.saveTimeline(privateTimeline)
+        try await mock.saveAgentInstance(agent)
+        try await mock.saveTimeline(privateTimeline)
 
-                await #expect(throws: AgentInstanceError.self) {
-                    try await manager.detach(agentId: agentId, from: privateTimeline.id)
-                }
-            }
+        await #expect(throws: AgentInstanceError.self) {
+            try await manager.detach(agentId: agentId, from: privateTimeline.id)
+        }
     }
 
     @Test("Creation: Agent is automatically attached to private timeline")
@@ -137,15 +128,11 @@ struct AgentInstanceManagerTests {
             )
         )
 
-        try await TestDependencies()
-            .withMocks(persistence: mock)
-            .run {
-                let instance = try await manager.createInstance(name: "New Agent", description: "Desc")
+        let instance = try await manager.createInstance(name: "New Agent", description: "Desc")
 
-                let timeline = try await mock.fetchTimeline(id: instance.privateTimelineId)
-                #expect(timeline?.attachedAgentInstanceId == instance.id)
-                #expect(timeline?.isPrivate == true)
-            }
+        let timeline = try await mock.fetchTimeline(id: instance.privateTimelineId)
+        #expect(timeline?.attachedAgentInstanceId == instance.id)
+        #expect(timeline?.isPrivate == true)
     }
 
     @Test("Search: Find by name or description")
@@ -167,22 +154,18 @@ struct AgentInstanceManagerTests {
         let agent1 = AgentInstance(id: UUID(), name: "Researcher", description: "Finds things", primaryWorkspaceId: UUID(), privateTimelineId: UUID())
         let agent2 = AgentInstance(id: UUID(), name: "Coder", description: "Writes Swift", primaryWorkspaceId: UUID(), privateTimelineId: UUID())
 
-        try await TestDependencies()
-            .withMocks(persistence: mock)
-            .run {
-                try await mock.saveAgentInstance(agent1)
-                try await mock.saveAgentInstance(agent2)
+        try await mock.saveAgentInstance(agent1)
+        try await mock.saveAgentInstance(agent2)
 
-                let resultsName = try await manager.searchInstances(query: "research")
-                #expect(resultsName.count == 1)
-                #expect(resultsName.first?.name == "Researcher")
+        let resultsName = try await manager.searchInstances(query: "research")
+        #expect(resultsName.count == 1)
+        #expect(resultsName.first?.name == "Researcher")
 
-                let resultsDesc = try await manager.searchInstances(query: "Swift")
-                #expect(resultsDesc.count == 1)
-                #expect(resultsDesc.first?.name == "Coder")
+        let resultsDesc = try await manager.searchInstances(query: "Swift")
+        #expect(resultsDesc.count == 1)
+        #expect(resultsDesc.first?.name == "Coder")
 
-                let resultsEmpty = try await manager.searchInstances(query: "")
-                #expect(resultsEmpty.count == 2)
-            }
+        let resultsEmpty = try await manager.searchInstances(query: "")
+        #expect(resultsEmpty.count == 2)
     }
 }

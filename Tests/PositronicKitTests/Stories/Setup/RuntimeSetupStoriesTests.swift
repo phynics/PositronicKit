@@ -1,11 +1,10 @@
-import Dependencies
 import Foundation
+import PKOllamaProvider
 @testable import PKOpenAIProvider
 @testable import PKOpenRouterProvider
-import PKOllamaProvider
-@testable import PositronicKit
 @testable import PKShared
 import PKTestSupport
+@testable import PositronicKit
 import Testing
 
 @Suite("Runtime setup stories", .serialized) struct RuntimeSetupStoriesTests {
@@ -28,7 +27,7 @@ import Testing
     }
 
     @Test("Provider registration is explicit, repeatable, and covers OpenAI-compatible")
-    func providerRegistrationContract() async throws {
+    func providerRegistrationContract() async {
         PKOpenAIProvider.register()
         PKOpenAIProvider.register()
 
@@ -102,7 +101,7 @@ import Testing
     }
 
     @Test("Custom Ollama endpoint")
-    func customOllamaEndpoint() async throws {
+    func customOllamaEndpoint() async {
         let endpoint = "http://192.168.1.100:11434"
         let chat = PositronicKitCore(ollamaModel: "mistral", endpoint: endpoint)
 
@@ -111,7 +110,7 @@ import Testing
     }
 
     @Test("PositronicKitCore default initialization")
-    func defaultInitialization() async throws {
+    func defaultInitialization() async {
         let chat = PositronicKitCore()
         let isConfigured = await chat.llmService.isConfigured
         #expect(!isConfigured, "Default init should not be configured")
@@ -126,18 +125,7 @@ import Testing
             workspaceCreator: MockWorkspaceCreator()
         )
 
-        let timeline = try await withDependencies {
-            $0.timelinePersistence = mockPersistence
-            $0.workspacePersistence = mockPersistence
-            $0.memoryStore = mockPersistence
-            $0.messageStore = mockPersistence
-            $0.agentTemplateStore = mockPersistence
-            $0.requestOriginStore = mockPersistence
-            $0.toolPersistence = mockPersistence
-            $0.agentInstanceStore = mockPersistence
-        } operation: {
-            try await timelineManager.createTimeline(title: "Unconfigured")
-        }
+        let timeline = try await timelineManager.createTimeline(title: "Unconfigured")
 
         let persistence = PositronicKitCore.PersistenceConfiguration(
             messageStore: mockPersistence,
@@ -164,7 +152,7 @@ import Testing
     // MARK: - Configuration validation contract tests
 
     @Test("Configuration with missing API key for non-Ollama provider is invalid")
-    func invalidConfigurationMissingApiKey() async throws {
+    func invalidConfigurationMissingApiKey() throws {
         let config = LLMConfiguration(
             endpoint: "https://api.openai.com",
             modelName: "gpt-4o",
@@ -178,7 +166,7 @@ import Testing
     }
 
     @Test("Configuration with empty model name is invalid")
-    func invalidConfigurationEmptyModel() async throws {
+    func invalidConfigurationEmptyModel() throws {
         let config = LLMConfiguration(
             endpoint: "https://api.openai.com",
             modelName: "",
@@ -192,7 +180,7 @@ import Testing
     }
 
     @Test("Ollama configuration without API key is valid")
-    func ollamaConfigurationValidWithoutApiKey() async throws {
+    func ollamaConfigurationValidWithoutApiKey() {
         let config = LLMConfiguration(
             endpoint: "http://localhost:11434",
             modelName: "llama3",
@@ -203,7 +191,7 @@ import Testing
     }
 
     @Test("LLMService with invalid configuration is not configured")
-    func serviceNotConfiguredWithInvalidConfig() async throws {
+    func serviceNotConfiguredWithInvalidConfig() async {
         let config = LLMConfiguration(
             endpoint: "https://api.openai.com",
             modelName: "",

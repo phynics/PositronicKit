@@ -1,17 +1,12 @@
-import Dependencies
 import Foundation
-@testable import PositronicKit
 @testable import PKShared
 import PKTestSupport
+@testable import PositronicKit
 import Testing
 
 @Suite(.serialized) struct ContextManagerCancellationTests {
     private func makeContextManager() async throws -> ContextManager {
-        return try await TestDependencies()
-            .withMocks()
-            .run {
-                ContextManager(workspace: nil)
-            }
+        ContextManager(workspace: nil)
     }
 
     @Test("gatherContext emits at least one progress event before completing")

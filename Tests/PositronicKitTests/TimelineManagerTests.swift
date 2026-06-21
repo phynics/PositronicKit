@@ -1,51 +1,40 @@
-import Dependencies
 import Foundation
-@testable import PositronicKit
 @testable import PKShared
 import PKTestSupport
+@testable import PositronicKit
 import Synchronization
 import Testing
 
-@Suite struct TimelineManagerTests {
+struct TimelineManagerTests {
     @Test("Test Session Creation and Context Manager Access")
     func sessionCreation() async throws {
         let workspace = TestWorkspace()
+        let timelineManager = TimelineManager(workspaceRoot: workspace.root)
 
-        try await TestDependencies()
-            .withMocks()
-            .run {
-                let timelineManager = TimelineManager(workspaceRoot: workspace.root)
+        let session = try await timelineManager.createTimeline()
 
-                let session = try await timelineManager.createTimeline()
+        #expect(session.id != UUID(), "Session should have an ID")
 
-                #expect(session.id != UUID(), "Session should have an ID")
+        let retrievedSession = await timelineManager.getTimeline(id: session.id)
+        #expect(retrievedSession != nil, "Should be able to retrieve created session")
+        #expect(retrievedSession?.id == session.id)
 
-                let retrievedSession = await timelineManager.getTimeline(id: session.id)
-                #expect(retrievedSession != nil, "Should be able to retrieve created session")
-                #expect(retrievedSession?.id == session.id)
-
-                // Verify ContextManager is created and has access to workspace
-                let contextManager = await timelineManager.getContextManager(for: session.id)
-                #expect(contextManager != nil, "ContextManager should be created for session")
-            }
+        // Verify ContextManager is created and has access to workspace
+        let contextManager = await timelineManager.getContextManager(for: session.id)
+        #expect(contextManager != nil, "ContextManager should be created for session")
     }
 
     @Test("Test Stale Session Cleanup")
     func cleanup() async throws {
         let workspace = TestWorkspace()
+        let timelineManager = TimelineManager(workspaceRoot: workspace.root)
 
-        try await TestDependencies()
-            .withMocks()
-            .run {
-                let timelineManager = TimelineManager(workspaceRoot: workspace.root)
+        let session = try await timelineManager.createTimeline()
 
-                let session = try await timelineManager.createTimeline()
+        await timelineManager.cleanupStaleTimelines(maxAge: 0)
 
-                await timelineManager.cleanupStaleTimelines(maxAge: 0)
-
-                let retrieved = await timelineManager.getTimeline(id: session.id)
-                #expect(retrieved == nil, "Session should be cleaned up")
-            }
+        let retrieved = await timelineManager.getTimeline(id: session.id)
+        #expect(retrieved == nil, "Session should be cleaned up")
     }
 
     @Test("Test Task Registration and Cancellation")
@@ -80,111 +69,91 @@ import Testing
     }
 
     @Test("Default runtime tool set includes filesystem and timeline observation tools")
-    func defaultToolManagerContract() async throws {
+    func defaultToolManagerContract() async {
         let workspace = TestWorkspace()
+        let timelineManager = TimelineManager(workspaceRoot: workspace.root)
+        let timeline = Timeline(workingDirectory: workspace.root.path)
+        let toolManager = await timelineManager.createToolManager(
+            for: timeline,
+            jailRoot: workspace.root.path,
+            toolContextTimeline: ToolTimelineContext()
+        )
 
-        try await TestDependencies()
-            .withMocks()
-            .run {
-                let timelineManager = TimelineManager(workspaceRoot: workspace.root)
-                let timeline = Timeline(workingDirectory: workspace.root.path)
-                let toolManager = await timelineManager.createToolManager(
-                    for: timeline,
-                    jailRoot: workspace.root.path,
-                    toolContextTimeline: ToolTimelineContext()
-                )
-
-                let toolIds = Set(await toolManager.getAvailableTools().map(\.id))
-                #expect(toolIds == [
-                    "change_directory",
-                    "ls",
-                    "find",
-                    "grep",
-                    "search_files",
-                    "cat",
-                    "timeline_list",
-                    "timeline_peek",
-                ])
-                #expect(!toolIds.contains("timeline_send"))
-            }
+        let toolIds = Set(await toolManager.getAvailableTools().map(\.id))
+        #expect(toolIds == [
+            "change_directory",
+            "ls",
+            "find",
+            "grep",
+            "search_files",
+            "cat",
+            "timeline_list",
+            "timeline_peek",
+        ])
+        #expect(!toolIds.contains("timeline_send"))
     }
 
     @Test("Timeline send is installed only when an agent is attached")
-    func timelineSendRequiresAttachedAgent() async throws {
+    func timelineSendRequiresAttachedAgent() async {
         let workspace = TestWorkspace()
+        let timelineManager = TimelineManager(workspaceRoot: workspace.root)
+        let timeline = Timeline(
+            workingDirectory: workspace.root.path,
+            attachedAgentInstanceId: UUID()
+        )
+        let toolManager = await timelineManager.createToolManager(
+            for: timeline,
+            jailRoot: workspace.root.path,
+            toolContextTimeline: ToolTimelineContext()
+        )
 
-        try await TestDependencies()
-            .withMocks()
-            .run {
-                let timelineManager = TimelineManager(workspaceRoot: workspace.root)
-                let timeline = Timeline(
-                    workingDirectory: workspace.root.path,
-                    attachedAgentInstanceId: UUID()
-                )
-                let toolManager = await timelineManager.createToolManager(
-                    for: timeline,
-                    jailRoot: workspace.root.path,
-                    toolContextTimeline: ToolTimelineContext()
-                )
-
-                let toolIds = Set(await toolManager.getAvailableTools().map(\.id))
-                #expect(toolIds.contains("timeline_send"))
-            }
+        let toolIds = Set(await toolManager.getAvailableTools().map(\.id))
+        #expect(toolIds.contains("timeline_send"))
     }
 
     @Test("Selective runtime tool policy disables chosen categories only")
-    func selectiveRuntimeToolPolicy() async throws {
+    func selectiveRuntimeToolPolicy() async {
         let workspace = TestWorkspace()
+        let timelineManager = TimelineManager(
+            workspaceRoot: workspace.root,
+            runtimeToolPolicy: .init(
+                installFilesystemTools: false,
+                installTimelineObservationTools: true,
+                installTimelineSendTool: true
+            )
+        )
+        let timeline = Timeline(
+            workingDirectory: workspace.root.path,
+            attachedAgentInstanceId: UUID()
+        )
+        let toolManager = await timelineManager.createToolManager(
+            for: timeline,
+            jailRoot: workspace.root.path,
+            toolContextTimeline: ToolTimelineContext()
+        )
 
-        try await TestDependencies()
-            .withMocks()
-            .run {
-                let timelineManager = TimelineManager(
-                    workspaceRoot: workspace.root,
-                    runtimeToolPolicy: .init(
-                        installFilesystemTools: false,
-                        installTimelineObservationTools: true,
-                        installTimelineSendTool: true
-                    )
-                )
-                let timeline = Timeline(
-                    workingDirectory: workspace.root.path,
-                    attachedAgentInstanceId: UUID()
-                )
-                let toolManager = await timelineManager.createToolManager(
-                    for: timeline,
-                    jailRoot: workspace.root.path,
-                    toolContextTimeline: ToolTimelineContext()
-                )
-
-                let toolIds = Set(await toolManager.getAvailableTools().map(\.id))
-                #expect(toolIds == ["timeline_list", "timeline_peek", "timeline_send"])
-            }
+        let toolIds = Set(await toolManager.getAvailableTools().map(\.id))
+        #expect(toolIds == ["timeline_list", "timeline_peek", "timeline_send"])
     }
 
     @Test("Deny-all runtime tool policy installs no default tools")
-    func denyAllRuntimeToolPolicy() async throws {
+    func denyAllRuntimeToolPolicy() async {
         let workspace = TestWorkspace()
+        let timelineManager = TimelineManager(
+            workspaceRoot: workspace.root,
+            runtimeToolPolicy: .denyAll
+        )
+        let timeline = Timeline(
+            workingDirectory: workspace.root.path,
+            attachedAgentInstanceId: UUID()
+        )
+        let toolManager = await timelineManager.createToolManager(
+            for: timeline,
+            jailRoot: workspace.root.path,
+            toolContextTimeline: ToolTimelineContext()
+        )
 
-        try await TestDependencies()
-            .withMocks()
-            .run {
-                let timelineManager = TimelineManager(
-                    workspaceRoot: workspace.root,
-                    runtimeToolPolicy: .denyAll
-                )
-                let timeline = Timeline(
-                    workingDirectory: workspace.root.path,
-                    attachedAgentInstanceId: UUID()
-                )
-                let toolManager = await timelineManager.createToolManager(
-                    for: timeline,
-                    jailRoot: workspace.root.path,
-                    toolContextTimeline: ToolTimelineContext()
-                )
-
-                let toolIds = Set(await toolManager.getAvailableTools().map(\.id))
-                #expect(toolIds.isEmpty)
-            }
+        let toolIds = Set(await toolManager.getAvailableTools().map(\.id))
+        #expect(toolIds.isEmpty)
     }
 }

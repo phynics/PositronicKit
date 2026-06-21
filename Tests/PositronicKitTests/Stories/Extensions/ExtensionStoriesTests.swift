@@ -1,9 +1,8 @@
-import Dependencies
 import Foundation
 import PKPrompt
-@testable import PositronicKit
 @testable import PKShared
 import PKTestSupport
+@testable import PositronicKit
 import Testing
 
 @Suite("Extension stories") struct ExtensionStoriesTests {
@@ -68,20 +67,9 @@ import Testing
             name: "workspace_echo",
             description: "Echoes a fixed workspace-owned result"
         )
-        try await withDependencies {
-            $0.timelinePersistence = mockPersistence
-            $0.workspacePersistence = mockPersistence
-            $0.memoryStore = mockPersistence
-            $0.messageStore = mockPersistence
-            $0.agentTemplateStore = mockPersistence
-            $0.requestOriginStore = mockPersistence
-            $0.toolPersistence = mockPersistence
-            $0.agentInstanceStore = mockPersistence
-        } operation: {
-            try await mockPersistence.saveWorkspace(reference)
-            try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .custom(workspaceTool))
-            try await timelineManager.attachWorkspace(workspaceId, to: timelineId)
-        }
+        try await mockPersistence.saveWorkspace(reference)
+        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .custom(workspaceTool))
+        try await timelineManager.attachWorkspace(workspaceId, to: timelineId)
 
         mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "call_ws", name: "workspace_echo")]]
         mockLLM.mockClient.nextResponses = ["", "Workspace tool completed"]
@@ -93,7 +81,8 @@ import Testing
 
         #expect(events.contains(where: {
             if case let .completion(event: .toolExecution(id, status)) = $0,
-               case let .success(result) = status {
+               case let .success(result) = status
+            {
                 return id == "call_ws" && result.output == "workspace:ok"
             }
             return false
@@ -119,7 +108,8 @@ import Testing
 
         #expect(events.contains(where: {
             if case let .completion(event: .toolExecution(id, status)) = $0,
-               case let .success(result) = status {
+               case let .success(result) = status
+            {
                 return id == "call_tool" && result.output == "tool:Berlin"
             }
             return false
@@ -146,18 +136,7 @@ import Testing
             sectionProviders: sectionProviders
         )
 
-        let timeline = try await withDependencies {
-            $0.timelinePersistence = mockPersistence
-            $0.workspacePersistence = mockPersistence
-            $0.memoryStore = mockPersistence
-            $0.messageStore = mockPersistence
-            $0.agentTemplateStore = mockPersistence
-            $0.requestOriginStore = mockPersistence
-            $0.toolPersistence = mockPersistence
-            $0.agentInstanceStore = mockPersistence
-        } operation: {
-            try await timelineManager.createTimeline(title: "Extension Acceptance")
-        }
+        let timeline = try await timelineManager.createTimeline(title: "Extension Acceptance")
 
         if includeDefaultToolWorkspace {
             let workspaceId = UUID()
@@ -168,20 +147,9 @@ import Testing
                 originId: nil,
                 rootPath: workspace.root.path
             )
-            try await withDependencies {
-                $0.timelinePersistence = mockPersistence
-                $0.workspacePersistence = mockPersistence
-                $0.memoryStore = mockPersistence
-                $0.messageStore = mockPersistence
-                $0.agentTemplateStore = mockPersistence
-                $0.requestOriginStore = mockPersistence
-                $0.toolPersistence = mockPersistence
-                $0.agentInstanceStore = mockPersistence
-            } operation: {
-                try await mockPersistence.saveWorkspace(workspaceRef)
-                try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("acceptance_tool"))
-                try await timelineManager.attachWorkspace(workspaceId, to: timeline.id)
-            }
+            try await mockPersistence.saveWorkspace(workspaceRef)
+            try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("acceptance_tool"))
+            try await timelineManager.attachWorkspace(workspaceId, to: timeline.id)
         }
 
         let chat = PositronicKitCore(
@@ -234,19 +202,31 @@ private actor AcceptanceWorkspace: WorkspaceProtocol {
 
     init(reference: WorkspaceReference) {
         self.reference = reference
-        self.id = reference.id
+        id = reference.id
     }
 
-    func listTools() async throws -> [ToolReference] { reference.tools }
+    func listTools() async throws -> [ToolReference] {
+        reference.tools
+    }
+
     func executeTool(id: String, parameters _: [String: AnyCodable]) async throws -> ToolResult {
         guard id == "workspace_echo" else { throw WorkspaceError.toolExecutionNotSupported }
         return .success("workspace:ok")
     }
-    func readFile(path _: String) async throws -> String { "" }
+
+    func readFile(path _: String) async throws -> String {
+        ""
+    }
+
     func writeFile(path _: String, content _: String) async throws {}
-    func listFiles(path _: String) async throws -> [String] { [] }
+    func listFiles(path _: String) async throws -> [String] {
+        []
+    }
+
     func deleteFile(path _: String) async throws {}
-    func healthCheck() async -> Bool { true }
+    func healthCheck() async -> Bool {
+        true
+    }
 }
 
 private final class AcceptanceWorkspaceCreator: WorkspaceCreating, @unchecked Sendable {
@@ -274,7 +254,9 @@ private struct AcceptanceRuntimeTool: PKShared.Tool, @unchecked Sendable {
     let requiresPermission = false
     let parametersSchema: [String: AnyCodable] = [:]
 
-    func canExecute() async -> Bool { true }
+    func canExecute() async -> Bool {
+        true
+    }
 
     func execute(parameters: [String: Any]) async throws -> ToolResult {
         .success("tool:\((parameters["value"] as? String) ?? "missing")")

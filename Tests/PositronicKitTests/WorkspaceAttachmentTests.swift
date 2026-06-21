@@ -1,8 +1,7 @@
-import Dependencies
 import Foundation
-@testable import PositronicKit
 @testable import PKShared
 import PKTestSupport
+@testable import PositronicKit
 import Testing
 
 // MARK: - Test Fixture
@@ -63,11 +62,7 @@ private func withFixture(
     _ body: @Sendable (AttachmentFixture) async throws -> Void
 ) async throws {
     let fixture = try await AttachmentFixture.make()
-    try await TestDependencies()
-        .withMocks(persistence: fixture.persistence)
-        .run {
-            try await body(fixture)
-        }
+    try await body(fixture)
 }
 
 // MARK: - Timeline.attachedWorkspaceIds (model)

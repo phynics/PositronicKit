@@ -1,9 +1,11 @@
-import Dependencies
 import Foundation
-import PositronicKit
 import PKShared
+import PositronicKit
 
 public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
+    /// Clock used to drive inter-chunk delays. Inject `ImmediateClock` in tests for instant
+    /// execution, or leave the default `ContinuousClock` for realistic timing.
+    public let clock: any Clock<Duration>
     public var nextResponse: String = ""
     public var nextResponses: [String] = []
     public var lastMessages: [LLMMessage] = []
@@ -27,7 +29,9 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
     /// Uses `ContinuousClock` dependency — inject `ImmediateClock` in tests for instant execution.
     public var nextStreamWait: TimeInterval?
 
-    public init() {}
+    public init(clock: any Clock<Duration> = ContinuousClock()) {
+        self.clock = clock
+    }
 
     public func chatStream(
         messages: [LLMMessage],
@@ -52,7 +56,7 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
             let rawChunks = nextRawStreamChunks.removeFirst()
             let wait = nextStreamWait
 
-            @Dependency(\.continuousClock) var clock
+            let clock = self.clock
 
             struct RawStreamContext: @unchecked Sendable {
                 let chunks: [LLMStreamChunk]
@@ -100,7 +104,7 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
         let toolCalls = nextToolCalls.isEmpty ? nil : nextToolCalls.removeFirst()
         let wait = nextStreamWait
 
-        @Dependency(\.continuousClock) var clock
+        let clock = self.clock
 
         struct StreamContext: @unchecked Sendable {
             let responses: [String]
