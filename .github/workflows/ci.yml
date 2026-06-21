@@ -25,11 +25,12 @@ jobs:
   macos-minilm:
     name: macOS MiniLM Trait
     runs-on: macos-15
-    env:
-      PKFASTEMBED_PREFIX: ${{ runner.temp }}/pkfastembed
-      PK_MINILM_MODEL_DIR: ${{ runner.temp }}/minilm-model
     steps:
       - uses: actions/checkout@v4
+      - name: Configure native paths
+        run: |
+          echo "PKFASTEMBED_PREFIX=$RUNNER_TEMP/pkfastembed" >> "$GITHUB_ENV"
+          echo "PK_MINILM_MODEL_DIR=$RUNNER_TEMP/minilm-model" >> "$GITHUB_ENV"
       - uses: actions/cache@v4
         with:
           path: |
@@ -49,11 +50,12 @@ jobs:
       fail-fast: false
       matrix:
         swift: ["6.1.3", "6.3.2"]
-    env:
-      PKFASTEMBED_PREFIX: ${{ runner.temp }}/pkfastembed
-      PK_MINILM_MODEL_DIR: ${{ runner.temp }}/minilm-model
     steps:
       - uses: actions/checkout@v4
+      - name: Configure native paths
+        run: |
+          echo "PKFASTEMBED_PREFIX=$RUNNER_TEMP/pkfastembed" >> "$GITHUB_ENV"
+          echo "PK_MINILM_MODEL_DIR=$RUNNER_TEMP/minilm-model" >> "$GITHUB_ENV"
       - uses: swift-actions/setup-swift@v3
         with:
           swift-version: ${{ matrix.swift }}
@@ -93,11 +95,12 @@ jobs:
           - runner: macos-15-intel
             arch: macos-x86_64
     runs-on: ${{ matrix.runner }}
-    env:
-      PKFASTEMBED_PREFIX: ${{ runner.temp }}/pkfastembed
-      PK_MINILM_MODEL_DIR: ${{ runner.temp }}/minilm-model
     steps:
       - uses: actions/checkout@v4
+      - name: Configure native paths
+        run: |
+          echo "PKFASTEMBED_PREFIX=$RUNNER_TEMP/pkfastembed" >> "$GITHUB_ENV"
+          echo "PK_MINILM_MODEL_DIR=$RUNNER_TEMP/minilm-model" >> "$GITHUB_ENV"
       - uses: actions/cache@v4
         with:
           path: |
