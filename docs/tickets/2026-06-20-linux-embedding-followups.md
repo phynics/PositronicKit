@@ -1,6 +1,12 @@
 # Linux Embedding Follow-up Tickets
 
-These tickets close the gaps found while reviewing commit `20462fd`. Execute them in dependency order: **PKFAST-001**, **PKEMBED-002**, **PKCI-003**, then **PKDOC-004**. PKCI-003 may begin in parallel with PKFAST-001, but its MiniLM jobs cannot pass until PKEMBED-002 lands.
+This file now tracks the remaining Makefile-driven verification and contract work. The MiniLM shipping work from PKFAST-001 and PKEMBED-002 has landed in `PositronicKit/Package.swift` and the MiniLM contract tests, so those tickets are historical context rather than open follow-up items.
+
+## Completed
+
+- `PositronicKit/Package.swift` now declares the `MiniLMEmbeddings` trait, the local `Packages/PKFastEmbed` dependency, and the `PKMiniLMLinuxBackend` / `PKMiniLMTraitBackend` targets.
+- `PositronicKit/Tests/PKLocalEmbeddingsTests/MiniLMEmbeddingContractTests.swift` covers the landed MiniLM contract.
+- The package now documents an Apple default and an explicit MiniLM path instead of a pending platform-not-supported stub.
 
 ## PKFAST-001: Prove a SwiftPM-Compatible In-Process FastEmbed Bridge
 
@@ -180,20 +186,24 @@ swift test --traits MiniLMEmbeddings --filter MiniLMEmbeddingContractTests
 ## PKCI-003: Test the Minimum Swift Toolchain and Every Embedding Configuration
 
 **Priority:** P2  
-**Type:** CI hardening  
+**Type:** Makefile hardening  
 **Depends on:** PKEMBED-002 for MiniLM jobs; minimum-toolchain work can start independently  
 **Blocks:** PKDOC-004
 
 ### Summary
 
-Make CI validate the package's declared Swift 6.1 minimum and all supported local-embedding build configurations. The current Linux job only uses Swift 6.3.2, which can hide accidental dependencies on APIs newer than the manifest minimum.
+Make the package's verification gates validate the declared Swift 6.1 minimum and all supported local-embedding build configurations. The current `make` targets already drive the core package gates plus the MiniLM verification path, but they still need the minimum-toolchain axis and the full every-embedding-configuration coverage.
+
+### Current State
+
+`PositronicKit/Makefile` now runs `verify`, `verify-products`, and `verify-minilm` across the three package roots. The remaining work is to add the minimum-toolchain verification path and any missing per-configuration build commands so the make-based matrix matches the package matrix instead of only the core gates.
 
 ### Files
 
-- Modify: `.github/workflows/ci.yml`
+- Modify: `PositronicKit/Makefile`
 - Modify only if compatibility defects are found: `Package.swift`, affected sources, and focused tests
 
-### Required CI Matrix
+### Required Verification Matrix
 
 1. **Minimum Linux:** Ubuntu 24.04 with Swift 6.1.3.
 2. **Current Linux:** Ubuntu 24.04 with Swift 6.3.2.
@@ -239,14 +249,14 @@ if rg '(-lPKFastEmbed|PKFastEmbed\\.(framework|a))' default-apple-build.log; the
 - [ ] Swift 6.1.3 and Swift 6.3.2 Linux jobs both pass.
 - [ ] Every product classified as Linux-supported has an explicit build command.
 - [ ] Linux local-embedding tests perform real inference; they do not assert an unsupported-platform error.
-- [ ] Default macOS CI proves `PKFastEmbed` is absent from the linked product.
-- [ ] Trait-enabled macOS CI runs the MiniLM contract suite.
+- [ ] Default macOS verification proves `PKFastEmbed` is absent from the linked product.
+- [ ] Trait-enabled macOS verification runs the MiniLM contract suite.
 - [ ] Model cache keys include the exact model SHA-256 so stale assets cannot be reused.
-- [ ] Required branch protection includes the minimum Linux, current Linux, default macOS, and MiniLM macOS jobs.
+- [ ] Required verification coverage includes the minimum Linux, current Linux, default macOS, and MiniLM macOS targets.
 
 ### Verification
 
-Open or update a pull request and confirm all four required job classes complete successfully. Record links to the successful runs in the ticket before closing it.
+Run the required verification targets and confirm all four required target classes complete successfully. Record links or terminal output from the successful runs in the ticket before closing it.
 
 ---
 
@@ -269,7 +279,7 @@ Update public documentation after real Linux and trait-enabled macOS verificatio
 
 ### Required Documentation
 
-- Product support matrix backed by passing CI rather than "portable candidate" labels.
+- Product support matrix backed by passing verification rather than "portable candidate" labels.
 - `PKLocalEmbeddings` installation and imports.
 - Apple default Natural Language example.
 - Linux `LocalEmbeddingService(modelDirectory:)` example.
@@ -281,8 +291,8 @@ Update public documentation after real Linux and trait-enabled macOS verificatio
 
 ### Acceptance Criteria
 
-- [ ] Every README command is exercised in CI or a compiled documentation test.
-- [ ] Support labels match the required CI jobs from PKCI-003.
+- [ ] Every README command is exercised in verification or a compiled documentation test.
+- [ ] Support labels match the required verification targets from PKCI-003.
 - [ ] No documentation describes `swift-foundation` as an application package dependency.
 - [ ] No documentation promises multi-model selection or cross-platform-compatible vectors.
 - [ ] The public source migration from `PositronicKit.LocalEmbeddingService` to `PKLocalEmbeddings.LocalEmbeddingService` is called out.

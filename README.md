@@ -168,7 +168,11 @@ Workspace ownership is split intentionally:
 
 #### v1 Extension Point Registry
 
-The following public API surfaces are classified as **stable v1 extension points**. They are safe to depend on and will not change without a major version bump.
+The following public API surfaces are the **intended extension points** for downstream consumers.
+PositronicKit is currently **pre-1.0**: these surfaces are the most stable parts of the API and we
+make a best effort to avoid breaking them, but until a tagged 1.0 release they may change with a
+minor version bump. Breaking changes to these surfaces will be called out in the changelog. After
+1.0, these become the v1 compatibility contract and will only change across a major version.
 
 | Category | Protocol / Type | Module | Purpose |
 |----------|----------------|--------|---------|
