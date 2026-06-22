@@ -29,7 +29,6 @@ let package = Package(
         .package(url: "https://github.com/FlineDev/ErrorKit", from: "1.0.0"),
         .package(url: "https://github.com/ajevans99/swift-json-schema", from: "0.11.2"),
         .package(url: "https://github.com/apple/swift-crypto.git", exact: "3.15.1"),
-        .package(path: "Packages/PKFastEmbed"),
     ],
     targets: [
         .target(
@@ -70,11 +69,21 @@ let package = Package(
             ],
             path: "Sources/PKLocalEmbeddings"
         ),
+        .systemLibrary(
+            name: "CPKFastEmbed",
+            path: "Sources/CPKFastEmbed",
+            pkgConfig: "pkfastembed"
+        ),
+        .target(
+            name: "PKFastEmbed",
+            dependencies: ["CPKFastEmbed"],
+            path: "Sources/PKFastEmbed"
+        ),
         .target(
             name: "PKMiniLMLinuxBackend",
             dependencies: [
                 "PositronicKit",
-                .product(name: "PKFastEmbed", package: "PKFastEmbed"),
+                "PKFastEmbed",
             ],
             path: "Sources/PKMiniLMLinuxBackend"
         ),
@@ -82,11 +91,7 @@ let package = Package(
             name: "PKMiniLMTraitBackend",
             dependencies: [
                 "PositronicKit",
-                .product(
-                    name: "PKFastEmbed",
-                    package: "PKFastEmbed",
-                    condition: .when(traits: ["MiniLMEmbeddings"])
-                ),
+                .target(name: "PKFastEmbed", condition: .when(traits: ["MiniLMEmbeddings"])),
             ],
             path: "Sources/PKMiniLMTraitBackend"
         ),
@@ -167,6 +172,13 @@ let package = Package(
             ],
             path: "Tests/PKLocalEmbeddingsTests",
             resources: [.copy("Fixtures")]
+        ),
+        .testTarget(
+            name: "PKFastEmbedTests",
+            dependencies: [
+                .target(name: "PKFastEmbed", condition: .when(traits: ["MiniLMEmbeddings"])),
+            ],
+            path: "Tests/PKFastEmbedTests"
         ),
         .testTarget(
             name: "PKPromptTests",

@@ -119,9 +119,9 @@ Common adoption paths:
 
 ## Local Embeddings
 
-`PKLocalEmbeddings` keeps the local embedding facade separate from the runtime core. The MiniLM backend is fully in-process: it has no provider or daemon fallback and accepts only host-provisioned model assets. Native setup is bootstrapped with `Packages/PKFastEmbed/bootstrap.sh --prefix <path>`, then discovered through `PKG_CONFIG_PATH`.
+`PKLocalEmbeddings` keeps the local embedding facade separate from the runtime core. The MiniLM backend is fully in-process: it has no provider or daemon fallback and accepts only host-provisioned model assets. Native setup is bootstrapped with `native/pkfastembed/bootstrap.sh --prefix <path>`, then discovered through `PKG_CONFIG_PATH`.
 
-The pinned assets are `Qdrant/all-MiniLM-L6-v2-onnx` revision `5f1b8cd78bc4fb444dd171e59b18f3a3af89a079`; exact checksums are in `Packages/PKFastEmbed/model-assets.sha256`. Applications own the model directory and cache lifecycle.
+The pinned assets are `Qdrant/all-MiniLM-L6-v2-onnx` revision `5f1b8cd78bc4fb444dd171e59b18f3a3af89a079`; exact checksums are in `native/pkfastembed/model-assets.sha256`. Applications own the model directory and cache lifecycle.
 
 On Linux, construct `LocalEmbeddingService(modelDirectory:)`. On Apple builds using the `MiniLMEmbeddings` trait, construct `LocalEmbeddingService(miniLMModelDirectory:)`. Default Apple builds construct `LocalEmbeddingService()` and neither build nor link PKFastEmbed.
 

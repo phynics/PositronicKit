@@ -1,3 +1,4 @@
+#if MiniLMEmbeddings
 import CPKFastEmbed
 import Foundation
 @testable import PKFastEmbed
@@ -426,3 +427,4 @@ private final class NativeAPIHarness: @unchecked Sendable {
         return (0 ..< dimensions).map { Float((seed + $0) % 1000) }
     }
 }
+#endif

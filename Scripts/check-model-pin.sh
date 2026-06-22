@@ -3,12 +3,12 @@ set -euo pipefail
 
 # Enforces that the pinned MiniLM artifact identity stays in sync across every
 # place it is declared, so the pin can never silently drift:
-#   - Packages/PKFastEmbed/model-assets.sha256          (per-file SHA-256, shell/CI pin)
+#   - native/pkfastembed/model-assets.sha256            (per-file SHA-256, shell/CI pin)
 #   - Sources/PKLocalEmbeddings/MiniLMModelAssets.swift (per-file SHA-256 + revision, runtime pin)
 #   - Scripts/bootstrap-minilm-ci.sh                    (download revision)
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-manifest="$repo_root/Packages/PKFastEmbed/model-assets.sha256"
+manifest="$repo_root/native/pkfastembed/model-assets.sha256"
 swift="$repo_root/Sources/PKLocalEmbeddings/MiniLMModelAssets.swift"
 bootstrap="$repo_root/Scripts/bootstrap-minilm-ci.sh"
 
