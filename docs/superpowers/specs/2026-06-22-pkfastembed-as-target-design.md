@@ -158,7 +158,7 @@ host. No new `.library` product is exported for `PKFastEmbed`; it remains an int
 
 | From | To |
 |------|----|
-| `Packages/PKFastEmbed/Sources/CPKFastEmbed/` | `Sources/CPKFastEmbed/` |
+| `Packages/PKFastEmbed/Sources/CPKFastEmbed/` | `Sources/CPKFastEmbed/` (moves as a unit: `module.modulemap` **and** the vendored `include/pkfastembed.h`) |
 | `Packages/PKFastEmbed/Sources/PKFastEmbed/` | `Sources/PKFastEmbed/` |
 | `Packages/PKFastEmbed/Tests/PKFastEmbedTests/` | `Tests/PKFastEmbedTests/` |
 | `Packages/PKFastEmbed/native/` + `bootstrap.sh` + `model-assets.sha256` + `THIRD_PARTY_NOTICES.md` + `README.md` | `native/pkfastembed/` (flattened: crate files at top level alongside bootstrap.sh/assets) |
@@ -169,7 +169,19 @@ bootstrap). The `.swiftpm/` Xcode user data in the nested package is discarded.
 `native/pkfastembed/` is a non-target directory at the package root; SwiftPM does not treat it as a
 target, so its presence does not affect the build graph.
 
-### Test gating (the only behavioral change)
+The `CPKFastEmbed` `.systemLibrary` target links via its `module.modulemap`
+(`link "pkfastembed"`, `header "include/pkfastembed.h"`); `pkgConfig: "pkfastembed"` only supplies
+search paths/flags from the generated `pkfastembed.pc`. Both the modulemap and the vendored header
+move verbatim — neither is edited.
+
+### Test gating (the only change to test compilation)
+
+The `MiniLMEmbeddingContractTests` (in `Tests/PKLocalEmbeddingsTests`) already run under
+`--traits MiniLMEmbeddings` and reach the native lib through `PKMiniLMTraitBackend`; they are
+unaffected here except that `PKMiniLMTraitBackend`'s dependency is rewritten from a product ref to a
+trait-conditioned target ref (above), which preserves identical gating. The only *new* gating work is
+on `PKFastEmbedTests`:
+
 
 Wrap the **entire body** of `Tests/PKFastEmbedTests/PKFastEmbedTests.swift` in:
 
@@ -223,14 +235,37 @@ root and looks under `$SCRIPT_DIR/native/…`. After flattening, the crate *is* 
 + native/pkfastembed/bootstrap.sh --prefix "$prefix"
 ```
 
-**`Makefile`** `verify-minilm` target — replace the standalone-package test run with a trait-filtered
-run in the unified package:
+The checksum-check line (`shasum -a 256 --check "$OLDPWD/$manifest"`) needs **no** change: `$manifest`
+is referenced through the updated variable, and `$OLDPWD` still resolves to the repo root from which
+the script is invoked.
+
+The flattened `native/pkfastembed/README.md` describes a standalone SwiftPM package; trim or update
+it so it no longer claims to be its own package.
+
+**`Makefile`** `verify-minilm` target. The current target (lines 87-92) runs **two** invocations —
+the first runs the MiniLM contract suite under the trait, the second runs the standalone PKFastEmbed
+package:
 
 ```makefile
-- @PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
--     swift test --package-path Packages/PKFastEmbed
-+ @PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
-+     swift test --traits MiniLMEmbeddings --filter PKFastEmbedTests
+verify-minilm: bootstrap-minilm
+	@PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
+		swift test --traits MiniLMEmbeddings --filter MiniLMEmbeddingContractTests
+	@PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
+		PK_MINILM_MODEL_DIR="$(PK_MINILM_MODEL_DIR)" \
+		swift test --package-path Packages/PKFastEmbed
+```
+
+Leave the **first** invocation (`--filter MiniLMEmbeddingContractTests`) untouched. Replace only the
+**second** invocation (the `--package-path Packages/PKFastEmbed` run, lines 90-92) with a
+trait-filtered run of `PKFastEmbedTests` in the unified package, preserving the `PK_MINILM_MODEL_DIR`
+env the test reads at runtime:
+
+```makefile
+	@PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
+-		PK_MINILM_MODEL_DIR="$(PK_MINILM_MODEL_DIR)" \
+-		swift test --package-path Packages/PKFastEmbed
++		PK_MINILM_MODEL_DIR="$(PK_MINILM_MODEL_DIR)" \
++		swift test --traits MiniLMEmbeddings --filter PKFastEmbedTests
 ```
 
 The `audit-default-linkage` grep (`libpkfastembed|-lpkfastembed|PKFastEmbed\.build|PKMiniLMTraitBackend\.build`)
