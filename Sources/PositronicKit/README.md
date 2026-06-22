@@ -14,14 +14,20 @@ PositronicKit uses `swift-log` for runtime diagnostics.
 
 - The library does not bootstrap logging globally.
 - Hosts should call `LoggingSystem.bootstrap(...)` themselves when they want output.
-- Prompt assembly diagnostics are enabled by passing `logger:` in `PromptAssemblyOptions`.
+- Prompt-assembly diagnostics are enabled per turn by passing a `Logger` to
+  `PositronicKit.run(..., promptAssemblyLogger:)`. The internal `PromptAssembler` /
+  `PromptAssemblyOptions` types are not part of the public surface.
 
 ```swift
 import Logging
 import PositronicKit
 
 let logger = Logger(label: "com.example.prompt")
-let options = PromptAssemblyOptions(logger: logger)
+let events = try await chat.run(
+    timelineId: timelineId,
+    message: "…",
+    promptAssemblyLogger: logger
+)
 ```
 
 ## Key Components

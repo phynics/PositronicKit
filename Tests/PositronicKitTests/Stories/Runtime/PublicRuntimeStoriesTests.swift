@@ -1,12 +1,73 @@
 import Foundation
-@testable import PositronicKit
+import Logging
 import PKPrompt
 @testable import PKShared
 import PKTestSupport
+@testable import PositronicKit
 import Testing
+
+private final class CapturingLogSink: @unchecked Sendable {
+    private let lock = NSLock()
+    private var messages: [String] = []
+
+    func append(_ message: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        messages.append(message)
+    }
+
+    func all() -> [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return messages
+    }
+}
+
+private struct CapturingLogHandler: LogHandler {
+    let sink: CapturingLogSink
+    var logLevel: Logger.Level = .debug
+    var metadata = Logger.Metadata()
+
+    subscript(metadataKey key: String) -> Logger.MetadataValue? {
+        get { metadata[key] }
+        set { metadata[key] = newValue }
+    }
+
+    func log(
+        level _: Logger.Level,
+        message: Logger.Message,
+        metadata _: Logger.Metadata?,
+        source _: String,
+        file _: String,
+        function _: String,
+        line _: UInt
+    ) {
+        sink.append(message.description)
+    }
+}
 
 @Suite("Public runtime stories", .serialized)
 struct PublicRuntimeStoriesTests {
+    @Test("promptAssemblyLogger surfaces prompt-assembly diagnostics through the facade")
+    func promptAssemblyLoggerEmitsDiagnostics() async throws {
+        let (chat, mockLLM, _, timelineId, _) = try await makeAcceptanceRuntime()
+        mockLLM.mockClient.nextResponse = "ok"
+
+        let sink = CapturingLogSink()
+        let logger = Logger(label: "test.facade.prompt-assembly") { _ in
+            CapturingLogHandler(sink: sink)
+        }
+
+        _ = try await chat.run(
+            timelineId: timelineId,
+            message: "Diagnose assembly",
+            promptAssemblyLogger: logger
+        ).collect()
+
+        // PromptAssembler logs section resolution at .debug when a logger is supplied.
+        #expect(sink.all().contains(where: { $0.contains("prompt section") }))
+    }
+
     @Test
     func directFacadeInitializationSupportsOneTurnChat() async throws {
         let (chat, mockLLM, mockPersistence, timelineId, _) = try await makeAcceptanceRuntime()
@@ -94,7 +155,8 @@ struct PublicRuntimeStoriesTests {
         }))
         #expect(events.contains(where: {
             if case let .completion(event: .toolExecution(id, status)) = $0,
-               case let .success(result) = status {
+               case let .success(result) = status
+            {
                 return id == "call_1" && result.output == "Tool result"
             }
             return false

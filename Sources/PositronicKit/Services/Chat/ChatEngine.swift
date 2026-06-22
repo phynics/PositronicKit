@@ -11,8 +11,8 @@ import PKShared
 /// plugin follow-up. It is deliberately *not* the public customization surface for downstream
 /// applications; external callers are expected to integrate through `PositronicKit` and the
 /// higher-level extension protocols rather than depending on this concrete orchestrator directly.
-struct ChatEngine: Sendable {
-    struct Dependencies: Sendable {
+struct ChatEngine {
+    struct Dependencies {
         let timelineManager: TimelineManager
         let agentInstanceStore: any AgentInstanceStoreProtocol
         let requestOriginStore: any RequestOriginStoreProtocol
@@ -38,32 +38,7 @@ struct ChatEngine: Sendable {
 
     var additionalStages: [any PipelineStage<ChatTurnContext, ChatEvent>] = []
 
-    public init(dependencies: Dependencies) {
-        self.dependencies = dependencies
-    }
-
-    public init() {
-        let timelineManager = TimelineManager(
-            workspaceRoot: FileManager.default.temporaryDirectory
-        )
-        let messageStore = InMemoryMessageStore()
-        self.init(
-            dependencies: .init(
-                timelineManager: timelineManager,
-                agentInstanceStore: InMemoryAgentInstanceStore(),
-                requestOriginStore: InMemoryRequestOriginStore(),
-                messageStore: messageStore,
-                llmService: UnconfiguredLLMService(),
-                toolRouter: ToolRouter(
-                    timelineManager: timelineManager,
-                    messageStore: messageStore
-                ),
-                chatTurnPlugins: []
-            )
-        )
-    }
-
-    // MARK: - Public API
+    // MARK: - API
 
     /// Execute a chat turn and return a stream of deltas.
     /// - Parameters:
@@ -76,7 +51,7 @@ struct ChatEngine: Sendable {
     ///   - agentInstanceId: Optional identifier for the agent instance.
     ///   - maxTurns: Maximum number of LLM turns before stopping. Defaults to 5.
     /// - Returns: An asynchronous stream of chat events.
-    public func execute(
+    func execute(
         timelineId: UUID,
         message: String,
         tools: [AnyTool],
@@ -87,7 +62,8 @@ struct ChatEngine: Sendable {
         maxTurns: Int = Constants.defaultMaxTurns,
         generationParameters: GenerationParameters? = nil,
         contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
-        assemblyPipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>? = nil
+        assemblyPipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>? = nil,
+        assemblyLogger: Logger? = nil
     ) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         let sid = ANSIColors.colorize(timelineId.uuidString.prefix(8).lowercased(), color: ANSIColors.brightBlue)
         logger.info("Starting chat stream for timeline \(sid)")
@@ -105,7 +81,8 @@ struct ChatEngine: Sendable {
             maxTurns: maxTurns,
             generationParameters: generationParameters,
             contextPipeline: contextPipeline,
-            assemblyPipeline: assemblyPipeline
+            assemblyPipeline: assemblyPipeline,
+            assemblyLogger: assemblyLogger
         )
 
         return AsyncThrowingStream<ChatEvent, Error> { continuation in

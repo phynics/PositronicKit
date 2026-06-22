@@ -73,7 +73,8 @@ PositronicKit uses `swift-log` only.
 - The library does not call `LoggingSystem.bootstrap(...)`.
 - Your host application or CLI should bootstrap logging once, at process startup.
 - Runtime services emit normal operational logs through `Logger.module(...)`.
-- Prompt assembly emits verbose diagnostics only when you pass a `Logger` through `PromptAssemblyOptions`.
+- Prompt assembly emits verbose diagnostics only when you pass a `Logger` to
+  `PositronicKit.run(..., promptAssemblyLogger:)`.
 
 ```swift
 import Logging
@@ -84,7 +85,11 @@ LoggingSystem.bootstrap { label in
 }
 
 let logger = Logger(label: "com.example.prompt")
-let options = PromptAssemblyOptions(logger: logger)
+let events = try await chat.run(
+    timelineId: timelineId,
+    message: "…",
+    promptAssemblyLogger: logger
+)
 ```
 
 ## 3. Setting Up a Pipeline

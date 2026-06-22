@@ -67,7 +67,8 @@ and `Sources/PKLocalEmbeddings/MiniLMModelAssets.swift`; `verify-pin` (run by
 - Downstream pluggability is non-negotiable: persistence, workspace resolution, tool execution, prompting, and UI/network layers are all injectable.
 - Consume `PKPrompt` artifacts (`AssembledPrompt`, `RenderedPrompt`). Never reimplement prompt-tree semantics.
 - Extension points: persistence protocols, `WorkspaceCreating`/`WorkspaceProtocol`, `PromptSectionProviding`, `ToolRouter`, `ChatTurnPlugin`.
-- Core types: `Timeline`, `AgentInstance`, `ChatEngine`, `TimelineManager`, `ToolRouter`, `WorkspaceManager`.
+- Primary entry point: the `PositronicKit` facade (`run(...)`). Advanced hosts may compose public runtime seams (`TimelineManager`, `ToolRouter`, persistence/workspace protocols) directly.
+- Core public types: `Timeline`, `AgentInstance`, `TimelineManager`, `ToolRouter`, `WorkspaceManager`. `ChatEngine` and the turn pipeline are internal implementation details (driven through the facade).
 
 ## PKPrompt Invariants
 

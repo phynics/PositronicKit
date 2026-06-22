@@ -5,6 +5,11 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
+/// Synchronous, non-cancellable sleep used to model a blocking tool body in tests.
+private func blockingThreadSleep(_ seconds: TimeInterval) {
+    Thread.sleep(forTimeInterval: seconds)
+}
+
 private func captureProjectedToolEvents(
     _ body: @Sendable @escaping (AsyncThrowingStream<ChatEvent, Error>.Continuation) async throws -> Void
 ) async throws -> [ChatEvent] {
@@ -24,6 +29,35 @@ private func captureProjectedToolEvents(
         events.append(event)
     }
     return events
+}
+
+/// Variant of `captureProjectedToolEvents` that returns the body's result, draining (and discarding)
+/// the projected event stream so the body runs to completion.
+private actor ResultHolder<R: Sendable> {
+    var value: R?
+    func set(_ newValue: R) {
+        value = newValue
+    }
+}
+
+private func captureProjectedToolEventsResult<R: Sendable>(
+    _ body: @Sendable @escaping (AsyncThrowingStream<ChatEvent, Error>.Continuation) async throws -> R
+) async throws -> R {
+    let holder = ResultHolder<R>()
+    let stream = AsyncThrowingStream<ChatEvent, Error> { continuation in
+        Task {
+            do {
+                let value = try await body(continuation)
+                await holder.set(value)
+                continuation.finish()
+            } catch {
+                continuation.finish(throwing: error)
+            }
+        }
+    }
+
+    for try await _ in stream {}
+    return try #require(await holder.value)
 }
 
 final class ToolRouterTests {
@@ -65,6 +99,30 @@ final class ToolRouterTests {
 
         func execute(parameters _: [String: Any]) async throws -> ToolResult {
             try await Task.sleep(for: .seconds(60))
+            return .success("late")
+        }
+    }
+
+    /// A tool that blocks its executor thread and ignores cooperative cancellation entirely,
+    /// modelling a synchronous/blocking tool body (e.g. a blocking subprocess or sync network call).
+    struct UncooperativeTool: PKShared.Tool {
+        let id = "uncooperative"
+        let name = "uncooperative"
+        let description = "A tool that blocks and ignores cancellation"
+        let requiresPermission = false
+        let blockSeconds: TimeInterval
+        var parametersSchema: [String: AnyCodable] {
+            [:]
+        }
+
+        func canExecute() async -> Bool {
+            true
+        }
+
+        func execute(parameters _: [String: Any]) async throws -> ToolResult {
+            // A blocking, non-cancellable sleep models a synchronous tool body. It does not observe
+            // Task cancellation, so the timeout must bound it without awaiting completion.
+            blockingThreadSleep(blockSeconds)
             return .success("late")
         }
     }
@@ -254,6 +312,51 @@ final class ToolRouterTests {
             }
             return false
         }))
+    }
+
+    @Test("Timeout bounds wall-clock time even for tools that ignore cancellation")
+    func timeoutBoundsUncooperativeTool() async throws {
+        let (timelineManager, mockPersistence) = try await setupTimelineManager()
+        let toolRouter = ToolRouter(
+            timelineManager: timelineManager,
+            messageStore: mockPersistence,
+            toolExecutionTimeout: 0.05
+        )
+
+        let session = try await timelineManager.createTimeline()
+        let workspaceId = UUID()
+        let workspaceRef = try WorkspaceReference(
+            id: workspaceId,
+            uri: #require(WorkspaceURI(parsing: "pk://local")),
+            location: .runtime,
+            originId: nil
+        )
+        try await mockPersistence.saveWorkspace(workspaceRef)
+        try await timelineManager.attachWorkspace(workspaceId, to: session.id)
+        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("uncooperative"))
+
+        let toolManager = await timelineManager.getToolManager(for: session.id)
+        try #require(toolManager != nil)
+        // Tool body blocks for 3 seconds and ignores cancellation; the 0.05s timeout must win.
+        await toolManager?.updateAvailableTools([UncooperativeTool(blockSeconds: 3).toAnyTool()])
+
+        let call = ParsedToolCall(callId: "call-timeout", name: "uncooperative", argumentsJSON: "{}")
+
+        let start = ContinuousClock.now
+        let result = try await captureProjectedToolEventsResult { continuation in
+            try await toolRouter.handlePendingToolCalls(
+                timelineId: session.id,
+                calls: [call],
+                availableTools: [],
+                continuation: continuation
+            )
+        }
+        let elapsed = ContinuousClock.now - start
+
+        // The call must return promptly on timeout, not block until the tool finishes (~3s).
+        #expect(elapsed < .seconds(1))
+        #expect(result.hasDeferred == false)
+        #expect(result.resolvedToolParams.first?.content.contains("timed out") == true)
     }
 }
 

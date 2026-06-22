@@ -8,16 +8,16 @@ PositronicKit provides the public runtime entry point for timeline management, p
 
 ### Key Components
 
-- **ChatEngine**: Orchestrates the interaction between users, agent templates, and LLMs.
-- **ContextManager**: Handles semantic retrieval and context window optimization.
+- **PositronicKit facade**: The public entry point; `run(...)` drives a chat turn end to end.
+- **TimelineManager**: Coordinates timeline lifecycle, context gathering, and workspace attachment.
 - **Persistence Layer**: A suite of domain-specific store protocols.
-- **Tool System**: Runtime-managed and host-attached tool routing over shared tool contracts.
+- **Tool System**: Runtime-managed and host-attached tool routing (`ToolRouter`) over shared tool contracts.
 
 ### Logging And Errors
 
 - Runtime diagnostics use `swift-log`.
 - Hosts own logging bootstrap and log-level configuration.
-- Prompt assembly diagnostics are enabled with `PromptAssemblyOptions(logger:)`.
+- Prompt assembly diagnostics are enabled per turn with `PositronicKit.run(..., promptAssemblyLogger:)`.
 - Package-defined errors conform to `PKError` and surface user-facing messages through `ErrorKit`.
 
 ## Topics

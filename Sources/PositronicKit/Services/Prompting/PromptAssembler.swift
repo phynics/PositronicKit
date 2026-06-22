@@ -14,7 +14,7 @@ enum PromptAssembler {
 
     /// Returns the standard sequence of stages used to assemble a prompt.
     /// - Returns: An array of pipeline stages in their default execution order.
-    public static func defaultAssemblyStages() -> [any PipelineStage<PromptAssemblyContext, PromptAssemblyEvent>] {
+    static func defaultAssemblyStages() -> [any PipelineStage<PromptAssemblyContext, PromptAssemblyEvent>] {
         [
             SystemInstructionsStage(),
             AgentContextStage(),
@@ -25,7 +25,7 @@ enum PromptAssembler {
             TimelineContextStage(),
             ChatHistoryStage(),
             UserQueryStage(),
-            ExtensionSectionsStage()
+            ExtensionSectionsStage(),
         ]
     }
 
@@ -41,7 +41,7 @@ enum PromptAssembler {
     ///   - extensionSections: Optional additional sections from external extensions.
     /// - Returns: A fully assembled prompt artifact.
     /// - Throws: An error if pipeline execution fails.
-    public static func assemble(
+    static func assemble(
         _ request: LLMPromptRequest,
         agentInstance: AgentInstance? = nil,
         timeline: Timeline? = nil,
@@ -63,7 +63,7 @@ enum PromptAssembler {
     /// When `options.tokenBudget` is present and the resolved prompt is over budget, prompt
     /// assembly first runs the structured compression pass with section metadata and then falls
     /// back to the simpler priority-based token allocator if the prompt is still over budget.
-    public static func assemble(
+    static func assemble(
         _ request: LLMPromptRequest,
         agentInstance: AgentInstance? = nil,
         timeline: Timeline? = nil,
@@ -101,13 +101,13 @@ enum PromptAssembler {
     /// - Parameter request: The prompt request data.
     /// - Returns: A result containing structured messages and the raw prompt string.
     /// - Throws: An error if assembly fails.
-    public static func prepare(_ request: LLMPromptRequest) async throws -> LLMPromptResult {
+    static func prepare(_ request: LLMPromptRequest) async throws -> LLMPromptResult {
         let rendered = try await assemble(request)
         return LLMPromptResult(messages: rendered.buildMessages(), rawPrompt: rendered.string)
     }
 
     /// Builds a prompt for LLM submission using explicit advanced assembly options.
-    public static func prepare(
+    static func prepare(
         _ request: LLMPromptRequest,
         options: PromptAssemblyOptions
     ) async throws -> LLMPromptResult {

@@ -56,4 +56,87 @@ public enum PKPromptExamples {
             UserPrompt(userQuery)
         }
     }
+
+    // MARK: - README "Choosing A Layer" examples
+
+    //
+    // These mirror the three consumption layers documented in README.md so the
+    // docs stay compile-checked. Keep them in sync with the README snippets.
+
+    /// README Layer 1: Prompt → String.
+    ///
+    /// The smallest surface area: author a prompt, get canonical rendered text.
+    public static func renderLayer1ToString() async -> String? {
+        let prompt = AnyPrompt.build {
+            LayerExamplePrompt(tools: ["build", "test", "lint"])
+            UserPrompt("Recommend the safest next step.")
+        }
+
+        return await prompt.renderToString()
+    }
+
+    /// README Layer 2: Prompt → AssembledPrompt → RenderedPrompt.
+    ///
+    /// Full visibility into validated sections, rendered content, and compression outcomes.
+    public static func assembleLayer2() async throws -> (AssembledPrompt, RenderedPrompt) {
+        let prompt = AnyPrompt.build {
+            SystemPrompt("You are helping with project tooling.")
+            TextPrompt("- build\n- test\n- lint", id: "tools")
+                .compression(.summarize)
+                .cachePolicy(.semiStable)
+            UserPrompt("Recommend the safest next step.")
+        }
+
+        let assembled = try prompt.assemblePrompt()
+        let rendered = await assembled.render()
+        return (assembled, rendered)
+    }
+
+    /// README Layer 3: RenderedPrompt → PromptJournal.
+    ///
+    /// Prompt structure survives across snapshots: stable content stays materialized,
+    /// semi-stable changes become overlays, volatile content stays current-only.
+    public static func journalLayer3() async throws -> (
+        initialPlan: PromptJournalPlan,
+        updatedPlan: PromptJournalPlan,
+        compactedPlan: PromptJournalPlan?
+    ) {
+        var journal = PromptJournal()
+
+        let first = try await AnyPrompt.build {
+            SystemPrompt("You are helping with project tooling.")
+            TextPrompt("- build\n- test\n- lint", id: "tools")
+                .cachePolicy(.semiStable)
+            UserPrompt("Recommend the safest next step.")
+        }.assemblePrompt().render()
+
+        let second = try await AnyPrompt.build {
+            SystemPrompt("You are helping with project tooling.")
+            TextPrompt("- build\n- test\n- lint\n- format", id: "tools")
+                .cachePolicy(.semiStable)
+            UserPrompt("Recommend the safest next step.")
+        }.assemblePrompt().render()
+
+        let initialPlan = journal.observe(first)
+        let updatedPlan = journal.observe(second)
+        let compactedPlan = journal.compact()
+        return (initialPlan, updatedPlan, compactedPlan)
+    }
+}
+
+/// Supporting type for README Layer 1: a custom `Prompt` authored via `var body`.
+public struct LayerExamplePrompt: Prompt {
+    public let tools: [String]
+
+    public init(tools: [String]) {
+        self.tools = tools
+    }
+
+    public var body: some Prompt {
+        SystemPrompt("You are helping with project tooling.")
+
+        TextPrompt(tools.map { "- \($0)" }.joined(separator: "\n"), id: "tools")
+            .compression(.summarize)
+            .cachePolicy(.semiStable)
+    }
 }

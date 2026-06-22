@@ -1,4 +1,5 @@
 import Foundation
+import Logging
 import PKPrompt
 import PKShared
 
@@ -190,6 +191,9 @@ public struct PositronicKit: Sendable {
     ///   - agentInstanceId: Optional identifier for the agent instance.
     ///   - maxTurns: Maximum number of LLM turns before stopping. Defaults to 5.
     ///   - generationParameters: Optional parameters for generation (overrides defaults).
+    ///   - promptAssemblyLogger: Optional `swift-log` logger that enables prompt-assembly
+    ///     diagnostics for this turn (stage execution, section resolution, and token-budget
+    ///     decisions). Control verbosity through the logger's log level. Defaults to no diagnostics.
     /// - Returns: An asynchronous stream of chat events.
     public func run(
         timelineId: UUID,
@@ -199,7 +203,8 @@ public struct PositronicKit: Sendable {
         systemInstructions: String? = nil,
         agentInstanceId: UUID? = nil,
         maxTurns: Int = 5,
-        generationParameters: GenerationParameters? = nil
+        generationParameters: GenerationParameters? = nil,
+        promptAssemblyLogger: Logger? = nil
     ) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         let resolvedContextManager = await resolveContextManager(
             explicit: nil,
@@ -215,7 +220,8 @@ public struct PositronicKit: Sendable {
             systemInstructions: systemInstructions,
             agentInstanceId: agentInstanceId,
             maxTurns: maxTurns,
-            generationParameters: generationParameters ?? defaultGenerationParameters
+            generationParameters: generationParameters ?? defaultGenerationParameters,
+            assemblyLogger: promptAssemblyLogger
         )
     }
 

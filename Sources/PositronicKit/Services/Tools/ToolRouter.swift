@@ -11,14 +11,17 @@ public enum ToolExecutionOutcome: Sendable {
 }
 
 /// A fully parsed tool call from the LLM response, ready for routing.
-public struct ParsedToolCall: Sendable {
-    public let callId: String
-    public let name: String
-    public let argumentsJSON: String
+///
+/// This is a runtime-internal routing detail (`package`-scoped): it is produced and consumed inside
+/// the chat loop and is not part of the downstream public surface.
+package struct ParsedToolCall {
+    package let callId: String
+    package let name: String
+    package let argumentsJSON: String
     /// Arguments decoded once at init time. `nil` when JSON is malformed or not a JSON object.
-    public let arguments: [String: AnyCodable]?
+    package let arguments: [String: AnyCodable]?
 
-    public init(callId: String, name: String, argumentsJSON: String) {
+    package init(callId: String, name: String, argumentsJSON: String) {
         self.callId = callId
         self.name = name
         self.argumentsJSON = argumentsJSON
@@ -28,22 +31,38 @@ public struct ParsedToolCall: Sendable {
 }
 
 /// Result of handling all pending tool calls in a turn.
-public struct ToolHandlingResult: Sendable {
+///
+/// Runtime-internal (`package`-scoped); returned by `handlePendingToolCalls` to the chat loop.
+package struct ToolHandlingResult {
     /// Whether any tool calls were deferred for external execution.
-    public let hasDeferred: Bool
+    package let hasDeferred: Bool
     /// Provider-neutral tool result messages for runtime-resolved calls.
-    public let resolvedToolParams: [LLMMessage]
+    package let resolvedToolParams: [LLMMessage]
 }
 
 /// Result of processing tool calls from a completed LLM turn.
 /// Includes the assistant message (with tool call definitions) and resolved tool results.
-public enum ToolTurnResult: Sendable {
+///
+/// Runtime-internal (`package`-scoped); consumed by the chat loop.
+package enum ToolTurnResult {
     /// No tool calls were produced — the turn is complete.
     case noToolCalls
     /// All tool calls were resolved by this runtime; continue the loop with these messages.
     case continueWith([LLMMessage])
     /// At least one tool call was deferred for external execution — stop and wait.
     case deferredExternally
+}
+
+/// Ensures exactly one winner resolves a raced continuation. `claim()` returns `true` for the first
+/// caller only; all subsequent callers get `false` and must not resume the continuation.
+private actor TimeoutRaceResolver {
+    private var claimed = false
+
+    func claim() -> Bool {
+        guard !claimed else { return false }
+        claimed = true
+        return true
+    }
 }
 
 // MARK: - ToolRouter
@@ -80,16 +99,6 @@ public actor ToolRouter {
         self.timelineManager = timelineManager
         self.messageStore = messageStore
         self.toolExecutionTimeout = toolExecutionTimeout
-    }
-
-    public init() {
-        let timelineManager = TimelineManager(
-            workspaceRoot: FileManager.default.temporaryDirectory
-        )
-        self.init(
-            timelineManager: timelineManager,
-            messageStore: InMemoryMessageStore()
-        )
     }
 
     // MARK: - Turn-Level API
@@ -145,7 +154,7 @@ public actor ToolRouter {
     /// - Runtime-managed tools are executed immediately; results are persisted and returned.
     /// - External tools are skipped; the host executes and submits results asynchronously.
     /// - Private timelines may not defer to externally hosted tools — an error is thrown instead.
-    public func handlePendingToolCalls(
+    package func handlePendingToolCalls(
         timelineId: UUID,
         calls: [ParsedToolCall],
         availableTools: [AnyTool],
@@ -223,7 +232,8 @@ public actor ToolRouter {
             workspaceId = resolved
         } else if let dynamicTools = availableTools,
                   dynamicTools.contains(where: { $0.toolReference == tool || $0.id == tool.toolId }),
-                  let primaryWorkspaceId = await timelineManager.getWorkspaces(for: timelineId)?.primary?.id {
+                  let primaryWorkspaceId = await timelineManager.getWorkspaces(for: timelineId)?.primary?.id
+        {
             // Dynamic/per-turn tools may not be persisted in workspace-tool mappings.
             workspaceId = primaryWorkspaceId
         } else {
@@ -270,7 +280,8 @@ public actor ToolRouter {
 
         // Check for explicit intent in arguments
         if let explicitIdString = arguments["workspaceID"]?.value as? String,
-           let explicitId = UUID(uuidString: explicitIdString.trimmingCharacters(in: .whitespacesAndNewlines)) {
+           let explicitId = UUID(uuidString: explicitIdString.trimmingCharacters(in: .whitespacesAndNewlines))
+        {
             guard candidates.contains(explicitId) else {
                 logger.warning("Requested workspaceID \(explicitId) not found in timeline context. Falling back to default resolution.")
                 return try await timelineManager.findWorkspaceForTool(tool, in: candidates)
@@ -324,26 +335,55 @@ public actor ToolRouter {
         }
     }
 
+    /// Executes a tool, enforcing a wall-clock timeout.
+    ///
+    /// The timeout is enforced even for tools whose bodies ignore cooperative cancellation (e.g. a
+    /// blocking subprocess or synchronous network call). The tool runs in an unstructured task that
+    /// is raced against a timeout; whichever finishes first resolves the call. On timeout the tool
+    /// task is cancelled best-effort and abandoned — the caller returns immediately rather than
+    /// blocking until an uncooperative tool eventually finishes.
     private func executeWithTimeout(
         tool: AnyTool,
         arguments: [String: AnyCodable],
         timeout: TimeInterval
     ) async throws -> ToolResult {
-        try await withThrowingTaskGroup(of: ToolResult.self) { group in
-            group.addTask {
-                try await tool.execute(parameters: arguments.toAnyDictionary)
-            }
-            group.addTask {
-                let nanoseconds = UInt64(max(0, timeout) * 1_000_000_000)
-                try await Task.sleep(nanoseconds: nanoseconds)
-                throw ToolError.executionFailed("Tool execution timed out after \(Self.timeoutDescription(timeout))")
-            }
+        let nanoseconds = UInt64(max(0, timeout) * 1_000_000_000)
+        let timeoutMessage = "Tool execution timed out after \(Self.timeoutDescription(timeout))"
 
-            guard let result = try await group.next() else {
-                throw ToolError.executionFailed("Tool execution timed out after \(Self.timeoutDescription(timeout))")
+        let toolTask = Task { try await tool.execute(parameters: arguments.toAnyDictionary) }
+        let timeoutTask = Task { try await Task.sleep(nanoseconds: nanoseconds) }
+        let resolver = TimeoutRaceResolver()
+
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<ToolResult, Error>) in
+                // Tool-completion path.
+                Task {
+                    let outcome: Result<ToolResult, Error>
+                    do {
+                        outcome = try .success(await toolTask.value)
+                    } catch {
+                        outcome = .failure(error)
+                    }
+                    if await resolver.claim() {
+                        timeoutTask.cancel()
+                        continuation.resume(with: outcome)
+                    }
+                }
+
+                // Timeout path.
+                Task {
+                    // Throws `CancellationError` when the tool finished first and cancelled the
+                    // sleep; in that case the tool path owns the result, so do nothing.
+                    guard (try? await timeoutTask.value) != nil else { return }
+                    if await resolver.claim() {
+                        toolTask.cancel()
+                        continuation.resume(throwing: ToolError.executionFailed(timeoutMessage))
+                    }
+                }
             }
-            group.cancelAll()
-            return result
+        } onCancel: {
+            toolTask.cancel()
+            timeoutTask.cancel()
         }
     }
 
