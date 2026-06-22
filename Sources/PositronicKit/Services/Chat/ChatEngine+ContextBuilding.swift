@@ -44,7 +44,8 @@ extension ChatEngine {
         maxTurns: Int,
         generationParameters: GenerationParameters?,
         contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
-        assemblyPipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>? = nil
+        assemblyPipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>? = nil,
+        assemblyLogger: Logger? = nil
     ) async throws -> ChatTurnContext {
         // 1. Save new inputs (user message or externally submitted tool outputs)
         try await saveConversationSteps(timelineId: timelineId, message: message, toolOutputs: toolOutputs)
@@ -74,7 +75,8 @@ extension ChatEngine {
 
         var requestOriginName: String?
         if let originId = requestOriginId,
-            let origin = try? await dependencies.requestOriginStore.fetchOrigin(id: originId) {
+           let origin = try? await dependencies.requestOriginStore.fetchOrigin(id: originId)
+        {
             requestOriginName = origin.displayName
         }
 
@@ -112,6 +114,7 @@ extension ChatEngine {
             options: PromptAssemblyOptions(
                 overridePipeline: assemblyPipeline,
                 tokenBudget: budget,
+                logger: assemblyLogger,
                 structuredDiff: structuredDiff
             )
         )

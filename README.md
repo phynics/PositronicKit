@@ -103,7 +103,7 @@ Use **PKOpenAIProvider**, **PKOpenRouterProvider**, or **PKOllamaProvider** when
 If you are starting fresh, pick the smallest surface that matches your need:
 
 - **Use `PKPrompt` only** when you just need prompt composition, rendering, journaling, or token-budget-aware prompt assembly without timelines, tools, or runtime orchestration.
-- **Use `PositronicKit`** when you want the transport-neutral runtime facade: chat turns, timelines, prompt assembly, tool routing, persistence hooks, and streamed `ChatEvent` handling.
+- **Use the `PositronicKit` facade** (the primary entry point) when you want the transport-neutral runtime: chat turns, timelines, prompt assembly, tool routing, persistence hooks, and streamed `ChatEvent` handling. Advanced hosts can also compose the runtime seams (`TimelineManager`, `ToolRouter`, …) directly — see "Two Ways In" below.
 - **Use provider packages** (`PKOpenAIProvider`, `PKOpenRouterProvider`, `PKOllamaProvider`) when you want convenience initializers or concrete provider registration without embedding those adapters into your own runtime layer.
 - **Use custom workspaces** when your host app owns filesystem, remote execution, or attachment behavior. Implement `WorkspaceCreating` / `WorkspaceProtocol`, then inject that boundary into the runtime instead of forking core orchestration.
 - **Use structured output APIs** when your main need is schema-driven responses and typed decoding on top of the shared provider contracts, whether or not you adopt the full runtime facade.
@@ -131,13 +131,20 @@ Natural Language and MiniLM vectors are not interchangeable and must not share a
 
 PositronicKit is the orchestration layer. It manages the full lifecycle of an agent interaction — from resolving state, through prompt assembly and tool execution, to persisting results.
 
+### Two Ways In: Facade (Primary) vs. Direct Seams (Advanced)
+
+- **The `PositronicKit` facade is the primary entry point.** Construct it, call `run(...)`, and consume the streamed `ChatEvent`s. It wires the runtime internally, so most consumers never touch the underlying coordinators. Single-process apps and CLIs should start here.
+- **Advanced hosts may compose the public runtime seams directly.** When you own a server or a custom composition root, you can construct and hold `TimelineManager`, `ToolRouter`, and the persistence/workspace protocols yourself, and even inject them back into the facade via the grouped `runtime:` / `persistence:` initializers. This is the supported "advanced" tier — not a private API — but you opt into more wiring in exchange for more control.
+
+Prefer the facade unless you specifically need a seam it doesn't surface. The chat-loop internals (`ChatEngine`, the turn pipeline, prompt-assembly internals) remain runtime implementation details either way.
+
 ### Core Concepts
 
 - **Timeline** — a unit of conversation and execution state.
 - **AgentInstance** — reusable agent identity and configuration.
-- **ChatEngine** — drives the chat loop: gather context → assemble prompt → stream LLM response → extract tool calls → persist results.
-- **ToolRouter** — resolves and executes tools within timeline and workspace scope.
-- **TimelineManager** — manages timeline lifecycle, archiving, and tool state.
+- **`PositronicKit` facade** — the primary entry point; `run(...)` drives the chat loop end to end (gather context → assemble prompt → stream LLM response → extract tool calls → persist results).
+- **ToolRouter** — resolves and executes tools within timeline and workspace scope (advanced seam; the facade builds one for you).
+- **TimelineManager** — manages timeline lifecycle, archiving, and tool state (advanced seam).
 - **WorkspaceManager** — resolves concrete workspace implementations behind `WorkspaceProtocol`.
 
 ### Typical Flow
@@ -171,8 +178,9 @@ Workspace ownership is split intentionally:
 The following public API surfaces are the **intended extension points** for downstream consumers.
 PositronicKit is currently **pre-1.0**: these surfaces are the most stable parts of the API and we
 make a best effort to avoid breaking them, but until a tagged 1.0 release they may change with a
-minor version bump. Breaking changes to these surfaces will be called out in the changelog. After
-1.0, these become the v1 compatibility contract and will only change across a major version.
+minor version bump. Breaking changes to these surfaces are called out under a `Breaking` heading in
+[CHANGELOG.md](CHANGELOG.md). After 1.0, these become the v1 compatibility contract and will only
+change across a major version.
 
 | Category | Protocol / Type | Module | Purpose |
 |----------|----------------|--------|---------|
@@ -189,13 +197,20 @@ minor version bump. Breaking changes to these surfaces will be called out in the
 | **Configuration** | `LLMConfiguration`, `GenerationParameters`, `LLMProvider` | PKShared | LLM configuration |
 | **Events** | `ChatEvent`, `ToolExecutionStatus`, `Message` | PKShared | Stream event types |
 | **Pipeline** | `PipelineStage`, `PipelineBuilder`, `PipelineError` | PKShared | Custom pipeline stages (advanced) |
+| **Runtime coordinators (advanced)** | `TimelineManager`, `ToolRouter`, `ToolExecutionOutcome`, `RuntimeToolPolicy` | PositronicKit | Direct runtime seams for hosts with their own composition root; the facade builds these for you, or accepts them via the grouped `runtime:` initializer |
+
+The **`PositronicKit` facade** is the primary public entry point (`run(...)`). The "advanced" seams
+above are fully supported but optional — reach for them only when you own the composition root and
+need direct access (see "Two Ways In" above).
+
+`InMemory*` stores (and `PositronicKit.PersistenceConfiguration.inMemory()`) are **public prototyping/test
+helpers**, not extension points — convenient for prototypes and tests, but not a stability contract.
 
 **Explicitly demoted to internal** (not part of v1 contract):
 - `ChatEngine`, `ChatTurnContext`, `TurnOutputs`, `StreamedToolCall` — chat-runtime internals
-- `PromptAssemblyContext`, `PromptAssemblyStage`, `PromptAssemblyOptions` — prompt pipeline internals
+- `PromptAssembler`, `PromptAssemblyContext`, `PromptAssemblyStage`, `PromptAssemblyOptions` — prompt pipeline internals
 - `ContextManager`, `ContextPipelineContext`, `ContextGatheringEvent` — context pipeline internals
-- `ToolRouter`, `ParsedToolCall`, `ToolExecutionOutcome` — tool routing internals
-- All `InMemory*` stores — test support infrastructure
+- `ParsedToolCall`, `ToolHandlingResult`, `ToolTurnResult` — tool-routing internals (`package`-scoped)
 
 ### Default Runtime Tool Policy
 
@@ -253,15 +268,38 @@ let core = PositronicKit(
 
 ### Prompt Assembly Diagnostics
 
-Runtime prompt assembly uses PKPrompt underneath, but the runtime surface exposes a small control point through `PromptAssemblyOptions`.
+Runtime prompt assembly uses PKPrompt underneath. Internally, the runtime threads a
+`PromptAssemblyOptions` value through the assembly pipeline to control:
 
-- `overridePipeline` swaps the default assembly stages.
-- `tokenBudget`, `compressor`, `structuredDiff`, and `structuredExecutor` control compression.
-- `logger` enables `swift-log` diagnostics for stage execution, section resolution, and token-budget decisions.
+- `overridePipeline` — swaps the default assembly stages.
+- `tokenBudget`, `compressor`, `structuredDiff`, and `structuredExecutor` — control compression.
+- `logger` — enables `swift-log` diagnostics for stage execution, section resolution, and token-budget decisions.
+
+`PromptAssembler` and `PromptAssemblyOptions` are **internal** (see the demoted list above) and are
+not reachable from downstream packages. The one diagnostic that *is* exposed publicly is the logger:
+pass a `Logger` to `PositronicKit.run(..., promptAssemblyLogger:)` to surface stage execution, section
+resolution, and token-budget decisions for that turn.
+
+```swift
+import Logging
+import PositronicKit
+
+let logger = Logger(label: "com.example.prompt-assembly")
+let events = try await chat.run(
+    timelineId: timelineId,
+    message: "Recommend the safest next step.",
+    promptAssemblyLogger: logger
+)
+```
+
+For full control over assembly (pipeline overrides, compression configuration) outside the runtime,
+compose at the `PKPrompt` layer directly (Layer 2/3 below).
 
 ## Prompt Composition: PKPrompt
 
 PKPrompt lets you author prompts as structured trees, assemble them into validated sections, render them, and optionally journal changes across snapshots. You choose the layer of control you need.
+
+> The three layer examples below are compile-checked in `Sources/PositronicKitExamples/PKPromptExamples.swift` (`renderLayer1ToString`, `assembleLayer2`, `journalLayer3`) and run via `swift run PositronicKitExamples`. Keep them in sync when editing these snippets.
 
 ### Layer 1: Prompt → String
 
@@ -287,7 +325,7 @@ let prompt = AnyPrompt.build {
     UserPrompt("Recommend the safest next step.")
 }
 
-print(await prompt.render() ?? "")
+print(await prompt.renderToString() ?? "")
 ```
 
 This is the smallest surface area: author a prompt, get plain text. If you don't need to inspect sections, manage compression outcomes, or track changes across snapshots, this is all you need.
@@ -377,18 +415,23 @@ PositronicKit uses `swift-log` as its only logging API.
 - Library code never calls `LoggingSystem.bootstrap(...)` for you.
 - Downstream apps, CLIs, or tests own logging bootstrap and log-level selection.
 - Long-lived runtime services log through `Logger.module(...)` in `PKShared`.
-- Prompt assembly diagnostics are opt-in: pass a `Logger` in `PromptAssemblyOptions` and use log levels to control verbosity.
+- Prompt-assembly diagnostics are opt-in per turn via `PositronicKit.run(..., promptAssemblyLogger:)` (see "Prompt Assembly Diagnostics" above). Control verbosity through the log level you select when bootstrapping.
+
+The downstream app owns logging bootstrap and log-level selection:
 
 ```swift
 import Logging
 import PositronicKit
+import PKOpenAIProvider
 
-let logger = Logger(label: "com.example.prompt-assembly")
+// Bootstrap once, early in your app/CLI/test startup.
+LoggingSystem.bootstrap { label in
+    var handler = StreamLogHandler.standardOutput(label: label)
+    handler.logLevel = .debug   // raise to surface runtime + prompt-assembly diagnostics
+    return handler
+}
 
-let rendered = try await PromptAssembler.assemble(
-    request,
-    options: PromptAssemblyOptions(logger: logger)
-)
+let core = PositronicKit(openAIKey: ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? "")
 ```
 
 For package-defined errors, PositronicKit uses `ErrorKit` through `PKShared.PKError`.

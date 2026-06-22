@@ -49,9 +49,9 @@ extract_symbol_graph PKShared
 extract_symbol_graph PKPrompt
 extract_symbol_graph PositronicKit
 
-"$DOCC_BIN" convert "$ROOT/Sources/PositronicKit/PositronicKitCore.docc" \
+"$DOCC_BIN" convert "$ROOT/Sources/PositronicKit/PositronicKit.docc" \
   --additional-symbol-graph-dir "$SYMBOLS_DIR" \
   --output-dir "$OUTPUT_DIR" \
   --warnings-as-errors \
-  --fallback-display-name PositronicKitCore \
-  --fallback-bundle-identifier com.phynics.PositronicKitCore
+  --fallback-display-name PositronicKit \
+  --fallback-bundle-identifier com.phynics.PositronicKit

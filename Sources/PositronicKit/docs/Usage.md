@@ -161,17 +161,26 @@ for try await event in stream {
 
 ### Enabling Prompt Assembly Logs
 
-If you need verbose prompt assembly diagnostics, pass a `Logger` through `PromptAssemblyOptions`.
+The runtime emits prompt-assembly diagnostics through `swift-log`. `PromptAssembler` and
+`PromptAssemblyOptions` are internal runtime types, so you don't call them directly — instead pass a
+`Logger` to `PositronicKit.run(..., promptAssemblyLogger:)` to enable diagnostics for that turn.
 
 ```swift
 import Logging
 import PositronicKit
 
-let promptLogger = Logger(label: "com.example.prompt")
+// Bootstrap once, early in startup, so the host owns output + level selection.
+LoggingSystem.bootstrap { label in
+    var handler = StreamLogHandler.standardOutput(label: label)
+    handler.logLevel = .debug
+    return handler
+}
 
-let result = try await PromptAssembler.prepare(
-    request,
-    options: PromptAssemblyOptions(logger: promptLogger)
+let logger = Logger(label: "com.example.prompt-assembly")
+let events = try await chat.run(
+    timelineId: timelineId,
+    message: "…",
+    promptAssemblyLogger: logger
 )
 ```
 
