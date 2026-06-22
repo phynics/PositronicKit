@@ -4,7 +4,7 @@ set -euo pipefail
 revision="5f1b8cd78bc4fb444dd171e59b18f3a3af89a079"
 prefix="${PKFASTEMBED_PREFIX:?Set PKFASTEMBED_PREFIX}"
 model_dir="${PK_MINILM_MODEL_DIR:?Set PK_MINILM_MODEL_DIR}"
-manifest="Packages/PKFastEmbed/model-assets.sha256"
+manifest="native/pkfastembed/model-assets.sha256"
 
 mkdir -p "$model_dir"
 while read -r _ file; do
@@ -16,4 +16,4 @@ while read -r _ file; do
 done < "$manifest"
 
 (cd "$model_dir" && shasum -a 256 --check "$OLDPWD/$manifest")
-Packages/PKFastEmbed/bootstrap.sh --prefix "$prefix"
+native/pkfastembed/bootstrap.sh --prefix "$prefix"

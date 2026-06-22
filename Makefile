@@ -89,4 +89,4 @@ verify-minilm: bootstrap-minilm
 		swift test --traits MiniLMEmbeddings --filter MiniLMEmbeddingContractTests
 	@PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
 		PK_MINILM_MODEL_DIR="$(PK_MINILM_MODEL_DIR)" \
-		swift test --package-path Packages/PKFastEmbed
+		swift test --traits MiniLMEmbeddings --filter PKFastEmbedTests

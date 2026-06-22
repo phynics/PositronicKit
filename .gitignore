@@ -7,9 +7,7 @@
 /.build/pkfastembed/
 
 /Packages/*
-!/Packages/PKFastEmbed/
-/Packages/PKFastEmbed/.build/
-/Packages/PKFastEmbed/native/target/
+/native/pkfastembed/target/
 /*.xcodeproj
 xcuserdata/
 DerivedData/

@@ -22,16 +22,16 @@ if [[ -z "$PREFIX" ]]; then
   exit 1
 fi
 
-RUST_TARGET_DIR="${SCRIPT_DIR}/native/target"
+RUST_TARGET_DIR="${SCRIPT_DIR}/target"
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$RUST_TARGET_DIR}"
 
-pushd "${SCRIPT_DIR}/native" >/dev/null
+pushd "${SCRIPT_DIR}" >/dev/null
 cargo build --release --locked
 popd >/dev/null
 
 mkdir -p "${PREFIX}/lib/pkgconfig" "${PREFIX}/include"
-cp "${SCRIPT_DIR}/native/target/release/libpkfastembed.a" "${PREFIX}/lib/"
-cp "${SCRIPT_DIR}/native/include/pkfastembed.h" "${PREFIX}/include/"
+cp "${SCRIPT_DIR}/target/release/libpkfastembed.a" "${PREFIX}/lib/"
+cp "${SCRIPT_DIR}/include/pkfastembed.h" "${PREFIX}/include/"
 
 case "$(uname -s)" in
   Darwin) NATIVE_LIBS="-lc++ -framework Security -framework Foundation" ;;

@@ -1,16 +1,17 @@
 # PKFastEmbed
 
 PKFastEmbed is the owned native companion for PositronicKit's in-process
-`all-MiniLM-L6-v2` backend. It wraps FastEmbed behind a versioned C ABI and a
-serialized Swift API. The runtime never downloads models; callers supply a
-directory containing the pinned, checksummed assets.
+`all-MiniLM-L6-v2` backend. The root package owns the `CPKFastEmbed` system
+library target, the `PKFastEmbed` Swift target, and the native bootstrap
+artifacts stored in this directory. The runtime never downloads models; callers
+supply a directory containing the pinned, checksummed assets.
 
 ## Bootstrap
 
 ```bash
 ./bootstrap.sh --prefix /path/to/prefix
 export PKG_CONFIG_PATH=/path/to/prefix/lib/pkgconfig
-swift test
+swift test --traits MiniLMEmbeddings --filter PKFastEmbedTests
 ```
 
 Model asset checksums are recorded in `model-assets.sha256`. The pinned model
