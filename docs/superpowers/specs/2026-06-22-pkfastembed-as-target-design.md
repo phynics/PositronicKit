@@ -239,8 +239,13 @@ The checksum-check line (`shasum -a 256 --check "$OLDPWD/$manifest"`) needs **no
 is referenced through the updated variable, and `$OLDPWD` still resolves to the repo root from which
 the script is invoked.
 
-The flattened `native/pkfastembed/README.md` describes a standalone SwiftPM package; trim or update
-it so it no longer claims to be its own package.
+The flattened `native/pkfastembed/README.md` describes a standalone SwiftPM package; trimming/updating
+it so it no longer claims to be its own package is an **explicit step** (the one move that requires a
+content edit, not just relocation).
+
+`bootstrap.sh` is invoked by relative path with no interpreter prefix, so it must keep its executable
+bit. `git mv` preserves file mode; confirm `-x` survives after the move (a lost exec bit would fail
+only later, at `make verify-minilm`).
 
 **`Makefile`** `verify-minilm` target. The current target (lines 87-92) runs **two** invocations —
 the first runs the MiniLM contract suite under the trait, the second runs the standalone PKFastEmbed
