@@ -174,6 +174,8 @@ extension ChatEngine {
             remoteDepth: currentRemoteDepth,
             generationParameters: generationParameters,
             promptHistory: promptHistory,
+            renderedPrompt: renderedPrompt,
+            promptHistoryUpdate: update,
             currentMessages: initialMessages,
             turnCount: 0,
             outputs: TurnOutputs()

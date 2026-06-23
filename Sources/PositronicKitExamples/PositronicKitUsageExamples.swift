@@ -6,8 +6,25 @@ import PositronicKit
 import PKShared
 
 public enum PositronicKitUsageExamples {
+    public actor ExampleTurnInspector: TurnInspecting {
+        public private(set) var latestTokenEstimate = 0
+
+        public init() {}
+
+        public func didComposeTurn(_ inspection: TurnInspection) {
+            latestTokenEstimate = inspection.estimatedTokens
+        }
+    }
+
     public static func makePrototypeRuntime() -> PositronicKit {
         PositronicKit(llmService: UnconfiguredLLMService())
+    }
+
+    public static func makeInspectableRuntime(inspector: any TurnInspecting) -> PositronicKit {
+        PositronicKit(
+            llmService: UnconfiguredLLMService(),
+            turnInspector: inspector
+        )
     }
 
     public static func makeOpenAIRuntime(apiKey: String = "sk-example") -> PositronicKit {

@@ -35,6 +35,7 @@ public struct PositronicKit: Sendable {
     private let agentInstanceStore: any AgentInstanceStoreProtocol
     private let requestOriginStore: any RequestOriginStoreProtocol
     private var chatTurnPlugins: [any ChatTurnPlugin]
+    private let turnInspector: (any TurnInspecting)?
     private let defaultGenerationParameters: GenerationParameters?
 
     // MARK: - Transitive dependencies (TimelineManager, ContextManager)
@@ -53,11 +54,13 @@ public struct PositronicKit: Sendable {
     /// Provides sensible in-memory defaults for all stores.
     public init(
         llmService: any LLMServiceProtocol = UnconfiguredLLMService(),
+        turnInspector: (any TurnInspecting)? = nil,
         generationParameters: GenerationParameters? = nil
     ) {
         self.init(
             llmService: llmService,
             persistence: .inMemory(),
+            turnInspector: turnInspector,
             generationParameters: generationParameters
         )
     }
@@ -97,6 +100,7 @@ public struct PositronicKit: Sendable {
         embeddingService: (any EmbeddingServiceProtocol)? = nil,
         workspaceRoot: URL? = nil,
         chatTurnPlugins: [any ChatTurnPlugin] = [],
+        turnInspector: (any TurnInspecting)? = nil,
         generationParameters: GenerationParameters? = nil
     ) {
         self.llmService = llmService
@@ -109,6 +113,7 @@ public struct PositronicKit: Sendable {
         self.toolPersistence = toolPersistence ?? InMemoryToolPersistence()
         self.embeddingService = embeddingService ?? NoOpEmbeddingService()
         self.chatTurnPlugins = chatTurnPlugins
+        self.turnInspector = turnInspector
         defaultGenerationParameters = generationParameters
 
         let resolvedWorkspaceRoot = workspaceRoot ?? FileManager.default.temporaryDirectory
@@ -137,7 +142,8 @@ public struct PositronicKit: Sendable {
                 messageStore: self.messageStore,
                 llmService: self.llmService,
                 toolRouter: self.toolRouter,
-                chatTurnPlugins: self.chatTurnPlugins
+                chatTurnPlugins: self.chatTurnPlugins,
+                turnInspector: self.turnInspector
             )
         )
     }
@@ -172,7 +178,8 @@ public struct PositronicKit: Sendable {
                 messageStore: copy.messageStore,
                 llmService: copy.llmService,
                 toolRouter: copy.toolRouter,
-                chatTurnPlugins: copy.chatTurnPlugins
+                chatTurnPlugins: copy.chatTurnPlugins,
+                turnInspector: copy.turnInspector
             )
         )
         copy.chatEngine.additionalStages = existingStages
@@ -298,17 +305,20 @@ public extension PositronicKit {
         public let toolRouter: ToolRouter?
         public let workspaceRoot: URL?
         public let chatTurnPlugins: [any ChatTurnPlugin]
+        public let turnInspector: (any TurnInspecting)?
 
         public init(
             timelineManager: TimelineManager? = nil,
             toolRouter: ToolRouter? = nil,
             workspaceRoot: URL? = nil,
-            chatTurnPlugins: [any ChatTurnPlugin] = []
+            chatTurnPlugins: [any ChatTurnPlugin] = [],
+            turnInspector: (any TurnInspecting)? = nil
         ) {
             self.timelineManager = timelineManager
             self.toolRouter = toolRouter
             self.workspaceRoot = workspaceRoot
             self.chatTurnPlugins = chatTurnPlugins
+            self.turnInspector = turnInspector
         }
 
         public static func `default`() -> RuntimeConfiguration {
@@ -335,6 +345,7 @@ public extension PositronicKit {
         toolRouter: ToolRouter? = nil,
         workspaceRoot: URL? = nil,
         chatTurnPlugins: [any ChatTurnPlugin] = [],
+        turnInspector: (any TurnInspecting)? = nil,
         generationParameters: GenerationParameters? = nil
     ) {
         self.init(
@@ -351,6 +362,7 @@ public extension PositronicKit {
             embeddingService: embeddingService,
             workspaceRoot: workspaceRoot,
             chatTurnPlugins: chatTurnPlugins,
+            turnInspector: turnInspector,
             generationParameters: generationParameters
         )
     }
@@ -377,6 +389,7 @@ public extension PositronicKit {
             embeddingService: embeddingService,
             workspaceRoot: runtime.workspaceRoot,
             chatTurnPlugins: runtime.chatTurnPlugins,
+            turnInspector: runtime.turnInspector,
             generationParameters: generationParameters
         )
     }

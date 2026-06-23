@@ -98,6 +98,14 @@ struct PromptDiff: Sendable {
     var removedNodePaths: [[String]] {
         journalDiff.subtreeDiff?.removedNodePaths ?? []
     }
+
+    var publicJournalDiff: PromptJournalDiff {
+        PromptJournalDiff(
+            changedSemiStableIDs: changed.map(\.entryId),
+            addedSemiStableIDs: added.map(\.entryId),
+            removedSemiStableIDs: removed
+        )
+    }
 }
 
 struct PromptHistoryUpdate: Sendable {
