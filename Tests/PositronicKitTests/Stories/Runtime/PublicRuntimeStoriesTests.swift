@@ -247,31 +247,22 @@ struct PublicRuntimeStoriesTests {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
         let workspace = TestWorkspace()
-        let timelineManager = TimelineManager(
-            stores: .init(
-                timelineStore: mockPersistence,
-                messageStore: mockPersistence,
-                workspaceStore: mockPersistence,
-                toolPersistence: mockPersistence
-            ),
-            workspaceRoot: workspace.root,
-            workspaceCreator: MockWorkspaceCreator()
-        )
-        let timeline = try await timelineManager.createTimeline(title: "Context Enabled")
 
         mockLLM.mockClient.nextResponse = "Hello with context"
 
         let chat = PositronicKit(
             llmService: mockLLM,
             messageStore: mockPersistence,
-            timelineManager: timelineManager,
             agentInstanceStore: mockPersistence,
             requestOriginStore: mockPersistence,
             timelinePersistence: mockPersistence,
             workspacePersistence: mockPersistence,
             memoryStore: mockPersistence,
-            toolPersistence: mockPersistence
+            toolPersistence: mockPersistence,
+            workspaceRoot: workspace.root,
+            workspaceCreator: MockWorkspaceCreator()
         )
+        let timeline = try await chat.timelineManager.createTimeline(title: "Context Enabled")
 
         let events = try await chat.run(
             timelineId: timeline.id,
@@ -320,29 +311,6 @@ struct PublicRuntimeStoriesTests {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
         let workspace = TestWorkspace()
-        let timelineManager = TimelineManager(
-            stores: .init(
-                timelineStore: mockPersistence,
-                messageStore: mockPersistence,
-                workspaceStore: mockPersistence,
-                toolPersistence: mockPersistence
-            ),
-            workspaceRoot: workspace.root,
-            workspaceCreator: MockWorkspaceCreator()
-        )
-        let timeline = try await timelineManager.createTimeline(title: "Acceptance")
-
-        let workspaceId = UUID()
-        let workspaceRef = WorkspaceReference(
-            id: workspaceId,
-            uri: WorkspaceURI(parsing: "pk://local")!,
-            location: .runtimeTimeline,
-            originId: nil,
-            rootPath: workspace.root.path
-        )
-        try await mockPersistence.saveWorkspace(workspaceRef)
-        try await timelineManager.attachWorkspace(workspaceId, to: timeline.id)
-        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("mock_tool"))
 
         let chat: PositronicKit
         if useGroupedPersistence {
@@ -361,41 +329,46 @@ struct PublicRuntimeStoriesTests {
                     llmService: mockLLM,
                     persistence: persistence,
                     runtime: .init(
-                        timelineManager: timelineManager,
-                        toolRouter: ToolRouter(
-                            timelineManager: timelineManager,
-                            messageStore: mockPersistence
-                        )
+                        workspaceCreator: MockWorkspaceCreator(),
+                        workspaceRoot: workspace.root
                     )
                 )
             } else {
                 chat = PositronicKit(
                     llmService: mockLLM,
                     persistence: persistence,
-                    timelineManager: timelineManager,
-                    toolRouter: ToolRouter(
-                        timelineManager: timelineManager,
-                        messageStore: mockPersistence
-                    )
+                    workspaceRoot: workspace.root
                 )
             }
         } else {
             chat = PositronicKit(
                 llmService: mockLLM,
                 messageStore: mockPersistence,
-                timelineManager: timelineManager,
-                toolRouter: ToolRouter(
-                    timelineManager: timelineManager,
-                    messageStore: mockPersistence
-                ),
                 agentInstanceStore: mockPersistence,
                 requestOriginStore: mockPersistence,
                 timelinePersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
                 memoryStore: mockPersistence,
-                toolPersistence: mockPersistence
+                toolPersistence: mockPersistence,
+                workspaceRoot: workspace.root,
+                workspaceCreator: MockWorkspaceCreator()
             )
         }
+
+        let timelineManager = chat.timelineManager
+        let timeline = try await timelineManager.createTimeline(title: "Acceptance")
+
+        let workspaceId = UUID()
+        let workspaceRef = WorkspaceReference(
+            id: workspaceId,
+            uri: WorkspaceURI(parsing: "pk://local")!,
+            location: .runtimeTimeline,
+            originId: nil,
+            rootPath: workspace.root.path
+        )
+        try await mockPersistence.saveWorkspace(workspaceRef)
+        try await timelineManager.attachWorkspace(workspaceId, to: timeline.id)
+        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("mock_tool"))
 
         return (chat, mockLLM, mockPersistence, timeline.id, workspace)
     }

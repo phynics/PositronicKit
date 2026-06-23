@@ -1,9 +1,9 @@
 import Foundation
 import JSONSchemaBuilder
-import PKOpenAIProvider
 import PKOllamaProvider
-import PositronicKit
+import PKOpenAIProvider
 import PKShared
+import PositronicKit
 
 public enum PositronicKitUsageExamples {
     public static func makePrototypeRuntime() -> PositronicKit {
@@ -21,22 +21,7 @@ public enum PositronicKitUsageExamples {
     public static func makeConfiguredRuntime() -> PositronicKit {
         let workspaceRoot = FileManager.default.temporaryDirectory
             .appendingPathComponent("positronickit-examples", isDirectory: true)
-        let stores = TimelineManager.Stores(
-            timelineStore: InMemoryTimelinePersistence(),
-            messageStore: InMemoryMessageStore(),
-            workspaceStore: InMemoryWorkspacePersistence(),
-            toolPersistence: InMemoryToolPersistence()
-        )
-        let timelineManager = TimelineManager(
-            stores: stores,
-            workspaceRoot: workspaceRoot
-        )
         let runtime = PositronicKit.RuntimeConfiguration(
-            timelineManager: timelineManager,
-            toolRouter: ToolRouter(
-                timelineManager: timelineManager,
-                messageStore: stores.messageStore
-            ),
             workspaceRoot: workspaceRoot
         )
 
@@ -61,22 +46,7 @@ public enum PositronicKitUsageExamples {
     public static func makeProductionRuntime() -> PositronicKit {
         let workspaceRoot = FileManager.default.temporaryDirectory
             .appendingPathComponent("positronickit-examples-production", isDirectory: true)
-        let stores = TimelineManager.Stores(
-            timelineStore: InMemoryTimelinePersistence(),
-            messageStore: InMemoryMessageStore(),
-            workspaceStore: InMemoryWorkspacePersistence(),
-            toolPersistence: InMemoryToolPersistence()
-        )
-        let timelineManager = TimelineManager(
-            stores: stores,
-            workspaceRoot: workspaceRoot
-        )
         let runtime = PositronicKit.RuntimeConfiguration(
-            timelineManager: timelineManager,
-            toolRouter: ToolRouter(
-                timelineManager: timelineManager,
-                messageStore: stores.messageStore
-            ),
             workspaceRoot: workspaceRoot
         )
 

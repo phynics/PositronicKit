@@ -18,15 +18,24 @@ import PositronicKit
         public let llm: MockLLMService
         public let embedding: MockEmbeddingService
 
-        public let timelineManager: TimelineManager
-        public let toolRouter: ToolRouter
+        private let core: PositronicKit
+
+        public var timelineManager: TimelineManager {
+            core.timelineManager
+        }
+
+        public var toolRouter: ToolRouter {
+            core.toolRouter
+        }
 
         public let agentWorkspaceService: AgentWorkspaceService
         public let agentInstanceManager: AgentInstanceManager
         public let workspaceManager: WorkspaceManager
 
         /// Creates a fully-wired runtime. All collaborators default to values built from the
-        /// supplied `persistence`, so the whole graph shares one backing store.
+        /// supplied `persistence`, so the whole graph shares one backing store. The
+        /// `PositronicKit` facade is the sole place that builds the `TimelineManager` and
+        /// `ToolRouter` it wraps; `timelineManager`/`toolRouter` simply read those back.
         ///
         /// - Parameters:
         ///   - workspaceRoot: Unique root directory for this runtime's workspaces.
@@ -34,36 +43,33 @@ import PositronicKit
         ///   - llm: Mock LLM service. Defaults to a fresh mock.
         ///   - embedding: Mock embedding service. Defaults to a fresh mock.
         ///   - workspaceCreator: Workspace factory for the timeline manager. Defaults to `MockWorkspaceCreator`.
-        ///   - timelineManager: Prepared timeline manager. Auto-constructed from `persistence` when nil.
-        ///   - toolRouter: Prepared tool router. Auto-constructed from the timeline manager when nil.
         public init(
             workspaceRoot: URL,
             persistence: MockPersistenceService = MockPersistenceService(),
             llm: MockLLMService = MockLLMService(),
             embedding: MockEmbeddingService = MockEmbeddingService(),
-            workspaceCreator: any WorkspaceCreating = MockWorkspaceCreator(),
-            timelineManager: TimelineManager? = nil,
-            toolRouter: ToolRouter? = nil
+            workspaceCreator: any WorkspaceCreating = MockWorkspaceCreator()
         ) {
             self.persistence = persistence
             self.llm = llm
             self.embedding = embedding
 
-            let timelineManager = timelineManager ?? TimelineManager(
-                stores: .init(
-                    timelineStore: persistence,
+            core = PositronicKit(
+                llmService: llm,
+                persistence: .init(
                     messageStore: persistence,
-                    workspaceStore: persistence,
-                    toolPersistence: persistence
+                    timelinePersistence: persistence,
+                    workspacePersistence: persistence,
+                    memoryStore: persistence,
+                    toolPersistence: persistence,
+                    agentInstanceStore: persistence,
+                    requestOriginStore: persistence
                 ),
-                workspaceRoot: workspaceRoot,
-                workspaceCreator: workspaceCreator
-            )
-            self.timelineManager = timelineManager
-
-            self.toolRouter = toolRouter ?? ToolRouter(
-                timelineManager: timelineManager,
-                messageStore: persistence
+                embeddingService: embedding,
+                runtime: .init(
+                    workspaceCreator: workspaceCreator,
+                    workspaceRoot: workspaceRoot
+                )
             )
 
             let agentWorkspaceService = AgentWorkspaceService(
@@ -88,23 +94,7 @@ import PositronicKit
 
         /// Builds a `PositronicKit` facade wired to this runtime's stores, managers, and services.
         public func buildCore() -> PositronicKit {
-            PositronicKit(
-                llmService: llm,
-                persistence: .init(
-                    messageStore: persistence,
-                    timelinePersistence: persistence,
-                    workspacePersistence: persistence,
-                    memoryStore: persistence,
-                    toolPersistence: persistence,
-                    agentInstanceStore: persistence,
-                    requestOriginStore: persistence
-                ),
-                embeddingService: embedding,
-                runtime: .init(
-                    timelineManager: timelineManager,
-                    toolRouter: toolRouter
-                )
-            )
+            core
         }
     }
 

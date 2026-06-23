@@ -29,9 +29,14 @@ public struct PositronicKit: Sendable {
 
     let llmService: any LLMServiceProtocol
     private let messageStore: any MessageStoreProtocol
-    // Non-private so DependencySafetyTests can assert the facade reuses the injected timeline manager.
-    let timelineManager: TimelineManager
-    private let toolRouter: ToolRouter
+
+    /// The timeline manager built by this facade. Hosts that need direct access (e.g. to wire
+    /// their own routes) should read this instead of building a second `TimelineManager`, which
+    /// would silently diverge from the stores the facade itself uses.
+    public let timelineManager: TimelineManager
+
+    /// The tool router built by this facade, wired to `timelineManager` above.
+    public let toolRouter: ToolRouter
     private let agentInstanceStore: any AgentInstanceStoreProtocol
     private let requestOriginStore: any RequestOriginStoreProtocol
     private var chatTurnPlugins: [any ChatTurnPlugin]
@@ -64,15 +69,18 @@ public struct PositronicKit: Sendable {
 
     /// Initializes with all services required by the chat subsystem.
     ///
-    /// This is the most flexible initializer, but it exposes concrete runtime wiring types such as
-    /// `TimelineManager` and `ToolRouter`. Prefer the grouped `persistence:` and `runtime:`
-    /// initializers when you want the facade to remain the primary public boundary.
+    /// This is the most flexible initializer. The facade is the only place a `TimelineManager`
+    /// and `ToolRouter` get built — there's no way to hand it pre-built instances of either, so
+    /// they can never silently diverge from the stores passed in here. Callers that need the
+    /// constructed instances afterward (e.g. to wire their own routes) should read them back via
+    /// the `timelineManager` / `toolRouter` properties.
+    ///
+    /// Prefer the grouped `persistence:` and `runtime:` initializers when you want the facade to
+    /// remain the primary public boundary.
     ///
     /// - Parameters:
     ///   - llmService: The LLM service to use for generation.
     ///   - messageStore: The store for persisting chat messages. Defaults to in-memory if nil.
-    ///   - timelineManager: Manages timeline state, workspaces, and extensions. Auto-constructed if nil.
-    ///   - toolRouter: Routes tool calls to the appropriate executor. Auto-constructed if nil.
     ///   - agentInstanceStore: Persistence for agent instance data. Defaults to in-memory if nil.
     ///   - requestOriginStore: Persistence for request-origin identity data. Defaults to in-memory if nil.
     ///   - timelinePersistence: Persistence for timeline records. Defaults to in-memory if nil.
@@ -80,14 +88,15 @@ public struct PositronicKit: Sendable {
     ///   - memoryStore: Persistence for memory records. Defaults to in-memory if nil.
     ///   - toolPersistence: Persistence for tool references. Defaults to in-memory if nil.
     ///   - embeddingService: Embedding provider for context/memory search. Defaults to no-op if nil.
-    ///   - workspaceRoot: Root directory for auto-constructed TimelineManager. Defaults to temp directory.
+    ///   - workspaceRoot: Root directory for the facade-built TimelineManager. Defaults to temp directory.
+    ///   - workspaceCreator: Workspace factory used by the facade-built TimelineManager. Defaults to `NullWorkspaceCreator()`.
+    ///   - sectionProviders: Extension points for additional prompt sections, forwarded to TimelineManager.
+    ///   - runtimeToolPolicy: Controls which built-in runtime tools TimelineManager installs.
     ///   - chatTurnPlugins: Post-turn plugins (e.g. autonomous reactions).
     ///   - generationParameters: Optional default parameters for generation.
     public init(
         llmService: any LLMServiceProtocol,
         messageStore: (any MessageStoreProtocol)? = nil,
-        timelineManager: TimelineManager? = nil,
-        toolRouter: ToolRouter? = nil,
         agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,
         requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
         timelinePersistence: (any TimelinePersistenceProtocol)? = nil,
@@ -96,6 +105,9 @@ public struct PositronicKit: Sendable {
         toolPersistence: (any ToolPersistenceProtocol)? = nil,
         embeddingService: (any EmbeddingServiceProtocol)? = nil,
         workspaceRoot: URL? = nil,
+        workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
+        sectionProviders: [any PromptSectionProviding] = [],
+        runtimeToolPolicy: TimelineManager.RuntimeToolPolicy = .default,
         chatTurnPlugins: [any ChatTurnPlugin] = [],
         generationParameters: GenerationParameters? = nil
     ) {
@@ -113,7 +125,10 @@ public struct PositronicKit: Sendable {
 
         let resolvedWorkspaceRoot = workspaceRoot ?? FileManager.default.temporaryDirectory
             .appendingPathComponent("positronickit-workspaces", isDirectory: true)
-        let resolvedTimelineManager = timelineManager ?? TimelineManager(
+        // The facade is the only place a TimelineManager gets built: every store it wraps
+        // comes from the same `persistence` surface the rest of the facade uses, so there is
+        // no seam where ChatEngine and TimelineManager can end up looking at different stores.
+        let resolvedTimelineManager = TimelineManager(
             stores: .init(
                 timelineStore: self.timelinePersistence,
                 messageStore: self.messageStore,
@@ -122,10 +137,13 @@ public struct PositronicKit: Sendable {
                 memoryStore: self.memoryStore
             ),
             workspaceRoot: resolvedWorkspaceRoot,
+            workspaceCreator: workspaceCreator,
+            sectionProviders: sectionProviders,
+            runtimeToolPolicy: runtimeToolPolicy,
             embeddingService: self.embeddingService
         )
-        self.timelineManager = resolvedTimelineManager
-        self.toolRouter = toolRouter ?? ToolRouter(
+        timelineManager = resolvedTimelineManager
+        toolRouter = ToolRouter(
             timelineManager: resolvedTimelineManager,
             messageStore: self.messageStore
         )
@@ -136,7 +154,7 @@ public struct PositronicKit: Sendable {
                 requestOriginStore: self.requestOriginStore,
                 messageStore: self.messageStore,
                 llmService: self.llmService,
-                toolRouter: self.toolRouter,
+                toolRouter: toolRouter,
                 chatTurnPlugins: self.chatTurnPlugins
             )
         )
@@ -291,22 +309,31 @@ public extension PositronicKit {
         }
     }
 
-    /// Groups runtime-owned coordinators and defaults that would otherwise require exposing the
-    /// concrete `TimelineManager` / `ToolRouter` pair directly in facade call sites.
+    /// Groups the non-store runtime knobs that `TimelineManager` needs but that aren't
+    /// persistence stores: workspace creation strategy, prompt extension sections, and runtime
+    /// tool policy, plus facade-level concerns like workspace root and chat turn plugins.
+    ///
+    /// There is intentionally no way to pass a pre-built `TimelineManager` or `ToolRouter` here —
+    /// the facade always constructs both itself from `PersistenceConfiguration` plus these knobs,
+    /// so the two can never end up wrapping different stores. Read the constructed instances back
+    /// via `chat.timelineManager` / `chat.toolRouter` if you need them after construction.
     struct RuntimeConfiguration: Sendable {
-        public let timelineManager: TimelineManager?
-        public let toolRouter: ToolRouter?
+        public let workspaceCreator: any WorkspaceCreating
+        public let sectionProviders: [any PromptSectionProviding]
+        public let runtimeToolPolicy: TimelineManager.RuntimeToolPolicy
         public let workspaceRoot: URL?
         public let chatTurnPlugins: [any ChatTurnPlugin]
 
         public init(
-            timelineManager: TimelineManager? = nil,
-            toolRouter: ToolRouter? = nil,
+            workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
+            sectionProviders: [any PromptSectionProviding] = [],
+            runtimeToolPolicy: TimelineManager.RuntimeToolPolicy = .default,
             workspaceRoot: URL? = nil,
             chatTurnPlugins: [any ChatTurnPlugin] = []
         ) {
-            self.timelineManager = timelineManager
-            self.toolRouter = toolRouter
+            self.workspaceCreator = workspaceCreator
+            self.sectionProviders = sectionProviders
+            self.runtimeToolPolicy = runtimeToolPolicy
             self.workspaceRoot = workspaceRoot
             self.chatTurnPlugins = chatTurnPlugins
         }
@@ -322,8 +349,6 @@ public extension PositronicKit {
     ///   - llmService: The LLM service to use for generation (required).
     ///   - persistence: All persistence stores grouped together.
     ///   - embeddingService: Embedding provider. Defaults to no-op.
-    ///   - timelineManager: Timeline orchestrator. Auto-constructed if nil.
-    ///   - toolRouter: Tool routing. Auto-constructed if nil.
     ///   - workspaceRoot: Root directory for workspaces. Defaults to temp directory.
     ///   - chatTurnPlugins: Post-turn plugins. Defaults to none.
     ///   - generationParameters: Optional default parameters for generation.
@@ -331,8 +356,6 @@ public extension PositronicKit {
         llmService: any LLMServiceProtocol,
         persistence: PersistenceConfiguration,
         embeddingService: (any EmbeddingServiceProtocol)? = nil,
-        timelineManager: TimelineManager? = nil,
-        toolRouter: ToolRouter? = nil,
         workspaceRoot: URL? = nil,
         chatTurnPlugins: [any ChatTurnPlugin] = [],
         generationParameters: GenerationParameters? = nil
@@ -340,8 +363,6 @@ public extension PositronicKit {
         self.init(
             llmService: llmService,
             messageStore: persistence.messageStore,
-            timelineManager: timelineManager,
-            toolRouter: toolRouter,
             agentInstanceStore: persistence.agentInstanceStore,
             requestOriginStore: persistence.requestOriginStore,
             timelinePersistence: persistence.timelinePersistence,
@@ -366,8 +387,6 @@ public extension PositronicKit {
         self.init(
             llmService: llmService,
             messageStore: persistence.messageStore,
-            timelineManager: runtime.timelineManager,
-            toolRouter: runtime.toolRouter,
             agentInstanceStore: persistence.agentInstanceStore,
             requestOriginStore: persistence.requestOriginStore,
             timelinePersistence: persistence.timelinePersistence,
@@ -376,6 +395,9 @@ public extension PositronicKit {
             toolPersistence: persistence.toolPersistence,
             embeddingService: embeddingService,
             workspaceRoot: runtime.workspaceRoot,
+            workspaceCreator: runtime.workspaceCreator,
+            sectionProviders: runtime.sectionProviders,
+            runtimeToolPolicy: runtime.runtimeToolPolicy,
             chatTurnPlugins: runtime.chatTurnPlugins,
             generationParameters: generationParameters
         )

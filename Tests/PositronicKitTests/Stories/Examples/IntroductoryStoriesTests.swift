@@ -2,17 +2,17 @@ import Foundation
 import PKPrompt
 import PKShared
 import PKTestSupport
+@testable import PositronicKit
 import PositronicKitExamples
 import Testing
-@testable import PositronicKit
 
 @Suite("Introductory stories")
 struct IntroductoryStoriesTests {
     @Test("Prompt journaling example shows base overlay and compaction flow")
-    func promptJournalingExample() async {
+    func promptJournalingExample() async throws {
         var journal = PromptJournal()
 
-        let initial = await (try! PKPromptExamples.makeStableToolingPrompt(
+        let initial = try await (PKPromptExamples.makeStableToolingPrompt(
             tools: [
                 .init(id: "build", summary: "Builds the package."),
                 .init(id: "test", summary: "Runs the test suite."),
@@ -20,7 +20,7 @@ struct IntroductoryStoriesTests {
             userQuery: "What should I run first?"
         ).assemblePrompt()).render()
 
-        let updated = await (try! PKPromptExamples.makeStableToolingPrompt(
+        let updated = try await (PKPromptExamples.makeStableToolingPrompt(
             tools: [
                 .init(id: "build", summary: "Builds the package."),
                 .init(id: "test", summary: "Runs the full test suite."),
@@ -49,16 +49,6 @@ struct IntroductoryStoriesTests {
         let workspace = TestWorkspace()
         let mockLLM = MockLLMService()
         let persistence = MockPersistenceService()
-        let timelineManager = TimelineManager(
-            stores: .init(
-                timelineStore: persistence,
-                messageStore: persistence,
-                workspaceStore: persistence,
-                toolPersistence: persistence
-            ),
-            workspaceRoot: workspace.root,
-            workspaceCreator: MockWorkspaceCreator()
-        )
 
         struct IntroGreetingTool: Tool {
             let id = "intro_greet"
@@ -78,7 +68,9 @@ struct IntroductoryStoriesTests {
                 ]
             }
 
-            func canExecute() async -> Bool { true }
+            func canExecute() async -> Bool {
+                true
+            }
 
             func execute(parameters: [String: Any]) async throws -> ToolResult {
                 let name = parameters["name"] as? String ?? "friend"
@@ -103,10 +95,11 @@ struct IntroductoryStoriesTests {
                 requestOriginStore: persistence
             ),
             runtime: .init(
-                timelineManager: timelineManager,
-                toolRouter: ToolRouter(timelineManager: timelineManager, messageStore: persistence)
+                workspaceCreator: MockWorkspaceCreator(),
+                workspaceRoot: workspace.root
             )
         )
+        let timelineManager = runtime.timelineManager
 
         let timeline = try await timelineManager.createTimeline(title: "Intro Example")
         let tool = IntroGreetingTool().toAnyTool()
@@ -133,7 +126,8 @@ struct IntroductoryStoriesTests {
         #expect(events.contains(where: {
             if case let .delta(event: .toolExecution(id, status)) = $0,
                id == "call_1",
-               case .attempting = status {
+               case .attempting = status
+            {
                 return true
             }
             return false
@@ -142,7 +136,8 @@ struct IntroductoryStoriesTests {
         #expect(events.contains(where: {
             if case let .completion(event: .toolExecution(id, status)) = $0,
                id == "call_1",
-               case .success = status {
+               case .success = status
+            {
                 return true
             }
             return false
