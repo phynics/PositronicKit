@@ -16,6 +16,7 @@ func runExamples() async throws {
     let renderedPrompt = await assembled.render().string
     let toolPrompt = await formatToolsForPrompt(PositronicKitUsageExamples.makeTools())
     let structuredOutput = PositronicKitUsageExamples.makeStructuredOutputSchema()
+    let structuredOutputRequest = PositronicKitUsageExamples.makeStructuredOutputRequest()
 
     // README "Choosing A Layer" examples — kept compile-checked here.
     let layer1 = await PKPromptExamples.renderLayer1ToString()
@@ -32,6 +33,7 @@ func runExamples() async throws {
     print("Prototype runtime and fully configured runtime both initialized successfully.")
     print(toolPrompt)
     print("\nStructured output schema: \(structuredOutput.name)")
+    print("Structured output request: \(structuredOutputRequest)")
     print("Generated from ExampleTagPayload via @Schemable.")
 
     print("\n# PKPrompt Layer Examples\n")

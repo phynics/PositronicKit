@@ -82,6 +82,7 @@ struct ChatEngine {
         agentInstanceId: UUID? = nil,
         maxTurns: Int = Constants.defaultMaxTurns,
         generationParameters: GenerationParameters? = nil,
+        structuredOutput: StructuredOutputRequest? = nil,
         contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
         assemblyPipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>? = nil,
         assemblyLogger: Logger? = nil
@@ -101,6 +102,7 @@ struct ChatEngine {
             agentInstanceId: agentInstanceId,
             maxTurns: maxTurns,
             generationParameters: generationParameters,
+            structuredOutput: structuredOutput,
             contextPipeline: contextPipeline,
             assemblyPipeline: assemblyPipeline,
             assemblyLogger: assemblyLogger

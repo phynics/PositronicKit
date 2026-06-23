@@ -98,6 +98,10 @@ public enum PositronicKitUsageExamples {
             schema: ExampleTagPayload.schema.definition()
         )
     }
+
+    public static func makeStructuredOutputRequest() -> StructuredOutputRequest {
+        .jsonSchema(makeStructuredOutputSchema())
+    }
 }
 
 @Schemable

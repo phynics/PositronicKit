@@ -43,6 +43,7 @@ extension ChatEngine {
         agentInstanceId: UUID?,
         maxTurns: Int,
         generationParameters: GenerationParameters?,
+        structuredOutput: StructuredOutputRequest?,
         contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
         assemblyPipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>? = nil,
         assemblyLogger: Logger? = nil
@@ -173,6 +174,7 @@ extension ChatEngine {
             contextData: contextData,
             remoteDepth: currentRemoteDepth,
             generationParameters: generationParameters,
+            structuredOutput: structuredOutput,
             promptHistory: promptHistory,
             renderedPrompt: renderedPrompt,
             promptHistoryUpdate: update,

@@ -216,6 +216,7 @@ public struct PositronicKit: Sendable {
     ///   - agentInstanceId: Optional identifier for the agent instance.
     ///   - maxTurns: Maximum number of LLM turns before stopping. Defaults to 5.
     ///   - generationParameters: Optional parameters for generation (overrides defaults).
+    ///   - structuredOutput: Optional provider-enforced structured output request for the turn.
     ///   - promptAssemblyLogger: Optional `swift-log` logger that enables prompt-assembly
     ///     diagnostics for this turn (stage execution, section resolution, and token-budget
     ///     decisions). Control verbosity through the logger's log level. Defaults to no diagnostics.
@@ -229,6 +230,7 @@ public struct PositronicKit: Sendable {
         agentInstanceId: UUID? = nil,
         maxTurns: Int = 5,
         generationParameters: GenerationParameters? = nil,
+        structuredOutput: StructuredOutputRequest? = nil,
         promptAssemblyLogger: Logger? = nil
     ) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         let resolvedContextManager = await resolveContextManager(
@@ -246,6 +248,7 @@ public struct PositronicKit: Sendable {
             agentInstanceId: agentInstanceId,
             maxTurns: maxTurns,
             generationParameters: generationParameters ?? defaultGenerationParameters,
+            structuredOutput: structuredOutput,
             assemblyLogger: promptAssemblyLogger
         )
     }

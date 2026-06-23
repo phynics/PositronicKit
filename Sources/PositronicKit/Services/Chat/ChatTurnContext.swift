@@ -91,6 +91,7 @@ struct ChatTurnContext: Sendable {
     let contextData: ContextData
     let remoteDepth: Int
     let generationParameters: GenerationParameters?
+    let structuredOutput: StructuredOutputRequest?
 
     /// Shared actor tracking prompt snapshots and append chain growth across turns.
     /// Created once per `prepareSession()` call and threaded through all turns in the loop.
@@ -115,6 +116,7 @@ struct ChatTurnContext: Sendable {
         contextData: ContextData,
         remoteDepth: Int,
         generationParameters: GenerationParameters? = nil,
+        structuredOutput: StructuredOutputRequest? = nil,
         promptHistory: TimelinePromptHistory? = nil,
         renderedPrompt: RenderedPrompt? = nil,
         promptHistoryUpdate: PromptHistoryUpdate? = nil,
@@ -131,6 +133,7 @@ struct ChatTurnContext: Sendable {
         self.contextData = contextData
         self.remoteDepth = remoteDepth
         self.generationParameters = generationParameters
+        self.structuredOutput = structuredOutput
         self.promptHistory = promptHistory
         self.renderedPrompt = renderedPrompt
         self.promptHistoryUpdate = promptHistoryUpdate
@@ -161,6 +164,7 @@ struct ChatTurnContext: Sendable {
             contextData: contextData,
             remoteDepth: remoteDepth,
             generationParameters: generationParameters,
+            structuredOutput: structuredOutput,
             promptHistory: promptHistory,
             renderedPrompt: renderedPrompt ?? self.renderedPrompt,
             promptHistoryUpdate: promptHistoryUpdate ?? self.promptHistoryUpdate,

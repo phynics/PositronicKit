@@ -9,12 +9,22 @@ struct LLMStreamingStage: PipelineStage {
     let logger: Logger
 
     func process(_ context: ChatTurnContext) async throws -> AsyncThrowingStream<ChatEvent, Error> {
-        let streamData = await llmService.chatStream(
-            messages: context.currentMessages,
-            tools: context.toolParams.isEmpty ? nil : context.toolParams,
-            responseFormat: nil,
-            generationParameters: context.generationParameters
-        )
+        let streamData: AsyncThrowingStream<LLMStreamChunk, Error>
+        if let structuredOutput = context.structuredOutput {
+            streamData = await llmService.chatStream(
+                messages: context.currentMessages,
+                tools: context.toolParams.isEmpty ? nil : context.toolParams,
+                structuredOutput: structuredOutput,
+                generationParameters: context.generationParameters
+            )
+        } else {
+            streamData = await llmService.chatStream(
+                messages: context.currentMessages,
+                tools: context.toolParams.isEmpty ? nil : context.toolParams,
+                responseFormat: nil,
+                generationParameters: context.generationParameters
+            )
+        }
 
         return AsyncThrowingStream { continuation in
             let task = Task {
