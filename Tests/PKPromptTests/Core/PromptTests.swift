@@ -87,6 +87,18 @@ struct PromptTests {
         #expect(omitted.isEmpty)
     }
 
+    @Test("SystemPrompt remains stable even inside a volatile wrapper")
+    func systemPromptRemainsStableInsideVolatileWrapper() {
+        let sections = SystemPrompt("System")
+            .cachePolicy(.volatile)
+            .resolveSections()
+
+        #expect(sections.count == 1)
+        #expect(sections[0].role == .system)
+        #expect(sections[0].cachePolicy == .stable)
+        #expect(sections[0].path == ["prompt", "SystemPrompt", "stable", "system"])
+    }
+
     @Test("Prompt resolves concrete sections directly in authored order")
     func promptResolvesConcreteSectionsDirectly() {
         let sections = AnyPrompt {

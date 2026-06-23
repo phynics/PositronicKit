@@ -71,6 +71,7 @@ package protocol PromptPrimitive: Prompt {
     var compression: CompressionStrategy { get }
     var type: PromptSectionType { get }
     var cachePolicy: CachePolicy { get }
+    var inheritsCachePolicy: Bool { get }
     var content: PromptPrimitiveContent { get }
     func renderContent() async -> String?
 }
@@ -97,6 +98,10 @@ package extension PromptPrimitive {
         .volatile
     }
 
+    var inheritsCachePolicy: Bool {
+        true
+    }
+
     var content: PromptPrimitiveContent {
         .text { await renderContent() }
     }
@@ -109,7 +114,7 @@ package extension PromptPrimitive {
     func makeSection(in context: PromptBuildContext = PromptBuildContext()) -> PromptSection {
         let effectivePriority = context.inheritedTraits.priority ?? priority
         let effectiveCompression = context.inheritedTraits.compression ?? compression
-        let effectiveCachePolicy = context.inheritedTraits.cachePolicy ?? cachePolicy
+        let effectiveCachePolicy = inheritsCachePolicy ? (context.inheritedTraits.cachePolicy ?? cachePolicy) : cachePolicy
         let path = context.ancestorPath + [effectiveCachePolicy.pathComponent, id]
         let leafContent = content
 

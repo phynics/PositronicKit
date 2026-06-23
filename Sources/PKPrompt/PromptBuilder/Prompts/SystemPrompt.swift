@@ -29,6 +29,7 @@ public struct SystemPrompt: Prompt {
             priority: priority,
             compression: compression,
             cachePolicy: .stable,
+            inheritsCachePolicy: false,
             estimatedTokens: estimatedTokens
         )
     }

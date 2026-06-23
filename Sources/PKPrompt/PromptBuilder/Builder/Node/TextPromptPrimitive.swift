@@ -7,6 +7,7 @@ package struct TextPromptPrimitive: PromptPrimitive {
     package let priority: Int
     package let compression: CompressionStrategy
     package let cachePolicy: CachePolicy
+    package let inheritsCachePolicy: Bool
     private let estimatedTokenOverride: Int?
     private let renderText: @Sendable () async -> String?
 
@@ -17,6 +18,7 @@ package struct TextPromptPrimitive: PromptPrimitive {
         priority: Int = 50,
         compression: CompressionStrategy = .keep,
         cachePolicy: CachePolicy = .volatile,
+        inheritsCachePolicy: Bool = true,
         estimatedTokens: Int? = nil
     ) {
         self.id = id
@@ -24,6 +26,7 @@ package struct TextPromptPrimitive: PromptPrimitive {
         self.priority = priority
         self.compression = compression
         self.cachePolicy = cachePolicy
+        self.inheritsCachePolicy = inheritsCachePolicy
         self.estimatedTokenOverride = estimatedTokens
         self.renderText = { text }
     }
@@ -34,6 +37,7 @@ package struct TextPromptPrimitive: PromptPrimitive {
         priority: Int = 50,
         compression: CompressionStrategy = .keep,
         cachePolicy: CachePolicy = .volatile,
+        inheritsCachePolicy: Bool = true,
         estimatedTokens: Int? = nil,
         render: @escaping @Sendable () async -> String?
     ) {
@@ -42,6 +46,7 @@ package struct TextPromptPrimitive: PromptPrimitive {
         self.priority = priority
         self.compression = compression
         self.cachePolicy = cachePolicy
+        self.inheritsCachePolicy = inheritsCachePolicy
         self.estimatedTokenOverride = estimatedTokens
         self.renderText = render
     }
