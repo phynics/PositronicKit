@@ -1,4 +1,5 @@
 import Foundation
+import PKPrompt
 import PKShared
 
 /// Accumulates parts of a streamed tool call.
@@ -94,6 +95,8 @@ struct ChatTurnContext: Sendable {
     /// Shared actor tracking prompt snapshots and append chain growth across turns.
     /// Created once per `prepareSession()` call and threaded through all turns in the loop.
     let promptHistory: TimelinePromptHistory?
+    let renderedPrompt: RenderedPrompt?
+    let promptHistoryUpdate: PromptHistoryUpdate?
 
     // Per-turn snapshot (changes each iteration)
     let currentMessages: [LLMMessage]
@@ -113,6 +116,8 @@ struct ChatTurnContext: Sendable {
         remoteDepth: Int,
         generationParameters: GenerationParameters? = nil,
         promptHistory: TimelinePromptHistory? = nil,
+        renderedPrompt: RenderedPrompt? = nil,
+        promptHistoryUpdate: PromptHistoryUpdate? = nil,
         currentMessages: [LLMMessage],
         turnCount: Int,
         outputs: TurnOutputs = TurnOutputs()
@@ -127,6 +132,8 @@ struct ChatTurnContext: Sendable {
         self.remoteDepth = remoteDepth
         self.generationParameters = generationParameters
         self.promptHistory = promptHistory
+        self.renderedPrompt = renderedPrompt
+        self.promptHistoryUpdate = promptHistoryUpdate
         self.currentMessages = currentMessages
         self.turnCount = turnCount
         self.outputs = outputs
@@ -140,7 +147,9 @@ struct ChatTurnContext: Sendable {
     /// Creates a new snapshot for the next turn while keeping the same session config.
     func forTurn(
         turnCount: Int,
-        messages: [LLMMessage]
+        messages: [LLMMessage],
+        renderedPrompt: RenderedPrompt? = nil,
+        promptHistoryUpdate: PromptHistoryUpdate? = nil
     ) -> ChatTurnContext {
         ChatTurnContext(
             timelineId: timelineId,
@@ -153,6 +162,8 @@ struct ChatTurnContext: Sendable {
             remoteDepth: remoteDepth,
             generationParameters: generationParameters,
             promptHistory: promptHistory,
+            renderedPrompt: renderedPrompt ?? self.renderedPrompt,
+            promptHistoryUpdate: promptHistoryUpdate ?? self.promptHistoryUpdate,
             currentMessages: messages,
             turnCount: turnCount,
             outputs: TurnOutputs()

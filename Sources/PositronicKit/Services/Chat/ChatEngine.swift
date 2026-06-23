@@ -20,6 +20,27 @@ struct ChatEngine {
         let llmService: any LLMServiceProtocol
         let toolRouter: ToolRouter
         let chatTurnPlugins: [any ChatTurnPlugin]
+        let turnInspector: (any TurnInspecting)?
+
+        init(
+            timelineManager: TimelineManager,
+            agentInstanceStore: any AgentInstanceStoreProtocol,
+            requestOriginStore: any RequestOriginStoreProtocol,
+            messageStore: any MessageStoreProtocol,
+            llmService: any LLMServiceProtocol,
+            toolRouter: ToolRouter,
+            chatTurnPlugins: [any ChatTurnPlugin],
+            turnInspector: (any TurnInspecting)? = nil
+        ) {
+            self.timelineManager = timelineManager
+            self.agentInstanceStore = agentInstanceStore
+            self.requestOriginStore = requestOriginStore
+            self.messageStore = messageStore
+            self.llmService = llmService
+            self.toolRouter = toolRouter
+            self.chatTurnPlugins = chatTurnPlugins
+            self.turnInspector = turnInspector
+        }
     }
 
     // MARK: - Constants
@@ -113,6 +134,8 @@ struct ChatEngine {
         )))
 
         var loopMessages = context.currentMessages
+        var loopRenderedPrompt = context.renderedPrompt
+        var loopPromptHistoryUpdate = context.promptHistoryUpdate
         var turnCount = 0
         var priorOutput = ""
 
@@ -121,7 +144,9 @@ struct ChatEngine {
             turnCount += 1
             let turnContext = context.forTurn(
                 turnCount: turnCount,
-                messages: loopMessages
+                messages: loopMessages,
+                renderedPrompt: loopRenderedPrompt,
+                promptHistoryUpdate: loopPromptHistoryUpdate
             )
 
             // Execute one turn (LLM call + automatic runtime tool routing)
@@ -152,6 +177,13 @@ struct ChatEngine {
                         maxTurns: context.maxTurns
                     ) {
                         loopMessages += pluginMessages
+                        let snapshot = await buildFollowUpSnapshot(
+                            from: turnContext,
+                            appendedMessages: pluginMessages,
+                            nextTurnIndex: turnCount
+                        )
+                        loopRenderedPrompt = snapshot.renderedPrompt
+                        loopPromptHistoryUpdate = snapshot.promptHistoryUpdate
                     } else {
                         continuation.finish()
                         return
@@ -172,6 +204,13 @@ struct ChatEngine {
                         estimatedTokens: PKShared.TokenEstimator.estimate(text: responseText)
                     )
                 }
+                let snapshot = await buildFollowUpSnapshot(
+                    from: turnContext,
+                    appendedMessages: newMessages,
+                    nextTurnIndex: turnCount
+                )
+                loopRenderedPrompt = snapshot.renderedPrompt
+                loopPromptHistoryUpdate = snapshot.promptHistoryUpdate
             }
         }
 
@@ -192,6 +231,7 @@ struct ChatEngine {
         do {
             try Task.checkCancellation()
             logger.trace("Turn \(turnLabel): starting pipeline for \(sid)")
+            await publishTurnInspectionIfNeeded(context: context)
             try await processTurn(context: context, continuation: continuation)
             logger.trace("Turn \(turnLabel): pipeline complete for \(sid)")
             return try await handleToolCallsAfterTurn(context: context, continuation: continuation)
@@ -240,5 +280,117 @@ struct ChatEngine {
         for try await event in stream {
             continuation.yield(event)
         }
+    }
+
+    private func publishTurnInspectionIfNeeded(context: ChatTurnContext) async {
+        guard let inspector = dependencies.turnInspector,
+              let renderedPrompt = context.renderedPrompt,
+              let update = context.promptHistoryUpdate,
+              let diff = update.diff
+        else {
+            return
+        }
+
+        await inspector.didComposeTurn(TurnInspection(
+            timelineId: context.timelineId,
+            agentInstanceId: context.agentInstanceId,
+            turnIndex: context.turnCount - 1,
+            model: context.modelName,
+            rendered: renderedPrompt,
+            sentMessages: context.currentMessages,
+            journal: TurnJournalSnapshot(
+                overlay: diff.publicJournalDiff,
+                stablePrefixCount: diff.stablePrefixCount,
+                didCompact: update.didCompact
+            ),
+            estimatedTokens: renderedPrompt.estimatedTokens
+        ))
+    }
+
+    private func buildFollowUpSnapshot(
+        from context: ChatTurnContext,
+        appendedMessages: [LLMMessage],
+        nextTurnIndex: Int
+    ) async -> (renderedPrompt: RenderedPrompt?, promptHistoryUpdate: PromptHistoryUpdate?) {
+        guard let priorRenderedPrompt = context.renderedPrompt else {
+            return (context.renderedPrompt, context.promptHistoryUpdate)
+        }
+
+        let followUpPrompt = synthesizeFollowUpPrompt(
+            from: priorRenderedPrompt,
+            appendedMessages: appendedMessages,
+            nextTurnIndex: nextTurnIndex
+        )
+
+        guard let promptHistory = context.promptHistory else {
+            return (followUpPrompt, context.promptHistoryUpdate)
+        }
+
+        let update = await promptHistory.update(prompt: followUpPrompt)
+        return (followUpPrompt, update)
+    }
+
+    private func synthesizeFollowUpPrompt(
+        from basePrompt: RenderedPrompt,
+        appendedMessages: [LLMMessage],
+        nextTurnIndex: Int
+    ) -> RenderedPrompt {
+        guard !appendedMessages.isEmpty else {
+            return basePrompt
+        }
+
+        let sectionID = "runtime-follow-up-\(nextTurnIndex)"
+        let appendedSection = RenderedPrompt.Section(
+            id: sectionID,
+            role: .chatHistory,
+            priority: PromptPriority.medium.rawValue,
+            estimatedTokens: PKShared.TokenEstimator.estimate(parts: appendedMessages.map(\.content)),
+            compression: .keep,
+            type: .list,
+            cachePolicy: .volatile,
+            path: ["runtime", "follow_up", "\(nextTurnIndex)"],
+            parentID: nil,
+            compressionOutcome: nil,
+            content: .messages(appendedMessages.map(makeHistoryMessage))
+        )
+
+        var sectionsByID = basePrompt.sectionsByID
+        sectionsByID[sectionID] = appendedMessages.map(\.content).joined(separator: "\n")
+
+        let sections = basePrompt.sections + [appendedSection]
+        return RenderedPrompt(
+            sections: sections,
+            string: sections.compactMap { sectionsByID[$0.id] }.joined(separator: "\n\n---\n\n"),
+            sectionsByID: sectionsByID
+        )
+    }
+
+    private func makeHistoryMessage(_ message: LLMMessage) -> Message {
+        let role: Message.MessageRole = switch message.role {
+        case .system:
+            .system
+        case .user, .developer:
+            .user
+        case .assistant:
+            .assistant
+        case .tool:
+            .tool
+        }
+
+        return Message(
+            content: message.content,
+            role: role,
+            toolCalls: message.toolCalls?.compactMap { toolCall in
+                guard let arguments = try? JSONSerialization.jsonObject(with: Data(toolCall.arguments.utf8)) as? [String: Any] else {
+                    return nil
+                }
+                return ToolCall(
+                    id: UUID(uuidString: toolCall.id) ?? UUID(),
+                    name: toolCall.name,
+                    arguments: arguments.mapValues { AnyCodable($0) }
+                )
+            },
+            toolCallId: message.toolCallID
+        )
     }
 }
