@@ -66,7 +66,7 @@ let chat = PositronicKit(
     ),
     embeddingService: myEmbeddingService,
     runtime: .init(
-        timelineManager: myTimelineManager
+        workspaceCreator: myWorkspaceCreator
     )
 )
 

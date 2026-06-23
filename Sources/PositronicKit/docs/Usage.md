@@ -76,8 +76,7 @@ let chat = PositronicKit(
     ),
     embeddingService: myEmbeddingService,
     runtime: .init(
-        timelineManager: myTimelineManager,
-        toolRouter: myToolRouter
+        workspaceCreator: myWorkspaceCreator
     )
 )
 ```
@@ -103,8 +102,7 @@ let chat = PositronicKit(
     ),
     embeddingService: myEmbeddingService,
     runtime: .init(
-        timelineManager: myTimelineManager,
-        toolRouter: myToolRouter
+        workspaceCreator: myWorkspaceCreator
     )
 )
 

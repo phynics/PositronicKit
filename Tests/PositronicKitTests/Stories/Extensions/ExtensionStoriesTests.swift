@@ -124,17 +124,25 @@ import Testing
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
         let workspace = TestWorkspace()
-        let timelineManager = TimelineManager(
-            stores: .init(
-                timelineStore: mockPersistence,
+
+        let chat = PositronicKit(
+            llmService: mockLLM,
+            persistence: .init(
                 messageStore: mockPersistence,
-                workspaceStore: mockPersistence,
-                toolPersistence: mockPersistence
+                timelinePersistence: mockPersistence,
+                workspacePersistence: mockPersistence,
+                memoryStore: mockPersistence,
+                toolPersistence: mockPersistence,
+                agentInstanceStore: mockPersistence,
+                requestOriginStore: mockPersistence
             ),
-            workspaceRoot: workspace.root,
-            workspaceCreator: workspaceCreator,
-            sectionProviders: sectionProviders
+            runtime: .init(
+                workspaceCreator: workspaceCreator,
+                sectionProviders: sectionProviders,
+                workspaceRoot: workspace.root
+            )
         )
+        let timelineManager = chat.timelineManager
 
         let timeline = try await timelineManager.createTimeline(title: "Extension Acceptance")
 
@@ -151,23 +159,6 @@ import Testing
             try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("acceptance_tool"))
             try await timelineManager.attachWorkspace(workspaceId, to: timeline.id)
         }
-
-        let chat = PositronicKit(
-            llmService: mockLLM,
-            persistence: .init(
-                messageStore: mockPersistence,
-                timelinePersistence: mockPersistence,
-                workspacePersistence: mockPersistence,
-                memoryStore: mockPersistence,
-                toolPersistence: mockPersistence,
-                agentInstanceStore: mockPersistence,
-                requestOriginStore: mockPersistence
-            ),
-            runtime: .init(
-                timelineManager: timelineManager,
-                toolRouter: ToolRouter(timelineManager: timelineManager, messageStore: mockPersistence)
-            )
-        )
 
         return (chat, mockLLM, mockPersistence, timeline.id, workspace, timelineManager)
     }

@@ -120,12 +120,6 @@ import Testing
     func unconfiguredFacadeRunFails() async throws {
         let mockPersistence = MockPersistenceService()
         let workspace = TestWorkspace()
-        let timelineManager = TimelineManager(
-            workspaceRoot: workspace.root,
-            workspaceCreator: MockWorkspaceCreator()
-        )
-
-        let timeline = try await timelineManager.createTimeline(title: "Unconfigured")
 
         let persistence = PositronicKit.PersistenceConfiguration(
             messageStore: mockPersistence,
@@ -140,8 +134,10 @@ import Testing
         let chat = PositronicKit(
             llmService: UnconfiguredLLMService(),
             persistence: persistence,
-            runtime: .init(timelineManager: timelineManager)
+            runtime: .init(workspaceCreator: MockWorkspaceCreator(), workspaceRoot: workspace.root)
         )
+
+        let timeline = try await chat.timelineManager.createTimeline(title: "Unconfigured")
 
         await #expect(throws: ChatEngineError.self) {
             _ = try await chat.run(timelineId: timeline.id, message: "hello")

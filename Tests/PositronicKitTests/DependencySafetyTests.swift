@@ -29,6 +29,25 @@ struct DependencySafetyTests {
         #expect(core.timelineManager === runtime.timelineManager)
     }
 
+    @Test("PositronicKit facade's TimelineManager shares the memoryStore passed via persistence")
+    func facadeTimelineManagerSharesMemoryStore() async {
+        let mockPersistence = MockPersistenceService()
+        let chat = PositronicKit(
+            llmService: MockLLMService(),
+            persistence: .init(
+                messageStore: mockPersistence,
+                timelinePersistence: mockPersistence,
+                workspacePersistence: mockPersistence,
+                memoryStore: mockPersistence,
+                toolPersistence: mockPersistence,
+                agentInstanceStore: mockPersistence,
+                requestOriginStore: mockPersistence
+            )
+        )
+
+        #expect(await chat.timelineManager.memoryStore as? MockPersistenceService === mockPersistence)
+    }
+
     @Test("AgentInstanceManager correctly resolves overridden agentWorkspaceService")
     func agentInstanceManagerDependencyInjection() async throws {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
