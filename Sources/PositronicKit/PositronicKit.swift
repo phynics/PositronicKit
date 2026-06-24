@@ -230,6 +230,31 @@ public struct PositronicKit: Sendable {
         agentInstanceId: UUID? = nil,
         maxTurns: Int = 5,
         generationParameters: GenerationParameters? = nil,
+        promptAssemblyLogger: Logger? = nil
+    ) async throws -> AsyncThrowingStream<ChatEvent, Error> {
+        try await run(
+            timelineId: timelineId,
+            message: message,
+            tools: tools,
+            toolOutputs: toolOutputs,
+            systemInstructions: systemInstructions,
+            agentInstanceId: agentInstanceId,
+            maxTurns: maxTurns,
+            generationParameters: generationParameters,
+            structuredOutput: nil,
+            promptAssemblyLogger: promptAssemblyLogger
+        )
+    }
+
+    public func run(
+        timelineId: UUID,
+        message: String,
+        tools: [AnyTool] = [],
+        toolOutputs: [ToolOutputSubmission]? = nil,
+        systemInstructions: String? = nil,
+        agentInstanceId: UUID? = nil,
+        maxTurns: Int = 5,
+        generationParameters: GenerationParameters? = nil,
         structuredOutput: StructuredOutputRequest? = nil,
         promptAssemblyLogger: Logger? = nil
     ) async throws -> AsyncThrowingStream<ChatEvent, Error> {

@@ -27,7 +27,7 @@ let package = Package(
         .package(url: "https://github.com/MacPaw/OpenAI.git", exact: "0.4.8"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.5.0"),
         .package(url: "https://github.com/FlineDev/ErrorKit", from: "1.0.0"),
-        .package(url: "https://github.com/ajevans99/swift-json-schema", from: "0.13.1"),
+        .package(url: "https://github.com/ajevans99/swift-json-schema", exact: "0.11.2"),
         .package(url: "https://github.com/apple/swift-crypto.git", exact: "3.15.1"),
     ],
     targets: [
