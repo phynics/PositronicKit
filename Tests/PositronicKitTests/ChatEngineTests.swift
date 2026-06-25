@@ -10,7 +10,10 @@ struct ChatEngineTests {
     private let timelineId = UUID()
 
     /// Helper to run a test with standard dependencies
-    private func withChatEngineDependencies<T>(_ test: @Sendable (ChatEngine, MockLLMService, MockPersistenceService) async throws -> T) async throws -> T {
+    private func withChatEngineDependencies<T>(
+        streamTimeout: TimeInterval = 60,
+        _ test: @Sendable (ChatEngine, MockLLMService, MockPersistenceService) async throws -> T
+    ) async throws -> T {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
         let timelineManager = TimelineManager(
@@ -35,7 +38,8 @@ struct ChatEngineTests {
                 messageStore: mockPersistence,
                 llmService: mockLLM,
                 toolRouter: toolRouter,
-                chatTurnPlugins: []
+                chatTurnPlugins: [],
+                streamTimeout: streamTimeout
             )
         )
 
@@ -223,6 +227,44 @@ struct ChatEngineTests {
 
             // Final response
             #expect(events.contains(where: { if case let .delta(event: .generation(text: text)) = $0 { return text == "Processed result" }; return false }))
+        }
+    }
+
+    @Test("Provider stream timeout surfaces on tool follow-up")
+    func providerStreamTimeoutSurfacesOnToolFollowUp() async throws {
+        try await withChatEngineDependencies(streamTimeout: 0.05) { engine, mockLLM, _ in
+            let mockTool = MockTool()
+            mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "call_1", name: "mock_tool")]]
+            mockLLM.mockClient.nextResponses = [""]
+            mockLLM.mockClient.neverFinishingStreamCallIndices = [2]
+
+            let stream = try await engine.execute(
+                timelineId: timelineId,
+                message: "Run tool then hang",
+                tools: [mockTool.toAnyTool()]
+            )
+
+            var sawToolSuccess = false
+            do {
+                for try await event in stream {
+                    if case let .completion(event: .toolExecution(id, status)) = event,
+                       id == "call_1",
+                       case .success = status {
+                        sawToolSuccess = true
+                    }
+                }
+                Issue.record("Expected the follow-up provider stream to time out")
+            } catch let PipelineError.stageFailed(id, underlyingError) {
+                #expect(id == "LLMStreamingStage")
+                guard case let ChatEngineError.streamTimedOut(timeout) = underlyingError else {
+                    Issue.record("Expected streamTimedOut, got \(underlyingError)")
+                    return
+                }
+                #expect(timeout == 0.05)
+            } catch {
+                Issue.record("Expected PipelineError.stageFailed, got \(error)")
+            }
+            #expect(sawToolSuccess)
         }
     }
 

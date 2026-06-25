@@ -86,6 +86,29 @@ struct ContextManagerTests {
         #expect(mockEmbedding.lastInput == "Current query")
     }
 
+    @Test("Empty memory store skips LLM tag generation and embedding")
+    func emptyMemoryStoreSkipsLLMTagGenerationAndEmbedding() async throws {
+        let mockPersistence = MockPersistenceService()
+        let mockEmbedding = MockEmbeddingService()
+        let contextManager = makeContextManager(persistence: mockPersistence, embedding: mockEmbedding)
+        let tagProbe = TagProbe()
+        let tagGenerator: @Sendable (String) async throws -> [String] = { _ in
+            await tagProbe.recordCall()
+            return ["swift"]
+        }
+
+        let stream = await contextManager.gatherContext(
+            for: "fresh conversation",
+            tagGenerator: tagGenerator
+        )
+        let events = try await stream.collect()
+        let context = events.compactMap { if case let .complete(data) = $0 { return data } else { return nil } }.first
+
+        #expect(context != nil)
+        #expect(await tagProbe.calls == 0)
+        #expect(mockEmbedding.lastInput == nil)
+    }
+
     @Test("Ranking Logic with Tag Boost")
     func rankingLogicWithTagBoost() async throws {
         let mockPersistence = MockPersistenceService()
@@ -209,5 +232,13 @@ struct ContextManagerTests {
         await #expect(throws: Error.self) {
             for try await _ in stream {}
         }
+    }
+}
+
+private actor TagProbe {
+    private(set) var calls = 0
+
+    func recordCall() {
+        calls += 1
     }
 }

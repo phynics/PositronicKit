@@ -79,6 +79,11 @@ struct MemoryRetrievalStage: PipelineStage {
             return (memories: [], tags: [], vector: [], semanticResults: [], tagResults: [])
         }
 
+        guard try await memoryStore.hasAnyMemory() else {
+            logger.info("Recall: 0 memories selected from 0 semantic + 0 tag matches")
+            return (memories: [], tags: [], vector: [], semanticResults: [], tagResults: [])
+        }
+
         let tags = await generateTagsSafely(tagContext: tagContext, tagGenerator: tagGenerator, onProgress: onProgress)
         let embedding = try await generateQueryEmbedding(for: query, onProgress: onProgress)
 

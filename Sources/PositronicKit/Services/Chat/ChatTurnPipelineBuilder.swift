@@ -12,10 +12,11 @@ enum ChatTurnPipelineBuilder {
         llmService: any LLMServiceProtocol,
         messageStore: any MessageStoreProtocol,
         logger: Logger,
+        streamTimeout: TimeInterval = 60,
         additionalStages: [any PipelineStage<ChatTurnContext, ChatEvent>] = []
     ) -> Pipeline<ChatTurnContext, ChatEvent> {
         var pipeline = Pipeline<ChatTurnContext, ChatEvent>()
-            .add(LLMStreamingStage(llmService: llmService, logger: logger))
+            .add(LLMStreamingStage(llmService: llmService, logger: logger, streamTimeout: streamTimeout))
             .add(ToolCallExtractionStage(logger: logger))
             .add(MessagePersistenceStage(messageStore: messageStore, logger: logger))
 

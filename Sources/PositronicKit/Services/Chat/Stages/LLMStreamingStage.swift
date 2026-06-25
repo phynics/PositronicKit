@@ -7,6 +7,13 @@ import PKShared
 struct LLMStreamingStage: PipelineStage {
     let llmService: any LLMServiceProtocol
     let logger: Logger
+    let streamTimeout: TimeInterval
+
+    init(llmService: any LLMServiceProtocol, logger: Logger, streamTimeout: TimeInterval = 60) {
+        self.llmService = llmService
+        self.logger = logger
+        self.streamTimeout = streamTimeout
+    }
 
     func process(_ context: ChatTurnContext) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         let streamData: AsyncThrowingStream<LLMStreamChunk, Error>
@@ -29,22 +36,18 @@ struct LLMStreamingStage: PipelineStage {
         return AsyncThrowingStream { continuation in
             let task = Task {
                 do {
-                    var parser = StreamingParser()
-                    let turnStartTime = Date()
+                    try await withThrowingTaskGroup(of: Void.self) { group in
+                        group.addTask {
+                            try await streamResponse(streamData, context: context, continuation: continuation)
+                        }
+                        group.addTask {
+                            try await Task.sleep(nanoseconds: timeoutNanoseconds(streamTimeout))
+                            throw ChatEngineError.streamTimedOut(streamTimeout)
+                        }
 
-                    for try await result in streamData {
-                        if Task.isCancelled { break }
-
-                        await handleStreamUsage(result, context: context)
-                        await handleContentDelta(result, parser: &parser, context: context, continuation: continuation)
-                        await handleToolCallDeltas(result, context: context, continuation: continuation)
+                        _ = try await group.next()
+                        group.cancelAll()
                     }
-
-                    await flushRemainingBuffer(&parser, context: context, continuation: continuation)
-
-                    await context.outputs.finalizeTurn(startTime: turnStartTime)
-
-                    // Task cancellation after natural stream completion is not an error.
                     continuation.finish()
                 } catch {
                     continuation.finish(throwing: error)
@@ -55,6 +58,30 @@ struct LLMStreamingStage: PipelineStage {
     }
 
     // MARK: - Helpers
+
+    private func streamResponse(
+        _ streamData: AsyncThrowingStream<LLMStreamChunk, Error>,
+        context: ChatTurnContext,
+        continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
+    ) async throws {
+        var parser = StreamingParser()
+        let turnStartTime = Date()
+
+        for try await result in streamData {
+            if Task.isCancelled { break }
+
+            await handleStreamUsage(result, context: context)
+            await handleContentDelta(result, parser: &parser, context: context, continuation: continuation)
+            await handleToolCallDeltas(result, context: context, continuation: continuation)
+        }
+
+        await flushRemainingBuffer(&parser, context: context, continuation: continuation)
+        await context.outputs.finalizeTurn(startTime: turnStartTime)
+    }
+
+    private func timeoutNanoseconds(_ timeout: TimeInterval) -> UInt64 {
+        UInt64(max(0, timeout) * 1_000_000_000)
+    }
 
     private func handleStreamUsage(_ result: LLMStreamChunk, context: ChatTurnContext) async {
         if let usage = result.usage {

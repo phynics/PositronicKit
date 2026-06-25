@@ -8,6 +8,7 @@ import PKShared
 enum ChatEngineError: PKError {
     case llmServiceNotConfigured
     case missingInput
+    case streamTimedOut(TimeInterval)
 
     var errorDomain: String {
         PKErrorDomain.chat
@@ -17,6 +18,7 @@ enum ChatEngineError: PKError {
         switch self {
         case .llmServiceNotConfigured: return 9001
         case .missingInput: return 9002
+        case .streamTimedOut: return 9003
         }
     }
 
@@ -26,7 +28,16 @@ enum ChatEngineError: PKError {
             return "The LLM service is not configured. Please set up your API endpoint and key."
         case .missingInput:
             return "A message or tool outputs must be provided to start a chat turn."
+        case let .streamTimedOut(timeout):
+            return "The model stream did not finish within \(Self.timeoutDescription(timeout)). Please try again."
         }
+    }
+
+    private static func timeoutDescription(_ timeout: TimeInterval) -> String {
+        if timeout.rounded() == timeout {
+            return "\(Int(timeout)) seconds"
+        }
+        return "\(timeout) seconds"
     }
 }
 

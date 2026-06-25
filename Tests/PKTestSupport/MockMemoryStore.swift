@@ -21,6 +21,10 @@ public final class MockMemoryStore: MemoryStoreProtocol, @unchecked Sendable {
         return memories
     }
 
+    public func hasAnyMemory() async throws -> Bool {
+        !memories.isEmpty || !searchResults.isEmpty
+    }
+
     public func searchMemories(query: String) async throws -> [Memory] {
         return memories.filter { $0.title.contains(query) || $0.content.contains(query) }
     }

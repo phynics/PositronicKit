@@ -14,6 +14,8 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
     public var lastResponseFormat: LLMResponseFormat?
     public var lastParameters: GenerationParameters?
     public var shouldThrowError: Bool = false
+    public var streamCallCount: Int = 0
+    public var neverFinishingStreamCallIndices: Set<Int> = []
 
     /// Typed tool calls for stream simulation.
     public var nextToolCalls: [[MockToolCall]] = []
@@ -40,11 +42,17 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
         responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        streamCallCount += 1
+        let streamCallIndex = streamCallCount
         lastMessages = messages
         lastTools = tools
         lastToolChoice = toolChoice
         lastResponseFormat = responseFormat
         lastParameters = generationParameters
+
+        if neverFinishingStreamCallIndices.contains(streamCallIndex) {
+            return AsyncThrowingStream { _ in }
+        }
 
         if shouldThrowError {
             return AsyncThrowingStream { continuation in
