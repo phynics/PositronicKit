@@ -4,7 +4,7 @@ import PKShared
 
 // MARK: - Snapshot Types
 
-struct PromptSectionEntry: Sendable {
+struct PromptSectionEntry {
     let entryId: String
     let content: String
     let cachePolicy: CachePolicy
@@ -21,18 +21,18 @@ struct PromptSectionEntry: Sendable {
     }
 }
 
-struct PromptSnapshot: Sendable {
+struct PromptSnapshot {
     let entries: [PromptSectionEntry]
 }
 
-enum PromptHistorySectionKind: String, Sendable, Codable, Hashable {
+enum PromptHistorySectionKind: String, Codable, Hashable {
     case section
     case group
     case synthetic
 }
 
-struct PromptHistoryJournalDiff<Entry: Sendable>: Sendable {
-    struct SubtreeDiff: Sendable {
+struct PromptHistoryJournalDiff<Entry: Sendable> {
+    struct SubtreeDiff {
         let changedNodePaths: [[String]]
         let stableNodePaths: [[String]]
         let addedNodePaths: [[String]]
@@ -57,7 +57,7 @@ struct PromptHistoryJournalDiff<Entry: Sendable>: Sendable {
 
 // MARK: - PromptDiff
 
-struct PromptDiff: Sendable {
+struct PromptDiff {
     let journalDiff: PromptHistoryJournalDiff<PromptSectionEntry>
 
     /// Tokens in the positionally-stable prefix (cacheable by LLM).
@@ -108,38 +108,73 @@ struct PromptDiff: Sendable {
     }
 }
 
-struct PromptHistoryUpdate: Sendable {
+struct PromptHistoryUpdate {
     let diff: PromptDiff?
     let didCompact: Bool
 }
 
 // MARK: - Thresholds
 
-struct CompactionThresholds: Sendable {
+public struct CompactionThresholds: Sendable {
     let maxAppendedTokens: Int
     let maxAppendedMessages: Int
 
-    init(maxAppendedTokens: Int = 50000, maxAppendedMessages: Int = 40) {
+    public init(maxAppendedTokens: Int = 50000, maxAppendedMessages: Int = 40) {
         self.maxAppendedTokens = maxAppendedTokens
         self.maxAppendedMessages = maxAppendedMessages
     }
 
-    static let `default` = CompactionThresholds()
+    public static let `default` = CompactionThresholds()
 }
 
 // MARK: - TimelinePromptHistory
 
-/// Runtime-only prompt diff/cache bookkeeping used by `PositronicKit` across turns.
+// Runtime-only prompt diff/cache bookkeeping used by `PositronicKit` across turns.
+//
+// This actor is intentionally separate from `PKPrompt.PromptJournal`.
+//
+// - `PromptJournal` is the prompt-layer API for projecting prompt evolution into base/overlay /
+//   volatile journal sections.
+// - `TimelinePromptHistory` is runtime machinery for stable-prefix reuse, append-pressure
+//   tracking, and compaction heuristics inside the chat loop.
+//
+// In other words: `PromptJournal` is a prompt-facing product surface, while this type is an
+// implementation detail of the runtime orchestration layer.
+
+/// Holds one `TimelinePromptHistory` per conversation timeline, so prompt-cache and
+/// journal-diff state (the stable-prefix count, changed/added/removed semi-stable IDs)
+/// accumulates across a conversation's sends rather than resetting on every call.
 ///
-/// This actor is intentionally separate from `PKPrompt.PromptJournal`.
-///
-/// - `PromptJournal` is the prompt-layer API for projecting prompt evolution into base/overlay /
-///   volatile journal sections.
-/// - `TimelinePromptHistory` is runtime machinery for stable-prefix reuse, append-pressure
-///   tracking, and compaction heuristics inside the chat loop.
-///
-/// In other words: `PromptJournal` is a prompt-facing product surface, while this type is an
-/// implementation detail of the runtime orchestration layer.
+/// `ChatEngine+ContextBuilding.prepareSession` used to construct a fresh
+/// `TimelinePromptHistory()` on every `execute` call, so `baseSnapshot` was always `nil`
+/// at the start of every user turn — every send's first round-trip diffed against
+/// nothing, always reporting `stablePrefixCount: 0` and everything "added" regardless of
+/// how many prior turns the conversation actually had. Routing every call through this
+/// registry keyed by `timelineId` fixes that: the second (and later) sends in a
+/// conversation now diff against the previous send's final prompt snapshot.
+public actor TimelinePromptHistoryRegistry {
+    private var historiesByTimelineId: [UUID: TimelinePromptHistory] = [:]
+    private let thresholds: CompactionThresholds
+
+    public init(thresholds: CompactionThresholds = .default) {
+        self.thresholds = thresholds
+    }
+
+    /// Returns the existing history for `timelineId`, creating one on first use.
+    func history(for timelineId: UUID) -> TimelinePromptHistory {
+        if let existing = historiesByTimelineId[timelineId] {
+            return existing
+        }
+        let created = TimelinePromptHistory(thresholds: thresholds)
+        historiesByTimelineId[timelineId] = created
+        return created
+    }
+
+    /// Drops the cached history for a timeline, e.g. when a conversation is deleted.
+    func removeHistory(for timelineId: UUID) {
+        historiesByTimelineId.removeValue(forKey: timelineId)
+    }
+}
 
 actor TimelinePromptHistory {
     private var baseSnapshot: PromptSnapshot?
@@ -148,8 +183,27 @@ actor TimelinePromptHistory {
     let thresholds: CompactionThresholds
     private(set) var lastDiff: PromptDiff?
 
+    /// The next inspection-turn index to assign for this timeline, persisted across
+    /// `ChatEngine.execute` calls (i.e. across user sends), not just within one.
+    ///
+    /// `ChatTurnContext.turnCount` resets to 0 at the start of every `execute()` call, so it
+    /// cannot be used as the persisted `TurnInspectionModel` row index — two different sends
+    /// would both produce row index 0 for their first internal round-trip, and the second
+    /// send's row would silently overwrite the first send's row (same `"timelineId:turnIndex"`
+    /// key). This counter increments once per `nextInspectionTurnIndex()` call and is never
+    /// reset, so every internal round-trip across the whole conversation gets a unique,
+    /// monotonically increasing row index.
+    private var nextInspectionIndex = 0
+
     init(thresholds: CompactionThresholds = .default) {
         self.thresholds = thresholds
+    }
+
+    /// Returns the next inspection-turn index for this timeline and advances the counter.
+    func nextInspectionTurnIndex() -> Int {
+        let index = nextInspectionIndex
+        nextInspectionIndex += 1
+        return index
     }
 
     /// Record a rendered prompt snapshot and compact append state if thresholds were exceeded.
@@ -280,7 +334,7 @@ actor TimelinePromptHistory {
 
     /// Reset append counters. Base snapshot is preserved for accurate future diffs.
     /// Call with `hard: true` to also clear the base (next record treats everything as new).
-    public func compact(hard: Bool = false) {
+    func compact(hard: Bool = false) {
         if hard {
             baseSnapshot = nil
         }
@@ -289,7 +343,7 @@ actor TimelinePromptHistory {
         lastDiff = nil
     }
 
-    public func structuredDiffHint() -> StructuredDiffHint? {
+    func structuredDiffHint() -> StructuredDiffHint? {
         guard let lastDiff else { return nil }
         return StructuredDiffHint(
             changedNodePaths: lastDiff.changedNodePaths,
@@ -297,7 +351,7 @@ actor TimelinePromptHistory {
         )
     }
 
-    public func nodeMetadata(
+    func nodeMetadata(
         prompt: RenderedPrompt
     ) -> [String: StructuredNodeMetadata] {
         var metadata: [String: StructuredNodeMetadata] = [:]
@@ -341,7 +395,8 @@ actor TimelinePromptHistory {
         var stablePrefixCount = 0
         for idx in 0 ..< min(previous.entries.count, snapshot.entries.count) {
             if previous.entries[idx].entryId == snapshot.entries[idx].entryId,
-               previous.entries[idx].contentHash == snapshot.entries[idx].contentHash {
+               previous.entries[idx].contentHash == snapshot.entries[idx].contentHash
+            {
                 stablePrefixCount += 1
             } else {
                 break

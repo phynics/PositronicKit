@@ -101,7 +101,7 @@ extension ChatEngine {
             generationParameters: generationParameters
         )
 
-        let promptHistory = TimelinePromptHistory()
+        let promptHistory = await dependencies.promptHistoryRegistry.history(for: timelineId)
         let structuredDiff = await promptHistory.structuredDiffHint()
         let budget = generationParameters?.maxTokens.map {
             TokenBudget(maxTokens: $0, reserveForResponse: max(256, $0 / 5))

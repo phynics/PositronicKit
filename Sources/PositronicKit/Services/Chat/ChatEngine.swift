@@ -21,6 +21,7 @@ struct ChatEngine {
         let toolRouter: ToolRouter
         let chatTurnPlugins: [any ChatTurnPlugin]
         let turnInspector: (any TurnInspecting)?
+        let promptHistoryRegistry: TimelinePromptHistoryRegistry
 
         init(
             timelineManager: TimelineManager,
@@ -30,7 +31,8 @@ struct ChatEngine {
             llmService: any LLMServiceProtocol,
             toolRouter: ToolRouter,
             chatTurnPlugins: [any ChatTurnPlugin],
-            turnInspector: (any TurnInspecting)? = nil
+            turnInspector: (any TurnInspecting)? = nil,
+            promptHistoryRegistry: TimelinePromptHistoryRegistry? = nil
         ) {
             self.timelineManager = timelineManager
             self.agentInstanceStore = agentInstanceStore
@@ -40,6 +42,7 @@ struct ChatEngine {
             self.toolRouter = toolRouter
             self.chatTurnPlugins = chatTurnPlugins
             self.turnInspector = turnInspector
+            self.promptHistoryRegistry = promptHistoryRegistry ?? TimelinePromptHistoryRegistry()
         }
     }
 
@@ -293,10 +296,16 @@ struct ChatEngine {
             return
         }
 
+        // `context.turnCount` resets to 0 at the start of every `execute()` call (every user
+        // send), so it cannot identify a persisted inspection row uniquely across a whole
+        // conversation — a second send's first round-trip would collide with the first send's
+        // row (`TimelinePromptHistory.nextInspectionTurnIndex` fixes this; see YAK-16).
+        let turnIndex = await context.promptHistory?.nextInspectionTurnIndex() ?? (context.turnCount - 1)
+
         await inspector.didComposeTurn(TurnInspection(
             timelineId: context.timelineId,
             agentInstanceId: context.agentInstanceId,
-            turnIndex: context.turnCount - 1,
+            turnIndex: turnIndex,
             model: context.modelName,
             rendered: renderedPrompt,
             sentMessages: context.currentMessages,

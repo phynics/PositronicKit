@@ -53,6 +53,19 @@ public struct PositronicKit: Sendable {
 
     private var chatEngine: ChatEngine
 
+    /// Per-timeline prompt-history/journal-diff state, shared across every `execute` call on
+    /// this facade instance so a conversation's second and later sends diff against the
+    /// previous send's prompt snapshot instead of starting from a blank slate each time.
+    ///
+    /// Hosts that reconstruct a fresh `PositronicKit` value per send (e.g. to pick up updated
+    /// provider settings) must inject the *same* registry instance into every facade they
+    /// build for a given app lifetime via the `promptHistoryRegistry:` init parameter below —
+    /// otherwise each new facade gets a blank registry and both the journal diff data (YAK-16)
+    /// and the persisted inspection-turn-index counter it carries reset on every send, causing
+    /// `TimelinePromptHistory.nextInspectionTurnIndex()` to start over at 0 each time and
+    /// collide with the prior send's persisted rows.
+    private let promptHistoryRegistry: TimelinePromptHistoryRegistry
+
     // MARK: - Init
 
     /// A simplified initializer for common use cases.
@@ -96,6 +109,11 @@ public struct PositronicKit: Sendable {
     ///   - sectionProviders: Extension points for additional prompt sections, forwarded to TimelineManager.
     ///   - runtimeToolPolicy: Controls which built-in runtime tools TimelineManager installs.
     ///   - chatTurnPlugins: Post-turn plugins (e.g. autonomous reactions).
+    ///   - turnInspector: Optional sink for per-turn prompt/journal inspection projections.
+    ///   - promptHistoryRegistry: Per-timeline prompt-history/journal-diff state. Defaults to a
+    ///     fresh, private registry. Hosts that reconstruct `PositronicKit` per send (e.g. to
+    ///     read fresh provider settings) must pass the *same* registry instance into every
+    ///     facade they build, or prompt-diff/inspection-turn-index state resets each send.
     ///   - generationParameters: Optional default parameters for generation.
     public init(
         llmService: any LLMServiceProtocol,
@@ -113,6 +131,7 @@ public struct PositronicKit: Sendable {
         runtimeToolPolicy: TimelineManager.RuntimeToolPolicy = .default,
         chatTurnPlugins: [any ChatTurnPlugin] = [],
         turnInspector: (any TurnInspecting)? = nil,
+        promptHistoryRegistry: TimelinePromptHistoryRegistry = TimelinePromptHistoryRegistry(),
         generationParameters: GenerationParameters? = nil
     ) {
         self.llmService = llmService
@@ -126,6 +145,7 @@ public struct PositronicKit: Sendable {
         self.embeddingService = embeddingService ?? NoOpEmbeddingService()
         self.chatTurnPlugins = chatTurnPlugins
         self.turnInspector = turnInspector
+        self.promptHistoryRegistry = promptHistoryRegistry
         defaultGenerationParameters = generationParameters
 
         let resolvedWorkspaceRoot = workspaceRoot ?? FileManager.default.temporaryDirectory
@@ -161,7 +181,8 @@ public struct PositronicKit: Sendable {
                 llmService: self.llmService,
                 toolRouter: toolRouter,
                 chatTurnPlugins: self.chatTurnPlugins,
-                turnInspector: self.turnInspector
+                turnInspector: self.turnInspector,
+                promptHistoryRegistry: promptHistoryRegistry
             )
         )
     }
@@ -197,7 +218,8 @@ public struct PositronicKit: Sendable {
                 llmService: copy.llmService,
                 toolRouter: copy.toolRouter,
                 chatTurnPlugins: copy.chatTurnPlugins,
-                turnInspector: copy.turnInspector
+                turnInspector: copy.turnInspector,
+                promptHistoryRegistry: copy.promptHistoryRegistry
             )
         )
         copy.chatEngine.additionalStages = existingStages
@@ -364,6 +386,10 @@ public extension PositronicKit {
     ///   - embeddingService: Embedding provider. Defaults to no-op.
     ///   - workspaceRoot: Root directory for workspaces. Defaults to temp directory.
     ///   - chatTurnPlugins: Post-turn plugins. Defaults to none.
+    ///   - turnInspector: Optional sink for per-turn prompt/journal inspection projections.
+    ///   - promptHistoryRegistry: Per-timeline prompt-history/journal-diff state. See the main
+    ///     initializer's doc comment for why hosts that rebuild `PositronicKit` per send must
+    ///     pass the same instance every time.
     ///   - generationParameters: Optional default parameters for generation.
     init(
         llmService: any LLMServiceProtocol,
@@ -372,6 +398,7 @@ public extension PositronicKit {
         workspaceRoot: URL? = nil,
         chatTurnPlugins: [any ChatTurnPlugin] = [],
         turnInspector: (any TurnInspecting)? = nil,
+        promptHistoryRegistry: TimelinePromptHistoryRegistry = TimelinePromptHistoryRegistry(),
         generationParameters: GenerationParameters? = nil
     ) {
         self.init(
@@ -387,6 +414,7 @@ public extension PositronicKit {
             workspaceRoot: workspaceRoot,
             chatTurnPlugins: chatTurnPlugins,
             turnInspector: turnInspector,
+            promptHistoryRegistry: promptHistoryRegistry,
             generationParameters: generationParameters
         )
     }
