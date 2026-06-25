@@ -1,6 +1,6 @@
 import Foundation
 #if canImport(FoundationNetworking)
-import FoundationNetworking
+    import FoundationNetworking
 #endif
 import struct JSONSchema.Schema
 import Logging
@@ -142,7 +142,7 @@ private enum OpenRouterToolChoice: Codable {
         switch self {
         case .auto:
             try container.encode("auto")
-        case .function(let name):
+        case let .function(name):
             try container.encode(FunctionWrapper(type: "function", function: NamedFunction(name: name)))
         }
     }
@@ -169,7 +169,7 @@ private enum OpenRouterResponseFormat: Codable {
         switch self {
         case .jsonObject:
             try container.encode(KindOnly(type: "json_object"))
-        case .jsonSchema(let schema):
+        case let .jsonSchema(schema):
             try container.encode(SchemaWrapper(type: "json_schema", jsonSchema: schema))
         }
     }
@@ -306,6 +306,15 @@ public actor OpenRouterClient: LLMClientProtocol {
                             continuation: continuation
                         )
 
+                        // Diagnostic (YAK-23): summarize what the model actually returned so a model
+                        // that emits no tool call is distinguishable from a parse/recovery failure.
+                        let summary = recoveryState.withLock {
+                            (finished: $0.finishedWithToolCalls, streamed: $0.sawStreamedToolCalls, yielded: $0.hasYielded)
+                        }
+                        logger.info(
+                            "OpenRouter stream complete (model \(modelName)): finishedWithToolCalls=\(summary.finished) sawStreamedToolCalls=\(summary.streamed) yieldedAnything=\(summary.yielded) toolsAdvertised=\(tools?.count ?? 0)"
+                        )
+
                         if !Task.isCancelled, recoveryState.withLock(\.shouldRecoverToolCalls) {
                             logger.warning("OpenRouter stream finished with tool_calls but no streamed delta.toolCalls were received. Recovering tool calls from non-stream response.")
                             let recoveryRequest = self.buildChatRequest(
@@ -331,7 +340,10 @@ public actor OpenRouterClient: LLMClientProtocol {
                             )
                             let recoveryResult = try await self.fetchChatResponse(request: recoveryRequest)
                             if !Task.isCancelled, let recoveryChunk = self.makeToolCallRecoveryChunk(from: recoveryResult) {
+                                logger.info("OpenRouter tool-call recovery succeeded: \(recoveryChunk.choices.first?.delta.toolCalls?.count ?? 0) tool call(s) recovered")
                                 continuation.yield(recoveryChunk)
+                            } else {
+                                logger.warning("OpenRouter tool-call recovery produced no usable tool calls (non-stream response had finishReason!=tool_calls or empty tool_calls)")
                             }
                         }
                     }
@@ -530,7 +542,7 @@ public actor OpenRouterClient: LLMClientProtocol {
         switch choice {
         case .none: return nil
         case .auto: return .auto
-        case .function(let name): return .function(name)
+        case let .function(name): return .function(name)
         }
     }
 
@@ -540,7 +552,7 @@ public actor OpenRouterClient: LLMClientProtocol {
             return nil
         case .jsonObject:
             return .jsonObject
-        case .jsonSchema(let schema):
+        case let .jsonSchema(schema):
             return .jsonSchema(.init(
                 name: schema.name,
                 description: schema.description,

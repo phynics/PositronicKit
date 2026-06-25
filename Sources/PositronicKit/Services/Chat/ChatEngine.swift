@@ -22,6 +22,7 @@ struct ChatEngine {
         let chatTurnPlugins: [any ChatTurnPlugin]
         let turnInspector: (any TurnInspecting)?
         let promptHistoryRegistry: TimelinePromptHistoryRegistry
+        let streamTimeout: TimeInterval
 
         init(
             timelineManager: TimelineManager,
@@ -32,7 +33,8 @@ struct ChatEngine {
             toolRouter: ToolRouter,
             chatTurnPlugins: [any ChatTurnPlugin],
             turnInspector: (any TurnInspecting)? = nil,
-            promptHistoryRegistry: TimelinePromptHistoryRegistry? = nil
+            promptHistoryRegistry: TimelinePromptHistoryRegistry? = nil,
+            streamTimeout: TimeInterval = 60
         ) {
             self.timelineManager = timelineManager
             self.agentInstanceStore = agentInstanceStore
@@ -43,6 +45,7 @@ struct ChatEngine {
             self.chatTurnPlugins = chatTurnPlugins
             self.turnInspector = turnInspector
             self.promptHistoryRegistry = promptHistoryRegistry ?? TimelinePromptHistoryRegistry()
+            self.streamTimeout = streamTimeout
         }
     }
 
@@ -263,6 +266,20 @@ struct ChatEngine {
             continuation: continuation
         )
 
+        // Diagnostic (YAK-23): record whether the model's turn produced tool calls and how much
+        // assistant text it emitted, so "model never called a tool" is distinguishable from
+        // "tool call was dropped". An empty turn with no tool calls points upstream at the model
+        // / provider adapter, not at the tool router.
+        let contentChars = await context.outputs.fullResponse.count
+        switch result {
+        case .noToolCalls:
+            logger.info("Turn \(context.turnCount): no tool calls; assistant content chars=\(contentChars)")
+        case .deferredExternally:
+            logger.info("Turn \(context.turnCount): tool calls deferred for external execution")
+        case let .continueWith(messages):
+            logger.info("Turn \(context.turnCount): \(messages.count) tool-result message(s) to feed back; assistant content chars=\(contentChars)")
+        }
+
         switch result {
         case .noToolCalls, .deferredExternally:
             return .stop
@@ -279,6 +296,7 @@ struct ChatEngine {
             llmService: dependencies.llmService,
             messageStore: dependencies.messageStore,
             logger: logger,
+            streamTimeout: dependencies.streamTimeout,
             additionalStages: additionalStages
         )
         let stream = pipeline.execute(context)
