@@ -316,8 +316,8 @@ public actor OpenRouterClient: LLMClientProtocol {
                             continuation: continuation
                         )
 
-                        // Diagnostic (YAK-23): summarize what the model actually returned so a model
-                        // that emits no tool call is distinguishable from a parse/recovery failure.
+                        // Summarize what the model returned, so a model that emits no tool call is
+                        // distinguishable from a parse/recovery failure when debugging tool calling.
                         let summary = recoveryState.withLock {
                             (finished: $0.finishedWithToolCalls, streamed: $0.sawStreamedToolCalls, yielded: $0.hasYielded)
                         }
@@ -406,17 +406,8 @@ public actor OpenRouterClient: LLMClientProtocol {
                 responseBody: errorBody
             )
         }
-        // Diagnostic (YAK-23): capture raw SSE lines so that, if the stream yields nothing
-        // (the "empty response" failure), we can log exactly what the provider sent back —
-        // empty deltas, an inline error event, or content in an unexpected shape. Bounded and
-        // only logged on the failing path, so normal responses aren't spammed.
-        var rawLines: [String] = []
         for try await line in stream {
             if Task.isCancelled { break }
-            if rawLines.count < 50 {
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
-                if !trimmed.isEmpty { rawLines.append(trimmed) }
-            }
             processSSELine(
                 line,
                 recoveryState: recoveryState,
@@ -424,10 +415,10 @@ public actor OpenRouterClient: LLMClientProtocol {
                 continuation: continuation
             )
         }
+        // A 2xx stream that yields neither content nor tool calls is abnormal (e.g. a model
+        // returning an empty completion). Surface it so it isn't a silent dead end.
         if !recoveryState.withLock(\.hasYielded) {
-            logger.warning(
-                "OpenRouter stream yielded nothing — raw SSE follows (\(rawLines.count) line(s)):\n\(rawLines.joined(separator: "\n"))"
-            )
+            logger.warning("OpenRouter stream completed with no content and no tool calls")
         }
     }
 

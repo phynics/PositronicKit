@@ -266,10 +266,9 @@ struct ChatEngine {
             continuation: continuation
         )
 
-        // Diagnostic (YAK-23): record whether the model's turn produced tool calls and how much
-        // assistant text it emitted, so "model never called a tool" is distinguishable from
-        // "tool call was dropped". An empty turn with no tool calls points upstream at the model
-        // / provider adapter, not at the tool router.
+        // Record whether the turn produced tool calls and how much assistant text it emitted:
+        // an empty turn with no tool calls points upstream at the model / provider adapter
+        // rather than the tool router.
         let contentChars = await context.outputs.fullResponse.count
         switch result {
         case .noToolCalls:
