@@ -1,8 +1,8 @@
 import Foundation
-@testable import PositronicKit
+import OpenAI
 @testable import PKShared
 import PKTestSupport
-import OpenAI
+@testable import PositronicKit
 import Testing
 
 @Suite(.serialized) @MainActor
@@ -249,7 +249,8 @@ struct ChatEngineTests {
                 for try await event in stream {
                     if case let .completion(event: .toolExecution(id, status)) = event,
                        id == "call_1",
-                       case .success = status {
+                       case .success = status
+                    {
                         sawToolSuccess = true
                     }
                 }
@@ -265,6 +266,30 @@ struct ChatEngineTests {
                 Issue.record("Expected PipelineError.stageFailed, got \(error)")
             }
             #expect(sawToolSuccess)
+        }
+    }
+
+    @Test("A slow but steadily-progressing stream is not killed by the idle timeout")
+    func slowProgressingStreamSurvivesIdleTimeout() async throws {
+        // Idle (inactivity) timeout of 0.3s. The stream delivers 5 chunks ~0.1s apart, so the
+        // total streaming time (~0.5s) exceeds the timeout, but no single gap does. A *total*
+        // wall-clock cap would throw mid-stream; an idle timeout must let it finish.
+        try await withChatEngineDependencies(streamTimeout: 0.3) { engine, mockLLM, _ in
+            mockLLM.mockClient.nextChunks = [["Hel", "lo ", "wor", "ld", "!"]]
+            mockLLM.mockClient.nextStreamWait = 0.1
+
+            let stream = try await engine.execute(
+                timelineId: timelineId,
+                message: "stream slowly",
+                tools: []
+            )
+
+            // A throw here (e.g. streamTimedOut) would fail the test; draining must complete.
+            var sawGeneration = false
+            for try await event in stream {
+                if case .delta(event: .generation) = event { sawGeneration = true }
+            }
+            #expect(sawGeneration)
         }
     }
 
@@ -399,7 +424,7 @@ struct ChatEngineTests {
             // Set up responses for both turns
             mockLLM.mockClient.nextResponses = [
                 "<tool_call>{\"name\":\"mock_tool\",\"arguments\":{}}</tool_call>",
-                "Fallback worked"
+                "Fallback worked",
             ]
 
             let stream = try await engine.execute(
@@ -444,7 +469,7 @@ struct ChatEngineTests {
                                     index: 0,
                                     id: "call_frag",
                                     function: LLMToolCallDeltaFunction(name: "mock_", arguments: "{")
-                                )
+                                ),
                             ]
                         ),
                         finishReason: nil
@@ -463,12 +488,12 @@ struct ChatEngineTests {
                                     index: 0,
                                     id: nil,
                                     function: LLMToolCallDeltaFunction(name: "tool", arguments: "}")
-                                )
+                                ),
                             ]
                         ),
                         finishReason: "tool_calls"
                     )]
-                )
+                ),
             ]]
             mockLLM.mockClient.nextResponses = ["Processed fragmented tool"]
 
@@ -488,7 +513,8 @@ struct ChatEngineTests {
             }))
             #expect(events.contains(where: {
                 if case let .completion(event: .toolExecution(id, status)) = $0,
-                   case let .success(result) = status {
+                   case let .success(result) = status
+                {
                     return id == "call_frag" && result.output == "Tool result"
                 }
                 return false
@@ -545,7 +571,7 @@ struct ChatEngineTests {
                                     index: 0,
                                     id: "call_recovered",
                                     function: LLMToolCallDeltaFunction(name: "mock_tool", arguments: "{}")
-                                )
+                                ),
                             ]
                         ),
                         finishReason: "tool_calls"
@@ -572,7 +598,8 @@ struct ChatEngineTests {
 
             let toolCompletionIndex = events.enumerated().first { _, event in
                 if case let .completion(event: .toolExecution(id, status)) = event,
-                   case let .success(result) = status {
+                   case let .success(result) = status
+                {
                     return id == "call_recovered" && result.output == "Tool result"
                 }
                 return false
@@ -611,7 +638,7 @@ struct ChatEngineTests {
                         delta: LLMStreamDelta(role: .assistant, content: nil, toolCalls: nil),
                         finishReason: "tool_calls"
                     )]
-                )
+                ),
             ]]
 
             let stream = try await engine.execute(
@@ -648,7 +675,7 @@ struct ChatEngineTests {
             mockLLM.mockClient.nextToolCalls = [
                 [MockToolCall(id: "c1", name: "mock_tool")],
                 [MockToolCall(id: "c2", name: "mock_tool")],
-                [MockToolCall(id: "c3", name: "mock_tool")]
+                [MockToolCall(id: "c3", name: "mock_tool")],
             ]
             mockLLM.mockClient.nextResponses = ["", "", ""]
 
@@ -796,7 +823,7 @@ struct ChatEngineTests {
             let mockTool = MockTool()
             mockLLM.mockClient.nextToolCalls = [[
                 MockToolCall(id: "c1", name: "mock_tool"),
-                MockToolCall(id: "c2", name: "mock_tool")
+                MockToolCall(id: "c2", name: "mock_tool"),
             ]]
             mockLLM.mockClient.nextResponses = ["", "Both done"]
 

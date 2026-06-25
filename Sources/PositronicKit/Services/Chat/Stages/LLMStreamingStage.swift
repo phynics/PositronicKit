@@ -36,13 +36,30 @@ struct LLMStreamingStage: PipelineStage {
         return AsyncThrowingStream { continuation in
             let task = Task {
                 do {
+                    // `streamTimeout` is an *inactivity* (idle) timeout, not a total cap: the
+                    // deadline is pushed forward on every received chunk, so a slow-but-
+                    // progressing long generation (or a reasoning model that streams steadily for
+                    // minutes) is never killed — only a genuine hang where no data arrives for
+                    // `streamTimeout` triggers `streamTimedOut`.
+                    let clock = ContinuousClock()
+                    let deadline = StreamIdleDeadline(timeout: streamTimeout, clock: clock)
                     try await withThrowingTaskGroup(of: Void.self) { group in
                         group.addTask {
-                            try await streamResponse(streamData, context: context, continuation: continuation)
+                            try await streamResponse(
+                                streamData,
+                                context: context,
+                                continuation: continuation,
+                                idleDeadline: deadline
+                            )
                         }
                         group.addTask {
-                            try await Task.sleep(nanoseconds: timeoutNanoseconds(streamTimeout))
-                            throw ChatEngineError.streamTimedOut(streamTimeout)
+                            while true {
+                                let remaining = await deadline.remaining()
+                                if remaining <= .zero {
+                                    throw ChatEngineError.streamTimedOut(streamTimeout)
+                                }
+                                try await Task.sleep(for: remaining, clock: clock)
+                            }
                         }
 
                         _ = try await group.next()
@@ -62,13 +79,16 @@ struct LLMStreamingStage: PipelineStage {
     private func streamResponse(
         _ streamData: AsyncThrowingStream<LLMStreamChunk, Error>,
         context: ChatTurnContext,
-        continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
+        continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation,
+        idleDeadline: StreamIdleDeadline
     ) async throws {
         var parser = StreamingParser()
         let turnStartTime = Date()
 
         for try await result in streamData {
             if Task.isCancelled { break }
+            // Reset the inactivity deadline: progress was made this chunk.
+            await idleDeadline.reset()
 
             await handleStreamUsage(result, context: context)
             await handleContentDelta(result, parser: &parser, context: context, continuation: continuation)
@@ -77,10 +97,6 @@ struct LLMStreamingStage: PipelineStage {
 
         await flushRemainingBuffer(&parser, context: context, continuation: continuation)
         await context.outputs.finalizeTurn(startTime: turnStartTime)
-    }
-
-    private func timeoutNanoseconds(_ timeout: TimeInterval) -> UInt64 {
-        UInt64(max(0, timeout) * 1_000_000_000)
     }
 
     private func handleStreamUsage(_ result: LLMStreamChunk, context: ChatTurnContext) async {
@@ -164,5 +180,25 @@ struct LLMStreamingStage: PipelineStage {
             await context.outputs.appendResponse(buffer)
             continuation.yield(.generation(parser.buffer))
         }
+    }
+}
+
+private actor StreamIdleDeadline {
+    private let timeout: TimeInterval
+    private let clock: ContinuousClock
+    private var deadline: ContinuousClock.Instant
+
+    init(timeout: TimeInterval, clock: ContinuousClock) {
+        self.timeout = timeout
+        self.clock = clock
+        deadline = clock.now.advanced(by: .seconds(timeout))
+    }
+
+    func reset() {
+        deadline = clock.now.advanced(by: .seconds(timeout))
+    }
+
+    func remaining() -> Duration {
+        deadline - clock.now
     }
 }
