@@ -273,11 +273,11 @@ struct ChatEngine {
         let contentChars = await context.outputs.fullResponse.count
         switch result {
         case .noToolCalls:
-            logger.info("Turn \(context.turnCount): no tool calls; assistant content chars=\(contentChars)")
+            logger.debug("Turn \(context.turnCount): no tool calls; assistant content chars=\(contentChars)")
         case .deferredExternally:
-            logger.info("Turn \(context.turnCount): tool calls deferred for external execution")
+            logger.debug("Turn \(context.turnCount): tool calls deferred for external execution")
         case let .continueWith(messages):
-            logger.info("Turn \(context.turnCount): \(messages.count) tool-result message(s) to feed back; assistant content chars=\(contentChars)")
+            logger.debug("Turn \(context.turnCount): \(messages.count) tool-result message(s) to feed back; assistant content chars=\(contentChars)")
         }
 
         switch result {

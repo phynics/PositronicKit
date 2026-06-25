@@ -321,7 +321,7 @@ public actor OpenRouterClient: LLMClientProtocol {
                         let summary = recoveryState.withLock {
                             (finished: $0.finishedWithToolCalls, streamed: $0.sawStreamedToolCalls, yielded: $0.hasYielded)
                         }
-                        logger.info(
+                        logger.debug(
                             "OpenRouter stream complete (model \(modelName)): finishedWithToolCalls=\(summary.finished) sawStreamedToolCalls=\(summary.streamed) yieldedAnything=\(summary.yielded) toolsAdvertised=\(tools?.count ?? 0)"
                         )
 
@@ -350,7 +350,7 @@ public actor OpenRouterClient: LLMClientProtocol {
                             )
                             let recoveryResult = try await self.fetchChatResponse(request: recoveryRequest)
                             if !Task.isCancelled, let recoveryChunk = self.makeToolCallRecoveryChunk(from: recoveryResult) {
-                                logger.info("OpenRouter tool-call recovery succeeded: \(recoveryChunk.choices.first?.delta.toolCalls?.count ?? 0) tool call(s) recovered")
+                                logger.debug("OpenRouter tool-call recovery succeeded: \(recoveryChunk.choices.first?.delta.toolCalls?.count ?? 0) tool call(s) recovered")
                                 continuation.yield(recoveryChunk)
                             } else {
                                 logger.warning("OpenRouter tool-call recovery produced no usable tool calls (non-stream response had finishReason!=tool_calls or empty tool_calls)")
