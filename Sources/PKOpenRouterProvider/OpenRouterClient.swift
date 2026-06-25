@@ -1,6 +1,6 @@
 import Foundation
 #if canImport(FoundationNetworking)
-    import FoundationNetworking
+import FoundationNetworking
 #endif
 import struct JSONSchema.Schema
 import Logging
@@ -206,6 +206,16 @@ public actor OpenRouterClient: LLMClientProtocol {
     private let timeoutInterval: TimeInterval
     private let transport: any ProviderHTTPTransport
     private let attribution: Attribution
+
+    /// Decoder for streamed `LLMStreamChunk`s. Uses `.convertFromSnakeCase` because the OpenAI/
+    /// OpenRouter SSE wire format is snake_case (`tool_calls`, `finish_reason`, `prompt_tokens`)
+    /// while `LLMStreamChunk` and its nested types use camelCase properties with no explicit
+    /// CodingKeys. Without this, those fields silently decode to nil (YAK-23).
+    private static let streamChunkDecoder: JSONDecoder = {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return decoder
+    }()
 
     public init(
         apiKey: String,
@@ -449,7 +459,12 @@ public actor OpenRouterClient: LLMClientProtocol {
         guard dataString != "[DONE]", let data = dataString.data(using: .utf8) else { return }
 
         do {
-            let result = try JSONDecoder().decode(LLMStreamChunk.self, from: data)
+            // The wire format is snake_case (`tool_calls`, `finish_reason`) but `LLMStreamChunk`'s
+            // properties are camelCase with no explicit CodingKeys. Without convertFromSnakeCase
+            // those fields silently decode to nil (they are optional), so every streamed tool call
+            // and every finish_reason was being dropped — breaking tool calling for all models
+            // via OpenRouter, and defeating the tool-call recovery path (YAK-23).
+            let result = try Self.streamChunkDecoder.decode(LLMStreamChunk.self, from: data)
             recoveryState.withLock {
                 $0.observe(
                     yieldedContent: !(result.choices.first?.delta.content?.isEmpty ?? true),

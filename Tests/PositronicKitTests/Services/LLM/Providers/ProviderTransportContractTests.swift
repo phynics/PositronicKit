@@ -139,6 +139,31 @@ struct ProviderTransportContractTests {
         #expect(json.contains("\"type\":\"object\""))
     }
 
+    @Test("OpenRouter parses streamed snake_case tool_calls (YAK-23)")
+    func openRouterParsesStreamedToolCalls() async throws {
+        // Exact wire chunks captured from gpt-5.4-mini via OpenRouter: a streamed `tool_calls`
+        // delta (snake_case) ending in finish_reason:"tool_calls". Before the fix these were
+        // silently dropped (no convertFromSnakeCase), yielding an empty response.
+        let transport = TestProviderTransport { _ in
+            .lines([
+                #"data: {"id":"gen-1","model":"openai/gpt-5.4-mini","choices":[{"index":0,"delta":{"content":null,"role":"assistant","tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"ls","arguments":""}}]},"finish_reason":null}]}"#,
+                #"data: {"id":"gen-1","model":"openai/gpt-5.4-mini","choices":[{"index":0,"delta":{"content":null,"role":"assistant","tool_calls":[{"index":0,"function":{"arguments":"{\"path\":\".\"}"}}]},"finish_reason":null}]}"#,
+                #"data: {"id":"gen-1","model":"openai/gpt-5.4-mini","choices":[{"index":0,"delta":{"content":"","role":"assistant"},"finish_reason":"tool_calls"}]}"#,
+                "data: [DONE]",
+            ], self.response(url: "https://openrouter.ai/api/v1/chat/completions"))
+        }
+        let client = OpenRouterClient(apiKey: "secret", transport: transport)
+        let chunks = try await client.chatStream(
+            messages: [LLMMessage(role: .user, content: "list files")],
+            tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil
+        ).collect()
+
+        let toolCallChunk = try #require(chunks.first { $0.choices.first?.delta.toolCalls?.isEmpty == false })
+        let toolCall = try #require(toolCallChunk.choices.first?.delta.toolCalls?.first)
+        #expect(toolCall.function?.name == "ls")
+        #expect(chunks.contains { $0.choices.first?.finishReason == "tool_calls" })
+    }
+
     @Test("OpenRouter attribution headers are omitted when not configured")
     func openRouterAttributionHeadersAreOptional() async throws {
         let transport = TestProviderTransport { _ in
