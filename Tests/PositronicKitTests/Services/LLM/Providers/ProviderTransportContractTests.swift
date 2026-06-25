@@ -1,10 +1,11 @@
 import Foundation
+import struct JSONSchema.Schema
+@testable import PKOllamaProvider
+@testable import PKOpenRouterProvider
 import PKShared
 import PKTestSupport
-import Testing
-@testable import PKOpenRouterProvider
-@testable import PKOllamaProvider
 @testable import PositronicKit
+import Testing
 
 private actor TestProviderTransport: ProviderHTTPTransport {
     enum Response {
@@ -76,7 +77,7 @@ struct ProviderTransportContractTests {
 
     @Test("OpenRouter transport exposes request URL, headers, body, and timeout")
     func openRouterRequestInspection() async throws {
-        let transport = TestProviderTransport { request in
+        let transport = TestProviderTransport { _ in
             .lines([
                 #"data: {"id":"chunk-1","model":"openai/gpt-4o","choices":[{"index":0,"delta":{"role":"assistant","content":"hi"}}]}"#,
                 "data: [DONE]",
@@ -104,9 +105,43 @@ struct ProviderTransportContractTests {
         #expect(request.httpBody != nil)
     }
 
+    @Test("OpenRouter serializes a tools payload into the request body (YAK-23)")
+    func openRouterToolsAreSerializedIntoBody() async throws {
+        let transport = TestProviderTransport { _ in
+            .lines([
+                #"data: {"id":"chunk-1","model":"openai/gpt-4o","choices":[{"index":0,"delta":{"role":"assistant","content":"hi"}}]}"#,
+                "data: [DONE]",
+            ], self.response(url: "https://openrouter.ai/api/v1/chat/completions"))
+        }
+        let client = OpenRouterClient(apiKey: "secret", transport: transport)
+
+        // A no-argument tool (like the app's `current_datetime`) is built from an empty object
+        // schema. Confirm the tools payload still serializes into a non-nil body carrying the
+        // tool with a `{"type":"object"}` parameters schema (regression for YAK-23, where the
+        // request was suspected of being malformed — it is not).
+        let emptyObjectSchema = ToolParameterSchema.object {}.schema
+        let decodedSchema = try JSONDecoder().decode(Schema.self, from: JSONEncoder().encode(emptyObjectSchema))
+        let noArgTool = LLMToolDefinition(name: "current_datetime", description: "Get the date/time", parameters: decodedSchema)
+
+        let stream = await client.chatStream(
+            messages: [LLMMessage(role: .user, content: "time?")],
+            tools: [noArgTool],
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: nil
+        )
+        _ = try await stream.collect()
+
+        let request = try #require(await transport.recordedRequests().first)
+        let body = try #require(request.httpBody, "request body was nil when tools were present")
+        let json = String(decoding: body, as: UTF8.self)
+        #expect(json.contains("current_datetime"))
+        #expect(json.contains("\"type\":\"object\""))
+    }
+
     @Test("OpenRouter attribution headers are omitted when not configured")
     func openRouterAttributionHeadersAreOptional() async throws {
-        let transport = TestProviderTransport { request in
+        let transport = TestProviderTransport { _ in
             .lines([
                 #"data: {"id":"chunk-1","model":"openai/gpt-4o","choices":[{"index":0,"delta":{"role":"assistant","content":"hi"}}]}"#,
                 "data: [DONE]",
@@ -160,7 +195,7 @@ struct ProviderTransportContractTests {
 
     @Test("Ollama transport exposes request URL, headers, body, and timeout")
     func ollamaRequestInspection() async throws {
-        let transport = TestProviderTransport { request in
+        let transport = TestProviderTransport { _ in
             .lines([
                 #"{"model":"llama3.1","message":{"role":"assistant","content":"hi"},"done":false}"#,
                 #"{"model":"llama3.1","message":{"role":"assistant","content":""},"done":true,"prompt_eval_count":1,"eval_count":1}"#,
