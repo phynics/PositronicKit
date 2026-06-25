@@ -105,7 +105,7 @@ final class StreamingParserTests {
         #expect(tools.count == 1)
         #expect(tools[0].name == "get_weather")
         #expect(tools[0].arguments["location"]?.value as? String == "SF")
-        #expect(tools[0].id == UUID(uuidString: "11111111-1111-1111-1111-111111111111")!)
+        #expect(tools[0].id == "11111111-1111-1111-1111-111111111111")
     }
 
     @Test

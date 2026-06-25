@@ -414,7 +414,7 @@ struct ChatEngine {
                     return nil
                 }
                 return ToolCall(
-                    id: UUID(uuidString: toolCall.id) ?? UUID(),
+                    id: toolCall.id,
                     name: toolCall.name,
                     arguments: arguments.mapValues { AnyCodable($0) }
                 )

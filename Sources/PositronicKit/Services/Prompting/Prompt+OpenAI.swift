@@ -68,7 +68,7 @@ public extension RenderedPrompt {
         if let calls = msg.toolCalls, !calls.isEmpty {
             toolCalls = calls.map { call in
                 LLMToolCall(
-                    id: call.id.uuidString,
+                    id: call.id,
                     name: call.name,
                     arguments: (try? toJsonString(call.arguments)) ?? "{}"
                 )

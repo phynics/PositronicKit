@@ -74,7 +74,9 @@ struct MessagePersistenceStage: PipelineStage {
         let callsForDB = sortedCalls.compactMap { _, value -> ToolCall? in
             let argsData = value.args.data(using: .utf8) ?? Data()
             let args = (try? SerializationUtils.jsonDecoder.decode([String: AnyCodable].self, from: argsData)) ?? [:]
-            return ToolCall(name: value.name, arguments: args)
+            // Preserve the provider's tool-call id so the persisted assistant tool_call pairs
+            // with its tool-result message on later turns (YAK-26).
+            return ToolCall(id: value.callId, name: value.name, arguments: args)
         }
         return (try? SerializationUtils.jsonEncoder.encode(callsForDB))
             .flatMap { String(bytes: $0, encoding: .utf8) } ?? "[]"

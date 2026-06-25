@@ -1,7 +1,7 @@
 import Foundation
 import Logging
-import PKShared
 import Observation
+import PKShared
 
 @available(*, deprecated, message: "Use the live chat streaming pipeline built around LLMStreamingStage, StreamingParser, and TurnOutputs.")
 @MainActor
@@ -79,6 +79,10 @@ public final class StreamingCoordinator {
                 currentToolCallIndex = idx
             }
 
+            if let id = toolCall.id {
+                accumulatedToolCalls[idx]?.id = id
+            }
+
             if let name = toolCall.name {
                 accumulatedToolCalls[idx]?.name += name
             }
@@ -118,7 +122,8 @@ public final class StreamingCoordinator {
                 // Parse arguments JSON
                 var args: [String: AnyCodable] = [:]
                 if let data = accumulator.arguments.data(using: .utf8),
-                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+                {
                     // Convert [String: Any] -> [String: AnyCodable]
                     args = json.mapValues { AnyCodable($0) }
                 } else if !accumulator.arguments.isEmpty {
@@ -129,6 +134,7 @@ public final class StreamingCoordinator {
                 }
 
                 return ToolCall(
+                    id: accumulator.id,
                     name: accumulator.name,
                     arguments: args
                 )
@@ -160,6 +166,7 @@ public final class StreamingCoordinator {
 // MARK: - Helper Types
 
 private struct ToolCallAccumulator {
+    var id: String?
     var name: String = ""
     var arguments: String = ""
 }
