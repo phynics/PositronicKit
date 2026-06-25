@@ -225,24 +225,33 @@ public actor ToolRouter {
 
         logger.info("Routing 🛠️ \(toolName) in timeline \(sid)")
 
-        // resolveWorkspace returns nil when the tool is not registered in any of the
-        // timeline's workspaces, or when the timeline has no workspaces at all.
-        let workspaceId: UUID
-        if let resolved = try await resolveWorkspace(for: tool, in: timelineId, arguments: arguments) {
-            workspaceId = resolved
-        } else if let dynamicTools = availableTools,
-                  dynamicTools.contains(where: { $0.toolReference == tool || $0.id == tool.toolId }),
-                  let primaryWorkspaceId = await timelineManager.getWorkspaces(for: timelineId)?.primary?.id
-        {
-            // Dynamic/per-turn tools may not be persisted in workspace-tool mappings.
-            workspaceId = primaryWorkspaceId
-        } else {
-            throw ToolError.toolNotFound(tool.displayName)
-        }
-
         // Strip workspaceID — it's a routing-only concern, not a tool parameter
         var forwardedArguments = arguments
         forwardedArguments.removeValue(forKey: "workspaceID")
+
+        // Dynamic/per-turn tools (passed directly via `availableTools`, e.g. workspace-independent
+        // demo tools like `calculator`/`current_datetime`) execute locally unconditionally — they
+        // were explicitly handed to this turn by the caller and need no workspace-tool mapping or
+        // even an attached workspace to resolve. Without this branch, a timeline with no attached
+        // folder workspace (the common case for a fresh conversation) would fail every tool call
+        // with `toolNotFound`, even though the correct `AnyTool` was right there in `availableTools`.
+        if let dynamicTools = availableTools,
+           dynamicTools.contains(where: { $0.toolReference == tool || $0.id == tool.toolId })
+        {
+            let output = try await executeLocally(
+                tool: tool,
+                arguments: forwardedArguments,
+                timelineId: timelineId,
+                availableTools: availableTools
+            )
+            return .completed(output)
+        }
+
+        // resolveWorkspace returns nil when the tool is not registered in any of the
+        // timeline's workspaces, or when the timeline has no workspaces at all.
+        guard let workspaceId = try await resolveWorkspace(for: tool, in: timelineId, arguments: arguments) else {
+            throw ToolError.toolNotFound(tool.displayName)
+        }
 
         guard let workspace = try await timelineManager.getWorkspace(workspaceId) else {
             throw ToolError.workspaceNotFound(workspaceId)

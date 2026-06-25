@@ -242,6 +242,42 @@ final class ToolRouterTests {
         }
     }
 
+    @Test("A dynamic per-turn tool (passed via availableTools) executes locally even when the timeline has no attached workspace at all (YAK-19)")
+    func dynamicToolExecutesWithoutAnyWorkspace() async throws {
+        let (timelineManager, mockPersistence) = try await setupTimelineManager()
+        let toolRouter = ToolRouter(timelineManager: timelineManager, messageStore: mockPersistence)
+
+        // A freshly created timeline still gets its own runtime workspace from `createTimeline`,
+        // so to reproduce "no workspace at all" we must detach it — mirroring a conversation that
+        // never had a folder attached and exercises only workspace-independent demo tools like
+        // `calculator`/`current_datetime`.
+        let session = try await timelineManager.createTimeline()
+        for attachedId in session.attachedWorkspaceIds {
+            try await timelineManager.detachWorkspace(attachedId, from: session.id)
+        }
+        let workspaces = await timelineManager.getWorkspaces(for: session.id)
+        #expect(workspaces?.primary == nil)
+        #expect(workspaces?.attached.isEmpty == true)
+
+        let toolId = "dynamic_demo_tool"
+        let dynamicTool = MockTool(id: toolId, name: toolId, result: .success("dynamic success"))
+        let toolRef = ToolReference.known(toolId)
+        let arguments: [String: AnyCodable] = [:]
+
+        let result = try await toolRouter.execute(
+            tool: toolRef,
+            arguments: arguments,
+            timelineId: session.id,
+            availableTools: [dynamicTool.toAnyTool()]
+        )
+
+        guard case let .completed(output) = result else {
+            Issue.record("Expected .completed outcome, got \(result)")
+            return
+        }
+        #expect(output == "dynamic success")
+    }
+
     @Test
 
     func executeToolNotFound() async throws {
