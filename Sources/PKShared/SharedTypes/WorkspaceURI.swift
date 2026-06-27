@@ -56,4 +56,9 @@ public struct WorkspaceURI: Codable, Sendable, Hashable, CustomStringConvertible
     public static func gitRepository(url: String) -> WorkspaceURI {
         WorkspaceURI(host: "git", path: url)
     }
+
+    /// Create a terminal workspace URI (an agent-driven PTY shell rooted at `rootPath`).
+    public static func terminal(rootPath: String) -> WorkspaceURI {
+        WorkspaceURI(host: "pk-terminal", path: rootPath)
+    }
 }
