@@ -24,8 +24,15 @@ struct FoundationNetworkingImportAuditTests {
         for file in files {
             let path = root.appendingPathComponent(file)
             let contents = try String(contentsOf: path, encoding: .utf8)
+            // Match the canonical block irrespective of indentation: `swift-format`
+            // (indentConditionalCompilationBlocks) may indent the inner import, so
+            // assert on the structure rather than exact leading whitespace.
+            let normalized = contents
+                .split(separator: "\n", omittingEmptySubsequences: false)
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .joined(separator: "\n")
             #expect(
-                contents.contains(
+                normalized.contains(
                     """
                     #if canImport(FoundationNetworking)
                     import FoundationNetworking
