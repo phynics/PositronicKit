@@ -195,5 +195,13 @@ let package = Package(
             ],
             path: "Tests/PKSharedTests"
         ),
+        .testTarget(
+            name: "PKTestSupportTests",
+            dependencies: [
+                "PKTestSupport",
+                "PKShared",
+            ],
+            path: "Tests/PKTestSupportTests"
+        ),
     ]
 )

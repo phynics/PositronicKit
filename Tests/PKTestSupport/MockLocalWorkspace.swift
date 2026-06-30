@@ -1,6 +1,6 @@
+import Foundation
 import PKShared
 import PositronicKit
-import Foundation
 
 /// A minimal mock workspace for unit testing, backed by a temp directory.
 public actor MockLocalWorkspace: WorkspaceProtocol {
@@ -14,31 +14,33 @@ public actor MockLocalWorkspace: WorkspaceProtocol {
             location: .runtime,
             rootPath: rootURL.path
         )
-        self.reference = ref
-        self.id = ref.id
+        reference = ref
+        id = ref.id
         self.rootURL = rootURL
     }
 
     public init(reference: WorkspaceReference) throws {
         guard let path = reference.rootPath else { throw WorkspaceError.invalidWorkspaceType }
         self.reference = reference
-        self.id = reference.id
-        self.rootURL = URL(fileURLWithPath: path)
+        id = reference.id
+        rootURL = URL(fileURLWithPath: path)
     }
 
-    public func listTools() async throws -> [ToolReference] { return reference.tools }
+    public func listTools() async throws -> [ToolReference] {
+        return reference.tools
+    }
 
-    public func executeTool(id: String, parameters: [String: AnyCodable]) async throws -> ToolResult {
+    public func executeTool(id _: String, parameters _: [String: AnyCodable]) async throws -> ToolResult {
         throw WorkspaceError.toolExecutionNotSupported
     }
 
     public func readFile(path: String) async throws -> String {
-        let url = rootURL.appendingPathComponent(path)
+        let url = try PathSanitizer.safelyResolve(path: path, within: rootURL.path)
         return try String(contentsOf: url, encoding: .utf8)
     }
 
     public func writeFile(path: String, content: String) async throws {
-        let url = rootURL.appendingPathComponent(path)
+        let url = try PathSanitizer.safelyResolve(path: path, within: rootURL.path)
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try content.write(to: url, atomically: true, encoding: .utf8)
     }
@@ -63,7 +65,7 @@ public actor MockLocalWorkspace: WorkspaceProtocol {
     }
 
     public func deleteFile(path: String) async throws {
-        let url = rootURL.appendingPathComponent(path)
+        let url = try PathSanitizer.safelyResolve(path: path, within: rootURL.path)
         try FileManager.default.removeItem(at: url)
     }
 
