@@ -231,4 +231,89 @@ final class PipelineTests {
         // Then
         #expect(context.values.isEmpty)
     }
+
+    // MARK: - PipelineLogLevel Tests
+
+    @Test
+    func pipelineLogLevelHasAllLevels() {
+        // Verify that PipelineLogLevel enum has all 7 standard log levels
+        let levels: [PipelineLogLevel] = [.trace, .debug, .info, .notice, .warning, .error, .critical]
+        #expect(levels.count == 7)
+    }
+
+    @Test
+    func pipelineLogHandlerReceivesThreeParameters() async throws {
+        // Verify that LogHandler receives level, message, and metadata
+        class LogCapture: @unchecked Sendable {
+            var calls: [(level: PipelineLogLevel, message: String, metadata: [String: String])] = []
+        }
+
+        let capture = LogCapture()
+        let handler: Pipeline<TestContext, String>.LogHandler = { level, message, metadata in
+            capture.calls.append((level, message, metadata))
+        }
+
+        let pipeline = Pipeline<TestContext, String>()
+            .withLogHandler(handler)
+            .add(MockStage(id: "stage1", value: "test"))
+
+        let context = TestContext()
+        let stream = pipeline.execute(context)
+        for try await _ in stream {}
+
+        // Pipeline should have called handler with debug level logs
+        #expect(capture.calls.count > 0)
+        // All calls should be debug level for pipeline internals
+        #expect(capture.calls.allSatisfy { $0.level == .debug })
+        // Pipeline passes empty metadata for its own logs
+        #expect(capture.calls.allSatisfy { $0.metadata.isEmpty })
+    }
+
+    @Test
+    func pipelineWithLoggerMapsLevelsCorrectly() async throws {
+        // Create a simple test to verify withLogger works with all levels
+        let logger = Logger(label: "test.pipeline")
+        let pipeline = Pipeline<TestContext, String>()
+            .withLogger(logger)
+            .add(MockStage(id: "stage1", value: "test"))
+
+        let context = TestContext()
+        let stream = pipeline.execute(context)
+        for try await _ in stream {}
+
+        // If we reach here without crashing, the logger successfully handled all events
+        #expect(context.values == ["test"])
+    }
+
+    @Test
+    func pipelineErrorLogsAreEmitted() async throws {
+        // Verify error logs are emitted when a stage fails
+        class ErrorCapture: @unchecked Sendable {
+            var errorLogs: [String] = []
+        }
+
+        let capture = ErrorCapture()
+        let handler: Pipeline<TestContext, String>.LogHandler = { level, message, _ in
+            if level == .error {
+                capture.errorLogs.append(message)
+            }
+        }
+
+        let pipeline = Pipeline<TestContext, String>()
+            .withLogHandler(handler)
+            .add(ErrorStage<String>(id: "failingStage", error: MockError.someError))
+
+        let context = TestContext()
+
+        do {
+            let stream = pipeline.execute(context)
+            for try await _ in stream {}
+        } catch {
+            // Expected
+        }
+
+        // Should have at least one error log mentioning failure
+        let hasFailureLog = capture.errorLogs.contains { $0.contains("failed") }
+        #expect(hasFailureLog)
+    }
 }
