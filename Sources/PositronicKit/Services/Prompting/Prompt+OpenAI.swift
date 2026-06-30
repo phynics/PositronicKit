@@ -24,8 +24,17 @@ public extension RenderedPrompt {
     private func buildSystemMessage(
         from projection: RenderedPromptProjection
     ) -> LLMMessage? {
-        guard let systemText = projection.systemText else { return nil }
-        return LLMMessage(role: .system, content: systemText)
+        // Policy: retrieved context is injected after root system instructions with an explicit
+        // "=== Retrieved Context ===" header so it cannot silently elevate to the same authority
+        // as the system prompt. The header makes the injection visible in both the sent-messages
+        // inspector and any provider logs.
+        var parts: [String] = []
+        if let systemText = projection.systemText { parts.append(systemText) }
+        if let contextText = projection.contextText {
+            parts.append("=== Retrieved Context ===\n\n\(contextText)")
+        }
+        guard !parts.isEmpty else { return nil }
+        return LLMMessage(role: .system, content: parts.joined(separator: "\n\n---\n\n"))
     }
 
     private func buildHistoryMessages(from projection: RenderedPromptProjection) -> [LLMMessage] {

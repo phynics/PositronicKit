@@ -1,7 +1,7 @@
 import Foundation
-@testable import PositronicKit
 import PKPrompt
 import PKShared
+@testable import PositronicKit
 import Testing
 
 @MainActor
@@ -138,6 +138,13 @@ struct PromptIntegrationTests {
             let systemContent = first.content
             #expect(systemContent.contains("System rules"))
             #expect(systemContent.contains("Context note"))
+            // Context sections must be below system instructions and labeled.
+            #expect(systemContent.contains("=== Retrieved Context ==="))
+            let systemRulesOffset = systemContent.range(of: "System rules")?.lowerBound
+            let contextHeaderOffset = systemContent.range(of: "=== Retrieved Context ===")?.lowerBound
+            if let sys = systemRulesOffset, let ctx = contextHeaderOffset {
+                #expect(sys < ctx, "System rules must appear before Retrieved Context header")
+            }
         } else {
             #expect(Bool(false), "First message should be a system message")
         }
@@ -148,5 +155,57 @@ struct PromptIntegrationTests {
         } else {
             #expect(Bool(false), "Last message should be a user query")
         }
+    }
+
+    @Test("context sections are labeled and placed after system instructions")
+    func contextSectionsAreLabeledBelowSystemInstructions() async throws {
+        let prompt = try await PromptAssembler.assemble(
+            LLMPromptRequest(
+                userQuery: "Hello",
+                contextNotes: [ContextFile(name: "Memory", content: "Retrieved note", source: "memory")],
+                memories: [],
+                chatHistory: [],
+                tools: [],
+                workspaces: [],
+                primaryWorkspace: nil,
+                requestOriginName: nil,
+                systemInstructions: "Root instructions"
+            )
+        )
+        let messages = prompt.buildMessages()
+        let systemMessage = messages.first { $0.role == .system }
+        let content = try #require(systemMessage?.content)
+
+        // Context must be labeled, not silently elevated to system authority.
+        #expect(content.contains("=== Retrieved Context ==="))
+        #expect(content.contains("Retrieved note"))
+        // System instructions come first.
+        let instructionsOffset = content.range(of: "Root instructions")?.lowerBound
+        let contextOffset = content.range(of: "=== Retrieved Context ===")?.lowerBound
+        if let i = instructionsOffset, let c = contextOffset {
+            #expect(i < c)
+        }
+    }
+
+    @Test("context-only prompt (no system instructions) still labels retrieved content")
+    func contextOnlyPromptLabelsRetrievedContent() async throws {
+        let prompt = try await PromptAssembler.assemble(
+            LLMPromptRequest(
+                userQuery: "Hello",
+                contextNotes: [ContextFile(name: "Note", content: "Only context", source: "note")],
+                memories: [],
+                chatHistory: [],
+                tools: [],
+                workspaces: [],
+                primaryWorkspace: nil,
+                requestOriginName: nil,
+                systemInstructions: nil
+            )
+        )
+        let messages = prompt.buildMessages()
+        let systemMessage = messages.first { $0.role == .system }
+        let content = try #require(systemMessage?.content)
+        #expect(content.contains("=== Retrieved Context ==="))
+        #expect(content.contains("Only context"))
     }
 }

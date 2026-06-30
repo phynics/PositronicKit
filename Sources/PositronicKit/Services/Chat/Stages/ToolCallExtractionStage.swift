@@ -29,7 +29,9 @@ struct ToolCallExtractionStage: PipelineStage {
         }
 
         // Fallback: parse tool calls from response text when structured calls are absent.
-        if accumulators.isEmpty {
+        // Guard: skip fallback entirely when no tools were offered — any <tool_call> markers
+        // in the response text are then not legitimate calls and must not bypass approval gates.
+        if accumulators.isEmpty, !context.availableTools.isEmpty {
             let fallbackCalls = ToolOutputParser.parse(from: await context.outputs.fullResponse)
             if !fallbackCalls.isEmpty {
                 logger.warning(

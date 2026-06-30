@@ -1,18 +1,34 @@
 import Foundation
 import Logging
-@testable import PositronicKit
 import PKShared
 import PKTestSupport
+@testable import PositronicKit
 import Testing
 
 // MARK: - Helpers
 
 private let testLogger = Logger(label: "test.pipeline")
 
+private struct StubTool: PKShared.Tool, @unchecked Sendable {
+    let id: String
+    let name: String
+    let description = "Stub"
+    let requiresPermission = false
+    let parametersSchema: [String: AnyCodable] = [:]
+    func canExecute() async -> Bool {
+        true
+    }
+
+    func execute(parameters _: [String: Any]) async throws -> ToolResult {
+        .success("ok")
+    }
+}
+
 private func makeContext(
     fullResponse: String = "",
     toolCallAccumulators: [Int: (id: String, name: String, args: String)] = [:],
-    currentMessages: [LLMMessage] = []
+    currentMessages: [LLMMessage] = [],
+    availableTools: [AnyTool] = []
 ) async -> ChatTurnContext {
     let outputs = TurnOutputs()
     for chunk in fullResponse {
@@ -28,7 +44,7 @@ private func makeContext(
         modelName: "test-model",
         maxTurns: 5,
         systemInstructions: nil,
-        availableTools: [],
+        availableTools: availableTools,
         contextData: ContextData(),
         remoteDepth: 0,
         currentMessages: currentMessages,
@@ -72,7 +88,7 @@ private actor PipelineStageRunTracker {
 private struct MarkerStage: PipelineStage {
     let tracker: PipelineStageRunTracker
 
-    func process(_ context: ChatTurnContext) async throws -> AsyncThrowingStream<ChatEvent, Error> {
+    func process(_: ChatTurnContext) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         await tracker.markRan()
         return AsyncThrowingStream { continuation in
             continuation.finish()
@@ -149,7 +165,7 @@ final class MessagePersistenceStageBehavior {
                     id: "call-1",
                     name: "complex_tool",
                     args: #"{"tags":["a","b"],"nested":{"value":1}}"#
-                )
+                ),
             ]
         )
 
@@ -267,8 +283,10 @@ final class ToolCallExtractionStageBehavior {
     @Test
     func fallbackTextParsingTriggered() async throws {
         let stage = ToolCallExtractionStage(logger: testLogger)
+        let tool = StubTool(id: "test_tool", name: "test_tool")
         let context = await makeContext(
-            fullResponse: #"<tool_call>{"name": "test_tool", "arguments": {"key": "val"}}</tool_call>"#
+            fullResponse: #"<tool_call>{"name": "test_tool", "arguments": {"key": "val"}}</tool_call>"#,
+            availableTools: [tool.toAnyTool()]
         )
 
         _ = try await drain(await stage.process(context))
@@ -331,21 +349,21 @@ final class LLMStreamingStageBehavior {
                     index: 0,
                     id: "tc-1",
                     function: LLMToolCallDeltaFunction(name: "complex_", arguments: "{\"tags\":[")
-                )
+                ),
             ]))
             continuation.yield(makeChunk(toolCalls: [
                 LLMToolCallDelta(
                     index: 0,
                     id: nil,
                     function: LLMToolCallDeltaFunction(name: "tool", arguments: "\"a\",")
-                )
+                ),
             ]))
             continuation.yield(makeChunk(toolCalls: [
                 LLMToolCallDelta(
                     index: 0,
                     id: nil,
                     function: LLMToolCallDeltaFunction(name: nil, arguments: "\"b\"]}")
-                )
+                ),
             ], finishReason: "tool_calls"))
             continuation.finish()
         }
