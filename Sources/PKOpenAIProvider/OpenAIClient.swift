@@ -1,6 +1,6 @@
 import Foundation
 #if canImport(FoundationNetworking)
-import FoundationNetworking
+    import FoundationNetworking
 #endif
 import Logging
 import OpenAI
@@ -12,7 +12,7 @@ public actor OpenAIClient: LLMClientProtocol {
     private let client: OpenAI
     private let modelName: String
     private let maxRetries: Int
-    private let logger = Logger.module(named: "com.positronickit.openai-client")
+    private let logger = Logger.module(named: "openai-client")
 
     public init(
         apiKey: String,
@@ -185,7 +185,8 @@ public actor OpenAIClient: LLMClientProtocol {
         }
 
         if let openAIError = error as? OpenAIError,
-           case let .statusError(response, statusCode) = openAIError {
+           case let .statusError(response, statusCode) = openAIError
+        {
             return LLMServiceError.httpError(
                 provider: provider,
                 statusCode: statusCode,

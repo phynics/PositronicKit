@@ -15,7 +15,7 @@ public actor TimelineArchiver {
     private let persistence: any TimelinePersistenceProtocol & MemoryStoreProtocol & MessageStoreProtocol
     private let llmService: any LLMServiceProtocol
     private let embeddingService: any EmbeddingServiceProtocol
-    private let logger = Logger.module(named: "TimelineArchiver")
+    private let logger = Logger.module(named: "timeline-archiver")
 
     public init(
         persistence: any TimelinePersistenceProtocol & MemoryStoreProtocol & MessageStoreProtocol,

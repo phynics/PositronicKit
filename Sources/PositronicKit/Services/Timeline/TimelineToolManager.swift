@@ -21,6 +21,8 @@ public actor TimelineToolManager {
     /// Cached known-tool overrides from workspaces: toolId -> Set of provenance strings
     private var knownToolProvenance: [String: Set<String>] = [:]
 
+    private let logger = Logger.module(named: "session-tool-manager")
+
     public init(availableTools: [AnyTool], timelineContext: ToolTimelineContext? = nil) {
         self.availableTools = availableTools
         self.timelineContext = timelineContext
@@ -68,7 +70,6 @@ public actor TimelineToolManager {
                         if availableTools.contains(where: { $0.id == toolId }) {
                             newKnownProvenance[toolId, default: []].insert(provenanceTag)
                         } else {
-                            let logger = Logger(label: "com.positronickit.session-tool-manager")
                             logger.warning(
                                 "Workspace declared .known tool '\(toolId)' but it is not a registered system tool"
                             )
@@ -79,7 +80,6 @@ public actor TimelineToolManager {
                     }
                 }
             } catch {
-                let logger = Logger(label: "com.positronickit.session-tool-manager")
                 logger.error("Failed to list tools for workspace \(workspace.id): \(error)")
             }
         }

@@ -61,7 +61,7 @@ struct ChatEngine {
 
     let dependencies: Dependencies
 
-    let logger = Logger.module(named: "com.positronickit.chat-engine")
+    let logger = Logger.module(named: "chat-engine")
 
     var additionalStages: [any PipelineStage<ChatTurnContext, ChatEvent>] = []
 

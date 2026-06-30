@@ -1,13 +1,16 @@
 import Foundation
 import Logging
 
-extension Logger {
-    private static var subsystem: String {
-        Bundle.main.bundleIdentifier ?? "com.positronickit.core"
-    }
+/// Standard PositronicKit logging subsystem for all host-independent loggers.
+public enum PKLogSubsystem {
+    public static let value = "com.positronickit"
+}
 
-    /// Logs for a specific module
-    public static func module(named name: String) -> Logger {
-        Logger(label: "\(subsystem).\(name)")
+public extension Logger {
+    /// Returns a Logger with a stable, host-independent label in the `com.positronickit` subsystem.
+    /// - Parameter name: The category name (e.g., "chat-engine", "retry-policy"). Use lowercase-dash format.
+    /// - Returns: A Logger with label `com.positronickit.<name>`
+    static func module(named name: String) -> Logger {
+        Logger(label: "\(PKLogSubsystem.value).\(name)")
     }
 }

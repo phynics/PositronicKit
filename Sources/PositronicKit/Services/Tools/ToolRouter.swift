@@ -85,7 +85,7 @@ private actor TimeoutRaceResolver {
 /// for tool continuation policy. If this area is refactored later, those behaviors should remain
 /// pinned by tests rather than being silently redistributed.
 public actor ToolRouter {
-    private let logger = Logger.module(named: "com.positronickit.core.tools")
+    private let logger = Logger.module(named: "tool-router")
 
     private let timelineManager: TimelineManager
     private let messageStore: any MessageStoreProtocol

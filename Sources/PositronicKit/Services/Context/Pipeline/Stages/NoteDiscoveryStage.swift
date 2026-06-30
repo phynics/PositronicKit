@@ -7,19 +7,19 @@ import PKShared
 /// Pipeline stage responsible for discovering relevant filesystem notes in the workspace.
 struct NoteDiscoveryStage: PipelineStage {
     /// The workspace to search for notes.
-    public let workspace: (any WorkspaceProtocol)?
-    private let logger = Logger.module(named: "com.positronickit.NoteDiscoveryStage")
+    let workspace: (any WorkspaceProtocol)?
+    private let logger = Logger.module(named: "note-discovery")
 
     /// Initializes a new note discovery stage.
     /// - Parameter workspace: The workspace to search.
-    public init(workspace: (any WorkspaceProtocol)? = nil) {
+    init(workspace: (any WorkspaceProtocol)? = nil) {
         self.workspace = workspace
     }
 
     /// Searches the workspace for Markdown notes and updates the context.
     /// - Parameter context: The shared pipeline context.
     /// - Returns: A stream that yields a discovery progress event.
-    public func process(
+    func process(
         _ context: ContextPipelineContext
     ) async throws -> AsyncThrowingStream<ContextGatheringEvent, Error> {
         return AsyncThrowingStream { continuation in

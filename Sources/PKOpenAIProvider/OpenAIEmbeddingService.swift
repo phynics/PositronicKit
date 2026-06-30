@@ -6,11 +6,11 @@ import PositronicKit
 
 public actor OpenAIEmbeddingService: EmbeddingServiceProtocol {
     private let client: OpenAI
-    private let logger = Logger.module(named: "OpenAIEmbeddingService")
+    private let logger = Logger.module(named: "openai-embedding-service")
     private let model: Model = "text-embedding-ada-002"
 
     public init(apiKey: String) {
-        self.client = OpenAI(apiToken: apiKey)
+        client = OpenAI(apiToken: apiKey)
     }
 
     public func generateEmbedding(for text: String) async throws -> [Float] {

@@ -5,15 +5,15 @@ import PKShared
 
 /// Pipeline stage responsible for augmenting the search query with recent conversation history.
 struct QueryAugmentationStage: PipelineStage {
-    private let logger = Logger.module(named: "com.positronickit.QueryAugmentationStage")
+    private let logger = Logger.module(named: "query-augmentation")
 
     /// Initializes a new query augmentation stage.
-    public init() {}
+    init() {}
 
     /// Augments the user's query with relevant context from the history.
     /// - Parameter context: The shared pipeline context.
     /// - Returns: A stream that yields an augmentation progress event.
-    public func process(
+    func process(
         _ context: ContextPipelineContext
     ) async throws -> AsyncThrowingStream<ContextGatheringEvent, Error> {
         let query = context.query

@@ -9,11 +9,11 @@ struct MemoryRetrievalStage: PipelineStage {
     private let memoryStore: any MemoryStoreProtocol
     private let embeddingService: any EmbeddingServiceProtocol
 
-    private let logger = Logger.module(named: "com.positronickit.MemoryRetrievalStage")
+    private let logger = Logger.module(named: "memory-retrieval")
     private let ranker = ContextRanker()
 
     /// Initializes a new memory retrieval stage.
-    public init(
+    init(
         memoryStore: any MemoryStoreProtocol = InMemoryMemoryStore(),
         embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService()
     ) {
@@ -24,7 +24,7 @@ struct MemoryRetrievalStage: PipelineStage {
     /// Retrieves relevant memories and tags for the query in the context.
     /// - Parameter context: The shared pipeline context.
     /// - Returns: A stream that yields progress events as retrieval proceeds.
-    public func process(
+    func process(
         _ context: ContextPipelineContext
     ) async throws -> AsyncThrowingStream<ContextGatheringEvent, Error> {
         let query = context.query
