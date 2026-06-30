@@ -15,7 +15,7 @@ public actor AgentWorkspaceService: AgentWorkspaceServiceProtocol {
         workspaceRoot: URL,
         workspacePersistence: any WorkspacePersistenceProtocol
     ) {
-        self.persistenceService = workspacePersistence
+        persistenceService = workspacePersistence
         self.workspaceRoot = workspaceRoot
     }
 
@@ -61,8 +61,18 @@ public actor AgentWorkspaceService: AgentWorkspaceServiceProtocol {
         // 2. Seed workspace files
         if let seed = template?.workspaceFilesSeed, !seed.isEmpty {
             for (filename, content) in seed {
+                let destination = try PathSanitizer.safelyResolve(
+                    path: filename,
+                    within: notesDir.path,
+                    jailRoot: notesDir.path
+                )
+                // Create intermediate directories safely after validating the destination
+                try FileManager.default.createDirectory(
+                    at: destination.deletingLastPathComponent(),
+                    withIntermediateDirectories: true
+                )
                 try content.write(
-                    to: notesDir.appendingPathComponent(filename),
+                    to: destination,
                     atomically: true,
                     encoding: .utf8
                 )
@@ -100,7 +110,8 @@ public actor AgentWorkspaceService: AgentWorkspaceServiceProtocol {
     public func deleteWorkspace(id: UUID, deleteDirectory: Bool) async throws {
         if deleteDirectory,
            let workspace = try await getWorkspace(id: id, includeTools: false),
-           let rootPath = workspace.rootPath {
+           let rootPath = workspace.rootPath
+        {
             let url = URL(fileURLWithPath: rootPath)
             if FileManager.default.fileExists(atPath: url.path) {
                 try FileManager.default.removeItem(at: url)
