@@ -18,3 +18,4 @@ DerivedData/
 .letta/
 .vscode/
 build/
+.worktrees/
