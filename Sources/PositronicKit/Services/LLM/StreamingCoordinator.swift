@@ -55,7 +55,6 @@ public final class StreamingCoordinator {
     }
 
     public func processChunk(_ delta: String) {
-        logger.debug("PARSING CHUNK: '\(delta)'")
         // Parse the chunk using our parser (handles <think> tags)
         parser.process(delta)
 

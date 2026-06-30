@@ -24,7 +24,7 @@ struct ToolCallExtractionStage: PipelineStage {
         for (index, acc) in accumulators.sorted(by: { $0.key < $1.key }) {
             let name = acc.name.isEmpty ? "(empty)" : acc.name
             logger.debug(
-                "  [accumulator \(index)] id=\(acc.callId) name=\(String(reflecting: name)) args=\(String(reflecting: acc.args))"
+                "  [accumulator \(index)] id=\(acc.callId) name=\(String(reflecting: name)) argsBytes=\(acc.args.utf8.count)"
             )
         }
 

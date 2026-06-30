@@ -1,6 +1,6 @@
 import Foundation
 #if canImport(FoundationNetworking)
-import FoundationNetworking
+    import FoundationNetworking
 #endif
 import struct JSONSchema.Schema
 import Logging
@@ -465,7 +465,7 @@ public actor OpenRouterClient: LLMClientProtocol {
             }
             continuation.yield(result)
         } catch {
-            logger.error("Failed to decode OpenRouter chunk: \(error.localizedDescription). Raw: \(dataString)")
+            logger.error("Failed to decode OpenRouter chunk: \(error.localizedDescription). payloadBytes=\(data.count) payloadHash=\(redactedHash(dataString))")
         }
     }
 
