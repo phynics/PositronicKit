@@ -295,6 +295,109 @@ final class ToolCallExtractionStageBehavior {
         #expect(!accumulators.isEmpty)
         #expect(accumulators.values.contains { $0.name == "test_tool" })
     }
+
+    /// YAK-42: emitted records must carry the *raw* timelineId as `conversationID`
+    /// so PositronicKit logs correlate with Yakamoz (YAK-40) logs in Console.app.
+    /// Also asserts YAK-37 redaction: no raw tool arguments / secrets leak into metadata.
+    @Test
+    func emitsRawConversationIDMetadataAndRedactsSecrets() async throws {
+        let recorder = MetadataRecorder()
+        let logger = Logger(label: "test.pipeline.metadata") { _ in
+            RecordingLogHandler(recorder: recorder)
+        }
+        let stage = ToolCallExtractionStage(logger: logger)
+
+        let timelineId = UUID()
+        let outputs = TurnOutputs()
+        let secretArg = #"{"api_key": "sk-super-secret-payload"}"#
+        await outputs.setToolCallAccumulator(index: 0, id: "call-123", name: "lookup", args: secretArg)
+
+        let context = ChatTurnContext(
+            timelineId: timelineId,
+            agentInstanceId: nil,
+            modelName: "test-model",
+            maxTurns: 5,
+            systemInstructions: nil,
+            availableTools: [],
+            contextData: ContextData(),
+            remoteDepth: 0,
+            currentMessages: [],
+            turnCount: 3,
+            outputs: outputs
+        )
+
+        _ = try await drain(await stage.process(context))
+
+        let records = recorder.snapshot()
+        #expect(!records.isEmpty)
+
+        // conversationID must be present and equal to the RAW uuid string (not hashed).
+        let conversationIDs = records.compactMap { $0["conversationID"] }
+        #expect(!conversationIDs.isEmpty)
+        #expect(conversationIDs.allSatisfy { $0 == timelineId.uuidString })
+
+        // turnIndex must reflect the turn count.
+        let turnIndexes = records.compactMap { $0["turnIndex"] }
+        #expect(turnIndexes.contains("3"))
+
+        // toolName is plaintext (an id, not a payload).
+        let toolNames = records.compactMap { $0["toolName"] }
+        #expect(toolNames.contains("lookup"))
+
+        // YAK-37: no metadata value may contain the raw secret payload.
+        for record in records {
+            for value in record.values {
+                #expect(!value.contains("sk-super-secret-payload"))
+                #expect(!value.contains("api_key"))
+            }
+        }
+    }
+}
+
+// MARK: - Metadata recording LogHandler (YAK-42)
+
+private final class MetadataRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var records: [[String: String]] = []
+
+    func append(_ metadata: [String: String]) {
+        lock.lock()
+        defer { lock.unlock() }
+        records.append(metadata)
+    }
+
+    func snapshot() -> [[String: String]] {
+        lock.lock()
+        defer { lock.unlock() }
+        return records
+    }
+}
+
+private struct RecordingLogHandler: LogHandler {
+    let recorder: MetadataRecorder
+    var logLevel: Logger.Level = .trace
+    var metadata: Logger.Metadata = [:]
+
+    subscript(metadataKey key: String) -> Logger.MetadataValue? {
+        get { metadata[key] }
+        set { metadata[key] = newValue }
+    }
+
+    func log(
+        level _: Logger.Level,
+        message _: Logger.Message,
+        metadata: Logger.Metadata?,
+        source _: String,
+        file _: String,
+        function _: String,
+        line _: UInt
+    ) {
+        var merged = self.metadata
+        if let metadata {
+            merged.merge(metadata) { _, new in new }
+        }
+        recorder.append(merged.mapValues { "\($0)" })
+    }
 }
 
 // MARK: - LLMStreamingStage Tests

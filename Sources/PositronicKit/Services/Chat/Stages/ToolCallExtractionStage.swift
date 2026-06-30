@@ -22,8 +22,11 @@ struct ToolCallExtractionStage: PipelineStage {
         var eventsToYield: [ChatEvent] = []
 
         let accumulators = await context.outputs.toolCallAccumulators
+        // conversationID is logged raw (not hashed) so PositronicKit records correlate
+        // end-to-end with Yakamoz logs (YAK-40), which log the raw timelineId. A UUID is
+        // an id, not a payload, so logging it raw is YAK-37 compliant.
         let baseMeta: Logger.Metadata = [
-            "conversationID": .string(redactedHash(context.timelineId.uuidString)),
+            "conversationID": .string(context.timelineId.uuidString),
             "turnIndex": .string("\(context.turnCount)"),
         ]
         logger.debug("ToolCallExtractionStage: \(accumulators.count) accumulator(s) before fallback/cleanup", metadata: baseMeta)
