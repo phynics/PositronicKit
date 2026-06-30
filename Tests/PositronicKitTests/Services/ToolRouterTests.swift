@@ -84,6 +84,168 @@ final class ToolRouterTests {
         }
     }
 
+    /// A permissioned tool that records whether its body ever ran, so a test can assert that an
+    /// un-approved call is blocked *before* execution rather than merely failing afterwards.
+    final class PermissionedTool: PKShared.Tool, @unchecked Sendable {
+        let id: String
+        let name: String
+        let description = "A permissioned mock tool"
+        let requiresPermission = true
+        private(set) var didExecute = false
+        var parametersSchema: [String: AnyCodable] {
+            [:]
+        }
+
+        init(id: String) {
+            self.id = id
+            name = id
+        }
+
+        func canExecute() async -> Bool {
+            true
+        }
+
+        func execute(parameters _: [String: Any]) async throws -> ToolResult {
+            didExecute = true
+            return .success("executed")
+        }
+    }
+
+    /// Records every gate consultation so a test can assert the gate was actually reached.
+    final class RecordingGate: ToolApprovalGate, @unchecked Sendable {
+        let decision: ToolApprovalDecision
+        private(set) var consultedToolIds: [String] = []
+
+        init(decision: ToolApprovalDecision) {
+            self.decision = decision
+        }
+
+        func requestApproval(tool: AnyTool, arguments _: [String: AnyCodable]) async -> ToolApprovalDecision {
+            consultedToolIds.append(tool.id)
+            return decision
+        }
+    }
+
+    /// Builds a timeline with a single registered tool and returns the router under test.
+    private func setupRouter(
+        with tool: any PKShared.Tool,
+        approvalGate: any ToolApprovalGate
+    ) async throws -> (ToolRouter, UUID) {
+        let (timelineManager, mockPersistence) = try await setupTimelineManager()
+        let toolRouter = ToolRouter(
+            timelineManager: timelineManager,
+            messageStore: mockPersistence,
+            approvalGate: approvalGate
+        )
+
+        let session = try await timelineManager.createTimeline()
+        let workspaceId = UUID()
+        let workspaceRef = try WorkspaceReference(
+            id: workspaceId,
+            uri: #require(WorkspaceURI(parsing: "pk://local")),
+            location: .runtime,
+            originId: nil
+        )
+        try await mockPersistence.saveWorkspace(workspaceRef)
+        try await timelineManager.attachWorkspace(workspaceId, to: session.id)
+        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known(tool.id))
+
+        let toolManager = await timelineManager.getToolManager(for: session.id)
+        try #require(toolManager != nil)
+        await toolManager?.updateAvailableTools([tool.toAnyTool()])
+
+        return (toolRouter, session.id)
+    }
+
+    @Test("A permissioned tool is not executed when the approval gate denies it (structured call path)")
+    func permissionedToolBlockedWhenDenied() async throws {
+        let tool = PermissionedTool(id: "needs_permission")
+        let gate = RecordingGate(decision: .deny)
+        let (router, timelineId) = try await setupRouter(with: tool, approvalGate: gate)
+
+        do {
+            _ = try await router.execute(
+                tool: .known("needs_permission"),
+                arguments: [:],
+                timelineId: timelineId
+            )
+            Issue.record("Expected permissionDenied to be thrown")
+        } catch ToolError.permissionDenied("needs_permission") {
+            // expected
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+
+        #expect(tool.didExecute == false)
+        #expect(gate.consultedToolIds == ["needs_permission"])
+    }
+
+    @Test("A permissioned tool executes once the approval gate approves it")
+    func permissionedToolRunsWhenApproved() async throws {
+        let tool = PermissionedTool(id: "needs_permission")
+        let gate = RecordingGate(decision: .approve)
+        let (router, timelineId) = try await setupRouter(with: tool, approvalGate: gate)
+
+        let result = try await router.execute(
+            tool: .known("needs_permission"),
+            arguments: [:],
+            timelineId: timelineId
+        )
+
+        guard case let .completed(output) = result else {
+            Issue.record("Expected .completed outcome, got \(result)")
+            return
+        }
+        #expect(output == "executed")
+        #expect(tool.didExecute == true)
+        #expect(gate.consultedToolIds == ["needs_permission"])
+    }
+
+    @Test("Text-fallback tool calls follow the same approval gate as structured calls (YAK-31)")
+    func textFallbackToolCallBlockedWhenDenied() async throws {
+        let tool = PermissionedTool(id: "needs_permission")
+        let gate = RecordingGate(decision: .deny)
+        let (router, timelineId) = try await setupRouter(with: tool, approvalGate: gate)
+
+        // A fallback-parsed call arrives as a ParsedToolCall through handlePendingToolCalls, the same
+        // entry point the text-fallback path feeds. A denied permissioned tool must be projected as a
+        // tool error and never executed.
+        let call = ParsedToolCall(callId: "call-fallback", name: "needs_permission", argumentsJSON: "{}")
+        let result = try await captureProjectedToolEventsResult { continuation in
+            try await router.handlePendingToolCalls(
+                timelineId: timelineId,
+                calls: [call],
+                availableTools: [],
+                continuation: continuation
+            )
+        }
+
+        #expect(tool.didExecute == false)
+        #expect(result.hasDeferred == false)
+        #expect(result.resolvedToolParams.first?.content.contains("permission") == true)
+    }
+
+    @Test("A non-permissioned tool executes without consulting the approval gate (regression)")
+    func nonPermissionedToolBypassesGate() async throws {
+        let tool = MockTool(id: "free_tool", name: "free_tool", result: .success("free output"))
+        // A deny-all gate must not affect non-permissioned tools.
+        let gate = RecordingGate(decision: .deny)
+        let (router, timelineId) = try await setupRouter(with: tool, approvalGate: gate)
+
+        let result = try await router.execute(
+            tool: .known("free_tool"),
+            arguments: [:],
+            timelineId: timelineId
+        )
+
+        guard case let .completed(output) = result else {
+            Issue.record("Expected .completed outcome, got \(result)")
+            return
+        }
+        #expect(output == "free output")
+        #expect(gate.consultedToolIds.isEmpty)
+    }
+
     struct NeverFinishingTool: PKShared.Tool {
         let id = "never_finishes"
         let name = "never_finishes"
@@ -564,8 +726,9 @@ struct ToolErrorModelTests {
             ToolError.workspaceNotFound(UUID()).errorCode,
             ToolError.requestOriginUnavailable.errorCode,
             ToolError.attachedToolsDisallowedOnPrivateTimeline.errorCode,
+            ToolError.permissionDenied("t").errorCode,
         ]
-        #expect(codes.count == 9)
+        #expect(codes.count == 10)
     }
 
     @Test("All v1 error categories have non-empty user-friendly messages")
@@ -580,6 +743,7 @@ struct ToolErrorModelTests {
             .workspaceNotFound(UUID()),
             .requestOriginUnavailable,
             .attachedToolsDisallowedOnPrivateTimeline,
+            .permissionDenied("tool"),
         ]
         for err in errors {
             #expect(!err.userFriendlyMessage.isEmpty, "Empty message for \(err)")
@@ -598,6 +762,7 @@ struct ToolErrorModelTests {
             .workspaceNotFound(UUID()),
             .requestOriginUnavailable,
             .attachedToolsDisallowedOnPrivateTimeline,
+            .permissionDenied("tool"),
         ]
         for err in errors {
             #expect(err.remediation != nil, "Missing remediation for \(err)")

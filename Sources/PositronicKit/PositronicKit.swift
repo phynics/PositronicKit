@@ -115,6 +115,9 @@ public struct PositronicKit: Sendable {
     ///     read fresh provider settings) must pass the *same* registry instance into every
     ///     facade they build, or prompt-diff/inspection-turn-index state resets each send.
     ///   - generationParameters: Optional default parameters for generation.
+    ///   - toolApprovalGate: Gate consulted at the runtime execution sink before any tool whose
+    ///     `requiresPermission` is `true` runs. Defaults to `DenyAllToolApprovalGate` so
+    ///     permissioned tools never execute without an explicitly injected approval path (YAK-31).
     public init(
         llmService: any LLMServiceProtocol,
         messageStore: (any MessageStoreProtocol)? = nil,
@@ -132,7 +135,8 @@ public struct PositronicKit: Sendable {
         chatTurnPlugins: [any ChatTurnPlugin] = [],
         turnInspector: (any TurnInspecting)? = nil,
         promptHistoryRegistry: TimelinePromptHistoryRegistry = TimelinePromptHistoryRegistry(),
-        generationParameters: GenerationParameters? = nil
+        generationParameters: GenerationParameters? = nil,
+        toolApprovalGate: any ToolApprovalGate = DenyAllToolApprovalGate()
     ) {
         self.llmService = llmService
         self.messageStore = messageStore ?? InMemoryMessageStore()
@@ -170,7 +174,8 @@ public struct PositronicKit: Sendable {
         timelineManager = resolvedTimelineManager
         toolRouter = ToolRouter(
             timelineManager: resolvedTimelineManager,
-            messageStore: self.messageStore
+            messageStore: self.messageStore,
+            approvalGate: toolApprovalGate
         )
         chatEngine = ChatEngine(
             dependencies: .init(

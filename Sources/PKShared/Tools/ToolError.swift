@@ -13,6 +13,7 @@ import Foundation
 /// - **executionFailed**: The tool implementation threw during execution.
 /// - **requestOriginUnavailable**: The workspace's request origin is not reachable.
 /// - **attachedToolsDisallowedOnPrivateTimeline**: Private timelines reject externally hosted tools.
+/// - **permissionDenied**: A permissioned tool was not approved by the runtime approval gate.
 public enum ToolError: PKError, Sendable, Equatable {
     case missingArgument(String)
     case invalidArgument(String, expected: String, got: String)
@@ -23,8 +24,11 @@ public enum ToolError: PKError, Sendable, Equatable {
     case workspaceNotFound(UUID)
     case requestOriginUnavailable
     case attachedToolsDisallowedOnPrivateTimeline
+    case permissionDenied(String)
 
-    public var errorDomain: String { PKErrorDomain.tool }
+    public var errorDomain: String {
+        PKErrorDomain.tool
+    }
 
     public var errorCode: Int {
         switch self {
@@ -37,6 +41,7 @@ public enum ToolError: PKError, Sendable, Equatable {
         case .workspaceNotFound: return 205
         case .requestOriginUnavailable: return 206
         case .attachedToolsDisallowedOnPrivateTimeline: return 207
+        case .permissionDenied: return 210
         }
     }
 
@@ -60,6 +65,8 @@ public enum ToolError: PKError, Sendable, Equatable {
             return "The request origin associated with this tool is currently unavailable."
         case .attachedToolsDisallowedOnPrivateTimeline:
             return "Private agent timelines do not support additional workspace tools."
+        case let .permissionDenied(name):
+            return "The tool '\(name)' requires permission and was not approved."
         }
     }
 
@@ -85,6 +92,9 @@ public enum ToolError: PKError, Sendable, Equatable {
         case .attachedToolsDisallowedOnPrivateTimeline:
             return "Only runtime-managed tools are permitted on private timelines. " +
                 "Remove additional workspace tools from the agent's configuration."
+        case let .permissionDenied(name):
+            return "Approve the '\(name)' tool when prompted, or inject an approval gate that " +
+                "authorizes it. Permissioned tools never execute without an explicit approval decision."
         }
     }
 }

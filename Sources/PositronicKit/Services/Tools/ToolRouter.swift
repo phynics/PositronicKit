@@ -90,15 +90,18 @@ public actor ToolRouter {
     private let timelineManager: TimelineManager
     private let messageStore: any MessageStoreProtocol
     private let toolExecutionTimeout: TimeInterval
+    private let approvalGate: any ToolApprovalGate
 
     public init(
         timelineManager: TimelineManager,
         messageStore: any MessageStoreProtocol,
-        toolExecutionTimeout: TimeInterval = 60
+        toolExecutionTimeout: TimeInterval = 60,
+        approvalGate: any ToolApprovalGate = DenyAllToolApprovalGate()
     ) {
         self.timelineManager = timelineManager
         self.messageStore = messageStore
         self.toolExecutionTimeout = toolExecutionTimeout
+        self.approvalGate = approvalGate
     }
 
     // MARK: - Turn-Level API
@@ -327,6 +330,19 @@ public actor ToolRouter {
             $0.toolReference == tool || $0.id == tool.toolId
         }) else {
             throw ToolError.toolNotFound(tool.displayName)
+        }
+
+        // Approval gate: a tool that declares `requiresPermission` must not execute until the
+        // injected gate returns `.approve`. This is the single runtime execution sink — both
+        // structured provider tool calls and text-fallback `<tool_call>` calls reach it — so the
+        // approval contract holds regardless of how the call was produced (YAK-31). Non-permissioned
+        // tools skip the gate entirely.
+        if resolvedTool.requiresPermission {
+            let decision = await approvalGate.requestApproval(tool: resolvedTool, arguments: arguments)
+            guard decision == .approve else {
+                logger.warning("Permission denied for \(toolName)")
+                throw ToolError.permissionDenied(resolvedTool.name)
+            }
         }
 
         let result = try await executeWithTimeout(
