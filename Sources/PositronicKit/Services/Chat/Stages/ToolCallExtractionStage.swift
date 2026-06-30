@@ -3,6 +3,8 @@ import Logging
 import PKPrompt
 import PKShared
 
+private let redactedHash = PKShared.redactedHash
+
 /// Pipeline stage responsible for extracting and normalising tool calls from the LLM response.
 ///
 /// This stage does NOT execute tools. It validates and cleans `context.outputs.toolCallAccumulators`
@@ -20,11 +22,20 @@ struct ToolCallExtractionStage: PipelineStage {
         var eventsToYield: [ChatEvent] = []
 
         let accumulators = await context.outputs.toolCallAccumulators
-        logger.debug("ToolCallExtractionStage: \(accumulators.count) accumulator(s) before fallback/cleanup")
+        let baseMeta: Logger.Metadata = [
+            "conversationID": .string(redactedHash(context.timelineId.uuidString)),
+            "turnIndex": .string("\(context.turnCount)"),
+        ]
+        logger.debug("ToolCallExtractionStage: \(accumulators.count) accumulator(s) before fallback/cleanup", metadata: baseMeta)
         for (index, acc) in accumulators.sorted(by: { $0.key < $1.key }) {
             let name = acc.name.isEmpty ? "(empty)" : acc.name
+            var meta = baseMeta
+            meta["accumulatorIndex"] = .string("\(index)")
+            meta["toolName"] = .string(name)
+            meta["callID"] = .string(redactedHash(acc.callId))
             logger.debug(
-                "  [accumulator \(index)] id=\(acc.callId) name=\(String(reflecting: name)) argsBytes=\(acc.args.utf8.count)"
+                "  [accumulator \(index)] id=\(acc.callId) name=\(String(reflecting: name)) argsBytes=\(acc.args.utf8.count)",
+                metadata: meta
             )
         }
 
@@ -34,8 +45,11 @@ struct ToolCallExtractionStage: PipelineStage {
         if accumulators.isEmpty, !context.availableTools.isEmpty {
             let fallbackCalls = ToolOutputParser.parse(from: await context.outputs.fullResponse)
             if !fallbackCalls.isEmpty {
+                var meta = baseMeta
+                meta["fallbackCount"] = .string("\(fallbackCalls.count)")
                 logger.warning(
-                    "Structured tool calls empty — falling back to text parsing (\(fallbackCalls.count) call(s))."
+                    "Structured tool calls empty — falling back to text parsing (\(fallbackCalls.count) call(s)).",
+                    metadata: meta
                 )
                 for (index, call) in fallbackCalls.enumerated() {
                     let argsJson =
@@ -62,12 +76,16 @@ struct ToolCallExtractionStage: PipelineStage {
         await context.outputs.removeSentinelAndEmptyToolCalls(sentinel: ChatEngine.Constants.sentinelToolName)
         let afterFilter = await context.outputs.toolCallAccumulators.count
         if beforeFilter != afterFilter {
-            logger.info("Stripped \(beforeFilter - afterFilter) sentinel/empty tool-call accumulator(s)")
+            var meta = baseMeta
+            meta["strippedCount"] = .string("\(beforeFilter - afterFilter)")
+            logger.info("Stripped \(beforeFilter - afterFilter) sentinel/empty tool-call accumulator(s)", metadata: meta)
         }
 
         // Record for the debug snapshot.
         let finalAccumulators = await context.outputs.toolCallAccumulators
-        logger.debug("ToolCallExtractionStage: \(finalAccumulators.count) accumulator(s) after cleanup")
+        var finalMeta = baseMeta
+        finalMeta["finalCount"] = .string("\(finalAccumulators.count)")
+        logger.debug("ToolCallExtractionStage: \(finalAccumulators.count) accumulator(s) after cleanup", metadata: finalMeta)
         for (_, value) in finalAccumulators.sorted(by: { $0.key < $1.key }) {
             await context.outputs.addDebugToolCall(
                 ToolCallRecord(name: value.name, arguments: value.args, turn: context.turnCount)

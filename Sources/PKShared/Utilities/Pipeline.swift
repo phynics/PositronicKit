@@ -3,7 +3,7 @@ import Foundation
 
 /// Log levels for pipeline diagnostics.
 public enum PipelineLogLevel: Sendable {
-    case debug, error
+    case trace, debug, info, notice, warning, error, critical
 }
 
 /// Protocol defining a single stage in a pipeline.
@@ -31,7 +31,7 @@ public extension PipelineStage {
 
 /// A generic, asynchronous pipeline that executes a series of stages.
 public final class Pipeline<Context: Sendable, Event: Sendable>: Sendable {
-    public typealias LogHandler = @Sendable (PipelineLogLevel, String) -> Void
+    public typealias LogHandler = @Sendable (PipelineLogLevel, String, [String: String]) -> Void
 
     private let stages: [any PipelineStage<Context, Event>]
     private let cleanupStages: [any PipelineStage<Context, Event>]
@@ -129,7 +129,7 @@ public final class Pipeline<Context: Sendable, Event: Sendable>: Sendable {
         label: String
     ) async -> Error? {
         let startTime = CFAbsoluteTimeGetCurrent()
-        logHandler?(.debug, "Starting \(label) stage: \(stage.id)")
+        logHandler?(.debug, "Starting \(label) stage: \(stage.id)", [:])
 
         do {
             let stream = try await stage.process(context)
@@ -137,12 +137,12 @@ public final class Pipeline<Context: Sendable, Event: Sendable>: Sendable {
                 continuation.yield(event)
             }
             let duration = CFAbsoluteTimeGetCurrent() - startTime
-            logHandler?(.debug, "Completed \(label) stage: \(stage.id) in \(String(format: "%.3f", duration))s")
+            logHandler?(.debug, "Completed \(label) stage: \(stage.id) in \(String(format: "%.3f", duration))s", [:])
             return nil
         } catch {
             let duration = CFAbsoluteTimeGetCurrent() - startTime
             let durationStr = String(format: "%.3f", duration)
-            logHandler?(.error, "\(label) stage '\(stage.id)' failed after \(durationStr)s: \(error.localizedDescription)")
+            logHandler?(.error, "\(label) stage '\(stage.id)' failed after \(durationStr)s: \(error.localizedDescription)", [:])
 
             // If it's already a PipelineError, propagate it directly to avoid double wrapping
             if let pipelineError = error as? PipelineError {
