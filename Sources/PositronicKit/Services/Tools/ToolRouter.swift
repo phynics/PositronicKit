@@ -295,8 +295,7 @@ public actor ToolRouter {
            let explicitId = UUID(uuidString: explicitIdString.trimmingCharacters(in: .whitespacesAndNewlines))
         {
             guard candidates.contains(explicitId) else {
-                logger.warning("Requested workspaceID \(explicitId) not found in timeline context. Falling back to default resolution.")
-                return try await timelineManager.findWorkspaceForTool(tool, in: candidates)
+                throw ToolError.workspaceNotFound(explicitId)
             }
 
             logger.debug("Routing to explicitly requested workspace: \(explicitId)")

@@ -460,6 +460,75 @@ final class ToolRouterTests {
         }
     }
 
+    @Test("Explicit invalid workspaceID fails closed with workspaceNotFound (YAK-33)")
+    func explicitInvalidWorkspaceIDFailsClosed() async throws {
+        let tool = MockTool(id: "test_tool", name: "test_tool", result: .success("success"))
+        let gate = RecordingGate(decision: .deny)
+        let (router, timelineId) = try await setupRouter(with: tool, approvalGate: gate)
+
+        let invalidWorkspaceId = UUID()
+        let arguments: [String: AnyCodable] = ["workspaceID": AnyCodable(invalidWorkspaceId.uuidString)]
+
+        do {
+            _ = try await router.execute(
+                tool: .known("test_tool"),
+                arguments: arguments,
+                timelineId: timelineId
+            )
+            Issue.record("Expected workspaceNotFound to be thrown")
+        } catch let ToolError.workspaceNotFound(thrownId) {
+            #expect(thrownId == invalidWorkspaceId)
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+    }
+
+    @Test("Well-formed but unattached explicit workspaceID fails closed (YAK-33)")
+    func unattachedExplicitWorkspaceIDFailsClosed() async throws {
+        let tool = MockTool(id: "test_tool", name: "test_tool", result: .success("success"))
+        let gate = RecordingGate(decision: .deny)
+        let (router, timelineId) = try await setupRouter(with: tool, approvalGate: gate)
+
+        // Create a valid UUID that is definitely not attached to this timeline
+        let unattachedWorkspaceId = UUID()
+        let arguments: [String: AnyCodable] = ["workspaceID": AnyCodable(unattachedWorkspaceId.uuidString)]
+
+        do {
+            _ = try await router.execute(
+                tool: .known("test_tool"),
+                arguments: arguments,
+                timelineId: timelineId
+            )
+            Issue.record("Expected workspaceNotFound to be thrown for unattached workspace")
+        } catch let ToolError.workspaceNotFound(thrownId) {
+            #expect(thrownId == unattachedWorkspaceId)
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+    }
+
+    @Test("Omitted workspaceID still uses default workspace resolution (YAK-33 regression guard)")
+    func omittedWorkspaceIDUsesDefaultResolution() async throws {
+        let tool = MockTool(id: "test_tool", name: "test_tool", result: .success("default workspace success"))
+        let gate = RecordingGate(decision: .deny)
+        let (router, timelineId) = try await setupRouter(with: tool, approvalGate: gate)
+
+        // No workspaceID in arguments — should proceed with normal default resolution
+        let arguments: [String: AnyCodable] = [:]
+
+        let result = try await router.execute(
+            tool: .known("test_tool"),
+            arguments: arguments,
+            timelineId: timelineId
+        )
+
+        guard case let .completed(output) = result else {
+            Issue.record("Expected .completed outcome, got \(result)")
+            return
+        }
+        #expect(output == "default workspace success")
+    }
+
     @Test("Local tool execution timeout is projected as a tool error")
     func localToolExecutionTimeoutIsProjectedAsToolError() async throws {
         let (timelineManager, mockPersistence) = try await setupTimelineManager()
