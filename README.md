@@ -58,6 +58,13 @@ If you use `LocalEmbeddingService`, import `PKLocalEmbeddings` alongside `Positr
 swift test --traits MiniLMEmbeddings
 ```
 
+## Companion App
+
+[`Yakamoz`](https://github.com/phynics/Yakamoz) is the native macOS showcase app for
+PositronicKit. It drives the runtime from a SwiftUI chat client and exposes the prompt
+pipeline, sent provider payloads, prompt journal, response metadata, tool traces, and local
+workspace state through an inspector drawer.
+
 ## Manual verification
 
 Verification is run explicitly through the root Makefile:
