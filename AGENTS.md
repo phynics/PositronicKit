@@ -78,3 +78,21 @@ and `Sources/PKLocalEmbeddings/MiniLMModelAssets.swift`; `verify-pin` (run by
 - Author prompts via `var body: some Prompt`, composing `SystemPrompt`, `TextPrompt`, `UserPrompt`, `HistoryPrompt`, and custom `Prompt` types.
 - Trait modifiers (`.priority(...)`, `.compression(...)`, `.cachePolicy(...)`) inherit through subtree; resolved once at assembly.
 - Three consumption layers: `Prompt → String` | `Prompt → AssembledPrompt → RenderedPrompt` | `RenderedPrompt → PromptJournal`.
+
+## Workflow Artifacts
+
+This repo holds **reference docs only** (`docs/`, `README.md`, `CHANGELOG.md`).
+Agentic-workflow scaffolding (superpowers specs/plans, decomposed tickets, brainstorm output)
+lives centrally at the workspace root under `workflow/`, namespaced by project:
+
+```text
+../workflow/
+  PositronicKit/plans/ specs/ tickets/   # this project's artifacts
+  Monad/plans/
+  Shuttle/plans/ specs/
+  Yakamoz/plans/ specs/ checkpoints/ tickets/ brainstorm/
+  workspace/plans/                       # cross-cutting workspace plans
+```
+
+Put new specs/plans/tickets under `../workflow/PositronicKit/...`, **not** back inside `docs/`.
+See the root `../CLAUDE.md` for the full layout.
