@@ -1,5 +1,6 @@
 import CPKFastEmbed
 import Foundation
+import PKShared
 
 public enum PKFastEmbedError: Error, Equatable, Sendable {
     case abiMismatch
@@ -59,13 +60,21 @@ public final class MiniLMEmbedder: @unchecked Sendable {
 
     private let handle: OpaquePointer
     public let dimensions: Int
+    public let inputBudget: EmbeddingInputBudget
     private let nativeAPI: NativeAPI
 
-    public convenience init(modelDirectory: URL) throws {
-        try self.init(modelDirectory: modelDirectory, nativeAPI: .live)
+    public convenience init(
+        modelDirectory: URL,
+        inputBudget: EmbeddingInputBudget = .default
+    ) throws {
+        try self.init(modelDirectory: modelDirectory, inputBudget: inputBudget, nativeAPI: .live)
     }
 
-    package init(modelDirectory: URL, nativeAPI: NativeAPI) throws {
+    package init(
+        modelDirectory: URL,
+        inputBudget: EmbeddingInputBudget = .default,
+        nativeAPI: NativeAPI
+    ) throws {
         guard nativeAPI.abiVersion() == PKFASTEMBED_ABI_VERSION else {
             throw PKFastEmbedError.abiMismatch
         }
@@ -99,6 +108,7 @@ public final class MiniLMEmbedder: @unchecked Sendable {
         self.nativeAPI = nativeAPI
         self.handle = handle
         self.dimensions = nativeDimensions
+        self.inputBudget = inputBudget
         rawHandle = nil
     }
 
@@ -107,6 +117,7 @@ public final class MiniLMEmbedder: @unchecked Sendable {
     }
 
     public func embed(_ text: String) throws -> [Float] {
+        try validate(text)
         var output = Array(repeating: Float.zero, count: dimensions)
         try output.withUnsafeMutableBufferPointer { buffer in
             try text.utf8CString.withUnsafeBufferPointer { utf8Buffer in
@@ -135,6 +146,7 @@ public final class MiniLMEmbedder: @unchecked Sendable {
             return []
         }
 
+        try validate(texts)
         let outputCount = try Self.checkedOutputCount(textCount: texts.count, dimensions: dimensions)
         var output = Array(repeating: Float.zero, count: outputCount)
 
@@ -157,6 +169,22 @@ public final class MiniLMEmbedder: @unchecked Sendable {
 
         return stride(from: 0, to: output.count, by: dimensions).map { start in
             Array(output[start..<(start + dimensions)])
+        }
+    }
+
+    private func validate(_ text: String) throws {
+        do {
+            try inputBudget.validate(text)
+        } catch let error as EmbeddingInputBudget.ValidationError {
+            throw PKFastEmbedError.invalidArgument(error.message)
+        }
+    }
+
+    private func validate(_ texts: [String]) throws {
+        do {
+            try inputBudget.validate(texts)
+        } catch let error as EmbeddingInputBudget.ValidationError {
+            throw PKFastEmbedError.invalidArgument(error.message)
         }
     }
 

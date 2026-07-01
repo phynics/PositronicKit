@@ -1,5 +1,6 @@
 import Foundation
 @testable import PKLocalEmbeddings
+import PKShared
 import PositronicKit
 import XCTest
 
@@ -11,6 +12,15 @@ final class MiniLMEmbeddingContractTests: XCTestCase {
         return try LocalEmbeddingService(modelDirectory: modelDirectory)
         #else
         return try LocalEmbeddingService(miniLMModelDirectory: modelDirectory)
+        #endif
+    }
+
+    private func makeService(inputBudget: EmbeddingInputBudget) throws -> LocalEmbeddingService {
+        let modelDirectory = try MiniLMTestSupport.requireModelDirectory()
+        #if os(Linux)
+        return try LocalEmbeddingService(modelDirectory: modelDirectory, inputBudget: inputBudget)
+        #else
+        return try LocalEmbeddingService(miniLMModelDirectory: modelDirectory, inputBudget: inputBudget)
         #endif
     }
 
@@ -65,6 +75,71 @@ final class MiniLMEmbeddingContractTests: XCTestCase {
         let service = try makeService()
         let vectors = try await service.generateEmbeddings(for: [])
         XCTAssertEqual(vectors, [])
+    }
+
+    func testRejectsTextOverDefaultByteLimit() async throws {
+        let service = try makeService()
+        let text = String(repeating: "a", count: EmbeddingBudgetFixture.maxBytesPerText + 1)
+
+        try await assertLimitError(
+            expectedSnippet: "per-text byte limit"
+        ) {
+            _ = try await service.generateEmbedding(for: text)
+        }
+    }
+
+    func testRejectsBatchOverDefaultTextCountLimit() async throws {
+        let service = try makeService()
+        let texts = Array(repeating: "a", count: EmbeddingBudgetFixture.maxTextCount + 1)
+
+        try await assertLimitError(
+            expectedSnippet: "batch text-count limit"
+        ) {
+            _ = try await service.generateEmbeddings(for: texts)
+        }
+    }
+
+    func testRejectsBatchOverDefaultTotalByteLimit() async throws {
+        let service = try makeService()
+        let text = String(repeating: "a", count: EmbeddingBudgetFixture.maxBytesPerText)
+        let texts = Array(repeating: text, count: (EmbeddingBudgetFixture.maxTotalBytes / EmbeddingBudgetFixture.maxBytesPerText) + 1)
+
+        try await assertLimitError(
+            expectedSnippet: "total batch byte limit"
+        ) {
+            _ = try await service.generateEmbeddings(for: texts)
+        }
+    }
+
+    func testConfiguredBudgetPropagatesIntoMiniLMBackend() throws {
+        let budget = EmbeddingInputBudget(
+            maxTextCount: 3,
+            maxBytesPerText: 8,
+            maxTotalBytes: 16
+        )
+        let service = try makeService(inputBudget: budget)
+
+        XCTAssertEqual(service.inputBudget, budget)
+        XCTAssertEqual(service.backendInputBudget, budget)
+    }
+
+    func testMiniLMBackendUsesConfiguredBudgetAndPreservesTypedLimitError() async throws {
+        let budget = EmbeddingInputBudget(
+            maxTextCount: 3,
+            maxBytesPerText: 2,
+            maxTotalBytes: 16
+        )
+        let modelDirectory = try MiniLMTestSupport.requireModelDirectory()
+        let backend = try MiniLMEmbeddingBackend(modelDirectory: modelDirectory, inputBudget: budget)
+
+        do {
+            _ = try await backend.generateEmbedding(for: "abc")
+            XCTFail("Expected configured per-text budget to be enforced.")
+        } catch let error as EmbeddingError {
+            XCTAssertEqual(error, .perTextByteLimitExceeded(max: 2, actual: 3))
+        } catch {
+            XCTFail("Expected EmbeddingError, got \(error)")
+        }
     }
 
     func testConcurrentCallsAreSerializedSafely() async throws {
@@ -131,6 +206,23 @@ final class MiniLMEmbeddingContractTests: XCTestCase {
         return try LocalEmbeddingService(miniLMModelDirectory: modelDirectory)
         #endif
     }
+
+    private func assertLimitError(
+        expectedSnippet: String,
+        operation: () async throws -> Void
+    ) async throws {
+        do {
+            try await operation()
+            XCTFail("Expected an EmbeddingError mentioning \(expectedSnippet).")
+        } catch let error as EmbeddingError {
+            XCTAssertTrue(
+                error.userFriendlyMessage.contains(expectedSnippet),
+                "Expected snippet '\(expectedSnippet)' in '\(error.userFriendlyMessage)'"
+            )
+        } catch {
+            XCTFail("Expected EmbeddingError, got \(error)")
+        }
+    }
 }
 
 private extension Array where Element == String {
@@ -142,5 +234,11 @@ private extension Array where Element == String {
         }
         return results
     }
+}
+
+private enum EmbeddingBudgetFixture {
+    static let maxTextCount = 64
+    static let maxBytesPerText = 65_536
+    static let maxTotalBytes = 262_144
 }
 #endif

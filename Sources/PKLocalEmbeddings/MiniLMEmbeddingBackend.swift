@@ -1,4 +1,5 @@
 import Foundation
+import PKShared
 import PositronicKit
 
 #if os(Linux)
@@ -13,11 +14,19 @@ package struct MiniLMEmbeddingBackend: Sendable {
     #if os(Linux) || MiniLMEmbeddings
     private let model: PlatformMiniLMBackend
     #endif
+    package let inputBudget: EmbeddingInputBudget
 
-    package init(modelDirectory: URL) throws {
+    package init(
+        modelDirectory: URL,
+        inputBudget: EmbeddingInputBudget = .default
+    ) throws {
+        self.inputBudget = inputBudget
         #if os(Linux) || MiniLMEmbeddings
         try MiniLMModelAssets.validate(modelDirectory: modelDirectory)
-        self.model = try PlatformMiniLMBackend(modelDirectory: modelDirectory)
+        self.model = try PlatformMiniLMBackend(
+            modelDirectory: modelDirectory,
+            inputBudget: inputBudget
+        )
         #else
         _ = modelDirectory
         throw EmbeddingError.modelUnavailable

@@ -63,6 +63,7 @@ let package = Package(
             name: "PKLocalEmbeddings",
             dependencies: [
                 "PositronicKit",
+                "PKShared",
                 .product(name: "Crypto", package: "swift-crypto"),
                 .target(name: "PKMiniLMLinuxBackend", condition: .when(platforms: [.linux])),
                 .target(name: "PKMiniLMTraitBackend", condition: .when(traits: ["MiniLMEmbeddings"])),
@@ -76,7 +77,7 @@ let package = Package(
         ),
         .target(
             name: "PKFastEmbed",
-            dependencies: ["CPKFastEmbed"],
+            dependencies: ["CPKFastEmbed", "PKShared"],
             path: "Sources/PKFastEmbed"
         ),
         .target(
@@ -84,6 +85,7 @@ let package = Package(
             dependencies: [
                 "PositronicKit",
                 "PKFastEmbed",
+                "PKShared",
             ],
             path: "Sources/PKMiniLMLinuxBackend"
         ),
@@ -91,6 +93,7 @@ let package = Package(
             name: "PKMiniLMTraitBackend",
             dependencies: [
                 "PositronicKit",
+                "PKShared",
                 .target(name: "PKFastEmbed", condition: .when(traits: ["MiniLMEmbeddings"])),
             ],
             path: "Sources/PKMiniLMTraitBackend"
