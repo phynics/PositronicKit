@@ -107,6 +107,154 @@ struct FilesystemToolsTests {
         #expect(resultSingleFile.output.contains("file1.txt"))
     }
 
+    @Test("Search Files Tool fails when grep output exceeds resource limit")
+    func searchFilesToolFailsWhenOutputLimitExceeded() async throws {
+        defer { cleanup() }
+        let highOutputFile = tempURL.appendingPathComponent("high-output.txt")
+        let line = "needle " + String(repeating: "x", count: 120)
+        try Array(repeating: line, count: 3_000)
+            .joined(separator: "\n")
+            .write(to: highOutputFile, atomically: true, encoding: .utf8)
+
+        let tool = SearchFilesTool(
+            currentDirectory: tempURL.path,
+            jailRoot: tempURL.path,
+            limits: FilesystemSearchLimits(maxOutputBytes: 1_024, maxMatches: 3_000)
+        )
+        let result = try await tool.execute(parameters: ["pattern": "needle", "path": "high-output.txt"])
+
+        #expect(!result.success)
+        #expect(result.error?.contains("output byte limit") == true)
+    }
+
+    @Test("Search Files Tool fails before reading files over per-file byte limit")
+    func searchFilesToolFailsWhenPerFileLimitExceeded() async throws {
+        defer { cleanup() }
+        let largeFile = tempURL.appendingPathComponent("large-search.txt")
+        try (String(repeating: "x", count: 256) + "\nneedle\n")
+            .write(to: largeFile, atomically: true, encoding: .utf8)
+
+        let tool = SearchFilesTool(
+            currentDirectory: tempURL.path,
+            jailRoot: tempURL.path,
+            limits: FilesystemSearchLimits(maxFileBytes: 128)
+        )
+        let result = try await tool.execute(parameters: ["pattern": "needle", "path": "large-search.txt"])
+
+        #expect(!result.success)
+        #expect(result.error?.contains("per-file byte limit") == true)
+    }
+
+    @Test("Search Files Tool fails at file-count limit")
+    func searchFilesToolFailsAtFileCountLimit() async throws {
+        defer { cleanup() }
+        let tool = SearchFilesTool(
+            currentDirectory: tempURL.path,
+            jailRoot: tempURL.path,
+            limits: FilesystemSearchLimits(maxFiles: 1)
+        )
+        let result = try await tool.execute(parameters: ["pattern": "missing", "path": "."])
+
+        #expect(!result.success)
+        #expect(result.error?.contains("file-count limit") == true)
+    }
+
+    @Test("Search Files Tool fails at wall-clock limit")
+    func searchFilesToolFailsAtWallClockLimit() async throws {
+        defer { cleanup() }
+        let tool = SearchFilesTool(
+            currentDirectory: tempURL.path,
+            jailRoot: tempURL.path,
+            limits: FilesystemSearchLimits(wallClockSeconds: -1)
+        )
+        let result = try await tool.execute(parameters: ["pattern": "Hello", "path": "."])
+
+        #expect(!result.success)
+        #expect(result.error?.contains("timed out") == true)
+    }
+
+    @Test("Search File Content Tool fails before reading files over per-file byte limit")
+    func searchFileContentToolFailsWhenPerFileLimitExceeded() async throws {
+        defer { cleanup() }
+        let largeFile = tempURL.appendingPathComponent("large.txt")
+        let content = String(repeating: "x", count: 1_048_577) + "\nneedle\n"
+        try content.write(to: largeFile, atomically: true, encoding: .utf8)
+
+        let tool = SearchFileContentTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
+        let result = try await tool.execute(parameters: ["path": "large.txt", "pattern": "needle"])
+
+        #expect(!result.success)
+        #expect(result.error?.contains("per-file byte limit") == true)
+    }
+
+    @Test("Search File Content Tool fails at file-count limit")
+    func searchFileContentToolFailsAtFileCountLimit() async throws {
+        defer { cleanup() }
+        let tool = SearchFileContentTool(
+            currentDirectory: tempURL.path,
+            jailRoot: tempURL.path,
+            limits: FilesystemSearchLimits(maxFiles: 1)
+        )
+        let result = try await tool.execute(parameters: ["path": ".", "pattern": "missing", "recursive": true])
+
+        #expect(!result.success)
+        #expect(result.error?.contains("file-count limit") == true)
+    }
+
+    @Test("Search File Content Tool fails at total byte limit")
+    func searchFileContentToolFailsAtTotalByteLimit() async throws {
+        defer { cleanup() }
+        let tool = SearchFileContentTool(
+            currentDirectory: tempURL.path,
+            jailRoot: tempURL.path,
+            limits: FilesystemSearchLimits(maxTotalBytes: 8)
+        )
+        let result = try await tool.execute(parameters: ["path": ".", "pattern": "missing", "recursive": false])
+
+        #expect(!result.success)
+        #expect(result.error?.contains("total byte limit") == true)
+    }
+
+    @Test("Search File Content Tool fails at wall-clock limit")
+    func searchFileContentToolFailsAtWallClockLimit() async throws {
+        defer { cleanup() }
+        let tool = SearchFileContentTool(
+            currentDirectory: tempURL.path,
+            jailRoot: tempURL.path,
+            limits: FilesystemSearchLimits(wallClockSeconds: -1)
+        )
+        let result = try await tool.execute(parameters: ["path": ".", "pattern": "Hello", "recursive": true])
+
+        #expect(!result.success)
+        #expect(result.error?.contains("timed out") == true)
+    }
+
+    @Test("Search File Content Tool enforces match limit across files")
+    func searchFileContentToolEnforcesMatchLimitAcrossFiles() async throws {
+        defer { cleanup() }
+        try """
+        needle one
+        needle two
+        """.write(to: tempURL.appendingPathComponent("a.txt"), atomically: true, encoding: .utf8)
+        try """
+        needle three
+        needle four
+        """.write(to: tempURL.appendingPathComponent("b.txt"), atomically: true, encoding: .utf8)
+
+        let tool = SearchFileContentTool(
+            currentDirectory: tempURL.path,
+            jailRoot: tempURL.path,
+            limits: FilesystemSearchLimits(maxMatches: 3)
+        )
+        let result = try await tool.execute(parameters: ["path": ".", "pattern": "needle", "recursive": false])
+
+        #expect(result.success)
+        let outputLines = result.output
+            .split(separator: "\n")
+            .filter { $0.contains("needle") }
+        #expect(outputLines.count == 3)
+    }
+
     @Test("Path Traversal Protection")
     func pathTraversalProtection() async throws {
         defer { cleanup() }

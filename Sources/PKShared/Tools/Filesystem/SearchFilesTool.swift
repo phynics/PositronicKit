@@ -18,6 +18,7 @@ public struct SearchFilesTool: Tool, Sendable {
 
     private let currentDirectory: String
     private let jailRoot: String
+    private let limits: FilesystemSearchLimits
 
     public init(
         currentDirectory: String = FileManager.default.currentDirectoryPath,
@@ -25,6 +26,17 @@ public struct SearchFilesTool: Tool, Sendable {
     ) {
         self.currentDirectory = currentDirectory
         self.jailRoot = jailRoot ?? currentDirectory
+        self.limits = FilesystemSearchLimits()
+    }
+
+    init(
+        currentDirectory: String = FileManager.default.currentDirectoryPath,
+        jailRoot: String? = nil,
+        limits: FilesystemSearchLimits
+    ) {
+        self.currentDirectory = currentDirectory
+        self.jailRoot = jailRoot ?? currentDirectory
+        self.limits = limits
     }
 
     public func canExecute() async -> Bool {
@@ -77,50 +89,107 @@ public struct SearchFilesTool: Tool, Sendable {
             return result
         }
 
-        return runGrepSearch(pattern: pattern, searchURL: url, includePattern: includePattern)
+        return searchFiles(pattern: pattern, searchURL: url, includePattern: includePattern)
     }
 
-    private func runGrepSearch(pattern: String, searchURL: URL, includePattern: String?) -> ToolResult {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/grep")
-
-        var arguments = ["-rn", "--exclude-dir=.git", "--exclude-dir=.build"]
-        if let include = includePattern {
-            arguments.append("--include=\(include)")
-        }
-        arguments.append(pattern)
-        arguments.append(searchURL.path)
-        process.arguments = arguments
-
-        let outputPipe = Pipe()
-        process.standardOutput = outputPipe
-
-        let errorPipe = Pipe()
-        process.standardError = errorPipe
-
+    private func searchFiles(pattern: String, searchURL: URL, includePattern: String?) -> ToolResult {
         do {
-            try process.run()
-            process.waitUntilExit()
+            let regex = try NSRegularExpression(pattern: pattern)
+            var budget = FilesystemSearchBudget(limits: limits)
+            var matches: [String] = []
+            var limitReached = false
 
-            let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
-            let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+            try visitSearchFiles(at: searchURL) { fileURL, baseURL in
+                try budget.checkProgress()
+                guard shouldInclude(fileURL, includePattern: includePattern) else { return true }
 
-            if process.terminationStatus == 0 || process.terminationStatus == 1 {
-                let output = String(data: outputData, encoding: .utf8)?
-                    .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                if output.isEmpty {
-                    return .success("No matches found for '\(pattern)'")
+                let displayPath = FilesystemToolSupport.relativeDisplayPath(for: fileURL, baseURL: baseURL)
+                _ = try budget.reserveFile(fileURL, relativePath: displayPath)
+                guard let content = try? String(contentsOf: fileURL, encoding: .utf8) else { return true }
+
+                let lines = content.components(separatedBy: .newlines)
+                for (index, line) in lines.enumerated() {
+                    try budget.checkProgress()
+                    let range = NSRange(line.startIndex..<line.endIndex, in: line)
+                    guard regex.firstMatch(in: line, range: range) != nil else { continue }
+
+                    let outputLine = "\(displayPath):\(index + 1):\(line)"
+                    try budget.reserveOutput(outputLine)
+                    matches.append(outputLine)
+                    if matches.count >= limits.maxMatches {
+                        limitReached = true
+                        return false
+                    }
                 }
-
-                let lines = output.components(separatedBy: .newlines)
-                return .success(FilesystemToolSupport.limitedOutput(lines, limit: 100))
-            } else {
-                let errorOutput = String(data: errorData, encoding: .utf8)?
-                    .trimmingCharacters(in: .whitespacesAndNewlines) ?? "Unknown error"
-                return .failure("Search failed with status \(process.terminationStatus): \(errorOutput)")
+                return true
             }
+
+            if matches.isEmpty {
+                return .success("No matches found for '\(pattern)'")
+            }
+            let output = matches.joined(separator: "\n")
+            return .success(limitReached ? output + "\n... (limit reached)" : output)
+        } catch let failure as FilesystemSearchBudget.Failure {
+            return .failure(failure.message)
+        } catch let error as NSError where error.domain == NSCocoaErrorDomain {
+            return .failure("Invalid search pattern: \(error.localizedDescription)")
         } catch {
-            return .failure("Failed to execute search: \(error.localizedDescription)")
+            return .failure("Search failed: \(error.localizedDescription)")
         }
+    }
+
+    private func visitSearchFiles(
+        at url: URL,
+        body: (URL, URL) throws -> Bool
+    ) throws {
+        let fileManager = FileManager.default
+        var isDirectory: ObjCBool = false
+        guard fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory) else { return }
+
+        if !isDirectory.boolValue {
+            _ = try body(url, url.deletingLastPathComponent())
+            return
+        }
+
+        let options: FileManager.DirectoryEnumerationOptions = [
+            .skipsHiddenFiles, .skipsPackageDescendants
+        ]
+        guard let enumerator = fileManager.enumerator(
+            at: url,
+            includingPropertiesForKeys: [.isDirectoryKey, .fileSizeKey],
+            options: options
+        ) else {
+            return
+        }
+
+        while let fileURL = enumerator.nextObject() as? URL {
+            let lastPathComponent = fileURL.lastPathComponent
+            if lastPathComponent == ".git" || lastPathComponent == ".build" {
+                enumerator.skipDescendants()
+                continue
+            }
+
+            var childIsDirectory: ObjCBool = false
+            guard fileManager.fileExists(atPath: fileURL.path, isDirectory: &childIsDirectory),
+                  !childIsDirectory.boolValue else {
+                continue
+            }
+
+            if try !body(fileURL, url) {
+                return
+            }
+        }
+    }
+
+    private func shouldInclude(_ fileURL: URL, includePattern: String?) -> Bool {
+        guard let includePattern else { return true }
+        return wildcard(includePattern, matches: fileURL.lastPathComponent)
+    }
+
+    private func wildcard(_ pattern: String, matches value: String) -> Bool {
+        let escaped = NSRegularExpression.escapedPattern(for: pattern)
+            .replacingOccurrences(of: "\\*", with: ".*")
+            .replacingOccurrences(of: "\\?", with: ".")
+        return value.range(of: "^\(escaped)$", options: .regularExpression) != nil
     }
 }
