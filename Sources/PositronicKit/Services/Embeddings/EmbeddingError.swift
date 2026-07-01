@@ -9,6 +9,9 @@ public enum EmbeddingError: PKError, Equatable {
     case modelFilesMissing
     case modelChecksumMismatch
     case nativeInitializationFailed
+    case batchTextCountLimitExceeded(max: Int, actual: Int)
+    case perTextByteLimitExceeded(max: Int, actual: Int)
+    case totalBatchByteLimitExceeded(max: Int, actual: Int)
 
     public var errorDomain: String { PKErrorDomain.embedding }
 
@@ -20,6 +23,9 @@ public enum EmbeddingError: PKError, Equatable {
         case .modelFilesMissing: return 8004
         case .modelChecksumMismatch: return 8005
         case .nativeInitializationFailed: return 8006
+        case .batchTextCountLimitExceeded: return 8007
+        case .perTextByteLimitExceeded: return 8008
+        case .totalBatchByteLimitExceeded: return 8009
         }
     }
 
@@ -37,6 +43,12 @@ public enum EmbeddingError: PKError, Equatable {
             return "The local MiniLM model files do not match the expected checksum."
         case .nativeInitializationFailed:
             return "The local MiniLM backend could not be initialized."
+        case let .batchTextCountLimitExceeded(max, actual):
+            return "Embedding input exceeded the batch text-count limit of \(max) item(s) (\(actual) provided)."
+        case let .perTextByteLimitExceeded(max, actual):
+            return "Embedding input exceeded the per-text byte limit of \(max) bytes (\(actual) bytes provided)."
+        case let .totalBatchByteLimitExceeded(max, actual):
+            return "Embedding input exceeded the total batch byte limit of \(max) bytes (\(actual) bytes provided)."
         }
     }
 }

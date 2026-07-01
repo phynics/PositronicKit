@@ -13,6 +13,9 @@ use std::sync::Mutex;
 
 const DIMENSIONS: usize = 384;
 const ABI_VERSION: u32 = 1;
+const MAX_TEXT_COUNT: usize = 64;
+const MAX_BYTES_PER_TEXT: usize = 65_536;
+const MAX_TOTAL_BATCH_BYTES: usize = 262_144;
 
 pub struct Model {
     inner: Mutex<TextEmbedding>,
@@ -97,6 +100,56 @@ fn checked_output_count(dimensions: usize, text_count: usize) -> anyhow::Result<
     dimensions
         .checked_mul(text_count)
         .ok_or_else(|| anyhow::anyhow!("Requested output size overflowed usize."))
+}
+
+fn validate_single_input_budget(byte_count: usize) -> anyhow::Result<()> {
+    anyhow::ensure!(
+        byte_count <= MAX_BYTES_PER_TEXT,
+        "Embedding input exceeded the per-text byte limit of {} bytes ({} bytes provided).",
+        MAX_BYTES_PER_TEXT,
+        byte_count
+    );
+    anyhow::ensure!(
+        byte_count <= MAX_TOTAL_BATCH_BYTES,
+        "Embedding input exceeded the total batch byte limit of {} bytes ({} bytes provided).",
+        MAX_TOTAL_BATCH_BYTES,
+        byte_count
+    );
+    Ok(())
+}
+
+fn validate_batch_input_budget(text_count: usize, lengths: &[usize]) -> anyhow::Result<()> {
+    anyhow::ensure!(
+        text_count <= MAX_TEXT_COUNT,
+        "Embedding input exceeded the batch text-count limit of {} item(s) ({} provided).",
+        MAX_TEXT_COUNT,
+        text_count
+    );
+    anyhow::ensure!(
+        text_count == lengths.len(),
+        "Embedding batch length metadata expected {} item(s) but received {}.",
+        text_count,
+        lengths.len()
+    );
+
+    let mut total_bytes = 0usize;
+    for &byte_count in lengths {
+        validate_single_input_budget(byte_count)?;
+        total_bytes = total_bytes
+            .checked_add(byte_count)
+            .ok_or_else(|| anyhow::anyhow!(
+                "Embedding input exceeded the total batch byte limit of {} bytes (overflow while summing lengths).",
+                MAX_TOTAL_BATCH_BYTES
+            ))?;
+        anyhow::ensure!(
+            total_bytes <= MAX_TOTAL_BATCH_BYTES,
+            "Embedding input exceeded the total batch byte limit of {} bytes ({} bytes provided).",
+            MAX_TOTAL_BATCH_BYTES,
+            total_bytes
+        );
+    }
+
+    Ok(())
 }
 
 fn contain_panics<T>(
@@ -262,6 +315,11 @@ pub extern "C" fn pkfe_model_embed(
         return Status::BufferTooSmall;
     }
 
+    if let Err(error) = validate_single_input_budget(utf8_length) {
+        set_error(out_error_message, error.to_string());
+        return Status::InvalidArgument;
+    }
+
     let text = match decode_text(utf8_bytes, utf8_length) {
         Ok(text) => text,
         Err(error) => {
@@ -340,6 +398,11 @@ pub extern "C" fn pkfe_model_embed_batch(
 
     let inputs = unsafe { slice::from_raw_parts(utf8_bytes, text_count) };
     let lengths = unsafe { slice::from_raw_parts(utf8_lengths, text_count) };
+    if let Err(error) = validate_batch_input_budget(text_count, lengths) {
+        set_error(out_error_message, error.to_string());
+        return Status::InvalidArgument;
+    }
+
     let mut decoded = Vec::with_capacity(text_count);
     for (bytes, length) in inputs.iter().zip(lengths) {
         match decode_text(*bytes, *length) {
@@ -501,6 +564,49 @@ mod tests {
     #[test]
     fn batch_output_count_overflow_is_rejected() {
         assert!(checked_output_count(usize::MAX, 2).is_err());
+    }
+
+    #[test]
+    fn single_input_budget_rejects_texts_over_the_byte_limit() {
+        let result = validate_single_input_budget(65_537);
+
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("per-text byte limit")
+        );
+    }
+
+    #[test]
+    fn batch_input_budget_rejects_batches_over_the_text_count_limit() {
+        let lengths = vec![1; 65];
+
+        let result = validate_batch_input_budget(lengths.len(), &lengths);
+
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("batch text-count limit")
+        );
+    }
+
+    #[test]
+    fn batch_input_budget_rejects_batches_over_the_total_byte_limit() {
+        let lengths = vec![65_536; 5];
+
+        let result = validate_batch_input_budget(lengths.len(), &lengths);
+
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("total batch byte limit")
+        );
     }
 
     #[test]

@@ -2,6 +2,7 @@
 import CPKFastEmbed
 import Foundation
 @testable import PKFastEmbed
+import PKShared
 import Testing
 import XCTest
 
@@ -70,7 +71,7 @@ struct PKFastEmbedTests {
             String(repeating: "prefix-", count: 20) + "tail-a",
             String(repeating: "prefix-", count: 20) + "tail-b",
         ]
-        let texts = (0 ..< 128).map { fixtures[$0 % fixtures.count] }
+        let texts = (0 ..< EmbeddingBudgetFixture.maxTextCount).map { fixtures[$0 % fixtures.count] }
 
         let batch = try model.embed(texts)
         let singles = try texts.map { try model.embed($0) }
@@ -100,6 +101,83 @@ struct PKFastEmbedTests {
             } else {
                 XCTFail("Expected invalidArgument, got \(error)")
             }
+        }
+
+        #expect(harness.batchCallCount == 0)
+    }
+
+    @Test("single embeddings over the default byte limit are rejected before native inference")
+    func singleTextOverDefaultByteLimitIsRejected() throws {
+        let harness = NativeAPIHarness(dimensions: 6)
+        let model = try MiniLMEmbedder(
+            modelDirectory: URL(fileURLWithPath: "/fake/model"),
+            nativeAPI: harness.nativeAPI
+        )
+        let text = String(repeating: "a", count: EmbeddingBudgetFixture.maxBytesPerText + 1)
+
+        XCTAssertThrowsError(try model.embed(text)) { error in
+            guard case let PKFastEmbedError.invalidArgument(message) = error else {
+                return XCTFail("Expected invalidArgument, got \(error)")
+            }
+            XCTAssertTrue(message.contains("per-text byte limit"))
+        }
+
+        #expect(harness.singleCallCount == 0)
+    }
+
+    @Test("single embeddings over a custom total-byte limit are rejected before native inference")
+    func singleTextOverCustomTotalByteLimitIsRejected() throws {
+        let harness = NativeAPIHarness(dimensions: 6)
+        let model = try MiniLMEmbedder(
+            modelDirectory: URL(fileURLWithPath: "/fake/model"),
+            inputBudget: EmbeddingInputBudget(maxTextCount: 4, maxBytesPerText: 10, maxTotalBytes: 5),
+            nativeAPI: harness.nativeAPI
+        )
+
+        XCTAssertThrowsError(try model.embed("123456")) { error in
+            guard case let PKFastEmbedError.invalidArgument(message) = error else {
+                return XCTFail("Expected invalidArgument, got \(error)")
+            }
+            XCTAssertTrue(message.contains("total batch byte limit"))
+        }
+
+        #expect(harness.singleCallCount == 0)
+    }
+
+    @Test("batches over the default text-count limit are rejected before native inference")
+    func batchOverDefaultTextCountLimitIsRejected() throws {
+        let harness = NativeAPIHarness(dimensions: 6)
+        let model = try MiniLMEmbedder(
+            modelDirectory: URL(fileURLWithPath: "/fake/model"),
+            nativeAPI: harness.nativeAPI
+        )
+        let texts = Array(repeating: "a", count: EmbeddingBudgetFixture.maxTextCount + 1)
+
+        XCTAssertThrowsError(try model.embed(texts)) { error in
+            guard case let PKFastEmbedError.invalidArgument(message) = error else {
+                return XCTFail("Expected invalidArgument, got \(error)")
+            }
+            XCTAssertTrue(message.contains("batch text-count limit"))
+        }
+
+        #expect(harness.batchCallCount == 0)
+    }
+
+    @Test("batches over the default total-byte limit are rejected before native inference")
+    func batchOverDefaultTotalByteLimitIsRejected() throws {
+        let harness = NativeAPIHarness(dimensions: 6)
+        let model = try MiniLMEmbedder(
+            modelDirectory: URL(fileURLWithPath: "/fake/model"),
+            nativeAPI: harness.nativeAPI
+        )
+        let text = String(repeating: "a", count: EmbeddingBudgetFixture.maxBytesPerText)
+        let texts = Array(repeating: text, count: (EmbeddingBudgetFixture.maxTotalBytes / EmbeddingBudgetFixture.maxBytesPerText) + 1)
+
+        XCTAssertThrowsError(try model.embed(texts)) { error in
+            guard case let PKFastEmbedError.invalidArgument(message) = error else {
+                return XCTFail("Expected invalidArgument, got \(error)")
+            }
+            XCTAssertTrue(message.contains("total batch byte limit"))
         }
 
         #expect(harness.batchCallCount == 0)
@@ -306,6 +384,12 @@ struct PKFastEmbedTests {
     private func l2Norm(_ vector: [Float]) -> Float {
         sqrt(vector.reduce(0) { $0 + ($1 * $1) })
     }
+}
+
+private enum EmbeddingBudgetFixture {
+    static let maxTextCount = 64
+    static let maxBytesPerText = 65_536
+    static let maxTotalBytes = 262_144
 }
 
 private final class NativeAPIHarness: @unchecked Sendable {
