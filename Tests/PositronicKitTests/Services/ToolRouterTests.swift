@@ -796,8 +796,9 @@ struct ToolErrorModelTests {
             ToolError.requestOriginUnavailable.errorCode,
             ToolError.attachedToolsDisallowedOnPrivateTimeline.errorCode,
             ToolError.permissionDenied("t").errorCode,
+            ToolError.unmatchedToolOutput("call_1").errorCode,
         ]
-        #expect(codes.count == 10)
+        #expect(codes.count == 11)
     }
 
     @Test("All v1 error categories have non-empty user-friendly messages")
@@ -813,6 +814,7 @@ struct ToolErrorModelTests {
             .requestOriginUnavailable,
             .attachedToolsDisallowedOnPrivateTimeline,
             .permissionDenied("tool"),
+            .unmatchedToolOutput("call_1"),
         ]
         for err in errors {
             #expect(!err.userFriendlyMessage.isEmpty, "Empty message for \(err)")
@@ -832,6 +834,7 @@ struct ToolErrorModelTests {
             .requestOriginUnavailable,
             .attachedToolsDisallowedOnPrivateTimeline,
             .permissionDenied("tool"),
+            .unmatchedToolOutput("call_1"),
         ]
         for err in errors {
             #expect(err.remediation != nil, "Missing remediation for \(err)")

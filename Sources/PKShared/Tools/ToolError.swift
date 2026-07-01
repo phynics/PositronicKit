@@ -14,6 +14,7 @@ import Foundation
 /// - **requestOriginUnavailable**: The workspace's request origin is not reachable.
 /// - **attachedToolsDisallowedOnPrivateTimeline**: Private timelines reject externally hosted tools.
 /// - **permissionDenied**: A permissioned tool was not approved by the runtime approval gate.
+/// - **unmatchedToolOutput**: An externally submitted tool output does not match a pending call.
 public enum ToolError: PKError, Sendable, Equatable {
     case missingArgument(String)
     case invalidArgument(String, expected: String, got: String)
@@ -25,6 +26,7 @@ public enum ToolError: PKError, Sendable, Equatable {
     case requestOriginUnavailable
     case attachedToolsDisallowedOnPrivateTimeline
     case permissionDenied(String)
+    case unmatchedToolOutput(String)
 
     public var errorDomain: String {
         PKErrorDomain.tool
@@ -42,6 +44,7 @@ public enum ToolError: PKError, Sendable, Equatable {
         case .requestOriginUnavailable: return 206
         case .attachedToolsDisallowedOnPrivateTimeline: return 207
         case .permissionDenied: return 210
+        case .unmatchedToolOutput: return 211
         }
     }
 
@@ -67,6 +70,8 @@ public enum ToolError: PKError, Sendable, Equatable {
             return "Private agent timelines do not support additional workspace tools."
         case let .permissionDenied(name):
             return "The tool '\(name)' requires permission and was not approved."
+        case let .unmatchedToolOutput(toolCallId):
+            return "The submitted tool output '\(toolCallId)' does not match a pending tool call."
         }
     }
 
@@ -95,6 +100,8 @@ public enum ToolError: PKError, Sendable, Equatable {
         case let .permissionDenied(name):
             return "Approve the '\(name)' tool when prompted, or inject an approval gate that " +
                 "authorizes it. Permissioned tools never execute without an explicit approval decision."
+        case .unmatchedToolOutput:
+            return "Submit tool outputs only for tool calls that the runtime previously deferred and has not consumed."
         }
     }
 }

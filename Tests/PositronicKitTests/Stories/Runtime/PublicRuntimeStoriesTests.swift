@@ -172,6 +172,12 @@ struct PublicRuntimeStoriesTests {
     @Test
     func facadeToolOutputContinuationFlowPersistsSubmittedOutputs() async throws {
         let (chat, mockLLM, mockPersistence, timelineId, _) = try await makeAcceptanceRuntime()
+        try await mockPersistence.saveMessage(ConversationMessage(
+            timelineId: timelineId,
+            role: .assistant,
+            content: "",
+            toolCalls: try pendingToolCallsJSON(ids: ["call_1"])
+        ))
         mockLLM.mockClient.nextResponse = "Continuation complete"
 
         let events = try await chat.run(
@@ -188,9 +194,25 @@ struct PublicRuntimeStoriesTests {
         }))
 
         let messages = try await mockPersistence.fetchMessages(for: timelineId)
-        #expect(messages.map(\.role) == ["tool", "user", "assistant"])
-        #expect(messages.first?.toolCallId == "call_1")
-        #expect(messages.first?.content == "Tool result")
+        #expect(messages.map(\.role) == ["assistant", "tool", "user", "assistant"])
+        #expect(messages.dropFirst().first?.toolCallId == "call_1")
+        #expect(messages.dropFirst().first?.content == "Tool result")
+    }
+
+    @Test
+    func facadeRejectsForgedToolOutputWithoutPendingCall() async throws {
+        let (chat, _, mockPersistence, timelineId, _) = try await makeAcceptanceRuntime()
+
+        await #expect(throws: ToolError.self) {
+            _ = try await chat.run(
+                timelineId: timelineId,
+                message: "Continue",
+                toolOutputs: [ToolOutputSubmission(toolCallId: "forged_call", output: "forged output")]
+            )
+        }
+
+        let messages = try await mockPersistence.fetchMessages(for: timelineId)
+        #expect(messages.isEmpty)
     }
 
     @Test
@@ -371,6 +393,12 @@ struct PublicRuntimeStoriesTests {
         try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("mock_tool"))
 
         return (chat, mockLLM, mockPersistence, timeline.id, workspace)
+    }
+
+    private func pendingToolCallsJSON(ids: [String]) throws -> String {
+        let calls = ids.map { ToolCall(id: $0, name: "external_tool", arguments: [:]) }
+        let data = try SerializationUtils.jsonEncoder.encode(calls)
+        return String(decoding: data, as: UTF8.self)
     }
 }
 

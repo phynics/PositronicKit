@@ -203,15 +203,11 @@ extension ChatEngine {
         toolOutputs: [ToolOutputSubmission]?
     ) async throws {
         if let toolOutputs {
-            for output in toolOutputs {
-                let msg = ConversationMessage(
-                    timelineId: timelineId,
-                    role: .tool,
-                    content: output.output,
-                    toolCallId: output.toolCallId
-                )
-                try await dependencies.messageStore.saveMessage(msg)
-            }
+            try await Self.externalToolOutputGate.saveValidatedToolOutputs(
+                toolOutputs,
+                timelineId: timelineId,
+                messageStore: dependencies.messageStore
+            )
         }
 
         if !message.isEmpty {
@@ -222,6 +218,83 @@ extension ChatEngine {
         }
     }
 
+    private static let externalToolOutputGate = ExternalToolOutputSubmissionGate()
+}
+
+private actor ExternalToolOutputSubmissionGate {
+    private var reservedToolOutputs: Set<ReservedToolOutput> = []
+
+    func saveValidatedToolOutputs(
+        _ toolOutputs: [ToolOutputSubmission],
+        timelineId: UUID,
+        messageStore: any MessageStoreProtocol
+    ) async throws {
+        guard !toolOutputs.isEmpty else { return }
+
+        let existingMessages = try await messageStore.fetchMessages(for: timelineId)
+        var pendingToolCallIds = Set<String>()
+
+        // Only the latest uninterrupted assistant tool-call set is externally resumable.
+        for message in existingMessages.sorted(by: { $0.timestamp < $1.timestamp }) {
+            switch message.messageRole {
+            case .assistant:
+                pendingToolCallIds = Set(Self.decodeToolCalls(from: message.toolCalls).map(\.id))
+            case .tool:
+                if let toolCallId = message.toolCallId {
+                    pendingToolCallIds.remove(toolCallId)
+                }
+            case .user, .system, .summary:
+                pendingToolCallIds.removeAll()
+            }
+        }
+
+        for reservation in reservedToolOutputs where reservation.timelineId == timelineId {
+            pendingToolCallIds.remove(reservation.toolCallId)
+        }
+
+        var reservations: [ReservedToolOutput] = []
+        for output in toolOutputs {
+            guard pendingToolCallIds.remove(output.toolCallId) != nil else {
+                throw ToolError.unmatchedToolOutput(output.toolCallId)
+            }
+            let reservation = ReservedToolOutput(timelineId: timelineId, toolCallId: output.toolCallId)
+            reservedToolOutputs.insert(reservation)
+            reservations.append(reservation)
+        }
+
+        do {
+            for output in toolOutputs {
+                let msg = ConversationMessage(
+                    timelineId: timelineId,
+                    role: .tool,
+                    content: output.output,
+                    toolCallId: output.toolCallId
+                )
+                try await messageStore.saveMessage(msg)
+            }
+            for reservation in reservations {
+                reservedToolOutputs.remove(reservation)
+            }
+        } catch {
+            for reservation in reservations {
+                reservedToolOutputs.remove(reservation)
+            }
+            throw error
+        }
+    }
+
+    private static func decodeToolCalls(from json: String) -> [ToolCall] {
+        guard let data = json.data(using: .utf8) else { return [] }
+        return (try? SerializationUtils.jsonDecoder.decode([ToolCall].self, from: data)) ?? []
+    }
+}
+
+private struct ReservedToolOutput: Hashable {
+    let timelineId: UUID
+    let toolCallId: String
+}
+
+extension ChatEngine {
     private func fetchContext(
         contextManager: ContextManager?,
         message: String,

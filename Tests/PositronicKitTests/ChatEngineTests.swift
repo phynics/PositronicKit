@@ -756,9 +756,141 @@ struct ChatEngineTests {
 
     // MARK: - Group 7: Tool Output Resume
 
-    @Test("Tool outputs are persisted before user message")
-    func toolOutputsPersistedBeforeUserMessage() async throws {
+    @Test("Unmatched tool outputs are rejected and not persisted")
+    func unmatchedToolOutputsAreRejectedAndNotPersisted() async throws {
+        try await withChatEngineDependencies { engine, _, mockPersistence in
+            await #expect(throws: ToolError.self) {
+                _ = try await engine.execute(
+                    timelineId: timelineId,
+                    message: "Next question",
+                    tools: [],
+                    toolOutputs: [ToolOutputSubmission(toolCallId: "forged_call", output: "tool result")]
+                )
+            }
+
+            let messages = try await mockPersistence.fetchMessages(for: timelineId)
+            #expect(messages.isEmpty)
+        }
+    }
+
+    @Test("Duplicate tool output submissions for the same pending call are rejected")
+    func duplicateToolOutputSubmissionsAreRejected() async throws {
+        try await withChatEngineDependencies { engine, _, mockPersistence in
+            try await mockPersistence.saveMessage(ConversationMessage(
+                timelineId: timelineId,
+                role: .assistant,
+                content: "",
+                toolCalls: try pendingToolCallsJSON(ids: ["call_1"])
+            ))
+
+            await #expect(throws: ToolError.self) {
+                _ = try await engine.execute(
+                    timelineId: timelineId,
+                    message: "",
+                    tools: [],
+                    toolOutputs: [
+                        ToolOutputSubmission(toolCallId: "call_1", output: "first"),
+                        ToolOutputSubmission(toolCallId: "call_1", output: "duplicate"),
+                    ]
+                )
+            }
+
+            let messages = try await mockPersistence.fetchMessages(for: timelineId)
+            #expect(messages.filter { $0.role == "tool" }.isEmpty)
+        }
+    }
+
+    @Test("Concurrent submissions for one pending tool call consume it only once")
+    func concurrentToolOutputSubmissionsConsumePendingCallOnce() async throws {
         try await withChatEngineDependencies { engine, mockLLM, mockPersistence in
+            try await mockPersistence.saveMessage(ConversationMessage(
+                timelineId: timelineId,
+                role: .assistant,
+                content: "",
+                toolCalls: try pendingToolCallsJSON(ids: ["call_race"])
+            ))
+            mockLLM.mockClient.nextResponses = ["first continuation", "second continuation"]
+
+            let results = await withTaskGroup(of: Bool.self, returning: [Bool].self) { group in
+                for index in 0 ..< 2 {
+                    group.addTask {
+                        do {
+                            let stream = try await engine.execute(
+                                timelineId: timelineId,
+                                message: "",
+                                tools: [],
+                                toolOutputs: [
+                                    ToolOutputSubmission(
+                                        toolCallId: "call_race",
+                                        output: "tool result \(index)"
+                                    ),
+                                ]
+                            )
+                            _ = try await collect(stream)
+                            return true
+                        } catch ToolError.unmatchedToolOutput {
+                            return false
+                        } catch {
+                            Issue.record("Unexpected error: \(error)")
+                            return false
+                        }
+                    }
+                }
+
+                var values: [Bool] = []
+                for await value in group {
+                    values.append(value)
+                }
+                return values
+            }
+
+            #expect(results.filter(\.self).count == 1)
+            let messages = try await mockPersistence.fetchMessages(for: timelineId)
+            let toolMessages = messages.filter { $0.role == "tool" && $0.toolCallId == "call_race" }
+            #expect(toolMessages.count == 1)
+        }
+    }
+
+    @Test("Stale dangling assistant tool calls are not accepted after later history")
+    func staleDanglingAssistantToolCallsAreRejected() async throws {
+        try await withChatEngineDependencies { engine, _, mockPersistence in
+            try await mockPersistence.saveMessage(ConversationMessage(
+                timelineId: timelineId,
+                role: .assistant,
+                content: "",
+                timestamp: Date(timeIntervalSince1970: 100),
+                toolCalls: try pendingToolCallsJSON(ids: ["stale_call"])
+            ))
+            try await mockPersistence.saveMessage(ConversationMessage(
+                timelineId: timelineId,
+                role: .user,
+                content: "later user message",
+                timestamp: Date(timeIntervalSince1970: 200)
+            ))
+
+            await #expect(throws: ToolError.self) {
+                _ = try await engine.execute(
+                    timelineId: timelineId,
+                    message: "",
+                    tools: [],
+                    toolOutputs: [ToolOutputSubmission(toolCallId: "stale_call", output: "stale result")]
+                )
+            }
+
+            let messages = try await mockPersistence.fetchMessages(for: timelineId)
+            #expect(messages.filter { $0.role == "tool" }.isEmpty)
+        }
+    }
+
+    @Test("Tool outputs matching pending assistant calls are persisted before user message")
+    func matchedToolOutputsPersistedBeforeUserMessage() async throws {
+        try await withChatEngineDependencies { engine, mockLLM, mockPersistence in
+            try await mockPersistence.saveMessage(ConversationMessage(
+                timelineId: timelineId,
+                role: .assistant,
+                content: "",
+                toolCalls: try pendingToolCallsJSON(ids: ["prev_call"])
+            ))
             mockLLM.mockClient.nextResponse = "Continuing."
 
             let stream = try await engine.execute(
@@ -771,17 +903,24 @@ struct ChatEngineTests {
             _ = try await collect(stream)
 
             let messages = try await mockPersistence.fetchMessages(for: timelineId)
-            // tool output → user message → assistant message
-            #expect(messages.count == 3)
-            #expect(messages[0].role == "tool")
-            #expect(messages[1].role == "user")
-            #expect(messages[2].role == "assistant")
+            // pending assistant → tool output → user message → assistant message
+            #expect(messages.count == 4)
+            #expect(messages[0].role == "assistant")
+            #expect(messages[1].role == "tool")
+            #expect(messages[2].role == "user")
+            #expect(messages[3].role == "assistant")
         }
     }
 
     @Test("Empty message with tool outputs is valid")
     func emptyMessageWithToolOutputsIsValid() async throws {
         try await withChatEngineDependencies { engine, mockLLM, mockPersistence in
+            try await mockPersistence.saveMessage(ConversationMessage(
+                timelineId: timelineId,
+                role: .assistant,
+                content: "",
+                toolCalls: try pendingToolCallsJSON(ids: ["c1"])
+            ))
             mockLLM.mockClient.nextResponse = "Reply."
 
             let stream = try await engine.execute(
@@ -797,6 +936,12 @@ struct ChatEngineTests {
             #expect(messages.contains(where: { $0.role == "tool" && $0.toolCallId == "c1" }))
             #expect(!messages.contains(where: { $0.role == "user" }))
         }
+    }
+
+    private func pendingToolCallsJSON(ids: [String]) throws -> String {
+        let calls = ids.map { ToolCall(id: $0, name: "external_tool", arguments: [:]) }
+        let data = try SerializationUtils.jsonEncoder.encode(calls)
+        return String(decoding: data, as: UTF8.self)
     }
 
     // MARK: - Group 8: Configuration
