@@ -187,6 +187,99 @@ private struct OpenRouterStreamOptions: Codable {
     enum CodingKeys: String, CodingKey { case includeUsage = "include_usage" }
 }
 
+/// Provider-specific mirror of the OpenAI/OpenRouter streaming chunk DTO.
+///
+/// OpenRouter's wire format is snake_case (`tool_calls`, `finish_reason`, `prompt_tokens`) and,
+/// for reasoning models, surfaces reasoning via `delta.reasoning` (their canonical field — see
+/// https://openrouter.ai/docs#reasoning-models). The transport-neutral `LLMStreamChunk` uses
+/// camelCase with no explicit CodingKeys and is decoded via `.convertFromSnakeCase`, so a
+/// `reasoning` wire field would not match a neutral `thinking` property. Decoding into this
+/// intermediate DTO lets us capture `reasoning` explicitly and map it onto
+/// `LLMStreamDelta.thinking` during conversion, keeping the neutral type provider-agnostic.
+private struct OpenRouterStreamChunk: Codable {
+    struct Choice: Codable {
+        struct Delta: Codable {
+            let role: String?
+            let content: String?
+            let reasoning: String?
+            let toolCalls: [OpenRouterStreamToolCall]?
+        }
+
+        let index: Int
+        let delta: Delta
+        let finishReason: String?
+    }
+
+    struct Usage: Codable {
+        let promptTokens: Int?
+        let completionTokens: Int?
+        let totalTokens: Int?
+        let promptTokensDetails: PromptTokensDetails?
+
+        struct PromptTokensDetails: Codable {
+            let cachedTokens: Int?
+        }
+    }
+
+    struct OpenRouterStreamToolCall: Codable {
+        let index: Int?
+        let id: String?
+        let function: Function
+
+        struct Function: Codable {
+            let name: String?
+            let arguments: String?
+        }
+    }
+
+    let id: String
+    let model: String
+    let choices: [Choice]
+    let usage: Usage?
+}
+
+private extension OpenRouterStreamChunk {
+    /// Converts the provider-specific chunk into the transport-neutral `LLMStreamChunk`,
+    /// mapping `delta.reasoning` → `LLMStreamDelta.thinking`.
+    func toLLMStreamChunk() -> LLMStreamChunk {
+        let mappedChoices: [LLMStreamChoice] = choices.map { choice in
+            let mappedToolCalls = choice.delta.toolCalls?.map {
+                LLMToolCallDelta(
+                    index: $0.index,
+                    id: $0.id,
+                    function: LLMToolCallDeltaFunction(
+                        name: $0.function.name,
+                        arguments: $0.function.arguments
+                    )
+                )
+            }
+            return LLMStreamChoice(
+                index: choice.index,
+                delta: LLMStreamDelta(
+                    role: choice.delta.role.flatMap(LLMMessage.Role.init(rawValue:)),
+                    content: choice.delta.content,
+                    thinking: choice.delta.reasoning,
+                    toolCalls: mappedToolCalls
+                ),
+                finishReason: choice.finishReason
+            )
+        }
+        return LLMStreamChunk(
+            id: id,
+            model: model,
+            choices: mappedChoices,
+            usage: usage.map {
+                LLMTokenUsage(
+                    promptTokens: $0.promptTokens,
+                    completionTokens: $0.completionTokens,
+                    totalTokens: $0.totalTokens,
+                    promptTokensDetails: .init(cachedTokens: $0.promptTokensDetails?.cachedTokens)
+                )
+            }
+        )
+    }
+}
+
 public actor OpenRouterClient: LLMClientProtocol {
     public struct Attribution: Sendable, Equatable {
         public let applicationURL: String?
@@ -454,8 +547,12 @@ public actor OpenRouterClient: LLMClientProtocol {
             // properties are camelCase with no explicit CodingKeys. Without convertFromSnakeCase
             // those fields silently decode to nil (they are optional), so every streamed tool call
             // and every finish_reason was being dropped — breaking tool calling for all models
-            // via OpenRouter, and defeating the tool-call recovery path (YAK-23).
-            let result = try Self.streamChunkDecoder.decode(LLMStreamChunk.self, from: data)
+            // via OpenRouter, and defeating the tool-call recovery path (YAK-23). We decode into
+            // the provider-specific `OpenRouterStreamChunk` (which also captures `delta.reasoning`
+            // for reasoning models — STAB-7) then convert into the transport-neutral
+            // `LLMStreamChunk`, mapping `reasoning` → `thinking`.
+            let raw = try Self.streamChunkDecoder.decode(OpenRouterStreamChunk.self, from: data)
+            let result = raw.toLLMStreamChunk()
             recoveryState.withLock {
                 $0.observe(
                     yieldedContent: !(result.choices.first?.delta.content?.isEmpty ?? true),

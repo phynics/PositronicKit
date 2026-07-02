@@ -76,12 +76,74 @@ struct OllamaToolFunction: Codable {
 struct OllamaMessage: Codable {
     let role: String
     let content: String
+    /// Reasoning emitted by Ollama thinking models (e.g. qwen3-thinking) via the message's
+    /// `thinking` field. Tolerates a legacy `think` key as a fallback. Decoded from responses
+    /// only; NOT included in `CodingKeys`, so it is never encoded into outgoing request messages
+    /// (request payloads stay byte-identical for non-reasoning flows — STAB-7).
+    let thinking: String?
     let toolCalls: [OllamaToolCall]?
 
     enum CodingKeys: String, CodingKey {
         case role
         case content
         case toolCalls = "tool_calls"
+    }
+
+    init(
+        role: String,
+        content: String,
+        thinking: String? = nil,
+        toolCalls: [OllamaToolCall]? = nil
+    ) {
+        self.role = role
+        self.content = content
+        self.thinking = thinking
+        self.toolCalls = toolCalls
+    }
+
+    init(from param: LLMMessage) {
+        let role = param.role == .developer ? "system" : param.role.rawValue
+        self.init(
+            role: role,
+            content: param.content,
+            toolCalls: param.toolCalls?.compactMap { toolCall in
+                guard let data = toolCall.arguments.data(using: .utf8),
+                      let arguments = try? JSONDecoder().decode([String: AnyCodable].self, from: data)
+                else {
+                    return OllamaToolCall(function: OllamaToolCallFunction(name: toolCall.name, arguments: [:]))
+                }
+                return OllamaToolCall(function: OllamaToolCallFunction(name: toolCall.name, arguments: arguments))
+            }
+        )
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            role: try container.decode(String.self, forKey: .role),
+            content: try container.decode(String.self, forKey: .content),
+            thinking: Self.decodeThinking(from: decoder),
+            toolCalls: try container.decodeIfPresent([OllamaToolCall].self, forKey: .toolCalls)
+        )
+    }
+
+    /// Decodes the reasoning field, preferring the canonical `thinking` key and falling back to
+    /// the legacy `think` key some Ollama-compatible runtimes emit.
+    private static func decodeThinking(from decoder: Decoder) -> String? {
+        struct AnyCodingKey: CodingKey {
+            var stringValue: String
+            init(stringValue: String) { self.stringValue = stringValue }
+            var intValue: Int? { nil }
+            init?(intValue: Int) { return nil }
+        }
+        guard let container = try? decoder.container(keyedBy: AnyCodingKey.self) else { return nil }
+        if let thinking = try? container.decodeIfPresent(String.self, forKey: .init(stringValue: "thinking")) {
+            return thinking
+        }
+        if let think = try? container.decodeIfPresent(String.self, forKey: .init(stringValue: "think")) {
+            return think
+        }
+        return nil
     }
 }
 
@@ -113,24 +175,6 @@ struct OllamaChatResponse: Codable {
         case loadDuration = "load_duration"
         case promptEvalCount = "prompt_eval_count"
         case evalCount = "eval_count"
-    }
-}
-
-extension OllamaMessage {
-    init(from param: LLMMessage) {
-        let role = param.role == .developer ? "system" : param.role.rawValue
-        self.init(
-            role: role,
-            content: param.content,
-            toolCalls: param.toolCalls?.compactMap { toolCall in
-                guard let data = toolCall.arguments.data(using: .utf8),
-                      let arguments = try? JSONDecoder().decode([String: AnyCodable].self, from: data)
-                else {
-                    return OllamaToolCall(function: OllamaToolCallFunction(name: toolCall.name, arguments: [:]))
-                }
-                return OllamaToolCall(function: OllamaToolCallFunction(name: toolCall.name, arguments: arguments))
-            }
-        )
     }
 }
 

@@ -86,6 +86,7 @@ extension ChatStreamResult {
                 delta: LLMStreamDelta(
                     role: choice.delta.role.flatMap(mapRole),
                     content: choice.delta.content,
+                    thinking: choice.delta.reasoning,
                     toolCalls: mappedToolCalls
                 ),
                 finishReason: choice.finishReason?.rawValue
@@ -133,6 +134,7 @@ extension ChatResult {
                 delta: LLMStreamDelta(
                     role: .assistant,
                     content: choice.message.content,
+                    thinking: choice.message.reasoning,
                     toolCalls: mappedToolCalls
                 ),
                 finishReason: choice.finishReason

@@ -91,6 +91,7 @@ struct LLMStreamingStage: PipelineStage {
             await idleDeadline.reset()
 
             await handleStreamUsage(result, context: context)
+            await handleStructuredThinkingDelta(result, context: context, continuation: continuation)
             await handleContentDelta(result, parser: &parser, context: context, continuation: continuation)
             await handleToolCallDeltas(result, context: context, continuation: continuation)
         }
@@ -138,6 +139,26 @@ struct LLMStreamingStage: PipelineStage {
             await context.outputs.appendResponse(String(contentChunk))
             continuation.yield(.generation(String(contentChunk)))
         }
+    }
+
+    /// Routes a provider-emitted structured reasoning delta (`LLMStreamDelta.thinking`) directly
+    /// into `TurnOutputs.appendThinking`, bypassing the `...` tag-scraping parser.
+    ///
+    /// Precedence / double-counting safety: when a provider emits reasoning as a distinct
+    /// structured field, that text arrives on `delta.thinking` (not `delta.content`), so the
+    /// tag-scraping parser running on `content` in `handleContentDelta` never sees it — the two
+    /// paths are disjoint by construction. For models that instead emit inline ` ... ` text,
+    /// `delta.thinking` is `nil` and the parser fallback still classifies it. A model emitting
+    /// reasoning through BOTH channels would double-count; in practice structured-reasoning
+    /// models put reasoning only in the structured field, so `content` carries no tags.
+    private func handleStructuredThinkingDelta(
+        _ result: LLMStreamChunk,
+        context: ChatTurnContext,
+        continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
+    ) async {
+        guard let thinking = result.choices.first?.delta.thinking, !thinking.isEmpty else { return }
+        await context.outputs.appendThinking(thinking)
+        continuation.yield(.thinking(thinking))
     }
 
     private func handleToolCallDeltas(

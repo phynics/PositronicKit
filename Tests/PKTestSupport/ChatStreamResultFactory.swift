@@ -35,6 +35,24 @@ import PKShared
             )
         }
 
+        /// Build a structured reasoning/thinking chunk (provider-emitted distinct field, not
+        /// inline ` ... ` tags). Used to exercise the STAB-7 structured-reasoning routing path.
+        public static func thinkingChunk(
+            _ thinking: String,
+            content: String? = nil,
+            finishReason: String? = nil
+        ) -> LLMStreamChunk {
+            LLMStreamChunk(
+                id: "mock",
+                model: "mock-model",
+                choices: [LLMStreamChoice(
+                    index: 0,
+                    delta: LLMStreamDelta(role: .assistant, content: content, thinking: thinking),
+                    finishReason: finishReason
+                )]
+            )
+        }
+
         /// Build a tool call chunk.
         public static func toolCallChunk(
             calls: [MockToolCall],

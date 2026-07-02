@@ -280,4 +280,85 @@ struct ProviderTransportContractTests {
             _ = try await badClient.fetchAvailableModels()
         }
     }
+
+    // MARK: - Structured reasoning deltas (STAB-7)
+
+    @Test("OpenRouter streamed delta.reasoning is routed into LLMStreamDelta.thinking")
+    func openRouterReasoningDeltaRoutedToThinking() async throws {
+        let transport = TestProviderTransport { _ in
+            .lines([
+                #"data: {"id":"gen-1","model":"openai/o1-mini","choices":[{"index":0,"delta":{"role":"assistant","reasoning":"Let me think.","content":null},"finish_reason":null}]}"#,
+                #"data: {"id":"gen-1","model":"openai/o1-mini","choices":[{"index":0,"delta":{"content":"the answer"},"finish_reason":"stop"}]}"#,
+                "data: [DONE]",
+            ], self.response(url: "https://openrouter.ai/api/v1/chat/completions"))
+        }
+        let client = OpenRouterClient(apiKey: "secret", transport: transport)
+        let chunks = try await client.chatStream(
+            messages: [LLMMessage(role: .user, content: "hi")],
+            tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil
+        ).collect()
+
+        let reasoningChunk = try #require(chunks.first { $0.choices.first?.delta.thinking != nil })
+        #expect(reasoningChunk.choices.first?.delta.thinking == "Let me think.")
+        #expect(reasoningChunk.choices.first?.delta.content == nil)
+
+        let contentChunk = try #require(chunks.first { $0.choices.first?.delta.content == "the answer" })
+        #expect(contentChunk.choices.first?.delta.thinking == nil)
+    }
+
+    @Test("OpenRouter non-reasoning chunk leaves thinking nil (byte-identical for non-reasoning models)")
+    func openRouterNonReasoningChunkHasNilThinking() async throws {
+        let transport = TestProviderTransport { _ in
+            .lines([
+                #"data: {"id":"chunk-1","model":"openai/gpt-4o","choices":[{"index":0,"delta":{"role":"assistant","content":"hi"}}]}"#,
+                "data: [DONE]",
+            ], self.response(url: "https://openrouter.ai/api/v1/chat/completions"))
+        }
+        let client = OpenRouterClient(apiKey: "secret", transport: transport)
+        let chunks = try await client.chatStream(
+            messages: [], tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil
+        ).collect()
+        #expect(chunks.count == 1)
+        #expect(chunks.first?.choices.first?.delta.thinking == nil)
+        #expect(chunks.first?.choices.first?.delta.content == "hi")
+    }
+
+    @Test("Ollama streamed message.thinking is routed into LLMStreamDelta.thinking")
+    func ollamaThinkingFieldRoutedToThinking() async throws {
+        let transport = TestProviderTransport { _ in
+            .lines([
+                #"{"model":"qwen3-thinking","message":{"role":"assistant","content":"","thinking":"reasoning step"},"done":false}"#,
+                #"{"model":"qwen3-thinking","message":{"role":"assistant","content":"final answer"},"done":true,"prompt_eval_count":3,"eval_count":5}"#,
+            ], self.response(url: "http://localhost:11434/api/chat"))
+        }
+        let client = OllamaClient(endpoint: "http://localhost:11434", modelName: "qwen3-thinking", transport: transport)
+        let chunks = try await client.chatStream(
+            messages: [LLMMessage(role: .user, content: "hi")],
+            tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil
+        ).collect()
+
+        let reasoningChunk = try #require(chunks.first { $0.choices.first?.delta.thinking != nil })
+        #expect(reasoningChunk.choices.first?.delta.thinking == "reasoning step")
+
+        let finalChunk = try #require(chunks.last)
+        #expect(finalChunk.choices.first?.delta.content == "final answer")
+        #expect(finalChunk.usage?.totalTokens == 8)
+    }
+
+    @Test("Ollama tolerates the legacy `think` field as the reasoning source")
+    func ollamaThinkKeyFallback() async throws {
+        let transport = TestProviderTransport { _ in
+            .lines([
+                #"{"model":"legacy-thinker","message":{"role":"assistant","content":"","think":"legacy reasoning"},"done":false}"#,
+                #"{"model":"legacy-thinker","message":{"role":"assistant","content":"ok"},"done":true,"prompt_eval_count":1,"eval_count":1}"#,
+            ], self.response(url: "http://localhost:11434/api/chat"))
+        }
+        let client = OllamaClient(endpoint: "http://localhost:11434", modelName: "legacy-thinker", transport: transport)
+        let chunks = try await client.chatStream(
+            messages: [], tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil
+        ).collect()
+
+        let reasoningChunk = try #require(chunks.first { $0.choices.first?.delta.thinking != nil })
+        #expect(reasoningChunk.choices.first?.delta.thinking == "legacy reasoning")
+    }
 }

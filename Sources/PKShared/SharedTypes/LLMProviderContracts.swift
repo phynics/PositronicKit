@@ -163,11 +163,25 @@ public struct LLMToolCallDelta: Sendable, Codable, Equatable {
 public struct LLMStreamDelta: Sendable, Codable, Equatable {
     public let role: LLMMessage.Role?
     public let content: String?
+    /// Structured reasoning/thinking delta emitted as a distinct field by some providers
+    /// (e.g. OpenRouter `delta.reasoning`, OpenAI reasoning models' `reasoning`/`reasoning_content`,
+    /// Ollama thinking models' `thinking`). Routed directly into `TurnOutputs.appendThinking` by
+    /// `LLMStreamingStage`. `nil` for non-reasoning models — existing flows are byte-identical.
+    /// The `<think>...</think>` tag-scraping path in `StreamingParser` remains the fallback for
+    /// models that emit inline reasoning text inside `content`.
+    public let thinking: String?
+
     public let toolCalls: [LLMToolCallDelta]?
 
-    public init(role: LLMMessage.Role? = nil, content: String? = nil, toolCalls: [LLMToolCallDelta]? = nil) {
+    public init(
+        role: LLMMessage.Role? = nil,
+        content: String? = nil,
+        thinking: String? = nil,
+        toolCalls: [LLMToolCallDelta]? = nil
+    ) {
         self.role = role
         self.content = content
+        self.thinking = thinking
         self.toolCalls = toolCalls
     }
 }

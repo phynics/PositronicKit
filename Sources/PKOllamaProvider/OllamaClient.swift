@@ -148,6 +148,9 @@ public actor OllamaClient: LLMClientProtocol {
         if let content = result.choices.first?.delta.content, !content.isEmpty {
             hasYielded.withLock { $0 = true }
         }
+        if let thinking = result.choices.first?.delta.thinking, !thinking.isEmpty {
+            hasYielded.withLock { $0 = true }
+        }
         if result.choices.first?.delta.toolCalls != nil {
             hasYielded.withLock { $0 = true }
         }
@@ -196,7 +199,9 @@ public actor OllamaClient: LLMClientProtocol {
         if response.done {
             return buildFinalChunk(response, toolCalls: toolCalls)
         }
-        guard !response.message.content.isEmpty || response.message.toolCalls?.isEmpty == false else {
+        guard !response.message.content.isEmpty
+            || response.message.thinking?.isEmpty == false
+            || response.message.toolCalls?.isEmpty == false else {
             return nil
         }
         return buildIntermediateChunk(response, toolCalls: toolCalls)
@@ -227,7 +232,12 @@ public actor OllamaClient: LLMClientProtocol {
             model: response.model,
             choices: [LLMStreamChoice(
                 index: 0,
-                delta: LLMStreamDelta(role: .assistant, content: response.message.content, toolCalls: toolCalls),
+                delta: LLMStreamDelta(
+                    role: .assistant,
+                    content: response.message.content,
+                    thinking: response.message.thinking,
+                    toolCalls: toolCalls
+                ),
                 finishReason: finishReason
             )],
             usage: LLMTokenUsage(
@@ -247,7 +257,12 @@ public actor OllamaClient: LLMClientProtocol {
             model: response.model,
             choices: [LLMStreamChoice(
                 index: 0,
-                delta: LLMStreamDelta(role: .assistant, content: response.message.content, toolCalls: toolCalls)
+                delta: LLMStreamDelta(
+                    role: .assistant,
+                    content: response.message.content,
+                    thinking: response.message.thinking,
+                    toolCalls: toolCalls
+                )
             )]
         )
     }
