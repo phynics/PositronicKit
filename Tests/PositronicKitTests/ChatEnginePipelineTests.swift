@@ -181,6 +181,31 @@ final class MessagePersistenceStageBehavior {
         let nested = toolCall.arguments["nested"]?.value as? [String: Any]
         #expect(nested?["value"] as? Double == 1.0)
     }
+
+    @Test("Malformed tool-call args fall back to empty arguments (STAB-12)")
+    func malformedToolCallArgsFallBackToEmpty() async throws {
+        let store = MockPersistenceService()
+        let stage = MessagePersistenceStage(messageStore: store, logger: testLogger)
+        // Malformed JSON (single quoted key) must not crash the stage; the prior `try? ... ?? [:]`
+        // fallback persisted an empty-args tool call. We now also emit a warning — behavior is
+        // otherwise unchanged.
+        let context = await makeContext(
+            toolCallAccumulators: [
+                0: (id: "call-bad", name: "broken_tool", args: "{'oops': true}")
+            ]
+        )
+
+        _ = try await drain(await stage.process(context))
+
+        #expect(store.messages.count == 1)
+        let message = store.messages[0].toMessage()
+        #expect(message.toolCalls?.count == 1)
+        let toolCall = try #require(message.toolCalls?.first)
+        #expect(toolCall.name == "broken_tool")
+        #expect(toolCall.id == "call-bad")
+        // The empty-args fallback is preserved (decode failed, so no keys leaked in).
+        #expect(toolCall.arguments.isEmpty)
+    }
 }
 
 // MARK: - ChatTurnPipelineBuilder Tests

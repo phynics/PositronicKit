@@ -124,10 +124,18 @@ public actor OllamaClient: LLMClientProtocol {
             if Task.isCancelled { break }
             guard !line.isEmpty, let data = line.data(using: .utf8) else { continue }
 
-            if let ollamaResponse = try? JSONDecoder().decode(OllamaChatResponse.self, from: data),
-               let converted = convertToChunk(ollamaResponse) {
-                markYieldedIfNeeded(converted, hasYielded: hasYielded)
-                continuation.yield(converted)
+            do {
+                let ollamaResponse = try JSONDecoder().decode(OllamaChatResponse.self, from: data)
+                if let converted = convertToChunk(ollamaResponse) {
+                    markYieldedIfNeeded(converted, hasYielded: hasYielded)
+                    continuation.yield(converted)
+                }
+            } catch {
+                // Previously this was a silent `try?` that dropped malformed/partial NDJSON lines
+                // with zero diagnostic trace. OpenAI/OpenRouter handlers log decode failures, so
+                // we mirror that here — emitting a warning rather than changing control flow
+                // (the line is still skipped, exactly as before). See STAB-12.
+                logger.warning("Failed to decode Ollama NDJSON line: \(error.localizedDescription). payloadBytes=\(data.count) payloadHash=\(redactedHash(line))")
             }
         }
     }

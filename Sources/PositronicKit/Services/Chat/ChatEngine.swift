@@ -409,7 +409,20 @@ struct ChatEngine {
             content: message.content,
             role: role,
             toolCalls: message.toolCalls?.compactMap { toolCall in
-                guard let arguments = try? JSONSerialization.jsonObject(with: Data(toolCall.arguments.utf8)) as? [String: Any] else {
+                let arguments: [String: Any]
+                do {
+                    guard let parsed = try JSONSerialization.jsonObject(with: Data(toolCall.arguments.utf8)) as? [String: Any] else {
+                        throw NSError(domain: "ChatEngine", code: -1, userInfo: [NSLocalizedDescriptionKey: "tool-call arguments are not a JSON object"])
+                    }
+                    arguments = parsed
+                } catch {
+                    // Previously a silent `try?` dropped the tool call entirely from synthesized
+                    // follow-up history on malformed arguments, leaving the turn loop with no
+                    // record that the call was attempted. Log a warning and preserve the prior
+                    // fallback (drop the call) — see STAB-12. Behavior is unchanged; we now leave
+                    // a diagnostic trace including the tool name and a truncated raw payload.
+                    let truncated = toolCall.arguments.prefix(120)
+                    logger.warning("Dropping tool call '\(toolCall.name)' from history: arguments are not a JSON object. rawPrefix=\(String(truncated))")
                     return nil
                 }
                 return ToolCall(

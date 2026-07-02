@@ -73,7 +73,20 @@ struct MessagePersistenceStage: PipelineStage {
         let sortedCalls = await context.outputs.toolCallAccumulators.sorted(by: { $0.key < $1.key })
         let callsForDB = sortedCalls.compactMap { _, value -> ToolCall? in
             let argsData = value.args.data(using: .utf8) ?? Data()
-            let args = (try? SerializationUtils.jsonDecoder.decode([String: AnyCodable].self, from: argsData)) ?? [:]
+            // Previously this was a silent `try? ... ?? [:]` that persisted an empty-args tool call
+            // on malformed JSON with no trace. We now log a warning so malformed args are
+            // diagnosable in the field, while preserving the existing empty-args fallback (the
+            // stored shape — `[String: AnyCodable]` — is unchanged; persisting the raw argument
+            // string instead would require reshaping `ToolCall.arguments`, which the ticket scopes
+            // out). See STAB-12.
+            let args: [String: AnyCodable]
+            do {
+                args = try SerializationUtils.jsonDecoder.decode([String: AnyCodable].self, from: argsData)
+            } catch {
+                let truncated = String(value.args.prefix(120))
+                logger.warning("Persisting tool call '\(value.name)' with empty arguments: decode failed (\(error.localizedDescription)). rawPrefix=\(truncated)")
+                args = [:]
+            }
             // Preserve the provider's tool-call id so the persisted assistant tool_call pairs
             // with its tool-result message on later turns (YAK-26).
             return ToolCall(id: value.callId, name: value.name, arguments: args)
