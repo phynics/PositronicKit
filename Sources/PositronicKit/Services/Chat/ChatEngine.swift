@@ -244,13 +244,86 @@ struct ChatEngine {
             logger.trace("Turn \(turnLabel): pipeline complete for \(sid)")
             return try await handleToolCallsAfterTurn(context: context, continuation: continuation)
         } catch is CancellationError {
+            // STAB-1: the stream was cancelled mid-flight. `MessagePersistenceStage` only runs on
+            // success, so persist whatever partial assistant text/thinking (and any accumulated
+            // tool calls) the user already watched stream in, tagged `.cancelled`. The cancel
+            // event is still surfaced below — the UI needs it (STAB-5 handles retry separately).
+            await persistPartialAssistantIfNeeded(context: context, status: .cancelled)
             continuation.yield(.generationCancelled())
             continuation.finish()
             return .stop
         } catch {
             logger.error("Error in chat loop turn \(context.turnCount): \(error)")
+            // STAB-1: same data-loss fix for the failure path (network drop, provider 4xx/5xx,
+            // idle timeout). A stage-thrown `CancellationError` is wrapped by `Pipeline` as
+            // `PipelineError.stageFailed` and lands here — unwrap it so a mid-stream
+            // cancellation is still tagged `.cancelled` rather than `.partial`. The error event
+            // is still surfaced to the UI (re-thrown below); STAB-5 handles retry separately.
+            let status: Message.MessageStatus = Self.isCancellationOrigin(error) ? .cancelled : .partial
+            await persistPartialAssistantIfNeeded(context: context, status: status)
             continuation.finish(throwing: error)
             return .stop
+        }
+    }
+
+    /// Returns `true` if `error` represents cancellation, unwrapping `PipelineError` stage
+    /// wrappers (a stage-thrown `CancellationError` is wrapped as
+    /// `PipelineError.stageFailed(id, CancellationError())` before reaching `runOneTurn`).
+    private static func isCancellationOrigin(_ error: Error) -> Bool {
+        if error is CancellationError {
+            return true
+        }
+        if case let PipelineError.stageFailed(_, underlying) = error, underlying is CancellationError {
+            return true
+        }
+        if case let PipelineError.cleanupFailed(_, underlying) = error, underlying is CancellationError {
+            return true
+        }
+        return false
+    }
+
+    /// STAB-1 — Persist a partial assistant turn when the LLM stream fails or is cancelled
+    /// mid-flight.
+    ///
+    /// `MessagePersistenceStage` only runs on the success path, so a turn that died after the
+    /// user had already watched partial text/thinking stream in was never persisted — a silent
+    /// data-loss. This mirrors the stage's message-building logic (via
+    /// `MessagePersistenceStage.buildAssistantMessage`) so the partial row has the *same* shape
+    /// as a complete one and differs only in its `status` tag (`.partial` for failure,
+    /// `.cancelled` for cancellation). The error/cancelled event is still surfaced to the UI
+    /// by the caller; this method never swallows it.
+    ///
+    /// Threshold: persistence is skipped when `context.outputs` has no assistant text, no
+    /// thinking, *and* no accumulated tool calls — a spurious empty assistant row would
+    /// misrepresent the turn (the already-persisted user message remains the turn's record).
+    /// A failed turn that emitted *anything* (even a single content char) is still persisted.
+    private func persistPartialAssistantIfNeeded(
+        context: ChatTurnContext,
+        status: Message.MessageStatus
+    ) async {
+        let fullResponse = await context.outputs.fullResponse
+        let fullThinking = await context.outputs.fullThinking
+        let hasToolCalls = await !context.outputs.toolCallAccumulators.isEmpty
+
+        guard !fullResponse.isEmpty || !fullThinking.isEmpty || hasToolCalls else {
+            return
+        }
+
+        do {
+            let assistantMsg = await MessagePersistenceStage.buildAssistantMessage(
+                from: context,
+                hasPendingToolCalls: hasToolCalls,
+                status: status,
+                logger: logger
+            )
+            try await dependencies.messageStore.saveMessage(assistantMsg)
+            logger.warning(
+                "Persisted partial assistant turn for timeline \(context.timelineId) status=\(status.rawValue) contentChars=\(fullResponse.count) thinkingChars=\(fullThinking.count) toolCalls=\(hasToolCalls)"
+            )
+        } catch {
+            logger.error(
+                "Failed to persist partial assistant turn for timeline \(context.timelineId) status=\(status.rawValue): \(error)"
+            )
         }
     }
 

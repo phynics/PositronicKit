@@ -24,6 +24,11 @@ public struct ConversationMessage: Codable, Identifiable, Sendable {
     /// Serialized `TurnSnapshot` JSON for audit trail. Only set on assistant messages.
     public var snapshotData: Data?
 
+    /// Completion status of an assistant message. `nil` (the default) is treated as `.complete`
+    /// so existing rows round-trip unchanged. Tagged `.partial` / `.failed` / `.cancelled` only
+    /// on turns cut short by a stream failure or cancellation (STAB-1).
+    public var status: Message.MessageStatus?
+
     public init(
         id: UUID = UUID(),
         timelineId: UUID,
@@ -37,7 +42,8 @@ public struct ConversationMessage: Codable, Identifiable, Sendable {
         toolCallId: String? = nil,
         agentInstanceId: UUID? = nil,
         remoteDepth: Int = 0,
-        snapshotData: Data? = nil
+        snapshotData: Data? = nil,
+        status: Message.MessageStatus? = nil
     ) {
         self.id = id
         self.timelineId = timelineId
@@ -52,6 +58,7 @@ public struct ConversationMessage: Codable, Identifiable, Sendable {
         self.agentInstanceId = agentInstanceId
         self.remoteDepth = remoteDepth
         self.snapshotData = snapshotData
+        self.status = status
     }
 
     public var messageRole: Message.MessageRole {
@@ -83,7 +90,8 @@ public struct ConversationMessage: Codable, Identifiable, Sendable {
             toolCalls: calls.isEmpty ? nil : calls,
             toolCallId: toolCallId,
             parentId: parentId,
-            recalledMemories: memories.isEmpty ? nil : memories
+            recalledMemories: memories.isEmpty ? nil : memories,
+            status: status
         )
     }
 }

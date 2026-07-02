@@ -17,33 +17,18 @@ struct MessagePersistenceStage: PipelineStage {
 
     func process(_ context: ChatTurnContext) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         let hasPendingToolCalls = await !context.outputs.toolCallAccumulators.isEmpty
-        let toolCallsJSON = await buildToolCallsJSON(from: context, hasPendingToolCalls: hasPendingToolCalls)
 
-        let fullResponse = await context.outputs.fullResponse
-        let fullThinking = await context.outputs.fullThinking
+        let assistantMsg = try await Self.buildAssistantMessage(
+            from: context,
+            hasPendingToolCalls: hasPendingToolCalls,
+            status: nil,
+            logger: logger
+        )
+        try await messageStore.saveMessage(assistantMsg)
+
         let streamUsage = await context.outputs.streamUsage
         let turnDuration = await context.outputs.turnDuration
         let tokensPerSecond = await context.outputs.tokensPerSecond
-
-        let recalledMemories: String
-        if hasPendingToolCalls {
-            recalledMemories = "[]"
-        } else {
-            let memories = context.contextData.memories.map { $0.memory }
-            recalledMemories = (try? SerializationUtils.jsonEncoder.encode(memories))
-                .flatMap { String(bytes: $0, encoding: .utf8) } ?? "[]"
-        }
-
-        let assistantMsg = ConversationMessage(
-            timelineId: context.timelineId,
-            role: .assistant,
-            content: fullResponse,
-            recalledMemories: recalledMemories,
-            think: fullThinking.isEmpty ? nil : fullThinking,
-            toolCalls: toolCallsJSON,
-            agentInstanceId: context.agentInstanceId
-        )
-        try await messageStore.saveMessage(assistantMsg)
 
         let snapshot = await buildTurnSnapshot(from: context)
         let snapshotData = try? SerializationUtils.jsonEncoder.encode(snapshot)
@@ -68,7 +53,55 @@ struct MessagePersistenceStage: PipelineStage {
         }
     }
 
-    private func buildToolCallsJSON(from context: ChatTurnContext, hasPendingToolCalls: Bool) async -> String {
+    /// Builds the assistant `ConversationMessage` from accumulated turn outputs.
+    ///
+    /// Shared between the success path (this stage, `status == nil` → `.complete`) and
+    /// `ChatEngine`'s failure/cancellation error path (`status == .partial` / `.failed` /
+    /// `.cancelled`), so a partial turn is persisted with the *same* shape as a complete
+    /// one and differs only in the `status` tag. The success-path output is unchanged:
+    /// `status` defaults to `nil`, which encodes away and round-trips as `.complete`
+    /// (STAB-1).
+    static func buildAssistantMessage(
+        from context: ChatTurnContext,
+        hasPendingToolCalls: Bool,
+        status: Message.MessageStatus?,
+        logger: Logger
+    ) async -> ConversationMessage {
+        let toolCallsJSON = await buildToolCallsJSON(
+            from: context,
+            hasPendingToolCalls: hasPendingToolCalls,
+            logger: logger
+        )
+
+        let fullResponse = await context.outputs.fullResponse
+        let fullThinking = await context.outputs.fullThinking
+
+        let recalledMemories: String
+        if hasPendingToolCalls {
+            recalledMemories = "[]"
+        } else {
+            let memories = context.contextData.memories.map { $0.memory }
+            recalledMemories = (try? SerializationUtils.jsonEncoder.encode(memories))
+                .flatMap { String(bytes: $0, encoding: .utf8) } ?? "[]"
+        }
+
+        return ConversationMessage(
+            timelineId: context.timelineId,
+            role: .assistant,
+            content: fullResponse,
+            recalledMemories: recalledMemories,
+            think: fullThinking.isEmpty ? nil : fullThinking,
+            toolCalls: toolCallsJSON,
+            agentInstanceId: context.agentInstanceId,
+            status: status
+        )
+    }
+
+    private static func buildToolCallsJSON(
+        from context: ChatTurnContext,
+        hasPendingToolCalls: Bool,
+        logger: Logger
+    ) async -> String {
         guard hasPendingToolCalls else { return "[]" }
         let sortedCalls = await context.outputs.toolCallAccumulators.sorted(by: { $0.key < $1.key })
         let callsForDB = sortedCalls.compactMap { _, value -> ToolCall? in

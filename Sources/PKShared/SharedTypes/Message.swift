@@ -40,6 +40,14 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
     /// Type of summary (only applicable if `role` is `.summary`).
     public var summaryType: SummaryType?
 
+    /// Completion status of an assistant message.
+    ///
+    /// `nil` is semantically equivalent to `.complete`: a message persisted through the normal
+    /// success path is not tagged, so existing rows (and any decode of legacy data that omits
+    /// the key) round-trip as complete. Only failure/cancellation partial turns are tagged —
+    /// see `ChatEngine.persistPartialAssistantIfNeeded` (STAB-1).
+    public var status: MessageStatus?
+
     /// Represents the role of a message in a conversation.
     public enum MessageRole: String, Sendable, Codable, CaseIterable {
         /// A message from the user.
@@ -60,6 +68,22 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
         case topic
         /// A broad summary of preceding conversation context.
         case broad
+    }
+
+    /// Completion status of a persisted assistant message.
+    ///
+    /// Used to distinguish a turn that was cut short (stream failure, cancellation) from one
+    /// that finished normally. `nil` (the default) is treated as `.complete` so existing
+    /// persistence round-trips unchanged. See STAB-1.
+    public enum MessageStatus: String, Codable, Sendable, Hashable, Equatable {
+        /// The turn finished normally and the assistant content is complete.
+        case complete
+        /// The stream failed mid-flight; persisted content is partial.
+        case partial
+        /// The turn failed outright (provider 4xx/5xx, network drop, idle timeout).
+        case failed
+        /// The turn was cancelled by the caller.
+        case cancelled
     }
 
     public enum ContextGatheringProgress: String, Sendable, Codable, CaseIterable {
@@ -83,7 +107,8 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
         parentId: UUID? = nil,
         recalledMemories: [Memory]? = nil,
         isSummary: Bool = false,
-        summaryType: SummaryType? = nil
+        summaryType: SummaryType? = nil,
+        status: MessageStatus? = nil
     ) {
         self.id = id
         self.timestamp = timestamp
@@ -96,6 +121,7 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
         self.recalledMemories = recalledMemories
         self.isSummary = isSummary
         self.summaryType = summaryType
+        self.status = status
     }
 
     /// Content cleaned for UI display (removes <tool_call> tags)
