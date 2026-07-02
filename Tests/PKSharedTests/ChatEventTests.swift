@@ -1,6 +1,7 @@
 import Testing
 @testable import PKShared
 import Foundation
+import ErrorKit
 
 @Suite final class ChatEventTests {
     @Test
@@ -97,6 +98,86 @@ import Foundation
             }
         default:
             Issue.record("Expected outer completion event")
+        }
+    }
+
+    // MARK: - Error Identity (STAB-6)
+
+    @Test
+    func errorFromPKErrorCarriesStructuredIdentity() throws {
+        let event = ChatEvent.error(ToolError.permissionDenied("rm"))
+
+        if case let .error(event: .error(message: message, identity: identity)) = event {
+            #expect(identity == ChatEvent.ErrorIdentity(domain: PKErrorDomain.tool, code: 210))
+            // STAB-4 contract preserved: message is the user-friendly string, no [domain:code] prefix.
+            #expect(message == "The tool 'rm' requires permission and was not approved.")
+            #expect(!message.contains("[\(PKErrorDomain.tool):210]"))
+        } else {
+            Issue.record("Expected .error(message:, identity:), got \(event)")
+        }
+    }
+
+    @Test
+    func errorFromPlainErrorCarriesNilIdentity() throws {
+        struct ProviderError: Error, LocalizedError {
+            var errorDescription: String? { "denied by upstream policy" }
+        }
+        let event = ChatEvent.error(ProviderError())
+
+        if case let .error(event: .error(message: message, identity: identity)) = event {
+            #expect(identity == nil)
+            #expect(message == "denied by upstream policy")
+        } else {
+            Issue.record("Expected .error(message:, identity:), got \(event)")
+        }
+    }
+
+    @Test
+    func errorFromStringCarriesNilIdentity() throws {
+        let event = ChatEvent.error("boom")
+
+        if case let .error(event: .error(message: message, identity: identity)) = event {
+            #expect(identity == nil)
+            #expect(message == "boom")
+        } else {
+            Issue.record("Expected .error(message:, identity:), got \(event)")
+        }
+    }
+
+    @Test
+    func errorIdentityRoundTripsThroughCodable() throws {
+        let event = ChatEvent.error(ToolError.permissionDenied("rm"))
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+
+        let data = try encoder.encode(event)
+        let decoded = try decoder.decode(ChatEvent.self, from: data)
+
+        if case let .error(event: .error(message: _, identity: identity)) = decoded {
+            #expect(identity == ChatEvent.ErrorIdentity(domain: PKErrorDomain.tool, code: 210))
+        } else {
+            Issue.record("Expected decoded .error event, got \(decoded)")
+        }
+    }
+
+    @Test
+    func blockedIdentityContractRecognizesKnownBlockedCodes() {
+        let blocked: [ChatEvent.ErrorIdentity] = [
+            .init(domain: PKErrorDomain.tool, code: 210),
+            .init(domain: PKErrorDomain.tool, code: 207),
+            .init(domain: PKErrorDomain.filesystem, code: 101),
+            .init(domain: PKErrorDomain.workspace, code: 3002),
+        ]
+        for identity in blocked {
+            #expect(identity.isBlocked, "Expected \(identity) to be blocked")
+        }
+
+        let notBlocked: [ChatEvent.ErrorIdentity] = [
+            .init(domain: PKErrorDomain.tool, code: 203),
+            .init(domain: PKErrorDomain.tool, code: 204),
+        ]
+        for identity in notBlocked {
+            #expect(!identity.isBlocked, "Expected \(identity) to NOT be blocked")
         }
     }
 }

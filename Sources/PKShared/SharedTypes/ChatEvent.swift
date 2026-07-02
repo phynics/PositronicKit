@@ -16,6 +16,43 @@ public enum ToolExecutionStatus: Sendable, Codable {
 /// - `error`: Error events (tool errors, general errors)
 /// - `completion`: Terminal events signaling final results
 public enum ChatEvent: Sendable, Codable {
+    /// A value-type projection of a `PKError`'s stable identity (`errorDomain` +
+    /// `errorCode`), carried on `.error` events so consumers can classify turn
+    /// failures by structured error identity instead of sniffing message substrings
+    /// (STAB-6).
+    ///
+    /// It is a plain value type (`String` + `Int`) so `ChatEvent` stays `Sendable`,
+    /// `Equatable`, and `Codable` without carrying an untyped `Error`. Extraction is
+    /// a single top-level `as? any PKError` cast: the in-use "blocked" error types
+    /// (`ToolError.permissionDenied`, `PathError.accessDenied`,
+    /// `WorkspaceError.accessDenied`, `ToolError.attachedToolsDisallowedOnPrivateTimeline`)
+    /// are all thrown directly and conform to `PKError`, so a single cast covers the
+    /// production classification. Nested causes are not dug — non-`PKError` errors
+    /// (including provider failures) yield `identity == nil` and are intentionally
+    /// not classified as blocked (see `blockedIdentityContract`).
+    public struct ErrorIdentity: Sendable, Equatable, Hashable, Codable {
+        /// The error domain identifying the module the error originated in
+        /// (a `PKErrorDomain` string, e.g. `"com.positronickit.core.tool"`).
+        public let domain: String
+        /// A unique integer code for the specific error case within the domain.
+        public let code: Int
+
+        public init(domain: String, code: Int) {
+            self.domain = domain
+            self.code = code
+        }
+
+        /// Extracts an `ErrorIdentity` from `error` when its top-level type conforms
+        /// to `PKError`; returns `nil` for non-`PKError` errors. Nested causes are
+        /// not traversed (see the type's documented limitation).
+        public static func extracting(from error: Error) -> ErrorIdentity? {
+            if let pk = error as? any PKError {
+                return ErrorIdentity(domain: pk.errorDomain, code: pk.errorCode)
+            }
+            return nil
+        }
+    }
+
     public enum DeltaEvent: Sendable, Codable {
         /// Chain-of-thought reasoning chunk
         case thinking(text: String)
@@ -38,8 +75,15 @@ public enum ChatEvent: Sendable, Codable {
     public enum ErrorEvent: Sendable, Codable {
         /// Tool call failed before execution (e.g. not found, invalid arguments)
         case toolCallError(toolCallId: String, name: String, error: String)
-        /// General error occurred
-        case error(message: String)
+        /// General error occurred.
+        ///
+        /// `identity` carries an optional structured error identity (`errorDomain` +
+        /// `errorCode`) extracted from a `PKError` when the event was produced from a
+        /// thrown error (STAB-6). Consumers classify turn state by switching on
+        /// `identity` rather than sniffing `message` substrings: a bare-string
+        /// `.error` event (or any non-`PKError` error) yields `identity == nil`, in
+        /// which case the turn is classified as a plain failure rather than blocked.
+        case error(message: String, identity: ErrorIdentity?)
         /// Generation was explicitly cancelled
         case generationCancelled
     }
@@ -90,11 +134,14 @@ public extension ChatEvent {
     }
 
     static func error(_ err: Error) -> ChatEvent {
-        .error(event: .error(message: ErrorKit.userFriendlyMessage(for: err)))
+        .error(event: .error(
+            message: ErrorKit.userFriendlyMessage(for: err),
+            identity: ErrorIdentity.extracting(from: err)
+        ))
     }
 
     static func error(_ msg: String) -> ChatEvent {
-        .error(event: .error(message: msg))
+        .error(event: .error(message: msg, identity: nil))
     }
 
     static func generationCancelled() -> ChatEvent {
@@ -135,4 +182,33 @@ public extension ChatEvent {
         if case let .completion(event) = self, case let .generationCompleted(msg, meta) = event { return (msg, meta) }
         return nil
     }
+}
+
+// MARK: - Blocked Error Identity Contract (STAB-6)
+
+public extension ChatEvent.ErrorIdentity {
+    /// Error identities that represent a "blocked"/approval/disallowed turn condition —
+    /// i.e. a failure that is *not* the model's or provider's fault but the result of a
+    /// deliberate permission or access gate refusing execution. Consumers classify these
+    /// as a `.blocked` timeline state rather than `.failed`.
+    ///
+    /// Each entry is the `(domain, code)` pair of a structured `PKError` that is thrown
+    /// directly by the runtime (grep evidence):
+    /// - `ToolError.permissionDenied` — `com.positronickit.core.tool:210`
+    ///   (thrown at `PositronicKit/Sources/PositronicKit/Services/Tools/ToolRouter.swift:343`)
+    /// - `ToolError.attachedToolsDisallowedOnPrivateTimeline` — `com.positronickit.core.tool:207`
+    ///   (thrown at `PositronicKit/Sources/PositronicKit/Services/Tools/ToolRoutingDecision.swift:27`)
+    /// - `PathError.accessDenied` — `com.positronickit.core.filesystem:101`
+    ///   (thrown at `PositronicKit/Sources/PKShared/Utilities/PathSanitizer.swift:46,60`)
+    /// - `WorkspaceError.accessDenied` — `com.positronickit.core.workspace:3002`
+    ///   (declared at `PositronicKit/Sources/PositronicKit/Models/Workspace/WorkspaceProtocol.swift:41`)
+    static let blocked: Set<ChatEvent.ErrorIdentity> = [
+        ChatEvent.ErrorIdentity(domain: PKErrorDomain.tool, code: 210),
+        ChatEvent.ErrorIdentity(domain: PKErrorDomain.tool, code: 207),
+        ChatEvent.ErrorIdentity(domain: PKErrorDomain.filesystem, code: 101),
+        ChatEvent.ErrorIdentity(domain: PKErrorDomain.workspace, code: 3002),
+    ]
+
+    /// Whether this identity represents a blocked/approval/disallowed condition (see `blocked`).
+    var isBlocked: Bool { Self.blocked.contains(self) }
 }
