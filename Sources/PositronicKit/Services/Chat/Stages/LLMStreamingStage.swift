@@ -86,7 +86,13 @@ struct LLMStreamingStage: PipelineStage {
         let turnStartTime = Date()
 
         for try await result in streamData {
-            if Task.isCancelled { break }
+            // Cooperative cancellation: throw out of the stage so `ChatEngine`'s catch path
+            // persists the partial turn as `.cancelled` + surfaces `.generationCancelled()`
+            // (STAB-1). Mirrors the `.streamTimedOut` throw path: the throw exits before
+            // `flushRemainingBuffer`/`finalizeTurn`, and the enclosing `do/catch` finishes the
+            // continuation with the error — `Task.isCancelled { break }` would instead fall
+            // through to `finalizeTurn` and persist a truncated turn as `.complete`.
+            if Task.isCancelled { throw CancellationError() }
             // Reset the inactivity deadline: progress was made this chunk.
             await idleDeadline.reset()
 
