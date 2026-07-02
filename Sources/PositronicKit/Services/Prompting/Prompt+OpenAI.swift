@@ -84,7 +84,12 @@ public extension RenderedPrompt {
             }
         }
 
-        return LLMMessage(role: .assistant, content: messageContent, toolCalls: toolCalls)
+        return LLMMessage(
+            role: .assistant,
+            content: messageContent,
+            toolCalls: toolCalls,
+            reasoning: msg.think
+        )
     }
 
     private func buildToolResponseMessage(_ msg: Message) -> LLMMessage {

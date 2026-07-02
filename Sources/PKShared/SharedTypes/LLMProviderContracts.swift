@@ -96,18 +96,30 @@ public struct LLMMessage: Sendable, Codable, Equatable {
     public let toolCallID: String?
     public let toolCalls: [LLMToolCall]?
 
+    /// Structured reasoning/thinking to echo back on follow-up turns for reasoning models that
+    /// require it (STAB-8). Threaded from persisted `Message.think` by the history-reconstruction
+    /// path (`RenderedPrompt.buildMessages()` / `buildAssistantMessage`). The field name is
+    /// provider-neutral; each provider adapter maps it onto its own wire field:
+    /// Ollama → `thinking`, OpenRouter → `reasoning`. The OpenAI Chat Completions adapter
+    /// intentionally omits it (the Chat Completions API has no reasoning-echo message field;
+    /// reasoning continuation there uses the Responses API / `previous_response_id`, which is
+    /// out of scope). `nil` for non-reasoning flows — existing messages are byte-identical.
+    public let reasoning: String?
+
     public init(
         role: Role,
         content: String,
         name: String? = nil,
         toolCallID: String? = nil,
-        toolCalls: [LLMToolCall]? = nil
+        toolCalls: [LLMToolCall]? = nil,
+        reasoning: String? = nil
     ) {
         self.role = role
         self.content = content
         self.name = name
         self.toolCallID = toolCallID
         self.toolCalls = toolCalls
+        self.reasoning = reasoning
     }
 }
 

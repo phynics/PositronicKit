@@ -23,6 +23,12 @@ public extension LLMMessage {
         case .user:
             return .user(.init(content: .string(content), name: name))
         case .assistant:
+            // OpenAI `/chat/completions` has no reasoning-echo message field: o-series models
+            // continue reasoning via the Responses API (`previous_response_id`), not via an
+            // input `reasoning` field on history messages. The openai-swift `AssistantMessageParam`
+            // exposes no such parameter either. So `reasoning` is intentionally NOT threaded
+            // here (STAB-8); it stays on `LLMMessage.reasoning` for Ollama/OpenRouter only.
+            // Sending an unknown `reasoning` field could trip strict validation, so omit entirely.
             let toolCalls = toolCalls?.map {
                 ChatQuery.ChatCompletionMessageParam.AssistantMessageParam.ToolCallParam(
                     id: $0.id,

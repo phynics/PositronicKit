@@ -70,15 +70,23 @@ private struct OpenRouterChatRequest: Codable {
     }
 }
 
-private struct OpenRouterMessage: Codable {
+struct OpenRouterMessage: Codable {
     let role: String
     let content: String
     let name: String?
     let toolCallID: String?
     let toolCalls: [OpenRouterToolCall]?
 
+    /// Reasoning to echo back to a reasoning model on follow-up turns (STAB-8). OpenRouter
+    /// accepts a `reasoning` field on assistant history messages for reasoning models
+    /// (https://openrouter.ai/docs#reasoning-models). Sourced from `LLMMessage.reasoning`
+    /// (which is itself threaded from persisted `Message.think`). When `nil`, synthesis uses
+    /// `encodeIfPresent`, so the key is omitted and non-reasoning request payloads stay
+    /// byte-identical.
+    let reasoning: String?
+
     enum CodingKeys: String, CodingKey {
-        case role, content, name
+        case role, content, name, reasoning
         case toolCallID = "tool_call_id"
         case toolCalls = "tool_calls"
     }
@@ -89,10 +97,11 @@ private struct OpenRouterMessage: Codable {
         name = message.name
         toolCallID = message.toolCallID
         toolCalls = message.toolCalls?.map(OpenRouterToolCall.init)
+        reasoning = message.reasoning
     }
 }
 
-private struct OpenRouterToolCall: Codable {
+struct OpenRouterToolCall: Codable {
     let id: String
     let type: String
     let function: OpenRouterToolCallFunction
@@ -104,7 +113,7 @@ private struct OpenRouterToolCall: Codable {
     }
 }
 
-private struct OpenRouterToolCallFunction: Codable {
+struct OpenRouterToolCallFunction: Codable {
     let name: String
     let arguments: String
 }

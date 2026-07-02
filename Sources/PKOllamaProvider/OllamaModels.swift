@@ -77,15 +77,18 @@ struct OllamaMessage: Codable {
     let role: String
     let content: String
     /// Reasoning emitted by Ollama thinking models (e.g. qwen3-thinking) via the message's
-    /// `thinking` field. Tolerates a legacy `think` key as a fallback. Decoded from responses
-    /// only; NOT included in `CodingKeys`, so it is never encoded into outgoing request messages
-    /// (request payloads stay byte-identical for non-reasoning flows — STAB-7).
+    /// `thinking` field. Tolerates a legacy `think` key as a fallback when decoding responses.
+    /// Included in `CodingKeys` so it IS encoded into outgoing request messages when present
+    /// (echoing `thinking` back in history is required by Ollama thinking models to maintain
+    /// reasoning context across turns — STAB-8). When `nil`, synthesis uses `encodeIfPresent`,
+    /// so the key is omitted and non-reasoning request payloads stay byte-identical (STAB-7).
     let thinking: String?
     let toolCalls: [OllamaToolCall]?
 
     enum CodingKeys: String, CodingKey {
         case role
         case content
+        case thinking
         case toolCalls = "tool_calls"
     }
 
@@ -106,6 +109,7 @@ struct OllamaMessage: Codable {
         self.init(
             role: role,
             content: param.content,
+            thinking: param.reasoning,
             toolCalls: param.toolCalls?.compactMap { toolCall in
                 guard let data = toolCall.arguments.data(using: .utf8),
                       let arguments = try? JSONDecoder().decode([String: AnyCodable].self, from: data)
