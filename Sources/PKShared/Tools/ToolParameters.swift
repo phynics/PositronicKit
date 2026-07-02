@@ -30,7 +30,14 @@ public struct ToolParameters: Sendable {
         }
 
         // Handle numeric conversions if needed (e.g. Double from JSON into Int)
-        if T.self == Int.self, let doubleVal = value as? Double, let result = Int(doubleVal) as? T {
+        if T.self == Int.self, let doubleVal = value as? Double {
+            guard doubleVal.isFinite, let intValue = Int(exactly: doubleVal), let result = intValue as? T else {
+                throw ToolError.invalidArgument(
+                    key,
+                    expected: String(describing: T.self),
+                    got: String(describing: doubleVal)
+                )
+            }
             return result
         }
 
@@ -53,7 +60,10 @@ public struct ToolParameters: Sendable {
 
         // Fallback for numeric conversion
         if T.self == Int.self, let doubleVal = value as? Double {
-            return Int(doubleVal) as? T
+            guard doubleVal.isFinite, let intValue = Int(exactly: doubleVal), let result = intValue as? T else {
+                return nil
+            }
+            return result
         }
 
         return nil
