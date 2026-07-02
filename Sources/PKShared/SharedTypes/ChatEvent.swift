@@ -1,3 +1,4 @@
+import ErrorKit
 import Foundation
 
 public enum ToolExecutionStatus: Sendable, Codable {
@@ -89,7 +90,7 @@ public extension ChatEvent {
     }
 
     static func error(_ err: Error) -> ChatEvent {
-        .error(event: .error(message: err.localizedDescription))
+        .error(event: .error(message: ErrorKit.userFriendlyMessage(for: err)))
     }
 
     static func error(_ msg: String) -> ChatEvent {
