@@ -40,8 +40,8 @@ struct MockComplexTool: Tool, @unchecked Sendable {
 struct ToolCallRegressionTests {
     private let logger = Logger(label: "test.tool-call-regression")
 
-    @Test("StreamingCoordinator parses complex JSON arguments from native tool calls")
-    func testComplexNativeToolCalls() async throws {
+    @Test("TurnOutputs accumulates complex JSON arguments from native tool call deltas")
+    func testAccumulatesComplexNativeToolCallDeltas() async throws {
         let persistence = MockPersistenceService()
         let stage = MessagePersistenceStage(messageStore: persistence, logger: logger)
         let context = ChatTurnContext(
