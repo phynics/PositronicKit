@@ -1,0 +1,33 @@
+# PositronicKit
+
+> A Swift toolkit for building AI agents: transport-neutral runtime orchestration (chat loop, timelines, tool routing), a structured prompt composition DSL, and the shared contracts that tie them together — without imposing a specific networking or hosting model.
+
+PositronicKit is pre-1.0. The core modules (`PositronicKit`, `PKPrompt`, `PKShared`) support Apple platforms and Linux; provider adapters and `PKLocalEmbeddings` have narrower support (see README Support Matrix). Add it as a Swift Package dependency and import only the modules you need — see Quick Start below before writing any code against it.
+
+## Getting Started
+
+- [README: Quick Start](README.md#quick-start): add the package dependency, import the modules you need, and set up `PKLocalEmbeddings` if you use local embeddings.
+- [README: Choosing A Layer](README.md#choosing-a-layer) and [Choose Your Entry Point](README.md#choose-your-entry-point): which module/entry point to start from for your use case (prompt-only, single-process runtime, host-owned execution, etc).
+- [PositronicKitExamples](Sources/PositronicKitExamples): runnable examples that double as living documentation — read `main.swift`, `PositronicKitUsageExamples.swift`, and `PKPromptExamples.swift` before inventing your own composition pattern.
+
+## Core Concepts
+
+- [README: Runtime — PositronicKit](README.md#runtime-positronickit): the `PositronicKit` facade (`run(...)`, `ChatEvent` stream) vs. direct runtime seams (`TimelineManager`, `ToolRouter`) for advanced hosts; Timeline/AgentInstance concepts; the turn lifecycle (gather context → assemble prompt → stream → tool calls → persist).
+- [README: v1 Extension Point Registry](README.md#v1-extension-point-registry): the stable public API surfaces intended for downstream extension — tool contracts, persistence protocols, workspace protocols, prompt-section hooks, provider contracts. Treat everything else in the runtime (`ChatEngine`, prompt-assembly internals, context-pipeline internals) as private, even if technically public.
+- [README: Extension Points](README.md#extension-points): `WorkspaceCreating`/`WorkspaceProtocol`, `PromptSectionProviding`, `ChatTurnPlugin`, and the persistence protocol set — use these instead of forking runtime internals.
+- [README: Default Runtime Tool Policy](README.md#default-runtime-tool-policy): which tools (filesystem, timeline observation/send) `TimelineManager` installs by default, and how to change that with `RuntimeToolPolicy`.
+
+## Providers
+
+- [README: Provider Registration](README.md#provider-registration): register a concrete provider (`PKOpenAIProvider`, `PKOpenRouterProvider`, `PKOllamaProvider`) before constructing an `LLMService` from configuration.
+- [README: Local Embeddings](README.md#local-embeddings): `PKLocalEmbeddings`/`LocalEmbeddingService` — Natural Language by default on Apple, opt-in native MiniLM via the `MiniLMEmbeddings` trait, `modelDirectory` construction on Linux.
+
+## Reference
+
+- [CHANGELOG](CHANGELOG.md): breaking changes to v1 extension-point surfaces are called out under a `Breaking` heading here — check before upgrading a pinned revision.
+- [AGENTS.md](AGENTS.md): repo layout, module boundaries, and build/test/verify commands. Written for coding agents contributing *to* this package, not for agents consuming it at runtime — read it if you need to build, test, or modify PositronicKit itself.
+
+## Optional
+
+- [README: Support Matrix](README.md#support-matrix): per-target Apple/Linux support status.
+- [README: Manual Verification](README.md#manual-verification): `make verify` / `verify-products` / `verify-minilm` gates, useful if you're vendoring or patching the package rather than just consuming its public API.
