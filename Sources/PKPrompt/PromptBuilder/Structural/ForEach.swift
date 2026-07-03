@@ -1,13 +1,16 @@
 import Foundation
 
-/// Explicit loop helper for prompt sections that need stable structural identity.
+/// Explicit loop helper for prompt sections built from a homogeneous data array.
 ///
-/// Plain `for` loops inside ``PromptBuilder`` lower to positional path components such as
-/// `item_0` and `item_1`. Use `PromptForEach` when the iteration identity should come from
-/// domain data instead, which keeps node paths stable across reordering and improves diffing.
+/// `ForEach` wraps a `[Data]` array and a content closure, lowering each element's
+/// `Prompt` into a `.fork` node. It does **not** attach positional path components
+/// to the children — each child's path is whatever its own `id` (or structural
+/// identity) produces. Loop-item uniqueness is the caller's responsibility: two
+/// items whose prompts resolve to the same section id will collide at assembly
+/// time and raise `PromptAssemblyError.duplicateSectionIDs`.
 ///
 /// ```swift
-/// PromptForEach(workspaces, id: \.id) { workspace in
+/// ForEach(workspaces) { workspace in
 ///     TextPrompt(workspace.summary, id: "workspace-\(workspace.id)")
 /// }
 /// ```

@@ -131,4 +131,39 @@ struct PromptBuilderTests {
 
         #expect(sections.map(\.id) == ["base"])
     }
+
+    @Test("Loop-generated sections with colliding ids raise duplicateSectionIDs (PKR-7)")
+    func loopCollidingIdsRaise() {
+        let items = [
+            IdentifiableItem(id: "same", content: "Alpha"),
+            IdentifiableItem(id: "same", content: "Beta"),
+        ]
+
+        @PromptBuilder
+        func build() -> some Prompt {
+            for item in items {
+                TextPrompt(item.content, id: item.id)
+            }
+        }
+
+        #expect(throws: AssembledPrompt.ValidationError.duplicateSectionIDs(["same"])) {
+            try build().assemblePrompt()
+        }
+    }
+
+    @Test("ForEach with colliding ids raises duplicateSectionIDs (PKR-7)")
+    func forEachCollidingIdsRaise() {
+        let items = [
+            IdentifiableItem(id: "dup", content: "Alpha"),
+            IdentifiableItem(id: "dup", content: "Beta"),
+        ]
+
+        let prompt = ForEach(data: items) { item in
+            TextPrompt(item.content, id: item.id)
+        }
+
+        #expect(throws: AssembledPrompt.ValidationError.duplicateSectionIDs(["dup"])) {
+            try prompt.assemblePrompt()
+        }
+    }
 }

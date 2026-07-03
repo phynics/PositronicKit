@@ -4,11 +4,9 @@ import Foundation
 ///
 /// The builder normalizes authored syntax into structural `Prompt` values that are lowered to
 /// the internal prompt-node tree during prompt assembly. Ordinary sibling composition becomes
-/// transparent groups, conditionals select the active branch, and plain `for` loops use
-/// positional iteration path components.
-///
-/// Use `PromptForEach` or `PromptBuilder/forEach(_:id:content:)` when loop identity should
-/// come from stable domain data instead of loop position.
+/// transparent groups, conditionals select the active branch, and plain `for` loops produce a
+/// `ForEach` whose children carry their own section ids (no positional path disambiguation is
+/// added — loop-item uniqueness is the caller's responsibility).
 ///
 /// ```swift
 /// let prompt = AnyPrompt.build {
@@ -75,7 +73,9 @@ public enum PromptBuilder {
 
     // MARK: - Arrays and loops
 
-    /// Lowers repeated builder output into positional per-item path groups.
+    /// Lowers repeated builder output into a `ForEach` whose children carry their own
+    /// section ids. No positional path disambiguation is added — callers are responsible
+    /// for ensuring loop-generated sections have unique ids.
     public static func buildArray<Content: Prompt & Sendable>(_ components: [Content]) -> ForEach<Int, Content> {
         ForEach(data: (0..<components.count).map { Int($0) }) {
             components[$0]
