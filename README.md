@@ -332,7 +332,7 @@ let prompt = AnyPrompt.build {
     UserPrompt("Recommend the safest next step.")
 }
 
-print(await prompt.renderToString() ?? "")
+print(try await prompt.renderToString() ?? "")
 ```
 
 This is the smallest surface area: author a prompt, get plain text. If you don't need to inspect sections, manage compression outcomes, or track changes across snapshots, this is all you need.

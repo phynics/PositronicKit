@@ -66,13 +66,13 @@ public enum PKPromptExamples {
     /// README Layer 1: Prompt → String.
     ///
     /// The smallest surface area: author a prompt, get canonical rendered text.
-    public static func renderLayer1ToString() async -> String? {
+    public static func renderLayer1ToString() async throws -> String? {
         let prompt = AnyPrompt.build {
             LayerExamplePrompt(tools: ["build", "test", "lint"])
             UserPrompt("Recommend the safest next step.")
         }
 
-        return await prompt.renderToString()
+        return try await prompt.renderToString()
     }
 
     /// README Layer 2: Prompt → AssembledPrompt → RenderedPrompt.

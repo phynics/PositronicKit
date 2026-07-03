@@ -19,7 +19,7 @@ func runExamples() async throws {
     let structuredOutputRequest = PositronicKitUsageExamples.makeStructuredOutputRequest()
 
     // README "Choosing A Layer" examples — kept compile-checked here.
-    let layer1 = await PKPromptExamples.renderLayer1ToString()
+    let layer1 = try await PKPromptExamples.renderLayer1ToString()
     let (layer2Assembled, layer2Rendered) = try await PKPromptExamples.assembleLayer2()
     let (initialPlan, updatedPlan, compactedPlan) = try await PKPromptExamples.journalLayer3()
 

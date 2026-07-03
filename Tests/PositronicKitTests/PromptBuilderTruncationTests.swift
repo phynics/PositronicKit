@@ -1,15 +1,14 @@
-import Testing
 import Foundation
-@testable import PositronicKit
-@testable import PKShared
 @testable import PKPrompt
+@testable import PKShared
+@testable import PositronicKit
+import Testing
 
 @Suite("Prompt Builder Truncation Tests")
 struct PromptBuilderTruncationTests {
-
     @Test("Chat History Truncation")
-    func testChatHistoryTruncation() async {
-        let messages = (1...10).map { i in
+    func chatHistoryTruncation() {
+        let messages = (1 ... 10).map { i in
             Message.fixture(content: "Message \(i) content")
         }
 
@@ -27,14 +26,14 @@ struct PromptBuilderTruncationTests {
     }
 
     @Test("Context Notes Truncation")
-    func testContextNotesTruncation() async {
+    func contextNotesTruncation() async throws {
         let longNote = String(repeating: "A long note content. ", count: 50)
         let file = ContextFile(name: "test", content: longNote, source: "test")
         let section = ContextNotes([file])
-        let assembled = try! section.assemblePrompt()
+        let assembled = try section.assemblePrompt()
         let resolvedSection = assembled.sections[0]
 
-        let fullRender = await section.renderToString()
+        let fullRender = try await section.renderToString()
         #expect(fullRender != nil)
 
         let constrainedRender = await resolvedSection.renderedContent(constrainedTo: 10)?.text
@@ -48,9 +47,9 @@ struct PromptBuilderTruncationTests {
     }
 
     @Test("Token Budget Application")
-    func testTokenBudgetApplication() async {
+    func tokenBudgetApplication() async {
         let system = SystemInstructions("System instructions")
-        let messages = (1...20).map { Message.fixture(content: "msg \($0)") }
+        let messages = (1 ... 20).map { Message.fixture(content: "msg \($0)") }
         let history = ChatHistory(messages)
 
         let sections: [any Prompt] = [system, history]

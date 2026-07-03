@@ -1,7 +1,7 @@
 import Foundation
+@testable import PKPrompt
 import PKShared
 import Testing
-@testable import PKPrompt
 
 @Suite("Prompt section validation")
 struct PromptSectionValidationTests {
@@ -63,6 +63,13 @@ struct PromptSectionValidationTests {
         }
     }
 
+    @Test("Prompt renderToString surfaces validation errors instead of swallowing them")
+    func promptRenderToStringSurfacesValidationErrors() async throws {
+        await #expect(throws: AssembledPrompt.ValidationError.duplicateSectionIDs(["dup"])) {
+            _ = try await DuplicateSectionsPrompt().renderToString()
+        }
+    }
+
     @Test("Prompt assembly errors expose PKError metadata")
     func promptAssemblyErrorsExposePKErrorMetadata() {
         let error = PromptAssemblyError.duplicateSectionIDs(["alpha", "beta"])
@@ -77,7 +84,7 @@ struct PromptSectionValidationTests {
     }
 
     @Test("Prompt rejects duplicate ids in composite sections")
-    func promptRejectsDuplicateCompositeSectionIDs() throws {
+    func promptRejectsDuplicateCompositeSectionIDs() {
         let sections: [any Prompt] = [MockSection(id: "dup"), MockSection(id: "dup")]
 
         let duplicateIDs = sections

@@ -12,12 +12,17 @@ public extension Prompt {
     func assemblePrompt() throws -> AssembledPrompt {
         try AssembledPrompt(sections: resolveSections(in: .init()))
     }
-    
+
     /// Renders this prompt into its canonical plain-text representation.
-    func renderToString() async -> String? {
-        guard let rendered = try? await assemblePrompt().render().string else {
-            return nil
-        }
+    ///
+    /// Returns `nil` when the assembled prompt has no renderable content (e.g. every section
+    /// rendered to empty text). Structural assembly failures — duplicate section identifiers or
+    /// multiple user-query sections — are not swallowed; they propagate as
+    /// ``PromptAssemblyError``.
+    ///
+    /// - Throws: ``PromptAssemblyError`` when the concrete section graph is invalid.
+    func renderToString() async throws -> String? {
+        let rendered = try await assemblePrompt().render().string
         return rendered.isEmpty ? nil : rendered
     }
 }

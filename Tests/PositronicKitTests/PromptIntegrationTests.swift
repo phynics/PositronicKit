@@ -63,7 +63,7 @@ struct PromptIntegrationTests {
     // MARK: - Workspace Section
 
     @Test("workspaceSectionOmitsConnectionStatus")
-    func workspaceSectionOmitsConnectionStatus() async {
+    func workspaceSectionOmitsConnectionStatus() async throws {
         let uri = WorkspaceURI(host: "test-host", path: "/projects/test")
         let activeWS = WorkspaceReference(uri: uri, location: .attached, status: .active)
         let missingWS = WorkspaceReference(uri: uri, location: .attached, status: .missing)
@@ -75,8 +75,8 @@ struct PromptIntegrationTests {
             workspaces: [missingWS], primaryWorkspace: nil, requestOriginName: nil
         )
 
-        let outputActive = await sectionActive.renderToString() ?? ""
-        let outputMissing = await sectionMissing.renderToString() ?? ""
+        let outputActive = try await sectionActive.renderToString() ?? ""
+        let outputMissing = try await sectionMissing.renderToString() ?? ""
 
         #expect(!outputActive.contains("Connected"), "Active workspace should not show connection status")
         #expect(!outputActive.contains("Disconnected"), "Active workspace should not show connection status")
