@@ -165,13 +165,21 @@ public struct ContextNotes: Prompt {
 
 public struct UserQuery: Prompt {
     public let query: String
+    /// Optional per-turn instructions rendered after the query inside the same
+    /// `.userQuery` section (single-section invariant preserved; volatile cache policy).
+    public let turnInstructions: String?
 
-    public init(_ query: String) {
+    public init(_ query: String, turnInstructions: String? = nil) {
         self.query = query
+        self.turnInstructions = turnInstructions
     }
 
     public var body: some Prompt {
-        UserPrompt(query, estimatedTokens: PKShared.TokenEstimator.estimate(text: query))
+        let text: String = {
+            guard let turnInstructions, !turnInstructions.isEmpty else { return query }
+            return query + "\n" + turnInstructions
+        }()
+        UserPrompt(text, estimatedTokens: PKShared.TokenEstimator.estimate(text: text))
     }
 }
 

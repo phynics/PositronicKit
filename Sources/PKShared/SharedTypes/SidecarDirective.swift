@@ -23,8 +23,9 @@ public struct SidecarDirective: Sendable, Equatable, Codable {
     /// (reserved for the main assistant response).
     public let name: String
 
-    /// The prompt text describing what this directive should produce. Injected into the
-    /// turn's prompt through the `PromptSectionProviding` extension point.
+    /// The prompt text describing what this directive should produce. Rendered into the
+    /// final user-query prompt section via `SidecarSchemaComposer.instructionBlock`,
+    /// keeping the system prompt stable for provider prompt-prefix caching.
     public let instruction: String
 
     /// JSON Schema for this directive's field, applied at schema composition time.

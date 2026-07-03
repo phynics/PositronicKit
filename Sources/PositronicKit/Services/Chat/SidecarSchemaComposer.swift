@@ -10,7 +10,27 @@ import PKShared
 /// wire-serialization path (`JSONEncoder().encode(schema.schema)`) re-emits keys
 /// alphabetically regardless of declaration order (see ticket SDC-7). Generation order
 /// is steered only through `instructionBlock`'s prompt text, not schema structure.
-enum SidecarSchemaComposer {
+///
+/// The per-turn directive list (`instructionBlock`) rides with the user query — the last
+/// prompt section — rather than system instructions, so the system prefix stays byte-stable
+/// across turns for provider prompt-prefix caching and `PromptJournal` stable-prefix diffing.
+/// An optional, name-free `mechanismPreamble` can be layered into system instructions for
+/// consumers that want the model informed of the mechanism up front; the mechanism itself
+/// does not depend on it.
+public enum SidecarSchemaComposer {
+    /// Semi-stable system-prompt preamble explaining the piggy-backed JSON mechanism in
+    /// general terms. Contains NO directive names so it never changes with the directive
+    /// set — safe in the cache-stable system section. The concrete per-turn directive list
+    /// is delivered via `instructionBlock` alongside the user query. Optional: the
+    /// mechanism works without it.
+    public static let mechanismPreamble = """
+    ## Piggy-backed output mechanism
+    Some turns request auxiliary structured fields alongside your reply. On those turns the \
+    final user message lists the requested fields and you must answer as a single JSON object \
+    with your normal reply in the "response" field first, followed by the requested fields. \
+    On turns without such a list, reply normally.
+    """
+
     /// Combined schema: `response` (string) plus one property per directive, all
     /// required, strict, no additional properties.
     static func compose(directives: [SidecarDirective]) throws -> StructuredOutputRequest {
@@ -44,10 +64,10 @@ enum SidecarSchemaComposer {
         ))
     }
 
-    /// Instruction text appended to the turn's system instructions. This is the only
+    /// Instruction text rendered with the final user-query prompt section. This is the only
     /// mechanism that steers the model to produce `response` ahead of directive
     /// fields (see the type-level note on schema field order).
-    static func instructionBlock(directives: [SidecarDirective]) -> String {
+    public static func instructionBlock(directives: [SidecarDirective]) -> String {
         var lines: [String] = [
             "",
             "## Piggy-backed fields",

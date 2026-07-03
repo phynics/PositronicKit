@@ -107,8 +107,8 @@ struct UserQueryStage: PromptAssemblyStage {
     init() {}
 
     func execute(_ context: PromptAssemblyContext) async throws {
-        let query = context.request.userQuery
-        await context.append(UserQuery(query))
+        let request = context.request
+        await context.append(UserQuery(request.userQuery, turnInstructions: request.turnInstructions))
     }
 }
 

@@ -56,17 +56,24 @@ extension ChatEngine {
         generationParameters: GenerationParameters?,
         structuredOutput: StructuredOutputRequest?,
         sidecars: [SidecarDirective] = [],
+        includeSidecarMechanismPreamble: Bool = false,
         contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
         assemblyPipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>? = nil,
         assemblyLogger: Logger? = nil
     ) async throws -> ChatTurnContext {
-        // Sidecar directives steer generation only through prompt instructions (see
-        // SidecarSchemaComposer's type-level note / ticket SDC-7) — appended once here, at the
-        // seam where `systemInstructions` is resolved for both prompt assembly and the turn
-        // context, rather than branched deeper in prompt-assembly logic.
-        let effectiveSystemInstructions: String? = sidecars.isEmpty
-            ? systemInstructions
-            : (systemInstructions ?? "") + SidecarSchemaComposer.instructionBlock(directives: sidecars)
+        // Sidecar directives steer generation only through prompt text (SDC-7). The per-turn
+        // directive list is volatile (consumer-scheduled, changes turn-to-turn), so it rides
+        // with the user query — the LAST prompt section — keeping the system prefix byte-stable
+        // for provider prompt caching and PromptJournal stable-prefix diffing. An optional
+        // semi-stable mechanism preamble can be layered into system instructions
+        // (`SidecarSchemaComposer.mechanismPreamble`); the mechanism does not depend on it.
+        let effectiveSystemInstructions: String? = includeSidecarMechanismPreamble
+            ? ((systemInstructions ?? DefaultInstructions.system())
+                + "\n\n" + SidecarSchemaComposer.mechanismPreamble)
+            : systemInstructions
+        let sidecarTurnInstructions: String? = sidecars.isEmpty
+            ? nil
+            : SidecarSchemaComposer.instructionBlock(directives: sidecars)
 
         // 1. Save new inputs (user message or externally submitted tool outputs)
         try await saveConversationSteps(timelineId: timelineId, message: message, toolOutputs: toolOutputs)
@@ -110,6 +117,7 @@ extension ChatEngine {
 
         let promptRequest = LLMPromptRequest(
             userQuery: message,
+            turnInstructions: sidecarTurnInstructions,
             contextNotes: contextData.notes,
             memories: contextData.memories.map { $0.memory },
             chatHistory: history,

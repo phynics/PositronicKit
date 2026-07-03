@@ -90,6 +90,7 @@ struct ChatEngine {
         generationParameters: GenerationParameters? = nil,
         structuredOutput: StructuredOutputRequest? = nil,
         sidecars: [SidecarDirective] = [],
+        includeSidecarMechanismPreamble: Bool = false,
         contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
         assemblyPipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>? = nil,
         assemblyLogger: Logger? = nil
@@ -115,6 +116,7 @@ struct ChatEngine {
             generationParameters: generationParameters,
             structuredOutput: structuredOutput,
             sidecars: sidecars,
+            includeSidecarMechanismPreamble: includeSidecarMechanismPreamble,
             contextPipeline: contextPipeline,
             assemblyPipeline: assemblyPipeline,
             assemblyLogger: assemblyLogger

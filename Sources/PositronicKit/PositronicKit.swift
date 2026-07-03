@@ -247,6 +247,12 @@ public struct PositronicKit: Sendable {
     ///   - sidecars: Optional piggy-backed auxiliary generations (title, summary, tone, etc.)
     ///     riding the same request as this turn's response. Mutually exclusive with
     ///     `structuredOutput` — passing both throws `SidecarError.conflictsWithExplicitStructuredOutput`.
+    ///     The per-turn directive instructions ride with the final user message, keeping the
+    ///     system prompt byte-stable across turns for provider prompt-prefix caching.
+    ///   - includeSidecarMechanismPreamble: When `true`, layers a semi-stable, name-free
+    ///     explanation of the piggy-backed JSON mechanism into system instructions. Optional —
+    ///     the mechanism works without it. Callers that use sidecars across a timeline should
+    ///     pass the same value on every call so the system section stays constant.
     ///   - promptAssemblyLogger: Optional `swift-log` logger that enables prompt-assembly
     ///     diagnostics for this turn (stage execution, section resolution, and token-budget
     ///     decisions). Control verbosity through the logger's log level. Defaults to no diagnostics.
@@ -262,6 +268,7 @@ public struct PositronicKit: Sendable {
         generationParameters: GenerationParameters? = nil,
         structuredOutput: StructuredOutputRequest? = nil,
         sidecars: [SidecarDirective] = [],
+        includeSidecarMechanismPreamble: Bool = false,
         promptAssemblyLogger: Logger? = nil
     ) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         let resolvedContextManager = await resolveContextManager(
@@ -281,6 +288,7 @@ public struct PositronicKit: Sendable {
             generationParameters: generationParameters ?? defaultGenerationParameters,
             structuredOutput: structuredOutput,
             sidecars: sidecars,
+            includeSidecarMechanismPreamble: includeSidecarMechanismPreamble,
             assemblyLogger: promptAssemblyLogger
         )
     }

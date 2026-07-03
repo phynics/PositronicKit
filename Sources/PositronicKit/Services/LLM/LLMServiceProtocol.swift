@@ -46,7 +46,6 @@ public struct LLMChatRequest: Sendable {
         self.generationParameters = generationParameters
         self.useFastModel = useFastModel
     }
-
 }
 
 /// The result of a high-level LLM chat stream request.
@@ -80,6 +79,10 @@ public struct LLMPromptResult: Sendable {
 /// Groups the parameters for building a prompt or context.
 public struct LLMPromptRequest: Sendable {
     public let userQuery: String
+    /// Per-turn instruction text rendered with the user query (final prompt section),
+    /// NOT with system instructions, so the system prefix stays provider-cache-stable.
+    /// Used by `ChatEngine` to inject the sidecar directive instruction block.
+    public let turnInstructions: String?
     public let contextNotes: [ContextFile]
     public let memories: [Memory]
     public let chatHistory: [Message]
@@ -92,6 +95,7 @@ public struct LLMPromptRequest: Sendable {
 
     public init(
         userQuery: String,
+        turnInstructions: String? = nil,
         contextNotes: [ContextFile] = [],
         memories: [Memory] = [],
         chatHistory: [Message],
@@ -103,6 +107,7 @@ public struct LLMPromptRequest: Sendable {
         generationParameters: GenerationParameters? = nil
     ) {
         self.userQuery = userQuery
+        self.turnInstructions = turnInstructions
         self.contextNotes = contextNotes
         self.memories = memories
         self.chatHistory = chatHistory
@@ -113,7 +118,6 @@ public struct LLMPromptRequest: Sendable {
         self.systemInstructions = systemInstructions
         self.generationParameters = generationParameters
     }
-
 }
 
 /// Parsed endpoint components.

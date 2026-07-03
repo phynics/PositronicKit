@@ -9,6 +9,9 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
     public var nextResponse: String = ""
     public var nextResponses: [String] = []
     public var lastMessages: [LLMMessage] = []
+    /// Full history of messages passed to each `chatStream` call, in call order. Useful for
+    /// asserting on multi-turn tool-loop behavior where `lastMessages` only exposes the final call.
+    public var messageHistory: [[LLMMessage]] = []
     public var lastTools: [LLMToolDefinition]?
     public var lastToolChoice: LLMToolChoice?
     public var lastResponseFormat: LLMResponseFormat?
@@ -45,6 +48,7 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
         streamCallCount += 1
         let streamCallIndex = streamCallCount
         lastMessages = messages
+        messageHistory.append(messages)
         lastTools = tools
         lastToolChoice = toolChoice
         lastResponseFormat = responseFormat
