@@ -17,6 +17,7 @@ func runExamples() async throws {
     let toolPrompt = await formatToolsForPrompt(PositronicKitUsageExamples.makeTools())
     let structuredOutput = PositronicKitUsageExamples.makeStructuredOutputSchema()
     let structuredOutputRequest = PositronicKitUsageExamples.makeStructuredOutputRequest()
+    let sidecarDirectives = PositronicKitUsageExamples.makeSidecarDirectives()
 
     // README "Choosing A Layer" examples — kept compile-checked here.
     let layer1 = try await PKPromptExamples.renderLayer1ToString()
@@ -35,6 +36,12 @@ func runExamples() async throws {
     print("\nStructured output schema: \(structuredOutput.name)")
     print("Structured output request: \(structuredOutputRequest)")
     print("Generated from ExampleTagPayload via @Schemable.")
+
+    print("\nSidecar directives (piggy-backed requests): \(sidecarDirectives.map(\.name))")
+    for directive in sidecarDirectives {
+        print("  - \(directive.name): \(directive.instruction)")
+    }
+    print("  Consume via PositronicKit.run(sidecars:) — see makeSidecarDirectives() doc comment.")
 
     print("\n# PKPrompt Layer Examples\n")
     print("Layer 1 (Prompt → String):")

@@ -57,3 +57,41 @@ The `ChatEngine` is the primary orchestrator that uses the Pipeline to handle us
    - `LLMStreamingStage`: Streams the raw response from the LLM.
    - `ToolCallExtractionStage`: Parses the stream for potential tool calls.
    - `MessagePersistenceStage`: Saves the final result once the stream completes.
+
+## 5. Sidecar Directives (Piggy-Backed Requests)
+
+A turn can pass `sidecars: [SidecarDirective]` to `PositronicKit.run(...)` to request auxiliary
+generations (title, summary, tone, etc.) from the *same* LLM request as the turn's response,
+instead of paying a separate round-trip per auxiliary task. Full design:
+`workflow/Yakamoz/specs/2026-07-03-piggybacked-requests-design.md`.
+
+- **Composition** (`SidecarSchemaComposer`): combines a `response: string` field with one
+  property per directive into a single structured-output request (all required, strict),
+  and appends a prompt instruction block describing each directive. This reuses the existing
+  `chatStream(structuredOutput:)` path — including the synthetic-tool fallback for providers
+  without native JSON-schema support — so sidecars need no new provider-adapter code.
+  **Note:** field declaration order does *not* control model generation order — `Schema`
+  stores properties in an unordered `Dictionary` and the wire path re-serializes them
+  alphabetically (see ticket SDC-7). Generation order is steered only through the instruction
+  block text, not schema structure.
+- **Extraction** (`SidecarStreamExtractor`, driven from `LLMStreamingStage`): a synchronous
+  state machine that re-parses the raw JSON buffer per content delta (via PartialJSON), diffs
+  the `response` field to emit ordinary `.generation` deltas (raw JSON never reaches
+  consumers), and emits directive fields as `.sidecar` deltas (buffered or incremental per
+  directive) once each field completes.
+- **Events**: `ChatEvent.sidecar(delta:)` for streaming updates, `ChatEvent.sidecarsCompleted(results:)`
+  for terminal per-directive outcomes (`.value`, `.declined` for an explicit `null`, or
+  `.failed(reason:)`).
+- **Error model**: a sidecar failure never fails the turn. Already-streamed response text is
+  kept; incomplete directives report `.failed` in the completion event. A model that ignores
+  the schema entirely (non-JSON prose) falls back to passthrough: the whole buffer becomes the
+  response and all directives report failed.
+- **Persistence**: `TurnOutputs.fullResponse` accumulates only the extracted `response` text on
+  sidecar turns, so `MessagePersistenceStage` persists the same shape it always has — raw JSON
+  never enters conversation history.
+- **No-op guarantee**: `sidecars: []` (the default) takes a completely different code path in
+  `LLMStreamingStage` (no extractor is constructed) and is behaviorally identical to a turn
+  without the parameter.
+- Concrete directives (title, summary, tone) and their per-conversation scheduling policy are
+  intentionally **not** defined here — see `workflow/Yakamoz/tickets/SID-1`/`SID-2`. This layer
+  only provides the mechanism.

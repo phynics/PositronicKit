@@ -102,6 +102,35 @@ public enum PositronicKitUsageExamples {
     public static func makeStructuredOutputRequest() -> StructuredOutputRequest {
         .jsonSchema(makeStructuredOutputSchema())
     }
+
+    /// Sidecar directives (piggy-backed requests): auxiliary generations riding the same
+    /// request as a chat turn's response. `title` is nullable so the model can decline once
+    /// a conversation already has one. Consume via `PositronicKit.run(sidecars:)`:
+    ///
+    /// ```swift
+    /// let stream = try await chat.run(timelineId: id, message: text, sidecars: makeSidecarDirectives())
+    /// for try await event in stream {
+    ///     if let text = event.textContent { /* stream to UI */ }
+    ///     if let delta = event.sidecarDelta { /* route delta.name -> delta.partialText */ }
+    ///     if let results = event.sidecarResults { /* persist final title/tone per turn */ }
+    /// }
+    /// ```
+    public static func makeSidecarDirectives() -> [SidecarDirective] {
+        [
+            SidecarDirective(
+                name: "title",
+                instruction: "A short conversation title (3-6 words). Return null if the conversation already has a good title.",
+                schema: JSONString().definition(),
+                streaming: .buffered
+            ),
+            SidecarDirective(
+                name: "tone",
+                instruction: "One word describing the emotional tone of this turn (e.g. \"neutral\", \"frustrated\", \"excited\").",
+                schema: JSONString().definition(),
+                streaming: .buffered
+            ),
+        ]
+    }
 }
 
 @Schemable
