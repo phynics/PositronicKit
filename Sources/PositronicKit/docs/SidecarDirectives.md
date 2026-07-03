@@ -104,36 +104,6 @@ A sidecar failure **never** fails the turn:
   `sidecars` throws `SidecarError.conflictsWithExplicitStructuredOutput` — a turn can request
   one structured-output shape, not two competing ones.
 
-## Priority & ordering
-
-Two different notions of "order" apply here, and they're easy to conflate:
-
-**1. The array order you pass to `sidecars:` sets extraction priority.** `SidecarStreamExtractor`
-watches the raw JSON as it streams and finalizes a directive's value either when the object
-closes, or as soon as a *later* directive's key (later in your declared array) appears in the
-buffer. In other words, declaration order is the priority in which directives are expected to
-resolve — put directives you want resolved earlier first:
-
-```swift
-// "title" is expected to finish before "summary" — its value finalizes as soon as
-// the "summary" key starts appearing in the stream (or sooner, if the model completes
-// title outright). The last directive in the list only finalizes when the object closes.
-sidecars: [title, summary]
-```
-
-This is real, load-bearing behavior — reorder your directives and you reorder when their
-`.sidecar` completion deltas fire relative to each other.
-
-**2. Composed JSON schema field order does *not* control model generation order.** You might
-expect declaring `response` first in the schema to make the model *write* `response` first
-(and thus keep it streaming ahead of directive fields). It doesn't: `Schema`/`JSONValue` store
-object properties in an unordered `Dictionary`, and the wire-serialization path
-(`JSONEncoder().encode(schema.schema)`) re-emits keys alphabetically regardless of declaration
-order. Generation order is steered only through `instructionBlock`'s prompt text ("put your
-reply in the `response` field first"), not schema structure — a soft instruction, not a hard
-guarantee. Tracked in ticket `SDC-7` as a known gap; the array-order priority in point 1 is
-unaffected by this and remains reliable regardless of how #2 is eventually resolved.
-
 ## What sidecars don't do
 
 This layer only provides the mechanism — schema composition, prompt injection, incremental
@@ -141,3 +111,8 @@ extraction, and event emission. It intentionally ships **no built-in directives*
 summary, and scheduling policy (e.g. "only generate a title once, then stop") are app-level
 concerns that live in the consuming application (see Yakamoz's `SID-1`/`SID-2` tickets for a
 worked example: a title directive with until-first-then-interval cadence).
+
+One implementation detail worth knowing if you're deciding directive names: composed schema
+field order does not control which field the model fills first — `Schema` stores properties
+in an unordered `Dictionary`, so ordering is steered only through the instruction text, not
+schema structure (tracked in ticket `SDC-7`).
