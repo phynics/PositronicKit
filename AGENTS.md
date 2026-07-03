@@ -81,7 +81,7 @@ and `Sources/PKLocalEmbeddings/MiniLMModelAssets.swift`; `verify-pin` (run by
 
 ## Workflow Artifacts
 
-This repo holds **reference docs only** (`docs/`, `README.md`, `CHANGELOG.md`).
+This repo holds **reference docs only** (`docs/`, `README.md`).
 Agentic-workflow scaffolding (superpowers specs/plans, decomposed tickets, brainstorm output)
 lives centrally at the workspace root under `workflow/`, namespaced by project:
 
