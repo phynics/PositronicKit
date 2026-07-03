@@ -421,12 +421,14 @@ struct ProviderTransportContractTests {
 
     @Test("Ollama tool-call detection still takes priority over done_reason (matches prior behavior)")
     func ollamaToolCallsTakePriorityOverDoneReason() async throws {
-        // Even if a server were to send an unexpected done_reason alongside tool_calls, the
-        // tool_calls signal (driven by message.tool_calls, not done_reason) must win — this is
-        // an explicit priority requirement from PKR-13 preserving pre-existing behavior.
+        // Even if a server were to send done_reason: "length" (truncation) alongside tool_calls,
+        // the tool_calls signal (driven by message.tool_calls, not done_reason) must still win —
+        // this is an explicit priority requirement from PKR-13 preserving pre-existing behavior.
+        // Using "length" here (rather than "stop") proves the priority check actually short-
+        // circuits before reading done_reason, not just that "stop" and "tool_calls" coincide.
         let transport = TestProviderTransport { _ in
             .lines([
-                #"{"model":"llama3.1","message":{"role":"assistant","content":"","tool_calls":[{"function":{"name":"lookup","arguments":{}}}]},"done":true,"done_reason":"stop","prompt_eval_count":1,"eval_count":1}"#,
+                #"{"model":"llama3.1","message":{"role":"assistant","content":"","tool_calls":[{"function":{"name":"lookup","arguments":{}}}]},"done":true,"done_reason":"length","prompt_eval_count":1,"eval_count":1}"#,
             ], self.response(url: "http://localhost:11434/api/chat"))
         }
         let client = OllamaClient(endpoint: "http://localhost:11434", modelName: "llama3.1", transport: transport)
