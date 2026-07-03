@@ -7,9 +7,17 @@ public final class MockEmbeddingService: EmbeddingServiceProtocol, @unchecked Se
     public var lastInput: String?
     public var useDistinctEmbeddings: Bool = false
 
-    public init() {}
+    /// Budget used to validate inputs before returning mock vectors, mirroring
+    /// `LocalEmbeddingService`. Defaults to `.default` so existing tests are
+    /// unaffected; inject a tighter budget to exercise rejection paths (PKR-8).
+    public let inputBudget: EmbeddingInputBudget
+
+    public init(inputBudget: EmbeddingInputBudget = .default) {
+        self.inputBudget = inputBudget
+    }
 
     public func generateEmbedding(for text: String) async throws -> [Float] {
+        try validate(text)
         lastInput = text
         if useDistinctEmbeddings {
             let hash = abs(text.hashValue)
@@ -25,6 +33,7 @@ public final class MockEmbeddingService: EmbeddingServiceProtocol, @unchecked Se
     }
 
     public func generateEmbeddings(for texts: [String]) async throws -> [[Float]] {
+        try validate(texts)
         if useDistinctEmbeddings {
             return try await withThrowingTaskGroup(of: [Float].self) { group in
                 for text in texts {
@@ -38,5 +47,32 @@ public final class MockEmbeddingService: EmbeddingServiceProtocol, @unchecked Se
             }
         }
         return texts.map { _ in mockEmbedding }
+    }
+
+    private func validate(_ text: String) throws {
+        do {
+            try inputBudget.validate(text)
+        } catch let error as EmbeddingInputBudget.ValidationError {
+            throw mapValidationError(error)
+        }
+    }
+
+    private func validate(_ texts: [String]) throws {
+        do {
+            try inputBudget.validate(texts)
+        } catch let error as EmbeddingInputBudget.ValidationError {
+            throw mapValidationError(error)
+        }
+    }
+
+    private func mapValidationError(_ error: EmbeddingInputBudget.ValidationError) -> EmbeddingError {
+        switch error {
+        case let .batchTextCountLimitExceeded(max, actual):
+            return .batchTextCountLimitExceeded(max: max, actual: actual)
+        case let .perTextByteLimitExceeded(max, actual):
+            return .perTextByteLimitExceeded(max: max, actual: actual)
+        case let .totalBatchByteLimitExceeded(max, actual):
+            return .totalBatchByteLimitExceeded(max: max, actual: actual)
+        }
     }
 }
