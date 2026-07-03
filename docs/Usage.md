@@ -124,6 +124,9 @@ for try await event in stream {
             print("\nTool delta: \(delta.name ?? "<continuation>")")
         case .toolExecution(let toolCallId, let status):
             print("\nTool execution [\(toolCallId)]: \(status)")
+        case .sidecar(let delta):
+            // Only emitted on turns passed `sidecars:` — see docs/SidecarDirectives.md.
+            print("\n[\(delta.name)] \(delta.partialText)")
         }
 
     case .meta(let event):
@@ -142,6 +145,11 @@ for try await event in stream {
             print("\nTool completed [\(toolCallId)]: \(status)")
         case .streamCompleted:
             print("\nStream finished.")
+        case .sidecarsCompleted(let results):
+            // Only emitted on turns passed `sidecars:` — see docs/SidecarDirectives.md.
+            for result in results {
+                print("\n[\(result.name)] \(result.outcome)")
+            }
         }
 
     case .error(let event):
@@ -206,6 +214,8 @@ let stream = try await chat.run(
 The stream provides a rich set of events:
 - `.delta(.thinking)` and `.delta(.generation)` for streaming text.
 - `.delta(.toolCall)` and `.delta(.toolExecution)` for tool progress.
+- `.delta(.sidecar)` and `.completion(.sidecarsCompleted)` for piggy-backed directive results on
+  turns passed `sidecars:` (see [Sidecar Directives](SidecarDirectives.md)).
 - `.meta(.generationContext)` for retrieved context metadata.
 - `.meta(.generationCompleted)` for informational completion metadata.
 - `.completion(.generationCompleted)` and `.completion(.streamCompleted)` for terminal events.

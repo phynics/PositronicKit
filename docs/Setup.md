@@ -45,14 +45,13 @@ let chat = PositronicKit(
     ),
     embeddingService: MyEmbeddingServiceLive(),
     runtime: .init(
-        timelineManager: MyTimelineManagerLive(),
-        toolRouter: MyToolRouterLive(),
+        workspaceCreator: MyWorkspaceCreatorLive(),
         workspaceRoot: myWorkspaceRoot
     )
 )
 ```
 
-The longer per-store initializer still exists, but the grouped `persistence:` + `runtime:` path is the clearer supported production setup for most adopters.
+The longer per-store initializer still exists, but the grouped `persistence:` + `runtime:` path is the clearer supported production setup for most adopters. `RuntimeConfiguration` groups the non-store runtime knobs — `workspaceCreator`, `sectionProviders`, `runtimeToolPolicy`, `workspaceRoot`, `chatTurnPlugins`, `turnInspector` — not pre-built `TimelineManager`/`ToolRouter` instances; the facade is the only place those get constructed, so they can never end up wrapping different stores. Read them back afterward via `chat.timelineManager` / `chat.toolRouter` if you need direct access.
 
 Tests and host code can inject doubles directly through the facade initializers; lower-level wiring should remain inside the components you own.
 

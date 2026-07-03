@@ -31,6 +31,13 @@ stable parts of the API, but until a tagged 1.0 release they may change with a m
 - `PositronicKit.run(..., promptAssemblyLogger:)` — a public seam to enable prompt-assembly
   diagnostics (stage execution, section resolution, token-budget decisions) for a turn without
   reaching into internal assembly types.
+- Sidecar directives (piggy-backed requests): `PositronicKit.run(..., sidecars:)` requests
+  auxiliary generations (title, summary, tone, etc.) from the same LLM request as a turn's
+  response, streamed via new `ChatEvent.sidecar(delta:)` / `.sidecarsCompleted(results:)`
+  cases. New public types `SidecarDirective`, `SidecarDelta`, `SidecarResult` (`PKShared`) and
+  `SidecarError` (`PositronicKit`). See [Sidecar Directives](docs/SidecarDirectives.md).
+  Consumers with exhaustive `switch` statements over `ChatEvent.DeltaEvent` /
+  `ChatEvent.CompletionEvent` need a case (or `default:`) for the two new cases.
 
 ### Changed
 - **Breaking:** Renamed the public runtime facade from `PositronicKitCore` to `PositronicKit`.

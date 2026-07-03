@@ -203,6 +203,7 @@ change across a major version.
 | **Workspace** | `WorkspaceProtocol`, `WorkspaceCreating`, `WorkspaceTool`, `WorkspaceToolError` | PositronicKit | Custom workspace backends |
 | **Configuration** | `LLMConfiguration`, `GenerationParameters`, `LLMProvider` | PKShared | LLM configuration |
 | **Events** | `ChatEvent`, `ToolExecutionStatus`, `Message` | PKShared | Stream event types |
+| **Sidecar directives** | `SidecarDirective`, `SidecarDelta`, `SidecarResult` (PKShared), `SidecarError` (PositronicKit) | PKShared / PositronicKit | Piggy-backed auxiliary generations riding a turn's response — see [Sidecar Directives](docs/SidecarDirectives.md) |
 | **Pipeline** | `PipelineStage`, `PipelineBuilder`, `PipelineError` | PKShared | Custom pipeline stages (advanced) |
 | **Runtime coordinators (advanced)** | `TimelineManager`, `ToolRouter`, `ToolExecutionOutcome`, `RuntimeToolPolicy` | PositronicKit | Direct runtime seams for hosts with their own composition root; the facade builds these for you, or accepts them via the grouped `runtime:` initializer |
 
