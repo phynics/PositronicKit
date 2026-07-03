@@ -22,7 +22,7 @@ enum FilesystemToolSupport {
         usageExample: String?
     ) -> StringRequirement {
         do {
-            return .success(try params.require(key, as: String.self))
+            return try .success(params.require(key, as: String.self))
         } catch {
             let errorMessage = error.localizedDescription
             if let usageExample {
@@ -38,7 +38,7 @@ enum FilesystemToolSupport {
         jailRoot: String
     ) -> URLResolution {
         do {
-            return .success(try PathSanitizer.safelyResolve(
+            return try .success(PathSanitizer.safelyResolve(
                 path: pathString,
                 within: currentDirectory,
                 jailRoot: jailRoot
@@ -56,11 +56,11 @@ enum FilesystemToolSupport {
         var isDirectory: ObjCBool = false
 
         guard fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory) else {
-            return .failure(.failure("Path not found: \(displayPath)"))
+            return .failure(.failure("Path not found: \(displayPath). \(pathNotFoundHint)"))
         }
 
         guard isDirectory.boolValue else {
-            return .failure(.failure("Path is not a directory: \(displayPath)"))
+            return .failure(.failure("Path is not a directory: \(displayPath). Pass a directory path, or use `cat` to read a file."))
         }
 
         return .success
@@ -71,7 +71,7 @@ enum FilesystemToolSupport {
         displayPath: String
     ) -> Validation {
         guard FileManager.default.fileExists(atPath: url.path) else {
-            return .failure(.failure("Path not found: \(displayPath)"))
+            return .failure(.failure("Path not found: \(displayPath). \(pathNotFoundHint)"))
         }
 
         return .success
@@ -85,15 +85,20 @@ enum FilesystemToolSupport {
         var isDirectory: ObjCBool = false
 
         guard fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory) else {
-            return .failure(.failure("File not found: \(displayPath)"))
+            return .failure(.failure("File not found: \(displayPath). \(pathNotFoundHint)"))
         }
 
         guard !isDirectory.boolValue else {
-            return .failure(.failure("Path is not a file: \(displayPath)"))
+            return .failure(.failure("Path is not a file: \(displayPath). This is a directory — use `ls` to list its contents."))
         }
 
         return .success
     }
+
+    /// Shared recovery hint appended to "not found" failures. Paths resolve relative to the
+    /// workspace root, so the most common fix is locating the correct path first.
+    static let pathNotFoundHint =
+        "Paths are resolved relative to the workspace root — check the path, or use `ls`/`find` to locate it first."
 
     static func relativeDisplayPath(for url: URL, baseURL: URL) -> String {
         let relativePath = url.path

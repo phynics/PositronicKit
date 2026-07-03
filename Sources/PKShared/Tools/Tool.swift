@@ -128,13 +128,12 @@ public func formatToolsForPrompt(_ tools: [AnyTool]) async -> String {
 
     Rules:
     - Use tools only for missing context.
-    - Create memories frequently via `create_memory`.
-    - Path Resolution: If a tool provenance indicates a specific workspace \
-    (e.g. `[Workspace: project-x]`), all file paths passed to it MUST be relative \
+    - Path Resolution: If a tool is tagged with a workspace provenance \
+    (e.g. `[Workspace: <name>]`), all file paths passed to it MUST be relative \
     to that workspace root.
-    - System Tools: Tools labeled `[System]` have global scope or session-specific sandbox scope.
     - Summarize the result if it is excessively long.
-    - If a tool call fails, you can attempt to recover by correcting the parameters and trying again.
+    - If a tool call fails, the error response tells you what went wrong and how to \
+    fix it (often with a worked example) — correct the arguments and try again.
     - Be specific.
     """
 }
@@ -214,6 +213,7 @@ public struct AnyTool: Tool, Sendable {
     public func summarize(parameters: [String: Any], result: ToolResult) -> String {
         wrapped.summarize(parameters: parameters, result: result)
     }
+
     /// Returns the ``ToolReference`` for this tool, used for internal routing and event emission.
     public var toolReference: ToolReference {
         if let provider = wrapped as? ToolReferenceProviding {

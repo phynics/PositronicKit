@@ -79,17 +79,20 @@ public enum ToolError: PKError, Sendable, Equatable {
     public var remediation: String? {
         switch self {
         case let .missingArgument(arg):
-            return "Check the tool definition and ensure '\(arg)' is provided in the arguments dictionary."
+            return "Add the required '\(arg)' argument to your tool call and try again."
         case let .invalidArgument(arg, expected, got):
             return "Convert the value for '\(arg)' to the expected type (\(expected)). Currently it is \(got)."
         case .malformedArguments:
-            return "Check the LLM output for valid JSON argument formatting."
+            return "Re-emit the tool call with a well-formed JSON object for its arguments " +
+                "(quoted keys/strings, no trailing commas), then try again."
         case .schemaMismatch:
-            return "Check the tool's parameter schema and ensure the LLM supplies matching types and required fields."
-        case let .executionFailed(message):
-            return "Review the tool logs or debug the tool implementation. Error: \(message)"
+            return "Match the tool's parameter schema exactly: supply every required field with the " +
+                "correct type, and omit unknown fields."
+        case .executionFailed:
+            return "Read the error message above, adjust your arguments accordingly, and retry; " +
+                "if it keeps failing, try a different tool or approach."
         case let .toolNotFound(name):
-            return "Ensure the tool '\(name)' is registered in the TimelineToolManager."
+            return "'\(name)' is not one of the available tools. Call a tool from the provided list instead."
         case let .workspaceNotFound(id):
             return "Verify that workspace \(id) exists and is currently attached."
         case .requestOriginUnavailable:

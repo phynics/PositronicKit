@@ -1,6 +1,6 @@
 import Foundation
-@testable import PositronicKit
 import PKShared
+@testable import PositronicKit
 import Testing
 
 // MARK: - Helpers
@@ -109,7 +109,7 @@ struct WorkspacesContextTests {
             requestOriginName: nil
         )
         let output = await section.renderToString() ?? ""
-        #expect(output.contains("You have access to the following workspaces within this session:"))
+        #expect(output.contains("## Available Workspaces"))
         #expect(!output.contains("attached workspaces"))
         #expect(!output.contains("Environment: Attached"))
         #expect(!output.contains("Environment: Primary"))
@@ -248,13 +248,15 @@ struct WorkspacesContextTests {
 
     // MARK: Footer
 
-    @Test("output ends with usage guidance footer")
+    @Test("output ends with the lean workspace routing rules")
     func footerPresent() async {
         let section = WorkspacesContext(
             workspaces: [makeAttachedWS()], primaryWorkspace: nil, requestOriginName: nil
         )
         let output = await section.renderToString() ?? ""
-        #expect(output.hasSuffix("When a user asks you to operate on files or perform actions in these workspaces, you can use the appropriate tools with the workspace's URI or ID.\n"))
+        #expect(output.hasSuffix(
+            "2. When multiple workspaces expose the same tool, pass `workspaceID` to disambiguate; otherwise a default is used.\n"
+        ))
     }
 }
 

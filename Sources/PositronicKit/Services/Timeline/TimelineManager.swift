@@ -326,7 +326,7 @@ public extension TimelineManager {
         ## System Orientation
         - Primary Workspace: Your runtime-managed sandbox.
         - Attached Workspaces: Directories mapped during this timeline.
-        - Context Depth: Use `create_memory` for long-term facts and `Notes/` for project-specific guidance.
+        - Context Depth: Use the `Notes/` directory for long-term facts and project-specific guidance.
         """
         try welcomeNote.write(
             to: notesDir.appendingPathComponent("Welcome.md"),

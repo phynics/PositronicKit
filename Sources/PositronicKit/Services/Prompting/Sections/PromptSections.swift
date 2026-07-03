@@ -156,10 +156,7 @@ public struct ContextNotes: Prompt {
         }.joined(separator: "\n\n")
 
         return """
-        The following context files contain important information about the user, \
-        the project, and your persona. Use them to provide accurate and personalized responses.
-
-        You can edit or create new files in the `Notes/` directory to store long-term information.
+        Context files (edit or add files under `Notes/` to persist long-term information):
 
         \(notesText)
         """
@@ -214,8 +211,7 @@ public struct WorkspacesContext: Prompt {
         let allWorkspaces = (primaryWorkspace.map { [$0] } ?? []) + workspaces.filter { $0.id != primaryWorkspace?.id }
         guard !allWorkspaces.isEmpty else { return output.isEmpty ? nil : output }
 
-        output += "## Available Workspaces\n"
-        output += "You have access to the following workspaces within this session:\n\n"
+        output += "## Available Workspaces\n\n"
 
         for workspace in allWorkspaces {
             output.append("- Workspace ID: `")
@@ -246,9 +242,8 @@ public struct WorkspacesContext: Prompt {
         }
 
         output += "## Workspace Routing Rules\n"
-        output += "1. All file paths passed to tools MUST be relative to the targeted workspace root.\n"
-        output += "2. **IMPORTANT**: If multiple workspaces provide the same tool (e.g. `ls`, `cat`, `grep`), you MUST provide the `workspaceID` argument in your tool call to specify which workspace to use. If omitted, the system will use a default priority that may not match your intent.\n"
-        output += "\nWhen a user asks you to operate on files or perform actions in these workspaces, you can use the appropriate tools with the workspace's URI or ID.\n"
+        output += "1. Paths passed to tools MUST be relative to the targeted workspace root.\n"
+        output += "2. When multiple workspaces expose the same tool, pass `workspaceID` to disambiguate; otherwise a default is used.\n"
 
         return output
     }
@@ -279,7 +274,7 @@ public struct AgentContext: Prompt {
     private var text: String {
         var lines: [String] = [
             "## Your Identity",
-            "You are **\(agent.name)**."
+            "You are **\(agent.name)**.",
         ]
         if !agent.description.isEmpty {
             lines.append("Description: \(agent.description)")

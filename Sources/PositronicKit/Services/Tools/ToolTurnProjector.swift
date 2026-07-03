@@ -45,7 +45,14 @@ enum ToolTurnProjector {
         let toolDisplayName = ANSIColors.colorize(call.name, color: ANSIColors.brightCyan)
         let errorMsg = ErrorKit.userFriendlyMessage(for: error)
         logger.error("Tool \(toolDisplayName) error: \(error.localizedDescription)")
-        let errorOutput = "Error: \(errorMsg)"
+        // Surface the error's built-in remediation (a second-person "how to fix it" hint, often
+        // with a worked example) back to the model so a failed tool call guides recovery rather
+        // than dead-ending. Kept out of the steady-state prompt to stay lean — the model only
+        // pays for this guidance on the turn it actually errors.
+        var errorOutput = "Error: \(errorMsg)"
+        if let remediation = (error as? any PKError)?.remediation, !remediation.isEmpty {
+            errorOutput += "\nHow to fix: \(remediation)"
+        }
         continuation.yield(.toolCompleted(
             toolCallId: call.callId,
             status: .failed(reference: toolRef, error: error.localizedDescription)

@@ -742,6 +742,32 @@ struct ToolTurnProjectorTests {
             return false
         }))
     }
+
+    @Test("Error projection appends the error's remediation as model-facing recovery guidance")
+    func errorProjectionSurfacesRemediation() async throws {
+        let store = MockPersistenceService()
+        let call = ParsedToolCall(callId: "call-3", name: "cat", argumentsJSON: "{}")
+        let error = ToolError.invalidArgument("count", expected: "Int", got: "4.7")
+
+        _ = try await captureProjectedToolEvents { continuation in
+            let message = try await ToolTurnProjector.projectError(
+                error,
+                call: call,
+                toolRef: .known(id: "cat"),
+                timelineId: UUID(),
+                logger: Logger(label: "test.projector"),
+                messageStore: store,
+                continuation: continuation
+            )
+            // The user-friendly message states what went wrong; the remediation tells the
+            // model how to fix it. Both must reach the tool message the model reads next.
+            #expect(message.content.contains("Error:"))
+            #expect(message.content.contains("How to fix:"))
+            #expect(message.content.contains(error.remediation ?? "<none>"))
+        }
+
+        #expect(store.messages.first?.content.contains("How to fix:") == true)
+    }
 }
 
 // MARK: - ParsedToolCall decode contract tests

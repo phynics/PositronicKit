@@ -9,9 +9,19 @@ public protocol PKError: Throwable {
 
     /// A unique integer code for the specific error case within the domain.
     var errorCode: Int { get }
+
+    /// An optional, model/user-facing suggested action to resolve the error. Surfaced back to
+    /// the LLM alongside `userFriendlyMessage` when a tool call fails, so keep it actionable and
+    /// second-person (what the caller should do next), not developer-facing. Default: `nil`.
+    var remediation: String? { get }
 }
 
 public extension PKError {
+    /// Default: no remediation guidance.
+    var remediation: String? {
+        nil
+    }
+
     /// Default technical description that includes domain and code for better traceability.
     var errorDescription: String? {
         "[\(errorDomain):\(errorCode)] \(userFriendlyMessage)"
