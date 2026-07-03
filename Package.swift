@@ -59,7 +59,7 @@ let package = Package(
                 .product(name: "PartialJSON", package: "PartialJSON"),
             ],
             path: "Sources/PositronicKit",
-            exclude: ["README.md", "docs"]
+            exclude: ["README.md"]
         ),
         .target(
             name: "PKLocalEmbeddings",

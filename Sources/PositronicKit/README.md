@@ -4,10 +4,10 @@ PositronicKit is the transport-neutral runtime facade for PositronicKit. It orch
 
 ## Documentation
 
-- [Architecture Overview](docs/Architecture.md) - Deep dive into the engine's design, pipeline stages, and ReAct loop.
-- [Setup & Configuration](docs/Setup.md) - How to configure LLM providers, storage, and runtime wiring.
-- [Usage & Examples](docs/Usage.md) - Step-by-step guide to initializing agents and running chat streams.
-- [Sidecar Directives](docs/SidecarDirectives.md) - Piggy-backed auxiliary generations (title, summary, tone, etc.) riding the same request as a turn's response.
+- [Architecture Overview](../../docs/Architecture.md) - Deep dive into the engine's design, pipeline stages, and ReAct loop.
+- [Setup & Configuration](../../docs/Setup.md) - How to configure LLM providers, storage, and runtime wiring.
+- [Usage & Examples](../../docs/Usage.md) - Step-by-step guide to initializing agents and running chat streams.
+- [Sidecar Directives](../../docs/SidecarDirectives.md) - Piggy-backed auxiliary generations (title, summary, tone, etc.) riding the same request as a turn's response.
 
 ## Logging
 
@@ -44,7 +44,7 @@ Handles the lifecycle of `AgentInstance` entities, including creation from templ
 
 ## Getting Started
 
-To get started with PositronicKit, refer to the [Usage Guide](docs/Usage.md).
+To get started with PositronicKit, refer to the [Usage Guide](../../docs/Usage.md).
 
 ```swift
 import PositronicKit
