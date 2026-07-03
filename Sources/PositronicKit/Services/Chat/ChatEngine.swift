@@ -89,6 +89,7 @@ struct ChatEngine {
         maxTurns: Int = Constants.defaultMaxTurns,
         generationParameters: GenerationParameters? = nil,
         structuredOutput: StructuredOutputRequest? = nil,
+        sidecars: [SidecarDirective] = [],
         contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
         assemblyPipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>? = nil,
         assemblyLogger: Logger? = nil
@@ -97,6 +98,10 @@ struct ChatEngine {
         logger.info("Starting chat stream for timeline \(sid)")
 
         guard await dependencies.llmService.isConfigured else { throw ChatEngineError.llmServiceNotConfigured }
+        guard structuredOutput == nil || sidecars.isEmpty else {
+            throw SidecarError.conflictsWithExplicitStructuredOutput
+        }
+        try SidecarSchemaComposer.validate(sidecars)
 
         let context = try await prepareSession(
             timelineId: timelineId,
@@ -109,6 +114,7 @@ struct ChatEngine {
             maxTurns: maxTurns,
             generationParameters: generationParameters,
             structuredOutput: structuredOutput,
+            sidecars: sidecars,
             contextPipeline: contextPipeline,
             assemblyPipeline: assemblyPipeline,
             assemblyLogger: assemblyLogger

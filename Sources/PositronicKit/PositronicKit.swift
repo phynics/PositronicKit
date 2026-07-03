@@ -244,6 +244,9 @@ public struct PositronicKit: Sendable {
     ///   - maxTurns: Maximum number of LLM turns before stopping. Defaults to 5.
     ///   - generationParameters: Optional parameters for generation (overrides defaults).
     ///   - structuredOutput: Optional provider-enforced structured output request for the turn.
+    ///   - sidecars: Optional piggy-backed auxiliary generations (title, summary, tone, etc.)
+    ///     riding the same request as this turn's response. Mutually exclusive with
+    ///     `structuredOutput` — passing both throws `SidecarError.conflictsWithExplicitStructuredOutput`.
     ///   - promptAssemblyLogger: Optional `swift-log` logger that enables prompt-assembly
     ///     diagnostics for this turn (stage execution, section resolution, and token-budget
     ///     decisions). Control verbosity through the logger's log level. Defaults to no diagnostics.
@@ -258,6 +261,7 @@ public struct PositronicKit: Sendable {
         maxTurns: Int = 5,
         generationParameters: GenerationParameters? = nil,
         structuredOutput: StructuredOutputRequest? = nil,
+        sidecars: [SidecarDirective] = [],
         promptAssemblyLogger: Logger? = nil
     ) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         let resolvedContextManager = await resolveContextManager(
@@ -276,6 +280,7 @@ public struct PositronicKit: Sendable {
             maxTurns: maxTurns,
             generationParameters: generationParameters ?? defaultGenerationParameters,
             structuredOutput: structuredOutput,
+            sidecars: sidecars,
             assemblyLogger: promptAssemblyLogger
         )
     }

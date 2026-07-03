@@ -55,10 +55,19 @@ extension ChatEngine {
         maxTurns: Int,
         generationParameters: GenerationParameters?,
         structuredOutput: StructuredOutputRequest?,
+        sidecars: [SidecarDirective] = [],
         contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
         assemblyPipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>? = nil,
         assemblyLogger: Logger? = nil
     ) async throws -> ChatTurnContext {
+        // Sidecar directives steer generation only through prompt instructions (see
+        // SidecarSchemaComposer's type-level note / ticket SDC-7) — appended once here, at the
+        // seam where `systemInstructions` is resolved for both prompt assembly and the turn
+        // context, rather than branched deeper in prompt-assembly logic.
+        let effectiveSystemInstructions: String? = sidecars.isEmpty
+            ? systemInstructions
+            : (systemInstructions ?? "") + SidecarSchemaComposer.instructionBlock(directives: sidecars)
+
         // 1. Save new inputs (user message or externally submitted tool outputs)
         try await saveConversationSteps(timelineId: timelineId, message: message, toolOutputs: toolOutputs)
 
@@ -108,7 +117,7 @@ extension ChatEngine {
             workspaces: workspaceResult?.attached ?? [],
             primaryWorkspace: workspaceResult?.primary,
             requestOriginName: requestOriginName,
-            systemInstructions: systemInstructions,
+            systemInstructions: effectiveSystemInstructions,
             generationParameters: generationParameters
         )
 
@@ -180,12 +189,13 @@ extension ChatEngine {
             agentInstanceId: agentInstanceId,
             modelName: modelName,
             maxTurns: maxTurns,
-            systemInstructions: systemInstructions,
+            systemInstructions: effectiveSystemInstructions,
             availableTools: tools,
             contextData: contextData,
             remoteDepth: currentRemoteDepth,
             generationParameters: generationParameters,
             structuredOutput: structuredOutput,
+            sidecars: sidecars,
             promptHistory: promptHistory,
             renderedPrompt: renderedPrompt,
             promptHistoryUpdate: update,
