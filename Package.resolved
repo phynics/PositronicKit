@@ -1,5 +1,5 @@
 {
-  "originHash" : "1679c1703bb5f6994c9760150cffd7dc8f82d3aa86622e0b572936b22c64dc4c",
+  "originHash" : "687a620ce48ca8431c674502587935178aa7b314bbf21d22657eaa25f6723244",
   "pins" : [
     {
       "identity" : "errorkit",
@@ -20,12 +20,12 @@
       }
     },
     {
-      "identity" : "swift-argument-parser",
+      "identity" : "partialjson",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-argument-parser",
+      "location" : "https://github.com/itruf/PartialJSON.git",
       "state" : {
-        "revision" : "6a52f3251125d74daf04fcbd5e6f08a75d074382",
-        "version" : "1.8.2"
+        "revision" : "051f51d551026c056c5ee7ddd0310f7813484a8f",
+        "version" : "0.0.2"
       }
     },
     {
@@ -89,15 +89,6 @@
       "state" : {
         "revision" : "2b59c0c741e9184ab057fd22950b491076d42e91",
         "version" : "603.0.0"
-      }
-    },
-    {
-      "identity" : "swiftterm",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/migueldeicaza/SwiftTerm",
-      "state" : {
-        "revision" : "8e7a1e154f470e19c709a00a8768df348ba5fc43",
-        "version" : "1.13.0"
       }
     }
   ],

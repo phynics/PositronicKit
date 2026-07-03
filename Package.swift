@@ -29,6 +29,7 @@ let package = Package(
         .package(url: "https://github.com/FlineDev/ErrorKit", from: "1.0.0"),
         .package(url: "https://github.com/ajevans99/swift-json-schema", exact: "0.11.2"),
         .package(url: "https://github.com/apple/swift-crypto.git", exact: "3.15.1"),
+        .package(url: "https://github.com/itruf/PartialJSON.git", exact: "0.0.2"),
     ],
     targets: [
         .target(
@@ -55,6 +56,7 @@ let package = Package(
                 .product(name: "ErrorKit", package: "ErrorKit"),
                 .product(name: "JSONSchema", package: "swift-json-schema"),
                 .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
+                .product(name: "PartialJSON", package: "PartialJSON"),
             ],
             path: "Sources/PositronicKit",
             exclude: ["README.md", "docs"]
