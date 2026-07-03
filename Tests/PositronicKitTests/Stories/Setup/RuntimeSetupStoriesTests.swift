@@ -82,6 +82,37 @@ import Testing
         #expect(client is OpenRouterClient)
     }
 
+    @Test("OpenRouter convenience initialization threads applicationURL/applicationTitle into real attribution headers (PKR-4)")
+    func openRouterConvenienceInitializationWiresAttribution() async throws {
+        let chat = PositronicKit(
+            openRouterKey: "or-test-key",
+            model: "openai/gpt-4.1-mini",
+            applicationURL: "https://example.com/app",
+            applicationTitle: "Example App"
+        )
+
+        let config = await chat.llmService.configuration
+        #expect(config.applicationURL == "https://example.com/app")
+        #expect(config.applicationTitle == "Example App")
+
+        let llm = try #require(chat.llmService as? LLMService)
+        let client = try #require(await llm.getClient() as? OpenRouterClient)
+        let attribution = await client.currentAttribution
+        #expect(attribution.applicationURL == "https://example.com/app")
+        #expect(attribution.applicationTitle == "Example App")
+    }
+
+    @Test("OpenRouter convenience initialization omits attribution when applicationURL/applicationTitle are nil (PKR-4)")
+    func openRouterConvenienceInitializationOmitsAttributionWhenNil() async throws {
+        let chat = PositronicKit(openRouterKey: "or-test-key", model: "openai/gpt-4.1-mini")
+
+        let llm = try #require(chat.llmService as? LLMService)
+        let client = try #require(await llm.getClient() as? OpenRouterClient)
+        let attribution = await client.currentAttribution
+        #expect(attribution.applicationURL == nil)
+        #expect(attribution.applicationTitle == nil)
+    }
+
     @Test("Ollama convenience initialization configures a registered Ollama client")
     func ollamaInitialization() async throws {
         let model = "llama3"

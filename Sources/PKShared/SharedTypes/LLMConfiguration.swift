@@ -82,6 +82,20 @@ public struct LLMConfiguration: Codable, Sendable, Equatable {
         set { providers[activeProvider]?.seed = newValue }
     }
 
+    /// Attribution URL sent as `HTTP-Referer` by providers that support attribution headers
+    /// (currently OpenRouter). `nil` omits the header entirely rather than sending it empty.
+    public var applicationURL: String? {
+        get { providers[activeProvider]?.applicationURL }
+        set { providers[activeProvider]?.applicationURL = newValue }
+    }
+
+    /// Attribution title sent as `X-Title` by providers that support attribution headers
+    /// (currently OpenRouter). `nil` omits the header entirely rather than sending it empty.
+    public var applicationTitle: String? {
+        get { providers[activeProvider]?.applicationTitle }
+        set { providers[activeProvider]?.applicationTitle = newValue }
+    }
+
     public var generationParameters: GenerationParameters {
         providers[activeProvider]?.generationParameters ?? GenerationParameters()
     }
@@ -148,7 +162,9 @@ public struct LLMConfiguration: Codable, Sendable, Equatable {
         topP: Double? = nil,
         frequencyPenalty: Double? = nil,
         presencePenalty: Double? = nil,
-        seed: Int? = nil
+        seed: Int? = nil,
+        applicationURL: String? = nil,
+        applicationTitle: String? = nil
     ) {
         activeProvider = provider
         self.memoryContextLimit = memoryContextLimit
@@ -176,7 +192,9 @@ public struct LLMConfiguration: Codable, Sendable, Equatable {
             topP: topP,
             frequencyPenalty: frequencyPenalty,
             presencePenalty: presencePenalty,
-            seed: seed
+            seed: seed,
+            applicationURL: applicationURL,
+            applicationTitle: applicationTitle
         )
 
         providers = initialProviders
