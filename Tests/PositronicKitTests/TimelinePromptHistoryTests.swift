@@ -172,6 +172,36 @@ actor TimelinePromptHistoryTests {
         #expect(diff.stableNodePaths == [updatedPrompt.sections[0].path, updatedPrompt.sections[2].path])
     }
 
+    @Test("PromptJournal and runtime history share semistable diff IDs while runtime also tracks cache prefix")
+    func promptJournalAndRuntimeHistoryShareSemistableDiffIDs() async throws {
+        var journal = PromptJournal()
+        let history = TimelinePromptHistory()
+
+        let initialPrompt = try AnyPrompt.build {
+            TimelineSection(id: "system", cachePolicy: .stable, text: "System")
+            TimelineSection(id: "context", cachePolicy: .semiStable, text: "Context v1")
+            TimelineSection(id: "query", cachePolicy: .volatile, text: "Question")
+        }.assemblePrompt()
+        let initialRendered = await initialPrompt.render()
+
+        _ = journal.observe(initialRendered)
+        _ = await history.record(prompt: initialPrompt)
+
+        let updatedPrompt = try AnyPrompt.build {
+            TimelineSection(id: "system", cachePolicy: .stable, text: "System")
+            TimelineSection(id: "context", cachePolicy: .semiStable, text: "Context v2")
+            TimelineSection(id: "query", cachePolicy: .volatile, text: "Question")
+        }.assemblePrompt()
+        let updatedRendered = await updatedPrompt.render()
+
+        let journalPlan = journal.observe(updatedRendered)
+        let runtimeDiff = await history.record(prompt: updatedPrompt)
+
+        #expect(journalPlan.requiresHardReset == false)
+        #expect(journalPlan.diff == runtimeDiff.publicJournalDiff)
+        #expect(runtimeDiff.stablePrefixCount == 1)
+    }
+
     @Test("Records an assembled prompt directly")
     func recordsAssembledPromptDirectly() async throws {
         let history = TimelinePromptHistory()

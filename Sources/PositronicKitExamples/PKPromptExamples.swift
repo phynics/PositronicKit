@@ -95,13 +95,15 @@ public enum PKPromptExamples {
     /// README Layer 3: RenderedPrompt → PromptJournal.
     ///
     /// Prompt structure survives across snapshots: stable content stays materialized,
-    /// semi-stable changes become overlays, volatile content stays current-only.
+    /// semi-stable changes become overlays, volatile content stays current-only, and accepted
+    /// assistant/tool appends can trigger auto-compaction into a new baseline.
     public static func journalLayer3() async throws -> (
         initialPlan: PromptJournalPlan,
         updatedPlan: PromptJournalPlan,
+        autoCompactedPlan: PromptJournalPlan,
         compactedPlan: PromptJournalPlan?
     ) {
-        var journal = PromptJournal()
+        var journal = PromptJournal(thresholds: .init(maxAppendedTokens: 1, maxAppendedMessages: 1))
 
         let first = try await AnyPrompt.build {
             SystemPrompt("You are helping with project tooling.")
@@ -119,8 +121,13 @@ public enum PKPromptExamples {
 
         let initialPlan = journal.observe(first)
         let updatedPlan = journal.observe(second)
+        journal.recordAppend(messages: [
+            Message(content: "Use build, then verify with tests.", role: .assistant),
+            Message(content: "Tool output: build succeeded.", role: .tool),
+        ])
+        let autoCompactedPlan = journal.observe(second)
         let compactedPlan = journal.compact()
-        return (initialPlan, updatedPlan, compactedPlan)
+        return (initialPlan, updatedPlan, autoCompactedPlan, compactedPlan)
     }
 }
 
