@@ -270,7 +270,7 @@ private extension OpenRouterStreamChunk {
                     thinking: choice.delta.reasoning,
                     toolCalls: mappedToolCalls
                 ),
-                finishReason: choice.finishReason
+                finishReason: choice.finishReason.map { FinishReason(wireValue: $0).wireValue }
             )
         }
         return LLMStreamChunk(
@@ -613,7 +613,7 @@ public actor OpenRouterClient: LLMClientProtocol {
                     content: choice.message.content,
                     toolCalls: mappedToolCalls
                 ),
-                finishReason: choice.finishReason
+                finishReason: FinishReason(wireValue: choice.finishReason).wireValue
             )],
             usage: response.usage.map {
                 LLMTokenUsage(

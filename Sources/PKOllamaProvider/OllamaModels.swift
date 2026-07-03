@@ -165,6 +165,12 @@ struct OllamaChatResponse: Codable {
     let createdAt: String?
     let message: OllamaMessage
     let done: Bool
+    /// Ollama's own completion-reason signal (PKR-13), only meaningful when `done == true`.
+    /// Observed wire values include `"stop"` (natural stop) and `"length"` (the response was
+    /// truncated because `num_predict`/context limits were hit). Previously undecoded, so a
+    /// truncated response was indistinguishable from a normal stop once `finishReason` was
+    /// synthesized in `OllamaClient.buildFinalChunk`.
+    let doneReason: String?
     let totalDuration: Int64?
     let loadDuration: Int64?
     let promptEvalCount: Int?
@@ -175,6 +181,7 @@ struct OllamaChatResponse: Codable {
         case createdAt = "created_at"
         case message
         case done
+        case doneReason = "done_reason"
         case totalDuration = "total_duration"
         case loadDuration = "load_duration"
         case promptEvalCount = "prompt_eval_count"
