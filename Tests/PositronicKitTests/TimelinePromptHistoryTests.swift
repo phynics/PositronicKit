@@ -1,8 +1,8 @@
 import Foundation
 import PKPrompt
 import PKShared
-import Testing
 @testable import PositronicKit
+import Testing
 
 private func makePromptWorkspace(id: UUID = UUID(), path: String) -> WorkspaceReference {
     WorkspaceReference(
@@ -242,9 +242,9 @@ actor TimelinePromptHistoryTests {
     }
 
     @Test("Exposes subtree diff node-path stats")
-    func exposesSubtreeDiffStats() async {
+    func exposesSubtreeDiffStats() async throws {
         let history = TimelinePromptHistory()
-        let sections = try! AnyPrompt([
+        let sections = try AnyPrompt([
             TimelineSection(id: "system", cachePolicy: .stable, text: "A"),
             TimelineSection(id: "query", cachePolicy: .volatile, text: "B"),
         ]).assemblePrompt().sections
@@ -291,5 +291,107 @@ actor TimelinePromptHistoryTests {
         #expect(diff.changed.map { $0.entryId } == ["workspaces"])
         #expect(diff.added.isEmpty)
         #expect(diff.removed.isEmpty)
+    }
+}
+
+@Suite("TimelinePromptHistoryRegistry")
+actor TimelinePromptHistoryRegistryTests {
+    @Test("history(for:) reuses the same instance for the same timeline id")
+    func historyReusesSameInstanceForSameTimelineId() async {
+        let registry = TimelinePromptHistoryRegistry()
+        let timelineId = UUID()
+
+        let first = await registry.history(for: timelineId)
+        await first.recordAppend(messageCount: 3, estimatedTokens: 42)
+
+        let second = await registry.history(for: timelineId)
+
+        // Same underlying actor: state set via `first` is visible through `second`.
+        #expect(await second.appendedMessageCount == 3)
+        #expect(await second.appendedTokens == 42)
+    }
+
+    @Test("history(for:) isolates state across different timeline ids")
+    func historyIsolatesStateAcrossDifferentTimelineIds() async {
+        let registry = TimelinePromptHistoryRegistry()
+        let timelineA = UUID()
+        let timelineB = UUID()
+
+        let historyA = await registry.history(for: timelineA)
+        await historyA.recordAppend(messageCount: 5, estimatedTokens: 100)
+
+        let historyB = await registry.history(for: timelineB)
+
+        #expect(await historyA.appendedMessageCount == 5)
+        #expect(await historyB.appendedMessageCount == 0)
+        #expect(await historyB.appendedTokens == 0)
+    }
+
+    @Test("removeHistory(for:) followed by history(for:) yields a fresh instance")
+    func removeHistoryYieldsFreshInstance() async {
+        let registry = TimelinePromptHistoryRegistry()
+        let timelineId = UUID()
+
+        let original = await registry.history(for: timelineId)
+        await original.recordAppend(messageCount: 7, estimatedTokens: 200)
+        #expect(await original.appendedMessageCount == 7)
+
+        await registry.removeHistory(for: timelineId)
+
+        let fresh = await registry.history(for: timelineId)
+
+        #expect(await fresh.appendedMessageCount == 0)
+        #expect(await fresh.appendedTokens == 0)
+        #expect(await fresh.lastDiff == nil)
+    }
+
+    @Test("Exceeding the max entry count evicts the least-recently-accessed timeline")
+    func exceedingMaxEntriesEvictsLeastRecentlyAccessed() async {
+        let cap = 5
+        let registry = TimelinePromptHistoryRegistry(
+            evictionPolicy: RegistryEvictionPolicy(maxEntries: cap)
+        )
+
+        var timelineIds: [UUID] = []
+        var historiesById: [UUID: TimelinePromptHistory] = [:]
+        for _ in 0 ..< cap {
+            let id = UUID()
+            timelineIds.append(id)
+            historiesById[id] = await registry.history(for: id)
+        }
+
+        // Mark the second-oldest timeline with distinguishing state via its *already-captured*
+        // actor reference, never going back through `registry.history(for:)` for it again until
+        // the final check below — `history(for:)` itself refreshes recency on every call (hit
+        // or miss), so re-fetching through the registry here would accidentally un-stale it.
+        // If eviction never fires (or evicts the wrong entry), re-fetching this id through the
+        // registry after the cap-exceeding push would still report this marker value instead of
+        // the fresh-instance default, so the final assertion can't pass by coincidence the way a
+        // bare "== 0" check against never-touched state could (trivially true both when the
+        // entry was correctly evicted-and-recreated AND when eviction silently never fired).
+        let staleId = timelineIds[1]
+        await historiesById[staleId]?.recordAppend(messageCount: 99, estimatedTokens: 99)
+
+        // Refresh the recency of the first (oldest-by-insertion) timeline, through the registry,
+        // so it is no longer the least-recently-accessed entry (this call's own `touch()` is
+        // exactly the kind of registry access `staleId` above deliberately avoided).
+        let refreshedId = timelineIds[0]
+        let refreshedHistory = await registry.history(for: refreshedId)
+        await refreshedHistory.recordAppend(messageCount: 1, estimatedTokens: 1)
+
+        // Push past the cap: this should evict `staleId`, not `refreshedId`.
+        let newId = UUID()
+        _ = await registry.history(for: newId)
+
+        // The refreshed timeline must have survived eviction with its state intact.
+        let stillPresent = await registry.history(for: refreshedId)
+        #expect(await stillPresent.appendedMessageCount == 1)
+
+        // The stale timeline should have been evicted: asking for it again creates a *fresh*
+        // instance (appendedMessageCount reset to 0, not the 99 marker), proving the old one
+        // with its marker state was actually dropped rather than merely never having been
+        // touched.
+        let evictedAndRecreated = await registry.history(for: staleId)
+        #expect(await evictedAndRecreated.appendedMessageCount == 0)
     }
 }
