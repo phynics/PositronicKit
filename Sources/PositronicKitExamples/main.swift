@@ -22,7 +22,7 @@ func runExamples() async throws {
     // README "Choosing A Layer" examples — kept compile-checked here.
     let layer1 = try await PKPromptExamples.renderLayer1ToString()
     let (layer2Assembled, layer2Rendered) = try await PKPromptExamples.assembleLayer2()
-    let (initialPlan, updatedPlan, compactedPlan) = try await PKPromptExamples.journalLayer3()
+    let (initialPlan, updatedPlan, autoCompactedPlan, compactedPlan) = try await PKPromptExamples.journalLayer3()
 
     _ = PositronicKitUsageExamples.makePrototypeRuntime()
     _ = PositronicKitUsageExamples.makeConfiguredRuntime()
@@ -52,6 +52,7 @@ func runExamples() async throws {
     print("\nLayer 3 (RenderedPrompt → PromptJournal):")
     print("  base section paths:    \(initialPlan.baseSections.map(\.journalPath))")
     print("  overlay section paths: \(updatedPlan.overlaySections.map(\.journalPath))")
+    print("  overlays empty after auto-compact: \(autoCompactedPlan.overlaySections.isEmpty)")
     print("  overlays empty after compact: \(compactedPlan?.overlaySections.isEmpty ?? false)")
 
     print("\nRun this executable with `swift run PositronicKitExamples`.")

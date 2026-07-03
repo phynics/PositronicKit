@@ -226,7 +226,7 @@ public actor OllamaClient: LLMClientProtocol {
     ) -> LLMStreamChunk {
         let promptEvalCount = response.promptEvalCount ?? 0
         let evalCount = response.evalCount ?? 0
-        let finishReason = response.message.toolCalls?.isEmpty == false ? "tool_calls" : "stop"
+        let finishReason = mapFinishReason(response).wireValue
         return LLMStreamChunk(
             id: UUID().uuidString,
             model: response.model,
@@ -246,6 +246,22 @@ public actor OllamaClient: LLMClientProtocol {
                 totalTokens: promptEvalCount + evalCount
             )
         )
+    }
+
+    /// Maps Ollama's completion signal onto the shared `FinishReason` vocabulary (PKR-13).
+    /// Tool-call detection takes priority (matching prior behavior): it is driven by the
+    /// presence of `message.tool_calls`, not by `done_reason`, since Ollama does not
+    /// consistently populate `done_reason` with a tool-call-specific value. Otherwise,
+    /// `done_reason` is mapped directly — most notably `"length"`, which previously collapsed
+    /// into `"stop"` and made truncated responses indistinguishable from normal completions.
+    private nonisolated func mapFinishReason(_ response: OllamaChatResponse) -> FinishReason {
+        if response.message.toolCalls?.isEmpty == false {
+            return .toolCalls
+        }
+        guard let doneReason = response.doneReason else {
+            return .stop
+        }
+        return FinishReason(wireValue: doneReason)
     }
 
     private nonisolated func buildIntermediateChunk(

@@ -95,7 +95,7 @@ extension ChatStreamResult {
                     thinking: choice.delta.reasoning,
                     toolCalls: mappedToolCalls
                 ),
-                finishReason: choice.finishReason?.rawValue
+                finishReason: choice.finishReason.map { mapFinishReason($0).wireValue }
             )
         }
 
@@ -143,7 +143,7 @@ extension ChatResult {
                     thinking: choice.message.reasoning,
                     toolCalls: mappedToolCalls
                 ),
-                finishReason: choice.finishReason
+                finishReason: FinishReason(wireValue: choice.finishReason).wireValue
             )],
             usage: usage.map {
                 LLMTokenUsage(
@@ -160,6 +160,23 @@ extension ChatResult {
 private func convertToOpenAISchema(_ schema: Schema) -> JSONSchema? {
     guard let data = try? JSONEncoder().encode(schema) else { return nil }
     return try? JSONDecoder().decode(JSONSchema.self, from: data)
+}
+
+private func mapFinishReason(_ reason: ChatStreamResult.Choice.FinishReason) -> FinishReason {
+    switch reason {
+    case .stop:
+        return .stop
+    case .length:
+        return .length
+    case .toolCalls:
+        return .toolCalls
+    case .contentFilter:
+        return .contentFilter
+    case .functionCall:
+        return .other(reason.rawValue)
+    @unknown default:
+        return .other(reason.rawValue)
+    }
 }
 
 private func mapRole(_ role: ChatQuery.ChatCompletionMessageParam.Role) -> LLMMessage.Role? {

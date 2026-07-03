@@ -270,7 +270,7 @@ private extension OpenRouterStreamChunk {
                     thinking: choice.delta.reasoning,
                     toolCalls: mappedToolCalls
                 ),
-                finishReason: choice.finishReason
+                finishReason: choice.finishReason.map { FinishReason(wireValue: $0).wireValue }
             )
         }
         return LLMStreamChunk(
@@ -364,6 +364,13 @@ public actor OpenRouterClient: LLMClientProtocol {
         if port != 443, port != 80 { urlString += ":\(port)" }
         if !urlString.contains("/api") { urlString += "/api" }
         endpoint = URL(string: urlString) ?? URL(string: "https://openrouter.ai/api")!
+    }
+
+    /// Exposes the configured attribution for `@testable` verification that the public
+    /// `PositronicKit.init(openRouterKey:...)` → `LLMConfiguration` → registry factory path
+    /// actually threads `applicationURL`/`applicationTitle` through to a real client (PKR-4).
+    var currentAttribution: Attribution {
+        attribution
     }
 
     public func chatStream(
@@ -606,7 +613,7 @@ public actor OpenRouterClient: LLMClientProtocol {
                     content: choice.message.content,
                     toolCalls: mappedToolCalls
                 ),
-                finishReason: choice.finishReason
+                finishReason: FinishReason(wireValue: choice.finishReason).wireValue
             )],
             usage: response.usage.map {
                 LLMTokenUsage(

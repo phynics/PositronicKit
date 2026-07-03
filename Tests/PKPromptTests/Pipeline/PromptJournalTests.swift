@@ -78,6 +78,29 @@ struct PromptJournalTests {
         #expect(compacted?.volatileSections.map(\.section.id) == ["user_query"])
     }
 
+    @Test("Append pressure auto-compacts the latest accepted observation before the next diff")
+    func appendPressureAutoCompactsLatestObservation() async {
+        var journal = PromptJournal(thresholds: .init(maxAppendedTokens: 1, maxAppendedMessages: 1))
+        _ = journal.observe(await renderPrompt(system: "System v1", context: "Context v1", query: "Question"))
+        _ = journal.observe(await renderPrompt(system: "System v1", context: "Context v2", query: "Question"))
+
+        journal.recordAppend(messages: [
+            Message(content: "Assistant reply", role: .assistant),
+            Message(content: "Tool output", role: .tool),
+        ])
+
+        #expect(journal.shouldCompact)
+
+        let plan = journal.observe(await renderPrompt(system: "System v1", context: "Context v2", query: "Question"))
+
+        #expect(!journal.shouldCompact)
+        #expect(plan.requiresHardReset == false)
+        #expect(plan.baseSections.map(\.section.id) == ["system", "context"])
+        #expect(plan.baseSections[1].renderedText == "Context v2")
+        #expect(plan.overlaySections.isEmpty)
+        #expect(plan.diff.hasOverlayChanges == false)
+    }
+
     @Test("Volatile changes never enter the committed base")
     func volatileChangesStayOutOfBase() async {
         var journal = PromptJournal()
@@ -156,6 +179,22 @@ struct PromptJournalTests {
         #expect(messages[0].content.contains("<prompt_journal_remove"))
         #expect(messages[0].content.contains("id=\"context\""))
         #expect(messages[1].role == .user)
+    }
+
+    @Test("Manual compact clears append pressure")
+    func manualCompactClearsAppendPressure() async {
+        var journal = PromptJournal(thresholds: .init(maxAppendedTokens: 1, maxAppendedMessages: 1))
+        _ = journal.observe(await renderPrompt(system: "System v1", context: "Context v1", query: "Question"))
+
+        journal.recordAppend(messages: [
+            Message(content: "Assistant reply", role: .assistant),
+            Message(content: "Tool output", role: .tool),
+        ])
+        #expect(journal.shouldCompact)
+
+        _ = journal.compact()
+
+        #expect(!journal.shouldCompact)
     }
 }
 

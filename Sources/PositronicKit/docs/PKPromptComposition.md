@@ -70,9 +70,17 @@ Use `PromptJournal` when your application needs a prompt-facing abstraction, for
 
 - visualizing prompt evolution over time
 - deciding when a semistable overlay should be compacted into a new base
+- tracking append pressure from accepted assistant/tool messages and auto-compacting the latest accepted prompt when the journal grows too stale
 - working with prompt sections and journal layers directly outside the runtime loop
 
 In that role, `PromptJournal` is the recommended public abstraction.
+
+`PromptJournal` now has built-in append-pressure thresholds (`PromptJournalCompactionThresholds`).
+After you accept a turn and append its assistant/tool messages to conversation history, record
+that pressure with `recordAppend(messages:)` (or `recordAppend(messageCount:estimatedTokens:)`).
+When the thresholds are exceeded, the next `observe(_:)` auto-promotes the latest accepted prompt
+into a new committed base before diffing again. This gives standalone prompt consumers the same
+kind of safety valve that the runtime uses, without coupling them to runtime-only types.
 
 ### What `TimelinePromptHistory` is for
 
@@ -83,6 +91,12 @@ In that role, `PromptJournal` is the recommended public abstraction.
 - compact append state when message-count or token thresholds are exceeded
 
 If you are adopting `PositronicKit`, you usually do not need to instantiate or manage `TimelinePromptHistory` directly. It is runtime machinery, not the primary prompt-facing journaling surface.
+
+The two systems intentionally overlap only partially:
+
+- `PromptJournal` is authoritative for prompt-facing base / overlay / volatile layering and hard-reset semantics when stable prompt content changes.
+- `TimelinePromptHistory` is authoritative for runtime cache-prefix accounting (`stablePrefixCount`) and append-pressure tracking inside the chat loop.
+- For semistable prompt changes, their diff IDs are kept aligned and tested together, but they are not the same abstraction.
 
 ### Canonical recommendation
 
