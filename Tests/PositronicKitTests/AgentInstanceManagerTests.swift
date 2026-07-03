@@ -168,4 +168,64 @@ struct AgentInstanceManagerTests {
         let resultsEmpty = try await manager.searchInstances(query: "")
         #expect(resultsEmpty.count == 2)
     }
+
+    @Test("Deletion: routes private-timeline deletion through TimelineManager when injected (PKR-3)")
+    func deleteInstanceEvictsTimelineManagerCacheAndRegistry() async throws {
+        // Use the same in-memory stores across the TimelineManager and the
+        // AgentInstanceManager so the private timeline created by the agent
+        // manager is visible to the timeline manager's store and cache.
+        let timelineStore = InMemoryTimelinePersistence()
+        let messageStore = InMemoryMessageStore()
+        let workspaceStore = InMemoryWorkspacePersistence()
+        let instanceStore = InMemoryAgentInstanceStore()
+        let registry = TimelinePromptHistoryRegistry()
+        let workspaceRoot = getTestWorkspaceRoot().appendingPathComponent(UUID().uuidString)
+
+        let timelineManager = TimelineManager(
+            stores: .init(
+                timelineStore: timelineStore,
+                messageStore: messageStore,
+                workspaceStore: workspaceStore,
+                toolPersistence: InMemoryToolPersistence()
+            ),
+            workspaceRoot: workspaceRoot,
+            promptHistoryRegistry: registry
+        )
+
+        let repo = AgentWorkspaceService(
+            workspaceRoot: workspaceRoot,
+            workspacePersistence: workspaceStore
+        )
+        let manager = AgentInstanceManager(
+            repository: repo,
+            stores: .init(
+                instanceStore: instanceStore,
+                timelineStore: timelineStore,
+                messageStore: messageStore,
+                workspaceStore: workspaceStore
+            ),
+            timelineManager: timelineManager
+        )
+
+        let instance = try await manager.createInstance(name: "Eviction Target", description: "Desc")
+
+        // Hydrate the private timeline into the TimelineManager cache and populate the registry.
+        try await timelineManager.hydrateTimeline(id: instance.privateTimelineId)
+        #expect(await timelineManager.getTimeline(id: instance.privateTimelineId) != nil)
+
+        let history = await registry.history(for: instance.privateTimelineId)
+        await history.recordAppend(messageCount: 4, estimatedTokens: 120)
+        #expect(await history.appendedMessageCount == 4)
+
+        // Delete the agent — the private timeline's cache entry and registry entry
+        // should be evicted alongside the persisted row, not orphaned.
+        try await manager.deleteInstance(id: instance.id, force: false)
+
+        #expect(await timelineManager.getTimeline(id: instance.privateTimelineId) == nil,
+               "Private timeline should be evicted from the TimelineManager cache")
+
+        let fresh = await registry.history(for: instance.privateTimelineId)
+        #expect(await fresh.appendedMessageCount == 0,
+               "Prompt-history registry entry should be evicted, not orphaned")
+    }
 }

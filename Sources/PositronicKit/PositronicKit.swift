@@ -169,7 +169,8 @@ public struct PositronicKit: Sendable {
             workspaceCreator: workspaceCreator,
             sectionProviders: sectionProviders,
             runtimeToolPolicy: runtimeToolPolicy,
-            embeddingService: self.embeddingService
+            embeddingService: self.embeddingService,
+            promptHistoryRegistry: promptHistoryRegistry
         )
         timelineManager = resolvedTimelineManager
         toolRouter = ToolRouter(

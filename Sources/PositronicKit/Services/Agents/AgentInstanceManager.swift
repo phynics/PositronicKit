@@ -37,17 +37,23 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
     private let workspaceStore: any WorkspacePersistenceProtocol
 
     private let repository: any AgentWorkspaceServiceProtocol
+    /// When non-nil, private-timeline deletion routes through `TimelineManager.deleteTimeline(id:)`
+    /// so the in-memory caches and prompt-history registry entry are evicted alongside persistence,
+    /// not just the persisted row (PKR-3).
+    private let timelineManager: TimelineManager?
     private let logger = Logger.module(named: "agent-instance-manager")
 
     public init(
         repository: any AgentWorkspaceServiceProtocol,
-        stores: Stores
+        stores: Stores,
+        timelineManager: TimelineManager? = nil
     ) {
         self.repository = repository
         self.instanceStore = stores.instanceStore
         self.timelineStore = stores.timelineStore
         self.messageStore = stores.messageStore
         self.workspaceStore = stores.workspaceStore
+        self.timelineManager = timelineManager
     }
 
     public init(repository: any AgentWorkspaceServiceProtocol) {
@@ -279,7 +285,12 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
             }
         }
 
-        // 2. Delete private timeline
+        // 2. Delete private timeline. Evict the in-memory caches + prompt-history
+        //    registry via the TimelineManager seam when available (PKR-3), then
+        //    delete the persisted row.
+        if let timelineManager {
+            await timelineManager.deleteTimeline(id: instance.privateTimelineId)
+        }
         try? await timelineStore.deleteTimeline(id: instance.privateTimelineId)
 
         // 3. Delete database record

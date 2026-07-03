@@ -37,6 +37,71 @@ struct TimelineManagerTests {
         #expect(retrieved == nil, "Session should be cleaned up")
     }
 
+    @Test("deleteTimeline(id:) evicts the prompt-history registry entry, not just the cache")
+    func deleteTimelineEvictsPromptHistory() async throws {
+        let workspace = TestWorkspace()
+        let registry = TimelinePromptHistoryRegistry()
+        let timelineManager = TimelineManager(
+            workspaceRoot: workspace.root,
+            promptHistoryRegistry: registry
+        )
+
+        let session = try await timelineManager.createTimeline()
+
+        // Populate the registry with distinguishing state.
+        let history = await registry.history(for: session.id)
+        await history.recordAppend(messageCount: 3, estimatedTokens: 90)
+        #expect(await history.appendedMessageCount == 3)
+
+        // deleteTimeline is the runtime-eviction seam: cache + registry.
+        await timelineManager.deleteTimeline(id: session.id)
+
+        // Cache evicted.
+        #expect(await timelineManager.getTimeline(id: session.id) == nil)
+
+        // Registry evicted — re-fetch yields a fresh instance with reset state.
+        let fresh = await registry.history(for: session.id)
+        #expect(await fresh.appendedMessageCount == 0)
+        #expect(await fresh.appendedTokens == 0)
+        #expect(await fresh.lastDiff == nil)
+    }
+
+    @Test("cleanupStaleTimelines(maxAge:) also drops the prompt-history registry entry")
+    func cleanupStaleEvictsPromptHistory() async throws {
+        let workspace = TestWorkspace()
+        let registry = TimelinePromptHistoryRegistry()
+        let timelineManager = TimelineManager(
+            workspaceRoot: workspace.root,
+            promptHistoryRegistry: registry
+        )
+
+        let session = try await timelineManager.createTimeline()
+
+        let history = await registry.history(for: session.id)
+        await history.recordAppend(messageCount: 5, estimatedTokens: 150)
+        #expect(await history.appendedMessageCount == 5)
+
+        await timelineManager.cleanupStaleTimelines(maxAge: 0)
+
+        #expect(await timelineManager.getTimeline(id: session.id) == nil)
+
+        let fresh = await registry.history(for: session.id)
+        #expect(await fresh.appendedMessageCount == 0)
+        #expect(await fresh.appendedTokens == 0)
+    }
+
+    @Test("deleteTimeline(id:) with no injected registry still evicts the cache")
+    func deleteTimelineWithoutRegistry() async throws {
+        let workspace = TestWorkspace()
+        let timelineManager = TimelineManager(workspaceRoot: workspace.root)
+
+        let session = try await timelineManager.createTimeline()
+
+        await timelineManager.deleteTimeline(id: session.id)
+
+        #expect(await timelineManager.getTimeline(id: session.id) == nil)
+    }
+
     @Test("Test Task Registration and Cancellation")
     func taskCancellation() async {
         let workspaceRoot = getTestWorkspaceRoot().appendingPathComponent(UUID().uuidString)

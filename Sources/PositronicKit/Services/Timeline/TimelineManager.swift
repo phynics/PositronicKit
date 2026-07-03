@@ -85,6 +85,10 @@ public actor TimelineManager {
     public let workspaceManager: any WorkspaceManagerProtocol
     let sectionProviders: [any PromptSectionProviding]
     let runtimeToolPolicy: RuntimeToolPolicy
+    /// Per-timeline prompt-history/journal-diff registry. When non-nil, `deleteTimeline(id:)`
+    /// and `cleanupStaleTimelines(maxAge:)` evict the corresponding history entry alongside the
+    /// in-memory caches, so deleted/stale timelines don't leak journal-diff state.
+    let promptHistoryRegistry: TimelinePromptHistoryRegistry?
 
     // MARK: - Initialization
 
@@ -94,7 +98,8 @@ public actor TimelineManager {
         workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: RuntimeToolPolicy = .default,
-        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService()
+        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
+        promptHistoryRegistry: TimelinePromptHistoryRegistry? = nil
     ) {
         timelineStore = stores.timelineStore
         messageStore = stores.messageStore
@@ -105,6 +110,7 @@ public actor TimelineManager {
         self.workspaceRoot = workspaceRoot
         self.sectionProviders = sectionProviders
         self.runtimeToolPolicy = runtimeToolPolicy
+        self.promptHistoryRegistry = promptHistoryRegistry
 
         workspaceManager = WorkspaceManager(
             repository: AgentWorkspaceService(
@@ -119,7 +125,8 @@ public actor TimelineManager {
         workspaceRoot: URL,
         workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = [],
-        runtimeToolPolicy: RuntimeToolPolicy = .default
+        runtimeToolPolicy: RuntimeToolPolicy = .default,
+        promptHistoryRegistry: TimelinePromptHistoryRegistry? = nil
     ) {
         self.init(
             stores: .init(
@@ -131,7 +138,8 @@ public actor TimelineManager {
             workspaceRoot: workspaceRoot,
             workspaceCreator: workspaceCreator,
             sectionProviders: sectionProviders,
-            runtimeToolPolicy: runtimeToolPolicy
+            runtimeToolPolicy: runtimeToolPolicy,
+            promptHistoryRegistry: promptHistoryRegistry
         )
     }
 
@@ -291,22 +299,45 @@ public extension TimelineManager {
         try await timelineStore.saveTimeline(timeline)
     }
 
-    /// Removes a timeline and its components from memory.
-    func deleteTimeline(id: UUID) {
+    /// Evicts all in-memory runtime state for a timeline: the cached `Timeline`,
+    /// `ContextManager`, `TimelineToolManager`, and (when a prompt-history registry
+    /// was injected) the journal-diff history entry. Does not touch persistence.
+    ///
+    /// Use `deleteTimeline(id:)` instead when you also want to delete the persisted
+    /// timeline — this method is the in-memory-only phase shared by it and
+    /// `cleanupStaleTimelines(maxAge:)`.
+    internal func evictTimelineFromMemory(id: UUID) async {
         timelines.removeValue(forKey: id)
         contextManagers.removeValue(forKey: id)
         toolManagers.removeValue(forKey: id)
+        await promptHistoryRegistry?.removeHistory(for: id)
     }
 
-    /// Removes active timelines from memory that have not been updated within the specified interval.
-    func cleanupStaleTimelines(maxAge: TimeInterval) {
+    /// Evicts all in-memory runtime state for a timeline: the cached `Timeline`,
+    /// `ContextManager`, `TimelineToolManager`, and (when a prompt-history registry
+    /// was injected) the journal-diff history entry. Does not touch persistence.
+    ///
+    /// This is the runtime-eviction seam: callers that also want to delete the
+    /// persisted timeline call `timelineStore.deleteTimeline(id:)` alongside this
+    /// (see `TimelineAPIController.delete` in Monad and
+    /// `AgentInstanceManager.deleteInstance`). `cleanupStaleTimelines(maxAge:)`
+    /// shares this for the in-memory-only sweep.
+    func deleteTimeline(id: UUID) async {
+        await evictTimelineFromMemory(id: id)
+    }
+
+    /// Removes active timelines from memory that have not been updated within the
+    /// specified interval. Only evicts in-memory state; persisted timelines are
+    /// unaffected. Also drops the corresponding prompt-history entries when a
+    /// registry was injected.
+    func cleanupStaleTimelines(maxAge: TimeInterval) async {
         let now = Date()
         let staleIds = timelines.values.filter { timeline in
             now.timeIntervalSince(timeline.updatedAt) > maxAge
         }.map { $0.id }
 
         for id in staleIds {
-            deleteTimeline(id: id)
+            await evictTimelineFromMemory(id: id)
         }
     }
 
