@@ -293,3 +293,92 @@ actor TimelinePromptHistoryTests {
         #expect(diff.removed.isEmpty)
     }
 }
+
+@Suite("TimelinePromptHistoryRegistry")
+actor TimelinePromptHistoryRegistryTests {
+    @Test("history(for:) reuses the same instance for the same timeline id")
+    func historyReusesSameInstanceForSameTimelineId() async throws {
+        let registry = TimelinePromptHistoryRegistry()
+        let timelineId = UUID()
+
+        let first = await registry.history(for: timelineId)
+        await first.recordAppend(messageCount: 3, estimatedTokens: 42)
+
+        let second = await registry.history(for: timelineId)
+
+        // Same underlying actor: state set via `first` is visible through `second`.
+        #expect(await second.appendedMessageCount == 3)
+        #expect(await second.appendedTokens == 42)
+    }
+
+    @Test("history(for:) isolates state across different timeline ids")
+    func historyIsolatesStateAcrossDifferentTimelineIds() async throws {
+        let registry = TimelinePromptHistoryRegistry()
+        let timelineA = UUID()
+        let timelineB = UUID()
+
+        let historyA = await registry.history(for: timelineA)
+        await historyA.recordAppend(messageCount: 5, estimatedTokens: 100)
+
+        let historyB = await registry.history(for: timelineB)
+
+        #expect(await historyA.appendedMessageCount == 5)
+        #expect(await historyB.appendedMessageCount == 0)
+        #expect(await historyB.appendedTokens == 0)
+    }
+
+    @Test("removeHistory(for:) followed by history(for:) yields a fresh instance")
+    func removeHistoryYieldsFreshInstance() async throws {
+        let registry = TimelinePromptHistoryRegistry()
+        let timelineId = UUID()
+
+        let original = await registry.history(for: timelineId)
+        await original.recordAppend(messageCount: 7, estimatedTokens: 200)
+        #expect(await original.appendedMessageCount == 7)
+
+        await registry.removeHistory(for: timelineId)
+
+        let fresh = await registry.history(for: timelineId)
+
+        #expect(await fresh.appendedMessageCount == 0)
+        #expect(await fresh.appendedTokens == 0)
+        #expect(await fresh.lastDiff == nil)
+    }
+
+    @Test("Exceeding the max entry count evicts the least-recently-accessed timeline")
+    func exceedingMaxEntriesEvictsLeastRecentlyAccessed() async throws {
+        let cap = 5
+        let registry = TimelinePromptHistoryRegistry(
+            evictionPolicy: RegistryEvictionPolicy(maxEntries: cap)
+        )
+
+        var timelineIds: [UUID] = []
+        for _ in 0 ..< cap {
+            let id = UUID()
+            timelineIds.append(id)
+            _ = await registry.history(for: id)
+        }
+
+        // Refresh the recency of the first (oldest-by-insertion) timeline so it is no longer
+        // the least-recently-accessed entry.
+        let refreshedId = timelineIds[0]
+        let refreshedHistory = await registry.history(for: refreshedId)
+        await refreshedHistory.recordAppend(messageCount: 1, estimatedTokens: 1)
+
+        // The second-oldest timeline was never re-accessed, so it's now the true LRU victim.
+        let staleId = timelineIds[1]
+
+        // Push past the cap: this should evict `staleId`, not `refreshedId`.
+        let newId = UUID()
+        _ = await registry.history(for: newId)
+
+        // The refreshed timeline must have survived eviction with its state intact.
+        let stillPresent = await registry.history(for: refreshedId)
+        #expect(await stillPresent.appendedMessageCount == 1)
+
+        // The stale timeline should have been evicted: asking for it again creates a *fresh*
+        // instance (appendedMessageCount reset to 0), proving the old one was dropped.
+        let evictedAndRecreated = await registry.history(for: staleId)
+        #expect(await evictedAndRecreated.appendedMessageCount == 0)
+    }
+}

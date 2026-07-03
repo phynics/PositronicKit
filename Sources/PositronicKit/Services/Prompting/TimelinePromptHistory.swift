@@ -127,6 +127,25 @@ public struct CompactionThresholds: Sendable {
     public static let `default` = CompactionThresholds()
 }
 
+/// Caps how many per-timeline `TimelinePromptHistory` instances
+/// `TimelinePromptHistoryRegistry` keeps resident at once.
+public struct RegistryEvictionPolicy: Sendable {
+    /// Maximum number of timelines the registry holds before it evicts the
+    /// least-recently-accessed entry to make room for a new one.
+    ///
+    /// 1000 is a defensive process-lifetime cap, not a tuned capacity limit: a long-running
+    /// `MonadServer` plausibly has many concurrent/recently-active timelines resident at once,
+    /// but not an unbounded number. This only bites when a consumer never calls
+    /// `removeHistory(for:)` on conversation deletion (the common case today -- see JRN-2).
+    let maxEntries: Int
+
+    public init(maxEntries: Int = 1000) {
+        self.maxEntries = maxEntries
+    }
+
+    public static let `default` = RegistryEvictionPolicy()
+}
+
 // MARK: - TimelinePromptHistory
 
 // Runtime-only prompt diff/cache bookkeeping used by `PositronicKit` across turns.
@@ -154,29 +173,62 @@ public struct CompactionThresholds: Sendable {
 /// conversation now diff against the previous send's final prompt snapshot.
 public actor TimelinePromptHistoryRegistry {
     private var historiesByTimelineId: [UUID: TimelinePromptHistory] = [:]
+    /// Timeline ids ordered from least- to most-recently accessed. The front of the array is
+    /// the next eviction candidate. Kept as a plain array (not a generic LRU abstraction) --
+    /// this registry isn't a hot path and entry counts are bounded by `evictionPolicy.maxEntries`.
+    private var accessOrder: [UUID] = []
     private let thresholds: CompactionThresholds
+    private let evictionPolicy: RegistryEvictionPolicy
 
-    public init(thresholds: CompactionThresholds = .default) {
+    public init(
+        thresholds: CompactionThresholds = .default,
+        evictionPolicy: RegistryEvictionPolicy = .default
+    ) {
         self.thresholds = thresholds
+        self.evictionPolicy = evictionPolicy
     }
 
     /// Returns the existing history for `timelineId`, creating one on first use.
-    func history(for timelineId: UUID) -> TimelinePromptHistory {
+    ///
+    /// Every call (whether it reuses an existing history or creates a new one) refreshes
+    /// `timelineId`'s recency for LRU eviction purposes.
+    public func history(for timelineId: UUID) -> TimelinePromptHistory {
         if let existing = historiesByTimelineId[timelineId] {
+            touch(timelineId)
             return existing
         }
+        evictIfNeeded()
         let created = TimelinePromptHistory(thresholds: thresholds)
         historiesByTimelineId[timelineId] = created
+        touch(timelineId)
         return created
     }
 
     /// Drops the cached history for a timeline, e.g. when a conversation is deleted.
-    func removeHistory(for timelineId: UUID) {
+    public func removeHistory(for timelineId: UUID) {
         historiesByTimelineId.removeValue(forKey: timelineId)
+        accessOrder.removeAll { $0 == timelineId }
+    }
+
+    /// Moves `timelineId` to the most-recently-accessed end of `accessOrder`.
+    private func touch(_ timelineId: UUID) {
+        accessOrder.removeAll { $0 == timelineId }
+        accessOrder.append(timelineId)
+    }
+
+    /// Evicts the least-recently-accessed entry if the registry is at capacity.
+    private func evictIfNeeded() {
+        guard historiesByTimelineId.count >= evictionPolicy.maxEntries,
+              let oldest = accessOrder.first
+        else {
+            return
+        }
+        historiesByTimelineId.removeValue(forKey: oldest)
+        accessOrder.removeFirst()
     }
 }
 
-actor TimelinePromptHistory {
+public actor TimelinePromptHistory {
     private var baseSnapshot: PromptSnapshot?
     private(set) var appendedMessageCount: Int = 0
     private(set) var appendedTokens: Int = 0
