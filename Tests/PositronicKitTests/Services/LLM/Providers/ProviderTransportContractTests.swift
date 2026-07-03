@@ -361,4 +361,80 @@ struct ProviderTransportContractTests {
         let reasoningChunk = try #require(chunks.first { $0.choices.first?.delta.thinking != nil })
         #expect(reasoningChunk.choices.first?.delta.thinking == "legacy reasoning")
     }
+
+    // MARK: - Finish reason vocabulary (PKR-13)
+
+    @Test("Ollama truncation (done_reason: length) is now distinguishable from a normal stop")
+    func ollamaTruncationIsDistinguishableFromNormalStop() async throws {
+        // Before PKR-13, `done_reason` was never decoded and `finishReason` was hardcoded to
+        // "stop" whenever there were no tool calls — a response cut short by the model's
+        // token/context limit looked identical to a natural completion.
+        let transport = TestProviderTransport { _ in
+            .lines([
+                #"{"model":"llama3.1","message":{"role":"assistant","content":"trunc"},"done":false}"#,
+                #"{"model":"llama3.1","message":{"role":"assistant","content":""},"done":true,"done_reason":"length","prompt_eval_count":1,"eval_count":1}"#,
+            ], self.response(url: "http://localhost:11434/api/chat"))
+        }
+        let client = OllamaClient(endpoint: "http://localhost:11434", modelName: "llama3.1", transport: transport)
+        let chunks = try await client.chatStream(
+            messages: [LLMMessage(role: .user, content: "hi")],
+            tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil
+        ).collect()
+
+        let finalChunk = try #require(chunks.last)
+        #expect(finalChunk.choices.first?.finishReason == "length")
+        #expect(finalChunk.choices.first?.finishReason != "stop")
+    }
+
+    @Test("Ollama normal completion (done_reason: stop) still reports \"stop\"")
+    func ollamaNormalCompletionReportsStop() async throws {
+        let transport = TestProviderTransport { _ in
+            .lines([
+                #"{"model":"llama3.1","message":{"role":"assistant","content":"final answer"},"done":true,"done_reason":"stop","prompt_eval_count":1,"eval_count":1}"#,
+            ], self.response(url: "http://localhost:11434/api/chat"))
+        }
+        let client = OllamaClient(endpoint: "http://localhost:11434", modelName: "llama3.1", transport: transport)
+        let chunks = try await client.chatStream(
+            messages: [LLMMessage(role: .user, content: "hi")],
+            tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil
+        ).collect()
+
+        let finalChunk = try #require(chunks.last)
+        #expect(finalChunk.choices.first?.finishReason == "stop")
+    }
+
+    @Test("Ollama missing done_reason (older server) falls back to \"stop\", matching prior behavior")
+    func ollamaMissingDoneReasonFallsBackToStop() async throws {
+        let transport = TestProviderTransport { _ in
+            .lines([
+                #"{"model":"llama3.1","message":{"role":"assistant","content":""},"done":true,"prompt_eval_count":1,"eval_count":1}"#,
+            ], self.response(url: "http://localhost:11434/api/chat"))
+        }
+        let client = OllamaClient(endpoint: "http://localhost:11434", modelName: "llama3.1", transport: transport)
+        let chunks = try await client.chatStream(
+            messages: [], tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil
+        ).collect()
+
+        let finalChunk = try #require(chunks.last)
+        #expect(finalChunk.choices.first?.finishReason == "stop")
+    }
+
+    @Test("Ollama tool-call detection still takes priority over done_reason (matches prior behavior)")
+    func ollamaToolCallsTakePriorityOverDoneReason() async throws {
+        // Even if a server were to send an unexpected done_reason alongside tool_calls, the
+        // tool_calls signal (driven by message.tool_calls, not done_reason) must win — this is
+        // an explicit priority requirement from PKR-13 preserving pre-existing behavior.
+        let transport = TestProviderTransport { _ in
+            .lines([
+                #"{"model":"llama3.1","message":{"role":"assistant","content":"","tool_calls":[{"function":{"name":"lookup","arguments":{}}}]},"done":true,"done_reason":"stop","prompt_eval_count":1,"eval_count":1}"#,
+            ], self.response(url: "http://localhost:11434/api/chat"))
+        }
+        let client = OllamaClient(endpoint: "http://localhost:11434", modelName: "llama3.1", transport: transport)
+        let chunks = try await client.chatStream(
+            messages: [], tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil
+        ).collect()
+
+        let finalChunk = try #require(chunks.last)
+        #expect(finalChunk.choices.first?.finishReason == "tool_calls")
+    }
 }
