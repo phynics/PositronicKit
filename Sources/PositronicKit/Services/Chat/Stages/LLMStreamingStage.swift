@@ -17,7 +17,16 @@ struct LLMStreamingStage: PipelineStage {
 
     func process(_ context: ChatTurnContext) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         let streamData: AsyncThrowingStream<LLMStreamChunk, Error>
-        if let structuredOutput = context.structuredOutput {
+        // ChatEngine's entry point rejects turns that set both `structuredOutput` and
+        // `sidecars` (SidecarError.conflictsWithExplicitStructuredOutput), so at most one
+        // of these is non-nil/non-empty here.
+        let effectiveStructuredOutput: StructuredOutputRequest? =
+            if context.sidecars.isEmpty {
+                context.structuredOutput
+            } else {
+                try SidecarSchemaComposer.compose(directives: context.sidecars)
+            }
+        if let structuredOutput = effectiveStructuredOutput {
             streamData = await llmService.chatStream(
                 messages: context.currentMessages,
                 tools: context.toolParams.isEmpty ? nil : context.toolParams,
@@ -83,6 +92,9 @@ struct LLMStreamingStage: PipelineStage {
         idleDeadline: StreamIdleDeadline
     ) async throws {
         var parser = StreamingParser()
+        var sidecarExtractor: SidecarStreamExtractor? = context.sidecars.isEmpty
+            ? nil
+            : SidecarStreamExtractor(directives: context.sidecars)
         let turnStartTime = Date()
 
         for try await result in streamData {
@@ -98,12 +110,59 @@ struct LLMStreamingStage: PipelineStage {
 
             await handleStreamUsage(result, context: context)
             await handleStructuredThinkingDelta(result, context: context, continuation: continuation)
-            await handleContentDelta(result, parser: &parser, context: context, continuation: continuation)
+            if sidecarExtractor != nil {
+                await handleSidecarContentDelta(
+                    result, extractor: &sidecarExtractor, context: context, continuation: continuation
+                )
+            } else {
+                await handleContentDelta(result, parser: &parser, context: context, continuation: continuation)
+            }
             await handleToolCallDeltas(result, context: context, continuation: continuation)
         }
 
-        await flushRemainingBuffer(&parser, context: context, continuation: continuation)
+        if var extractor = sidecarExtractor {
+            for output in extractor.finish() {
+                await routeSidecarOutput(output, context: context, continuation: continuation)
+            }
+        } else {
+            await flushRemainingBuffer(&parser, context: context, continuation: continuation)
+        }
         await context.outputs.finalizeTurn(startTime: turnStartTime)
+    }
+
+    /// Feeds a content delta through the sidecar extractor instead of `StreamingParser`
+    /// (structured-output turns emit JSON in `content`; `<think>` tag-scraping doesn't apply,
+    /// but structured `delta.thinking` still routes through `handleStructuredThinkingDelta`).
+    private func handleSidecarContentDelta(
+        _ result: LLMStreamChunk,
+        extractor: inout SidecarStreamExtractor?,
+        context: ChatTurnContext,
+        continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
+    ) async {
+        guard let delta = result.choices.first?.delta.content else { return }
+        guard var unwrapped = extractor else { return }
+        let outputs = unwrapped.consume(delta)
+        extractor = unwrapped
+        for output in outputs {
+            await routeSidecarOutput(output, context: context, continuation: continuation)
+        }
+    }
+
+    private func routeSidecarOutput(
+        _ output: SidecarStreamExtractor.Output,
+        context: ChatTurnContext,
+        continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
+    ) async {
+        switch output {
+        case let .responseDelta(text):
+            await context.outputs.appendResponse(text)
+            continuation.yield(.generation(text))
+        case let .sidecarDelta(delta):
+            continuation.yield(.sidecar(delta))
+        case let .completed(results):
+            await context.outputs.setSidecarResults(results)
+            continuation.yield(.sidecarsCompleted(results))
+        }
     }
 
     private func handleStreamUsage(_ result: LLMStreamChunk, context: ChatTurnContext) async {

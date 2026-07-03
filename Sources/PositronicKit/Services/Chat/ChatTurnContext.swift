@@ -3,7 +3,7 @@ import PKPrompt
 import PKShared
 
 /// Accumulates parts of a streamed tool call.
-struct StreamedToolCall: Sendable {
+struct StreamedToolCall {
     var callId: String
     var name: String
     var args: String
@@ -26,6 +26,7 @@ actor TurnOutputs {
     private(set) var tokensPerSecond: Double?
     private(set) var debugToolCalls: [ToolCallRecord] = []
     private(set) var debugToolResults: [ToolResultRecord] = []
+    private(set) var sidecarResults: [SidecarResult] = []
 
     init() {}
 
@@ -69,6 +70,10 @@ actor TurnOutputs {
         debugToolResults.append(record)
     }
 
+    func setSidecarResults(_ results: [SidecarResult]) {
+        sidecarResults = results
+    }
+
     /// Finalizes the turn: computes timing and throughput metrics.
     func finalizeTurn(startTime: Date) {
         turnDuration = Date().timeIntervalSince(startTime)
@@ -80,7 +85,7 @@ actor TurnOutputs {
 
 /// Immutable snapshot of a single chat turn as it moves through the pipeline.
 /// Mutable stage outputs are stored in `outputs`, a shared actor reference.
-struct ChatTurnContext: Sendable {
+struct ChatTurnContext {
     // Session-level configuration (constant across turns)
     let timelineId: UUID
     let agentInstanceId: UUID?
@@ -92,6 +97,7 @@ struct ChatTurnContext: Sendable {
     let remoteDepth: Int
     let generationParameters: GenerationParameters?
     let structuredOutput: StructuredOutputRequest?
+    let sidecars: [SidecarDirective]
 
     /// Shared actor tracking prompt snapshots and append chain growth across turns.
     /// Created once per `prepareSession()` call and threaded through all turns in the loop.
@@ -117,6 +123,7 @@ struct ChatTurnContext: Sendable {
         remoteDepth: Int,
         generationParameters: GenerationParameters? = nil,
         structuredOutput: StructuredOutputRequest? = nil,
+        sidecars: [SidecarDirective] = [],
         promptHistory: TimelinePromptHistory? = nil,
         renderedPrompt: RenderedPrompt? = nil,
         promptHistoryUpdate: PromptHistoryUpdate? = nil,
@@ -134,6 +141,7 @@ struct ChatTurnContext: Sendable {
         self.remoteDepth = remoteDepth
         self.generationParameters = generationParameters
         self.structuredOutput = structuredOutput
+        self.sidecars = sidecars
         self.promptHistory = promptHistory
         self.renderedPrompt = renderedPrompt
         self.promptHistoryUpdate = promptHistoryUpdate
@@ -165,6 +173,7 @@ struct ChatTurnContext: Sendable {
             remoteDepth: remoteDepth,
             generationParameters: generationParameters,
             structuredOutput: structuredOutput,
+            sidecars: sidecars,
             promptHistory: promptHistory,
             renderedPrompt: renderedPrompt ?? self.renderedPrompt,
             promptHistoryUpdate: promptHistoryUpdate ?? self.promptHistoryUpdate,
