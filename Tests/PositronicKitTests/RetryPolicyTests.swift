@@ -113,4 +113,62 @@ struct RetryPolicyTests {
 
         #expect(attempts.withLock { $0 } == 1)
     }
+
+    // MARK: - PKR-5: Duplicate-content retry gate integration
+
+    @Test("Retry gate blocks retry after content was yielded (matches provider shouldRetry gate)")
+    func retryGateBlocksAfterYield() async throws {
+        // Mirrors the exact gate every provider uses:
+        //   shouldRetry: { recoveryState.shouldRetryAfterError && RetryPolicy.isTransient(error:) }
+        // After content is yielded, shouldRetryAfterError flips to false → the transient error
+        // propagates without a retry attempt.
+        let recoveryState = Mutex(LLMToolCallRecoveryState())
+        let attempts = Mutex(0)
+
+        await #expect(throws: URLError.self) {
+            try await RetryPolicy.retry(
+                maxRetries: 3,
+                baseDelay: 0.001,
+                shouldRetry: { error in
+                    recoveryState.withLock { $0.shouldRetryAfterError } && RetryPolicy.isTransient(error: error)
+                },
+                operation: {
+                    attempts.withLock { $0 += 1 }
+                    // Simulate: yield content, then throw a transient error on the next iteration.
+                    if attempts.withLock({ $0 }) == 1 {
+                        recoveryState.withLock { $0.observe(yieldedContent: true, streamedToolCalls: false, finishedWithToolCalls: false) }
+                        throw URLError(.timedOut)
+                    }
+                    return "should-not-reach"
+                }
+            )
+        }
+
+        #expect(attempts.withLock { $0 } == 1, "Gate must block retry after content was yielded")
+    }
+
+    @Test("Retry gate allows retry when no content was yielded yet")
+    func retryGateAllowsBeforeYield() async throws {
+        let recoveryState = Mutex(LLMToolCallRecoveryState())
+        let attempts = Mutex(0)
+
+        let result = try await RetryPolicy.retry(
+            maxRetries: 3,
+            baseDelay: 0.001,
+            shouldRetry: { error in
+                recoveryState.withLock { $0.shouldRetryAfterError } && RetryPolicy.isTransient(error: error)
+            },
+            operation: {
+                attempts.withLock { $0 += 1 }
+                if attempts.withLock({ $0 }) == 1 {
+                    // No content yielded — gate returns true → retry proceeds.
+                    throw URLError(.timedOut)
+                }
+                return "recovered"
+            }
+        )
+
+        #expect(result == "recovered")
+        #expect(attempts.withLock { $0 } == 2)
+    }
 }

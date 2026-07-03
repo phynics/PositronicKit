@@ -5,6 +5,7 @@ import struct JSONSchema.Schema
 import PKShared
 import PKTestSupport
 @testable import PositronicKit
+import Synchronization
 import Testing
 
 private actor TestProviderTransport: ProviderHTTPTransport {
@@ -12,6 +13,10 @@ private actor TestProviderTransport: ProviderHTTPTransport {
         case data(Data, HTTPURLResponse)
         case lines([String], HTTPURLResponse)
         case error(Error)
+        /// Yield the given SSE/NDJSON lines, then finish the stream by throwing `error`.
+        /// Used to test the duplicate-content retry gate (PKR-5): a stream that yields content
+        /// and then hits a transient transport error must NOT be retried.
+        case linesThenError([String], Error, HTTPURLResponse)
     }
 
     private(set) var requests: [URLRequest] = []
@@ -30,6 +35,8 @@ private actor TestProviderTransport: ProviderHTTPTransport {
             throw error
         case let .lines(lines, response):
             return (Data(lines.joined(separator: "\n").utf8), response)
+        case let .linesThenError(_, error, response):
+            return (Data(), response)
         }
     }
 
@@ -54,6 +61,16 @@ private actor TestProviderTransport: ProviderHTTPTransport {
                 AsyncThrowingStream { continuation in
                     continuation.yield(string)
                     continuation.finish()
+                },
+                response
+            )
+        case let .linesThenError(lines, error, response):
+            return (
+                AsyncThrowingStream { continuation in
+                    for line in lines {
+                        continuation.yield(line)
+                    }
+                    continuation.finish(throwing: error)
                 },
                 response
             )
@@ -438,5 +455,151 @@ struct ProviderTransportContractTests {
 
         let finalChunk = try #require(chunks.last)
         #expect(finalChunk.choices.first?.finishReason == "tool_calls")
+    }
+
+    // MARK: - PKR-5: Duplicate-content retry gate
+
+    @Test("OpenRouter: chunk yielded then transient error → no retry, no duplicate, error propagates")
+    func openRouterYieldThenErrorDoesNotRetry() async throws {
+        let transport = TestProviderTransport { _ in
+            .linesThenError(
+                [
+                    #"data: {"id":"chunk-1","model":"openai/gpt-4o","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"}}]}"#,
+                ],
+                URLError(.timedOut),
+                self.response(url: "https://openrouter.ai/api/v1/chat/completions")
+            )
+        }
+
+        let client = OpenRouterClient(
+            apiKey: "secret",
+            modelName: "openai/gpt-4o",
+            maxRetries: 3,
+            transport: transport
+        )
+
+        var collected: [String] = []
+        do {
+            for try await chunk in await client.chatStream(
+                messages: [LLMMessage(role: .user, content: "hi")],
+                tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil
+            ) {
+                if let content = chunk.choices.first?.delta.content { collected.append(content) }
+            }
+            Issue.record("Stream should have thrown, not completed cleanly")
+        } catch is URLError {
+            // expected — the transient error propagates after the gate blocks retry
+        } catch {
+            Issue.record("Expected URLError(.timedOut), got \(error)")
+        }
+
+        // Exactly one chunk was collected — no duplicate from a retried stream.
+        #expect(collected == ["Hello"])
+        // Exactly one HTTP request was issued — the retry gate blocked the restart.
+        #expect(await transport.recordedRequests().count == 1)
+    }
+
+    @Test("OpenRouter: transient error before any content → retries (gate does not block)")
+    func openRouterErrorBeforeContentRetries() async throws {
+        // First request: throw immediately (no content yielded → gate allows retry).
+        // Second request: succeed with one chunk. Proves the gate returns true when
+        // nothing has been yielded, so a transient error IS retried.
+        let attemptCount = Mutex(0)
+        let transport = TestProviderTransport { _ in
+            let n = attemptCount.withLock { $0 += 1; return $0 }
+            if n == 1 {
+                return .error(URLError(.timedOut))
+            }
+            return .lines([
+                #"data: {"id":"chunk-1","model":"openai/gpt-4o","choices":[{"index":0,"delta":{"role":"assistant","content":"retry succeeded"}}]}"#,
+                "data: [DONE]",
+            ], self.response(url: "https://openrouter.ai/api/v1/chat/completions"))
+        }
+
+        let client = OpenRouterClient(
+            apiKey: "secret",
+            modelName: "openai/gpt-4o",
+            maxRetries: 3,
+            transport: transport
+        )
+
+        var collected: [String] = []
+        for try await chunk in await client.chatStream(
+            messages: [LLMMessage(role: .user, content: "hi")],
+            tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil
+        ) {
+            if let content = chunk.choices.first?.delta.content { collected.append(content) }
+        }
+
+        #expect(collected == ["retry succeeded"])
+        #expect(await transport.recordedRequests().count == 2)
+    }
+
+    @Test("Ollama: chunk yielded then transient error → no retry, no duplicate, error propagates")
+    func ollamaYieldThenErrorDoesNotRetry() async throws {
+        let transport = TestProviderTransport { _ in
+            .linesThenError(
+                [
+                    #"{"model":"llama3.1","message":{"role":"assistant","content":"Hello"},"done":false}"#,
+                ],
+                URLError(.networkConnectionLost),
+                self.response(url: "http://localhost:11434/api/chat")
+            )
+        }
+
+        let client = OllamaClient(
+            endpoint: "http://localhost:11434",
+            modelName: "llama3.1",
+            maxRetries: 3,
+            transport: transport
+        )
+
+        var collected: [String] = []
+        do {
+            for try await chunk in await client.chatStream(
+                messages: [], tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil
+            ) {
+                if let content = chunk.choices.first?.delta.content { collected.append(content) }
+            }
+            Issue.record("Stream should have thrown, not completed cleanly")
+        } catch is URLError {
+            // expected
+        } catch {
+            Issue.record("Expected URLError(.networkConnectionLost), got \(error)")
+        }
+
+        #expect(collected == ["Hello"])
+        #expect(await transport.recordedRequests().count == 1)
+    }
+
+    @Test("Ollama: transient error before any content → retries (gate does not block)")
+    func ollamaErrorBeforeContentRetries() async throws {
+        let attemptCount = Mutex(0)
+        let transport = TestProviderTransport { _ in
+            let n = attemptCount.withLock { $0 += 1; return $0 }
+            if n == 1 {
+                return .error(URLError(.timedOut))
+            }
+            return .lines([
+                #"{"model":"llama3.1","message":{"role":"assistant","content":"retry ok"},"done":true,"done_reason":"stop","prompt_eval_count":1,"eval_count":1}"#,
+            ], self.response(url: "http://localhost:11434/api/chat"))
+        }
+
+        let client = OllamaClient(
+            endpoint: "http://localhost:11434",
+            modelName: "llama3.1",
+            maxRetries: 3,
+            transport: transport
+        )
+
+        var collected: [String] = []
+        for try await chunk in await client.chatStream(
+            messages: [], tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil
+        ) {
+            if let content = chunk.choices.first?.delta.content { collected.append(content) }
+        }
+
+        #expect(collected == ["retry ok"])
+        #expect(await transport.recordedRequests().count == 2)
     }
 }
