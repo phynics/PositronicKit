@@ -63,6 +63,9 @@ public enum ChatEvent: Sendable, Codable {
 
         /// Asynchronous tool execution status update (progress)
         case toolExecution(toolCallId: String, status: ToolExecutionStatus)
+
+        /// Sidecar directive field update (piggy-backed structured output)
+        case sidecar(delta: SidecarDelta)
     }
 
     public enum MetaEvent: Sendable, Codable {
@@ -95,6 +98,9 @@ public enum ChatEvent: Sendable, Codable {
         case toolExecution(toolCallId: String, status: ToolExecutionStatus)
         /// The entire stream is complete (terminal event)
         case streamCompleted
+
+        /// All sidecar directives resolved for the turn (values, declines, failures)
+        case sidecarsCompleted(results: [SidecarResult])
     }
 
     case delta(event: DeltaEvent)
@@ -121,6 +127,10 @@ public extension ChatEvent {
 
     static func toolProgress(toolCallId: String, status: ToolExecutionStatus) -> ChatEvent {
         .delta(event: .toolExecution(toolCallId: toolCallId, status: status))
+    }
+
+    static func sidecar(_ delta: SidecarDelta) -> ChatEvent {
+        .delta(event: .sidecar(delta: delta))
     }
 
     /// Meta shortcuts
@@ -160,6 +170,10 @@ public extension ChatEvent {
     static func streamCompleted() -> ChatEvent {
         .completion(event: .streamCompleted)
     }
+
+    static func sidecarsCompleted(_ results: [SidecarResult]) -> ChatEvent {
+        .completion(event: .sidecarsCompleted(results: results))
+    }
 }
 
 // MARK: - Computed Properties (Consumer Ergonomics)
@@ -180,6 +194,18 @@ public extension ChatEvent {
     /// The completed message and metadata if this is a `.completion(.generationCompleted(...))` event.
     var completedMessage: (message: Message, metadata: APIResponseMetadata)? {
         if case let .completion(event) = self, case let .generationCompleted(msg, meta) = event { return (msg, meta) }
+        return nil
+    }
+
+    /// The sidecar delta if this is a `.delta(.sidecar(...))` event.
+    var sidecarDelta: SidecarDelta? {
+        if case let .delta(event) = self, case let .sidecar(delta) = event { return delta }
+        return nil
+    }
+
+    /// The sidecar results if this is a `.completion(.sidecarsCompleted(...))` event.
+    var sidecarResults: [SidecarResult]? {
+        if case let .completion(event) = self, case let .sidecarsCompleted(results) = event { return results }
         return nil
     }
 }
@@ -210,5 +236,7 @@ public extension ChatEvent.ErrorIdentity {
     ]
 
     /// Whether this identity represents a blocked/approval/disallowed condition (see `blocked`).
-    var isBlocked: Bool { Self.blocked.contains(self) }
+    var isBlocked: Bool {
+        Self.blocked.contains(self)
+    }
 }
