@@ -17,6 +17,13 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
     public var presencePenalty: Double?
     public var seed: Int?
 
+    /// Attribution URL sent as `HTTP-Referer` by providers that support attribution headers
+    /// (currently OpenRouter). `nil` omits the header entirely rather than sending it empty.
+    public var applicationURL: String?
+    /// Attribution title sent as `X-Title` by providers that support attribution headers
+    /// (currently OpenRouter). `nil` omits the header entirely rather than sending it empty.
+    public var applicationTitle: String?
+
     public var generationParameters: GenerationParameters {
         GenerationParameters(
             temperature: temperature,
@@ -42,7 +49,9 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
         topP: Double? = nil,
         frequencyPenalty: Double? = nil,
         presencePenalty: Double? = nil,
-        seed: Int? = nil
+        seed: Int? = nil,
+        applicationURL: String? = nil,
+        applicationTitle: String? = nil
     ) {
         self.endpoint = endpoint
         self.apiKey = apiKey
@@ -58,6 +67,8 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
         self.frequencyPenalty = frequencyPenalty
         self.presencePenalty = presencePenalty
         self.seed = seed
+        self.applicationURL = applicationURL
+        self.applicationTitle = applicationTitle
     }
 
     public init(from decoder: Decoder) throws {
@@ -77,6 +88,8 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
         frequencyPenalty = try container.decodeIfPresent(Double.self, forKey: .frequencyPenalty)
         presencePenalty = try container.decodeIfPresent(Double.self, forKey: .presencePenalty)
         seed = try container.decodeIfPresent(Int.self, forKey: .seed)
+        applicationURL = try container.decodeIfPresent(String.self, forKey: .applicationURL)
+        applicationTitle = try container.decodeIfPresent(String.self, forKey: .applicationTitle)
     }
 
     public static func defaultFor(_ provider: LLMProvider) -> ProviderConfiguration {
