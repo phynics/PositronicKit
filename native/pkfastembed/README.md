@@ -17,6 +17,11 @@ swift test --traits MiniLMEmbeddings --filter PKFastEmbedTests
 Model asset checksums are recorded in `model-assets.sha256`. The pinned model
 revision is `5f1b8cd78bc4fb444dd171e59b18f3a3af89a079`.
 
+The pinned asset files are `config.json`, `model.onnx`, `special_tokens_map.json`,
+`tokenizer.json`, `tokenizer_config.json`, and `vocab.txt`. The host
+application owns downloading them, verifying the checksums, and keeping the
+cache directory alive for as long as the model is in use.
+
 ## Design Choices
 
 - SwiftPM binary targets are not used because they are supported only on Apple

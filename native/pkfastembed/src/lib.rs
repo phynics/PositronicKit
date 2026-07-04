@@ -162,6 +162,21 @@ fn contain_panics<T>(
     }
 }
 
+fn c_abi_guard(
+    context: &'static str,
+    out_error_message: *mut *mut c_char,
+    panic_status: Status,
+    operation: impl FnOnce() -> Status,
+) -> Status {
+    match std::panic::catch_unwind(AssertUnwindSafe(operation)) {
+        Ok(status) => status,
+        Err(_) => {
+            set_error(out_error_message, format!("{context} panicked."));
+            panic_status
+        }
+    }
+}
+
 fn write_single_embedding(
     out_buffer: &mut [f32],
     embeddings: &[Vec<f32>],
@@ -229,34 +244,41 @@ pub extern "C" fn pkfe_model_create(
     out_model: *mut *mut Model,
     out_error_message: *mut *mut c_char,
 ) -> Status {
-    clear_error(out_error_message);
+    c_abi_guard(
+        "Model creation",
+        out_error_message,
+        Status::ModelLoadFailed,
+        || {
+            clear_error(out_error_message);
 
-    if model_directory.is_null() || out_model.is_null() {
-        set_error(out_error_message, "model_directory and out_model are required.");
-        return Status::InvalidArgument;
-    }
-
-    let path = unsafe { CStr::from_ptr(model_directory) };
-    let path = match path.to_str() {
-        Ok(value) => PathBuf::from(value),
-        Err(error) => {
-            set_error(out_error_message, format!("model_directory was not valid UTF-8: {error}"));
-            return Status::InvalidUtf8;
-        }
-    };
-
-    match contain_panics("Model creation", || load_model(&path)) {
-        Ok(model) => {
-            unsafe {
-                *out_model = Box::into_raw(Box::new(model));
+            if model_directory.is_null() || out_model.is_null() {
+                set_error(out_error_message, "model_directory and out_model are required.");
+                return Status::InvalidArgument;
             }
-            Status::Ok
-        }
-        Err(error) => {
-            set_error(out_error_message, error.to_string());
-            Status::ModelLoadFailed
-        }
-    }
+
+            let path = unsafe { CStr::from_ptr(model_directory) };
+            let path = match path.to_str() {
+                Ok(value) => PathBuf::from(value),
+                Err(error) => {
+                    set_error(out_error_message, format!("model_directory was not valid UTF-8: {error}"));
+                    return Status::InvalidUtf8;
+                }
+            };
+
+            match contain_panics("Model creation", || load_model(&path)) {
+                Ok(model) => {
+                    unsafe {
+                        *out_model = Box::into_raw(Box::new(model));
+                    }
+                    Status::Ok
+                }
+                Err(error) => {
+                    set_error(out_error_message, error.to_string());
+                    Status::ModelLoadFailed
+                }
+            }
+        },
+    )
 }
 
 #[no_mangle]
@@ -265,25 +287,32 @@ pub extern "C" fn pkfe_model_dimensions(
     out_dimensions: *mut size_t,
     out_error_message: *mut *mut c_char,
 ) -> Status {
-    clear_error(out_error_message);
+    c_abi_guard(
+        "Model dimension query",
+        out_error_message,
+        Status::InvalidArgument,
+        || {
+            clear_error(out_error_message);
 
-    if out_dimensions.is_null() {
-        set_error(out_error_message, "out_dimensions is required.");
-        return Status::InvalidArgument;
-    }
+            if out_dimensions.is_null() {
+                set_error(out_error_message, "out_dimensions is required.");
+                return Status::InvalidArgument;
+            }
 
-    let model = match with_model(model.cast_mut()) {
-        Ok(model) => model,
-        Err(error) => {
-            set_error(out_error_message, error.to_string());
-            return Status::InvalidArgument;
-        }
-    };
+            let model = match with_model(model.cast_mut()) {
+                Ok(model) => model,
+                Err(error) => {
+                    set_error(out_error_message, error.to_string());
+                    return Status::InvalidArgument;
+                }
+            };
 
-    unsafe {
-        *out_dimensions = model.dimensions;
-    }
-    Status::Ok
+            unsafe {
+                *out_dimensions = model.dimensions;
+            }
+            Status::Ok
+        },
+    )
 }
 
 #[no_mangle]
@@ -295,63 +324,70 @@ pub extern "C" fn pkfe_model_embed(
     out_count: size_t,
     out_error_message: *mut *mut c_char,
 ) -> Status {
-    clear_error(out_error_message);
+    c_abi_guard(
+        "Model inference",
+        out_error_message,
+        Status::InferenceFailed,
+        || {
+            clear_error(out_error_message);
 
-    let model = match with_model(model) {
-        Ok(model) => model,
-        Err(error) => {
-            set_error(out_error_message, error.to_string());
-            return Status::InvalidArgument;
-        }
-    };
+            let model = match with_model(model) {
+                Ok(model) => model,
+                Err(error) => {
+                    set_error(out_error_message, error.to_string());
+                    return Status::InvalidArgument;
+                }
+            };
 
-    if out_buffer.is_null() {
-        set_error(out_error_message, "out_buffer is required.");
-        return Status::InvalidArgument;
-    }
+            if out_buffer.is_null() {
+                set_error(out_error_message, "out_buffer is required.");
+                return Status::InvalidArgument;
+            }
 
-    if out_count < model.dimensions {
-        set_error(out_error_message, format!("out_buffer capacity {} was smaller than {}", out_count, model.dimensions));
-        return Status::BufferTooSmall;
-    }
+            if out_count < model.dimensions {
+                set_error(out_error_message, format!("out_buffer capacity {} was smaller than {}", out_count, model.dimensions));
+                return Status::BufferTooSmall;
+            }
 
-    if let Err(error) = validate_single_input_budget(utf8_length) {
-        set_error(out_error_message, error.to_string());
-        return Status::InvalidArgument;
-    }
+            if let Err(error) = validate_single_input_budget(utf8_length) {
+                set_error(out_error_message, error.to_string());
+                return Status::InvalidArgument;
+            }
 
-    let text = match decode_text(utf8_bytes, utf8_length) {
-        Ok(text) => text,
-        Err(error) => {
-            set_error(out_error_message, error.to_string());
-            return Status::InvalidUtf8;
-        }
-    };
+            let text = match decode_text(utf8_bytes, utf8_length) {
+                Ok(text) => text,
+                Err(error) => {
+                    set_error(out_error_message, error.to_string());
+                    return Status::InvalidUtf8;
+                }
+            };
 
-    let mut guard = match model.inner.lock() {
-        Ok(guard) => guard,
-        Err(_) => {
-            set_error(out_error_message, "The model mutex was poisoned.");
-            return Status::InferenceFailed;
-        }
-    };
+            let mut guard = match model.inner.lock() {
+                Ok(guard) => guard,
+                Err(_) => {
+                    set_error(out_error_message, "The model mutex was poisoned.");
+                    return Status::InferenceFailed;
+                }
+            };
 
-    let embeddings = match contain_panics("Model inference", || guard.embed(vec![text], None)) {
-        Ok(embeddings) => embeddings,
-        Err(error) => {
-            set_error(out_error_message, error.to_string());
-            return Status::InferenceFailed;
-        }
-    };
+            let embeddings = match contain_panics("Model inference", || guard.embed(vec![text], None)) {
+                Ok(embeddings) => embeddings,
+                Err(error) => {
+                    set_error(out_error_message, error.to_string());
+                    return Status::InferenceFailed;
+                }
+            };
 
-    let output = unsafe { slice::from_raw_parts_mut(out_buffer, model.dimensions) };
-    match write_single_embedding(output, &embeddings, model.dimensions) {
-        Ok(()) => Status::Ok,
-        Err(error) => {
-            set_error(out_error_message, error.to_string());
-            Status::InferenceFailed
-        }
-    }
+            let output = unsafe { slice::from_raw_parts_mut(out_buffer, model.dimensions) };
+            match write_single_embedding(output, &embeddings, model.dimensions) {
+                Ok(()) => Status::Ok,
+                Err(error) => {
+                    set_error(out_error_message, error.to_string());
+                    Status::InferenceFailed
+                }
+            }
+        },
+    )
 }
 
 #[no_mangle]
@@ -364,80 +400,87 @@ pub extern "C" fn pkfe_model_embed_batch(
     out_count: size_t,
     out_error_message: *mut *mut c_char,
 ) -> Status {
-    clear_error(out_error_message);
+    c_abi_guard(
+        "Model inference",
+        out_error_message,
+        Status::InferenceFailed,
+        || {
+            clear_error(out_error_message);
 
-    let model = match with_model(model) {
-        Ok(model) => model,
-        Err(error) => {
-            set_error(out_error_message, error.to_string());
-            return Status::InvalidArgument;
-        }
-    };
+            let model = match with_model(model) {
+                Ok(model) => model,
+                Err(error) => {
+                    set_error(out_error_message, error.to_string());
+                    return Status::InvalidArgument;
+                }
+            };
 
-    if text_count == 0 {
-        return Status::Ok;
-    }
-
-    if utf8_bytes.is_null() || utf8_lengths.is_null() || out_buffer.is_null() {
-        set_error(out_error_message, "utf8_bytes, utf8_lengths, and out_buffer are required.");
-        return Status::InvalidArgument;
-    }
-
-    let expected = match checked_output_count(model.dimensions, text_count) {
-        Ok(expected) => expected,
-        Err(error) => {
-            set_error(out_error_message, error.to_string());
-            return Status::InvalidArgument;
-        }
-    };
-
-    if out_count < expected {
-        set_error(out_error_message, format!("out_buffer capacity {} was smaller than {}", out_count, expected));
-        return Status::BufferTooSmall;
-    }
-
-    let inputs = unsafe { slice::from_raw_parts(utf8_bytes, text_count) };
-    let lengths = unsafe { slice::from_raw_parts(utf8_lengths, text_count) };
-    if let Err(error) = validate_batch_input_budget(text_count, lengths) {
-        set_error(out_error_message, error.to_string());
-        return Status::InvalidArgument;
-    }
-
-    let mut decoded = Vec::with_capacity(text_count);
-    for (bytes, length) in inputs.iter().zip(lengths) {
-        match decode_text(*bytes, *length) {
-            Ok(text) => decoded.push(text),
-            Err(error) => {
-                set_error(out_error_message, error.to_string());
-                return Status::InvalidUtf8;
+            if text_count == 0 {
+                return Status::Ok;
             }
-        }
-    }
 
-    let mut guard = match model.inner.lock() {
-        Ok(guard) => guard,
-        Err(_) => {
-            set_error(out_error_message, "The model mutex was poisoned.");
-            return Status::InferenceFailed;
-        }
-    };
+            if utf8_bytes.is_null() || utf8_lengths.is_null() || out_buffer.is_null() {
+                set_error(out_error_message, "utf8_bytes, utf8_lengths, and out_buffer are required.");
+                return Status::InvalidArgument;
+            }
 
-    let embeddings = match contain_panics("Model inference", || guard.embed(decoded, None)) {
-        Ok(embeddings) => embeddings,
-        Err(error) => {
-            set_error(out_error_message, error.to_string());
-            return Status::InferenceFailed;
-        }
-    };
+            let expected = match checked_output_count(model.dimensions, text_count) {
+                Ok(expected) => expected,
+                Err(error) => {
+                    set_error(out_error_message, error.to_string());
+                    return Status::InvalidArgument;
+                }
+            };
 
-    let output = unsafe { slice::from_raw_parts_mut(out_buffer, expected) };
-    match write_batch_embeddings(output, &embeddings, model.dimensions, text_count) {
-        Ok(()) => Status::Ok,
-        Err(error) => {
-            set_error(out_error_message, error.to_string());
-            Status::InferenceFailed
-        }
-    }
+            if out_count < expected {
+                set_error(out_error_message, format!("out_buffer capacity {} was smaller than {}", out_count, expected));
+                return Status::BufferTooSmall;
+            }
+
+            let inputs = unsafe { slice::from_raw_parts(utf8_bytes, text_count) };
+            let lengths = unsafe { slice::from_raw_parts(utf8_lengths, text_count) };
+            if let Err(error) = validate_batch_input_budget(text_count, lengths) {
+                set_error(out_error_message, error.to_string());
+                return Status::InvalidArgument;
+            }
+
+            let mut decoded = Vec::with_capacity(text_count);
+            for (bytes, length) in inputs.iter().zip(lengths) {
+                match decode_text(*bytes, *length) {
+                    Ok(text) => decoded.push(text),
+                    Err(error) => {
+                        set_error(out_error_message, error.to_string());
+                        return Status::InvalidUtf8;
+                    }
+                }
+            }
+
+            let mut guard = match model.inner.lock() {
+                Ok(guard) => guard,
+                Err(_) => {
+                    set_error(out_error_message, "The model mutex was poisoned.");
+                    return Status::InferenceFailed;
+                }
+            };
+
+            let embeddings = match contain_panics("Model inference", || guard.embed(decoded, None)) {
+                Ok(embeddings) => embeddings,
+                Err(error) => {
+                    set_error(out_error_message, error.to_string());
+                    return Status::InferenceFailed;
+                }
+            };
+
+            let output = unsafe { slice::from_raw_parts_mut(out_buffer, expected) };
+            match write_batch_embeddings(output, &embeddings, model.dimensions, text_count) {
+                Ok(()) => Status::Ok,
+                Err(error) => {
+                    set_error(out_error_message, error.to_string());
+                    Status::InferenceFailed
+                }
+            }
+        },
+    )
 }
 
 #[no_mangle]
@@ -616,5 +659,26 @@ mod tests {
         });
 
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn c_abi_guard_converts_panics_into_stable_failure() {
+        let mut error_message: *mut c_char = std::ptr::null_mut();
+
+        let status = c_abi_guard(
+            "Test boundary",
+            &mut error_message,
+            Status::InferenceFailed,
+            || -> Status { panic!("boom") },
+        );
+
+        assert_eq!(status as u32, Status::InferenceFailed as u32);
+        assert!(!error_message.is_null());
+        let message = unsafe { std::ffi::CStr::from_ptr(error_message) }
+            .to_string_lossy()
+            .into_owned();
+        assert_eq!(message, "Test boundary panicked.");
+
+        pkfe_string_destroy(error_message);
     }
 }

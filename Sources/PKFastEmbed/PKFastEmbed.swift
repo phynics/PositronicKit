@@ -223,28 +223,29 @@ public final class MiniLMEmbedder: @unchecked Sendable {
             result = next
         }
 
+        let inputCount = max(texts.count, 1)
         return try withUnsafeTemporaryAllocation(of: UInt8.self, capacity: max(totalBytes, 1)) { byteStorage in
-            var utf8Pointers: [UnsafePointer<UInt8>?] = Array(repeating: nil, count: texts.count)
-            var lengths: [Int] = Array(repeating: 0, count: texts.count)
-            var byteOffset = 0
+            try withUnsafeTemporaryAllocation(of: UnsafePointer<UInt8>?.self, capacity: inputCount) { pointerStorage in
+                try withUnsafeTemporaryAllocation(of: Int.self, capacity: inputCount) { lengthStorage in
+                    var byteOffset = 0
 
-            for (index, text) in texts.enumerated() {
-                let bytes = Array(text.utf8)
-                lengths[index] = bytes.count
+                    for (index, text) in texts.enumerated() {
+                        let bytes = Array(text.utf8)
+                        lengthStorage[index] = bytes.count
 
-                guard !bytes.isEmpty else {
-                    continue
-                }
+                        guard !bytes.isEmpty else {
+                            pointerStorage[index] = nil
+                            continue
+                        }
 
-                let destination = byteStorage.baseAddress!.advanced(by: byteOffset)
-                destination.initialize(from: bytes, count: bytes.count)
-                utf8Pointers[index] = UnsafePointer(destination)
-                byteOffset += bytes.count
-            }
+                        let destination = byteStorage.baseAddress!.advanced(by: byteOffset)
+                        destination.initialize(from: bytes, count: bytes.count)
+                        pointerStorage[index] = UnsafePointer(destination)
+                        byteOffset += bytes.count
+                    }
 
-            return try utf8Pointers.withUnsafeBufferPointer { utf8Buffer in
-                try lengths.withUnsafeBufferPointer { lengthBuffer in
-                    try body(utf8Buffer.baseAddress, lengthBuffer.baseAddress)
+                    // Keep the arena, pointer table, and length table alive for the entire native call.
+                    return try body(pointerStorage.baseAddress, lengthStorage.baseAddress)
                 }
             }
         }

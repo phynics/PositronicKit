@@ -25,6 +25,10 @@ make verify-products              # build every product on this host
 make verify-pin                   # check the pinned MiniLM artifact hashes are consistent
 make build-minilm                 # prepare assets/bridge and build the MiniLM trait product
 make verify-minilm                # prepare native MiniLM and run its tests
+make verify-linux-minimum         # run the minimum Linux matrix gate (Swift 6.1.3 on Ubuntu 24.04)
+make verify-linux-current         # run the current Linux matrix gate (Swift 6.3.2 on Ubuntu 24.04)
+make verify-macos-default         # run the default macOS gate
+make verify-macos-minilm          # run the MiniLM macOS gate
 ```
 
 `build-minilm` and `verify-minilm` both depend on `bootstrap-minilm`, which is
@@ -32,9 +36,11 @@ idempotent: it downloads the pinned model assets on first use, verifies their
 checksums, and builds PKFastEmbed only when missing — so the MiniLM build/test
 pipeline prepares everything without a separate manual bootstrap step. Assets and
 the native prefix are stored under `.build` (gitignored) by default; override
-`PKFASTEMBED_PREFIX` and `PK_MINILM_MODEL_DIR` to relocate the cache. The pinned
-revision and per-file SHA-256 hashes live in `native/pkfastembed/model-assets.sha256`
-and `Sources/PKLocalEmbeddings/MiniLMModelAssets.swift`; `verify-pin` (run by
+`PKFASTEMBED_PREFIX` and `MINILM_MODEL_CACHE_ROOT` to relocate the cache. The
+Makefile keys the default MiniLM cache directory by the pinned `model.onnx`
+SHA-256 so stale assets cannot be reused. The pinned revision and per-file
+SHA-256 hashes live in `native/pkfastembed/model-assets.sha256` and
+`Sources/PKLocalEmbeddings/MiniLMModelAssets.swift`; `verify-pin` (run by
 `verify` and before every bootstrap) fails if those drift apart.
 
 ## Linux Development Setup
@@ -67,14 +73,16 @@ adding `-L<PKFASTEMBED_PREFIX>/lib` directly (`PKFASTEMBED_PREFIX` defaults to
 Once those are installed, the canonical Linux gate is:
 
 ```bash
-make verify-linux   # bootstrap-minilm, then default `swift test` + `swift test --traits MiniLMEmbeddings`
+make verify-linux-current   # bootstrap-minilm, then default `swift test` + `swift test --traits MiniLMEmbeddings`
 ```
 
-`verify-linux` intentionally does **not** depend on `validate-docs` (unlike `verify`,
+`verify-linux-current` intentionally does **not** depend on `validate-docs` (unlike `verify`,
 the Apple gate) — DocC and `swift-symbolgraph-extract` are resolved from an Xcode
 toolchain path in `Scripts/validate-docc.sh` and don't exist on Linux. The story
-tests `validate-docs` also runs are a subset already covered by `verify-linux`'s
+tests `validate-docs` also runs are a subset already covered by `verify-linux-current`'s
 full `swift test` step, so no coverage is lost.
+`verify-linux-minimum` is the same gate, reserved for the Swift 6.1.3 / Ubuntu 24.04
+matrix job.
 
 ## Module Boundaries
 

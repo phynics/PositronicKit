@@ -2,11 +2,11 @@
 
 > A Swift toolkit for building AI agents: transport-neutral runtime orchestration (chat loop, timelines, tool routing), a structured prompt composition DSL, and the shared contracts that tie them together — without imposing a specific networking or hosting model.
 
-PositronicKit is pre-1.0. The core modules (`PositronicKit`, `PKPrompt`, `PKShared`) support Apple platforms and Linux; provider adapters and `PKLocalEmbeddings` have narrower support (see README Support Matrix). Add it as a Swift Package dependency and import only the modules you need — see Quick Start below before writing any code against it.
+PositronicKit is pre-1.0. The core modules (`PositronicKit`, `PKPrompt`, `PKShared`) are verified on Apple platforms and Linux; `PKLocalEmbeddings` is verified on Apple default, Linux, and Apple MiniLM trait paths (see README Support Matrix). Add it as a Swift Package dependency and import only the modules you need — see Quick Start below before writing any code against it.
 
 ## Getting Started
 
-- [README: Quick Start](README.md#quick-start): add the package dependency, import the modules you need, and set up `PKLocalEmbeddings` if you use local embeddings.
+- [README: Quick Start](README.md#quick-start): add the package dependency, import the modules you need, and move any `PositronicKit.LocalEmbeddingService` references to `PKLocalEmbeddings`.
 - [README: Choosing A Layer](README.md#choosing-a-layer) and [Choose Your Entry Point](README.md#choose-your-entry-point): which module/entry point to start from for your use case (prompt-only, single-process runtime, host-owned execution, etc).
 - [PositronicKitExamples](Sources/PositronicKitExamples): runnable examples that double as living documentation — read `main.swift`, `PositronicKitUsageExamples.swift`, and `PKPromptExamples.swift` before inventing your own composition pattern.
 
@@ -20,7 +20,7 @@ PositronicKit is pre-1.0. The core modules (`PositronicKit`, `PKPrompt`, `PKShar
 ## Providers
 
 - [README: Provider Registration](README.md#provider-registration): register a concrete provider (`PKOpenAIProvider`, `PKOpenRouterProvider`, `PKOllamaProvider`) before constructing an `LLMService` from configuration.
-- [README: Local Embeddings](README.md#local-embeddings): `PKLocalEmbeddings`/`LocalEmbeddingService` — Natural Language by default on Apple, opt-in native MiniLM via the `MiniLMEmbeddings` trait, `modelDirectory` construction on Linux.
+- [README: Local Embeddings](README.md#local-embeddings): `PKLocalEmbeddings`/`LocalEmbeddingService` — Natural Language by default on Apple, `modelDirectory` construction on Linux, opt-in Apple MiniLM via the `MiniLMEmbeddings` trait, no provider or daemon fallback, and re-embed when moving content across backends or platforms.
 
 ## Reference
 
