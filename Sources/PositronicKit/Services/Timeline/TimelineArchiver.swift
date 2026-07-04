@@ -53,11 +53,15 @@ public actor TimelineArchiver {
             return "Archived Conversation"
         }
         do {
-            return try await generateTitle(for: firstUserMessage)
+            let title = try await llmService.generateTitle(for: messages)
+            let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmedTitle.isEmpty, trimmedTitle != "New Conversation" {
+                return trimmedTitle
+            }
         } catch {
             logger.error("Failed to generate descriptive title: \(error.localizedDescription)")
-            return String(firstUserMessage.prefix(40))
         }
+        return String(firstUserMessage.prefix(40))
     }
 
     private func resolveTimeline(timelineId: UUID?, title: String) async throws -> Timeline {
@@ -120,22 +124,5 @@ public actor TimelineArchiver {
             return "[]"
         }
         return String(data: data, encoding: .utf8) ?? "[]"
-    }
-
-    private func generateTitle(for userMessage: String) async throws -> String {
-        let prompt = """
-        Generate a very short, descriptive title (max 5 words) for a conversation that starts with:
-        \(userMessage)
-        Title:
-        """
-
-        let response = try await llmService.sendMessage(
-            prompt,
-            responseFormat: nil as LLMResponseFormat?,
-            generationParameters: nil,
-            useUtilityModel: true
-        )
-        return response.replacingOccurrences(of: "\"", with: "")
-            .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
     }
 }
