@@ -1,5 +1,10 @@
-import CryptoKit
 import Foundation
+
+#if canImport(CryptoKit)
+    import CryptoKit
+#else
+    import Crypto
+#endif
 
 /// Returns a short stable fingerprint of a string for log correlation — safe to log.
 package func redactedHash(_ string: String) -> String {
