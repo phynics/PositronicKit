@@ -72,7 +72,7 @@ public actor OpenAIClient: LLMClientProtocol {
         let modelName = self.modelName
 
         let query = ChatQuery(
-            messages: messages.map { $0.toOpenAIMessageParam() },
+            messages: messages.map { $0.toOpenAIMessageParam(logger: logger) },
             model: modelName,
             frequencyPenalty: generationParameters?.frequencyPenalty,
             maxCompletionTokens: generationParameters?.maxTokens,

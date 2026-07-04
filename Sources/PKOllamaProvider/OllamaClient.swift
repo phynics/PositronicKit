@@ -186,7 +186,7 @@ public actor OllamaClient: LLMClientProtocol {
 
         let payload = OllamaChatRequest(
             model: modelName,
-            messages: messages.map { OllamaMessage(from: $0) },
+            messages: messages.map { OllamaMessage(from: $0, logger: logger) },
             stream: true,
             format: format,
             tools: tools?.map { OllamaTool(from: $0) },

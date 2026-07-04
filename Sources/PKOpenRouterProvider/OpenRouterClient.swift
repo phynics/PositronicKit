@@ -91,13 +91,23 @@ struct OpenRouterMessage: Codable {
         case toolCalls = "tool_calls"
     }
 
-    init(_ message: LLMMessage) {
+    /// - Parameter logger: Used to warn when `message` has `.tool` role but a nil `toolCallID`
+    ///   (PKR-12). `LLMMessage.toolCallID` is `String?`, but a `.tool`-role message without one is
+    ///   a contract violation: OpenRouter requires `tool_call_id` on tool messages, and an absent
+    ///   value only surfaces later as an opaque provider 400.
+    init(_ message: LLMMessage, logger: Logger = Logger.module(named: "openrouter-message-conversion")) {
         role = message.role.rawValue
         content = message.content
         name = message.name
         toolCallID = message.toolCallID
         toolCalls = message.toolCalls?.map(OpenRouterToolCall.init)
         reasoning = message.reasoning
+
+        if message.role == .tool, message.toolCallID == nil {
+            logger.warning(
+                "LLMMessage with .tool role is missing toolCallID (contract violation); sending a nil tool_call_id to OpenRouter, which will likely surface as a 400."
+            )
+        }
     }
 }
 
@@ -403,7 +413,7 @@ public actor OpenRouterClient: LLMClientProtocol {
                             timeoutInterval: self.timeoutInterval,
                             attribution: self.attribution,
                             query: OpenRouterChatRequest(
-                                messages: messages.map(OpenRouterMessage.init),
+                                messages: messages.map { OpenRouterMessage($0, logger: logger) },
                                 model: modelName,
                                 frequencyPenalty: generationParameters?.frequencyPenalty,
                                 maxCompletionTokens: generationParameters?.maxTokens,
@@ -442,7 +452,7 @@ public actor OpenRouterClient: LLMClientProtocol {
                                 timeoutInterval: self.timeoutInterval,
                                 attribution: self.attribution,
                                 query: OpenRouterChatRequest(
-                                    messages: messages.map(OpenRouterMessage.init),
+                                    messages: messages.map { OpenRouterMessage($0, logger: logger) },
                                     model: modelName,
                                     frequencyPenalty: generationParameters?.frequencyPenalty,
                                     maxCompletionTokens: generationParameters?.maxTokens,
