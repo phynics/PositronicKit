@@ -37,6 +37,45 @@ revision and per-file SHA-256 hashes live in `native/pkfastembed/model-assets.sh
 and `Sources/PKLocalEmbeddings/MiniLMModelAssets.swift`; `verify-pin` (run by
 `verify` and before every bootstrap) fails if those drift apart.
 
+## Linux Development Setup
+
+`PositronicKit`, `PKPrompt`, and `PKShared` build with a bare Swift 6.1+ toolchain (no
+extra system packages). Building or testing `PKLocalEmbeddings`/`PKFastEmbed` — the
+default on Linux, opt-in on Apple via the `MiniLMEmbeddings` trait — additionally
+requires:
+
+| Dependency | Why |
+|------------|-----|
+| Swift 6.1+ toolchain | Package manifest tools-version; [swiftly](https://swift.org/install) is the easiest install path. |
+| Rust toolchain (`cargo`, stable) | `native/pkfastembed/bootstrap.sh` runs `cargo build --release --locked` to produce `libpkfastembed.a`. |
+| C/C++ toolchain (`gcc`/`g++` or `clang`) | Links `libstdc++`; also needed by Rust's `cc` crate for native build scripts. |
+| `pkg-config` | `CPKFastEmbed` is declared as a SwiftPM `systemLibrary` with `pkgConfig: "pkfastembed"`; the Makefile also passes `PKG_CONFIG_PATH` directly to `swift build`/`swift test`. |
+| OpenSSL development headers (`libssl-dev` on Debian/Ubuntu, `openssl-devel` on Fedora/RHEL) | `fastembed`'s `ort-download-binaries-native-tls` feature depends on `native-tls` → `openssl-sys`, which links system OpenSSL (not vendored). |
+| `curl` | `Scripts/bootstrap-minilm-ci.sh` downloads the pinned Hugging Face model assets. |
+| `shasum` (Perl `Digest::SHA`, not just coreutils `sha256sum`) | `bootstrap-minilm-ci.sh` calls `shasum -a 256 --check` against `native/pkfastembed/model-assets.sha256`. |
+| Network access during first bootstrap | Cargo fetches crates.io dependencies and the ONNX Runtime binary; the model-asset download hits Hugging Face directly. |
+
+**Known SwiftPM/Linux linking gap:** `systemLibrary` + `pkgConfig` only wires the
+`-I` (cflags) into the compile step on Linux — it does not propagate pkg-config's
+`Libs:` (`-L` search path) to the final link step. `-lpkfastembed` reaches the
+linker via Clang autolinking (`Sources/CPKFastEmbed/module.modulemap`'s `link`
+directive), so without an explicit `-L` the linker can't resolve it. The
+`PKFastEmbed` target's `linkerSettings` in `Package.swift` works around this by
+adding `-L<PKFASTEMBED_PREFIX>/lib` directly (`PKFASTEMBED_PREFIX` defaults to
+`.build/pkfastembed` and is exported by the Makefile).
+
+Once those are installed, the canonical Linux gate is:
+
+```bash
+make verify-linux   # bootstrap-minilm, then default `swift test` + `swift test --traits MiniLMEmbeddings`
+```
+
+`verify-linux` intentionally does **not** depend on `validate-docs` (unlike `verify`,
+the Apple gate) — DocC and `swift-symbolgraph-extract` are resolved from an Xcode
+toolchain path in `Scripts/validate-docc.sh` and don't exist on Linux. The story
+tests `validate-docs` also runs are a subset already covered by `verify-linux`'s
+full `swift test` step, so no coverage is lost.
+
 ## Module Boundaries
 
 | Module | Owns | Does Not Own |

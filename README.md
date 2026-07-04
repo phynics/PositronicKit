@@ -70,10 +70,16 @@ workspace state through an inspector drawer.
 Verification is run explicitly through the root Makefile:
 
 ```bash
-make verify           # Default build, docs, linkage audit, and tests
+make verify           # Default build, docs, linkage audit, and tests (macOS)
+make verify-linux     # Bootstrap pinned assets/native bridge and run the full Linux test suite
 make verify-products  # Build every supported product on the current host
 make verify-minilm    # Bootstrap pinned assets/native bridge and run MiniLM tests
 ```
+
+`make verify-linux` needs a Rust toolchain, a C/C++ toolchain, `pkg-config`,
+OpenSSL development headers, `curl`, and `shasum` in addition to Swift — see
+[`AGENTS.md`](AGENTS.md#linux-development-setup) for the full list and why
+each is required.
 
 `make verify-minilm` downloads the pinned Hugging Face model assets on first
 use, validates their checksums, builds the Rust bridge, and stores the native
