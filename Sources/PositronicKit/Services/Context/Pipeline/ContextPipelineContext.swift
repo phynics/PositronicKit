@@ -13,7 +13,7 @@ actor ContextPipelineContext {
     /// Optional closure to generate tags from a string.
     let tagGenerator: (@Sendable (String) async throws -> [String])?
     /// The time when the pipeline execution started.
-    let startTime: CFAbsoluteTime
+    let startTime: TimeInterval
 
     /// The query after being augmented with history/context.
     private(set) var augmentedQuery: String = ""
@@ -38,7 +38,7 @@ actor ContextPipelineContext {
         history: [Message],
         limit: Int,
         tagGenerator: (@Sendable (String) async throws -> [String])?,
-        startTime: CFAbsoluteTime
+        startTime: TimeInterval
     ) {
         self.query = query
         self.history = history

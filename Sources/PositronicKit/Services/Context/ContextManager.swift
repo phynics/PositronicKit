@@ -55,7 +55,7 @@ actor ContextManager {
     ) -> AsyncThrowingStream<ContextGatheringEvent, Error> {
         return AsyncThrowingStream<ContextGatheringEvent, Error> { continuation in
             let task = Task {
-                let startTime = CFAbsoluteTimeGetCurrent()
+                let startTime = Date().timeIntervalSinceReferenceDate
                 logger.debug(
                     "Gathering context for query length: \(query.count), history count: \(history.count)"
                 )

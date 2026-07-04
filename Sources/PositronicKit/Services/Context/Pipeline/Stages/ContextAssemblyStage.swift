@@ -6,22 +6,22 @@ import PKShared
 /// Pipeline stage responsible for assembling the gathered results into a final `ContextData` object.
 struct ContextAssemblyStage: PipelineStage {
     /// Logger for assembly progress.
-    public let logger: Logger
+    let logger: Logger
 
     /// Initializes a new assembly stage.
     /// - Parameter logger: The logger to use.
-    public init(logger: Logger) {
+    init(logger: Logger) {
         self.logger = logger
     }
 
     /// Processes the context and yields a completion event with final data.
     /// - Parameter context: The shared pipeline context.
     /// - Returns: A stream that yields the final result.
-    public func process(
+    func process(
         _ context: ContextPipelineContext
     ) async throws -> AsyncThrowingStream<ContextGatheringEvent, Error> {
         let startTime = context.startTime
-        let duration = CFAbsoluteTimeGetCurrent() - startTime
+        let duration = Date().timeIntervalSinceReferenceDate - startTime
         logger.info("Context gathered in \(String(format: "%.3f", duration))s")
 
         await context.finalize(executionTime: duration)
