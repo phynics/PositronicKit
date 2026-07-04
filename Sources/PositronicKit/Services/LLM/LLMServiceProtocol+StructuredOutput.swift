@@ -35,7 +35,7 @@ public extension LLMServiceProtocol {
         useFastModel: Bool = false
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
         let provider = await configuration.provider
-        let prepared = StructuredOutputExecution.prepareStreamRequest(
+        let prepared = StructuredOutputExecution.prepareRequest(
             messages: messages,
             tools: tools,
             provider: provider,
@@ -81,139 +81,71 @@ public extension LLMServiceProtocol {
 enum StructuredOutputExecution {
     private static let syntheticToolName = "emit_structured_response"
 
-    struct PreparedMessages {
-        let messages: [LLMMessage]
-        let rawPrompt: String
-        let responseFormat: LLMResponseFormat?
-    }
-
-    static func apply(
-        to messages: [LLMMessage],
-        rawPrompt: String,
-        provider: LLMProvider,
-        output: StructuredOutputRequest
-    ) -> PreparedMessages {
-        let prepared = prepare(for: provider, output: output)
-        guard let augmentation = prepared.promptAugmentation else {
-            return PreparedMessages(
-                messages: messages,
-                rawPrompt: rawPrompt,
-                responseFormat: prepared.responseFormat
-            )
-        }
-
-        return PreparedMessages(
-            messages: applyPromptAugmentation(augmentation, to: messages),
-            rawPrompt: rawPrompt + augmentation,
-            responseFormat: prepared.responseFormat
-        )
-    }
-
-    private struct PreparedRequest {
-        let responseFormat: LLMResponseFormat?
-        let promptAugmentation: String?
-    }
-
-    struct StreamRequest {
+    struct PreparedRequest {
         let messages: [LLMMessage]
         let tools: [LLMToolDefinition]?
         let toolChoice: LLMToolChoice?
         let responseFormat: LLMResponseFormat?
         let syntheticToolName: String?
+        let promptAugmentation: String?
     }
 
-    private static func prepare(
-        for provider: LLMProvider,
-        output: StructuredOutputRequest
-    ) -> PreparedRequest {
-        switch output {
-        case .jsonObject:
-            return PreparedRequest(responseFormat: .jsonObject, promptAugmentation: nil)
-        case .jsonSchema(let schema):
-            switch provider {
-            case .openAI, .openRouter:
-                let jsonSchema: Schema?
-                if let data = try? JSONEncoder().encode(schema.schema) {
-                    jsonSchema = try? JSONDecoder().decode(Schema.self, from: data)
-                } else {
-                    jsonSchema = nil
-                }
-
-                return PreparedRequest(
-                    responseFormat: .jsonSchema(.init(
-                        name: schema.name,
-                        description: schema.description,
-                        schema: jsonSchema,
-                        strict: schema.strict
-                    )),
-                    promptAugmentation: nil
-                )
-            case .ollama:
-                let jsonSchema: Schema?
-                if let data = try? JSONEncoder().encode(schema.schema) {
-                    jsonSchema = try? JSONDecoder().decode(Schema.self, from: data)
-                } else {
-                    jsonSchema = nil
-                }
-                return PreparedRequest(
-                    responseFormat: .jsonSchema(.init(
-                        name: schema.name,
-                        description: schema.description,
-                        schema: jsonSchema,
-                        strict: schema.strict
-                    )),
-                    promptAugmentation: fallbackPromptSuffix(schema: schema)
-                )
-            case .openAICompatible:
-                return PreparedRequest(responseFormat: nil, promptAugmentation: nil)
-            }
-        }
-    }
-
-    static func prepareStreamRequest(
+    static func prepareRequest(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,
         provider: LLMProvider,
         output: StructuredOutputRequest
-    ) -> StreamRequest {
+    ) -> PreparedRequest {
         switch output {
         case .jsonObject:
-            return StreamRequest(
+            return PreparedRequest(
                 messages: messages,
                 tools: tools,
                 toolChoice: nil,
                 responseFormat: .jsonObject,
-                syntheticToolName: nil
+                syntheticToolName: nil,
+                promptAugmentation: nil
             )
         case .jsonSchema(let schema):
             switch provider {
             case .openAI, .openRouter:
-                let prepared = prepare(for: provider, output: output)
-                return StreamRequest(
+                return PreparedRequest(
                     messages: messages,
                     tools: tools,
                     toolChoice: nil,
-                    responseFormat: prepared.responseFormat,
-                    syntheticToolName: nil
+                    responseFormat: .jsonSchema(.init(
+                        name: schema.name,
+                        description: schema.description,
+                        schema: schema.schema,
+                        strict: schema.strict
+                    )),
+                    syntheticToolName: nil,
+                    promptAugmentation: nil
                 )
             case .ollama:
-                let prepared = prepare(for: provider, output: output)
                 let augmentation = fallbackPromptSuffix(schema: schema)
-                return StreamRequest(
+                return PreparedRequest(
                     messages: applyPromptAugmentation(augmentation, to: messages),
                     tools: tools,
                     toolChoice: nil,
-                    responseFormat: prepared.responseFormat,
-                    syntheticToolName: nil
+                    responseFormat: .jsonSchema(.init(
+                        name: schema.name,
+                        description: schema.description,
+                        schema: schema.schema,
+                        strict: schema.strict
+                    )),
+                    syntheticToolName: nil,
+                    promptAugmentation: augmentation
                 )
             case .openAICompatible:
                 let syntheticTool = syntheticTool(for: schema)
-                return StreamRequest(
+                return PreparedRequest(
                     messages: messages,
                     tools: (tools ?? []) + [syntheticTool],
                     toolChoice: .function(syntheticToolName),
                     responseFormat: nil,
-                    syntheticToolName: syntheticToolName
+                    syntheticToolName: syntheticToolName,
+                    promptAugmentation: nil
                 )
             }
         }
@@ -261,17 +193,10 @@ enum StructuredOutputExecution {
     }
 
     private static func syntheticTool(for schema: StructuredOutputSchema) -> LLMToolDefinition {
-        let parameters: Schema?
-        if let data = try? JSONEncoder().encode(schema.schema) {
-            parameters = try? JSONDecoder().decode(Schema.self, from: data)
-        } else {
-            parameters = nil
-        }
-
         return LLMToolDefinition(
             name: syntheticToolName,
             description: schema.description ?? "Emit the final structured response payload for \(schema.name).",
-            parameters: parameters,
+            parameters: schema.schema,
             strict: schema.strict
         )
     }

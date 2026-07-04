@@ -18,31 +18,44 @@ public extension LLMServiceProtocol {
         )
         let result = try await PromptAssembler.prepare(promptRequest)
         let provider = await configuration.provider
-        let resolvedOutput = request.structuredOutput.map {
-            StructuredOutputExecution.apply(
-                to: result.messages,
-                rawPrompt: result.rawPrompt,
+        let toolParams = request.tools.isEmpty ? nil : request.tools.map { $0.toLLMToolDefinition() }
+        let preparedOutput = request.structuredOutput.map {
+            StructuredOutputExecution.prepareRequest(
+                messages: result.messages,
+                tools: toolParams,
                 provider: provider,
                 output: $0
             )
         }
 
-        let messages = resolvedOutput?.messages ?? result.messages
-        let rawPrompt = resolvedOutput?.rawPrompt ?? result.rawPrompt
-        let responseFormat = resolvedOutput?.responseFormat
+        let messages = preparedOutput?.messages ?? result.messages
+        let rawPrompt = if let augmentation = preparedOutput?.promptAugmentation {
+            result.rawPrompt + augmentation
+        } else {
+            result.rawPrompt
+        }
+        let responseFormat = preparedOutput?.responseFormat
+        let toolChoice = preparedOutput?.toolChoice
 
         // Delegate to the configured provider implementation for streaming.
-        let toolParams = request.tools.isEmpty ? nil : request.tools.map { $0.toLLMToolDefinition() }
+        let resolvedTools = preparedOutput?.tools ?? toolParams
         let stream = await chatStream(
             messages: messages,
-            tools: toolParams,
+            tools: resolvedTools,
+            toolChoice: toolChoice,
             responseFormat: responseFormat,
             generationParameters: request.generationParameters,
             useUtilityModel: false,
             useFastModel: request.useFastModel
         )
 
-        return LLMStreamResult(stream: stream, rawPrompt: rawPrompt)
+        let resolvedStream = if let syntheticToolName = preparedOutput?.syntheticToolName {
+            StructuredOutputExecution.rewriteSyntheticToolStream(stream, syntheticToolName: syntheticToolName)
+        } else {
+            stream
+        }
+
+        return LLMStreamResult(stream: resolvedStream, rawPrompt: rawPrompt)
     }
 }
 
