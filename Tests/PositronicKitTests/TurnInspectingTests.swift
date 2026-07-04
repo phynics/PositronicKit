@@ -1,9 +1,9 @@
 import Foundation
 import OpenAI
-import PKTestSupport
-import Testing
 @testable import PKShared
+import PKTestSupport
 @testable import PositronicKit
+import Testing
 
 private actor InspectionRecorder: TurnInspecting {
     private(set) var values: [TurnInspection] = []
@@ -79,12 +79,14 @@ struct TurnInspectingTests {
 
         func collect(
             message: String,
-            tools: [AnyTool] = []
+            tools: [AnyTool] = [],
+            maxTurns: Int = ChatEngine.Constants.defaultMaxTurns
         ) async throws -> [ChatEvent] {
             let stream = try await engine.execute(
                 timelineId: timelineId,
                 message: message,
-                tools: tools
+                tools: tools,
+                maxTurns: maxTurns
             )
 
             var events: [ChatEvent] = []
@@ -154,5 +156,47 @@ struct TurnInspectingTests {
         let values = await recorder.values
         #expect(values.map { $0.turnIndex } == [0, 1])
         #expect(values[1].journal.stablePrefixCount > 0)
+    }
+
+    /// PKR-10: `synthesizeFollowUpPrompt` used to rebuild `RenderedPrompt.string` by re-joining
+    /// *every* prior section from scratch each `.continueWith` turn (O(n^2) over a long tool-call
+    /// loop). It now appends the newly-synthesized section's text onto the already-rendered
+    /// accumulated string instead. This test drives several tool-call turns and asserts, at every
+    /// turn, that the incrementally-built `rendered.string` is byte-identical to what a full
+    /// from-scratch re-join of `sections`/`sectionsByID` would have produced — proving the
+    /// optimization preserves output exactly across a multi-turn loop.
+    @Test("Rendered prompt string stays correct across many tool-call turns")
+    func renderedPromptStringMatchesFullRejoinAcrossManyToolCallTurns() async throws {
+        let recorder = InspectionRecorder()
+        let harness = try await ChatEngineTestHarness(inspector: recorder)
+
+        let turnCount = 6
+        harness.llm.mockClient.nextToolCalls = (0 ..< (turnCount - 1)).map { index in
+            [MockToolCall(id: "call-\(index)", name: "mock_tool")]
+        }
+        harness.llm.mockClient.nextResponses = Array(repeating: "", count: turnCount - 1) + ["Done"]
+
+        _ = try await harness.collect(
+            message: "Use the tool repeatedly",
+            tools: [MockTool().toAnyTool()],
+            maxTurns: turnCount
+        )
+
+        let values = await recorder.values
+        #expect(values.map(\.turnIndex) == Array(0 ..< turnCount))
+
+        for inspection in values {
+            let rendered = inspection.rendered
+            let expectedString = rendered.sections
+                .compactMap { rendered.sectionsByID[$0.id] }
+                .joined(separator: "\n\n---\n\n")
+            #expect(rendered.string == expectedString, "turn \(inspection.turnIndex) diverged from a full section re-join")
+        }
+
+        // The follow-up sections accumulate one per continued turn — confirms this scenario
+        // actually exercises the incremental-append path (not just a single-turn no-op).
+        let lastSectionIDs = try Set(#require(values.last?.rendered.sections.map(\.id)))
+        let followUpSectionCount = lastSectionIDs.filter { $0.hasPrefix("runtime-follow-up-") }.count
+        #expect(followUpSectionCount == turnCount - 1)
     }
 }
