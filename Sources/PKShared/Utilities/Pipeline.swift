@@ -128,7 +128,7 @@ public final class Pipeline<Context: Sendable, Event: Sendable>: Sendable {
         continuation: AsyncThrowingStream<Event, Error>.Continuation,
         label: String
     ) async -> Error? {
-        let startTime = CFAbsoluteTimeGetCurrent()
+        let startTime = Date().timeIntervalSinceReferenceDate
         logHandler?(.debug, "Starting \(label) stage: \(stage.id)", [:])
 
         do {
@@ -136,11 +136,11 @@ public final class Pipeline<Context: Sendable, Event: Sendable>: Sendable {
             for try await event in stream {
                 continuation.yield(event)
             }
-            let duration = CFAbsoluteTimeGetCurrent() - startTime
+            let duration = Date().timeIntervalSinceReferenceDate - startTime
             logHandler?(.debug, "Completed \(label) stage: \(stage.id) in \(String(format: "%.3f", duration))s", [:])
             return nil
         } catch {
-            let duration = CFAbsoluteTimeGetCurrent() - startTime
+            let duration = Date().timeIntervalSinceReferenceDate - startTime
             let durationStr = String(format: "%.3f", duration)
             logHandler?(.error, "\(label) stage '\(stage.id)' failed after \(durationStr)s: \(error.localizedDescription)", [:])
 
