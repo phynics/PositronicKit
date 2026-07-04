@@ -52,8 +52,6 @@ struct ChatEngine {
     // MARK: - Constants
 
     enum Constants {
-        static let maxHistoryTokens = 120_000
-        static let historyTokenBuffer = 4000
         static let sentinelToolName = "tool_call"
         static let defaultMaxTurns = 5
         static let maxRemoteDepth = 3
@@ -464,12 +462,24 @@ struct ChatEngine {
         )
 
         var sectionsByID = basePrompt.sectionsByID
-        sectionsByID[sectionID] = appendedMessages.map(\.content).joined(separator: "\n")
+        let appendedContent = appendedMessages.map(\.content).joined(separator: "\n")
+        sectionsByID[sectionID] = appendedContent
 
         let sections = basePrompt.sections + [appendedSection]
+
+        // Build the rendered string incrementally: append the new section's text to the
+        // already-rendered accumulated string instead of re-joining every prior section from
+        // scratch each turn. This avoids O(n^2) string work across long tool-call loops (PKR-10).
+        // Matches `AssembledPrompt.render()`'s behavior of skipping empty section content.
+        let string = appendedContent.isEmpty
+            ? basePrompt.string
+            : basePrompt.string.isEmpty
+            ? appendedContent
+            : basePrompt.string + "\n\n---\n\n" + appendedContent
+
         return RenderedPrompt(
             sections: sections,
-            string: sections.compactMap { sectionsByID[$0.id] }.joined(separator: "\n\n---\n\n"),
+            string: string,
             sectionsByID: sectionsByID
         )
     }
