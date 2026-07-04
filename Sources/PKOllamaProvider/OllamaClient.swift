@@ -1,6 +1,6 @@
 import Foundation
 #if canImport(FoundationNetworking)
-import FoundationNetworking
+    import FoundationNetworking
 #endif
 import Logging
 import PKShared
@@ -171,7 +171,7 @@ public actor OllamaClient: LLMClientProtocol {
         switch responseFormat {
         case .jsonObject:
             format = .jsonObject
-        case .jsonSchema(let schema):
+        case let .jsonSchema(schema):
             if let schema = schema.schema {
                 format = .jsonSchema(schema)
             } else {
@@ -183,7 +183,7 @@ public actor OllamaClient: LLMClientProtocol {
 
         let payload = OllamaChatRequest(
             model: modelName,
-            messages: messages.map { OllamaMessage(from: $0) },
+            messages: messages.map { OllamaMessage(from: $0, logger: logger) },
             stream: true,
             format: format,
             tools: tools?.map { OllamaTool(from: $0) },
@@ -203,7 +203,8 @@ public actor OllamaClient: LLMClientProtocol {
         }
         guard !response.message.content.isEmpty
             || response.message.thinking?.isEmpty == false
-            || response.message.toolCalls?.isEmpty == false else {
+            || response.message.toolCalls?.isEmpty == false
+        else {
             return nil
         }
         return buildIntermediateChunk(response, toolCalls: toolCalls)

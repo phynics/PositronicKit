@@ -1,8 +1,15 @@
 import Foundation
+import struct JSONSchema.Schema
+import Logging
 import OpenAI
 import PKPrompt
 import PKShared
-import struct JSONSchema.Schema
+
+/// Logger used when an `LLMMessage` with `.tool` role is converted for the OpenAI wire format
+/// without a `toolCallID` (PKR-12). `LLMMessage.toolCallID` is `String?`, but a `.tool`-role
+/// message without one is a contract violation: OpenAI requires `tool_call_id` on tool messages,
+/// and silently substituting `""` only surfaces later as an opaque provider 400.
+public let openAIConversionLogger = Logger.module(named: "openai-message-conversion")
 
 public extension LLMToolDefinition {
     func toOpenAIToolParam() -> ChatQuery.ChatCompletionToolParam {
@@ -16,7 +23,7 @@ public extension LLMToolDefinition {
 }
 
 public extension LLMMessage {
-    func toOpenAIMessageParam() -> ChatQuery.ChatCompletionMessageParam {
+    func toOpenAIMessageParam(logger: Logger = openAIConversionLogger) -> ChatQuery.ChatCompletionMessageParam {
         switch role {
         case .system:
             return .system(.init(content: .textContent(content), name: name))
@@ -37,6 +44,11 @@ public extension LLMMessage {
             }
             return .assistant(.init(content: .textContent(content), name: name, toolCalls: toolCalls))
         case .tool:
+            if toolCallID == nil {
+                logger.warning(
+                    "LLMMessage with .tool role is missing toolCallID (contract violation); sending empty tool_call_id to OpenAI, which will likely surface as a 400."
+                )
+            }
             return .tool(.init(content: .textContent(content), toolCallId: toolCallID ?? ""))
         case .developer:
             return .developer(.init(content: .textContent(content), name: name))
@@ -49,7 +61,7 @@ public extension LLMToolChoice {
         switch self {
         case .auto:
             return .auto
-        case .function(let name):
+        case let .function(name):
             return .function(name)
         }
     }
@@ -62,7 +74,7 @@ public extension LLMResponseFormat {
             return .text
         case .jsonObject:
             return .jsonObject
-        case .jsonSchema(let schema):
+        case let .jsonSchema(schema):
             return .jsonSchema(.init(
                 name: schema.name,
                 description: schema.description,

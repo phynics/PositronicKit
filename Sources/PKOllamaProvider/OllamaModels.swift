@@ -1,5 +1,6 @@
 import Foundation
 import struct JSONSchema.Schema
+import Logging
 import PKShared
 
 struct OllamaChatRequest: Codable {
@@ -20,7 +21,7 @@ enum OllamaResponseFormat: Codable {
         switch self {
         case .jsonObject:
             try container.encode("json")
-        case .jsonSchema(let schema):
+        case let .jsonSchema(schema):
             try container.encode(schema)
         }
     }
@@ -31,7 +32,7 @@ enum OllamaResponseFormat: Codable {
             self = .jsonObject
             return
         }
-        self = .jsonSchema(try container.decode(Schema.self))
+        self = try .jsonSchema(container.decode(Schema.self))
     }
 }
 
@@ -104,30 +105,58 @@ struct OllamaMessage: Codable {
         self.toolCalls = toolCalls
     }
 
-    init(from param: LLMMessage) {
+    /// Logger used when `LLMToolCall.arguments` fails to decode as the `[String: AnyCodable]`
+    /// object shape Ollama's `/api/chat` endpoint requires for `tool_calls[].function.arguments`
+    /// (PKR-12). Some models emit a JSON array or scalar instead of an object; silently
+    /// substituting `{}` would send a wrong tool invocation with no diagnostic.
+    private static let logger = Logger.module(named: "ollama-message-conversion")
+
+    init(from param: LLMMessage, logger: Logger = OllamaMessage.logger) {
         let role = param.role == .developer ? "system" : param.role.rawValue
         self.init(
             role: role,
             content: param.content,
             thinking: param.reasoning,
             toolCalls: param.toolCalls?.compactMap { toolCall in
-                guard let data = toolCall.arguments.data(using: .utf8),
-                      let arguments = try? JSONDecoder().decode([String: AnyCodable].self, from: data)
-                else {
-                    return OllamaToolCall(function: OllamaToolCallFunction(name: toolCall.name, arguments: [:]))
-                }
-                return OllamaToolCall(function: OllamaToolCallFunction(name: toolCall.name, arguments: arguments))
+                Self.makeOllamaToolCall(from: toolCall, logger: logger)
             }
         )
     }
 
+    /// Converts a neutral `LLMToolCall` into the Ollama wire shape, decoding `arguments` (a raw
+    /// JSON string) into the `[String: AnyCodable]` object Ollama expects. If the payload isn't a
+    /// JSON object (e.g. some models emit a JSON array or scalar for `arguments`), the original
+    /// value is preserved under a recoverable sentinel key instead of being silently dropped to
+    /// `{}`, and a warning is logged so the substitution is diagnosable.
+    private static func makeOllamaToolCall(from toolCall: LLMToolCall, logger: Logger) -> OllamaToolCall {
+        guard let data = toolCall.arguments.data(using: .utf8) else {
+            logger.warning(
+                "Ollama tool call arguments were not valid UTF-8; sending empty arguments instead. tool=\(toolCall.name) id=\(toolCall.id)"
+            )
+            return OllamaToolCall(function: OllamaToolCallFunction(name: toolCall.name, arguments: [:]))
+        }
+        if let arguments = try? JSONDecoder().decode([String: AnyCodable].self, from: data) {
+            return OllamaToolCall(function: OllamaToolCallFunction(name: toolCall.name, arguments: arguments))
+        }
+        if let rawValue = try? JSONDecoder().decode(AnyCodable.self, from: data) {
+            logger.warning(
+                "Ollama tool call arguments did not decode as a JSON object (e.g. the model emitted an array or scalar); preserving the original value under \"_rawArguments\" instead of substituting {}. tool=\(toolCall.name) id=\(toolCall.id)"
+            )
+            return OllamaToolCall(function: OllamaToolCallFunction(name: toolCall.name, arguments: ["_rawArguments": rawValue]))
+        }
+        logger.warning(
+            "Ollama tool call arguments failed to decode as JSON at all; sending empty arguments instead. tool=\(toolCall.name) id=\(toolCall.id)"
+        )
+        return OllamaToolCall(function: OllamaToolCallFunction(name: toolCall.name, arguments: [:]))
+    }
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.init(
-            role: try container.decode(String.self, forKey: .role),
-            content: try container.decode(String.self, forKey: .content),
+        try self.init(
+            role: container.decode(String.self, forKey: .role),
+            content: container.decode(String.self, forKey: .content),
             thinking: Self.decodeThinking(from: decoder),
-            toolCalls: try container.decodeIfPresent([OllamaToolCall].self, forKey: .toolCalls)
+            toolCalls: container.decodeIfPresent([OllamaToolCall].self, forKey: .toolCalls)
         )
     }
 
@@ -136,9 +165,17 @@ struct OllamaMessage: Codable {
     private static func decodeThinking(from decoder: Decoder) -> String? {
         struct AnyCodingKey: CodingKey {
             var stringValue: String
-            init(stringValue: String) { self.stringValue = stringValue }
-            var intValue: Int? { nil }
-            init?(intValue: Int) { return nil }
+            init(stringValue: String) {
+                self.stringValue = stringValue
+            }
+
+            var intValue: Int? {
+                nil
+            }
+
+            init?(intValue _: Int) {
+                return nil
+            }
         }
         guard let container = try? decoder.container(keyedBy: AnyCodingKey.self) else { return nil }
         if let thinking = try? container.decodeIfPresent(String.self, forKey: .init(stringValue: "thinking")) {
@@ -212,6 +249,11 @@ struct OllamaEndpoint {
         return URL(string: cleanEndpoint) ?? URL(string: "http://localhost:11434")!
     }
 
-    var chatURL: URL { url.appendingPathComponent("api/chat") }
-    var tagsURL: URL { url.appendingPathComponent("api/tags") }
+    var chatURL: URL {
+        url.appendingPathComponent("api/chat")
+    }
+
+    var tagsURL: URL {
+        url.appendingPathComponent("api/tags")
+    }
 }
