@@ -1,5 +1,12 @@
 // swift-tools-version: 6.1
+import Foundation
 import PackageDescription
+
+let pkfastembedLibDir: String = {
+    let prefix = ProcessInfo.processInfo.environment["PKFASTEMBED_PREFIX"]
+        ?? "\(FileManager.default.currentDirectoryPath)/.build/pkfastembed"
+    return "\(prefix)/lib"
+}()
 
 let package = Package(
     name: "PositronicKit",
@@ -82,7 +89,10 @@ let package = Package(
         .target(
             name: "PKFastEmbed",
             dependencies: ["CPKFastEmbed", "PKShared", "PositronicKit"],
-            path: "Sources/PKFastEmbed"
+            path: "Sources/PKFastEmbed",
+            linkerSettings: [
+                .unsafeFlags(["-L\(pkfastembedLibDir)"], .when(platforms: [.linux])),
+            ]
         ),
         .target(
             name: "PKOpenAIProvider",

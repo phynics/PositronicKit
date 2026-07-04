@@ -110,8 +110,14 @@ public enum RetryPolicy {
         // Handle Generic NSError (e.g., POSIX errors)
         let nsError = error as NSError
         if nsError.domain == NSURLErrorDomain {
-            // Re-check codes if it came as NSError
-            guard let code = URLError.Code(rawValue: nsError.code) else { return false }
+            // Re-check codes if it came as NSError.
+            // URLError.Code(rawValue:) is failable on swift-corelibs-foundation (Linux)
+            // but non-failable on Apple platforms, so the two branches can't share one expression.
+            #if canImport(FoundationNetworking)
+                guard let code = URLError.Code(rawValue: nsError.code) else { return false }
+            #else
+                let code = URLError.Code(rawValue: nsError.code)
+            #endif
             return isTransient(error: URLError(code))
         }
 

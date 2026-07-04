@@ -1,5 +1,9 @@
 module CPKFastEmbed [system] {
     header "include/pkfastembed.h"
     link "pkfastembed"
+    link "stdc++"
+    link "dl"
+    link "pthread"
+    link "m"
     export *
 }
