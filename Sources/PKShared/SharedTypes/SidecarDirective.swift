@@ -89,13 +89,22 @@ public struct SidecarDirective: Sendable, Equatable, Codable {
 // MARK: - Validation Helpers
 
 public extension SidecarDirective {
+    /// Fixed root-level wire keys used by the sidecar transport. `SidecarSchemaComposer`
+    /// composes the schema around these keys and `SidecarStreamExtractor` reads them back;
+    /// both consume this single definition so the wire format can't drift between them.
+    enum RootKey {
+        public static let prioritySidecarPayload = "priority_sidecar_payload"
+        public static let response = SidecarDirective.reservedFieldName
+        public static let sidecarPayload = "sidecar_payload"
+    }
+
     /// The reserved JSON field name that cannot be used for directives.
     static let reservedFieldName = "response"
 
     /// Reserved structural container names used by the sidecar transport.
     static let reservedContainerFieldNames: Set<String> = [
-        "priority_sidecar_payload",
-        "sidecar_payload",
+        RootKey.prioritySidecarPayload,
+        RootKey.sidecarPayload,
     ]
 
     /// Whether this directive's name is valid (non-empty and not reserved).

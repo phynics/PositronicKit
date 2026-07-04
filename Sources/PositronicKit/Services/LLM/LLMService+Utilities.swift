@@ -1,9 +1,9 @@
 import ErrorKit
 import Foundation
+import struct JSONSchema.Schema
 import JSONSchemaBuilder
 import Logging
 import PKShared
-import struct JSONSchema.Schema
 
 public extension LLMServiceProtocol {
     /// Generate tags/keywords for a given text using the LLM
@@ -86,7 +86,9 @@ private protocol UtilityGenerationLoggerProviding {
 }
 
 extension LLMService: UtilityGenerationLoggerProviding {
-    nonisolated var utilityGenerationLogger: Logger { logger }
+    nonisolated var utilityGenerationLogger: Logger {
+        logger
+    }
 }
 
 private struct UtilityGenerationDirective<Payload: Decodable & Sendable, Output: Sendable> {
@@ -150,6 +152,10 @@ private extension UtilityGenerationDirective where Payload == LLMTitleResponse, 
 }
 
 private extension UtilityGenerationDirective where Payload == [String: Double], Output == [String: Double] {
+    static let recallPerformanceSchema = try! Schema( // swiftlint:disable:this force_try
+        instance: #"{"type":"object","additionalProperties":{"type":"number","minimum":-1.0,"maximum":1.0}}"#
+    )
+
     static func recallPerformance(transcript: String, recalledMemories: [Memory]) -> Self {
         let memoriesText = recalledMemories.map {
             "- ID: \($0.id.uuidString)\n  Title: \($0.title)\n  Content: \($0.content)"
@@ -180,7 +186,7 @@ private extension UtilityGenerationDirective where Payload == [String: Double], 
             structuredOutput: .jsonSchema(StructuredOutputSchema(
                 name: "recall_performance",
                 description: "A map of memory IDs to helpfulness scores between -1.0 and 1.0.",
-                schema: try! Schema(instance: #"{"type":"object","additionalProperties":{"type":"number","minimum":-1.0,"maximum":1.0}}"#)
+                schema: recallPerformanceSchema
             )),
             payloadType: [String: Double].self,
             defaultValue: [:],
@@ -190,11 +196,11 @@ private extension UtilityGenerationDirective where Payload == [String: Double], 
 }
 
 @Schemable
-struct LLMTagResponse: Codable, Sendable {
+struct LLMTagResponse: Codable {
     let tags: [String]
 }
 
 @Schemable
-struct LLMTitleResponse: Codable, Sendable {
+struct LLMTitleResponse: Codable {
     let title: String
 }

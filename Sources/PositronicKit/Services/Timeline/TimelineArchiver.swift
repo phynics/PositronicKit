@@ -1,3 +1,4 @@
+import ErrorKit
 import Foundation
 import Logging
 import PKShared
@@ -55,11 +56,11 @@ public actor TimelineArchiver {
         do {
             let title = try await llmService.generateTitle(for: messages)
             let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmedTitle.isEmpty, trimmedTitle != "New Conversation" {
+            if !trimmedTitle.isEmpty {
                 return trimmedTitle
             }
         } catch {
-            logger.error("Failed to generate descriptive title: \(error.localizedDescription)")
+            logger.error("Failed to generate descriptive title: \(ErrorKit.userFriendlyMessage(for: error))")
         }
         return String(firstUserMessage.prefix(40))
     }

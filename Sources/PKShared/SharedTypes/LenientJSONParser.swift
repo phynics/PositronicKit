@@ -1,9 +1,29 @@
 import Foundation
 import PartialJSON
 
-public enum LenientJSONParsingError: Error, Equatable {
+public enum LenientJSONParsingError: PKError, Equatable {
     case invalidJSONPayload
     case serializationFailed
+
+    public var errorDomain: String {
+        PKErrorDomain.shared
+    }
+
+    public var errorCode: Int {
+        switch self {
+        case .invalidJSONPayload: return 201
+        case .serializationFailed: return 202
+        }
+    }
+
+    public var userFriendlyMessage: String {
+        switch self {
+        case .invalidJSONPayload:
+            return "The JSON payload could not be parsed, even after lenient repair."
+        case .serializationFailed:
+            return "The repaired JSON value could not be serialized back to data."
+        }
+    }
 }
 
 public enum LenientJSONParser {

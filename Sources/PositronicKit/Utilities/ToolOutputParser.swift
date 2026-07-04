@@ -85,11 +85,11 @@ public enum ToolOutputParser {
 
         for match in matches {
             if let nameRange = Range(match.range(at: 1), in: content),
-               let argsRange = Range(match.range(at: 2), in: content) {
+               let argsRange = Range(match.range(at: 2), in: content)
+            {
                 let name = String(content[nameRange])
                 let argsString = String(content[argsRange])
-                if let data = argsString.data(using: .utf8),
-                   let args = try? JSONDecoder().decode([String: AnyCodable].self, from: data) {
+                if let args: [String: AnyCodable] = decodeLeniently(from: argsString) {
                     foundCalls.append(FallbackToolCall(name: name, arguments: args))
                 }
             }
@@ -111,8 +111,7 @@ public enum ToolOutputParser {
         for match in matches {
             if let range = Range(match.range(at: 1), in: content) {
                 let jsonString = String(content[range])
-                if let data = jsonString.data(using: .utf8),
-                   let call = try? JSONDecoder().decode(FallbackToolCall.self, from: data) {
+                if let call: FallbackToolCall = decodeLeniently(from: jsonString) {
                     foundCalls.append(call)
                 }
             }
@@ -127,27 +126,34 @@ public enum ToolOutputParser {
         let cleaned = LenientJSONParser.sanitize(content)
         guard !cleaned.isEmpty else { return [] }
 
-        if let strictData = cleaned.data(using: .utf8),
-           let strictCalls = decodeCodeBlockCalls(from: strictData) {
-            return strictCalls
+        if let calls: [FallbackToolCall] = decodeLeniently(from: cleaned) {
+            return calls
         }
+        if let call: FallbackToolCall = decodeLeniently(from: cleaned) {
+            return [call]
+        }
+        return []
+    }
 
-        guard let repaired = try? LenientJSONParser.parse(cleaned) else { return [] }
+    private static func decodeStrictly<T: Decodable>(from jsonString: String) -> T? {
+        guard let data = jsonString.data(using: .utf8) else { return nil }
+        return try? JSONDecoder().decode(T.self, from: data)
+    }
+
+    /// Decodes `jsonString` strictly first; on failure, repairs it via `LenientJSONParser`
+    /// (handles truncated/trailing-comma JSON from streamed tool-call fragments) and retries.
+    private static func decodeLeniently<T: Decodable>(from jsonString: String) -> T? {
+        if let value: T = decodeStrictly(from: jsonString) {
+            return value
+        }
+        guard let repaired = try? LenientJSONParser.parse(jsonString),
+              let repairedData = try? LenientJSONParser.jsonData(from: repaired.value)
+        else {
+            return nil
+        }
         if repaired.repaired {
             logger.warning("Recovered fallback tool-call JSON via lenient parsing.")
         }
-
-        guard let repairedData = try? LenientJSONParser.jsonData(from: repaired.value) else { return [] }
-        return decodeCodeBlockCalls(from: repairedData) ?? []
-    }
-
-    private static func decodeCodeBlockCalls(from data: Data) -> [FallbackToolCall]? {
-        if let calls = try? JSONDecoder().decode([FallbackToolCall].self, from: data) {
-            return calls
-        }
-        if let call = try? JSONDecoder().decode(FallbackToolCall.self, from: data) {
-            return [call]
-        }
-        return nil
+        return try? JSONDecoder().decode(T.self, from: repairedData)
     }
 }

@@ -105,7 +105,8 @@ struct SidecarStreamExtractor {
 
         guard let repaired = try? LenientJSONParser.parse(buffer),
               repaired.repaired,
-              let object = repaired.value.value as? [String: Any] else {
+              let object = repaired.value.value as? [String: Any]
+        else {
             return nil
         }
 
@@ -125,11 +126,13 @@ struct SidecarStreamExtractor {
     private mutating func reparse() -> [Output] {
         guard let object = currentParse() else { return [] }
         var outputs: [Output] = []
+        let closed = objectClosed()
 
         // 1. Priority sidecars may precede the first response delta in the same chunk.
         outputs += collectDirectiveOutputs(
             for: directives.filter { $0.timing == .beforeResponse },
             in: object,
+            closed: closed,
             containerBoundaryReached: rawKeyPresent(RootKey.response) || rawKeyPresent(RootKey.sidecarPayload)
         )
 
@@ -146,7 +149,8 @@ struct SidecarStreamExtractor {
         outputs += collectDirectiveOutputs(
             for: directives.filter { $0.timing == .afterResponse },
             in: object,
-            containerBoundaryReached: objectClosed()
+            closed: closed,
+            containerBoundaryReached: closed
         )
         return outputs
     }
@@ -154,10 +158,10 @@ struct SidecarStreamExtractor {
     private mutating func collectDirectiveOutputs(
         for directives: [SidecarDirective],
         in object: [String: Any],
+        closed: Bool,
         containerBoundaryReached: Bool
     ) -> [Output] {
         var outputs: [Output] = []
-        let closed = objectClosed()
         for (index, directive) in directives.enumerated() {
             guard !finalizedFields.contains(directive.name) else { continue }
             guard let payload = payload(for: directive, from: object), payload[directive.name] != nil else { continue }
@@ -237,9 +241,5 @@ struct SidecarStreamExtractor {
         }
     }
 
-    private enum RootKey {
-        static let prioritySidecarPayload = "priority_sidecar_payload"
-        static let response = SidecarDirective.reservedFieldName
-        static let sidecarPayload = "sidecar_payload"
-    }
+    private typealias RootKey = SidecarDirective.RootKey
 }

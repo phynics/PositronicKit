@@ -142,9 +142,5 @@ public enum SidecarSchemaComposer {
         ]
     }
 
-    private enum RootKey {
-        static let prioritySidecarPayload = "priority_sidecar_payload"
-        static let response = SidecarDirective.reservedFieldName
-        static let sidecarPayload = "sidecar_payload"
-    }
+    private typealias RootKey = SidecarDirective.RootKey
 }
