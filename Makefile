@@ -68,9 +68,10 @@ verify-pin:
 
 verify: verify-pin validate-docs audit-default-linkage test
 
-verify-linux: verify-pin validate-docs
+verify-linux: bootstrap-minilm validate-docs
 	@echo "Running comprehensive Linux test suite..."
-	@swift test
+	@PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
+		swift test
 	@PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
 		PK_MINILM_MODEL_DIR="$(PK_MINILM_MODEL_DIR)" \
 		swift test --traits MiniLMEmbeddings
