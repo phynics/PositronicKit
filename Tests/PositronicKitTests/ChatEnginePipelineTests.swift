@@ -222,6 +222,7 @@ final class ChatTurnPipelineBuilderTests {
             llmService: llm,
             messageStore: persistence,
             logger: testLogger,
+            streamTimeout: 5,
             additionalStages: [MarkerStage(tracker: tracker)]
         )
         let context = await makeContext()
@@ -432,7 +433,7 @@ final class LLMStreamingStageBehavior {
     func thinkingAndContentSeparated() async throws {
         let mockService = MockLLMService()
         mockService.mockClient.nextResponse = "<think>reasoning here</think>content here"
-        let stage = LLMStreamingStage(llmService: mockService, logger: testLogger)
+        let stage = LLMStreamingStage(llmService: mockService, logger: testLogger, streamTimeout: 5)
         let context = await makeContext()
 
         let events = try await drain(await stage.process(context))
@@ -454,7 +455,7 @@ final class LLMStreamingStageBehavior {
         mockService.mockClient.nextToolCalls = [[
             MockToolCall(id: "tc-1", name: "my_tool", arguments: "{\"x\": 1}"),
         ]]
-        let stage = LLMStreamingStage(llmService: mockService, logger: testLogger)
+        let stage = LLMStreamingStage(llmService: mockService, logger: testLogger, streamTimeout: 5)
         let context = await makeContext()
 
         let events = try await drain(await stage.process(context))
@@ -496,7 +497,7 @@ final class LLMStreamingStageBehavior {
             continuation.finish()
         }
 
-        let stage = LLMStreamingStage(llmService: mockService, logger: testLogger)
+        let stage = LLMStreamingStage(llmService: mockService, logger: testLogger, streamTimeout: 5)
         let context = await makeContext()
 
         _ = try await drain(await stage.process(context))
@@ -539,7 +540,7 @@ final class LLMStreamingStageBehavior {
             continuation.finish()
         }
 
-        let stage = LLMStreamingStage(llmService: mockService, logger: testLogger)
+        let stage = LLMStreamingStage(llmService: mockService, logger: testLogger, streamTimeout: 5)
         let context = await makeContext()
 
         _ = try await drain(await stage.process(context))

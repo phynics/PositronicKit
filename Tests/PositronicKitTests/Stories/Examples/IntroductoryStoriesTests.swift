@@ -117,11 +117,11 @@ struct IntroductoryStoriesTests {
         let toolManager = await timelineManager.getToolManager(for: timeline.id)
         await toolManager?.updateAvailableTools([tool])
 
-        let events = try await runtime.run(
+        let events = try await runtime.run(ChatRunRequest(
             timelineId: timeline.id,
             message: "Greet Taylor using the available tool.",
             tools: [tool]
-        ).collect()
+        )).collect()
 
         #expect(events.contains(where: {
             if case let .delta(event: .toolExecution(id, status)) = $0,

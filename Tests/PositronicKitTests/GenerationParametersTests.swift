@@ -28,10 +28,10 @@ struct GenerationParametersTests {
         )
         
         // 2. Run a chat turn without per-run parameters
-        let stream = try await chat.run(
+        let stream = try await chat.run(ChatRunRequest(
             timelineId: timelineId,
             message: "Test message"
-        )
+        ))
         
         // Drain stream
         for try await _ in stream {}
@@ -66,11 +66,11 @@ struct GenerationParametersTests {
         
         // 2. Run a chat turn WITH per-run parameters that override the defaults
         let overrideParams = GenerationParameters(temperature: 0.2, maxTokens: 500, topP: 0.9)
-        let stream = try await chat.run(
+        let stream = try await chat.run(ChatRunRequest(
             timelineId: timelineId,
             message: "Test message",
             generationParameters: overrideParams
-        )
+        ))
         
         // Drain stream
         for try await _ in stream {}
@@ -91,10 +91,10 @@ struct GenerationParametersTests {
         let chat = PositronicKit(llmService: mockLLM)
         
         // 2. Run a chat turn without per-run parameters
-        let stream = try await chat.run(
+        let stream = try await chat.run(ChatRunRequest(
             timelineId: timelineId,
             message: "Test message"
-        )
+        ))
         
         // Drain stream
         for try await _ in stream {}

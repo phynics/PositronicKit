@@ -5,6 +5,22 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
+private struct StructuredOutputRunTestsTool: Tool, @unchecked Sendable {
+    let id = "structured_output_run_tests_tool"
+    let name = "Structured Output Run Tests Tool"
+    let description = "Test tool used to verify ChatRunRequest forwards resolved tools."
+    let requiresPermission = false
+    let parametersSchema: [String: AnyCodable] = [:]
+
+    func canExecute() async -> Bool {
+        true
+    }
+
+    func execute(parameters _: [String : Any]) async throws -> ToolResult {
+        .success("ok")
+    }
+}
+
 @Suite("Structured Output Run")
 @MainActor
 struct StructuredOutputRunTests {
@@ -25,11 +41,15 @@ struct StructuredOutputRunTests {
             )
         )
 
-        let stream = try await chat.run(
+        let request = ChatRunRequest(
             timelineId: UUID(),
             message: "Extract tags",
+            tools: [StructuredOutputRunTestsTool().toAnyTool()],
+            systemInstructions: "Follow the structured-output instructions exactly.",
+            generationParameters: GenerationParameters(temperature: 0.2, maxTokens: 128),
             structuredOutput: .jsonSchema(StructuredOutputFixtures.tagSchemaDefinition())
         )
+        let stream = try await chat.run(request)
 
         for try await _ in stream {}
 
@@ -41,6 +61,10 @@ struct StructuredOutputRunTests {
         #expect(schema.name == "tag_payload")
         let encodedSchema = String(decoding: try JSONEncoder().encode(schema.schema), as: UTF8.self)
         #expect(encodedSchema.contains("\"tags\""))
+        #expect(mockLLM.mockClient.lastTools?.map(\.name) == ["structured_output_run_tests_tool"])
+        #expect(mockLLM.mockClient.lastParameters?.temperature == 0.2)
+        #expect(mockLLM.mockClient.lastParameters?.maxTokens == 128)
+        #expect(mockLLM.mockClient.lastMessages.first(where: { $0.role == .system })?.content.contains("structured-output instructions") == true)
     }
 
     @Test("run has a single overload, so omitting structuredOutput cannot silently select a nil-hardcoding overload")
@@ -60,20 +84,44 @@ struct StructuredOutputRunTests {
             )
         )
 
-        // Regression guard for YAK-12: PositronicKit previously had a convenience `run(...)`
-        // overload without `structuredOutput` that delegated to the full overload with
-        // `structuredOutput: nil`. Because both overloads were callable with the same argument
-        // list, omitting the parameter silently resolved to the nil-hardcoding overload. There
-        // is now exactly one `run(...)`, with `structuredOutput` defaulting to nil, so omission
-        // is unambiguous rather than a footgun.
-        let stream = try await chat.run(
+        let stream = try await chat.run(ChatRunRequest(
             timelineId: UUID(),
             message: "Hello"
-        )
+        ))
 
         for try await _ in stream {}
 
         #expect(mockLLM.mockClient.lastResponseFormat == nil)
+    }
+
+    @Test("A minimal ChatRunRequest preserves the legacy defaults")
+    func minimalChatRunRequestPreservesLegacyDefaults() async throws {
+        let mockLLM = MockLLMService()
+        let mockPersistence = MockPersistenceService()
+        let chat = PositronicKit(
+            llmService: mockLLM,
+            persistence: .init(
+                messageStore: mockPersistence,
+                timelinePersistence: mockPersistence,
+                workspacePersistence: mockPersistence,
+                memoryStore: mockPersistence,
+                toolPersistence: mockPersistence,
+                agentInstanceStore: mockPersistence,
+                requestOriginStore: mockPersistence
+            )
+        )
+
+        let stream = try await chat.run(ChatRunRequest(
+            timelineId: UUID(),
+            message: "Hello"
+        ))
+
+        for try await _ in stream {}
+
+        #expect(mockLLM.mockClient.lastTools == nil)
+        #expect(mockLLM.mockClient.lastResponseFormat == nil)
+        #expect(mockLLM.mockClient.lastParameters == nil)
+        #expect(mockLLM.mockClient.lastMessages.contains { $0.role == .tool } == false)
     }
 
     @Test("sidecarsIfEnabled preserves the exact no-sidecar runtime path when disabled")
@@ -104,11 +152,11 @@ struct StructuredOutputRunTests {
             )
         )
 
-        let stream = try await chat.run(
+        let stream = try await chat.run(ChatRunRequest(
             timelineId: UUID(),
             message: "Hello",
             sidecars: PositronicKit.sidecarsIfEnabled(directives, when: false)
-        )
+        ))
 
         for try await _ in stream {}
 

@@ -17,6 +17,8 @@ struct MessagePersistenceStage: PipelineStage {
 
     func process(_ context: ChatTurnContext) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         let hasPendingToolCalls = await !context.outputs.toolCallAccumulators.isEmpty
+        let fullResponse = await context.outputs.fullResponse
+        let streamFinishReason = await context.outputs.streamFinishReason
 
         let assistantMsg = await Self.buildAssistantMessage(
             from: context,
@@ -43,11 +45,15 @@ struct MessagePersistenceStage: PipelineStage {
                         completionTokens: streamUsage?.completionTokens,
                         totalTokens: streamUsage?.totalTokens,
                         cachedTokens: streamUsage?.promptTokensDetails?.cachedTokens,
+                        finishReason: streamFinishReason,
                         duration: turnDuration,
                         tokensPerSecond: tokensPerSecond,
                         turnSnapshotData: snapshotData
                     )
                 ))
+                if fullResponse.isEmpty, let streamFinishReason {
+                    continuation.yield(.completedEmpty(finishReason: streamFinishReason))
+                }
             }
             continuation.finish()
         }

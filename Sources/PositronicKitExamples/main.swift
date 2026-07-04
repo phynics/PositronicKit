@@ -53,7 +53,7 @@ func runExamples() async throws {
     for directive in sidecarDirectives {
         print("  - \(directive.name): \(directive.instruction)")
     }
-    print("  Consume via PositronicKit.run(sidecars:) — see makeSidecarDirectives() doc comment.")
+    print("  Consume via PositronicKit.run(_:) — see makeSidecarDirectives() doc comment.")
     print("Cadence example at turn 5 with an existing title: \(cadenceDirectives.map(\.name))")
     print("One-shot title request: \(oneShotTitleRequest)")
     print("Decoded one-shot title payload: \(oneShotTitle.title ?? "nil")")

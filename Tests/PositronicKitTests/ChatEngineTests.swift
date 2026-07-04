@@ -269,6 +269,33 @@ struct ChatEngineTests {
         }
     }
 
+    @Test("Never-ending first-turn stream also surfaces stream timeout")
+    func providerStreamTimeoutSurfacesOnFirstTurn() async throws {
+        try await withChatEngineDependencies(streamTimeout: 0.05) { engine, mockLLM, _ in
+            mockLLM.mockClient.neverFinishingStreamCallIndices = [1]
+
+            let stream = try await engine.execute(
+                timelineId: timelineId,
+                message: "Hang immediately",
+                tools: []
+            )
+
+            do {
+                for try await _ in stream {}
+                Issue.record("Expected the first turn stream to time out")
+            } catch let PipelineError.stageFailed(id, underlyingError) {
+                #expect(id == "LLMStreamingStage")
+                guard case let ChatEngineError.streamTimedOut(timeout) = underlyingError else {
+                    Issue.record("Expected streamTimedOut, got \(underlyingError)")
+                    return
+                }
+                #expect(timeout == 0.05)
+            } catch {
+                Issue.record("Expected PipelineError.stageFailed, got \(error)")
+            }
+        }
+    }
+
     @Test("A slow but steadily-progressing stream is not killed by the idle timeout")
     func slowProgressingStreamSurvivesIdleTimeout() async throws {
         // Idle (inactivity) timeout of 0.3s. The stream delivers 5 chunks ~0.1s apart, so the
@@ -290,6 +317,34 @@ struct ChatEngineTests {
                 if case .delta(event: .generation) = event { sawGeneration = true }
             }
             #expect(sawGeneration)
+        }
+    }
+
+    @Test("Empty completed response emits an explicit empty-completion signal")
+    func emptyCompletedResponseEmitsDistinctSignal() async throws {
+        try await withChatEngineDependencies { engine, mockLLM, _ in
+            mockLLM.mockClient.nextResponse = ""
+
+            let stream = try await engine.execute(
+                timelineId: timelineId,
+                message: "Return nothing",
+                tools: []
+            )
+
+            let events = try await collect(stream)
+
+            #expect(events.contains(where: {
+                if case let .completion(event: .generationCompleted(message, metadata)) = $0 {
+                    return message.content.isEmpty && metadata.finishReason == "stop"
+                }
+                return false
+            }))
+            #expect(events.contains(where: {
+                if case let .completion(event: .completedEmpty(finishReason)) = $0 {
+                    return finishReason == "stop"
+                }
+                return false
+            }))
         }
     }
 
@@ -1105,6 +1160,43 @@ struct ChatEngineTests {
                 )
             }
         }
+    }
+
+    @Test("Production chat engine wiring uses a bounded stream timeout by default")
+    func productionChatEngineUsesBoundedStreamTimeout() {
+        let dependencies = ChatEngine.Dependencies(
+            timelineManager: TimelineManager(
+                stores: .init(
+                    timelineStore: MockPersistenceService(),
+                    messageStore: MockPersistenceService(),
+                    workspaceStore: MockPersistenceService(),
+                    toolPersistence: MockPersistenceService()
+                ),
+                workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
+                workspaceCreator: MockWorkspaceCreator()
+            ),
+            agentInstanceStore: MockPersistenceService(),
+            requestOriginStore: MockPersistenceService(),
+            messageStore: MockPersistenceService(),
+            llmService: MockLLMService(),
+            toolRouter: ToolRouter(
+                timelineManager: TimelineManager(
+                    stores: .init(
+                        timelineStore: MockPersistenceService(),
+                        messageStore: MockPersistenceService(),
+                        workspaceStore: MockPersistenceService(),
+                        toolPersistence: MockPersistenceService()
+                    ),
+                    workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
+                    workspaceCreator: MockWorkspaceCreator()
+                ),
+                messageStore: MockPersistenceService()
+            ),
+            chatTurnPlugins: []
+        )
+
+        #expect(dependencies.streamTimeout == ChatEngine.Dependencies.defaultStreamTimeout)
+        #expect(dependencies.streamTimeout > 0)
     }
 
     // MARK: - Group 9: Multiple Tool Calls Per Turn

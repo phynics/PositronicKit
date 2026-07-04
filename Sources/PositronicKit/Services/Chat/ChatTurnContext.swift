@@ -22,6 +22,7 @@ actor TurnOutputs {
     private(set) var fullThinking: String = ""
     private(set) var toolCallAccumulators: [Int: StreamedToolCall] = [:]
     private(set) var streamUsage: LLMTokenUsage?
+    private(set) var streamFinishReason: String?
     private(set) var turnDuration: TimeInterval = 0
     private(set) var tokensPerSecond: Double?
     private(set) var debugToolCalls: [ToolCallRecord] = []
@@ -34,6 +35,10 @@ actor TurnOutputs {
 
     func setStreamUsage(_ usage: LLMTokenUsage) {
         streamUsage = usage
+    }
+
+    func setStreamFinishReason(_ finishReason: String?) {
+        streamFinishReason = finishReason
     }
 
     func appendThinking(_ chunk: String) {
@@ -88,6 +93,7 @@ actor TurnOutputs {
 struct ChatTurnContext {
     // Session-level configuration (constant across turns)
     let timelineId: UUID
+    let sendId: UUID
     let agentInstanceId: UUID?
     let modelName: String
     let maxTurns: Int
@@ -114,6 +120,7 @@ struct ChatTurnContext {
 
     init(
         timelineId: UUID,
+        sendId: UUID = UUID(),
         agentInstanceId: UUID?,
         modelName: String,
         maxTurns: Int,
@@ -132,6 +139,7 @@ struct ChatTurnContext {
         outputs: TurnOutputs = TurnOutputs()
     ) {
         self.timelineId = timelineId
+        self.sendId = sendId
         self.agentInstanceId = agentInstanceId
         self.modelName = modelName
         self.maxTurns = maxTurns
@@ -164,6 +172,7 @@ struct ChatTurnContext {
     ) -> ChatTurnContext {
         ChatTurnContext(
             timelineId: timelineId,
+            sendId: sendId,
             agentInstanceId: agentInstanceId,
             modelName: modelName,
             maxTurns: maxTurns,

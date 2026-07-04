@@ -58,11 +58,11 @@ struct PublicRuntimeStoriesTests {
             CapturingLogHandler(sink: sink)
         }
 
-        _ = try await chat.run(
+        _ = try await chat.run(ChatRunRequest(
             timelineId: timelineId,
             message: "Diagnose assembly",
             promptAssemblyLogger: logger
-        ).collect()
+        )).collect()
 
         // PromptAssembler logs section resolution at .debug when a logger is supplied.
         #expect(sink.all().contains(where: { $0.contains("prompt section") }))
@@ -73,10 +73,10 @@ struct PublicRuntimeStoriesTests {
         let (chat, mockLLM, mockPersistence, timelineId, _) = try await makeAcceptanceRuntime()
         mockLLM.mockClient.nextResponse = "Hello, Morty!"
 
-        let events = try await chat.run(
+        let events = try await chat.run(ChatRunRequest(
             timelineId: timelineId,
             message: "Hello, Morty!"
-        ).collect()
+        )).collect()
 
         #expect(events.contains(where: {
             if case let .completion(event: .generationCompleted(message, _)) = $0 {
@@ -95,10 +95,10 @@ struct PublicRuntimeStoriesTests {
         let (chat, mockLLM, mockPersistence, timelineId, _) = try await makeAcceptanceRuntime(useGroupedPersistence: true)
         mockLLM.mockClient.nextResponse = "Grouped persistence reply"
 
-        let events = try await chat.run(
+        let events = try await chat.run(ChatRunRequest(
             timelineId: timelineId,
             message: "Use grouped persistence"
-        ).collect()
+        )).collect()
 
         #expect(events.contains(where: {
             if case let .completion(event: .generationCompleted(message, _)) = $0 {
@@ -117,10 +117,10 @@ struct PublicRuntimeStoriesTests {
         let (chat, mockLLM, mockPersistence, timelineId, _) = try await makeAcceptanceRuntime(useGroupedPersistence: true, useGroupedRuntime: true)
         mockLLM.mockClient.nextResponse = "Grouped runtime reply"
 
-        let events = try await chat.run(
+        let events = try await chat.run(ChatRunRequest(
             timelineId: timelineId,
             message: "Use grouped runtime"
-        ).collect()
+        )).collect()
 
         #expect(events.contains(where: {
             if case let .completion(event: .generationCompleted(message, _)) = $0 {
@@ -141,11 +141,11 @@ struct PublicRuntimeStoriesTests {
         mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "call_1", name: "mock_tool")]]
         mockLLM.mockClient.nextResponses = ["", "Tool result processed"]
 
-        let events = try await chat.run(
+        let events = try await chat.run(ChatRunRequest(
             timelineId: timelineId,
             message: "Run the tool",
             tools: [mockTool.toAnyTool()]
-        ).collect()
+        )).collect()
 
         #expect(events.contains(where: {
             if case let .delta(event: .toolCall(delta)) = $0 {
@@ -180,11 +180,11 @@ struct PublicRuntimeStoriesTests {
         ))
         mockLLM.mockClient.nextResponse = "Continuation complete"
 
-        let events = try await chat.run(
+        let events = try await chat.run(ChatRunRequest(
             timelineId: timelineId,
             message: "Continue",
             toolOutputs: [ToolOutputSubmission(toolCallId: "call_1", output: "Tool result")]
-        ).collect()
+        )).collect()
 
         #expect(events.contains(where: {
             if case let .completion(event: .generationCompleted(message, _)) = $0 {
@@ -204,11 +204,11 @@ struct PublicRuntimeStoriesTests {
         let (chat, _, mockPersistence, timelineId, _) = try await makeAcceptanceRuntime()
 
         await #expect(throws: ToolError.self) {
-            _ = try await chat.run(
+            _ = try await chat.run(ChatRunRequest(
                 timelineId: timelineId,
                 message: "Continue",
                 toolOutputs: [ToolOutputSubmission(toolCallId: "forged_call", output: "forged output")]
-            )
+            ))
         }
 
         let messages = try await mockPersistence.fetchMessages(for: timelineId)
@@ -223,10 +223,10 @@ struct PublicRuntimeStoriesTests {
 
         mockLLM.mockClient.nextResponses = ["First reply", "Second reply"]
 
-        let events = try await chat.run(
+        let events = try await chat.run(ChatRunRequest(
             timelineId: timelineId,
             message: "Start plugin flow"
-        ).collect()
+        )).collect()
 
         let assistantReplies = events.compactMap(\.completedMessage).map(\.message.content)
         #expect(assistantReplies == ["First reply", "Second reply"])
@@ -251,10 +251,10 @@ struct PublicRuntimeStoriesTests {
         let chat = makeChat(llmService: mockLLM, persistence: mockPersistence)
             .addStage(customStage)
 
-        let stream = try await chat.run(
+        let stream = try await chat.run(ChatRunRequest(
             timelineId: timelineId,
             message: message
-        )
+        ))
 
         for try await _ in stream {
             // Drain the stream; any thrown errors will propagate
@@ -286,10 +286,10 @@ struct PublicRuntimeStoriesTests {
         )
         let timeline = try await chat.timelineManager.createTimeline(title: "Context Enabled")
 
-        let events = try await chat.run(
+        let events = try await chat.run(ChatRunRequest(
             timelineId: timeline.id,
             message: "Use default context manager"
-        ).collect()
+        )).collect()
 
         guard let generationContext = events.first(where: {
             if case .meta(event: .generationContext) = $0 { return true }
@@ -462,7 +462,10 @@ extension PublicRuntimeStoriesTests {
         mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "call_1", name: "mock_tool", arguments: "not valid json")]]
         mockLLM.mockClient.nextResponse = "Recovered after tool error"
 
-        let events = try await chat.run(timelineId: timelineId, message: "Call tool").collect()
+        let events = try await chat.run(ChatRunRequest(
+            timelineId: timelineId,
+            message: "Call tool"
+        )).collect()
 
         // Should have tool execution events (progress or completion)
         let toolEvent = events.first(where: {
@@ -487,7 +490,10 @@ extension PublicRuntimeStoriesTests {
         mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "call_1", name: "nonexistent_tool", arguments: "{}")]]
         mockLLM.mockClient.nextResponse = "Recovered after tool error"
 
-        let events = try await chat.run(timelineId: timelineId, message: "Call nonexistent tool").collect()
+        let events = try await chat.run(ChatRunRequest(
+            timelineId: timelineId,
+            message: "Call nonexistent tool"
+        )).collect()
 
         // Should have tool completed with failure status
         let toolErrorEvent = events.first(where: {

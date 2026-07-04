@@ -171,7 +171,10 @@ import Testing
         let timeline = try await chat.timelineManager.createTimeline(title: "Unconfigured")
 
         await #expect(throws: ChatEngineError.self) {
-            _ = try await chat.run(timelineId: timeline.id, message: "hello")
+            _ = try await chat.run(ChatRunRequest(
+                timelineId: timeline.id,
+                message: "hello"
+            ))
         }
     }
 

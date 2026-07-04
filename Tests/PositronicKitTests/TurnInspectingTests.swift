@@ -155,7 +155,28 @@ struct TurnInspectingTests {
 
         let values = await recorder.values
         #expect(values.map { $0.turnIndex } == [0, 1])
+        #expect(values.map(\.identity.roundTrip) == [0, 1])
+        #expect(values.map(\.identity.sendId).allSatisfy { $0 == values[0].identity.sendId })
         #expect(values[1].journal.stablePrefixCount > 0)
+    }
+
+    @Test("Turn identity keeps send identity stable across round trips")
+    func turnIdentityStaysStableAcrossRoundTrips() async throws {
+        let recorder = InspectionRecorder()
+        let harness = try await ChatEngineTestHarness(inspector: recorder)
+        harness.llm.mockClient.nextToolCalls = [[MockToolCall(id: "call-1", name: "mock_tool")]]
+        harness.llm.mockClient.nextResponses = ["", "Done"]
+
+        _ = try await harness.collect(
+            message: "Use the tool",
+            tools: [MockTool().toAnyTool()]
+        )
+
+        let values = await recorder.values
+        let sendIds = values.map(\.identity.sendId)
+        #expect(Set(sendIds).count == 1)
+        #expect(values.map(\.identity.roundTrip) == [0, 1])
+        #expect(values.last?.identity.roundTrip == 1)
     }
 
     /// PKR-10: `synthesizeFollowUpPrompt` used to rebuild `RenderedPrompt.string` by re-joining

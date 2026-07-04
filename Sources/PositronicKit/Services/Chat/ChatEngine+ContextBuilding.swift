@@ -63,6 +63,7 @@ extension ChatEngine {
     /// and building the initial prompt.
     func prepareSession(
         timelineId: UUID,
+        sendId: UUID,
         message: String,
         tools: [AnyTool],
         toolOutputs: [ToolOutputSubmission]?,
@@ -212,6 +213,7 @@ extension ChatEngine {
 
         return ChatTurnContext(
             timelineId: timelineId,
+            sendId: sendId,
             agentInstanceId: agentInstanceId,
             modelName: modelName,
             maxTurns: maxTurns,

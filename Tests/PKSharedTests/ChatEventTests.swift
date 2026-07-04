@@ -101,6 +101,22 @@ import ErrorKit
         }
     }
 
+    @Test
+    func completedEmptyEventRoundTripsThroughCodable() throws {
+        let event = ChatEvent.completedEmpty(finishReason: "stop")
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+
+        let data = try encoder.encode(event)
+        let decoded = try decoder.decode(ChatEvent.self, from: data)
+
+        if case let .completion(event: .completedEmpty(finishReason: finishReason)) = decoded {
+            #expect(finishReason == "stop")
+        } else {
+            Issue.record("Expected decoded .completedEmpty event, got \(decoded)")
+        }
+    }
+
     // MARK: - Error Identity (STAB-6)
 
     @Test

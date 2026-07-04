@@ -9,7 +9,7 @@ struct LLMStreamingStage: PipelineStage {
     let logger: Logger
     let streamTimeout: TimeInterval
 
-    init(llmService: any LLMServiceProtocol, logger: Logger, streamTimeout: TimeInterval = 60) {
+    init(llmService: any LLMServiceProtocol, logger: Logger, streamTimeout: TimeInterval) {
         self.llmService = llmService
         self.logger = logger
         self.streamTimeout = streamTimeout
@@ -107,6 +107,9 @@ struct LLMStreamingStage: PipelineStage {
             if Task.isCancelled { throw CancellationError() }
             // Reset the inactivity deadline: progress was made this chunk.
             await idleDeadline.reset()
+            if let finishReason = result.choices.first?.finishReason {
+                await context.outputs.setStreamFinishReason(finishReason)
+            }
 
             await handleStreamUsage(result, context: context)
             await handleStructuredThinkingDelta(result, context: context, continuation: continuation)

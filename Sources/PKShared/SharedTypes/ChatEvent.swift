@@ -94,6 +94,8 @@ public enum ChatEvent: Sendable, Codable {
     public enum CompletionEvent: Sendable, Codable {
         /// Stream completed with final accumulated message and token metadata
         case generationCompleted(message: Message, metadata: APIResponseMetadata)
+        /// The provider finished successfully, but the reconstructed assistant text was empty.
+        case completedEmpty(finishReason: String?)
         /// Tool execution completed with final status
         case toolExecution(toolCallId: String, status: ToolExecutionStatus)
         /// The entire stream is complete (terminal event)
@@ -163,6 +165,10 @@ public extension ChatEvent {
         .completion(event: .generationCompleted(message: message, metadata: metadata))
     }
 
+    static func completedEmpty(finishReason: String?) -> ChatEvent {
+        .completion(event: .completedEmpty(finishReason: finishReason))
+    }
+
     static func toolCompleted(toolCallId: String, status: ToolExecutionStatus) -> ChatEvent {
         .completion(event: .toolExecution(toolCallId: toolCallId, status: status))
     }
@@ -194,6 +200,12 @@ public extension ChatEvent {
     /// The completed message and metadata if this is a `.completion(.generationCompleted(...))` event.
     var completedMessage: (message: Message, metadata: APIResponseMetadata)? {
         if case let .completion(event) = self, case let .generationCompleted(msg, meta) = event { return (msg, meta) }
+        return nil
+    }
+
+    /// The finish reason for an empty but successfully completed assistant response, if present.
+    var emptyCompletionFinishReason: String? {
+        if case let .completion(event) = self, case let .completedEmpty(finishReason) = event { return finishReason }
         return nil
     }
 

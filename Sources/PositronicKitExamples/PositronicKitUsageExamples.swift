@@ -110,10 +110,14 @@ public enum PositronicKitUsageExamples {
 
     /// Sidecar directives (piggy-backed requests): auxiliary generations riding the same
     /// request as a chat turn's response. `title` is nullable so the model can decline once
-    /// a conversation already has one. Consume via `PositronicKit.run(sidecars:)`:
+    /// a conversation already has one. Consume via `PositronicKit.run(_:)`:
     ///
     /// ```swift
-    /// let stream = try await chat.run(timelineId: id, message: text, sidecars: makeSidecarDirectives())
+    /// let stream = try await chat.run(.init(
+    ///     timelineId: id,
+    ///     message: text,
+    ///     sidecars: makeSidecarDirectives()
+    /// ))
     /// for try await event in stream {
     ///     if let text = event.textContent { /* stream to UI */ }
     ///     if let delta = event.sidecarDelta { /* route delta.name -> delta.partialText */ }

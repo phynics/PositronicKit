@@ -13,6 +13,10 @@ import PKShared
 /// higher-level extension protocols rather than depending on this concrete orchestrator directly.
 struct ChatEngine {
     struct Dependencies {
+        /// Production default for the per-stream idle watchdog. Callers must pass an explicit
+        /// bounded value through `Dependencies` when they need to override it.
+        static let defaultStreamTimeout: TimeInterval = 60
+
         let timelineManager: TimelineManager
         let agentInstanceStore: any AgentInstanceStoreProtocol
         let requestOriginStore: any RequestOriginStoreProtocol
@@ -34,7 +38,7 @@ struct ChatEngine {
             chatTurnPlugins: [any ChatTurnPlugin],
             turnInspector: (any TurnInspecting)? = nil,
             promptHistoryRegistry: TimelinePromptHistoryRegistry? = nil,
-            streamTimeout: TimeInterval = 60
+            streamTimeout: TimeInterval = Self.defaultStreamTimeout
         ) {
             self.timelineManager = timelineManager
             self.agentInstanceStore = agentInstanceStore
@@ -78,6 +82,7 @@ struct ChatEngine {
     /// - Returns: An asynchronous stream of chat events.
     func execute(
         timelineId: UUID,
+        sendId: UUID? = nil,
         message: String,
         tools: [AnyTool],
         toolOutputs: [ToolOutputSubmission]? = nil,
@@ -104,6 +109,7 @@ struct ChatEngine {
 
         let context = try await prepareSession(
             timelineId: timelineId,
+            sendId: sendId ?? UUID(),
             message: message,
             tools: tools,
             toolOutputs: toolOutputs,
@@ -398,7 +404,10 @@ struct ChatEngine {
         // row (`TimelinePromptHistory.nextInspectionTurnIndex` fixes this; see YAK-16).
         let turnIndex = await context.promptHistory?.nextInspectionTurnIndex() ?? (context.turnCount - 1)
 
+        let turnIdentity = TurnIdentity(sendId: context.sendId, roundTrip: max(context.turnCount - 1, 0))
+
         await inspector.didComposeTurn(TurnInspection(
+            identity: turnIdentity,
             timelineId: context.timelineId,
             agentInstanceId: context.agentInstanceId,
             turnIndex: turnIndex,

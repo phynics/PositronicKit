@@ -14,10 +14,10 @@ import Testing
         )
         mockLLM.mockClient.nextResponse = "Saw extension section"
 
-        _ = try await chat.run(
+        _ = try await chat.run(ChatRunRequest(
             timelineId: timelineId,
             message: "Use extension prompt"
-        ).collect()
+        )).collect()
 
         let promptText = mockLLM.mockClient.lastMessages.map(\.content).joined(separator: "\n")
         #expect(promptText.contains("EXTENSION_MARKER: provider injected context"))
@@ -31,10 +31,10 @@ import Testing
 
         mockLLM.mockClient.nextResponses = ["First reply", "Second reply"]
 
-        let events = try await chat.run(
+        let events = try await chat.run(ChatRunRequest(
             timelineId: timelineId,
             message: "Start plugin flow"
-        ).collect()
+        )).collect()
 
         let completedMessages = events.compactMap(\.completedMessage).map(\.message.content)
         #expect(completedMessages == ["First reply", "Second reply"])
@@ -74,10 +74,10 @@ import Testing
         mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "call_ws", name: "workspace_echo")]]
         mockLLM.mockClient.nextResponses = ["", "Workspace tool completed"]
 
-        let events = try await chat.run(
+        let events = try await chat.run(ChatRunRequest(
             timelineId: timelineId,
             message: "Use the attached workspace tool"
-        ).collect()
+        )).collect()
 
         #expect(events.contains(where: {
             if case let .completion(event: .toolExecution(id, status)) = $0,
@@ -100,11 +100,11 @@ import Testing
         ]]
         mockLLM.mockClient.nextResponses = ["", "Custom tool completed"]
 
-        let events = try await chat.run(
+        let events = try await chat.run(ChatRunRequest(
             timelineId: timelineId,
             message: "Run the custom tool",
             tools: [tool.toAnyTool()]
-        ).collect()
+        )).collect()
 
         #expect(events.contains(where: {
             if case let .completion(event: .toolExecution(id, status)) = $0,

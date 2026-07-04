@@ -245,62 +245,29 @@ public struct PositronicKit: Sendable {
     }
 
     /// Run a chat turn and return a stream of events.
-    /// - Parameters:
-    ///   - timelineId: The unique identifier for the chat session.
-    ///   - message: The user's input message.
-    ///   - tools: Pre-resolved tools available for this turn.
-    ///   - toolOutputs: Optional list of tool outputs submitted from a previous externally executed turn.
-    ///   - systemInstructions: Optional system instructions to override the default.
-    ///   - agentInstanceId: Optional identifier for the agent instance.
-    ///   - maxTurns: Maximum number of LLM turns before stopping. Defaults to 5.
-    ///   - generationParameters: Optional parameters for generation (overrides defaults).
-    ///   - structuredOutput: Optional provider-enforced structured output request for the turn.
-    ///   - sidecars: Optional piggy-backed auxiliary generations (title, summary, tone, etc.)
-    ///     riding the same request as this turn's response. Mutually exclusive with
-    ///     `structuredOutput` — passing both throws `SidecarError.conflictsWithExplicitStructuredOutput`.
-    ///     The per-turn directive instructions ride with the final user message, keeping the
-    ///     system prompt byte-stable across turns for provider prompt-prefix caching.
-    ///   - includeSidecarMechanismPreamble: When `true`, layers a semi-stable, name-free
-    ///     explanation of the piggy-backed JSON mechanism into system instructions. Optional —
-    ///     the mechanism works without it. Callers that use sidecars across a timeline should
-    ///     pass the same value on every call so the system section stays constant.
-    ///   - promptAssemblyLogger: Optional `swift-log` logger that enables prompt-assembly
-    ///     diagnostics for this turn (stage execution, section resolution, and token-budget
-    ///     decisions). Control verbosity through the logger's log level. Defaults to no diagnostics.
+    /// - Parameter request: The full turn configuration.
     /// - Returns: An asynchronous stream of chat events.
-    public func run(
-        timelineId: UUID,
-        message: String,
-        tools: [AnyTool] = [],
-        toolOutputs: [ToolOutputSubmission]? = nil,
-        systemInstructions: String? = nil,
-        agentInstanceId: UUID? = nil,
-        maxTurns: Int = 5,
-        generationParameters: GenerationParameters? = nil,
-        structuredOutput: StructuredOutputRequest? = nil,
-        sidecars: [SidecarDirective] = [],
-        includeSidecarMechanismPreamble: Bool = false,
-        promptAssemblyLogger: Logger? = nil
-    ) async throws -> AsyncThrowingStream<ChatEvent, Error> {
+    public func run(_ request: ChatRunRequest) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         let resolvedContextManager = await resolveContextManager(
             explicit: nil,
-            timelineId: timelineId
+            timelineId: request.timelineId
         )
 
         return try await chatEngine.execute(
-            timelineId: timelineId,
-            message: message,
-            tools: tools,
-            toolOutputs: toolOutputs,
+            timelineId: request.timelineId,
+            sendId: request.sendId,
+            message: request.message,
+            tools: request.tools,
+            toolOutputs: request.toolOutputs,
             contextManager: resolvedContextManager,
-            systemInstructions: systemInstructions,
-            agentInstanceId: agentInstanceId,
-            maxTurns: maxTurns,
-            generationParameters: generationParameters ?? defaultGenerationParameters,
-            structuredOutput: structuredOutput,
-            sidecars: sidecars,
-            includeSidecarMechanismPreamble: includeSidecarMechanismPreamble,
-            assemblyLogger: promptAssemblyLogger
+            systemInstructions: request.systemInstructions,
+            agentInstanceId: request.agentInstanceId,
+            maxTurns: request.maxTurns,
+            generationParameters: request.generationParameters ?? defaultGenerationParameters,
+            structuredOutput: request.structuredOutput,
+            sidecars: request.sidecars,
+            includeSidecarMechanismPreamble: request.includeSidecarMechanismPreamble,
+            assemblyLogger: request.promptAssemblyLogger
         )
     }
 

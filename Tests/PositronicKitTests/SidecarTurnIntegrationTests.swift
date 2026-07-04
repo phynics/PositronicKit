@@ -40,7 +40,11 @@ struct SidecarTurnIntegrationTests {
         let chat = makeChat(llmService: mockLLM, persistence: persistence)
         let timelineId = UUID()
 
-        let stream = try await chat.run(timelineId: timelineId, message: "hello", sidecars: directives)
+        let stream = try await chat.run(ChatRunRequest(
+            timelineId: timelineId,
+            message: "hello",
+            sidecars: directives
+        ))
 
         var events: [ChatEvent] = []
         for try await event in stream {
@@ -64,12 +68,12 @@ struct SidecarTurnIntegrationTests {
         let chat = makeChat(llmService: mockLLM, persistence: persistence)
 
         await #expect(throws: SidecarError.conflictsWithExplicitStructuredOutput) {
-            _ = try await chat.run(
+            _ = try await chat.run(ChatRunRequest(
                 timelineId: UUID(),
                 message: "hello",
                 structuredOutput: .jsonSchema(StructuredOutputFixtures.tagSchemaDefinition()),
                 sidecars: directives
-            )
+            ))
         }
     }
 
@@ -82,7 +86,11 @@ struct SidecarTurnIntegrationTests {
         let persistence = MockPersistenceService()
         let chat = makeChat(llmService: mockLLM, persistence: persistence)
 
-        let stream = try await chat.run(timelineId: UUID(), message: "hello", sidecars: directives)
+        let stream = try await chat.run(ChatRunRequest(
+            timelineId: UUID(),
+            message: "hello",
+            sidecars: directives
+        ))
         for try await _ in stream {}
 
         let lastMessage = try #require(mockLLM.mockClient.lastMessages.last)
@@ -104,7 +112,10 @@ struct SidecarTurnIntegrationTests {
         let mockLLMWithout = MockLLMService()
         mockLLMWithout.mockClient.nextChunks = [["ok"]]
         let chatWithout = makeChat(llmService: mockLLMWithout, persistence: MockPersistenceService())
-        let streamWithout = try await chatWithout.run(timelineId: UUID(), message: "hello")
+        let streamWithout = try await chatWithout.run(ChatRunRequest(
+            timelineId: UUID(),
+            message: "hello"
+        ))
         for try await _ in streamWithout {}
 
         let systemMessage = mockLLM.mockClient.lastMessages.first { $0.role == .system }
@@ -140,12 +151,12 @@ struct SidecarTurnIntegrationTests {
         let persistence = MockPersistenceService()
         let chat = makeChat(llmService: mockLLM, persistence: persistence)
 
-        let stream = try await chat.run(
+        let stream = try await chat.run(ChatRunRequest(
             timelineId: UUID(),
             message: "hello",
             tools: [MockTool().toAnyTool()],
             sidecars: directives
-        )
+        ))
         for try await _ in stream {}
 
         #expect(mockLLM.mockClient.messageHistory.count == 2)
@@ -167,19 +178,31 @@ struct SidecarTurnIntegrationTests {
         let mockLLMA = MockLLMService()
         mockLLMA.mockClient.nextChunks = [[#"{"response": "ok", "sidecar_payload": {"title": "T", "tone": "flat"}}"#]]
         let chatA = makeChat(llmService: mockLLMA, persistence: MockPersistenceService())
-        let streamA = try await chatA.run(timelineId: UUID(), message: "hello", sidecars: directives)
+        let streamA = try await chatA.run(ChatRunRequest(
+            timelineId: UUID(),
+            message: "hello",
+            sidecars: directives
+        ))
         for try await _ in streamA {}
 
         let mockLLMB = MockLLMService()
         mockLLMB.mockClient.nextChunks = [[#"{"response": "ok", "sidecar_payload": {"summary": "S"}}"#]]
         let chatB = makeChat(llmService: mockLLMB, persistence: MockPersistenceService())
-        let streamB = try await chatB.run(timelineId: UUID(), message: "hello", sidecars: directivesB)
+        let streamB = try await chatB.run(ChatRunRequest(
+            timelineId: UUID(),
+            message: "hello",
+            sidecars: directivesB
+        ))
         for try await _ in streamB {}
 
         let mockLLMEmpty = MockLLMService()
         mockLLMEmpty.mockClient.nextChunks = [["ok"]]
         let chatEmpty = makeChat(llmService: mockLLMEmpty, persistence: MockPersistenceService())
-        let streamEmpty = try await chatEmpty.run(timelineId: UUID(), message: "hello", sidecars: [])
+        let streamEmpty = try await chatEmpty.run(ChatRunRequest(
+            timelineId: UUID(),
+            message: "hello",
+            sidecars: []
+        ))
         for try await _ in streamEmpty {}
 
         let systemA = mockLLMA.mockClient.lastMessages.first { $0.role == .system }?.content
@@ -195,23 +218,23 @@ struct SidecarTurnIntegrationTests {
         let mockLLMWith = MockLLMService()
         mockLLMWith.mockClient.nextChunks = [[#"{"response": "ok", "sidecar_payload": {"title": "T", "tone": "flat"}}"#]]
         let chatWith = makeChat(llmService: mockLLMWith, persistence: MockPersistenceService())
-        let streamWith = try await chatWith.run(
+        let streamWith = try await chatWith.run(ChatRunRequest(
             timelineId: UUID(),
             message: "hello",
             sidecars: directives,
             includeSidecarMechanismPreamble: true
-        )
+        ))
         for try await _ in streamWith {}
 
         let mockLLMEmpty = MockLLMService()
         mockLLMEmpty.mockClient.nextChunks = [["ok"]]
         let chatEmpty = makeChat(llmService: mockLLMEmpty, persistence: MockPersistenceService())
-        let streamEmpty = try await chatEmpty.run(
+        let streamEmpty = try await chatEmpty.run(ChatRunRequest(
             timelineId: UUID(),
             message: "hello",
             sidecars: [],
             includeSidecarMechanismPreamble: true
-        )
+        ))
         for try await _ in streamEmpty {}
 
         let systemWith = mockLLMWith.mockClient.lastMessages.first { $0.role == .system }?.content
@@ -228,11 +251,11 @@ struct SidecarTurnIntegrationTests {
         let mockLLM = MockLLMService()
         mockLLM.mockClient.nextChunks = [["ok"]]
         let chat = makeChat(llmService: mockLLM, persistence: MockPersistenceService())
-        let stream = try await chat.run(
+        let stream = try await chat.run(ChatRunRequest(
             timelineId: UUID(),
             message: "hello",
             includeSidecarMechanismPreamble: true
-        )
+        ))
         for try await _ in stream {}
 
         let system = mockLLM.mockClient.lastMessages.first { $0.role == .system }?.content
@@ -252,13 +275,20 @@ struct SidecarTurnIntegrationTests {
         let persistenceWith = MockPersistenceService()
         let chatWith = makeChat(llmService: mockLLMWith, persistence: persistenceWith)
 
-        let streamWithout = try await chatWithout.run(timelineId: UUID(), message: "hi")
+        let streamWithout = try await chatWithout.run(ChatRunRequest(
+            timelineId: UUID(),
+            message: "hi"
+        ))
         var signaturesWithout: [String] = []
         for try await event in streamWithout {
             signaturesWithout.append(Self.signature(for: event))
         }
 
-        let streamWith = try await chatWith.run(timelineId: UUID(), message: "hi", sidecars: [])
+        let streamWith = try await chatWith.run(ChatRunRequest(
+            timelineId: UUID(),
+            message: "hi",
+            sidecars: []
+        ))
         var signaturesWith: [String] = []
         for try await event in streamWith {
             signaturesWith.append(Self.signature(for: event))

@@ -6,9 +6,27 @@ public protocol TurnInspecting: Sendable {
     func didComposeTurn(_ inspection: TurnInspection) async
 }
 
+/// Stable identity for one composed turn within a logical user send.
+///
+/// `sendId` stays constant across every round-trip produced by the same `ChatEngine.execute`
+/// call. `roundTrip` is the zero-based ordinal of that round-trip within the send.
+public struct TurnIdentity: Sendable, Hashable, Equatable {
+    public let sendId: UUID
+    public let roundTrip: Int
+
+    public init(sendId: UUID, roundTrip: Int) {
+        self.sendId = sendId
+        self.roundTrip = roundTrip
+    }
+}
+
 public struct TurnInspection: Sendable {
+    /// Consumer-facing mapping that groups every round-trip from one logical send.
+    public let identity: TurnIdentity
     public let timelineId: UUID
     public let agentInstanceId: UUID?
+    /// Back-compat engine counter. This stays monotonic across the conversation and is
+    /// still used as the persisted row key for historical rows.
     public let turnIndex: Int
     public let model: String
     public let rendered: RenderedPrompt
@@ -17,6 +35,7 @@ public struct TurnInspection: Sendable {
     public let estimatedTokens: Int
 
     public init(
+        identity: TurnIdentity = TurnIdentity(sendId: UUID(), roundTrip: 0),
         timelineId: UUID,
         agentInstanceId: UUID?,
         turnIndex: Int,
@@ -26,6 +45,7 @@ public struct TurnInspection: Sendable {
         journal: TurnJournalSnapshot,
         estimatedTokens: Int
     ) {
+        self.identity = identity
         self.timelineId = timelineId
         self.agentInstanceId = agentInstanceId
         self.turnIndex = turnIndex
