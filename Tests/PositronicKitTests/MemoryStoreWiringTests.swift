@@ -18,6 +18,13 @@ struct MemoryStoreWiringTests {
         events.compactMap { if case let .complete(data) = $0 { return data } else { return nil } }.first
     }
 
+    private func progressSequence(from events: [ContextGatheringEvent]) -> [Message.ContextGatheringProgress] {
+        events.compactMap { event in
+            if case let .progress(progress) = event { return progress }
+            return nil
+        }
+    }
+
     @Test("ContextManager default pipeline honors the injected memory store")
     func defaultPipelineUsesInjectedMemoryStore() async throws {
         let memoryStore = MockMemoryStore()
@@ -30,6 +37,31 @@ struct MemoryStoreWiringTests {
 
         let context = try #require(completeContext(from: events))
         #expect(context.memories.contains { $0.memory.id == memory.id })
+        #expect(embedding.lastInput == "any query")
+    }
+
+    @Test("ContextManager default pipeline short-circuits empty memory corpora")
+    func defaultPipelineShortCircuitsEmptyMemoryCorpus() async throws {
+        let memoryStore = MockMemoryStore()
+        let embedding = MockEmbeddingService()
+        let contextManager = ContextManager(memoryStore: memoryStore, embeddingService: embedding)
+        let tagProbe = TagProbe()
+        let tagGenerator: @Sendable (String) async throws -> [String] = { _ in
+            await tagProbe.recordCall()
+            return ["unexpected"]
+        }
+
+        let events = try await contextManager.gatherContext(
+            for: "any query",
+            tagGenerator: tagGenerator
+        ).collect()
+
+        let context = try #require(completeContext(from: events))
+        #expect(progressSequence(from: events) == [.augmenting, .discoveringNotes, .complete])
+        #expect(await tagProbe.calls == 0)
+        #expect(embedding.lastInput == nil)
+        #expect(context.memories.isEmpty)
+        #expect(context.executionTime < 0.25)
     }
 
     @Test("PositronicKit wires the injected memory store into timeline context gathering")
@@ -62,5 +94,13 @@ struct MemoryStoreWiringTests {
 
         let context = try #require(completeContext(from: events))
         #expect(context.memories.contains { $0.memory.id == memory.id })
+    }
+}
+
+private actor TagProbe {
+    private(set) var calls = 0
+
+    func recordCall() {
+        calls += 1
     }
 }

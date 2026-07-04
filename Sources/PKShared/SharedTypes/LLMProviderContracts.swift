@@ -126,6 +126,10 @@ public struct LLMMessage: Sendable, Codable, Equatable {
 public struct LLMTokenUsagePromptDetails: Sendable, Codable, Equatable {
     public let cachedTokens: Int?
 
+    enum CodingKeys: String, CodingKey {
+        case cachedTokens = "cached_tokens"
+    }
+
     public init(cachedTokens: Int? = nil) {
         self.cachedTokens = cachedTokens
     }
@@ -136,6 +140,15 @@ public struct LLMTokenUsage: Sendable, Codable, Equatable {
     public let completionTokens: Int?
     public let totalTokens: Int?
     public let promptTokensDetails: LLMTokenUsagePromptDetails?
+
+    /// Shared streaming usage metadata stays snake_case-safe here so providers can decode
+    /// directly into the transport-neutral contract without relying on decoder-wide conversion.
+    enum CodingKeys: String, CodingKey {
+        case promptTokens = "prompt_tokens"
+        case completionTokens = "completion_tokens"
+        case totalTokens = "total_tokens"
+        case promptTokensDetails = "prompt_tokens_details"
+    }
 
     public init(
         promptTokens: Int? = nil,
@@ -185,6 +198,15 @@ public struct LLMStreamDelta: Sendable, Codable, Equatable {
 
     public let toolCalls: [LLMToolCallDelta]?
 
+    /// `tool_calls` is part of the shared streaming contract, so it is spelled out explicitly
+    /// instead of depending on a decoder-wide snake_case conversion.
+    enum CodingKeys: String, CodingKey {
+        case role
+        case content
+        case thinking
+        case toolCalls = "tool_calls"
+    }
+
     public init(
         role: LLMMessage.Role? = nil,
         content: String? = nil,
@@ -202,6 +224,13 @@ public struct LLMStreamChoice: Sendable, Codable, Equatable {
     public let index: Int
     public let delta: LLMStreamDelta
     public let finishReason: String?
+
+    /// `finish_reason` is part of the streaming wire contract and must survive decode intact.
+    enum CodingKeys: String, CodingKey {
+        case index
+        case delta
+        case finishReason = "finish_reason"
+    }
 
     public init(index: Int, delta: LLMStreamDelta, finishReason: String? = nil) {
         self.index = index

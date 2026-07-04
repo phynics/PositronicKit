@@ -882,6 +882,153 @@ struct ChatEngineTests {
         }
     }
 
+    @Test("Dangling assistant tool calls fail before provider request")
+    func danglingAssistantToolCallFailsBeforeProviderRequest() async throws {
+        try await withChatEngineDependencies { engine, mockLLM, mockPersistence in
+            try await mockPersistence.saveMessage(ConversationMessage(
+                timelineId: timelineId,
+                role: .assistant,
+                content: "",
+                toolCalls: try pendingToolCallsJSON(ids: ["dangling_call"])
+            ))
+
+            do {
+                _ = try await engine.execute(
+                    timelineId: timelineId,
+                    message: "Follow up",
+                    tools: [MockTool().toAnyTool()]
+                )
+                Issue.record("Expected dangling tool call error")
+            } catch let error as ChatEngineError {
+                #expect(error.userFriendlyMessage.contains("assistant tool call"))
+                #expect(error.userFriendlyMessage.contains("matching tool result"))
+            } catch {
+                Issue.record("Expected ChatEngineError, got \(error)")
+            }
+
+            #expect(mockLLM.mockClient.streamCallCount == 0)
+        }
+    }
+
+    @Test("Well-formed tool history preserves provider ids across reloads")
+    func wellFormedToolHistoryPreservesProviderIdsAcrossReloads() async throws {
+        let persistence = MockPersistenceService()
+        let mockLLM = MockLLMService()
+        let timelineManager = TimelineManager(
+            stores: .init(
+                timelineStore: persistence,
+                messageStore: persistence,
+                workspaceStore: persistence,
+                toolPersistence: persistence
+            ),
+            workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
+            workspaceCreator: MockWorkspaceCreator()
+        )
+        let toolRouter = ToolRouter(
+            timelineManager: timelineManager,
+            messageStore: persistence
+        )
+        let engine = ChatEngine(
+            dependencies: .init(
+                timelineManager: timelineManager,
+                agentInstanceStore: persistence,
+                requestOriginStore: persistence,
+                messageStore: persistence,
+                llmService: mockLLM,
+                toolRouter: toolRouter,
+                chatTurnPlugins: [],
+                streamTimeout: 60
+            )
+        )
+
+        let timelineId = UUID()
+        let session = Timeline(id: timelineId, title: "Reload Session")
+        try await persistence.saveTimeline(session)
+
+        let wsId = UUID()
+        let workspaceRef = WorkspaceReference(
+            id: wsId,
+            uri: WorkspaceURI(parsing: "pk://local")!,
+            location: .runtimeTimeline,
+            originId: nil,
+            rootPath: "/tmp"
+        )
+        try await persistence.saveWorkspace(workspaceRef)
+        try await timelineManager.attachWorkspace(wsId, to: timelineId)
+        try await persistence.addToolToWorkspace(workspaceId: wsId, tool: .known("mock_tool"))
+        try await timelineManager.hydrateTimeline(id: timelineId)
+
+        if let toolManager = await timelineManager.getToolManager(for: timelineId) {
+            var tools = await toolManager.getAvailableTools()
+            tools.append(MockTool().toAnyTool())
+            await toolManager.updateAvailableTools(tools)
+
+            if let ws = try? await timelineManager.workspaceManager.getWorkspace(id: wsId) {
+                await toolManager.registerWorkspace(ws)
+            }
+        }
+
+        try await persistence.saveMessage(ConversationMessage(
+            timelineId: timelineId,
+            role: .assistant,
+            content: "",
+            toolCalls: try pendingToolCallsJSON(ids: ["provider_call"])
+        ))
+        try await persistence.saveMessage(ConversationMessage(
+            timelineId: timelineId,
+            role: .tool,
+            content: "Tool result",
+            toolCallId: "provider_call"
+        ))
+
+        mockLLM.mockClient.nextResponse = "First reply"
+        _ = try await collect(try await engine.execute(
+            timelineId: timelineId,
+            message: "First follow up",
+            tools: []
+        ))
+
+        let firstReloadPromptPreservedProviderID = mockLLM.mockClient.messageHistory.first?.contains(where: { message in
+            message.role == .assistant && message.toolCalls?.first?.id == "provider_call"
+        }) == true
+        #expect(firstReloadPromptPreservedProviderID)
+        #expect(mockLLM.mockClient.streamCallCount == 1)
+
+        let storedMessages = try await persistence.fetchMessages(for: timelineId)
+        let storedAssistantPreservedProviderID = storedMessages.contains(where: { message in
+            let reconstructed = message.toMessage()
+            return reconstructed.role == .assistant && reconstructed.toolCalls?.contains(where: { $0.id == "provider_call" }) == true
+        })
+        #expect(storedAssistantPreservedProviderID)
+
+        let reloadLLM = MockLLMService()
+        let reloadEngine = ChatEngine(
+            dependencies: .init(
+                timelineManager: timelineManager,
+                agentInstanceStore: persistence,
+                requestOriginStore: persistence,
+                messageStore: persistence,
+                llmService: reloadLLM,
+                toolRouter: toolRouter,
+                chatTurnPlugins: [],
+                streamTimeout: 60
+            )
+        )
+
+        reloadLLM.mockClient.nextResponse = "Second reply"
+        _ = try await collect(try await reloadEngine.execute(
+            timelineId: timelineId,
+            message: "Second follow up",
+            tools: []
+        ))
+
+        let secondReloadPromptPreservedProviderID = reloadLLM.mockClient.messageHistory.first?.contains(where: { message in
+            message.role == .assistant && message.toolCalls?.first?.id == "provider_call"
+        }) == true
+        #expect(secondReloadPromptPreservedProviderID)
+        #expect(reloadLLM.mockClient.streamCallCount == 1)
+    }
+
     @Test("Tool outputs matching pending assistant calls are persisted before user message")
     func matchedToolOutputsPersistedBeforeUserMessage() async throws {
         try await withChatEngineDependencies { engine, mockLLM, mockPersistence in

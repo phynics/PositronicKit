@@ -102,11 +102,17 @@ struct ContextManagerTests {
             tagGenerator: tagGenerator
         )
         let events = try await stream.collect()
+        let progresses = events.compactMap { event -> Message.ContextGatheringProgress? in
+            if case let .progress(progress) = event { return progress }
+            return nil
+        }
         let context = events.compactMap { if case let .complete(data) = $0 { return data } else { return nil } }.first
 
         #expect(context != nil)
+        #expect(progresses == [.augmenting, .discoveringNotes, .complete])
         #expect(await tagProbe.calls == 0)
         #expect(mockEmbedding.lastInput == nil)
+        #expect((context?.executionTime ?? .infinity) < 0.25)
     }
 
     @Test("Ranking Logic with Tag Boost")

@@ -9,6 +9,8 @@ enum ChatEngineError: PKError {
     case llmServiceNotConfigured
     case missingInput
     case streamTimedOut(TimeInterval)
+    case danglingToolCall(id: String)
+    case danglingToolResult(id: String)
 
     var errorDomain: String {
         PKErrorDomain.chat
@@ -19,6 +21,8 @@ enum ChatEngineError: PKError {
         case .llmServiceNotConfigured: return 9001
         case .missingInput: return 9002
         case .streamTimedOut: return 9003
+        case .danglingToolCall: return 9004
+        case .danglingToolResult: return 9005
         }
     }
 
@@ -30,6 +34,19 @@ enum ChatEngineError: PKError {
             return "A message or tool outputs must be provided to start a chat turn."
         case let .streamTimedOut(timeout):
             return "The model stream did not finish within \(Self.timeoutDescription(timeout)). Please try again."
+        case let .danglingToolCall(id):
+            return "Conversation history contains an assistant tool call with id '\(id)' that has no matching tool result."
+        case let .danglingToolResult(id):
+            return "Conversation history contains a tool result with id '\(id)' that has no matching assistant tool call."
+        }
+    }
+
+    var remediation: String? {
+        switch self {
+        case .danglingToolCall, .danglingToolResult:
+            return "Repair the persisted conversation history so assistant tool calls and tool results are paired before retrying."
+        case .llmServiceNotConfigured, .missingInput, .streamTimedOut:
+            return nil
         }
     }
 
@@ -81,6 +98,7 @@ extension ChatEngine {
         // 2. Load conversation history and context
         let conversationMessages = try await dependencies.messageStore.fetchMessages(for: timelineId)
         let history = conversationMessages.map { $0.toMessage() }
+        try validateToolHistory(history)
         let currentRemoteDepth = conversationMessages.map(\.remoteDepth).max() ?? 0
         let contextData = await fetchContext(
             contextManager: contextManager,
@@ -338,5 +356,37 @@ extension ChatEngine {
             logger.warning("Failed to gather context: \(error)")
         }
         return ContextData()
+    }
+
+    private func validateToolHistory(_ history: [Message]) throws {
+        var pendingToolCallIds = Set<String>()
+
+        for message in history {
+            switch message.role {
+            case .assistant:
+                let toolCalls = message.toolCalls ?? []
+                if !pendingToolCallIds.isEmpty {
+                    throw ChatEngineError.danglingToolCall(id: pendingToolCallIds.min() ?? toolCalls.first?.id ?? "<unknown>")
+                }
+                if !toolCalls.isEmpty {
+                    pendingToolCallIds = Set(toolCalls.map(\.id))
+                }
+            case .tool:
+                guard let toolCallId = message.toolCallId else {
+                    throw ChatEngineError.danglingToolResult(id: "<missing>")
+                }
+                guard pendingToolCallIds.remove(toolCallId) != nil else {
+                    throw ChatEngineError.danglingToolResult(id: toolCallId)
+                }
+            case .user, .system, .summary:
+                if !pendingToolCallIds.isEmpty {
+                    throw ChatEngineError.danglingToolCall(id: pendingToolCallIds.min() ?? "<unknown>")
+                }
+            }
+        }
+
+        guard pendingToolCallIds.isEmpty else {
+            throw ChatEngineError.danglingToolCall(id: pendingToolCallIds.min() ?? "<unknown>")
+        }
     }
 }
