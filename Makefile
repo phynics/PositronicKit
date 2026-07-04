@@ -68,7 +68,7 @@ verify-pin:
 
 verify: verify-pin validate-docs audit-default-linkage test
 
-verify-linux: bootstrap-minilm validate-docs
+verify-linux: bootstrap-minilm
 	@echo "Running comprehensive Linux test suite..."
 	@PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
 		swift test
