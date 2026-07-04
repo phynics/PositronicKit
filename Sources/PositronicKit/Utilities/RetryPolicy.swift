@@ -58,7 +58,8 @@ public enum RetryPolicy {
     private static func retryDelay(for error: Error, attempt: Int, baseDelay: TimeInterval) -> TimeInterval {
         if let llmError = error as? LLMServiceError,
            case let .httpError(_, _, _, retryAfter?) = llmError,
-           retryAfter > 0 {
+           retryAfter > 0
+        {
             return retryAfter
         }
 
@@ -100,7 +101,7 @@ public enum RetryPolicy {
             switch llmError {
             case .networkError:
                 return true
-            case .httpError(_, let statusCode, _, _):
+            case let .httpError(_, statusCode, _, _):
                 return isRetryableHTTPStatus(statusCode)
             default:
                 return false
@@ -110,7 +111,8 @@ public enum RetryPolicy {
         let nsError = error as NSError
         if nsError.domain == NSURLErrorDomain {
             // Re-check codes if it came as NSError
-            return isTransient(error: URLError(URLError.Code(rawValue: nsError.code)))
+            guard let code = URLError.Code(rawValue: nsError.code) else { return false }
+            return isTransient(error: URLError(code))
         }
 
         return false
