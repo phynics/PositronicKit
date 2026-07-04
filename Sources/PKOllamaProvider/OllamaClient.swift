@@ -1,6 +1,6 @@
 import Foundation
 #if canImport(FoundationNetworking)
-import FoundationNetworking
+    import FoundationNetworking
 #endif
 import Logging
 import PKShared
@@ -112,7 +112,10 @@ public actor OllamaClient: LLMClientProtocol {
 
         guard (200 ... 299).contains(httpResponse.statusCode) else {
             let errorBody = try await collectErrorBody(from: stream)
-            logger.error("Ollama error response body: \(errorBody)")
+            // Do not log the raw error body: an Ollama-compatible proxy could echo request
+            // headers or other sensitive content in its error responses. `makeError` sanitizes
+            // the body before it's embedded in the thrown error, which is the only place it
+            // should surface (matches OpenAI/OpenRouter, which never log the raw body — PKR-11).
             throw ProviderHTTPFailure.makeError(
                 provider: "Ollama",
                 response: httpResponse,
@@ -171,7 +174,7 @@ public actor OllamaClient: LLMClientProtocol {
         switch responseFormat {
         case .jsonObject:
             format = .jsonObject
-        case .jsonSchema(let schema):
+        case let .jsonSchema(schema):
             if let schema = schema.schema {
                 format = .jsonSchema(schema)
             } else {
@@ -203,7 +206,8 @@ public actor OllamaClient: LLMClientProtocol {
         }
         guard !response.message.content.isEmpty
             || response.message.thinking?.isEmpty == false
-            || response.message.toolCalls?.isEmpty == false else {
+            || response.message.toolCalls?.isEmpty == false
+        else {
             return nil
         }
         return buildIntermediateChunk(response, toolCalls: toolCalls)
