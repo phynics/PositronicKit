@@ -82,7 +82,7 @@ bootstrap-minilm: verify-pin
 build-minilm: bootstrap-minilm
 	@echo "Building MiniLM trait product..."
 	@PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
-		swift build --product PKLocalEmbeddings --traits MiniLMEmbeddings
+		swift build --traits MiniLMEmbeddings
 
 verify-minilm: bootstrap-minilm
 	@PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
