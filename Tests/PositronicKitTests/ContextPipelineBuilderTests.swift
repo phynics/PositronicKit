@@ -19,7 +19,7 @@ import Testing
 
         let context = ContextPipelineContext(
             query: "test", history: [], limit: 5,
-            tagGenerator: nil, startTime: CFAbsoluteTimeGetCurrent()
+            tagGenerator: nil, startTime: Date().timeIntervalSinceReferenceDate
         )
         let stream = pipeline.execute(context)
         for try await _ in stream {}
@@ -41,7 +41,7 @@ import Testing
 
         let context = ContextPipelineContext(
             query: "test", history: [], limit: 5,
-            tagGenerator: nil, startTime: CFAbsoluteTimeGetCurrent()
+            tagGenerator: nil, startTime: Date().timeIntervalSinceReferenceDate
         )
         let stream = pipeline.execute(context)
         for try await _ in stream {}
@@ -112,7 +112,7 @@ import Testing
     func setResults_nilPreservesExisting() async {
         let context = ContextPipelineContext(
             query: "q", history: [], limit: 5,
-            tagGenerator: nil, startTime: CFAbsoluteTimeGetCurrent()
+            tagGenerator: nil, startTime: Date().timeIntervalSinceReferenceDate
         )
         await context.setResults(tags: ["a", "b"])
         // Calling with nil (default) should preserve tags
@@ -126,7 +126,7 @@ import Testing
     func setResults_emptyArrayClears() async {
         let context = ContextPipelineContext(
             query: "q", history: [], limit: 5,
-            tagGenerator: nil, startTime: CFAbsoluteTimeGetCurrent()
+            tagGenerator: nil, startTime: Date().timeIntervalSinceReferenceDate
         )
         await context.setResults(tags: ["a", "b"])
         // Explicitly passing [] should clear
