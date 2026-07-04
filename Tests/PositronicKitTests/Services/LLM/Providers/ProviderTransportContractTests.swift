@@ -35,7 +35,7 @@ private actor TestProviderTransport: ProviderHTTPTransport {
             throw error
         case let .lines(lines, response):
             return (Data(lines.joined(separator: "\n").utf8), response)
-        case let .linesThenError(_, error, response):
+        case let .linesThenError(_, _, response):
             return (Data(), response)
         }
     }

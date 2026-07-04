@@ -303,8 +303,7 @@ public extension TimelineManager {
     /// `ContextManager`, `TimelineToolManager`, and (when a prompt-history registry
     /// was injected) the journal-diff history entry. Does not touch persistence.
     ///
-    /// Use `deleteTimeline(id:)` instead when you also want to delete the persisted
-    /// timeline — this method is the in-memory-only phase shared by it and
+    /// This is the in-memory-only phase shared by `deleteTimeline(id:)` and
     /// `cleanupStaleTimelines(maxAge:)`.
     internal func evictTimelineFromMemory(id: UUID) async {
         timelines.removeValue(forKey: id)
@@ -317,11 +316,11 @@ public extension TimelineManager {
     /// `ContextManager`, `TimelineToolManager`, and (when a prompt-history registry
     /// was injected) the journal-diff history entry. Does not touch persistence.
     ///
-    /// This is the runtime-eviction seam: callers that also want to delete the
-    /// persisted timeline call `timelineStore.deleteTimeline(id:)` alongside this
-    /// (see `TimelineAPIController.delete` in Monad and
-    /// `AgentInstanceManager.deleteInstance`). `cleanupStaleTimelines(maxAge:)`
-    /// shares this for the in-memory-only sweep.
+    /// This is the runtime-eviction seam, not a persistence deletion method:
+    /// callers that also want to delete the persisted timeline must call
+    /// `timelineStore.deleteTimeline(id:)` alongside this (see
+    /// `TimelineAPIController.delete` in Monad and `AgentInstanceManager.deleteInstance`).
+    /// `cleanupStaleTimelines(maxAge:)` shares this for the in-memory-only sweep.
     func deleteTimeline(id: UUID) async {
         await evictTimelineFromMemory(id: id)
     }
