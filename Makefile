@@ -1,5 +1,5 @@
 .PHONY: help build clean test test-parallel harden validate-docs \
-	audit-default-linkage verify-pin verify verify-products \
+	audit-default-linkage verify-pin verify verify-linux verify-products \
 	bootstrap-minilm build-minilm verify-minilm
 
 PKFASTEMBED_PREFIX ?= $(CURDIR)/.build/pkfastembed
@@ -22,7 +22,8 @@ help:
 	@echo "  make test                  Run tests"
 	@echo "  make test-parallel         Run tests in parallel"
 	@echo "  make harden                Run build and parallel hardening test gate"
-	@echo "  make verify                Run pin, docs, linkage, and test gates"
+	@echo "  make verify                Run pin, docs, linkage, and test gates (macOS)"
+	@echo "  make verify-linux          Run comprehensive Linux test suite (default + MiniLM trait)"
 	@echo "  make verify-products       Build every product on the current host"
 	@echo "  make verify-pin            Check the pinned MiniLM artifact hashes are consistent"
 	@echo "  make build-minilm          Prepare assets/native bridge and build the MiniLM trait product"
@@ -66,6 +67,13 @@ verify-pin:
 	@bash Scripts/check-model-pin.sh
 
 verify: verify-pin validate-docs audit-default-linkage test
+
+verify-linux: verify-pin validate-docs
+	@echo "Running comprehensive Linux test suite..."
+	@swift test
+	@PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
+		PK_MINILM_MODEL_DIR="$(PK_MINILM_MODEL_DIR)" \
+		swift test --traits MiniLMEmbeddings
 
 verify-products:
 	@set -e; for product in $(PRODUCTS); do \
