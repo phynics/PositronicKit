@@ -52,7 +52,14 @@ package enum PromptJournalDiffer {
     ) -> Bool {
         let committedStable = committedBaseSections.filter { $0.cachePolicy == .stable }
         let currentStable = currentSections.filter { $0.cachePolicy == .stable }
-        return committedStable.map(SectionSignature.init) != currentStable.map(SectionSignature.init)
+
+        let committedByID = Dictionary(
+            uniqueKeysWithValues: committedStable.map { ($0.id, SectionSignature($0)) }
+        )
+        let currentByID = Dictionary(
+            uniqueKeysWithValues: currentStable.map { ($0.id, SectionSignature($0)) }
+        )
+        return committedByID != currentByID
     }
 
     private static func computeSemiStableOverlay(
@@ -111,12 +118,12 @@ private struct SectionSignature: Equatable {
     let type: PromptSectionType
 
     init(_ section: RenderedPrompt.Section) {
-        self.id = section.id
-        self.contentHash = SectionSignature.hashContent(section.content)
-        self.path = section.path
-        self.parentID = section.parentID
-        self.estimatedTokens = section.estimatedTokens
-        self.type = section.type
+        id = section.id
+        contentHash = SectionSignature.hashContent(section.content)
+        path = section.path
+        parentID = section.parentID
+        estimatedTokens = section.estimatedTokens
+        type = section.type
     }
 
     private static func hashContent(_ content: PromptSection.Content) -> Int {
