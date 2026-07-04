@@ -1,6 +1,6 @@
 import Foundation
 #if canImport(FoundationNetworking)
-import FoundationNetworking
+    import FoundationNetworking
 #endif
 
 package protocol ProviderHTTPTransport: Sendable {
@@ -17,8 +17,10 @@ package struct URLSessionProviderHTTPTransport: ProviderHTTPTransport {
         if let timeoutIntervalForResource {
             configuration.timeoutIntervalForResource = timeoutIntervalForResource
         }
-        configuration.waitsForConnectivity = waitsForConnectivity
-        self.session = URLSession(configuration: configuration)
+        #if os(iOS) || os(macOS) || os(tvOS) || os(watchOS)
+            configuration.waitsForConnectivity = waitsForConnectivity
+        #endif
+        session = URLSession(configuration: configuration)
     }
 
     package init(session: URLSession) {
@@ -30,27 +32,55 @@ package struct URLSessionProviderHTTPTransport: ProviderHTTPTransport {
     }
 
     package func lines(for request: URLRequest) async throws -> (AsyncThrowingStream<String, Error>, URLResponse) {
-        let (bytes, response) = try await session.bytes(for: request)
-        let stream = AsyncThrowingStream<String, Error> { continuation in
-            let task = Task {
-                do {
-                    for try await line in bytes.lines {
-                        if Task.isCancelled {
-                            continuation.finish(throwing: CancellationError())
-                            return
+        #if os(iOS) || os(macOS) || os(tvOS) || os(watchOS)
+            let (bytes, response) = try await session.bytes(for: request)
+            let stream = AsyncThrowingStream<String, Error> { continuation in
+                let task = Task {
+                    do {
+                        for try await line in bytes.lines {
+                            if Task.isCancelled {
+                                continuation.finish(throwing: CancellationError())
+                                return
+                            }
+                            continuation.yield(line)
                         }
-                        continuation.yield(line)
+                        continuation.finish()
+                    } catch {
+                        continuation.finish(throwing: error)
                     }
-                    continuation.finish()
-                } catch {
-                    continuation.finish(throwing: error)
+                }
+
+                continuation.onTermination = { @Sendable _ in
+                    task.cancel()
                 }
             }
+            return (stream, response)
+        #else
+            let (data, response) = try await session.data(for: request)
+            let stream = AsyncThrowingStream<String, Error> { continuation in
+                let task = Task {
+                    do {
+                        guard let text = String(data: data, encoding: .utf8) else {
+                            throw NSError(domain: "ProviderHTTPTransport", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid UTF-8 in response"])
+                        }
+                        for line in text.split(separator: "\n", omittingEmptySubsequences: false).map(String.init) {
+                            if Task.isCancelled {
+                                continuation.finish(throwing: CancellationError())
+                                return
+                            }
+                            continuation.yield(line)
+                        }
+                        continuation.finish()
+                    } catch {
+                        continuation.finish(throwing: error)
+                    }
+                }
 
-            continuation.onTermination = { @Sendable _ in
-                task.cancel()
+                continuation.onTermination = { @Sendable _ in
+                    task.cancel()
+                }
             }
-        }
-        return (stream, response)
+            return (stream, response)
+        #endif
     }
 }
