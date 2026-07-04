@@ -18,7 +18,7 @@ struct MessagePersistenceStage: PipelineStage {
     func process(_ context: ChatTurnContext) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         let hasPendingToolCalls = await !context.outputs.toolCallAccumulators.isEmpty
 
-        let assistantMsg = try await Self.buildAssistantMessage(
+        let assistantMsg = await Self.buildAssistantMessage(
             from: context,
             hasPendingToolCalls: hasPendingToolCalls,
             status: nil,

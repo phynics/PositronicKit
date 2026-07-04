@@ -188,6 +188,8 @@ private func mapFinishReason(_ reason: ChatStreamResult.Choice.FinishReason) -> 
         return .contentFilter
     case .functionCall:
         return .other(reason.rawValue)
+    case .error:
+        return .error
     @unknown default:
         return .other(reason.rawValue)
     }
