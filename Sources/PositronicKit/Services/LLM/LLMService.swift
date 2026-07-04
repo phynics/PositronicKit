@@ -52,7 +52,7 @@ public actor LLMService: LLMServiceProtocol, HealthCheckable {
 
     private let storage: any ConfigurationServiceProtocol
 
-    let logger = Logger.module(named: "llm")
+    nonisolated let logger: Logger
 
     private var preparationTask: Task<Void, Never>?
 
@@ -86,6 +86,7 @@ public actor LLMService: LLMServiceProtocol, HealthCheckable {
         configuration: LLMConfiguration,
         embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService()
     ) {
+        logger = Logger.module(named: "llm")
         self.embeddingService = embeddingService
         self.storage = InMemoryConfigurationService(config: configuration)
         self.configuration = configuration
@@ -110,6 +111,35 @@ public actor LLMService: LLMServiceProtocol, HealthCheckable {
         utilityClient: (any LLMClientProtocol)? = nil,
         fastClient: (any LLMClientProtocol)? = nil
     ) {
+        logger = Logger.module(named: "llm")
+        self.embeddingService = embeddingService
+        self.storage = storage
+        self.client = client
+        self.utilityClient = utilityClient
+        self.fastClient = fastClient
+        isConfigured = client != nil
+
+        let needsLoad = client == nil
+
+        self.preparationTask = nil
+        let t = Task { [needsLoad] in
+            await storage.migrateIfNeeded()
+            if needsLoad {
+                await self.loadConfiguration()
+            }
+        }
+        Task { await self.setPreparationTask(t) }
+    }
+
+    internal init(
+        storage: any ConfigurationServiceProtocol,
+        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
+        client: (any LLMClientProtocol)? = nil,
+        utilityClient: (any LLMClientProtocol)? = nil,
+        fastClient: (any LLMClientProtocol)? = nil,
+        logger: Logger
+    ) {
+        self.logger = logger
         self.embeddingService = embeddingService
         self.storage = storage
         self.client = client

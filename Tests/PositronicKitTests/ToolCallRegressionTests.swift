@@ -157,4 +157,22 @@ struct ToolCallRegressionTests {
         let nested = args?["nested"]?.value as? [String: Any]
         #expect(nested?["val"] as? Double == 1.0)
     }
+
+    @Test("ToolOutputParser recovers fenced truncated JSON")
+    func testToolOutputParserRecoversFencedTruncatedJSON() {
+        let content = """
+        ```json
+        {"name":"complex_tool","arguments":{"tags":["a","b"],"user":{"name":"Alice","age":30}
+        ```
+        """
+
+        let calls = ToolOutputParser.parse(from: content)
+
+        #expect(calls.count == 1)
+        #expect(calls.first?.name == "complex_tool")
+        let tags = calls.first?.arguments["tags"]?.value as? [Any]
+        #expect(tags?.count == 2)
+        let user = calls.first?.arguments["user"]?.value as? [String: Any]
+        #expect(user?["name"] as? String == "Alice")
+    }
 }

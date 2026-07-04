@@ -39,6 +39,7 @@ let package = Package(
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "JSONSchema", package: "swift-json-schema"),
                 .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
+                .product(name: "PartialJSON", package: "PartialJSON"),
             ],
             path: "Sources/PKShared"
         ),

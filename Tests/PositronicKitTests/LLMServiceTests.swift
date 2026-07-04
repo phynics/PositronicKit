@@ -1,8 +1,58 @@
+import Foundation
+import Logging
 @testable import PositronicKit
 import PKPrompt
 @testable import PKShared
 import PKTestSupport
 import Testing
+
+private final class CapturingLogSink: @unchecked Sendable {
+    private let lock = NSLock()
+    private var messages: [String] = []
+
+    func append(_ message: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        messages.append(message)
+    }
+
+    func all() -> [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return messages
+    }
+}
+
+private struct CapturingLogHandler: LogHandler {
+    let sink: CapturingLogSink
+    var logLevel: Logger.Level = .debug
+    var metadata = Logger.Metadata()
+
+    subscript(metadataKey key: String) -> Logger.MetadataValue? {
+        get { metadata[key] }
+        set { metadata[key] = newValue }
+    }
+
+    func log(
+        level _: Logger.Level,
+        message: Logger.Message,
+        metadata _: Logger.Metadata?,
+        source _: String,
+        file _: String,
+        function _: String,
+        line _: UInt
+    ) {
+        sink.append(message.description)
+    }
+}
+
+private enum TestUtilityError: Error, PKError {
+    case failure
+
+    var errorDomain: String { PKErrorDomain.llm }
+    var errorCode: Int { 9_999 }
+    var userFriendlyMessage: String { "Friendly utility failure" }
+}
 
 @MainActor
 struct LLMServiceTests {
@@ -190,7 +240,7 @@ struct LLMServiceTests {
     @Test("Test generateTitle method")
     func titleGeneration() async throws {
         let mockClient = MockLLMClient()
-        mockClient.nextResponse = "SwiftUI Basics"
+        mockClient.nextResponse = #"{"title":"SwiftUI Basics"}"#
 
         let service = LLMService(storage: MockConfigurationService(), client: mockClient) // Inject mock transport directly for focused testing.
 
@@ -201,6 +251,11 @@ struct LLMServiceTests {
 
         let title = try await service.generateTitle(for: messages)
         #expect(title == "SwiftUI Basics")
+        guard case let .jsonSchema(schema) = mockClient.lastResponseFormat else {
+            Issue.record("Expected generateTitle to use a JSON schema response format")
+            return
+        }
+        #expect(schema.name == "llm_title")
 
         // Verify transcript was sent in the prompt
         if let lastMessage = mockClient.lastMessages.last {
@@ -210,6 +265,110 @@ struct LLMServiceTests {
                 #expect(content.contains("You use it by declaring views."))
             }
         }
+    }
+
+    @Test("Utility generations use schema-backed structured output")
+    func utilityGenerationsUseSchemaBackedStructuredOutput() async throws {
+        let mockClient = MockLLMClient()
+        let service = LLMService(storage: MockConfigurationService(), client: mockClient)
+
+        mockClient.nextResponse = #"{"tags":["Swift","Tests"]}"#
+        let tags = try await service.generateTags(for: "Swift tests are great")
+        #expect(tags == ["swift", "tests"])
+
+        guard case let .jsonSchema(tagSchema) = mockClient.lastResponseFormat else {
+            Issue.record("Expected generateTags to use a JSON schema response format")
+            return
+        }
+        #expect(tagSchema.name == "llm_tags")
+        let tagSchemaText = String(decoding: try JSONEncoder().encode(tagSchema.schema), as: UTF8.self)
+        #expect(tagSchemaText.contains("\"tags\""))
+
+        mockClient.nextResponse = #"{"title":"Condensed Title"}"#
+        let title = try await service.generateTitle(for: [
+            Message(content: "Summarize this discussion", role: .user),
+        ])
+        #expect(title == "Condensed Title")
+
+        guard case let .jsonSchema(titleSchema) = mockClient.lastResponseFormat else {
+            Issue.record("Expected generateTitle to use a JSON schema response format")
+            return
+        }
+        #expect(titleSchema.name == "llm_title")
+        let titleSchemaText = String(decoding: try JSONEncoder().encode(titleSchema.schema), as: UTF8.self)
+        #expect(titleSchemaText.contains("\"title\""))
+
+        let firstMemory = Memory(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
+            title: "First memory",
+            content: "Useful detail"
+        )
+        let secondMemory = Memory(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
+            title: "Second memory",
+            content: "Off-topic detail"
+        )
+
+        mockClient.nextResponse = #"{"00000000-0000-0000-0000-000000000001":0.5,"00000000-0000-0000-0000-000000000002":-1.0}"#
+        let scores = try await service.evaluateRecallPerformance(
+            transcript: "Transcript text",
+            recalledMemories: [firstMemory, secondMemory]
+        )
+
+        #expect(scores == [
+            "00000000-0000-0000-0000-000000000001": 0.5,
+            "00000000-0000-0000-0000-000000000002": -1.0,
+        ])
+
+        guard case let .jsonSchema(recallSchema) = mockClient.lastResponseFormat else {
+            Issue.record("Expected evaluateRecallPerformance to use a JSON schema response format")
+            return
+        }
+        #expect(recallSchema.name == "recall_performance")
+        let recallSchemaText = String(decoding: try JSONEncoder().encode(recallSchema.schema), as: UTF8.self)
+        #expect(recallSchemaText.contains("\"additionalProperties\""))
+        #expect(recallSchemaText.contains("\"minimum\":-1"))
+        #expect(recallSchemaText.contains("\"maximum\":1"))
+    }
+
+    @Test("Utility generations return defaults and log friendly failure messages")
+    func utilityGenerationsReturnDefaultsAndLogFriendlyFailureMessages() async throws {
+        let sink = CapturingLogSink()
+        let logger = Logger(label: "test.llm.utilities") { _ in
+            CapturingLogHandler(sink: sink)
+        }
+
+        let mockClient = MockLLMClient()
+        mockClient.shouldThrowError = true
+        mockClient.errorToThrow = TestUtilityError.failure
+
+        let service = LLMService(
+            storage: MockConfigurationService(),
+            client: mockClient,
+            logger: logger
+        )
+
+        let tags = try await service.generateTags(for: "Tag this text")
+        #expect(tags.isEmpty)
+
+        let title = try await service.generateTitle(for: [
+            Message(content: "A conversation", role: .user),
+        ])
+        #expect(title == "New Conversation")
+
+        let recall = try await service.evaluateRecallPerformance(
+            transcript: "Transcript text",
+            recalledMemories: [
+                Memory(title: "Memory", content: "Content"),
+            ]
+        )
+        #expect(recall.isEmpty)
+
+        let messages = sink.all()
+        #expect(messages.contains(where: { $0.contains("Friendly utility failure") }))
+        #expect(messages.contains(where: { $0.contains("Failed to generate tags") }))
+        #expect(messages.contains(where: { $0.contains("Failed to generate title") }))
+        #expect(messages.contains(where: { $0.contains("Failed to evaluate recall") }))
     }
 
     @Test("Health details report typed provider identity, not endpoint substrings")

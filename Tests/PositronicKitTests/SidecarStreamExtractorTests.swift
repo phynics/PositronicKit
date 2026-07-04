@@ -157,4 +157,19 @@ struct SidecarStreamExtractorTests {
         #expect(results.contains(SidecarResult(name: "route", outcome: .value(AnyCodable("memory")))))
         #expect(results.contains(SidecarResult(name: "title", outcome: .value(AnyCodable("Greeting")))))
     }
+
+    @Test func finishRecoversTrailingGarbageAtStreamEnd() {
+        var extractor = makeExtractor(directives: [
+            .init(name: "title", instruction: "t", schema: JSONString().definition(), streaming: .buffered),
+        ])
+        let outputs = run([
+            #"{"response":"ok","sidecar_payload":{"title":"Greeting"}} trailing"#,
+        ], extractor: &extractor)
+
+        let response = outputs.compactMap { if case let .responseDelta(text) = $0 { text } else { nil } }.joined()
+        #expect(response == "ok")
+
+        let results = outputs.compactMap { if case let .completed(result) = $0 { result } else { nil } }.flatMap { $0 }
+        #expect(results == [SidecarResult(name: "title", outcome: .value(AnyCodable("Greeting")))])
+    }
 }

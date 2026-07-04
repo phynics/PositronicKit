@@ -234,6 +234,16 @@ public struct PositronicKit: Sendable {
 
     // MARK: - Execution
 
+    /// Convenience for consumers that want sidecar directives to share an existing
+    /// structured-output enablement toggle. When disabled, this returns an empty
+    /// directive list so the runtime takes the exact no-sidecar path.
+    public static func sidecarsIfEnabled(
+        _ sidecars: [SidecarDirective],
+        when isEnabled: Bool
+    ) -> [SidecarDirective] {
+        isEnabled ? sidecars : []
+    }
+
     /// Run a chat turn and return a stream of events.
     /// - Parameters:
     ///   - timelineId: The unique identifier for the chat session.

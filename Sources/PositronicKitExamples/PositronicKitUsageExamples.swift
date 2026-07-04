@@ -4,6 +4,7 @@ import PKOllamaProvider
 import PKOpenAIProvider
 import PKShared
 import PositronicKit
+import struct JSONSchema.Schema
 
 public enum PositronicKitUsageExamples {
     public actor ExampleTurnInspector: TurnInspecting {
@@ -103,6 +104,10 @@ public enum PositronicKitUsageExamples {
         .jsonSchema(makeStructuredOutputSchema())
     }
 
+    public static func decodeStructuredOutputExample(from payload: String) throws -> ExampleTagPayload {
+        try StructuredOutputDecoder.decode(ExampleTagPayload.self, from: payload)
+    }
+
     /// Sidecar directives (piggy-backed requests): auxiliary generations riding the same
     /// request as a chat turn's response. `title` is nullable so the model can decline once
     /// a conversation already has one. Consume via `PositronicKit.run(sidecars:)`:
@@ -114,22 +119,65 @@ public enum PositronicKitUsageExamples {
     ///     if let delta = event.sidecarDelta { /* route delta.name -> delta.partialText */ }
     ///     if let results = event.sidecarResults { /* persist final title/tone per turn */ }
     /// }
+    ///
+    /// // Gate sidecars behind an existing structured-output toggle:
+    /// let sidecars = PositronicKit.sidecarsIfEnabled(makeSidecarDirectives(), when: typedRepliesEnabled)
     /// ```
     public static func makeSidecarDirectives() -> [SidecarDirective] {
         [
-            SidecarDirective(
-                name: "title",
-                instruction: "A short conversation title (3-6 words). Return null if the conversation already has a good title.",
-                schema: JSONString().definition(),
-                streaming: .buffered
-            ),
-            SidecarDirective(
-                name: "tone",
-                instruction: "One word describing the emotional tone of this turn (e.g. \"neutral\", \"frustrated\", \"excited\").",
-                schema: JSONString().definition(),
-                streaming: .buffered
-            ),
+            makeDeclinableTitleDirective(),
+            makeToneDirective(),
         ]
+    }
+
+    /// Declinable sidecar pattern: a nullable field lets the model say "no update needed"
+    /// without turning that into an error.
+    public static func makeDeclinableTitleDirective() -> SidecarDirective {
+        SidecarDirective(
+            name: "title",
+            instruction: "A short conversation title (3-6 words). Return null if the conversation already has a good title.",
+            schema: try! Schema(instance: #"{"type":["string","null"]}"#),
+            streaming: .buffered
+        )
+    }
+
+    /// Example of a constrained tone field expressed as a small enum-like string schema.
+    public static func makeToneDirective() -> SidecarDirective {
+        SidecarDirective(
+            name: "tone",
+            instruction: "One word describing the emotional tone of this turn.",
+            schema: try! Schema(instance: #"{"type":"string","enum":["neutral","frustrated","excited"]}"#),
+            streaming: .buffered
+        )
+    }
+
+    /// Cadence pattern: ask for a title until the conversation gets one, then refresh
+    /// every `retitleEvery` turns.
+    public static func makeCadencedSidecarDirectives(
+        turnIndex: Int,
+        hasConversationTitle: Bool,
+        retitleEvery: Int = 5
+    ) -> [SidecarDirective] {
+        guard turnIndex > 0 else { return [] }
+
+        var directives = [makeToneDirective()]
+        let shouldRequestTitle = !hasConversationTitle || turnIndex.isMultiple(of: retitleEvery)
+        if shouldRequestTitle {
+            directives.insert(makeDeclinableTitleDirective(), at: 0)
+        }
+        return directives
+    }
+
+    public static func makeOneShotTitleStructuredOutputRequest() -> StructuredOutputRequest {
+        .jsonSchema(StructuredOutputSchema(
+            name: "title_payload",
+            description: "A declinable title payload reused outside a sidecar turn.",
+            schema: ExampleOneShotTitlePayload.schema.definition()
+        ))
+    }
+
+    public static func decodeOneShotTitlePayload(from payload: String) throws -> ExampleOneShotTitlePayload {
+        try StructuredOutputDecoder.decode(ExampleOneShotTitlePayload.self, from: payload)
     }
 }
 
@@ -148,6 +196,15 @@ public struct ExampleTagPayload: Codable, Sendable, Equatable {
 
     public init(tags: [String]) {
         self.tags = tags
+    }
+}
+
+@Schemable
+public struct ExampleOneShotTitlePayload: Codable, Sendable, Equatable {
+    public let title: String?
+
+    public init(title: String?) {
+        self.title = title
     }
 }
 

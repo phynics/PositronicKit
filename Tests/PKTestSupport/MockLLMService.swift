@@ -17,6 +17,11 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
     public var lastResponseFormat: LLMResponseFormat?
     public var lastParameters: GenerationParameters?
     public var shouldThrowError: Bool = false
+    public var errorToThrow: Error = NSError(
+        domain: "MockError",
+        code: 1,
+        userInfo: [NSLocalizedDescriptionKey: "Simulated failure"]
+    )
     public var streamCallCount: Int = 0
     public var neverFinishingStreamCallIndices: Set<Int> = []
 
@@ -60,7 +65,7 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
 
         if shouldThrowError {
             return AsyncThrowingStream { continuation in
-                continuation.finish(throwing: NSError(domain: "MockError", code: 1, userInfo: nil))
+                continuation.finish(throwing: errorToThrow)
             }
         }
 
@@ -172,10 +177,7 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
         generationParameters: GenerationParameters?
     ) async throws -> String {
         if shouldThrowError {
-            throw NSError(
-                domain: "MockError", code: 1,
-                userInfo: [NSLocalizedDescriptionKey: "Simulated failure"]
-            )
+            throw errorToThrow
         }
         lastMessages = [LLMMessage(role: .user, content: content)]
         lastTools = nil

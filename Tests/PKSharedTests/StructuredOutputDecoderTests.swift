@@ -58,4 +58,26 @@ struct StructuredOutputDecoderTests {
             _ = try StructuredOutputDecoder.decode(TagPayload.self, from: "not json")
         }
     }
+
+    @Test("Recovers truncated fenced JSON payloads")
+    func recoversTruncatedFencedJSONPayloads() throws {
+        let payload = """
+        ```json
+        {"tags":["swift","repair"]
+        ```
+        """
+
+        let decoded = try StructuredOutputDecoder.decode(TagPayload.self, from: payload)
+
+        #expect(decoded == TagPayload(tags: ["swift", "repair"]))
+    }
+
+    @Test("Recovers payloads with trailing garbage")
+    func recoversPayloadsWithTrailingGarbage() throws {
+        let payload = #"{"tags":["swift","tail"]} trailing"#
+
+        let decoded = try StructuredOutputDecoder.decode(TagPayload.self, from: payload)
+
+        #expect(decoded == TagPayload(tags: ["swift", "tail"]))
+    }
 }

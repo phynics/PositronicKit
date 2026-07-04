@@ -1,4 +1,5 @@
 import Foundation
+import JSONSchemaBuilder
 @testable import PKShared
 import PKTestSupport
 @testable import PositronicKit
@@ -38,7 +39,8 @@ struct StructuredOutputRunTests {
         }
 
         #expect(schema.name == "tag_payload")
-        #expect(schema.schema != nil)
+        let encodedSchema = String(decoding: try JSONEncoder().encode(schema.schema), as: UTF8.self)
+        #expect(encodedSchema.contains("\"tags\""))
     }
 
     @Test("run has a single overload, so omitting structuredOutput cannot silently select a nil-hardcoding overload")
@@ -67,6 +69,45 @@ struct StructuredOutputRunTests {
         let stream = try await chat.run(
             timelineId: UUID(),
             message: "Hello"
+        )
+
+        for try await _ in stream {}
+
+        #expect(mockLLM.mockClient.lastResponseFormat == nil)
+    }
+
+    @Test("sidecarsIfEnabled preserves the exact no-sidecar runtime path when disabled")
+    func sidecarsIfEnabledDisablesSidecarsWithoutChangingRunBehavior() async throws {
+        let directives = [
+            SidecarDirective(
+                name: "title",
+                instruction: "Short title.",
+                schema: JSONString().definition()
+            ),
+        ]
+
+        #expect(PositronicKit.sidecarsIfEnabled(directives, when: false).isEmpty)
+        #expect(PositronicKit.sidecarsIfEnabled(directives, when: true) == directives)
+
+        let mockLLM = MockLLMService()
+        let mockPersistence = MockPersistenceService()
+        let chat = PositronicKit(
+            llmService: mockLLM,
+            persistence: .init(
+                messageStore: mockPersistence,
+                timelinePersistence: mockPersistence,
+                workspacePersistence: mockPersistence,
+                memoryStore: mockPersistence,
+                toolPersistence: mockPersistence,
+                agentInstanceStore: mockPersistence,
+                requestOriginStore: mockPersistence
+            )
+        )
+
+        let stream = try await chat.run(
+            timelineId: UUID(),
+            message: "Hello",
+            sidecars: PositronicKit.sidecarsIfEnabled(directives, when: false)
         )
 
         for try await _ in stream {}

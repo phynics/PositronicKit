@@ -1,4 +1,5 @@
 import Foundation
+import Logging
 import PKShared
 
 /// Internal helper for decoding flexibility in tool call parsing.
@@ -19,6 +20,8 @@ private struct RawToolCall: Codable {
 
 /// Utility for parsing tool calls from raw text content when structured tool calls fail.
 public enum ToolOutputParser {
+    private static let logger = Logger.module(named: "tool-output-parser")
+
     /// Represents a parsed tool call
     public struct FallbackToolCall: Codable {
         public let name: String
@@ -121,32 +124,30 @@ public enum ToolOutputParser {
     // MARK: - Code Block Parsing
 
     private static func parseCodeBlockCalls(from content: String) -> [FallbackToolCall] {
-        var cleaned = content
+        let cleaned = LenientJSONParser.sanitize(content)
+        guard !cleaned.isEmpty else { return [] }
 
-        if let range = cleaned.range(of: "```json", options: .caseInsensitive),
-           let endRange = cleaned.range(of: "```", options: .backwards),
-           range.upperBound < endRange.lowerBound {
-            cleaned = String(cleaned[range.upperBound ..< endRange.lowerBound])
-        } else if let range = cleaned.range(of: "```", options: .caseInsensitive),
-                  let endRange = cleaned.range(of: "```", options: .backwards),
-                  range.upperBound < endRange.lowerBound {
-            cleaned = String(cleaned[range.upperBound ..< endRange.lowerBound])
+        if let strictData = cleaned.data(using: .utf8),
+           let strictCalls = decodeCodeBlockCalls(from: strictData) {
+            return strictCalls
         }
 
-        cleaned = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard !cleaned.isEmpty, let data = cleaned.data(using: .utf8) else { return [] }
-
-        if cleaned.hasPrefix("[") {
-            if let calls = try? JSONDecoder().decode([FallbackToolCall].self, from: data) {
-                return calls
-            }
-        } else {
-            if let call = try? JSONDecoder().decode(FallbackToolCall.self, from: data) {
-                return [call]
-            }
+        guard let repaired = try? LenientJSONParser.parse(cleaned) else { return [] }
+        if repaired.repaired {
+            logger.warning("Recovered fallback tool-call JSON via lenient parsing.")
         }
 
-        return []
+        guard let repairedData = try? LenientJSONParser.jsonData(from: repaired.value) else { return [] }
+        return decodeCodeBlockCalls(from: repairedData) ?? []
+    }
+
+    private static func decodeCodeBlockCalls(from data: Data) -> [FallbackToolCall]? {
+        if let calls = try? JSONDecoder().decode([FallbackToolCall].self, from: data) {
+            return calls
+        }
+        if let call = try? JSONDecoder().decode(FallbackToolCall.self, from: data) {
+            return [call]
+        }
+        return nil
     }
 }

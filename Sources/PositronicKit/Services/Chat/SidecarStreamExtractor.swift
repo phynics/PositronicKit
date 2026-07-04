@@ -1,4 +1,5 @@
 import Foundation
+import Logging
 import PartialJSON
 import PKShared
 
@@ -64,7 +65,7 @@ struct SidecarStreamExtractor {
         outputs += reparse()
         guard !completedEmitted else { return outputs }
         var results: [SidecarResult] = []
-        let parsed = currentParse()
+        let parsed = finalParse()
         for directive in directives {
             if let object = parsed, let payload = payload(for: directive, from: object) {
                 if payload[directive.name] is NSNull {
@@ -95,6 +96,22 @@ struct SidecarStreamExtractor {
     /// Best-effort parse of the whole buffer via PartialJSON (partial strings allowed).
     private func currentParse() -> [String: Any]? {
         (try? PartialJSON.parse(buffer, options: .all)) as? [String: Any]
+    }
+
+    private func finalParse() -> [String: Any]? {
+        if let parsed = currentParse() {
+            return parsed
+        }
+
+        guard let repaired = try? LenientJSONParser.parse(buffer),
+              repaired.repaired,
+              let object = repaired.value.value as? [String: Any] else {
+            return nil
+        }
+
+        Logger.module(named: "sidecar-stream-extractor")
+            .warning("Recovered sidecar payload via lenient JSON repair at stream end.")
+        return object
     }
 
     private func sidecarPayload(from object: [String: Any]) -> [String: Any]? {

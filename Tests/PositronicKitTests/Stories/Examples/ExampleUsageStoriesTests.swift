@@ -50,10 +50,59 @@ struct ExampleUsageStoriesTests {
         let structuredOutput = PositronicKitUsageExamples.makeStructuredOutputSchema()
         let encoded = try JSONEncoder().encode(structuredOutput.schema)
         let encodedString = String(decoding: encoded, as: UTF8.self)
+        let decoded = try PositronicKitUsageExamples.decodeStructuredOutputExample(
+            from: #"{"tags":["swift","docs"]}"#
+        )
 
         #expect(structuredOutput.name == "tag_payload")
         #expect(encodedString.contains("\"type\":\"object\""))
         #expect(encodedString.contains("\"tags\""))
+        #expect(decoded == ExampleTagPayload(tags: ["swift", "docs"]))
+    }
+
+    @Test
+    func sidecarExamplesCoverDeclinableCadenceAndOneShotPatterns() throws {
+        let declinable = PositronicKitUsageExamples.makeDeclinableTitleDirective()
+        let tone = PositronicKitUsageExamples.makeToneDirective()
+        let turnOne = PositronicKitUsageExamples.makeCadencedSidecarDirectives(
+            turnIndex: 1,
+            hasConversationTitle: false
+        )
+        let turnThree = PositronicKitUsageExamples.makeCadencedSidecarDirectives(
+            turnIndex: 3,
+            hasConversationTitle: true
+        )
+        let turnFive = PositronicKitUsageExamples.makeCadencedSidecarDirectives(
+            turnIndex: 5,
+            hasConversationTitle: true
+        )
+        let oneShotRequest = PositronicKitUsageExamples.makeOneShotTitleStructuredOutputRequest()
+        let oneShotValue = try PositronicKitUsageExamples.decodeOneShotTitlePayload(
+            from: #"{"title":"Planning Session"}"#
+        )
+        let oneShotDecline = try PositronicKitUsageExamples.decodeOneShotTitlePayload(
+            from: #"{"title":null}"#
+        )
+
+        let declinableSchema = String(decoding: try JSONEncoder().encode(declinable.schema), as: UTF8.self)
+        let toneSchema = String(decoding: try JSONEncoder().encode(tone.schema), as: UTF8.self)
+        let oneShotSchema = try #require({
+            if case let .jsonSchema(schema) = oneShotRequest {
+                return String(decoding: try JSONEncoder().encode(schema.schema), as: UTF8.self)
+            }
+            return nil
+        }())
+
+        #expect(declinable.name == "title")
+        #expect(declinableSchema.contains("\"null\""))
+        #expect(tone.name == "tone")
+        #expect(toneSchema.contains("\"enum\""))
+        #expect(turnOne.map(\.name) == ["title", "tone"])
+        #expect(turnThree.map(\.name) == ["tone"])
+        #expect(turnFive.map(\.name) == ["title", "tone"])
+        #expect(oneShotSchema.contains("\"title\""))
+        #expect(oneShotValue == ExampleOneShotTitlePayload(title: "Planning Session"))
+        #expect(oneShotDecline == ExampleOneShotTitlePayload(title: nil))
     }
 
     @Test

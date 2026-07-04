@@ -17,7 +17,18 @@ func runExamples() async throws {
     let toolPrompt = await formatToolsForPrompt(PositronicKitUsageExamples.makeTools())
     let structuredOutput = PositronicKitUsageExamples.makeStructuredOutputSchema()
     let structuredOutputRequest = PositronicKitUsageExamples.makeStructuredOutputRequest()
+    let decodedStructuredOutput = try PositronicKitUsageExamples.decodeStructuredOutputExample(
+        from: #"{"tags":["swift","structured-output"]}"#
+    )
     let sidecarDirectives = PositronicKitUsageExamples.makeSidecarDirectives()
+    let cadenceDirectives = PositronicKitUsageExamples.makeCadencedSidecarDirectives(
+        turnIndex: 5,
+        hasConversationTitle: true
+    )
+    let oneShotTitleRequest = PositronicKitUsageExamples.makeOneShotTitleStructuredOutputRequest()
+    let oneShotTitle = try PositronicKitUsageExamples.decodeOneShotTitlePayload(
+        from: #"{"title":"Planning Session"}"#
+    )
 
     // README "Choosing A Layer" examples — kept compile-checked here.
     let layer1 = try await PKPromptExamples.renderLayer1ToString()
@@ -36,12 +47,16 @@ func runExamples() async throws {
     print("\nStructured output schema: \(structuredOutput.name)")
     print("Structured output request: \(structuredOutputRequest)")
     print("Generated from ExampleTagPayload via @Schemable.")
+    print("Decoded structured output sample: \(decodedStructuredOutput.tags)")
 
     print("\nSidecar directives (piggy-backed requests): \(sidecarDirectives.map(\.name))")
     for directive in sidecarDirectives {
         print("  - \(directive.name): \(directive.instruction)")
     }
     print("  Consume via PositronicKit.run(sidecars:) — see makeSidecarDirectives() doc comment.")
+    print("Cadence example at turn 5 with an existing title: \(cadenceDirectives.map(\.name))")
+    print("One-shot title request: \(oneShotTitleRequest)")
+    print("Decoded one-shot title payload: \(oneShotTitle.title ?? "nil")")
 
     print("\n# PKPrompt Layer Examples\n")
     print("Layer 1 (Prompt → String):")
