@@ -1,8 +1,13 @@
 import Foundation
-import PKFastEmbed
 import PKShared
 import PositronicKit
 
+/// Shared platform backend actor wrapping `MiniLMEmbedder`, consumed by `PKLocalEmbeddings`
+/// on both Linux (`os(Linux)`) and Apple platforms (behind the `MiniLMEmbeddings` trait).
+/// Lives here — in `PKFastEmbed`, which both conditional configurations already depend on —
+/// as the single source of truth: those two configurations never compile together, so a
+/// previous split into two per-platform target copies of this file could drift silently
+/// without either build catching it.
 public actor PKMiniLMPlatformBackend: Sendable {
     private let model: MiniLMEmbedder
     public let inputBudget: EmbeddingInputBudget
@@ -12,7 +17,7 @@ public actor PKMiniLMPlatformBackend: Sendable {
         inputBudget: EmbeddingInputBudget = .default
     ) throws {
         do {
-            self.model = try MiniLMEmbedder(modelDirectory: modelDirectory, inputBudget: inputBudget)
+            model = try MiniLMEmbedder(modelDirectory: modelDirectory, inputBudget: inputBudget)
             self.inputBudget = inputBudget
         } catch let error as PKFastEmbedError {
             throw Self.mapError(error)
@@ -39,12 +44,9 @@ public actor PKMiniLMPlatformBackend: Sendable {
         switch error {
         case .modelLoadFailed:
             return .nativeInitializationFailed
-        case let .invalidArgument(message):
-            if let validationError = EmbeddingInputBudget.ValidationError(message: message) {
-                return Self.mapValidationError(validationError)
-            }
-            return .generationFailed
-        case .bufferTooSmall, .inferenceFailed, .invalidUTF8, .nativeFailure:
+        case let .budgetExceeded(validationError):
+            return Self.mapValidationError(validationError)
+        case .invalidArgument, .bufferTooSmall, .inferenceFailed, .invalidUTF8, .nativeFailure:
             return .generationFailed
         case .abiMismatch:
             return .nativeInitializationFailed

@@ -10,6 +10,9 @@ public enum PKFastEmbedError: Error, Equatable, Sendable {
     case inferenceFailed(String)
     case bufferTooSmall(String)
     case nativeFailure(Int32, String)
+    /// An `EmbeddingInputBudget` validation failure, carried as its typed value so callers
+    /// never need to re-derive it by parsing `invalidArgument`'s formatted message string.
+    case budgetExceeded(EmbeddingInputBudget.ValidationError)
 }
 
 public final class MiniLMEmbedder: @unchecked Sendable {
@@ -95,7 +98,7 @@ public final class MiniLMEmbedder: @unchecked Sendable {
             throw PKFastEmbedError.modelLoadFailed("Native initialization returned no model handle.")
         }
 
-        var nativeDimensions: Int = 0
+        var nativeDimensions = 0
         try Self.withNativeErrorMessage { errorPointer in
             let status = nativeAPI.modelDimensions(handle, &nativeDimensions, errorPointer)
             try Self.throwIfNeeded(status, errorPointer: errorPointer)
@@ -107,7 +110,7 @@ public final class MiniLMEmbedder: @unchecked Sendable {
 
         self.nativeAPI = nativeAPI
         self.handle = handle
-        self.dimensions = nativeDimensions
+        dimensions = nativeDimensions
         self.inputBudget = inputBudget
         rawHandle = nil
     }
@@ -168,7 +171,7 @@ public final class MiniLMEmbedder: @unchecked Sendable {
         }
 
         return stride(from: 0, to: output.count, by: dimensions).map { start in
-            Array(output[start..<(start + dimensions)])
+            Array(output[start ..< (start + dimensions)])
         }
     }
 
@@ -176,7 +179,7 @@ public final class MiniLMEmbedder: @unchecked Sendable {
         do {
             try inputBudget.validate(text)
         } catch let error as EmbeddingInputBudget.ValidationError {
-            throw PKFastEmbedError.invalidArgument(error.message)
+            throw PKFastEmbedError.budgetExceeded(error)
         }
     }
 
@@ -184,7 +187,7 @@ public final class MiniLMEmbedder: @unchecked Sendable {
         do {
             try inputBudget.validate(texts)
         } catch let error as EmbeddingInputBudget.ValidationError {
-            throw PKFastEmbedError.invalidArgument(error.message)
+            throw PKFastEmbedError.budgetExceeded(error)
         }
     }
 
