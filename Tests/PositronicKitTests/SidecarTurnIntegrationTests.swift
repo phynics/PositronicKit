@@ -34,7 +34,7 @@ struct SidecarTurnIntegrationTests {
     func turnWithSidecarsStreamsResponseAndDirectives() async throws {
         let mockLLM = MockLLMService()
         mockLLM.mockClient.nextChunks = [[
-            #"{"response": "Hi there", "title": "Greeting", "tone": "warm"}"#,
+            #"{"response": "Hi there", "sidecar_payload": {"title": "Greeting", "tone": "warm"}}"#,
         ]]
         let persistence = MockPersistenceService()
         let chat = makeChat(llmService: mockLLM, persistence: persistence)
@@ -77,7 +77,7 @@ struct SidecarTurnIntegrationTests {
     func instructionBlockAndSchemaReachRequest() async throws {
         let mockLLM = MockLLMService()
         mockLLM.mockClient.nextChunks = [[
-            #"{"response": "ok", "title": "T", "tone": "flat"}"#,
+            #"{"response": "ok", "sidecar_payload": {"title": "T", "tone": "flat"}}"#,
         ]]
         let persistence = MockPersistenceService()
         let chat = makeChat(llmService: mockLLM, persistence: persistence)
@@ -135,7 +135,7 @@ struct SidecarTurnIntegrationTests {
         mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "call_1", name: "mock_tool")]]
         mockLLM.mockClient.nextChunks = [
             [""],
-            [#"{"response": "done", "title": "T", "tone": "flat"}"#],
+            [#"{"response": "done", "sidecar_payload": {"title": "T", "tone": "flat"}}"#],
         ]
         let persistence = MockPersistenceService()
         let chat = makeChat(llmService: mockLLM, persistence: persistence)
@@ -165,13 +165,13 @@ struct SidecarTurnIntegrationTests {
         ]
 
         let mockLLMA = MockLLMService()
-        mockLLMA.mockClient.nextChunks = [[#"{"response": "ok", "title": "T", "tone": "flat"}"#]]
+        mockLLMA.mockClient.nextChunks = [[#"{"response": "ok", "sidecar_payload": {"title": "T", "tone": "flat"}}"#]]
         let chatA = makeChat(llmService: mockLLMA, persistence: MockPersistenceService())
         let streamA = try await chatA.run(timelineId: UUID(), message: "hello", sidecars: directives)
         for try await _ in streamA {}
 
         let mockLLMB = MockLLMService()
-        mockLLMB.mockClient.nextChunks = [[#"{"response": "ok", "summary": "S"}"#]]
+        mockLLMB.mockClient.nextChunks = [[#"{"response": "ok", "sidecar_payload": {"summary": "S"}}"#]]
         let chatB = makeChat(llmService: mockLLMB, persistence: MockPersistenceService())
         let streamB = try await chatB.run(timelineId: UUID(), message: "hello", sidecars: directivesB)
         for try await _ in streamB {}
@@ -193,7 +193,7 @@ struct SidecarTurnIntegrationTests {
     @Test("Mechanism preamble is stable, name-free system text opt-in")
     func preambleOptInAddsStableSystemText() async throws {
         let mockLLMWith = MockLLMService()
-        mockLLMWith.mockClient.nextChunks = [[#"{"response": "ok", "title": "T", "tone": "flat"}"#]]
+        mockLLMWith.mockClient.nextChunks = [[#"{"response": "ok", "sidecar_payload": {"title": "T", "tone": "flat"}}"#]]
         let chatWith = makeChat(llmService: mockLLMWith, persistence: MockPersistenceService())
         let streamWith = try await chatWith.run(
             timelineId: UUID(),

@@ -493,7 +493,9 @@ public actor OpenRouterClient: LLMClientProtocol {
         if let applicationTitle = attribution.applicationTitle {
             request.setValue(applicationTitle, forHTTPHeaderField: "X-Title")
         }
-        request.httpBody = try? JSONEncoder().encode(query)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        request.httpBody = try? encoder.encode(query)
         return request
     }
 

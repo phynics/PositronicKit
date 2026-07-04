@@ -1,5 +1,6 @@
 import Foundation
 import JSONSchemaBuilder
+import struct JSONSchema.Schema
 import PKShared
 @testable import PositronicKit
 import Testing
@@ -14,20 +15,27 @@ struct SidecarSchemaComposerTests {
         schema: JSONString().definition(), streaming: .buffered
     )
 
-    @Test func composesResponseAndDirectivesWithAllFieldsRequired() throws {
+    @Test func composesNestedSidecarPayloadWithStableRootKeyOrder() throws {
         let request = try SidecarSchemaComposer.compose(directives: [title, tone])
         guard case let .jsonSchema(schema) = request else {
             Issue.record("expected .jsonSchema")
             return
         }
         #expect(schema.strict)
-        let encoded = try JSONEncoder().encode(schema.schema)
-        let object = try JSONSerialization.jsonObject(with: encoded) as? [String: Any]
-        let properties = object?["properties"] as? [String: Any]
-        #expect(properties?.keys.sorted() == ["response", "title", "tone"])
-        let required = object?["required"] as? [String]
-        #expect(Set(required ?? []) == ["response", "title", "tone"])
-        #expect((object?["additionalProperties"] as? Bool) == false)
+        let encoded = try encodedSchemaString(schema.schema)
+        let rootSection = try #require(rootPropertiesSection(in: encoded))
+        #expect(rootSection.contains(#""response""#))
+        #expect(rootSection.contains(#""sidecar_payload""#))
+        let responseIndex = try #require(rootSection.range(of: #""response""#)?.lowerBound)
+        let sidecarIndex = try #require(rootSection.range(of: #""sidecar_payload""#)?.lowerBound)
+        #expect(responseIndex < sidecarIndex)
+        #expect(encoded.contains(#""priority_sidecar_payload""#) == false)
+
+        let repeated = try (0..<20).map { _ in
+            try #require(rootPropertiesSignature(in: encodedSchemaString(schema.schema)))
+        }
+        #expect(Set(repeated).count == 1)
+        #expect(repeated.first == "response<sidecar_payload")
     }
 
     @Test func duplicateNamesThrow() {
@@ -51,5 +59,28 @@ struct SidecarSchemaComposerTests {
         #expect(block.contains("Short title; null to decline."))
         #expect(block.contains("tone"))
         #expect(block.contains("response"))
+        #expect(block.contains("sidecar_payload"))
+    }
+
+    private func encodedSchemaString(_ schema: Schema) throws -> String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        return String(decoding: try encoder.encode(schema), as: UTF8.self)
+    }
+
+    private func rootPropertiesSection(in encoded: String) -> String? {
+        guard let start = encoded.range(of: #""properties":{"#)?.upperBound else {
+            return nil
+        }
+        return String(encoded[start...])
+    }
+
+    private func rootPropertiesSignature(in encoded: String) -> String? {
+        guard let section = rootPropertiesSection(in: encoded),
+              let responseIndex = section.range(of: #""response""#)?.lowerBound,
+              let sidecarIndex = section.range(of: #""sidecar_payload""#)?.lowerBound else {
+            return nil
+        }
+        return responseIndex < sidecarIndex ? "response<sidecar_payload" : "sidecar_payload<response"
     }
 }

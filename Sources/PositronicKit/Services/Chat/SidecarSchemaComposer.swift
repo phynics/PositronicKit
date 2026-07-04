@@ -8,8 +8,8 @@ import PKShared
 /// Field order in the composed schema does **not** control model generation order —
 /// `Schema`/`JSONValue` store object properties in an unordered `Dictionary`, and the
 /// wire-serialization path (`JSONEncoder().encode(schema.schema)`) re-emits keys
-/// alphabetically regardless of declaration order (see ticket SDC-7). Generation order
-/// is steered only through `instructionBlock`'s prompt text, not schema structure.
+/// independently of declaration order (see ticket SDC-7). Generation order is steered
+/// only through `instructionBlock`'s prompt text, not schema structure.
 ///
 /// The per-turn directive list (`instructionBlock`) rides with the user query — the last
 /// prompt section — rather than system instructions, so the system prefix stays byte-stable
@@ -27,29 +27,39 @@ public enum SidecarSchemaComposer {
     ## Piggy-backed output mechanism
     Some turns request auxiliary structured fields alongside your reply. On those turns the \
     final user message lists the requested fields and you must answer as a single JSON object \
-    with your normal reply in the "response" field first, followed by the requested fields. \
+    with your normal reply in the "response" field first and the auxiliary fields nested \
+    inside the "sidecar_payload" object. \
     On turns without such a list, reply normally.
     """
 
-    /// Combined schema: `response` (string) plus one property per directive, all
-    /// required, strict, no additional properties.
+    /// Combined schema: root keys `response` and `sidecar_payload` with the current
+    /// directives nested inside `sidecar_payload`. `priority_sidecar_payload` is reserved
+    /// for a later timing API and omitted while unused.
     static func compose(directives: [SidecarDirective]) throws -> StructuredOutputRequest {
         try validate(directives)
 
-        var properties: [String: Any] = [
-            "response": [
+        var sidecarProperties: [String: Any] = [:]
+        for directive in directives {
+            sidecarProperties[directive.name] = try rawJSONObject(for: directive.schema)
+        }
+
+        let rootProperties: [String: Any] = [
+            RootKey.response: [
                 "type": "string",
                 "description": "The assistant's reply to the user. Markdown allowed.",
             ],
+            RootKey.sidecarPayload: [
+                "type": "object",
+                "properties": sidecarProperties,
+                "required": directives.map(\.name),
+                "additionalProperties": false,
+            ],
         ]
-        for directive in directives {
-            properties[directive.name] = try rawJSONObject(for: directive.schema)
-        }
 
         let rawSchema: [String: Any] = [
             "type": "object",
-            "properties": properties,
-            "required": [SidecarDirective.reservedFieldName] + directives.map(\.name),
+            "properties": rootProperties,
+            "required": [RootKey.response, RootKey.sidecarPayload],
             "additionalProperties": false,
         ]
 
@@ -65,14 +75,14 @@ public enum SidecarSchemaComposer {
     }
 
     /// Instruction text rendered with the final user-query prompt section. This is the only
-    /// mechanism that steers the model to produce `response` ahead of directive
-    /// fields (see the type-level note on schema field order).
+    /// mechanism that steers the model to produce `response` ahead of the nested
+    /// `sidecar_payload` object (see the type-level note on schema field order).
     public static func instructionBlock(directives: [SidecarDirective]) -> String {
         var lines: [String] = [
             "",
             "## Piggy-backed fields",
             "Reply as a single JSON object. Put your normal reply to the user in the \"response\" field first.",
-            "Additionally produce these fields from the same conversation context:",
+            "Put the auxiliary fields inside the \"sidecar_payload\" object from the same conversation context:",
         ]
         for directive in directives {
             lines.append("- \"\(directive.name)\": \(directive.instruction)")
@@ -84,6 +94,14 @@ public enum SidecarSchemaComposer {
         for directive in directives where !directive.hasValidName {
             throw SidecarError.reservedOrInvalidName(directive.name)
         }
+        let reservedRootKeys: Set<String> = [
+            RootKey.prioritySidecarPayload,
+            RootKey.response,
+            RootKey.sidecarPayload,
+        ]
+        if let reserved = directives.first(where: { reservedRootKeys.contains($0.name) }) {
+            throw SidecarError.reservedOrInvalidName(reserved.name)
+        }
         let names = directives.map(\.name)
         let duplicates = Dictionary(grouping: names, by: { $0 }).filter { $1.count > 1 }.keys
         if !duplicates.isEmpty {
@@ -94,5 +112,11 @@ public enum SidecarSchemaComposer {
     private static func rawJSONObject(for schema: Schema) throws -> Any {
         let data = try JSONEncoder().encode(schema)
         return try JSONSerialization.jsonObject(with: data)
+    }
+
+    private enum RootKey {
+        static let prioritySidecarPayload = "priority_sidecar_payload"
+        static let response = SidecarDirective.reservedFieldName
+        static let sidecarPayload = "sidecar_payload"
     }
 }

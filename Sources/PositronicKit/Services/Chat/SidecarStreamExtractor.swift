@@ -66,16 +66,16 @@ struct SidecarStreamExtractor {
         var results: [SidecarResult] = []
         let parsed = currentParse()
         for directive in directives {
-            if let object = parsed {
-                if object[directive.name] is NSNull {
+            if let object = parsed, let payload = sidecarPayload(from: object) ?? parsed {
+                if payload[directive.name] is NSNull {
                     results.append(SidecarResult(name: directive.name, outcome: .declined))
                     continue
                 }
-                if finalizedFields.contains(directive.name), let value = object[directive.name] {
+                if finalizedFields.contains(directive.name), let value = payload[directive.name] {
                     results.append(SidecarResult(name: directive.name, outcome: .value(AnyCodable(value))))
                     continue
                 }
-                if object[directive.name] != nil {
+                if payload[directive.name] != nil {
                     results.append(SidecarResult(
                         name: directive.name,
                         outcome: .failed(reason: "field incomplete at stream end")
@@ -97,12 +97,16 @@ struct SidecarStreamExtractor {
         (try? PartialJSON.parse(buffer, options: .all)) as? [String: Any]
     }
 
+    private func sidecarPayload(from object: [String: Any]) -> [String: Any]? {
+        object[RootKey.sidecarPayload] as? [String: Any]
+    }
+
     private mutating func reparse() -> [Output] {
         guard let object = currentParse() else { return [] }
         var outputs: [Output] = []
 
         // 1. response suffix
-        if let response = object[SidecarDirective.reservedFieldName] as? String,
+        if let response = object[RootKey.response] as? String,
            response.hasPrefix(emittedResponsePrefix), response.count > emittedResponsePrefix.count
         {
             let suffix = String(response.dropFirst(emittedResponsePrefix.count))
@@ -110,21 +114,23 @@ struct SidecarStreamExtractor {
             outputs.append(.responseDelta(suffix))
         }
 
+        let payload = sidecarPayload(from: object) ?? object
+
         // 2. field completion: a field is final when a later sibling key has appeared
         //    in the raw buffer, or the object has closed (balanced braces).
         let closed = objectClosed()
         for (index, directive) in directives.enumerated() {
             guard !finalizedFields.contains(directive.name) else { continue }
-            guard object[directive.name] != nil else { continue }
+            guard payload[directive.name] != nil else { continue }
 
-            if object[directive.name] is NSNull {
+            if payload[directive.name] is NSNull {
                 if closed || laterKeyStarted(after: index) {
                     finalizedFields.insert(directive.name)
                 }
                 continue // declines surface only in `completed` results
             }
 
-            let text = stringRepresentation(object[directive.name])
+            let text = stringRepresentation(payload[directive.name])
             let previous = emittedSidecarPrefixes[directive.name] ?? ""
             let isFinal = closed || laterKeyStarted(after: index)
 
@@ -181,5 +187,10 @@ struct SidecarStreamExtractor {
             return String(describing: some)
         case nil: return ""
         }
+    }
+
+    private enum RootKey {
+        static let response = SidecarDirective.reservedFieldName
+        static let sidecarPayload = "sidecar_payload"
     }
 }
