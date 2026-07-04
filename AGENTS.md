@@ -157,3 +157,10 @@ lives centrally at the workspace root under `workflow/`, namespaced by project:
 
 Put new specs/plans/tickets under `../workflow/PositronicKit/...`, **not** back inside `docs/`.
 See the root `../CLAUDE.md` for the full layout.
+
+Tickets follow the workspace ticketing system (root `../CLAUDE.md`, "Ticketing system"):
+one `<SERIES>-<id>-<slug>.md` file per ticket with a `Status` line; the index is
+`../workflow/PositronicKit/tickets/README.md` and is updated in the same change as any
+status flip; `Done`/`Discarded` tickets move to `tickets/archive/`. When closing a ticket
+that touched public API, run the downstream-sync checklist (grep Monad, Shuttle, Yakamoz;
+push to remote `main` before consumer gates).
