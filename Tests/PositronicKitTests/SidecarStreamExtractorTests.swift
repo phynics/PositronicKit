@@ -118,4 +118,43 @@ struct SidecarStreamExtractorTests {
         let results = outputs.compactMap { if case let .completed(r) = $0 { r } else { nil } }.flatMap { $0 }
         #expect(results.first?.outcome == .value(AnyCodable(0.83)))
     }
+
+    @Test func extractor_priorityDirectiveDeliversBeforeResponseDelta() {
+        var extractor = makeExtractor(directives: [
+            .init(name: "route", instruction: "r", schema: JSONString().definition(), streaming: .buffered, timing: .beforeResponse),
+            .init(name: "title", instruction: "t", schema: JSONString().definition(), streaming: .buffered),
+        ])
+        let outputs = run([
+            #"{"priority_sidecar_payload":{"route":"memory"},"response":"He"#,
+            #"llo","sidecar_payload":{"title":"Greeting"}}"#,
+        ], extractor: &extractor)
+
+        let firstPriorityIndex = outputs.firstIndex {
+            if case let .sidecarDelta(delta) = $0 {
+                return delta.name == "route"
+            }
+            return false
+        }
+        let firstResponseIndex = outputs.firstIndex {
+            if case .responseDelta = $0 { return true }
+            return false
+        }
+        #expect(firstPriorityIndex != nil)
+        #expect(firstResponseIndex != nil)
+        #expect(firstPriorityIndex! < firstResponseIndex!)
+    }
+
+    @Test func extractor_priorityAndAfterResponseDirectivesBothResolve() {
+        var extractor = makeExtractor(directives: [
+            .init(name: "route", instruction: "r", schema: JSONString().definition(), streaming: .buffered, timing: .beforeResponse),
+            .init(name: "title", instruction: "t", schema: JSONString().definition(), streaming: .buffered, timing: .afterResponse),
+        ])
+        let outputs = run([
+            #"{"priority_sidecar_payload":{"route":"memory"},"response":"ok","sidecar_payload":{"title":"Greeting"}}"#,
+        ], extractor: &extractor)
+
+        let results = outputs.compactMap { if case let .completed(r) = $0 { r } else { nil } }.flatMap { $0 }
+        #expect(results.contains(SidecarResult(name: "route", outcome: .value(AnyCodable("memory")))))
+        #expect(results.contains(SidecarResult(name: "title", outcome: .value(AnyCodable("Greeting")))))
+    }
 }

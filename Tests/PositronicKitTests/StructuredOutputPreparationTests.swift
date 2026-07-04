@@ -104,6 +104,7 @@ struct StructuredOutputPreparationTests {
 
     private func makeSchema() throws -> StructuredOutputSchema {
         let request = try SidecarSchemaComposer.compose(directives: [
+            .init(name: "route", instruction: "r", schema: JSONString().definition(), streaming: .buffered, timing: .beforeResponse),
             .init(name: "title", instruction: "t", schema: JSONString().definition(), streaming: .buffered),
             .init(name: "tone", instruction: "n", schema: JSONString().definition(), streaming: .buffered),
         ])
@@ -115,13 +116,14 @@ struct StructuredOutputPreparationTests {
 
     private func assertRootKeyOrder(_ body: String, source: String) {
         guard let section = rootPropertiesSection(in: body),
+              let priorityIndex = section.range(of: #""priority_sidecar_payload""#)?.lowerBound,
               let responseIndex = section.range(of: #""response""#)?.lowerBound,
               let sidecarIndex = section.range(of: #""sidecar_payload""#)?.lowerBound else {
             Issue.record("Missing sidecar root key in \(source) request body: \(body)")
             return
         }
+        #expect(priorityIndex < responseIndex)
         #expect(responseIndex < sidecarIndex)
-        #expect(body.contains(#""priority_sidecar_payload""#) == false)
     }
 
     private func rootPropertiesSection(in body: String) -> String? {
