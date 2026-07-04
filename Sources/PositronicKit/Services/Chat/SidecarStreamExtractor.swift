@@ -66,16 +66,16 @@ struct SidecarStreamExtractor {
         var results: [SidecarResult] = []
         let parsed = currentParse()
         for directive in directives {
-            if let object = parsed {
-                if object[directive.name] is NSNull {
+            if let object = parsed, let payload = payload(for: directive, from: object) {
+                if payload[directive.name] is NSNull {
                     results.append(SidecarResult(name: directive.name, outcome: .declined))
                     continue
                 }
-                if finalizedFields.contains(directive.name), let value = object[directive.name] {
+                if finalizedFields.contains(directive.name), let value = payload[directive.name] {
                     results.append(SidecarResult(name: directive.name, outcome: .value(AnyCodable(value))))
                     continue
                 }
-                if object[directive.name] != nil {
+                if payload[directive.name] != nil {
                     results.append(SidecarResult(
                         name: directive.name,
                         outcome: .failed(reason: "field incomplete at stream end")
@@ -97,12 +97,27 @@ struct SidecarStreamExtractor {
         (try? PartialJSON.parse(buffer, options: .all)) as? [String: Any]
     }
 
+    private func sidecarPayload(from object: [String: Any]) -> [String: Any]? {
+        object[RootKey.sidecarPayload] as? [String: Any]
+    }
+
+    private func priorityPayload(from object: [String: Any]) -> [String: Any]? {
+        object[RootKey.prioritySidecarPayload] as? [String: Any]
+    }
+
     private mutating func reparse() -> [Output] {
         guard let object = currentParse() else { return [] }
         var outputs: [Output] = []
 
-        // 1. response suffix
-        if let response = object[SidecarDirective.reservedFieldName] as? String,
+        // 1. Priority sidecars may precede the first response delta in the same chunk.
+        outputs += collectDirectiveOutputs(
+            for: directives.filter { $0.timing == .beforeResponse },
+            in: object,
+            containerBoundaryReached: rawKeyPresent(RootKey.response) || rawKeyPresent(RootKey.sidecarPayload)
+        )
+
+        // 2. response suffix
+        if let response = object[RootKey.response] as? String,
            response.hasPrefix(emittedResponsePrefix), response.count > emittedResponsePrefix.count
         {
             let suffix = String(response.dropFirst(emittedResponsePrefix.count))
@@ -110,23 +125,36 @@ struct SidecarStreamExtractor {
             outputs.append(.responseDelta(suffix))
         }
 
-        // 2. field completion: a field is final when a later sibling key has appeared
-        //    in the raw buffer, or the object has closed (balanced braces).
+        // 3. Post-response sidecars complete when a later sibling appears or the object closes.
+        outputs += collectDirectiveOutputs(
+            for: directives.filter { $0.timing == .afterResponse },
+            in: object,
+            containerBoundaryReached: objectClosed()
+        )
+        return outputs
+    }
+
+    private mutating func collectDirectiveOutputs(
+        for directives: [SidecarDirective],
+        in object: [String: Any],
+        containerBoundaryReached: Bool
+    ) -> [Output] {
+        var outputs: [Output] = []
         let closed = objectClosed()
         for (index, directive) in directives.enumerated() {
             guard !finalizedFields.contains(directive.name) else { continue }
-            guard object[directive.name] != nil else { continue }
+            guard let payload = payload(for: directive, from: object), payload[directive.name] != nil else { continue }
 
-            if object[directive.name] is NSNull {
-                if closed || laterKeyStarted(after: index) {
+            if payload[directive.name] is NSNull {
+                if closed || laterKeyStarted(after: index, in: directives) || containerBoundaryReached {
                     finalizedFields.insert(directive.name)
                 }
                 continue // declines surface only in `completed` results
             }
 
-            let text = stringRepresentation(object[directive.name])
+            let text = stringRepresentation(payload[directive.name])
             let previous = emittedSidecarPrefixes[directive.name] ?? ""
-            let isFinal = closed || laterKeyStarted(after: index)
+            let isFinal = closed || laterKeyStarted(after: index, in: directives) || containerBoundaryReached
 
             if isFinal {
                 finalizedFields.insert(directive.name)
@@ -162,9 +190,18 @@ struct SidecarStreamExtractor {
 
     /// True when any key that would come after `index` (directive order) has appeared
     /// in the raw buffer as `"name"`.
-    private func laterKeyStarted(after index: Int) -> Bool {
+    private func laterKeyStarted(after index: Int, in directives: [SidecarDirective]) -> Bool {
         let laterNames = directives.suffix(from: directives.index(after: index)).map(\.name)
         return laterNames.contains { rawKeyPresent($0) }
+    }
+
+    private func payload(for directive: SidecarDirective, from object: [String: Any]) -> [String: Any]? {
+        switch directive.timing {
+        case .beforeResponse:
+            return priorityPayload(from: object)
+        case .afterResponse:
+            return sidecarPayload(from: object) ?? object
+        }
     }
 
     private func rawKeyPresent(_ name: String) -> Bool {
@@ -181,5 +218,11 @@ struct SidecarStreamExtractor {
             return String(describing: some)
         case nil: return ""
         }
+    }
+
+    private enum RootKey {
+        static let prioritySidecarPayload = "priority_sidecar_payload"
+        static let response = SidecarDirective.reservedFieldName
+        static let sidecarPayload = "sidecar_payload"
     }
 }

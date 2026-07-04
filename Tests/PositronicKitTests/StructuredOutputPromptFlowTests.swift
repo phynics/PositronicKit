@@ -82,4 +82,49 @@ struct StructuredOutputPromptFlowTests {
         #expect(result.rawPrompt.contains("Schema name: tag_payload"))
         #expect(result.rawPrompt.contains("JSON Schema"))
     }
+
+    @Test("chatStreamWithContext preserves openAICompatible schema constraints and rewrites synthetic tool output")
+    func chatStreamWithContextPreservesOpenAICompatibleSchemaConstraints() async throws {
+        let mockClient = MockLLMClient()
+        mockClient.nextRawStreamChunks = [[
+            ChatStreamResultFactory.toolCallChunk(calls: [
+                MockToolCall(
+                    id: "structured-call",
+                    name: "emit_structured_response",
+                    arguments: #"{"tags":["swift"]}"#
+                )
+            ])
+        ]]
+
+        let service = LLMService(storage: MockConfigurationService(), client: mockClient)
+        try await service.updateConfiguration(.init(provider: .openAICompatible))
+        await service.setClients(main: mockClient, utility: nil, fast: nil)
+
+        let request = LLMChatRequest(
+            userQuery: "Extract tags",
+            contextNotes: [],
+            memories: [],
+            chatHistory: [],
+            tools: [],
+            workspaces: [],
+            primaryWorkspace: nil,
+            requestOriginName: nil,
+            systemInstructions: "System rules",
+            structuredOutput: .jsonSchema(StructuredOutputFixtures.tagSchemaDefinition())
+        )
+
+        let result = try await service.chatStreamWithContext(request)
+
+        var content = ""
+        for try await event in result.stream {
+            #expect(event.choices.first?.delta.toolCalls == nil)
+            content += event.choices.first?.delta.content ?? ""
+        }
+
+        #expect(content == #"{"tags":["swift"]}"#)
+        #expect(mockClient.lastResponseFormat == nil)
+        #expect(mockClient.lastToolChoice == .function("emit_structured_response"))
+        #expect(mockClient.lastTools?.contains(where: { $0.name == "emit_structured_response" }) == true)
+        #expect(result.rawPrompt.contains("System rules"))
+    }
 }

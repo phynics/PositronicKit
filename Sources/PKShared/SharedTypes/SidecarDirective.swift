@@ -19,6 +19,14 @@ public struct SidecarDirective: Sendable, Equatable, Codable {
         case incremental
     }
 
+    /// Determines whether a directive is emitted before or after the user-visible response.
+    public enum Timing: Sendable, Equatable, Codable {
+        /// Generated before `response` for gating or routing decisions.
+        case beforeResponse
+        /// Generated after `response` for auxiliary metadata like titles or summaries.
+        case afterResponse
+    }
+
     /// The JSON field name for this directive. Must be unique per turn and not "response"
     /// (reserved for the main assistant response).
     public let name: String
@@ -34,16 +42,47 @@ public struct SidecarDirective: Sendable, Equatable, Codable {
     /// Delivery mode: whether the field is buffered until complete or streamed incrementally.
     public let streaming: StreamingMode
 
+    /// Whether this directive belongs to the pre-response or post-response sidecar container.
+    public let timing: Timing
+
     public init(
         name: String,
         instruction: String,
         schema: Schema,
-        streaming: StreamingMode = .buffered
+        streaming: StreamingMode = .buffered,
+        timing: Timing = .afterResponse
     ) {
         self.name = name
         self.instruction = instruction
         self.schema = schema
         self.streaming = streaming
+        self.timing = timing
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case name
+        case instruction
+        case schema
+        case streaming
+        case timing
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        name = try container.decode(String.self, forKey: .name)
+        instruction = try container.decode(String.self, forKey: .instruction)
+        schema = try container.decode(Schema.self, forKey: .schema)
+        streaming = try container.decode(StreamingMode.self, forKey: .streaming)
+        timing = try container.decodeIfPresent(Timing.self, forKey: .timing) ?? .afterResponse
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(name, forKey: .name)
+        try container.encode(instruction, forKey: .instruction)
+        try container.encode(schema, forKey: .schema)
+        try container.encode(streaming, forKey: .streaming)
+        try container.encode(timing, forKey: .timing)
     }
 }
 
@@ -53,8 +92,18 @@ public extension SidecarDirective {
     /// The reserved JSON field name that cannot be used for directives.
     static let reservedFieldName = "response"
 
+    /// Reserved structural container names used by the sidecar transport.
+    static let reservedContainerFieldNames: Set<String> = [
+        "priority_sidecar_payload",
+        "sidecar_payload",
+    ]
+
     /// Whether this directive's name is valid (non-empty and not reserved).
     var hasValidName: Bool {
-        !name.isEmpty && name != Self.reservedFieldName
+        !name.isEmpty && !Self.reservedFieldNames.contains(name)
+    }
+
+    static var reservedFieldNames: Set<String> {
+        reservedContainerFieldNames.union([reservedFieldName])
     }
 }

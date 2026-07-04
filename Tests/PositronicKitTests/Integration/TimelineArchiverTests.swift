@@ -21,11 +21,12 @@ struct TimelineArchiverTests {
     }
 
     @Test
-    func archive_generatesTitleFromFirstUserMessage() async throws {
+    func archive_generatesTitleFromSharedUtility() async throws {
         // Given
-        mockLLM.nextResponse = "A Great Conversation"
+        mockLLM.nextGeneratedTitle = "A Great Conversation"
         let messages = [
             Message(content: "Hello, I want to talk about Swift programming.", role: .user),
+            Message(content: "Let's compare that with SwiftUI data flow.", role: .assistant),
         ]
 
         // When
@@ -35,6 +36,8 @@ struct TimelineArchiverTests {
         let session = try await persistence.fetchTimeline(id: timelineId)
         #expect(session?.title == "A Great Conversation")
         #expect(session?.isArchived == true)
+        #expect(mockLLM.generatedTitleInputs.count == 1)
+        #expect(mockLLM.generatedTitleInputs.first == messages)
     }
 
     @Test
@@ -55,7 +58,7 @@ struct TimelineArchiverTests {
     @Test
     func archive_indexesLongMessagesAsMemories() async throws {
         // Given
-        mockLLM.nextResponse = "Swift Title"
+        mockLLM.nextGeneratedTitle = "Swift Title"
         mockEmbeddingService.mockEmbedding = [0.1, 0.2, 0.3]
 
         let longMessage = "This is a very long message that should be indexed as a memory because it is longer than 20 characters."
@@ -117,7 +120,7 @@ struct TimelineArchiverTests {
         let existingSession = Timeline(title: "Old Title")
         try await persistence.saveTimeline(existingSession)
 
-        mockLLM.nextResponse = "New Title"
+        mockLLM.nextGeneratedTitle = "New Title"
         let messages = [
             Message(content: "New user message", role: .user),
         ]

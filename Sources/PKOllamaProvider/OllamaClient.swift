@@ -190,7 +190,9 @@ public actor OllamaClient: LLMClientProtocol {
             options: OllamaOptions(from: generationParameters)
         )
 
-        request.httpBody = try JSONEncoder().encode(payload)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        request.httpBody = try encoder.encode(payload)
         return request
     }
 

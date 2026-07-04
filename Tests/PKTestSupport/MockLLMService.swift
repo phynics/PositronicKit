@@ -214,6 +214,8 @@ public final class MockLLMService: LLMServiceProtocol, @unchecked Sendable, Heal
     public var mockConfig: LLMConfiguration = .openAI
     public var nextResponse: String = ""
     public var nextTags: [String] = []
+    public var nextGeneratedTitle: String = "Mock Title"
+    public var generatedTitleInputs: [[Message]] = []
     public var mockClient = MockLLMClient()
 
     /// Allows tests to provide a custom stream for chatStream calls.
@@ -288,8 +290,9 @@ public final class MockLLMService: LLMServiceProtocol, @unchecked Sendable, Heal
         return nextTags
     }
 
-    public func generateTitle(for _: [Message]) async throws -> String {
-        return "Mock Title"
+    public func generateTitle(for messages: [Message]) async throws -> String {
+        generatedTitleInputs.append(messages)
+        return nextGeneratedTitle
     }
 
     public func evaluateRecallPerformance(transcript _: String, recalledMemories _: [Memory]) async throws

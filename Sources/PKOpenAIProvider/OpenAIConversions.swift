@@ -158,7 +158,9 @@ extension ChatResult {
 }
 
 private func convertToOpenAISchema(_ schema: Schema) -> JSONSchema? {
-    guard let data = try? JSONEncoder().encode(schema) else { return nil }
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = [.sortedKeys]
+    guard let data = try? encoder.encode(schema) else { return nil }
     return try? JSONDecoder().decode(JSONSchema.self, from: data)
 }
 
