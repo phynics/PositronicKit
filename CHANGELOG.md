@@ -1,0 +1,117 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
+for tagged releases beginning with `1.0.0`.
+
+## [Unreleased]
+
+### Added
+
+- Placeholder section for changes landing after `1.0.0`. Keep every behavioral PR represented
+  here until the next tag is cut.
+
+## [1.0.0] - 2026-07-05
+
+### Added
+
+- Transport-neutral runtime orchestration in `PositronicKit`, centered on the public
+  `PositronicKit` facade plus injectable persistence, workspace, provider, and tool seams.
+- Prompt composition in `PKPrompt`, including the `@PromptBuilder` DSL, prompt assembly,
+  compression, render projection, and `PromptJournal` for stable-prefix journaling workflows.
+- Shared contracts in `PKShared`, including LLM/provider request and stream types, tool
+  contracts, structured-output helpers, logging utilities, and common error surfaces.
+- `PKLocalEmbeddings` for platform-local embeddings:
+  Apple Natural Language by default on Apple platforms and the host-provisioned MiniLM bridge on
+  Linux or Apple builds using the `MiniLMEmbeddings` trait.
+- Provider adapters for OpenAI (`PKOpenAIProvider`), OpenRouter (`PKOpenRouterProvider`), and
+  Ollama (`PKOllamaProvider`), including registration APIs and convenience runtime initializers.
+- `PKTestSupport` as a reusable test-support library product for downstream runtimes.
+- `PositronicKitExamples` as compiling living documentation for prompt composition, runtime
+  setup, structured output, tool execution, and sidecar directives.
+- Sidecar directives for piggy-backed auxiliary generations on a single model turn.
+- `ChatRunRequest` as the single public request surface for chat turns.
+
+### Highlights
+
+- Prompt DSL plus journaling support that scales from string rendering to structured assembly and
+  stable-prefix prompt history management.
+- ChatEngine-backed turn pipeline with explicit runtime seams for plugins, section providers,
+  persistence, workspaces, and tool routing.
+- Structured output support across the shared provider contracts and example flows.
+- Tool routing with approval-friendly host seams, timeline/workspace-aware resolution, and
+  provider-history validation before dispatch.
+- Local embeddings with clear backend ownership and published platform support constraints.
+
+### Support Matrix
+
+| Product | Apple Platforms | Linux | Notes |
+|---------|-----------------|-------|-------|
+| `PositronicKit`, `PKPrompt`, `PKShared` | Supported | Supported | Core portable modules. |
+| `PKLocalEmbeddings` | Supported | Supported | Apple defaults to Natural Language; Linux uses MiniLM; Apple MiniLM is trait-gated. |
+| `PKOpenAIProvider`, `PKOpenRouterProvider`, `PKOllamaProvider` | Supported | Supported | Optional concrete provider adapters. |
+| `PKTestSupport`, `PositronicKitExamples` | Supported | Supported | Verified through the package graph and example builds. |
+
+### Module Map
+
+- `PositronicKit`: runtime orchestration, chat lifecycle, timeline/workspace management, tool
+  routing, runtime extension points.
+- `PKPrompt`: prompt DSL, assembly, rendering, compression, journaling.
+- `PKShared`: API models, tool and provider contracts, structured-output utilities, shared
+  logging and errors.
+- `PKLocalEmbeddings`: local embedding facade over Apple Natural Language or MiniLM.
+- `PKOpenAIProvider`, `PKOpenRouterProvider`, `PKOllamaProvider`: optional concrete provider
+  adapters and registration helpers.
+- `PKTestSupport`: reusable mocks, fixtures, and runtime builders for tests.
+- `PositronicKitExamples`: executable examples that mirror supported public usage.
+
+### Known Limitations
+
+- No native Anthropic adapter yet. Claude-family models are currently reachable through
+  OpenRouter; `PKAnthropicProvider` is planned as a post-v1 minor.
+- `PKINT-003` is closed as hardening coverage, but its release-blocker sibling tickets remain the
+  actual v1 correctness gate for release mechanics.
+- `PKINT-007` is intentionally deferred to a post-v1 additive release: consumers that rebuild
+  `PositronicKit` per send must continue sharing their prompt-history registry explicitly until
+  the supported registry-injection API lands.
+- Apple Natural Language and MiniLM vectors are not interchangeable and must not share an index.
+
+### Changed
+
+- The v1 public API freeze removes deprecated compatibility shims before tagging:
+  `PositronicKitCore`, the legacy `EmbeddingService` protocol, the old `TokenEstimator` re-export,
+  and the `WorkspaceTool` storage wrapper.
+- The README now defines the semver policy for tagged releases and names the post-v1 Anthropic
+  roadmap explicitly.
+
+### Migration Notes
+
+- Replace any `PositronicKitCore` references with `PositronicKit`.
+- Replace the removed `EmbeddingService` protocol with `EmbeddingServiceProtocol`.
+- Replace `PositronicKit.TokenEstimator` imports with `PKShared.TokenEstimator`.
+- Replace `WorkspaceTool` storage-wrapper usage with `ToolReference` and
+  `WorkspaceToolDefinition`.
+
+### Release Notes
+
+PositronicKit `1.0.0` establishes the semver baseline for the shared agent runtime used by
+Monad, Shuttle, and Yakamoz. The release bundles the transport-neutral runtime facade, the
+`PKPrompt` composition system, provider adapters for OpenAI/OpenRouter/Ollama, local embeddings,
+structured output, sidecar directives, and the `PKTestSupport` / examples products into one
+documented compatibility line.
+
+Highlights for downstream consumers:
+
+- adopt `ChatRunRequest` as the stable request surface;
+- compose prompts through `PKPrompt` and `PromptJournal`;
+- rely on provider-history validation and tool-routing seams instead of host-specific forks;
+- choose Apple Natural Language or MiniLM explicitly when owning vector stores.
+
+Known caveats for the tag:
+
+- Anthropic is still OpenRouter-only until `PKAnthropicProvider` lands;
+- per-send runtime reconstruction still requires a shared prompt-history registry until the
+  `PKINT-007` additive follow-up ships;
+- vector stores must stay backend-specific because Apple NL and MiniLM embeddings are incompatible.

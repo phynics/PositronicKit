@@ -15,6 +15,43 @@ private actor InspectionRecorder: TurnInspecting {
 
 @Suite(.serialized) @MainActor
 struct TurnInspectingTests {
+    private final class FacadeReconfigurationHarness {
+        let persistence = MockPersistenceService()
+        let inspector = InspectionRecorder()
+        let firstLLM = MockLLMService()
+        let secondLLM = MockLLMService()
+
+        private(set) var baseKit: PositronicKit!
+        private(set) var timelineId: UUID!
+
+        init() async throws {
+            baseKit = PositronicKit(
+                llmService: firstLLM,
+                messageStore: persistence,
+                agentInstanceStore: persistence,
+                requestOriginStore: persistence,
+                timelinePersistence: persistence,
+                workspacePersistence: persistence,
+                memoryStore: persistence,
+                toolPersistence: persistence,
+                turnInspector: inspector
+            )
+            let timeline = try await baseKit.timelineManager.createTimeline(title: "Reconfiguration")
+            timelineId = timeline.id
+        }
+
+        func run(
+            kit: PositronicKit,
+            message: String
+        ) async throws {
+            let stream = try await kit.run(ChatRunRequest(
+                timelineId: timelineId,
+                message: message
+            ))
+            for try await _ in stream {}
+        }
+    }
+
     private final class ChatEngineTestHarness {
         let timelineId = UUID()
         let llm = MockLLMService()
@@ -219,5 +256,51 @@ struct TurnInspectingTests {
         let lastSectionIDs = try Set(#require(values.last?.rendered.sections.map(\.id)))
         let followUpSectionCount = lastSectionIDs.filter { $0.hasPrefix("runtime-follow-up-") }.count
         #expect(followUpSectionCount == turnCount - 1)
+    }
+
+    @Test("Reconfigured facade preserves inspection continuity across sends")
+    func reconfiguredFacadePreservesInspectionContinuityAcrossSends() async throws {
+        let harness = try await FacadeReconfigurationHarness()
+        harness.firstLLM.mockClient.nextResponse = "First"
+        harness.secondLLM.mockClient.nextResponse = "Second"
+
+        try await harness.run(kit: harness.baseKit, message: "First send")
+        let reconfigured = harness.baseKit.reconfigured(
+            llmService: harness.secondLLM,
+            generationParameters: .init(temperature: 0.1)
+        )
+        try await harness.run(kit: reconfigured, message: "Second send")
+
+        let values = await harness.inspector.values
+        #expect(values.map(\.turnIndex) == [0, 1])
+        #expect(values.map(\.identity.roundTrip) == [0, 0])
+        #expect(Set(values.map(\.identity.sendId)).count == 2)
+    }
+
+    @Test("Fresh facade without shared state resets inspection continuity explicitly")
+    func freshFacadeWithoutSharedStateResetsInspectionContinuityExplicitly() async throws {
+        let harness = try await FacadeReconfigurationHarness()
+        harness.firstLLM.mockClient.nextResponse = "First"
+        harness.secondLLM.mockClient.nextResponse = "Second"
+
+        try await harness.run(kit: harness.baseKit, message: "First send")
+
+        let secondKit = PositronicKit(
+            llmService: harness.secondLLM,
+            messageStore: harness.persistence,
+            agentInstanceStore: harness.persistence,
+            requestOriginStore: harness.persistence,
+            timelinePersistence: harness.persistence,
+            workspacePersistence: harness.persistence,
+            memoryStore: harness.persistence,
+            toolPersistence: harness.persistence,
+            turnInspector: harness.inspector
+        )
+        try await harness.run(kit: secondKit, message: "Second send")
+
+        let values = await harness.inspector.values
+        #expect(values.map(\.turnIndex) == [0, 0])
+        #expect(values.map(\.identity.roundTrip) == [0, 0])
+        #expect(Set(values.map(\.identity.sendId)).count == 2)
     }
 }

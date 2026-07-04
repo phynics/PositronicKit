@@ -57,14 +57,20 @@ public struct PositronicKit: Sendable {
     /// this facade instance so a conversation's second and later sends diff against the
     /// previous send's prompt snapshot instead of starting from a blank slate each time.
     ///
-    /// Hosts that reconstruct a fresh `PositronicKit` value per send (e.g. to pick up updated
-    /// provider settings) must inject the *same* registry instance into every facade they
-    /// build for a given app lifetime via the `promptHistoryRegistry:` init parameter below —
+    /// Hosts that need fresh provider settings between sends should prefer `reconfigured(...)`,
+    /// which preserves this state automatically. If a host still reconstructs whole facade
+    /// values manually, it must inject the *same* registry instance into every facade it builds
+    /// for a given app lifetime via the `promptHistoryRegistry:` init parameter below —
     /// otherwise each new facade gets a blank registry and both the journal diff data (YAK-16)
     /// and the persisted inspection-turn-index counter it carries reset on every send, causing
     /// `TimelinePromptHistory.nextInspectionTurnIndex()` to start over at 0 each time and
     /// collide with the prior send's persisted rows.
     private let promptHistoryRegistry: TimelinePromptHistoryRegistry
+    private let workspaceRoot: URL?
+    private let workspaceCreator: any WorkspaceCreating
+    private let sectionProviders: [any PromptSectionProviding]
+    private let runtimeToolPolicy: TimelineManager.RuntimeToolPolicy
+    private let toolApprovalGate: any ToolApprovalGate
 
     // MARK: - Init
 
@@ -111,9 +117,9 @@ public struct PositronicKit: Sendable {
     ///   - chatTurnPlugins: Post-turn plugins (e.g. autonomous reactions).
     ///   - turnInspector: Optional sink for per-turn prompt/journal inspection projections.
     ///   - promptHistoryRegistry: Per-timeline prompt-history/journal-diff state. Defaults to a
-    ///     fresh, private registry. Hosts that reconstruct `PositronicKit` per send (e.g. to
-    ///     read fresh provider settings) must pass the *same* registry instance into every
-    ///     facade they build, or prompt-diff/inspection-turn-index state resets each send.
+    ///     fresh, private registry. Prefer `reconfigured(...)` when only provider settings
+    ///     change between sends; if you still reconstruct whole facades manually, pass the
+    ///     same registry instance every time or prompt-diff/inspection-turn-index state resets.
     ///   - generationParameters: Optional default parameters for generation.
     ///   - toolApprovalGate: Gate consulted at the runtime execution sink before any tool whose
     ///     `requiresPermission` is `true` runs. Defaults to `DenyAllToolApprovalGate` so
@@ -150,6 +156,11 @@ public struct PositronicKit: Sendable {
         self.chatTurnPlugins = chatTurnPlugins
         self.turnInspector = turnInspector
         self.promptHistoryRegistry = promptHistoryRegistry
+        self.workspaceRoot = workspaceRoot
+        self.workspaceCreator = workspaceCreator
+        self.sectionProviders = sectionProviders
+        self.runtimeToolPolicy = runtimeToolPolicy
+        self.toolApprovalGate = toolApprovalGate
         defaultGenerationParameters = generationParameters
 
         let resolvedWorkspaceRoot = workspaceRoot ?? FileManager.default.temporaryDirectory
@@ -190,6 +201,38 @@ public struct PositronicKit: Sendable {
                 turnInspector: self.turnInspector,
                 promptHistoryRegistry: promptHistoryRegistry
             )
+        )
+    }
+
+    /// Returns a new facade with updated provider/generation configuration while preserving the
+    /// current instance's runtime-owned cross-send state (prompt-history journal diffs and
+    /// inspection turn indexing), stores, tools, plugins, and workspace wiring.
+    ///
+    /// This is the supported path for hosts that must refresh provider settings between sends
+    /// without silently resetting per-timeline prompt-history state.
+    public func reconfigured(
+        llmService: any LLMServiceProtocol,
+        generationParameters: GenerationParameters? = nil
+    ) -> PositronicKit {
+        PositronicKit(
+            llmService: llmService,
+            messageStore: messageStore,
+            agentInstanceStore: agentInstanceStore,
+            requestOriginStore: requestOriginStore,
+            timelinePersistence: timelinePersistence,
+            workspacePersistence: workspacePersistence,
+            memoryStore: memoryStore,
+            toolPersistence: toolPersistence,
+            embeddingService: embeddingService,
+            workspaceRoot: workspaceRoot,
+            workspaceCreator: workspaceCreator,
+            sectionProviders: sectionProviders,
+            runtimeToolPolicy: runtimeToolPolicy,
+            chatTurnPlugins: chatTurnPlugins,
+            turnInspector: turnInspector,
+            promptHistoryRegistry: promptHistoryRegistry,
+            generationParameters: generationParameters ?? defaultGenerationParameters,
+            toolApprovalGate: toolApprovalGate
         )
     }
 
@@ -443,6 +486,3 @@ public extension PositronicKit {
         )
     }
 }
-
-@available(*, deprecated, renamed: "PositronicKit")
-public typealias PositronicKitCore = PositronicKit

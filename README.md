@@ -2,6 +2,9 @@
 
 PositronicKit is a Swift toolkit for building AI agents. It gives you transport-neutral runtime orchestration, a structured prompt composition DSL, and the shared contracts to tie them together — without imposing a specific networking or hosting model.
 
+See [CHANGELOG.md](CHANGELOG.md) for release notes, migration notes, and tagged compatibility
+history.
+
 ## Package Layout
 
 The package is organized into three core modules plus provider adapters:
@@ -16,6 +19,9 @@ Provider targets ship separately so downstream users can opt in only to the conc
 - **PKOpenAIProvider** — OpenAI SDK adapter, OpenAI-specific message/tool conversion, embedding service, and convenience registration APIs.
 - **PKOpenRouterProvider** — OpenRouter adapter and convenience registration APIs.
 - **PKOllamaProvider** — Ollama adapter and convenience registration APIs.
+
+v1 ships with OpenAI, OpenRouter, and Ollama adapters. Claude models are currently reachable via
+OpenRouter; a native Anthropic adapter (`PKAnthropicProvider`) is planned as a post-v1 minor.
 
 Two additional targets ship with the package:
 
@@ -39,6 +45,11 @@ Add PositronicKit as a Swift Package dependency:
 ```swift
 .package(url: "https://github.com/phynics/PositronicKit.git", branch: "main")
 ```
+
+Until the `1.0.0` tag lands, the workspace still develops against `main` or a temporary local-path
+override. After `1.0.0`, the public products in this package follow semver: patch releases preserve
+source compatibility, minor releases add functionality compatibly, and breaking API changes require
+a new major version.
 
 Then import the modules you need:
 
@@ -234,7 +245,7 @@ across a major version.
 | **Health check** | `HealthCheckable` | PositronicKit | Service health reporting |
 | **LLM providers** | `LLMServiceProtocol`, `LLMChatRequest`, `LLMStreamResult`, `LLMStreamChunk`, etc. | PKShared | Provider adapter contracts |
 | **Provider registration** | `PKOpenAIProvider.register()`, `PKOpenRouterProvider.register()`, `PKOllamaProvider.register()` | Provider modules | Provider factory registration |
-| **Workspace** | `WorkspaceProtocol`, `WorkspaceCreating`, `WorkspaceTool`, `WorkspaceToolError` | PositronicKit | Custom workspace backends |
+| **Workspace** | `WorkspaceProtocol`, `WorkspaceCreating`, `ToolReference`, `WorkspaceToolDefinition`, `WorkspaceToolError` | PositronicKit / PKShared | Custom workspace backends |
 | **Configuration** | `LLMConfiguration`, `GenerationParameters`, `LLMProvider` | PKShared | LLM configuration |
 | **Events** | `ChatEvent`, `ToolExecutionStatus`, `Message` | PKShared | Stream event types |
 | **Sidecar directives** | `SidecarDirective`, `SidecarDelta`, `SidecarResult` (PKShared), `SidecarError` (PositronicKit) | PKShared / PositronicKit | Piggy-backed auxiliary generations riding a turn's response — see [Sidecar Directives](docs/SidecarDirectives.md) |
@@ -244,6 +255,10 @@ across a major version.
 The **`PositronicKit` facade** is the primary public entry point (`run(...)`). The "advanced" seams
 above are fully supported but optional — reach for them only when you own the composition root and
 need direct access (see "Two Ways In" above).
+
+This list becomes the v1 compatibility contract after `1.0.0`. Anything not listed here or
+explicitly called out as internal may change between minor releases before the tag, and only across
+major releases afterward.
 
 `InMemory*` stores (and `PositronicKit.PersistenceConfiguration.inMemory()`) are **public prototyping/test
 helpers**, not extension points — convenient for prototypes and tests, but not a stability contract.

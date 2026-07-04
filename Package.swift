@@ -29,6 +29,7 @@ let package = Package(
             name: "MiniLMEmbeddings",
             description: "Build the in-process MiniLM embedding backend on Apple platforms."
         ),
+        .default(enabledTraits: []),
     ],
     dependencies: [
         .package(url: "https://github.com/MacPaw/OpenAI.git", exact: "0.4.8"),
