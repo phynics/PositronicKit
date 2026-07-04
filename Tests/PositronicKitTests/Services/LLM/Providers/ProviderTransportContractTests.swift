@@ -572,6 +572,43 @@ struct ProviderTransportContractTests {
         #expect(await transport.recordedRequests().count == 1)
     }
 
+    // MARK: - PKR-11: non-2xx error body is sanitized, never logged raw
+
+    @Test("Ollama non-2xx response surfaces a sanitized error body via the thrown error, not raw")
+    func ollamaNonSuccessStatusThrowsSanitizedHTTPError() async throws {
+        // A proxy-injected header leaking into the error body, with embedded CR/LF that
+        // `ProviderHTTPFailure.sanitize` strips. Before PKR-11 this raw string (newlines and
+        // all) was also logged at `.error` level ahead of `makeError`; now it must only ever
+        // reach callers via the sanitized `LLMServiceError.httpError.responseBody`.
+        let rawBody = "Internal error\r\nAuthorization: Bearer leaked-secret-token\nX-Proxy-User: alice"
+        let transport = TestProviderTransport { _ in
+            .lines(
+                [rawBody],
+                self.response(url: "http://localhost:11434/api/chat", status: 500)
+            )
+        }
+
+        let client = OllamaClient(endpoint: "http://localhost:11434", modelName: "llama3.1", transport: transport)
+        let stream = await client.chatStream(
+            messages: [LLMMessage(role: .user, content: "hi")],
+            tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil
+        )
+
+        do {
+            for try await _ in stream {}
+            Issue.record("Expected chatStream to throw on a non-2xx response")
+        } catch let LLMServiceError.httpError(provider, statusCode, responseBody, _) {
+            #expect(provider == "Ollama")
+            #expect(statusCode == 500)
+            // Sanitized: newlines collapsed to spaces, matching ProviderHTTPFailure.sanitize.
+            #expect(responseBody == ProviderHTTPFailure.sanitize(rawBody))
+            #expect(!responseBody.contains("\n"))
+            #expect(!responseBody.contains("\r"))
+        } catch {
+            Issue.record("Expected LLMServiceError.httpError, got \(error)")
+        }
+    }
+
     @Test("Ollama: transient error before any content → retries (gate does not block)")
     func ollamaErrorBeforeContentRetries() async throws {
         let attemptCount = Mutex(0)
