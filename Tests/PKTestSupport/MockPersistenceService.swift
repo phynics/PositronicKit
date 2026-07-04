@@ -292,5 +292,7 @@ public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProt
         timelines = []
         agentTemplates = []
         workspaces = []
+        agentInstances = []
+        toolsMock.workspaces = []
     }
 }
