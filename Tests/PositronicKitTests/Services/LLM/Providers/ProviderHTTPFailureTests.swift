@@ -36,8 +36,9 @@ struct ProviderHTTPFailureTests {
     @Test("OpenAI status errors are normalized into shared HTTP failures")
     func openAIStatusErrorsAreNormalized() throws {
         let client = OpenAIClient(apiKey: "test")
+        let url = try #require(URL(string: "https://api.openai.com/v1/chat/completions"))
         let response = try #require(HTTPURLResponse(
-            url: #require(URL(string: "https://api.openai.com/v1/chat/completions")),
+            url: url,
             statusCode: 429,
             httpVersion: nil,
             headerFields: ["Retry-After": "3"]
@@ -48,7 +49,10 @@ struct ProviderHTTPFailureTests {
             provider: "OpenAI"
         )
 
-        let error = #require(mapped as? LLMServiceError)
+        guard let error = mapped as? LLMServiceError else {
+            Issue.record("Expected LLMServiceError, got \(type(of: mapped))")
+            return
+        }
         #expect(error == .httpError(provider: "OpenAI", statusCode: 429, responseBody: "", retryAfter: 3))
         #expect(RetryPolicy.isTransient(error: mapped))
     }
