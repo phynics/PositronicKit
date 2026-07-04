@@ -90,6 +90,7 @@ Verification is run explicitly through the root Makefile:
 ```bash
 make verify           # Default build, docs, linkage audit, and tests (macOS)
 make verify-linux     # Bootstrap pinned assets/native bridge and run the full Linux test suite
+make verify-linux-asan # Run the PKFastEmbed bridge tests under Linux x86_64 AddressSanitizer
 make verify-products  # Build every supported product on the current host
 make verify-minilm    # Bootstrap pinned assets/native bridge and run MiniLM tests
 ```
@@ -108,6 +109,16 @@ make verify-minilm \
   PKFASTEMBED_PREFIX=/path/to/prefix \
   PK_MINILM_MODEL_DIR=/path/to/model
 ```
+
+For the bridge-only Linux AddressSanitizer gate, install nightly Rust plus
+`rust-src` on the Linux host and run:
+
+```bash
+make verify-linux-asan
+```
+
+This target intentionally scopes to `native/pkfastembed` only. It does not run
+the full Swift MiniLM verification matrix.
 
 Build and run:
 

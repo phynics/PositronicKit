@@ -27,6 +27,7 @@ make build-minilm                 # prepare assets/bridge and build the MiniLM t
 make verify-minilm                # prepare native MiniLM and run its tests
 make verify-linux-minimum         # run the minimum Linux matrix gate (Swift 6.1.3 on Ubuntu 24.04)
 make verify-linux-current         # run the current Linux matrix gate (Swift 6.3.2 on Ubuntu 24.04)
+make verify-linux-asan            # run the PKFastEmbed bridge tests under Linux x86_64 AddressSanitizer
 make verify-macos-default         # run the default macOS gate
 make verify-macos-minilm          # run the MiniLM macOS gate
 ```
@@ -83,6 +84,19 @@ tests `validate-docs` also runs are a subset already covered by `verify-linux-cu
 full `swift test` step, so no coverage is lost.
 `verify-linux-minimum` is the same gate, reserved for the Swift 6.1.3 / Ubuntu 24.04
 matrix job.
+
+For the bridge-only AddressSanitizer qualification gate used by `PKFAST-006`, run:
+
+```bash
+rustup toolchain install nightly
+rustup component add rust-src --toolchain nightly
+make verify-linux-asan
+```
+
+`verify-linux-asan` scopes to `native/pkfastembed` only; it does not run the full
+Swift MiniLM matrix. Override `PKFASTEMBED_ASAN_TOOLCHAIN` or
+`PKFASTEMBED_ASAN_TARGET` when the host differs from the default nightly
+`x86_64-unknown-linux-gnu` setup.
 
 ## Module Boundaries
 

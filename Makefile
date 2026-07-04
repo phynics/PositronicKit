@@ -1,10 +1,13 @@
 .PHONY: help build clean test test-parallel harden validate-docs \
 	audit-default-linkage verify-pin verify verify-macos-default \
 	verify-linux verify-linux-base verify-linux-minimum verify-linux-current \
+	verify-linux-asan \
 	verify-products verify-macos-minilm \
 	bootstrap-minilm build-minilm verify-minilm
 
 PKFASTEMBED_PREFIX ?= $(CURDIR)/.build/pkfastembed
+PKFASTEMBED_ASAN_TOOLCHAIN ?= nightly
+PKFASTEMBED_ASAN_TARGET ?= x86_64-unknown-linux-gnu
 # Key the MiniLM cache root by the exact model.onnx checksum so stale assets
 # cannot leak across revisions when CI reuses build storage.
 MINILM_MODEL_CACHE_ROOT ?= $(CURDIR)/.build/minilm-model
@@ -48,6 +51,7 @@ help:
 	@echo "  make verify-linux-base     Run the shared Linux verification body"
 	@echo "  make verify-linux-minimum  Run the minimum Linux gate"
 	@echo "  make verify-linux-current  Run the current Linux gate"
+	@echo "  make verify-linux-asan     Run PKFastEmbed tests under Linux x86_64 AddressSanitizer"
 	@echo "  make verify-products       Build every product on the current host"
 	@echo "  make verify-pin            Check the pinned MiniLM artifact hashes are consistent"
 	@echo "  make build-minilm          Prepare assets/native bridge and build the MiniLM trait product"
@@ -108,6 +112,15 @@ verify-linux-minimum: verify-linux-base
 verify-linux-current: verify-linux-base
 
 verify-linux: verify-linux-current
+
+verify-linux-asan:
+	@echo "Running PKFastEmbed tests under AddressSanitizer for $(PKFASTEMBED_ASAN_TARGET)..."
+	@echo "Requires rustup toolchain '$(PKFASTEMBED_ASAN_TOOLCHAIN)' with rust-src installed."
+	@cd native/pkfastembed && \
+		ASAN_OPTIONS="$${ASAN_OPTIONS:-detect_leaks=1}" \
+		RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }-Zsanitizer=address" \
+		RUSTDOCFLAGS="$${RUSTDOCFLAGS:+$$RUSTDOCFLAGS }-Zsanitizer=address" \
+		cargo +$(PKFASTEMBED_ASAN_TOOLCHAIN) test -Zbuild-std --target $(PKFASTEMBED_ASAN_TARGET)
 
 verify-macos-minilm: verify-minilm
 
