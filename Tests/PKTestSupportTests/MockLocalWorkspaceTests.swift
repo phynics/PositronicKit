@@ -92,4 +92,24 @@ final class MockLocalWorkspaceTests {
         // Verify it was deleted
         #expect(!FileManager.default.fileExists(atPath: fileURL.path))
     }
+
+    @Test("listFiles scopes enumeration to the requested subdirectory")
+    func listFilesScopesToRequestedPath() async throws {
+        // Root-level file, which should NOT be returned when listing a subdirectory.
+        try "root".write(to: tempDir.appendingPathComponent("root.txt"), atomically: true, encoding: .utf8)
+
+        // Subdirectory with its own file, which SHOULD be returned when listing that subdirectory.
+        let subDir = tempDir.appendingPathComponent("sub")
+        try FileManager.default.createDirectory(at: subDir, withIntermediateDirectories: true)
+        try "nested".write(to: subDir.appendingPathComponent("nested.txt"), atomically: true, encoding: .utf8)
+
+        // Returned paths stay root-relative (not relative to the requested `path`) because callers
+        // (e.g. NoteDiscoveryStage) feed listFiles' output straight into readFile/writeFile, which
+        // resolve paths relative to the workspace root.
+        let scoped = try await workspace.listFiles(path: "sub")
+        #expect(scoped == ["sub/nested.txt"])
+
+        let rootListing = try await workspace.listFiles(path: ".")
+        #expect(Set(rootListing) == Set(["root.txt", "sub/nested.txt"]))
+    }
 }
