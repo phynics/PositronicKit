@@ -101,9 +101,11 @@ verify: verify-macos-default
 verify-linux-base: bootstrap-minilm
 	@echo "Running comprehensive Linux test suite..."
 	@PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
+		LIBRARY_PATH="$(PKFASTEMBED_PREFIX)/lib$${LIBRARY_PATH:+:$$LIBRARY_PATH}" \
 		PK_MINILM_MODEL_DIR="$(MINILM_MODEL_CACHE_DIR)" \
 		swift test
 	@PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
+		LIBRARY_PATH="$(PKFASTEMBED_PREFIX)/lib$${LIBRARY_PATH:+:$$LIBRARY_PATH}" \
 		PK_MINILM_MODEL_DIR="$(MINILM_MODEL_CACHE_DIR)" \
 		swift test --traits MiniLMEmbeddings
 
@@ -135,12 +137,15 @@ bootstrap-minilm: verify-pin
 build-minilm: bootstrap-minilm
 	@echo "Building MiniLM trait product..."
 	@PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
+		LIBRARY_PATH="$(PKFASTEMBED_PREFIX)/lib$${LIBRARY_PATH:+:$$LIBRARY_PATH}" \
 		swift build --traits MiniLMEmbeddings
 
 verify-minilm: bootstrap-minilm
 	@PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
+		LIBRARY_PATH="$(PKFASTEMBED_PREFIX)/lib$${LIBRARY_PATH:+:$$LIBRARY_PATH}" \
 		PK_MINILM_MODEL_DIR="$(MINILM_MODEL_CACHE_DIR)" \
 		swift test --traits MiniLMEmbeddings --filter MiniLMEmbeddingContractTests
 	@PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
+		LIBRARY_PATH="$(PKFASTEMBED_PREFIX)/lib$${LIBRARY_PATH:+:$$LIBRARY_PATH}" \
 		PK_MINILM_MODEL_DIR="$(MINILM_MODEL_CACHE_DIR)" \
 		swift test --traits MiniLMEmbeddings --filter PKFastEmbedTests
