@@ -37,7 +37,7 @@ Core modules:
 
 Provider targets ship separately so you opt in only to the integrations you want:
 
-- **PKOpenAIProvider**, **PKOpenRouterProvider**, **PKOllamaProvider**, **PKAnthropicProvider** — concrete adapters plus convenience registration APIs. `PKAnthropicProvider` speaks the Anthropic Messages API natively (event-based SSE, `input_schema` tools, top-level `system` param); structured output uses the forced synthetic-tool path since the API has no `response_format`.
+- **PKOpenAIProvider**, **PKOpenRouterProvider**, **PKOllamaProvider**, **PKAnthropicProvider**, **PKFoundationModelsProvider** — concrete adapters plus convenience registration APIs. `PKAnthropicProvider` speaks the Anthropic Messages API natively (event-based SSE, `input_schema` tools, top-level `system` param); structured output uses the forced synthetic-tool path since the API has no `response_format`.
 
 Supporting targets:
 
@@ -55,6 +55,7 @@ Pick the smallest surface that matches your need:
 | Prompt composition, rendering, journaling — no runtime | `PKPrompt` |
 | Single-process app or CLI agent runtime | The `PositronicKit` facade |
 | Runtime + OpenAI/OpenRouter/Ollama/Anthropic convenience setup | Add the matching provider package |
+| On-device Apple Intelligence models (no key, no network) | Add `PKFoundationModelsProvider` — `PositronicKit(foundationModelsTools:)`; requires macOS 26+/Apple Silicon with Apple Intelligence enabled, surfaces unavailability as a typed `PKError` |
 | Local embedding service | Add `PKLocalEmbeddings` |
 | Host-owned filesystem/execution/attachment behavior | `PositronicKit` + your own `WorkspaceCreating` / `WorkspaceProtocol` |
 | Typed JSON / schema-first integrations | `PKShared` structured output types, optionally with the runtime later |

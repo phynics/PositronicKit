@@ -1,11 +1,12 @@
 import Foundation
+import struct JSONSchema.Schema
 import JSONSchemaBuilder
 import PKAnthropicProvider
+import PKFoundationModelsProvider
 import PKOllamaProvider
 import PKOpenAIProvider
 import PKShared
 import PositronicKit
-import struct JSONSchema.Schema
 
 public enum PositronicKitUsageExamples {
     public actor ExampleTurnInspector: TurnInspecting {
@@ -66,6 +67,18 @@ public enum PositronicKitUsageExamples {
     /// `PositronicKit(anthropicKey:)` wraps registration + configuration in one call.
     public static func makeConfiguredAnthropicRuntime(apiKey: String = "sk-ant-example") -> PositronicKit {
         PositronicKit(anthropicKey: apiKey)
+    }
+
+    /// PKPOST-003: Apple's on-device Foundation Models provider — no API key, no network.
+    /// `PositronicKit(foundationModelsTools:)` wraps `FoundationModelsClient` construction (with
+    /// tools bridged into the session up front, since the framework executes tools itself while
+    /// producing a response) directly, bypassing `ExternalLLMProviderRegistry`/`LLMConfiguration`
+    /// entirely — see `PKFoundationModelsProvider.swift` for why that registry shape doesn't fit
+    /// an on-device session. Compiles unconditionally; on hosts without the `FoundationModels`
+    /// framework (or pre-26 macOS), the resulting runtime's `chatStream` throws
+    /// `FoundationModelsPlatformError.unsupportedPlatform` rather than crashing.
+    public static func makeFoundationModelsRuntime(tools: [AnyTool] = []) -> PositronicKit {
+        PositronicKit(foundationModelsTools: tools)
     }
 
     public static func makeProductionRuntime() -> PositronicKit {

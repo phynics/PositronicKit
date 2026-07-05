@@ -10,6 +10,14 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- `PKFoundationModelsProvider` (PKPOST-003): Apple's on-device Foundation Models framework as
+  a provider — `FoundationModelsClient` maps `LanguageModelSession` streaming onto
+  `LLMStreamChunk` via a testable session-abstraction seam, bridges PositronicKit tools into
+  the framework's tool protocol (the session executes tools itself), maps
+  guardrail/termination outcomes to typed `FinishReason`, and surfaces
+  `SystemLanguageModel.availability` as a typed `PKError` with user-actionable guidance.
+  `#if canImport(FoundationModels)`-guarded; the package builds and tests green on hosts
+  without the framework, where `chatStream` throws a typed unsupported-platform error.
 - `PKAnthropicProvider` (PKPOST-001): native Anthropic Messages API adapter — event-based SSE
   stream decoding (`message_start`/`content_block_delta`/`message_delta`…) mapped onto
   `LLMStreamChunk`, `stop_reason` → typed `FinishReason`, tools via `input_schema` with

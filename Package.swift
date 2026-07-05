@@ -15,6 +15,7 @@ let package = Package(
         .library(name: "PKOpenRouterProvider", targets: ["PKOpenRouterProvider"]),
         .library(name: "PKOllamaProvider", targets: ["PKOllamaProvider"]),
         .library(name: "PKAnthropicProvider", targets: ["PKAnthropicProvider"]),
+        .library(name: "PKFoundationModelsProvider", targets: ["PKFoundationModelsProvider"]),
         .library(name: "PKTestSupport", targets: ["PKTestSupport"]),
         .executable(name: "PositronicKitExamples", targets: ["PositronicKitExamples"]),
     ],
@@ -124,6 +125,15 @@ let package = Package(
             ],
             path: "Sources/PKAnthropicProvider"
         ),
+        .target(
+            name: "PKFoundationModelsProvider",
+            dependencies: [
+                "PositronicKit",
+                "PKShared",
+                .product(name: "Logging", package: "swift-log"),
+            ],
+            path: "Sources/PKFoundationModelsProvider"
+        ),
         .executableTarget(
             name: "PositronicKitExamples",
             dependencies: [
@@ -133,6 +143,7 @@ let package = Package(
                 "PKOpenRouterProvider",
                 "PKOllamaProvider",
                 "PKAnthropicProvider",
+                "PKFoundationModelsProvider",
                 "PKPrompt",
                 "PKShared",
                 .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
@@ -158,6 +169,7 @@ let package = Package(
                 "PKOpenRouterProvider",
                 "PKOllamaProvider",
                 "PKAnthropicProvider",
+                "PKFoundationModelsProvider",
                 "PositronicKitExamples",
                 "PKShared",
                 "PKTestSupport",
