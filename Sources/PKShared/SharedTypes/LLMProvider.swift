@@ -5,6 +5,7 @@ public enum LLMProvider: String, Codable, CaseIterable, Identifiable, Sendable, 
     case openRouter = "OpenRouter"
     case openAICompatible = "OpenAI Compatible"
     case ollama = "Ollama"
+    case anthropic = "Anthropic"
 
     public var id: String {
         rawValue

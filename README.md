@@ -37,7 +37,7 @@ Core modules:
 
 Provider targets ship separately so you opt in only to the integrations you want:
 
-- **PKOpenAIProvider**, **PKOpenRouterProvider**, **PKOllamaProvider** — concrete adapters plus convenience registration APIs. Claude models are currently reachable via OpenRouter; a native `PKAnthropicProvider` is planned as a post-v1 minor.
+- **PKOpenAIProvider**, **PKOpenRouterProvider**, **PKOllamaProvider**, **PKAnthropicProvider** — concrete adapters plus convenience registration APIs. `PKAnthropicProvider` speaks the Anthropic Messages API natively (event-based SSE, `input_schema` tools, top-level `system` param); structured output uses the forced synthetic-tool path since the API has no `response_format`.
 
 Supporting targets:
 
@@ -54,7 +54,7 @@ Pick the smallest surface that matches your need:
 |------|-----------|
 | Prompt composition, rendering, journaling — no runtime | `PKPrompt` |
 | Single-process app or CLI agent runtime | The `PositronicKit` facade |
-| Runtime + OpenAI/OpenRouter/Ollama convenience setup | Add the matching provider package |
+| Runtime + OpenAI/OpenRouter/Ollama/Anthropic convenience setup | Add the matching provider package |
 | Local embedding service | Add `PKLocalEmbeddings` |
 | Host-owned filesystem/execution/attachment behavior | `PositronicKit` + your own `WorkspaceCreating` / `WorkspaceProtocol` |
 | Typed JSON / schema-first integrations | `PKShared` structured output types, optionally with the runtime later |
@@ -102,7 +102,7 @@ These public API surfaces are the **v1 compatibility contract**: they only chang
 | **Vector search** | `VectorStoreProtocol`, `VectorStoreError` | PositronicKit | Custom vector search backends |
 | **Health check** | `HealthCheckable` | PositronicKit | Service health reporting |
 | **LLM providers** | `LLMServiceProtocol`, `LLMChatRequest`, `LLMStreamResult`, `LLMStreamChunk`, etc. | PKShared | Provider adapter contracts |
-| **Provider registration** | `PKOpenAIProvider.register()`, `PKOpenRouterProvider.register()`, `PKOllamaProvider.register()` | Provider modules | Provider factory registration |
+| **Provider registration** | `PKOpenAIProvider.register()`, `PKOpenRouterProvider.register()`, `PKOllamaProvider.register()`, `PKAnthropicProvider.register()` | Provider modules | Provider factory registration |
 | **Workspace** | `WorkspaceProtocol`, `WorkspaceCreating`, `ToolReference`, `WorkspaceToolDefinition`, `WorkspaceToolError` | PositronicKit / PKShared | Custom workspace backends |
 | **Configuration** | `LLMConfiguration`, `GenerationParameters`, `LLMProvider` | PKShared | LLM configuration |
 | **Events** | `ChatEvent`, `ToolExecutionStatus`, `Message` | PKShared | Stream event types |

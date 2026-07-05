@@ -106,7 +106,7 @@ enum StructuredOutputExecution {
                 syntheticToolName: nil,
                 promptAugmentation: nil
             )
-        case .jsonSchema(let schema):
+        case let .jsonSchema(schema):
             switch provider {
             case .openAI, .openRouter:
                 return PreparedRequest(
@@ -137,7 +137,10 @@ enum StructuredOutputExecution {
                     syntheticToolName: nil,
                     promptAugmentation: augmentation
                 )
-            case .openAICompatible:
+            // Anthropic's Messages API has no json_schema response format; the forced
+            // synthetic-tool pattern is its canonical structured-output mechanism, so it
+            // shares the openAICompatible branch.
+            case .openAICompatible, .anthropic:
                 let syntheticTool = syntheticTool(for: schema)
                 return PreparedRequest(
                     messages: messages,

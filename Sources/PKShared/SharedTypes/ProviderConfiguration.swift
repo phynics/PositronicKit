@@ -127,6 +127,17 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
                 timeoutInterval: 120.0, // Local models can be slower
                 maxRetries: 3
             )
+        case .anthropic:
+            return ProviderConfiguration(
+                endpoint: "https://api.anthropic.com",
+                apiKey: "",
+                modelName: "claude-sonnet-4-5",
+                utilityModel: "claude-haiku-4-5",
+                fastModel: "claude-haiku-4-5",
+                toolFormat: .openAI,
+                timeoutInterval: 60.0,
+                maxRetries: 3
+            )
         case .openAICompatible:
             return ProviderConfiguration(
                 endpoint: "http://localhost:1234/v1",

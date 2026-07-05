@@ -1,5 +1,6 @@
 import Foundation
 import JSONSchemaBuilder
+import PKAnthropicProvider
 import PKOllamaProvider
 import PKOpenAIProvider
 import PKShared
@@ -59,6 +60,12 @@ public enum PositronicKitUsageExamples {
                 provider: .openAI
             ))
         )
+    }
+
+    /// PKPOST-001: the native Anthropic adapter registers exactly like the other providers;
+    /// `PositronicKit(anthropicKey:)` wraps registration + configuration in one call.
+    public static func makeConfiguredAnthropicRuntime(apiKey: String = "sk-ant-example") -> PositronicKit {
+        PositronicKit(anthropicKey: apiKey)
     }
 
     public static func makeProductionRuntime() -> PositronicKit {

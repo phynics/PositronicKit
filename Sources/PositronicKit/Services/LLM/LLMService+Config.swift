@@ -77,7 +77,7 @@ extension LLMService {
                 )
             )
 
-        case .openAI, .openAICompatible:
+        case .openAI, .openAICompatible, .anthropic:
             return (
                 main: makeExternalClient(
                     provider: config.provider,

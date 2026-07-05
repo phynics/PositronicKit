@@ -10,8 +10,20 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
-- Placeholder section for changes landing after `1.0.0`. Keep every behavioral PR represented
-  here until the next tag is cut.
+- `PKAnthropicProvider` (PKPOST-001): native Anthropic Messages API adapter — event-based SSE
+  stream decoding (`message_start`/`content_block_delta`/`message_delta`…) mapped onto
+  `LLMStreamChunk`, `stop_reason` → typed `FinishReason`, tools via `input_schema` with
+  `tool_use`/`tool_result` id pairing, system messages hoisted to the top-level `system`
+  param, thinking deltas surfaced, retry-gate and sanitized-error-logging parity with the
+  other adapters, and a `PositronicKit(anthropicKey:)` convenience initializer. Structured
+  output rides the forced synthetic-tool path (`.anthropic` shares the `openAICompatible`
+  branch) since the Messages API has no `response_format`.
+
+### Fixed
+
+- `LLMStreamingStage.handleToolCallDeltas` (PKSTREAM-001): every yielded `ToolCallDelta` now
+  carries the accumulator-resolved `id` for its index — OpenAI-style continuation chunks no
+  longer reach consumers with `id == nil`.
 
 ## [1.0.0] - 2026-07-05
 

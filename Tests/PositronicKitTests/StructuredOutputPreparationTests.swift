@@ -25,7 +25,7 @@ struct StructuredOutputPreparationTests {
         let baseTool = LLMToolDefinition(name: "existing_tool", description: "existing")
         let schema = StructuredOutputFixtures.tagSchemaDefinition()
 
-        for provider in [LLMProvider.openAI, .openRouter, .ollama, .openAICompatible] {
+        for provider in [LLMProvider.openAI, .openRouter, .ollama, .openAICompatible, .anthropic] {
             for output in [StructuredOutputRequest.jsonObject, .jsonSchema(schema)] {
                 let prepared = StructuredOutputExecution.prepareRequest(
                     messages: baseMessages,
@@ -81,7 +81,10 @@ struct StructuredOutputPreparationTests {
                     #expect(prepared.tools?.count == 1)
                     #expect(prepared.tools?.first?.name == baseTool.name)
                     #expect(prepared.tools?.first?.description == baseTool.description)
-                case let (.openAICompatible, .jsonSchema(schema)):
+                // Anthropic shares the openAICompatible synthetic-tool branch (no response_format
+                // equivalent in the Messages API).
+                case let (.openAICompatible, .jsonSchema(schema)),
+                    let (.anthropic, .jsonSchema(schema)):
                     #expect(prepared.messages.first == baseMessages.first)
                     #expect(prepared.responseFormat == nil)
                     #expect(prepared.promptAugmentation == nil)
