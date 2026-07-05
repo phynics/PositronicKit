@@ -9,12 +9,6 @@ struct LLMStreamingStage: PipelineStage {
     let logger: Logger
     let streamTimeout: TimeInterval
 
-    init(llmService: any LLMServiceProtocol, logger: Logger, streamTimeout: TimeInterval) {
-        self.llmService = llmService
-        self.logger = logger
-        self.streamTimeout = streamTimeout
-    }
-
     func process(_ context: ChatTurnContext) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         let streamData: AsyncThrowingStream<LLMStreamChunk, Error>
         // ChatEngine's entry point rejects turns that set both `structuredOutput` and
@@ -243,9 +237,10 @@ struct LLMStreamingStage: PipelineStage {
                 name: call.function?.name,
                 args: call.function?.arguments
             )
+            let resolvedId = await context.outputs.toolCallAccumulators[index]?.callId
             continuation.yield(.toolCall(ToolCallDelta(
                 index: index,
-                id: call.id,
+                id: resolvedId,
                 name: call.function?.name,
                 arguments: call.function?.arguments
             )))

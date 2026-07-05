@@ -191,7 +191,7 @@ final class MessagePersistenceStageBehavior {
         // otherwise unchanged.
         let context = await makeContext(
             toolCallAccumulators: [
-                0: (id: "call-bad", name: "broken_tool", args: "{'oops': true}")
+                0: (id: "call-bad", name: "broken_tool", args: "{'oops': true}"),
             ]
         )
 
@@ -554,5 +554,110 @@ final class LLMStreamingStageBehavior {
         #expect(second.callId == "tc-2")
         #expect(second.name == "second_tool")
         #expect(second.args == #"{"y":2}"#)
+    }
+
+    @Test
+    func toolCallDeltaIdIsBackfilledOnContinuationChunks() async throws {
+        let mockService = MockLLMService()
+        mockService.stubbedStream = AsyncThrowingStream { continuation in
+            continuation.yield(makeChunk(toolCalls: [
+                LLMToolCallDelta(
+                    index: 0,
+                    id: "tc-1",
+                    function: LLMToolCallDeltaFunction(name: "complex_", arguments: "{\"tags\":[")
+                ),
+            ]))
+            continuation.yield(makeChunk(toolCalls: [
+                LLMToolCallDelta(
+                    index: 0,
+                    id: nil,
+                    function: LLMToolCallDeltaFunction(name: "tool", arguments: "\"a\",")
+                ),
+            ]))
+            continuation.yield(makeChunk(toolCalls: [
+                LLMToolCallDelta(
+                    index: 0,
+                    id: nil,
+                    function: LLMToolCallDeltaFunction(name: nil, arguments: "\"b\"]}")
+                ),
+            ], finishReason: "tool_calls"))
+            continuation.finish()
+        }
+
+        let stage = LLMStreamingStage(llmService: mockService, logger: testLogger, streamTimeout: 5)
+        let context = await makeContext()
+
+        let events = try await drain(await stage.process(context))
+
+        let toolCallDeltas: [ToolCallDelta] = events.compactMap {
+            if case let .delta(.toolCall(delta)) = $0 { return delta }
+            return nil
+        }
+
+        #expect(toolCallDeltas.count == 3)
+        for delta in toolCallDeltas {
+            #expect(delta.id == "tc-1")
+        }
+
+        let argumentsJoined = toolCallDeltas.compactMap(\.arguments).joined()
+        #expect(argumentsJoined == #"{"tags":["a","b"]}"#)
+    }
+
+    @Test
+    func interleavedParallelToolCallDeltasResolveOwnIdsWithoutCrossContamination() async throws {
+        let mockService = MockLLMService()
+        mockService.stubbedStream = AsyncThrowingStream { continuation in
+            continuation.yield(makeChunk(toolCalls: [
+                LLMToolCallDelta(
+                    index: 0,
+                    id: "tc-1",
+                    function: LLMToolCallDeltaFunction(name: "first_", arguments: "{\"x\":")
+                ),
+            ]))
+            continuation.yield(makeChunk(toolCalls: [
+                LLMToolCallDelta(
+                    index: 1,
+                    id: "tc-2",
+                    function: LLMToolCallDeltaFunction(name: "second_", arguments: "{\"y\":")
+                ),
+            ]))
+            continuation.yield(makeChunk(toolCalls: [
+                LLMToolCallDelta(
+                    index: 0,
+                    id: nil,
+                    function: LLMToolCallDeltaFunction(name: "tool", arguments: "1}")
+                ),
+            ]))
+            continuation.yield(makeChunk(toolCalls: [
+                LLMToolCallDelta(
+                    index: 1,
+                    id: nil,
+                    function: LLMToolCallDeltaFunction(name: "tool", arguments: "2}")
+                ),
+            ], finishReason: "tool_calls"))
+            continuation.finish()
+        }
+
+        let stage = LLMStreamingStage(llmService: mockService, logger: testLogger, streamTimeout: 5)
+        let context = await makeContext()
+
+        let events = try await drain(await stage.process(context))
+
+        let toolCallDeltas: [ToolCallDelta] = events.compactMap {
+            if case let .delta(.toolCall(delta)) = $0 { return delta }
+            return nil
+        }
+
+        let index0Deltas = toolCallDeltas.filter { $0.index == 0 }
+        let index1Deltas = toolCallDeltas.filter { $0.index == 1 }
+
+        #expect(!index0Deltas.isEmpty)
+        #expect(!index1Deltas.isEmpty)
+        for delta in index0Deltas {
+            #expect(delta.id == "tc-1")
+        }
+        for delta in index1Deltas {
+            #expect(delta.id == "tc-2")
+        }
     }
 }
