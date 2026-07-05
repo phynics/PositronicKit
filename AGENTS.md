@@ -32,6 +32,9 @@ make verify-macos-default         # run the default macOS gate
 make verify-macos-minilm          # run the MiniLM macOS gate
 ```
 
+See [docs/Releasing.md](docs/Releasing.md) for the release workflow, tagging steps, and
+consumer upgrade cadence.
+
 `build-minilm` and `verify-minilm` both depend on `bootstrap-minilm`, which is
 idempotent: it downloads the pinned model assets on first use, verifies their
 checksums, and builds PKFastEmbed only when missing — so the MiniLM build/test
@@ -120,6 +123,9 @@ Swift MiniLM matrix. Override `PKFASTEMBED_ASAN_TOOLCHAIN` or
 - Do not introduce custom schema wrapper types when `JSONSchema`, `Schema`, `JSONSchemaBuilder`, or `@Schemable` already cover the use case.
 - Fixtures: deterministic, lightweight; prefer reusable builders over inline setup.
 - `swift build && swift test` before opening or updating PRs.
+- For public API changes, update `CHANGELOG.md` under `Unreleased` and follow
+  `docs/Releasing.md` for the tag/pin workflow instead of treating `main` as the consumer
+  source of truth.
 
 ## PositronicKit Invariants
 
@@ -163,4 +169,5 @@ one `<SERIES>-<id>-<slug>.md` file per ticket with a `Status` line; the index is
 `../workflow/PositronicKit/tickets/README.md` and is updated in the same change as any
 status flip; `Done`/`Discarded` tickets move to `tickets/archive/`. When closing a ticket
 that touched public API, run the downstream-sync checklist (grep Monad, Shuttle, Yakamoz;
-push to remote `main` before consumer gates).
+use the local-path override while unreleased; tag and publish the compatible PositronicKit
+release before consumer gates).

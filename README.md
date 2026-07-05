@@ -2,7 +2,8 @@
 
 PositronicKit is a Swift toolkit for building AI agents. It gives you transport-neutral runtime orchestration, a structured prompt composition DSL, and the shared contracts to tie them together — without imposing a specific networking or hosting model.
 
-See [CHANGELOG.md](CHANGELOG.md) for release notes, migration notes, and tagged compatibility history.
+See [CHANGELOG.md](CHANGELOG.md) for release notes, migration notes, and tagged compatibility
+history, and [docs/Releasing.md](docs/Releasing.md) for the release workflow.
 
 ## Quick Start
 
