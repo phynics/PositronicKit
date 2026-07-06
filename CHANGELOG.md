@@ -15,8 +15,11 @@ for tagged releases beginning with `1.0.0`.
   `named(String)`). `AnyTool.provenance` is now `ToolProvenance` with a one-release deprecated
   string-init bridge. `TimelineToolManager` gains `registerToolProvider(_:id:)` /
   `unregisterToolProvider(_:)` so the runtime assembles turn tools from global tools plus
-  workspace/terminal providers. `WorkspaceProtocol.executeTool(id:parameters:)` is now optional
-  with a default throwing implementation; the dead stub in `Monad.LocalWorkspace` is removed.
+  workspace/terminal providers.   `WorkspaceProtocol.executeTool(id:parameters:)` is now optional
+  with a default throwing implementation; the dead stub in `Monad.LocalWorkspace` is removed
+  on the consumer side (Monad commit `c69bdf2`, which adapts Monad to this `1.1.0` API — the
+  `PositronicKit` default implementation supersedes the stub, so no `PositronicKit`-side removal
+  was needed).
 - `PKFoundationModelsProvider` (PKPOST-003): Apple's on-device Foundation Models framework as
   a provider — `FoundationModelsClient` maps `LanguageModelSession` streaming onto
   `LLMStreamChunk` via a testable session-abstraction seam, bridges PositronicKit tools into

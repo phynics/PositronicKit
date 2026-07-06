@@ -124,19 +124,26 @@ public actor TimelineToolManager {
         providerTools = newProviderTools
     }
 
+    /// Stamps `tool` with the resolved provenance from the set of workspaces that declared it
+    /// as a `.known` tool. When multiple workspaces share a known tool, provenance collapses to
+    /// a single representative — the lexicographically smallest `displayName` — so the prompt
+    /// label is deterministic across refreshes rather than depending on `Set` iteration order.
+    /// A tool can only carry one provenance tag; the sort makes that one choice stable.
+    private func toolWithResolvedProvenance(_ tool: AnyTool) -> AnyTool {
+        guard let provenanceSet = knownToolProvenance[tool.id], !provenanceSet.isEmpty else {
+            return tool
+        }
+        var tagged = tool
+        tagged.provenance = provenanceSet.sorted(by: { $0.displayName < $1.displayName }).first ?? .global
+        return tagged
+    }
+
     /// Get tools that are currently enabled, including context tools if a context is active
     public func getEnabledTools() async -> [AnyTool] {
         var tools = availableTools.filter { enabledTools.contains($0.id) }
 
         // Apply workspace provenance to .known system tools
-        tools = tools.map { tool in
-            if let provenanceSet = knownToolProvenance[tool.id], !provenanceSet.isEmpty {
-                var tagged = tool
-                tagged.provenance = provenanceSet.sorted(by: { $0.displayName < $1.displayName }).first ?? .global
-                return tagged
-            }
-            return tool
-        }
+        tools = tools.map { toolWithResolvedProvenance($0) }
 
         // Include context tools if a context is active
         if let timeline = timelineContext, await timeline.hasActiveContext {
@@ -160,14 +167,7 @@ public actor TimelineToolManager {
         var tools = availableTools
 
         // Apply provenance to .known system tools
-        tools = tools.map { tool in
-            if let provenanceSet = knownToolProvenance[tool.id], !provenanceSet.isEmpty {
-                var tagged = tool
-                tagged.provenance = provenanceSet.sorted(by: { $0.displayName < $1.displayName }).first ?? .global
-                return tagged
-            }
-            return tool
-        }
+        tools = tools.map { toolWithResolvedProvenance($0) }
 
         // Append workspace custom tools with provenance
         tools.append(contentsOf: workspaceTools.values.map { entry in
@@ -208,12 +208,7 @@ public actor TimelineToolManager {
     public func getTool(id: String) async -> AnyTool? {
         // First check regular system tools
         if let tool = availableTools.first(where: { $0.id == id }) {
-            if let provenanceSet = knownToolProvenance[id], !provenanceSet.isEmpty {
-                var tagged = tool
-                tagged.provenance = provenanceSet.sorted(by: { $0.displayName < $1.displayName }).first ?? .global
-                return tagged
-            }
-            return tool
+            return toolWithResolvedProvenance(tool)
         }
 
         // Then check context tools if a context is active

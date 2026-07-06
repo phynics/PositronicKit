@@ -112,6 +112,19 @@ public enum PositronicKitUsageExamples {
         [ExampleGreetingTool().toAnyTool()]
     }
 
+    /// PKPOST-004: `ToolProviding` is the canonical surface for grouping tools under a
+    /// structural `ToolProvenance` (rather than passing a flat `[AnyTool]`). Conform a type,
+    /// return its tools from `provideTools()`, and register it with a runtime's
+    /// `TimelineToolManager` (`registerToolProvider(_:id:)`); the `resolvedTools()` extension
+    /// re-stamps each tool's `.global` provenance with the provider's `toolProvenance` so the
+    /// prompt labels tools as belonging to this workspace/terminal.
+    public static func makeWorkspaceToolProviderExample(
+        workspaceID: UUID = UUID(),
+        workspaceName: String = "example-workspace"
+    ) -> any ToolProviding {
+        ExampleWorkspaceToolProvider(workspaceID: workspaceID, workspaceName: workspaceName)
+    }
+
     public static func makeStructuredOutputSchema() -> StructuredOutputSchema {
         StructuredOutputSchema(
             name: "tag_payload",
@@ -255,5 +268,22 @@ public struct ExampleGreetingTool: Tool {
 
         let input = ExampleGreetingInput(name: name)
         return .success("Hello, \(input.name)!")
+    }
+}
+
+/// PKPOST-004 example `ToolProviding` conformance: groups its tools under a `.workspace`
+/// provenance so the runtime labels them as belonging to that workspace. See
+/// `PositronicKitUsageExamples.makeWorkspaceToolProviderExample`.
+public struct ExampleWorkspaceToolProvider: ToolProviding {
+    public let toolProvenance: ToolProvenance
+
+    public init(workspaceID: UUID, workspaceName: String) {
+        self.toolProvenance = .workspace(id: workspaceID, name: workspaceName)
+    }
+
+    public func provideTools() async -> [AnyTool] {
+        // Tools default to `.global` provenance; the `ToolProviding.resolvedTools()`
+        // extension re-stamps them with this provider's `toolProvenance`.
+        [ExampleGreetingTool().toAnyTool()]
     }
 }
