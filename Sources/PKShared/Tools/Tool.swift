@@ -1,5 +1,46 @@
 import Foundation
 
+public enum ToolProvenance: Sendable, Equatable, Hashable, Codable {
+    case global
+    case workspace(id: UUID, name: String)
+    case terminal(id: UUID, name: String)
+    case named(String)
+
+    public var promptLabel: String? {
+        switch self {
+        case .global:
+            nil
+        case let .workspace(_, name):
+            "Workspace: \(name)"
+        case let .terminal(_, name):
+            "Terminal: \(name)"
+        case let .named(name):
+            name
+        }
+    }
+
+    public var displayName: String {
+        promptLabel ?? "System"
+    }
+}
+
+public protocol ToolProviding: Sendable {
+    var toolProvenance: ToolProvenance { get }
+    func provideTools() async -> [AnyTool]
+}
+
+public extension ToolProviding {
+    func resolvedTools() async -> [AnyTool] {
+        await provideTools().map { tool in
+            var resolved = tool
+            if resolved.provenance == .global {
+                resolved.provenance = toolProvenance
+            }
+            return resolved
+        }
+    }
+}
+
 /// A tool that the LLM can call to interact with workspaces, data, or computations.
 ///
 /// Implement this protocol to add new capabilities to the AI assistant. Tools are automatically
@@ -97,12 +138,12 @@ public extension Tool {
 public extension Tool {
     /// Standard prompt representation for tools.
     var promptString: String {
-        promptString(provenance: nil)
+        promptString(provenance: .global)
     }
 
     /// Formatted content for inclusion in LLM prompt with optional provenance (e.g. workspace name).
-    func promptString(provenance: String?) -> String {
-        let label = provenance.map { " [\($0)]" } ?? ""
+    func promptString(provenance: ToolProvenance) -> String {
+        let label = provenance.promptLabel.map { " [\($0)]" } ?? ""
         return "- `\(id)`\(label): \(description)"
     }
 }
@@ -129,7 +170,7 @@ public func formatToolsForPrompt(_ tools: [AnyTool]) async -> String {
     Rules:
     - Use tools only for missing context.
     - Path Resolution: If a tool is tagged with a workspace provenance \
-    (e.g. `[Workspace: <name>]`), all file paths passed to it MUST be relative \
+    (e.g. `[Workspace: <name>]` or `[Terminal: <name>]`), all file paths passed to it MUST be relative \
     to that workspace root.
     - Summarize the result if it is excessively long.
     - If a tool call fails, the error response tells you what went wrong and how to \
@@ -170,12 +211,17 @@ public protocol ToolReferenceProviding {
 public struct AnyTool: Tool, Sendable {
     private let wrapped: any Tool
 
-    /// Optional metadata about where the tool originated (e.g. workspace name).
-    public var provenance: String?
+    /// Metadata about where the tool originated.
+    public var provenance: ToolProvenance
 
-    public init(_ tool: any Tool, provenance: String? = nil) {
+    public init(_ tool: any Tool, provenance: ToolProvenance = .global) {
         wrapped = tool
         self.provenance = provenance
+    }
+
+    @available(*, deprecated, renamed: "init(_:provenance:)")
+    public init(_ tool: any Tool, provenance: String?) {
+        self.init(tool, provenance: provenance.map { .named($0) } ?? .global)
     }
 
     public var id: String {

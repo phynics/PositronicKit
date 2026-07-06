@@ -36,9 +36,6 @@ public struct ListDirectoryTool: Tool, Sendable {
             JSONProperty(key: "path") {
                 JSONString().description("The path to the directory (defaults to current directory if omitted)")
             }
-            JSONProperty(key: "workspaceID") {
-                JSONString().description("The UUID of the workspace to target (optional)")
-            }
         }.schema
     }
 

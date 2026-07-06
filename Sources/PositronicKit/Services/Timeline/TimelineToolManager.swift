@@ -15,11 +15,18 @@ public actor TimelineToolManager {
     /// Registered workspaces providing tools
     private var workspaces: [UUID: any WorkspaceProtocol] = [:]
 
-    /// Cached workspace tools: toolId -> (wrapper, provenance string)
-    private var workspaceTools: [String: (tool: WorkspaceToolWrapper, provenance: String)] = [:]
+    /// Cached workspace tools: toolId -> (wrapper, provenance)
+    private var workspaceTools: [String: (tool: WorkspaceToolWrapper, provenance: ToolProvenance)] = [:]
 
-    /// Cached known-tool overrides from workspaces: toolId -> Set of provenance strings
-    private var knownToolProvenance: [String: Set<String>] = [:]
+    /// Cached known-tool overrides from workspaces: toolId -> Set of provenance tags.
+    private var knownToolProvenance: [String: Set<ToolProvenance>] = [:]
+
+    /// Explicitly registered tool providers (global or workspace-bound). Assembled alongside
+    /// workspace-derived tools so the runtime has a single canonical source for turn tools.
+    private var toolProviders: [UUID: any ToolProviding] = [:]
+
+    /// Cached provider tools: toolId -> tool.
+    private var providerTools: [String: AnyTool] = [:]
 
     private let logger = Logger.module(named: "session-tool-manager")
 
@@ -54,13 +61,29 @@ public actor TimelineToolManager {
         await refreshWorkspaceTools()
     }
 
+    /// Register an explicit tool provider. Provider tools are assembled into the turn tool set
+    /// alongside workspace-derived tools.
+    public func registerToolProvider(_ provider: any ToolProviding, id: UUID) async {
+        toolProviders[id] = provider
+        await refreshProviderTools()
+    }
+
+    /// Unregister a tool provider.
+    public func unregisterToolProvider(_ id: UUID) async {
+        toolProviders.removeValue(forKey: id)
+        await refreshProviderTools()
+    }
+
     /// Refresh tools from all registered workspaces
     private func refreshWorkspaceTools() async {
-        var newTools: [String: (tool: WorkspaceToolWrapper, provenance: String)] = [:]
-        var newKnownProvenance: [String: Set<String>] = [:]
+        var newTools: [String: (tool: WorkspaceToolWrapper, provenance: ToolProvenance)] = [:]
+        var newKnownProvenance: [String: Set<ToolProvenance>] = [:]
 
         for workspace in workspaces.values {
-            let provenanceTag = "Workspace: \(workspace.reference.uri.description)"
+            let provenanceTag = ToolProvenance.workspace(
+                id: workspace.id,
+                name: workspace.reference.uri.description
+            )
             do {
                 let refs = try await workspace.listTools()
                 for ref in refs {
@@ -88,6 +111,19 @@ public actor TimelineToolManager {
         knownToolProvenance = newKnownProvenance
     }
 
+    /// Refresh tools from all registered providers. Provider tools that declare `.global`
+    /// provenance are stamped with the provider's `toolProvenance` via `resolvedTools()`.
+    private func refreshProviderTools() async {
+        var newProviderTools: [String: AnyTool] = [:]
+        for provider in toolProviders.values {
+            let tools = await provider.resolvedTools()
+            for tool in tools {
+                newProviderTools[tool.id] = tool
+            }
+        }
+        providerTools = newProviderTools
+    }
+
     /// Get tools that are currently enabled, including context tools if a context is active
     public func getEnabledTools() async -> [AnyTool] {
         var tools = availableTools.filter { enabledTools.contains($0.id) }
@@ -96,7 +132,7 @@ public actor TimelineToolManager {
         tools = tools.map { tool in
             if let provenanceSet = knownToolProvenance[tool.id], !provenanceSet.isEmpty {
                 var tagged = tool
-                tagged.provenance = provenanceSet.sorted().joined(separator: ", ")
+                tagged.provenance = provenanceSet.sorted(by: { $0.displayName < $1.displayName }).first ?? .global
                 return tagged
             }
             return tool
@@ -114,6 +150,9 @@ public actor TimelineToolManager {
             return tool
         })
 
+        // Include explicitly registered provider tools
+        tools.append(contentsOf: providerTools.values)
+
         return tools
     }
 
@@ -124,7 +163,7 @@ public actor TimelineToolManager {
         tools = tools.map { tool in
             if let provenanceSet = knownToolProvenance[tool.id], !provenanceSet.isEmpty {
                 var tagged = tool
-                tagged.provenance = provenanceSet.sorted().joined(separator: ", ")
+                tagged.provenance = provenanceSet.sorted(by: { $0.displayName < $1.displayName }).first ?? .global
                 return tagged
             }
             return tool
@@ -136,6 +175,9 @@ public actor TimelineToolManager {
             tool.provenance = entry.provenance
             return tool
         })
+
+        // Append explicitly registered provider tools
+        tools.append(contentsOf: providerTools.values)
         return tools
     }
 
@@ -168,7 +210,7 @@ public actor TimelineToolManager {
         if let tool = availableTools.first(where: { $0.id == id }) {
             if let provenanceSet = knownToolProvenance[id], !provenanceSet.isEmpty {
                 var tagged = tool
-                tagged.provenance = provenanceSet.sorted().joined(separator: ", ")
+                tagged.provenance = provenanceSet.sorted(by: { $0.displayName < $1.displayName }).first ?? .global
                 return tagged
             }
             return tool
@@ -185,6 +227,11 @@ public actor TimelineToolManager {
         if let entry = workspaceTools[id] {
             var tool = AnyTool(entry.tool)
             tool.provenance = entry.provenance
+            return tool
+        }
+
+        // Then check explicitly registered provider tools
+        if let tool = providerTools[id] {
             return tool
         }
 

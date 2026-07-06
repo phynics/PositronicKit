@@ -55,9 +55,6 @@ public struct SearchFileContentTool: Tool, Sendable {
             JSONProperty(key: "recursive") {
                 JSONBoolean().description("Whether to search recursively (default: false)")
             }
-            JSONProperty(key: "workspaceID") {
-                JSONString().description("The UUID of the workspace to target (optional)")
-            }
         }.schema
     }
 

@@ -17,7 +17,8 @@ public protocol WorkspaceProtocol: Sendable {
     /// List all available tools in this workspace
     func listTools() async throws -> [ToolReference]
 
-    /// Execute a specific tool in this workspace
+    /// Execute a specific tool in this workspace. Defaults to throwing
+    /// `WorkspaceError.toolExecutionNotSupported`; override for remote or parity-path execution.
     func executeTool(id: String, parameters: [String: AnyCodable]) async throws -> ToolResult
 
     /// Read a file from the workspace
@@ -34,6 +35,15 @@ public protocol WorkspaceProtocol: Sendable {
 
     /// Get the health/status of the workspace connection
     func healthCheck() async -> Bool
+}
+
+public extension WorkspaceProtocol {
+    /// Default tool-execution sink: workspaces that do not implement their own execution
+    /// route (e.g. local filesystem workspaces whose tools are bound instances) throw
+    /// `toolExecutionNotSupported`. Remote or parity-path workspaces may override this.
+    func executeTool(id _: String, parameters _: [String: AnyCodable]) async throws -> ToolResult {
+        throw WorkspaceError.toolExecutionNotSupported
+    }
 }
 
 public enum WorkspaceError: PKError, Sendable {

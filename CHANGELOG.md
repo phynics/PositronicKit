@@ -10,6 +10,13 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- Workspace-scoped tool grouping (PKPOST-004): new `ToolProviding` protocol and structural
+  `ToolProvenance` enum in `PKShared` (`global`, `workspace(id:name:)`, `terminal(id:name:)`,
+  `named(String)`). `AnyTool.provenance` is now `ToolProvenance` with a one-release deprecated
+  string-init bridge. `TimelineToolManager` gains `registerToolProvider(_:id:)` /
+  `unregisterToolProvider(_:)` so the runtime assembles turn tools from global tools plus
+  workspace/terminal providers. `WorkspaceProtocol.executeTool(id:parameters:)` is now optional
+  with a default throwing implementation; the dead stub in `Monad.LocalWorkspace` is removed.
 - `PKFoundationModelsProvider` (PKPOST-003): Apple's on-device Foundation Models framework as
   a provider — `FoundationModelsClient` maps `LanguageModelSession` streaming onto
   `LLMStreamChunk` via a testable session-abstraction seam, bridges PositronicKit tools into
@@ -26,6 +33,14 @@ for tagged releases beginning with `1.0.0`.
   other adapters, and a `PositronicKit(anthropicKey:)` convenience initializer. Structured
   output rides the forced synthetic-tool path (`.anthropic` shares the `openAICompatible`
   branch) since the Messages API has no `response_format`.
+
+### Changed
+
+- Filesystem tools (`ReadFileTool`, `ListDirectoryTool`, `FindFileTool`, `SearchFilesTool`,
+  `SearchFileContentTool`) no longer declare a `workspaceID` schema parameter. Workspace tools
+  are constructed bound to their owning workspace, so routing context is structural (provenance)
+  rather than echoed per-call by the model. Historical calls with a stray `workspaceID`
+  argument continue to execute.
 
 ### Fixed
 

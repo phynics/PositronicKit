@@ -255,7 +255,7 @@ struct WorkspacesContextTests {
         )
         let output = try await section.renderToString() ?? ""
         #expect(output.hasSuffix(
-            "2. When multiple workspaces expose the same tool, pass `workspaceID` to disambiguate; otherwise a default is used.\n"
+            "2. Treat workspace-tagged tools as already bound to their labeled workspace; do not add workspace ids to tool arguments.\n"
         ))
     }
 }

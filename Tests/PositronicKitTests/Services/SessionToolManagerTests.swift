@@ -188,10 +188,36 @@ final class TimelineToolManagerTests {
         let available = await manager.getAvailableTools()
         let tool = available.first(where: { $0.name == "provTool" })
         try #require(tool != nil)
-        #expect(tool?.provenance?.contains("pk://test-workspace-prov") == true)
+        #expect(tool?.provenance == .workspace(id: workspaceId, name: "pk://test-workspace-prov"))
 
         let fetched = try await manager.getTool(id: #require(tool?.id))
-        #expect(fetched?.provenance?.contains("pk://test-workspace-prov") == true)
+        #expect(fetched?.provenance == .workspace(id: workspaceId, name: "pk://test-workspace-prov"))
+    }
+
+    @Test
+
+    func toolProviderRegistration() async throws {
+        let manager = TimelineToolManager(availableTools: [])
+
+        struct TestProvider: ToolProviding {
+            let toolProvenance: ToolProvenance = .workspace(id: UUID(), name: "Provider")
+            func provideTools() async -> [AnyTool] {
+                [AnyTool(MockTool(id: "provided", name: "Provided Tool"))]
+            }
+        }
+
+        let providerId = UUID()
+        let provider = TestProvider()
+        await manager.registerToolProvider(provider, id: providerId)
+
+        let available = await manager.getAvailableTools()
+        #expect(available.count == 1)
+        #expect(available.first?.id == "provided")
+        #expect(available.first?.provenance == provider.toolProvenance)
+
+        await manager.unregisterToolProvider(providerId)
+        let availableAfter = await manager.getAvailableTools()
+        #expect(availableAfter.isEmpty)
     }
 
     @Test
@@ -213,9 +239,9 @@ final class TimelineToolManagerTests {
         let available = await manager.getAvailableTools()
         let tool = available.first(where: { $0.id == "cat" })
         try #require(tool != nil)
-        #expect(tool?.provenance == "Workspace: pk://test-known-tool")
+        #expect(tool?.provenance == .workspace(id: workspaceId, name: "pk://test-known-tool"))
 
         let fetched = await manager.getTool(id: "cat")
-        #expect(fetched?.provenance == "Workspace: pk://test-known-tool")
+        #expect(fetched?.provenance == .workspace(id: workspaceId, name: "pk://test-known-tool"))
     }
 }

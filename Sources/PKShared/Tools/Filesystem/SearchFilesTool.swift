@@ -55,9 +55,6 @@ public struct SearchFilesTool: Tool, Sendable {
             JSONProperty(key: "include") {
                 JSONString().description("Optional glob pattern for files to include (e.g. '*.swift')")
             }
-            JSONProperty(key: "workspaceID") {
-                JSONString().description("The UUID of the workspace to target (optional)")
-            }
         }.schema
     }
 

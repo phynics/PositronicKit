@@ -40,9 +40,6 @@ public struct FindFileTool: Tool, Sendable {
                 JSONString().description("The filename pattern to match (contains check, case insensitive)")
             }
             .required()
-            JSONProperty(key: "workspaceID") {
-                JSONString().description("The UUID of the workspace to target (optional)")
-            }
         }.schema
     }
 

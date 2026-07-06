@@ -251,7 +251,7 @@ public struct WorkspacesContext: Prompt {
 
         output += "## Workspace Routing Rules\n"
         output += "1. Paths passed to tools MUST be relative to the targeted workspace root.\n"
-        output += "2. When multiple workspaces expose the same tool, pass `workspaceID` to disambiguate; otherwise a default is used.\n"
+        output += "2. Treat workspace-tagged tools as already bound to their labeled workspace; do not add workspace ids to tool arguments.\n"
 
         return output
     }

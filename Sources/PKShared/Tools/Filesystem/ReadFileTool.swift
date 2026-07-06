@@ -37,9 +37,6 @@ public struct ReadFileTool: Tool, Sendable {
                 JSONString().description("The path to the file to read")
             }
             .required()
-            JSONProperty(key: "workspaceID") {
-                JSONString().description("The UUID of the workspace to target (optional)")
-            }
         }.schema
     }
 

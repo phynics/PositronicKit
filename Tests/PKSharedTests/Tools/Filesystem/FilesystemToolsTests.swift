@@ -358,4 +358,74 @@ struct FilesystemToolsTests {
         #expect(result.success)
         #expect(result.output == "Hello World")
     }
+
+    // MARK: - Stray workspaceID tolerance (PKPOST-004b)
+
+    @Test("ReadFileTool tolerates stray workspaceID argument")
+    func readFileToolToleratesStrayWorkspaceID() async throws {
+        defer { cleanup() }
+        let tool = ReadFileTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
+        let result = try await tool.execute(parameters: [
+            "path": "file1.txt",
+            "workspaceID": "08573919-5c5e-4fb9-9285-352a8c88f7ab",
+        ])
+
+        #expect(result.success)
+        #expect(result.output == "Hello World")
+    }
+
+    @Test("ListDirectoryTool tolerates stray workspaceID argument")
+    func listDirectoryToolToleratesStrayWorkspaceID() async throws {
+        defer { cleanup() }
+        let tool = ListDirectoryTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
+        let result = try await tool.execute(parameters: [
+            "path": ".",
+            "workspaceID": "08573919-5c5e-4fb9-9285-352a8c88f7ab",
+        ])
+
+        #expect(result.success)
+        #expect(result.output.contains("file1.txt"))
+    }
+
+    @Test("FindFileTool tolerates stray workspaceID argument")
+    func findFileToolToleratesStrayWorkspaceID() async throws {
+        defer { cleanup() }
+        let tool = FindFileTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
+        let result = try await tool.execute(parameters: [
+            "path": ".",
+            "pattern": "nested",
+            "workspaceID": "08573919-5c5e-4fb9-9285-352a8c88f7ab",
+        ])
+
+        #expect(result.success)
+        #expect(result.output.contains("subdir/nested.txt"))
+    }
+
+    @Test("SearchFilesTool tolerates stray workspaceID argument")
+    func searchFilesToolToleratesStrayWorkspaceID() async throws {
+        defer { cleanup() }
+        let tool = SearchFilesTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
+        let result = try await tool.execute(parameters: [
+            "pattern": "Hello",
+            "workspaceID": "08573919-5c5e-4fb9-9285-352a8c88f7ab",
+        ])
+
+        #expect(result.success)
+        #expect(result.output.contains("file1.txt"))
+    }
+
+    @Test("SearchFileContentTool tolerates stray workspaceID argument")
+    func searchFileContentToolToleratesStrayWorkspaceID() async throws {
+        defer { cleanup() }
+        let tool = SearchFileContentTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
+        let result = try await tool.execute(parameters: [
+            "path": ".",
+            "pattern": "Hello",
+            "recursive": false,
+            "workspaceID": "08573919-5c5e-4fb9-9285-352a8c88f7ab",
+        ])
+
+        #expect(result.success)
+        #expect(result.output.contains("file1.txt"))
+    }
 }
