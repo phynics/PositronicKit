@@ -289,12 +289,15 @@ public final class MockLLMService: LLMServiceProtocol, @unchecked Sendable, Heal
     }
 
     public func generateTags(for _: String) async throws -> [String] {
-        return nextTags
+        return nextTags.map { $0.lowercased() }
     }
 
     public func generateTitle(for messages: [Message]) async throws -> String {
         generatedTitleInputs.append(messages)
-        return nextGeneratedTitle
+        let title = nextGeneratedTitle
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "\"", with: "")
+        return title.isEmpty ? "New Conversation" : title
     }
 
     public func evaluateRecallPerformance(transcript _: String, recalledMemories _: [Memory]) async throws

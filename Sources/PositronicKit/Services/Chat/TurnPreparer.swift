@@ -4,61 +4,17 @@ import Logging
 import PKPrompt
 import PKShared
 
-/// Errors thrown by `ChatEngine` during setup and execution.
-enum ChatEngineError: PKError {
-    case llmServiceNotConfigured
-    case missingInput
-    case streamTimedOut(TimeInterval)
-    case danglingToolCall(id: String)
-    case danglingToolResult(id: String)
+/// Owns turn preparation: saving inputs, gathering context, resolving session entities,
+/// building the initial prompt, and recording the prompt-history snapshot.
+///
+/// Extracted from `ChatEngine` (PKARCH-001) so the preparation path can be tested and
+/// reasoned about independently of the ReAct loop. `ChatEngine.execute` delegates to this
+/// type for the pre-loop phase, then hands the resulting `ChatTurnContext` to
+/// `TurnLoopController`.
+struct TurnPreparer {
+    let dependencies: ChatEngine.Dependencies
+    let logger: Logger
 
-    var errorDomain: String {
-        PKErrorDomain.chat
-    }
-
-    var errorCode: Int {
-        switch self {
-        case .llmServiceNotConfigured: return 9001
-        case .missingInput: return 9002
-        case .streamTimedOut: return 9003
-        case .danglingToolCall: return 9004
-        case .danglingToolResult: return 9005
-        }
-    }
-
-    var userFriendlyMessage: String {
-        switch self {
-        case .llmServiceNotConfigured:
-            return "The LLM service is not configured. Please set up your API endpoint and key."
-        case .missingInput:
-            return "A message or tool outputs must be provided to start a chat turn."
-        case let .streamTimedOut(timeout):
-            return "The model stream did not finish within \(Self.timeoutDescription(timeout)). Please try again."
-        case let .danglingToolCall(id):
-            return "Conversation history contains an assistant tool call with id '\(id)' that has no matching tool result."
-        case let .danglingToolResult(id):
-            return "Conversation history contains a tool result with id '\(id)' that has no matching assistant tool call."
-        }
-    }
-
-    var remediation: String? {
-        switch self {
-        case .danglingToolCall, .danglingToolResult:
-            return "Repair the persisted conversation history so assistant tool calls and tool results are paired before retrying."
-        case .llmServiceNotConfigured, .missingInput, .streamTimedOut:
-            return nil
-        }
-    }
-
-    private static func timeoutDescription(_ timeout: TimeInterval) -> String {
-        if timeout.rounded() == timeout {
-            return "\(Int(timeout)) seconds"
-        }
-        return "\(timeout) seconds"
-    }
-}
-
-extension ChatEngine {
     /// Consolidates all pre-turn logic: saving inputs, gathering context, resolving entities,
     /// and building the initial prompt.
     func prepareSession(
@@ -241,7 +197,7 @@ extension ChatEngine {
         toolOutputs: [ToolOutputSubmission]?
     ) async throws {
         if let toolOutputs {
-            try await Self.externalToolOutputGate.saveValidatedToolOutputs(
+            try await Self.externalToolOutputSubmissionGate.saveValidatedToolOutputs(
                 toolOutputs,
                 timelineId: timelineId,
                 messageStore: dependencies.messageStore
@@ -256,7 +212,66 @@ extension ChatEngine {
         }
     }
 
-    private static let externalToolOutputGate = ExternalToolOutputSubmissionGate()
+    private static let externalToolOutputSubmissionGate = ExternalToolOutputSubmissionGate()
+
+    private func fetchContext(
+        contextManager: ContextManager?,
+        message: String,
+        history: [Message],
+        pipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil
+    ) async -> ContextData {
+        guard let contextManager else { return ContextData() }
+
+        do {
+            let stream = await contextManager.gatherContext(
+                for: message.isEmpty ? (history.last?.content ?? "") : message,
+                history: history,
+                tagGenerator: { [utilityClient = dependencies.utilityClient] query in try await utilityClient.generateTags(for: query) },
+                overridePipeline: pipeline
+            )
+
+            for try await event in stream {
+                if case let .complete(data) = event {
+                    return data
+                }
+            }
+        } catch {
+            logger.warning("Failed to gather context: \(error)")
+        }
+        return ContextData()
+    }
+
+    private func validateToolHistory(_ history: [Message]) throws {
+        var pendingToolCallIds = Set<String>()
+
+        for message in history {
+            switch message.role {
+            case .assistant:
+                let toolCalls = message.toolCalls ?? []
+                if !pendingToolCallIds.isEmpty {
+                    throw ChatEngineError.danglingToolCall(id: pendingToolCallIds.min() ?? toolCalls.first?.id ?? "<unknown>")
+                }
+                if !toolCalls.isEmpty {
+                    pendingToolCallIds = Set(toolCalls.map(\.id))
+                }
+            case .tool:
+                guard let toolCallId = message.toolCallId else {
+                    throw ChatEngineError.danglingToolResult(id: "<missing>")
+                }
+                guard pendingToolCallIds.remove(toolCallId) != nil else {
+                    throw ChatEngineError.danglingToolResult(id: toolCallId)
+                }
+            case .user, .system, .summary:
+                if !pendingToolCallIds.isEmpty {
+                    throw ChatEngineError.danglingToolCall(id: pendingToolCallIds.min() ?? "<unknown>")
+                }
+            }
+        }
+
+        guard pendingToolCallIds.isEmpty else {
+            throw ChatEngineError.danglingToolCall(id: pendingToolCallIds.min() ?? "<unknown>")
+        }
+    }
 }
 
 private actor ExternalToolOutputSubmissionGate {
@@ -330,65 +345,4 @@ private actor ExternalToolOutputSubmissionGate {
 private struct ReservedToolOutput: Hashable {
     let timelineId: UUID
     let toolCallId: String
-}
-
-extension ChatEngine {
-    private func fetchContext(
-        contextManager: ContextManager?,
-        message: String,
-        history: [Message],
-        pipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil
-    ) async -> ContextData {
-        guard let contextManager else { return ContextData() }
-
-        do {
-            let stream = await contextManager.gatherContext(
-                for: message.isEmpty ? (history.last?.content ?? "") : message,
-                history: history,
-                tagGenerator: { [llmService = dependencies.llmService] query in try await llmService.generateTags(for: query) },
-                overridePipeline: pipeline
-            )
-
-            for try await event in stream {
-                if case let .complete(data) = event {
-                    return data
-                }
-            }
-        } catch {
-            logger.warning("Failed to gather context: \(error)")
-        }
-        return ContextData()
-    }
-
-    private func validateToolHistory(_ history: [Message]) throws {
-        var pendingToolCallIds = Set<String>()
-
-        for message in history {
-            switch message.role {
-            case .assistant:
-                let toolCalls = message.toolCalls ?? []
-                if !pendingToolCallIds.isEmpty {
-                    throw ChatEngineError.danglingToolCall(id: pendingToolCallIds.min() ?? toolCalls.first?.id ?? "<unknown>")
-                }
-                if !toolCalls.isEmpty {
-                    pendingToolCallIds = Set(toolCalls.map(\.id))
-                }
-            case .tool:
-                guard let toolCallId = message.toolCallId else {
-                    throw ChatEngineError.danglingToolResult(id: "<missing>")
-                }
-                guard pendingToolCallIds.remove(toolCallId) != nil else {
-                    throw ChatEngineError.danglingToolResult(id: toolCallId)
-                }
-            case .user, .system, .summary:
-                if !pendingToolCallIds.isEmpty {
-                    throw ChatEngineError.danglingToolCall(id: pendingToolCallIds.min() ?? "<unknown>")
-                }
-            }
-        }
-
-        guard pendingToolCallIds.isEmpty else {
-            throw ChatEngineError.danglingToolCall(id: pendingToolCallIds.min() ?? "<unknown>")
-        }
-    }
 }

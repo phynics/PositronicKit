@@ -39,6 +39,43 @@ for tagged releases beginning with `1.0.0`.
 
 ### Changed
 
+- Narrowed the LLM service seam (PKARCH-004, public API refactor). The wide
+  `LLMServiceProtocol` (16 requirements) is split into three focused protocols:
+  - `LLMStreamClient` — streaming chat (`chatStream`, `chatStreamWithContext`) plus
+    `isConfigured`/`configuration` for setup inspection.
+  - `LLMConfigStore` — configuration lifecycle (`load`/`update`/`clear`/`restore`/
+    `export`/`import`).
+  - `LLMUtilityClient` — one-shot/utility tasks (`sendMessage`, `generateTags`,
+    `generateTitle`, `evaluateRecallPerformance`, `fetchAvailableModels`).
+  `LLMService` conforms to all three. `LLMServiceProtocol` is now a
+  `@available(*, deprecated)` empty protocol inheriting all three plus `HealthCheckable`,
+  so existing `any LLMServiceProtocol` usage still compiles with a deprecation warning.
+  The structured-output, stream, and utility default-implementation extensions were
+  re-targeted onto `LLMStreamClient` (and `LLMUtilityClient where Self: LLMStreamClient`
+  for the utility defaults that build on `sendStructured`). `HealthCheckable` stays on
+  `LLMService` directly, not on the narrow protocols. Consumers should narrow their seams
+  to the smallest protocol they need (`LLMStreamClient`, `LLMConfigStore`, or
+  `LLMUtilityClient`); the deprecated composite will be removed in a future release.
+  Migration note: `LLMService`/`MockLLMService`/`UnconfiguredLLMService` still conform to
+  `LLMServiceProtocol`, so `any LLMServiceProtocol` call sites compile unchanged (deprecation
+  warnings only). `ChatEngine`, `LLMStreamingStage`, `ChatTurnPipelineBuilder`, and
+  `TimelineArchiver` were narrowed to the seam they actually use.
+- Deepened the ChatEngine turn-orchestration module (PKARCH-001, internal refactor — no
+  public API impact). `ChatEngine` is now a thin coordinator that delegates to four focused
+  internal modules behind the same seam:
+  - `TurnLoopController` — the ReAct continuation loop, max-turns enforcement, and
+    cancellation handling (STAB-1 partial persistence on the error path).
+  - `TurnPreparer` — session preparation: saving inputs, gathering context, resolving
+    session entities, and building the initial prompt snapshot.
+  - `PromptSnapshotBuilder` — follow-up prompt synthesis with the incremental-string
+    assembly that avoids O(n²) re-rendering (PKR-10).
+  - `PartialAssistantPersistence` — STAB-1 partial-assistant persistence on stream
+    failure/cancellation.
+  `ChatTurnFollowUpPolicy` was already a top-level module and is unchanged. Behavior is
+  preserved exactly for cancellation, partial persistence, plugin follow-up, sidecar
+  validation, and prompt-history journal-diff continuity. `ChatEngine` now depends on
+  `LLMStreamClient` (streaming) plus `LLMUtilityClient` (RAG tag generation in
+  `TurnPreparer.fetchContext`) rather than the full `LLMServiceProtocol`.
 - Filesystem tools (`ReadFileTool`, `ListDirectoryTool`, `FindFileTool`, `SearchFilesTool`,
   `SearchFileContentTool`) no longer declare a `workspaceID` schema parameter. Workspace tools
   are constructed bound to their owning workspace, so routing context is structural (provenance)

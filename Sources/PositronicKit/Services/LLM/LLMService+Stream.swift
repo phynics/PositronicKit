@@ -1,7 +1,7 @@
 import Foundation
 import PKShared
 
-public extension LLMServiceProtocol {
+public extension LLMStreamClient {
     /// Stream chat with full prompt building (includes notes, history, etc.)
     func chatStreamWithContext(_ request: LLMChatRequest) async throws -> LLMStreamResult {
         let promptRequest = LLMPromptRequest(

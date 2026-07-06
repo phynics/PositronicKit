@@ -121,29 +121,13 @@ public struct LLMPromptRequest: Sendable {
 }
 
 /// Parsed endpoint components.
-// MARK: - Protocol
+// MARK: - Narrow LLM seams
 
-/// Protocol for LLM Service to enable mocking and isolation
-public protocol LLMServiceProtocol: HealthCheckable, Sendable {
+/// Streaming chat seam: a consumer that drives LLM generation by streaming chat
+/// completions. This is the narrowest seam the runtime turn loop needs.
+public protocol LLMStreamClient: Sendable {
     var isConfigured: Bool { get async }
     var configuration: LLMConfiguration { get async }
-
-    // Configuration Management
-    func loadConfiguration() async
-    func updateConfiguration(_ config: LLMConfiguration) async throws
-    func clearConfiguration() async
-    func restoreFromBackup() async throws
-    func exportConfiguration() async throws -> Data
-    func importConfiguration(from data: Data) async throws
-
-    // Core LLM Interaction
-    func sendMessage(_ content: String) async throws -> String
-    func sendMessage(
-        _ content: String,
-        responseFormat: LLMResponseFormat?,
-        generationParameters: GenerationParameters?,
-        useUtilityModel: Bool
-    ) async throws -> String
 
     func chatStreamWithContext(_ request: LLMChatRequest) async throws -> LLMStreamResult
 
@@ -157,8 +141,32 @@ public protocol LLMServiceProtocol: HealthCheckable, Sendable {
         useUtilityModel: Bool,
         useFastModel: Bool
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error>
+}
 
-    // Utilities
+/// Configuration lifecycle seam: load, update, clear, back up, and transfer an LLM
+/// service's configuration. Consumers that only manage provider settings depend on this
+/// rather than the full LLM surface.
+public protocol LLMConfigStore: Sendable {
+    func loadConfiguration() async
+    func updateConfiguration(_ config: LLMConfiguration) async throws
+    func clearConfiguration() async
+    func restoreFromBackup() async throws
+    func exportConfiguration() async throws -> Data
+    func importConfiguration(from data: Data) async throws
+}
+
+/// Utility LLM task seam: one-shot message sends, tag/title generation, recall
+/// evaluation, and model listing. These are non-streaming helper tasks that some hosts
+/// drive independently of the chat turn loop.
+public protocol LLMUtilityClient: Sendable {
+    func sendMessage(_ content: String) async throws -> String
+    func sendMessage(
+        _ content: String,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        useUtilityModel: Bool
+    ) async throws -> String
+
     func generateTags(for text: String) async throws -> [String]
     func generateTitle(for messages: [Message]) async throws -> String
     func evaluateRecallPerformance(transcript: String, recalledMemories: [Memory]) async throws
@@ -166,7 +174,18 @@ public protocol LLMServiceProtocol: HealthCheckable, Sendable {
     func fetchAvailableModels() async throws -> [String]?
 }
 
-public extension LLMServiceProtocol {
+// MARK: - Deprecated composite
+
+/// Composite of the three narrow LLM seams plus `HealthCheckable`, retained for migration.
+///
+/// Prefer the narrow protocols (`LLMStreamClient`, `LLMConfigStore`, `LLMUtilityClient`)
+/// directly. `LLMService` conforms to all three; new code should depend on the smallest seam
+/// it needs. This typealias will be removed in a future release.
+@available(*, deprecated, message: "Depend on LLMStreamClient, LLMConfigStore, or LLMUtilityClient directly; LLMService conforms to all three.")
+public protocol LLMServiceProtocol: LLMStreamClient, LLMConfigStore, LLMUtilityClient, HealthCheckable {}
+
+public extension LLMStreamClient {
+    /// Default-args convenience for the low-level streaming entry point.
     func chatStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]? = nil,

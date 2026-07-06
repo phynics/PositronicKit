@@ -5,7 +5,7 @@ import PKShared
 
 /// Pipeline stage responsible for streaming the response from the LLM and parsing deltas.
 struct LLMStreamingStage: PipelineStage {
-    let llmService: any LLMServiceProtocol
+    let llmService: any LLMStreamClient
     let logger: Logger
     let streamTimeout: TimeInterval
 

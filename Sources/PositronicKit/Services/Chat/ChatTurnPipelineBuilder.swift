@@ -9,7 +9,7 @@ import PKShared
 /// default turn pipeline and how package-internal additional stages are appended.
 enum ChatTurnPipelineBuilder {
     static func makePipeline(
-        llmService: any LLMServiceProtocol,
+        llmService: any LLMStreamClient,
         messageStore: any MessageStoreProtocol,
         logger: Logger,
         streamTimeout: TimeInterval,

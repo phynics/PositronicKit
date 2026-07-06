@@ -14,13 +14,13 @@ public enum MemoryVacuumPolicy: Sendable {
 /// Service to archive conversations and index them for semantic recall
 public actor TimelineArchiver {
     private let persistence: any TimelinePersistenceProtocol & MemoryStoreProtocol & MessageStoreProtocol
-    private let llmService: any LLMServiceProtocol
+    private let llmService: any LLMUtilityClient
     private let embeddingService: any EmbeddingServiceProtocol
     private let logger = Logger.module(named: "timeline-archiver")
 
     public init(
         persistence: any TimelinePersistenceProtocol & MemoryStoreProtocol & MessageStoreProtocol,
-        llmService: any LLMServiceProtocol,
+        llmService: any LLMUtilityClient,
         embeddingService: any EmbeddingServiceProtocol
     ) {
         self.persistence = persistence

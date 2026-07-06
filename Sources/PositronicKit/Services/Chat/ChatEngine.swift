@@ -1,16 +1,75 @@
+import ErrorKit
 import Foundation
 import Logging
 import PKPrompt
 import PKShared
 
+/// Errors thrown by `ChatEngine` during setup and execution.
+enum ChatEngineError: PKError {
+    case llmServiceNotConfigured
+    case missingInput
+    case streamTimedOut(TimeInterval)
+    case danglingToolCall(id: String)
+    case danglingToolResult(id: String)
+
+    var errorDomain: String {
+        PKErrorDomain.chat
+    }
+
+    var errorCode: Int {
+        switch self {
+        case .llmServiceNotConfigured: return 9001
+        case .missingInput: return 9002
+        case .streamTimedOut: return 9003
+        case .danglingToolCall: return 9004
+        case .danglingToolResult: return 9005
+        }
+    }
+
+    var userFriendlyMessage: String {
+        switch self {
+        case .llmServiceNotConfigured:
+            return "The LLM service is not configured. Please set up your API endpoint and key."
+        case .missingInput:
+            return "A message or tool outputs must be provided to start a chat turn."
+        case let .streamTimedOut(timeout):
+            return "The model stream did not finish within \(Self.timeoutDescription(timeout)). Please try again."
+        case let .danglingToolCall(id):
+            return "Conversation history contains an assistant tool call with id '\(id)' that has no matching tool result."
+        case let .danglingToolResult(id):
+            return "Conversation history contains a tool result with id '\(id)' that has no matching assistant tool call."
+        }
+    }
+
+    var remediation: String? {
+        switch self {
+        case .danglingToolCall, .danglingToolResult:
+            return "Repair the persisted conversation history so assistant tool calls and tool results are paired before retrying."
+        case .llmServiceNotConfigured, .missingInput, .streamTimedOut:
+            return nil
+        }
+    }
+
+    private static func timeoutDescription(_ timeout: TimeInterval) -> String {
+        if timeout.rounded() == timeout {
+            return "\(Int(timeout)) seconds"
+        }
+        return "\(timeout) seconds"
+    }
+}
+
 /// Unified runtime turn orchestrator for both interactive chat and autonomous execution.
 /// Returns `AsyncThrowingStream<ChatEvent>` for all use cases — callers decide how to consume.
 ///
-/// `ChatEngine` owns the internal turn loop policy for the runtime: session preparation, prompt
-/// assembly handoff, per-turn stage execution, runtime-managed tool continuation, and post-turn
-/// plugin follow-up. It is deliberately *not* the public customization surface for downstream
-/// applications; external callers are expected to integrate through `PositronicKit` and the
-/// higher-level extension protocols rather than depending on this concrete orchestrator directly.
+/// `ChatEngine` is a thin coordinator: it validates preconditions, delegates session
+/// preparation to `TurnPreparer`, and hands the prepared context to `TurnLoopController`
+/// which owns the ReAct loop. Prompt follow-up synthesis (`PromptSnapshotBuilder`) and
+/// partial-assistant persistence (`PartialAssistantPersistence`) are delegated to focused
+/// modules behind this seam.
+///
+/// It is deliberately *not* the public customization surface for downstream applications;
+/// external callers are expected to integrate through `PositronicKit` and the higher-level
+/// extension protocols rather than depending on this concrete orchestrator directly.
 struct ChatEngine {
     struct Dependencies {
         /// Production default for the per-stream idle watchdog. Callers must pass an explicit
@@ -21,7 +80,13 @@ struct ChatEngine {
         let agentInstanceStore: any AgentInstanceStoreProtocol
         let requestOriginStore: any RequestOriginStoreProtocol
         let messageStore: any MessageStoreProtocol
-        let llmService: any LLMServiceProtocol
+        /// Streaming chat seam: the runtime turn loop, `LLMStreamingStage`, and the
+        /// `isConfigured`/`configuration` precondition checks depend only on this.
+        let llmService: any LLMStreamClient
+        /// Utility seam used solely by `TurnPreparer.fetchContext` to generate RAG tags
+        /// (`generateTags`). Kept separate from `llmService` so the streaming seam stays
+        /// narrow; the facade and tests pass the same object for both (PKARCH-004 tension).
+        let utilityClient: any LLMUtilityClient
         let toolRouter: ToolRouter
         let chatTurnPlugins: [any ChatTurnPlugin]
         let turnInspector: (any TurnInspecting)?
@@ -33,7 +98,7 @@ struct ChatEngine {
             agentInstanceStore: any AgentInstanceStoreProtocol,
             requestOriginStore: any RequestOriginStoreProtocol,
             messageStore: any MessageStoreProtocol,
-            llmService: any LLMServiceProtocol,
+            llmService: any LLMStreamClient & LLMUtilityClient,
             toolRouter: ToolRouter,
             chatTurnPlugins: [any ChatTurnPlugin],
             turnInspector: (any TurnInspecting)? = nil,
@@ -45,6 +110,7 @@ struct ChatEngine {
             self.requestOriginStore = requestOriginStore
             self.messageStore = messageStore
             self.llmService = llmService
+            self.utilityClient = llmService
             self.toolRouter = toolRouter
             self.chatTurnPlugins = chatTurnPlugins
             self.turnInspector = turnInspector
@@ -107,7 +173,10 @@ struct ChatEngine {
         }
         try SidecarSchemaComposer.validate(sidecars)
 
-        let context = try await prepareSession(
+        let context = try await TurnPreparer(
+            dependencies: dependencies,
+            logger: logger
+        ).prepareSession(
             timelineId: timelineId,
             sendId: sendId ?? UUID(),
             message: message,
@@ -126,412 +195,24 @@ struct ChatEngine {
             assemblyLogger: assemblyLogger
         )
 
+        let snapshotBuilder = PromptSnapshotBuilder(logger: logger)
+        let partialPersistence = PartialAssistantPersistence(
+            messageStore: dependencies.messageStore,
+            logger: logger
+        )
+        let loopController = TurnLoopController(
+            dependencies: dependencies,
+            logger: logger,
+            additionalStages: additionalStages,
+            snapshotBuilder: snapshotBuilder,
+            partialPersistence: partialPersistence
+        )
+
         return AsyncThrowingStream<ChatEvent, Error> { continuation in
             let task = Task {
-                await self.runChatLoop(continuation: continuation, context: context)
+                await loopController.runChatLoop(continuation: continuation, context: context)
             }
             continuation.onTermination = { @Sendable _ in task.cancel() }
         }
-    }
-
-    // MARK: - Core Loop
-
-    private enum LoopContinuation {
-        case stop
-        case continueWith([LLMMessage])
-    }
-
-    /// The heart of the agentic loop. Orchestrates multiple turns until the agent finishes
-    /// or reaches the max turn limit.
-    private func runChatLoop(
-        continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation,
-        context: ChatTurnContext
-    ) async {
-        // 1. Emit initial RAG context for frontend observability
-        continuation.yield(.generationContext(ChatMetadata(
-            memories: context.contextData.memories.map { $0.memory.id },
-            files: context.contextData.notes.map { $0.name }
-        )))
-
-        var loopMessages = context.currentMessages
-        var loopRenderedPrompt = context.renderedPrompt
-        var loopPromptHistoryUpdate = context.promptHistoryUpdate
-        var turnCount = 0
-        var priorOutput = ""
-
-        // 2. Main reasoning loop (ReAct loop)
-        while turnCount < context.maxTurns {
-            turnCount += 1
-            let turnContext = context.forTurn(
-                turnCount: turnCount,
-                messages: loopMessages,
-                renderedPrompt: loopRenderedPrompt,
-                promptHistoryUpdate: loopPromptHistoryUpdate
-            )
-
-            // Execute one turn (LLM call + automatic runtime tool routing)
-            let signal = await runOneTurn(continuation: continuation, context: turnContext)
-
-            // Accumulate thinking and response manually from the current turn
-            let currentThinking = await turnContext.outputs.fullThinking
-            let currentResponse = await turnContext.outputs.fullResponse
-            priorOutput += currentThinking
-            priorOutput += currentResponse
-
-            switch signal {
-            case .stop:
-                // Turn finished without further internal actions required
-                do {
-                    let pluginMessages = try await ChatTurnFollowUpPolicy.pluginMessages(
-                        for: context,
-                        turnCount: turnCount,
-                        accumulatedOutput: priorOutput,
-                        plugins: dependencies.chatTurnPlugins,
-                        logger: logger
-                    )
-
-                    // If plugins added context, resume the loop for a follow-up turn.
-                    if ChatTurnFollowUpPolicy.shouldContinueWithPluginMessages(
-                        pluginMessages,
-                        turnCount: turnCount,
-                        maxTurns: context.maxTurns
-                    ) {
-                        loopMessages += pluginMessages
-                        let snapshot = await buildFollowUpSnapshot(
-                            from: turnContext,
-                            appendedMessages: pluginMessages,
-                            nextTurnIndex: turnCount
-                        )
-                        loopRenderedPrompt = snapshot.renderedPrompt
-                        loopPromptHistoryUpdate = snapshot.promptHistoryUpdate
-                    } else {
-                        continuation.finish()
-                        return
-                    }
-                } catch {
-                    continuation.finish(throwing: error)
-                    return
-                }
-
-            case let .continueWith(newMessages):
-                // A tool result or internal thought needs the LLM to process it in the next turn
-                loopMessages += newMessages
-                // Track appended messages for compaction awareness
-                if let history = context.promptHistory {
-                    let responseText = await turnContext.outputs.fullResponse + turnContext.outputs.fullThinking
-                    _ = await history.append(
-                        messageCount: newMessages.count,
-                        estimatedTokens: PKShared.TokenEstimator.estimate(text: responseText)
-                    )
-                }
-                let snapshot = await buildFollowUpSnapshot(
-                    from: turnContext,
-                    appendedMessages: newMessages,
-                    nextTurnIndex: turnCount
-                )
-                loopRenderedPrompt = snapshot.renderedPrompt
-                loopPromptHistoryUpdate = snapshot.promptHistoryUpdate
-            }
-        }
-
-        logger.warning("Max turns (\(context.maxTurns)) reached for timeline \(context.timelineId)")
-        continuation.finish()
-    }
-
-    private func runOneTurn(
-        continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation,
-        context: ChatTurnContext
-    ) async -> LoopContinuation {
-        let sid = ANSIColors.colorize(
-            context.timelineId.uuidString.prefix(8).lowercased(), color: ANSIColors.brightBlue
-        )
-        let turnLabel = ANSIColors.colorize("\(context.turnCount)", color: ANSIColors.brightYellow)
-        logger.info("Starting turn \(turnLabel) for timeline \(sid)")
-
-        do {
-            try Task.checkCancellation()
-            logger.trace("Turn \(turnLabel): starting pipeline for \(sid)")
-            await publishTurnInspectionIfNeeded(context: context)
-            try await processTurn(context: context, continuation: continuation)
-            logger.trace("Turn \(turnLabel): pipeline complete for \(sid)")
-            return try await handleToolCallsAfterTurn(context: context, continuation: continuation)
-        } catch is CancellationError {
-            // STAB-1: the stream was cancelled mid-flight. `MessagePersistenceStage` only runs on
-            // success, so persist whatever partial assistant text/thinking (and any accumulated
-            // tool calls) the user already watched stream in, tagged `.cancelled`. The cancel
-            // event is still surfaced below — the UI needs it (STAB-5 handles retry separately).
-            await persistPartialAssistantIfNeeded(context: context, status: .cancelled)
-            continuation.yield(.generationCancelled())
-            continuation.finish()
-            return .stop
-        } catch {
-            logger.error("Error in chat loop turn \(context.turnCount): \(error)")
-            // STAB-1: same data-loss fix for the failure path (network drop, provider 4xx/5xx,
-            // idle timeout). A stage-thrown `CancellationError` is wrapped by `Pipeline` as
-            // `PipelineError.stageFailed` and lands here — unwrap it so a mid-stream
-            // cancellation is still tagged `.cancelled` rather than `.partial`. The error event
-            // is still surfaced to the UI (re-thrown below); STAB-5 handles retry separately.
-            let status: Message.MessageStatus = Self.isCancellationOrigin(error) ? .cancelled : .partial
-            await persistPartialAssistantIfNeeded(context: context, status: status)
-            continuation.finish(throwing: error)
-            return .stop
-        }
-    }
-
-    /// Returns `true` if `error` represents cancellation, unwrapping `PipelineError` stage
-    /// wrappers (a stage-thrown `CancellationError` is wrapped as
-    /// `PipelineError.stageFailed(id, CancellationError())` before reaching `runOneTurn`).
-    private static func isCancellationOrigin(_ error: Error) -> Bool {
-        if error is CancellationError {
-            return true
-        }
-        if case let PipelineError.stageFailed(_, underlying) = error, underlying is CancellationError {
-            return true
-        }
-        if case let PipelineError.cleanupFailed(_, underlying) = error, underlying is CancellationError {
-            return true
-        }
-        return false
-    }
-
-    /// STAB-1 — Persist a partial assistant turn when the LLM stream fails or is cancelled
-    /// mid-flight.
-    ///
-    /// `MessagePersistenceStage` only runs on the success path, so a turn that died after the
-    /// user had already watched partial text/thinking stream in was never persisted — a silent
-    /// data-loss. This mirrors the stage's message-building logic (via
-    /// `MessagePersistenceStage.buildAssistantMessage`) so the partial row has the *same* shape
-    /// as a complete one and differs only in its `status` tag (`.partial` for failure,
-    /// `.cancelled` for cancellation). The error/cancelled event is still surfaced to the UI
-    /// by the caller; this method never swallows it.
-    ///
-    /// Threshold: persistence is skipped when `context.outputs` has no assistant text, no
-    /// thinking, *and* no accumulated tool calls — a spurious empty assistant row would
-    /// misrepresent the turn (the already-persisted user message remains the turn's record).
-    /// A failed turn that emitted *anything* (even a single content char) is still persisted.
-    private func persistPartialAssistantIfNeeded(
-        context: ChatTurnContext,
-        status: Message.MessageStatus
-    ) async {
-        let fullResponse = await context.outputs.fullResponse
-        let fullThinking = await context.outputs.fullThinking
-        let hasToolCalls = await !context.outputs.toolCallAccumulators.isEmpty
-
-        guard !fullResponse.isEmpty || !fullThinking.isEmpty || hasToolCalls else {
-            return
-        }
-
-        do {
-            let assistantMsg = await MessagePersistenceStage.buildAssistantMessage(
-                from: context,
-                hasPendingToolCalls: hasToolCalls,
-                status: status,
-                logger: logger
-            )
-            try await dependencies.messageStore.saveMessage(assistantMsg)
-            logger.warning(
-                "Persisted partial assistant turn for timeline \(context.timelineId) status=\(status.rawValue) contentChars=\(fullResponse.count) thinkingChars=\(fullThinking.count) toolCalls=\(hasToolCalls)"
-            )
-        } catch {
-            logger.error(
-                "Failed to persist partial assistant turn for timeline \(context.timelineId) status=\(status.rawValue): \(error)"
-            )
-        }
-    }
-
-    /// Delegates tool call handling to the ToolRouter and maps the result to a loop decision.
-    private func handleToolCallsAfterTurn(
-        context: ChatTurnContext,
-        continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
-    ) async throws -> LoopContinuation {
-        let result = try await dependencies.toolRouter.processToolCalls(
-            outputs: context.outputs,
-            timelineId: context.timelineId,
-            availableTools: context.availableTools,
-            continuation: continuation
-        )
-
-        // Record whether the turn produced tool calls and how much assistant text it emitted:
-        // an empty turn with no tool calls points upstream at the model / provider adapter
-        // rather than the tool router.
-        let contentChars = await context.outputs.fullResponse.count
-        switch result {
-        case .noToolCalls:
-            logger.debug("Turn \(context.turnCount): no tool calls; assistant content chars=\(contentChars)")
-        case .deferredExternally:
-            logger.debug("Turn \(context.turnCount): tool calls deferred for external execution")
-        case let .continueWith(messages):
-            logger.debug("Turn \(context.turnCount): \(messages.count) tool-result message(s) to feed back; assistant content chars=\(contentChars)")
-        }
-
-        switch result {
-        case .noToolCalls, .deferredExternally:
-            return .stop
-        case let .continueWith(messages):
-            return .continueWith(messages)
-        }
-    }
-
-    private func processTurn(
-        context: ChatTurnContext,
-        continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
-    ) async throws {
-        let pipeline = ChatTurnPipelineBuilder.makePipeline(
-            llmService: dependencies.llmService,
-            messageStore: dependencies.messageStore,
-            logger: logger,
-            streamTimeout: dependencies.streamTimeout,
-            additionalStages: additionalStages
-        )
-        let stream = pipeline.execute(context)
-        for try await event in stream {
-            continuation.yield(event)
-        }
-    }
-
-    private func publishTurnInspectionIfNeeded(context: ChatTurnContext) async {
-        guard let inspector = dependencies.turnInspector,
-              let renderedPrompt = context.renderedPrompt,
-              let update = context.promptHistoryUpdate,
-              let diff = update.diff
-        else {
-            return
-        }
-
-        // `context.turnCount` resets to 0 at the start of every `execute()` call (every user
-        // send), so it cannot identify a persisted inspection row uniquely across a whole
-        // conversation — a second send's first round-trip would collide with the first send's
-        // row (`TimelinePromptHistory.nextInspectionTurnIndex` fixes this; see YAK-16).
-        let turnIndex = await context.promptHistory?.nextInspectionTurnIndex() ?? (context.turnCount - 1)
-
-        let turnIdentity = TurnIdentity(sendId: context.sendId, roundTrip: max(context.turnCount - 1, 0))
-
-        await inspector.didComposeTurn(TurnInspection(
-            identity: turnIdentity,
-            timelineId: context.timelineId,
-            agentInstanceId: context.agentInstanceId,
-            turnIndex: turnIndex,
-            model: context.modelName,
-            rendered: renderedPrompt,
-            sentMessages: context.currentMessages,
-            journal: TurnJournalSnapshot(
-                overlay: diff.publicJournalDiff,
-                stablePrefixCount: diff.stablePrefixCount,
-                didCompact: update.didCompact
-            ),
-            estimatedTokens: renderedPrompt.estimatedTokens
-        ))
-    }
-
-    private func buildFollowUpSnapshot(
-        from context: ChatTurnContext,
-        appendedMessages: [LLMMessage],
-        nextTurnIndex: Int
-    ) async -> (renderedPrompt: RenderedPrompt?, promptHistoryUpdate: PromptHistoryUpdate?) {
-        guard let priorRenderedPrompt = context.renderedPrompt else {
-            return (context.renderedPrompt, context.promptHistoryUpdate)
-        }
-
-        let followUpPrompt = synthesizeFollowUpPrompt(
-            from: priorRenderedPrompt,
-            appendedMessages: appendedMessages,
-            nextTurnIndex: nextTurnIndex
-        )
-
-        guard let promptHistory = context.promptHistory else {
-            return (followUpPrompt, context.promptHistoryUpdate)
-        }
-
-        let update = await promptHistory.update(prompt: followUpPrompt)
-        return (followUpPrompt, update)
-    }
-
-    private func synthesizeFollowUpPrompt(
-        from basePrompt: RenderedPrompt,
-        appendedMessages: [LLMMessage],
-        nextTurnIndex: Int
-    ) -> RenderedPrompt {
-        guard !appendedMessages.isEmpty else {
-            return basePrompt
-        }
-
-        let sectionID = "runtime-follow-up-\(nextTurnIndex)"
-        let appendedSection = RenderedPrompt.Section(
-            id: sectionID,
-            role: .chatHistory,
-            priority: PromptPriority.medium.rawValue,
-            estimatedTokens: PKShared.TokenEstimator.estimate(parts: appendedMessages.map(\.content)),
-            compression: .keep,
-            type: .list,
-            cachePolicy: .volatile,
-            path: ["runtime", "follow_up", "\(nextTurnIndex)"],
-            parentID: nil,
-            compressionOutcome: nil,
-            content: .messages(appendedMessages.map(makeHistoryMessage))
-        )
-
-        var sectionsByID = basePrompt.sectionsByID
-        let appendedContent = appendedMessages.map(\.content).joined(separator: "\n")
-        sectionsByID[sectionID] = appendedContent
-
-        let sections = basePrompt.sections + [appendedSection]
-
-        // Build the rendered string incrementally: append the new section's text to the
-        // already-rendered accumulated string instead of re-joining every prior section from
-        // scratch each turn. This avoids O(n^2) string work across long tool-call loops (PKR-10).
-        // Matches `AssembledPrompt.render()`'s behavior of skipping empty section content.
-        let string = appendedContent.isEmpty
-            ? basePrompt.string
-            : basePrompt.string.isEmpty
-            ? appendedContent
-            : basePrompt.string + "\n\n---\n\n" + appendedContent
-
-        return RenderedPrompt(
-            sections: sections,
-            string: string,
-            sectionsByID: sectionsByID
-        )
-    }
-
-    private func makeHistoryMessage(_ message: LLMMessage) -> Message {
-        let role: Message.MessageRole = switch message.role {
-        case .system:
-            .system
-        case .user, .developer:
-            .user
-        case .assistant:
-            .assistant
-        case .tool:
-            .tool
-        }
-
-        return Message(
-            content: message.content,
-            role: role,
-            toolCalls: message.toolCalls?.compactMap { toolCall in
-                let arguments: [String: Any]
-                do {
-                    guard let parsed = try JSONSerialization.jsonObject(with: Data(toolCall.arguments.utf8)) as? [String: Any] else {
-                        throw NSError(domain: "ChatEngine", code: -1, userInfo: [NSLocalizedDescriptionKey: "tool-call arguments are not a JSON object"])
-                    }
-                    arguments = parsed
-                } catch {
-                    // Previously a silent `try?` dropped the tool call entirely from synthesized
-                    // follow-up history on malformed arguments, leaving the turn loop with no
-                    // record that the call was attempted. Log a warning and preserve the prior
-                    // fallback (drop the call) — see STAB-12. Behavior is unchanged; we now leave
-                    // a diagnostic trace including the tool name and a truncated raw payload.
-                    let truncated = toolCall.arguments.prefix(120)
-                    logger.warning("Dropping tool call '\(toolCall.name)' from history: arguments are not a JSON object. rawPrefix=\(String(truncated))")
-                    return nil
-                }
-                return ToolCall(
-                    id: toolCall.id,
-                    name: toolCall.name,
-                    arguments: arguments.mapValues { AnyCodable($0) }
-                )
-            },
-            toolCallId: message.toolCallID
-        )
     }
 }

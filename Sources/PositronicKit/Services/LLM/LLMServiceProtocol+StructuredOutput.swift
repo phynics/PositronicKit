@@ -2,7 +2,7 @@ import Foundation
 import struct JSONSchema.Schema
 import PKShared
 
-public extension LLMServiceProtocol {
+public extension LLMStreamClient {
     func sendStructuredMessage(
         _ content: String,
         structuredOutput: StructuredOutputRequest,

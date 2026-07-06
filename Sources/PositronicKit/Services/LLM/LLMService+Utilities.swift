@@ -5,7 +5,7 @@ import JSONSchemaBuilder
 import Logging
 import PKShared
 
-public extension LLMServiceProtocol {
+public extension LLMUtilityClient where Self: LLMStreamClient {
     /// Generate tags/keywords for a given text using the LLM
     func generateTags(for text: String) async throws -> [String] {
         await runUtilityGeneration(
@@ -53,7 +53,7 @@ public extension LLMServiceProtocol {
     }
 }
 
-private extension LLMServiceProtocol {
+private extension LLMUtilityClient where Self: LLMStreamClient {
     var utilityGenerationLogger: Logger {
         if let provider = self as? any UtilityGenerationLoggerProviding {
             return provider.utilityGenerationLogger
