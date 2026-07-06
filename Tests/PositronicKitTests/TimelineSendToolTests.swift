@@ -10,33 +10,25 @@ import Testing
 /// hardcoded depth of 0, so every send was treated as the first hop regardless of how deep the
 /// source timeline's history already was. The tool must derive its current depth from the source
 /// timeline's message history instead.
+///
+/// Post-PKARCH-003: tests build tools via `RuntimeToolPolicyFactory` directly, with the same
+/// stores the original `TimelineManager.createToolManager` used, so `TimelineManager` is no longer
+/// exercised in this single-tool regression suite.
 @Suite("Timeline Send Tool")
 struct TimelineSendToolTests {
-    private func makeManager(
-        messageStore: InMemoryMessageStore,
-        timelineStore: InMemoryTimelinePersistence,
-        workspaceRoot: URL
-    ) -> TimelineManager {
-        TimelineManager(
-            stores: .init(
-                timelineStore: timelineStore,
-                messageStore: messageStore,
-                workspaceStore: InMemoryWorkspacePersistence(),
-                toolPersistence: InMemoryToolPersistence()
-            ),
-            workspaceRoot: workspaceRoot
-        )
-    }
-
     private func sendTool(
-        from manager: TimelineManager,
+        timelineStore: InMemoryTimelinePersistence,
+        messageStore: InMemoryMessageStore,
         source: Timeline,
         workspaceRoot: URL
     ) async throws -> AnyTool {
-        let toolManager = await manager.createToolManager(
+        let toolManager = RuntimeToolPolicyFactory.createToolManager(
             for: source,
             jailRoot: workspaceRoot.path,
-            toolContextTimeline: ToolTimelineContext()
+            toolContextTimeline: ToolTimelineContext(),
+            runtimeToolPolicy: .default,
+            timelineStore: timelineStore,
+            messageStore: messageStore
         )
         return try #require(await toolManager.getAvailableTools().first { $0.id == "timeline_send" })
     }
@@ -46,9 +38,6 @@ struct TimelineSendToolTests {
         let workspace = TestWorkspace()
         let messageStore = InMemoryMessageStore()
         let timelineStore = InMemoryTimelinePersistence()
-        let manager = makeManager(
-            messageStore: messageStore, timelineStore: timelineStore, workspaceRoot: workspace.root
-        )
 
         let agentId = UUID()
         let source = Timeline(workingDirectory: workspace.root.path, attachedAgentInstanceId: agentId)
@@ -61,7 +50,10 @@ struct TimelineSendToolTests {
         let destination = Timeline(workingDirectory: workspace.root.path, attachedAgentInstanceId: agentId)
         try await timelineStore.saveTimeline(destination)
 
-        let tool = try await sendTool(from: manager, source: source, workspaceRoot: workspace.root)
+        let tool = try await sendTool(
+            timelineStore: timelineStore, messageStore: messageStore,
+            source: source, workspaceRoot: workspace.root
+        )
         let result = try await tool.execute(parameters: [
             "timeline_id": destination.id.uuidString,
             "message": "should be blocked",
@@ -76,9 +68,6 @@ struct TimelineSendToolTests {
         let workspace = TestWorkspace()
         let messageStore = InMemoryMessageStore()
         let timelineStore = InMemoryTimelinePersistence()
-        let manager = makeManager(
-            messageStore: messageStore, timelineStore: timelineStore, workspaceRoot: workspace.root
-        )
 
         let agentId = UUID()
         let source = Timeline(workingDirectory: workspace.root.path, attachedAgentInstanceId: agentId)
@@ -92,7 +81,10 @@ struct TimelineSendToolTests {
         let destination = Timeline(workingDirectory: workspace.root.path, attachedAgentInstanceId: agentId)
         try await timelineStore.saveTimeline(destination)
 
-        let tool = try await sendTool(from: manager, source: source, workspaceRoot: workspace.root)
+        let tool = try await sendTool(
+            timelineStore: timelineStore, messageStore: messageStore,
+            source: source, workspaceRoot: workspace.root
+        )
         let result = try await tool.execute(parameters: [
             "timeline_id": destination.id.uuidString,
             "message": "carry the chain forward",

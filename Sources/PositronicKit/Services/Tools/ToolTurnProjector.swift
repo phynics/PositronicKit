@@ -9,6 +9,21 @@ import PKShared
 /// `ToolRouter` still owns orchestration, but this helper isolates the side-effectful mapping from
 /// execution results to conversation artifacts so those semantics can be tested independently.
 enum ToolTurnProjector {
+    /// Yields the `.attempting` tool-progress event that precedes the execution attempt. Pinning
+    /// this projection here (PKARCH-002) keeps all tool-event projection in one module — the
+    /// caller (`ToolRouter.handlePendingToolCalls`) invokes this before dispatching to
+    /// `ToolExecutor` or the external-deferral branch.
+    static func projectAttempt(
+        call: ParsedToolCall,
+        toolRef: ToolReference,
+        continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
+    ) {
+        continuation.yield(.toolProgress(
+            toolCallId: call.callId,
+            status: .attempting(name: call.name, reference: toolRef)
+        ))
+    }
+
     static func projectOutcome(
         _ outcome: ToolExecutionOutcome,
         call: ParsedToolCall,

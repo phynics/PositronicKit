@@ -53,18 +53,6 @@ package enum ToolTurnResult {
     case deferredExternally
 }
 
-/// Ensures exactly one winner resolves a raced continuation. `claim()` returns `true` for the first
-/// caller only; all subsequent callers get `false` and must not resume the continuation.
-private actor TimeoutRaceResolver {
-    private var claimed = false
-
-    func claim() -> Bool {
-        guard !claimed else { return false }
-        claimed = true
-        return true
-    }
-}
-
 // MARK: - ToolRouter
 
 /// Routes tool execution requests to the appropriate handler (local or externally hosted).
@@ -73,17 +61,10 @@ private actor TimeoutRaceResolver {
 /// immediately (persisting results to the message store) and defers externally hosted tools for
 /// async handling. `ChatEngine` calls this after each LLM turn that produces tool calls.
 ///
-/// Despite the name, this actor currently owns more than lookup-only routing:
-///
-/// - tool-call normalization for a completed turn
-/// - routing decisions between runtime-managed and externally attached execution
-/// - local execution coordination
-/// - persistence of tool outputs as conversation messages
-/// - projection of tool progress/completion events back into the chat stream
-///
-/// That broader responsibility is intentional for now so the chat loop has a single runtime seam
-/// for tool continuation policy. If this area is refactored later, those behaviors should remain
-/// pinned by tests rather than being silently redistributed.
+/// Public surface is stable across PKARCH-002; the four former inline concerns — workspace
+/// resolution, local execution, wall-clock timeout enforcement, and tool progress/completion
+/// event projection — are now delegated to `ToolRoutingDecision`, `ToolExecutor`,
+/// `ToolTimeoutEnforcer`, and `ToolTurnProjector` respectively.
 public actor ToolRouter {
     private let logger = Logger.module(named: "tool-router")
 
@@ -91,6 +72,7 @@ public actor ToolRouter {
     private let messageStore: any MessageStoreProtocol
     private let toolExecutionTimeout: TimeInterval
     private let approvalGate: any ToolApprovalGate
+    private let executor: ToolExecutor
 
     public init(
         timelineManager: TimelineManager,
@@ -102,6 +84,10 @@ public actor ToolRouter {
         self.messageStore = messageStore
         self.toolExecutionTimeout = toolExecutionTimeout
         self.approvalGate = approvalGate
+        self.executor = ToolExecutor(
+            approvalGate: approvalGate,
+            timeout: toolExecutionTimeout
+        )
     }
 
     // MARK: - Turn-Level API
@@ -172,10 +158,11 @@ public actor ToolRouter {
                 availableTools: availableTools
             )
 
-            continuation.yield(.toolProgress(
-                toolCallId: call.callId,
-                status: .attempting(name: call.name, reference: toolRef)
-            ))
+            ToolTurnProjector.projectAttempt(
+                call: call,
+                toolRef: toolRef,
+                continuation: continuation
+            )
 
             do {
                 guard let arguments = call.arguments else {
@@ -241,18 +228,26 @@ public actor ToolRouter {
         if let dynamicTools = availableTools,
            dynamicTools.contains(where: { $0.toolReference == tool || $0.id == tool.toolId })
         {
-            let output = try await executeLocally(
+            let output = try await executor.execute(
                 tool: tool,
                 arguments: forwardedArguments,
-                timelineId: timelineId,
-                availableTools: availableTools
+                lookup: { [timelineManager] in
+                    await timelineManager.getToolManager(for: timelineId)
+                },
+                dynamicTools: dynamicTools
             )
             return .completed(output)
         }
 
         // resolveWorkspace returns nil when the tool is not registered in any of the
         // timeline's workspaces, or when the timeline has no workspaces at all.
-        guard let workspaceId = try await resolveWorkspace(for: tool, in: timelineId, arguments: arguments) else {
+        guard let workspaceId = try await ToolRoutingDecision.resolveWorkspace(
+            for: tool,
+            in: timelineId,
+            arguments: arguments,
+            provider: timelineManager,
+            logger: logger
+        ) else {
             throw ToolError.toolNotFound(tool.displayName)
         }
 
@@ -265,156 +260,18 @@ public actor ToolRouter {
             timelineIsPrivate: await timelineManager.getTimeline(id: timelineId)?.isPrivate ?? false
         ) {
         case .executeLocally:
-            let output = try await executeLocally(
+            let output = try await executor.execute(
                 tool: tool,
                 arguments: forwardedArguments,
-                timelineId: timelineId,
-                availableTools: availableTools
+                lookup: { [timelineManager] in
+                    await timelineManager.getToolManager(for: timelineId)
+                },
+                dynamicTools: availableTools
             )
             return .completed(output)
 
         case .deferExternally:
             return .deferredExternally
         }
-    }
-
-    // MARK: - Private Helpers
-
-    private func resolveWorkspace(
-        for tool: ToolReference,
-        in timelineId: UUID,
-        arguments: [String: AnyCodable]
-    ) async throws -> UUID? {
-        let workspaces = await timelineManager.getWorkspaces(for: timelineId)
-        guard let wsList = workspaces else { return nil }
-
-        let candidates = ([wsList.primary].compactMap { $0?.id }) + wsList.attached.map { $0.id }
-
-        // Check for explicit intent in arguments
-        if let explicitIdString = arguments["workspaceID"]?.value as? String,
-           let explicitId = UUID(uuidString: explicitIdString.trimmingCharacters(in: .whitespacesAndNewlines))
-        {
-            guard candidates.contains(explicitId) else {
-                throw ToolError.workspaceNotFound(explicitId)
-            }
-
-            logger.debug("Routing to explicitly requested workspace: \(explicitId)")
-            return explicitId
-        }
-
-        return try await timelineManager.findWorkspaceForTool(tool, in: candidates)
-    }
-
-    private func executeLocally(
-        tool: ToolReference,
-        arguments: [String: AnyCodable],
-        timelineId: UUID,
-        availableTools: [AnyTool]? = nil
-    ) async throws -> String {
-        let toolName = ANSIColors.colorize(tool.displayName, color: ANSIColors.brightCyan)
-        logger.info("Executing locally: \(toolName)")
-
-        guard let toolManager = await timelineManager.getToolManager(for: timelineId) else {
-            throw ToolError.toolNotFound(tool.displayName)
-        }
-
-        var toolList = await toolManager.getAvailableTools()
-        if let dynamicTools = availableTools {
-            // Dynamic tools take priority; exclude static tools with the same ID.
-            let dynamicIds = Set(dynamicTools.map { $0.id })
-            toolList = dynamicTools + toolList.filter { !dynamicIds.contains($0.id) }
-        }
-
-        guard let resolvedTool = toolList.first(where: {
-            $0.toolReference == tool || $0.id == tool.toolId
-        }) else {
-            throw ToolError.toolNotFound(tool.displayName)
-        }
-
-        // Approval gate: a tool that declares `requiresPermission` must not execute until the
-        // injected gate returns `.approve`. This is the single runtime execution sink — both
-        // structured provider tool calls and text-fallback `<tool_call>` calls reach it — so the
-        // approval contract holds regardless of how the call was produced (YAK-31). Non-permissioned
-        // tools skip the gate entirely.
-        if resolvedTool.requiresPermission {
-            let decision = await approvalGate.requestApproval(tool: resolvedTool, arguments: arguments)
-            guard decision == .approve else {
-                logger.warning("Permission denied for \(toolName)")
-                throw ToolError.permissionDenied(resolvedTool.name)
-            }
-        }
-
-        let result = try await executeWithTimeout(
-            tool: resolvedTool,
-            arguments: arguments,
-            timeout: toolExecutionTimeout
-        )
-        if result.success {
-            logger.info("Success: \(toolName)")
-            return result.output
-        } else {
-            let errorMsg = result.error ?? "Unknown error"
-            logger.error("Failed: \(toolName) - \(errorMsg)")
-            throw ToolError.executionFailed(errorMsg)
-        }
-    }
-
-    /// Executes a tool, enforcing a wall-clock timeout.
-    ///
-    /// The timeout is enforced even for tools whose bodies ignore cooperative cancellation (e.g. a
-    /// blocking subprocess or synchronous network call). The tool runs in an unstructured task that
-    /// is raced against a timeout; whichever finishes first resolves the call. On timeout the tool
-    /// task is cancelled best-effort and abandoned — the caller returns immediately rather than
-    /// blocking until an uncooperative tool eventually finishes.
-    private func executeWithTimeout(
-        tool: AnyTool,
-        arguments: [String: AnyCodable],
-        timeout: TimeInterval
-    ) async throws -> ToolResult {
-        let nanoseconds = UInt64(max(0, timeout) * 1_000_000_000)
-        let timeoutMessage = "Tool execution timed out after \(Self.timeoutDescription(timeout))"
-
-        let toolTask = Task { try await tool.execute(parameters: arguments.toAnyDictionary) }
-        let timeoutTask = Task { try await Task.sleep(nanoseconds: nanoseconds) }
-        let resolver = TimeoutRaceResolver()
-
-        return try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<ToolResult, Error>) in
-                // Tool-completion path.
-                Task {
-                    let outcome: Result<ToolResult, Error>
-                    do {
-                        outcome = try .success(await toolTask.value)
-                    } catch {
-                        outcome = .failure(error)
-                    }
-                    if await resolver.claim() {
-                        timeoutTask.cancel()
-                        continuation.resume(with: outcome)
-                    }
-                }
-
-                // Timeout path.
-                Task {
-                    // Throws `CancellationError` when the tool finished first and cancelled the
-                    // sleep; in that case the tool path owns the result, so do nothing.
-                    guard (try? await timeoutTask.value) != nil else { return }
-                    if await resolver.claim() {
-                        toolTask.cancel()
-                        continuation.resume(throwing: ToolError.executionFailed(timeoutMessage))
-                    }
-                }
-            }
-        } onCancel: {
-            toolTask.cancel()
-            timeoutTask.cancel()
-        }
-    }
-
-    private nonisolated static func timeoutDescription(_ timeout: TimeInterval) -> String {
-        if timeout.rounded() == timeout {
-            return "\(Int(timeout)) seconds"
-        }
-        return "\(timeout) seconds"
     }
 }

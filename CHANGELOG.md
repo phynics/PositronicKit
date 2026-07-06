@@ -8,6 +8,29 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Changed
+
+- Internal refactor: split `ToolRouter` into focused execution seams behind a stable public
+  surface (PKARCH-002). `ToolRouter` remains the public actor; its four former inline concerns are
+  now package-internal modules in their own files: `ToolExecutor` (approval-gate check,
+  tool-manager lookup, dynamic-tool priority merge, dispatch to the concrete tool),
+  `ToolTimeoutEnforcer` (wall-clock timeout race, with an injectable `sleep` closure so tests can
+  exercise the timeout branch with a fake clock and no `TimelineManager`), `ToolRoutingDecision`
+  (extended with `resolveWorkspace` plus explicit `workspaceID` argument handling, behind a
+  package `WorkspaceResolutionProvider` protocol that `TimelineManager` conforms to), and
+  `ToolTurnProjector` (extended to own the `.attempting` tool-progress event). The `TimeoutRaceResolver` actor and `executeWithTimeout`/`timeoutDescription` helpers move from
+  `ToolRouter.swift` to `ToolTimeoutEnforcer.swift`. Public API is unchanged.
+- Internal refactor: split `TimelineManager` into three package-internal services behind a stable
+  public surface (PKARCH-003). `TimelineManager` remains the public coordinator and cache owner;
+  lifecycle (`createTimeline`/`hydrateTimeline`/`updateTimelineTitle`/`deleteTimeline`/
+  `cleanupStaleTimelines`) is delegated to `TimelineLifecycleService`, workspace attachment
+  (`attachWorkspace`/`detachWorkspace`/`getWorkspaces`/`getWorkspace`) to
+  `WorkspaceAttachmentService`, and tool-policy construction (`createToolManager`) to
+  `RuntimeToolPolicyFactory`. The services operate on the caches through a narrow `package`
+  `TimelineCache` seam. `ContextManager` is promoted from `internal` to `package` so it can appear
+  in the `TimelineCache` method signatures; this visibility change is invisible to external
+  consumers. Public API is otherwise unchanged.
+
 ### Added
 
 - Workspace-scoped tool grouping (PKPOST-004): new `ToolProviding` protocol and structural

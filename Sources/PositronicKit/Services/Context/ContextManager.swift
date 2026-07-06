@@ -4,8 +4,13 @@ import Logging
 import PKPrompt
 import PKShared
 
-/// Manages the retrieval and organization of context for the chat
-actor ContextManager {
+/// Manages the retrieval and organization of context for the chat.
+///
+/// Promoted from `internal` to `package` (PKARCH-003) so it can appear in the `TimelineCache`
+/// protocol's `cacheSetContextManager(_:for:)` signature. `package` access is invisible to
+/// external consumers of PositronicKit (same as `internal` from outside the SwiftPM package);
+/// it only relaxes the visibility rule for other modules within this same package.
+package actor ContextManager {
     let workspace: (any WorkspaceProtocol)?
     let pipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>
     private let logger = Logger.module(named: "context-manager")
