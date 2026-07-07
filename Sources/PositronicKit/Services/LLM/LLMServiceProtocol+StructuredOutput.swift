@@ -1,5 +1,4 @@
 import Foundation
-import struct JSONSchema.Schema
 import PKShared
 
 public extension LLMStreamClient {
@@ -81,127 +80,15 @@ public extension LLMStreamClient {
 enum StructuredOutputExecution {
     private static let syntheticToolName = "emit_structured_response"
 
-    struct PreparedRequest {
-        let messages: [LLMMessage]
-        let tools: [LLMToolDefinition]?
-        let toolChoice: LLMToolChoice?
-        let responseFormat: LLMResponseFormat?
-        let syntheticToolName: String?
-        let promptAugmentation: String?
-    }
-
     static func prepareRequest(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,
         provider: LLMProvider,
         output: StructuredOutputRequest
-    ) -> PreparedRequest {
-        switch output {
-        case .jsonObject:
-            return PreparedRequest(
-                messages: messages,
-                tools: tools,
-                toolChoice: nil,
-                responseFormat: .jsonObject,
-                syntheticToolName: nil,
-                promptAugmentation: nil
-            )
-        case let .jsonSchema(schema):
-            switch provider {
-            case .openAI, .openRouter:
-                return PreparedRequest(
-                    messages: messages,
-                    tools: tools,
-                    toolChoice: nil,
-                    responseFormat: .jsonSchema(.init(
-                        name: schema.name,
-                        description: schema.description,
-                        schema: schema.schema,
-                        strict: schema.strict
-                    )),
-                    syntheticToolName: nil,
-                    promptAugmentation: nil
-                )
-            case .ollama:
-                let augmentation = fallbackPromptSuffix(schema: schema)
-                return PreparedRequest(
-                    messages: applyPromptAugmentation(augmentation, to: messages),
-                    tools: tools,
-                    toolChoice: nil,
-                    responseFormat: .jsonSchema(.init(
-                        name: schema.name,
-                        description: schema.description,
-                        schema: schema.schema,
-                        strict: schema.strict
-                    )),
-                    syntheticToolName: nil,
-                    promptAugmentation: augmentation
-                )
-            // Anthropic's Messages API has no json_schema response format; the forced
-            // synthetic-tool pattern is its canonical structured-output mechanism, so it
-            // shares the openAICompatible branch.
-            case .openAICompatible, .anthropic:
-                let syntheticTool = syntheticTool(for: schema)
-                return PreparedRequest(
-                    messages: messages,
-                    tools: (tools ?? []) + [syntheticTool],
-                    toolChoice: .function(syntheticToolName),
-                    responseFormat: nil,
-                    syntheticToolName: syntheticToolName,
-                    promptAugmentation: nil
-                )
-            }
-        }
-    }
-
-    private static func fallbackPromptSuffix(schema: StructuredOutputSchema) -> String {
-        let schemaString: String
-        if let data = try? JSONEncoder().encode(schema.schema) {
-            schemaString = String(decoding: data, as: UTF8.self)
-        } else {
-            schemaString = "{}"
-        }
-        return """
-
-        Return ONLY valid JSON that matches this JSON Schema exactly.
-        Schema name: \(schema.name)
-        JSON Schema:
-        \(schemaString)
-        """
-    }
-
-    private static func applyPromptAugmentation(
-        _ augmentation: String,
-        to messages: [LLMMessage]
-    ) -> [LLMMessage] {
-        var updatedMessages = messages
-
-        for index in updatedMessages.indices.reversed() {
-            guard updatedMessages[index].role == .user else { continue }
-            updatedMessages[index] = LLMMessage(
-                role: .user,
-                content: updatedMessages[index].content + augmentation,
-                name: updatedMessages[index].name,
-                toolCallID: updatedMessages[index].toolCallID,
-                toolCalls: updatedMessages[index].toolCalls
-            )
-            return updatedMessages
-        }
-
-        updatedMessages.append(LLMMessage(
-            role: .user,
-            content: augmentation.trimmingCharacters(in: .whitespacesAndNewlines)
-        ))
-        return updatedMessages
-    }
-
-    private static func syntheticTool(for schema: StructuredOutputSchema) -> LLMToolDefinition {
-        return LLMToolDefinition(
-            name: syntheticToolName,
-            description: schema.description ?? "Emit the final structured response payload for \(schema.name).",
-            parameters: schema.schema,
-            strict: schema.strict
-        )
+    ) -> PreparedStructuredOutputRequest {
+        let adapter = StructuredOutputAdapterRegistry.adapter(for: provider)
+            ?? DefaultStructuredOutputAdapter()
+        return adapter.prepareRequest(messages: messages, tools: tools, output: output)
     }
 
     static func rewriteSyntheticToolStream(

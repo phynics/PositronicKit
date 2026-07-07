@@ -8,6 +8,7 @@ import Network
 import JSONSchemaBuilder
 import PKShared
 import PKTestSupport
+@testable import PKAnthropicProvider
 @testable import PKOllamaProvider
 @testable import PKOpenAIProvider
 @testable import PKOpenRouterProvider
@@ -19,6 +20,17 @@ import Testing
 @Suite("Structured output preparation order")
 @MainActor
 struct StructuredOutputPreparationTests {
+    private static let registeredAdapters: Void = {
+        PKOpenAIProvider.register()
+        PKOpenRouterProvider.register()
+        PKOllamaProvider.register()
+        PKAnthropicProvider.register()
+    }()
+
+    init() {
+        Self.registeredAdapters
+    }
+
     @Test("Unified preparation matches provider behavior across output modes")
     func unifiedPreparationMatchesProviderBehavior() throws {
         let baseMessages = [LLMMessage(role: .user, content: "Extract tags")]

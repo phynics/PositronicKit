@@ -33,6 +33,16 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- Structured-output adapter seam (PKARCH-005): new `StructuredOutputAdapter` protocol and
+  `PreparedStructuredOutputRequest` in `PKShared`, plus `StructuredOutputAdapterRegistry` and a
+  `DefaultStructuredOutputAdapter` fallback. Each built-in provider target now owns its own
+  adapter implementation (`OpenAIStructuredOutputAdapter`, `OpenRouterStructuredOutputAdapter`,
+  `OllamaStructuredOutputAdapter`, `AnthropicStructuredOutputAdapter`, and
+  `OpenAICompatibleStructuredOutputAdapter`) and registers it alongside its client factory. The
+  core runtime no longer switches on `LLMProvider` to prepare structured-output requests; it
+  looks up the registered adapter and applies the prepared result. This keeps provider-specific
+  structured-output logic in dedicated provider targets while allowing hosts to register custom
+  adapters for arbitrary providers.
 - Workspace-scoped tool grouping (PKPOST-004): new `ToolProviding` protocol and structural
   `ToolProvenance` enum in `PKShared` (`global`, `workspace(id:name:)`, `terminal(id:name:)`,
   `named(String)`). `AnyTool.provenance` is now `ToolProvenance` with a one-release deprecated

@@ -20,6 +20,7 @@ public enum PKOpenRouterProvider {
                 attribution: attribution
             )
         }, for: .openRouter)
+        StructuredOutputAdapterRegistry.register(OpenRouterStructuredOutputAdapter(), for: .openRouter)
     }
 }
 
