@@ -131,7 +131,16 @@ public enum SidecarSchemaComposer {
     private static func containerSchema(for directives: [SidecarDirective]) throws -> [String: Any] {
         var properties: [String: Any] = [:]
         for directive in directives {
-            properties[directive.name] = try rawJSONObject(for: directive.schema)
+            var schemaObject = try rawJSONObject(for: directive.schema)
+            if var objectSchema = schemaObject as? [String: Any],
+               let props = objectSchema["properties"] as? [String: Any] {
+                objectSchema["required"] = Array(props.keys).sorted()
+                if objectSchema["additionalProperties"] == nil {
+                    objectSchema["additionalProperties"] = false
+                }
+                schemaObject = objectSchema
+            }
+            properties[directive.name] = schemaObject
         }
 
         return [

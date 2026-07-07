@@ -153,17 +153,20 @@ struct SidecarOutcomeContractTests {
         #expect(failedDecoded == failed)
     }
 
-    // MARK: - Strict-mode investigation (PKTEST-1)
+    // MARK: - Strict-mode contract (PKTEST-1 investigation, fixed by PKTEST-3)
     //
     // OpenAI strict-JSON-schema mode requires every property to be listed in `required`;
     // optionals must additionally use `type: ["string", "null"]`. `@Schemable` emits the
     // nullable union correctly but omits the `required` array entirely when all fields are
-    // optional. `SidecarSchemaComposer.compose` sets `strict: true` unconditionally, so a
-    // directive whose payload has only optional fields produces a schema that violates
-    // OpenAI strict-mode rules. The provider silently degrades and the model may freelance
-    // off-schema keys (observed in production: Yakamoz SID-3). Follow-up fix needed in PK.
+    // optional (and never emits `additionalProperties`). `SidecarSchemaComposer.compose`
+    // sets `strict: true` unconditionally, so a directive whose payload has only optional
+    // fields would otherwise produce a schema that violates OpenAI strict-mode rules — the
+    // provider silently degrades and the model freelances off-schema keys (observed in
+    // production: Yakamoz SID-3). `SidecarSchemaComposer.containerSchema(for:)` now
+    // post-processes each directive's object schema to ensure every property is listed in
+    // `required` (sorted, for determinism) and `additionalProperties: false` is present.
 
-    @Test func strictModeWithOptionalPayloadField_omitsFromRequired() throws {
+    @Test func strictModeWithOptionalPayloadField_includesInRequired() throws {
         let directive = SidecarDirective(
             name: "title",
             instruction: "t",
@@ -187,8 +190,10 @@ struct SidecarOutcomeContractTests {
         #expect(titlePropertySchema.contains(#""type":"object""#))
         #expect(titlePropertySchema.contains(#""type":["string","null"]"#))
 
-        let innerRequired = extractRequiredArray(from: titlePropertySchema)
-        #expect(innerRequired == nil || !innerRequired!.contains("\"title\""))
+        let innerRequired = try #require(extractRequiredArray(from: titlePropertySchema))
+        #expect(innerRequired.contains("\"title\""))
+
+        #expect(titlePropertySchema.contains(#""additionalProperties":false"#))
     }
 
     @Test func strictModeWithRequiredPayloadField_includesInRequired() throws {
@@ -216,6 +221,8 @@ struct SidecarOutcomeContractTests {
 
         let innerRequired = try #require(extractRequiredArray(from: titlePropertySchema))
         #expect(innerRequired.contains("\"title\""))
+
+        #expect(titlePropertySchema.contains(#""additionalProperties":false"#))
     }
 
     // MARK: - Schema JSON extraction helpers

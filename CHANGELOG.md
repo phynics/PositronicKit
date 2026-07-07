@@ -10,6 +10,17 @@ for tagged releases beginning with `1.0.0`.
 
 ### Fixed
 
+- `SidecarSchemaComposer.containerSchema(for:)` now post-processes each directive's
+  object schema so it is valid under OpenAI strict-JSON-schema mode (PKTEST-3). When a
+  directive's payload schema is a JSON object with `properties`, every property name is now
+  listed in its `required` array (sorted, for determinism) and `additionalProperties: false`
+  is added when `@Schemable` omits it. Previously an all-optional `@Schemable` payload
+  (e.g. `struct { let title: String? }`) emitted no `required` array, so under the
+  unconditional `strict: true` the provider silently degraded the schema and the model
+  freelanced off-schema keys (observed in production: Yakamoz SID-3 returned `{"text": "..."}`
+  instead of `{"title": "..."}`). The nullable union `"type": ["string", "null"]` is
+  preserved, so `null` → `.declined` still works. Leaf-scalar schemas (e.g.
+  `JSONString().definition()`) have no `properties` key and pass through unchanged.
 - `StructuredOutputExecution.rewriteSyntheticToolStream` no longer drops non-synthetic tool
   calls when they share a streaming chunk with synthetic `emit_structured_response` calls
   (PKTEST-2). A mixed chunk now yields two chunks: the merged synthetic content first, then a
@@ -29,10 +40,10 @@ for tagged releases beginning with `1.0.0`.
 
 - Tests: `SidecarOutcomeContractTests` pinning the `SidecarStreamExtractor` outcome shape for
   leaf-scalar and object-schema directives, `null` → `.declined`, missing/wrong key → `.failed`,
-  `Codable` round-trip preserving the `AnyCodable` case tag, and a strict-mode investigation
-  confirming `@Schemable` omits the `required` array for all-optional payloads while
-  `SidecarSchemaComposer.compose` sets `strict: true` — a real OpenAI strict-mode conflict
-  (PKTEST-1).
+  `Codable` round-trip preserving the `AnyCodable` case tag, and a strict-mode contract test
+  asserting that composed sidecar schemas list every payload property in `required` and emit
+  `additionalProperties: false` under `strict: true` (PKTEST-1 investigation; the conflict it
+  surfaced is fixed by PKTEST-3).
 
 ## [1.2.0] - 2026-07-07
 
