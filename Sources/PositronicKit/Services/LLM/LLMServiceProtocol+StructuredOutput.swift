@@ -99,7 +99,7 @@ enum StructuredOutputExecution {
             let task = Task {
                 do {
                     for try await result in stream {
-                        if let rewritten = rewriteSyntheticToolChunk(result, syntheticToolName: syntheticToolName) {
+                        for rewritten in rewriteSyntheticToolChunk(result, syntheticToolName: syntheticToolName) {
                             continuation.yield(rewritten)
                         }
                     }
@@ -115,30 +115,64 @@ enum StructuredOutputExecution {
         }
     }
 
+    /// Rewrites a single streaming chunk for the synthetic-tool fallback.
+    ///
+    /// When a chunk carries only synthetic `emit_structured_response` calls, they are merged
+    /// into a single content chunk (existing behavior). When a chunk carries only non-synthetic
+    /// tool calls, it passes through unchanged. When a chunk carries *both*, the synthetic
+    /// arguments are emitted as a content chunk first, followed by a separate chunk carrying
+    /// the non-synthetic tool-call deltas — the original implementation discarded the latter.
+    /// `finishReason` and `usage` defer to the trailing non-synthetic chunk so completion and
+    /// token totals are reported exactly once on the final chunk of the pair.
     private static func rewriteSyntheticToolChunk(
         _ result: LLMStreamChunk,
         syntheticToolName: String
-    ) -> LLMStreamChunk? {
-        guard let choice = result.choices.first else { return result }
+    ) -> [LLMStreamChunk] {
+        guard let choice = result.choices.first else { return [result] }
         let toolCalls = choice.delta.toolCalls ?? []
         let syntheticCalls = toolCalls.filter { $0.function?.name == syntheticToolName }
 
-        guard !syntheticCalls.isEmpty else { return result }
+        guard !syntheticCalls.isEmpty else { return [result] }
 
         let contentParts = syntheticCalls.compactMap { $0.function?.arguments }.filter { !$0.isEmpty }
         let mergedContent = contentParts.joined()
+        let nonSyntheticCalls = toolCalls.filter { $0.function?.name != syntheticToolName }
 
-        guard !mergedContent.isEmpty else { return nil }
+        let hasSyntheticContent = !mergedContent.isEmpty
+        let hasNonSynthetic = !nonSyntheticCalls.isEmpty
 
-        return LLMStreamChunk(
-            id: result.id,
-            model: result.model,
-            choices: [LLMStreamChoice(
-                index: choice.index,
-                delta: LLMStreamDelta(role: .assistant, content: mergedContent),
-                finishReason: choice.finishReason
-            )],
-            usage: result.usage
-        )
+        guard hasSyntheticContent || hasNonSynthetic else { return [] }
+
+        var chunks: [LLMStreamChunk] = []
+
+        if hasSyntheticContent {
+            let finishReason = hasNonSynthetic ? nil : choice.finishReason
+            let usage = hasNonSynthetic ? nil : result.usage
+            chunks.append(LLMStreamChunk(
+                id: result.id,
+                model: result.model,
+                choices: [LLMStreamChoice(
+                    index: choice.index,
+                    delta: LLMStreamDelta(role: .assistant, content: mergedContent),
+                    finishReason: finishReason
+                )],
+                usage: usage
+            ))
+        }
+
+        if hasNonSynthetic {
+            chunks.append(LLMStreamChunk(
+                id: result.id,
+                model: result.model,
+                choices: [LLMStreamChoice(
+                    index: choice.index,
+                    delta: LLMStreamDelta(role: .assistant, toolCalls: nonSyntheticCalls),
+                    finishReason: choice.finishReason
+                )],
+                usage: result.usage
+            ))
+        }
+
+        return chunks
     }
 }
