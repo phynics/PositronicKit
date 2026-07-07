@@ -1,9 +1,19 @@
 # PositronicKit
 
-PositronicKit is a Swift toolkit for building AI agents. It gives you transport-neutral runtime orchestration, a structured prompt composition DSL, and the shared contracts to tie them together — without imposing a specific networking or hosting model.
+PositronicKit is a high-performance, developer-friendly Swift toolkit for building production-ready AI agents. Built from the ground up for the Swift 6 concurrency era, it provides transport-neutral runtime orchestration, a structured prompt composition DSL, and clean, pluggable contracts—without locking you into a specific networking, hosting, or provider model.
 
-See [CHANGELOG.md](CHANGELOG.md) for release notes, migration notes, and tagged compatibility
-history, and [docs/Releasing.md](docs/Releasing.md) for the release workflow.
+See [CHANGELOG.md](CHANGELOG.md) for release notes and tagged compatibility history, and [docs/Releasing.md](docs/Releasing.md) for the release workflow.
+
+## Key Strengths
+
+*   **SwiftUI-Style Declarative Prompts (`PKPrompt`):** Author complex prompts as structured trees using a familiar body-composition DSL. Enjoy automatic modifier inheritance for properties like `.priority(...)`, `.cachePolicy(...)`, and `.compression(...)`.
+*   **Smart Context Caching (Prompt Journaling):** Dynamic prompt tracking with `PromptJournal` automatically computes stable prefixes and volatile/semi-stable overlays. This minimizes LLM latency and API costs by maximizing prompt cache hit rates.
+*   **Zero-Latency Auxiliary Tasks (Sidecar Directives):** Fetch parallel metadata (e.g., conversation titles, sentiment classification, summaries) piggy-backed on the *same single LLM request* as the user-visible response. The user sees a standard streamed response, while directives stream or buffer in the background with zero extra round-trips.
+*   **Swift 6 Structured Concurrency & Actor Isolation:** Fully thread-safe runtime architecture leveraging Swift 6 actors and structured concurrency. Composable execution stages guarantee resource cleanup (e.g., persisting telemetry, closing resources) even on failures.
+*   **Completely Pluggable & Decoupled:** Downstream independence is a core invariant. Easily swap persistence engines, custom tool routers, and workspace resolvers. Supports Anthropic, OpenAI, Ollama, and OpenRouter out of the box with zero runtime dependencies.
+*   **First-Class Linux Support:** Built to compile and test seamlessly on both Apple platforms and Linux (via bare Swift 6 toolchain, with an optimized Rust bridge for local MiniLM embeddings).
+
+---
 
 ## Quick Start
 
@@ -36,6 +46,158 @@ Detailed documentation has been split into focused guides:
 - **[Architecture](docs/Architecture.md)**: Core concepts, state management, and the v1 extension point registry.
 - **[Prompt Composition](docs/PKPromptComposition.md)**: Authoring models, caching, and prompt journaling.
 - **[Sidecar Directives](docs/SidecarDirectives.md)**: Requesting auxiliary generations piggy-backed on the same LLM request.
+
+## Code Examples
+
+All snippets below are compiled as part of `PositronicKitExamples`.
+
+### Prompt composition with PKPrompt
+
+Author prompts as structured trees, then assemble and render them into validated sections.
+
+```swift
+import PKPrompt
+
+let prompt = AnyPrompt.build {
+    SystemPrompt("You are helping with project tooling.")
+    TextPrompt("- build\n- test\n- lint", id: "tools")
+        .compression(.summarize)
+        .cachePolicy(.semiStable)
+    UserPrompt("Recommend the safest next step.")
+}
+
+let assembled = try prompt.assemblePrompt()
+let rendered = await assembled.render()
+
+print(rendered.sections.map(\.id))
+```
+
+### Sidecar directives (piggy-backed auxiliary generations)
+
+Get a conversation title, tone marker, or summary from the same request as the user-visible response.
+
+```swift
+import JSONSchemaBuilder
+import PKShared
+import PositronicKit
+
+let title = SidecarDirective(
+    name: "title",
+    instruction: "A short conversation title (3-6 words). Return null if the conversation already has a good title.",
+    schema: JSONString().definition(),
+    streaming: .buffered
+)
+
+let stream = try await chat.run(.init(
+    timelineId: timelineId,
+    message: "What's the deal with actors in Swift 6?",
+    sidecars: [title]
+))
+
+for try await event in stream {
+    if let text = event.textContent {
+        print(text, terminator: "")
+    }
+    if let result = event.sidecarResults?.first(where: { $0.name == "title" }) {
+        switch result.outcome {
+        case let .value(value): print("title: \(value)")
+        case .declined: print("title: declined")
+        case let .failed(reason): print("title failed: \(reason)")
+        }
+    }
+}
+```
+
+### Prompt journaling across snapshots
+
+Stable sections persist across turns; semi-stable changes become overlays; volatile sections are replaced each turn. This lets providers reuse a long prefix while only paying for the updated slices.
+
+```swift
+import PKPrompt
+
+struct AvailableTool: Sendable {
+    let id: String
+    let summary: String
+}
+
+func render(tools: [AvailableTool], query: String) async throws -> RenderedPrompt {
+    try await AnyPrompt.build {
+        SystemPrompt("You are a helpful coding assistant.")
+        ForEach(data: tools) { tool in
+            TextPrompt(tool.summary, id: "tool-\(tool.id)")
+                .cachePolicy(.semiStable)
+        }
+        UserPrompt(query)
+            .cachePolicy(.volatile)
+    }.assemblePrompt().render()
+}
+
+var journal = PromptJournal()
+
+let first = try await render(tools: [
+    .init(id: "build", summary: "Builds the package."),
+    .init(id: "test", summary: "Runs tests."),
+], query: "What should I run first?")
+
+let second = try await render(tools: [
+    .init(id: "build", summary: "Builds the package."),
+    .init(id: "test", summary: "Runs the full test suite."),
+    .init(id: "lint", summary: "Checks formatting and style."),
+], query: "What should I run first?")
+
+let initialPlan = journal.observe(first)
+print(initialPlan.baseSections.map(\.section.id))
+// ["system", "tool-build", "tool-test"]
+print(initialPlan.overlaySections.isEmpty)
+// true — nothing has changed yet
+
+let updatedPlan = journal.observe(second)
+print(updatedPlan.baseSections.map(\.section.id))
+// ["system", "tool-build", "tool-test"] — unchanged stable prefix stays materialized
+print(updatedPlan.overlaySections.map(\.section.id))
+// ["tool-test", "tool-lint"] — only the modified / new semi-stable sections
+
+for overlay in updatedPlan.overlaySections {
+    if case let .text(text) = overlay.section.content {
+        print("\(overlay.section.id): \(text)")
+    }
+}
+// tool-test: Runs the full test suite.
+// tool-lint: Checks formatting and style.
+
+let compactedPlan = journal.compact()
+print(compactedPlan?.baseSections.map(\.section.id) ?? [])
+// ["system", "tool-build", "tool-test", "tool-lint"] — overlays folded back into base
+print(compactedPlan?.overlaySections.isEmpty ?? false)
+// true
+```
+
+### How Overlays are Represented in the LLM Context
+
+Under the hood, `PromptJournalPlan` renders these state transitions into provider-neutral conversation messages using a set of structured XML tags. This allows the LLM to cleanly track how sections evolve without having to resend unchanged stable blocks:
+
+*   **Snapshot Mode (`.snapshot`):** Emitted at the beginning of a session, establishing the initial state of the prompt's baseline sections:
+    ```xml
+    <prompt_journal_snapshot id="tool-build" path="tool-build">
+    Builds the package.
+    </prompt_journal_snapshot>
+    ```
+*   **Delta Mode (`.delta`):** When semi-stable sections change, the journal appends only the difference messages to the conversation context:
+    *   **Additions:** Wrapped in `<prompt_journal_add>` tags.
+    *   **Modifications:** Wrapped in `<prompt_journal_replace>` tags.
+    *   **Removals:** Specified as `<prompt_journal_remove id="..." />`.
+
+For example, when `updatedPlan` above is built into messages, the changes are appended at the end of the context as:
+```xml
+<prompt_journal_replace id="tool-test" path="tool-test">
+Runs the full test suite.
+</prompt_journal_replace>
+
+<prompt_journal_add id="tool-lint" path="tool-lint">
+Checks formatting and style.
+</prompt_journal_add>
+```
+Once `journal.compact()` is called, these delta operations are merged directly back into the baseline snapshot for subsequent turns.
 
 ## Package Layout
 
