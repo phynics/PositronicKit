@@ -8,6 +8,22 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Changed
+
+- Docs: added a doc comment on `SidecarResult.Outcome.value` documenting the per-directive
+  payload-value contract — the `AnyCodable` case tag depends on the directive's schema shape
+  (leaf scalar → `.string`/`.number`; `@Schemable` object → `.dictionary`), and consumers must
+  not assume `AnyCodable.asString` (returns `nil` for `.dictionary`). Cites PKTEST-1.
+
+### Added
+
+- Tests: `SidecarOutcomeContractTests` pinning the `SidecarStreamExtractor` outcome shape for
+  leaf-scalar and object-schema directives, `null` → `.declined`, missing/wrong key → `.failed`,
+  `Codable` round-trip preserving the `AnyCodable` case tag, and a strict-mode investigation
+  confirming `@Schemable` omits the `required` array for all-optional payloads while
+  `SidecarSchemaComposer.compose` sets `strict: true` — a real OpenAI strict-mode conflict
+  (PKTEST-1).
+
 ## [1.2.0] - 2026-07-07
 
 ### Changed
