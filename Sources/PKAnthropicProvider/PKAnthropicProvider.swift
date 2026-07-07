@@ -15,6 +15,7 @@ public enum PKAnthropicProvider {
                 maxRetries: retries
             )
         }, for: .anthropic)
+        StructuredOutputAdapterRegistry.register(AnthropicStructuredOutputAdapter(), for: .anthropic)
     }
 }
 

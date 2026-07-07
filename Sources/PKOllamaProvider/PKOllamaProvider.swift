@@ -12,6 +12,7 @@ public enum PKOllamaProvider {
                 maxRetries: retries
             )
         }, for: .ollama)
+        StructuredOutputAdapterRegistry.register(OllamaStructuredOutputAdapter(), for: .ollama)
     }
 }
 
