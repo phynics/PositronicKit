@@ -103,3 +103,113 @@ The two systems intentionally overlap only partially:
 - For **prompt journaling use cases**, prefer `PromptJournal`.
 - For **runtime diff/cache behavior**, let `PositronicKit` manage `TimelinePromptHistory` internally.
 - If you need both, treat `PromptJournal` as the user-facing API and `TimelinePromptHistory` as runtime implementation support.
+
+## Usage Examples (The Three Layers)
+
+> The three layer examples below are compile-checked in `Sources/PositronicKitExamples/PKPromptExamples.swift` (`renderLayer1ToString`, `assembleLayer2`, `journalLayer3`) and run via `swift run PositronicKitExamples`. Keep them in sync when editing these snippets.
+
+### Layer 1: Prompt → String
+
+The simplest path — compose a prompt tree and get canonical rendered text.
+
+```swift
+import PKPrompt
+
+struct ToolingPrompt: Prompt {
+    let tools: [String]
+
+    var body: some Prompt {
+        SystemPrompt("You are helping with project tooling.")
+
+        TextPrompt(tools.map { "- \($0)" }.joined(separator: "\n"), id: "tools")
+            .compression(.summarize)
+            .cachePolicy(.semiStable)
+    }
+}
+
+let prompt = AnyPrompt.build {
+    ToolingPrompt(tools: ["build", "test", "lint"])
+    UserPrompt("Recommend the safest next step.")
+}
+
+print(try await prompt.renderToString() ?? "")
+```
+
+If you don't need to inspect sections, manage compression outcomes, or track changes across snapshots, this is all you need.
+
+### Layer 2: Prompt → AssembledPrompt → RenderedPrompt
+
+When you need the full prompt structure — validated sections, rendered content, and compression outcomes.
+
+```swift
+import PKPrompt
+
+let prompt = AnyPrompt.build {
+    SystemPrompt("You are helping with project tooling.")
+    TextPrompt("- build\n- test\n- lint", id: "tools")
+        .compression(.summarize)
+        .cachePolicy(.semiStable)
+    UserPrompt("Recommend the safest next step.")
+}
+
+let assembled = try prompt.assemblePrompt()
+let rendered = await assembled.render()
+
+print(assembled.sections.map(\.id))
+print(rendered.sections.map(\.id))
+print(rendered.sectionsByID)
+```
+
+- `try prompt.assemblePrompt()` validates and orders sections into an `AssembledPrompt`.
+- `await assembled.render()` produces the canonical `RenderedPrompt` — the single render artifact used for strings, snapshots, journaling, and provider projection.
+- Each section carries both the requested `compression` strategy and the realized `compressionOutcome` after token-budget enforcement.
+
+### Layer 3: RenderedPrompt → PromptJournal
+
+When prompt structure needs to survive across snapshots — stable content stays materialized, semi-stable changes become overlays, and volatile content stays current-only.
+
+```swift
+import PKPrompt
+
+var journal = PromptJournal()
+
+let first = await (try! AnyPrompt.build {
+    SystemPrompt("You are helping with project tooling.")
+    TextPrompt("- build\n- test\n- lint", id: "tools")
+        .cachePolicy(.semiStable)
+    UserPrompt("Recommend the safest next step.")
+}.assemblePrompt()).render()
+
+let second = await (try! AnyPrompt.build {
+    SystemPrompt("You are helping with project tooling.")
+    TextPrompt("- build\n- test\n- lint\n- format", id: "tools")
+        .cachePolicy(.semiStable)
+    UserPrompt("Recommend the safest next step.")
+}.assemblePrompt()).render()
+
+let initialPlan = journal.observe(first)
+let updatedPlan = journal.observe(second)
+let compactedPlan = journal.compact()
+
+print(initialPlan.baseSections.map(\.journalPath))
+print(updatedPlan.overlaySections.map(\.journalPath))
+print(compactedPlan?.overlaySections.isEmpty ?? false)
+```
+
+Cache policies drive the journaling behavior:
+
+- **Stable** sections stay materialized in the committed base. If a stable section mutates, the journal produces a hard-reset plan rather than an overlay.
+- **Semi-stable** sections become overlay entries when they change. Calling `compact()` folds outstanding overlays into the base.
+- **Volatile** sections never enter the committed base; they are replaced wholesale on the next `observe()`.
+
+`PromptJournal` is provider-neutral: it produces layered sections and journal paths, and a higher layer decides how to project overlays into provider-specific update messages.
+
+### PromptBuilder Notes
+
+`PromptBuilder` normalizes authored prompt syntax into structural `Prompt` values. `PromptAssembly` then lowers those values into `PromptNode` — the canonical internal IR.
+
+- Use `AnyPrompt.build { ... }` for an explicit root container.
+- Plain `for` loops use positional identity (`item_0`, `item_1`, ...).
+- Use `ForEach(...)`, `PromptForEach(...)`, or `PromptBuilder.forEach(...)` when loop identity must come from domain data.
+- Trait modifiers like `.priority(...)`, `.compression(...)`, and `.cachePolicy(...)` inherit through the subtree and are resolved once during assembly.
+

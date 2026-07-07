@@ -41,11 +41,14 @@ Because multiple stages might need to update the results of a turn concurrently 
 
 ## 3. Facade-Backed Wiring
 
-PositronicKit composes its runtime graph through explicit facade initializers.
+PositronicKit is the orchestration layer. It manages the full lifecycle of an agent interaction — from resolving state, through prompt assembly and tool execution, to persisting results.
 
-- **Explicit services**: Callers pass concrete LLM, storage, workspace, and runtime services into `PositronicKit`.
-- **Narrow boundaries**: The runtime depends on focused store and protocol seams instead of a shared dependency container.
-- **Testability**: Tests can inject doubles directly through the same public initializers that production code uses.
+### Two Ways In: Facade (Primary) vs. Direct Seams (Advanced)
+
+- **The `PositronicKit` facade is the primary entry point.** Construct it, call `run(...)`, and consume the streamed `ChatEvent`s. It wires the runtime internally; most consumers never touch the underlying coordinators.
+- **Advanced hosts may compose the public runtime seams directly.** When you own a server or a custom composition root, construct and hold `TimelineManager`, `ToolRouter`, and the persistence/workspace protocols yourself, or inject them into the facade via the grouped `runtime:` / `persistence:` initializers. This is a supported tier — not a private API — but you opt into more wiring in exchange for more control.
+
+Prefer the facade unless you specifically need a seam it doesn't surface. The chat-loop internals (`ChatEngine`, the turn pipeline, prompt-assembly internals) remain implementation details either way.
 
 ## 4. Execution Flow: The Chat Engine
 
@@ -95,3 +98,39 @@ instead of paying a separate round-trip per auxiliary task. Full design:
 - Concrete directives (title, summary, tone) and their per-conversation scheduling policy are
   intentionally **not** defined here — see `workflow/Yakamoz/tickets/SID-1`/`SID-2`. This layer
   only provides the mechanism.
+
+## 6. Extension Points
+
+PositronicKit is deliberately transport-neutral: no networking, RPC, multi-process hosting, or bundled provider SDKs in the core target. The key boundaries are:
+
+- **Persistence protocols** for timelines, messages, workspaces, tools, agents, and request origins.
+- **`WorkspaceCreating` and `WorkspaceProtocol`** for downstream-owned workspace resolution and execution behavior. `AgentWorkspaceService` is the bundled local provisioning implementation, not a required universal workspace model.
+- **`PromptSectionProviding`** and **`ChatTurnPlugin`** for app-specific orchestration and context hooks.
+- **Provider contracts in `PKShared`** for downstream-owned LLM adapters and tool/message projections.
+
+### v1 Extension Point Registry
+
+These public API surfaces are the **v1 compatibility contract**: they only change across a major version. Anything not listed here (or explicitly called out as internal) may change between minor releases.
+
+| Category | Protocol / Type | Module | Purpose |
+|----------|----------------|--------|---------|
+| **Tool contracts** | `Tool`, `AnyTool`, `ToolResult`, `ToolParameters`, `ToolError` | PKShared | Define and execute tools |
+| **Orchestration hooks** | `ChatTurnPlugin`, `CompletedTurn` | PositronicKit | Post-turn processing |
+| **Prompt customization** | `PromptSectionProviding`, `PromptBuildContext` | PositronicKit | Inject custom prompt sections |
+| **Persistence** | `MessageStoreProtocol`, `TimelinePersistenceProtocol`, `WorkspacePersistenceProtocol`, `MemoryStoreProtocol`, `ToolPersistenceProtocol`, `AgentInstanceStoreProtocol`, `AgentTemplateStoreProtocol`, `RequestOriginStoreProtocol` | PositronicKit | Custom storage backends |
+| **Key-value store** | `KeyValueStoreProtocol` | PositronicKit | Generic key-value persistence |
+| **Vector search** | `VectorStoreProtocol`, `VectorStoreError` | PositronicKit | Custom vector search backends |
+| **Health check** | `HealthCheckable` | PositronicKit | Service health reporting |
+| **LLM providers** | `LLMStreamClient`, `LLMConfigStore`, `LLMUtilityClient` (narrow seams); `LLMServiceProtocol` (deprecated composite, still compiles with a warning); `LLMChatRequest`, `LLMStreamResult`, `LLMStreamChunk`, etc. | PKShared | Provider adapter contracts |
+| **Structured output** | `StructuredOutputAdapter`, `PreparedStructuredOutputRequest`, `StructuredOutputAdapterRegistry`, `DefaultStructuredOutputAdapter` | PKShared | Per-provider structured-output preparation; register a custom adapter to override the built-in behavior for an `LLMProvider` |
+| **Provider registration** | `PKOpenAIProvider.register()`, `PKOpenRouterProvider.register()`, `PKOllamaProvider.register()`, `PKAnthropicProvider.register()` | Provider modules | Provider factory registration |
+| **Workspace** | `WorkspaceProtocol`, `WorkspaceCreating`, `ToolReference`, `WorkspaceToolDefinition`, `WorkspaceToolError` | PositronicKit / PKShared | Custom workspace backends |
+| **Configuration** | `LLMConfiguration`, `GenerationParameters`, `LLMProvider` | PKShared | LLM configuration |
+| **Events** | `ChatEvent`, `ToolExecutionStatus`, `Message` | PKShared | Stream event types |
+| **Sidecar directives** | `SidecarDirective`, `SidecarDelta`, `SidecarResult` (PKShared), `SidecarError` (PositronicKit) | PKShared / PositronicKit | Piggy-backed auxiliary generations riding a turn's response — see [Sidecar Directives](docs/SidecarDirectives.md) |
+| **Pipeline** | `PipelineStage`, `PipelineBuilder`, `PipelineError` | PKShared | Custom pipeline stages (advanced) |
+| **Runtime coordinators (advanced)** | `TimelineManager`, `ToolRouter`, `ToolExecutionOutcome`, `RuntimeToolPolicy` | PositronicKit | Direct runtime seams for hosts with their own composition root |
+
+`InMemory*` stores (and `PositronicKit.PersistenceConfiguration.inMemory()`) are **public prototyping/test helpers**, not extension points — convenient for prototypes and tests, but not a stability contract.
+
+**Internal** (not part of the v1 contract): `ChatEngine`, `ChatTurnContext`, `TurnOutputs`, `StreamedToolCall` (chat-runtime internals); `PromptAssembler`, `PromptAssemblyContext`, `PromptAssemblyStage`, `PromptAssemblyOptions` (prompt pipeline internals); `ContextManager`, `ContextPipelineContext`, `ContextGatheringEvent` (context pipeline internals); `ParsedToolCall`, `ToolHandlingResult`, `ToolTurnResult` (tool-routing internals).

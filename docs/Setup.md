@@ -2,7 +2,21 @@
 
 This guide describes how to configure and use PositronicKit in your application.
 
-## 1. Facade Configuration
+## 1. Choosing An Entry Point
+
+Pick the smallest surface that matches your need:
+
+| Need | Start with |
+|------|-----------|
+| Prompt composition, rendering, journaling — no runtime | `PKPrompt` |
+| Single-process app or CLI agent runtime | The `PositronicKit` facade |
+| Runtime + OpenAI/OpenRouter/Ollama/Anthropic convenience setup | Add the matching provider package |
+| On-device Apple Intelligence models (no key, no network) | Add `PKFoundationModelsProvider` — `PositronicKit(foundationModelsTools:)`; requires macOS 26+/Apple Silicon with Apple Intelligence enabled, surfaces unavailability as a typed `PKError` |
+| Local embedding service | Add `PKLocalEmbeddings` |
+| Host-owned filesystem/execution/attachment behavior | `PositronicKit` + your own `WorkspaceCreating` / `WorkspaceProtocol` |
+| Typed JSON / schema-first integrations | `PKShared` structured output types, optionally with the runtime later |
+
+## 2. Facade Configuration
 
 `PositronicKit` is configured through its initializers. The runtime composes its internal graph from explicit services and stores, so callers do not rely on a shared dependency container.
 
@@ -65,33 +79,63 @@ Tests and host code can inject doubles directly through the facade initializers;
 
 Use `RuntimeToolPolicy` to disable any category or start with no runtime tools.
 
-## 2. Logging
+### Provider Registration
 
-PositronicKit uses `swift-log` only.
+Concrete providers register factories against the shared provider registry. Import the provider module you want and register it before constructing an `LLMService` from configuration.
 
-- The library does not call `LoggingSystem.bootstrap(...)`.
-- Your host application or CLI should bootstrap logging once, at process startup.
-- Runtime services emit normal operational logs through `Logger.module(...)`.
-- Prompt assembly emits verbose diagnostics only when you pass a `Logger` to
-  `PositronicKit.run(..., promptAssemblyLogger:)`.
+- Registration is required when you use `LLMService(configuration: ...)` directly.
+- Repeated registration is safe; provider modules overwrite the same registry slot.
+- The provider module owns registration for its provider family. In particular, `PKOpenAIProvider.register()` registers both `.openAI` and `.openAICompatible` factories.
+
+```swift
+import PositronicKit
+import PKOpenAIProvider
+
+PKOpenAIProvider.register()
+
+let core = PositronicKit(
+    llmService: LLMService(configuration: .init(
+        apiKey: ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? "",
+        provider: .openAI
+    ))
+)
+```
+
+Or use the provider target's convenience initializer:
+
+```swift
+import PKOpenAIProvider
+
+let core = PositronicKit(openAIKey: "sk-...")
+```
+
+## 3. Logging And Errors
+
+PositronicKit uses `swift-log` as its only logging API. Library code never calls `LoggingSystem.bootstrap(...)` — the downstream app, CLI, or test owns bootstrap and log-level selection:
 
 ```swift
 import Logging
 import PositronicKit
+import PKOpenAIProvider
 
+// Bootstrap once, early in your app/CLI/test startup.
 LoggingSystem.bootstrap { label in
-    StreamLogHandler.standardOutput(label: label)
+    var handler = StreamLogHandler.standardOutput(label: label)
+    handler.logLevel = .debug   // raise to surface runtime + prompt-assembly diagnostics
+    return handler
 }
 
-let logger = Logger(label: "com.example.prompt")
-let events = try await chat.run(
-    timelineId: timelineId,
-    message: "…",
-    promptAssemblyLogger: logger
-)
+let core = PositronicKit(openAIKey: ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? "")
 ```
 
-## 3. Setting Up a Pipeline
+Long-lived runtime services log through `Logger.module(...)` in `PKShared`; prompt-assembly diagnostics are opt-in per turn via `promptAssemblyLogger` (see above).
+
+For package-defined errors, PositronicKit uses `ErrorKit` through `PKShared.PKError`:
+
+- Package error types conform to `PKError`, with stable `PKErrorDomain` and `errorCode` values.
+- `userFriendlyMessage` is the preferred surfaced message; when propagating nested failures, prefer `ErrorKit.userFriendlyMessage(for:)` over raw `localizedDescription`.
+
+## 4. Setting Up a Pipeline
 
 The runtime uses the generic `Pipeline` type internally for chat turns, prompt assembly, and context gathering. You can also use `Pipeline` directly for independent workflows.
 
@@ -133,7 +177,7 @@ for try await event in stream {
 }
 ```
 
-## 4. Best Practices
+## 5. Best Practices
 
 - **Immutability**: Always treat the `Context` object as immutable. If you need to accumulate state during a pipeline run, use an `actor` for thread-safe mutations.
 - **Error Handling**: Implement custom errors that conform to `PKError`, use stable `PKErrorDomain`/`errorCode` values, and prefer `ErrorKit.userFriendlyMessage(for:)` when surfacing nested failures.
