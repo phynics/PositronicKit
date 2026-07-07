@@ -133,4 +133,4 @@ These public API surfaces are the **v1 compatibility contract**: they only chang
 
 `InMemory*` stores (and `PositronicKit.PersistenceConfiguration.inMemory()`) are **public prototyping/test helpers**, not extension points — convenient for prototypes and tests, but not a stability contract.
 
-**Internal** (not part of the v1 contract): `ChatEngine`, `ChatTurnContext`, `TurnOutputs`, `StreamedToolCall` (chat-runtime internals); `PromptAssembler`, `PromptAssemblyContext`, `PromptAssemblyStage`, `PromptAssemblyOptions` (prompt pipeline internals); `ContextManager`, `ContextPipelineContext`, `ContextGatheringEvent` (context pipeline internals); `ParsedToolCall`, `ToolHandlingResult`, `ToolTurnResult` (tool-routing internals).
+**Internal** (not part of the v1 contract): `ChatEngine`, `ChatTurnContext`, `TurnOutputs`, `StreamedToolCall` (chat-runtime internals); `PromptAssembler`, `PromptAssemblyOptions` (prompt assembly internals); `ContextManager`, `ContextPipelineContext`, `ContextGatheringEvent` (context pipeline internals); `ParsedToolCall`, `ToolHandlingResult`, `ToolTurnResult` (tool-routing internals).

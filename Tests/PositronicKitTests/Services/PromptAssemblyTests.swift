@@ -65,33 +65,6 @@ struct PromptAssemblyTests {
         }
     }
 
-    @Test("PromptAssemblyContext holds properties")
-    func contextHoldsProperties() async {
-        let request = makeRequest(userQuery: "custom query")
-        let agent = AgentInstance(id: UUID(), name: "TestAgent", description: "desc", privateTimelineId: UUID())
-        let timeline = Timeline(id: UUID(), title: "TestTimeline")
-        let ext = [MockSection(id: "ext")]
-
-        let context = PromptAssemblyContext(request: request, agentInstance: agent, timeline: timeline, extensionSections: ext)
-
-        #expect(await context.request.userQuery == "custom query")
-        #expect(await context.agentInstance?.name == "TestAgent")
-        #expect(await context.timeline?.title == "TestTimeline")
-        #expect(await context.extensionSections.count == 1)
-    }
-
-    @Test("PromptAssemblyContext appends sections")
-    func contextAppendsSections() async {
-        let context = PromptAssemblyContext(request: makeRequest())
-
-        await context.append(MockSection(id: "s1"))
-        await context.append([MockSection(id: "s2"), MockSection(id: "s3")])
-
-        let sections = await context.sections
-        let resolved = sections.flatMap { try! $0.assemblePrompt().sections }
-        #expect(resolved.map(\.id) == ["s1", "s2", "s3"])
-    }
-
     @Test("PromptBuilder composes sections")
     func builderComposesSections() {
         @PromptBuilder
@@ -107,24 +80,16 @@ struct PromptAssemblyTests {
         #expect(resolved.map(\.id) == ["s1", "s2", "s3", "s4"])
     }
 
-    @Test("Prompt assembly pipeline executes stages")
-    func pipelineExecutesStages() async throws {
-        let context = PromptAssemblyContext(request: makeRequest())
+    @Test("Custom sections closure produces expected sections")
+    func customSectionsProducesExpectedSections() async throws {
+        let prompt = try await PromptAssembler.assemble(
+            makeRequest(userQuery: "test"),
+            options: PromptAssemblyOptions(
+                customSections: { [MockSection(id: "custom")] }
+            )
+        )
 
-        struct CustomStage: PromptAssemblyStage {
-            func execute(_ context: PromptAssemblyContext) async throws {
-                await context.append(MockSection(id: "custom"))
-            }
-        }
-
-        let pipeline = Pipeline<PromptAssemblyContext, PromptAssemblyEvent>(stages: [CustomStage()])
-        let stream = pipeline.execute(context)
-        for try await _ in stream {}
-
-        let sections = await context.sections
-        let resolved = sections.flatMap { try! $0.assemblePrompt().sections }
-        #expect(resolved.count == 1)
-        #expect(resolved.first?.id == "custom")
+        #expect(prompt.sections.map { $0.id } == ["custom"])
     }
 
     @Test("PromptAssembler assembles runtime requests with the default pipeline")
@@ -137,32 +102,20 @@ struct PromptAssemblyTests {
         #expect(resolved.first(where: { $0.id == "user_query" })?.content.text == "pipeline test")
     }
 
-    @Test("PromptAssembler uses override pipeline in assemble")
-    func promptBuilderUsesOverridePipeline() async throws {
-        struct CustomStage: PromptAssemblyStage {
-            func execute(_ context: PromptAssemblyContext) async throws {
-                await context.append(PromptAssemblyTests.MockSection(id: "override_assembly"))
-            }
-        }
-
+    @Test("Custom sections replace the default build")
+    func customSectionsReplacesDefaultBuild() async throws {
         let prompt = try await PromptAssembler.assemble(
             makeRequest(userQuery: "test"),
             options: PromptAssemblyOptions(
-                overridePipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>(stages: [CustomStage()])
+                customSections: { [MockSection(id: "override_assembly")] }
             )
         )
 
         #expect(prompt.sections.map { $0.id } == ["override_assembly"])
     }
 
-    @Test("PromptAssembler emits verbose assembly logs when requested")
+    @Test("PromptAssembler emits per-section assembly logs on the default build")
     func promptAssemblerEmitsVerboseLogs() async throws {
-        struct CustomStage: PromptAssemblyStage {
-            func execute(_ context: PromptAssemblyContext) async throws {
-                await context.append(PromptAssemblyTests.MockSection(id: "verbose_assembly"))
-            }
-        }
-
         let sink = PromptAssemblyLogSink()
         let logger = Logger(label: "test.prompt-assembly") { _ in
             PromptAssemblyTestLogHandler(sink: sink)
@@ -171,33 +124,25 @@ struct PromptAssemblyTests {
         _ = try await PromptAssembler.assemble(
             makeRequest(userQuery: "test"),
             options: PromptAssemblyOptions(
-                overridePipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>(stages: [CustomStage()]),
                 logger: logger
             )
         )
 
         let messages = sink.messages()
-        #expect(messages.contains("Starting pipeline stage: CustomStage"))
-        #expect(messages.contains(where: { $0.hasPrefix("Completed pipeline stage: CustomStage in ") }))
-        #expect(messages.contains("Resolved 1 prompt section(s) from 1 prompt fragment(s)."))
+        #expect(messages.contains("Starting prompt section: SystemInstructions"))
+        #expect(messages.contains(where: { $0.hasPrefix("Completed prompt section: SystemInstructions in ") }))
+        #expect(messages.contains(where: { $0.contains("prompt section(s) from 7 prompt fragment(s).") }))
     }
 
     @Test("PromptAssembler rejects duplicate section ids")
     func promptBuilderRejectsDuplicateSectionIDs() async {
-        struct DuplicateStage: PromptAssemblyStage {
-            func execute(_ context: PromptAssemblyContext) async throws {
-                await context.append([
-                    PromptAssemblyTests.MockSection(id: "duplicate", content: "one"),
-                    PromptAssemblyTests.MockSection(id: "duplicate", content: "two"),
-                ])
-            }
-        }
-
         await #expect(throws: AssembledPrompt.ValidationError.self) {
             _ = try await PromptAssembler.assemble(
                 makeRequest(userQuery: "test"),
                 options: PromptAssemblyOptions(
-                    overridePipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>(stages: [DuplicateStage()])
+                    customSections: {
+                        [MockSection(id: "duplicate", content: "one"), MockSection(id: "duplicate", content: "two")]
+                    }
                 )
             )
         }
@@ -205,16 +150,10 @@ struct PromptAssemblyTests {
 
     @Test("PromptAssembler accepts advanced options object")
     func promptAssemblerUsesOptionsObject() async throws {
-        struct CustomStage: PromptAssemblyStage {
-            func execute(_ context: PromptAssemblyContext) async throws {
-                await context.append(PromptAssemblyTests.MockSection(id: "from_options"))
-            }
-        }
-
         let prompt = try await PromptAssembler.assemble(
             makeRequest(userQuery: "test"),
             options: PromptAssemblyOptions(
-                overridePipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>(stages: [CustomStage()])
+                customSections: { [MockSection(id: "from_options")] }
             )
         )
 

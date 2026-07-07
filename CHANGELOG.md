@@ -31,6 +31,19 @@ for tagged releases beginning with `1.0.0`.
 
 ### Changed
 
+- Prompt assembly no longer routes section construction through the generic `Pipeline`
+  machinery (PKDEEP-001). The 10 pass-through `PromptAssemblyStage` structs, the
+  `PromptAssemblyContext` actor, and the `PromptAssemblyEvent` enum are gone; `PromptAssembler`
+  now builds its `[any Prompt]` inline via a private `buildSections` helper.
+  `PromptAssemblyOptions.overridePipeline` is replaced by `customSections:
+  (@Sendable () async -> [any Prompt])?`, which supplies the sections directly and bypasses the
+  default build. `ChatEngine.execute` and `TurnPreparer.prepareSession` no longer take an
+  `assemblyPipeline` parameter. The diagnostic log format changes from
+  `"Starting pipeline stage: <id>"`/`"Completed pipeline stage: <id> in …"` to
+  `"Starting prompt section: <id>"`/`"Completed prompt section: <id> in …"`; per-section logs are
+  emitted only on the default build path (not when `customSections` is supplied). The generic
+  `Pipeline`/`PipelineStage` infrastructure itself is unchanged and still backs the context-
+  gathering and chat-turn pipelines.
 - Docs: added a doc comment on `SidecarResult.Outcome.value` documenting the per-directive
   payload-value contract — the `AnyCodable` case tag depends on the directive's schema shape
   (leaf scalar → `.string`/`.number`; `@Schemable` object → `.dictionary`), and consumers must

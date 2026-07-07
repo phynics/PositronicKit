@@ -6,14 +6,14 @@ import PKShared
 /// Advanced options for prompt assembly.
 ///
 /// Most callers should use ``PromptAssembler/assemble(_:agentInstance:timeline:extensionSections:)``
-/// or ``PromptAssembler/prepare(_:)``. Use this type when you need to override the default
-/// assembly pipeline or apply compression configuration.
+/// or ``PromptAssembler/prepare(_:)``. Use this type when you need to supply custom sections
+/// or apply compression configuration.
 ///
 /// When `tokenBudget` is set, `PromptAssembler` first attempts structured compression using
 /// resolved section metadata and `structuredExecutor`. If the structured result is still over
 /// budget, it falls back to the simpler priority-based `TokenBudget` path.
 struct PromptAssemblyOptions: Sendable {
-    var overridePipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>?
+    var customSections: (@Sendable () async -> [any Prompt])? = nil
     var tokenBudget: TokenBudget?
     var logger: Logger?
     /// Optional summarization service used by `.summarize` compression actions once a prompt is
@@ -28,14 +28,14 @@ struct PromptAssemblyOptions: Sendable {
     var structuredExecutor: StructuredCompressionExecutor
 
     init(
-        overridePipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>? = nil,
+        customSections: (@Sendable () async -> [any Prompt])? = nil,
         tokenBudget: TokenBudget? = nil,
         logger: Logger? = nil,
         compressor: SectionCompressor? = nil,
         structuredDiff: StructuredDiffHint? = nil,
         structuredExecutor: StructuredCompressionExecutor = StructuredCompressionExecutor()
     ) {
-        self.overridePipeline = overridePipeline
+        self.customSections = customSections
         self.tokenBudget = tokenBudget
         self.logger = logger
         self.compressor = compressor

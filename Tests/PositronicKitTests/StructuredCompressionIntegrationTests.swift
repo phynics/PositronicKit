@@ -41,21 +41,17 @@ private actor IntegrationCounter {
 struct StructuredCompressionIntegrationTests {
     @Test("Changed subtree is prioritized under token pressure")
     func changedSubtreePrioritized() async throws {
-        struct Stage: PromptAssemblyStage {
-            func execute(_ context: PromptAssemblyContext) async throws {
-                await context.append([
-                    CompressionMockSection(id: "stable_node", priority: 10, estimatedTokens: 300, compression: .summarize, cachePolicy: .stable, text: "stable text"),
-                    CompressionMockSection(id: "changed_node", priority: 1, estimatedTokens: 300, compression: .summarize, cachePolicy: .volatile, text: "changed text"),
-                ])
-            }
-        }
-
         let request = LLMPromptRequest(userQuery: "test", chatHistory: [], tools: [], workspaces: [], primaryWorkspace: nil, requestOriginName: nil)
 
         let prompt = try await PromptAssembler.assemble(
             request,
             options: PromptAssemblyOptions(
-                overridePipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>(stages: [Stage()]),
+                customSections: {
+                    [
+                        CompressionMockSection(id: "stable_node", priority: 10, estimatedTokens: 300, compression: .summarize, cachePolicy: .stable, text: "stable text"),
+                        CompressionMockSection(id: "changed_node", priority: 1, estimatedTokens: 300, compression: .summarize, cachePolicy: .volatile, text: "changed text"),
+                    ]
+                },
                 tokenBudget: TokenBudget(maxTokens: 180, reserveForResponse: 0),
                 compressor: IntegrationCompressor(summary: "short"),
                 structuredDiff: StructuredDiffHint(
@@ -70,14 +66,6 @@ struct StructuredCompressionIntegrationTests {
 
     @Test("Shared executor re-summarizes repeated builds without a summary cache")
     func cachePreservedAcrossBuilds() async throws {
-        struct Stage: PromptAssemblyStage {
-            func execute(_ context: PromptAssemblyContext) async throws {
-                await context.append([
-                    CompressionMockSection(id: "cache_node", priority: 1, estimatedTokens: 300, compression: .summarize, cachePolicy: .volatile, text: "cache me"),
-                ])
-            }
-        }
-
         struct CountingCompressor: SectionCompressor {
             let counter: IntegrationCounter
             func summarize(_ text: String) async throws -> String { await counter.increment(); return "cached-summary" }
@@ -91,7 +79,11 @@ struct StructuredCompressionIntegrationTests {
         let budget = TokenBudget(maxTokens: 100, reserveForResponse: 0)
 
         let options = PromptAssemblyOptions(
-            overridePipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>(stages: [Stage()]),
+            customSections: {
+                [
+                    CompressionMockSection(id: "cache_node", priority: 1, estimatedTokens: 300, compression: .summarize, cachePolicy: .volatile, text: "cache me"),
+                ]
+            },
             tokenBudget: budget,
             compressor: compressor,
             structuredExecutor: executor
@@ -112,15 +104,6 @@ struct StructuredCompressionIntegrationTests {
             func get() -> String { value }
         }
 
-        struct Stage: PromptAssemblyStage {
-            let content: ContentBox
-            func execute(_ context: PromptAssemblyContext) async throws {
-                await context.append([
-                    CompressionMockSection(id: "cache_node", priority: 1, estimatedTokens: 300, compression: .summarize, cachePolicy: .volatile, text: await content.get()),
-                ])
-            }
-        }
-
         struct CountingCompressor: SectionCompressor {
             let counter: IntegrationCounter
             func summarize(_ text: String) async throws -> String { await counter.increment(); return "summary" }
@@ -135,7 +118,10 @@ struct StructuredCompressionIntegrationTests {
         let budget = TokenBudget(maxTokens: 100, reserveForResponse: 0)
 
         let options = PromptAssemblyOptions(
-            overridePipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>(stages: [Stage(content: content)]),
+            customSections: { [content] in
+                let text = await content.get()
+                return [CompressionMockSection(id: "cache_node", priority: 1, estimatedTokens: 300, compression: .summarize, cachePolicy: .volatile, text: text)]
+            },
             tokenBudget: budget,
             compressor: compressor,
             structuredExecutor: executor
@@ -143,15 +129,7 @@ struct StructuredCompressionIntegrationTests {
 
         _ = try await PromptAssembler.assemble(request, options: options)
         await content.set("version-2")
-        _ = try await PromptAssembler.assemble(
-            request,
-            options: PromptAssemblyOptions(
-                overridePipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>(stages: [Stage(content: content)]),
-                tokenBudget: budget,
-                compressor: compressor,
-                structuredExecutor: executor
-            )
-        )
+        _ = try await PromptAssembler.assemble(request, options: options)
 
         #expect(await counter.value() == 2)
     }

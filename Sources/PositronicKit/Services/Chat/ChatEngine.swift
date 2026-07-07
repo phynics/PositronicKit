@@ -161,7 +161,6 @@ struct ChatEngine {
         sidecars: [SidecarDirective] = [],
         includeSidecarMechanismPreamble: Bool = false,
         contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
-        assemblyPipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>? = nil,
         assemblyLogger: Logger? = nil
     ) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         let sid = ANSIColors.colorize(timelineId.uuidString.prefix(8).lowercased(), color: ANSIColors.brightBlue)
@@ -191,7 +190,6 @@ struct ChatEngine {
             sidecars: sidecars,
             includeSidecarMechanismPreamble: includeSidecarMechanismPreamble,
             contextPipeline: contextPipeline,
-            assemblyPipeline: assemblyPipeline,
             assemblyLogger: assemblyLogger
         )
 

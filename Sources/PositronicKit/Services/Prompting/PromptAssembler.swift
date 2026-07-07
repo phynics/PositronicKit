@@ -10,25 +10,6 @@ import PKShared
 /// `PKPrompt` owns prompt composition and journaling APIs, while this type owns runtime-side stage
 /// ordering, token-budget policy, and compression metadata wiring.
 enum PromptAssembler {
-    // MARK: - Default Stages
-
-    /// Returns the standard sequence of stages used to assemble a prompt.
-    /// - Returns: An array of pipeline stages in their default execution order.
-    static func defaultAssemblyStages() -> [any PipelineStage<PromptAssemblyContext, PromptAssemblyEvent>] {
-        [
-            SystemInstructionsStage(),
-            AgentContextStage(),
-            ContextNotesStage(),
-            MemoriesStage(),
-            ToolsStage(),
-            WorkspacesContextStage(),
-            TimelineContextStage(),
-            ChatHistoryStage(),
-            UserQueryStage(),
-            ExtensionSectionsStage(),
-        ]
-    }
-
     // MARK: - Assemble
 
     /// Assembles a prompt using the default pipeline and default assembly behavior.
@@ -58,7 +39,7 @@ enum PromptAssembler {
 
     /// Assembles a prompt using explicit advanced assembly options.
     ///
-    /// Use this overload when you need pipeline overrides or token-budgeted compression.
+    /// Use this overload when you need custom sections or token-budgeted compression.
     ///
     /// When `options.tokenBudget` is present and the resolved prompt is over budget, prompt
     /// assembly first runs the structured compression pass with section metadata and then falls
@@ -70,16 +51,12 @@ enum PromptAssembler {
         extensionSections: [any Prompt] = [],
         options: PromptAssemblyOptions
     ) async throws -> RenderedPrompt {
-        let assemblyContext = PromptAssemblyContext(
+        let sections = try await buildSections(
             request: request,
             agentInstance: agentInstance,
             timeline: timeline,
-            extensionSections: extensionSections
-        )
-
-        let sections = try await runPipeline(
-            context: assemblyContext,
-            overridePipeline: options.overridePipeline,
+            extensionSections: extensionSections,
+            customSections: options.customSections,
             logger: options.logger
         )
         let resolvedSections = resolveSections(from: sections)
@@ -115,29 +92,69 @@ enum PromptAssembler {
         return LLMPromptResult(messages: rendered.buildMessages(), rawPrompt: rendered.string)
     }
 
-    private static func runPipeline(
-        context: PromptAssemblyContext,
-        overridePipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>?,
+    private static func buildSections(
+        request: LLMPromptRequest,
+        agentInstance: AgentInstance?,
+        timeline: Timeline?,
+        extensionSections: [any Prompt],
+        customSections: (@Sendable () async -> [any Prompt])?,
         logger: Logger?
     ) async throws -> [any Prompt] {
-        let basePipeline = overridePipeline ?? Pipeline(stages: defaultAssemblyStages())
-        let pipeline = if let logger {
-            basePipeline.withLogger(logger)
-        } else {
-            basePipeline
+        if let customSections {
+            let sections = await customSections()
+            let duplicateIDs = sections.flatMap { $0.resolveSections() }.duplicatePromptSectionIDs()
+            guard duplicateIDs.isEmpty else {
+                throw AssembledPrompt.ValidationError.duplicateSectionIDs(duplicateIDs)
+            }
+            return sections
         }
 
-        let stream = pipeline.execute(context)
-        for try await _ in stream {}
+        var sections: [any Prompt] = []
+        sections.append(try withLogging("SystemInstructions", logger: logger) {
+            SystemInstructions(request.systemInstructions ?? DefaultInstructions.system())
+        })
+        if let agentInstance {
+            sections.append(try withLogging("AgentContext", logger: logger) {
+                AgentContext(agentInstance, timelineTitle: timeline?.title)
+            })
+        }
+        sections.append(try withLogging("ContextNotes", logger: logger) { ContextNotes(request.contextNotes) })
+        sections.append(try withLogging("Memories", logger: logger) { Memories(request.memories) })
+        sections.append(try withLogging("Tools", logger: logger) { Tools(request.tools) })
+        sections.append(try withLogging("WorkspacesContext", logger: logger) {
+            WorkspacesContext(workspaces: request.workspaces, primaryWorkspace: request.primaryWorkspace, requestOriginName: request.requestOriginName)
+        })
+        if let timeline {
+            sections.append(try withLogging("TimelineContext", logger: logger) { TimelineContext(timeline) })
+        }
+        sections.append(try withLogging("ChatHistory", logger: logger) {
+            ChatHistory(PromptHistoryOptimizer.optimizeForDefaultBudget(request.chatHistory))
+        })
+        sections.append(try withLogging("UserQuery", logger: logger) {
+            UserQuery(request.userQuery, turnInstructions: request.turnInstructions)
+        })
+        sections.append(contentsOf: extensionSections)
 
-        let sections = await context.sections
-        let duplicateIDs = sections
-            .flatMap { $0.resolveSections() }
-            .duplicatePromptSectionIDs()
+        let duplicateIDs = sections.flatMap { $0.resolveSections() }.duplicatePromptSectionIDs()
         guard duplicateIDs.isEmpty else {
             throw AssembledPrompt.ValidationError.duplicateSectionIDs(duplicateIDs)
         }
         return sections
+    }
+
+    private static func withLogging<T>(_ id: String, logger: Logger?, _ body: () throws -> T) throws -> T {
+        logger?.debug("Starting prompt section: \(id)")
+        let start = Date().timeIntervalSinceReferenceDate
+        do {
+            let result = try body()
+            let duration = Date().timeIntervalSinceReferenceDate - start
+            logger?.debug("Completed prompt section: \(id) in \(String(format: "%.3f", duration))s")
+            return result
+        } catch {
+            let duration = Date().timeIntervalSinceReferenceDate - start
+            logger?.error("Prompt section '\(id)' failed after \(String(format: "%.3f", duration))s: \(error.localizedDescription)")
+            throw error
+        }
     }
 
     private static func resolveSections(from sections: [any Prompt]) -> [PromptSection] {

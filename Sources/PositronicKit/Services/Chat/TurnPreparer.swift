@@ -32,7 +32,6 @@ struct TurnPreparer {
         sidecars: [SidecarDirective] = [],
         includeSidecarMechanismPreamble: Bool = false,
         contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
-        assemblyPipeline: Pipeline<PromptAssemblyContext, PromptAssemblyEvent>? = nil,
         assemblyLogger: Logger? = nil
     ) async throws -> ChatTurnContext {
         // Sidecar directives steer generation only through prompt text (SDC-7). The per-turn
@@ -116,7 +115,6 @@ struct TurnPreparer {
             timeline: timeline,
             extensionSections: extensionSections,
             options: PromptAssemblyOptions(
-                overridePipeline: assemblyPipeline,
                 tokenBudget: budget,
                 logger: assemblyLogger,
                 structuredDiff: structuredDiff
