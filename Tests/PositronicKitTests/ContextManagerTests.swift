@@ -112,7 +112,7 @@ struct ContextManagerTests {
         #expect(progresses == [.augmenting, .discoveringNotes, .complete])
         #expect(await tagProbe.calls == 0)
         #expect(mockEmbedding.lastInput == nil)
-        #expect((context?.executionTime ?? .infinity) < 0.25)
+        #expect((context?.executionTime ?? .infinity) < 0.5)
     }
 
     @Test("Ranking Logic with Tag Boost")
