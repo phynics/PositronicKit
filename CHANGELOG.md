@@ -8,6 +8,8 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-07
+
 ### Changed
 
 - Internal refactor: split `ToolRouter` into focused execution seams behind a stable public
@@ -30,6 +32,13 @@ for tagged releases beginning with `1.0.0`.
   `TimelineCache` seam. `ContextManager` is promoted from `internal` to `package` so it can appear
   in the `TimelineCache` method signatures; this visibility change is invisible to external
   consumers. Public API is otherwise unchanged.
+- Internal refactor: unbundle `InMemoryStores.swift` into per-actor files (PKARCH-006).
+  The single 379-line file splits into one file per in-memory store actor
+  (`InMemoryMessageStore`, `InMemoryMemoryStore`, `InMemoryAgentInstanceStore`,
+  `InMemoryAgentTemplateStore`, `InMemoryRequestOriginStore`,
+  `InMemoryTimelinePersistence`, `InMemoryToolPersistence`,
+  `InMemoryWorkspacePersistence`). All public actors and their `package` test
+  accessors are preserved verbatim; no behavioral change. Public API is unchanged.
 
 ### Added
 
@@ -48,7 +57,7 @@ for tagged releases beginning with `1.0.0`.
   `named(String)`). `AnyTool.provenance` is now `ToolProvenance` with a one-release deprecated
   string-init bridge. `TimelineToolManager` gains `registerToolProvider(_:id:)` /
   `unregisterToolProvider(_:)` so the runtime assembles turn tools from global tools plus
-  workspace/terminal providers.   `WorkspaceProtocol.executeTool(id:parameters:)` is now optional
+  workspace/terminal providers. `WorkspaceProtocol.executeTool(id:parameters:)` is now optional
   with a default throwing implementation; the dead stub in `Monad.LocalWorkspace` is removed
   on the consumer side (Monad commit `c69bdf2`, which adapts Monad to this `1.1.0` API — the
   `PositronicKit` default implementation supersedes the stub, so no `PositronicKit`-side removal

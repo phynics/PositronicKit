@@ -103,7 +103,8 @@ These public API surfaces are the **v1 compatibility contract**: they only chang
 | **Key-value store** | `KeyValueStoreProtocol` | PositronicKit | Generic key-value persistence |
 | **Vector search** | `VectorStoreProtocol`, `VectorStoreError` | PositronicKit | Custom vector search backends |
 | **Health check** | `HealthCheckable` | PositronicKit | Service health reporting |
-| **LLM providers** | `LLMServiceProtocol`, `LLMChatRequest`, `LLMStreamResult`, `LLMStreamChunk`, etc. | PKShared | Provider adapter contracts |
+| **LLM providers** | `LLMStreamClient`, `LLMConfigStore`, `LLMUtilityClient` (narrow seams); `LLMServiceProtocol` (deprecated composite, still compiles with a warning); `LLMChatRequest`, `LLMStreamResult`, `LLMStreamChunk`, etc. | PKShared | Provider adapter contracts |
+| **Structured output** | `StructuredOutputAdapter`, `PreparedStructuredOutputRequest`, `StructuredOutputAdapterRegistry`, `DefaultStructuredOutputAdapter` | PKShared | Per-provider structured-output preparation; register a custom adapter to override the built-in behavior for an `LLMProvider` |
 | **Provider registration** | `PKOpenAIProvider.register()`, `PKOpenRouterProvider.register()`, `PKOllamaProvider.register()`, `PKAnthropicProvider.register()` | Provider modules | Provider factory registration |
 | **Workspace** | `WorkspaceProtocol`, `WorkspaceCreating`, `ToolReference`, `WorkspaceToolDefinition`, `WorkspaceToolError` | PositronicKit / PKShared | Custom workspace backends |
 | **Configuration** | `LLMConfiguration`, `GenerationParameters`, `LLMProvider` | PKShared | LLM configuration |
