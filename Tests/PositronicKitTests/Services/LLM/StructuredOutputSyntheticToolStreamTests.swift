@@ -129,12 +129,12 @@ struct StructuredOutputSyntheticToolStreamTests {
         #expect(chunks.first?.choices.first?.delta.toolCalls?.first?.function?.name == "lookup_weather")
     }
 
-    @Test("Mixed synthetic and non-synthetic tool calls in one chunk emit only synthetic content")
+    @Test("Mixed synthetic and non-synthetic tool calls preserve both content and tool calls")
     func mixedSyntheticAndNonSyntheticToolCallsInOneChunk() async throws {
-        // Current behavior: when a single chunk contains both synthetic and non-synthetic tool
-        // calls, the rewriter emits only the merged synthetic content. This test documents that
-        // behavior; if the implementation is changed to preserve non-synthetic calls, update
-        // the expectation accordingly.
+        // When a single chunk contains both synthetic and non-synthetic tool calls, the rewriter
+        // emits the merged synthetic content first, then a separate chunk carrying the
+        // non-synthetic tool-call deltas. Finish reason and usage defer to the trailing
+        // non-synthetic chunk so completion and token totals are reported exactly once.
         let input = stream([
             chunk(toolCalls: [
                 toolCall(name: "lookup_weather", arguments: #"{"city":"Berlin"}"#),
@@ -145,8 +145,38 @@ struct StructuredOutputSyntheticToolStreamTests {
         let rewritten = StructuredOutputExecution.rewriteSyntheticToolStream(input, syntheticToolName: syntheticToolName)
         let chunks = try await rewritten.collect()
 
+        #expect(chunks.count == 2)
+
+        let syntheticChunk = chunks[0]
+        #expect(syntheticChunk.choices.first?.delta.content == #"{"tags":["swift"]}"#)
+        #expect(syntheticChunk.choices.first?.delta.toolCalls == nil)
+        #expect(syntheticChunk.choices.first?.finishReason == nil)
+
+        let toolCallChunk = chunks[1]
+        #expect(toolCallChunk.choices.first?.delta.content == nil)
+        #expect(toolCallChunk.choices.first?.delta.toolCalls?.count == 1)
+        #expect(toolCallChunk.choices.first?.delta.toolCalls?.first?.function?.name == "lookup_weather")
+        #expect(toolCallChunk.choices.first?.delta.toolCalls?.first?.function?.arguments == #"{"city":"Berlin"}"#)
+        #expect(toolCallChunk.choices.first?.finishReason == "tool_calls")
+    }
+
+    @Test("Mixed chunk with empty synthetic arguments still preserves non-synthetic tool calls")
+    func mixedChunkWithEmptySyntheticArgumentsPreservesNonSyntheticToolCalls() async throws {
+        let input = stream([
+            chunk(toolCalls: [
+                toolCall(name: "lookup_weather", arguments: #"{"city":"Berlin"}"#),
+                toolCall(name: syntheticToolName, arguments: ""),
+            ], finishReason: "tool_calls"),
+        ])
+
+        let rewritten = StructuredOutputExecution.rewriteSyntheticToolStream(input, syntheticToolName: syntheticToolName)
+        let chunks = try await rewritten.collect()
+
         #expect(chunks.count == 1)
-        #expect(chunks.first?.choices.first?.delta.content == #"{"tags":["swift"]}"#)
+        #expect(chunks.first?.choices.first?.delta.content == nil)
+        #expect(chunks.first?.choices.first?.delta.toolCalls?.count == 1)
+        #expect(chunks.first?.choices.first?.delta.toolCalls?.first?.function?.name == "lookup_weather")
+        #expect(chunks.first?.choices.first?.finishReason == "tool_calls")
     }
 
     @Test("Preserves id, model, and usage when rewriting")

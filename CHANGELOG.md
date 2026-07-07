@@ -8,6 +8,16 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Fixed
+
+- `StructuredOutputExecution.rewriteSyntheticToolStream` no longer drops non-synthetic tool
+  calls when they share a streaming chunk with synthetic `emit_structured_response` calls
+  (PKTEST-2). A mixed chunk now yields two chunks: the merged synthetic content first, then a
+  separate chunk carrying the non-synthetic tool-call deltas with the original `finishReason`
+  and `usage`. All-synthetic and all-non-synthetic chunks are unchanged. Previously the
+  non-synthetic tool calls were silently discarded whenever a synthetic call was present in
+  the same chunk.
+
 ### Changed
 
 - Docs: added a doc comment on `SidecarResult.Outcome.value` documenting the per-directive
