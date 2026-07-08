@@ -129,11 +129,10 @@ final class MiniLMEmbeddingContractTests: XCTestCase {
             maxBytesPerText: 2,
             maxTotalBytes: 16
         )
-        let modelDirectory = try MiniLMTestSupport.requireModelDirectory()
-        let backend = try MiniLMEmbeddingBackend(modelDirectory: modelDirectory, inputBudget: budget)
+        let service = try makeService(inputBudget: budget)
 
         do {
-            _ = try await backend.generateEmbedding(for: "abc")
+            _ = try await service.generateEmbedding(for: "abc")
             XCTFail("Expected configured per-text budget to be enforced.")
         } catch let error as EmbeddingError {
             XCTAssertEqual(error, .perTextByteLimitExceeded(max: 2, actual: 3))
