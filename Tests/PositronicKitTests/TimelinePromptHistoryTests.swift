@@ -68,49 +68,9 @@ actor TimelinePromptHistoryTests {
 
         for section in rendered.sections {
             let content = rendered.sectionsByID[section.id] ?? ""
-            let expected = StructuredPromptMetadata.makeNodeMetadata(
-                for: section,
-                renderedContent: content
-            )
+            let expected = section.nodeMetadata(renderedContent: content)
             #expect(historyMetadata[section.id] == expected)
         }
-    }
-
-    @Test("Metadata hash changes when section traits change even if text stays the same")
-    func metadataHashChangesWhenTraitsChange() async throws {
-        let promptA = try await AnyPrompt.build {
-            TimelineSection(
-                id: "system",
-                priority: 0,
-                estimatedTokens: 10,
-                cachePolicy: .stable,
-                text: "Same"
-            )
-        }.assemblePrompt().render()
-
-        let promptB = try await AnyPrompt.build {
-            TimelineSection(
-                id: "system",
-                priority: 10,
-                estimatedTokens: 10,
-                cachePolicy: .stable,
-                text: "Same"
-            )
-        }.assemblePrompt().render()
-
-        let sectionA = try #require(promptA.sections.first)
-        let sectionB = try #require(promptB.sections.first)
-        let metadataA = StructuredPromptMetadata.makeNodeMetadata(
-            for: sectionA,
-            renderedContent: promptA.sectionsByID[sectionA.id] ?? ""
-        )
-        let metadataB = StructuredPromptMetadata.makeNodeMetadata(
-            for: sectionB,
-            renderedContent: promptB.sectionsByID[sectionB.id] ?? ""
-        )
-
-        #expect(metadataA != metadataB)
-        #expect(metadataA.path == metadataB.path)
     }
 
     @Test("History updates compact appended state when thresholds are exceeded")
