@@ -124,19 +124,8 @@ struct StructuredOutputRunTests {
         #expect(mockLLM.mockClient.lastMessages.contains { $0.role == .tool } == false)
     }
 
-    @Test("sidecarsIfEnabled preserves the exact no-sidecar runtime path when disabled")
-    func sidecarsIfEnabledDisablesSidecarsWithoutChangingRunBehavior() async throws {
-        let directives = [
-            SidecarDirective(
-                name: "title",
-                instruction: "Short title.",
-                schema: JSONString().definition()
-            ),
-        ]
-
-        #expect(PositronicKit.sidecarsIfEnabled(directives, when: false).isEmpty)
-        #expect(PositronicKit.sidecarsIfEnabled(directives, when: true) == directives)
-
+    @Test("passing no sidecars preserves the exact no-sidecar runtime path")
+    func noSidecarsPreservesNoSidecarRuntimePath() async throws {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
         let chat = PositronicKit(
@@ -155,7 +144,7 @@ struct StructuredOutputRunTests {
         let stream = try await chat.run(ChatRunRequest(
             timelineId: UUID(),
             message: "Hello",
-            sidecars: PositronicKit.sidecarsIfEnabled(directives, when: false)
+            sidecars: []
         ))
 
         for try await _ in stream {}

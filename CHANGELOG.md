@@ -8,6 +8,11 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Removed
+
+- **Breaking:** removed `PositronicKit.sidecarsIfEnabled(_:when:)`. Consumers can inline the equivalent ternary (`isEnabled ? sidecars : []`) at the call site. Yakamoz's `YakamozRuntime.makeChatViewModel` is updated accordingly.
+- **Breaking:** removed the unused `PositronicKit.PromptBuildContext` facade typealias and its intermediate `PositronicKitPromptBuildContext` alias. The canonical type remains `PromptBuildContext` in `PromptSectionProviding.swift`; conformers and callers should use that name directly.
+
 ### Fixed
 
 - `PromptDiff.publicJournalDiff` now filters its projection to semistable section IDs
@@ -39,6 +44,7 @@ for tagged releases beginning with `1.0.0`.
 
 ### Changed
 
+- Refactor: split the monolithic `Sources/PositronicKit/PositronicKit.swift` into `PositronicKit.swift` (core facade) and `PositronicKit+Configuration.swift` (`PersistenceConfiguration`, `RuntimeConfiguration`, and their grouped initializers). Public API is unchanged except for the removed aliases above.
 - Prompt assembly no longer routes section construction through the generic `Pipeline`
   machinery (PKDEEP-001). The 10 pass-through `PromptAssemblyStage` structs, the
   `PromptAssemblyContext` actor, and the `PromptAssemblyEvent` enum are gone; `PromptAssembler`

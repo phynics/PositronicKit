@@ -3,6 +3,7 @@ import PKPrompt
 @testable import PKShared
 import PKTestSupport
 @testable import PositronicKit
+import struct PositronicKit.PromptBuildContext
 import Testing
 
 @Suite("Extension stories") struct ExtensionStoriesTests {
@@ -165,7 +166,7 @@ import Testing
 }
 
 private struct AcceptancePromptSectionProvider: PromptSectionProviding {
-    func sections(for context: PositronicKit.PromptBuildContext) async -> [any Prompt] {
+    func sections(for context: PromptBuildContext) async -> [any Prompt] {
         [TextPrompt("EXTENSION_MARKER: provider injected context for \(context.message)", id: "extension-marker")]
     }
 }

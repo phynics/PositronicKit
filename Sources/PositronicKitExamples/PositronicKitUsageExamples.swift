@@ -156,9 +156,6 @@ public enum PositronicKitUsageExamples {
     ///     if let delta = event.sidecarDelta { /* route delta.name -> delta.partialText */ }
     ///     if let results = event.sidecarResults { /* persist final title/tone per turn */ }
     /// }
-    ///
-    /// // Gate sidecars behind an existing structured-output toggle:
-    /// let sidecars = PositronicKit.sidecarsIfEnabled(makeSidecarDirectives(), when: typedRepliesEnabled)
     /// ```
     public static func makeSidecarDirectives() -> [SidecarDirective] {
         [

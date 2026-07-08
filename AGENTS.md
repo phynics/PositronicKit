@@ -8,10 +8,12 @@
 - `Sources/PositronicKit` — runtime: orchestration stages, chat engine, tool routing, timelines, workspaces, LLM services.
 - `Sources/PKPrompt` — prompt composition: `PromptBuilder` DSL, `PromptNode` IR, assembly, compression, `PromptJournal`.
 - `Sources/PKShared` — shared contracts: API models, tool protocols, error types, logging, utilities.
-- `Sources/PKOpenAIProvider`, `Sources/PKOpenRouterProvider`, `Sources/PKOllamaProvider` — concrete provider adapters and provider-specific convenience APIs.
+- `Sources/PKLocalEmbeddings` — platform-local embedding facade (`LocalEmbeddingService`); Natural Language on Apple by default, host-provisioned MiniLM on Linux.
+- `Sources/PKFastEmbed` / `Sources/CPKFastEmbed` — Rust bridge (via `fastembed`) and its Clang system-library wrapper for the in-process MiniLM backend (Linux default; Apple opt-in via the `MiniLMEmbeddings` trait).
+- `Sources/PKOpenAIProvider`, `Sources/PKOpenRouterProvider`, `Sources/PKOllamaProvider`, `Sources/PKAnthropicProvider`, `Sources/PKFoundationModelsProvider` — concrete provider adapters and provider-specific convenience APIs.
 - `Sources/PositronicKitExamples` — runnable examples; double as living documentation.
 - `Tests/PKTestSupport` — mocks, fixtures, test helpers (library product).
-- `Tests/PositronicKitTests`, `Tests/PKPromptTests`, `Tests/PKSharedTests` — per-module test targets.
+- `Tests/PositronicKitTests`, `Tests/PKPromptTests`, `Tests/PKSharedTests`, `Tests/PKLocalEmbeddingsTests`, `Tests/PKFastEmbedTests`, `Tests/PKTestSupportTests` — per-module test targets.
 
 ## Commands
 
@@ -108,7 +110,7 @@ Swift MiniLM matrix. Override `PKFASTEMBED_ASAN_TOOLCHAIN` or
 | `PKShared` | API models, tool contracts, logging, utilities | Prompt logic, orchestration, persistence |
 | `PKPrompt` | Prompt IR, assembly, rendering, compression, journaling | Runtime, persistence, transport |
 | `PositronicKit` | Orchestration, chat lifecycle, tool routing, timeline/workspace mgmt | Concrete provider SDK integrations, transport, RPC, hosting, prompt-tree internals |
-| `PKOpenAIProvider` / `PKOpenRouterProvider` / `PKOllamaProvider` | Concrete provider clients, provider-specific conversions, convenience registration/init APIs | Runtime orchestration, prompt-tree internals |
+| `PKOpenAIProvider` / `PKOpenRouterProvider` / `PKOllamaProvider` / `PKAnthropicProvider` / `PKFoundationModelsProvider` | Concrete provider clients, provider-specific conversions, convenience registration/init APIs | Runtime orchestration, prompt-tree internals |
 
 ## Conventions
 
@@ -167,7 +169,15 @@ See the root `../CLAUDE.md` for the full layout.
 Tickets follow the workspace ticketing system (root `../CLAUDE.md`, "Ticketing system"):
 one `<SERIES>-<id>-<slug>.md` file per ticket with a `Status` line; the index is
 `../workflow/PositronicKit/tickets/README.md` and is updated in the same change as any
-status flip; `Done`/`Discarded` tickets move to `tickets/archive/`. When closing a ticket
-that touched public API, run the downstream-sync checklist (grep Monad, Shuttle, Yakamoz;
-use the local-path override while unreleased; tag and publish the compatible PositronicKit
-release before consumer gates).
+status flip; `Done`/`Discarded` tickets move to `tickets/archive/`.
+
+### Downstream consumer compatibility
+
+Since v1.0, PositronicKit follows semver and downstream consumers pin to released
+versions. You do **not** need to build or test Monad, Shuttle, or Yakamoz as part of every
+PositronicKit change. Do still grep all three consumers for the changed public symbols
+before closing a ticket so the release notes and upgrade path are accurate. Consumer
+build/test gates are run later, against the tagged PositronicKit release, following
+[`docs/Releasing.md`](docs/Releasing.md). Use the documented local-path override only when
+a specific consumer change is being developed in tandem with an unreleased PositronicKit
+API.
