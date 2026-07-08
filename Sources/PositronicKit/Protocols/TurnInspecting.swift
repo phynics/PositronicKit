@@ -2,6 +2,13 @@ import Foundation
 import PKPrompt
 import PKShared
 
+/// Observability hook for turn composition, invoked once per round-trip with the
+/// rendered prompt, sent messages, and journal snapshot.
+///
+/// Intentional single-customer extension point: the sole production adapter is
+/// Yakamoz's `SwiftDataTurnInspector`. The protocol exists so downstream consumers
+/// can plug in their own persistence/inspection layer without forking the runtime.
+/// Do not generalize without a second adapter.
 public protocol TurnInspecting: Sendable {
     func didComposeTurn(_ inspection: TurnInspection) async
 }
