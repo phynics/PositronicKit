@@ -1,3 +1,4 @@
+import ErrorKit
 import Foundation
 import Logging
 import PKShared
@@ -60,11 +61,6 @@ package enum ToolTurnResult {
 /// The primary entry point is `handlePendingToolCalls()`, which executes runtime-managed tools
 /// immediately (persisting results to the message store) and defers externally hosted tools for
 /// async handling. `ChatEngine` calls this after each LLM turn that produces tool calls.
-///
-/// Public surface is stable across PKARCH-002; the four former inline concerns — workspace
-/// resolution, local execution, wall-clock timeout enforcement, and tool progress/completion
-/// event projection — are now delegated to `ToolRoutingDecision`, `ToolExecutor`,
-/// `ToolTimeoutEnforcer`, and `ToolTurnProjector` respectively.
 public actor ToolRouter {
     private let logger = Logger.module(named: "tool-router")
 
@@ -72,22 +68,20 @@ public actor ToolRouter {
     private let messageStore: any MessageStoreProtocol
     private let toolExecutionTimeout: TimeInterval
     private let approvalGate: any ToolApprovalGate
-    private let executor: ToolExecutor
+    private let sleep: @Sendable (UInt64) async throws -> Void
 
     public init(
         timelineManager: TimelineManager,
         messageStore: any MessageStoreProtocol,
         toolExecutionTimeout: TimeInterval = 60,
-        approvalGate: any ToolApprovalGate = DenyAllToolApprovalGate()
+        approvalGate: any ToolApprovalGate = DenyAllToolApprovalGate(),
+        sleep: (@Sendable (UInt64) async throws -> Void)? = nil
     ) {
         self.timelineManager = timelineManager
         self.messageStore = messageStore
         self.toolExecutionTimeout = toolExecutionTimeout
         self.approvalGate = approvalGate
-        self.executor = ToolExecutor(
-            approvalGate: approvalGate,
-            timeout: toolExecutionTimeout
-        )
+        self.sleep = sleep ?? ToolTimeoutEnforcer.defaultSleep
     }
 
     // MARK: - Turn-Level API
@@ -153,12 +147,12 @@ public actor ToolRouter {
         var resolvedToolParams: [LLMMessage] = []
 
         for call in calls {
-            let toolRef = ToolRoutingDecision.resolveToolReference(
+            let toolRef = resolveToolReference(
                 for: call,
                 availableTools: availableTools
             )
 
-            ToolTurnProjector.projectAttempt(
+            projectAttempt(
                 call: call,
                 toolRef: toolRef,
                 continuation: continuation
@@ -174,24 +168,20 @@ public actor ToolRouter {
                     tool: toolRef, arguments: arguments,
                     timelineId: timelineId, availableTools: availableTools
                 )
-                let param = try await ToolTurnProjector.projectOutcome(
+                let param = try await projectOutcome(
                     outcome,
                     call: call,
                     timelineId: timelineId,
-                    logger: logger,
-                    messageStore: messageStore,
                     continuation: continuation
                 )
                 if let param { resolvedToolParams.append(param) }
                 if case .deferredExternally = outcome { hasDeferred = true }
             } catch {
-                let param = try await ToolTurnProjector.projectError(
+                let param = try await projectError(
                     error,
                     call: call,
                     toolRef: toolRef,
                     timelineId: timelineId,
-                    logger: logger,
-                    messageStore: messageStore,
                     continuation: continuation
                 )
                 resolvedToolParams.append(param)
@@ -228,12 +218,10 @@ public actor ToolRouter {
         if let dynamicTools = availableTools,
            dynamicTools.contains(where: { $0.toolReference == tool || $0.id == tool.toolId })
         {
-            let output = try await executor.execute(
+            let output = try await executeLocally(
                 tool: tool,
                 arguments: forwardedArguments,
-                lookup: { [timelineManager] in
-                    await timelineManager.getToolManager(for: timelineId)
-                },
+                timelineId: timelineId,
                 dynamicTools: dynamicTools
             )
             return .completed(output)
@@ -241,12 +229,10 @@ public actor ToolRouter {
 
         // resolveWorkspace returns nil when the tool is not registered in any of the
         // timeline's workspaces, or when the timeline has no workspaces at all.
-        guard let workspaceId = try await ToolRoutingDecision.resolveWorkspace(
+        guard let workspaceId = try await resolveWorkspace(
             for: tool,
             in: timelineId,
-            arguments: arguments,
-            provider: timelineManager,
-            logger: logger
+            arguments: arguments
         ) else {
             throw ToolError.toolNotFound(tool.displayName)
         }
@@ -255,17 +241,15 @@ public actor ToolRouter {
             throw ToolError.workspaceNotFound(workspaceId)
         }
 
-        switch try ToolRoutingDecision.outcomeForWorkspace(
+        switch try outcomeForWorkspace(
             location: workspace.location,
             timelineIsPrivate: await timelineManager.getTimeline(id: timelineId)?.isPrivate ?? false
         ) {
         case .executeLocally:
-            let output = try await executor.execute(
+            let output = try await executeLocally(
                 tool: tool,
                 arguments: forwardedArguments,
-                lookup: { [timelineManager] in
-                    await timelineManager.getToolManager(for: timelineId)
-                },
+                timelineId: timelineId,
                 dynamicTools: availableTools
             )
             return .completed(output)
@@ -274,4 +258,204 @@ public actor ToolRouter {
             return .deferredExternally
         }
     }
+
+    // MARK: - Tool Reference Resolution
+
+    /// Selects the effective `ToolReference` for a parsed call: a matching dynamic tool's custom
+    /// reference wins over the `.known` fallback.
+    private func resolveToolReference(
+        for call: ParsedToolCall,
+        availableTools: [AnyTool]
+    ) -> ToolReference {
+        availableTools.first(where: { $0.id == call.name })?.toolReference
+            ?? ToolReference.known(id: call.name)
+    }
+
+    // MARK: - Workspace Resolution
+
+    /// Decides whether a resolved workspace location implies runtime-local execution or external
+    /// deferral. Private timelines reject externally hosted tools.
+    private func outcomeForWorkspace(
+        location: WorkspaceReference.WorkspaceLocation,
+        timelineIsPrivate: Bool
+    ) throws -> WorkspaceExecutionDisposition {
+        switch location {
+        case .runtime, .runtimeTimeline:
+            return .executeLocally
+        case .attached:
+            guard !timelineIsPrivate else {
+                throw ToolError.attachedToolsDisallowedOnPrivateTimeline
+            }
+            return .deferExternally
+        }
+    }
+
+    /// Resolves the workspace to execute `tool` against for a given timeline.
+    ///
+    /// Resolution order:
+    /// 1. If the caller supplied an explicit `workspaceID` argument, it must match one of the
+    ///    timeline's candidate workspace ids; otherwise `ToolError.workspaceNotFound` is thrown
+    ///    (YAK-33 fail-closed).
+    /// 2. Otherwise, defer to `TimelineManager.findWorkspaceForTool(_:in:)` over the candidate
+    ///    list (primary first, then attached in declared order).
+    /// 3. Returns `nil` if the timeline has no workspaces, or if no candidate workspace
+    ///    registers the tool. `execute` interprets `nil` as `toolNotFound`.
+    private func resolveWorkspace(
+        for tool: ToolReference,
+        in timelineId: UUID,
+        arguments: [String: AnyCodable]
+    ) async throws -> UUID? {
+        guard let wsList = await timelineManager.getWorkspaces(for: timelineId) else { return nil }
+
+        let candidates = ([wsList.primary].compactMap { $0?.id }) + wsList.attached.map { $0.id }
+
+        // Check for explicit intent in arguments.
+        if let explicitIdString = arguments["workspaceID"]?.value as? String,
+           let explicitId = UUID(uuidString: explicitIdString.trimmingCharacters(in: .whitespacesAndNewlines))
+        {
+            guard candidates.contains(explicitId) else {
+                throw ToolError.workspaceNotFound(explicitId)
+            }
+
+            logger.debug("Routing to explicitly requested workspace: \(explicitId)")
+            return explicitId
+        }
+
+        return try await timelineManager.findWorkspaceForTool(tool, in: candidates)
+    }
+
+    // MARK: - Local Execution
+
+    /// Resolves and executes a tool locally: tool-manager lookup, dynamic-tool priority merge,
+    /// approval-gate check, and wall-clock timeout enforcement via `ToolTimeoutEnforcer`.
+    private func executeLocally(
+        tool: ToolReference,
+        arguments: [String: AnyCodable],
+        timelineId: UUID,
+        dynamicTools: [AnyTool]?
+    ) async throws -> String {
+        let toolName = ANSIColors.colorize(tool.displayName, color: ANSIColors.brightCyan)
+        logger.info("Executing locally: \(toolName)")
+
+        guard let toolManager = await timelineManager.getToolManager(for: timelineId) else {
+            throw ToolError.toolNotFound(tool.displayName)
+        }
+
+        var toolList = await toolManager.getAvailableTools()
+        if let dynamicTools {
+            // Dynamic tools take priority; exclude static tools with the same ID.
+            let dynamicIds = Set(dynamicTools.map { $0.id })
+            toolList = dynamicTools + toolList.filter { !dynamicIds.contains($0.id) }
+        }
+
+        guard let resolvedTool = toolList.first(where: {
+            $0.toolReference == tool || $0.id == tool.toolId
+        }) else {
+            throw ToolError.toolNotFound(tool.displayName)
+        }
+
+        // Approval gate: a tool that declares `requiresPermission` must not execute until the
+        // injected gate returns `.approve`. This is the single runtime execution sink — both
+        // structured provider tool calls and text-fallback `${tool}` calls reach it — so the
+        // approval contract holds regardless of how the call was produced (YAK-31). Non-permissioned
+        // tools skip the gate entirely.
+        if resolvedTool.requiresPermission {
+            let decision = await approvalGate.requestApproval(tool: resolvedTool, arguments: arguments)
+            guard decision == .approve else {
+                logger.warning("Permission denied for \(toolName)")
+                throw ToolError.permissionDenied(resolvedTool.name)
+            }
+        }
+
+        let result = try await ToolTimeoutEnforcer.execute(
+            resolvedTool,
+            arguments: arguments,
+            timeout: toolExecutionTimeout,
+            sleep: sleep
+        )
+        if result.success {
+            logger.info("Success: \(toolName)")
+            return result.output
+        } else {
+            let errorMsg = result.error ?? "Unknown error"
+            logger.error("Failed: \(toolName) - \(errorMsg)")
+            throw ToolError.executionFailed(errorMsg)
+        }
+    }
+
+    // MARK: - Tool Turn Projection
+
+    /// Yields the `.attempting` tool-progress event that precedes the execution attempt.
+    private func projectAttempt(
+        call: ParsedToolCall,
+        toolRef: ToolReference,
+        continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
+    ) {
+        continuation.yield(.toolProgress(
+            toolCallId: call.callId,
+            status: .attempting(name: call.name, reference: toolRef)
+        ))
+    }
+
+    /// Projects a successful or deferred outcome into a persisted tool message, a chat event,
+    /// and an optional provider-neutral follow-up message.
+    private func projectOutcome(
+        _ outcome: ToolExecutionOutcome,
+        call: ParsedToolCall,
+        timelineId: UUID,
+        continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
+    ) async throws -> LLMMessage? {
+        let toolDisplayName = ANSIColors.colorize(call.name, color: ANSIColors.brightCyan)
+        switch outcome {
+        case let .completed(output):
+            logger.info("Tool \(toolDisplayName) succeeded")
+            continuation.yield(.toolCompleted(toolCallId: call.callId, status: .success(ToolResult.success(output))))
+            try await messageStore.saveMessage(
+                ConversationMessage(timelineId: timelineId, role: .tool, content: output, toolCallId: call.callId)
+            )
+            return LLMMessage(role: .tool, content: output, toolCallID: call.callId)
+
+        case .deferredExternally:
+            logger.info("Tool \(toolDisplayName) deferred for external execution")
+            return nil
+        }
+    }
+
+    /// Projects an execution error into a persisted error message (with remediation guidance),
+    /// a failed chat event, and a provider-neutral follow-up message.
+    private func projectError(
+        _ error: Error,
+        call: ParsedToolCall,
+        toolRef: ToolReference,
+        timelineId: UUID,
+        continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
+    ) async throws -> LLMMessage {
+        let toolDisplayName = ANSIColors.colorize(call.name, color: ANSIColors.brightCyan)
+        let errorMsg = ErrorKit.userFriendlyMessage(for: error)
+        logger.error("Tool \(toolDisplayName) error: \(error.localizedDescription)")
+        // Surface the error's built-in remediation (a second-person "how to fix it" hint, often
+        // with a worked example) back to the model so a failed tool call guides recovery rather
+        // than dead-ending. Kept out of the steady-state prompt to stay lean — the model only
+        // pays for this guidance on the turn it actually errors.
+        var errorOutput = "Error: \(errorMsg)"
+        if let remediation = (error as? any PKError)?.remediation, !remediation.isEmpty {
+            errorOutput += "\nHow to fix: \(remediation)"
+        }
+        continuation.yield(.toolCompleted(
+            toolCallId: call.callId,
+            status: .failed(reference: toolRef, error: error.localizedDescription)
+        ))
+        try await messageStore.saveMessage(
+            ConversationMessage(timelineId: timelineId, role: .tool, content: errorOutput, toolCallId: call.callId)
+        )
+        return LLMMessage(role: .tool, content: errorOutput, toolCallID: call.callId)
+    }
+}
+
+// MARK: - Workspace Execution Disposition
+
+/// Whether a resolved workspace should execute its tool locally or defer to an external host.
+private enum WorkspaceExecutionDisposition: Sendable {
+    case executeLocally
+    case deferExternally
 }

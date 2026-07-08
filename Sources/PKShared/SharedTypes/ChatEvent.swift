@@ -233,9 +233,9 @@ public extension ChatEvent.ErrorIdentity {
     /// Each entry is the `(domain, code)` pair of a structured `PKError` that is thrown
     /// directly by the runtime (grep evidence):
     /// - `ToolError.permissionDenied` — `com.positronickit.core.tool:210`
-    ///   (thrown at `PositronicKit/Sources/PositronicKit/Services/Tools/ToolRouter.swift:343`)
+    ///   (thrown at `PositronicKit/Sources/PositronicKit/Services/Tools/ToolRouter.swift:366`)
     /// - `ToolError.attachedToolsDisallowedOnPrivateTimeline` — `com.positronickit.core.tool:207`
-    ///   (thrown at `PositronicKit/Sources/PositronicKit/Services/Tools/ToolRoutingDecision.swift:27`)
+    ///   (thrown at `PositronicKit/Sources/PositronicKit/Services/Tools/ToolRouter.swift`)
     /// - `PathError.accessDenied` — `com.positronickit.core.filesystem:101`
     ///   (thrown at `PositronicKit/Sources/PKShared/Utilities/PathSanitizer.swift:46,60`)
     /// - `WorkspaceError.accessDenied` — `com.positronickit.core.workspace:3002`
