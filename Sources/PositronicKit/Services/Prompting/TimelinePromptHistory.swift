@@ -42,7 +42,7 @@ struct PromptHistoryJournalDiff<Entry: Sendable> {
     let stablePrefixCount: Int
     let changed: [Entry]
     let added: [Entry]
-    let removed: [String]
+    let removed: [Entry]
     let subtreeDiff: SubtreeDiff?
 
     var hasChanges: Bool {
@@ -80,6 +80,11 @@ struct PromptDiff {
     }
 
     var removed: [String] {
+        journalDiff.removed.map(\.entryId)
+    }
+
+    /// Policy-bearing removed entries, kept for the semistable-only journal projection.
+    private var removedEntries: [PromptSectionEntry] {
         journalDiff.removed
     }
 
@@ -101,9 +106,15 @@ struct PromptDiff {
 
     var publicJournalDiff: PromptJournalDiff {
         PromptJournalDiff(
-            changedSemiStableIDs: changed.map(\.entryId),
-            addedSemiStableIDs: added.map(\.entryId),
-            removedSemiStableIDs: removed
+            changedSemiStableIDs: changed
+                .filter { $0.cachePolicy == .semiStable }
+                .map(\.entryId),
+            addedSemiStableIDs: added
+                .filter { $0.cachePolicy == .semiStable }
+                .map(\.entryId),
+            removedSemiStableIDs: removedEntries
+                .filter { $0.cachePolicy == .semiStable }
+                .map(\.entryId)
         )
     }
 }
@@ -471,7 +482,7 @@ public actor TimelinePromptHistory {
             }
         }
 
-        let removed = previous.entries.map(\.entryId).filter { !seenIds.contains($0) }
+        let removed = previous.entries.filter { !seenIds.contains($0.entryId) }
 
         return PromptHistoryJournalDiff(
             stablePrefixCount: stablePrefixCount,

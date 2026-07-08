@@ -160,6 +160,103 @@ actor TimelinePromptHistoryTests {
         #expect(journalPlan.requiresHardReset == false)
         #expect(journalPlan.diff == runtimeDiff.publicJournalDiff)
         #expect(runtimeDiff.stablePrefixCount == 1)
+
+        // Mixed-policy churn: stable stays unchanged, but volatile and semiStable
+        // sections change. The runtime journal projection must agree with PKPrompt by
+        // emitting only semistable IDs; stable/volatile IDs must not leak through.
+        var mixedJournal = PromptJournal()
+        let mixedHistory = TimelinePromptHistory()
+
+        let mixedInitial = try AnyPrompt.build {
+            TimelineSection(id: "stable-a", cachePolicy: .stable, text: "Stable A")
+            TimelineSection(id: "semi-a", cachePolicy: .semiStable, text: "Semi A v1")
+            TimelineSection(id: "volatile-a", cachePolicy: .volatile, text: "Volatile A v1")
+        }.assemblePrompt()
+        let mixedInitialRendered = await mixedInitial.render()
+
+        _ = mixedJournal.observe(mixedInitialRendered)
+        _ = await mixedHistory.record(prompt: mixedInitial)
+
+        let mixedUpdated = try AnyPrompt.build {
+            TimelineSection(id: "stable-a", cachePolicy: .stable, text: "Stable A")
+            TimelineSection(id: "semi-a", cachePolicy: .semiStable, text: "Semi A v2")
+            TimelineSection(id: "semi-b", cachePolicy: .semiStable, text: "Semi B new")
+            TimelineSection(id: "volatile-a", cachePolicy: .volatile, text: "Volatile A v2")
+        }.assemblePrompt()
+        let mixedUpdatedRendered = await mixedUpdated.render()
+
+        let mixedJournalPlan = mixedJournal.observe(mixedUpdatedRendered)
+        let mixedRuntimeDiff = await mixedHistory.record(prompt: mixedUpdated)
+
+        #expect(mixedJournalPlan.requiresHardReset == false)
+        #expect(mixedJournalPlan.diff == mixedRuntimeDiff.publicJournalDiff)
+        #expect(mixedRuntimeDiff.publicJournalDiff == PromptJournalDiff(
+            changedSemiStableIDs: ["semi-a"],
+            addedSemiStableIDs: ["semi-b"],
+            removedSemiStableIDs: []
+        ))
+        #expect(mixedRuntimeDiff.stablePrefixCount == 1)
+    }
+
+    @Test("publicJournalDiff emits only semistable IDs when stable and volatile sections change")
+    func publicJournalDiffFiltersNonSemistableChanges() async throws {
+        let history = TimelinePromptHistory()
+
+        let initialPrompt = try AnyPrompt.build {
+            TimelineSection(id: "stable-a", cachePolicy: .stable, text: "Stable A v1")
+            TimelineSection(id: "semi-a", cachePolicy: .semiStable, text: "Semi A v1")
+            TimelineSection(id: "volatile-a", cachePolicy: .volatile, text: "Volatile A v1")
+        }.assemblePrompt()
+
+        let updatedPrompt = try AnyPrompt.build {
+            TimelineSection(id: "stable-a", cachePolicy: .stable, text: "Stable A v2")
+            TimelineSection(id: "semi-a", cachePolicy: .semiStable, text: "Semi A v2")
+            TimelineSection(id: "semi-b", cachePolicy: .semiStable, text: "Semi B new")
+            TimelineSection(id: "volatile-a", cachePolicy: .volatile, text: "Volatile A v2")
+        }.assemblePrompt()
+
+        _ = await history.record(prompt: initialPrompt)
+        let diff = await history.record(prompt: updatedPrompt)
+
+        // Runtime diff must continue to track all policies for the cache prefix / subtree.
+        #expect(diff.changed.map(\.entryId) == ["stable-a", "semi-a", "volatile-a"])
+        #expect(diff.added.map(\.entryId) == ["semi-b"])
+        #expect(diff.removed.isEmpty)
+
+        // Public projection is semistable-only.
+        #expect(diff.publicJournalDiff == PromptJournalDiff(
+            changedSemiStableIDs: ["semi-a"],
+            addedSemiStableIDs: ["semi-b"],
+            removedSemiStableIDs: []
+        ))
+    }
+
+    @Test("publicJournalDiff emits only semistable IDs when sections are removed")
+    func publicJournalDiffFiltersNonSemistableRemovals() async throws {
+        let history = TimelinePromptHistory()
+
+        let initialPrompt = try AnyPrompt.build {
+            TimelineSection(id: "stable-a", cachePolicy: .stable, text: "Stable A")
+            TimelineSection(id: "semi-a", cachePolicy: .semiStable, text: "Semi A")
+        }.assemblePrompt()
+
+        let updatedPrompt = try AnyPrompt.build {
+            TimelineSection(id: "stable-b", cachePolicy: .stable, text: "Stable B")
+            TimelineSection(id: "semi-b", cachePolicy: .semiStable, text: "Semi B")
+        }.assemblePrompt()
+
+        _ = await history.record(prompt: initialPrompt)
+        let diff = await history.record(prompt: updatedPrompt)
+
+        // Runtime diff records removals for all policies.
+        #expect(diff.removed == ["stable-a", "semi-a"])
+
+        // Public projection drops the stable removal.
+        #expect(diff.publicJournalDiff == PromptJournalDiff(
+            changedSemiStableIDs: [],
+            addedSemiStableIDs: ["semi-b"],
+            removedSemiStableIDs: ["semi-a"]
+        ))
     }
 
     @Test("Records an assembled prompt directly")

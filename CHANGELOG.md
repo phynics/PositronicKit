@@ -10,6 +10,14 @@ for tagged releases beginning with `1.0.0`.
 
 ### Fixed
 
+- `PromptDiff.publicJournalDiff` now filters its projection to semistable section IDs
+  (PKDEEP2-002). Previously the runtime diff tracked changes for every `CachePolicy`,
+  so stable and volatile section IDs leaked into `PromptJournalDiff`'s
+  `changedSemiStableIDs` / `addedSemiStableIDs` / `removedSemiStableIDs` fields. The
+  runtime diff still records all policies for cache-prefix and subtree bookkeeping;
+  only the journal-facing projection narrows. `TurnLoopController` now publishes
+  semistable-only overlays to `TurnInspecting`, which fixes Yakamoz's inspector
+  misreporting stable/volatile churn as overlay activity.
 - `SidecarSchemaComposer.containerSchema(for:)` now post-processes each directive's
   object schema so it is valid under OpenAI strict-JSON-schema mode (PKTEST-3). When a
   directive's payload schema is a JSON object with `properties`, every property name is now
