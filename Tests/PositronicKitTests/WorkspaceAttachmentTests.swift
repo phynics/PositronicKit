@@ -167,6 +167,19 @@ struct AttachWorkspaceTests {
             }
         }
     }
+
+    @Test("attach to a non-cached timeline still resolves from persistence")
+    func attachUncachedTimeline() async throws {
+        try await withFixture { fix in
+            let timeline = Timeline(attachedWorkspaceIds: [fix.runtimeWS.id])
+            try await fix.persistence.saveTimeline(timeline)
+
+            try await fix.manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
+
+            let persisted = try #require(await fix.persistence.fetchTimeline(id: timeline.id))
+            #expect(persisted.attachedWorkspaceIds.contains(fix.clientWS.id))
+        }
+    }
 }
 
 // MARK: - detachWorkspace
