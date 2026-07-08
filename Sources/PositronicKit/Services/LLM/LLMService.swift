@@ -1,14 +1,26 @@
 import ErrorKit
 import Foundation
 import Logging
-import PKShared
 import Observation
+import PKShared
 
-/// Mutable box for the one-shot preparation task. It is created before `LLMService` escapes `self`
-/// in its initializers, then populated with the actual task once `self` is fully initialized.
+/// Set-once box for the one-shot preparation task. It is created before `LLMService` escapes
+/// `self` in its initializers, then populated with the actual task once `self` is fully
+/// initialized. `set(_:)` traps if called more than once — the box exists to work around the
+/// actor-init ordering restriction (a `Task` capturing `self` cannot be assigned directly to a
+/// stored property that is itself being initialized), not to be a general-purpose mutable cell.
+/// That single-write contract is what makes reading `task` from actor-isolated `await` sites
+/// safe without further synchronization; enforcing it here (rather than only documenting it)
+/// means a future second write path fails loudly instead of silently racing.
 private final class PreparationTaskBox: @unchecked Sendable {
-    var task: Task<Void, Never>?
+    private(set) var task: Task<Void, Never>?
+
     init() {}
+
+    func set(_ task: Task<Void, Never>) {
+        precondition(self.task == nil, "PreparationTaskBox.set(_:) called more than once")
+        self.task = task
+    }
 }
 
 /// Service for managing LLM interactions with configuration support
@@ -66,7 +78,7 @@ public actor LLMService: LLMServiceProtocol, HealthCheckable {
     private nonisolated let preparationTaskBox = PreparationTaskBox()
 
     /// Internal test hook so regressions can assert the preparation task is assigned synchronously in init.
-    nonisolated internal var hasPreparationTask: Bool {
+    nonisolated var hasPreparationTask: Bool {
         preparationTaskBox.task != nil
     }
 
@@ -102,18 +114,18 @@ public actor LLMService: LLMServiceProtocol, HealthCheckable {
     ) {
         logger = Logger.module(named: "llm")
         self.embeddingService = embeddingService
-        self.storage = InMemoryConfigurationService(config: configuration)
+        storage = InMemoryConfigurationService(config: configuration)
         self.configuration = configuration
-        self.isConfigured = configuration.isValid
+        isConfigured = configuration.isValid
         if configuration.isValid {
             let clients = Self.makeClients(with: configuration)
-            self.client = clients.main
-            self.utilityClient = clients.utility
-            self.fastClient = clients.fast
+            client = clients.main
+            utilityClient = clients.utility
+            fastClient = clients.fast
         } else {
-            self.client = nil
-            self.utilityClient = nil
-            self.fastClient = nil
+            client = nil
+            utilityClient = nil
+            fastClient = nil
         }
     }
 
@@ -133,16 +145,16 @@ public actor LLMService: LLMServiceProtocol, HealthCheckable {
         isConfigured = client != nil
 
         let needsLoad = client == nil
-        preparationTaskBox.task = Task { [weak self, needsLoad] in
+        preparationTaskBox.set(Task { [weak self, needsLoad] in
             guard let self else { return }
             await self.storage.migrateIfNeeded()
             if needsLoad {
                 await self.loadConfiguration()
             }
-        }
+        })
     }
 
-    internal init(
+    init(
         storage: any ConfigurationServiceProtocol,
         embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
         client: (any LLMClientProtocol)? = nil,
@@ -159,13 +171,13 @@ public actor LLMService: LLMServiceProtocol, HealthCheckable {
         isConfigured = client != nil
 
         let needsLoad = client == nil
-        preparationTaskBox.task = Task { [weak self, needsLoad] in
+        preparationTaskBox.set(Task { [weak self, needsLoad] in
             guard let self else { return }
             await self.storage.migrateIfNeeded()
             if needsLoad {
                 await self.loadConfiguration()
             }
-        }
+        })
     }
 
     // MARK: - Public API
@@ -283,7 +295,9 @@ public enum LLMServiceError: PKError, Equatable {
     case networkError(String)
     case httpError(provider: String, statusCode: Int, responseBody: String, retryAfter: TimeInterval?)
 
-    public var errorDomain: String { PKErrorDomain.llm }
+    public var errorDomain: String {
+        PKErrorDomain.llm
+    }
 
     public var errorCode: Int {
         switch self {
