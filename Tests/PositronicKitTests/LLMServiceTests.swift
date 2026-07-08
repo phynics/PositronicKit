@@ -54,6 +54,53 @@ private enum TestUtilityError: Error, PKError {
     var userFriendlyMessage: String { "Friendly utility failure" }
 }
 
+/// Storage that suspends `load()` until `release()` is called, so tests can observe whether the
+/// first public call awaits the preparation task.
+private actor DelayedConfigurationService: ConfigurationServiceProtocol {
+    var config: LLMConfiguration
+    private var loadContinuation: CheckedContinuation<LLMConfiguration, Never>?
+    private(set) var loadStarted = false
+
+    init(config: LLMConfiguration) {
+        self.config = config
+    }
+
+    func load() async -> LLMConfiguration {
+        loadStarted = true
+        return await withCheckedContinuation { continuation in
+            self.loadContinuation = continuation
+        }
+    }
+
+    func release() {
+        loadContinuation?.resume(returning: config)
+        loadContinuation = nil
+    }
+
+    func save(_ config: LLMConfiguration) async throws {
+        self.config = config
+    }
+
+    func clear() async {
+        self.config = .openAI
+    }
+
+    func migrateIfNeeded() async {}
+
+    func exportConfiguration() async throws -> Data {
+        return try JSONEncoder().encode(config)
+    }
+
+    func importConfiguration(from data: Data) async throws {
+        let decoded = try JSONDecoder().decode(LLMConfiguration.self, from: data)
+        self.config = decoded
+    }
+
+    func restoreFromBackup() async throws -> LLMConfiguration? {
+        nil
+    }
+}
+
 @MainActor
 struct LLMServiceTests {
     private let llmService: LLMService
@@ -448,5 +495,41 @@ struct LLMServiceTests {
         _ = try await service.sendMessage("Hello")
         #expect(mockClient.lastParameters?.temperature == 0.8)
         #expect(mockClient.lastParameters?.maxTokens == 500)
+    }
+
+    @Test("Preparation task is assigned synchronously during init")
+    func preparationTaskAssignedDuringInit() {
+        let config = LLMConfiguration(
+            endpoint: "https://test.example.com",
+            modelName: "test-model",
+            apiKey: "test-key"
+        )
+        let storage = DelayedConfigurationService(config: config)
+        let service = LLMService(storage: storage)
+
+        #expect(service.hasPreparationTask)
+    }
+
+    @Test("First public call awaits delayed configuration load")
+    func firstCallAwaitsDelayedConfigurationLoad() async throws {
+        let config = LLMConfiguration(
+            endpoint: "https://test.example.com",
+            modelName: "test-model",
+            apiKey: "test-key"
+        )
+        let storage = DelayedConfigurationService(config: config)
+        let service = LLMService(storage: storage)
+
+        let exportTask = Task { try await service.exportConfiguration() }
+
+        // The preparation task should reach storage.load() well within this window.
+        for _ in 0 ..< 50 {
+            if await storage.loadStarted { break }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(await storage.loadStarted)
+
+        await storage.release()
+        _ = try await exportTask.value
     }
 }

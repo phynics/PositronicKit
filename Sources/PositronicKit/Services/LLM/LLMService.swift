@@ -4,6 +4,13 @@ import Logging
 import PKShared
 import Observation
 
+/// Mutable box for the one-shot preparation task. It is created before `LLMService` escapes `self`
+/// in its initializers, then populated with the actual task once `self` is fully initialized.
+private final class PreparationTaskBox: @unchecked Sendable {
+    var task: Task<Void, Never>?
+    init() {}
+}
+
 /// Service for managing LLM interactions with configuration support
 public actor LLMService: LLMServiceProtocol, HealthCheckable {
     public private(set) var configuration: LLMConfiguration = .openAI
@@ -12,12 +19,12 @@ public actor LLMService: LLMServiceProtocol, HealthCheckable {
     // MARK: - HealthCheckable
 
     public func getHealthStatus() async -> HealthStatus {
-        await preparationTask?.value
+        await preparationTaskBox.task?.value
         return isConfigured ? .ok : .degraded
     }
 
     public func getHealthDetails() async -> [String: String]? {
-        await preparationTask?.value
+        await preparationTaskBox.task?.value
         return [
             "model": configuration.modelName,
             "provider": configuration.provider.rawValue,
@@ -25,7 +32,7 @@ public actor LLMService: LLMServiceProtocol, HealthCheckable {
     }
 
     public func checkHealth() async -> HealthStatus {
-        await preparationTask?.value
+        await preparationTaskBox.task?.value
         // Not configured at all → degraded
         guard isConfigured else { return .degraded }
 
@@ -54,7 +61,14 @@ public actor LLMService: LLMServiceProtocol, HealthCheckable {
 
     nonisolated let logger: Logger
 
-    private var preparationTask: Task<Void, Never>?
+    /// Holds the one-shot migration/configuration-load task so it can be assigned directly in
+    /// `init` without escaping `self` before all stored properties are initialized.
+    private nonisolated let preparationTaskBox = PreparationTaskBox()
+
+    /// Internal test hook so regressions can assert the preparation task is assigned synchronously in init.
+    nonisolated internal var hasPreparationTask: Bool {
+        preparationTaskBox.task != nil
+    }
 
     // MARK: - Client Accessors
 
@@ -101,7 +115,6 @@ public actor LLMService: LLMServiceProtocol, HealthCheckable {
             self.utilityClient = nil
             self.fastClient = nil
         }
-        self.preparationTask = nil
     }
 
     public init(
@@ -120,15 +133,13 @@ public actor LLMService: LLMServiceProtocol, HealthCheckable {
         isConfigured = client != nil
 
         let needsLoad = client == nil
-
-        self.preparationTask = nil
-        let t = Task { [needsLoad] in
-            await storage.migrateIfNeeded()
+        preparationTaskBox.task = Task { [weak self, needsLoad] in
+            guard let self else { return }
+            await self.storage.migrateIfNeeded()
             if needsLoad {
                 await self.loadConfiguration()
             }
         }
-        Task { await self.setPreparationTask(t) }
     }
 
     internal init(
@@ -148,22 +159,16 @@ public actor LLMService: LLMServiceProtocol, HealthCheckable {
         isConfigured = client != nil
 
         let needsLoad = client == nil
-
-        self.preparationTask = nil
-        let t = Task { [needsLoad] in
-            await storage.migrateIfNeeded()
+        preparationTaskBox.task = Task { [weak self, needsLoad] in
+            guard let self else { return }
+            await self.storage.migrateIfNeeded()
             if needsLoad {
                 await self.loadConfiguration()
             }
         }
-        Task { await self.setPreparationTask(t) }
     }
 
     // MARK: - Public API
-
-    private func setPreparationTask(_ task: Task<Void, Never>) {
-        self.preparationTask = task
-    }
 
     public func loadConfiguration() async {
         let config = await storage.load()
@@ -180,7 +185,7 @@ public actor LLMService: LLMServiceProtocol, HealthCheckable {
     }
 
     public func restoreFromBackup() async throws {
-        await preparationTask?.value
+        await preparationTaskBox.task?.value
         if let restored = try await storage.restoreFromBackup() {
             logger.info("Restored configuration from backup")
             configuration = restored
@@ -193,19 +198,19 @@ public actor LLMService: LLMServiceProtocol, HealthCheckable {
     }
 
     public func exportConfiguration() async throws -> Data {
-        await preparationTask?.value
+        await preparationTaskBox.task?.value
         return try await storage.exportConfiguration()
     }
 
     public func importConfiguration(from data: Data) async throws {
-        await preparationTask?.value
+        await preparationTaskBox.task?.value
         logger.info("Importing configuration")
         try await storage.importConfiguration(from: data)
         await loadConfiguration()
     }
 
     public func updateConfiguration(_ config: LLMConfiguration) async throws {
-        await preparationTask?.value
+        await preparationTaskBox.task?.value
         logger.info(
             "Updating configuration to models: \(config.modelName) / \(config.utilityModel) / \(config.fastModel)"
         )
@@ -221,7 +226,7 @@ public actor LLMService: LLMServiceProtocol, HealthCheckable {
     }
 
     public func clearConfiguration() async {
-        await preparationTask?.value
+        await preparationTaskBox.task?.value
         logger.warning("Clearing configuration")
         await storage.clear()
         configuration = .openAI
@@ -230,7 +235,7 @@ public actor LLMService: LLMServiceProtocol, HealthCheckable {
     }
 
     public func fetchAvailableModels() async throws -> [String]? {
-        await preparationTask?.value
+        await preparationTaskBox.task?.value
         guard let client = client else {
             return nil
         }
@@ -247,7 +252,7 @@ public actor LLMService: LLMServiceProtocol, HealthCheckable {
         generationParameters: GenerationParameters?,
         useUtilityModel: Bool
     ) async throws -> String {
-        await preparationTask?.value
+        await preparationTaskBox.task?.value
         let selectedClient: (any LLMClientProtocol)?
         if useUtilityModel {
             selectedClient = utilityClient ?? client
