@@ -206,13 +206,7 @@ enum PromptAssembler {
         var metadata: [String: StructuredNodeMetadata] = [:]
         for section in resolvedSections {
             let rendered = await section.renderedContent()?.text ?? ""
-            // Include both resolved content and inherited traits in the cache key so structured
-            // compression invalidates whenever a materially relevant field changes. Keep this in
-            // sync with TimelinePromptHistory via StructuredPromptMetadata.
-            metadata[section.id] = StructuredPromptMetadata.makeNodeMetadata(
-                for: section,
-                renderedContent: rendered
-            )
+            metadata[section.id] = section.nodeMetadata(renderedContent: rendered)
         }
         return metadata
     }

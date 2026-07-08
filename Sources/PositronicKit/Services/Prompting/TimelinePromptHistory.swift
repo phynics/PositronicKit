@@ -409,10 +409,7 @@ public actor TimelinePromptHistory {
         var metadata: [String: StructuredNodeMetadata] = [:]
         for section in prompt.sections {
             let content = prompt.sectionsByID[section.id] ?? ""
-            metadata[section.id] = StructuredPromptMetadata.makeNodeMetadata(
-                for: section,
-                renderedContent: content
-            )
+            metadata[section.id] = section.nodeMetadata(renderedContent: content)
         }
         return metadata
     }

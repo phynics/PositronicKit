@@ -242,6 +242,11 @@ public struct TokenBudget: Sendable {
         TokenEstimator.estimate(text: text)
     }
 
+    /// Computes a fallback node hash when no precomputed metadata is available.
+    ///
+    /// This intentionally omits `renderedContent` from the hash inputs because
+    /// `PromptSection.renderedContent()` is async and `makeStructuredPlan` is synchronous.
+    /// Callers that need content-aware hashing should pass precomputed `nodeMetadata` instead.
     private func defaultNodeHash(for section: PromptSection) -> UInt64 {
         StableHash.hash(components: [
             section.id,
