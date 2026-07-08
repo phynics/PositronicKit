@@ -48,6 +48,14 @@ for tagged releases beginning with `1.0.0`.
   payload-value contract — the `AnyCodable` case tag depends on the directive's schema shape
   (leaf scalar → `.string`/`.number`; `@Schemable` object → `.dictionary`), and consumers must
   not assume `AnyCodable.asString` (returns `nil` for `.dictionary`). Cites PKTEST-1.
+- Internal refactor: collapsed the `TimelineCache` protocol-with-one-adapter seam back into
+  `TimelineManager` (PKDEEP-002-impl, supersedes PKARCH-003). `TimelineLifecycleService` and
+  `WorkspaceAttachmentService` are gone; their methods are now `private extension` files on the
+  actor (`TimelineManager+Lifecycle.swift`, `TimelineManager+Attachments.swift`). The 9-method
+  `TimelineCache` protocol and `FakeTimelineCache` test fake are deleted. `ContextManager` reverts
+  from `package` to `internal`. `RuntimeToolPolicyFactory` is preserved (legitimate pure-helper
+  extraction). All `await cache.cacheX()` hops collapse to synchronous in-actor dict access. Public
+  API is unchanged.
 
 ### Added
 

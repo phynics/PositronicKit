@@ -1,55 +1,11 @@
-import ErrorKit
 import Foundation
 import PKShared
 
-/// Owns the lifecycle of in-memory timelines — creation, hydration from persistence, title
-/// updates, deletion, and stale-timeline cleanup — plus the per-timeline component setup
-/// (context manager, tool manager, and workspace-tool registration) that runs alongside
-/// `createTimeline`/`hydrateTimeline`.
-///
-/// Extracted from `TimelineManager` (PKARCH-003). The service is stateless aside from the
-/// injected persistence stores and a ``TimelineCache`` seam; the caches themselves stay owned
-/// by `TimelineManager`, which forwards its public lifecycle methods here.
-package struct TimelineLifecycleService: Sendable {
-    package let cache: any TimelineCache
-    package let timelineStore: any TimelinePersistenceProtocol
-    package let messageStore: any MessageStoreProtocol
-    package let workspaceStore: any WorkspacePersistenceProtocol
-    package let workspaceManager: any WorkspaceManagerProtocol
-    package let memoryStore: any MemoryStoreProtocol
-    package let embeddingService: any EmbeddingServiceProtocol
-    package let workspaceRoot: URL
-    package let promptHistoryRegistry: TimelinePromptHistoryRegistry?
-    package let runtimeToolPolicy: TimelineManager.RuntimeToolPolicy
+// MARK: - Lifecycle
 
-    package init(
-        cache: any TimelineCache,
-        timelineStore: any TimelinePersistenceProtocol,
-        messageStore: any MessageStoreProtocol,
-        workspaceStore: any WorkspacePersistenceProtocol,
-        workspaceManager: any WorkspaceManagerProtocol,
-        memoryStore: any MemoryStoreProtocol,
-        embeddingService: any EmbeddingServiceProtocol,
-        workspaceRoot: URL,
-        promptHistoryRegistry: TimelinePromptHistoryRegistry?,
-        runtimeToolPolicy: TimelineManager.RuntimeToolPolicy
-    ) {
-        self.cache = cache
-        self.timelineStore = timelineStore
-        self.messageStore = messageStore
-        self.workspaceStore = workspaceStore
-        self.workspaceManager = workspaceManager
-        self.memoryStore = memoryStore
-        self.embeddingService = embeddingService
-        self.workspaceRoot = workspaceRoot
-        self.promptHistoryRegistry = promptHistoryRegistry
-        self.runtimeToolPolicy = runtimeToolPolicy
-    }
-
-    // MARK: - Lifecycle
-
+public extension TimelineManager {
     /// Creates a new conversation timeline, initializes its workspace, and saves it to persistence.
-    package func createTimeline(title: String = "New Conversation") async throws -> Timeline {
+    func createTimeline(title: String = "New Conversation") async throws -> Timeline {
         let timelineId = UUID()
 
         let timelineWorkspaceURL = workspaceRoot.appendingPathComponent(
@@ -79,7 +35,7 @@ package struct TimelineLifecycleService: Sendable {
         )
         timeline.workingDirectory = timelineWorkspaceURL.path
 
-        await cache.cacheSetTimeline(timeline)
+        timelines[timeline.id] = timeline
         await setupTimelineComponents(timeline: timeline, workspaceURL: timelineWorkspaceURL)
         try await timelineStore.saveTimeline(timeline)
 
@@ -87,8 +43,8 @@ package struct TimelineLifecycleService: Sendable {
     }
 
     /// Reconstructs a timeline and its components from persistence.
-    package func hydrateTimeline(id: UUID) async throws {
-        if await cache.cacheHasToolManager(for: id) { return }
+    func hydrateTimeline(id: UUID) async throws {
+        if toolManagers[id] != nil { return }
 
         guard let timeline = try await timelineStore.fetchTimeline(id: id) else {
             throw TimelineError.timelineNotFound
@@ -103,7 +59,7 @@ package struct TimelineLifecycleService: Sendable {
             ).appendingPathComponent(id.uuidString, isDirectory: true)
         }
 
-        await cache.cacheSetTimeline(timeline)
+        timelines[timeline.id] = timeline
         await setupTimelineComponents(
             timeline: timeline,
             workspaceURL: timelineWorkspaceURL
@@ -111,9 +67,9 @@ package struct TimelineLifecycleService: Sendable {
     }
 
     /// Updates the title of a specific timeline.
-    package func updateTimelineTitle(id: UUID, title: String) async throws {
+    func updateTimelineTitle(id: UUID, title: String) async throws {
         var timeline: Timeline
-        if let memoryTimeline = await cache.cacheReadTimeline(id: id) {
+        if let memoryTimeline = timelines[id] {
             timeline = memoryTimeline
         } else if let dbTimeline = try? await timelineStore.fetchTimeline(id: id) {
             timeline = dbTimeline
@@ -124,23 +80,23 @@ package struct TimelineLifecycleService: Sendable {
         timeline.title = title
         timeline.updatedAt = Date()
 
-        await cache.cacheReplaceTimelineIfPresent(timeline)
+        if timelines[timeline.id] != nil { timelines[timeline.id] = timeline }
         try await timelineStore.saveTimeline(timeline)
     }
 
     /// Evicts all in-memory runtime state for a timeline. This is the runtime-eviction seam;
     /// callers that also want to delete the persisted timeline must additionally call
     /// `timelineStore.deleteTimeline(id:)`.
-    package func deleteTimeline(id: UUID) async {
+    func deleteTimeline(id: UUID) async {
         await evictTimelineFromMemory(id: id)
     }
 
     /// Removes active timelines from memory that have not been updated within the specified
     /// interval. Evicts in-memory state only; persisted timelines are unaffected. Also drops
     /// the corresponding prompt-history entries when a registry was injected.
-    package func cleanupStaleTimelines(maxAge: TimeInterval) async {
+    func cleanupStaleTimelines(maxAge: TimeInterval) async {
         let now = Date()
-        let staleIds = (await cache.cacheAllTimelineValues()).filter { timeline in
+        let staleIds = Array(timelines.values).filter { timeline in
             now.timeIntervalSince(timeline.updatedAt) > maxAge
         }.map { $0.id }
 
@@ -148,22 +104,26 @@ package struct TimelineLifecycleService: Sendable {
             await evictTimelineFromMemory(id: id)
         }
     }
+}
 
+// MARK: - Component Setup & Eviction
+
+private extension TimelineManager {
     /// Evicts all in-memory runtime state for a timeline: the cached `Timeline`,
     /// `ContextManager`, `TimelineToolManager`, and (when a prompt-history registry
     /// was injected) the journal-diff history entry. Does not touch persistence.
     ///
     /// This is the in-memory-only phase shared by `deleteTimeline(id:)` and
-    /// `cleanupStaleTimelines(maxAge:)`; the atomic cache mutation is delegated to
-    /// `TimelineCache.cacheEvictAll(id:)`.
-    package func evictTimelineFromMemory(id: UUID) async {
-        await cache.cacheEvictAll(id: id)
+    /// `cleanupStaleTimelines(maxAge:)`.
+    func evictTimelineFromMemory(id: UUID) async {
+        timelines.removeValue(forKey: id)
+        contextManagers.removeValue(forKey: id)
+        toolManagers.removeValue(forKey: id)
+        await promptHistoryRegistry?.removeHistory(for: id)
     }
 
-    // MARK: - Component Setup
-
     /// Initializes and configures the internal components for a conversation timeline.
-    private func setupTimelineComponents(
+    func setupTimelineComponents(
         timeline: Timeline,
         workspaceURL: URL
     ) async {
@@ -179,7 +139,7 @@ package struct TimelineLifecycleService: Sendable {
             memoryStore: memoryStore,
             embeddingService: embeddingService
         )
-        await cache.cacheSetContextManager(contextManager, for: timeline.id)
+        contextManagers[timeline.id] = contextManager
 
         let toolContextTimeline = ToolTimelineContext()
 
@@ -191,7 +151,7 @@ package struct TimelineLifecycleService: Sendable {
             timelineStore: timelineStore,
             messageStore: messageStore
         )
-        await cache.cacheSetToolManager(toolManager, for: timeline.id)
+        toolManagers[timeline.id] = toolManager
 
         for attachedId in timeline.attachedWorkspaceIds {
             if let workspace = try? await workspaceManager.getWorkspace(id: attachedId) {
@@ -200,11 +160,9 @@ package struct TimelineLifecycleService: Sendable {
         }
     }
 
-    // MARK: - Default Notes
-
     /// Writes the default `Notes/Welcome.md` and `Notes/Project.md` files into a freshly created
     /// timeline workspace.
-    package func writeDefaultNotes(at workspaceURL: URL) throws {
+    func writeDefaultNotes(at workspaceURL: URL) throws {
         let notesDir = workspaceURL.appendingPathComponent("Notes", isDirectory: true)
         try FileManager.default.createDirectory(at: notesDir, withIntermediateDirectories: true)
 

@@ -133,6 +133,121 @@ struct TimelineManagerTests {
         #expect(cancelledFinal, "Task should have been cancelled")
     }
 
+    @Test("hydrateTimeline short-circuits when a tool manager is already cached")
+    func hydrateShortCircuit() async throws {
+        let persistence = MockPersistenceService()
+        let workspace = TestWorkspace()
+        let timelineManager = TimelineManager(
+            stores: .init(
+                timelineStore: persistence,
+                messageStore: persistence,
+                workspaceStore: persistence,
+                toolPersistence: persistence
+            ),
+            workspaceRoot: workspace.root
+        )
+
+        let timeline = try await timelineManager.createTimeline()
+        try await persistence.deleteTimeline(id: timeline.id)
+
+        try await timelineManager.hydrateTimeline(id: timeline.id)
+        #expect(await timelineManager.getTimeline(id: timeline.id) != nil)
+    }
+
+    @Test("hydrateTimeline throws timelineNotFound when persistence has no timeline")
+    func hydrateMissing() async throws {
+        let workspace = TestWorkspace()
+        let timelineManager = TimelineManager(workspaceRoot: workspace.root)
+
+        do {
+            try await timelineManager.hydrateTimeline(id: UUID())
+            Issue.record("Expected timelineNotFound")
+        } catch TimelineError.timelineNotFound {
+            // ok
+        }
+    }
+
+    @Test("updateTimelineTitle mutates cache and persistence")
+    func updateTitle() async throws {
+        let persistence = MockPersistenceService()
+        let workspace = TestWorkspace()
+        let timelineManager = TimelineManager(
+            stores: .init(
+                timelineStore: persistence,
+                messageStore: persistence,
+                workspaceStore: persistence,
+                toolPersistence: persistence
+            ),
+            workspaceRoot: workspace.root
+        )
+
+        let timeline = try await timelineManager.createTimeline()
+
+        try await timelineManager.updateTimelineTitle(id: timeline.id, title: "renamed")
+
+        let cached = try #require(await timelineManager.getTimeline(id: timeline.id))
+        #expect(cached.title == "renamed")
+        let persisted = try #require(await persistence.fetchTimeline(id: timeline.id))
+        #expect(persisted.title == "renamed")
+    }
+
+    @Test("updateTimelineTitle for a missing timeline throws timelineNotFound")
+    func updateTitleMissing() async throws {
+        let workspace = TestWorkspace()
+        let timelineManager = TimelineManager(workspaceRoot: workspace.root)
+
+        do {
+            try await timelineManager.updateTimelineTitle(id: UUID(), title: "x")
+            Issue.record("Expected timelineNotFound")
+        } catch TimelineError.timelineNotFound {
+            // ok
+        }
+    }
+
+    @Test("cleanupStaleTimelines evicts from memory but not persistence")
+    func cleanupStaleDoesNotPersistDelete() async throws {
+        let persistence = MockPersistenceService()
+        let workspace = TestWorkspace()
+        let timelineManager = TimelineManager(
+            stores: .init(
+                timelineStore: persistence,
+                messageStore: persistence,
+                workspaceStore: persistence,
+                toolPersistence: persistence
+            ),
+            workspaceRoot: workspace.root
+        )
+
+        let timeline = try await timelineManager.createTimeline()
+
+        await timelineManager.cleanupStaleTimelines(maxAge: 0)
+
+        #expect(await timelineManager.getTimeline(id: timeline.id) == nil)
+        let persisted = try #require(await persistence.fetchTimeline(id: timeline.id))
+        #expect(persisted.id == timeline.id)
+    }
+
+    @Test("createTimeline creates Notes/Welcome.md and Notes/Project.md in the working directory")
+    func createTimelineWritesDefaultNotes() async throws {
+        let workspace = TestWorkspace()
+        let timelineManager = TimelineManager(workspaceRoot: workspace.root)
+
+        let timeline = try await timelineManager.createTimeline()
+
+        let workingDir = try #require(timeline.workingDirectory)
+        let notesDir = URL(fileURLWithPath: workingDir).appendingPathComponent("Notes")
+        let welcome = try String(
+            contentsOf: notesDir.appendingPathComponent("Welcome.md"),
+            encoding: .utf8
+        )
+        let project = try String(
+            contentsOf: notesDir.appendingPathComponent("Project.md"),
+            encoding: .utf8
+        )
+        #expect(welcome.contains("Welcome"))
+        #expect(project.contains("Active Objective"))
+    }
+
     // Note: the four `createToolManager` policy tests previously here were migrated to
     // `RuntimeToolPolicyFactoryTests` (under `Tests/PositronicKitTests/Services/`), which
     // exercises the extracted `RuntimeToolPolicyFactory` directly with in-memory stores —
