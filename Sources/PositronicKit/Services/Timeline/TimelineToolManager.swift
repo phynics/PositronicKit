@@ -138,6 +138,18 @@ public actor TimelineToolManager {
         return tagged
     }
 
+    /// Sorts the aggregated tool list into a deterministic order before it is serialized into
+    /// LLM requests or recorded in prompt history. The ordering key is `(name, provenance.displayName)`;
+    /// provenance breaks ties when the same tool name is offered by different sources.
+    private func sortToolsForOutput(_ tools: [AnyTool]) -> [AnyTool] {
+        tools.sorted {
+            if $0.name != $1.name {
+                return $0.name < $1.name
+            }
+            return $0.provenance.displayName < $1.provenance.displayName
+        }
+    }
+
     /// Get tools that are currently enabled, including context tools if a context is active
     public func getEnabledTools() async -> [AnyTool] {
         var tools = availableTools.filter { enabledTools.contains($0.id) }
@@ -160,7 +172,7 @@ public actor TimelineToolManager {
         // Include explicitly registered provider tools
         tools.append(contentsOf: providerTools.values)
 
-        return tools
+        return sortToolsForOutput(tools)
     }
 
     public func getAvailableTools() -> [AnyTool] {
@@ -178,7 +190,7 @@ public actor TimelineToolManager {
 
         // Append explicitly registered provider tools
         tools.append(contentsOf: providerTools.values)
-        return tools
+        return sortToolsForOutput(tools)
     }
 
     /// Toggle tool enabled state

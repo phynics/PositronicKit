@@ -266,4 +266,61 @@ final class TimelineToolManagerTests {
         let fetched = await manager.getTool(id: "cat")
         #expect(fetched?.provenance == .workspace(id: wsB, name: "pk://a-workspace"))
     }
+
+    @Test func getEnabledToolsAndAvailableToolsReturnDeterministicallySortedTools() async throws {
+        // Seed available tools in non-sorted order to prove the returned array is sorted,
+        // not just preserving the input order.
+        let systemTool1 = AnyTool(MockTool(id: "sys-zeta", name: "Zeta"))
+        let systemTool2 = AnyTool(MockTool(id: "sys-alpha", name: "Alpha"))
+        let systemTool3 = AnyTool(MockTool(id: "sys-beta", name: "Beta"))
+        let manager = TimelineToolManager(availableTools: [systemTool1, systemTool2, systemTool3])
+
+        struct TestProvider: ToolProviding {
+            let toolProvenance: ToolProvenance = .workspace(id: UUID(), name: "Provider")
+            func provideTools() async -> [AnyTool] {
+                [AnyTool(MockTool(id: "provided-alpha", name: "Alpha"))]
+            }
+        }
+
+        let providerId = UUID()
+        let provider = TestProvider()
+        await manager.registerToolProvider(provider, id: providerId)
+
+        let workspaceId = UUID()
+        let workspaceRef = try WorkspaceReference(
+            id: workspaceId,
+            uri: #require(WorkspaceURI(parsing: "pk://test-workspace")),
+            location: .runtime,
+            originId: nil
+        )
+        let def = WorkspaceToolDefinition(
+            id: "ws-omega",
+            name: "Omega",
+            description: "Workspace Omega",
+            parametersSchema: [:]
+        )
+        let mockWS = MockWorkspace(id: workspaceId, reference: workspaceRef, toolsToReturn: [.custom(def)])
+        await manager.registerWorkspace(mockWS)
+
+        // System Alpha has .global provenance; provider Alpha has workspace provenance.
+        // The provenance displayName is the tiebreaker, so system Alpha sorts first.
+        let expectedNames = ["Alpha", "Alpha", "Beta", "Omega", "Zeta"]
+
+        for _ in 0 ..< 10 {
+            let enabled = await manager.getEnabledTools()
+            let enabledNames = enabled.map(\.name)
+            #expect(enabledNames == expectedNames)
+
+            let available = await manager.getAvailableTools()
+            let availableNames = available.map(\.name)
+            #expect(availableNames == expectedNames)
+        }
+
+        // Verify the tiebreaker ordering between the two "Alpha" tools.
+        let available = await manager.getAvailableTools()
+        let alphaTools = available.filter { $0.name == "Alpha" }
+        #expect(alphaTools.count == 2)
+        #expect(alphaTools[0].provenance == .global)
+        #expect(alphaTools[1].provenance == provider.toolProvenance)
+    }
 }
