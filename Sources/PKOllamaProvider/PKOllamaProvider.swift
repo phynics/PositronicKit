@@ -17,7 +17,7 @@ public enum PKOllamaProvider {
 }
 
 public extension PositronicKit {
-    init(
+    convenience init(
         ollamaModel: String,
         endpoint: String = "http://localhost:11434",
         generationParameters: GenerationParameters? = nil

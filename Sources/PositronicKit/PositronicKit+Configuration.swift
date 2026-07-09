@@ -58,21 +58,17 @@ public extension PositronicKit {
     ///   - workspaceRoot: Root directory for workspaces. Defaults to temp directory.
     ///   - chatTurnPlugins: Post-turn plugins. Defaults to none.
     ///   - turnInspector: Optional sink for per-turn prompt/journal inspection projections.
-    ///   - promptHistoryRegistry: Per-timeline prompt-history/journal-diff state. See the main
-    ///     initializer's doc comment for why hosts that rebuild `PositronicKit` per send must
-    ///     pass the same instance every time.
     ///   - generationParameters: Optional default parameters for generation.
     ///   - toolApprovalGate: Gate consulted before any permissioned tool runs. Defaults to
     ///     `DenyAllToolApprovalGate` so permissioned tools never execute without an explicit
     ///     approval path; see the main initializer's doc comment (YAK-31).
-    init(
+    convenience init(
         llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient,
         persistence: PersistenceConfiguration,
         embeddingService: (any EmbeddingServiceProtocol)? = nil,
         workspaceRoot: URL? = nil,
         chatTurnPlugins: [any ChatTurnPlugin] = [],
         turnInspector: (any TurnInspecting)? = nil,
-        promptHistoryRegistry: TimelinePromptHistoryRegistry = TimelinePromptHistoryRegistry(),
         generationParameters: GenerationParameters? = nil,
         toolApprovalGate: any ToolApprovalGate = DenyAllToolApprovalGate()
     ) {
@@ -89,7 +85,6 @@ public extension PositronicKit {
             workspaceRoot: workspaceRoot,
             chatTurnPlugins: chatTurnPlugins,
             turnInspector: turnInspector,
-            promptHistoryRegistry: promptHistoryRegistry,
             generationParameters: generationParameters,
             toolApprovalGate: toolApprovalGate
         )
@@ -140,7 +135,7 @@ public extension PositronicKit {
     }
 
     /// Creates a PositronicKit with grouped persistence and grouped runtime configuration.
-    init(
+    convenience init(
         llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient,
         persistence: PersistenceConfiguration,
         embeddingService: (any EmbeddingServiceProtocol)? = nil,

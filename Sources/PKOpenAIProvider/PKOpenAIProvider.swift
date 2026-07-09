@@ -33,7 +33,7 @@ public enum PKOpenAIProvider {
 }
 
 public extension PositronicKit {
-    init(
+    convenience init(
         openAIKey: String,
         model: String = "gpt-4o",
         generationParameters: GenerationParameters? = nil

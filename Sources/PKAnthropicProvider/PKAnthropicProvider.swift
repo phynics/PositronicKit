@@ -20,7 +20,7 @@ public enum PKAnthropicProvider {
 }
 
 public extension PositronicKit {
-    init(
+    convenience init(
         anthropicKey: String,
         model: String = "claude-sonnet-4-5",
         endpoint: String = "https://api.anthropic.com",
