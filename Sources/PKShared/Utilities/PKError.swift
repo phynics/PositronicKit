@@ -14,12 +14,25 @@ public protocol PKError: Throwable {
     /// the LLM alongside `userFriendlyMessage` when a tool call fails, so keep it actionable and
     /// second-person (what the caller should do next), not developer-facing. Default: `nil`.
     var remediation: String? { get }
+
+    /// Whether this error represents a "blocked"/approval/disallowed condition — i.e. a
+    /// failure that is *not* the model's or provider's fault but the result of a deliberate
+    /// permission or access gate refusing execution. Consumers classify these as a `.blocked`
+    /// timeline state rather than `.failed`. Default: `false`. Override on error cases that
+    /// represent blocked conditions (e.g. `ToolError.permissionDenied`,
+    /// `PathError.accessDenied`, `WorkspaceError.accessDenied`).
+    var isBlocked: Bool { get }
 }
 
 public extension PKError {
     /// Default: no remediation guidance.
     var remediation: String? {
         nil
+    }
+
+    /// Default: not a blocked condition.
+    var isBlocked: Bool {
+        false
     }
 
     /// Default technical description that includes domain and code for better traceability.

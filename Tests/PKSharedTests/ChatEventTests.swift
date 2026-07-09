@@ -31,22 +31,22 @@ import ErrorKit
     @Test
     func usageGuideEventPatternMatchesCurrentShape() {
         let completionMeta = APIResponseMetadata(totalTokens: 42)
-        let toolDeltaEvent = ChatEvent.delta(event: .toolCall(delta: ToolCallDelta(
+        let toolDeltaEvent = ChatEvent.delta(.toolCall(delta: ToolCallDelta(
             index: 0,
             id: "call_1",
             name: "lookup_weather",
             arguments: "{}"
         )))
-        let toolErrorEvent = ChatEvent.error(event: .toolCallError(
+        let toolErrorEvent = ChatEvent.error(.toolCallError(
             toolCallId: "call_1",
             name: "lookup_weather",
             error: "bad args"
         ))
-        let metaCompletionEvent = ChatEvent.meta(event: .generationCompleted(
+        let metaCompletionEvent = ChatEvent.meta(.generationCompleted(
             message: Message(content: "done", role: .assistant),
             metadata: completionMeta
         ))
-        let completionEvent = ChatEvent.completion(event: .streamCompleted)
+        let completionEvent = ChatEvent.completion(.streamCompleted)
 
         switch toolDeltaEvent {
         case .delta(let event):
@@ -110,7 +110,7 @@ import ErrorKit
         let data = try encoder.encode(event)
         let decoded = try decoder.decode(ChatEvent.self, from: data)
 
-        if case let .completion(event: .completedEmpty(finishReason: finishReason)) = decoded {
+        if case let .completion(.completedEmpty(finishReason: finishReason)) = decoded {
             #expect(finishReason == "stop")
         } else {
             Issue.record("Expected decoded .completedEmpty event, got \(decoded)")
@@ -123,7 +123,7 @@ import ErrorKit
     func errorFromPKErrorCarriesStructuredIdentity() throws {
         let event = ChatEvent.error(ToolError.permissionDenied("rm"))
 
-        if case let .error(event: .error(message: message, identity: identity)) = event {
+        if case let .error(.error(message: message, identity: identity)) = event {
             #expect(identity == ChatEvent.ErrorIdentity(domain: PKErrorDomain.tool, code: 210))
             // STAB-4 contract preserved: message is the user-friendly string, no [domain:code] prefix.
             #expect(message == "The tool 'rm' requires permission and was not approved.")
@@ -140,7 +140,7 @@ import ErrorKit
         }
         let event = ChatEvent.error(ProviderError())
 
-        if case let .error(event: .error(message: message, identity: identity)) = event {
+        if case let .error(.error(message: message, identity: identity)) = event {
             #expect(identity == nil)
             #expect(message == "denied by upstream policy")
         } else {
@@ -152,7 +152,7 @@ import ErrorKit
     func errorFromStringCarriesNilIdentity() throws {
         let event = ChatEvent.error("boom")
 
-        if case let .error(event: .error(message: message, identity: identity)) = event {
+        if case let .error(.error(message: message, identity: identity)) = event {
             #expect(identity == nil)
             #expect(message == "boom")
         } else {
@@ -169,7 +169,7 @@ import ErrorKit
         let data = try encoder.encode(event)
         let decoded = try decoder.decode(ChatEvent.self, from: data)
 
-        if case let .error(event: .error(message: _, identity: identity)) = decoded {
+        if case let .error(.error(message: _, identity: identity)) = decoded {
             #expect(identity == ChatEvent.ErrorIdentity(domain: PKErrorDomain.tool, code: 210))
         } else {
             Issue.record("Expected decoded .error event, got \(decoded)")
@@ -177,23 +177,37 @@ import ErrorKit
     }
 
     @Test
-    func blockedIdentityContractRecognizesKnownBlockedCodes() {
-        let blocked: [ChatEvent.ErrorIdentity] = [
-            .init(domain: PKErrorDomain.tool, code: 210),
-            .init(domain: PKErrorDomain.tool, code: 207),
-            .init(domain: PKErrorDomain.filesystem, code: 101),
-            .init(domain: PKErrorDomain.workspace, code: 3002),
+    func blockedIdentityContractRecognizesKnownBlockedErrors() {
+        // Blocked-error classification now lives on PKError.isBlocked, so we verify
+        // via ErrorIdentity.extracting(from:) with actual error instances rather than
+        // hand-listed (domain, code) pairs. WorkspaceError.accessDenied (workspace:3002)
+        // is covered in PositronicKitTests since WorkspaceError lives in PositronicKit.
+        let blockedErrors: [Error] = [
+            ToolError.permissionDenied("rm"),
+            ToolError.attachedToolsDisallowedOnPrivateTimeline,
+            PathSanitizer.PathError.accessDenied("/etc/passwd"),
         ]
-        for identity in blocked {
-            #expect(identity.isBlocked, "Expected \(identity) to be blocked")
+        for error in blockedErrors {
+            let identity = ChatEvent.ErrorIdentity.extracting(from: error)
+            #expect(identity?.isBlocked == true, "Expected \(String(describing: identity)) to be blocked")
         }
 
-        let notBlocked: [ChatEvent.ErrorIdentity] = [
-            .init(domain: PKErrorDomain.tool, code: 203),
-            .init(domain: PKErrorDomain.tool, code: 204),
+        let notBlockedErrors: [Error] = [
+            ToolError.executionFailed("boom"),
+            ToolError.toolNotFound("foo"),
+            PathSanitizer.PathError.invalidPath("bad/path"),
         ]
-        for identity in notBlocked {
-            #expect(!identity.isBlocked, "Expected \(identity) to NOT be blocked")
+        for error in notBlockedErrors {
+            let identity = ChatEvent.ErrorIdentity.extracting(from: error)
+            #expect(identity?.isBlocked == false, "Expected \(String(describing: identity)) to NOT be blocked")
         }
+    }
+
+    @Test
+    func directlyConstructedIdentityDefaultsToNotBlocked() {
+        // Identities constructed directly (not via extracting) default isBlocked to false
+        // since they are not derived from a concrete PKError.
+        let identity = ChatEvent.ErrorIdentity(domain: PKErrorDomain.tool, code: 210)
+        #expect(!identity.isBlocked)
     }
 }

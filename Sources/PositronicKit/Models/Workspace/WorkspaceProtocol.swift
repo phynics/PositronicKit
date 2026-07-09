@@ -65,6 +65,16 @@ public enum WorkspaceError: PKError, Sendable {
         }
     }
 
+    /// `accessDenied` represents a blocked/disallowed condition — the caller does
+    /// not have permission to access the workspace, so execution is refused by an
+    /// access gate.
+    public var isBlocked: Bool {
+        switch self {
+        case .accessDenied: return true
+        default: return false
+        }
+    }
+
     public var userFriendlyMessage: String {
         switch self {
         case .invalidWorkspaceType:

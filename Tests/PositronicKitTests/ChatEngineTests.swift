@@ -80,7 +80,7 @@ struct ChatEngineTests {
 
     private nonisolated func generationDeltas(_ events: [ChatEvent]) -> [String] {
         events.compactMap { event in
-            if case let .delta(event: .generation(text: text)) = event { return text }
+            if case let .delta(.generation(text: text)) = event { return text }
             return nil
         }
     }
@@ -101,9 +101,9 @@ struct ChatEngineTests {
             let events = try await collect(stream)
 
             // Should have meta.generationContext, delta.generation, and completion.generationCompleted
-            #expect(events.contains(where: { if case .meta(event: .generationContext) = $0 { return true }; return false }))
-            #expect(events.contains(where: { if case let .delta(event: .generation(text: text)) = $0 { return text == "Hello, world!" }; return false }))
-            #expect(events.contains(where: { if case .completion(event: .generationCompleted) = $0 { return true }; return false }))
+            #expect(events.contains(where: { if case .meta(.generationContext) = $0 { return true }; return false }))
+            #expect(events.contains(where: { if case let .delta(.generation(text: text)) = $0 { return text == "Hello, world!" }; return false }))
+            #expect(events.contains(where: { if case .completion(.generationCompleted) = $0 { return true }; return false }))
         }
     }
 
@@ -216,25 +216,25 @@ struct ChatEngineTests {
             let events = try await collect(stream)
 
             // Should see toolCall delta
-            #expect(events.contains(where: { if case let .delta(event: .toolCall(delta: delta)) = $0 { return delta.name == "mock_tool" }; return false }))
+            #expect(events.contains(where: { if case let .delta(.toolCall(delta: delta)) = $0 { return delta.name == "mock_tool" }; return false }))
 
             // Should see tool execution attempting (delta)
             #expect(events.contains(where: {
-                if case let .delta(event: .toolExecution(id, status)) = $0 {
+                if case let .delta(.toolExecution(id, status)) = $0 {
                     if case .attempting = status { return id == "call_1" }
                 }
                 return false
             }))
             // Should see tool execution success (completion)
             #expect(events.contains(where: {
-                if case let .completion(event: .toolExecution(id, status)) = $0 {
+                if case let .completion(.toolExecution(id, status)) = $0 {
                     if case let .success(result) = status { return id == "call_1" && result.output == "Tool result" }
                 }
                 return false
             }))
 
             // Final response
-            #expect(events.contains(where: { if case let .delta(event: .generation(text: text)) = $0 { return text == "Processed result" }; return false }))
+            #expect(events.contains(where: { if case let .delta(.generation(text: text)) = $0 { return text == "Processed result" }; return false }))
         }
     }
 
@@ -255,7 +255,7 @@ struct ChatEngineTests {
             var sawToolSuccess = false
             do {
                 for try await event in stream {
-                    if case let .completion(event: .toolExecution(id, status)) = event,
+                    if case let .completion(.toolExecution(id, status)) = event,
                        id == "call_1",
                        case .success = status
                     {
@@ -322,7 +322,7 @@ struct ChatEngineTests {
             // A throw here (e.g. streamTimedOut) would fail the test; draining must complete.
             var sawGeneration = false
             for try await event in stream {
-                if case .delta(event: .generation) = event { sawGeneration = true }
+                if case .delta(.generation) = event { sawGeneration = true }
             }
             #expect(sawGeneration)
         }
@@ -342,13 +342,13 @@ struct ChatEngineTests {
             let events = try await collect(stream)
 
             #expect(events.contains(where: {
-                if case let .completion(event: .generationCompleted(message, metadata)) = $0 {
+                if case let .completion(.generationCompleted(message, metadata)) = $0 {
                     return message.content.isEmpty && metadata.finishReason == "stop"
                 }
                 return false
             }))
             #expect(events.contains(where: {
-                if case let .completion(event: .completedEmpty(finishReason)) = $0 {
+                if case let .completion(.completedEmpty(finishReason)) = $0 {
                     return finishReason == "stop"
                 }
                 return false
@@ -372,9 +372,9 @@ struct ChatEngineTests {
             let events = try await collect(stream)
 
             // Should NOT have completion.toolExecution events for "tool_call"
-            #expect(!events.contains(where: { if case .completion(event: .toolExecution) = $0 { return true }; return false }))
+            #expect(!events.contains(where: { if case .completion(.toolExecution) = $0 { return true }; return false }))
             // Should just see the plain text delta
-            #expect(events.contains(where: { if case let .delta(event: .generation(text: text)) = $0 { return text == "Ignored tool name" }; return false }))
+            #expect(events.contains(where: { if case let .delta(.generation(text: text)) = $0 { return text == "Ignored tool name" }; return false }))
         }
     }
 
@@ -393,17 +393,17 @@ struct ChatEngineTests {
             let events = try await collect(stream)
 
             // Should see toolCall delta
-            #expect(events.contains(where: { if case let .delta(event: .toolCall(delta: delta)) = $0 { return delta.name == "unknown_tool" }; return false }))
+            #expect(events.contains(where: { if case let .delta(.toolCall(delta: delta)) = $0 { return delta.name == "unknown_tool" }; return false }))
 
             // Should have toolExecution failure
             #expect(events.contains(where: {
-                if case let .completion(event: .toolExecution(id, status)) = $0 {
+                if case let .completion(.toolExecution(id, status)) = $0 {
                     if case .failed = status { return id == "call_1" }
                 }
                 return false
             }))
 
-            #expect(events.contains(where: { if case let .delta(event: .generation(text: text)) = $0 { return text == "Unknown tool call" }; return false }))
+            #expect(events.contains(where: { if case let .delta(.generation(text: text)) = $0 { return text == "Unknown tool call" }; return false }))
         }
     }
 
@@ -426,7 +426,7 @@ struct ChatEngineTests {
 
             // Should emit attempt (delta) but NOT success/failure because execution is deferred.
             #expect(events.contains(where: {
-                if case let .delta(event: .toolExecution(id, status)) = $0 {
+                if case let .delta(.toolExecution(id, status)) = $0 {
                     if case .attempting = status { return id == "call_1" }
                 }
                 return false
@@ -434,9 +434,9 @@ struct ChatEngineTests {
 
             // Should NOT have completion.toolExecution success or failure since engine stops
             #expect(!events.contains(where: {
-                if case .completion(event: .toolExecution(_, let status)) = $0 {
+                if case .completion(.toolExecution(_, let status)) = $0 {
                     switch status {
-                    case .success, .failure: return true
+                    case .success, .executionError: return true
                     default: return false
                     }
                 }
@@ -444,7 +444,7 @@ struct ChatEngineTests {
             }))
 
             // Should reach generationCompleted
-            #expect(events.contains(where: { if case .completion(event: .generationCompleted) = $0 { return true }; return false }))
+            #expect(events.contains(where: { if case .completion(.generationCompleted) = $0 { return true }; return false }))
         }
     }
 
@@ -467,13 +467,13 @@ struct ChatEngineTests {
             let events = try await collect(stream)
 
             #expect(events.contains(where: {
-                if case let .completion(event: .toolExecution(id, status)) = $0 {
+                if case let .completion(.toolExecution(id, status)) = $0 {
                     if case .failed = status { return id == "call_1" }
                 }
                 return false
             }))
 
-            #expect(events.contains(where: { if case let .delta(event: .generation(text: text)) = $0 { return text == "It failed." }; return false }))
+            #expect(events.contains(where: { if case let .delta(.generation(text: text)) = $0 { return text == "It failed." }; return false }))
         }
     }
 
@@ -499,17 +499,17 @@ struct ChatEngineTests {
             let events = try await collect(stream)
 
             // Fallback should yield a .delta(.toolCall) event for UI
-            #expect(events.contains(where: { if case let .delta(event: .toolCall(delta: delta)) = $0 { return delta.name == "mock_tool" }; return false }))
+            #expect(events.contains(where: { if case let .delta(.toolCall(delta: delta)) = $0 { return delta.name == "mock_tool" }; return false }))
 
             // Should see tool execution completion
             #expect(events.contains(where: {
-                if case .completion(event: .toolExecution(_, let status)) = $0 {
+                if case .completion(.toolExecution(_, let status)) = $0 {
                     if case let .success(result) = status { return result.output == "Tool result" }
                 }
                 return false
             }))
 
-            #expect(events.contains(where: { if case let .delta(event: .generation(text: text)) = $0 { return text == "Fallback worked" }; return false }))
+            #expect(events.contains(where: { if case let .delta(.generation(text: text)) = $0 { return text == "Fallback worked" }; return false }))
         }
     }
 
@@ -569,13 +569,13 @@ struct ChatEngineTests {
             let events = try await collect(stream)
 
             #expect(events.contains(where: {
-                if case let .delta(event: .toolCall(delta)) = $0 {
+                if case let .delta(.toolCall(delta)) = $0 {
                     return delta.id == "call_frag"
                 }
                 return false
             }))
             #expect(events.contains(where: {
-                if case let .completion(event: .toolExecution(id, status)) = $0,
+                if case let .completion(.toolExecution(id, status)) = $0,
                    case let .success(result) = status
                 {
                     return id == "call_frag" && result.output == "Tool result"
@@ -583,14 +583,14 @@ struct ChatEngineTests {
                 return false
             }))
             #expect(events.contains(where: {
-                if case let .delta(event: .generation(text)) = $0 {
+                if case let .delta(.generation(text)) = $0 {
                     return text == "Processed fragmented tool"
                 }
                 return false
             }))
 
             let completedCount = events.filter {
-                if case .completion(event: .generationCompleted) = $0 { return true }
+                if case .completion(.generationCompleted) = $0 { return true }
                 return false
             }.count
             #expect(completedCount == 1)
@@ -652,7 +652,7 @@ struct ChatEngineTests {
             let events = try await collect(stream)
 
             let toolCallIndices = events.enumerated().compactMap { index, event -> Int? in
-                if case let .delta(event: .toolCall(delta)) = event, delta.id == "call_recovered" {
+                if case let .delta(.toolCall(delta)) = event, delta.id == "call_recovered" {
                     return index
                 }
                 return nil
@@ -660,7 +660,7 @@ struct ChatEngineTests {
             #expect(toolCallIndices.count == 1)
 
             let toolCompletionIndex = events.enumerated().first { _, event in
-                if case let .completion(event: .toolExecution(id, status)) = event,
+                if case let .completion(.toolExecution(id, status)) = event,
                    case let .success(result) = status
                 {
                     return id == "call_recovered" && result.output == "Tool result"
@@ -668,7 +668,7 @@ struct ChatEngineTests {
                 return false
             }?.offset
             let generationCompletedIndex = events.enumerated().first { _, event in
-                if case .completion(event: .generationCompleted) = event { return true }
+                if case .completion(.generationCompleted) = event { return true }
                 return false
             }?.offset
 
@@ -679,7 +679,7 @@ struct ChatEngineTests {
             #expect(toolCallIndex < completedToolIndex)
             #expect(completedToolIndex < finalCompletionIndex)
             #expect(events.contains(where: {
-                if case let .delta(event: .generation(text)) = $0 {
+                if case let .delta(.generation(text)) = $0 {
                     return text == "Recovered tool handled"
                 }
                 return false
@@ -713,11 +713,11 @@ struct ChatEngineTests {
             let events = try await collect(stream)
 
             #expect(!events.contains(where: {
-                if case .completion(event: .toolExecution) = $0 { return true }
+                if case .completion(.toolExecution) = $0 { return true }
                 return false
             }))
             #expect(events.contains(where: {
-                if case .completion(event: .generationCompleted) = $0 { return true }
+                if case .completion(.generationCompleted) = $0 { return true }
                 return false
             }))
 
@@ -753,7 +753,7 @@ struct ChatEngineTests {
 
             // Should have executed exactly 2 tools (id c1 and c2)
             let successEvents = events.filter {
-                if case .completion(event: .toolExecution(_, let status)) = $0, case .success = status { return true }
+                if case .completion(.toolExecution(_, let status)) = $0, case .success = status { return true }
                 return false
             }
             #expect(successEvents.count == 2)
@@ -761,7 +761,7 @@ struct ChatEngineTests {
             // maxTurns exhausted while tool calls were pending — no generationCompleted is emitted.
             // Verify the stream finished cleanly (no thrown error — collect would throw if it did).
             let completionCount = events.filter {
-                if case .completion(event: .generationCompleted) = $0 { return true }
+                if case .completion(.generationCompleted) = $0 { return true }
                 return false
             }.count
             #expect(completionCount == 0)
@@ -806,7 +806,7 @@ struct ChatEngineTests {
             }
 
             if let first = firstEvent {
-                if case .meta(event: .generationContext) = first {
+                if case .meta(.generationContext) = first {
                     // Success
                 } else {
                     #expect(Bool(false), "First event should be meta.generationContext, got \(first)")
@@ -1228,7 +1228,7 @@ struct ChatEngineTests {
             let events = try await collect(stream)
 
             let successIds = events.compactMap { event -> String? in
-                if case let .completion(event: .toolExecution(id, status)) = event,
+                if case let .completion(.toolExecution(id, status)) = event,
                    case .success = status { return id }
                 return nil
             }
@@ -1252,7 +1252,7 @@ struct ChatEngineTests {
             )
 
             let events = try await collect(stream)
-            let count = events.filter { if case .completion(event: .generationCompleted) = $0 { return true }; return false }.count
+            let count = events.filter { if case .completion(.generationCompleted) = $0 { return true }; return false }.count
             #expect(count == 1)
         }
     }
@@ -1273,7 +1273,7 @@ struct ChatEngineTests {
             let events = try await collect(stream)
             // Turn 1 had pending tool calls — no generationCompleted emitted.
             // Turn 2 was a clean text response — exactly one generationCompleted emitted.
-            let count = events.filter { if case .completion(event: .generationCompleted) = $0 { return true }; return false }.count
+            let count = events.filter { if case .completion(.generationCompleted) = $0 { return true }; return false }.count
             #expect(count == 1)
         }
     }
@@ -1329,7 +1329,7 @@ struct ChatEngineTests {
             let deltas = generationDeltas(events)
             #expect(deltas == ["turn-one", "turn-two"])
             #expect(events.contains(where: {
-                if case .completion(event: .generationCompleted) = $0 { return true }
+                if case .completion(.generationCompleted) = $0 { return true }
                 return false
             }))
         }

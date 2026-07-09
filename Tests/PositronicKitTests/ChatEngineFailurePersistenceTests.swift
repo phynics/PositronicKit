@@ -181,7 +181,7 @@ struct ChatEngineFailurePersistenceTests {
 
             // Happy path still emits the completion event (success flow unchanged).
             #expect(events.contains(where: {
-                if case .completion(event: .generationCompleted) = $0 { return true }
+                if case .completion(.generationCompleted) = $0 { return true }
                 return false
             }))
 
@@ -298,5 +298,15 @@ struct ChatEngineFailurePersistenceTests {
                 Issue.record("Expected PipelineError.stageFailed wrapping CancellationError, got \(error)")
             }
         }
+    }
+
+    @Test("WorkspaceError.accessDenied is classified as blocked (PKAPI-004)")
+    func workspaceErrorAccessDeniedIsBlocked() {
+        // WorkspaceError lives in PositronicKit, so its blocked classification is
+        // tested here rather than in PKSharedTests/ChatEventTests.
+        let identity = ChatEvent.ErrorIdentity.extracting(from: WorkspaceError.accessDenied)
+        #expect(identity?.domain == PKErrorDomain.workspace)
+        #expect(identity?.code == 3002)
+        #expect(identity?.isBlocked == true, "Expected WorkspaceError.accessDenied to be blocked")
     }
 }

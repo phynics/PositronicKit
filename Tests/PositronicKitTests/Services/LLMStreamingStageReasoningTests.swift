@@ -31,7 +31,7 @@ struct LLMStreamingStageReasoningTests {
         let events = try await stream.collect()
 
         let thinkingEvents: [String] = events.compactMap { event in
-            if case .delta(event: .thinking(let text)) = event { return text } else { return nil }
+            if case .delta(.thinking(let text)) = event { return text } else { return nil }
         }
         #expect(thinkingEvents == ["reasoned ", "more"])
         #expect(await context.outputs.fullThinking == "reasoned more")

@@ -81,7 +81,7 @@ import Testing
         )).collect()
 
         #expect(events.contains(where: {
-            if case let .completion(event: .toolExecution(id, status)) = $0,
+            if case let .completion(.toolExecution(id, status)) = $0,
                case let .success(result) = status
             {
                 return id == "call_ws" && result.output == "workspace:ok"
@@ -108,7 +108,7 @@ import Testing
         )).collect()
 
         #expect(events.contains(where: {
-            if case let .completion(event: .toolExecution(id, status)) = $0,
+            if case let .completion(.toolExecution(id, status)) = $0,
                case let .success(result) = status
             {
                 return id == "call_tool" && result.output == "tool:Berlin"

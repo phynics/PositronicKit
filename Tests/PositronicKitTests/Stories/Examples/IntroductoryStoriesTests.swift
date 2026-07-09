@@ -114,7 +114,7 @@ struct IntroductoryStoriesTests {
         )).collect()
 
         #expect(events.contains(where: {
-            if case let .delta(event: .toolExecution(id, status)) = $0,
+            if case let .delta(.toolExecution(id, status)) = $0,
                id == "call_1",
                case .attempting = status
             {
@@ -124,7 +124,7 @@ struct IntroductoryStoriesTests {
         }))
 
         #expect(events.contains(where: {
-            if case let .completion(event: .toolExecution(id, status)) = $0,
+            if case let .completion(.toolExecution(id, status)) = $0,
                id == "call_1",
                case .success = status
             {
@@ -134,7 +134,7 @@ struct IntroductoryStoriesTests {
         }))
 
         #expect(events.contains(where: {
-            if case let .delta(event: .generation(text: text)) = $0 {
+            if case let .delta(.generation(text: text)) = $0 {
                 return text.contains("I greeted Taylor successfully.")
             }
             return false
