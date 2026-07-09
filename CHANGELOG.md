@@ -122,6 +122,13 @@ for tagged releases beginning with `1.0.0`.
   `OpenRouterClient.swift` (actor + `Attribution`) and a new `OpenRouterModels.swift` (the 14
   request/response model types), mirroring the existing `PKOllamaProvider`/`PKAnthropicProvider`
   model/client split. No public API change.
+- Internal refactor (PKCLEAN-002): split the value types out of
+  `Sources/PositronicKit/Services/Prompting/TimelinePromptHistory.swift` into a sibling
+  `TimelinePromptHistoryTypes.swift` (`PromptSectionEntry`, `PromptSnapshot`,
+  `PromptHistorySectionKind`, `PromptHistoryJournalDiff`, `PromptDiff`, `PromptHistoryUpdate`,
+  the deprecated `CompactionThresholds` typealias, and `RegistryEvictionPolicy`), leaving the two
+  actors (`TimelinePromptHistoryRegistry`, `TimelinePromptHistory`) in the original file. No
+  public API change.
 - Refactor: split the monolithic `Sources/PositronicKit/PositronicKit.swift` into `PositronicKit.swift` (core facade) and `PositronicKit+Configuration.swift` (`PersistenceConfiguration`, `RuntimeConfiguration`, and their grouped initializers). Public API is unchanged except for the removed aliases above.
 - Prompt assembly no longer routes section construction through the generic `Pipeline`
   machinery (PKDEEP-001). The 10 pass-through `PromptAssemblyStage` structs, the
