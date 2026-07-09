@@ -2,7 +2,7 @@ import Foundation
 import Logging
 import PKShared
 
-/// Session-specific tool settings
+/// Timeline-specific tool settings
 public actor TimelineToolManager {
     public private(set) var enabledTools: Set<String> = []
 
@@ -28,7 +28,7 @@ public actor TimelineToolManager {
     /// Cached provider tools: toolId -> tool.
     private var providerTools: [String: AnyTool] = [:]
 
-    private let logger = Logger.module(named: "session-tool-manager")
+    private let logger = Logger.module(named: "timeline-tool-manager")
 
     public init(availableTools: [AnyTool], timelineContext: ToolTimelineContext? = nil) {
         self.availableTools = availableTools

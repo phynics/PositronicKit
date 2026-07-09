@@ -5,7 +5,7 @@ import PKShared
 import Foundation
 
 public protocol TimelinePersistenceProtocol: Sendable {
-    func saveTimeline(_ session: Timeline) async throws
+    func saveTimeline(_ timeline: Timeline) async throws
     func fetchTimeline(id: UUID) async throws -> Timeline?
     func fetchAllTimelines(includeArchived: Bool) async throws -> [Timeline]
     func deleteTimeline(id: UUID) async throws
