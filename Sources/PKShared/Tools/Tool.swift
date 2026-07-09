@@ -161,33 +161,35 @@ public extension Tool {
 
 // MARK: - Array Extension (for concrete types and protocols)
 
-/// Formats a list of tools into a structured string for inclusion in system instructions.
-public func formatToolsForPrompt(_ tools: [AnyTool]) async -> String {
-    guard !tools.isEmpty else { return "" }
+public extension [AnyTool] {
+    /// Formats this list of tools into a structured string for inclusion in system instructions.
+    func formattedForPrompt() async -> String {
+        guard !isEmpty else { return "" }
 
-    var toolSpecs: [String] = []
+        var toolSpecs: [String] = []
 
-    for tool in tools {
-        guard await tool.canExecute() else { continue }
-        toolSpecs.append(tool.promptString(provenance: tool.provenance))
+        for tool in self {
+            guard await tool.canExecute() else { continue }
+            toolSpecs.append(tool.promptString(provenance: tool.provenance))
+        }
+
+        guard !toolSpecs.isEmpty else { return "" }
+
+        return """
+        Available tools:
+        \(toolSpecs.joined(separator: "\n"))
+
+        Rules:
+        - Use tools only for missing context.
+        - Path Resolution: If a tool is tagged with a workspace provenance \
+        (e.g. `[Workspace: <name>]` or `[Terminal: <name>]`), all file paths passed to it MUST be relative \
+        to that workspace root.
+        - Summarize the result if it is excessively long.
+        - If a tool call fails, the error response tells you what went wrong and how to \
+        fix it (often with a worked example) — correct the arguments and try again.
+        - Be specific.
+        """
     }
-
-    guard !toolSpecs.isEmpty else { return "" }
-
-    return """
-    Available tools:
-    \(toolSpecs.joined(separator: "\n"))
-
-    Rules:
-    - Use tools only for missing context.
-    - Path Resolution: If a tool is tagged with a workspace provenance \
-    (e.g. `[Workspace: <name>]` or `[Terminal: <name>]`), all file paths passed to it MUST be relative \
-    to that workspace root.
-    - Summarize the result if it is excessively long.
-    - If a tool call fails, the error response tells you what went wrong and how to \
-    fix it (often with a worked example) — correct the arguments and try again.
-    - Be specific.
-    """
 }
 
 /// Persistent configuration for a specific tool within a chat session.

@@ -14,7 +14,7 @@ func runExamples() async throws {
 
     let assembled = try prompt.assemblePrompt()
     let renderedPrompt = await assembled.render().string
-    let toolPrompt = await formatToolsForPrompt(PositronicKitUsageExamples.makeTools())
+    let toolPrompt = await PositronicKitUsageExamples.makeTools().formattedForPrompt()
     let structuredOutput = PositronicKitUsageExamples.makeStructuredOutputSchema()
     let structuredOutputRequest = PositronicKitUsageExamples.makeStructuredOutputRequest()
     let decodedStructuredOutput = try PositronicKitUsageExamples.decodeStructuredOutputExample(

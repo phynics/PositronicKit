@@ -1,12 +1,12 @@
 import Foundation
-import Testing
 import PKShared
 import PositronicKitExamples
+import Testing
 
 @Suite("Example usage stories")
 struct ExampleUsageStoriesTests {
     @Test
-    func promptExampleAssemblesReusableSections() async {
+    func promptExampleAssemblesReusableSections() async throws {
         let prompt = PKPromptExamples.makeToolingPrompt(
             tools: ["build", "test", "lint"],
             history: [
@@ -16,7 +16,7 @@ struct ExampleUsageStoriesTests {
             userQuery: "Which step should I run next?"
         )
 
-        let assembled = try! prompt.assemblePrompt()
+        let assembled = try prompt.assemblePrompt()
         let sections = assembled.sections
 
         #expect(sections.map(\.id) == ["system", "available_tools", "chat_history", "user_query"])
@@ -31,7 +31,7 @@ struct ExampleUsageStoriesTests {
     @Test
     func toolExampleFormatsForPrompt() async throws {
         let tools = PositronicKitUsageExamples.makeTools()
-        let formatted = await formatToolsForPrompt(tools)
+        let formatted = await tools.formattedForPrompt()
 
         #expect(formatted.contains("`example_greet`"))
         #expect(formatted.contains("Greet a user by name"))
@@ -85,11 +85,11 @@ struct ExampleUsageStoriesTests {
             from: #"{"title":null}"#
         )
 
-        let declinableSchema = String(decoding: try JSONEncoder().encode(declinable.schema), as: UTF8.self)
-        let toneSchema = String(decoding: try JSONEncoder().encode(tone.schema), as: UTF8.self)
+        let declinableSchema = try String(decoding: JSONEncoder().encode(declinable.schema), as: UTF8.self)
+        let toneSchema = try String(decoding: JSONEncoder().encode(tone.schema), as: UTF8.self)
         let oneShotSchema = try #require({
             if case let .jsonSchema(schema) = oneShotRequest {
-                return String(decoding: try JSONEncoder().encode(schema.schema), as: UTF8.self)
+                return try String(decoding: JSONEncoder().encode(schema.schema), as: UTF8.self)
             }
             return nil
         }())

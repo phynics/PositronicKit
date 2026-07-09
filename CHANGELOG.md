@@ -102,6 +102,12 @@ for tagged releases beginning with `1.0.0`.
   removed. `WorkspaceToolDefinition.parametersSchema` stays `[String: AnyCodable]` (it must remain
   `Codable`/`Hashable` for `ToolReference`); the `Tool`↔DTO boundary converts via
   `Schema.asDictionary` / `Schema(_:)`.
+- **Converted `formatToolsForPrompt(_:)` free function to `[AnyTool].formattedForPrompt()`**
+  (PKAPI-009): the free function's sole parameter was the receiver (`[AnyTool]`), so it is now
+  `extension [AnyTool] { func formattedForPrompt() async -> String }`. Stayed `async` because it
+  awaits `tool.canExecute()` per element. Updated all in-repo call sites (`PromptSections.swift`,
+  `PositronicKitExamples/main.swift`, `ExampleUsageStoriesTests.swift`). A grep of
+  Monad/Shuttle/Yakamoz found no call sites, so downstream impact is nil.
 
 ### Changed
 

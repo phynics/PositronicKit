@@ -89,7 +89,7 @@ public struct Tools: Prompt {
 
     private func renderContent() async -> String? {
         guard !tools.isEmpty else { return nil }
-        return await formatToolsForPrompt(tools)
+        return await tools.formattedForPrompt()
     }
 }
 
