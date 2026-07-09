@@ -76,6 +76,23 @@ import Testing
             }
         }
 
+        @Test("Batch embeddings match repeated single embeddings for the Apple backend")
+        func batchMatchesSingleEmbeddings() async throws {
+            let texts = ["Swift concurrency uses actors.", "Bananas grow in tropical climates.", "A stable fixture sentence."]
+
+            let batch = try await service.generateEmbeddings(for: texts)
+            var singles: [[Float]] = []
+            for text in texts {
+                try singles.append(await service.generateEmbedding(for: text))
+            }
+
+            #expect(batch.count == singles.count)
+            for (lhs, rhs) in zip(batch, singles) {
+                #expect(lhs.count == rhs.count)
+                #expect(zip(lhs, rhs).allSatisfy { abs($0 - $1) < 0.000_001 })
+            }
+        }
+
         @Test("Natural Language backend rejects batches over the default total-byte limit")
         func rejectsBatchOverDefaultTotalByteLimit() async {
             let text = String(repeating: "a", count: EmbeddingBudgetFixture.maxBytesPerText)

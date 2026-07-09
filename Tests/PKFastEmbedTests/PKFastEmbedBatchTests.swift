@@ -12,7 +12,7 @@
             let harness = BatchHarness(dimensions: 7)
             let model = try MiniLMEmbedder(
                 modelDirectory: URL(fileURLWithPath: "/fake/model"),
-                inputBudget: .init(maxTextCount: 256, maxBytesPerText: 4_096, maxTotalBytes: 1_000_000),
+                inputBudget: .init(maxTextCount: 256, maxBytesPerText: 4096, maxTotalBytes: 1_000_000),
                 nativeAPI: harness.nativeAPI
             )
 
@@ -48,7 +48,7 @@
             let harness = BatchHarness(dimensions: 5)
             let model = try MiniLMEmbedder(
                 modelDirectory: URL(fileURLWithPath: "/fake/model"),
-                inputBudget: .init(maxTextCount: 32, maxBytesPerText: 4_096, maxTotalBytes: 1_000_000),
+                inputBudget: .init(maxTextCount: 32, maxBytesPerText: 4096, maxTotalBytes: 1_000_000),
                 nativeAPI: harness.nativeAPI
             )
 
@@ -88,6 +88,39 @@
             #expect(try model.embed([]).isEmpty)
             #expect(harness.batchCallCount == 0)
             #expect(harness.singleCallCount == 0)
+        }
+
+        @Test("single-item batch routes through native batch inference and matches the single embedding")
+        func singleItemBatchMatchesSingleEmbedding() throws {
+            let harness = BatchHarness(dimensions: 4)
+            let model = try MiniLMEmbedder(
+                modelDirectory: URL(fileURLWithPath: "/fake/model"),
+                nativeAPI: harness.nativeAPI
+            )
+
+            let batch = try model.embed(["solo entry"])
+            let single = try model.embed("solo entry")
+
+            #expect(batch.count == 1)
+            assertVectorsEqual(batch[0], single, tolerance: 0.000_01)
+        }
+
+        @Test("batch output dimensions are invariant across varied batch sizes")
+        func batchOutputDimensionsAreInvariantAcrossSizes() throws {
+            let harness = BatchHarness(dimensions: 9)
+            let model = try MiniLMEmbedder(
+                modelDirectory: URL(fileURLWithPath: "/fake/model"),
+                inputBudget: .init(maxTextCount: 64, maxBytesPerText: 4096, maxTotalBytes: 1_000_000),
+                nativeAPI: harness.nativeAPI
+            )
+
+            for size in [1, 2, 5, 10, 33] {
+                let texts = (0 ..< size).map { "item-\($0)" }
+                let batch = try model.embed(texts)
+
+                #expect(batch.count == size)
+                #expect(batch.allSatisfy { $0.count == 9 })
+            }
         }
 
         private func assertVectorsEqual(_ lhs: [Float], _ rhs: [Float], tolerance: Float) {
@@ -198,7 +231,7 @@
             let seed = bytes.reduce(into: 0) { result, byte in
                 result = result &* 31 &+ Int(byte)
             }
-            return (0 ..< dimensions).map { Float((seed + $0) % 1_000) }
+            return (0 ..< dimensions).map { Float((seed + $0) % 1000) }
         }
     }
 #endif
