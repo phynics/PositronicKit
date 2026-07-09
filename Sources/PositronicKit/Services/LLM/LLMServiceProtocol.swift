@@ -152,9 +152,15 @@ public protocol LLMStreamClient: Sendable {
 
     /// Stream chat response from a prepared list of messages (low-level).
     ///
-    /// - Parameter modelTier: Which configured model tier to stream from (`.primary`,
-    ///   `.utility`, or `.fast`). See ``ModelTier`` for the fallback rules when a tier's
-    ///   client isn't configured.
+    /// - Parameters:
+    ///   - messages: The prepared message history to send.
+    ///   - tools: Tool definitions to offer the model, if any.
+    ///   - toolChoice: How the model should select among `tools`, if constrained.
+    ///   - responseFormat: The expected response shape, if structured output is requested.
+    ///   - generationParameters: Sampling/generation overrides for this request.
+    ///   - modelTier: Which configured model tier to stream from (`.primary`, `.utility`,
+    ///     or `.fast`). See ``ModelTier`` for the fallback rules when a tier's client isn't
+    ///     configured.
     func chatStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,
