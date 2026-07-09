@@ -231,6 +231,34 @@ actor TimelinePromptHistoryTests {
         ))
     }
 
+    @Test("Token-only changes do not register as diffs under the unified text-only fingerprint")
+    func tokenOnlyChangesDoNotRegisterAsDiff() async throws {
+        var journal = PromptJournal()
+        let history = TimelinePromptHistory()
+
+        let initialPrompt = try AnyPrompt.build {
+            TimelineSection(id: "semi-token", estimatedTokens: 10, cachePolicy: .semiStable, text: "Same text")
+        }.assemblePrompt()
+        let initialRendered = await initialPrompt.render()
+
+        _ = journal.observe(initialRendered)
+        _ = await history.record(prompt: initialPrompt)
+
+        // Same text, different estimatedTokens — must NOT diff under the unified text-only scheme.
+        let updatedPrompt = try AnyPrompt.build {
+            TimelineSection(id: "semi-token", estimatedTokens: 999, cachePolicy: .semiStable, text: "Same text")
+        }.assemblePrompt()
+        let updatedRendered = await updatedPrompt.render()
+
+        let journalPlan = journal.observe(updatedRendered)
+        let runtimeDiff = await history.record(prompt: updatedPrompt)
+
+        #expect(journalPlan.diff == PromptJournalDiff())
+        #expect(runtimeDiff.publicJournalDiff == PromptJournalDiff())
+        #expect(runtimeDiff.hasChanges == false)
+        #expect(runtimeDiff.stablePrefixCount == 1)
+    }
+
     @Test("publicJournalDiff emits only semistable IDs when sections are removed")
     func publicJournalDiffFiltersNonSemistableRemovals() async throws {
         let history = TimelinePromptHistory()

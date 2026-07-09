@@ -6,19 +6,13 @@ import PKShared
 
 struct PromptSectionEntry {
     let entryId: String
-    let content: String
+    let contentHash: UInt64
     let cachePolicy: CachePolicy
     let estimatedTokens: Int
     let path: [String]
     let parentEntryId: String?
     let order: Int?
     let sectionKind: PromptHistorySectionKind?
-
-    var contentHash: UInt64 {
-        var hasher = Hasher()
-        content.hash(into: &hasher)
-        return UInt64(bitPattern: Int64(hasher.finalize()))
-    }
 }
 
 struct PromptSnapshot {
@@ -126,17 +120,8 @@ struct PromptHistoryUpdate {
 
 // MARK: - Thresholds
 
-public struct CompactionThresholds: Sendable {
-    let maxAppendedTokens: Int
-    let maxAppendedMessages: Int
-
-    public init(maxAppendedTokens: Int = 50000, maxAppendedMessages: Int = 40) {
-        self.maxAppendedTokens = maxAppendedTokens
-        self.maxAppendedMessages = maxAppendedMessages
-    }
-
-    public static let `default` = CompactionThresholds()
-}
+@available(*, deprecated, renamed: "PromptJournalCompactionThresholds")
+public typealias CompactionThresholds = PromptJournalCompactionThresholds
 
 /// Caps how many per-timeline `TimelinePromptHistory` instances
 /// `TimelinePromptHistoryRegistry` keeps resident at once.
@@ -188,11 +173,11 @@ public actor TimelinePromptHistoryRegistry {
     /// the next eviction candidate. Kept as a plain array (not a generic LRU abstraction) --
     /// this registry isn't a hot path and entry counts are bounded by `evictionPolicy.maxEntries`.
     private var accessOrder: [UUID] = []
-    private let thresholds: CompactionThresholds
+    private let thresholds: PromptJournalCompactionThresholds
     private let evictionPolicy: RegistryEvictionPolicy
 
     public init(
-        thresholds: CompactionThresholds = .default,
+        thresholds: PromptJournalCompactionThresholds = .default,
         evictionPolicy: RegistryEvictionPolicy = .default
     ) {
         self.thresholds = thresholds
@@ -241,10 +226,12 @@ public actor TimelinePromptHistoryRegistry {
 
 public actor TimelinePromptHistory {
     private var baseSnapshot: PromptSnapshot?
-    private(set) var appendedMessageCount: Int = 0
-    private(set) var appendedTokens: Int = 0
-    let thresholds: CompactionThresholds
+    private var pressure: AppendPressure
     private(set) var lastDiff: PromptDiff?
+
+    var appendedMessageCount: Int { pressure.appendedMessageCount }
+    var appendedTokens: Int { pressure.appendedTokens }
+    var thresholds: PromptJournalCompactionThresholds { pressure.thresholds }
 
     /// The next inspection-turn index to assign for this timeline, persisted across
     /// `ChatEngine.execute` calls (i.e. across user sends), not just within one.
@@ -258,8 +245,8 @@ public actor TimelinePromptHistory {
     /// monotonically increasing row index.
     private var nextInspectionIndex = 0
 
-    init(thresholds: CompactionThresholds = .default) {
-        self.thresholds = thresholds
+    init(thresholds: PromptJournalCompactionThresholds = .default) {
+        self.pressure = AppendPressure(thresholds: thresholds)
     }
 
     /// Returns the next inspection-turn index for this timeline and advances the counter.
@@ -314,10 +301,9 @@ public actor TimelinePromptHistory {
         )
         var entries: [PromptSectionEntry] = []
         for (index, section) in prompt.sections.enumerated() {
-            let content = prompt.sectionsByID[section.id] ?? ""
             entries.append(PromptSectionEntry(
                 entryId: section.id,
-                content: content,
+                contentHash: sectionContentHash(section.content),
                 cachePolicy: section.cachePolicy,
                 estimatedTokens: section.estimatedTokens,
                 path: section.path,
@@ -374,8 +360,7 @@ public actor TimelinePromptHistory {
 
     /// Track messages appended during the agentic loop (assistant responses, tool results).
     func recordAppend(messageCount: Int, estimatedTokens: Int) {
-        appendedMessageCount += messageCount
-        appendedTokens += estimatedTokens
+        pressure.recordAppend(messageCount: messageCount, estimatedTokens: estimatedTokens)
     }
 
     /// Track concrete messages appended during the agentic loop.
@@ -383,16 +368,12 @@ public actor TimelinePromptHistory {
     /// This is useful when a caller already has the appended messages and wants the history layer
     /// to estimate append pressure directly.
     func recordAppend(messages: [Message]) {
-        recordAppend(
-            messageCount: messages.count,
-            estimatedTokens: PKShared.TokenEstimator.estimate(parts: messages.map(\.content))
-        )
+        pressure.recordAppend(messages: messages)
     }
 
     /// Whether the append chain has grown past thresholds.
     var shouldCompact: Bool {
-        appendedTokens > thresholds.maxAppendedTokens
-            || appendedMessageCount > thresholds.maxAppendedMessages
+        pressure.shouldCompact
     }
 
     /// Reset append counters. Base snapshot is preserved for accurate future diffs.
@@ -401,8 +382,7 @@ public actor TimelinePromptHistory {
         if hard {
             baseSnapshot = nil
         }
-        appendedMessageCount = 0
-        appendedTokens = 0
+        pressure.reset()
         lastDiff = nil
     }
 
@@ -426,7 +406,7 @@ public actor TimelinePromptHistory {
     }
 
     private func compactIfNeeded() -> Bool {
-        guard shouldCompact else {
+        guard pressure.shouldCompact else {
             return false
         }
         compact()

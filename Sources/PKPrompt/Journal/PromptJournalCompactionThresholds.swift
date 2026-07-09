@@ -1,11 +1,11 @@
 import Foundation
 
-/// Thresholds that control when a ``PromptJournal`` should auto-compact its latest accepted
-/// observation into a new committed base.
+/// Thresholds that control when append pressure should trigger compaction.
 ///
-/// This mirrors the runtime-side append-pressure safety valve used by
-/// `TimelinePromptHistory`, but keeps the prompt-facing journaling API independent from the
-/// runtime implementation details.
+/// Shared between `PromptJournal` (PKPrompt) and `TimelinePromptHistory` (runtime) via
+/// `AppendPressure` — the surviving public name for the unified compaction-pressure core.
+/// Each consumer owns its own post-compact action (base promotion or snapshot reset); this
+/// type only carries the threshold configuration.
 public struct PromptJournalCompactionThresholds: Sendable, Equatable {
     /// Maximum estimated appended tokens before the next observation auto-compacts the journal.
     public let maxAppendedTokens: Int

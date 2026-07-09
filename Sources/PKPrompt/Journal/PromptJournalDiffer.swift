@@ -109,38 +109,22 @@ package struct PromptJournalEvaluation {
 }
 
 /// Content fingerprint used when comparing rendered sections for journal diffing.
+///
+/// Per PKDEEP2-003 decision (b), the fingerprint is text-only: `estimatedTokens` and `type` are
+/// excluded — a token-estimate delta with identical text is an estimator artifact, not real
+/// cache-prefix invalidation. The hash is computed by the shared `sectionContentHash(_:)`
+/// helper, which folds `role`/`think`/`isSummary` into `.messages` inputs so no content-bearing
+/// change is lost.
 private struct SectionSignature: Equatable {
     let id: String
-    let contentHash: Int
+    let contentHash: UInt64
     let path: [String]
     let parentID: String?
-    let estimatedTokens: Int
-    let type: PromptSectionType
 
     init(_ section: RenderedPrompt.Section) {
         id = section.id
-        contentHash = SectionSignature.hashContent(section.content)
+        contentHash = sectionContentHash(section.content)
         path = section.path
         parentID = section.parentID
-        estimatedTokens = section.estimatedTokens
-        type = section.type
-    }
-
-    private static func hashContent(_ content: PromptSection.Content) -> Int {
-        var hasher = Hasher()
-        switch content {
-        case let .text(text):
-            hasher.combine(0)
-            hasher.combine(text)
-        case let .messages(messages):
-            hasher.combine(1)
-            for message in messages {
-                hasher.combine(message.content)
-                hasher.combine(String(describing: message.role))
-                hasher.combine(message.think)
-                hasher.combine(message.isSummary)
-            }
-        }
-        return hasher.finalize()
     }
 }
