@@ -45,6 +45,7 @@ for tagged releases beginning with `1.0.0`.
 
 - **Breaking:** removed `PositronicKit.sidecarsIfEnabled(_:when:)`. Consumers can inline the equivalent ternary (`isEnabled ? sidecars : []`) at the call site. Yakamoz's `YakamozRuntime.makeChatViewModel` is updated accordingly.
 - **Breaking:** removed the unused `PositronicKit.PromptBuildContext` facade typealias and its intermediate `PositronicKitPromptBuildContext` alias. The canonical type remains `PromptBuildContext` in `PromptSectionProviding.swift`; conformers and callers should use that name directly.
+- **Breaking:** removed `PKOpenAIProvider.OpenAIEmbeddingService`, an abandoned experiment with zero references across PositronicKit, Monad, Shuttle, or Yakamoz. Production embedding paths use `LocalEmbeddingService`/`NoOpEmbeddingService`; this was public in the 1.x line, so flag for the release captain when cutting the next minor/major.
 
 ### Fixed
 
