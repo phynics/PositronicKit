@@ -21,7 +21,7 @@ struct ToolParameterSchemaTests {
             }
         }
 
-        let dict = schema.schema
+        let dict = schema.schemaDefinition.asDictionary
         #expect(dict["type"]?.asString == "object")
 
         guard let properties = dict["properties"]?.asDictionary else {
@@ -59,7 +59,7 @@ struct ToolParameterSchemaTests {
             .required()
         }
 
-        let dict = schema.schema
+        let dict = schema.schemaDefinition.asDictionary
         guard let properties = dict["properties"]?.asDictionary else {
             Issue.record("Missing properties")
             return

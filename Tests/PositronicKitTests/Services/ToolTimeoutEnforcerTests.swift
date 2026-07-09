@@ -20,9 +20,7 @@ struct ToolTimeoutEnforcerTests {
         let description = "echo back the input"
         let requiresPermission = false
         let output: String
-        var parametersSchema: [String: AnyCodable] {
-            [:]
-        }
+        let parametersSchema = makeEmptyObjectSchema()
 
         init(output: String = "ok") {
             self.output = output
@@ -32,7 +30,7 @@ struct ToolTimeoutEnforcerTests {
             true
         }
 
-        func execute(parameters _: [String: Any]) async throws -> ToolResult {
+        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
             .success(output)
         }
     }
@@ -42,15 +40,13 @@ struct ToolTimeoutEnforcerTests {
         let name = "never"
         let description = "never returns unless cancelled"
         let requiresPermission = false
-        var parametersSchema: [String: AnyCodable] {
-            [:]
-        }
+        let parametersSchema = makeEmptyObjectSchema()
 
         func canExecute() async -> Bool {
             true
         }
 
-        func execute(parameters _: [String: Any]) async throws -> ToolResult {
+        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
             try await Task.sleep(for: .seconds(60))
             return .success("late")
         }
@@ -62,9 +58,7 @@ struct ToolTimeoutEnforcerTests {
         let description = "blocks and ignores cancellation"
         let requiresPermission = false
         let blockSeconds: TimeInterval
-        var parametersSchema: [String: AnyCodable] {
-            [:]
-        }
+        let parametersSchema = makeEmptyObjectSchema()
 
         init(blockSeconds: TimeInterval) {
             self.blockSeconds = blockSeconds
@@ -74,7 +68,7 @@ struct ToolTimeoutEnforcerTests {
             true
         }
 
-        func execute(parameters _: [String: Any]) async throws -> ToolResult {
+        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
             blockingThreadSleep(blockSeconds)
             return .success("late")
         }
@@ -99,15 +93,13 @@ struct ToolTimeoutEnforcerTests {
             let name = "fail"
             let description = "always fails"
             let requiresPermission = false
-            var parametersSchema: [String: AnyCodable] {
-                [:]
-            }
+            let parametersSchema = makeEmptyObjectSchema()
 
             func canExecute() async -> Bool {
                 true
             }
 
-            func execute(parameters _: [String: Any]) async throws -> ToolResult {
+            func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
                 throw ToolError.executionFailed("boom")
             }
         }

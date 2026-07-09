@@ -250,16 +250,16 @@ public struct ExampleGreetingTool: Tool {
 
     public init() {}
 
-    public var parametersSchema: [String: AnyCodable] {
-        ToolParameterSchema(schemaDefinition: ExampleGreetingInput.schema.definition()).schema
+    public var parametersSchema: Schema {
+        ToolParameterSchema(schemaDefinition: ExampleGreetingInput.schema.definition()).schemaDefinition
     }
 
     public func canExecute() async -> Bool {
         true
     }
 
-    public func execute(parameters: [String: Any]) async throws -> ToolResult {
-        guard let name = parameters["name"] as? String, !name.isEmpty else {
+    public func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
+        guard let name = parameters["name"]?.value as? String, !name.isEmpty else {
             return .failure("Missing required parameter 'name'.")
         }
 

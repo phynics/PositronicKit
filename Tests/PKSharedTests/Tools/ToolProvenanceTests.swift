@@ -1,4 +1,5 @@
 import Foundation
+import struct JSONSchema.Schema
 @testable import PKShared
 import Testing
 
@@ -8,10 +9,10 @@ struct ToolProvenanceTests {
         let name = "Label Tool"
         let description = "A tool for testing provenance labels"
         let requiresPermission = false
-        var parametersSchema: [String: AnyCodable] { [:] }
+        var parametersSchema: Schema { ToolParameterSchema.object {}.schemaDefinition }
 
         func canExecute() async -> Bool { true }
-        func execute(parameters: [String: Any]) async throws -> ToolResult { .success("ok") }
+        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult { .success("ok") }
     }
 
     @Test("workspace provenance renders byte-identical prompt label")

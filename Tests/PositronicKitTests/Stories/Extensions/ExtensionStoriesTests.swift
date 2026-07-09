@@ -243,13 +243,13 @@ private struct AcceptanceRuntimeTool: PKShared.Tool, @unchecked Sendable {
     let name = "acceptance_tool"
     let description = "Custom runtime tool for extension-point acceptance testing"
     let requiresPermission = false
-    let parametersSchema: [String: AnyCodable] = [:]
+    let parametersSchema = makeEmptyObjectSchema()
 
     func canExecute() async -> Bool {
         true
     }
 
-    func execute(parameters: [String: Any]) async throws -> ToolResult {
-        .success("tool:\((parameters["value"] as? String) ?? "missing")")
+    func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
+        .success("tool:\((parameters["value"]?.value as? String) ?? "missing")")
     }
 }

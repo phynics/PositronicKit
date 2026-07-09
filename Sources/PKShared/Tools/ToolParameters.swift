@@ -7,7 +7,7 @@ import Foundation
 /// and throws appropriate `ToolError` cases for missing or invalid arguments.
 ///
 /// ```swift
-/// func execute(parameters: [String: Any]) async throws -> ToolResult {
+/// func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
 ///     let params = ToolParameters(parameters)
 ///     let path = try params.require("path", as: String.self)
 ///     let limit = params.optional("limit", as: Int.self) ?? 10
@@ -15,17 +15,17 @@ import Foundation
 /// }
 /// ```
 ///
-/// Prefer `ToolParameters` over ad-hoc `[String: Any]` dictionary access to get
+/// Prefer `ToolParameters` over ad-hoc `[String: AnyCodable]` dictionary access to get
 /// consistent error messages and automatic type coercion.
 public struct ToolParameters: Sendable {
-    private let raw: [String: AnySendable]
+    private let raw: [String: AnyCodable]
 
-    public init(_ parameters: [String: Any]) {
-        raw = parameters.mapValues { AnySendable($0) }
+    public init(_ parameters: [String: AnyCodable]) {
+        raw = parameters
     }
 
     public func require<T>(_ key: String, as _: T.Type = T.self) throws -> T {
-        guard let value = raw[key]?.base else {
+        guard let value = raw[key]?.value else {
             throw ToolError.missingArgument(key)
         }
 
@@ -52,7 +52,7 @@ public struct ToolParameters: Sendable {
     }
 
     public func optional<T>(_ key: String, as _: T.Type = T.self) -> T? {
-        guard let value = raw[key]?.base else { return nil }
+        guard let value = raw[key]?.value else { return nil }
 
         if let typed = value as? T {
             return typed
@@ -67,13 +67,5 @@ public struct ToolParameters: Sendable {
         }
 
         return nil
-    }
-}
-
-/// Simple wrapper to satisfy Sendable for Any in parameters
-private struct AnySendable: @unchecked Sendable {
-    let base: Any
-    init(_ base: Any) {
-        self.base = base
     }
 }

@@ -1,4 +1,5 @@
 import Foundation
+import struct JSONSchema.Schema
 import JSONSchemaBuilder
 
 /// Enhanced tool to search text content in files (search_files)
@@ -43,7 +44,7 @@ public struct SearchFilesTool: Tool, Sendable {
         return true
     }
 
-    public var parametersSchema: [String: AnyCodable] {
+    public var parametersSchema: Schema {
         ToolParameterSchema.object {
             JSONProperty(key: "pattern") {
                 JSONString().description("The text pattern to search for (regex supported)")
@@ -55,10 +56,10 @@ public struct SearchFilesTool: Tool, Sendable {
             JSONProperty(key: "include") {
                 JSONString().description("Optional glob pattern for files to include (e.g. '*.swift')")
             }
-        }.schema
+        }.schemaDefinition
     }
 
-    public func execute(parameters: [String: Any]) async throws -> ToolResult {
+    public func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
         let params = ToolParameters(parameters)
         let pattern: String
         switch FilesystemToolSupport.requiredString("pattern", from: params, usageExample: usageExample) {

@@ -1,4 +1,5 @@
 import Foundation
+import struct JSONSchema.Schema
 import JSONSchemaBuilder
 import PKShared
 import Testing
@@ -12,7 +13,7 @@ struct OpenAIToolConversionTests {
         let description = "A tool with nested parameters"
         let requiresPermission = false
 
-        var parametersSchema: [String: AnyCodable] {
+        var parametersSchema: Schema {
             ToolParameterSchema.object {
                 JSONProperty(key: "query") {
                     JSONString().description("Search query")
@@ -23,12 +24,12 @@ struct OpenAIToolConversionTests {
                 JSONProperty(key: "recursive") {
                     JSONBoolean().description("Whether to search recursively")
                 }
-            }.schema
+            }.schemaDefinition
         }
 
         func canExecute() async -> Bool { true }
 
-        func execute(parameters: [String: Any]) async throws -> ToolResult {
+        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
             .success("Executed")
         }
     }

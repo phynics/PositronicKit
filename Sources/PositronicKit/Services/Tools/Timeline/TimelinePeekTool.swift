@@ -1,4 +1,5 @@
 import Foundation
+import struct JSONSchema.Schema
 import JSONSchemaBuilder
 import PKShared
 
@@ -19,7 +20,7 @@ public struct TimelinePeekTool: PKShared.Tool, Sendable {
         self.timelineStore = timelineStore
     }
 
-    public var parametersSchema: [String: AnyCodable] {
+    public var parametersSchema: Schema {
         ToolParameterSchema.object {
             JSONProperty(key: "timeline_id") {
                 JSONString().description("UUID of the timeline to peek at.")
@@ -28,14 +29,14 @@ public struct TimelinePeekTool: PKShared.Tool, Sendable {
             JSONProperty(key: "limit") {
                 JSONInteger().description("Maximum number of recent messages to return (default: 10, max: 50).")
             }
-        }.schema
+        }.schemaDefinition
     }
 
     public func canExecute() async -> Bool {
         true
     }
 
-    public func execute(parameters: [String: Any]) async throws -> ToolResult {
+    public func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
         let params = ToolParameters(parameters)
         let timelineIdStr: String
         do {

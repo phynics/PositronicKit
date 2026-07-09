@@ -139,7 +139,7 @@ struct ProviderTransportContractTests {
         // schema. Confirm the tools payload still serializes into a non-nil body carrying the
         // tool with a `{"type":"object"}` parameters schema (regression for YAK-23, where the
         // request was suspected of being malformed — it is not).
-        let emptyObjectSchema = ToolParameterSchema.object {}.schema
+        let emptyObjectSchema = ToolParameterSchema.object {}.schemaDefinition
         let decodedSchema = try JSONDecoder().decode(Schema.self, from: JSONEncoder().encode(emptyObjectSchema))
         let noArgTool = LLMToolDefinition(name: "current_datetime", description: "Get the date/time", parameters: decodedSchema)
 

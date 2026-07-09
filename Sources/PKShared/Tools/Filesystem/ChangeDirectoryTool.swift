@@ -1,4 +1,5 @@
 import Foundation
+import struct JSONSchema.Schema
 import JSONSchemaBuilder
 
 /// Tool to change the current working directory of the session
@@ -28,16 +29,16 @@ public struct ChangeDirectoryTool: Tool, Sendable {
         return true
     }
 
-    public var parametersSchema: [String: AnyCodable] {
+    public var parametersSchema: Schema {
         ToolParameterSchema.object {
             JSONProperty(key: "path") {
                 JSONString().description("The path to change to. Can be relative or absolute.")
             }
             .required()
-        }.schema
+        }.schemaDefinition
     }
 
-    public func execute(parameters: [String: Any]) async throws -> ToolResult {
+    public func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
         let params = ToolParameters(parameters)
         let path: String
         do {

@@ -1,4 +1,5 @@
 import Foundation
+import struct JSONSchema.Schema
 import JSONSchemaBuilder
 
 /// Tool to search text content in files (grep-like)
@@ -43,7 +44,7 @@ public struct SearchFileContentTool: Tool, Sendable {
         return true
     }
 
-    public var parametersSchema: [String: AnyCodable] {
+    public var parametersSchema: Schema {
         ToolParameterSchema.object {
             JSONProperty(key: "path") {
                 JSONString().description("The directory or file to search (default: .)")
@@ -55,10 +56,10 @@ public struct SearchFileContentTool: Tool, Sendable {
             JSONProperty(key: "recursive") {
                 JSONBoolean().description("Whether to search recursively (default: false)")
             }
-        }.schema
+        }.schemaDefinition
     }
 
-    public func execute(parameters: [String: Any]) async throws -> ToolResult {
+    public func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
         let params = ToolParameters(parameters)
         let pattern: String
         switch FilesystemToolSupport.requiredString("pattern", from: params, usageExample: usageExample) {

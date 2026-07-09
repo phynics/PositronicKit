@@ -9,15 +9,13 @@ final class TimelineToolManagerTests {
         let name: String
         let description = "A mock tool for testing"
         let requiresPermission = false
-        var parametersSchema: [String: AnyCodable] {
-            [:]
-        }
+        let parametersSchema = makeEmptyObjectSchema()
 
         func canExecute() async -> Bool {
             true
         }
 
-        func execute(parameters _: [String: Any]) async throws -> ToolResult {
+        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
             return .success("Executed \(name)")
         }
     }

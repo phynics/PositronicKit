@@ -1,4 +1,5 @@
 import Foundation
+import struct JSONSchema.Schema
 
 public enum ToolProvenance: Sendable, Equatable, Hashable, Codable {
     case global
@@ -63,16 +64,26 @@ public protocol Tool: Sendable, PromptFormattable {
     /// Used to provide guidance to the LLM when it makes errors.
     var usageExample: String? { get }
 
-    /// Whether the tool is currently available for execution in the given environment.
+    /// Whether the tool is currently available for execution.
     func canExecute() async -> Bool
 
-    /// JSON schema defining the expected parameters for this tool.
-    /// Use ``ToolParameterSchema`` to build this in a type-safe way.
-    var parametersSchema: [String: AnyCodable] { get }
+    /// JSON Schema describing the parameters this tool accepts.
+    ///
+    /// Typed as `JSONSchema.Schema` — the same surface used by `LLMToolDefinition.parameters`
+    /// and `SidecarDirective.schema` — so a tool's schema flows to the LLM without an
+    /// encode/decode round-trip. Use ``ToolParameterSchema`` to build this in a type-safe way:
+    /// ```swift
+    /// var parametersSchema: Schema {
+    ///     ToolParameterSchema.object {
+    ///         JSONProperty(key: "path") { JSONString().description("…") }.required()
+    ///     }.schemaDefinition
+    /// }
+    /// ```
+    var parametersSchema: Schema { get }
 
     /// Executes the tool logic with the parameters provided by the LLM.
     ///
-    /// - Parameter parameters: Dictionary of argument names to values.
+    /// - Parameter parameters: Dictionary of argument names to `AnyCodable` values (Sendable).
     /// - Returns: A ``ToolResult`` containing the output or error message.
     ///
     /// Use ``ToolParameters`` to decode and validate arguments with precise error reporting:
@@ -81,7 +92,7 @@ public protocol Tool: Sendable, PromptFormattable {
     /// let path = try params.require("path", as: String.self)
     /// let limit = params.optional("limit", as: Int.self) ?? 10
     /// ```
-    func execute(parameters: [String: Any]) async throws -> ToolResult
+    func execute(parameters: [String: AnyCodable]) async throws -> ToolResult
 
     /// Generates a compact summary of the tool execution for context compression.
     ///
@@ -90,7 +101,7 @@ public protocol Tool: Sendable, PromptFormattable {
     ///   - parameters: The parameters used for execution.
     ///   - result: The result of execution.
     /// - Returns: A compact summary string, e.g. "[read_file(path=...)] → 45 lines".
-    func summarize(parameters: [String: Any], result: ToolResult) -> String
+    func summarize(parameters: [String: AnyCodable], result: ToolResult) -> String
 
     /// Type-erases the tool to ``AnyTool``.
     func toAnyTool() -> AnyTool
@@ -105,7 +116,7 @@ public extension Tool {
     }
 
     /// Default summarize implementation that generates a compact description of inputs and outputs.
-    func summarize(parameters: [String: Any], result: ToolResult) -> String {
+    func summarize(parameters: [String: AnyCodable], result: ToolResult) -> String {
         // Extract key parameter values (max 3, truncated)
         let paramSummary = parameters.keys.sorted().prefix(3).compactMap { key -> String? in
             guard let value = parameters[key] else { return nil }
@@ -239,7 +250,7 @@ public struct AnyTool: Tool, Sendable {
         wrapped.usageExample
     }
 
-    public var parametersSchema: [String: AnyCodable] {
+    public var parametersSchema: Schema {
         wrapped.parametersSchema
     }
 
@@ -247,11 +258,11 @@ public struct AnyTool: Tool, Sendable {
         await wrapped.canExecute()
     }
 
-    public func execute(parameters: [String: Any]) async throws -> ToolResult {
+    public func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
         try await wrapped.execute(parameters: parameters)
     }
 
-    public func summarize(parameters: [String: Any], result: ToolResult) -> String {
+    public func summarize(parameters: [String: AnyCodable], result: ToolResult) -> String {
         wrapped.summarize(parameters: parameters, result: result)
     }
 

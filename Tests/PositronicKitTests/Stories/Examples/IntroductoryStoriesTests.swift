@@ -56,24 +56,14 @@ struct IntroductoryStoriesTests {
             let description = "Greets a user by name for the introductory runtime example."
             let requiresPermission = false
 
-            var parametersSchema: [String: AnyCodable] {
-                [
-                    "type": .string("object"),
-                    "properties": .dictionary([
-                        "name": .dictionary([
-                            "type": .string("string"),
-                        ]),
-                    ]),
-                    "required": .array([.string("name")]),
-                ]
-            }
+            let parametersSchema = makeEmptyObjectSchema()
 
             func canExecute() async -> Bool {
                 true
             }
 
-            func execute(parameters: [String: Any]) async throws -> ToolResult {
-                let name = parameters["name"] as? String ?? "friend"
+            func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
+                let name = parameters["name"]?.value as? String ?? "friend"
                 return .success("Hello, \(name)!")
             }
         }

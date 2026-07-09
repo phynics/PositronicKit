@@ -1,4 +1,5 @@
 import Foundation
+import struct JSONSchema.Schema
 import JSONSchemaBuilder
 
 /// Tool to find files matching a pattern
@@ -31,7 +32,7 @@ public struct FindFileTool: Tool, Sendable {
         return true
     }
 
-    public var parametersSchema: [String: AnyCodable] {
+    public var parametersSchema: Schema {
         ToolParameterSchema.object {
             JSONProperty(key: "path") {
                 JSONString().description("The root directory to start searching (default: .)")
@@ -40,10 +41,10 @@ public struct FindFileTool: Tool, Sendable {
                 JSONString().description("The filename pattern to match (contains check, case insensitive)")
             }
             .required()
-        }.schema
+        }.schemaDefinition
     }
 
-    public func execute(parameters: [String: Any]) async throws -> ToolResult {
+    public func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
         let params = ToolParameters(parameters)
         let pattern: String
         switch FilesystemToolSupport.requiredString("pattern", from: params, usageExample: usageExample) {
