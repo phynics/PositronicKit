@@ -63,9 +63,9 @@ public struct LLMResponseSchema: Sendable, Codable, Equatable {
 
     public static func == (lhs: LLMResponseSchema, rhs: LLMResponseSchema) -> Bool {
         lhs.name == rhs.name &&
-        lhs.description == rhs.description &&
-        lhs.strict == rhs.strict &&
-        encodeSchema(lhs.schema) == encodeSchema(rhs.schema)
+            lhs.description == rhs.description &&
+            lhs.strict == rhs.strict &&
+            encodeSchema(lhs.schema) == encodeSchema(rhs.schema)
     }
 }
 
@@ -97,7 +97,7 @@ public struct LLMMessage: Sendable, Codable, Equatable {
     public let toolCalls: [LLMToolCall]?
 
     /// Structured reasoning/thinking to echo back on follow-up turns for reasoning models that
-    /// require it (STAB-8). Threaded from persisted `Message.think` by the history-reconstruction
+    /// require it (STAB-8). Threaded from persisted `Message.reasoning` by the history-reconstruction
     /// path (`RenderedPrompt.buildMessages()` / `buildAssistantMessage`). The field name is
     /// provider-neutral; each provider adapter maps it onto its own wire field:
     /// Ollama → `thinking`, OpenRouter → `reasoning`. The OpenAI Chat Completions adapter
@@ -194,7 +194,7 @@ public struct LLMStreamDelta: Sendable, Codable, Equatable {
     /// `LLMStreamingStage`. `nil` for non-reasoning models — existing flows are byte-identical.
     /// The `<think>...</think>` tag-scraping path in `StreamingParser` remains the fallback for
     /// models that emit inline reasoning text inside `content`.
-    public let thinking: String?
+    public let reasoning: String?
 
     public let toolCalls: [LLMToolCallDelta]?
 
@@ -203,19 +203,19 @@ public struct LLMStreamDelta: Sendable, Codable, Equatable {
     enum CodingKeys: String, CodingKey {
         case role
         case content
-        case thinking
+        case reasoning
         case toolCalls = "tool_calls"
     }
 
     public init(
         role: LLMMessage.Role? = nil,
         content: String? = nil,
-        thinking: String? = nil,
+        reasoning: String? = nil,
         toolCalls: [LLMToolCallDelta]? = nil
     ) {
         self.role = role
         self.content = content
-        self.thinking = thinking
+        self.reasoning = reasoning
         self.toolCalls = toolCalls
     }
 }

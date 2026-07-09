@@ -16,7 +16,7 @@ public enum ToolExecutionStatus: Sendable, Codable {
 /// Events emitted by ChatEngine during a chat turn.
 ///
 /// Events are categorized into four groups:
-/// - `delta`: Incremental streaming events (text, thinking, tool calls, tool progress)
+/// - `delta`: Incremental streaming events (text, reasoning, tool calls, tool progress)
 /// - `meta`: Informational metadata events (context, generation info)
 /// - `error`: Error events (tool errors, general errors)
 /// - `completion`: Terminal events signaling final results
@@ -89,9 +89,9 @@ public enum ChatEvent: Sendable, Codable {
 
         public init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
-            self.domain = try container.decode(String.self, forKey: .domain)
-            self.code = try container.decode(Int.self, forKey: .code)
-            self.isBlocked = try container.decodeIfPresent(Bool.self, forKey: .isBlocked) ?? false
+            domain = try container.decode(String.self, forKey: .domain)
+            code = try container.decode(Int.self, forKey: .code)
+            isBlocked = try container.decodeIfPresent(Bool.self, forKey: .isBlocked) ?? false
         }
 
         public func encode(to encoder: Encoder) throws {
@@ -104,7 +104,7 @@ public enum ChatEvent: Sendable, Codable {
 
     public enum DeltaEvent: Sendable, Codable {
         /// Chain-of-thought reasoning chunk
-        case thinking(text: String)
+        case reasoning(text: String)
         /// Incremental content chunk from the LLM
         case generation(text: String)
         /// Tool call being assembled (streaming deltas)
@@ -164,8 +164,8 @@ public enum ChatEvent: Sendable, Codable {
 
 public extension ChatEvent {
     /// Delta shortcuts
-    static func thinking(_ text: String) -> ChatEvent {
-        .delta(.thinking(text: text))
+    static func reasoning(_ text: String) -> ChatEvent {
+        .delta(.reasoning(text: text))
     }
 
     static func generation(_ text: String) -> ChatEvent {
@@ -240,9 +240,9 @@ public extension ChatEvent {
         return nil
     }
 
-    /// The thinking content if this is a `.delta(.thinking(...))` event.
-    var thinkingContent: String? {
-        if case let .delta(event) = self, case let .thinking(text) = event { return text }
+    /// The reasoning content if this is a `.delta(.reasoning(...))` event.
+    var reasoningContent: String? {
+        if case let .delta(event) = self, case let .reasoning(text) = event { return text }
         return nil
     }
 
@@ -272,6 +272,7 @@ public extension ChatEvent {
 }
 
 // MARK: - Blocked Error Identity Contract (STAB-6)
+
 //
 // Blocked-error classification now lives on `PKError.isBlocked` (default `false`,
 // overridden `true` on the error cases that represent blocked/approval/disallowed

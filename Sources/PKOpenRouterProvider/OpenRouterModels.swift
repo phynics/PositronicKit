@@ -273,7 +273,7 @@ extension OpenRouterStreamChunk {
                 delta: LLMStreamDelta(
                     role: choice.delta.role.flatMap(LLMMessage.Role.init(rawValue:)),
                     content: choice.delta.content,
-                    thinking: choice.delta.reasoning,
+                    reasoning: choice.delta.reasoning,
                     toolCalls: mappedToolCalls
                 ),
                 finishReason: choice.finishReason.map { FinishReason(wireValue: $0).wireValue }

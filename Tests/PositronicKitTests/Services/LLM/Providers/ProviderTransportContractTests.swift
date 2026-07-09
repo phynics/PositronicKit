@@ -318,12 +318,12 @@ struct ProviderTransportContractTests {
             tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil
         ).collect()
 
-        let reasoningChunk = try #require(chunks.first { $0.choices.first?.delta.thinking != nil })
-        #expect(reasoningChunk.choices.first?.delta.thinking == "Let me think.")
+        let reasoningChunk = try #require(chunks.first { $0.choices.first?.delta.reasoning != nil })
+        #expect(reasoningChunk.choices.first?.delta.reasoning == "Let me think.")
         #expect(reasoningChunk.choices.first?.delta.content == nil)
 
         let contentChunk = try #require(chunks.first { $0.choices.first?.delta.content == "the answer" })
-        #expect(contentChunk.choices.first?.delta.thinking == nil)
+        #expect(contentChunk.choices.first?.delta.reasoning == nil)
     }
 
     @Test("OpenRouter non-reasoning chunk leaves thinking nil (byte-identical for non-reasoning models)")
@@ -339,7 +339,7 @@ struct ProviderTransportContractTests {
             messages: [], tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil
         ).collect()
         #expect(chunks.count == 1)
-        #expect(chunks.first?.choices.first?.delta.thinking == nil)
+        #expect(chunks.first?.choices.first?.delta.reasoning == nil)
         #expect(chunks.first?.choices.first?.delta.content == "hi")
     }
 
@@ -357,8 +357,8 @@ struct ProviderTransportContractTests {
             tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil
         ).collect()
 
-        let reasoningChunk = try #require(chunks.first { $0.choices.first?.delta.thinking != nil })
-        #expect(reasoningChunk.choices.first?.delta.thinking == "reasoning step")
+        let reasoningChunk = try #require(chunks.first { $0.choices.first?.delta.reasoning != nil })
+        #expect(reasoningChunk.choices.first?.delta.reasoning == "reasoning step")
 
         let finalChunk = try #require(chunks.last)
         #expect(finalChunk.choices.first?.delta.content == "final answer")
@@ -378,8 +378,8 @@ struct ProviderTransportContractTests {
             messages: [], tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil
         ).collect()
 
-        let reasoningChunk = try #require(chunks.first { $0.choices.first?.delta.thinking != nil })
-        #expect(reasoningChunk.choices.first?.delta.thinking == "legacy reasoning")
+        let reasoningChunk = try #require(chunks.first { $0.choices.first?.delta.reasoning != nil })
+        #expect(reasoningChunk.choices.first?.delta.reasoning == "legacy reasoning")
     }
 
     // MARK: - Finish reason vocabulary (PKR-13)

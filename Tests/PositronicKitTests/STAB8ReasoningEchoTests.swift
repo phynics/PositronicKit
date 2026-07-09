@@ -1,14 +1,13 @@
-import Testing
 import Foundation
-import PKShared
-import PKPrompt
-@testable import PositronicKit
+import OpenAI
 @testable import PKOllamaProvider
 @testable import PKOpenRouterProvider
-import OpenAI
+import PKPrompt
+import PKShared
+@testable import PositronicKit
+import Testing
 
-@Suite struct STAB8ReasoningEchoTests {
-
+struct STAB8ReasoningEchoTests {
     // MARK: - LLMMessage field + history reconstruction
 
     @Test("LLMMessage.reasoning is optional and defaults to nil (byte-identical regression)")
@@ -29,10 +28,10 @@ import OpenAI
         #expect(decoded.reasoning == "because")
     }
 
-    @Test("History reconstruction sets LLMMessage.reasoning from persisted Message.think")
+    @Test("History reconstruction sets LLMMessage.reasoning from persisted Message.reasoning")
     func historyReconstructionThreadsThink() async throws {
         let history = [
-            Message(content: "answer", role: .assistant, think: "step-by-step reasoning")
+            Message(content: "answer", role: .assistant, reasoning: "step-by-step reasoning"),
         ]
 
         let prompt = try await PromptAssembler.assemble(

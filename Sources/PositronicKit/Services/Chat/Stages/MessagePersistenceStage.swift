@@ -101,7 +101,7 @@ struct MessagePersistenceStage: PipelineStage {
             role: .assistant,
             content: fullResponse,
             recalledMemories: recalledMemories,
-            think: fullThinking.isEmpty ? nil : fullThinking,
+            reasoning: fullThinking.isEmpty ? nil : fullThinking,
             toolCalls: toolCallsJSON,
             agentInstanceId: context.agentInstanceId,
             status: status

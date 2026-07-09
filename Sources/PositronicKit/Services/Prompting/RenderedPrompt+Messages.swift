@@ -156,8 +156,8 @@ public extension RenderedPrompt {
 
     private func buildAssistantMessage(_ msg: Message) -> LLMMessage {
         var messageContent = msg.content
-        if let think = msg.think {
-            messageContent = "<think>\(think)</think>\n\(messageContent)"
+        if let reasoning = msg.reasoning {
+            messageContent = "<think>\(reasoning)</think>\n\(messageContent)"
         }
 
         var toolCalls: [LLMToolCall]?
@@ -175,7 +175,7 @@ public extension RenderedPrompt {
             role: .assistant,
             content: messageContent,
             toolCalls: toolCalls,
-            reasoning: msg.think
+            reasoning: msg.reasoning
         )
     }
 

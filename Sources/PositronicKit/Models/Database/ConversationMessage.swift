@@ -10,7 +10,7 @@ public struct ConversationMessage: Codable, Identifiable, Sendable {
     public var timestamp: Date
     public var recalledMemories: String
     public var parentId: UUID?
-    public var think: String?
+    public var reasoning: String?
     public var toolCalls: String
     public var toolCallId: String?
 
@@ -37,7 +37,7 @@ public struct ConversationMessage: Codable, Identifiable, Sendable {
         timestamp: Date = Date(),
         recalledMemories: String = "[]",
         parentId: UUID? = nil,
-        think: String? = nil,
+        reasoning: String? = nil,
         toolCalls: String = "[]",
         toolCallId: String? = nil,
         agentInstanceId: UUID? = nil,
@@ -52,7 +52,7 @@ public struct ConversationMessage: Codable, Identifiable, Sendable {
         self.timestamp = timestamp
         self.recalledMemories = recalledMemories
         self.parentId = parentId
-        self.think = think
+        self.reasoning = reasoning
         self.toolCalls = toolCalls
         self.toolCallId = toolCallId
         self.agentInstanceId = agentInstanceId
@@ -86,7 +86,7 @@ public struct ConversationMessage: Codable, Identifiable, Sendable {
             timestamp: timestamp,
             content: content,
             role: messageRole,
-            think: think,
+            reasoning: reasoning,
             toolCalls: calls.isEmpty ? nil : calls,
             toolCallId: toolCallId,
             parentId: parentId,

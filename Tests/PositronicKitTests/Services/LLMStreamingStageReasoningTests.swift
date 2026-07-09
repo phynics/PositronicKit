@@ -2,8 +2,8 @@ import Foundation
 import Logging
 import PKShared
 import PKTestSupport
-import Testing
 @testable import PositronicKit
+import Testing
 
 /// End-to-end coverage for STAB-7: structured reasoning deltas (provider-emitted distinct
 /// `thinking` field) routed into `TurnOutputs.fullThinking` via `LLMStreamingStage`, plus the
@@ -31,7 +31,7 @@ struct LLMStreamingStageReasoningTests {
         let events = try await stream.collect()
 
         let thinkingEvents: [String] = events.compactMap { event in
-            if case .delta(.thinking(let text)) = event { return text } else { return nil }
+            if case let .delta(.reasoning(text)) = event { return text } else { return nil }
         }
         #expect(thinkingEvents == ["reasoned ", "more"])
         #expect(await context.outputs.fullThinking == "reasoned more")

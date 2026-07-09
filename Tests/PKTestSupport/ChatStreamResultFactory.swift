@@ -1,6 +1,6 @@
 import Foundation
-import PositronicKit
 import PKShared
+import PositronicKit
 
 #if DEBUG
 
@@ -47,7 +47,7 @@ import PKShared
                 model: "mock-model",
                 choices: [LLMStreamChoice(
                     index: 0,
-                    delta: LLMStreamDelta(role: .assistant, content: content, thinking: thinking),
+                    delta: LLMStreamDelta(role: .assistant, content: content, reasoning: thinking),
                     finishReason: finishReason
                 )]
             )

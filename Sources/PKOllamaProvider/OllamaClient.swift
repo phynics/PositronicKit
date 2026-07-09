@@ -151,7 +151,7 @@ public actor OllamaClient: LLMClientProtocol {
         if let content = result.choices.first?.delta.content, !content.isEmpty {
             hasYielded.withLock { $0 = true }
         }
-        if let thinking = result.choices.first?.delta.thinking, !thinking.isEmpty {
+        if let thinking = result.choices.first?.delta.reasoning, !thinking.isEmpty {
             hasYielded.withLock { $0 = true }
         }
         if result.choices.first?.delta.toolCalls != nil {
@@ -241,7 +241,7 @@ public actor OllamaClient: LLMClientProtocol {
                 delta: LLMStreamDelta(
                     role: .assistant,
                     content: response.message.content,
-                    thinking: response.message.thinking,
+                    reasoning: response.message.thinking,
                     toolCalls: toolCalls
                 ),
                 finishReason: finishReason
@@ -282,7 +282,7 @@ public actor OllamaClient: LLMClientProtocol {
                 delta: LLMStreamDelta(
                     role: .assistant,
                     content: response.message.content,
-                    thinking: response.message.thinking,
+                    reasoning: response.message.thinking,
                     toolCalls: toolCalls
                 )
             )]

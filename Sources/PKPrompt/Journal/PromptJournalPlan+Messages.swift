@@ -112,8 +112,8 @@ package enum PromptJournalMessageRenderer {
         case .user:
             return "User: \(message.content)"
         case .assistant:
-            if let think = message.think, !think.isEmpty {
-                return "Assistant: <think>\(think)</think>\n\(message.content)"
+            if let reasoning = message.reasoning, !reasoning.isEmpty {
+                return "Assistant: <think>\(reasoning)</think>\n\(message.content)"
             }
             return "Assistant: \(message.content)"
         case .system:

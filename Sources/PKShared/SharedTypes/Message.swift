@@ -20,7 +20,7 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
 
     /// Chain of Thought reasoning extracted from `<think>...</think>` blocks.
     /// Only present for models that support reasoning tags (e.g., DeepSeek R1, QwQ).
-    public var think: String?
+    public var reasoning: String?
 
     /// Tool calls extracted from `<tool_call>...</tool_call>` blocks.
     public var toolCalls: [ToolCall]?
@@ -101,7 +101,7 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
         timestamp: Date = Date(),
         content: String,
         role: MessageRole,
-        think: String? = nil,
+        reasoning: String? = nil,
         toolCalls: [ToolCall]? = nil,
         toolCallId: String? = nil,
         parentId: UUID? = nil,
@@ -114,7 +114,7 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
         self.timestamp = timestamp
         self.content = content
         self.role = role
-        self.think = think
+        self.reasoning = reasoning
         self.toolCalls = toolCalls
         self.toolCallId = toolCallId
         self.parentId = parentId
@@ -166,12 +166,12 @@ public extension Message {
     /// Example output:
     /// ```
     /// content: "The answer is 42."
-    /// think: "Let me break this down step by step..."
+    /// reasoning: "Let me break this down step by step..."
     /// ```
     ///
     /// - Parameter rawResponse: Raw response from LLM
-    /// - Returns: Tuple with content and optional thinking
-    static func parseResponse(_ rawResponse: String) -> (content: String, think: String?) {
+    /// - Returns: Tuple with content and optional reasoning
+    static func parseResponse(_ rawResponse: String) -> (content: String, reasoning: String?) {
         // Pattern to match <think>...</think> tags
         let pattern = "<think>(.*?)</think>"
 

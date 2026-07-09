@@ -25,7 +25,7 @@ package func sectionContentHash(_ content: PromptSection.Content) -> UInt64 {
         for message in messages {
             hasher.combine(message.content)
             hasher.combine(String(describing: message.role))
-            hasher.combine(message.think)
+            hasher.combine(message.reasoning)
             hasher.combine(message.isSummary)
         }
     }

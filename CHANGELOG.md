@@ -10,6 +10,15 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
+- Unified reasoning/thinking terminology across public types (PKAPI-003):
+  `Message.think` → `Message.reasoning`, `LLMStreamDelta.thinking` → `LLMStreamDelta.reasoning`,
+  `ChatEvent.DeltaEvent.thinking`/`.thinking(_:)` → `.reasoning`/`.reasoning(_:)`. `LLMMessage.reasoning`
+  already used the right name. Provider-adapter wire-format field names are unchanged (Ollama's
+  `thinking` JSON key, OpenRouter/OpenAI's `reasoning` JSON key, Anthropic's `thinking_delta` event
+  type/field) — only PositronicKit's own shared vocabulary is affected. Downstream consumers
+  (Monad/Shuttle/Yakamoz) pattern-matching `.thinking`/`Message.think` need migration on their next
+  PositronicKit pin bump; Yakamoz's inspector drawer likely renders this field.
+
 - `ChatEvent` enum ergonomics overhaul (PKAPI-004):
   - **Renamed `ToolExecutionStatus.failure(String)` → `.executionError(String)`** to
     eliminate the name collision with `.failed(reference:error:)`. The two cases had

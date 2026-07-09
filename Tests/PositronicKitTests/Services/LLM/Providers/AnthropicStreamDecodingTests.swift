@@ -192,7 +192,7 @@ struct AnthropicStreamDecodingTests {
             generationParameters: nil
         ).collect()
 
-        #expect(chunks.compactMap { $0.choices.first?.delta.thinking }.joined() == "pondering")
+        #expect(chunks.compactMap { $0.choices.first?.delta.reasoning }.joined() == "pondering")
         let final = try #require(chunks.first { $0.choices.first?.finishReason != nil })
         #expect(final.choices.first?.finishReason == "stop")
     }

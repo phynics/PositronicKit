@@ -437,7 +437,7 @@ final class LLMStreamingStageBehavior {
 
         let events = try await drain(await stage.process(context))
 
-        let thinking = events.compactMap { $0.thinkingContent }.joined()
+        let thinking = events.compactMap { $0.reasoningContent }.joined()
         let content = events.compactMap { $0.textContent }.joined()
         #expect(thinking.contains("reasoning here"))
         #expect(content.contains("content here"))
