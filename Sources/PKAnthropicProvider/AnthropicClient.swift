@@ -204,7 +204,7 @@ public actor AnthropicClient: LLMClientProtocol {
         hasYielded: borrowing Mutex<Bool>
     ) {
         let delta = chunk.choices.first?.delta
-        if delta?.content?.isEmpty == false || delta?.thinking?.isEmpty == false || delta?.toolCalls != nil {
+        if delta?.content?.isEmpty == false || delta?.reasoning?.isEmpty == false || delta?.toolCalls != nil {
             hasYielded.withLock { $0 = true }
         }
     }
@@ -375,7 +375,7 @@ struct AnthropicStreamState {
                 return makeChunk(delta: LLMStreamDelta(role: .assistant, content: text))
             case "thinking_delta":
                 guard let thinking = delta.thinking, !thinking.isEmpty else { return nil }
-                return makeChunk(delta: LLMStreamDelta(role: .assistant, thinking: thinking))
+                return makeChunk(delta: LLMStreamDelta(role: .assistant, reasoning: thinking))
             case "input_json_delta":
                 guard let partial = delta.partialJson, !partial.isEmpty,
                       let blockIndex = event.index,

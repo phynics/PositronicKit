@@ -160,7 +160,7 @@ struct LLMStreamingStage: PipelineStage {
 
     /// Feeds a content delta through the sidecar extractor instead of `StreamingParser`
     /// (structured-output turns emit JSON in `content`; `<think>` tag-scraping doesn't apply,
-    /// but structured `delta.thinking` still routes through `handleStructuredThinkingDelta`).
+    /// but structured `delta.reasoning` still routes through `handleStructuredThinkingDelta`).
     private func handleSidecarContentDelta(
         _ result: LLMStreamChunk,
         extractor: inout SidecarStreamExtractor?,
@@ -225,7 +225,7 @@ struct LLMStreamingStage: PipelineStage {
 
         if !thinkingChunk.isEmpty {
             await context.outputs.appendThinking(String(thinkingChunk))
-            continuation.yield(.thinking(String(thinkingChunk)))
+            continuation.yield(.reasoning(String(thinkingChunk)))
         }
 
         if !contentChunk.isEmpty {
@@ -234,14 +234,14 @@ struct LLMStreamingStage: PipelineStage {
         }
     }
 
-    /// Routes a provider-emitted structured reasoning delta (`LLMStreamDelta.thinking`) directly
+    /// Routes a provider-emitted structured reasoning delta (`LLMStreamDelta.reasoning`) directly
     /// into `TurnOutputs.appendThinking`, bypassing the `...` tag-scraping parser.
     ///
     /// Precedence / double-counting safety: when a provider emits reasoning as a distinct
-    /// structured field, that text arrives on `delta.thinking` (not `delta.content`), so the
+    /// structured field, that text arrives on `delta.reasoning` (not `delta.content`), so the
     /// tag-scraping parser running on `content` in `handleContentDelta` never sees it — the two
     /// paths are disjoint by construction. For models that instead emit inline ` ... ` text,
-    /// `delta.thinking` is `nil` and the parser fallback still classifies it. A model emitting
+    /// `delta.reasoning` is `nil` and the parser fallback still classifies it. A model emitting
     /// reasoning through BOTH channels would double-count; in practice structured-reasoning
     /// models put reasoning only in the structured field, so `content` carries no tags.
     private func handleStructuredThinkingDelta(
@@ -249,9 +249,9 @@ struct LLMStreamingStage: PipelineStage {
         context: ChatTurnContext,
         continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
     ) async {
-        guard let thinking = result.choices.first?.delta.thinking, !thinking.isEmpty else { return }
+        guard let thinking = result.choices.first?.delta.reasoning, !thinking.isEmpty else { return }
         await context.outputs.appendThinking(thinking)
-        continuation.yield(.thinking(thinking))
+        continuation.yield(.reasoning(thinking))
     }
 
     private func handleToolCallDeltas(
@@ -289,7 +289,7 @@ struct LLMStreamingStage: PipelineStage {
         if parser.isThinking {
             let buffer = parser.buffer
             await context.outputs.appendThinking(buffer)
-            continuation.yield(.thinking(parser.buffer))
+            continuation.yield(.reasoning(parser.buffer))
         } else {
             let buffer = parser.buffer
             await context.outputs.appendResponse(buffer)

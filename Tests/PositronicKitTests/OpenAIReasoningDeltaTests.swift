@@ -32,7 +32,7 @@ import Testing
         let result = try JSONDecoder().decode(ChatStreamResult.self, from: Data(json.utf8))
         let chunk = result.toLLMStreamChunk()
 
-        #expect(chunk.choices.first?.delta.thinking == "Let me reason about this.")
+        #expect(chunk.choices.first?.delta.reasoning == "Let me reason about this.")
         #expect(chunk.choices.first?.delta.content == nil)
     }
 
@@ -62,7 +62,7 @@ import Testing
         let result = try JSONDecoder().decode(ChatStreamResult.self, from: Data(json.utf8))
         let chunk = result.toLLMStreamChunk()
 
-        #expect(chunk.choices.first?.delta.thinking == "Step one.")
+        #expect(chunk.choices.first?.delta.reasoning == "Step one.")
     }
 
     /// A non-reasoning model's chunk omits the reasoning fields entirely; the converted
@@ -91,7 +91,7 @@ import Testing
         let result = try JSONDecoder().decode(ChatStreamResult.self, from: Data(json.utf8))
         let chunk = result.toLLMStreamChunk()
 
-        #expect(chunk.choices.first?.delta.thinking == nil)
+        #expect(chunk.choices.first?.delta.reasoning == nil)
         #expect(chunk.choices.first?.delta.content == "Hello there.")
     }
 }

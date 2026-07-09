@@ -88,7 +88,7 @@ struct SidecarStreamingStageTests {
         let stream = try await stage.process(context)
         let events = try await stream.collect()
 
-        #expect(events.compactMap(\.thinkingContent) == ["reasoning"])
+        #expect(events.compactMap(\.reasoningContent) == ["reasoning"])
         #expect(await context.outputs.fullThinking == "reasoning")
         #expect(await context.outputs.fullResponse == "ok")
     }

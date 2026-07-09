@@ -161,7 +161,7 @@ struct ChatEngineTests {
             var foundGeneration = false
 
             for event in events {
-                if let text = event.thinkingContent {
+                if let text = event.reasoningContent {
                     if text == "Reasoning..." { foundThinking = true }
                 } else if let text = event.textContent {
                     if text == "Answer" { foundGeneration = true }
@@ -434,7 +434,7 @@ struct ChatEngineTests {
 
             // Should NOT have completion.toolExecution success or failure since engine stops
             #expect(!events.contains(where: {
-                if case .completion(.toolExecution(_, let status)) = $0 {
+                if case let .completion(.toolExecution(_, status)) = $0 {
                     switch status {
                     case .success, .executionError: return true
                     default: return false
@@ -503,7 +503,7 @@ struct ChatEngineTests {
 
             // Should see tool execution completion
             #expect(events.contains(where: {
-                if case .completion(.toolExecution(_, let status)) = $0 {
+                if case let .completion(.toolExecution(_, status)) = $0 {
                     if case let .success(result) = status { return result.output == "Tool result" }
                 }
                 return false
@@ -753,7 +753,7 @@ struct ChatEngineTests {
 
             // Should have executed exactly 2 tools (id c1 and c2)
             let successEvents = events.filter {
-                if case .completion(.toolExecution(_, let status)) = $0, case .success = status { return true }
+                if case let .completion(.toolExecution(_, status)) = $0, case .success = status { return true }
                 return false
             }
             #expect(successEvents.count == 2)
@@ -843,7 +843,7 @@ struct ChatEngineTests {
                 timelineId: timelineId,
                 role: .assistant,
                 content: "",
-                toolCalls: try pendingToolCallsJSON(ids: ["call_1"])
+                toolCalls: pendingToolCallsJSON(ids: ["call_1"])
             ))
 
             await #expect(throws: ToolError.self) {
@@ -870,7 +870,7 @@ struct ChatEngineTests {
                 timelineId: timelineId,
                 role: .assistant,
                 content: "",
-                toolCalls: try pendingToolCallsJSON(ids: ["call_race"])
+                toolCalls: pendingToolCallsJSON(ids: ["call_race"])
             ))
             mockLLM.mockClient.nextResponses = ["first continuation", "second continuation"]
 
@@ -922,7 +922,7 @@ struct ChatEngineTests {
                 role: .assistant,
                 content: "",
                 timestamp: Date(timeIntervalSince1970: 100),
-                toolCalls: try pendingToolCallsJSON(ids: ["stale_call"])
+                toolCalls: pendingToolCallsJSON(ids: ["stale_call"])
             ))
             try await mockPersistence.saveMessage(ConversationMessage(
                 timelineId: timelineId,
@@ -952,7 +952,7 @@ struct ChatEngineTests {
                 timelineId: timelineId,
                 role: .assistant,
                 content: "",
-                toolCalls: try pendingToolCallsJSON(ids: ["dangling_call"])
+                toolCalls: pendingToolCallsJSON(ids: ["dangling_call"])
             ))
 
             do {
@@ -1009,9 +1009,9 @@ struct ChatEngineTests {
         try await persistence.saveTimeline(session)
 
         let wsId = UUID()
-        let workspaceRef = WorkspaceReference(
+        let workspaceRef = try WorkspaceReference(
             id: wsId,
-            uri: WorkspaceURI(parsing: "pk://local")!,
+            uri: #require(WorkspaceURI(parsing: "pk://local")),
             location: .runtimeTimeline,
             originId: nil,
             rootPath: "/tmp"
@@ -1035,7 +1035,7 @@ struct ChatEngineTests {
             timelineId: timelineId,
             role: .assistant,
             content: "",
-            toolCalls: try pendingToolCallsJSON(ids: ["provider_call"])
+            toolCalls: pendingToolCallsJSON(ids: ["provider_call"])
         ))
         try await persistence.saveMessage(ConversationMessage(
             timelineId: timelineId,
@@ -1045,7 +1045,7 @@ struct ChatEngineTests {
         ))
 
         mockLLM.mockClient.nextResponse = "First reply"
-        _ = try await collect(try await engine.execute(
+        _ = try await collect(await engine.execute(
             timelineId: timelineId,
             message: "First follow up",
             tools: []
@@ -1079,7 +1079,7 @@ struct ChatEngineTests {
         )
 
         reloadLLM.mockClient.nextResponse = "Second reply"
-        _ = try await collect(try await reloadEngine.execute(
+        _ = try await collect(await reloadEngine.execute(
             timelineId: timelineId,
             message: "Second follow up",
             tools: []
@@ -1099,7 +1099,7 @@ struct ChatEngineTests {
                 timelineId: timelineId,
                 role: .assistant,
                 content: "",
-                toolCalls: try pendingToolCallsJSON(ids: ["prev_call"])
+                toolCalls: pendingToolCallsJSON(ids: ["prev_call"])
             ))
             mockLLM.mockClient.nextResponse = "Continuing."
 
@@ -1129,7 +1129,7 @@ struct ChatEngineTests {
                 timelineId: timelineId,
                 role: .assistant,
                 content: "",
-                toolCalls: try pendingToolCallsJSON(ids: ["c1"])
+                toolCalls: pendingToolCallsJSON(ids: ["c1"])
             ))
             mockLLM.mockClient.nextResponse = "Reply."
 
@@ -1370,7 +1370,7 @@ private struct InjectOncePlugin: ChatTurnPlugin {
 
 /// Injects a follow-up user message after every turn (drives the loop to maxTurns).
 private struct AlwaysContinuePlugin: ChatTurnPlugin {
-    func afterTurn(_ turn: CompletedTurn) async throws -> [LLMMessage] {
+    func afterTurn(_: CompletedTurn) async throws -> [LLMMessage] {
         [LLMMessage(role: .user, content: "keep going")]
     }
 }

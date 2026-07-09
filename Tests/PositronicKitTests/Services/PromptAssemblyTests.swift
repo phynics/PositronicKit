@@ -51,7 +51,7 @@ struct PromptAssemblyTests {
         LLMPromptRequest(userQuery: userQuery, chatHistory: [], tools: [], workspaces: [], primaryWorkspace: nil, requestOriginName: nil)
     }
 
-    struct MockSection: Prompt, Sendable {
+    struct MockSection: Prompt {
         let id: String
         let content: String
 
@@ -66,7 +66,7 @@ struct PromptAssemblyTests {
     }
 
     @Test("PromptBuilder composes sections")
-    func builderComposesSections() {
+    func builderComposesSections() throws {
         @PromptBuilder
         func build() -> some Prompt {
             MockSection(id: "s1")
@@ -76,7 +76,7 @@ struct PromptAssemblyTests {
             }
         }
 
-        let resolved = try! build().assemblePrompt().sections
+        let resolved = try build().assemblePrompt().sections
         #expect(resolved.map(\.id) == ["s1", "s2", "s3", "s4"])
     }
 
@@ -182,7 +182,7 @@ struct PromptAssemblyTests {
     }
 
     @Test("RenderedPrompt projections stay aligned across message models")
-    func renderedPromptProjectionsStayAligned() async throws {
+    func renderedPromptProjectionsStayAligned() {
         let rendered = RenderedPrompt(
             sections: [
                 .init(
@@ -212,7 +212,7 @@ struct PromptAssemblyTests {
                         Message(
                             content: "Answer",
                             role: .assistant,
-                            think: "Reasoning",
+                            reasoning: "Reasoning",
                             toolCalls: [ToolCall(name: "search", arguments: ["q": .string("x")])]
                         ),
                         Message(content: "Tool output", role: .tool),
@@ -254,7 +254,7 @@ struct PromptAssemblyTests {
         #expect(llmMessages[2].content == "<think>Reasoning</think>\nAnswer")
         #expect(llmMessages[2].toolCalls?.first?.name == "search")
         #expect(uiMessages[2].content == "Answer")
-        #expect(uiMessages[2].think == "Reasoning")
+        #expect(uiMessages[2].reasoning == "Reasoning")
 
         #expect(llmMessages[3].role == LLMMessage.Role.user)
         #expect(llmMessages[3].content.contains("<tool_response>"))

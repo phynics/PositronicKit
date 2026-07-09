@@ -96,7 +96,7 @@ public actor TimelineArchiver {
                 timestamp: msg.timestamp,
                 recalledMemories: "[]",
                 parentId: msg.parentId,
-                think: msg.think,
+                reasoning: msg.reasoning,
                 toolCalls: encodeToolCalls(msg.toolCalls)
             )
             try await persistence.saveMessage(conversationMsg)

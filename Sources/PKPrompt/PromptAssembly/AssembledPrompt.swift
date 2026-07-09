@@ -36,7 +36,7 @@ public struct AssembledPrompt: Sendable {
     ///   contains more than one user-query section.
     public init(
         sections: [PromptSection],
-        compressionReport: CompressionReport? = nil,
+        compressionReport: CompressionReport? = nil
     ) throws {
         self.sections = try PromptSection.validateAndSort(sections: sections)
         self.compressionReport = compressionReport
@@ -58,7 +58,7 @@ public struct AssembledPrompt: Sendable {
             renderedSections.append(renderedSection)
 
             guard let text = renderedTextContent(for: renderedSection),
-                !text.isEmpty
+                  !text.isEmpty
             else {
                 continue
             }
@@ -79,13 +79,13 @@ public struct AssembledPrompt: Sendable {
         -> String?
     {
         switch section.content {
-        case .text(let content):
+        case let .text(content):
             return content
-        case .messages(let messages):
+        case let .messages(messages):
             let content =
                 messages
-                .map(Self.formatHistoryMessage)
-                .joined(separator: "\n\n")
+                    .map(Self.formatHistoryMessage)
+                    .joined(separator: "\n\n")
             return content.isEmpty ? nil : content
         }
     }
@@ -95,8 +95,8 @@ public struct AssembledPrompt: Sendable {
         case .user:
             return "User: \(message.content)"
         case .assistant:
-            if let think = message.think, !think.isEmpty {
-                return "Assistant: <think>\(think)</think>\n\(message.content)"
+            if let reasoning = message.reasoning, !reasoning.isEmpty {
+                return "Assistant: <think>\(reasoning)</think>\n\(message.content)"
             }
             return "Assistant: \(message.content)"
         case .system:
