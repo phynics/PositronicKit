@@ -10,11 +10,14 @@ public struct ContextRanker: Sendable {
     ///   - semantic: Initial semantic search results
     ///   - tagBased: Results found via tag matching
     ///   - queryEmbedding: The embedding vector of the query
+    ///   - now: Closure producing the current time, used for time-decay calculation.
+    ///     Defaults to `Date.init`; tests can inject a fixed clock for deterministic decay.
     /// - Returns: Ranked and combined results
     public func rankMemories(
         semantic: [SemanticSearchResult],
         tagBased: [Memory],
-        queryEmbedding: [Double]
+        queryEmbedding: [Double],
+        now: @escaping () -> Date = Date.init
     ) -> [SemanticSearchResult] {
         // Tag matches are explicit and highly relevant, give them a significant boost
         // A boost of 0.5 ensures they rank highly but don't strictly override strong semantic matches
@@ -23,7 +26,7 @@ public struct ContextRanker: Sendable {
         // Time decay configuration
         // Half-life of 42 days: memories lose half their freshness boost every 42 days
         let halfLifeDays = 42.0
-        let now = Date()
+        let now = now()
 
         var results: [SemanticSearchResult] = semantic.map {
             SemanticSearchResult(memory: $0.memory, similarity: $0.similarity)

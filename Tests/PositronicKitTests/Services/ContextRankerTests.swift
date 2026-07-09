@@ -1,9 +1,9 @@
-import Testing
 import Foundation
-@testable import PositronicKit
 @testable import PKShared
+@testable import PositronicKit
+import Testing
 
-@Suite final class ContextRankerTests {
+final class ContextRankerTests {
     var ranker: ContextRanker!
 
     init() {
@@ -26,7 +26,7 @@ import Foundation
 
     @Test
 
-    func testContextRankerTimeDecay() {
+    func contextRankerTimeDecay() {
         let id1 = UUID()
         let id2 = UUID()
         let queryEmbedding = [1.0, 0.0]
@@ -53,7 +53,7 @@ import Foundation
 
         let semanticResults = [
             SemanticSearchResult(memory: memoryOld, similarity: 1.0),
-            SemanticSearchResult(memory: memoryNew, similarity: 1.0)
+            SemanticSearchResult(memory: memoryNew, similarity: 1.0),
         ]
 
         let ranked = ranker.rankMemories(
@@ -70,7 +70,49 @@ import Foundation
     }
 
     @Test
-    func testContextRankerTagBoosts() {
+    func contextRankerTimeDecayWithInjectedClock() {
+        let id42 = UUID()
+        let id84 = UUID()
+        let queryEmbedding = [1.0, 0.0]
+        let fixedNow = Date(timeIntervalSince1970: 1_700_000_000)
+
+        let memory42DaysOld = createMemory(
+            id: id42,
+            title: "Docs",
+            content: "Using the framework",
+            embedding: [1.0, 0.0],
+            date: fixedNow.addingTimeInterval(-42 * 86400)
+        )
+
+        let memory84DaysOld = createMemory(
+            id: id84,
+            title: "Docs",
+            content: "Using the framework",
+            embedding: [1.0, 0.0],
+            date: fixedNow.addingTimeInterval(-84 * 86400)
+        )
+
+        let semanticResults = [
+            SemanticSearchResult(memory: memory42DaysOld, similarity: 1.0),
+            SemanticSearchResult(memory: memory84DaysOld, similarity: 1.0),
+        ]
+
+        let ranked = ranker.rankMemories(
+            semantic: semanticResults,
+            tagBased: [],
+            queryEmbedding: queryEmbedding,
+            now: { fixedNow }
+        )
+
+        #expect(ranked.count == 2)
+        #expect(ranked[0].memory.id == id42)
+        #expect(abs((ranked[0].similarity ?? 0.0) - 0.5) < 0.0001)
+        #expect(ranked[1].memory.id == id84)
+        #expect(abs((ranked[1].similarity ?? 0.0) - 0.25) < 0.0001)
+    }
+
+    @Test
+    func contextRankerTagBoosts() {
         let idSemantic = UUID()
         let idTag = UUID()
         let queryEmbedding = [1.0, 0.0]
@@ -96,7 +138,7 @@ import Foundation
         )
 
         let semanticResults = [
-            SemanticSearchResult(memory: memorySemOnly, similarity: 0.9)
+            SemanticSearchResult(memory: memorySemOnly, similarity: 0.9),
         ]
 
         // Simulate finding the tagged memory from a tag search, it adds `tagBoost: 0.5`
@@ -116,7 +158,7 @@ import Foundation
     }
 
     @Test
-    func testContextRankerTagBoostsOnExistingSemanticResult() {
+    func contextRankerTagBoostsOnExistingSemanticResult() {
         let idMerged = UUID()
         let queryEmbedding = [1.0, 0.0]
         let now = Date()
@@ -131,7 +173,7 @@ import Foundation
         )
 
         let semanticResults = [
-            SemanticSearchResult(memory: memoryMerged, similarity: 0.8)
+            SemanticSearchResult(memory: memoryMerged, similarity: 0.8),
         ]
 
         let ranked = ranker.rankMemories(
