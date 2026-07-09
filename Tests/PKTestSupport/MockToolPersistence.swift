@@ -1,8 +1,15 @@
+import Foundation
 import PKShared
 import PositronicKit
-import Foundation
 import Synchronization
 
+/// In-memory `ToolPersistenceProtocol` test double, storing tools as `tools` arrays on a
+/// mutex-guarded set of `WorkspaceReference`s (mirroring how tools are actually persisted
+/// as part of their owning workspace).
+///
+/// Inspectable: `workspaces` reads/writes the backing store directly, so tests can seed
+/// workspaces (with tools already attached) or assert on saved state. Mutating a workspace
+/// not present in `workspaces` throws `ToolError.workspaceNotFound`.
 public final class MockToolPersistence: ToolPersistenceProtocol, @unchecked Sendable {
     private let workspacesState = Mutex<[WorkspaceReference]>([])
 

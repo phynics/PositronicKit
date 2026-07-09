@@ -1,8 +1,12 @@
 import Foundation
 
+/// How much a tool/workspace consumer is permitted to do within a workspace's boundary.
 public enum WorkspaceTrustLevel: String, Codable, Sendable {
+    /// Unrestricted operations within the workspace boundary.
     case full // Unrestricted within boundary
+    /// Only an allowlisted set of operations is permitted.
     case restricted // Allowlist of operations
+    /// Only read-only filesystem operations are permitted.
     case readOnly // Read-only filesystem operations
 }
 
@@ -11,19 +15,30 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
     public let id: UUID
     public let uri: WorkspaceURI
     public var location: WorkspaceLocation
+    /// The identity that requested this workspace be created (`RequestOriginIdentity.id`),
+    /// or `nil` for workspaces the runtime owns/creates itself.
     public let originId: UUID? // RequestOriginIdentity.id or nil for runtime-owned
+    /// Tools available in this workspace
     public var tools: [ToolReference] // Tools available in this workspace
+    /// Filesystem root for the workspace
     public var rootPath: String? // Filesystem root for the workspace
     public var trustLevel: WorkspaceTrustLevel
+    /// The id of the timeline that last modified this workspace, if any.
     public var lastModifiedBy: UUID? // Timeline ID that last modified
     public var status: WorkspaceStatus
+    /// Arbitrary caller-supplied metadata attached to the workspace.
     public var metadata: [String: AnyCodable]
+    /// Optional extra text injected into the prompt context when this workspace is active.
     public var contextInjection: String?
     public let createdAt: Date
 
+    /// Where a workspace lives relative to the runtime.
     public enum WorkspaceLocation: String, Codable, Sendable {
+        /// A workspace owned directly by the runtime, not tied to a specific timeline.
         case runtime
+        /// A workspace specific to a timeline in this runtime
         case runtimeTimeline // A workspace specific to a timeline in this runtime
+        /// A workspace attached from outside the runtime (e.g. an existing filesystem location).
         case attached
 
         public init(from decoder: any Decoder) throws {
@@ -42,9 +57,13 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         }
     }
 
+    /// Whether the workspace's underlying storage is currently reachable.
     public enum WorkspaceStatus: String, Codable, Sendable {
+        /// The workspace is present and usable.
         case active
+        /// The workspace's underlying location could not be found (e.g. deleted on disk).
         case missing
+        /// Status has not yet been determined.
         case unknown
     }
 

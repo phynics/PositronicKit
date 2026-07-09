@@ -8,11 +8,19 @@ import Synchronization
 /// into the shape their wire protocol expects. The core runtime consumes this value
 /// and applies the transformed fields to the streaming request.
 public struct PreparedStructuredOutputRequest: Sendable {
+    /// Messages to send, possibly with `promptAugmentation` appended to the trailing user message.
     public let messages: [LLMMessage]
+    /// Tools to send, including any synthetic tool injected to carry the structured schema.
     public let tools: [LLMToolDefinition]?
+    /// Tool-choice constraint; set to force the synthetic structured-output tool where used.
     public let toolChoice: LLMToolChoice?
+    /// Native response-format constraint, when the provider supports one directly (`nil` when
+    /// structured output is instead carried via a synthetic tool call).
     public let responseFormat: LLMResponseFormat?
+    /// Name of the synthetic tool injected to carry the schema, if one was used; the runtime
+    /// uses this to recognize and unwrap the tool call as the structured response.
     public let syntheticToolName: String?
+    /// Extra prompt text appended to steer providers with no native structured-output support.
     public let promptAugmentation: String?
 
     public init(
@@ -39,6 +47,7 @@ public struct PreparedStructuredOutputRequest: Sendable {
 /// This keeps provider knowledge out of the core runtime while still allowing hosts to
 /// plug in custom behavior for arbitrary providers.
 public protocol StructuredOutputAdapter: Sendable {
+    /// Transforms a neutral structured-output request into the provider-specific shape.
     func prepareRequest(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,
@@ -54,10 +63,12 @@ public protocol StructuredOutputAdapter: Sendable {
 public enum StructuredOutputAdapterRegistry {
     private static let adapters = Mutex<[LLMProvider: any StructuredOutputAdapter]>([:])
 
+    /// Registers or replaces the structured-output adapter for `provider`.
     public static func register(_ adapter: any StructuredOutputAdapter, for provider: LLMProvider) {
         adapters.withLock { $0[provider] = adapter }
     }
 
+    /// Returns the registered adapter for `provider`, if any has been registered.
     public static func adapter(for provider: LLMProvider) -> (any StructuredOutputAdapter)? {
         adapters.withLock { $0[provider] }
     }

@@ -2,6 +2,18 @@ import Foundation
 import PKShared
 import PositronicKit
 
+/// In-memory `LLMClientProtocol` test double.
+///
+/// Configurable: `nextResponse`/`nextResponses` (single/sequenced full-text replies),
+/// `nextChunks` (multi-chunk streaming), `nextRawStreamChunks` (fully custom
+/// `LLMStreamChunk`s, for exercising tool-call delta fragmentation), `nextToolCalls`
+/// (typed tool calls appended to the last streamed chunk), `nextStreamWait` (inter-chunk
+/// delay via the injectable `clock`, e.g. `ImmediateClock` for instant tests),
+/// `shouldThrowError`/`errorToThrow`, and `neverFinishingStreamCallIndices` (simulate a
+/// hung stream for cancellation tests).
+/// Call-capture: `lastMessages`/`messageHistory` (every `chatStream` call's messages, in
+/// order), `lastTools`, `lastToolChoice`, `lastResponseFormat`, `lastParameters`, and
+/// `streamCallCount`.
 public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
     /// Clock used to drive inter-chunk delays. Inject `ImmediateClock` in tests for instant
     /// execution, or leave the default `ContinuousClock` for realistic timing.
@@ -188,6 +200,16 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
     }
 }
 
+/// In-memory test double for the full LLM service surface (`LLMStreamClient`,
+/// `LLMConfigStore`, `LLMUtilityClient`, `HealthCheckable`), backed internally by a
+/// ``MockLLMClient`` (`mockClient`) for its streaming behavior.
+///
+/// Configurable: `mockConfig`/`mockIsConfigured` (configuration state),
+/// `mockHealthStatus`/`mockHealthDetails` (health-check responses), `nextResponse`
+/// (non-streamed reply text), `nextTags`/`nextGeneratedTitle` (tagging/title-generation
+/// stubs), `stubbedStream` (override the stream returned by `chatStream`, bypassing
+/// `mockClient`).
+/// Call-capture: `generatedTitleInputs` (messages passed to each `generateTitle` call).
 public final class MockLLMService: LLMStreamClient, LLMConfigStore, LLMUtilityClient, @unchecked Sendable, HealthCheckable {
     public var mockHealthStatus: HealthStatus = .ok
     public var mockHealthDetails: [String: String]? = ["mock": "true"]

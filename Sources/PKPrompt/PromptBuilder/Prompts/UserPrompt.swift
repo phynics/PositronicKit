@@ -1,5 +1,9 @@
 import Foundation
 
+/// The current user query section in the ``PromptBuilder`` DSL.
+///
+/// Renders with `role: .userQuery` and `cachePolicy: .volatile` (the query changes every
+/// turn) and `compression: .keep`, so it is never truncated/summarized by the compressor.
 public struct UserPrompt: Prompt {
     public let id: String
     public let text: String

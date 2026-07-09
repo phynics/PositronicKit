@@ -1,8 +1,14 @@
+import Foundation
 import PKShared
 import PositronicKit
-import Foundation
 import Synchronization
 
+/// In-memory `AgentTemplateStoreProtocol` test double backed by a mutex-guarded array.
+///
+/// Configurable/inspectable: `agentTemplates` directly reads/writes the backing store, so
+/// tests can seed fixtures or assert on saved state without going through the protocol
+/// methods. `fetchAgentTemplate(key:)` treats `"default"` as an alias for the first stored
+/// template, otherwise resolves the key as a UUID string.
 public final class MockAgentTemplateStore: AgentTemplateStoreProtocol, @unchecked Sendable {
     private let templatesState = Mutex<[AgentTemplate]>([])
 

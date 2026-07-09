@@ -1,7 +1,13 @@
+import Foundation
 import PKShared
 import PositronicKit
-import Foundation
 
+/// In-memory `ConfigurationServiceProtocol` test double.
+///
+/// Configurable: `config` (current stored configuration, defaults to `.openAI`) and
+/// `backupConfig` (the value `restoreFromBackup()` restores from, if set; `nil` makes
+/// restore a no-op that returns `nil`). `clear()` resets `config` back to `.openAI` rather
+/// than clearing it to an empty/unconfigured state.
 public actor MockConfigurationService: ConfigurationServiceProtocol {
     public var config: LLMConfiguration = .openAI
     public var backupConfig: LLMConfiguration?
@@ -17,14 +23,14 @@ public actor MockConfigurationService: ConfigurationServiceProtocol {
     }
 
     public func clear() async {
-        self.config = .openAI
+        config = .openAI
     }
 
     public func migrateIfNeeded() async {}
 
     public func restoreFromBackup() async throws -> LLMConfiguration? {
         if let backup = backupConfig {
-            self.config = backup
+            config = backup
             return backup
         }
         return nil
@@ -36,6 +42,6 @@ public actor MockConfigurationService: ConfigurationServiceProtocol {
 
     public func importConfiguration(from data: Data) async throws {
         let decoded = try JSONDecoder().decode(LLMConfiguration.self, from: data)
-        self.config = decoded
+        config = decoded
     }
 }

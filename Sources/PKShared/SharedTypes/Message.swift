@@ -86,13 +86,23 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
         case cancelled
     }
 
+    /// Stages of the memory-retrieval context-gathering pipeline, reported via progress
+    /// callbacks (e.g. `MemoryRetrievalStage`) so clients can show a live status label
+    /// while context is assembled for a turn. The raw value is the human-readable label.
     public enum ContextGatheringProgress: String, Sendable, Codable, CaseIterable {
+        /// Rewriting/expanding the raw user query for retrieval.
         case augmenting = "Augmenting Query"
+        /// Generating tags used to filter or bias memory search.
         case tagging = "Generating Tags"
+        /// Generating the query embedding for similarity search.
         case embedding = "Generating Embedding"
+        /// Running the memory similarity search.
         case searching = "Searching Memories"
+        /// Ranking/scoring the search results.
         case ranking = "Ranking Results"
+        /// Locating relevant notes/documents outside of memory search.
         case discoveringNotes = "Discovering Notes"
+        /// Context gathering has finished.
         case complete = "Context Ready"
     }
 

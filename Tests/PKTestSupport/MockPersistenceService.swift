@@ -2,6 +2,19 @@ import Foundation
 import PKShared
 import PositronicKit
 
+/// Composite in-memory test double for the full persistence surface (memories, messages,
+/// timelines, agent templates, workspaces, tools, request origins, agent instances,
+/// health), delegating each protocol area to its own focused mock (``MockMemoryStore``,
+/// ``MockMessageStore``, ``MockTimelinePersistence``, ``MockAgentTemplateStore``,
+/// ``MockWorkspacePersistence``, ``MockToolPersistence``) so a test can construct a single
+/// object instead of wiring up every store protocol separately.
+///
+/// Configurable: `mockHealthStatus`/`mockHealthDetails`; `saveOriginMock`/`fetchOriginMock`/
+/// `fetchAllOriginsMock`/`deleteOriginMock` (closures overriding `RequestOriginStoreProtocol`
+/// behavior — unset closures make origin operations no-ops/return empty). Inspectable:
+/// `memories`, `searchResults`, `messages`, `timelines`, `agentTemplates`, `workspaces`,
+/// `agentInstances` all forward to the underlying focused mocks. `resetDatabase()` clears
+/// every backing store.
 public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProtocol, TimelinePersistenceProtocol, WorkspacePersistenceProtocol, AgentTemplateStoreProtocol, RequestOriginStoreProtocol, ToolPersistenceProtocol, AgentInstanceStoreProtocol, HealthCheckable, @unchecked Sendable {
     private let memoriesMock = MockMemoryStore()
     private let messagesMock = MockMessageStore()

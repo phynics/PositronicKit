@@ -1,5 +1,10 @@
 import Foundation
 
+/// A top-level system-instruction section in the ``PromptBuilder`` DSL.
+///
+/// Renders with `role: .system`, `cachePolicy: .stable` (not inherited from ancestors —
+/// system instructions are treated as stable regardless of surrounding context), and
+/// defaults to `PromptPriority.critical` so it is the last thing dropped under compression.
 public struct SystemPrompt: Prompt {
     public let id: String
     public let text: String
