@@ -3,6 +3,7 @@
     import Foundation
     @testable import PKFastEmbed
     import PKShared
+    import Synchronization
     import Testing
     import XCTest
 
@@ -361,6 +362,37 @@
             #expect(errorPointer != nil)
         }
 
+        @Test("concurrent embed calls overlap without corrupting shared state")
+        func concurrentEmbedCallsOverlapSafely() async throws {
+            let harness = ConcurrencyHarness(dimensions: 8)
+            let model = try MiniLMEmbedder(
+                modelDirectory: URL(fileURLWithPath: "/fake/model"),
+                nativeAPI: harness.nativeAPI
+            )
+
+            let taskCount = 16
+            let results = try await withThrowingTaskGroup(of: [Float].self) { group in
+                for index in 0 ..< taskCount {
+                    group.addTask {
+                        try model.embed("concurrent-\(index)")
+                    }
+                }
+                var collected: [[Float]] = []
+                collected.reserveCapacity(taskCount)
+                for try await vector in group {
+                    collected.append(vector)
+                }
+                return collected
+            }
+
+            #expect(harness.callCount == taskCount)
+            #expect(harness.highWater >= 2)
+            #expect(results.count == taskCount)
+            for vector in results {
+                #expect(vector.count == harness.dimensions)
+            }
+        }
+
         private func makeModel() throws -> MiniLMEmbedder? {
             guard let modelDirectory = modelDirectory() else {
                 return nil
@@ -529,6 +561,83 @@
                 result = result &* 31 &+ Int(byte)
             }
             return (0 ..< dimensions).map { Float((seed + $0) % 1000) }
+        }
+    }
+
+    private final class ConcurrencyHarness: @unchecked Sendable {
+        let handle = OpaquePointer(bitPattern: 0x1)!
+        let dimensions: Int
+
+        private struct ConcurrencyState: Sendable {
+            var inFlight = 0
+            var highWater = 0
+            var callCount = 0
+        }
+        private let state = Mutex(ConcurrencyState())
+
+        init(dimensions: Int) {
+            self.dimensions = dimensions
+        }
+
+        var highWater: Int { state.withLock { $0.highWater } }
+        var callCount: Int { state.withLock { $0.callCount } }
+
+        var nativeAPI: MiniLMEmbedder.NativeAPI {
+            .init(
+                abiVersion: { PKFASTEMBED_ABI_VERSION },
+                modelCreate: { [unowned self] _, outModel, _ in
+                    outModel.pointee = self.handle
+                    return PKFE_STATUS_OK
+                },
+                modelDimensions: { [unowned self] _, outDimensions, _ in
+                    outDimensions.pointee = self.dimensions
+                    return PKFE_STATUS_OK
+                },
+                modelEmbed: { [unowned self] _, utf8Bytes, utf8Length, outBuffer, outCount, _ in
+                    self.state.withLock { state in
+                        state.inFlight += 1
+                        state.highWater = max(state.highWater, state.inFlight)
+                        state.callCount += 1
+                    }
+                    // Hold the slot so concurrent calls actually overlap on a multi-core host.
+                    Thread.sleep(forTimeInterval: 0.005)
+                    self.state.withLock { $0.inFlight -= 1 }
+
+                    guard let outBuffer else {
+                        return PKFE_STATUS_INVALID_ARGUMENT
+                    }
+
+                    let bytes = Self.captureBytes(from: utf8Bytes, length: utf8Length)
+                    let vector = self.embedding(for: bytes)
+                    guard outCount >= vector.count else {
+                        return PKFE_STATUS_BUFFER_TOO_SMALL
+                    }
+
+                    let output = UnsafeMutableBufferPointer(start: outBuffer, count: outCount)
+                    for (index, value) in vector.enumerated() {
+                        output[index] = value
+                    }
+                    return PKFE_STATUS_OK
+                },
+                modelEmbedBatch: { _, _, _, _, _, _, _ in
+                    PKFE_STATUS_INVALID_ARGUMENT
+                },
+                modelDestroy: { _ in }
+            )
+        }
+
+        private static func captureBytes(from pointer: UnsafePointer<UInt8>?, length: Int) -> [UInt8] {
+            guard length > 0, let pointer else {
+                return []
+            }
+            return Array(UnsafeBufferPointer(start: pointer, count: length))
+        }
+
+        private func embedding(for bytes: [UInt8]) -> [Float] {
+            let seed = bytes.reduce(into: 0) { result, byte in
+                result = result &* 31 &+ Int(byte)
+            }
+            return (0 ..< dimensions).map { Float((seed + $0) % 1_000) }
         }
     }
 #endif

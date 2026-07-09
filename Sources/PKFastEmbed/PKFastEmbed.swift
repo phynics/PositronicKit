@@ -15,6 +15,32 @@ public enum PKFastEmbedError: Error, Equatable, Sendable {
     case budgetExceeded(EmbeddingInputBudget.ValidationError)
 }
 
+/// In-process MiniLM embedding bridge backed by the C ABI in `CPKFastEmbed`.
+///
+/// `@unchecked Sendable` is justified by the thread-safety contract of the native
+/// handle (see `native/pkfastembed/src/lib.rs`):
+///
+/// - **Embedding is reentrant-safe.** `pkfe_model_embed` and `pkfe_model_embed_batch`
+///   serialize on a Rust `Mutex<TextEmbedding>` (`Model.inner`, acquired immediately
+///   before `guard.embed(...)` in both entry points), so concurrent `embed(_:)`
+///   calls from multiple threads cannot race the FastEmbed/ONNX Runtime state — they
+///   simply take turns. Panics raised inside the native call are contained by
+///   `catch_unwind` (`c_abi_guard` / `contain_panics`) and surfaced as
+///   `PKFE_STATUS_INFERENCE_FAILED`, never aborting the process.
+/// - **The wrapper holds no mutable shared state.** `handle`, `dimensions`,
+///   `inputBudget`, and `nativeAPI` are all `let`-bound, and `embed(_:)` operates
+///   only on stack-local buffers, so the Swift side mutates nothing across calls.
+/// - **`pkfe_model_destroy` is NOT safe to race with embedding.** `deinit` calls
+///   `pkfe_model_destroy`, which does `drop(Box::from_raw(model))`; racing that
+///   against an in-flight `embed` is use-after-free. This is a *lifecycle* constraint,
+///   not an embedding-concurrency one: `MiniLMEmbedder` requires a single owner that
+///   outlives every embedding call.
+///
+/// The sole production owner is `PKMiniLMPlatformBackend`, an `actor` whose isolation
+/// serializes all access and whose deallocation — the only point at which `deinit` can
+/// run — is guaranteed to have no embedding in flight. Direct use in
+/// `Tests/PKFastEmbedTests` is single-threaded. `Sendable` is required because
+/// `PKMiniLMPlatformBackend` (an actor, hence `Sendable`) stores this type as a `let`.
 public final class MiniLMEmbedder: @unchecked Sendable {
     package struct NativeAPI {
         var abiVersion: @Sendable () -> UInt32
