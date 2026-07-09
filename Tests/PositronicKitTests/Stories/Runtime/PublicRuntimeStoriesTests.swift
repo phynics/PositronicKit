@@ -309,7 +309,7 @@ struct PublicRuntimeStoriesTests {
     // MARK: - Helpers
 
     private func makeChat(
-        llmService: any LLMServiceProtocol,
+        llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient,
         persistence: MockPersistenceService
     ) -> PositronicKit {
         PositronicKit(

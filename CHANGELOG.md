@@ -78,6 +78,19 @@ for tagged releases beginning with `1.0.0`.
   cases. Zero downstream callers across Monad, Shuttle, and Yakamoz (both Yakamoz call sites
   already use the `ToolProvenance` overload), so source-compatible in practice for consumers
   pinning to released versions.
+- (PKCLEAN-003) **Breaking:** removed the deprecated `LLMServiceProtocol` composite protocol
+  (the `@available(*, deprecated)` aggregate of `LLMStreamClient`, `LLMConfigStore`,
+  `LLMUtilityClient`, and `HealthCheckable` introduced by PKARCH-004). The `PositronicKit`
+  facade now types its `llmService` parameter/property as
+  `any LLMStreamClient & LLMConfigStore & LLMUtilityClient` (the intersection of the three
+  narrow seams; `HealthCheckable` is no longer required by the facade). `LLMService`,
+  `UnconfiguredLLMService`, and `MockLLMService` still conform to the three narrow protocols,
+  so callers passing those compile unchanged. Downstream migration: Monad call sites
+  (`MonadServerFactory+Routes.swift`, `MonadServerFactory.swift`, `StatusAPIController.swift`,
+  `ConfigurationAPIController.swift`) are tracked by `MON-PK-2`; Shuttle
+  (`ShuttleShardAgentRunner.swift`, `ShuttleAgentRunnerTestSupport.swift`) and Yakamoz
+  (`YakamozRuntime.swift`) migrations are not yet filed. Release-cut and consumer pin bumps
+  are deferred until those land.
 
 ### Fixed
 
