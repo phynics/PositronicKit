@@ -2,13 +2,26 @@ import Foundation
 import PKPrompt
 import PKShared
 
-/// Observability hook for turn composition, invoked once per round-trip with the
-/// rendered prompt, sent messages, and journal snapshot.
+/// Compose-time observability hook: invoked once per round-trip *before* the LLM runs,
+/// with the rendered prompt, sent messages, and prompt-journal snapshot — i.e. the input
+/// side of the turn, before any response exists.
+///
+/// This is the read-only counterpart to `ChatTurnPlugin`. The two hooks fire in different
+/// phases and must not merge:
+/// - `TurnInspecting.didComposeTurn` fires at prompt-assembly time (no response yet),
+///   returns `Void`, and is a single optional `turnInspector`.
+/// - `ChatTurnPlugin.afterTurn` fires after the turn completes (with the full response),
+///   returns `[LLMMessage]` to drive a follow-up turn, and is an ordered `chatTurnPlugins`
+///   list.
+/// Their payloads overlap only on correlation keys (timeline/agent/turn ordinal); the
+/// substantive data is disjoint (input snapshot vs. output). See `ChatTurnPlugin`.
 ///
 /// Intentional single-customer extension point: the sole production adapter is
 /// Yakamoz's `SwiftDataTurnInspector`. The protocol exists so downstream consumers
 /// can plug in their own persistence/inspection layer without forking the runtime.
-/// Do not generalize without a second adapter.
+/// "Do not generalize without a second adapter" applies to *this* protocol's surface
+/// (don't broaden `TurnInspection` or add methods without a second real conformer) —
+/// it is not a reason to merge with `ChatTurnPlugin`.
 public protocol TurnInspecting: Sendable {
     func didComposeTurn(_ inspection: TurnInspection) async
 }
