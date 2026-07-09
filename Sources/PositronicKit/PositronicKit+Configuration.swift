@@ -62,6 +62,9 @@ public extension PositronicKit {
     ///     initializer's doc comment for why hosts that rebuild `PositronicKit` per send must
     ///     pass the same instance every time.
     ///   - generationParameters: Optional default parameters for generation.
+    ///   - toolApprovalGate: Gate consulted before any permissioned tool runs. Defaults to
+    ///     `DenyAllToolApprovalGate` so permissioned tools never execute without an explicit
+    ///     approval path; see the main initializer's doc comment (YAK-31).
     init(
         llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient,
         persistence: PersistenceConfiguration,
@@ -70,7 +73,8 @@ public extension PositronicKit {
         chatTurnPlugins: [any ChatTurnPlugin] = [],
         turnInspector: (any TurnInspecting)? = nil,
         promptHistoryRegistry: TimelinePromptHistoryRegistry = TimelinePromptHistoryRegistry(),
-        generationParameters: GenerationParameters? = nil
+        generationParameters: GenerationParameters? = nil,
+        toolApprovalGate: any ToolApprovalGate = DenyAllToolApprovalGate()
     ) {
         self.init(
             llmService: llmService,
@@ -86,7 +90,8 @@ public extension PositronicKit {
             chatTurnPlugins: chatTurnPlugins,
             turnInspector: turnInspector,
             promptHistoryRegistry: promptHistoryRegistry,
-            generationParameters: generationParameters
+            generationParameters: generationParameters,
+            toolApprovalGate: toolApprovalGate
         )
     }
 }
@@ -109,6 +114,7 @@ public extension PositronicKit {
         public let workspaceRoot: URL?
         public let chatTurnPlugins: [any ChatTurnPlugin]
         public let turnInspector: (any TurnInspecting)?
+        public let toolApprovalGate: any ToolApprovalGate
 
         public init(
             workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
@@ -116,7 +122,8 @@ public extension PositronicKit {
             runtimeToolPolicy: TimelineManager.RuntimeToolPolicy = .default,
             workspaceRoot: URL? = nil,
             chatTurnPlugins: [any ChatTurnPlugin] = [],
-            turnInspector: (any TurnInspecting)? = nil
+            turnInspector: (any TurnInspecting)? = nil,
+            toolApprovalGate: any ToolApprovalGate = DenyAllToolApprovalGate()
         ) {
             self.workspaceCreator = workspaceCreator
             self.sectionProviders = sectionProviders
@@ -124,6 +131,7 @@ public extension PositronicKit {
             self.workspaceRoot = workspaceRoot
             self.chatTurnPlugins = chatTurnPlugins
             self.turnInspector = turnInspector
+            self.toolApprovalGate = toolApprovalGate
         }
 
         public static func `default`() -> RuntimeConfiguration {
@@ -155,7 +163,8 @@ public extension PositronicKit {
             runtimeToolPolicy: runtime.runtimeToolPolicy,
             chatTurnPlugins: runtime.chatTurnPlugins,
             turnInspector: runtime.turnInspector,
-            generationParameters: generationParameters
+            generationParameters: generationParameters,
+            toolApprovalGate: runtime.toolApprovalGate
         )
     }
 }
