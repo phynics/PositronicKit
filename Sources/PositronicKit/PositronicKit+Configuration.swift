@@ -63,7 +63,7 @@ public extension PositronicKit {
     ///     pass the same instance every time.
     ///   - generationParameters: Optional default parameters for generation.
     init(
-        llmService: any LLMServiceProtocol,
+        llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient,
         persistence: PersistenceConfiguration,
         embeddingService: (any EmbeddingServiceProtocol)? = nil,
         workspaceRoot: URL? = nil,
@@ -133,7 +133,7 @@ public extension PositronicKit {
 
     /// Creates a PositronicKit with grouped persistence and grouped runtime configuration.
     init(
-        llmService: any LLMServiceProtocol,
+        llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient,
         persistence: PersistenceConfiguration,
         embeddingService: (any EmbeddingServiceProtocol)? = nil,
         runtime: RuntimeConfiguration,

@@ -174,16 +174,6 @@ public protocol LLMUtilityClient: Sendable {
     func fetchAvailableModels() async throws -> [String]?
 }
 
-// MARK: - Deprecated composite
-
-/// Composite of the three narrow LLM seams plus `HealthCheckable`, retained for migration.
-///
-/// Prefer the narrow protocols (`LLMStreamClient`, `LLMConfigStore`, `LLMUtilityClient`)
-/// directly. `LLMService` conforms to all three; new code should depend on the smallest seam
-/// it needs. This typealias will be removed in a future release.
-@available(*, deprecated, message: "Depend on LLMStreamClient, LLMConfigStore, or LLMUtilityClient directly; LLMService conforms to all three.")
-public protocol LLMServiceProtocol: LLMStreamClient, LLMConfigStore, LLMUtilityClient, HealthCheckable {}
-
 public extension LLMStreamClient {
     /// Default-args convenience for the low-level streaming entry point.
     func chatStream(

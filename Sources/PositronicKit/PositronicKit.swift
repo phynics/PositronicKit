@@ -28,7 +28,7 @@ import PKShared
 public struct PositronicKit: Sendable {
     // MARK: - Direct ChatEngine dependencies
 
-    let llmService: any LLMServiceProtocol
+    let llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient
     private let messageStore: any MessageStoreProtocol
 
     /// The timeline manager built by this facade. Hosts that need direct access (e.g. to wire
@@ -79,7 +79,7 @@ public struct PositronicKit: Sendable {
     /// A simplified initializer for common use cases.
     /// Provides sensible in-memory defaults for all stores.
     public init(
-        llmService: any LLMServiceProtocol = UnconfiguredLLMService(),
+        llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient = UnconfiguredLLMService(),
         turnInspector: (any TurnInspecting)? = nil,
         generationParameters: GenerationParameters? = nil
     ) {
@@ -127,7 +127,7 @@ public struct PositronicKit: Sendable {
     ///     `requiresPermission` is `true` runs. Defaults to `DenyAllToolApprovalGate` so
     ///     permissioned tools never execute without an explicitly injected approval path (YAK-31).
     public init(
-        llmService: any LLMServiceProtocol,
+        llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient,
         messageStore: (any MessageStoreProtocol)? = nil,
         agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,
         requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
@@ -213,7 +213,7 @@ public struct PositronicKit: Sendable {
     /// This is the supported path for hosts that must refresh provider settings between sends
     /// without silently resetting per-timeline prompt-history state.
     public func reconfigured(
-        llmService: any LLMServiceProtocol,
+        llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient,
         generationParameters: GenerationParameters? = nil
     ) -> PositronicKit {
         PositronicKit(

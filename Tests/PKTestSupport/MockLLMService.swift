@@ -188,7 +188,7 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
     }
 }
 
-public final class MockLLMService: LLMServiceProtocol, @unchecked Sendable, HealthCheckable {
+public final class MockLLMService: LLMStreamClient, LLMConfigStore, LLMUtilityClient, @unchecked Sendable, HealthCheckable {
     public var mockHealthStatus: HealthStatus = .ok
     public var mockHealthDetails: [String: String]? = ["mock": "true"]
 
