@@ -64,10 +64,10 @@ final class LLMConfigurationModelsTests {
             modelName: "llama3",
             utilityModel: "llama3",
             fastModel: "llama3",
-            toolFormat: .json
+            toolFormat: .openAI
         )
         try assertCodable(config)
-        #expect(config.toolFormat == .json)
+        #expect(config.toolFormat == .openAI)
     }
 
     @Test
@@ -78,7 +78,7 @@ final class LLMConfigurationModelsTests {
             modelName: "llama3",
             utilityModel: "llama3",
             fastModel: "llama3",
-            toolFormat: .json
+            toolFormat: .openAI
         )
 
         config.temperature = 0.7
@@ -137,13 +137,21 @@ final class LLMConfigurationModelsTests {
 
     @Test
     func toolCallFormatCodable() throws {
-        let f1 = ToolCallFormat.openAI
-        try assertCodable(f1)
+        // PKCLEAN-007: `.json`/`.xml` were removed; `.openAI` is the only case
+        // and must round-trip cleanly.
+        try assertCodable(ToolCallFormat.openAI)
+    }
 
-        let f2 = ToolCallFormat.json
-        try assertCodable(f2)
-
-        let f3 = ToolCallFormat.xml
-        try assertCodable(f3)
+    @Test
+    func toolCallFormatDecodesUnknownRawValueAsOpenAI() throws {
+        // PKCLEAN-007: lenient decode for on-disk configs predating the
+        // `.json`/`.xml` removal — stale raw values fall back to `.openAI`
+        // instead of throwing.
+        let decoder = JSONDecoder()
+        for staleRawValue in ["JSON", "XML"] {
+            let json = "\"\(staleRawValue)\"".data(using: .utf8)!
+            let decoded = try decoder.decode(ToolCallFormat.self, from: json)
+            #expect(decoded == .openAI)
+        }
     }
 }

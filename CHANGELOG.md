@@ -78,6 +78,15 @@ for tagged releases beginning with `1.0.0`.
   cases. Zero downstream callers across Monad, Shuttle, and Yakamoz (both Yakamoz call sites
   already use the `ToolProvenance` overload), so source-compatible in practice for consumers
   pinning to released versions.
+- (PKCLEAN-007) **Breaking:** removed the dead `ToolCallFormat.json` / `.xml` cases.
+  They were never acted on by the runtime or any provider adapter — `.openAI` (native,
+  provider-side tool calling) is the only supported format and the sole remaining case.
+  `Codable` decoding is now lenient: an on-disk config predating this change may still carry a
+  stale `"JSON"` or `"XML"` raw value; rather than throwing, any unrecognized raw value decodes
+  to `.openAI`, so existing config files keep loading without a migration. `ollamaDefaults`'
+  `toolFormat` (previously `.json`, silently ignored by the Ollama client) now defaults to
+  `.openAI`. The Monad CLI config picker/migration for this collapse is tracked separately as
+  `MON-PK-1` and will land after the next PositronicKit release + Monad pin bump.
 
 ### Fixed
 
