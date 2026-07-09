@@ -145,6 +145,9 @@ public actor ToolRouter {
     ) async throws -> ToolHandlingResult {
         var hasDeferred = false
         var resolvedToolParams: [LLMMessage] = []
+        var deferredCount = 0
+        var failedCount = 0
+        var deferredCallIDs: [Logger.Metadata.Value] = []
 
         for call in calls {
             let toolRef = resolveToolReference(
@@ -175,8 +178,13 @@ public actor ToolRouter {
                     continuation: continuation
                 )
                 if let param { resolvedToolParams.append(param) }
-                if case .deferredExternally = outcome { hasDeferred = true }
+                if case .deferredExternally = outcome {
+                    hasDeferred = true
+                    deferredCount += 1
+                    deferredCallIDs.append(.string(redactedHash(call.callId)))
+                }
             } catch {
+                failedCount += 1
                 let param = try await projectError(
                     error,
                     call: call,
@@ -187,6 +195,18 @@ public actor ToolRouter {
                 resolvedToolParams.append(param)
             }
         }
+
+        // turnIndex intentionally omitted: handlePendingToolCalls receives no turn count, and
+        // adding a parameter just for logging exceeds this ticket's blast radius.
+        let batchMeta: Logger.Metadata = [
+            "conversationID": .string(timelineId.uuidString),
+            "total": .string("\(calls.count)"),
+            "deferred": .string("\(deferredCount)"),
+            "resolved": .string("\(resolvedToolParams.count)"),
+            "failed": .string("\(failedCount)"),
+            "deferredCallIDs": .array(deferredCallIDs),
+        ]
+        logger.debug("Tool batch routed", metadata: batchMeta)
 
         return ToolHandlingResult(hasDeferred: hasDeferred, resolvedToolParams: resolvedToolParams)
     }
