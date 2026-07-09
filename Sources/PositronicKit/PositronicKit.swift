@@ -1,3 +1,4 @@
+import ErrorKit
 import Foundation
 import Logging
 import PKPrompt
@@ -42,6 +43,7 @@ public struct PositronicKit: Sendable {
     private var chatTurnPlugins: [any ChatTurnPlugin]
     private let turnInspector: (any TurnInspecting)?
     private let defaultGenerationParameters: GenerationParameters?
+    private let logger = Logger.module(named: "positronickit-facade")
 
     // MARK: - Transitive dependencies (TimelineManager, ContextManager)
 
@@ -304,6 +306,14 @@ public struct PositronicKit: Sendable {
         )
     }
 
+    /// Resolves the `ContextManager` for a turn, hydrating the timeline from persistence
+    /// first if it isn't already cached in memory.
+    ///
+    /// Hydration failure is logged, not propagated: a brand-new (never-persisted) timeline
+    /// legitimately has nothing to hydrate yet (`TimelineError.timelineNotFound`) — that is
+    /// the expected first-message flow, not a fault. A transient store error looks identical
+    /// from here, so both are logged at `.error` with the timeline ID and the turn proceeds
+    /// with `contextManager == nil`; downstream turn setup creates a fresh context as needed.
     private func resolveContextManager(
         explicit contextManager: ContextManager?,
         timelineId: UUID
@@ -316,7 +326,13 @@ public struct PositronicKit: Sendable {
             return existing
         }
 
-        try? await timelineManager.hydrateTimeline(id: timelineId)
+        do {
+            try await timelineManager.hydrateTimeline(id: timelineId)
+        } catch {
+            logger.error(
+                "Failed to hydrate timeline \(timelineId) before turn start: \(ErrorKit.userFriendlyMessage(for: error)). Proceeding unhydrated."
+            )
+        }
         return await timelineManager.getContextManager(for: timelineId)
     }
 }

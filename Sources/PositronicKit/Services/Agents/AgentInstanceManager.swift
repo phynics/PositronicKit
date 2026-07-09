@@ -170,7 +170,12 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
             content: "[ATTACH] Agent '\(agent.name)' (\(agentId.uuidString.prefix(8))) "
                 + "attached to timeline \"\(timeline.title)\" (\(timelineId.uuidString.prefix(8)))"
         )
-        try? await messageStore.saveMessage(logMsg)
+        do {
+            try await messageStore.saveMessage(logMsg)
+        } catch {
+            logger.warning(
+                "Failed to persist attach audit log for agent \(agentId) on timeline \(timelineId) (private timeline \(agent.privateTimelineId)): \(ErrorKit.userFriendlyMessage(for: error))")
+        }
 
         logger.info("Agent '\(agent.name)' attached to timeline '\(timeline.title)'")
     }
@@ -201,7 +206,12 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
                 content: "[DETACH] Agent '\(agent.name)' detached from timeline "
                     + "\"\(timeline.title)\" (\(timelineId.uuidString.prefix(8)))"
             )
-            try? await messageStore.saveMessage(logMsg)
+            do {
+                try await messageStore.saveMessage(logMsg)
+            } catch {
+                logger.warning(
+                    "Failed to persist detach audit log for agent \(agentId) on timeline \(timelineId) (private timeline \(agent.privateTimelineId)): \(ErrorKit.userFriendlyMessage(for: error))")
+            }
             logger.info("Agent '\(agent.name)' detached from timeline '\(timeline.title)'")
         }
     }
@@ -291,7 +301,12 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
         if let timelineManager {
             await timelineManager.deleteTimeline(id: instance.privateTimelineId)
         }
-        try? await timelineStore.deleteTimeline(id: instance.privateTimelineId)
+        do {
+            try await timelineStore.deleteTimeline(id: instance.privateTimelineId)
+        } catch {
+            logger.error(
+                "Failed to delete private timeline \(instance.privateTimelineId) for agent \(id): \(ErrorKit.userFriendlyMessage(for: error))")
+        }
 
         // 3. Delete database record
         try await instanceStore.deleteAgentInstance(id: id)
