@@ -79,7 +79,7 @@ struct PublicRuntimeStoriesTests {
         )).collect()
 
         #expect(events.contains(where: {
-            if case let .completion(event: .generationCompleted(message, _)) = $0 {
+            if case let .completion(.generationCompleted(message, _)) = $0 {
                 return message.content == "Hello, Morty!"
             }
             return false
@@ -101,7 +101,7 @@ struct PublicRuntimeStoriesTests {
         )).collect()
 
         #expect(events.contains(where: {
-            if case let .completion(event: .generationCompleted(message, _)) = $0 {
+            if case let .completion(.generationCompleted(message, _)) = $0 {
                 return message.content == "Grouped persistence reply"
             }
             return false
@@ -123,7 +123,7 @@ struct PublicRuntimeStoriesTests {
         )).collect()
 
         #expect(events.contains(where: {
-            if case let .completion(event: .generationCompleted(message, _)) = $0 {
+            if case let .completion(.generationCompleted(message, _)) = $0 {
                 return message.content == "Grouped runtime reply"
             }
             return false
@@ -148,13 +148,13 @@ struct PublicRuntimeStoriesTests {
         )).collect()
 
         #expect(events.contains(where: {
-            if case let .delta(event: .toolCall(delta)) = $0 {
+            if case let .delta(.toolCall(delta)) = $0 {
                 return delta.id == "call_1" && delta.name == "mock_tool"
             }
             return false
         }))
         #expect(events.contains(where: {
-            if case let .completion(event: .toolExecution(id, status)) = $0,
+            if case let .completion(.toolExecution(id, status)) = $0,
                case let .success(result) = status
             {
                 return id == "call_1" && result.output == "Tool result"
@@ -162,7 +162,7 @@ struct PublicRuntimeStoriesTests {
             return false
         }))
         #expect(events.contains(where: {
-            if case let .completion(event: .generationCompleted(message, _)) = $0 {
+            if case let .completion(.generationCompleted(message, _)) = $0 {
                 return message.content == "Tool result processed"
             }
             return false
@@ -187,7 +187,7 @@ struct PublicRuntimeStoriesTests {
         )).collect()
 
         #expect(events.contains(where: {
-            if case let .completion(event: .generationCompleted(message, _)) = $0 {
+            if case let .completion(.generationCompleted(message, _)) = $0 {
                 return message.content == "Continuation complete"
             }
             return false
@@ -292,14 +292,14 @@ struct PublicRuntimeStoriesTests {
         )).collect()
 
         guard let generationContext = events.first(where: {
-            if case .meta(event: .generationContext) = $0 { return true }
+            if case .meta(.generationContext) = $0 { return true }
             return false
         }) else {
             Issue.record("Expected generationContext event")
             return
         }
 
-        if case let .meta(event: .generationContext(metadata)) = generationContext {
+        if case let .meta(.generationContext(metadata)) = generationContext {
             #expect(!metadata.files.isEmpty, "Timeline-managed Notes should be discovered by default")
         } else {
             Issue.record("First matching event was not generationContext")

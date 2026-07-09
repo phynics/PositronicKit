@@ -10,6 +10,39 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
+- `ChatEvent` enum ergonomics overhaul (PKAPI-004):
+  - **Renamed `ToolExecutionStatus.failure(String)` → `.executionError(String)`** to
+    eliminate the name collision with `.failed(reference:error:)`. The two cases had
+    near-synonym names for structurally different payloads; `.executionError` now reads
+    distinctly at the call site. `ToolResult.failure(_:)` (the static factory that
+    constructs a failed `ToolResult` value) is **kept as-is** — it mirrors
+    `Result.failure` semantics (a result constructor, not a lifecycle status) and does
+    not collide with `ToolExecutionStatus` cases. The distinction: `ToolResult.failure`
+    constructs a failed *result value*; `ToolExecutionStatus.executionError` is a
+    *lifecycle status* for an error without a tool reference.
+  - **Flattened `ChatEvent`'s wrapper cases:** `case delta(event: DeltaEvent)` →
+    `case delta(DeltaEvent)`, same for `.meta`/`.error`/`.completion` (unlabeled, matching
+    `Result.success`/`.failure` convention). The redundant `event:` label repeated the
+    case name and forced double pattern-matching. All switch/pattern-match call sites in
+    PositronicKit Sources and Tests were updated. The existing flattening factories
+    (`.thinking(_:)`, `.generation(_:)`) and computed properties (`textContent`,
+    `thinkingContent`) are unchanged. Downstream consumers (Monad/Shuttle/Yakamoz) have
+    labeled-pattern call sites that will need migration when they bump to the release
+    including this change; see the downstream grep in the ticket.
+  - **Moved blocked-error classification onto `PKError`:** added `var isBlocked: Bool`
+    (default `false`) to the `PKError` protocol, overridden `true` on
+    `ToolError.permissionDenied`, `ToolError.attachedToolsDisallowedOnPrivateTimeline`,
+    `PathSanitizer.PathError.accessDenied`, and `WorkspaceError.accessDenied`.
+    `ChatEvent.ErrorIdentity` now carries a stored `isBlocked` field populated by
+    `extracting(from:)` from `PKError.isBlocked` at extraction time, replacing the
+    hand-curated `static let blocked: Set<ErrorIdentity>` of hardcoded `(domain, code)`
+    pairs. `ErrorIdentity.init(domain:code:)` defaults `isBlocked` to `false` (directly
+    constructed identities are not derived from a concrete error). `ErrorIdentity`'s
+    `Equatable`/`Hashable` consider only `domain`+`code` (identity); `Codable` decodes
+    `isBlocked` with a `false` default for backward compatibility. The removed
+    `static let blocked` set was a public API; downstream consumers referencing it must
+    switch to `identity.isBlocked` or `ErrorIdentity.extracting(from:)`.
+
 - Unified the tool-argument type across the execution boundary (PKAPI-001):
   `Tool.execute(parameters:)` and `Tool.summarize(parameters:result:)` now take
   `[String: AnyCodable]` (Sendable) instead of the un-Sendable `[String: Any]`, matching the

@@ -48,6 +48,18 @@ public enum ToolError: PKError, Sendable, Equatable {
         }
     }
 
+    /// `permissionDenied` and `attachedToolsDisallowedOnPrivateTimeline` represent
+    /// blocked/approval/disallowed conditions — deliberate permission or access gates
+    /// refusing execution, not model or provider failures.
+    public var isBlocked: Bool {
+        switch self {
+        case .permissionDenied, .attachedToolsDisallowedOnPrivateTimeline:
+            return true
+        default:
+            return false
+        }
+    }
+
     public var userFriendlyMessage: String {
         switch self {
         case let .missingArgument(arg):

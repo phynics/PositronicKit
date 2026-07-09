@@ -17,6 +17,15 @@ public enum PathSanitizer {
             }
         }
 
+        /// `accessDenied` represents a blocked/disallowed condition — the path is
+        /// outside the allowed directory, so execution is refused by an access gate.
+        public var isBlocked: Bool {
+            switch self {
+            case .accessDenied: return true
+            case .invalidPath: return false
+            }
+        }
+
         public var userFriendlyMessage: String {
             switch self {
             case .accessDenied:

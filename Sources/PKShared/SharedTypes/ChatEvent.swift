@@ -5,7 +5,12 @@ public enum ToolExecutionStatus: Sendable, Codable {
     case attempting(name: String, reference: ToolReference)
     case success(ToolResult)
     case failed(reference: ToolReference, error: String)
-    case failure(String)
+    /// Tool execution failed without a tool reference (e.g. the tool could not be
+    /// resolved before execution began). Distinct from `.failed` which carries the
+    /// `ToolReference` of the tool that was attempted, and from `ToolResult.failure(_:)`
+    /// which is the static factory that constructs a failed `ToolResult` value (a
+    /// result, not a lifecycle status).
+    case executionError(String)
 }
 
 /// Events emitted by ChatEngine during a chat turn.
@@ -30,26 +35,70 @@ public enum ChatEvent: Sendable, Codable {
     /// production classification. Nested causes are not dug — non-`PKError` errors
     /// (including provider failures) yield `identity == nil` and are intentionally
     /// not classified as blocked (see `blockedIdentityContract`).
+    ///
+    /// `isBlocked` is carried as a stored field, populated by `extracting(from:)`
+    /// from `PKError.isBlocked` at extraction time. This moves the classification
+    /// onto the error types themselves rather than a hand-curated `(domain, code)`
+    /// set. Directly constructed identities (via `init(domain:code:)`) default
+    /// `isBlocked` to `false` since they are not derived from a concrete error.
     public struct ErrorIdentity: Sendable, Equatable, Hashable, Codable {
         /// The error domain identifying the module the error originated in
         /// (a `PKErrorDomain` string, e.g. `"com.positronickit.core.tool"`).
         public let domain: String
         /// A unique integer code for the specific error case within the domain.
         public let code: Int
+        /// Whether this identity represents a blocked/approval/disallowed condition,
+        /// derived from `PKError.isBlocked` at extraction time. Identities constructed
+        /// directly (not via `extracting(from:)`) default to `false`.
+        public let isBlocked: Bool
 
-        public init(domain: String, code: Int) {
+        public init(domain: String, code: Int, isBlocked: Bool = false) {
             self.domain = domain
             self.code = code
+            self.isBlocked = isBlocked
         }
 
         /// Extracts an `ErrorIdentity` from `error` when its top-level type conforms
         /// to `PKError`; returns `nil` for non-`PKError` errors. Nested causes are
-        /// not traversed (see the type's documented limitation).
+        /// not traversed (see the type's documented limitation). The `isBlocked`
+        /// field is populated from `PKError.isBlocked` so blocked-error
+        /// classification lives on the error types themselves.
         public static func extracting(from error: Error) -> ErrorIdentity? {
             if let pk = error as? any PKError {
-                return ErrorIdentity(domain: pk.errorDomain, code: pk.errorCode)
+                return ErrorIdentity(domain: pk.errorDomain, code: pk.errorCode, isBlocked: pk.isBlocked)
             }
             return nil
+        }
+
+        // MARK: - Equatable / Hashable (identity is domain + code only; isBlocked is derived)
+
+        public static func == (lhs: ErrorIdentity, rhs: ErrorIdentity) -> Bool {
+            lhs.domain == rhs.domain && lhs.code == rhs.code
+        }
+
+        public func hash(into hasher: inout Hasher) {
+            hasher.combine(domain)
+            hasher.combine(code)
+        }
+
+        // MARK: - Codable (isBlocked is optional on decode for backward compatibility)
+
+        private enum CodingKeys: String, CodingKey {
+            case domain, code, isBlocked
+        }
+
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            self.domain = try container.decode(String.self, forKey: .domain)
+            self.code = try container.decode(Int.self, forKey: .code)
+            self.isBlocked = try container.decodeIfPresent(Bool.self, forKey: .isBlocked) ?? false
+        }
+
+        public func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(domain, forKey: .domain)
+            try container.encode(code, forKey: .code)
+            try container.encode(isBlocked, forKey: .isBlocked)
         }
     }
 
@@ -105,10 +154,10 @@ public enum ChatEvent: Sendable, Codable {
         case sidecarsCompleted(results: [SidecarResult])
     }
 
-    case delta(event: DeltaEvent)
-    case meta(event: MetaEvent)
-    case error(event: ErrorEvent)
-    case completion(event: CompletionEvent)
+    case delta(DeltaEvent)
+    case meta(MetaEvent)
+    case error(ErrorEvent)
+    case completion(CompletionEvent)
 }
 
 // MARK: - Factory Methods (Producer Ergonomics)
@@ -116,69 +165,69 @@ public enum ChatEvent: Sendable, Codable {
 public extension ChatEvent {
     /// Delta shortcuts
     static func thinking(_ text: String) -> ChatEvent {
-        .delta(event: .thinking(text: text))
+        .delta(.thinking(text: text))
     }
 
     static func generation(_ text: String) -> ChatEvent {
-        .delta(event: .generation(text: text))
+        .delta(.generation(text: text))
     }
 
     static func toolCall(_ delta: ToolCallDelta) -> ChatEvent {
-        .delta(event: .toolCall(delta: delta))
+        .delta(.toolCall(delta: delta))
     }
 
     static func toolProgress(toolCallId: String, status: ToolExecutionStatus) -> ChatEvent {
-        .delta(event: .toolExecution(toolCallId: toolCallId, status: status))
+        .delta(.toolExecution(toolCallId: toolCallId, status: status))
     }
 
     static func sidecar(_ delta: SidecarDelta) -> ChatEvent {
-        .delta(event: .sidecar(delta: delta))
+        .delta(.sidecar(delta: delta))
     }
 
     /// Meta shortcuts
     static func generationContext(_ metadata: ChatMetadata) -> ChatEvent {
-        .meta(event: .generationContext(metadata: metadata))
+        .meta(.generationContext(metadata: metadata))
     }
 
     /// Error shortcuts
     static func toolCallError(toolCallId: String, name: String, error: String) -> ChatEvent {
-        .error(event: .toolCallError(toolCallId: toolCallId, name: name, error: error))
+        .error(.toolCallError(toolCallId: toolCallId, name: name, error: error))
     }
 
     static func error(_ err: Error) -> ChatEvent {
-        .error(event: .error(
+        .error(.error(
             message: ErrorKit.userFriendlyMessage(for: err),
             identity: ErrorIdentity.extracting(from: err)
         ))
     }
 
     static func error(_ msg: String) -> ChatEvent {
-        .error(event: .error(message: msg, identity: nil))
+        .error(.error(message: msg, identity: nil))
     }
 
     static func generationCancelled() -> ChatEvent {
-        .error(event: .generationCancelled)
+        .error(.generationCancelled)
     }
 
     /// Completion shortcuts
     static func generationCompleted(message: Message, metadata: APIResponseMetadata) -> ChatEvent {
-        .completion(event: .generationCompleted(message: message, metadata: metadata))
+        .completion(.generationCompleted(message: message, metadata: metadata))
     }
 
     static func completedEmpty(finishReason: String?) -> ChatEvent {
-        .completion(event: .completedEmpty(finishReason: finishReason))
+        .completion(.completedEmpty(finishReason: finishReason))
     }
 
     static func toolCompleted(toolCallId: String, status: ToolExecutionStatus) -> ChatEvent {
-        .completion(event: .toolExecution(toolCallId: toolCallId, status: status))
+        .completion(.toolExecution(toolCallId: toolCallId, status: status))
     }
 
     static func streamCompleted() -> ChatEvent {
-        .completion(event: .streamCompleted)
+        .completion(.streamCompleted)
     }
 
     static func sidecarsCompleted(_ results: [SidecarResult]) -> ChatEvent {
-        .completion(event: .sidecarsCompleted(results: results))
+        .completion(.sidecarsCompleted(results: results))
     }
 }
 
@@ -223,32 +272,14 @@ public extension ChatEvent {
 }
 
 // MARK: - Blocked Error Identity Contract (STAB-6)
-
-public extension ChatEvent.ErrorIdentity {
-    /// Error identities that represent a "blocked"/approval/disallowed turn condition —
-    /// i.e. a failure that is *not* the model's or provider's fault but the result of a
-    /// deliberate permission or access gate refusing execution. Consumers classify these
-    /// as a `.blocked` timeline state rather than `.failed`.
-    ///
-    /// Each entry is the `(domain, code)` pair of a structured `PKError` that is thrown
-    /// directly by the runtime (grep evidence):
-    /// - `ToolError.permissionDenied` — `com.positronickit.core.tool:210`
-    ///   (thrown at `PositronicKit/Sources/PositronicKit/Services/Tools/ToolRouter.swift:366`)
-    /// - `ToolError.attachedToolsDisallowedOnPrivateTimeline` — `com.positronickit.core.tool:207`
-    ///   (thrown at `PositronicKit/Sources/PositronicKit/Services/Tools/ToolRouter.swift`)
-    /// - `PathError.accessDenied` — `com.positronickit.core.filesystem:101`
-    ///   (thrown at `PositronicKit/Sources/PKShared/Utilities/PathSanitizer.swift:46,60`)
-    /// - `WorkspaceError.accessDenied` — `com.positronickit.core.workspace:3002`
-    ///   (declared at `PositronicKit/Sources/PositronicKit/Models/Workspace/WorkspaceProtocol.swift:41`)
-    static let blocked: Set<ChatEvent.ErrorIdentity> = [
-        ChatEvent.ErrorIdentity(domain: PKErrorDomain.tool, code: 210),
-        ChatEvent.ErrorIdentity(domain: PKErrorDomain.tool, code: 207),
-        ChatEvent.ErrorIdentity(domain: PKErrorDomain.filesystem, code: 101),
-        ChatEvent.ErrorIdentity(domain: PKErrorDomain.workspace, code: 3002),
-    ]
-
-    /// Whether this identity represents a blocked/approval/disallowed condition (see `blocked`).
-    var isBlocked: Bool {
-        Self.blocked.contains(self)
-    }
-}
+//
+// Blocked-error classification now lives on `PKError.isBlocked` (default `false`,
+// overridden `true` on the error cases that represent blocked/approval/disallowed
+// conditions). `ErrorIdentity.extracting(from:)` copies `PKError.isBlocked` onto the
+// identity's stored `isBlocked` field at extraction time, so consumers classify turn
+// state by checking `identity?.isBlocked` without needing a hand-curated `(domain,
+// code)` set. The error types that override `isBlocked = true`:
+// - `ToolError.permissionDenied` — `com.positronickit.core.tool:210`
+// - `ToolError.attachedToolsDisallowedOnPrivateTimeline` — `com.positronickit.core.tool:207`
+// - `PathSanitizer.PathError.accessDenied` — `com.positronickit.core.filesystem:101`
+// - `WorkspaceError.accessDenied` — `com.positronickit.core.workspace:3002`

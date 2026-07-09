@@ -303,11 +303,11 @@ struct SidecarTurnIntegrationTests {
     /// fields that legitimately differ between two independent turns.
     private static func signature(for event: ChatEvent) -> String {
         switch event {
-        case let .meta(event: .generationContext(metadata)):
+        case let .meta(.generationContext(metadata)):
             return "generationContext(\(metadata.memories), \(metadata.files))"
-        case let .delta(event: .generation(text)):
+        case let .delta(.generation(text)):
             return "generation(\(text))"
-        case let .completion(event: .generationCompleted(message, _)):
+        case let .completion(.generationCompleted(message, _)):
             return "generationCompleted(\(message.content))"
         default:
             return String(describing: event)
