@@ -229,11 +229,26 @@ struct TurnLoopController {
     }
 
     private func publishTurnInspectionIfNeeded(context: ChatTurnContext) async {
-        guard let inspector = dependencies.turnInspector,
-              let renderedPrompt = context.renderedPrompt,
-              let update = context.promptHistoryUpdate,
-              let diff = update.diff
-        else {
+        // Audit trail: log which precondition failed so an operator asking "why didn't my
+        // inspector fire?" gets a reason instead of silence (PKLOG-001).
+        let baseMeta: Logger.Metadata = [
+            "conversationID": .string(context.timelineId.uuidString),
+            "turnIndex": .string("\(context.turnCount)"),
+        ]
+        guard let inspector = dependencies.turnInspector else {
+            logger.debug("Turn inspection skipped: no turn inspector registered", metadata: baseMeta)
+            return
+        }
+        guard let renderedPrompt = context.renderedPrompt else {
+            logger.debug("Turn inspection skipped: no rendered prompt available", metadata: baseMeta)
+            return
+        }
+        guard let update = context.promptHistoryUpdate else {
+            logger.debug("Turn inspection skipped: no prompt history update", metadata: baseMeta)
+            return
+        }
+        guard let diff = update.diff else {
+            logger.debug("Turn inspection skipped: prompt diff unavailable", metadata: baseMeta)
             return
         }
 

@@ -131,6 +131,16 @@ struct TurnPreparer {
             preconditionFailure("Prompt updates must always produce a prompt diff")
         }
         logger.debug(
+            "Prompt journal updated: added=\(diff.added.count) removed=\(diff.removed.count) changed=\(diff.changed.count)",
+            metadata: [
+                "conversationID": .string(timelineId.uuidString),
+                "turnIndex": .string("0"),
+                "addedSections": .string("\(diff.added.count)"),
+                "removedSections": .string("\(diff.removed.count)"),
+                "changedSections": .string("\(diff.changed.count)"),
+            ]
+        )
+        logger.debug(
             "Prompt snapshot: \(resolvedSections.count) sections, ~\(renderedPrompt.estimatedTokens) tokens, \(diff.stablePrefixCount) stable prefix entries"
         )
         if update.didCompact {
