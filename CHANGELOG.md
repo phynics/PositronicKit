@@ -34,6 +34,17 @@ for tagged releases beginning with `1.0.0`.
   (Monad/Shuttle/Yakamoz) reference the `MemorySavePolicy` type name in a few places but
   none currently pattern-match `.preventSimilar`, so no call-site migration is required
   there; verify on the next PositronicKit pin bump regardless.
+- Session/timeline terminology cleanup (PKAPI-012): `TimelinePersistenceProtocol.saveTimeline`'s
+  parameter label changed from `_ session: Timeline` to `_ timeline: Timeline`. This is a
+  **protocol requirement**, so it is source-breaking for any external conformer that spells out
+  the parameter name explicitly (Swift matches protocol requirements structurally, not by
+  parameter name, so most conformers are unaffected — but Monad's `TimelineRepository` conformer
+  (`Monad/Sources/MonadServer/Services/Database/Repositories/TimelineRepository.swift:16`) still
+  uses `_ session: Timeline` and should be renamed to match on its next PositronicKit pin bump for
+  consistency, even though it isn't required to compile). Also renamed `TimelineToolManager`'s
+  logger label (`"session-tool-manager"` → `"timeline-tool-manager"`) and
+  `RuntimeToolPolicyFactory.createToolManager`'s internal `session` parameter/binding to
+  `timeline` (external label `for:` unchanged, non-breaking).
 - `ChatEvent` enum ergonomics overhaul (PKAPI-004):
   - **Renamed `ToolExecutionStatus.failure(String)` → `.executionError(String)`** to
     eliminate the name collision with `.failed(reference:error:)`. The two cases had

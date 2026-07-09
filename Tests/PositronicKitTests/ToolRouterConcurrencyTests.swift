@@ -56,14 +56,14 @@ import Testing
         }
     }
 
-    @Test("ToolRouter.execute for disconnected session throws toolNotFound or workspaceNotFound")
-    func execute_unknownSession_throws() async throws {
+    @Test("ToolRouter.execute for disconnected timeline throws toolNotFound or workspaceNotFound")
+    func execute_unknownTimeline_throws() async throws {
         let (router, _, _) = try await makeSetup()
-        let unknownSessionId = UUID()
+        let unknownTimelineId = UUID()
         let tool = ToolReference.known(id: "some-tool")
 
         do {
-            _ = try await router.execute(tool: tool, arguments: [:], timelineId: unknownSessionId)
+            _ = try await router.execute(tool: tool, arguments: [:], timelineId: unknownTimelineId)
             Issue.record("Expected error to be thrown")
         } catch {
             // Any ToolError is acceptable (toolNotFound, workspaceNotFound)

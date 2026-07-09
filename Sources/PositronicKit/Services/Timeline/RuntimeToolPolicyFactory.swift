@@ -9,14 +9,14 @@ import PKShared
 /// a full `TimelineManager` (PKARCH-003).
 package enum RuntimeToolPolicyFactory {
     package static func createToolManager(
-        for session: Timeline,
+        for timeline: Timeline,
         jailRoot: String,
         toolContextTimeline: ToolTimelineContext,
         runtimeToolPolicy: TimelineManager.RuntimeToolPolicy,
         timelineStore: any TimelinePersistenceProtocol,
         messageStore: any MessageStoreProtocol
     ) -> TimelineToolManager {
-        let currentWD = session.workingDirectory ?? jailRoot
+        let currentWD = timeline.workingDirectory ?? jailRoot
 
         // Default runtime policy: these filesystem and timeline observation tools are installed by
         // default for every timeline-managed session. Timeline send is additionally installed when
@@ -48,12 +48,12 @@ package enum RuntimeToolPolicyFactory {
         }
 
         // Timeline Send: only available when an agent is attached (needs sender identity)
-        if runtimeToolPolicy.installTimelineSendTool, let agentId = session.attachedAgentInstanceId {
+        if runtimeToolPolicy.installTimelineSendTool, let agentId = timeline.attachedAgentInstanceId {
             availableTools.append(AnyTool(TimelineSendTool(
                 messageStore: messageStore,
                 timelineStore: timelineStore,
                 agentInstanceId: agentId,
-                sourceTimelineId: session.id
+                sourceTimelineId: timeline.id
             )))
         }
 
