@@ -15,6 +15,20 @@ for tagged releases beginning with `1.0.0`.
 
 ### Fixed
 
+- Race/robustness sweep (PKFLAKE-003/004/005/006): `ToolTimeoutEnforcer.execute` no longer
+  races two bare `Task {}` blocks inside a `withCheckedThrowingContinuation` (a double-resume
+  hazard on cancellation); the tool/timeout race now reports into an `AsyncStream`, which
+  tolerates a straggling loser resolving after the winner without crashing. `MiniLMEmbedder`'s
+  `@unchecked Sendable` is now documented: the native bridge serializes `embed`/`embedBatch` on
+  a Rust `Mutex`, and the sole production owner (`PKMiniLMPlatformBackend`, an actor) guarantees
+  `deinit` never races an in-flight call. `PositronicKit.resolveContextManager` and
+  `AgentInstanceManager`'s attach/detach/delete audit-log and cleanup paths no longer discard
+  persistence errors via bare `try?`; failures are now logged (`.error`/`.warning`) with
+  `ErrorKit.userFriendlyMessage(for:)` and identifiers, and the turn/operation proceeds exactly
+  as before (hydration failure was already best-effort — a brand-new timeline legitimately has
+  nothing to hydrate yet). `ContextRanker.rankMemories` gains an additive `now: @escaping () ->
+  Date = Date.init` parameter (source-compatible; existing call sites are unaffected) so decay
+  math is pinnable in tests instead of reading `Date()` at call time.
 - `PromptDiff.publicJournalDiff` now filters its projection to semistable section IDs
   (PKDEEP2-002). Previously the runtime diff tracked changes for every `CachePolicy`,
   so stable and volatile section IDs leaked into `PromptJournalDiff`'s
