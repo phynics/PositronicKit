@@ -1,8 +1,15 @@
 import Foundation
 import PKShared
 
+/// Entry point for compressing an assembled prompt's sections to fit within a token limit.
+/// Drives the structured-compression pipeline (``StructuredCompressionPlanner`` +
+/// ``StructuredCompressionExecutor``) so the caller doesn't have to wire it up manually.
 public struct TokenBudget: Sendable {
+    /// The hard upper bound on tokens available to the whole prompt (context window size,
+    /// or a caller-imposed cap).
     public let maxTokens: Int
+    /// Tokens to withhold from `maxTokens` for the model's own response, so compression
+    /// targets `maxTokens - reserveForResponse` for the prompt itself.
     public let reserveForResponse: Int
 
     public init(maxTokens: Int, reserveForResponse: Int) {
@@ -252,7 +259,7 @@ public struct TokenBudget: Sendable {
             section.id,
             String(section.estimatedTokens),
             String(section.priority),
-            String(describing: section.cachePolicy)
+            String(describing: section.cachePolicy),
         ])
     }
 

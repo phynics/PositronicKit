@@ -1,14 +1,21 @@
+import Foundation
 import PKShared
 import PositronicKit
-import Foundation
 
+/// In-memory `MemoryStoreProtocol` test double backed by a plain array.
+///
+/// Configurable/inspectable: `memories` (the backing store — seed or assert on it
+/// directly) and `searchResults` (the fixed result set returned by the embedding-based
+/// `searchMemories(embedding:limit:minSimilarity:)` overload, since a real similarity
+/// search isn't performed). Text/tag-based search overloads filter `memories` directly.
+/// Vacuum/prune operations are no-ops that report zero affected rows.
 public final class MockMemoryStore: MemoryStoreProtocol, @unchecked Sendable {
     public var memories: [Memory] = []
     public var searchResults: [(memory: Memory, similarity: Double)] = []
 
     public init() {}
 
-    public func saveMemory(_ memory: Memory, policy: MemorySavePolicy) async throws -> UUID {
+    public func saveMemory(_ memory: Memory, policy _: MemorySavePolicy) async throws -> UUID {
         memories.append(memory)
         return memory.id
     }
@@ -29,7 +36,7 @@ public final class MockMemoryStore: MemoryStoreProtocol, @unchecked Sendable {
         return memories.filter { $0.title.contains(query) || $0.content.contains(query) }
     }
 
-    public func searchMemories(embedding: [Double], limit: Int, minSimilarity: Double) async throws -> [(memory: Memory, similarity: Double)] {
+    public func searchMemories(embedding _: [Double], limit _: Int, minSimilarity _: Double) async throws -> [(memory: Memory, similarity: Double)] {
         return searchResults
     }
 
@@ -59,15 +66,15 @@ public final class MockMemoryStore: MemoryStoreProtocol, @unchecked Sendable {
         }
     }
 
-    public func vacuumMemories(threshold: Double) async throws -> Int {
+    public func vacuumMemories(threshold _: Double) async throws -> Int {
         return 0
     }
 
-    public func pruneMemories(matching query: String, dryRun: Bool) async throws -> Int {
+    public func pruneMemories(matching _: String, dryRun _: Bool) async throws -> Int {
         return 0
     }
 
-    public func pruneMemories(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int {
+    public func pruneMemories(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int {
         return 0
     }
 }

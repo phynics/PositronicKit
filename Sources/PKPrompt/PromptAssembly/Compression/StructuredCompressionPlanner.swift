@@ -1,8 +1,16 @@
 import Foundation
 
+/// Decides which prompt nodes to keep, truncate, summarize, or drop to fit a token budget.
+///
+/// Nodes are ranked by a score combining diff status (changed nodes score highest, stable
+/// nodes are penalized), `cachePolicy` (`.volatile` preferred over `.stable`), and
+/// `priority`, then greedily kept/compressed/dropped in ranked order until the budget is
+/// exhausted.
 public struct StructuredCompressionPlanner: Sendable {
     public init() {}
 
+    /// Computes a compression plan for `nodes` given `availableTokens`, optionally biased
+    /// by a `diff` of what changed since a prior render.
     public func plan(
         nodes: [StructuredCompressionNode],
         availableTokens: Int,
@@ -81,7 +89,7 @@ public struct StructuredCompressionPlanner: Sendable {
         var value = node.priority * 10
         let key = pathKey(node.path)
         if changedSet.contains(key) {
-            value += 1_000
+            value += 1000
         } else if stableSet.contains(key) {
             value -= 500
         }

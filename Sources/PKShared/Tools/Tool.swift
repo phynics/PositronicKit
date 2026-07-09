@@ -1,10 +1,15 @@
 import Foundation
 import struct JSONSchema.Schema
 
+/// Where a tool originated, used to scope its availability and to label it in prompts.
 public enum ToolProvenance: Sendable, Equatable, Hashable, Codable {
+    /// A system-wide tool available regardless of workspace/terminal context.
     case global
+    /// A tool contributed by a specific workspace; paths passed to it are relative to that workspace root.
     case workspace(id: UUID, name: String)
+    /// A tool contributed by a specific terminal session.
     case terminal(id: UUID, name: String)
+    /// A tool with an arbitrary caller-supplied provenance label.
     case named(String)
 
     public var promptLabel: String? {

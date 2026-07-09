@@ -1,5 +1,9 @@
 import Foundation
 
+/// A general-purpose free-text section in the ``PromptBuilder`` DSL, used for arbitrary
+/// context/background content (`role: .context`) that isn't the system instructions,
+/// user query, or chat history. Content can be a static string or lazily produced via the
+/// `render` closure overload (useful for content that's expensive or async to compute).
 public struct TextPrompt: Prompt {
     public let id: String
     public let priority: Int
@@ -39,7 +43,7 @@ public struct TextPrompt: Prompt {
         self.compression = compression
         self.cachePolicy = cachePolicy
         self.estimatedTokens = estimatedTokens
-        self.renderText = render
+        renderText = render
     }
 
     public var body: some Prompt {

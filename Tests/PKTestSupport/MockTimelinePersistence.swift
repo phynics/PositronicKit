@@ -1,8 +1,13 @@
+import Foundation
 import PKShared
 import PositronicKit
-import Foundation
 import Synchronization
 
+/// In-memory `TimelinePersistenceProtocol` test double backed by a mutex-guarded array.
+///
+/// Inspectable: `timelines` reads/writes the backing store directly. `fetchAllTimelines`
+/// filters out archived timelines unless `includeArchived` is `true`. `pruneTimelines`
+/// is a no-op that always reports zero pruned rows.
 public final class MockTimelinePersistence: TimelinePersistenceProtocol, @unchecked Sendable {
     private let timelinesState = Mutex<[Timeline]>([])
 
@@ -41,7 +46,7 @@ public final class MockTimelinePersistence: TimelinePersistenceProtocol, @unchec
         }
     }
 
-    public func pruneTimelines(olderThan timeInterval: TimeInterval, excluding excludedTimelineIds: [UUID], dryRun: Bool) async throws -> Int {
+    public func pruneTimelines(olderThan _: TimeInterval, excluding _: [UUID], dryRun _: Bool) async throws -> Int {
         return 0
     }
 }

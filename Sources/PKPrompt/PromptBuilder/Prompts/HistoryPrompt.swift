@@ -1,8 +1,11 @@
 import Foundation
 import PKShared
 
+/// The chat-history section in the ``PromptBuilder`` DSL, rendering prior conversation
+/// `Message`s. Defaults to `role: .chatHistory`, `priority: 70`, and `cachePolicy: .volatile`.
 public struct HistoryPrompt: Prompt {
     public let id: String
+    /// The prior conversation messages to render into this section.
     public let messages: [Message]
     public let priority: Int
     public let cachePolicy: CachePolicy
