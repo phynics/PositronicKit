@@ -173,6 +173,7 @@ let package = Package(
                 "PositronicKitExamples",
                 "PKShared",
                 "PKTestSupport",
+                .product(name: "OpenAI", package: "OpenAI"),
             ],
             path: "Tests/PositronicKitTests"
         ),
