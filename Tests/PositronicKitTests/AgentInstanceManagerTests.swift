@@ -228,4 +228,123 @@ struct AgentInstanceManagerTests {
         #expect(await fresh.appendedMessageCount == 0,
                "Prompt-history registry entry should be evicted, not orphaned")
     }
+
+    // MARK: - PKFLAKE-005: failing persistence must not be swallowed
+
+    @Test("Audit log: attach survives a failing message-store save (PKFLAKE-005)")
+    func attachSurvivesFailingAuditLog() async throws {
+        let instanceStore = InMemoryAgentInstanceStore()
+        let timelineStore = InMemoryTimelinePersistence()
+        let workspaceStore = InMemoryWorkspacePersistence()
+        let messageStore = FailingMessageStore()
+        let repo = AgentWorkspaceService(
+            workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
+            workspacePersistence: workspaceStore
+        )
+        let manager = AgentInstanceManager(
+            repository: repo,
+            stores: .init(
+                instanceStore: instanceStore,
+                timelineStore: timelineStore,
+                messageStore: messageStore,
+                workspaceStore: workspaceStore
+            )
+        )
+
+        let agentId = UUID()
+        let agent = AgentInstance(
+            id: agentId, name: "Audit Agent", description: "Desc",
+            primaryWorkspaceId: UUID(), privateTimelineId: UUID()
+        )
+        let timeline = Timeline(id: UUID(), title: "Shared", isPrivate: false)
+        try await instanceStore.saveAgentInstance(agent)
+        try await timelineStore.saveTimeline(timeline)
+
+        // attach must NOT throw just because the audit-log save failed.
+        try await manager.attach(agentId: agentId, to: timeline.id)
+
+        // The attach itself succeeded: the timeline now references the agent.
+        let updated = try await timelineStore.fetchTimeline(id: timeline.id)
+        #expect(updated?.attachedAgentInstanceId == agentId)
+
+        // The audit-log save was attempted (and failed) — observable, not swallowed.
+        #expect(messageStore.attemptedMessages.count == 1)
+        #expect(messageStore.attemptedMessages.first?.role == "system")
+    }
+
+    @Test("Audit log: detach survives a failing message-store save (PKFLAKE-005)")
+    func detachSurvivesFailingAuditLog() async throws {
+        let instanceStore = InMemoryAgentInstanceStore()
+        let timelineStore = InMemoryTimelinePersistence()
+        let workspaceStore = InMemoryWorkspacePersistence()
+        let messageStore = FailingMessageStore()
+        let repo = AgentWorkspaceService(
+            workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
+            workspacePersistence: workspaceStore
+        )
+        let manager = AgentInstanceManager(
+            repository: repo,
+            stores: .init(
+                instanceStore: instanceStore,
+                timelineStore: timelineStore,
+                messageStore: messageStore,
+                workspaceStore: workspaceStore
+            )
+        )
+
+        let agentId = UUID()
+        let agent = AgentInstance(
+            id: agentId, name: "Audit Agent", description: "Desc",
+            primaryWorkspaceId: UUID(), privateTimelineId: UUID()
+        )
+        // A non-private timeline the agent is already attached to.
+        let timeline = Timeline(
+            id: UUID(), title: "Shared", attachedAgentInstanceId: agentId, isPrivate: false
+        )
+        try await instanceStore.saveAgentInstance(agent)
+        try await timelineStore.saveTimeline(timeline)
+
+        // detach must NOT throw just because the audit-log save failed.
+        try await manager.detach(agentId: agentId, from: timeline.id)
+
+        // The detach itself succeeded: the agent reference is cleared.
+        let updated = try await timelineStore.fetchTimeline(id: timeline.id)
+        #expect(updated?.attachedAgentInstanceId == nil)
+
+        // The audit-log save was attempted (and failed) — observable, not swallowed.
+        #expect(messageStore.attemptedMessages.count == 1)
+    }
+
+    @Test("Cleanup: deleteInstance survives a failing private-timeline delete (PKFLAKE-005)")
+    func deleteInstanceSurvivesFailingTimelineDelete() async throws {
+        let instanceStore = InMemoryAgentInstanceStore()
+        let timelineStore = FailingTimelinePersistence(deleteFails: true)
+        let messageStore = InMemoryMessageStore()
+        let workspaceStore = InMemoryWorkspacePersistence()
+        let workspaceRoot = getTestWorkspaceRoot().appendingPathComponent(UUID().uuidString)
+        let repo = AgentWorkspaceService(
+            workspaceRoot: workspaceRoot,
+            workspacePersistence: workspaceStore
+        )
+        let manager = AgentInstanceManager(
+            repository: repo,
+            stores: .init(
+                instanceStore: instanceStore,
+                timelineStore: timelineStore,
+                messageStore: messageStore,
+                workspaceStore: workspaceStore
+            )
+        )
+
+        let instance = try await manager.createInstance(name: "Del Target", description: "Desc")
+
+        // deleteInstance must NOT throw just because the private-timeline row delete failed.
+        try await manager.deleteInstance(id: instance.id, force: false)
+
+        // The delete was attempted (and failed) — observable, not swallowed.
+        #expect(timelineStore.deleteAttemptCount >= 1)
+
+        // The agent instance record itself is gone: teardown proceeded past the failed cleanup.
+        #expect(try await instanceStore.fetchAgentInstance(id: instance.id) == nil)
+    }
 }
