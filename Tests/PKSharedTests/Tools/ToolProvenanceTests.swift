@@ -48,26 +48,6 @@ struct ToolProvenanceTests {
         #expect(rendered == "- `label_tool` [Custom]: A tool for testing provenance labels")
     }
 
-    @Test("deprecated string bridge maps to named provenance")
-    func deprecatedStringBridgeMapsToNamed() {
-        let tool = LabelTool()
-        let anyTool = AnyTool(tool, provenance: "Legacy")
-
-        if case let .named(name) = anyTool.provenance {
-            #expect(name == "Legacy")
-        } else {
-            Issue.record("Expected .named provenance from deprecated string bridge")
-        }
-    }
-
-    @Test("deprecated nil bridge maps to global")
-    func deprecatedNilBridgeMapsToGlobal() {
-        let tool = LabelTool()
-        let anyTool = AnyTool(tool, provenance: nil)
-
-        #expect(anyTool.provenance == .global)
-    }
-
     @Test("ToolProviding resolvedTools stamps global tools with provider provenance")
     func toolProvidingResolvedToolsStampsProvenance() async {
         struct TestProvider: ToolProviding {

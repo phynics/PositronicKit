@@ -72,6 +72,12 @@ for tagged releases beginning with `1.0.0`.
   methods were only ever reached through the pass-through wrappers
   `Message.parseResponse(_:)` / `Message.displayContent`; the implementations are now
   inlined directly into those `Message` members with unchanged behavior.
+- (PKCLEAN-004) **Breaking:** removed the deprecated
+  `AnyTool.init(_ tool: any Tool, provenance: String?)` initializer. The replacement
+  `AnyTool.init(_:provenance:)` taking `ToolProvenance` (defaulting to `.global`) covers all
+  cases. Zero downstream callers across Monad, Shuttle, and Yakamoz (both Yakamoz call sites
+  already use the `ToolProvenance` overload), so source-compatible in practice for consumers
+  pinning to released versions.
 
 ### Fixed
 
