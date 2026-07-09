@@ -307,7 +307,7 @@ public actor TimelinePromptHistory {
     /// Record a rendered prompt snapshot without re-running prompt rendering.
     @discardableResult
     func record(prompt: RenderedPrompt) -> PromptDiff {
-        let duplicateIDs = prompt.sections.duplicateRenderedPromptSectionIDs()
+        let duplicateIDs = prompt.sections.duplicateIDs(idKeyPath: \.id)
         precondition(
             duplicateIDs.isEmpty,
             "Duplicate context section ids in TimelinePromptHistory.record: \(duplicateIDs.joined(separator: ", "))"

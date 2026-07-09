@@ -6,16 +6,15 @@ import PKTestSupport
 import Testing
 
 @Suite(.serialized) struct ContextPipelineBuilderTests {
-    // MARK: - DSL Construction
+    // MARK: - Imperative Construction
 
-    @Test("DSL builds pipeline that executes correct number of stages")
+    @Test("Imperative pipeline executes correct number of stages")
     func builder_executesCorrectStageCount() async throws {
         let tracker = StageRunTracker()
-        let pipeline = Pipeline<ContextPipelineContext, ContextGatheringEvent> {
-            TrackingStage(tracker: tracker, stageID: "a")
-            TrackingStage(tracker: tracker, stageID: "b")
-            TrackingStage(tracker: tracker, stageID: "c")
-        }
+        let pipeline = Pipeline<ContextPipelineContext, ContextGatheringEvent>()
+            .add(TrackingStage(tracker: tracker, stageID: "a"))
+            .add(TrackingStage(tracker: tracker, stageID: "b"))
+            .add(TrackingStage(tracker: tracker, stageID: "c"))
 
         let context = ContextPipelineContext(
             query: "test", history: [], limit: 5,
@@ -28,15 +27,14 @@ import Testing
         #expect(runs == ["a", "b", "c"])
     }
 
-    @Test("DSL supports conditional stages via if")
+    @Test("Imperative pipeline supports conditionally adding stages")
     func builder_supportsConditionalStages() async throws {
         let tracker = StageRunTracker()
         let includeExtra = false
-        let pipeline = Pipeline<ContextPipelineContext, ContextGatheringEvent> {
-            TrackingStage(tracker: tracker, stageID: "always")
-            if includeExtra {
-                TrackingStage(tracker: tracker, stageID: "conditional")
-            }
+        var pipeline = Pipeline<ContextPipelineContext, ContextGatheringEvent>()
+            .add(TrackingStage(tracker: tracker, stageID: "always"))
+        if includeExtra {
+            pipeline = pipeline.add(TrackingStage(tracker: tracker, stageID: "conditional"))
         }
 
         let context = ContextPipelineContext(
@@ -55,10 +53,9 @@ import Testing
     @Test("ContextManager uses injected custom pipeline")
     func contextManager_usesCustomPipeline() async throws {
         let tracker = StageRunTracker()
-        let customPipeline = Pipeline<ContextPipelineContext, ContextGatheringEvent> {
-            TrackingStage(tracker: tracker, stageID: "custom")
-            CompletionStage()
-        }
+        let customPipeline = Pipeline<ContextPipelineContext, ContextGatheringEvent>()
+            .add(TrackingStage(tracker: tracker, stageID: "custom"))
+            .add(CompletionStage())
 
         let manager = ContextManager(workspace: nil, pipeline: customPipeline)
 
@@ -76,10 +73,9 @@ import Testing
     @Test("ContextManager uses override pipeline in gatherContext")
     func contextManager_usesOverridePipeline() async throws {
         let tracker = StageRunTracker()
-        let overridePipeline = Pipeline<ContextPipelineContext, ContextGatheringEvent> {
-            TrackingStage(tracker: tracker, stageID: "override")
-            CompletionStage()
-        }
+        let overridePipeline = Pipeline<ContextPipelineContext, ContextGatheringEvent>()
+            .add(TrackingStage(tracker: tracker, stageID: "override"))
+            .add(CompletionStage())
 
         let manager = ContextManager(workspace: nil) // Uses default pipeline internally
 

@@ -102,7 +102,7 @@ enum PromptAssembler {
     ) async throws -> [any Prompt] {
         if let customSections {
             let sections = await customSections()
-            let duplicateIDs = sections.flatMap { $0.resolveSections() }.duplicatePromptSectionIDs()
+            let duplicateIDs = sections.flatMap { $0.resolveSections() }.duplicateIDs(idKeyPath: \.id)
             guard duplicateIDs.isEmpty else {
                 throw AssembledPrompt.ValidationError.duplicateSectionIDs(duplicateIDs)
             }
@@ -110,32 +110,32 @@ enum PromptAssembler {
         }
 
         var sections: [any Prompt] = []
-        sections.append(try withLogging("SystemInstructions", logger: logger) {
+        try sections.append(withLogging("SystemInstructions", logger: logger) {
             SystemInstructions(request.systemInstructions ?? DefaultInstructions.system())
         })
         if let agentInstance {
-            sections.append(try withLogging("AgentContext", logger: logger) {
+            try sections.append(withLogging("AgentContext", logger: logger) {
                 AgentContext(agentInstance, timelineTitle: timeline?.title)
             })
         }
-        sections.append(try withLogging("ContextNotes", logger: logger) { ContextNotes(request.contextNotes) })
-        sections.append(try withLogging("Memories", logger: logger) { Memories(request.memories) })
-        sections.append(try withLogging("Tools", logger: logger) { Tools(request.tools) })
-        sections.append(try withLogging("WorkspacesContext", logger: logger) {
+        try sections.append(withLogging("ContextNotes", logger: logger) { ContextNotes(request.contextNotes) })
+        try sections.append(withLogging("Memories", logger: logger) { Memories(request.memories) })
+        try sections.append(withLogging("Tools", logger: logger) { Tools(request.tools) })
+        try sections.append(withLogging("WorkspacesContext", logger: logger) {
             WorkspacesContext(workspaces: request.workspaces, primaryWorkspace: request.primaryWorkspace, requestOriginName: request.requestOriginName)
         })
         if let timeline {
-            sections.append(try withLogging("TimelineContext", logger: logger) { TimelineContext(timeline) })
+            try sections.append(withLogging("TimelineContext", logger: logger) { TimelineContext(timeline) })
         }
-        sections.append(try withLogging("ChatHistory", logger: logger) {
+        try sections.append(withLogging("ChatHistory", logger: logger) {
             ChatHistory(PromptHistoryOptimizer.optimizeForDefaultBudget(request.chatHistory))
         })
-        sections.append(try withLogging("UserQuery", logger: logger) {
+        try sections.append(withLogging("UserQuery", logger: logger) {
             UserQuery(request.userQuery, turnInstructions: request.turnInstructions)
         })
         sections.append(contentsOf: extensionSections)
 
-        let duplicateIDs = sections.flatMap { $0.resolveSections() }.duplicatePromptSectionIDs()
+        let duplicateIDs = sections.flatMap { $0.resolveSections() }.duplicateIDs(idKeyPath: \.id)
         guard duplicateIDs.isEmpty else {
             throw AssembledPrompt.ValidationError.duplicateSectionIDs(duplicateIDs)
         }
