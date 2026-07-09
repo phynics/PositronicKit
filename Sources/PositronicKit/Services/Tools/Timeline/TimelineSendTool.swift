@@ -1,4 +1,5 @@
 import Foundation
+import struct JSONSchema.Schema
 import JSONSchemaBuilder
 import PKShared
 
@@ -34,7 +35,7 @@ public struct TimelineSendTool: PKShared.Tool, Sendable {
         self.sourceTimelineId = sourceTimelineId
     }
 
-    public var parametersSchema: [String: AnyCodable] {
+    public var parametersSchema: Schema {
         ToolParameterSchema.object {
             JSONProperty(key: "timeline_id") {
                 JSONString().description("UUID of the destination timeline.")
@@ -44,14 +45,14 @@ public struct TimelineSendTool: PKShared.Tool, Sendable {
                 JSONString().description("The message content to post to the timeline.")
             }
             .required()
-        }.schema
+        }.schemaDefinition
     }
 
     public func canExecute() async -> Bool {
         true
     }
 
-    public func execute(parameters: [String: Any]) async throws -> ToolResult {
+    public func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
         let params = ToolParameters(parameters)
         let timelineIdStr: String
         let messageContent: String

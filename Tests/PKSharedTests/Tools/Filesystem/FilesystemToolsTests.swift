@@ -266,7 +266,7 @@ struct FilesystemToolsTests {
 
         let relativePathOutside = "../\(outsideFile.lastPathComponent)"
 
-        let result = try await tool.execute(parameters: ["path": relativePathOutside])
+        let result = try await tool.execute(parameters: ["path": AnyCodable(relativePathOutside)])
 
         #expect(!result.success)
         #expect(result.error != nil)
@@ -298,7 +298,7 @@ struct FilesystemToolsTests {
         try "Secret Data".write(to: secretURL, atomically: true, encoding: .utf8)
 
         let tool = ReadFileTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
-        let result = try await tool.execute(parameters: ["path": secretURL.path])
+        let result = try await tool.execute(parameters: ["path": AnyCodable(secretURL.path)])
 
         #expect(!result.success)
     }
@@ -308,7 +308,7 @@ struct FilesystemToolsTests {
         defer { cleanup() }
         let tool = ReadFileTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
 
-        let result = try await tool.execute(parameters: ["path": tempURL.appendingPathComponent("file1.txt").path])
+        let result = try await tool.execute(parameters: ["path": AnyCodable(tempURL.appendingPathComponent("file1.txt").path)])
 
         #expect(result.success)
         #expect(result.output == "Hello World")
@@ -322,7 +322,7 @@ struct FilesystemToolsTests {
         defer { try? FileManager.default.removeItem(at: outsideURL) }
 
         let tool = ReadFileTool(currentDirectory: tempURL.path, jailRoot: tempURL.path)
-        let result = try await tool.execute(parameters: ["path": outsideURL.path])
+        let result = try await tool.execute(parameters: ["path": AnyCodable(outsideURL.path)])
 
         #expect(!result.success)
     }

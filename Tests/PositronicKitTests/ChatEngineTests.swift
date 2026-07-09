@@ -180,7 +180,7 @@ struct ChatEngineTests {
         let name = "mock_tool"
         let description = "A mock tool for testing"
         let requiresPermission = false
-        let parametersSchema: [String: AnyCodable] = [:]
+        let parametersSchema = makeEmptyObjectSchema()
 
         var result: ToolResult = .success("Tool result")
         var shouldWait: Bool = false
@@ -189,7 +189,7 @@ struct ChatEngineTests {
             true
         }
 
-        func execute(parameters _: [String: Any]) async throws -> ToolResult {
+        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
             if shouldWait { try? await Task.sleep(nanoseconds: 100_000_000) }
             if !result.success && result.error == "client_tools_disallowed_on_private_timeline" {
                 throw ToolError.attachedToolsDisallowedOnPrivateTimeline

@@ -37,8 +37,9 @@ struct ExampleUsageStoriesTests {
         #expect(formatted.contains("Greet a user by name"))
 
         let schema = tools[0].parametersSchema
-        #expect(schema["type"]?.asString == "object")
-        #expect(schema["properties"]?.asDictionary?["name"]?.asDictionary?["type"]?.asString == "string")
+        let schemaDict = schema.asDictionary
+        #expect(schemaDict["type"]?.asString == "object")
+        #expect(schemaDict["properties"]?.asDictionary?["name"]?.asDictionary?["type"]?.asString == "string")
 
         let result = try await tools[0].execute(parameters: ["name": "Taylor"])
         #expect(result.success)

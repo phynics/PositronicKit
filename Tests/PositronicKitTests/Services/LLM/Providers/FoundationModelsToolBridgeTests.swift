@@ -1,5 +1,6 @@
 import Foundation
 @testable import PKFoundationModelsProvider
+import JSONSchemaBuilder
 import PKShared
 import Testing
 
@@ -18,30 +19,24 @@ import Testing
             nil
         }
 
-        var parametersSchema: [String: AnyCodable] {
-            [
-                "type": .string("object"),
-                "properties": .dictionary([
-                    "city": .dictionary([
-                        "type": .string("string"),
-                        "description": .string("City name"),
-                    ]),
-                    "days": .dictionary([
-                        "type": .string("integer"),
-                        "description": .string("Forecast horizon in days"),
-                    ]),
-                ]),
-                "required": .array([.string("city")]),
-            ]
-        }
+        let parametersSchema = ToolParameterSchema.object {
+                JSONProperty(key: "city") {
+                    JSONString().description("City name")
+                }
+                .required()
+                JSONProperty(key: "days") {
+                    JSONInteger().description("Forecast horizon in days")
+                }
+            }.schemaDefinition
 
         func canExecute() async -> Bool {
             true
         }
 
-        func execute(parameters: [String: Any]) async throws -> ToolResult {
-            let city = parameters["city"] as? String ?? "?"
-            let days = parameters["days"] as? Int
+        func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
+            let params = ToolParameters(parameters)
+            let city = params.optional("city", as: String.self) ?? "?"
+            let days = params.optional("days", as: Int.self)
             return .success("weather for \(city) days=\(days.map(String.init) ?? "nil")")
         }
     }
@@ -55,15 +50,13 @@ import Testing
             nil
         }
 
-        var parametersSchema: [String: AnyCodable] {
-            ["type": .string("object"), "properties": .dictionary([:])]
-        }
+        let parametersSchema = makeEmptyObjectSchema()
 
         func canExecute() async -> Bool {
             true
         }
 
-        func execute(parameters _: [String: Any]) async throws -> ToolResult {
+        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
             .failure("boom")
         }
     }

@@ -8,6 +8,39 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Breaking
+
+- Unified the tool-argument type across the execution boundary (PKAPI-001):
+  `Tool.execute(parameters:)` and `Tool.summarize(parameters:result:)` now take
+  `[String: AnyCodable]` (Sendable) instead of the un-Sendable `[String: Any]`, matching the
+  type already used by `WorkspaceProtocol.executeTool(id:parameters:)` and
+  `ToolApprovalGate.requestApproval(tool:arguments:)`. `AnyTool`'s forwarding impls and every
+  built-in tool were updated. `ToolTimeoutEnforcer` now passes arguments through directly (no
+  `toAnyDictionary` conversion), and `WorkspaceToolWrapper.execute` no longer wraps each value in
+  `AnyCodable`. `AnyCodable` gained `ExpressibleByStringLiteral`/`Integer`/`Float`/`Boolean`
+  conformances so literal argument dictionaries read identically to the old `[String: Any]` form;
+  non-literal values (e.g. a `String` variable) must be wrapped explicitly (`AnyCodable(value)`).
+  Custom `Tool` conformers downstream (Monad/Shuttle/Yakamoz) must update their `execute`/`
+  summarize` signatures and `parametersSchema` return type when they bump to the release that
+  includes this change; migration is deferred until that release is cut (consumers pin to released
+  versions).
+- Typed `Tool.parametersSchema` as `JSONSchema.Schema` (PKAPI-001): it was
+  `[String: AnyCodable]` (a decoded JSON dict), while every other schema surface was already
+  typed (`LLMToolDefinition.parameters: Schema?`, `SidecarDirective.schema: Schema`). The
+  `Tool.toLLMToolDefinition()` serialization site now consumes the typed `Schema` directly with no
+  encode/decode round-trip. `ToolParameterSchema` is retained as a builder helper
+  (`ToolParameterSchema.object { … }.schemaDefinition`); its old `.schema` dict accessor was
+  removed. `WorkspaceToolDefinition.parametersSchema` stays `[String: AnyCodable]` (it must remain
+  `Codable`/`Hashable` for `ToolReference`); the `Tool`↔DTO boundary converts via
+  `Schema.asDictionary` / `Schema(_:)`.
+
+### Changed
+
+- `Tool.canExecute()` doc comment corrected (PKAPI-001): it was documented as "whether the tool
+  is currently available for execution in the given environment" but takes no environment
+  parameter — no conformer depends on an injected context. The comment now reads "whether the
+  tool is currently available for execution."
+
 ### Changed
 
 - Build-surface housekeeping (PKCLEAN-009): documented in `Package.swift` why

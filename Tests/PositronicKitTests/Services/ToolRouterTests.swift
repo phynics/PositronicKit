@@ -66,9 +66,7 @@ final class ToolRouterTests {
         let name: String
         let description = "A mock tool for testing"
         let requiresPermission = false
-        var parametersSchema: [String: AnyCodable] {
-            [:]
-        }
+        let parametersSchema = makeEmptyObjectSchema()
 
         var result: ToolResult
 
@@ -76,7 +74,7 @@ final class ToolRouterTests {
             true
         }
 
-        func execute(parameters _: [String: Any]) async throws -> ToolResult {
+        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
             if !result.success, result.error == "client_tools_disallowed_on_private_timeline" {
                 throw ToolError.attachedToolsDisallowedOnPrivateTimeline
             }
@@ -92,9 +90,7 @@ final class ToolRouterTests {
         let description = "A permissioned mock tool"
         let requiresPermission = true
         private(set) var didExecute = false
-        var parametersSchema: [String: AnyCodable] {
-            [:]
-        }
+        let parametersSchema = makeEmptyObjectSchema()
 
         init(id: String) {
             self.id = id
@@ -105,7 +101,7 @@ final class ToolRouterTests {
             true
         }
 
-        func execute(parameters _: [String: Any]) async throws -> ToolResult {
+        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
             didExecute = true
             return .success("executed")
         }
@@ -251,15 +247,13 @@ final class ToolRouterTests {
         let name = "never_finishes"
         let description = "A tool that never finishes unless cancelled"
         let requiresPermission = false
-        var parametersSchema: [String: AnyCodable] {
-            [:]
-        }
+        let parametersSchema = makeEmptyObjectSchema()
 
         func canExecute() async -> Bool {
             true
         }
 
-        func execute(parameters _: [String: Any]) async throws -> ToolResult {
+        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
             try await Task.sleep(for: .seconds(60))
             return .success("late")
         }
@@ -273,15 +267,13 @@ final class ToolRouterTests {
         let description = "A tool that blocks and ignores cancellation"
         let requiresPermission = false
         let blockSeconds: TimeInterval
-        var parametersSchema: [String: AnyCodable] {
-            [:]
-        }
+        let parametersSchema = makeEmptyObjectSchema()
 
         func canExecute() async -> Bool {
             true
         }
 
-        func execute(parameters _: [String: Any]) async throws -> ToolResult {
+        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
             // A blocking, non-cancellable sleep models a synchronous tool body. It does not observe
             // Task cancellation, so the timeout must bound it without awaiting completion.
             blockingThreadSleep(blockSeconds)
@@ -806,9 +798,7 @@ struct ToolRouterWorkspaceResolutionTests {
         let name: String
         let description = "A mock tool for testing"
         let requiresPermission = false
-        var parametersSchema: [String: AnyCodable] {
-            [:]
-        }
+        let parametersSchema = makeEmptyObjectSchema()
 
         var result: ToolResult
 
@@ -816,7 +806,7 @@ struct ToolRouterWorkspaceResolutionTests {
             true
         }
 
-        func execute(parameters _: [String: Any]) async throws -> ToolResult {
+        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
             if !result.success, result.error == "client_tools_disallowed_on_private_timeline" {
                 throw ToolError.attachedToolsDisallowedOnPrivateTimeline
             }
@@ -831,9 +821,7 @@ struct ToolRouterWorkspaceResolutionTests {
         let description = "A tool that always fails"
         let requiresPermission = false
         let thrownError: any Error
-        var parametersSchema: [String: AnyCodable] {
-            [:]
-        }
+        let parametersSchema = makeEmptyObjectSchema()
 
         init(id: String, error: any Error) {
             self.id = id
@@ -845,7 +833,7 @@ struct ToolRouterWorkspaceResolutionTests {
             true
         }
 
-        func execute(parameters _: [String: Any]) async throws -> ToolResult {
+        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
             throw thrownError
         }
     }
@@ -874,9 +862,7 @@ struct ToolTurnProjectionTests {
         let name: String
         let description = "A mock tool for testing"
         let requiresPermission = false
-        var parametersSchema: [String: AnyCodable] {
-            [:]
-        }
+        let parametersSchema = makeEmptyObjectSchema()
 
         var result: ToolResult
 
@@ -884,7 +870,7 @@ struct ToolTurnProjectionTests {
             true
         }
 
-        func execute(parameters _: [String: Any]) async throws -> ToolResult {
+        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
             result
         }
     }
@@ -895,9 +881,7 @@ struct ToolTurnProjectionTests {
         let description = "A tool that always fails"
         let requiresPermission = false
         let thrownError: any Error
-        var parametersSchema: [String: AnyCodable] {
-            [:]
-        }
+        let parametersSchema = makeEmptyObjectSchema()
 
         init(id: String, error: any Error) {
             self.id = id
@@ -909,7 +893,7 @@ struct ToolTurnProjectionTests {
             true
         }
 
-        func execute(parameters _: [String: Any]) async throws -> ToolResult {
+        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
             throw thrownError
         }
     }

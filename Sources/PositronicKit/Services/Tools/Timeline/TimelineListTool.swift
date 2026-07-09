@@ -1,4 +1,5 @@
 import Foundation
+import struct JSONSchema.Schema
 import JSONSchemaBuilder
 import PKShared
 
@@ -17,15 +18,15 @@ public struct TimelineListTool: PKShared.Tool, Sendable {
         self.timelineStore = timelineStore
     }
 
-    public var parametersSchema: [String: AnyCodable] {
-        ToolParameterSchema.object {}.schema
+    public var parametersSchema: Schema {
+        ToolParameterSchema.object {}.schemaDefinition
     }
 
     public func canExecute() async -> Bool {
         true
     }
 
-    public func execute(parameters _: [String: Any]) async throws -> ToolResult {
+    public func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
         let timelines = try await timelineStore.fetchAllTimelines(includeArchived: false)
         let visible = timelines.filter { !$0.isPrivate }
 

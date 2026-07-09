@@ -12,17 +12,17 @@ struct MockComplexTool: Tool, @unchecked Sendable {
 
     var usageExample: String? { nil }
 
-    var parametersSchema: [String: AnyCodable] { [:] }
+    let parametersSchema = makeEmptyObjectSchema()
 
     func canExecute() async -> Bool { true }
 
-    func execute(parameters: [String: Any]) async throws -> ToolResult {
+    func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
         // Verify we received the expected types
-        guard let tags = parameters["tags"] as? [Any] else {
+        guard let tags = parameters["tags"]?.value as? [Any] else {
             return .failure("Expected 'tags' to be [Any], got \(type(of: parameters["tags"])) ")
         }
 
-        guard let user = parameters["user"] as? [String: Any],
+        guard let user = parameters["user"]?.value as? [String: Any],
               let name = user["name"] as? String,
               let ageValue = user["age"] else {
             return .failure("Expected 'user' dictionary with name/age")

@@ -14,12 +14,12 @@ final class ChatEngineStageTests {
         let name = "stub_tool"
         let description = "Stub for testing"
         let requiresPermission = false
-        let parametersSchema: [String: AnyCodable] = [:]
+        let parametersSchema = makeEmptyObjectSchema()
         func canExecute() async -> Bool {
             true
         }
 
-        func execute(parameters _: [String: Any]) async throws -> ToolResult {
+        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
             .success("ok")
         }
     }

@@ -102,6 +102,39 @@ public enum AnyCodable: Codable, Sendable, Equatable, Hashable, CustomStringConv
     }
 }
 
+// MARK: - ExpressibleByLiteral
+
+// Conforming `AnyCodable` to the scalar literal protocols lets `[String: AnyCodable]` be
+// written as naturally as `[String: Any]` at call sites (tool `execute` arguments, test
+// fixtures, etc.), so adopting the Sendable `[String: AnyCodable]` argument type does not
+// impose per-value `AnyCodable(...)` wrapping for literal values. Collection literals
+// (`ExpressibleByArrayLiteral`/`ExpressibleByDictionaryLiteral`) are intentionally omitted to
+// avoid inference ambiguity with `[String: AnyCodable]` dictionary literals; nested values use
+// the explicit `.array`/`.dictionary` cases.
+extension AnyCodable: ExpressibleByStringLiteral {
+    public init(stringLiteral value: String) {
+        self = .string(value)
+    }
+}
+
+extension AnyCodable: ExpressibleByIntegerLiteral {
+    public init(integerLiteral value: Int) {
+        self = .number(Double(value))
+    }
+}
+
+extension AnyCodable: ExpressibleByFloatLiteral {
+    public init(floatLiteral value: Double) {
+        self = .number(value)
+    }
+}
+
+extension AnyCodable: ExpressibleByBooleanLiteral {
+    public init(booleanLiteral value: Bool) {
+        self = .boolean(value)
+    }
+}
+
 // MARK: - JSON Utilities
 
 public func toJsonString(_ dict: [String: AnyCodable]) throws -> String {

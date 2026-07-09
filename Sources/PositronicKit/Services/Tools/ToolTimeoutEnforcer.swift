@@ -54,7 +54,7 @@ package enum ToolTimeoutEnforcer {
 
         let toolTask = Task {
             do {
-                let result = try await tool.execute(parameters: arguments.toAnyDictionary)
+                let result = try await tool.execute(parameters: arguments)
                 continuation.yield(.completed(result))
             } catch {
                 continuation.yield(.failed(error))

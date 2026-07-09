@@ -55,7 +55,7 @@ struct TimelineSendToolTests {
             source: source, workspaceRoot: workspace.root
         )
         let result = try await tool.execute(parameters: [
-            "timeline_id": destination.id.uuidString,
+            "timeline_id": AnyCodable(destination.id.uuidString),
             "message": "should be blocked",
         ])
 
@@ -86,7 +86,7 @@ struct TimelineSendToolTests {
             source: source, workspaceRoot: workspace.root
         )
         let result = try await tool.execute(parameters: [
-            "timeline_id": destination.id.uuidString,
+            "timeline_id": AnyCodable(destination.id.uuidString),
             "message": "carry the chain forward",
         ])
 

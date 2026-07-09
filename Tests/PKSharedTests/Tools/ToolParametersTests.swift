@@ -54,7 +54,7 @@ struct ToolParametersTests {
 
     @Test("Require Int from NaN throws instead of trapping")
     func testRequireIntFromNaN() {
-        let params = ToolParameters(["count": Double.nan])
+        let params = ToolParameters(["count": AnyCodable(Double.nan)])
 
         #expect(throws: ToolError.self) {
             try params.require("count", as: Int.self)
@@ -63,7 +63,7 @@ struct ToolParametersTests {
 
     @Test("Require Int from Infinity throws instead of trapping")
     func testRequireIntFromInfinity() {
-        let params = ToolParameters(["count": Double.infinity])
+        let params = ToolParameters(["count": AnyCodable(Double.infinity)])
 
         #expect(throws: ToolError.self) {
             try params.require("count", as: Int.self)
@@ -96,14 +96,14 @@ struct ToolParametersTests {
 
     @Test("Optional Int from NaN returns nil instead of trapping")
     func testOptionalIntFromNaN() {
-        let params = ToolParameters(["count": Double.nan])
+        let params = ToolParameters(["count": AnyCodable(Double.nan)])
 
         #expect(params.optional("count", as: Int.self) == nil)
     }
 
     @Test("Optional Int from Infinity returns nil instead of trapping")
     func testOptionalIntFromInfinity() {
-        let params = ToolParameters(["count": Double.infinity])
+        let params = ToolParameters(["count": AnyCodable(Double.infinity)])
 
         #expect(params.optional("count", as: Int.self) == nil)
     }

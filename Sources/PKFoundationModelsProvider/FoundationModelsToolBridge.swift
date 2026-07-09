@@ -1,4 +1,5 @@
 import Foundation
+import struct JSONSchema.Schema
 import PKShared
 
 #if canImport(FoundationModels)
@@ -45,7 +46,7 @@ import PKShared
         }
     }
 
-    /// Converts between PositronicKit's runtime JSON-Schema-shaped `parametersSchema` /
+    /// Converts between PositronicKit's typed `Schema` `parametersSchema` /
     /// `AnyCodable` argument values and the framework's `GenerationSchema`/`GeneratedContent`.
     /// Isolated in its own type so the conversion logic (a finite, testable JSON-Schema subset —
     /// object-of-primitives, matching what PositronicKit tools currently declare) is easy to
@@ -53,9 +54,11 @@ import PKShared
     @available(macOS 26.0, *)
     enum FoundationModelsSchemaBridge {
         static func generationSchema(for tool: AnyTool) -> GenerationSchema {
-            let properties = tool.parametersSchema["properties"]?.asDictionary ?? [:]
+            // parametersSchema is the typed Schema; introspect its wire form for properties.
+            let schemaDict = tool.parametersSchema.asDictionary
+            let properties = schemaDict["properties"]?.asDictionary ?? [:]
             let required = Set(
-                (tool.parametersSchema["required"]?.asArray ?? []).compactMap(\.asString)
+                (schemaDict["required"]?.asArray ?? []).compactMap(\.asString)
             )
 
             let dynamicProperties: [DynamicGenerationSchema.Property] = properties.map { key, value in
@@ -106,33 +109,34 @@ import PKShared
             }
         }
 
-        /// Decodes a tool's `GeneratedContent` arguments back into the `[String: Any]` shape
-        /// `Tool.execute(parameters:)` expects, using the tool's own declared property names/
-        /// types so values come back as the right Swift type (not always `String`).
+        /// Decodes a tool's `GeneratedContent` arguments back into the `[String: AnyCodable]`
+        /// shape `Tool.execute(parameters:)` expects, using the tool's own declared property
+        /// names/types so values come back as the right Swift type (not always `String`).
         static func decodeParameters(
             _ content: GeneratedContent,
-            schema: [String: AnyCodable]
-        ) -> [String: Any] {
-            let properties = schema["properties"]?.asDictionary ?? [:]
-            var result: [String: Any] = [:]
+            schema: Schema
+        ) -> [String: AnyCodable] {
+            let schemaDict = schema.asDictionary
+            let properties = schemaDict["properties"]?.asDictionary ?? [:]
+            var result: [String: AnyCodable] = [:]
             for (key, value) in properties {
                 let type = value.asDictionary?["type"]?.asString ?? "string"
                 switch type {
                 case "integer":
                     if let intValue = try? content.value(Int.self, forProperty: key) {
-                        result[key] = intValue
+                        result[key] = .number(Double(intValue))
                     }
                 case "number":
                     if let doubleValue = try? content.value(Double.self, forProperty: key) {
-                        result[key] = doubleValue
+                        result[key] = .number(doubleValue)
                     }
                 case "boolean":
                     if let boolValue = try? content.value(Bool.self, forProperty: key) {
-                        result[key] = boolValue
+                        result[key] = .boolean(boolValue)
                     }
                 default:
                     if let stringValue = try? content.value(String.self, forProperty: key) {
-                        result[key] = stringValue
+                        result[key] = .string(stringValue)
                     }
                 }
             }
