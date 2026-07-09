@@ -93,6 +93,15 @@ for tagged releases beginning with `1.0.0`.
   from `package` to `internal`. `RuntimeToolPolicyFactory` is preserved (legitimate pure-helper
   extraction). All `await cache.cacheX()` hops collapse to synchronous in-actor dict access. Public
   API is unchanged.
+- Internal refactor: folded `TurnPreparer` and `TurnLoopController` back into `ChatEngine` as
+  `private extension` files (`ChatEngine+TurnPreparation.swift`,
+  `ChatEngine+TurnLoop.swift`), following the PKDEEP-002 `TimelineManager` pattern (PKDEEP2-001,
+  supersedes the PKARCH-001 split). The two single-caller helper structs are gone; their methods
+  now read `self.dependencies`/`self.logger` directly. `PromptSnapshotBuilder` and
+  `PartialAssistantPersistence` remain standalone internal helpers (genuinely separable — pure,
+  no marshalled state). `ExternalToolOutputSubmissionGate` remains a single shared (file-scope)
+  actor instance. `TurnLoopControllerTests` cases are recast at the execute level or deleted as
+  duplicates of `ChatEngineFailurePersistenceTests`/`ChatEngineTests`. No public API change.
 
 ### Added
 

@@ -12,6 +12,7 @@ struct ChatEngineTests {
     /// Helper to run a test with standard dependencies
     private func withChatEngineDependencies<T>(
         streamTimeout: TimeInterval = 60,
+        plugins: [any ChatTurnPlugin] = [],
         _ test: @Sendable (ChatEngine, MockLLMService, MockPersistenceService) async throws -> T
     ) async throws -> T {
         let mockLLM = MockLLMService()
@@ -38,7 +39,7 @@ struct ChatEngineTests {
                 messageStore: mockPersistence,
                 llmService: mockLLM,
                 toolRouter: toolRouter,
-                chatTurnPlugins: [],
+                chatTurnPlugins: plugins,
                 streamTimeout: streamTimeout
             )
         )
@@ -75,6 +76,13 @@ struct ChatEngineTests {
             events.append(event)
         }
         return events
+    }
+
+    private nonisolated func generationDeltas(_ events: [ChatEvent]) -> [String] {
+        events.compactMap { event in
+            if case let .delta(event: .generation(text: text)) = event { return text }
+            return nil
+        }
     }
 
     // MARK: - Group 1: Plain Text Response
@@ -1298,5 +1306,71 @@ struct ChatEngineTests {
             let assistantMsg = messages.first { $0.role == "assistant" }
             #expect(assistantMsg?.agentInstanceId == agentId)
         }
+    }
+
+    // MARK: - Group 12: Plugin Follow-Up & Max-Turns (recast from TurnLoopControllerTests, PKDEEP2-001)
+
+    @Test("Plugin follow-up resumes the loop for a second turn, then finishes")
+    func pluginFollowUpResumesLoop() async throws {
+        let plugin = InjectOncePlugin()
+        try await withChatEngineDependencies(plugins: [plugin]) { engine, mockLLM, _ in
+            mockLLM.mockClient.nextResponses = ["turn-one", "turn-two"]
+
+            let stream = try await engine.execute(
+                timelineId: timelineId,
+                message: "Hi",
+                tools: []
+            )
+
+            let events = try await collect(stream)
+
+            // Both turns ran: the plugin injected a follow-up after turn one, resuming the loop
+            // for turn two; on turn two the plugin injected nothing, so the loop finished.
+            let deltas = generationDeltas(events)
+            #expect(deltas == ["turn-one", "turn-two"])
+            #expect(events.contains(where: {
+                if case .completion(event: .generationCompleted) = $0 { return true }
+                return false
+            }))
+        }
+    }
+
+    @Test("Loop stops at maxTurns when a plugin keeps requesting continuation")
+    func loopStopsAtMaxTurns() async throws {
+        let plugin = AlwaysContinuePlugin()
+        try await withChatEngineDependencies(plugins: [plugin]) { engine, mockLLM, _ in
+            mockLLM.mockClient.nextResponses = ["turn-one", "turn-two"]
+
+            let stream = try await engine.execute(
+                timelineId: timelineId,
+                message: "Hi",
+                tools: [],
+                maxTurns: 2
+            )
+
+            let events = try await collect(stream)
+
+            // Two LLM turns ran (one generation delta each) before maxTurns cut the loop.
+            let deltas = generationDeltas(events)
+            #expect(deltas == ["turn-one", "turn-two"])
+            // No cancellation or failure surfaced: the loop finished via the max-turns branch.
+            #expect(!events.contains(where: { if case .error = $0 { return true }; return false }))
+        }
+    }
+}
+
+// MARK: - Test Plugins
+
+/// Injects a follow-up user message after the first turn only.
+private struct InjectOncePlugin: ChatTurnPlugin {
+    func afterTurn(_ turn: CompletedTurn) async throws -> [LLMMessage] {
+        turn.turnCount == 1 ? [LLMMessage(role: .user, content: "continue please")] : []
+    }
+}
+
+/// Injects a follow-up user message after every turn (drives the loop to maxTurns).
+private struct AlwaysContinuePlugin: ChatTurnPlugin {
+    func afterTurn(_ turn: CompletedTurn) async throws -> [LLMMessage] {
+        [LLMMessage(role: .user, content: "keep going")]
     }
 }

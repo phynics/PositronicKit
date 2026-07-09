@@ -4,22 +4,9 @@ import Logging
 import PKPrompt
 import PKShared
 
-/// Owns turn preparation: saving inputs, gathering context, resolving session entities,
-/// building the initial prompt, and recording the prompt-history snapshot.
-///
-/// Extracted from `ChatEngine` (PKARCH-001) so the preparation path can be tested and
-/// reasoned about independently of the ReAct loop. `ChatEngine.execute` delegates to this
-/// type for the pre-loop phase, then hands the resulting `ChatTurnContext` to
-/// `TurnLoopController`.
-struct TurnPreparer {
-    let dependencies: ChatEngine.Dependencies
-    let logger: Logger
+// MARK: - Turn Preparation
 
-    init(dependencies: ChatEngine.Dependencies, logger: Logger? = nil) {
-        self.dependencies = dependencies
-        self.logger = logger ?? Logger.module(named: "turn-preparer")
-    }
-
+extension ChatEngine {
     /// Consolidates all pre-turn logic: saving inputs, gathering context, resolving entities,
     /// and building the initial prompt.
     func prepareSession(
@@ -202,16 +189,18 @@ struct TurnPreparer {
             outputs: TurnOutputs()
         )
     }
+}
 
-    // MARK: - Internal Preparation Steps
+// MARK: - Preparation Steps
 
-    private func saveConversationSteps(
+private extension ChatEngine {
+    func saveConversationSteps(
         timelineId: UUID,
         message: String,
         toolOutputs: [ToolOutputSubmission]?
     ) async throws {
         if let toolOutputs {
-            try await Self.externalToolOutputSubmissionGate.saveValidatedToolOutputs(
+            try await externalToolOutputSubmissionGate.saveValidatedToolOutputs(
                 toolOutputs,
                 timelineId: timelineId,
                 messageStore: dependencies.messageStore
@@ -226,9 +215,7 @@ struct TurnPreparer {
         }
     }
 
-    private static let externalToolOutputSubmissionGate = ExternalToolOutputSubmissionGate()
-
-    private func fetchContext(
+    func fetchContext(
         contextManager: ContextManager?,
         message: String,
         history: [Message],
@@ -255,7 +242,7 @@ struct TurnPreparer {
         return ContextData()
     }
 
-    private func validateToolHistory(_ history: [Message]) throws {
+    func validateToolHistory(_ history: [Message]) throws {
         var pendingToolCallIds = Set<String>()
 
         for message in history {
@@ -287,6 +274,10 @@ struct TurnPreparer {
         }
     }
 }
+
+// MARK: - External Tool Output Submission Gate
+
+private let externalToolOutputSubmissionGate = ExternalToolOutputSubmissionGate()
 
 private actor ExternalToolOutputSubmissionGate {
     private var reservedToolOutputs: Set<ReservedToolOutput> = []

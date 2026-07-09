@@ -61,11 +61,12 @@ enum ChatEngineError: PKError {
 /// Unified runtime turn orchestrator for both interactive chat and autonomous execution.
 /// Returns `AsyncThrowingStream<ChatEvent>` for all use cases — callers decide how to consume.
 ///
-/// `ChatEngine` is a thin coordinator: it validates preconditions, delegates session
-/// preparation to `TurnPreparer`, and hands the prepared context to `TurnLoopController`
-/// which owns the ReAct loop. Prompt follow-up synthesis (`PromptSnapshotBuilder`) and
-/// partial-assistant persistence (`PartialAssistantPersistence`) are delegated to focused
-/// modules behind this seam.
+/// `ChatEngine` is a thin coordinator: it validates preconditions, prepares the session
+/// (context gathering, prompt assembly, prompt-history recording), and drives the ReAct
+/// loop. Prompt follow-up synthesis (`PromptSnapshotBuilder`) and partial-assistant
+/// persistence (`PartialAssistantPersistence`) remain delegated to focused standalone
+/// helpers. Session preparation lives in `ChatEngine+TurnPreparation.swift`; the ReAct
+/// loop lives in `ChatEngine+TurnLoop.swift`.
 ///
 /// It is deliberately *not* the public customization surface for downstream applications;
 /// external callers are expected to integrate through `PositronicKit` and the higher-level
@@ -83,7 +84,7 @@ struct ChatEngine {
         /// Streaming chat seam: the runtime turn loop, `LLMStreamingStage`, and the
         /// `isConfigured`/`configuration` precondition checks depend only on this.
         let llmService: any LLMStreamClient
-        /// Utility seam used solely by `TurnPreparer.fetchContext` to generate RAG tags
+        /// Utility seam used solely by `ChatEngine.fetchContext` to generate RAG tags
         /// (`generateTags`). Kept separate from `llmService` so the streaming seam stays
         /// narrow; the facade and tests pass the same object for both (PKARCH-004 tension).
         let utilityClient: any LLMUtilityClient
@@ -172,9 +173,7 @@ struct ChatEngine {
         }
         try SidecarSchemaComposer.validate(sidecars)
 
-        let context = try await TurnPreparer(
-            dependencies: dependencies
-        ).prepareSession(
+        let context = try await prepareSession(
             timelineId: timelineId,
             sendId: sendId ?? UUID(),
             message: message,
@@ -192,20 +191,9 @@ struct ChatEngine {
             assemblyLogger: assemblyLogger
         )
 
-        let snapshotBuilder = PromptSnapshotBuilder()
-        let partialPersistence = PartialAssistantPersistence(
-            messageStore: dependencies.messageStore
-        )
-        let loopController = TurnLoopController(
-            dependencies: dependencies,
-            additionalStages: additionalStages,
-            snapshotBuilder: snapshotBuilder,
-            partialPersistence: partialPersistence
-        )
-
         return AsyncThrowingStream<ChatEvent, Error> { continuation in
             let task = Task {
-                await loopController.runChatLoop(continuation: continuation, context: context)
+                await runChatLoop(continuation: continuation, context: context)
             }
             continuation.onTermination = { @Sendable _ in task.cancel() }
         }
