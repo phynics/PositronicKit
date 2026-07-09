@@ -10,18 +10,16 @@ import PKShared
 /// This is the prompt-layer journaling abstraction intended for public use. Reach for it when you
 /// want to reason about prompt evolution directly, outside the runtime loop.
 public struct PromptJournal: Sendable {
-    private let thresholds: PromptJournalCompactionThresholds
+    private var pressure: AppendPressure
     private var committedBaseSections: [RenderedPrompt.Section] = []
     private var latestObservedSections: [RenderedPrompt.Section] = []
-    private var appendedMessageCount = 0
-    private var appendedTokens = 0
 
     /// Creates an empty prompt journal with no committed base.
     ///
     /// - Parameter thresholds: Append-pressure thresholds that trigger auto-compaction of the
     ///   latest accepted observation into a new committed base on the next `observe(_:)`.
     public init(thresholds: PromptJournalCompactionThresholds = .default) {
-        self.thresholds = thresholds
+        self.pressure = AppendPressure(thresholds: thresholds)
     }
 
     /// Observes a rendered prompt and returns the journal plan for the current turn.
@@ -59,22 +57,17 @@ public struct PromptJournal: Sendable {
     /// to conversation history. When append pressure exceeds `thresholds`, the journal promotes
     /// the latest accepted observation into a new committed base on the next `observe(_:)`.
     public mutating func recordAppend(messageCount: Int, estimatedTokens: Int) {
-        appendedMessageCount += messageCount
-        appendedTokens += estimatedTokens
+        pressure.recordAppend(messageCount: messageCount, estimatedTokens: estimatedTokens)
     }
 
     /// Records append pressure from concrete appended messages.
     public mutating func recordAppend(messages: [Message]) {
-        recordAppend(
-            messageCount: messages.count,
-            estimatedTokens: TokenEstimator.estimate(parts: messages.map(\.content))
-        )
+        pressure.recordAppend(messages: messages)
     }
 
     /// Whether the latest accepted observation should be compacted before the next diff.
     public var shouldCompact: Bool {
-        appendedTokens > thresholds.maxAppendedTokens
-            || appendedMessageCount > thresholds.maxAppendedMessages
+        pressure.shouldCompact
     }
 
     /// Promotes the latest observed non-volatile sections into the committed base.
@@ -85,12 +78,12 @@ public struct PromptJournal: Sendable {
     /// - Returns: A plan representing the compacted state, or `nil` when nothing has been observed.
     public mutating func compact() -> PromptJournalPlan? {
         guard !latestObservedSections.isEmpty else {
-            clearAppendPressure()
+            pressure.reset()
             return nil
         }
 
         committedBaseSections = latestObservedSections.filter { $0.cachePolicy != .volatile }
-        clearAppendPressure()
+        pressure.reset()
         return PromptJournalPlanBuilder.makePlan(
             committedBaseSections: committedBaseSections,
             currentSections: latestObservedSections,
@@ -107,24 +100,19 @@ public struct PromptJournal: Sendable {
     ///   from an empty journal.
     public mutating func reset(hard: Bool = false) {
         latestObservedSections = []
-        clearAppendPressure()
+        pressure.reset()
         if hard {
             committedBaseSections = []
         }
     }
 
     private mutating func compactIfNeeded() {
-        guard shouldCompact else {
+        guard pressure.shouldCompact else {
             return
         }
         if !latestObservedSections.isEmpty {
             committedBaseSections = latestObservedSections.filter { $0.cachePolicy != .volatile }
         }
-        clearAppendPressure()
-    }
-
-    private mutating func clearAppendPressure() {
-        appendedMessageCount = 0
-        appendedTokens = 0
+        pressure.reset()
     }
 }

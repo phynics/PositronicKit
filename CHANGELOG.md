@@ -17,6 +17,30 @@ for tagged releases beginning with `1.0.0`.
   `conversationID` synonym) so downstream consumers can correlate log lines by timeline/send/turn
   without regex.
 
+### Changed
+
+- Extracted the shared compaction-pressure core and section-fingerprint into PKPrompt
+  (PKDEEP2-003). `AppendPressure` (package-internal) now owns the append counters +
+  `recordAppend`/`shouldCompact`/`reset` consumed by both `PromptJournal` (PKPrompt) and
+  `TimelinePromptHistory` (runtime); each consumer retains its own post-compact action (base
+  promotion vs. snapshot reset). The section-fingerprint helper `sectionContentHash(_:)`
+  (package-internal) unifies both systems on a text-only scheme: `estimatedTokens` and the
+  `type` enum are no longer part of the fingerprint, so a token-estimate delta with identical
+  text no longer registers as a content change. For `.messages` content, `role`/`think`/
+  `isSummary` are folded into the hash inputs so no content-bearing change is lost. This
+  eliminates the cross-system divergence where a semistable section with a token-only change
+  differed on the PKPrompt side but not the runtime side.
+
+### Deprecated
+
+- `PositronicKit.CompactionThresholds` is now a deprecated typealias for
+  `PKPrompt.PromptJournalCompactionThresholds` (the surviving public name). The runtime's
+  `TimelinePromptHistory` and `TimelinePromptHistoryRegistry` now consume
+  `PromptJournalCompactionThresholds` directly. Source callers passing
+  `CompactionThresholds(...)` continue to compile with a deprecation warning; migrate to
+  `PromptJournalCompactionThresholds`. No downstream consumers (Monad, Shuttle, Yakamoz)
+  reference either name today.
+
 ### Removed
 
 - **Breaking:** removed `PositronicKit.sidecarsIfEnabled(_:when:)`. Consumers can inline the equivalent ternary (`isEnabled ? sidecars : []`) at the call site. Yakamoz's `YakamozRuntime.makeChatViewModel` is updated accordingly.
