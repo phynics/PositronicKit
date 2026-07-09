@@ -5,9 +5,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="${BUILD_DIR:-$ROOT/.build/arm64-apple-macosx/debug}"
 MODULES_DIR="$BUILD_DIR/Modules"
-DOCC_BIN="/Applications/Xcode-26.5.0.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/docc"
-SYMBOLGRAPH_BIN="/Applications/Xcode-26.5.0.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-symbolgraph-extract"
-SDK_PATH="/Applications/Xcode-26.5.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk"
+DOCC_BIN="$(xcrun --find docc)"
+SYMBOLGRAPH_BIN="$(xcrun --find swift-symbolgraph-extract)"
+SDK_PATH="$(xcrun --show-sdk-path)"
 TARGET_TRIPLE="${TARGET_TRIPLE:-arm64-apple-macosx15.0}"
 
 if [[ ! -x "$DOCC_BIN" ]]; then
