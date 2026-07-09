@@ -1,3 +1,4 @@
+import ErrorKit
 import Foundation
 import Logging
 import PKPrompt
@@ -10,6 +11,7 @@ struct LLMStreamingStage: PipelineStage {
     let streamTimeout: TimeInterval
 
     func process(_ context: ChatTurnContext) async throws -> AsyncThrowingStream<ChatEvent, Error> {
+        let processStartTime = ContinuousClock.now
         let streamData: AsyncThrowingStream<LLMStreamChunk, Error>
         // ChatEngine's entry point rejects turns that set both `structuredOutput` and
         // `sidecars` (SidecarError.conflictsWithExplicitStructuredOutput), so at most one
@@ -70,6 +72,17 @@ struct LLMStreamingStage: PipelineStage {
                     }
                     continuation.finish()
                 } catch {
+                    let elapsed = processStartTime.duration(to: .now)
+                    let responseChars = await context.outputs.fullResponse.count
+                    let thinkingChars = await context.outputs.fullThinking.count
+                    let toolCallDeltaCount = await context.outputs.toolCallAccumulators.count
+                    logger.error(
+                        """
+                        Stream failed after \(elapsed): \
+                        responseChars=\(responseChars) thinkingChars=\(thinkingChars) \
+                        toolCallDeltas=\(toolCallDeltaCount) error=\(ErrorKit.userFriendlyMessage(for: error))
+                        """
+                    )
                     continuation.finish(throwing: error)
                 }
             }
