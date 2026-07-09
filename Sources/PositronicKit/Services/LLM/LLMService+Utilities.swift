@@ -71,7 +71,7 @@ private extension LLMUtilityClient where Self: LLMStreamClient {
                 structuredOutput: directive.structuredOutput,
                 as: directive.payloadType,
                 generationParameters: nil,
-                useUtilityModel: true
+                modelTier: .utility
             )
             return directive.map(payload)
         } catch {

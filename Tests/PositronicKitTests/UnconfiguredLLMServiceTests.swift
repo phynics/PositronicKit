@@ -1,8 +1,8 @@
 import Foundation
-import Testing
+@testable import PKShared
 import PKTestSupport
 @testable import PositronicKit
-@testable import PKShared
+import Testing
 
 @Suite("Unconfigured LLM Service")
 struct UnconfiguredLLMServiceTests {
@@ -63,8 +63,7 @@ struct UnconfiguredLLMServiceTests {
             toolChoice: nil,
             responseFormat: nil,
             generationParameters: nil,
-            useUtilityModel: false,
-            useFastModel: false
+            modelTier: .primary
         )
 
         await #expect(throws: LLMServiceError.notConfigured) {

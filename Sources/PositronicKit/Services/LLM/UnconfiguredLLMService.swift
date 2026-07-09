@@ -60,8 +60,7 @@ public struct UnconfiguredLLMService: LLMStreamClient, LLMConfigStore, LLMUtilit
         toolChoice _: LLMToolChoice?,
         responseFormat _: LLMResponseFormat?,
         generationParameters _: GenerationParameters?,
-        useUtilityModel _: Bool,
-        useFastModel _: Bool
+        modelTier _: ModelTier
     ) async -> AsyncThrowingStream<LLMStreamChunk, any Error> {
         failingStream()
     }

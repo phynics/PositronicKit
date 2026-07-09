@@ -50,7 +50,7 @@ import Testing
             for index in 0 ..< 100 {
                 group.addTask {
                     let provider: LLMProvider = index.isMultiple(of: 2) ? .openAI : .openAICompatible
-                    ExternalLLMProviderRegistry.register(factory: { _, _, _, _, _ in nil }, for: provider)
+                    ExternalLLMProviderRegistry.register(factory: { _ in nil }, for: provider)
                     _ = ExternalLLMProviderRegistry.factory(for: provider)
                 }
             }

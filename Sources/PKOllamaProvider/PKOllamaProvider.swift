@@ -4,12 +4,12 @@ import PositronicKit
 
 public enum PKOllamaProvider {
     public static func register() {
-        ExternalLLMProviderRegistry.register(factory: { config, _, timeout, retries, model in
+        ExternalLLMProviderRegistry.register(factory: { request in
             OllamaClient(
-                endpoint: config.endpoint,
-                modelName: model ?? config.modelName,
-                timeoutInterval: timeout,
-                maxRetries: retries
+                endpoint: request.config.endpoint,
+                modelName: request.model ?? request.config.modelName,
+                timeoutInterval: request.timeout,
+                maxRetries: request.retries
             )
         }, for: .ollama)
         StructuredOutputAdapterRegistry.register(OllamaStructuredOutputAdapter(), for: .ollama)

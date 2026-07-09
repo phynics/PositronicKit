@@ -17,7 +17,7 @@ public struct LLMChatRequest: Sendable {
     public let systemInstructions: String?
     public let structuredOutput: StructuredOutputRequest?
     public let generationParameters: GenerationParameters?
-    public let useFastModel: Bool
+    public let modelTier: ModelTier
 
     public init(
         userQuery: String,
@@ -31,7 +31,7 @@ public struct LLMChatRequest: Sendable {
         systemInstructions: String? = nil,
         structuredOutput: StructuredOutputRequest? = nil,
         generationParameters: GenerationParameters? = nil,
-        useFastModel: Bool = false
+        modelTier: ModelTier = .primary
     ) {
         self.userQuery = userQuery
         self.contextNotes = contextNotes
@@ -44,8 +44,27 @@ public struct LLMChatRequest: Sendable {
         self.systemInstructions = systemInstructions
         self.structuredOutput = structuredOutput
         self.generationParameters = generationParameters
-        self.useFastModel = useFastModel
+        self.modelTier = modelTier
     }
+}
+
+/// Selects which configured model tier a streaming request should target.
+///
+/// Replaces the former `useUtilityModel`/`useFastModel` boolean pair on
+/// ``LLMStreamClient/chatStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:)``.
+/// Exactly one tier is selected per call — the previous booleans were ambiguous when both were
+/// `true` (the implementation checked `useFastModel` first, then `useUtilityModel`, then fell
+/// through to the primary client) and didn't document that precedence. `ModelTier` makes the
+/// selection exhaustive and self-documenting.
+public enum ModelTier: Sendable, Equatable {
+    /// The primary (default) model — the main client. This is the default tier.
+    case primary
+    /// The utility model — lightweight tasks (tag/title generation, recall evaluation).
+    /// Falls back to the primary client if no utility client is configured.
+    case utility
+    /// The fast model — lower-latency variant, if configured.
+    /// Falls back to the primary client if no fast client is configured.
+    case fast
 }
 
 /// The result of a high-level LLM chat stream request.
@@ -131,15 +150,18 @@ public protocol LLMStreamClient: Sendable {
 
     func chatStreamWithContext(_ request: LLMChatRequest) async throws -> LLMStreamResult
 
-    /// Stream chat response from a prepared list of messages (low-level)
+    /// Stream chat response from a prepared list of messages (low-level).
+    ///
+    /// - Parameter modelTier: Which configured model tier to stream from (`.primary`,
+    ///   `.utility`, or `.fast`). See ``ModelTier`` for the fallback rules when a tier's
+    ///   client isn't configured.
     func chatStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,
         toolChoice: LLMToolChoice?,
         responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?,
-        useUtilityModel: Bool,
-        useFastModel: Bool
+        modelTier: ModelTier
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error>
 }
 
@@ -182,8 +204,7 @@ public extension LLMStreamClient {
         toolChoice: LLMToolChoice? = nil,
         responseFormat: LLMResponseFormat? = nil,
         generationParameters: GenerationParameters? = nil,
-        useUtilityModel: Bool = false,
-        useFastModel: Bool = false
+        modelTier: ModelTier = .primary
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
         await chatStream(
             messages: messages,
@@ -191,8 +212,7 @@ public extension LLMStreamClient {
             toolChoice: toolChoice,
             responseFormat: responseFormat,
             generationParameters: generationParameters,
-            useUtilityModel: useUtilityModel,
-            useFastModel: useFastModel
+            modelTier: modelTier
         )
     }
 }

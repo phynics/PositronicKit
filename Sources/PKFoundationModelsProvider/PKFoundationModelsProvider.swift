@@ -6,11 +6,11 @@ import PositronicKit
 ///
 /// Unlike `PKAnthropicProvider`/`PKOpenAIProvider`/`PKOllamaProvider`, this adapter has no API
 /// key, endpoint, or wire config — `ExternalLLMProviderRegistry`'s factory shape
-/// (`(LLMConfiguration, EndpointComponents, TimeInterval, Int, String?) -> LLMClientProtocol?`)
-/// exists to parameterize *HTTP* provider construction and doesn't fit an on-device session. So
-/// `PositronicKit(foundationModelsTools:)` below constructs an `LLMService` directly from a
-/// `FoundationModelsClient`, bypassing the registry/`LLMConfiguration` path entirely, rather than
-/// registering a factory that would just ignore most of its parameters.
+/// (`(ProviderFactoryRequest) -> LLMClientProtocol?`) exists to parameterize *HTTP* provider
+/// construction and doesn't fit an on-device session. So `PositronicKit(foundationModelsTools:)`
+/// below constructs an `LLMService` directly from a `FoundationModelsClient`, bypassing the
+/// registry/`LLMConfiguration` path entirely, rather than registering a factory that would just
+/// ignore most of its parameters.
 public enum PKFoundationModelsProvider {
     /// Present for parity with the other provider modules' `register()` entry point, but
     /// intentionally a no-op: there is nothing to register into `ExternalLLMProviderRegistry`

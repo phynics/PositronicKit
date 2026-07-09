@@ -42,6 +42,25 @@ for tagged releases beginning with `1.0.0`.
     `isBlocked` with a `false` default for backward compatibility. The removed
     `static let blocked` set was a public API; downstream consumers referencing it must
     switch to `identity.isBlocked` or `ErrorIdentity.extracting(from:)`.
+- Provider/LLM parameter ergonomics (PKAPI-007):
+  - **`ExternalLLMProviderRegistry.Factory`** is now `@Sendable (ProviderFactoryRequest) ->
+    (any LLMClientProtocol)?` instead of an unlabeled 5-tuple closure
+    `(LLMConfiguration, EndpointComponents, TimeInterval, Int, String?) -> ...`. The new
+    `ProviderFactoryRequest` struct (`config`/`components`/`timeout`/`retries`/`model`) makes
+    every field self-documenting at the call site; all 5 provider targets
+    (`PKOpenAIProvider`, `PKOpenRouterProvider`, `PKOllamaProvider`, `PKAnthropicProvider`,
+    `PKFoundationModelsProvider`) updated their `register()` factory closures accordingly.
+  - **`LLMStreamClient.chatStream(...)`'s `useUtilityModel`/`useFastModel` boolean pair is
+    replaced by a single `modelTier: ModelTier` parameter** (`.primary`/`.utility`/`.fast`).
+    The previous two-boolean signature was ambiguous when both were `true` (undocumented
+    precedence: `useFastModel` checked first, then `useUtilityModel`, then primary);
+    `ModelTier` makes tier selection exhaustive and self-documenting. `LLMChatRequest.useFastModel:
+    Bool` renamed to `modelTier: ModelTier`. `LLMUtilityClient.sendMessage(...useUtilityModel:)`
+    is unrelated and unchanged (only the streaming boolean pair is affected).
+  - Documented (not restructured) `LLMConfiguration`'s backwards-compatibility computed
+    properties (`endpoint`/`apiKey`/`modelName`/etc.) as write-through proxies onto
+    `providers[activeProvider]` — reading/writing them mutates the active provider's
+    `ProviderConfiguration` in place; there is no independent top-level state underneath.
 
 - Unified the tool-argument type across the execution boundary (PKAPI-001):
   `Tool.execute(parameters:)` and `Tool.summarize(parameters:result:)` now take
