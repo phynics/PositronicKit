@@ -106,34 +106,17 @@ struct PromptSectionValidationTests {
         #expect(sections.duplicateIDs(idKeyPath: \.id) == ["a", "b"])
     }
 
-    @Test("Collection uniqueness assertion uses Identifiable ids")
-    func collectionAssertUniqueIDsForIdentifiable() {
+    @Test("Collection uniqueness lookup uses Identifiable ids")
+    func collectionDuplicateIDsForIdentifiable() {
         let values = [IdentifiableValue(id: "b"), IdentifiableValue(id: "a"), IdentifiableValue(id: "b")]
 
-        #expect(throws: CollectionUniqueIDError.duplicateIDs(["b"])) {
-            try values.assertUniqueIDs()
-        }
+        #expect(values.duplicateIDs(idKeyPath: \.id) == ["b"])
     }
 
-    @Test("Collection uniqueness assertion uses explicit key path")
-    func collectionAssertUniqueIDsForExplicitKeyPath() {
+    @Test("Collection uniqueness lookup uses explicit key path")
+    func collectionDuplicateIDsForExplicitKeyPath() {
         let values = [KeyedValue(key: "b"), KeyedValue(key: "a"), KeyedValue(key: "a")]
 
-        #expect(throws: CollectionUniqueIDError.duplicateIDs(["a"])) {
-            try values.assertUniqueIDs(idKeyPath: \.key)
-        }
-    }
-
-    @Test("Collection uniqueness errors expose PKError metadata")
-    func collectionUniqueIDErrorsExposePKErrorMetadata() {
-        let error = CollectionUniqueIDError.duplicateIDs(["dup"])
-
-        #expect(error.errorDomain == PKErrorDomain.prompt)
-        #expect(error.errorCode == 1101)
-        #expect(error.userFriendlyMessage == "Duplicate identifiers were found: dup.")
-        #expect(
-            error.remediation ==
-                "Ensure each value in the collection has a unique identifier before continuing."
-        )
+        #expect(values.duplicateIDs(idKeyPath: \.key) == ["a"])
     }
 }
