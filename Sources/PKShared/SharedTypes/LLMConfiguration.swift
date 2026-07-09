@@ -12,6 +12,18 @@ public struct LLMConfiguration: Codable, Sendable, Equatable {
 
     // MARK: - Computed Properties (Backwards Compatibility)
 
+    //
+    // Every property below is a write-through proxy onto
+    // `providers[activeProvider]`, not independent state: reading returns that
+    // provider's field (or a fallback default if `activeProvider` has no entry
+    // in `providers`), and writing mutates that same provider's `ProviderConfiguration`
+    // in place. Switching `activeProvider` changes what these properties report/mutate
+    // without saving or restoring any values — there is no independent "top-level"
+    // config underneath. This exists for source-compatibility with call sites written
+    // before `providers`/`activeProvider` was introduced; prefer reading/writing
+    // `providers[activeProvider]` directly in new code so the write-through relationship
+    // is visible at the call site.
+
     public var endpoint: String {
         get { providers[activeProvider]?.endpoint ?? "" }
         set { providers[activeProvider]?.endpoint = newValue }

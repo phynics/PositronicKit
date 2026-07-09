@@ -140,12 +140,13 @@ extension LLMService {
         retries: Int,
         model: String? = nil
     ) -> (any LLMClientProtocol)? {
-        ExternalLLMProviderRegistry.factory(for: provider)?(
-            config,
-            components,
-            timeout,
-            retries,
-            model
+        let request = ProviderFactoryRequest(
+            config: config,
+            components: components,
+            timeout: timeout,
+            retries: retries,
+            model: model
         )
+        return ExternalLLMProviderRegistry.factory(for: provider)?(request)
     }
 }

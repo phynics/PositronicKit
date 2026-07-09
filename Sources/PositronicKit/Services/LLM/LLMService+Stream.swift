@@ -45,8 +45,7 @@ public extension LLMStreamClient {
             toolChoice: toolChoice,
             responseFormat: responseFormat,
             generationParameters: request.generationParameters,
-            useUtilityModel: false,
-            useFastModel: request.useFastModel
+            modelTier: request.modelTier
         )
 
         let resolvedStream = if let syntheticToolName = preparedOutput?.syntheticToolName {
@@ -67,15 +66,15 @@ public extension LLMService {
         toolChoice: LLMToolChoice?,
         responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?,
-        useUtilityModel: Bool,
-        useFastModel: Bool
+        modelTier: ModelTier
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
         let selectedClient: (any LLMClientProtocol)?
-        if useFastModel {
+        switch modelTier {
+        case .fast:
             selectedClient = getFastClient() ?? getClient()
-        } else if useUtilityModel {
+        case .utility:
             selectedClient = getUtilityClient() ?? getClient()
-        } else {
+        case .primary:
             selectedClient = getClient()
         }
 

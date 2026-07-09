@@ -261,8 +261,7 @@ public final class MockLLMService: LLMStreamClient, LLMConfigStore, LLMUtilityCl
             toolChoice: nil,
             responseFormat: nil,
             generationParameters: request.generationParameters,
-            useUtilityModel: false,
-            useFastModel: request.useFastModel
+            modelTier: request.modelTier
         )
         return LLMStreamResult(stream: stream, rawPrompt: "mock prompt")
     }
@@ -273,8 +272,7 @@ public final class MockLLMService: LLMStreamClient, LLMConfigStore, LLMUtilityCl
         toolChoice: LLMToolChoice?,
         responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?,
-        useUtilityModel _: Bool,
-        useFastModel _: Bool
+        modelTier _: ModelTier
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
         if let stubbed = stubbedStream {
             return stubbed

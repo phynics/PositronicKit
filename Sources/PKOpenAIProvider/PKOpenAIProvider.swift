@@ -4,28 +4,28 @@ import PositronicKit
 
 public enum PKOpenAIProvider {
     public static func register() {
-        ExternalLLMProviderRegistry.register(factory: { config, components, timeout, retries, model in
+        ExternalLLMProviderRegistry.register(factory: { request in
             OpenAIClient(
-                apiKey: config.apiKey,
-                modelName: model ?? config.modelName,
-                host: components.host,
-                port: components.port,
-                scheme: components.scheme,
-                timeoutInterval: timeout,
-                maxRetries: retries
+                apiKey: request.config.apiKey,
+                modelName: request.model ?? request.config.modelName,
+                host: request.components.host,
+                port: request.components.port,
+                scheme: request.components.scheme,
+                timeoutInterval: request.timeout,
+                maxRetries: request.retries
             )
         }, for: .openAI)
         StructuredOutputAdapterRegistry.register(NativeJSONSchemaStructuredOutputAdapter(), for: .openAI)
 
-        ExternalLLMProviderRegistry.register(factory: { config, components, timeout, retries, model in
+        ExternalLLMProviderRegistry.register(factory: { request in
             OpenAIClient(
-                apiKey: config.apiKey,
-                modelName: model ?? config.modelName,
-                host: components.host,
-                port: components.port,
-                scheme: components.scheme,
-                timeoutInterval: timeout,
-                maxRetries: retries
+                apiKey: request.config.apiKey,
+                modelName: request.model ?? request.config.modelName,
+                host: request.components.host,
+                port: request.components.port,
+                scheme: request.components.scheme,
+                timeoutInterval: request.timeout,
+                maxRetries: request.retries
             )
         }, for: .openAICompatible)
         StructuredOutputAdapterRegistry.register(OpenAICompatibleStructuredOutputAdapter(), for: .openAICompatible)

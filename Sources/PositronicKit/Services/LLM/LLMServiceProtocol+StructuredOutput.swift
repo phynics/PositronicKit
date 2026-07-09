@@ -6,14 +6,14 @@ public extension LLMStreamClient {
         _ content: String,
         structuredOutput: StructuredOutputRequest,
         generationParameters: GenerationParameters? = nil,
-        useUtilityModel: Bool = false
+        modelTier: ModelTier = .primary
     ) async throws -> String {
         let stream = await chatStream(
             messages: [LLMMessage(role: .user, content: content)],
             tools: nil,
             structuredOutput: structuredOutput,
             generationParameters: generationParameters,
-            useUtilityModel: useUtilityModel
+            modelTier: modelTier
         )
 
         var content = ""
@@ -30,8 +30,7 @@ public extension LLMStreamClient {
         tools: [LLMToolDefinition]? = nil,
         structuredOutput: StructuredOutputRequest,
         generationParameters: GenerationParameters? = nil,
-        useUtilityModel: Bool = false,
-        useFastModel: Bool = false
+        modelTier: ModelTier = .primary
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
         let provider = await configuration.provider
         let prepared = StructuredOutputExecution.prepareRequest(
@@ -47,8 +46,7 @@ public extension LLMStreamClient {
             toolChoice: prepared.toolChoice,
             responseFormat: prepared.responseFormat,
             generationParameters: generationParameters,
-            useUtilityModel: useUtilityModel,
-            useFastModel: useFastModel
+            modelTier: modelTier
         )
 
         guard let syntheticToolName = prepared.syntheticToolName else {
@@ -64,13 +62,13 @@ public extension LLMStreamClient {
         as type: T.Type = T.self,
         decoder: JSONDecoder = SerializationUtils.jsonDecoder,
         generationParameters: GenerationParameters? = nil,
-        useUtilityModel: Bool = false
+        modelTier: ModelTier = .primary
     ) async throws -> T {
         let response = try await sendStructuredMessage(
             content,
             structuredOutput: structuredOutput,
             generationParameters: generationParameters,
-            useUtilityModel: useUtilityModel
+            modelTier: modelTier
         )
 
         return try StructuredOutputDecoder.decode(type, from: response, decoder: decoder)

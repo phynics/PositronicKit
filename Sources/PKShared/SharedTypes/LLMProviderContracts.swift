@@ -289,14 +289,45 @@ public extension LLMClientProtocol {
     }
 }
 
+/// Labeled request payload for constructing a provider client via
+/// ``ExternalLLMProviderRegistry/Factory``.
+///
+/// Replaces the former unlabeled 5-tuple
+/// `(LLMConfiguration, EndpointComponents, TimeInterval, Int, String?)` — Swift closure type
+/// aliases can't carry argument labels, so `TimeInterval`, `Int`, and `String?` were
+/// unidentifiable at any call site. The struct makes every field self-documenting.
+public struct ProviderFactoryRequest: Sendable {
+    /// The resolved LLM configuration (active provider's settings live at
+    /// `config.providers[config.activeProvider]`).
+    public let config: LLMConfiguration
+    /// Parsed host/port/scheme of `config.endpoint`.
+    public let components: EndpointComponents
+    /// Per-request HTTP timeout interval.
+    public let timeout: TimeInterval
+    /// Per-request retry count.
+    public let retries: Int
+    /// Optional model-name override; `nil` means use `config.modelName` (or the tier-specific
+    /// model for utility/fast client construction).
+    public let model: String?
+
+    public init(
+        config: LLMConfiguration,
+        components: EndpointComponents,
+        timeout: TimeInterval,
+        retries: Int,
+        model: String? = nil
+    ) {
+        self.config = config
+        self.components = components
+        self.timeout = timeout
+        self.retries = retries
+        self.model = model
+    }
+}
+
 public enum ExternalLLMProviderRegistry {
-    public typealias Factory = @Sendable (
-        LLMConfiguration,
-        EndpointComponents,
-        TimeInterval,
-        Int,
-        String?
-    ) -> (any LLMClientProtocol)?
+    /// Constructs a provider client from a labeled ``ProviderFactoryRequest``.
+    public typealias Factory = @Sendable (ProviderFactoryRequest) -> (any LLMClientProtocol)?
 
     private static let factories = Mutex<[LLMProvider: Factory]>([:])
 
