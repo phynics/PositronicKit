@@ -19,7 +19,7 @@ public struct PromptJournal: Sendable {
     /// - Parameter thresholds: Append-pressure thresholds that trigger auto-compaction of the
     ///   latest accepted observation into a new committed base on the next `observe(_:)`.
     public init(thresholds: PromptJournalCompactionThresholds = .default) {
-        self.pressure = AppendPressure(thresholds: thresholds)
+        pressure = AppendPressure(thresholds: thresholds)
     }
 
     /// Observes a rendered prompt and returns the journal plan for the current turn.
@@ -96,8 +96,13 @@ public struct PromptJournal: Sendable {
 
     /// Clears the current observation state.
     ///
-    /// - Parameter hard: When `true`, also clears the committed base so the next observation starts
-    ///   from an empty journal.
+    /// - Parameter hard: Defaults to `false`, which clears only the in-flight observation
+    ///   (`latestObservedSections`/pressure) and leaves the committed base intact, so the next
+    ///   `observe(sections:)` diffs against prior history as usual. Pass `true` to *also* clear
+    ///   `committedBaseSections`, discarding that history so the next observation starts from a
+    ///   completely empty journal, as if newly initialized. Use `reset(hard: true)` when you want
+    ///   to forget the journal's prior state entirely (e.g. starting a new conversation) — not for
+    ///   routine per-turn cleanup, which should use the default `false`.
     public mutating func reset(hard: Bool = false) {
         latestObservedSections = []
         pressure.reset()

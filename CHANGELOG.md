@@ -88,6 +88,22 @@ for tagged releases beginning with `1.0.0`.
 
 ### Changed
 
+- Documented the `dryRun: Bool` contract on `MessageStoreProtocol.pruneMessages(olderThan:dryRun:)`,
+  `TimelinePersistenceProtocol.pruneTimelines(olderThan:excluding:dryRun:)`, and
+  `MemoryStoreProtocol.pruneMemories(matching:dryRun:)` /
+  `pruneMemories(olderThan:dryRun:)` (PKAPI-013): `dryRun: true` computes and returns the row
+  count that *would* be deleted without deleting anything; conformers must not mutate persisted
+  state in dry-run mode. Verified the in-package `InMemory*` stores and `PKTestSupport`'s `Mock*`
+  stores honor this (their `prune*` methods are unconditional no-ops regardless of `dryRun`) and
+  added `Tests/PositronicKitTests/Services/PruneDryRunTests.swift` pinning the behavior down so a
+  future real implementation can't silently violate it. Docs-only for the protocol signatures — no
+  API shape changed.
+- Tightened the doc comment on `PromptJournal.reset(hard:)` (PKAPI-013) to spell out what
+  `hard: true` vs. the default `false` each clear (in-flight observation only vs. also the
+  committed base). Kept as documentation-only, per the ticket's guidance not to force a breaking
+  change for a documented default-false flag absent real call-site confusion: grepped the
+  codebase and found zero call sites of `reset(hard:)` outside its own definition, so there is no
+  confusion to resolve via an enum/split-method reshape.
 - `Tool.canExecute()` doc comment corrected (PKAPI-001): it was documented as "whether the tool
   is currently available for execution in the given environment" but takes no environment
   parameter — no conformer depends on an injected context. The comment now reads "whether the
