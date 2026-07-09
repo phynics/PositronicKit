@@ -91,6 +91,10 @@ for tagged releases beginning with `1.0.0`.
 
 ### Changed
 
+- Internal refactor (PKCLEAN-001): split `Sources/PKOpenRouterProvider/OpenRouterClient.swift` into
+  `OpenRouterClient.swift` (actor + `Attribution`) and a new `OpenRouterModels.swift` (the 14
+  request/response model types), mirroring the existing `PKOllamaProvider`/`PKAnthropicProvider`
+  model/client split. No public API change.
 - Refactor: split the monolithic `Sources/PositronicKit/PositronicKit.swift` into `PositronicKit.swift` (core facade) and `PositronicKit+Configuration.swift` (`PersistenceConfiguration`, `RuntimeConfiguration`, and their grouped initializers). Public API is unchanged except for the removed aliases above.
 - Prompt assembly no longer routes section construction through the generic `Pipeline`
   machinery (PKDEEP-001). The 10 pass-through `PromptAssemblyStage` structs, the
