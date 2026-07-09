@@ -8,6 +8,16 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Changed
+
+- Build-surface housekeeping (PKCLEAN-009): documented in `Package.swift` why
+  `PositronicKitTests` still depends on `PositronicKitExamples` — the
+  `Tests/PositronicKitTests/Stories/Examples/*.swift` files exercise
+  `PKPromptExamples`/`PositronicKitUsageExamples` behaviorally (not a trivial compile
+  check), so dropping the dependency would lose coverage rather than relocate it.
+  Confirmed `PKFastEmbed` is already target-only (no library product) and unused by
+  Monad/Shuttle/Yakamoz directly; no further change needed there.
+
 ### Added
 
 - `PKShared.LogKeys`: a caseless namespace of canonical `Logger.Metadata` key constants

@@ -170,6 +170,11 @@ let package = Package(
                 "PKOllamaProvider",
                 "PKAnthropicProvider",
                 "PKFoundationModelsProvider",
+                // Kept intentionally: Tests/PositronicKitTests/Stories/Examples/*.swift
+                // exercises PKPromptExamples/PositronicKitUsageExamples directly (not a
+                // trivial compile check) so the living-documentation examples stay
+                // behaviorally correct, not just compiling. Removing this dependency
+                // would drop that coverage rather than relocate it.
                 "PositronicKitExamples",
                 "PKShared",
                 "PKTestSupport",
