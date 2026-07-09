@@ -112,7 +112,7 @@ struct TimelineManagerTests {
 
         let task = Task {
             while !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(10))
+                await Task.yield()
             }
             isCancelled.withLock { $0 = true }
         }
@@ -122,11 +122,11 @@ struct TimelineManagerTests {
         // Verify it's in the registry (using internal access if possible, or just through behavior)
         await timelineManager.cancelGeneration(for: timelineId)
 
-        // Wait a bit for task to finish
-        for _ in 0 ..< 10 {
-            let cancelled = isCancelled.withLock { $0 }
-            if cancelled { break }
-            try? await Task.sleep(for: .milliseconds(10))
+        // Poll until the task observes cancellation, with a generous CI-safe deadline
+        // (guards only against a genuine hang, not normal scheduling variance).
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !isCancelled.withLock({ $0 }), ContinuousClock.now < deadline {
+            await Task.yield()
         }
 
         let cancelledFinal = isCancelled.withLock { $0 }

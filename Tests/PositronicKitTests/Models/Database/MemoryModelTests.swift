@@ -1,9 +1,9 @@
-import Testing
-@testable import PositronicKit
-@testable import PKShared
 import Foundation
+@testable import PKShared
+@testable import PositronicKit
+import Testing
 
-@Suite final class MemoryModelTests {
+final class MemoryModelTests {
     private func assertCodable<T: Codable & Equatable>(_ value: T) throws {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
@@ -18,7 +18,7 @@ import Foundation
 
     @Test
 
-    func testMemoryCodable() throws {
+    func memoryCodable() throws {
         let memory = Memory(
             title: "User Preferences",
             content: "The user's favorite language is Swift",
@@ -35,16 +35,13 @@ import Foundation
 
     @Test
 
-    func testMemoryUpdate() {
+    func memoryUpdate() {
         var memory = Memory(
             title: "Test",
             content: "Test",
             embedding: []
         )
         let oldDate = memory.updatedAt
-
-        // simulate time passing
-        usleep(1000)
 
         memory.content = "New Content"
         // In the model, `updatedAt` is a mutable field but updating `content` doesn't automatically touch it

@@ -2,6 +2,7 @@ import Foundation
 @testable import PKShared
 import PKTestSupport
 @testable import PositronicKit
+import Synchronization
 import Testing
 
 @Suite(.serialized) struct ContextManagerCancellationTests {
@@ -30,24 +31,29 @@ import Testing
     func gatherContext_cancellation_doesNotHang() async throws {
         let manager = try await makeContextManager()
 
-        let timeoutTask = Task {
-            // Cancel after a short delay to simulate mid-stream cancellation
-            try await Task.sleep(nanoseconds: 100_000_000) // 100ms
-        }
+        // Deterministic checkpoint: flipped as soon as the stream emits its first event,
+        // so cancellation is triggered mid-stream rather than after a guessed sleep duration.
+        let sawFirstEvent = Mutex(false)
 
         let streamTask = Task {
             let stream = await manager.gatherContext(for: "test query for cancellation")
             var count = 0
             for try await _ in stream {
                 count += 1
+                sawFirstEvent.withLock { $0 = true }
             }
             return count
         }
 
-        // Wait a bit, then cancel
-        try await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        // Poll until the first event is observed, with a generous CI-safe upper bound
+        // (real-time is unavoidable here since we're synchronizing across a Task boundary,
+        // but the bound only guards against a genuine hang, not normal scheduling variance).
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !sawFirstEvent.withLock({ $0 }), ContinuousClock.now < deadline {
+            await Task.yield()
+        }
+
         streamTask.cancel()
-        timeoutTask.cancel()
 
         // The task should resolve (either completed or cancelled) without hanging
         _ = await streamTask.result
