@@ -1,6 +1,7 @@
 import Foundation
 @testable import PKShared
 @testable import PositronicKit
+import Synchronization
 import Testing
 
 /// Synchronous, non-cancellable sleep used to model a blocking tool body in tests. Mirrors the
@@ -19,12 +20,21 @@ struct ToolTimeoutEnforcerTests {
         let description = "echo back the input"
         let requiresPermission = false
         let output: String
-        var parametersSchema: [String: AnyCodable] { [:] }
+        var parametersSchema: [String: AnyCodable] {
+            [:]
+        }
 
-        init(output: String = "ok") { self.output = output }
+        init(output: String = "ok") {
+            self.output = output
+        }
 
-        func canExecute() async -> Bool { true }
-        func execute(parameters _: [String: Any]) async throws -> ToolResult { .success(output) }
+        func canExecute() async -> Bool {
+            true
+        }
+
+        func execute(parameters _: [String: Any]) async throws -> ToolResult {
+            .success(output)
+        }
     }
 
     private struct NeverFinishingTool: PKShared.Tool {
@@ -32,9 +42,14 @@ struct ToolTimeoutEnforcerTests {
         let name = "never"
         let description = "never returns unless cancelled"
         let requiresPermission = false
-        var parametersSchema: [String: AnyCodable] { [:] }
+        var parametersSchema: [String: AnyCodable] {
+            [:]
+        }
 
-        func canExecute() async -> Bool { true }
+        func canExecute() async -> Bool {
+            true
+        }
+
         func execute(parameters _: [String: Any]) async throws -> ToolResult {
             try await Task.sleep(for: .seconds(60))
             return .success("late")
@@ -47,11 +62,18 @@ struct ToolTimeoutEnforcerTests {
         let description = "blocks and ignores cancellation"
         let requiresPermission = false
         let blockSeconds: TimeInterval
-        var parametersSchema: [String: AnyCodable] { [:] }
+        var parametersSchema: [String: AnyCodable] {
+            [:]
+        }
 
-        init(blockSeconds: TimeInterval) { self.blockSeconds = blockSeconds }
+        init(blockSeconds: TimeInterval) {
+            self.blockSeconds = blockSeconds
+        }
 
-        func canExecute() async -> Bool { true }
+        func canExecute() async -> Bool {
+            true
+        }
+
         func execute(parameters _: [String: Any]) async throws -> ToolResult {
             blockingThreadSleep(blockSeconds)
             return .success("late")
@@ -77,8 +99,14 @@ struct ToolTimeoutEnforcerTests {
             let name = "fail"
             let description = "always fails"
             let requiresPermission = false
-            var parametersSchema: [String: AnyCodable] { [:] }
-            func canExecute() async -> Bool { true }
+            var parametersSchema: [String: AnyCodable] {
+                [:]
+            }
+
+            func canExecute() async -> Bool {
+                true
+            }
+
             func execute(parameters _: [String: Any]) async throws -> ToolResult {
                 throw ToolError.executionFailed("boom")
             }
@@ -86,7 +114,7 @@ struct ToolTimeoutEnforcerTests {
         do {
             _ = try await ToolTimeoutEnforcer.execute(AnyTool(FailingTool()), arguments: [:], timeout: 5)
             Issue.record("Expected executionFailed")
-        } catch ToolError.executionFailed(let msg) {
+        } catch let ToolError.executionFailed(msg) {
             #expect(msg == "boom")
         }
     }
@@ -105,7 +133,7 @@ struct ToolTimeoutEnforcerTests {
                 sleep: instantSleep
             )
             Issue.record("Expected executionFailed timeout")
-        } catch ToolError.executionFailed(let msg) {
+        } catch let ToolError.executionFailed(msg) {
             #expect(msg.contains("timed out"))
         }
     }
@@ -123,7 +151,7 @@ struct ToolTimeoutEnforcerTests {
                 sleep: instantSleep
             )
             Issue.record("Expected executionFailed timeout")
-        } catch ToolError.executionFailed(let msg) {
+        } catch let ToolError.executionFailed(msg) {
             #expect(msg.contains("timed out"))
         }
         let elapsed = ContinuousClock.now - start
@@ -141,7 +169,7 @@ struct ToolTimeoutEnforcerTests {
                 timeout: 0.01
             )
             Issue.record("Expected executionFailed timeout")
-        } catch ToolError.executionFailed(let msg) {
+        } catch let ToolError.executionFailed(msg) {
             #expect(msg.contains("timed out"))
             #expect(msg.contains("0.01 seconds"))
         }
@@ -158,11 +186,41 @@ struct ToolTimeoutEnforcerTests {
                 timeout: 0.05
             )
             Issue.record("Expected executionFailed timeout")
-        } catch ToolError.executionFailed(let msg) {
+        } catch let ToolError.executionFailed(msg) {
             #expect(msg.contains("timed out"))
         }
         let elapsed = ContinuousClock.now - start
         #expect(elapsed < .seconds(1))
+    }
+
+    @Test("External cancellation propagates promptly and does not leak orphaned tasks")
+    func externalCancellationPropagates() async throws {
+        let sleepObservedCancellation = Mutex(false)
+        let parkedSleep: @Sendable (UInt64) async throws -> Void = { _ in
+            do {
+                try await Task.sleep(for: .seconds(3600))
+            } catch {
+                sleepObservedCancellation.withLock { $0 = true }
+                throw error
+            }
+        }
+
+        let raceTask = Task {
+            try await ToolTimeoutEnforcer.execute(
+                AnyTool(NeverFinishingTool()),
+                arguments: [:],
+                timeout: 60,
+                sleep: parkedSleep
+            )
+        }
+
+        await Task.yield()
+        raceTask.cancel()
+
+        await #expect(throws: CancellationError.self) {
+            _ = try await raceTask.value
+        }
+        #expect(sleepObservedCancellation.withLock { $0 })
     }
 
     @Test("timeoutDescription formats integer timeouts without a decimal")
