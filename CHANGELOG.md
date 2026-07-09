@@ -19,6 +19,14 @@ for tagged releases beginning with `1.0.0`.
   (Monad/Shuttle/Yakamoz) pattern-matching `.thinking`/`Message.think` need migration on their next
   PositronicKit pin bump; Yakamoz's inspector drawer likely renders this field.
 
+- `PositronicKit` facade fluent naming (PKAPI-005): **renamed `addPlugin(_:)` →
+  `addingPlugin(_:)`**. `PositronicKit` is a value type and this method is nonmutating
+  (it returns a new copy with the plugin added), so it now follows the participle-form
+  convention already used by `reconfigured(...)` on the same type, instead of the bare
+  imperative verb that reads like an in-place mutation. The package-internal `addStage(_:)`
+  was renamed to `addingStage(_:)` for the same reason (no downstream impact — it isn't
+  public). Grepped Monad/Shuttle/Yakamoz for `.addPlugin(`/`.addStage(`: no call sites found,
+  so no downstream migration is required for this change.
 - `ChatEvent` enum ergonomics overhaul (PKAPI-004):
   - **Renamed `ToolExecutionStatus.failure(String)` → `.executionError(String)`** to
     eliminate the name collision with `.failed(reference:error:)`. The two cases had
@@ -96,6 +104,18 @@ for tagged releases beginning with `1.0.0`.
   `Schema.asDictionary` / `Schema(_:)`.
 
 ### Changed
+
+- `TimelineManager` query/mutation split (PKAPI-005): the ticket described
+  `getTimeline(id:)` as package-internal, but it is in fact `public` and already consumed
+  directly by downstream hosts (e.g. Monad's `ChatAPIController`/`TimelineAPIController`),
+  so its `get`-prefixed-but-mutates-`updatedAt` signature was kept as-is for backward
+  compatibility rather than renamed/removed. Instead, added a pure `timeline(id:) ->
+  Timeline?` query and an explicit `touchTimeline(id:)` mutation; `getTimeline(id:)` is
+  now implemented in terms of both (touch, then pure lookup). The one internal call site
+  that didn't need the touch side effect (`ToolRouter.determineExecutionOutcome`'s
+  private-timeline check) was switched to the pure `timeline(id:)` query; the per-turn
+  read in `ChatEngine+TurnPreparation.swift` keeps using `getTimeline(id:)` since a turn
+  starting is a legitimate activity signal.
 
 - `Tool.canExecute()` doc comment corrected (PKAPI-001): it was documented as "whether the tool
   is currently available for execution in the given environment" but takes no environment

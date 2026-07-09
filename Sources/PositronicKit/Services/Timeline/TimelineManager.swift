@@ -181,11 +181,28 @@ public actor TimelineManager {
 
 public extension TimelineManager {
     /// Retrieves a timeline by its ID and updates its `updatedAt` timestamp.
+    ///
+    /// This method is public and consumed directly by downstream hosts (e.g. Monad's
+    /// `ChatAPIController`/`TimelineAPIController`), so its touch-on-read behavior cannot be
+    /// removed here without a coordinated downstream change. New internal call sites that don't
+    /// need the touch side effect should prefer the pure ``timeline(id:)`` query below; callers
+    /// that do want to record activity should call ``touchTimeline(id:)`` explicitly.
     func getTimeline(id: UUID) -> Timeline? {
-        guard var timeline = timelines[id] else { return nil }
+        touchTimeline(id: id)
+        return timelines[id]
+    }
+
+    /// Pure lookup: retrieves a timeline by its ID without mutating `updatedAt`.
+    func timeline(id: UUID) -> Timeline? {
+        timelines[id]
+    }
+
+    /// Explicitly marks a timeline as recently active by bumping its `updatedAt` timestamp.
+    /// No-op if the timeline isn't cached in memory.
+    func touchTimeline(id: UUID) {
+        guard var timeline = timelines[id] else { return }
         timeline.updatedAt = Date()
         timelines[id] = timeline
-        return timeline
     }
 
     /// Retrieves the tool manager for a timeline if it is active.

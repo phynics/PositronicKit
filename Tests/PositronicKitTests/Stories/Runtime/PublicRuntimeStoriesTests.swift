@@ -219,7 +219,7 @@ struct PublicRuntimeStoriesTests {
     func facadePluginFollowUpWorksWithoutDirectDependencyContainerSetup() async throws {
         let plugin = FacadeFollowUpPlugin()
         let (baseChat, mockLLM, mockPersistence, timelineId, _) = try await makeAcceptanceRuntime(useGroupedPersistence: true)
-        let chat = baseChat.addPlugin(plugin)
+        let chat = baseChat.addingPlugin(plugin)
 
         mockLLM.mockClient.nextResponses = ["First reply", "Second reply"]
 
@@ -249,7 +249,7 @@ struct PublicRuntimeStoriesTests {
         let customStage = MockCustomStage(tracker: tracker)
 
         let chat = makeChat(llmService: mockLLM, persistence: mockPersistence)
-            .addStage(customStage)
+            .addingStage(customStage)
 
         let stream = try await chat.run(ChatRunRequest(
             timelineId: timelineId,

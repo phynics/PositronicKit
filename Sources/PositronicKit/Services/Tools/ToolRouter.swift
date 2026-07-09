@@ -266,7 +266,7 @@ public actor ToolRouter {
 
         switch try outcomeForWorkspace(
             location: workspace.location,
-            timelineIsPrivate: await timelineManager.getTimeline(id: timelineId)?.isPrivate ?? false
+            timelineIsPrivate: await timelineManager.timeline(id: timelineId)?.isPrivate ?? false
         ) {
         case .executeLocally:
             let output = try await executeLocally(
@@ -478,7 +478,7 @@ public actor ToolRouter {
 // MARK: - Workspace Execution Disposition
 
 /// Whether a resolved workspace should execute its tool locally or defer to an external host.
-private enum WorkspaceExecutionDisposition: Sendable {
+private enum WorkspaceExecutionDisposition {
     case executeLocally
     case deferExternally
 }
