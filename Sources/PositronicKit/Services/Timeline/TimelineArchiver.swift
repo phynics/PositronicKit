@@ -114,7 +114,7 @@ public actor TimelineArchiver {
                 tags: tags,
                 embedding: embedding.map { Double($0) }
             )
-            _ = try await persistence.saveMemory(memory, policy: .preventSimilar(threshold: 0.92))
+            _ = try await persistence.saveMemory(memory, policy: .deduplicating(threshold: 0.92))
         } catch {
             logger.error("Failed to index message as memory: \(error.localizedDescription)")
         }
