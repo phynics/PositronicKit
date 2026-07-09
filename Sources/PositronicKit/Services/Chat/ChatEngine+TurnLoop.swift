@@ -3,48 +3,25 @@ import Logging
 import PKPrompt
 import PKShared
 
-/// Owns the ReAct continuation loop: per-turn stage execution, runtime-managed tool
-/// continuation, post-turn plugin follow-up, max-turns enforcement, and cancellation
-/// handling (including STAB-1 partial persistence on the error path).
-///
-/// Extracted from `ChatEngine` (PKARCH-001). `ChatEngine.execute` builds a `ChatTurnContext`
-/// via `TurnPreparer`, then hands it to this controller to drive the streaming loop. Prompt
-/// follow-up synthesis is delegated to `PromptSnapshotBuilder`; partial-assistant
-/// persistence on failure/cancellation is delegated to `PartialAssistantPersistence`.
-struct TurnLoopController {
-    let dependencies: ChatEngine.Dependencies
-    let logger: Logger
-    let additionalStages: [any PipelineStage<ChatTurnContext, ChatEvent>]
-    let snapshotBuilder: PromptSnapshotBuilder
-    let partialPersistence: PartialAssistantPersistence
+private enum LoopContinuation {
+    case stop
+    case continueWith([LLMMessage])
+}
 
-    init(
-        dependencies: ChatEngine.Dependencies,
-        logger: Logger? = nil,
-        additionalStages: [any PipelineStage<ChatTurnContext, ChatEvent>],
-        snapshotBuilder: PromptSnapshotBuilder,
-        partialPersistence: PartialAssistantPersistence
-    ) {
-        self.dependencies = dependencies
-        self.logger = logger ?? Logger.module(named: "turn-loop-controller")
-        self.additionalStages = additionalStages
-        self.snapshotBuilder = snapshotBuilder
-        self.partialPersistence = partialPersistence
-    }
+// MARK: - Turn Loop
 
-    // MARK: - Core Loop
-
-    private enum LoopContinuation {
-        case stop
-        case continueWith([LLMMessage])
-    }
-
+extension ChatEngine {
     /// The heart of the agentic loop. Orchestrates multiple turns until the agent finishes
     /// or reaches the max turn limit.
     func runChatLoop(
         continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation,
         context: ChatTurnContext
     ) async {
+        let snapshotBuilder = PromptSnapshotBuilder()
+        let partialPersistence = PartialAssistantPersistence(
+            messageStore: dependencies.messageStore
+        )
+
         // 1. Emit initial RAG context for frontend observability
         continuation.yield(.generationContext(ChatMetadata(
             memories: context.contextData.memories.map { $0.memory.id },
@@ -68,7 +45,11 @@ struct TurnLoopController {
             )
 
             // Execute one turn (LLM call + automatic runtime tool routing)
-            let signal = await runOneTurn(continuation: continuation, context: turnContext)
+            let signal = await runOneTurn(
+                continuation: continuation,
+                context: turnContext,
+                partialPersistence: partialPersistence
+            )
 
             // Accumulate thinking and response manually from the current turn
             let currentThinking = await turnContext.outputs.fullThinking
@@ -139,10 +120,15 @@ struct TurnLoopController {
         ])
         continuation.finish()
     }
+}
 
-    private func runOneTurn(
+// MARK: - Turn Execution
+
+private extension ChatEngine {
+    func runOneTurn(
         continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation,
-        context: ChatTurnContext
+        context: ChatTurnContext,
+        partialPersistence: PartialAssistantPersistence
     ) async -> LoopContinuation {
         let sid = ANSIColors.colorize(
             context.timelineId.uuidString.prefix(8).lowercased(), color: ANSIColors.brightBlue
@@ -187,7 +173,7 @@ struct TurnLoopController {
     /// Returns `true` if `error` represents cancellation, unwrapping `PipelineError` stage
     /// wrappers (a stage-thrown `CancellationError` is wrapped as
     /// `PipelineError.stageFailed(id, CancellationError())` before reaching `runOneTurn`).
-    private static func isCancellationOrigin(_ error: Error) -> Bool {
+    static func isCancellationOrigin(_ error: Error) -> Bool {
         if error is CancellationError {
             return true
         }
@@ -201,7 +187,7 @@ struct TurnLoopController {
     }
 
     /// Delegates tool call handling to the ToolRouter and maps the result to a loop decision.
-    private func handleToolCallsAfterTurn(
+    func handleToolCallsAfterTurn(
         context: ChatTurnContext,
         continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
     ) async throws -> LoopContinuation {
@@ -238,7 +224,7 @@ struct TurnLoopController {
         }
     }
 
-    private func processTurn(
+    func processTurn(
         context: ChatTurnContext,
         continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
     ) async throws {
@@ -254,7 +240,7 @@ struct TurnLoopController {
         }
     }
 
-    private func publishTurnInspectionIfNeeded(context: ChatTurnContext) async {
+    func publishTurnInspectionIfNeeded(context: ChatTurnContext) async {
         // Audit trail: log which precondition failed so an operator asking "why didn't my
         // inspector fire?" gets a reason instead of silence (PKLOG-001).
         let baseMeta: Logger.Metadata = [
