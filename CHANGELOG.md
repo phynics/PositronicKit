@@ -17,10 +17,26 @@ for tagged releases beginning with `1.0.0`.
   `conversationID` synonym) so downstream consumers can correlate log lines by timeline/send/turn
   without regex.
 
+### Changed
+
+- (PKCLEAN-008) `PKOpenAIProvider.OpenAIStructuredOutputAdapter` and
+  `PKOpenRouterProvider.OpenRouterStructuredOutputAdapter` were logic-identical
+  copy-paste (OpenRouter mirrors OpenAI's native `json_object`/`json_schema`
+  response-format support). Both are replaced by a single shared
+  `PKShared.NativeJSONSchemaStructuredOutputAdapter`, which each provider now
+  registers directly with `StructuredOutputAdapterRegistry`.
+
 ### Removed
 
 - **Breaking:** removed `PositronicKit.sidecarsIfEnabled(_:when:)`. Consumers can inline the equivalent ternary (`isEnabled ? sidecars : []`) at the call site. Yakamoz's `YakamozRuntime.makeChatViewModel` is updated accordingly.
 - **Breaking:** removed the unused `PositronicKit.PromptBuildContext` facade typealias and its intermediate `PositronicKitPromptBuildContext` alias. The canonical type remains `PromptBuildContext` in `PromptSectionProviding.swift`; conformers and callers should use that name directly.
+- (PKCLEAN-008) **Breaking:** removed `PKOpenAIProvider.OpenAIStructuredOutputAdapter` and
+  `PKOpenRouterProvider.OpenRouterStructuredOutputAdapter` (superseded by
+  `PKShared.NativeJSONSchemaStructuredOutputAdapter`, see Changed above).
+- (PKCLEAN-008) **Breaking:** removed the public `PKShared.MessageParser` type. Its two
+  methods were only ever reached through the pass-through wrappers
+  `Message.parseResponse(_:)` / `Message.displayContent`; the implementations are now
+  inlined directly into those `Message` members with unchanged behavior.
 
 ### Fixed
 
