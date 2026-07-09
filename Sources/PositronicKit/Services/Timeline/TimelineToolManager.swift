@@ -150,6 +150,13 @@ public actor TimelineToolManager {
         }
     }
 
+    /// True iff `provenance` tags a tool as belonging to `workspaceId` (i.e. it is the
+    /// `.workspace(id:name:)` case with a matching id). `.global`/`.named` never match.
+    private static func provenanceBelongsTo(_ provenance: ToolProvenance, _ workspaceId: UUID) -> Bool {
+        if case let .workspace(id, _) = provenance { return id == workspaceId }
+        return false
+    }
+
     /// Get tools that are currently enabled, including context tools if a context is active
     public func getEnabledTools() async -> [AnyTool] {
         var tools = availableTools.filter { enabledTools.contains($0.id) }
@@ -191,6 +198,45 @@ public actor TimelineToolManager {
         // Append explicitly registered provider tools
         tools.append(contentsOf: providerTools.values)
         return sortToolsForOutput(tools)
+    }
+
+    /// Returns the tools currently exposed by a specific workspace: its custom workspace
+    /// tools plus any `.known` system tools it has declared, each carrying its resolved
+    /// provenance. Provider/global tools are excluded (they are not workspace-bound).
+    ///
+    /// This is the read-side counterpart to the per-workspace grouping `ToolRouter.resolveWorkspace`
+    /// uses to route calls — the grouping data already exists internally; this exposes it as a
+    /// query so a consumer need not fetch the flat list and filter by `provenance` client-side.
+    public func tools(inWorkspace workspaceId: UUID) -> [AnyTool] {
+        var tools: [AnyTool] = []
+
+        // Custom workspace tools whose provenance matches this workspace.
+        for entry in workspaceTools.values where Self.provenanceBelongsTo(entry.provenance, workspaceId) {
+            var tool = AnyTool(entry.tool)
+            tool.provenance = entry.provenance
+            tools.append(tool)
+        }
+
+        // `.known` system tools this workspace has declared (tagged via knownToolProvenance).
+        for (toolId, provenanceSet) in knownToolProvenance {
+            if provenanceSet.contains(where: { Self.provenanceBelongsTo($0, workspaceId) }),
+               let tool = availableTools.first(where: { $0.id == toolId })
+            {
+                tools.append(toolWithResolvedProvenance(tool))
+            }
+        }
+
+        return sortToolsForOutput(tools)
+    }
+
+    /// Returns all workspace-exposed tools grouped by workspace id. Provider/global tools
+    /// (not workspace-bound) are excluded; only registered workspaces appear as keys.
+    public func toolsGroupedByWorkspace() -> [UUID: [AnyTool]] {
+        var grouped: [UUID: [AnyTool]] = [:]
+        for workspaceId in workspaces.keys {
+            grouped[workspaceId] = tools(inWorkspace: workspaceId)
+        }
+        return grouped
     }
 
     /// Toggle tool enabled state

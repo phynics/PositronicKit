@@ -26,6 +26,11 @@ for tagged releases beginning with `1.0.0`.
   continuation decisions, and tool routing now use these keys (replacing the legacy
   `conversationID` synonym) so downstream consumers can correlate log lines by timeline/send/turn
   without regex.
+- `TimelineToolManager.tools(inWorkspace:)` and `toolsGroupedByWorkspace()` (PKCLEAN-013): a
+  read-side query exposing the per-workspace tool grouping the runtime already tracks internally
+  (custom workspace tools + `.known` system tools tagged to a workspace, with resolved
+  provenance). Provider/global tools are excluded. Additive; existing `getEnabledTools()`/
+  `getAvailableTools()` behavior unchanged.
 
 ### Changed
 

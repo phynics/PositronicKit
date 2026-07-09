@@ -323,4 +323,63 @@ final class TimelineToolManagerTests {
         #expect(alphaTools[0].provenance == .global)
         #expect(alphaTools[1].provenance == provider.toolProvenance)
     }
+
+    @Test func toolsInWorkspaceReturnsOnlyThatWorkspacesCustomTools() async throws {
+        let manager = TimelineToolManager(availableTools: [])
+
+        let wsA = UUID()
+        let wsB = UUID()
+        let refA = WorkspaceReference(id: wsA, uri: try #require(WorkspaceURI(parsing: "pk://ws-a")), location: .runtime, originId: nil)
+        let refB = WorkspaceReference(id: wsB, uri: try #require(WorkspaceURI(parsing: "pk://ws-b")), location: .runtime, originId: nil)
+
+        let defA = WorkspaceToolDefinition(id: "toolA", name: "toolA", description: "A", parametersSchema: [:])
+        let defB = WorkspaceToolDefinition(id: "toolB", name: "toolB", description: "B", parametersSchema: [:])
+
+        await manager.registerWorkspace(MockWorkspace(id: wsA, reference: refA, toolsToReturn: [.custom(defA)]))
+        await manager.registerWorkspace(MockWorkspace(id: wsB, reference: refB, toolsToReturn: [.custom(defB)]))
+
+        let inA = await manager.tools(inWorkspace: wsA)
+        #expect(inA.count == 1)
+        #expect(inA.first?.name == "toolA")
+        #expect(inA.first?.provenance == .workspace(id: wsA, name: "pk://ws-a"))
+
+        let inB = await manager.tools(inWorkspace: wsB)
+        #expect(inB.count == 1)
+        #expect(inB.first?.name == "toolB")
+        #expect(inB.first?.provenance == .workspace(id: wsB, name: "pk://ws-b"))
+
+        // Grouping returns both workspaces, each with its own tool.
+        let grouped = await manager.toolsGroupedByWorkspace()
+        #expect(grouped.count == 2)
+        #expect(grouped[wsA]?.count == 1)
+        #expect(grouped[wsB]?.count == 1)
+    }
+
+    @Test func toolsInWorkspaceIncludesKnownSystemToolsTaggedToIt() async throws {
+        let systemTool = AnyTool(MockTool(id: "cat", name: "cat"))
+        let manager = TimelineToolManager(availableTools: [systemTool])
+
+        let wsA = UUID()
+        let refA = WorkspaceReference(id: wsA, uri: try #require(WorkspaceURI(parsing: "pk://ws-a")), location: .runtime, originId: nil)
+        let wsB = UUID()
+        let refB = WorkspaceReference(id: wsB, uri: try #require(WorkspaceURI(parsing: "pk://ws-b")), location: .runtime, originId: nil)
+
+        // Only wsA declares the known "cat" tool; wsB declares nothing.
+        await manager.registerWorkspace(MockWorkspace(id: wsA, reference: refA, toolsToReturn: [.known(id: "cat")]))
+        await manager.registerWorkspace(MockWorkspace(id: wsB, reference: refB, toolsToReturn: []))
+
+        let inA = await manager.tools(inWorkspace: wsA)
+        #expect(inA.count == 1)
+        #expect(inA.first?.id == "cat")
+        #expect(inA.first?.provenance == .workspace(id: wsA, name: "pk://ws-a"))
+
+        // wsB declared no tools -> empty.
+        let inB = await manager.tools(inWorkspace: wsB)
+        #expect(inB.isEmpty)
+
+        // The flat getAvailableTools() behavior is unchanged.
+        let available = await manager.getAvailableTools()
+        #expect(available.count == 1)
+        #expect(available.first?.id == "cat")
+    }
 }
