@@ -1,0 +1,229 @@
+import Foundation
+@testable import PKShared
+import PKTestSupport
+@testable import PositronicKit
+import Testing
+
+/// Regression coverage for PKAPI-008: the grouped `PositronicKit` initializers that take a
+/// `RuntimeConfiguration` (and the persistence-grouped initializer) must thread their
+/// `toolApprovalGate` through to the facade-built `ToolRouter`, rather than silently dropping
+/// it in favor of `DenyAllToolApprovalGate`. A host integrating via the "recommended" grouped
+/// API must be able to inject a real approver without dropping to the flat initializer.
+///
+/// The fixtures (`PermissionedTool`, `RecordingGate`) mirror the ones already established in
+/// `ToolRouterTests.swift` / `ToolApprovalGateFilesystemToolsTests.swift`; they are duplicated
+/// here for the same reason those suites duplicate them — the helpers are `private` to their
+/// own files and there is no shared PKTestSupport extension point for them yet.
+@Suite("Grouped init toolApprovalGate wiring")
+struct GroupedInitToolApprovalGateWiringTests {
+    /// A permissioned tool that records whether its body ever ran, so a test can assert that an
+    /// un-approved call is blocked *before* execution rather than merely failing afterwards.
+    final class PermissionedTool: PKShared.Tool, @unchecked Sendable {
+        let id: String
+        let name: String
+        let description = "A permissioned mock tool"
+        let requiresPermission = true
+        private(set) var didExecute = false
+        let parametersSchema = makeEmptyObjectSchema()
+
+        init(id: String) {
+            self.id = id
+            name = id
+        }
+
+        func canExecute() async -> Bool { true }
+
+        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
+            didExecute = true
+            return .success("executed")
+        }
+    }
+
+    /// Records every gate consultation so a test can assert the gate was actually reached.
+    final class RecordingGate: ToolApprovalGate, @unchecked Sendable {
+        let decision: ToolApprovalDecision
+        private(set) var consultedToolIds: [String] = []
+
+        init(decision: ToolApprovalDecision) {
+            self.decision = decision
+        }
+
+        func requestApproval(tool: AnyTool, arguments _: [String: AnyCodable]) async -> ToolApprovalDecision {
+            consultedToolIds.append(tool.id)
+            return decision
+        }
+    }
+
+    /// Builds a facade via the grouped `runtime:` initializer with the given gate, registers a
+    /// single permissioned tool in an attached workspace, and returns the facade, timeline id,
+    /// and tool so the test can drive `chat.toolRouter.execute(...)` directly.
+    private func makeChatViaRuntimeConfig(
+        gate: any ToolApprovalGate
+    ) async throws -> (PositronicKit, UUID, PermissionedTool) {
+        let tool = PermissionedTool(id: "needs_permission")
+        let mockPersistence = MockPersistenceService()
+        let workspace = TestWorkspace()
+
+        let persistence = PositronicKit.PersistenceConfiguration(
+            messageStore: mockPersistence,
+            timelinePersistence: mockPersistence,
+            workspacePersistence: mockPersistence,
+            memoryStore: mockPersistence,
+            toolPersistence: mockPersistence,
+            agentInstanceStore: mockPersistence,
+            requestOriginStore: mockPersistence
+        )
+        let chat = PositronicKit(
+            llmService: UnconfiguredLLMService(),
+            persistence: persistence,
+            runtime: .init(
+                workspaceCreator: MockWorkspaceCreator(),
+                workspaceRoot: workspace.root,
+                toolApprovalGate: gate
+            )
+        )
+        let timelineId = try await register(tool, on: chat, persistence: mockPersistence)
+        return (chat, timelineId, tool)
+    }
+
+    /// Builds a facade via the persistence-grouped initializer (no `RuntimeConfiguration`),
+    /// passing `toolApprovalGate` as a direct parameter, to confirm that overload threads it
+    /// through as well.
+    private func makeChatViaPersistenceGroupedInit(
+        gate: any ToolApprovalGate
+    ) async throws -> (PositronicKit, UUID, PermissionedTool) {
+        let tool = PermissionedTool(id: "needs_permission")
+        let mockPersistence = MockPersistenceService()
+        let workspace = TestWorkspace()
+
+        let persistence = PositronicKit.PersistenceConfiguration(
+            messageStore: mockPersistence,
+            timelinePersistence: mockPersistence,
+            workspacePersistence: mockPersistence,
+            memoryStore: mockPersistence,
+            toolPersistence: mockPersistence,
+            agentInstanceStore: mockPersistence,
+            requestOriginStore: mockPersistence
+        )
+        let chat = PositronicKit(
+            llmService: UnconfiguredLLMService(),
+            persistence: persistence,
+            workspaceRoot: workspace.root,
+            toolApprovalGate: gate
+        )
+        let timelineId = try await register(tool, on: chat, persistence: mockPersistence)
+        return (chat, timelineId, tool)
+    }
+
+    /// Creates a timeline on `chat.timelineManager`, attaches a runtime workspace, and registers
+    /// the permissioned tool in it so `chat.toolRouter` can resolve and execute it.
+    private func register(
+        _ tool: PermissionedTool,
+        on chat: PositronicKit,
+        persistence mockPersistence: MockPersistenceService
+    ) async throws -> UUID {
+        let timeline = try await chat.timelineManager.createTimeline()
+        let workspaceId = UUID()
+        let workspaceRef = try WorkspaceReference(
+            id: workspaceId,
+            uri: #require(WorkspaceURI(parsing: "pk://local")),
+            location: .runtime,
+            originId: nil
+        )
+        try await mockPersistence.saveWorkspace(workspaceRef)
+        try await chat.timelineManager.attachWorkspace(workspaceId, to: timeline.id)
+        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known(tool.id))
+
+        let toolManager = try #require(await chat.timelineManager.getToolManager(for: timeline.id))
+        await toolManager.updateAvailableTools([tool.toAnyTool()])
+        return timeline.id
+    }
+
+    // MARK: - RuntimeConfiguration path
+
+    @Test("Grouped runtime init honors an injected deny gate (permissioned tool blocked)")
+    func groupedRuntimeInitHonorsInjectedDenyGate() async throws {
+        let gate = RecordingGate(decision: .deny)
+        let (chat, timelineId, tool) = try await makeChatViaRuntimeConfig(gate: gate)
+
+        do {
+            _ = try await chat.toolRouter.execute(
+                tool: .known(tool.id),
+                arguments: [:],
+                timelineId: timelineId
+            )
+            Issue.record("Expected permissionDenied to be thrown")
+        } catch ToolError.permissionDenied(tool.name) {
+            // expected — the injected gate's decision was honored, not the default
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+
+        #expect(tool.didExecute == false)
+        #expect(gate.consultedToolIds == [tool.id])
+    }
+
+    @Test("Grouped runtime init honors an injected approve gate (permissioned tool runs)")
+    func groupedRuntimeInitHonorsInjectedApproveGate() async throws {
+        let gate = RecordingGate(decision: .approve)
+        let (chat, timelineId, tool) = try await makeChatViaRuntimeConfig(gate: gate)
+
+        let result = try await chat.toolRouter.execute(
+            tool: .known(tool.id),
+            arguments: [:],
+            timelineId: timelineId
+        )
+
+        guard case let .completed(output) = result else {
+            Issue.record("Expected .completed outcome, got \(result)")
+            return
+        }
+        #expect(output == "executed")
+        #expect(tool.didExecute == true)
+        #expect(gate.consultedToolIds == [tool.id])
+    }
+
+    // MARK: - Persistence-grouped init path
+
+    @Test("Persistence-grouped init honors an injected deny gate (permissioned tool blocked)")
+    func persistenceGroupedInitHonorsInjectedDenyGate() async throws {
+        let gate = RecordingGate(decision: .deny)
+        let (chat, timelineId, tool) = try await makeChatViaPersistenceGroupedInit(gate: gate)
+
+        do {
+            _ = try await chat.toolRouter.execute(
+                tool: .known(tool.id),
+                arguments: [:],
+                timelineId: timelineId
+            )
+            Issue.record("Expected permissionDenied to be thrown")
+        } catch ToolError.permissionDenied(tool.name) {
+            // expected
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+
+        #expect(tool.didExecute == false)
+        #expect(gate.consultedToolIds == [tool.id])
+    }
+
+    @Test("Persistence-grouped init honors an injected approve gate (permissioned tool runs)")
+    func persistenceGroupedInitHonorsInjectedApproveGate() async throws {
+        let gate = RecordingGate(decision: .approve)
+        let (chat, timelineId, tool) = try await makeChatViaPersistenceGroupedInit(gate: gate)
+
+        let result = try await chat.toolRouter.execute(
+            tool: .known(tool.id),
+            arguments: [:],
+            timelineId: timelineId
+        )
+
+        guard case let .completed(output) = result else {
+            Issue.record("Expected .completed outcome, got \(result)")
+            return
+        }
+        #expect(output == "executed")
+        #expect(tool.didExecute == true)
+        #expect(gate.consultedToolIds == [tool.id])
+    }
+}

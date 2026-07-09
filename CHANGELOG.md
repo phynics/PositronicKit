@@ -64,6 +64,13 @@ for tagged releases beginning with `1.0.0`.
   (custom workspace tools + `.known` system tools tagged to a workspace, with resolved
   provenance). Provider/global tools are excluded. Additive; existing `getEnabledTools()`/
   `getAvailableTools()` behavior unchanged.
+- `PositronicKit.RuntimeConfiguration.toolApprovalGate` (PKAPI-008): the grouped initializers
+  in `PositronicKit+Configuration.swift` (both the `runtime: RuntimeConfiguration` overload and
+  the persistence-grouped `init(llmService:persistence:...)`) now expose `toolApprovalGate` and
+  thread it through to the facade-built `ToolRouter`. Previously a host using the "recommended"
+  grouped API silently got `DenyAllToolApprovalGate` with no way to inject a real approver
+  without dropping to the flat initializer. Additive and non-breaking — the default remains
+  `DenyAllToolApprovalGate()`, preserving existing behavior.
 
 ### Changed
 
