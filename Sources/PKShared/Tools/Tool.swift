@@ -219,11 +219,6 @@ public struct AnyTool: Tool, Sendable {
         self.provenance = provenance
     }
 
-    @available(*, deprecated, renamed: "init(_:provenance:)")
-    public init(_ tool: any Tool, provenance: String?) {
-        self.init(tool, provenance: provenance.map { .named($0) } ?? .global)
-    }
-
     public var id: String {
         wrapped.id
     }
