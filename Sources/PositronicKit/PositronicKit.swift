@@ -247,7 +247,7 @@ public struct PositronicKit: Sendable {
     /// This remains package-internal on purpose: the documented downstream extension surface is the
     /// facade plus higher-level hooks such as `ChatTurnPlugin` and `PromptSectionProviding`, not
     /// the concrete runtime pipeline topology.
-    func addStage(_ stage: any PipelineStage<ChatTurnContext, ChatEvent>) -> PositronicKit {
+    func addingStage(_ stage: any PipelineStage<ChatTurnContext, ChatEvent>) -> PositronicKit {
         var copy = self
         copy.chatEngine.additionalStages.append(stage)
         return copy
@@ -256,7 +256,7 @@ public struct PositronicKit: Sendable {
     /// Adds a chat turn plugin that runs after each LLM turn.
     /// - Parameter plugin: The plugin to add.
     /// - Returns: A new instance with the plugin added.
-    public func addPlugin(_ plugin: any ChatTurnPlugin) -> PositronicKit {
+    public func addingPlugin(_ plugin: any ChatTurnPlugin) -> PositronicKit {
         var copy = self
         copy.chatTurnPlugins.append(plugin)
         let existingStages = copy.chatEngine.additionalStages

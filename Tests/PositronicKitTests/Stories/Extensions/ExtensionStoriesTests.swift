@@ -28,7 +28,7 @@ import Testing
     func chatTurnPluginTriggersFollowUpTurn() async throws {
         let plugin = AcceptanceChatTurnPlugin()
         let (baseChat, mockLLM, mockPersistence, timelineId, _, _) = try await makeAcceptanceRuntime()
-        let chat = baseChat.addPlugin(plugin)
+        let chat = baseChat.addingPlugin(plugin)
 
         mockLLM.mockClient.nextResponses = ["First reply", "Second reply"]
 
