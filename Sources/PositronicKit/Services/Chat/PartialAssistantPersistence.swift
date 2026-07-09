@@ -24,6 +24,11 @@ struct PartialAssistantPersistence {
     let messageStore: any MessageStoreProtocol
     let logger: Logger
 
+    init(messageStore: any MessageStoreProtocol, logger: Logger? = nil) {
+        self.messageStore = messageStore
+        self.logger = logger ?? Logger.module(named: "partial-assistant-persistence")
+    }
+
     func persistPartialAssistantIfNeeded(
         context: ChatTurnContext,
         status: Message.MessageStatus

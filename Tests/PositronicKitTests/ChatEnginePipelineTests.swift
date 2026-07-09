@@ -221,7 +221,6 @@ final class ChatTurnPipelineBuilderTests {
         let pipeline = ChatTurnPipelineBuilder.makePipeline(
             llmService: llm,
             messageStore: persistence,
-            logger: testLogger,
             streamTimeout: 5,
             additionalStages: [MarkerStage(tracker: tracker)]
         )
@@ -322,7 +321,7 @@ final class ToolCallExtractionStageBehavior {
         #expect(accumulators.values.contains { $0.name == "test_tool" })
     }
 
-    /// YAK-42: emitted records must carry the *raw* timelineId as `conversationID`
+    /// YAK-42: emitted records must carry the *raw* timelineId as `timelineID`
     /// so PositronicKit logs correlate with Yakamoz (YAK-40) logs in Console.app.
     /// Also asserts YAK-37 redaction: no raw tool arguments / secrets leak into metadata.
     @Test
@@ -357,10 +356,10 @@ final class ToolCallExtractionStageBehavior {
         let records = recorder.snapshot()
         #expect(!records.isEmpty)
 
-        // conversationID must be present and equal to the RAW uuid string (not hashed).
-        let conversationIDs = records.compactMap { $0["conversationID"] }
-        #expect(!conversationIDs.isEmpty)
-        #expect(conversationIDs.allSatisfy { $0 == timelineId.uuidString })
+        // timelineID must be present and equal to the RAW uuid string (not hashed).
+        let timelineIDs = records.compactMap { $0["timelineID"] }
+        #expect(!timelineIDs.isEmpty)
+        #expect(timelineIDs.allSatisfy { $0 == timelineId.uuidString })
 
         // turnIndex must reflect the turn count.
         let turnIndexes = records.compactMap { $0["turnIndex"] }

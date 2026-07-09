@@ -173,8 +173,7 @@ struct ChatEngine {
         try SidecarSchemaComposer.validate(sidecars)
 
         let context = try await TurnPreparer(
-            dependencies: dependencies,
-            logger: logger
+            dependencies: dependencies
         ).prepareSession(
             timelineId: timelineId,
             sendId: sendId ?? UUID(),
@@ -193,14 +192,12 @@ struct ChatEngine {
             assemblyLogger: assemblyLogger
         )
 
-        let snapshotBuilder = PromptSnapshotBuilder(logger: logger)
+        let snapshotBuilder = PromptSnapshotBuilder()
         let partialPersistence = PartialAssistantPersistence(
-            messageStore: dependencies.messageStore,
-            logger: logger
+            messageStore: dependencies.messageStore
         )
         let loopController = TurnLoopController(
             dependencies: dependencies,
-            logger: logger,
             additionalStages: additionalStages,
             snapshotBuilder: snapshotBuilder,
             partialPersistence: partialPersistence

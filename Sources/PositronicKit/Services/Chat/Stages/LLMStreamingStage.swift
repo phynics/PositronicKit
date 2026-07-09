@@ -10,8 +10,19 @@ struct LLMStreamingStage: PipelineStage {
     let logger: Logger
     let streamTimeout: TimeInterval
 
+    init(
+        llmService: any LLMStreamClient,
+        logger: Logger? = nil,
+        streamTimeout: TimeInterval
+    ) {
+        self.llmService = llmService
+        self.logger = logger ?? Logger.module(named: "llm-streaming")
+        self.streamTimeout = streamTimeout
+    }
+
     func process(_ context: ChatTurnContext) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         let processStartTime = ContinuousClock.now
+        let provider = await llmService.configuration.provider.rawValue
         let streamData: AsyncThrowingStream<LLMStreamChunk, Error>
         // ChatEngine's entry point rejects turns that set both `structuredOutput` and
         // `sidecars` (SidecarError.conflictsWithExplicitStructuredOutput), so at most one
@@ -81,9 +92,16 @@ struct LLMStreamingStage: PipelineStage {
                         Stream failed after \(elapsed): \
                         responseChars=\(responseChars) thinkingChars=\(thinkingChars) \
                         toolCallDeltas=\(toolCallDeltaCount) error=\(ErrorKit.userFriendlyMessage(for: error))
-                        """
+                        """,
+                        metadata: [
+                            LogKeys.timelineID: .string(context.timelineId.uuidString),
+                            LogKeys.sendID: .string(context.sendId.uuidString),
+                            LogKeys.turnIndex: .string("\(context.turnCount)"),
+                            LogKeys.provider: .string(provider),
+                            LogKeys.stage: .string("llm-streaming"),
+                        ]
                     )
-                    continuation.finish(throwing: error)
+                    continuation.finish(throwing: wrapForeignError(error))
                 }
             }
             continuation.onTermination = { @Sendable _ in task.cancel() }

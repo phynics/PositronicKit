@@ -12,6 +12,10 @@ import PKShared
 struct PromptSnapshotBuilder {
     let logger: Logger
 
+    init(logger: Logger? = nil) {
+        self.logger = logger ?? Logger.module(named: "prompt-snapshot-builder")
+    }
+
     func buildFollowUpSnapshot(
         from context: ChatTurnContext,
         appendedMessages: [LLMMessage],

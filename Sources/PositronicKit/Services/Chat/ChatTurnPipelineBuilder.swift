@@ -1,5 +1,4 @@
 import Foundation
-import Logging
 import PKShared
 
 /// Builds the concrete per-turn runtime pipeline used by `ChatEngine`.
@@ -11,14 +10,13 @@ enum ChatTurnPipelineBuilder {
     static func makePipeline(
         llmService: any LLMStreamClient,
         messageStore: any MessageStoreProtocol,
-        logger: Logger,
         streamTimeout: TimeInterval,
         additionalStages: [any PipelineStage<ChatTurnContext, ChatEvent>] = []
     ) -> Pipeline<ChatTurnContext, ChatEvent> {
         var pipeline = Pipeline<ChatTurnContext, ChatEvent>()
-            .add(LLMStreamingStage(llmService: llmService, logger: logger, streamTimeout: streamTimeout))
-            .add(ToolCallExtractionStage(logger: logger))
-            .add(MessagePersistenceStage(messageStore: messageStore, logger: logger))
+            .add(LLMStreamingStage(llmService: llmService, streamTimeout: streamTimeout))
+            .add(ToolCallExtractionStage())
+            .add(MessagePersistenceStage(messageStore: messageStore))
 
         for stage in additionalStages {
             pipeline = pipeline.add(stage)

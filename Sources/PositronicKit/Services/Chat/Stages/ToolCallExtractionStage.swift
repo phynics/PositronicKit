@@ -18,23 +18,28 @@ private let redactedHash = PKShared.redactedHash
 struct ToolCallExtractionStage: PipelineStage {
     let logger: Logger
 
+    init(logger: Logger? = nil) {
+        self.logger = logger ?? Logger.module(named: "tool-call-extraction")
+    }
+
     func process(_ context: ChatTurnContext) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         var eventsToYield: [ChatEvent] = []
 
         let accumulators = await context.outputs.toolCallAccumulators
-        // conversationID is logged raw (not hashed) so PositronicKit records correlate
+        // timelineID is logged raw (not hashed) so PositronicKit records correlate
         // end-to-end with Yakamoz logs (YAK-40), which log the raw timelineId. A UUID is
         // an id, not a payload, so logging it raw is YAK-37 compliant.
         let baseMeta: Logger.Metadata = [
-            "conversationID": .string(context.timelineId.uuidString),
-            "turnIndex": .string("\(context.turnCount)"),
+            LogKeys.timelineID: .string(context.timelineId.uuidString),
+            LogKeys.turnIndex: .string("\(context.turnCount)"),
+            LogKeys.stage: .string("tool-call-extraction"),
         ]
         logger.debug("ToolCallExtractionStage: \(accumulators.count) accumulator(s) before fallback/cleanup", metadata: baseMeta)
         for (index, acc) in accumulators.sorted(by: { $0.key < $1.key }) {
             let name = acc.name.isEmpty ? "(empty)" : acc.name
             var meta = baseMeta
             meta["accumulatorIndex"] = .string("\(index)")
-            meta["toolName"] = .string(name)
+            meta[LogKeys.toolName] = .string(name)
             meta["callID"] = .string(redactedHash(acc.callId))
             logger.debug(
                 "  [accumulator \(index)] id=\(acc.callId) name=\(String(reflecting: name)) argsBytes=\(acc.args.utf8.count)",

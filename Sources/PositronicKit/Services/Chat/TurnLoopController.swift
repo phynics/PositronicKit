@@ -18,6 +18,20 @@ struct TurnLoopController {
     let snapshotBuilder: PromptSnapshotBuilder
     let partialPersistence: PartialAssistantPersistence
 
+    init(
+        dependencies: ChatEngine.Dependencies,
+        logger: Logger? = nil,
+        additionalStages: [any PipelineStage<ChatTurnContext, ChatEvent>],
+        snapshotBuilder: PromptSnapshotBuilder,
+        partialPersistence: PartialAssistantPersistence
+    ) {
+        self.dependencies = dependencies
+        self.logger = logger ?? Logger.module(named: "turn-loop-controller")
+        self.additionalStages = additionalStages
+        self.snapshotBuilder = snapshotBuilder
+        self.partialPersistence = partialPersistence
+    }
+
     // MARK: - Core Loop
 
     private enum LoopContinuation {
@@ -93,7 +107,7 @@ struct TurnLoopController {
                         return
                     }
                 } catch {
-                    continuation.finish(throwing: error)
+                    continuation.finish(throwing: wrapForeignError(error))
                     return
                 }
 
@@ -118,7 +132,11 @@ struct TurnLoopController {
             }
         }
 
-        logger.warning("Max turns (\(context.maxTurns)) reached for timeline \(context.timelineId)")
+        logger.warning("Max turns (\(context.maxTurns)) reached for timeline \(context.timelineId)", metadata: [
+            LogKeys.timelineID: .string(context.timelineId.uuidString),
+            LogKeys.sendID: .string(context.sendId.uuidString),
+            LogKeys.turnIndex: .string("\(turnCount)"),
+        ])
         continuation.finish()
     }
 
@@ -149,7 +167,11 @@ struct TurnLoopController {
             continuation.finish()
             return .stop
         } catch {
-            logger.error("Error in chat loop turn \(context.turnCount): \(error)")
+            logger.error("Error in chat loop turn \(context.turnCount): \(error)", metadata: [
+                LogKeys.timelineID: .string(context.timelineId.uuidString),
+                LogKeys.sendID: .string(context.sendId.uuidString),
+                LogKeys.turnIndex: .string("\(context.turnCount)"),
+            ])
             // STAB-1: same data-loss fix for the failure path (network drop, provider 4xx/5xx,
             // idle timeout). A stage-thrown `CancellationError` is wrapped by `Pipeline` as
             // `PipelineError.stageFailed` and lands here — unwrap it so a mid-stream
@@ -194,13 +216,18 @@ struct TurnLoopController {
         // an empty turn with no tool calls points upstream at the model / provider adapter
         // rather than the tool router.
         let contentChars = await context.outputs.fullResponse.count
+        let turnMeta: Logger.Metadata = [
+            LogKeys.timelineID: .string(context.timelineId.uuidString),
+            LogKeys.sendID: .string(context.sendId.uuidString),
+            LogKeys.turnIndex: .string("\(context.turnCount)"),
+        ]
         switch result {
         case .noToolCalls:
-            logger.debug("Turn \(context.turnCount): no tool calls; assistant content chars=\(contentChars)")
+            logger.debug("Turn \(context.turnCount): no tool calls; assistant content chars=\(contentChars)", metadata: turnMeta)
         case .deferredExternally:
-            logger.debug("Turn \(context.turnCount): tool calls deferred for external execution")
+            logger.debug("Turn \(context.turnCount): tool calls deferred for external execution", metadata: turnMeta)
         case let .continueWith(messages):
-            logger.debug("Turn \(context.turnCount): \(messages.count) tool-result message(s) to feed back; assistant content chars=\(contentChars)")
+            logger.debug("Turn \(context.turnCount): \(messages.count) tool-result message(s) to feed back; assistant content chars=\(contentChars)", metadata: turnMeta)
         }
 
         switch result {
@@ -218,7 +245,6 @@ struct TurnLoopController {
         let pipeline = ChatTurnPipelineBuilder.makePipeline(
             llmService: dependencies.llmService,
             messageStore: dependencies.messageStore,
-            logger: logger,
             streamTimeout: dependencies.streamTimeout,
             additionalStages: additionalStages
         )
@@ -232,8 +258,9 @@ struct TurnLoopController {
         // Audit trail: log which precondition failed so an operator asking "why didn't my
         // inspector fire?" gets a reason instead of silence (PKLOG-001).
         let baseMeta: Logger.Metadata = [
-            "conversationID": .string(context.timelineId.uuidString),
-            "turnIndex": .string("\(context.turnCount)"),
+            LogKeys.timelineID: .string(context.timelineId.uuidString),
+            LogKeys.sendID: .string(context.sendId.uuidString),
+            LogKeys.turnIndex: .string("\(context.turnCount)"),
         ]
         guard let inspector = dependencies.turnInspector else {
             logger.debug("Turn inspection skipped: no turn inspector registered", metadata: baseMeta)

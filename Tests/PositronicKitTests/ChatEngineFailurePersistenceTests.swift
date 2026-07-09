@@ -229,4 +229,74 @@ struct ChatEngineFailurePersistenceTests {
             #expect(messages[0].role == "user")
         }
     }
+
+    // MARK: - PKLOG-004: Foreign provider errors carry a PKError domain/code
+
+    @Test("A foreign provider stream error is wrapped as an LLMStreamError under PipelineError (PKLOG-004)")
+    func foreignProviderErrorWrappedWithDomainAndCode() async throws {
+        try await withChatEngineDependencies { engine, mockLLM, _ in
+            // A fully foreign error (NSError) with no PKError domain/code — the kind a provider
+            // transport layer throws before the runtime wraps it.
+            let foreignError = NSError(
+                domain: "PKLOG004Foreign", code: 42,
+                userInfo: [NSLocalizedDescriptionKey: "simulated provider transport failure"]
+            )
+            mockLLM.stubbedStream = AsyncThrowingStream { continuation in
+                continuation.yield(ChatStreamResultFactory.textChunk("partial "))
+                continuation.finish(throwing: foreignError)
+            }
+
+            let stream = try await engine.execute(
+                timelineId: timelineId,
+                message: "foreign drop",
+                tools: []
+            )
+
+            do {
+                _ = try await collect(stream)
+                Issue.record("Expected the stream to throw the wrapped provider error")
+            } catch let PipelineError.stageFailed(_, underlying) {
+                // The foreign error is wrapped as LLMStreamError (PKError) at the stage leak
+                // point, before the pipeline re-wraps it — so the underlying carries a stable
+                // domain/code rather than a bare NSError.
+                let streamError = try #require(underlying as? LLMStreamError)
+                #expect(streamError.errorDomain == PKErrorDomain.llm)
+                #expect(streamError.errorCode == 1005)
+                // The original foreign error is preserved as the underlying cause.
+                let ns = streamError.underlyingError as NSError
+                #expect(ns.domain == "PKLOG004Foreign")
+                #expect(ns.code == 42)
+            } catch {
+                Issue.record("Expected PipelineError.stageFailed wrapping LLMStreamError, got \(error)")
+            }
+        }
+    }
+
+    @Test("A cancellation error reaches callers unwrapped (PKLOG-004)")
+    func cancellationErrorPassesThroughUnwrapped() async throws {
+        try await withChatEngineDependencies { engine, mockLLM, _ in
+            mockLLM.stubbedStream = AsyncThrowingStream { continuation in
+                continuation.yield(ChatStreamResultFactory.textChunk("cancel me "))
+                continuation.finish(throwing: CancellationError())
+            }
+
+            let stream = try await engine.execute(
+                timelineId: timelineId,
+                message: "cancel stream",
+                tools: []
+            )
+
+            do {
+                _ = try await collect(stream)
+                Issue.record("Expected the stream to throw on cancellation")
+            } catch let PipelineError.stageFailed(_, underlying) {
+                // CancellationError passes through wrapForeignError unchanged — it is NOT
+                // wrapped as LLMStreamError, so the loop's cancellation detection still works.
+                #expect(underlying is CancellationError)
+                #expect(underlying is LLMStreamError == false)
+            } catch {
+                Issue.record("Expected PipelineError.stageFailed wrapping CancellationError, got \(error)")
+            }
+        }
+    }
 }

@@ -15,6 +15,11 @@ struct TurnPreparer {
     let dependencies: ChatEngine.Dependencies
     let logger: Logger
 
+    init(dependencies: ChatEngine.Dependencies, logger: Logger? = nil) {
+        self.dependencies = dependencies
+        self.logger = logger ?? Logger.module(named: "turn-preparer")
+    }
+
     /// Consolidates all pre-turn logic: saving inputs, gathering context, resolving entities,
     /// and building the initial prompt.
     func prepareSession(
@@ -133,8 +138,9 @@ struct TurnPreparer {
         logger.debug(
             "Prompt journal updated: added=\(diff.added.count) removed=\(diff.removed.count) changed=\(diff.changed.count)",
             metadata: [
-                "conversationID": .string(timelineId.uuidString),
-                "turnIndex": .string("0"),
+                LogKeys.timelineID: .string(timelineId.uuidString),
+                LogKeys.sendID: .string(sendId.uuidString),
+                LogKeys.turnIndex: .string("0"),
                 "addedSections": .string("\(diff.added.count)"),
                 "removedSections": .string("\(diff.removed.count)"),
                 "changedSections": .string("\(diff.changed.count)"),
