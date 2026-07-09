@@ -123,7 +123,7 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
                 modelName: "llama3",
                 utilityModel: "llama3",
                 fastModel: "llama3",
-                toolFormat: .json,
+                toolFormat: .openAI,
                 timeoutInterval: 120.0, // Local models can be slower
                 maxRetries: 3
             )
