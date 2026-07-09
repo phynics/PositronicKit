@@ -27,6 +27,13 @@ for tagged releases beginning with `1.0.0`.
   was renamed to `addingStage(_:)` for the same reason (no downstream impact — it isn't
   public). Grepped Monad/Shuttle/Yakamoz for `.addPlugin(`/`.addStage(`: no call sites found,
   so no downstream migration is required for this change.
+- **Renamed `MemorySavePolicy.preventSimilar(threshold:)` → `.deduplicating(threshold:)`**
+  (PKAPI-010): the case previously read as an imperative verb phrase, inconsistent with
+  its sibling cases `.immediate`/`.deferred`, which are adjectives describing *when* a
+  save happens. `.deduplicating(threshold:)` matches that grammar. Downstream consumers
+  (Monad/Shuttle/Yakamoz) reference the `MemorySavePolicy` type name in a few places but
+  none currently pattern-match `.preventSimilar`, so no call-site migration is required
+  there; verify on the next PositronicKit pin bump regardless.
 - `ChatEvent` enum ergonomics overhaul (PKAPI-004):
   - **Renamed `ToolExecutionStatus.failure(String)` → `.executionError(String)`** to
     eliminate the name collision with `.failed(reference:error:)`. The two cases had
