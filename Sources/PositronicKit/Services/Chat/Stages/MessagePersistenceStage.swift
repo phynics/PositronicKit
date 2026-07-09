@@ -15,6 +15,11 @@ struct MessagePersistenceStage: PipelineStage {
     let messageStore: any MessageStoreProtocol
     let logger: Logger
 
+    init(messageStore: any MessageStoreProtocol, logger: Logger? = nil) {
+        self.messageStore = messageStore
+        self.logger = logger ?? Logger.module(named: "message-persistence")
+    }
+
     func process(_ context: ChatTurnContext) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         let hasPendingToolCalls = await !context.outputs.toolCallAccumulators.isEmpty
         let fullResponse = await context.outputs.fullResponse

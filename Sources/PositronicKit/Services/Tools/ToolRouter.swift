@@ -199,7 +199,7 @@ public actor ToolRouter {
         // turnIndex intentionally omitted: handlePendingToolCalls receives no turn count, and
         // adding a parameter just for logging exceeds this ticket's blast radius.
         let batchMeta: Logger.Metadata = [
-            "conversationID": .string(timelineId.uuidString),
+            LogKeys.timelineID: .string(timelineId.uuidString),
             "total": .string("\(calls.count)"),
             "deferred": .string("\(deferredCount)"),
             "resolved": .string("\(resolvedToolParams.count)"),
@@ -223,7 +223,10 @@ public actor ToolRouter {
         let toolName = ANSIColors.colorize(tool.displayName, color: ANSIColors.brightCyan)
         let sid = ANSIColors.colorize(timelineId.uuidString.prefix(8).lowercased(), color: ANSIColors.dim)
 
-        logger.info("Routing 🛠️ \(toolName) in timeline \(sid)")
+        logger.info("Routing 🛠️ \(toolName) in timeline \(sid)", metadata: [
+            LogKeys.timelineID: .string(timelineId.uuidString),
+            LogKeys.toolName: .string(tool.displayName),
+        ])
 
         // Strip workspaceID — it's a routing-only concern, not a tool parameter
         var forwardedArguments = arguments

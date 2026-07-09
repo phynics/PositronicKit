@@ -8,6 +8,15 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Added
+
+- `PKShared.LogKeys`: a caseless namespace of canonical `Logger.Metadata` key constants
+  (`timelineID`, `sendID`, `turnIndex`, `toolName`, `provider`, `stage`, `errorCode`) for the
+  chat turn loop. Structured-log sites across prompt assembly, LLM stream lifecycle, loop
+  continuation decisions, and tool routing now use these keys (replacing the legacy
+  `conversationID` synonym) so downstream consumers can correlate log lines by timeline/send/turn
+  without regex.
+
 ### Removed
 
 - **Breaking:** removed `PositronicKit.sidecarsIfEnabled(_:when:)`. Consumers can inline the equivalent ternary (`isEnabled ? sidecars : []`) at the call site. Yakamoz's `YakamozRuntime.makeChatViewModel` is updated accordingly.
