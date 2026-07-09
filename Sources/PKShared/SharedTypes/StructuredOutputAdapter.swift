@@ -1,6 +1,6 @@
 import Foundation
-import Synchronization
 import struct JSONSchema.Schema
+import Synchronization
 
 /// The result of preparing a structured-output request for a specific provider.
 ///
@@ -60,6 +60,41 @@ public enum StructuredOutputAdapterRegistry {
 
     public static func adapter(for provider: LLMProvider) -> (any StructuredOutputAdapter)? {
         adapters.withLock { $0[provider] }
+    }
+}
+
+/// Structured-output preparation shared by providers whose wire protocol natively
+/// supports both `json_object` and `json_schema` response formats (e.g. OpenAI,
+/// OpenRouter), forwarding the schema without synthetic tools or prompt augmentation.
+public struct NativeJSONSchemaStructuredOutputAdapter: StructuredOutputAdapter {
+    public init() {}
+
+    public func prepareRequest(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        output: StructuredOutputRequest
+    ) -> PreparedStructuredOutputRequest {
+        switch output {
+        case .jsonObject:
+            return PreparedStructuredOutputRequest(
+                messages: messages,
+                tools: tools,
+                toolChoice: nil,
+                responseFormat: .jsonObject
+            )
+        case let .jsonSchema(schema):
+            return PreparedStructuredOutputRequest(
+                messages: messages,
+                tools: tools,
+                toolChoice: nil,
+                responseFormat: .jsonSchema(.init(
+                    name: schema.name,
+                    description: schema.description,
+                    schema: schema.schema,
+                    strict: schema.strict
+                ))
+            )
+        }
     }
 }
 

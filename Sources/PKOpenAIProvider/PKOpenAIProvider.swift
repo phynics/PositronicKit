@@ -15,7 +15,7 @@ public enum PKOpenAIProvider {
                 maxRetries: retries
             )
         }, for: .openAI)
-        StructuredOutputAdapterRegistry.register(OpenAIStructuredOutputAdapter(), for: .openAI)
+        StructuredOutputAdapterRegistry.register(NativeJSONSchemaStructuredOutputAdapter(), for: .openAI)
 
         ExternalLLMProviderRegistry.register(factory: { config, components, timeout, retries, model in
             OpenAIClient(

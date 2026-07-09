@@ -1,10 +1,10 @@
 import Foundation
 import JSONSchemaBuilder
-import PKShared
 @testable import PKAnthropicProvider
 @testable import PKOllamaProvider
 @testable import PKOpenAIProvider
 @testable import PKOpenRouterProvider
+import PKShared
 import Testing
 
 @Suite("Structured output adapters")
@@ -24,7 +24,7 @@ struct StructuredOutputAdapterTests {
 
     @Test("OpenAI adapter uses native JSON schema and leaves messages untouched")
     func openAIAdapter() {
-        let adapter = OpenAIStructuredOutputAdapter()
+        let adapter = NativeJSONSchemaStructuredOutputAdapter()
         let schema = Self.tagSchema()
 
         let jsonObjectPrepared = adapter.prepareRequest(
@@ -59,7 +59,7 @@ struct StructuredOutputAdapterTests {
 
     @Test("OpenRouter adapter behaves like OpenAI native schema")
     func openRouterAdapter() {
-        let adapter = OpenRouterStructuredOutputAdapter()
+        let adapter = NativeJSONSchemaStructuredOutputAdapter()
         let schema = Self.tagSchema()
 
         let prepared = adapter.prepareRequest(
@@ -166,8 +166,8 @@ struct StructuredOutputAdapterTests {
         PKOllamaProvider.register()
         PKAnthropicProvider.register()
 
-        #expect(StructuredOutputAdapterRegistry.adapter(for: .openAI) is OpenAIStructuredOutputAdapter)
-        #expect(StructuredOutputAdapterRegistry.adapter(for: .openRouter) is OpenRouterStructuredOutputAdapter)
+        #expect(StructuredOutputAdapterRegistry.adapter(for: .openAI) is NativeJSONSchemaStructuredOutputAdapter)
+        #expect(StructuredOutputAdapterRegistry.adapter(for: .openRouter) is NativeJSONSchemaStructuredOutputAdapter)
         #expect(StructuredOutputAdapterRegistry.adapter(for: .ollama) is OllamaStructuredOutputAdapter)
         #expect(StructuredOutputAdapterRegistry.adapter(for: .anthropic) is AnthropicStructuredOutputAdapter)
         #expect(StructuredOutputAdapterRegistry.adapter(for: .openAICompatible) is OpenAICompatibleStructuredOutputAdapter)

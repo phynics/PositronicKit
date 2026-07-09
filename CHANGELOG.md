@@ -30,6 +30,12 @@ for tagged releases beginning with `1.0.0`.
   `isSummary` are folded into the hash inputs so no content-bearing change is lost. This
   eliminates the cross-system divergence where a semistable section with a token-only change
   differed on the PKPrompt side but not the runtime side.
+- (PKCLEAN-008) `PKOpenAIProvider.OpenAIStructuredOutputAdapter` and
+  `PKOpenRouterProvider.OpenRouterStructuredOutputAdapter` were logic-identical
+  copy-paste (OpenRouter mirrors OpenAI's native `json_object`/`json_schema`
+  response-format support). Both are replaced by a single shared
+  `PKShared.NativeJSONSchemaStructuredOutputAdapter`, which each provider now
+  registers directly with `StructuredOutputAdapterRegistry`.
 
 ### Deprecated
 
@@ -49,6 +55,13 @@ for tagged releases beginning with `1.0.0`.
 - **Breaking:** removed `PKShared.PipelineBuilder` (unused `@resultBuilder`; pipelines are assembled imperatively via `Pipeline.add()`) and its `Pipeline.init(stages:)` convenience initializer overload.
 - **Breaking:** removed the throwing `Collection.assertUniqueIDs()` overloads and `PKPrompt.CollectionUniqueIDError` (never used outside their own tests). `Collection.duplicateIDs(idKeyPath:)` is now `public` (previously internal) and remains the supported non-throwing check.
 - **Breaking:** removed `Collection.duplicatePromptSectionIDs()` and `Collection.duplicateRenderedPromptSectionIDs()` typed wrappers; call `duplicateIDs(idKeyPath: \.id)` directly instead.
+- (PKCLEAN-008) **Breaking:** removed `PKOpenAIProvider.OpenAIStructuredOutputAdapter` and
+  `PKOpenRouterProvider.OpenRouterStructuredOutputAdapter` (superseded by
+  `PKShared.NativeJSONSchemaStructuredOutputAdapter`, see Changed above).
+- (PKCLEAN-008) **Breaking:** removed the public `PKShared.MessageParser` type. Its two
+  methods were only ever reached through the pass-through wrappers
+  `Message.parseResponse(_:)` / `Message.displayContent`; the implementations are now
+  inlined directly into those `Message` members with unchanged behavior.
 
 ### Fixed
 
