@@ -49,7 +49,7 @@ public final class PositronicKit: Sendable {
     private let requestOriginStore: any RequestOriginStoreProtocol
     private let chatTurnPlugins: [any ChatTurnPlugin]
     private let turnInspector: (any TurnInspecting)?
-    private let defaultGenerationParameters: GenerationParameters?
+    let defaultGenerationParameters: GenerationParameters?
     private let logger = Logger.module(named: "positronickit-facade")
 
     // MARK: - Transitive dependencies (TimelineManager, ContextManager)

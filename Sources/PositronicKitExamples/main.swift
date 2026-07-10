@@ -1,6 +1,7 @@
 import Foundation
 import PKPrompt
 import PKShared
+import PositronicKit
 
 func runExamples() async throws {
     let prompt = PKPromptExamples.makeToolingPrompt(
@@ -38,11 +39,14 @@ func runExamples() async throws {
     _ = PositronicKitUsageExamples.makePrototypeRuntime()
     _ = PositronicKitUsageExamples.makeConfiguredRuntime()
 
+    let oneShot = try await PositronicKit().complete("Say hello in one word.")
+
     print("# PKPrompt Example\n")
     print(renderedPrompt)
     print("\nPrompt sections: \(assembled.sections.map(\.id))")
     print("\n# PositronicKit Example\n")
     print("Prototype runtime and fully configured runtime both initialized successfully.")
+    print("One-shot response: \(oneShot)")
     print(toolPrompt)
     print("\nStructured output schema: \(structuredOutput.name)")
     print("Structured output request: \(structuredOutputRequest)")
