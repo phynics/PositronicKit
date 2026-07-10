@@ -39,6 +39,10 @@ public final class PositronicKit: Sendable {
     /// would silently diverge from the stores the facade itself uses.
     public let timelineManager: TimelineManager
 
+    /// The single agent-instance manager owned by this facade. It is wired to the same
+    /// timeline manager and persistence stores as the rest of the runtime.
+    public let agentInstanceManager: AgentInstanceManager
+
     /// The tool router built by this facade, wired to `timelineManager` above.
     public let toolRouter: ToolRouter
     private let agentInstanceStore: any AgentInstanceStoreProtocol
@@ -218,6 +222,19 @@ public final class PositronicKit: Sendable {
             promptHistoryRegistry: self.promptHistoryRegistry
         )
         timelineManager = resolvedTimelineManager
+        agentInstanceManager = AgentInstanceManager(
+            repository: AgentWorkspaceService(
+                workspaceRoot: resolvedWorkspaceRoot,
+                workspacePersistence: self.workspacePersistence
+            ),
+            stores: .init(
+                instanceStore: self.agentInstanceStore,
+                timelineStore: self.timelinePersistence,
+                messageStore: self.messageStore,
+                workspaceStore: self.workspacePersistence
+            ),
+            timelineManager: resolvedTimelineManager
+        )
         toolRouter = ToolRouter(
             timelineManager: resolvedTimelineManager,
             messageStore: self.messageStore,
@@ -315,6 +332,20 @@ public final class PositronicKit: Sendable {
     }
 
     // MARK: - Execution
+
+    /// Vends a fresh tier-four agent runtime handle.
+    public func agenticRuntime(
+        timelineId: UUID,
+        workspaceId: UUID? = nil,
+        agentInstanceId: UUID
+    ) -> AgenticRuntime {
+        AgenticRuntime(
+            kit: self,
+            timelineId: timelineId,
+            workspaceId: workspaceId,
+            agentInstanceId: agentInstanceId
+        )
+    }
 
     /// Run a chat turn and return a stream of events.
     /// - Parameter request: The full turn configuration.
