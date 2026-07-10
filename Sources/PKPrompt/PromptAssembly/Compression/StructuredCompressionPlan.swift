@@ -27,7 +27,7 @@ public struct StructuredCompressionNode: Sendable, Equatable {
     public let id: String
     /// The node's structural path within the prompt tree.
     public let path: [String]
-    /// Content fingerprint (via ``StableHash``), used to detect whether the node changed
+    /// Content fingerprint (via `StableHash`), used to detect whether the node changed
     /// since a prior diff/plan.
     public let nodeHash: UInt64
     /// The node's priority; higher priority nodes are preferred to keep under budget pressure.
@@ -56,7 +56,7 @@ public struct StructuredCompressionNode: Sendable, Equatable {
     }
 }
 
-/// The planner's decision for a single node, produced by ``StructuredCompressionPlanner/plan``
+/// The planner's decision for a single node, produced by `StructuredCompressionPlanner.plan(...)`
 /// and applied by `StructuredCompressionExecutor`.
 public struct PlannedNodeAction: Sendable, Equatable {
     /// The id of the node this decision applies to.
@@ -91,7 +91,7 @@ public struct PlannedNodeAction: Sendable, Equatable {
 }
 
 /// The full compression decision for a set of nodes, produced by
-/// ``StructuredCompressionPlanner/plan``.
+/// `StructuredCompressionPlanner.plan(...)`.
 public struct StructuredCompressionPlan: Sendable, Equatable {
     /// The token budget the plan was computed against.
     public let availableTokens: Int
