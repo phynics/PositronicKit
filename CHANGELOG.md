@@ -8,6 +8,13 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Added
+
+- Added the `Conversation` cursor API: `newConversation(title:)` persists one timeline and
+  workspace, `conversation(timelineId:)` returns a fresh pure cursor, and `send(_:)` delegates
+  through the existing facade chat path. Cursors expose stable `Identifiable` timeline identity
+  and scoped `TimelineManager` access.
+
 ### Breaking
 
 - `ChatEvent` enum ergonomics overhaul (PKAPI-004):
