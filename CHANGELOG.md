@@ -10,6 +10,8 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- Added the opt-in `PKObservable` product with an `@Observable` `ObservableConversation` wrapper
+  that mirrors `Conversation` streaming state for SwiftUI-facing consumers.
 - Added the `Conversation` cursor API: `newConversation(title:)` persists one timeline and
   workspace, `conversation(timelineId:)` returns a fresh pure cursor, and `send(_:)` delegates
   through the existing facade chat path. Cursors expose stable `Identifiable` timeline identity

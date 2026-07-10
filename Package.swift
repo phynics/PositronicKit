@@ -8,6 +8,7 @@ let package = Package(
     ],
     products: [
         .library(name: "PositronicKit", targets: ["PositronicKit"]),
+        .library(name: "PKObservable", targets: ["PKObservable"]),
         .library(name: "PKPrompt", targets: ["PKPrompt"]),
         .library(name: "PKShared", targets: ["PKShared"]),
         .library(name: "PKLocalEmbeddings", targets: ["PKLocalEmbeddings"]),
@@ -65,6 +66,11 @@ let package = Package(
             ],
             path: "Sources/PositronicKit",
             exclude: ["README.md"]
+        ),
+        .target(
+            name: "PKObservable",
+            dependencies: ["PositronicKit"],
+            path: "Sources/PKObservable"
         ),
         .target(
             name: "PKLocalEmbeddings",
@@ -181,6 +187,11 @@ let package = Package(
                 .product(name: "OpenAI", package: "OpenAI"),
             ],
             path: "Tests/PositronicKitTests"
+        ),
+        .testTarget(
+            name: "PKObservableTests",
+            dependencies: ["PKObservable", "PKTestSupport"],
+            path: "Tests/PKObservableTests"
         ),
         .testTarget(
             name: "PKLocalEmbeddingsTests",
