@@ -29,7 +29,7 @@ public extension PositronicKit {
     ///   make bare `PositronicKit()` ambiguous with (and in practice silently resolve to) this
     ///   initializer for any module importing the provider, changing what "default init" means.
     ///   Pass `[]` explicitly for a tool-less on-device runtime.
-    init(foundationModelsTools tools: [AnyTool]) {
+    convenience init(foundationModelsTools tools: [AnyTool]) {
         let client = FoundationModelsClient(tools: tools)
         let llm = LLMService(
             storage: InMemoryConfigurationService(config: .default),
@@ -37,6 +37,9 @@ public extension PositronicKit {
             utilityClient: client,
             fastClient: client
         )
-        self.init(llmService: llm)
+        self.init(configuration: .init(
+            provider: .init(llmService: llm),
+            persistence: .inMemory()
+        ))
     }
 }

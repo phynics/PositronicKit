@@ -33,7 +33,7 @@ public enum PKOpenAIProvider {
 }
 
 public extension PositronicKit {
-    init(
+    convenience init(
         openAIKey: String,
         model: String = "gpt-4o",
         generationParameters: GenerationParameters? = nil
@@ -41,6 +41,10 @@ public extension PositronicKit {
         PKOpenAIProvider.register()
         let config = LLMConfiguration(modelName: model, apiKey: openAIKey, provider: .openAI)
         let llm = LLMService(configuration: config)
-        self.init(llmService: llm, generationParameters: generationParameters)
+        self.init(configuration: .init(
+            provider: .init(llmService: llm),
+            persistence: .inMemory(),
+            generationParameters: generationParameters
+        ))
     }
 }

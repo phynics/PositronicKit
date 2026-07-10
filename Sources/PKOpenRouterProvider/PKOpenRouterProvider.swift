@@ -25,7 +25,7 @@ public enum PKOpenRouterProvider {
 }
 
 public extension PositronicKit {
-    init(
+    convenience init(
         openRouterKey: String,
         model: String = "openai/gpt-4o",
         endpoint: String = "https://openrouter.ai/api",
@@ -43,6 +43,10 @@ public extension PositronicKit {
             applicationTitle: applicationTitle
         )
         let llm = LLMService(configuration: config)
-        self.init(llmService: llm, generationParameters: generationParameters)
+        self.init(configuration: .init(
+            provider: .init(llmService: llm),
+            persistence: .inMemory(),
+            generationParameters: generationParameters
+        ))
     }
 }

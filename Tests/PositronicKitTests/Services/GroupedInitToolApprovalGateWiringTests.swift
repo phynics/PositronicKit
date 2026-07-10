@@ -73,15 +73,15 @@ struct GroupedInitToolApprovalGateWiringTests {
             agentInstanceStore: mockPersistence,
             requestOriginStore: mockPersistence
         )
-        let chat = PositronicKit(
-            llmService: UnconfiguredLLMService(),
+        let chat = PositronicKit(configuration: .init(
+            provider: .init(llmService: UnconfiguredLLMService()),
             persistence: persistence,
             runtime: .init(
                 workspaceCreator: MockWorkspaceCreator(),
                 workspaceRoot: workspace.root,
                 toolApprovalGate: gate
             )
-        )
+        ))
         let timelineId = try await register(tool, on: chat, persistence: mockPersistence)
         return (chat, timelineId, tool)
     }
@@ -105,12 +105,11 @@ struct GroupedInitToolApprovalGateWiringTests {
             agentInstanceStore: mockPersistence,
             requestOriginStore: mockPersistence
         )
-        let chat = PositronicKit(
-            llmService: UnconfiguredLLMService(),
+        let chat = PositronicKit(configuration: .init(
+            provider: .init(llmService: UnconfiguredLLMService()),
             persistence: persistence,
-            workspaceRoot: workspace.root,
-            toolApprovalGate: gate
-        )
+            runtime: .init(workspaceRoot: workspace.root, toolApprovalGate: gate)
+        ))
         let timelineId = try await register(tool, on: chat, persistence: mockPersistence)
         return (chat, timelineId, tool)
     }

@@ -20,7 +20,7 @@ public enum PKAnthropicProvider {
 }
 
 public extension PositronicKit {
-    init(
+    convenience init(
         anthropicKey: String,
         model: String = "claude-sonnet-4-5",
         endpoint: String = "https://api.anthropic.com",
@@ -34,6 +34,10 @@ public extension PositronicKit {
             provider: .anthropic
         )
         let llm = LLMService(configuration: config)
-        self.init(llmService: llm, generationParameters: generationParameters)
+        self.init(configuration: .init(
+            provider: .init(llmService: llm),
+            persistence: .inMemory(),
+            generationParameters: generationParameters
+        ))
     }
 }

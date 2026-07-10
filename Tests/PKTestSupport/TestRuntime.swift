@@ -54,9 +54,7 @@ import PositronicKit
             self.llm = llm
             self.embedding = embedding
 
-            core = PositronicKit(
-                llmService: llm,
-                persistence: .init(
+            core = PositronicKit(configuration: .init(provider: .init(llmService: llm, embeddingService: embedding), persistence: .init(
                     messageStore: persistence,
                     timelinePersistence: persistence,
                     workspacePersistence: persistence,
@@ -64,13 +62,10 @@ import PositronicKit
                     toolPersistence: persistence,
                     agentInstanceStore: persistence,
                     requestOriginStore: persistence
-                ),
-                embeddingService: embedding,
-                runtime: .init(
+                ), runtime: .init(
                     workspaceCreator: workspaceCreator,
                     workspaceRoot: workspaceRoot
-                )
-            )
+                )))
 
             let agentWorkspaceService = AgentWorkspaceService(
                 workspaceRoot: workspaceRoot,

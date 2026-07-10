@@ -28,9 +28,7 @@ struct StructuredOutputRunTests {
     func runForwardsStructuredOutputRequests() async throws {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
-        let chat = PositronicKit(
-            llmService: mockLLM,
-            persistence: .init(
+        let chat = PositronicKit(configuration: .init(provider: .init(llmService: mockLLM), persistence: .init(
                 messageStore: mockPersistence,
                 timelinePersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
@@ -38,8 +36,7 @@ struct StructuredOutputRunTests {
                 toolPersistence: mockPersistence,
                 agentInstanceStore: mockPersistence,
                 requestOriginStore: mockPersistence
-            )
-        )
+            )))
 
         let request = ChatRunRequest(
             timelineId: UUID(),
@@ -71,9 +68,7 @@ struct StructuredOutputRunTests {
     func runOmittingStructuredOutputUsesTheSameSingleOverload() async throws {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
-        let chat = PositronicKit(
-            llmService: mockLLM,
-            persistence: .init(
+        let chat = PositronicKit(configuration: .init(provider: .init(llmService: mockLLM), persistence: .init(
                 messageStore: mockPersistence,
                 timelinePersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
@@ -81,8 +76,7 @@ struct StructuredOutputRunTests {
                 toolPersistence: mockPersistence,
                 agentInstanceStore: mockPersistence,
                 requestOriginStore: mockPersistence
-            )
-        )
+            )))
 
         let stream = try await chat.run(ChatRunRequest(
             timelineId: UUID(),
@@ -98,9 +92,7 @@ struct StructuredOutputRunTests {
     func minimalChatRunRequestPreservesLegacyDefaults() async throws {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
-        let chat = PositronicKit(
-            llmService: mockLLM,
-            persistence: .init(
+        let chat = PositronicKit(configuration: .init(provider: .init(llmService: mockLLM), persistence: .init(
                 messageStore: mockPersistence,
                 timelinePersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
@@ -108,8 +100,7 @@ struct StructuredOutputRunTests {
                 toolPersistence: mockPersistence,
                 agentInstanceStore: mockPersistence,
                 requestOriginStore: mockPersistence
-            )
-        )
+            )))
 
         let stream = try await chat.run(ChatRunRequest(
             timelineId: UUID(),
@@ -128,9 +119,7 @@ struct StructuredOutputRunTests {
     func noSidecarsPreservesNoSidecarRuntimePath() async throws {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
-        let chat = PositronicKit(
-            llmService: mockLLM,
-            persistence: .init(
+        let chat = PositronicKit(configuration: .init(provider: .init(llmService: mockLLM), persistence: .init(
                 messageStore: mockPersistence,
                 timelinePersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
@@ -138,8 +127,7 @@ struct StructuredOutputRunTests {
                 toolPersistence: mockPersistence,
                 agentInstanceStore: mockPersistence,
                 requestOriginStore: mockPersistence
-            )
-        )
+            )))
 
         let stream = try await chat.run(ChatRunRequest(
             timelineId: UUID(),

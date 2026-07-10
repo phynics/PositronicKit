@@ -25,7 +25,10 @@ import PKShared
 /// Example usage:
 /// - Minimal: `PositronicKit(llmService: myLLM)`
 /// - Production: use the grouped `persistence:` and `runtime:` initializers.
-public struct PositronicKit: Sendable {
+///
+/// Construct once and hold for the app's lifetime. `PositronicKit` is a reference type;
+/// constructing a new instance starts a new, independent cross-send history.
+public final class PositronicKit: Sendable {
     // MARK: - Direct ChatEngine dependencies
 
     let llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient
@@ -36,11 +39,15 @@ public struct PositronicKit: Sendable {
     /// would silently diverge from the stores the facade itself uses.
     public let timelineManager: TimelineManager
 
+    /// The single agent-instance manager owned by this facade. It is wired to the same
+    /// timeline manager and persistence stores as the rest of the runtime.
+    public let agentInstanceManager: AgentInstanceManager
+
     /// The tool router built by this facade, wired to `timelineManager` above.
     public let toolRouter: ToolRouter
     private let agentInstanceStore: any AgentInstanceStoreProtocol
     private let requestOriginStore: any RequestOriginStoreProtocol
-    private var chatTurnPlugins: [any ChatTurnPlugin]
+    private let chatTurnPlugins: [any ChatTurnPlugin]
     private let turnInspector: (any TurnInspecting)?
     private let defaultGenerationParameters: GenerationParameters?
     private let logger = Logger.module(named: "positronickit-facade")
@@ -53,20 +60,10 @@ public struct PositronicKit: Sendable {
     private let toolPersistence: any ToolPersistenceProtocol
     private let embeddingService: any EmbeddingServiceProtocol
 
-    private var chatEngine: ChatEngine
+    private let chatEngine: ChatEngine
 
-    /// Per-timeline prompt-history/journal-diff state, shared across every `execute` call on
-    /// this facade instance so a conversation's second and later sends diff against the
-    /// previous send's prompt snapshot instead of starting from a blank slate each time.
-    ///
-    /// Hosts that need fresh provider settings between sends should prefer `reconfigured(...)`,
-    /// which preserves this state automatically. If a host still reconstructs whole facade
-    /// values manually, it must inject the *same* registry instance into every facade it builds
-    /// for a given app lifetime via the `promptHistoryRegistry:` init parameter below —
-    /// otherwise each new facade gets a blank registry and both the journal diff data (YAK-16)
-    /// and the persisted inspection-turn-index counter it carries reset on every send, causing
-    /// `TimelinePromptHistory.nextInspectionTurnIndex()` to start over at 0 each time and
-    /// collide with the prior send's persisted rows.
+    /// Owned internally; every conversation vended by this instance shares it automatically.
+    /// Construct a new `PositronicKit` for a genuinely separate cross-send history.
     private let promptHistoryRegistry: TimelinePromptHistoryRegistry
     private let workspaceRoot: URL?
     private let workspaceCreator: any WorkspaceCreating
@@ -76,18 +73,15 @@ public struct PositronicKit: Sendable {
 
     // MARK: - Init
 
-    /// A simplified initializer for common use cases.
-    /// Provides sensible in-memory defaults for all stores.
-    public init(
-        llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient = UnconfiguredLLMService(),
-        turnInspector: (any TurnInspecting)? = nil,
-        generationParameters: GenerationParameters? = nil
+    /// Creates a provider-agnostic facade with in-memory persistence and default runtime policy.
+    public convenience init(
+        llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient = UnconfiguredLLMService()
     ) {
         self.init(
-            llmService: llmService,
-            persistence: .inMemory(),
-            turnInspector: turnInspector,
-            generationParameters: generationParameters
+            configuration: .init(
+                provider: .init(llmService: llmService),
+                persistence: .inMemory()
+            )
         )
     }
 
@@ -118,15 +112,11 @@ public struct PositronicKit: Sendable {
     ///   - runtimeToolPolicy: Controls which built-in runtime tools TimelineManager installs.
     ///   - chatTurnPlugins: Post-turn plugins (e.g. autonomous reactions).
     ///   - turnInspector: Optional sink for per-turn prompt/journal inspection projections.
-    ///   - promptHistoryRegistry: Per-timeline prompt-history/journal-diff state. Defaults to a
-    ///     fresh, private registry. Prefer `reconfigured(...)` when only provider settings
-    ///     change between sends; if you still reconstruct whole facades manually, pass the
-    ///     same registry instance every time or prompt-diff/inspection-turn-index state resets.
     ///   - generationParameters: Optional default parameters for generation.
     ///   - toolApprovalGate: Gate consulted at the runtime execution sink before any tool whose
     ///     `requiresPermission` is `true` runs. Defaults to `DenyAllToolApprovalGate` so
     ///     permissioned tools never execute without an explicitly injected approval path (YAK-31).
-    public init(
+    convenience init(
         llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient,
         messageStore: (any MessageStoreProtocol)? = nil,
         agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,
@@ -142,9 +132,52 @@ public struct PositronicKit: Sendable {
         runtimeToolPolicy: TimelineManager.RuntimeToolPolicy = .default,
         chatTurnPlugins: [any ChatTurnPlugin] = [],
         turnInspector: (any TurnInspecting)? = nil,
-        promptHistoryRegistry: TimelinePromptHistoryRegistry = TimelinePromptHistoryRegistry(),
         generationParameters: GenerationParameters? = nil,
         toolApprovalGate: any ToolApprovalGate = DenyAllToolApprovalGate()
+    ) {
+        self.init(
+            llmService: llmService,
+            messageStore: messageStore,
+            agentInstanceStore: agentInstanceStore,
+            requestOriginStore: requestOriginStore,
+            timelinePersistence: timelinePersistence,
+            workspacePersistence: workspacePersistence,
+            memoryStore: memoryStore,
+            toolPersistence: toolPersistence,
+            embeddingService: embeddingService,
+            workspaceRoot: workspaceRoot,
+            workspaceCreator: workspaceCreator,
+            sectionProviders: sectionProviders,
+            runtimeToolPolicy: runtimeToolPolicy,
+            chatTurnPlugins: chatTurnPlugins,
+            turnInspector: turnInspector,
+            generationParameters: generationParameters,
+            toolApprovalGate: toolApprovalGate,
+            sharedRegistry: TimelinePromptHistoryRegistry(),
+            additionalStages: []
+        )
+    }
+
+    init(
+        llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient,
+        messageStore: (any MessageStoreProtocol)? = nil,
+        agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,
+        requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
+        timelinePersistence: (any TimelinePersistenceProtocol)? = nil,
+        workspacePersistence: (any WorkspacePersistenceProtocol)? = nil,
+        memoryStore: (any MemoryStoreProtocol)? = nil,
+        toolPersistence: (any ToolPersistenceProtocol)? = nil,
+        embeddingService: (any EmbeddingServiceProtocol)? = nil,
+        workspaceRoot: URL? = nil,
+        workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
+        sectionProviders: [any PromptSectionProviding] = [],
+        runtimeToolPolicy: TimelineManager.RuntimeToolPolicy = .default,
+        chatTurnPlugins: [any ChatTurnPlugin] = [],
+        turnInspector: (any TurnInspecting)? = nil,
+        generationParameters: GenerationParameters? = nil,
+        toolApprovalGate: any ToolApprovalGate = DenyAllToolApprovalGate(),
+        sharedRegistry: TimelinePromptHistoryRegistry,
+        additionalStages: [any PipelineStage<ChatTurnContext, ChatEvent>]
     ) {
         self.llmService = llmService
         self.messageStore = messageStore ?? InMemoryMessageStore()
@@ -157,7 +190,7 @@ public struct PositronicKit: Sendable {
         self.embeddingService = embeddingService ?? NoOpEmbeddingService()
         self.chatTurnPlugins = chatTurnPlugins
         self.turnInspector = turnInspector
-        self.promptHistoryRegistry = promptHistoryRegistry
+        self.promptHistoryRegistry = sharedRegistry
         self.workspaceRoot = workspaceRoot
         self.workspaceCreator = workspaceCreator
         self.sectionProviders = sectionProviders
@@ -183,15 +216,28 @@ public struct PositronicKit: Sendable {
             sectionProviders: sectionProviders,
             runtimeToolPolicy: runtimeToolPolicy,
             embeddingService: self.embeddingService,
-            promptHistoryRegistry: promptHistoryRegistry
+            promptHistoryRegistry: self.promptHistoryRegistry
         )
         timelineManager = resolvedTimelineManager
+        agentInstanceManager = AgentInstanceManager(
+            repository: AgentWorkspaceService(
+                workspaceRoot: resolvedWorkspaceRoot,
+                workspacePersistence: self.workspacePersistence
+            ),
+            stores: .init(
+                instanceStore: self.agentInstanceStore,
+                timelineStore: self.timelinePersistence,
+                messageStore: self.messageStore,
+                workspaceStore: self.workspacePersistence
+            ),
+            timelineManager: resolvedTimelineManager
+        )
         toolRouter = ToolRouter(
             timelineManager: resolvedTimelineManager,
             messageStore: self.messageStore,
             approvalGate: toolApprovalGate
         )
-        chatEngine = ChatEngine(
+        var engine = ChatEngine(
             dependencies: .init(
                 timelineManager: resolvedTimelineManager,
                 agentInstanceStore: self.agentInstanceStore,
@@ -201,9 +247,11 @@ public struct PositronicKit: Sendable {
                 toolRouter: toolRouter,
                 chatTurnPlugins: self.chatTurnPlugins,
                 turnInspector: self.turnInspector,
-                promptHistoryRegistry: promptHistoryRegistry
+                promptHistoryRegistry: self.promptHistoryRegistry
             )
         )
+        engine.additionalStages = additionalStages
+        chatEngine = engine
     }
 
     /// Returns a new facade with updated provider/generation configuration while preserving the
@@ -232,9 +280,10 @@ public struct PositronicKit: Sendable {
             runtimeToolPolicy: runtimeToolPolicy,
             chatTurnPlugins: chatTurnPlugins,
             turnInspector: turnInspector,
-            promptHistoryRegistry: promptHistoryRegistry,
             generationParameters: generationParameters ?? defaultGenerationParameters,
-            toolApprovalGate: toolApprovalGate
+            toolApprovalGate: toolApprovalGate,
+            sharedRegistry: promptHistoryRegistry,
+            additionalStages: chatEngine.additionalStages
         )
     }
 
@@ -248,36 +297,52 @@ public struct PositronicKit: Sendable {
     /// facade plus higher-level hooks such as `ChatTurnPlugin` and `PromptSectionProviding`, not
     /// the concrete runtime pipeline topology.
     func addingStage(_ stage: any PipelineStage<ChatTurnContext, ChatEvent>) -> PositronicKit {
-        var copy = self
-        copy.chatEngine.additionalStages.append(stage)
-        return copy
+        PositronicKit(
+            llmService: llmService, messageStore: messageStore, agentInstanceStore: agentInstanceStore,
+            requestOriginStore: requestOriginStore, timelinePersistence: timelinePersistence,
+            workspacePersistence: workspacePersistence, memoryStore: memoryStore,
+            toolPersistence: toolPersistence, embeddingService: embeddingService,
+            workspaceRoot: workspaceRoot, workspaceCreator: workspaceCreator,
+            sectionProviders: sectionProviders, runtimeToolPolicy: runtimeToolPolicy,
+            chatTurnPlugins: chatTurnPlugins, turnInspector: turnInspector,
+            generationParameters: defaultGenerationParameters, toolApprovalGate: toolApprovalGate,
+            sharedRegistry: promptHistoryRegistry,
+            additionalStages: chatEngine.additionalStages + [stage]
+        )
     }
 
     /// Adds a chat turn plugin that runs after each LLM turn.
     /// - Parameter plugin: The plugin to add.
     /// - Returns: A new instance with the plugin added.
     public func addingPlugin(_ plugin: any ChatTurnPlugin) -> PositronicKit {
-        var copy = self
-        copy.chatTurnPlugins.append(plugin)
-        let existingStages = copy.chatEngine.additionalStages
-        copy.chatEngine = ChatEngine(
-            dependencies: .init(
-                timelineManager: copy.timelineManager,
-                agentInstanceStore: copy.agentInstanceStore,
-                requestOriginStore: copy.requestOriginStore,
-                messageStore: copy.messageStore,
-                llmService: copy.llmService,
-                toolRouter: copy.toolRouter,
-                chatTurnPlugins: copy.chatTurnPlugins,
-                turnInspector: copy.turnInspector,
-                promptHistoryRegistry: copy.promptHistoryRegistry
-            )
+        PositronicKit(
+            llmService: llmService, messageStore: messageStore, agentInstanceStore: agentInstanceStore,
+            requestOriginStore: requestOriginStore, timelinePersistence: timelinePersistence,
+            workspacePersistence: workspacePersistence, memoryStore: memoryStore,
+            toolPersistence: toolPersistence, embeddingService: embeddingService,
+            workspaceRoot: workspaceRoot, workspaceCreator: workspaceCreator,
+            sectionProviders: sectionProviders, runtimeToolPolicy: runtimeToolPolicy,
+            chatTurnPlugins: chatTurnPlugins + [plugin], turnInspector: turnInspector,
+            generationParameters: defaultGenerationParameters, toolApprovalGate: toolApprovalGate,
+            sharedRegistry: promptHistoryRegistry, additionalStages: chatEngine.additionalStages
         )
-        copy.chatEngine.additionalStages = existingStages
-        return copy
     }
 
     // MARK: - Execution
+
+    /// Vends a fresh tier-four agent runtime handle.
+    public func agenticRuntime(
+        timelineId: UUID,
+        workspaceId: UUID? = nil,
+        agentInstanceId: UUID
+    ) -> AgenticRuntime {
+        AgenticRuntime(
+            kit: self,
+            timelineId: timelineId,
+            workspaceId: workspaceId,
+            agentInstanceId: agentInstanceId
+        )
+    }
 
     /// Run a chat turn and return a stream of events.
     /// - Parameter request: The full turn configuration.
