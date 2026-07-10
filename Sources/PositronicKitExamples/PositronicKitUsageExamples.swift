@@ -23,6 +23,32 @@ public enum PositronicKitUsageExamples {
         PositronicKit(llmService: UnconfiguredLLMService())
     }
 
+    // MARK: - Facade operation ladder
+
+    /// Tier 1: a timeline-free one-shot runtime.
+    public static func makeOneShotRuntime() -> PositronicKit {
+        PositronicKit(llmService: UnconfiguredLLMService())
+    }
+
+    /// Tier 2: a persisted conversation cursor, created through the facade.
+    public static func makeConversationExample() async throws -> Conversation {
+        try await makeOneShotRuntime().newConversation(title: "Example Conversation")
+    }
+
+    /// Tier 3: the facade-owned timeline manager for direct timeline/workspace control.
+    public static func makeTimelineManagerExample() -> TimelineManager {
+        makeOneShotRuntime().timelineManager
+    }
+
+    /// Tier 4: an agentic runtime handle over a timeline and agent instance.
+    public static func makeAgenticRuntimeExample() -> AgenticRuntime {
+        makeOneShotRuntime().agenticRuntime(
+            timelineId: UUID(),
+            workspaceId: UUID(),
+            agentInstanceId: UUID()
+        )
+    }
+
     public static func makeInspectableRuntime(inspector: any TurnInspecting) -> PositronicKit {
         PositronicKit(configuration: .init(
             provider: .init(llmService: UnconfiguredLLMService()),

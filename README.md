@@ -37,6 +37,23 @@ import PKOpenAIProvider  // optional concrete provider
 
 Convenience runtime initializers like `PositronicKit(openAIKey:)` or `PositronicKit(ollamaModel:)` live in the matching provider target, not in the core `PositronicKit` module.
 
+Choose the smallest operation tier that fits the feature:
+
+```swift
+let kit = PositronicKit(llmService: myLLM)
+let answer = try await kit.complete("Summarize this note.")       // tier 1: one-shot
+let conversation = try await kit.newConversation()                // tier 2: Conversation
+let timelineManager = kit.timelineManager                          // tier 3: timelines
+let agent = kit.agenticRuntime(                                     // tier 4: agent loop
+    timelineId: conversation.timelineId,
+    agentInstanceId: UUID()
+)
+let tools = kit.toolRouter                                         // tier 5: raw primitives
+```
+
+In an application, hold `kit` in an app-owned `Service` class and pass the managers or
+controllers it vends to the subsystems that use them.
+
 ## Documentation
 
 Detailed documentation has been split into focused guides:

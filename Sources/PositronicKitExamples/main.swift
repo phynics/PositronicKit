@@ -39,7 +39,11 @@ func runExamples() async throws {
     _ = PositronicKitUsageExamples.makePrototypeRuntime()
     _ = PositronicKitUsageExamples.makeConfiguredRuntime()
 
-    let oneShot = try await PositronicKit().complete("Say hello in one word.")
+    let oneShotRuntime = PositronicKitUsageExamples.makeOneShotRuntime()
+    let oneShot = try await oneShotRuntime.complete("Say hello in one word.")
+    let conversation = try await PositronicKitUsageExamples.makeConversationExample()
+    let timelineManager = PositronicKitUsageExamples.makeTimelineManagerExample()
+    let agenticRuntime = PositronicKitUsageExamples.makeAgenticRuntimeExample()
 
     print("# PKPrompt Example\n")
     print(renderedPrompt)
@@ -47,6 +51,7 @@ func runExamples() async throws {
     print("\n# PositronicKit Example\n")
     print("Prototype runtime and fully configured runtime both initialized successfully.")
     print("One-shot response: \(oneShot)")
+    print("Operation ladder examples: conversation \(conversation.id), timeline manager \(timelineManager), agent \(agenticRuntime.agentInstanceId)")
     print(toolPrompt)
     print("\nStructured output schema: \(structuredOutput.name)")
     print("Structured output request: \(structuredOutputRequest)")
