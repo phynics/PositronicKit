@@ -126,9 +126,7 @@ import Testing
         let mockPersistence = MockPersistenceService()
         let workspace = TestWorkspace()
 
-        let chat = PositronicKit(
-            llmService: mockLLM,
-            persistence: .init(
+        let chat = PositronicKit(configuration: .init(provider: .init(llmService: mockLLM), persistence: .init(
                 messageStore: mockPersistence,
                 timelinePersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
@@ -136,13 +134,11 @@ import Testing
                 toolPersistence: mockPersistence,
                 agentInstanceStore: mockPersistence,
                 requestOriginStore: mockPersistence
-            ),
-            runtime: .init(
+            ), runtime: .init(
                 workspaceCreator: workspaceCreator,
                 sectionProviders: sectionProviders,
                 workspaceRoot: workspace.root
-            )
-        )
+            )))
         let timelineManager = chat.timelineManager
 
         let timeline = try await timelineManager.createTimeline(title: "Extension Acceptance")

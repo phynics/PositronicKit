@@ -162,11 +162,7 @@ import Testing
             requestOriginStore: mockPersistence
         )
 
-        let chat = PositronicKit(
-            llmService: UnconfiguredLLMService(),
-            persistence: persistence,
-            runtime: .init(workspaceCreator: MockWorkspaceCreator(), workspaceRoot: workspace.root)
-        )
+        let chat = PositronicKit(configuration: .init(provider: .init(llmService: UnconfiguredLLMService()), persistence: persistence, runtime: .init(workspaceCreator: MockWorkspaceCreator(), workspaceRoot: workspace.root)))
 
         let timeline = try await chat.timelineManager.createTimeline(title: "Unconfigured")
 

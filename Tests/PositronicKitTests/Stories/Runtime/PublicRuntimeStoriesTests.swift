@@ -312,8 +312,8 @@ struct PublicRuntimeStoriesTests {
         llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient,
         persistence: MockPersistenceService
     ) -> PositronicKit {
-        PositronicKit(
-            llmService: llmService,
+        PositronicKit(configuration: .init(
+            provider: .init(llmService: llmService),
             persistence: .init(
                 messageStore: persistence,
                 timelinePersistence: persistence,
@@ -323,7 +323,7 @@ struct PublicRuntimeStoriesTests {
                 agentInstanceStore: persistence,
                 requestOriginStore: persistence
             )
-        )
+        ))
     }
 
     private func makeAcceptanceRuntime(
@@ -347,34 +347,35 @@ struct PublicRuntimeStoriesTests {
             )
 
             if useGroupedRuntime {
-                chat = PositronicKit(
-                    llmService: mockLLM,
+                chat = PositronicKit(configuration: .init(
+                    provider: .init(llmService: mockLLM),
                     persistence: persistence,
                     runtime: .init(
                         workspaceCreator: MockWorkspaceCreator(),
                         workspaceRoot: workspace.root
                     )
-                )
+                ))
             } else {
-                chat = PositronicKit(
-                    llmService: mockLLM,
+                chat = PositronicKit(configuration: .init(
+                    provider: .init(llmService: mockLLM),
                     persistence: persistence,
-                    workspaceRoot: workspace.root
-                )
+                    runtime: .init(workspaceRoot: workspace.root)
+                ))
             }
         } else {
-            chat = PositronicKit(
-                llmService: mockLLM,
-                messageStore: mockPersistence,
-                agentInstanceStore: mockPersistence,
-                requestOriginStore: mockPersistence,
-                timelinePersistence: mockPersistence,
-                workspacePersistence: mockPersistence,
-                memoryStore: mockPersistence,
-                toolPersistence: mockPersistence,
-                workspaceRoot: workspace.root,
-                workspaceCreator: MockWorkspaceCreator()
-            )
+            chat = PositronicKit(configuration: .init(
+                provider: .init(llmService: mockLLM),
+                persistence: .init(
+                    messageStore: mockPersistence,
+                    timelinePersistence: mockPersistence,
+                    workspacePersistence: mockPersistence,
+                    memoryStore: mockPersistence,
+                    toolPersistence: mockPersistence,
+                    agentInstanceStore: mockPersistence,
+                    requestOriginStore: mockPersistence
+                ),
+                runtime: .init(workspaceCreator: MockWorkspaceCreator(), workspaceRoot: workspace.root)
+            ))
         }
 
         let timelineManager = chat.timelineManager

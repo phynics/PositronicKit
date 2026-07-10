@@ -13,9 +13,7 @@ struct GenerationParametersTests {
         
         // 1. Setup PositronicKit with default generation parameters
         let defaultParams = GenerationParameters(temperature: 0.7, maxTokens: 100)
-        let chat = PositronicKit(
-            llmService: mockLLM,
-            persistence: .init(
+        let chat = PositronicKit(configuration: .init(provider: .init(llmService: mockLLM), persistence: .init(
                 messageStore: mockPersistence,
                 timelinePersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
@@ -23,9 +21,7 @@ struct GenerationParametersTests {
                 toolPersistence: mockPersistence,
                 agentInstanceStore: mockPersistence,
                 requestOriginStore: mockPersistence
-            ),
-            generationParameters: defaultParams
-        )
+            ), generationParameters: defaultParams))
         
         // 2. Run a chat turn without per-run parameters
         let stream = try await chat.run(ChatRunRequest(
@@ -50,9 +46,7 @@ struct GenerationParametersTests {
         
         // 1. Setup PositronicKit with initial default parameters
         let defaultParams = GenerationParameters(temperature: 0.7, maxTokens: 100)
-        let chat = PositronicKit(
-            llmService: mockLLM,
-            persistence: .init(
+        let chat = PositronicKit(configuration: .init(provider: .init(llmService: mockLLM), persistence: .init(
                 messageStore: mockPersistence,
                 timelinePersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
@@ -60,9 +54,7 @@ struct GenerationParametersTests {
                 toolPersistence: mockPersistence,
                 agentInstanceStore: mockPersistence,
                 requestOriginStore: mockPersistence
-            ),
-            generationParameters: defaultParams
-        )
+            ), generationParameters: defaultParams))
         
         // 2. Run a chat turn WITH per-run parameters that override the defaults
         let overrideParams = GenerationParameters(temperature: 0.2, maxTokens: 500, topP: 0.9)

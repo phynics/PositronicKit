@@ -24,10 +24,11 @@ public enum PositronicKitUsageExamples {
     }
 
     public static func makeInspectableRuntime(inspector: any TurnInspecting) -> PositronicKit {
-        PositronicKit(
-            llmService: UnconfiguredLLMService(),
-            turnInspector: inspector
-        )
+        PositronicKit(configuration: .init(
+            provider: .init(llmService: UnconfiguredLLMService()),
+            persistence: .inMemory(),
+            runtime: .init(turnInspector: inspector)
+        ))
     }
 
     public static func makeOpenAIRuntime(apiKey: String = "sk-example") -> PositronicKit {
@@ -45,12 +46,11 @@ public enum PositronicKitUsageExamples {
             workspaceRoot: workspaceRoot
         )
 
-        return PositronicKit(
-            llmService: UnconfiguredLLMService(),
+        return PositronicKit(configuration: .init(
+            provider: .init(llmService: UnconfiguredLLMService(), embeddingService: NoOpEmbeddingService()),
             persistence: .inMemory(),
-            embeddingService: NoOpEmbeddingService(),
             runtime: runtime
-        )
+        ))
     }
 
     public static func makeConfiguredOpenAIRuntime(apiKey: String = "sk-example") -> PositronicKit {
@@ -88,8 +88,8 @@ public enum PositronicKitUsageExamples {
             workspaceRoot: workspaceRoot
         )
 
-        return PositronicKit(
-            llmService: UnconfiguredLLMService(),
+        return PositronicKit(configuration: .init(
+            provider: .init(llmService: UnconfiguredLLMService(), embeddingService: NoOpEmbeddingService()),
             persistence: .init(
                 messageStore: InMemoryMessageStore(),
                 timelinePersistence: InMemoryTimelinePersistence(),
@@ -99,9 +99,8 @@ public enum PositronicKitUsageExamples {
                 agentInstanceStore: InMemoryAgentInstanceStore(),
                 requestOriginStore: InMemoryRequestOriginStore()
             ),
-            embeddingService: NoOpEmbeddingService(),
             runtime: runtime
-        )
+        ))
     }
 
     public static func makeToolOutputContinuation() -> [ToolOutputSubmission] {

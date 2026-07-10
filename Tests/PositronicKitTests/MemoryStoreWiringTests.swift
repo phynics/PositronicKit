@@ -81,12 +81,7 @@ struct MemoryStoreWiringTests {
             agentInstanceStore: InMemoryAgentInstanceStore(),
             requestOriginStore: InMemoryRequestOriginStore()
         )
-        let core = PositronicKit(
-            llmService: UnconfiguredLLMService(),
-            persistence: persistence,
-            embeddingService: embedding,
-            runtime: .init(workspaceRoot: workspace.root)
-        )
+        let core = PositronicKit(configuration: .init(provider: .init(llmService: UnconfiguredLLMService(), embeddingService: embedding), persistence: persistence, runtime: .init(workspaceRoot: workspace.root)))
 
         let timeline = try await core.timelineManager.createTimeline()
         let contextManager = try #require(await core.timelineManager.getContextManager(for: timeline.id))

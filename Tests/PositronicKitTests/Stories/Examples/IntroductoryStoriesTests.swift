@@ -73,9 +73,7 @@ struct IntroductoryStoriesTests {
         ]]
         mockLLM.mockClient.nextResponses = ["", "I greeted Taylor successfully."]
 
-        let runtime = PositronicKit(
-            llmService: mockLLM,
-            persistence: PositronicKit.PersistenceConfiguration(
+        let runtime = PositronicKit(configuration: .init(provider: .init(llmService: mockLLM), persistence: PositronicKit.PersistenceConfiguration(
                 messageStore: persistence,
                 timelinePersistence: persistence,
                 workspacePersistence: persistence,
@@ -83,12 +81,10 @@ struct IntroductoryStoriesTests {
                 toolPersistence: persistence,
                 agentInstanceStore: persistence,
                 requestOriginStore: persistence
-            ),
-            runtime: .init(
+            ), runtime: .init(
                 workspaceCreator: MockWorkspaceCreator(),
                 workspaceRoot: workspace.root
-            )
-        )
+            )))
         let timelineManager = runtime.timelineManager
 
         let timeline = try await timelineManager.createTimeline(title: "Intro Example")

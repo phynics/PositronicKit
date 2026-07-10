@@ -1,13 +1,42 @@
 import Foundation
 import PKShared
 
-// MARK: - PersistenceConfiguration
-
 public extension PositronicKit {
-    /// Groups all persistence stores for convenient initialization.
-    ///
-    /// Use this when your persistence layer provides all stores as a unit. Each store is still
-    /// a separate protocol, so hosts can mix in-memory, GRDB, or custom backends per store.
+    /// Groups provider-facing services used by the runtime.
+    /// Embeddings stay with the LLM service because both are provider integrations.
+    struct ProviderConfiguration: Sendable {
+        public let llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient
+        public let embeddingService: (any EmbeddingServiceProtocol)?
+
+        public init(
+            llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient,
+            embeddingService: (any EmbeddingServiceProtocol)? = nil
+        ) {
+            self.llmService = llmService
+            self.embeddingService = embeddingService
+        }
+    }
+
+    /// Groups provider, persistence, runtime, and generation concerns for construction.
+    struct Configuration: Sendable {
+        public let provider: ProviderConfiguration
+        public let persistence: PersistenceConfiguration
+        public let runtime: RuntimeConfiguration
+        public let generationParameters: GenerationParameters?
+
+        public init(
+            provider: ProviderConfiguration,
+            persistence: PersistenceConfiguration,
+            runtime: RuntimeConfiguration = .default,
+            generationParameters: GenerationParameters? = nil
+        ) {
+            self.provider = provider
+            self.persistence = persistence
+            self.runtime = runtime
+            self.generationParameters = generationParameters
+        }
+    }
+
     struct PersistenceConfiguration: Sendable {
         public let messageStore: any MessageStoreProtocol
         public let timelinePersistence: any TimelinePersistenceProtocol
@@ -35,73 +64,16 @@ public extension PositronicKit {
             self.requestOriginStore = requestOriginStore
         }
 
-        /// Provides a configuration with sensible in-memory defaults for all stores.
         public static func inMemory() -> PersistenceConfiguration {
             PersistenceConfiguration(
-                messageStore: InMemoryMessageStore(),
-                timelinePersistence: InMemoryTimelinePersistence(),
-                workspacePersistence: InMemoryWorkspacePersistence(),
-                memoryStore: InMemoryMemoryStore(),
-                toolPersistence: InMemoryToolPersistence(),
-                agentInstanceStore: InMemoryAgentInstanceStore(),
+                messageStore: InMemoryMessageStore(), timelinePersistence: InMemoryTimelinePersistence(),
+                workspacePersistence: InMemoryWorkspacePersistence(), memoryStore: InMemoryMemoryStore(),
+                toolPersistence: InMemoryToolPersistence(), agentInstanceStore: InMemoryAgentInstanceStore(),
                 requestOriginStore: InMemoryRequestOriginStore()
             )
         }
     }
 
-    /// Creates a PositronicKit with grouped persistence configuration.
-    ///
-    /// - Parameters:
-    ///   - llmService: The LLM service to use for generation (required).
-    ///   - persistence: All persistence stores grouped together.
-    ///   - embeddingService: Embedding provider. Defaults to no-op.
-    ///   - workspaceRoot: Root directory for workspaces. Defaults to temp directory.
-    ///   - chatTurnPlugins: Post-turn plugins. Defaults to none.
-    ///   - turnInspector: Optional sink for per-turn prompt/journal inspection projections.
-    ///   - generationParameters: Optional default parameters for generation.
-    ///   - toolApprovalGate: Gate consulted before any permissioned tool runs. Defaults to
-    ///     `DenyAllToolApprovalGate` so permissioned tools never execute without an explicit
-    ///     approval path; see the main initializer's doc comment (YAK-31).
-    convenience init(
-        llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient,
-        persistence: PersistenceConfiguration,
-        embeddingService: (any EmbeddingServiceProtocol)? = nil,
-        workspaceRoot: URL? = nil,
-        chatTurnPlugins: [any ChatTurnPlugin] = [],
-        turnInspector: (any TurnInspecting)? = nil,
-        generationParameters: GenerationParameters? = nil,
-        toolApprovalGate: any ToolApprovalGate = DenyAllToolApprovalGate()
-    ) {
-        self.init(
-            llmService: llmService,
-            messageStore: persistence.messageStore,
-            agentInstanceStore: persistence.agentInstanceStore,
-            requestOriginStore: persistence.requestOriginStore,
-            timelinePersistence: persistence.timelinePersistence,
-            workspacePersistence: persistence.workspacePersistence,
-            memoryStore: persistence.memoryStore,
-            toolPersistence: persistence.toolPersistence,
-            embeddingService: embeddingService,
-            workspaceRoot: workspaceRoot,
-            chatTurnPlugins: chatTurnPlugins,
-            turnInspector: turnInspector,
-            generationParameters: generationParameters,
-            toolApprovalGate: toolApprovalGate
-        )
-    }
-}
-
-// MARK: - RuntimeConfiguration
-
-public extension PositronicKit {
-    /// Groups the non-store runtime knobs that `TimelineManager` needs but that aren't
-    /// persistence stores: workspace creation strategy, prompt extension sections, and runtime
-    /// tool policy, plus facade-level concerns like workspace root and chat turn plugins.
-    ///
-    /// There is intentionally no way to pass a pre-built `TimelineManager` or `ToolRouter` here —
-    /// the facade always constructs both itself from `PersistenceConfiguration` plus these knobs,
-    /// so the two can never end up wrapping different stores. Read the constructed instances back
-    /// via `chat.timelineManager` / `chat.toolRouter` if you need them after construction.
     struct RuntimeConfiguration: Sendable {
         public let workspaceCreator: any WorkspaceCreating
         public let sectionProviders: [any PromptSectionProviding]
@@ -129,37 +101,28 @@ public extension PositronicKit {
             self.toolApprovalGate = toolApprovalGate
         }
 
-        public static func `default`() -> RuntimeConfiguration {
-            RuntimeConfiguration()
-        }
+        public static var `default`: RuntimeConfiguration { RuntimeConfiguration() }
     }
 
-    /// Creates a PositronicKit with grouped persistence and grouped runtime configuration.
-    convenience init(
-        llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient,
-        persistence: PersistenceConfiguration,
-        embeddingService: (any EmbeddingServiceProtocol)? = nil,
-        runtime: RuntimeConfiguration,
-        generationParameters: GenerationParameters? = nil
-    ) {
+    init(configuration: Configuration) {
         self.init(
-            llmService: llmService,
-            messageStore: persistence.messageStore,
-            agentInstanceStore: persistence.agentInstanceStore,
-            requestOriginStore: persistence.requestOriginStore,
-            timelinePersistence: persistence.timelinePersistence,
-            workspacePersistence: persistence.workspacePersistence,
-            memoryStore: persistence.memoryStore,
-            toolPersistence: persistence.toolPersistence,
-            embeddingService: embeddingService,
-            workspaceRoot: runtime.workspaceRoot,
-            workspaceCreator: runtime.workspaceCreator,
-            sectionProviders: runtime.sectionProviders,
-            runtimeToolPolicy: runtime.runtimeToolPolicy,
-            chatTurnPlugins: runtime.chatTurnPlugins,
-            turnInspector: runtime.turnInspector,
-            generationParameters: generationParameters,
-            toolApprovalGate: runtime.toolApprovalGate
+            llmService: configuration.provider.llmService,
+            messageStore: configuration.persistence.messageStore,
+            agentInstanceStore: configuration.persistence.agentInstanceStore,
+            requestOriginStore: configuration.persistence.requestOriginStore,
+            timelinePersistence: configuration.persistence.timelinePersistence,
+            workspacePersistence: configuration.persistence.workspacePersistence,
+            memoryStore: configuration.persistence.memoryStore,
+            toolPersistence: configuration.persistence.toolPersistence,
+            embeddingService: configuration.provider.embeddingService,
+            workspaceRoot: configuration.runtime.workspaceRoot,
+            workspaceCreator: configuration.runtime.workspaceCreator,
+            sectionProviders: configuration.runtime.sectionProviders,
+            runtimeToolPolicy: configuration.runtime.runtimeToolPolicy,
+            chatTurnPlugins: configuration.runtime.chatTurnPlugins,
+            turnInspector: configuration.runtime.turnInspector,
+            generationParameters: configuration.generationParameters,
+            toolApprovalGate: configuration.runtime.toolApprovalGate
         )
     }
 }

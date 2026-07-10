@@ -16,9 +16,7 @@ struct SidecarTurnIntegrationTests {
     }
 
     private func makeChat(llmService: MockLLMService, persistence: MockPersistenceService) -> PositronicKit {
-        PositronicKit(
-            llmService: llmService,
-            persistence: .init(
+        PositronicKit(configuration: .init(provider: .init(llmService: llmService), persistence: .init(
                 messageStore: persistence,
                 timelinePersistence: persistence,
                 workspacePersistence: persistence,
@@ -26,8 +24,7 @@ struct SidecarTurnIntegrationTests {
                 toolPersistence: persistence,
                 agentInstanceStore: persistence,
                 requestOriginStore: persistence
-            )
-        )
+            )))
     }
 
     @Test("Turn with sidecars streams response only and surfaces directive results")

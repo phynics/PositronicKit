@@ -69,18 +69,15 @@ public final class PositronicKit: Sendable {
 
     // MARK: - Init
 
-    /// A simplified initializer for common use cases.
-    /// Provides sensible in-memory defaults for all stores.
+    /// Creates a provider-agnostic facade with in-memory persistence and default runtime policy.
     public convenience init(
-        llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient = UnconfiguredLLMService(),
-        turnInspector: (any TurnInspecting)? = nil,
-        generationParameters: GenerationParameters? = nil
+        llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient = UnconfiguredLLMService()
     ) {
         self.init(
-            llmService: llmService,
-            persistence: .inMemory(),
-            turnInspector: turnInspector,
-            generationParameters: generationParameters
+            configuration: .init(
+                provider: .init(llmService: llmService),
+                persistence: .inMemory()
+            )
         )
     }
 
@@ -115,7 +112,7 @@ public final class PositronicKit: Sendable {
     ///   - toolApprovalGate: Gate consulted at the runtime execution sink before any tool whose
     ///     `requiresPermission` is `true` runs. Defaults to `DenyAllToolApprovalGate` so
     ///     permissioned tools never execute without an explicitly injected approval path (YAK-31).
-    public convenience init(
+    private convenience init(
         llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient,
         messageStore: (any MessageStoreProtocol)? = nil,
         agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,

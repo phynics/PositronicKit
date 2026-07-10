@@ -37,6 +37,9 @@ public extension PositronicKit {
             utilityClient: client,
             fastClient: client
         )
-        self.init(llmService: llm)
+        self.init(configuration: .init(
+            provider: .init(llmService: llm),
+            persistence: .inMemory()
+        ))
     }
 }
