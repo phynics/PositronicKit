@@ -104,7 +104,7 @@ public extension PositronicKit {
         public static var `default`: RuntimeConfiguration { RuntimeConfiguration() }
     }
 
-    init(configuration: Configuration) {
+    convenience init(configuration: Configuration) {
         self.init(
             llmService: configuration.provider.llmService,
             messageStore: configuration.persistence.messageStore,

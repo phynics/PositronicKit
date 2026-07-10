@@ -116,7 +116,7 @@ public final class PositronicKit: Sendable {
     ///   - toolApprovalGate: Gate consulted at the runtime execution sink before any tool whose
     ///     `requiresPermission` is `true` runs. Defaults to `DenyAllToolApprovalGate` so
     ///     permissioned tools never execute without an explicitly injected approval path (YAK-31).
-    private convenience init(
+    convenience init(
         llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient,
         messageStore: (any MessageStoreProtocol)? = nil,
         agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,
@@ -158,7 +158,7 @@ public final class PositronicKit: Sendable {
         )
     }
 
-    private init(
+    init(
         llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient,
         messageStore: (any MessageStoreProtocol)? = nil,
         agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,
