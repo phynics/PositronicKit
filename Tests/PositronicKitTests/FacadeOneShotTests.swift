@@ -41,11 +41,13 @@ struct FacadeOneShotTests {
         llm.stubbedStream = Self.stream(contents: ["one", "two"])
         let messageStore = InMemoryMessageStore()
         let timelinePersistence = InMemoryTimelinePersistence()
-        let kit = PositronicKit(
-            llmService: llm,
-            messageStore: messageStore,
-            timelinePersistence: timelinePersistence
-        )
+        let kit = PositronicKit(configuration: .init(
+            provider: .init(llmService: llm),
+            persistence: .init(
+                messageStore: messageStore,
+                timelinePersistence: timelinePersistence
+            )
+        ))
 
         let events = try await kit.stream("hi").collect()
 

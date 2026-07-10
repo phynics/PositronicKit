@@ -81,12 +81,13 @@ public enum PositronicKitUsageExamples {
 
     public static func makeConfiguredOpenAIRuntime(apiKey: String = "sk-example") -> PositronicKit {
         PKOpenAIProvider.register()
-        return PositronicKit(
-            llmService: LLMService(configuration: .init(
+        return PositronicKit(configuration: .init(
+            provider: .init(llmService: LLMService(configuration: .init(
                 apiKey: apiKey,
                 provider: .openAI
-            ))
-        )
+            ))),
+            persistence: .inMemory()
+        ))
     }
 
     /// PKPOST-001: the native Anthropic adapter registers exactly like the other providers;

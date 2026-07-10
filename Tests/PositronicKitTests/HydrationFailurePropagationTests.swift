@@ -13,10 +13,10 @@ struct HydrationFailurePropagationTests {
     func runSurvivesHydrationFailure() async throws {
         let failingTimelinePersistence = FailingTimelinePersistence(fetchFails: true)
         let mockLLM = MockLLMService()
-        let kit = PositronicKit(
-            llmService: mockLLM,
-            timelinePersistence: failingTimelinePersistence
-        )
+        let kit = PositronicKit(configuration: .init(
+            provider: .init(llmService: mockLLM),
+            persistence: .init(timelinePersistence: failingTimelinePersistence)
+        ))
 
         let unresolvedTimelineId = UUID()
 

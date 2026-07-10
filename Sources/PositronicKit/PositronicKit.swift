@@ -22,9 +22,9 @@ import PKShared
 /// `TimelinePromptHistory`, and the concrete turn pipeline remain runtime implementation details
 /// even when they are visible to tests inside this package.
 ///
-/// Example usage:
-/// - Minimal: `PositronicKit(llmService: myLLM)`
-/// - Production: use the grouped `persistence:` and `runtime:` initializers.
+    /// Example usage:
+    /// - Minimal: `PositronicKit(llmService: myLLM)`
+    /// - Production: use `PositronicKit(configuration:)`.
 ///
 /// The public operation ladder is progressive: tier 1 is timeline-free one-shot
 /// `complete(_:)`/`stream(_:)`; tier 2 is the stateful `Conversation` cursor; tier 3 is
@@ -89,79 +89,6 @@ public final class PositronicKit: Sendable {
                 provider: .init(llmService: llmService),
                 persistence: .inMemory()
             )
-        )
-    }
-
-    /// Initializes with all services required by the chat subsystem.
-    ///
-    /// This is the most flexible initializer. The facade is the only place a `TimelineManager`
-    /// and `ToolRouter` get built — there's no way to hand it pre-built instances of either, so
-    /// they can never silently diverge from the stores passed in here. Callers that need the
-    /// constructed instances afterward (e.g. to wire their own routes) should read them back via
-    /// the `timelineManager` / `toolRouter` properties.
-    ///
-    /// Prefer the grouped `persistence:` and `runtime:` initializers when you want the facade to
-    /// remain the primary public boundary.
-    ///
-    /// - Parameters:
-    ///   - llmService: The LLM service to use for generation.
-    ///   - messageStore: The store for persisting chat messages. Defaults to in-memory if nil.
-    ///   - agentInstanceStore: Persistence for agent instance data. Defaults to in-memory if nil.
-    ///   - requestOriginStore: Persistence for request-origin identity data. Defaults to in-memory if nil.
-    ///   - timelinePersistence: Persistence for timeline records. Defaults to in-memory if nil.
-    ///   - workspacePersistence: Persistence for workspace records. Defaults to in-memory if nil.
-    ///   - memoryStore: Persistence for memory records. Defaults to in-memory if nil.
-    ///   - toolPersistence: Persistence for tool references. Defaults to in-memory if nil.
-    ///   - embeddingService: Embedding provider for context/memory search. Defaults to no-op if nil.
-    ///   - workspaceRoot: Root directory for the facade-built TimelineManager. Defaults to temp directory.
-    ///   - workspaceCreator: Workspace factory used by the facade-built TimelineManager. Defaults to `NullWorkspaceCreator()`.
-    ///   - sectionProviders: Extension points for additional prompt sections, forwarded to TimelineManager.
-    ///   - runtimeToolPolicy: Controls which built-in runtime tools TimelineManager installs.
-    ///   - chatTurnPlugins: Post-turn plugins (e.g. autonomous reactions).
-    ///   - promptInspector: Optional sink for per-turn prompt/journal inspection projections.
-    ///   - generationParameters: Optional default parameters for generation.
-    ///   - toolApprovalGate: Gate consulted at the runtime execution sink before any tool whose
-    ///     `requiresPermission` is `true` runs. Defaults to `DenyAllToolApprovalGate` so
-    ///     permissioned tools never execute without an explicitly injected approval path (YAK-31).
-    convenience init(
-        llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient,
-        messageStore: (any MessageStoreProtocol)? = nil,
-        agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,
-        requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
-        timelinePersistence: (any TimelinePersistenceProtocol)? = nil,
-        workspacePersistence: (any WorkspacePersistenceProtocol)? = nil,
-        memoryStore: (any MemoryStoreProtocol)? = nil,
-        toolPersistence: (any ToolPersistenceProtocol)? = nil,
-        embeddingService: (any EmbeddingServiceProtocol)? = nil,
-        workspaceRoot: URL? = nil,
-        workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
-        sectionProviders: [any PromptSectionProviding] = [],
-        runtimeToolPolicy: TimelineManager.RuntimeToolPolicy = .default,
-        chatTurnPlugins: [any ChatTurnPlugin] = [],
-        promptInspector: (any PromptInspecting)? = nil,
-        generationParameters: GenerationParameters? = nil,
-        toolApprovalGate: any ToolApprovalGate = DenyAllToolApprovalGate()
-    ) {
-        self.init(
-            llmService: llmService,
-            messageStore: messageStore,
-            agentInstanceStore: agentInstanceStore,
-            requestOriginStore: requestOriginStore,
-            timelinePersistence: timelinePersistence,
-            workspacePersistence: workspacePersistence,
-            memoryStore: memoryStore,
-            toolPersistence: toolPersistence,
-            embeddingService: embeddingService,
-            workspaceRoot: workspaceRoot,
-            workspaceCreator: workspaceCreator,
-            sectionProviders: sectionProviders,
-            runtimeToolPolicy: runtimeToolPolicy,
-            chatTurnPlugins: chatTurnPlugins,
-            promptInspector: promptInspector,
-            generationParameters: generationParameters,
-            toolApprovalGate: toolApprovalGate,
-            sharedRegistry: TimelinePromptHistoryRegistry(),
-            additionalStages: []
         )
     }
 
@@ -305,14 +232,23 @@ public final class PositronicKit: Sendable {
     /// the concrete runtime pipeline topology.
     func addingStage(_ stage: any PipelineStage<ChatTurnContext, ChatEvent>) -> PositronicKit {
         PositronicKit(
-            llmService: llmService, messageStore: messageStore, agentInstanceStore: agentInstanceStore,
-            requestOriginStore: requestOriginStore, timelinePersistence: timelinePersistence,
-            workspacePersistence: workspacePersistence, memoryStore: memoryStore,
-            toolPersistence: toolPersistence, embeddingService: embeddingService,
-            workspaceRoot: workspaceRoot, workspaceCreator: workspaceCreator,
-            sectionProviders: sectionProviders, runtimeToolPolicy: runtimeToolPolicy,
-            chatTurnPlugins: chatTurnPlugins, promptInspector: promptInspector,
-            generationParameters: defaultGenerationParameters, toolApprovalGate: toolApprovalGate,
+            llmService: llmService,
+            messageStore: messageStore,
+            agentInstanceStore: agentInstanceStore,
+            requestOriginStore: requestOriginStore,
+            timelinePersistence: timelinePersistence,
+            workspacePersistence: workspacePersistence,
+            memoryStore: memoryStore,
+            toolPersistence: toolPersistence,
+            embeddingService: embeddingService,
+            workspaceRoot: workspaceRoot,
+            workspaceCreator: workspaceCreator,
+            sectionProviders: sectionProviders,
+            runtimeToolPolicy: runtimeToolPolicy,
+            chatTurnPlugins: chatTurnPlugins,
+            promptInspector: promptInspector,
+            generationParameters: defaultGenerationParameters,
+            toolApprovalGate: toolApprovalGate,
             sharedRegistry: promptHistoryRegistry,
             additionalStages: chatEngine.additionalStages + [stage]
         )
@@ -323,15 +259,25 @@ public final class PositronicKit: Sendable {
     /// - Returns: A new instance with the plugin added.
     public func addingPlugin(_ plugin: any ChatTurnPlugin) -> PositronicKit {
         PositronicKit(
-            llmService: llmService, messageStore: messageStore, agentInstanceStore: agentInstanceStore,
-            requestOriginStore: requestOriginStore, timelinePersistence: timelinePersistence,
-            workspacePersistence: workspacePersistence, memoryStore: memoryStore,
-            toolPersistence: toolPersistence, embeddingService: embeddingService,
-            workspaceRoot: workspaceRoot, workspaceCreator: workspaceCreator,
-            sectionProviders: sectionProviders, runtimeToolPolicy: runtimeToolPolicy,
-            chatTurnPlugins: chatTurnPlugins + [plugin], promptInspector: promptInspector,
-            generationParameters: defaultGenerationParameters, toolApprovalGate: toolApprovalGate,
-            sharedRegistry: promptHistoryRegistry, additionalStages: chatEngine.additionalStages
+            llmService: llmService,
+            messageStore: messageStore,
+            agentInstanceStore: agentInstanceStore,
+            requestOriginStore: requestOriginStore,
+            timelinePersistence: timelinePersistence,
+            workspacePersistence: workspacePersistence,
+            memoryStore: memoryStore,
+            toolPersistence: toolPersistence,
+            embeddingService: embeddingService,
+            workspaceRoot: workspaceRoot,
+            workspaceCreator: workspaceCreator,
+            sectionProviders: sectionProviders,
+            runtimeToolPolicy: runtimeToolPolicy,
+            chatTurnPlugins: chatTurnPlugins + [plugin],
+            promptInspector: promptInspector,
+            generationParameters: defaultGenerationParameters,
+            toolApprovalGate: toolApprovalGate,
+            sharedRegistry: promptHistoryRegistry,
+            additionalStages: chatEngine.additionalStages
         )
     }
 

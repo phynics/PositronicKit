@@ -42,6 +42,14 @@ for tagged releases beginning with `1.0.0`.
   Downstream consumers that pass `metadata:` to these methods need to drop the argument on
   their next PositronicKit pin bump. The Monad GRDB migration to drop the persisted column
   is deferred to the downstream phase (PKFAC-008).
+- **Collapsed `PositronicKit` construction into `PositronicKit.Configuration`** (PKFAC-002): the
+  flat 16-parameter initializer is removed. The public entry points are now the provider-agnostic
+  `PositronicKit(llmService:)` convenience and the grouped `PositronicKit(configuration:)`.
+  `PersistenceConfiguration.init` now takes every store as an optional and defaults missing
+  stores to in-memory, matching the ergonomics of the old flat init. Internal reconfiguration
+  paths continue unchanged. Downstream consumers using the flat initializer (none were found in
+  Monad/Shuttle/Yakamoz) should migrate to `configuration:`; provider convenience inits are
+  unaffected.
 - Collapsed `HealthCheckable` to a single health probe (PKCLEAN-014): removed the unused
   `getHealthStatus()` requirement, keeping `checkHealth()` (live probe) and `getHealthDetails()`.
   `getHealthStatus()` had no callers through the protocol — Monad's `StatusAPIController` uses only

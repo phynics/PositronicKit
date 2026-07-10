@@ -47,30 +47,25 @@ public extension PositronicKit {
         public let requestOriginStore: any RequestOriginStoreProtocol
 
         public init(
-            messageStore: any MessageStoreProtocol,
-            timelinePersistence: any TimelinePersistenceProtocol,
-            workspacePersistence: any WorkspacePersistenceProtocol,
-            memoryStore: any MemoryStoreProtocol,
-            toolPersistence: any ToolPersistenceProtocol,
-            agentInstanceStore: any AgentInstanceStoreProtocol,
-            requestOriginStore: any RequestOriginStoreProtocol
+            messageStore: (any MessageStoreProtocol)? = nil,
+            timelinePersistence: (any TimelinePersistenceProtocol)? = nil,
+            workspacePersistence: (any WorkspacePersistenceProtocol)? = nil,
+            memoryStore: (any MemoryStoreProtocol)? = nil,
+            toolPersistence: (any ToolPersistenceProtocol)? = nil,
+            agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,
+            requestOriginStore: (any RequestOriginStoreProtocol)? = nil
         ) {
-            self.messageStore = messageStore
-            self.timelinePersistence = timelinePersistence
-            self.workspacePersistence = workspacePersistence
-            self.memoryStore = memoryStore
-            self.toolPersistence = toolPersistence
-            self.agentInstanceStore = agentInstanceStore
-            self.requestOriginStore = requestOriginStore
+            self.messageStore = messageStore ?? InMemoryMessageStore()
+            self.timelinePersistence = timelinePersistence ?? InMemoryTimelinePersistence()
+            self.workspacePersistence = workspacePersistence ?? InMemoryWorkspacePersistence()
+            self.memoryStore = memoryStore ?? InMemoryMemoryStore()
+            self.toolPersistence = toolPersistence ?? InMemoryToolPersistence()
+            self.agentInstanceStore = agentInstanceStore ?? InMemoryAgentInstanceStore()
+            self.requestOriginStore = requestOriginStore ?? InMemoryRequestOriginStore()
         }
 
         public static func inMemory() -> PersistenceConfiguration {
-            PersistenceConfiguration(
-                messageStore: InMemoryMessageStore(), timelinePersistence: InMemoryTimelinePersistence(),
-                workspacePersistence: InMemoryWorkspacePersistence(), memoryStore: InMemoryMemoryStore(),
-                toolPersistence: InMemoryToolPersistence(), agentInstanceStore: InMemoryAgentInstanceStore(),
-                requestOriginStore: InMemoryRequestOriginStore()
-            )
+            PersistenceConfiguration()
         }
     }
 
@@ -122,7 +117,9 @@ public extension PositronicKit {
             chatTurnPlugins: configuration.runtime.chatTurnPlugins,
             promptInspector: configuration.runtime.promptInspector,
             generationParameters: configuration.generationParameters,
-            toolApprovalGate: configuration.runtime.toolApprovalGate
+            toolApprovalGate: configuration.runtime.toolApprovalGate,
+            sharedRegistry: TimelinePromptHistoryRegistry(),
+            additionalStages: []
         )
     }
 }

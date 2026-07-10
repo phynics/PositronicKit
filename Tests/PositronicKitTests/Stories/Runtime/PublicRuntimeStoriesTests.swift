@@ -315,18 +315,22 @@ struct PublicRuntimeStoriesTests {
 
         mockLLM.mockClient.nextResponse = "Hello with context"
 
-        let chat = PositronicKit(
-            llmService: mockLLM,
-            messageStore: mockPersistence,
-            agentInstanceStore: mockPersistence,
-            requestOriginStore: mockPersistence,
-            timelinePersistence: mockPersistence,
-            workspacePersistence: mockPersistence,
-            memoryStore: mockPersistence,
-            toolPersistence: mockPersistence,
-            workspaceRoot: workspace.root,
-            workspaceCreator: MockWorkspaceCreator()
-        )
+        let chat = PositronicKit(configuration: .init(
+            provider: .init(llmService: mockLLM),
+            persistence: .init(
+                messageStore: mockPersistence,
+                timelinePersistence: mockPersistence,
+                workspacePersistence: mockPersistence,
+                memoryStore: mockPersistence,
+                toolPersistence: mockPersistence,
+                agentInstanceStore: mockPersistence,
+                requestOriginStore: mockPersistence
+            ),
+            runtime: .init(
+                workspaceCreator: MockWorkspaceCreator(),
+                workspaceRoot: workspace.root
+            )
+        ))
         let timeline = try await chat.timelineManager.createTimeline(title: "Context Enabled")
 
         let events = try await chat.run(ChatRunRequest(

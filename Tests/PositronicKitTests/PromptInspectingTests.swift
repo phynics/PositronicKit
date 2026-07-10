@@ -25,17 +25,19 @@ struct PromptInspectingTests {
         private(set) var timelineId: UUID!
 
         init() async throws {
-            baseKit = PositronicKit(
-                llmService: firstLLM,
-                messageStore: persistence,
-                agentInstanceStore: persistence,
-                requestOriginStore: persistence,
-                timelinePersistence: persistence,
-                workspacePersistence: persistence,
-                memoryStore: persistence,
-                toolPersistence: persistence,
-                promptInspector: inspector
-            )
+            baseKit = PositronicKit(configuration: .init(
+                provider: .init(llmService: firstLLM),
+                persistence: .init(
+                    messageStore: persistence,
+                    timelinePersistence: persistence,
+                    workspacePersistence: persistence,
+                    memoryStore: persistence,
+                    toolPersistence: persistence,
+                    agentInstanceStore: persistence,
+                    requestOriginStore: persistence
+                ),
+                runtime: .init(promptInspector: inspector)
+            ))
             let timeline = try await baseKit.timelineManager.createTimeline(title: "Reconfiguration")
             timelineId = timeline.id
         }
@@ -285,17 +287,19 @@ struct PromptInspectingTests {
 
         try await harness.run(kit: harness.baseKit, message: "First send")
 
-        let secondKit = PositronicKit(
-            llmService: harness.secondLLM,
-            messageStore: harness.persistence,
-            agentInstanceStore: harness.persistence,
-            requestOriginStore: harness.persistence,
-            timelinePersistence: harness.persistence,
-            workspacePersistence: harness.persistence,
-            memoryStore: harness.persistence,
-            toolPersistence: harness.persistence,
-            promptInspector: harness.inspector
-        )
+        let secondKit = PositronicKit(configuration: .init(
+            provider: .init(llmService: harness.secondLLM),
+            persistence: .init(
+                messageStore: harness.persistence,
+                timelinePersistence: harness.persistence,
+                workspacePersistence: harness.persistence,
+                memoryStore: harness.persistence,
+                toolPersistence: harness.persistence,
+                agentInstanceStore: harness.persistence,
+                requestOriginStore: harness.persistence
+            ),
+            runtime: .init(promptInspector: harness.inspector)
+        ))
         try await harness.run(kit: secondKit, message: "Second send")
 
         let values = await harness.inspector.values
