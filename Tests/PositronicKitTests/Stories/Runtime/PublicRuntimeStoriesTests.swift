@@ -48,6 +48,49 @@ private struct CapturingLogHandler: LogHandler {
 
 @Suite("Public runtime stories", .serialized)
 struct PublicRuntimeStoriesTests {
+    @Test("agentic runtime delegates to the facade-owned manager and tool loop")
+    func agenticRuntimeRunsAnAgentTurn() async throws {
+        let (kit, mockLLM, _, timelineId, _) = try await makeAcceptanceRuntime()
+        let agentId = UUID()
+        let runtime = kit.agenticRuntime(
+            timelineId: timelineId,
+            workspaceId: nil,
+            agentInstanceId: agentId
+        )
+        let secondRuntime = kit.agenticRuntime(
+            timelineId: timelineId,
+            workspaceId: nil,
+            agentInstanceId: agentId
+        )
+
+        #expect(runtime.agentInstanceManager === kit.agentInstanceManager)
+        #expect(runtime !== secondRuntime)
+
+        let mockTool = AcceptanceMockTool()
+        mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "agent_call", name: "mock_tool")]]
+        mockLLM.mockClient.nextResponses = ["", "Agent response"]
+        let events = try await runtime.run(
+            message: "Act",
+            tools: [mockTool.toAnyTool()]
+        ).collect()
+
+        #expect(events.contains(where: {
+            if case let .completion(.toolExecution(id, status)) = $0,
+               case .success = status
+            {
+                return id == "agent_call"
+            }
+            return false
+        }))
+
+        #expect(events.contains(where: {
+            if case let .completion(.generationCompleted(message, _)) = $0 {
+                return message.content == "Agent response"
+            }
+            return false
+        }))
+    }
+
     @Test("promptAssemblyLogger surfaces prompt-assembly diagnostics through the facade")
     func promptAssemblyLoggerEmitsDiagnostics() async throws {
         let (chat, mockLLM, _, timelineId, _) = try await makeAcceptanceRuntime()
