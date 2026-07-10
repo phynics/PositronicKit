@@ -235,7 +235,7 @@ private final class AcceptanceWorkspaceCreator: WorkspaceCreating, @unchecked Se
 }
 
 private struct AcceptanceRuntimeTool: PKShared.Tool, @unchecked Sendable {
-    let id = "acceptance_tool"
+    let callName = "acceptance_tool"
     let name = "acceptance_tool"
     let description = "Custom runtime tool for extension-point acceptance testing"
     let requiresPermission = false

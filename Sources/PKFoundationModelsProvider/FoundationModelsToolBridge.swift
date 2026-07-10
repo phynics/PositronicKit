@@ -18,7 +18,7 @@ import PKShared
         let wrapped: AnyTool
 
         var name: String {
-            wrapped.id
+            wrapped.callName
         }
 
         var description: String {
@@ -74,7 +74,7 @@ import PKShared
             }
 
             let root = DynamicGenerationSchema(
-                name: "\(tool.id)_arguments",
+                name: "\(tool.callName)_arguments",
                 description: tool.description,
                 properties: dynamicProperties
             )
@@ -82,7 +82,7 @@ import PKShared
                 // Falls back to an empty-object schema rather than crashing; a tool whose
                 // schema fails to bridge is still registered (so the model sees it exists) but
                 // effectively takes no arguments until the schema is fixed upstream.
-                let empty = DynamicGenerationSchema(name: "\(tool.id)_arguments", properties: [])
+                let empty = DynamicGenerationSchema(name: "\(tool.callName)_arguments", properties: [])
                 return (try? GenerationSchema(root: empty, dependencies: [])) ?? GenerationSchema(
                     type: GeneratedContent.self,
                     description: nil,

@@ -51,7 +51,7 @@ struct IntroductoryStoriesTests {
         let persistence = MockPersistenceService()
 
         struct IntroGreetingTool: Tool {
-            let id = "intro_greet"
+            let callName = "intro_greet"
             let name = "Intro Greeting"
             let description = "Greets a user by name for the introductory runtime example."
             let requiresPermission = false

@@ -15,7 +15,7 @@ private func blockingThreadSleep(_ seconds: TimeInterval) {
 @Suite("ToolTimeoutEnforcer")
 struct ToolTimeoutEnforcerTests {
     private struct EchoTool: PKShared.Tool {
-        let id = "echo"
+        let callName = "echo"
         let name = "echo"
         let description = "echo back the input"
         let requiresPermission = false
@@ -36,7 +36,7 @@ struct ToolTimeoutEnforcerTests {
     }
 
     private struct NeverFinishingTool: PKShared.Tool {
-        let id = "never"
+        let callName = "never"
         let name = "never"
         let description = "never returns unless cancelled"
         let requiresPermission = false
@@ -53,7 +53,7 @@ struct ToolTimeoutEnforcerTests {
     }
 
     private struct UncooperativeTool: PKShared.Tool, @unchecked Sendable {
-        let id = "uncooperative"
+        let callName = "uncooperative"
         let name = "uncooperative"
         let description = "blocks and ignores cancellation"
         let requiresPermission = false
@@ -89,7 +89,7 @@ struct ToolTimeoutEnforcerTests {
     @Test("Tool that throws surfaces the wrapped error")
     func toolError() async throws {
         struct FailingTool: PKShared.Tool {
-            let id = "fail"
+            let callName = "fail"
             let name = "fail"
             let description = "always fails"
             let requiresPermission = false

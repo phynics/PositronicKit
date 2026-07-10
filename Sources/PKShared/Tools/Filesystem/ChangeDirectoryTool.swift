@@ -4,7 +4,7 @@ import JSONSchemaBuilder
 
 /// Tool to change the current working directory of the session
 public struct ChangeDirectoryTool: Tool, Sendable {
-    public let id = "change_directory"
+    public let callName = "change_directory"
     public let name = "Change Directory"
     public let description = "Change the current working directory for relative file operations."
     public let requiresPermission = false

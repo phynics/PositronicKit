@@ -34,14 +34,14 @@ public actor TimelineToolManager {
         self.availableTools = availableTools
         self.timelineContext = timelineContext
         // Enable all tools by default
-        enabledTools = Set(availableTools.map { $0.id })
+        enabledTools = Set(availableTools.map { $0.callName })
     }
 
     /// Update available tools
     public func updateAvailableTools(_ tools: [AnyTool]) {
         availableTools = tools
         // Keep enabledTools set in sync with available tools (don't remove enabled status if tool still exists)
-        let newIds = Set(tools.map { $0.id })
+        let newIds = Set(tools.map { $0.callName })
         enabledTools = enabledTools.intersection(newIds)
         // Auto-enable new tools? Let's say yes for now to avoid breaking changes.
         for id in newIds where !enabledTools.contains(id) {
@@ -90,7 +90,7 @@ public actor TimelineToolManager {
                     switch ref {
                     case let .known(toolId):
                         // Tag the system tool with this workspace's provenance
-                        if availableTools.contains(where: { $0.id == toolId }) {
+                        if availableTools.contains(where: { $0.callName == toolId }) {
                             newKnownProvenance[toolId, default: []].insert(provenanceTag)
                         } else {
                             logger.warning(
@@ -99,7 +99,7 @@ public actor TimelineToolManager {
                         }
                     case let .custom(def):
                         let wrapper = WorkspaceToolWrapper(workspace: workspace, definition: def)
-                        newTools[wrapper.id] = (tool: wrapper, provenance: provenanceTag)
+                        newTools[wrapper.callName] = (tool: wrapper, provenance: provenanceTag)
                     }
                 }
             } catch {
@@ -118,7 +118,7 @@ public actor TimelineToolManager {
         for provider in toolProviders.values {
             let tools = await provider.resolvedTools()
             for tool in tools {
-                newProviderTools[tool.id] = tool
+                newProviderTools[tool.callName] = tool
             }
         }
         providerTools = newProviderTools
@@ -130,7 +130,7 @@ public actor TimelineToolManager {
     /// label is deterministic across refreshes rather than depending on `Set` iteration order.
     /// A tool can only carry one provenance tag; the sort makes that one choice stable.
     private func toolWithResolvedProvenance(_ tool: AnyTool) -> AnyTool {
-        guard let provenanceSet = knownToolProvenance[tool.id], !provenanceSet.isEmpty else {
+        guard let provenanceSet = knownToolProvenance[tool.callName], !provenanceSet.isEmpty else {
             return tool
         }
         var tagged = tool
@@ -159,7 +159,7 @@ public actor TimelineToolManager {
 
     /// Get tools that are currently enabled, including context tools if a context is active
     public func getEnabledTools() async -> [AnyTool] {
-        var tools = availableTools.filter { enabledTools.contains($0.id) }
+        var tools = availableTools.filter { enabledTools.contains($0.callName) }
 
         // Apply workspace provenance to .known system tools
         tools = tools.map { toolWithResolvedProvenance($0) }
@@ -220,7 +220,7 @@ public actor TimelineToolManager {
         // `.known` system tools this workspace has declared (tagged via knownToolProvenance).
         for (toolId, provenanceSet) in knownToolProvenance {
             if provenanceSet.contains(where: { Self.provenanceBelongsTo($0, workspaceId) }),
-               let tool = availableTools.first(where: { $0.id == toolId })
+               let tool = availableTools.first(where: { $0.callName == toolId })
             {
                 tools.append(toolWithResolvedProvenance(tool))
             }
@@ -252,7 +252,7 @@ public actor TimelineToolManager {
     public func enableTool(id: String) {
         // Only enable if it is available (checking system tools)
         // Workspace tools are always enabled if present for now?
-        if availableTools.contains(where: { $0.id == id }) {
+        if availableTools.contains(where: { $0.callName == id }) {
             enabledTools.insert(id)
         }
     }
@@ -265,13 +265,13 @@ public actor TimelineToolManager {
     /// Get tool by ID (checks system, context, and workspace tools)
     public func getTool(id: String) async -> AnyTool? {
         // First check regular system tools
-        if let tool = availableTools.first(where: { $0.id == id }) {
+        if let tool = availableTools.first(where: { $0.callName == id }) {
             return toolWithResolvedProvenance(tool)
         }
 
         // Then check context tools if a context is active
         if let timeline = timelineContext, await timeline.hasActiveContext {
-            if let tool = await timeline.getContextTools().first(where: { $0.id == id }) {
+            if let tool = await timeline.getContextTools().first(where: { $0.callName == id }) {
                 return tool
             }
         }

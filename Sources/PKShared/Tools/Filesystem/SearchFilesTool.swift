@@ -4,7 +4,7 @@ import JSONSchemaBuilder
 
 /// Enhanced tool to search text content in files (search_files)
 public struct SearchFilesTool: Tool, Sendable {
-    public let id = "search_files"
+    public let callName = "search_files"
     public let name = "Search Files"
     public let description = "Optimized search for text content across files in the workspace."
     public let requiresPermission = true

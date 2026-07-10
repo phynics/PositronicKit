@@ -8,7 +8,7 @@ import Testing
 @Suite("LLM tool conversion")
 struct OpenAIToolConversionTests {
     struct ComplexMockTool: PKShared.Tool {
-        let id = "complex_tool"
+        let callName = "complex_tool"
         let name = "Complex Tool"
         let description = "A tool with nested parameters"
         let requiresPermission = false

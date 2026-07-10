@@ -5,7 +5,7 @@ import Testing
 
 final class TimelineToolManagerTests {
     struct MockTool: PKShared.Tool, @unchecked Sendable {
-        let id: String
+        let callName: String
         let name: String
         let description = "A mock tool for testing"
         let requiresPermission = false
@@ -49,8 +49,8 @@ final class TimelineToolManagerTests {
     }
 
     @Test func initEnablesAllAvailableTools() async {
-        let systemTool1 = AnyTool(MockTool(id: "sys1", name: "System 1"))
-        let systemTool2 = AnyTool(MockTool(id: "sys2", name: "System 2"))
+        let systemTool1 = AnyTool(MockTool(callName: "sys1", name: "System 1"))
+        let systemTool2 = AnyTool(MockTool(callName: "sys2", name: "System 2"))
 
         let manager = TimelineToolManager(availableTools: [systemTool1, systemTool2])
 
@@ -64,11 +64,11 @@ final class TimelineToolManagerTests {
     }
 
     @Test func updateAvailableToolsAutoEnablesNewTools() async {
-        let systemTool1 = AnyTool(MockTool(id: "sys1", name: "System 1"))
+        let systemTool1 = AnyTool(MockTool(callName: "sys1", name: "System 1"))
         let manager = TimelineToolManager(availableTools: [systemTool1])
 
         // Add a new tool, and simulate one being removed
-        let systemTool2 = AnyTool(MockTool(id: "sys2", name: "System 2"))
+        let systemTool2 = AnyTool(MockTool(callName: "sys2", name: "System 2"))
         await manager.updateAvailableTools([systemTool2])
 
         let enabled = await manager.enabledTools
@@ -78,7 +78,7 @@ final class TimelineToolManagerTests {
     }
 
     @Test func toggleEnableDisableTools() async {
-        let systemTool1 = AnyTool(MockTool(id: "sys1", name: "System 1"))
+        let systemTool1 = AnyTool(MockTool(callName: "sys1", name: "System 1"))
         let manager = TimelineToolManager(availableTools: [systemTool1])
 
         var enabled = await manager.enabledTools
@@ -129,7 +129,7 @@ final class TimelineToolManagerTests {
     }
 
     @Test func getToolResolvesCorrectly() async throws {
-        let systemTool = AnyTool(MockTool(id: "sys1", name: "System 1"))
+        let systemTool = AnyTool(MockTool(callName: "sys1", name: "System 1"))
         let manager = TimelineToolManager(availableTools: [systemTool])
 
         let sysResult = await manager.getTool(id: "sys1")
@@ -152,7 +152,7 @@ final class TimelineToolManagerTests {
         let wsToolWrapper = available.first(where: { $0.name == "wsTool" })
         try #require(wsToolWrapper != nil)
 
-        if let wsToolId = wsToolWrapper?.id {
+        if let wsToolId = wsToolWrapper?.callName {
             let fetched = await manager.getTool(id: wsToolId)
             try #require(fetched != nil)
             #expect(fetched?.name == "wsTool")
@@ -176,7 +176,7 @@ final class TimelineToolManagerTests {
         try #require(tool != nil)
         #expect(tool?.provenance == .workspace(id: workspaceId, name: "pk://test-workspace-prov"))
 
-        let fetched = try await manager.getTool(id: #require(tool?.id))
+        let fetched = try await manager.getTool(id: #require(tool?.callName))
         #expect(fetched?.provenance == .workspace(id: workspaceId, name: "pk://test-workspace-prov"))
     }
 
@@ -186,7 +186,7 @@ final class TimelineToolManagerTests {
         struct TestProvider: ToolProviding {
             let toolProvenance: ToolProvenance = .workspace(id: UUID(), name: "Provider")
             func provideTools() async -> [AnyTool] {
-                [AnyTool(MockTool(id: "provided", name: "Provided Tool"))]
+                [AnyTool(MockTool(callName: "provided", name: "Provided Tool"))]
             }
         }
 
@@ -196,7 +196,7 @@ final class TimelineToolManagerTests {
 
         let available = await manager.getAvailableTools()
         #expect(available.count == 1)
-        #expect(available.first?.id == "provided")
+        #expect(available.first?.callName == "provided")
         #expect(available.first?.provenance == provider.toolProvenance)
 
         await manager.unregisterToolProvider(providerId)
@@ -205,7 +205,7 @@ final class TimelineToolManagerTests {
     }
 
     @Test func knownToolRefsResolved() async throws {
-        let systemTool = AnyTool(MockTool(id: "cat", name: "cat"))
+        let systemTool = AnyTool(MockTool(callName: "cat", name: "cat"))
         let manager = TimelineToolManager(availableTools: [systemTool])
 
         let workspaceId = UUID()
@@ -219,7 +219,7 @@ final class TimelineToolManagerTests {
 
         // The system tool should now have provenance indicating it is tied to the workspace
         let available = await manager.getAvailableTools()
-        let tool = available.first(where: { $0.id == "cat" })
+        let tool = available.first(where: { $0.callName == "cat" })
         try #require(tool != nil)
         #expect(tool?.provenance == .workspace(id: workspaceId, name: "pk://test-known-tool"))
 
@@ -228,7 +228,7 @@ final class TimelineToolManagerTests {
     }
 
     @Test func multipleWorkspacesDeclaringSameKnownToolCollapseToDeterministicProvenance() async throws {
-        let systemTool = AnyTool(MockTool(id: "cat", name: "cat"))
+        let systemTool = AnyTool(MockTool(callName: "cat", name: "cat"))
         let manager = TimelineToolManager(availableTools: [systemTool])
 
         // Two workspaces, named so the lexicographic ordering of their displayName is
@@ -258,7 +258,7 @@ final class TimelineToolManagerTests {
         // lexicographically-smallest displayName (wsB's "a-workspace") so the prompt
         // label is deterministic rather than dependent on Set iteration order.
         let available = await manager.getAvailableTools()
-        let tool = try #require(available.first { $0.id == "cat" })
+        let tool = try #require(available.first { $0.callName == "cat" })
         #expect(tool.provenance == .workspace(id: wsB, name: "pk://a-workspace"))
 
         let fetched = await manager.getTool(id: "cat")
@@ -268,15 +268,15 @@ final class TimelineToolManagerTests {
     @Test func getEnabledToolsAndAvailableToolsReturnDeterministicallySortedTools() async throws {
         // Seed available tools in non-sorted order to prove the returned array is sorted,
         // not just preserving the input order.
-        let systemTool1 = AnyTool(MockTool(id: "sys-zeta", name: "Zeta"))
-        let systemTool2 = AnyTool(MockTool(id: "sys-alpha", name: "Alpha"))
-        let systemTool3 = AnyTool(MockTool(id: "sys-beta", name: "Beta"))
+        let systemTool1 = AnyTool(MockTool(callName: "sys-zeta", name: "Zeta"))
+        let systemTool2 = AnyTool(MockTool(callName: "sys-alpha", name: "Alpha"))
+        let systemTool3 = AnyTool(MockTool(callName: "sys-beta", name: "Beta"))
         let manager = TimelineToolManager(availableTools: [systemTool1, systemTool2, systemTool3])
 
         struct TestProvider: ToolProviding {
             let toolProvenance: ToolProvenance = .workspace(id: UUID(), name: "Provider")
             func provideTools() async -> [AnyTool] {
-                [AnyTool(MockTool(id: "provided-alpha", name: "Alpha"))]
+                [AnyTool(MockTool(callName: "provided-alpha", name: "Alpha"))]
             }
         }
 
@@ -354,7 +354,7 @@ final class TimelineToolManagerTests {
     }
 
     @Test func toolsInWorkspaceIncludesKnownSystemToolsTaggedToIt() async throws {
-        let systemTool = AnyTool(MockTool(id: "cat", name: "cat"))
+        let systemTool = AnyTool(MockTool(callName: "cat", name: "cat"))
         let manager = TimelineToolManager(availableTools: [systemTool])
 
         let wsA = UUID()
@@ -368,7 +368,7 @@ final class TimelineToolManagerTests {
 
         let inA = await manager.tools(inWorkspace: wsA)
         #expect(inA.count == 1)
-        #expect(inA.first?.id == "cat")
+        #expect(inA.first?.callName == "cat")
         #expect(inA.first?.provenance == .workspace(id: wsA, name: "pk://ws-a"))
 
         // wsB declared no tools -> empty.
@@ -378,6 +378,6 @@ final class TimelineToolManagerTests {
         // The flat getAvailableTools() behavior is unchanged.
         let available = await manager.getAvailableTools()
         #expect(available.count == 1)
-        #expect(available.first?.id == "cat")
+        #expect(available.first?.callName == "cat")
     }
 }

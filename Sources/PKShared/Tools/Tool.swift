@@ -52,8 +52,12 @@ public extension ToolProviding {
 /// Implement this protocol to add new capabilities to the AI assistant. Tools are automatically
 /// registered and exposed to the LLM during context construction.
 public protocol Tool: Sendable, PromptFormattable {
-    /// Unique identifier for the tool used by the LLM to call it (e.g., "read_file").
-    var id: String { get }
+    /// The callable name the LLM uses to invoke this tool (e.g., `"read_file"`).
+    ///
+    /// This value becomes the `name` field of ``LLMToolDefinition`` on the wire — it is the
+    /// function name the model emits in a tool call, not a display label. Use ``name`` for
+    /// human-readable display.
+    var callName: String { get }
 
     /// Human-readable display name for the tool.
     var name: String { get }
@@ -142,7 +146,7 @@ public extension Tool {
             resultSummary = "error: \(result.error?.prefix(30) ?? "unknown")"
         }
 
-        return "[\(id)(\(paramSummary))] → \(resultSummary)"
+        return "[\(callName)(\(paramSummary))] → \(resultSummary)"
     }
 
     /// Wraps the current tool in an ``AnyTool`` container.
@@ -160,7 +164,7 @@ public extension Tool {
     /// Formatted content for inclusion in LLM prompt with optional provenance (e.g. workspace name).
     func promptString(provenance: ToolProvenance) -> String {
         let label = provenance.promptLabel.map { " [\($0)]" } ?? ""
-        return "- `\(id)`\(label): \(description)"
+        return "- `\(callName)`\(label): \(description)"
     }
 }
 
@@ -237,8 +241,8 @@ public struct AnyTool: Tool, Sendable {
         self.provenance = provenance
     }
 
-    public var id: String {
-        wrapped.id
+    public var callName: String {
+        wrapped.callName
     }
 
     public var name: String {
@@ -278,6 +282,6 @@ public struct AnyTool: Tool, Sendable {
         if let provider = wrapped as? ToolReferenceProviding {
             return provider.toolReference
         }
-        return .known(id: id)
+        return .known(id: callName)
     }
 }

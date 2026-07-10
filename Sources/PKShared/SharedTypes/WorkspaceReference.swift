@@ -26,8 +26,6 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
     /// The id of the timeline that last modified this workspace, if any.
     public var lastModifiedBy: UUID? // Timeline ID that last modified
     public var status: WorkspaceStatus
-    /// Arbitrary caller-supplied metadata attached to the workspace.
-    public var metadata: [String: AnyCodable]
     /// Optional extra text injected into the prompt context when this workspace is active.
     public var contextInjection: String?
     public let createdAt: Date
@@ -77,7 +75,6 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         trustLevel: WorkspaceTrustLevel = .full,
         lastModifiedBy: UUID? = nil,
         status: WorkspaceStatus = .active,
-        metadata: [String: AnyCodable] = [:],
         contextInjection: String? = nil,
         createdAt: Date = Date()
     ) {
@@ -90,7 +87,6 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         self.trustLevel = trustLevel
         self.lastModifiedBy = lastModifiedBy
         self.status = status
-        self.metadata = metadata
         self.contextInjection = contextInjection
         self.createdAt = createdAt
     }
@@ -107,7 +103,6 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
             trustLevel: trustLevel,
             lastModifiedBy: lastModifiedBy,
             status: status,
-            metadata: metadata,
             contextInjection: contextInjection,
             createdAt: createdAt
         )
@@ -116,15 +111,13 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
     /// Create a primary workspace for a timeline
     public static func primaryForTimeline(
         _ timelineId: UUID,
-        rootPath: String,
-        metadata: [String: AnyCodable] = [:]
+        rootPath: String
     ) -> WorkspaceReference {
         WorkspaceReference(
             uri: .timelineWorkspace(timelineId),
             location: .runtime,
             rootPath: rootPath,
-            trustLevel: .full,
-            metadata: metadata
+            trustLevel: .full
         )
     }
 }

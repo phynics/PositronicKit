@@ -5,7 +5,7 @@ import PKShared
 
 /// Allows an agent to list available (non-private) timelines it can observe.
 public struct TimelineListTool: PKShared.Tool, Sendable {
-    public let id = "timeline_list"
+    public let callName = "timeline_list"
     public let name = "Timeline List"
     public let description =
         "List all non-private conversation timelines. " +

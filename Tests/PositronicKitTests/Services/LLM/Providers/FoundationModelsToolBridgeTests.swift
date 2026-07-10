@@ -11,7 +11,7 @@ import Testing
     /// primitive-typed properties (`ToolParameterSchema.object { ... }`), described via
     /// `parametersSchema` — no framework dependency of its own.
     private struct FixtureWeatherTool: PKShared.Tool, @unchecked Sendable {
-        let id = "lookup_weather"
+        let callName = "lookup_weather"
         let name = "Lookup Weather"
         let description = "Look up the current weather for a city"
         let requiresPermission = false
@@ -42,7 +42,7 @@ import Testing
     }
 
     private struct FixtureFailingTool: PKShared.Tool, @unchecked Sendable {
-        let id = "always_fails"
+        let callName = "always_fails"
         let name = "Always Fails"
         let description = "A tool that always fails"
         let requiresPermission = false

@@ -239,7 +239,7 @@ public actor ToolRouter {
         // folder workspace (the common case for a fresh conversation) would fail every tool call
         // with `toolNotFound`, even though the correct `AnyTool` was right there in `availableTools`.
         if let dynamicTools = availableTools,
-           dynamicTools.contains(where: { $0.toolReference == tool || $0.id == tool.toolId })
+           dynamicTools.contains(where: { $0.toolReference == tool || $0.callName == tool.toolId })
         {
             let output = try await executeLocally(
                 tool: tool,
@@ -290,7 +290,7 @@ public actor ToolRouter {
         for call: ParsedToolCall,
         availableTools: [AnyTool]
     ) -> ToolReference {
-        availableTools.first(where: { $0.id == call.name })?.toolReference
+        availableTools.first(where: { $0.callName == call.name })?.toolReference
             ?? ToolReference.known(id: call.name)
     }
 
@@ -367,12 +367,12 @@ public actor ToolRouter {
         var toolList = await toolManager.getAvailableTools()
         if let dynamicTools {
             // Dynamic tools take priority; exclude static tools with the same ID.
-            let dynamicIds = Set(dynamicTools.map { $0.id })
-            toolList = dynamicTools + toolList.filter { !dynamicIds.contains($0.id) }
+            let dynamicIds = Set(dynamicTools.map { $0.callName })
+            toolList = dynamicTools + toolList.filter { !dynamicIds.contains($0.callName) }
         }
 
         guard let resolvedTool = toolList.first(where: {
-            $0.toolReference == tool || $0.id == tool.toolId
+            $0.toolReference == tool || $0.callName == tool.toolId
         }) else {
             throw ToolError.toolNotFound(tool.displayName)
         }

@@ -10,6 +10,9 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- Documented `AnyPrompt` as a concatenating prompt group, not a type erasure (PKAPI-006).
+  The `Any` prefix signals "accepts any `Prompt`," not "erases a single concrete type" —
+  the doc comment now makes this distinction explicit. Non-breaking, docs-only.
 - Documented the five-tier facade ladder, from timeline-free one-shot operations through
   `Conversation`, `TimelineManager`, `AgenticRuntime`, and raw primitives, with compile-checked
   examples for the recommended application-owned Service pattern.
@@ -24,6 +27,21 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
+- **Renamed `Tool.id` → `Tool.callName`** (PKAPI-002): the property is the callable name the
+  LLM uses to invoke the tool (it becomes `LLMToolDefinition.name` on the wire), not an
+  internal identifier. The old `id` name was misleading — it read as "internal identifier"
+  rather than "the LLM-facing function name." `Tool.name` (human-readable display name) is
+  unchanged. All PositronicKit conformers, call sites, and tests are migrated. Downstream
+  consumers (Monad/Shuttle/Yakamoz) with custom `Tool` conformers need to rename `var id` →
+  `var callName` on their next PositronicKit pin bump.
+- **Removed `WorkspaceReference.metadata`** (PKAPI-014): the `[String: AnyCodable]` field was
+  a dead passthrough — no production caller passed a non-empty dict, and no code read a key
+  back or branched on it (only test round-trip assertions). The stored property, both inits,
+  `withTools`, `primaryForTimeline`, and both `AgentWorkspaceServiceProtocol` requirements
+  (`createWorkspace`/`createAgentWorkspace`) no longer accept a `metadata` parameter.
+  Downstream consumers that pass `metadata:` to these methods need to drop the argument on
+  their next PositronicKit pin bump. The Monad GRDB migration to drop the persisted column
+  is deferred to the downstream phase (PKFAC-008).
 - Unified reasoning/thinking terminology across public types (PKAPI-003):
   `Message.think` → `Message.reasoning`, `LLMStreamDelta.thinking` → `LLMStreamDelta.reasoning`,
   `ChatEvent.DeltaEvent.thinking`/`.thinking(_:)` → `.reasoning`/`.reasoning(_:)`. `LLMMessage.reasoning`

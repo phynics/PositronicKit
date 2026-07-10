@@ -10,7 +10,7 @@ import Testing
 private let testLogger = Logger(label: "test.pipeline")
 
 private struct StubTool: PKShared.Tool, @unchecked Sendable {
-    let id: String
+    let callName: String
     let name: String
     let description = "Stub"
     let requiresPermission = false
@@ -308,7 +308,7 @@ final class ToolCallExtractionStageBehavior {
     @Test
     func fallbackTextParsingTriggered() async throws {
         let stage = ToolCallExtractionStage(logger: testLogger)
-        let tool = StubTool(id: "test_tool", name: "test_tool")
+        let tool = StubTool(callName: "test_tool", name: "test_tool")
         let context = await makeContext(
             fullResponse: #"<tool_call>{"name": "test_tool", "arguments": {"key": "val"}}</tool_call>"#,
             availableTools: [tool.toAnyTool()]

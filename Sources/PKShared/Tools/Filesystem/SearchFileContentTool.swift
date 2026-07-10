@@ -4,7 +4,7 @@ import JSONSchemaBuilder
 
 /// Tool to search text content in files (grep-like)
 public struct SearchFileContentTool: Tool, Sendable {
-    public let id = "grep"
+    public let callName = "grep"
     public let name = "Search File Content"
     public let description = "Search for text content within files in a directory"
     public let requiresPermission = true

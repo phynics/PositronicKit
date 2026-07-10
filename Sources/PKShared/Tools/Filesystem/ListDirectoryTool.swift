@@ -4,7 +4,7 @@ import JSONSchemaBuilder
 
 /// Tool to list files in a directory
 public struct ListDirectoryTool: Tool, Sendable {
-    public let id = "ls"
+    public let callName = "ls"
     public let name = "List Directory"
     public let description = "List files and directories at a specific path"
     public let requiresPermission = true

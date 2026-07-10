@@ -19,7 +19,7 @@ struct GroupedInitToolApprovalGateWiringTests {
     /// A permissioned tool that records whether its body ever ran, so a test can assert that an
     /// un-approved call is blocked *before* execution rather than merely failing afterwards.
     final class PermissionedTool: PKShared.Tool, @unchecked Sendable {
-        let id: String
+        let callName: String
         let name: String
         let description = "A permissioned mock tool"
         let requiresPermission = true
@@ -27,7 +27,7 @@ struct GroupedInitToolApprovalGateWiringTests {
         let parametersSchema = makeEmptyObjectSchema()
 
         init(id: String) {
-            self.id = id
+            self.callName = id
             name = id
         }
 
@@ -49,7 +49,7 @@ struct GroupedInitToolApprovalGateWiringTests {
         }
 
         func requestApproval(tool: AnyTool, arguments _: [String: AnyCodable]) async -> ToolApprovalDecision {
-            consultedToolIds.append(tool.id)
+            consultedToolIds.append(tool.callName)
             return decision
         }
     }
@@ -131,7 +131,7 @@ struct GroupedInitToolApprovalGateWiringTests {
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await chat.timelineManager.attachWorkspace(workspaceId, to: timeline.id)
-        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known(tool.id))
+        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known(tool.callName))
 
         let toolManager = try #require(await chat.timelineManager.getToolManager(for: timeline.id))
         await toolManager.updateAvailableTools([tool.toAnyTool()])
@@ -147,7 +147,7 @@ struct GroupedInitToolApprovalGateWiringTests {
 
         do {
             _ = try await chat.toolRouter.execute(
-                tool: .known(tool.id),
+                tool: .known(tool.callName),
                 arguments: [:],
                 timelineId: timelineId
             )
@@ -159,7 +159,7 @@ struct GroupedInitToolApprovalGateWiringTests {
         }
 
         #expect(tool.didExecute == false)
-        #expect(gate.consultedToolIds == [tool.id])
+        #expect(gate.consultedToolIds == [tool.callName])
     }
 
     @Test("Grouped runtime init honors an injected approve gate (permissioned tool runs)")
@@ -168,7 +168,7 @@ struct GroupedInitToolApprovalGateWiringTests {
         let (chat, timelineId, tool) = try await makeChatViaRuntimeConfig(gate: gate)
 
         let result = try await chat.toolRouter.execute(
-            tool: .known(tool.id),
+            tool: .known(tool.callName),
             arguments: [:],
             timelineId: timelineId
         )
@@ -179,7 +179,7 @@ struct GroupedInitToolApprovalGateWiringTests {
         }
         #expect(output == "executed")
         #expect(tool.didExecute == true)
-        #expect(gate.consultedToolIds == [tool.id])
+        #expect(gate.consultedToolIds == [tool.callName])
     }
 
     // MARK: - Persistence-grouped init path
@@ -191,7 +191,7 @@ struct GroupedInitToolApprovalGateWiringTests {
 
         do {
             _ = try await chat.toolRouter.execute(
-                tool: .known(tool.id),
+                tool: .known(tool.callName),
                 arguments: [:],
                 timelineId: timelineId
             )
@@ -203,7 +203,7 @@ struct GroupedInitToolApprovalGateWiringTests {
         }
 
         #expect(tool.didExecute == false)
-        #expect(gate.consultedToolIds == [tool.id])
+        #expect(gate.consultedToolIds == [tool.callName])
     }
 
     @Test("Persistence-grouped init honors an injected approve gate (permissioned tool runs)")
@@ -212,7 +212,7 @@ struct GroupedInitToolApprovalGateWiringTests {
         let (chat, timelineId, tool) = try await makeChatViaPersistenceGroupedInit(gate: gate)
 
         let result = try await chat.toolRouter.execute(
-            tool: .known(tool.id),
+            tool: .known(tool.callName),
             arguments: [:],
             timelineId: timelineId
         )
@@ -223,6 +223,6 @@ struct GroupedInitToolApprovalGateWiringTests {
         }
         #expect(output == "executed")
         #expect(tool.didExecute == true)
-        #expect(gate.consultedToolIds == [tool.id])
+        #expect(gate.consultedToolIds == [tool.callName])
     }
 }

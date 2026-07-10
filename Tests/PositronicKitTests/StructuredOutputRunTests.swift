@@ -6,7 +6,7 @@ import PKTestSupport
 import Testing
 
 private struct StructuredOutputRunTestsTool: Tool, @unchecked Sendable {
-    let id = "structured_output_run_tests_tool"
+    let callName = "structured_output_run_tests_tool"
     let name = "Structured Output Run Tests Tool"
     let description = "Test tool used to verify ChatRunRequest forwards resolved tools."
     let requiresPermission = false

@@ -29,7 +29,7 @@ final class ToolApprovalGateFilesystemToolsTests {
         }
 
         func requestApproval(tool: AnyTool, arguments _: [String: AnyCodable]) async -> ToolApprovalDecision {
-            consultedToolIds.append(tool.id)
+            consultedToolIds.append(tool.callName)
             return decision
         }
     }
@@ -80,7 +80,7 @@ final class ToolApprovalGateFilesystemToolsTests {
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await timelineManager.attachWorkspace(workspaceId, to: session.id)
-        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known(tool.id))
+        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known(tool.callName))
 
         let toolManager = await timelineManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
@@ -104,7 +104,7 @@ final class ToolApprovalGateFilesystemToolsTests {
     @Test("Guard: every tool listed as permissioned actually declares requiresPermission == true")
     func allListedToolsActuallyRequirePermission() {
         for tool in Self.permissionedFilesystemTools {
-            #expect(tool.requiresPermission, "\(tool.id) is listed as permissioned but requiresPermission is false")
+            #expect(tool.requiresPermission, "\(tool.callName) is listed as permissioned but requiresPermission is false")
         }
     }
 
@@ -112,20 +112,20 @@ final class ToolApprovalGateFilesystemToolsTests {
         "cat", "ls", "find", "search_files", "grep",
     ])
     func permissionedFilesystemToolBlockedWhenDenied(toolId: String) async throws {
-        let tool = try #require(Self.permissionedFilesystemTools.first { $0.id == toolId })
+        let tool = try #require(Self.permissionedFilesystemTools.first { $0.callName == toolId })
         let gate = RecordingGate(decision: .deny)
         let (router, timelineId) = try await setupRouter(with: tool, approvalGate: gate)
 
         do {
-            _ = try await router.execute(tool: .known(tool.id), arguments: [:], timelineId: timelineId)
-            Issue.record("Expected permissionDenied to be thrown for \(tool.id)")
+            _ = try await router.execute(tool: .known(tool.callName), arguments: [:], timelineId: timelineId)
+            Issue.record("Expected permissionDenied to be thrown for \(tool.callName)")
         } catch ToolError.permissionDenied(tool.name) {
             // expected
         } catch {
-            Issue.record("Unexpected error for \(tool.id): \(error)")
+            Issue.record("Unexpected error for \(tool.callName): \(error)")
         }
 
-        #expect(gate.consultedToolIds == [tool.id])
+        #expect(gate.consultedToolIds == [tool.callName])
     }
 
     @Test("ReadFileTool executes end-to-end when the approval gate approves it")
@@ -142,7 +142,7 @@ final class ToolApprovalGateFilesystemToolsTests {
         let (router, timelineId) = try await setupRouter(with: tool, approvalGate: gate)
 
         let result = try await router.execute(
-            tool: .known(tool.id),
+            tool: .known(tool.callName),
             arguments: ["path": AnyCodable("hello.txt")],
             timelineId: timelineId
         )
@@ -152,7 +152,7 @@ final class ToolApprovalGateFilesystemToolsTests {
             return
         }
         #expect(output.contains("hello world"))
-        #expect(gate.consultedToolIds == [tool.id])
+        #expect(gate.consultedToolIds == [tool.callName])
     }
 
     @Test("ChangeDirectoryTool bypasses the approval gate entirely (requiresPermission == false)")
@@ -165,7 +165,7 @@ final class ToolApprovalGateFilesystemToolsTests {
 
         do {
             _ = try await router.execute(
-                tool: .known(tool.id),
+                tool: .known(tool.callName),
                 arguments: ["path": AnyCodable(NSTemporaryDirectory())],
                 timelineId: timelineId
             )
@@ -185,7 +185,7 @@ final class ToolApprovalGateFilesystemToolsTests {
         let (router, timelineId) = try await setupRouter(with: tool, approvalGate: nil)
 
         do {
-            _ = try await router.execute(tool: .known(tool.id), arguments: [:], timelineId: timelineId)
+            _ = try await router.execute(tool: .known(tool.callName), arguments: [:], timelineId: timelineId)
             Issue.record("Expected permissionDenied to be thrown under the default gate")
         } catch ToolError.permissionDenied(tool.name) {
             // expected — confirms ToolRouter's default approvalGate is DenyAllToolApprovalGate

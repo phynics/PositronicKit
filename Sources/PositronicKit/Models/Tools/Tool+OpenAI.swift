@@ -7,7 +7,7 @@ public extension PKShared.Tool {
         // parametersSchema is now the typed `Schema` (matching LLMToolDefinition.parameters),
         // so it flows through directly with no encode/decode round-trip.
         LLMToolDefinition(
-            name: id,
+            name: callName,
             description: description,
             parameters: parametersSchema
         )

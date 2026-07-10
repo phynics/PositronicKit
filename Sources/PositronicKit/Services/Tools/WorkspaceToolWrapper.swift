@@ -7,7 +7,7 @@ public struct WorkspaceToolWrapper: Tool, Sendable {
     public let workspace: any WorkspaceProtocol
     public let definition: WorkspaceToolDefinition
 
-    public var id: String { definition.id }
+    public var callName: String { definition.id }
     public var name: String { definition.name }
     public var description: String { definition.description }
     public var requiresPermission: Bool { definition.requiresPermission }
@@ -31,7 +31,7 @@ public struct WorkspaceToolWrapper: Tool, Sendable {
     public func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
         // parameters is already [String: AnyCodable] — the workspace protocol's executeTool
         // takes the same type, so no conversion is needed.
-        let result = try await workspace.executeTool(id: id, parameters: parameters)
+        let result = try await workspace.executeTool(id: callName, parameters: parameters)
 
         if result.success {
             return .success(result.output)

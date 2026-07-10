@@ -5,7 +5,7 @@ import Testing
 @testable import PKShared
 import PKTestSupport
 struct MockComplexTool: Tool, @unchecked Sendable {
-    let id = "complex_tool"
+    let callName = "complex_tool"
     let name = "Complex Tool"
     let description = "A mock tool that accepts complex argument types"
     let requiresPermission = false

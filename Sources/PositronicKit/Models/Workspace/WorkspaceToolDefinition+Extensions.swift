@@ -9,7 +9,7 @@ extension WorkspaceToolDefinition {
     /// `ToolReference`), so the schema is encoded to the dictionary form here.
     public init(from tool: any Tool) {
         self.init(
-            id: tool.id,
+            id: tool.callName,
             name: tool.name,
             description: tool.description,
             parametersSchema: tool.parametersSchema.asDictionary,

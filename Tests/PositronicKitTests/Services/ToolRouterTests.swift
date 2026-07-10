@@ -62,7 +62,7 @@ private func captureProjectedToolEventsResult<R: Sendable>(
 
 final class ToolRouterTests {
     struct MockTool: PKShared.Tool, @unchecked Sendable {
-        let id: String
+        let callName: String
         let name: String
         let description = "A mock tool for testing"
         let requiresPermission = false
@@ -85,7 +85,7 @@ final class ToolRouterTests {
     /// A permissioned tool that records whether its body ever ran, so a test can assert that an
     /// un-approved call is blocked *before* execution rather than merely failing afterwards.
     final class PermissionedTool: PKShared.Tool, @unchecked Sendable {
-        let id: String
+        let callName: String
         let name: String
         let description = "A permissioned mock tool"
         let requiresPermission = true
@@ -93,7 +93,7 @@ final class ToolRouterTests {
         let parametersSchema = makeEmptyObjectSchema()
 
         init(id: String) {
-            self.id = id
+            self.callName = id
             name = id
         }
 
@@ -117,7 +117,7 @@ final class ToolRouterTests {
         }
 
         func requestApproval(tool: AnyTool, arguments _: [String: AnyCodable]) async -> ToolApprovalDecision {
-            consultedToolIds.append(tool.id)
+            consultedToolIds.append(tool.callName)
             return decision
         }
     }
@@ -144,7 +144,7 @@ final class ToolRouterTests {
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await timelineManager.attachWorkspace(workspaceId, to: session.id)
-        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known(tool.id))
+        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known(tool.callName))
 
         let toolManager = await timelineManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
@@ -223,7 +223,7 @@ final class ToolRouterTests {
 
     @Test("A non-permissioned tool executes without consulting the approval gate (regression)")
     func nonPermissionedToolBypassesGate() async throws {
-        let tool = MockTool(id: "free_tool", name: "free_tool", result: .success("free output"))
+        let tool = MockTool(callName: "free_tool", name: "free_tool", result: .success("free output"))
         // A deny-all gate must not affect non-permissioned tools.
         let gate = RecordingGate(decision: .deny)
         let (router, timelineId) = try await setupRouter(with: tool, approvalGate: gate)
@@ -243,7 +243,7 @@ final class ToolRouterTests {
     }
 
     struct NeverFinishingTool: PKShared.Tool {
-        let id = "never_finishes"
+        let callName = "never_finishes"
         let name = "never_finishes"
         let description = "A tool that never finishes unless cancelled"
         let requiresPermission = false
@@ -262,7 +262,7 @@ final class ToolRouterTests {
     /// A tool that blocks its executor thread and ignores cooperative cancellation entirely,
     /// modelling a synchronous/blocking tool body (e.g. a blocking subprocess or sync network call).
     struct UncooperativeTool: PKShared.Tool {
-        let id = "uncooperative"
+        let callName = "uncooperative"
         let name = "uncooperative"
         let description = "A tool that blocks and ignores cancellation"
         let requiresPermission = false
@@ -316,7 +316,7 @@ final class ToolRouterTests {
         try #require(toolManager != nil)
 
         let toolId = "local_tool"
-        let mockTool = MockTool(id: toolId, name: toolId, result: .success("Local success"))
+        let mockTool = MockTool(callName: toolId, name: toolId, result: .success("Local success"))
         await toolManager?.updateAvailableTools([mockTool.toAnyTool()])
 
         // The mock persistence doesn't automatically wire tool IDs to workspaces for `findWorkspaceForTool`
@@ -414,7 +414,7 @@ final class ToolRouterTests {
         #expect(workspaces?.attached.isEmpty == true)
 
         let toolId = "dynamic_demo_tool"
-        let dynamicTool = MockTool(id: toolId, name: toolId, result: .success("dynamic success"))
+        let dynamicTool = MockTool(callName: toolId, name: toolId, result: .success("dynamic success"))
         let toolRef = ToolReference.known(toolId)
         let arguments: [String: AnyCodable] = [:]
 
@@ -454,7 +454,7 @@ final class ToolRouterTests {
 
     @Test("Explicit invalid workspaceID fails closed with workspaceNotFound (YAK-33)")
     func explicitInvalidWorkspaceIDFailsClosed() async throws {
-        let tool = MockTool(id: "test_tool", name: "test_tool", result: .success("success"))
+        let tool = MockTool(callName: "test_tool", name: "test_tool", result: .success("success"))
         let gate = RecordingGate(decision: .deny)
         let (router, timelineId) = try await setupRouter(with: tool, approvalGate: gate)
 
@@ -477,7 +477,7 @@ final class ToolRouterTests {
 
     @Test("Well-formed but unattached explicit workspaceID fails closed (YAK-33)")
     func unattachedExplicitWorkspaceIDFailsClosed() async throws {
-        let tool = MockTool(id: "test_tool", name: "test_tool", result: .success("success"))
+        let tool = MockTool(callName: "test_tool", name: "test_tool", result: .success("success"))
         let gate = RecordingGate(decision: .deny)
         let (router, timelineId) = try await setupRouter(with: tool, approvalGate: gate)
 
@@ -501,7 +501,7 @@ final class ToolRouterTests {
 
     @Test("Omitted workspaceID still uses default workspace resolution (YAK-33 regression guard)")
     func omittedWorkspaceIDUsesDefaultResolution() async throws {
-        let tool = MockTool(id: "test_tool", name: "test_tool", result: .success("default workspace success"))
+        let tool = MockTool(callName: "test_tool", name: "test_tool", result: .success("default workspace success"))
         let gate = RecordingGate(decision: .deny)
         let (router, timelineId) = try await setupRouter(with: tool, approvalGate: gate)
 
@@ -656,7 +656,7 @@ struct ToolRouterWorkspaceResolutionTests {
 
         let toolManager = await timelineManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
-        let mockTool = MockTool(id: "cat", name: "cat", result: .success("meow"))
+        let mockTool = MockTool(callName: "cat", name: "cat", result: .success("meow"))
         await toolManager?.updateAvailableTools([mockTool.toAnyTool()])
 
         let arguments: [String: AnyCodable] = ["workspaceID": AnyCodable("not-a-uuid")]
@@ -702,7 +702,7 @@ struct ToolRouterWorkspaceResolutionTests {
 
         let toolManager = await timelineManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
-        let mockTool = MockTool(id: toolId, name: toolId, result: .success("primary success"))
+        let mockTool = MockTool(callName: toolId, name: toolId, result: .success("primary success"))
         await toolManager?.updateAvailableTools([mockTool.toAnyTool()])
 
         let result = try await toolRouter.execute(
@@ -744,7 +744,7 @@ struct ToolRouterWorkspaceResolutionTests {
 
         let toolManager = await timelineManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
-        let mockTool = MockTool(id: toolId, name: toolId, result: .success("ok"))
+        let mockTool = MockTool(callName: toolId, name: toolId, result: .success("ok"))
         await toolManager?.updateAvailableTools([mockTool.toAnyTool()])
 
         // Explicitly request the attached workspace — should override the default primary lookup.
@@ -794,7 +794,7 @@ struct ToolRouterWorkspaceResolutionTests {
     // MARK: - MockTool (shared with ToolRouterTests)
 
     struct MockTool: PKShared.Tool, @unchecked Sendable {
-        let id: String
+        let callName: String
         let name: String
         let description = "A mock tool for testing"
         let requiresPermission = false
@@ -816,7 +816,7 @@ struct ToolRouterWorkspaceResolutionTests {
 
     /// A tool that throws a specific `ToolError` so remediation guidance can be asserted.
     struct FailingTool: PKShared.Tool, @unchecked Sendable {
-        let id: String
+        let callName: String
         let name: String
         let description = "A tool that always fails"
         let requiresPermission = false
@@ -824,7 +824,7 @@ struct ToolRouterWorkspaceResolutionTests {
         let parametersSchema = makeEmptyObjectSchema()
 
         init(id: String, error: any Error) {
-            self.id = id
+            self.callName = id
             name = id
             thrownError = error
         }
@@ -858,7 +858,7 @@ struct ToolTurnProjectionTests {
     }
 
     private struct MockTool: PKShared.Tool, @unchecked Sendable {
-        let id: String
+        let callName: String
         let name: String
         let description = "A mock tool for testing"
         let requiresPermission = false
@@ -876,7 +876,7 @@ struct ToolTurnProjectionTests {
     }
 
     private struct FailingTool: PKShared.Tool, @unchecked Sendable {
-        let id: String
+        let callName: String
         let name: String
         let description = "A tool that always fails"
         let requiresPermission = false
@@ -884,7 +884,7 @@ struct ToolTurnProjectionTests {
         let parametersSchema = makeEmptyObjectSchema()
 
         init(id: String, error: any Error) {
-            self.id = id
+            self.callName = id
             name = id
             thrownError = error
         }
@@ -917,7 +917,7 @@ struct ToolTurnProjectionTests {
 
         let toolManager = await timelineManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
-        await toolManager?.updateAvailableTools([MockTool(id: "tool", name: "tool", result: .success("done")).toAnyTool()])
+        await toolManager?.updateAvailableTools([MockTool(callName: "tool", name: "tool", result: .success("done")).toAnyTool()])
 
         let call = ParsedToolCall(callId: "call-1", name: "tool", argumentsJSON: "{}")
 

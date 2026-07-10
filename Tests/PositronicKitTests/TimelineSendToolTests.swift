@@ -30,7 +30,7 @@ struct TimelineSendToolTests {
             timelineStore: timelineStore,
             messageStore: messageStore
         )
-        return try #require(await toolManager.getAvailableTools().first { $0.id == "timeline_send" })
+        return try #require(await toolManager.getAvailableTools().first { $0.callName == "timeline_send" })
     }
 
     @Test("Refuses to send when source history is already at the remote-depth limit")

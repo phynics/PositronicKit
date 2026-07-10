@@ -33,7 +33,7 @@ public actor ToolTimelineContext {
         activeContext = context
         activeGatewayToolId = gatewayToolId
         let tools = await context.contextTools
-        contextToolIds = Set(tools.map { $0.id })
+        contextToolIds = Set(tools.map { $0.callName })
 
         logger.info("Activated context: \(type(of: context).contextId)")
         await context.activate()

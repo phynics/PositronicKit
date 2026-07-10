@@ -2,6 +2,14 @@ import Foundation
 import PKShared
 
 /// A transparent prompt container that resolves to the concatenated output of its children.
+///
+/// Despite the `Any` prefix, this is **not** a type erasure. It is a concatenating prompt
+/// group — it wraps `[any Prompt]` and renders as the combined output of every child
+/// section. The `Any` prefix signals "accepts any `Prompt`," not "erases a single
+/// concrete type" (contrast `AnyHashable`/`AnyView`/`AnySequence`, which each hide one
+/// underlying value). If you need a group with a different name for readability, alias it
+/// — the type's role is "root builder container," and it is the preferred top-level
+/// entry point for `@PromptBuilder` content (``AnyPrompt/build(_:)``).
 public struct AnyPrompt: Prompt {
     /// The prompt values contained in the root container.
     package let prompts: [any Prompt]

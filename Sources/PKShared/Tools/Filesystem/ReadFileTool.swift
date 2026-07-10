@@ -4,7 +4,7 @@ import JSONSchemaBuilder
 
 /// Tool to read file content (cat)
 public struct ReadFileTool: Tool, Sendable {
-    public let id = "cat"
+    public let callName = "cat"
     public let name = "Read File"
     public let description = "Read the content of a file"
     public let requiresPermission = true

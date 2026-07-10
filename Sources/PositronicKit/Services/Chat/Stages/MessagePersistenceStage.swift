@@ -182,7 +182,7 @@ struct MessagePersistenceStage: PipelineStage {
             maxTurns: context.maxTurns,
             systemInstructions: context.systemInstructions,
             contextSnapshot: contextSnapshot,
-            availableToolIds: context.availableTools.map { $0.id },
+            availableToolIds: context.availableTools.map { $0.callName },
             fullResponse: fullResponse,
             fullThinking: fullThinking,
             toolCalls: debugToolCalls,

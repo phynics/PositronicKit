@@ -176,7 +176,7 @@ struct ChatEngineTests {
     // MARK: - Group 3: Structured Tool Calls
 
     struct MockTool: PKShared.Tool, @unchecked Sendable {
-        let id = "mock_tool"
+        let callName = "mock_tool"
         let name = "mock_tool"
         let description = "A mock tool for testing"
         let requiresPermission = false

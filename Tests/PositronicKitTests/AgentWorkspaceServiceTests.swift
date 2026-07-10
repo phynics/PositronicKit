@@ -15,23 +15,19 @@ struct AgentWorkspaceServiceTests {
         )
 
         let uri = WorkspaceURI(host: "pk-runtime", path: "/test")
-        let metadata: [String: AnyCodable] = ["key": .string("value")]
 
         let ws = try await repository.createWorkspace(
             uri: uri,
             location: .runtime,
-            rootPath: "/tmp/ws",
-            metadata: metadata
+            rootPath: "/tmp/ws"
         )
 
         #expect(ws.uri == uri)
         #expect(ws.rootPath == "/tmp/ws")
-        #expect(ws.metadata["key"]?.asString == "value")
 
         // Verify it was saved to persistence
         let saved = try await persistence.fetchWorkspace(id: ws.id)
         #expect(saved != nil)
-        #expect(saved?.metadata["key"]?.asString == "value")
     }
 
     @Test("Get Workspace")
@@ -45,15 +41,13 @@ struct AgentWorkspaceServiceTests {
         let ws = WorkspaceReference(
             uri: .timelineWorkspace(UUID()),
             location: .runtime,
-            rootPath: "/path",
-            metadata: ["test": .boolean(true)]
+            rootPath: "/path"
         )
         try await persistence.saveWorkspace(ws)
 
         let retrieved = try await repository.getWorkspace(id: ws.id)
         #expect(retrieved != nil)
         #expect(retrieved?.id == ws.id)
-        #expect(retrieved?.metadata["test"]?.value as? Bool == true)
     }
 
     @Test("List Workspaces")
@@ -136,8 +130,7 @@ struct AgentWorkspaceServiceTests {
         let instanceId = UUID()
         _ = try await repository.createAgentWorkspace(
             instanceId: instanceId,
-            template: template,
-            metadata: [:]
+            template: template
         )
 
         let notesPath = tempDir
@@ -189,8 +182,7 @@ struct AgentWorkspaceServiceTests {
         do {
             _ = try await repository.createAgentWorkspace(
                 instanceId: instanceId,
-                template: template,
-                metadata: [:]
+                template: template
             )
         } catch {
             didThrow = true
@@ -234,8 +226,7 @@ struct AgentWorkspaceServiceTests {
         do {
             _ = try await repository.createAgentWorkspace(
                 instanceId: instanceId,
-                template: template,
-                metadata: [:]
+                template: template
             )
         } catch {
             didThrow = true
@@ -274,8 +265,7 @@ struct AgentWorkspaceServiceTests {
         do {
             _ = try await repository.createAgentWorkspace(
                 instanceId: instanceId,
-                template: template,
-                metadata: [:]
+                template: template
             )
         } catch {
             didThrow = true

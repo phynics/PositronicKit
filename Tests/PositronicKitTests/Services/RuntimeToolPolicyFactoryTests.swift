@@ -12,7 +12,7 @@ struct RuntimeToolPolicyFactoryTests {
     }
 
     private func toolIds(for toolManager: TimelineToolManager) async -> Set<String> {
-        Set(await toolManager.getAvailableTools().map(\.id))
+        Set(await toolManager.getAvailableTools().map(\.callName))
     }
 
     @Test("Default runtime tool set includes filesystem and timeline observation tools")

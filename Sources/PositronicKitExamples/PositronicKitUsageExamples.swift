@@ -268,7 +268,7 @@ public struct ExampleOneShotTitlePayload: Codable, Sendable, Equatable {
 }
 
 public struct ExampleGreetingTool: Tool {
-    public let id = "example_greet"
+    public let callName = "example_greet"
     public let name = "Example Greeting"
     public let description = "Greet a user by name so the runtime can expose a simple tool."
     public let requiresPermission = false

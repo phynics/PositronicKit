@@ -482,7 +482,7 @@ private struct MockCustomStage: PipelineStage {
 }
 
 private struct AcceptanceMockTool: PKShared.Tool, @unchecked Sendable {
-    let id = "mock_tool"
+    let callName = "mock_tool"
     let name = "mock_tool"
     let description = "Facade acceptance test tool"
     let requiresPermission = false

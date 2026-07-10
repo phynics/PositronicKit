@@ -31,15 +31,13 @@ public actor AgentWorkspaceService: AgentWorkspaceServiceProtocol {
         uri: WorkspaceURI,
         location: WorkspaceReference.WorkspaceLocation,
         originId: UUID?,
-        rootPath: String?,
-        metadata: [String: AnyCodable]
+        rootPath: String?
     ) async throws -> WorkspaceReference {
         let workspace = WorkspaceReference(
             uri: uri,
             location: location,
             originId: originId,
-            rootPath: rootPath,
-            metadata: metadata
+            rootPath: rootPath
         )
         try await persistenceService.saveWorkspace(workspace)
         return workspace
@@ -48,8 +46,7 @@ public actor AgentWorkspaceService: AgentWorkspaceServiceProtocol {
     /// Creates a new agent workspace and seeds it with template files.
     public func createAgentWorkspace(
         instanceId: UUID,
-        template: AgentTemplate?,
-        metadata: [String: AnyCodable]
+        template: AgentTemplate?
     ) async throws -> WorkspaceReference {
         // 1. Create workspace directory
         let agentWorkspaceURL = workspaceRoot
@@ -91,8 +88,7 @@ public actor AgentWorkspaceService: AgentWorkspaceServiceProtocol {
             uri: .agentWorkspace(instanceId),
             location: .runtime,
             originId: nil,
-            rootPath: agentWorkspaceURL.path,
-            metadata: metadata
+            rootPath: agentWorkspaceURL.path
         )
     }
 

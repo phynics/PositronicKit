@@ -10,7 +10,7 @@ final class ChatEngineStageTests {
     private let logger = Logger(label: "test")
 
     struct StubTool: PKShared.Tool, @unchecked Sendable {
-        let id = "stub_tool"
+        let callName = "stub_tool"
         let name = "stub_tool"
         let description = "Stub for testing"
         let requiresPermission = false

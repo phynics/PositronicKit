@@ -8,15 +8,13 @@ public protocol AgentWorkspaceServiceProtocol: Sendable {
         uri: WorkspaceURI,
         location: WorkspaceReference.WorkspaceLocation,
         originId: UUID?,
-        rootPath: String?,
-        metadata: [String: AnyCodable]
+        rootPath: String?
     ) async throws -> WorkspaceReference
 
     /// Creates a new agent workspace and seeds it with template files.
     func createAgentWorkspace(
         instanceId: UUID,
-        template: AgentTemplate?,
-        metadata: [String: AnyCodable]
+        template: AgentTemplate?
     ) async throws -> WorkspaceReference
 
     /// Fetches a workspace by its unique identifier.
@@ -37,27 +35,23 @@ extension AgentWorkspaceServiceProtocol {
         uri: WorkspaceURI,
         location: WorkspaceReference.WorkspaceLocation,
         originId: UUID? = nil,
-        rootPath: String? = nil,
-        metadata: [String: AnyCodable] = [:]
+        rootPath: String? = nil
     ) async throws -> WorkspaceReference {
         try await createWorkspace(
             uri: uri,
             location: location,
             originId: originId,
-            rootPath: rootPath,
-            metadata: metadata
+            rootPath: rootPath
         )
     }
 
     public func createAgentWorkspace(
         instanceId: UUID,
-        template: AgentTemplate? = nil,
-        metadata: [String: AnyCodable] = [:]
+        template: AgentTemplate? = nil
     ) async throws -> WorkspaceReference {
         try await createAgentWorkspace(
             instanceId: instanceId,
-            template: template,
-            metadata: metadata
+            template: template
         )
     }
 

@@ -9,7 +9,7 @@ import PKShared
 /// in the timeline history. It does NOT trigger LLM generation — messages queue naturally
 /// and are processed when an agent next attaches and handles the turn.
 public struct TimelineSendTool: PKShared.Tool, Sendable {
-    public let id = "timeline_send"
+    public let callName = "timeline_send"
     public let name = "Timeline Send"
     public let description =
         "Post a message to another conversation timeline without attaching to it. " +

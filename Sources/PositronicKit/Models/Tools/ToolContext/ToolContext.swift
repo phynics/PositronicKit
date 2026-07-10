@@ -52,7 +52,7 @@ public extension ToolContext {
 
     func welcomeMessage() async -> String {
         let tools = await contextTools
-        let toolList = tools.map { "- `\($0.id)`: \($0.description)" }.joined(
+        let toolList = tools.map { "- `\($0.callName)`: \($0.description)" }.joined(
             separator: "\n"
         )
 

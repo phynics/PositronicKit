@@ -5,7 +5,7 @@ import Testing
 
 struct ToolProvenanceTests {
     struct LabelTool: PKShared.Tool, @unchecked Sendable {
-        let id = "label_tool"
+        let callName = "label_tool"
         let name = "Label Tool"
         let description = "A tool for testing provenance labels"
         let requiresPermission = false

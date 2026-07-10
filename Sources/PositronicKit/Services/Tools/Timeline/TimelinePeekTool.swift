@@ -5,7 +5,7 @@ import PKShared
 
 /// Allows an agent to read recent messages from a timeline without attaching to it.
 public struct TimelinePeekTool: PKShared.Tool, Sendable {
-    public let id = "timeline_peek"
+    public let callName = "timeline_peek"
     public let name = "Timeline Peek"
     public let description =
         "Read the most recent messages from a conversation timeline. " +

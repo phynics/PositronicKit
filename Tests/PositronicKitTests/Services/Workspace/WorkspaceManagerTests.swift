@@ -34,16 +34,14 @@ private actor FakeWorkspaceRepository: AgentWorkspaceServiceProtocol {
         uri: WorkspaceURI,
         location: WorkspaceReference.WorkspaceLocation,
         originId: UUID?,
-        rootPath: String?,
-        metadata: [String: AnyCodable]
+        rootPath: String?
     ) async throws -> WorkspaceReference {
         let reference = WorkspaceReference(
             id: UUID(),
             uri: uri,
             location: location,
             originId: originId,
-            rootPath: rootPath,
-            metadata: metadata
+            rootPath: rootPath
         )
         references[reference.id] = reference
         return reference
@@ -51,13 +49,11 @@ private actor FakeWorkspaceRepository: AgentWorkspaceServiceProtocol {
 
     func createAgentWorkspace(
         instanceId: UUID,
-        template: AgentTemplate?,
-        metadata: [String: AnyCodable]
+        template: AgentTemplate?
     ) async throws -> WorkspaceReference {
         let reference = WorkspaceReference(
             uri: .agentWorkspace(instanceId),
-            location: .runtime,
-            metadata: metadata
+            location: .runtime
         )
         references[reference.id] = reference
         return reference

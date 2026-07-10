@@ -4,7 +4,7 @@ import JSONSchemaBuilder
 
 /// Tool to find files matching a pattern
 public struct FindFileTool: Tool, Sendable {
-    public let id = "find"
+    public let callName = "find"
     public let name = "Find File"
     public let description = "Find files matching a pattern in a directory recursively"
     public let requiresPermission = true

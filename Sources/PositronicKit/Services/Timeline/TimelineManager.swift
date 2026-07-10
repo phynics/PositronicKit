@@ -236,7 +236,7 @@ public extension TimelineManager {
 
         if let toolManager = toolManagers[timelineId] {
             let systemTools = await toolManager.getAvailableTools()
-            if systemTools.contains(where: { $0.id == toolId }) {
+            if systemTools.contains(where: { $0.callName == toolId }) {
                 return "System"
             }
         }
