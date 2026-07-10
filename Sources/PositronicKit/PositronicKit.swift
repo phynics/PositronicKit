@@ -33,6 +33,13 @@ import PKShared
 /// bespoke pipeline. A typical application wraps one kit in an application-owned Service
 /// class, then passes the managers or controllers it vends to the relevant subsystems.
 ///
+/// The public operation ladder is progressive: tier 1 is timeline-free one-shot
+/// `complete(_:)`/`stream(_:)`; tier 2 is the stateful `Conversation` cursor; tier 3 is
+/// direct `timelineManager` access; tier 4 is the full `AgenticRuntime` tool/agent loop;
+/// tier 5 is the raw primitives (`toolRouter`, `llmService`, and the prompt DSL) for a
+/// bespoke pipeline. A typical application wraps one kit in an application-owned Service
+/// class, then passes the managers or controllers it vends to the relevant subsystems.
+///
 /// Construct once and hold for the app's lifetime. `PositronicKit` is a reference type;
 /// constructing a new instance starts a new, independent cross-send history.
 public final class PositronicKit: Sendable {
