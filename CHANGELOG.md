@@ -10,6 +10,8 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- Added timeline-free `PositronicKit.complete(_:)` and `stream(_:)` one-shot APIs. They send a
+  minimal user prompt directly through `LLMStreamClient` and do not persist runtime state.
 - Added the `Conversation` cursor API: `newConversation(title:)` persists one timeline and
   workspace, `conversation(timelineId:)` returns a fresh pure cursor, and `send(_:)` delegates
   through the existing facade chat path. Cursors expose stable `Identifiable` timeline identity
