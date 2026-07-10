@@ -124,11 +124,11 @@ These public API surfaces are the **v1 compatibility contract**: they only chang
 | **LLM providers** | `LLMStreamClient`, `LLMConfigStore`, `LLMUtilityClient` (narrow seams); `LLMChatRequest`, `LLMStreamResult`, `LLMStreamChunk`, etc. | PKShared | Provider adapter contracts |
 | **Structured output** | `StructuredOutputAdapter`, `PreparedStructuredOutputRequest`, `StructuredOutputAdapterRegistry`, `DefaultStructuredOutputAdapter` | PKShared | Per-provider structured-output preparation; register a custom adapter to override the built-in behavior for an `LLMProvider` |
 | **Provider registration** | `PKOpenAIProvider.register()`, `PKOpenRouterProvider.register()`, `PKOllamaProvider.register()`, `PKAnthropicProvider.register()` | Provider modules | Provider factory registration |
-| **Workspace** | `WorkspaceProtocol`, `WorkspaceCreating`, `ToolReference`, `WorkspaceToolDefinition`, `WorkspaceToolError` | PositronicKit / PKShared | Custom workspace backends |
+| **Workspace** | `WorkspaceProtocol`, `WorkspaceCreating`, `ToolReference`, `WorkspaceToolDefinition` | PositronicKit / PKShared | Custom workspace backends |
 | **Configuration** | `LLMConfiguration`, `GenerationParameters`, `LLMProvider` | PKShared | LLM configuration |
 | **Events** | `ChatEvent`, `ToolExecutionStatus`, `Message` | PKShared | Stream event types |
 | **Sidecar directives** | `SidecarDirective`, `SidecarDelta`, `SidecarResult` (PKShared), `SidecarError` (PositronicKit) | PKShared / PositronicKit | Piggy-backed auxiliary generations riding a turn's response — see [Sidecar Directives](docs/SidecarDirectives.md) |
-| **Pipeline** | `PipelineStage`, `PipelineBuilder`, `PipelineError` | PKShared | Custom pipeline stages (advanced) |
+| **Pipeline** | `PipelineStage`, `PipelineError` | PKShared | Custom pipeline stages (advanced) |
 | **Runtime coordinators (advanced)** | `TimelineManager`, `ToolRouter`, `ToolExecutionOutcome`, `RuntimeToolPolicy` | PositronicKit | Direct runtime seams for hosts with their own composition root |
 
 `InMemory*` stores (and `PositronicKit.PersistenceConfiguration.inMemory()`) are **public prototyping/test helpers**, not extension points — convenient for prototypes and tests, but not a stability contract.

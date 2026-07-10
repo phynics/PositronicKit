@@ -231,6 +231,7 @@ Provider targets ship separately so you opt in only to the integrations you want
 
 Supporting targets:
 
+- **PKObservable** — opt-in `@Observable` wrappers for UI-facing consumers; `ObservableConversation` mirrors `Conversation` streaming state for SwiftUI clients.
 - **PositronicKitExamples** — runnable examples that double as living documentation.
 - **PKTestSupport** — shared mocks, fixtures, and test helpers for downstream test targets.
 

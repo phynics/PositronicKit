@@ -8,24 +8,20 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
-### Added
+## [2.0.0] - 2026-07-10
 
-- Documented `AnyPrompt` as a concatenating prompt group, not a type erasure (PKAPI-006).
-  The `Any` prefix signals "accepts any `Prompt`," not "erases a single concrete type" —
-  the doc comment now makes this distinction explicit. Non-breaking, docs-only.
-- Documented the five-tier facade ladder, from timeline-free one-shot operations through
-  `Conversation`, `TimelineManager`, `AgenticRuntime`, and raw primitives, with compile-checked
-  examples for the recommended application-owned Service pattern.
-- Added timeline-free `PositronicKit.complete(_:)` and `stream(_:)` one-shot APIs. They send a
-  minimal user prompt directly through `LLMStreamClient` and do not persist runtime state.
-- Added the opt-in `PKObservable` product with an `@Observable` `ObservableConversation` wrapper
-  that mirrors `Conversation` streaming state for SwiftUI-facing consumers.
-- Added the `Conversation` cursor API: `newConversation(title:)` persists one timeline and
-  workspace, `conversation(timelineId:)` returns a fresh pure cursor, and `send(_:)` delegates
-  through the existing facade chat path. Cursors expose stable `Identifiable` timeline identity
-  and scoped `TimelineManager` access.
+> Note: a `[1.2.0] - 2026-07-07` changelog section briefly existed on `main`, but no `1.2.0`
+> tag was ever cut (locally or on origin), so its entries ship here as part of `2.0.0`.
 
 ### Breaking
+
+- **Converted the `PositronicKit` facade from `struct` to `final class`** (PKFAC-001): the facade
+  is now a long-lived, `Sendable` reference-type configuration owner that owns exactly one
+  internally constructed `TimelinePromptHistoryRegistry`. The `promptHistoryRegistry:` init
+  parameter is removed — callers can no longer (and no longer need to) thread a shared registry
+  through facade rebuilds; `addingPlugin(_:)`/`reconfigured(...)` return new instances that share
+  the owner's registry internally. Hosts that reconstructed the facade per send to work around
+  registry threading (the PKINT-007 caveat) can simply hold one instance.
 
 - **Renamed `Tool.id` → `Tool.callName`** (PKAPI-002): the property is the callable name the
   LLM uses to invoke the tool (it becomes `LLMToolDefinition.name` on the wire), not an
@@ -77,8 +73,10 @@ for tagged releases beginning with `1.0.0`.
   PositronicKit pin bump; Yakamoz's inspector drawer likely renders this field.
 
 - `PositronicKit` facade fluent naming (PKAPI-005): **renamed `addPlugin(_:)` →
-  `addingPlugin(_:)`**. `PositronicKit` is a value type and this method is nonmutating
-  (it returns a new copy with the plugin added), so it now follows the participle-form
+  `addingPlugin(_:)`**. the method is nonmutating
+  (it returns a new facade instance with the plugin added — since PKFAC-001 the facade is a
+  `final class`, and the new instance shares the owner's prompt-history registry), so it now
+  follows the participle-form
   convention already used by `reconfigured(...)` on the same type, instead of the bare
   imperative verb that reads like an in-place mutation. The package-internal `addStage(_:)`
   was renamed to `addingStage(_:)` for the same reason (no downstream impact — it isn't
@@ -184,8 +182,97 @@ for tagged releases beginning with `1.0.0`.
   `PositronicKitExamples/main.swift`, `ExampleUsageStoriesTests.swift`). A grep of
   Monad/Shuttle/Yakamoz found no call sites, so downstream impact is nil.
 
+### Added
+
+- Added the tier-4 `AgenticRuntime` facade (PKFAC-006): `kit.agenticRuntime(timelineId:agentInstanceId:)`
+  vends a named entry point over the agent tool-loop, and the facade now eagerly owns a public
+  `agentInstanceManager` constructed with its own `TimelineManager` (so hosts no longer rebuild
+  and rebind their own `AgentInstanceManager` post-construction).
+- Documented `AnyPrompt` as a concatenating prompt group, not a type erasure (PKAPI-006).
+  The `Any` prefix signals "accepts any `Prompt`," not "erases a single concrete type" —
+  the doc comment now makes this distinction explicit. Non-breaking, docs-only.
+- Documented the five-tier facade ladder, from timeline-free one-shot operations through
+  `Conversation`, `TimelineManager`, `AgenticRuntime`, and raw primitives, with compile-checked
+  examples for the recommended application-owned Service pattern.
+- Added timeline-free `PositronicKit.complete(_:)` and `stream(_:)` one-shot APIs. They send a
+  minimal user prompt directly through `LLMStreamClient` and do not persist runtime state.
+- Added the opt-in `PKObservable` product with an `@Observable` `ObservableConversation` wrapper
+  that mirrors `Conversation` streaming state for SwiftUI-facing consumers.
+- Added the `Conversation` cursor API: `newConversation(title:)` persists one timeline and
+  workspace, `conversation(timelineId:)` returns a fresh pure cursor, and `send(_:)` delegates
+  through the existing facade chat path. Cursors expose stable `Identifiable` timeline identity
+  and scoped `TimelineManager` access.
+
+- `PKShared.LogKeys`: a caseless namespace of canonical `Logger.Metadata` key constants
+  (`timelineID`, `sendID`, `turnIndex`, `toolName`, `provider`, `stage`, `errorCode`) for the
+  chat turn loop. Structured-log sites across prompt assembly, LLM stream lifecycle, loop
+  continuation decisions, and tool routing now use these keys (replacing the legacy
+  `conversationID` synonym) so downstream consumers can correlate log lines by timeline/send/turn
+  without regex.
+- `TimelineToolManager.tools(inWorkspace:)` and `toolsGroupedByWorkspace()` (PKCLEAN-013): a
+  read-side query exposing the per-workspace tool grouping the runtime already tracks internally
+  (custom workspace tools + `.known` system tools tagged to a workspace, with resolved
+  provenance). Provider/global tools are excluded. Additive; existing `getEnabledTools()`/
+  `getAvailableTools()` behavior unchanged.
+- `PositronicKit.RuntimeConfiguration.toolApprovalGate` (PKAPI-008): the grouped initializers
+  in `PositronicKit+Configuration.swift` (both the `runtime: RuntimeConfiguration` overload and
+  the persistence-grouped `init(llmService:persistence:...)`) now expose `toolApprovalGate` and
+  thread it through to the facade-built `ToolRouter`. Previously a host using the "recommended"
+  grouped API silently got `DenyAllToolApprovalGate` with no way to inject a real approver
+  without dropping to the flat initializer. Additive and non-breaking — the default remains
+  `DenyAllToolApprovalGate()`, preserving existing behavior.
+
+- Tests: `SidecarOutcomeContractTests` pinning the `SidecarStreamExtractor` outcome shape for
+  leaf-scalar and object-schema directives, `null` → `.declined`, missing/wrong key → `.failed`,
+  `Codable` round-trip preserving the `AnyCodable` case tag, and a strict-mode contract test
+  asserting that composed sidecar schemas list every payload property in `required` and emit
+  `additionalProperties: false` under `strict: true` (PKTEST-1 investigation; the conflict it
+  surfaced is fixed by PKTEST-3).
+
+- Structured-output adapter seam (PKARCH-005): new `StructuredOutputAdapter` protocol and
+  `PreparedStructuredOutputRequest` in `PKShared`, plus `StructuredOutputAdapterRegistry` and a
+  `DefaultStructuredOutputAdapter` fallback. Each built-in provider target now owns its own
+  adapter implementation (`OpenAIStructuredOutputAdapter`, `OpenRouterStructuredOutputAdapter`,
+  `OllamaStructuredOutputAdapter`, `AnthropicStructuredOutputAdapter`, and
+  `OpenAICompatibleStructuredOutputAdapter`) and registers it alongside its client factory. The
+  core runtime no longer switches on `LLMProvider` to prepare structured-output requests; it
+  looks up the registered adapter and applies the prepared result. This keeps provider-specific
+  structured-output logic in dedicated provider targets while allowing hosts to register custom
+  adapters for arbitrary providers.
+- Workspace-scoped tool grouping (PKPOST-004): new `ToolProviding` protocol and structural
+  `ToolProvenance` enum in `PKShared` (`global`, `workspace(id:name:)`, `terminal(id:name:)`,
+  `named(String)`). `AnyTool.provenance` is now `ToolProvenance` with a one-release deprecated
+  string-init bridge. `TimelineToolManager` gains `registerToolProvider(_:id:)` /
+  `unregisterToolProvider(_:)` so the runtime assembles turn tools from global tools plus
+  workspace/terminal providers. `WorkspaceProtocol.executeTool(id:parameters:)` is now optional
+  with a default throwing implementation; the dead stub in `Monad.LocalWorkspace` is removed
+  on the consumer side (Monad commit `c69bdf2`, which adapts Monad to this `1.1.0` API — the
+  `PositronicKit` default implementation supersedes the stub, so no `PositronicKit`-side removal
+  was needed).
+- `PKFoundationModelsProvider` (PKPOST-003): Apple's on-device Foundation Models framework as
+  a provider — `FoundationModelsClient` maps `LanguageModelSession` streaming onto
+  `LLMStreamChunk` via a testable session-abstraction seam, bridges PositronicKit tools into
+  the framework's tool protocol (the session executes tools itself), maps
+  guardrail/termination outcomes to typed `FinishReason`, and surfaces
+  `SystemLanguageModel.availability` as a typed `PKError` with user-actionable guidance.
+  `#if canImport(FoundationModels)`-guarded; the package builds and tests green on hosts
+  without the framework, where `chatStream` throws a typed unsupported-platform error.
+- `PKAnthropicProvider` (PKPOST-001): native Anthropic Messages API adapter — event-based SSE
+  stream decoding (`message_start`/`content_block_delta`/`message_delta`…) mapped onto
+  `LLMStreamChunk`, `stop_reason` → typed `FinishReason`, tools via `input_schema` with
+  `tool_use`/`tool_result` id pairing, system messages hoisted to the top-level `system`
+  param, thinking deltas surfaced, retry-gate and sanitized-error-logging parity with the
+  other adapters, and a `PositronicKit(anthropicKey:)` convenience initializer. Structured
+  output rides the forced synthetic-tool path (`.anthropic` shares the `openAICompatible`
+  branch) since the Messages API has no `response_format`.
+
 ### Changed
 
+- API-audit documentation pass over the new facade-tier surfaces: added missing doc comments on
+  `Conversation`, `AgenticRuntime`, `ObservableConversation`, and the grouped
+  `PersistenceConfiguration`/`RuntimeConfiguration` members; de-duplicated the repeated
+  operation-ladder paragraph in the `PositronicKit` facade doc comment; simplified a redundant
+  rethrow in `ObservableConversation.consume`. No behavior change.
 - `TimelineManager` query/mutation split (PKAPI-005): the ticket described
   `getTimeline(id:)` as package-internal, but it is in fact `public` and already consumed
   directly by downstream hosts (e.g. Monad's `ChatAPIController`/`TimelineAPIController`),
@@ -218,8 +305,6 @@ for tagged releases beginning with `1.0.0`.
   parameter — no conformer depends on an injected context. The comment now reads "whether the
   tool is currently available for execution."
 
-### Changed
-
 - Build-surface housekeeping (PKCLEAN-009): documented in `Package.swift` why
   `PositronicKitTests` still depends on `PositronicKitExamples` — the
   `Tests/PositronicKitTests/Stories/Examples/*.swift` files exercise
@@ -227,29 +312,6 @@ for tagged releases beginning with `1.0.0`.
   check), so dropping the dependency would lose coverage rather than relocate it.
   Confirmed `PKFastEmbed` is already target-only (no library product) and unused by
   Monad/Shuttle/Yakamoz directly; no further change needed there.
-
-### Added
-
-- `PKShared.LogKeys`: a caseless namespace of canonical `Logger.Metadata` key constants
-  (`timelineID`, `sendID`, `turnIndex`, `toolName`, `provider`, `stage`, `errorCode`) for the
-  chat turn loop. Structured-log sites across prompt assembly, LLM stream lifecycle, loop
-  continuation decisions, and tool routing now use these keys (replacing the legacy
-  `conversationID` synonym) so downstream consumers can correlate log lines by timeline/send/turn
-  without regex.
-- `TimelineToolManager.tools(inWorkspace:)` and `toolsGroupedByWorkspace()` (PKCLEAN-013): a
-  read-side query exposing the per-workspace tool grouping the runtime already tracks internally
-  (custom workspace tools + `.known` system tools tagged to a workspace, with resolved
-  provenance). Provider/global tools are excluded. Additive; existing `getEnabledTools()`/
-  `getAvailableTools()` behavior unchanged.
-- `PositronicKit.RuntimeConfiguration.toolApprovalGate` (PKAPI-008): the grouped initializers
-  in `PositronicKit+Configuration.swift` (both the `runtime: RuntimeConfiguration` overload and
-  the persistence-grouped `init(llmService:persistence:...)`) now expose `toolApprovalGate` and
-  thread it through to the facade-built `ToolRouter`. Previously a host using the "recommended"
-  grouped API silently got `DenyAllToolApprovalGate` with no way to inject a real approver
-  without dropping to the flat initializer. Additive and non-breaking — the default remains
-  `DenyAllToolApprovalGate()`, preserving existing behavior.
-
-### Changed
 
 - Extracted the shared compaction-pressure core and section-fingerprint into PKPrompt
   (PKDEEP2-003). `AppendPressure` (package-internal) now owns the append counters +
@@ -269,6 +331,124 @@ for tagged releases beginning with `1.0.0`.
   `PKShared.NativeJSONSchemaStructuredOutputAdapter`, which each provider now
   registers directly with `StructuredOutputAdapterRegistry`.
 
+- Internal refactor (PKCLEAN-001): split `Sources/PKOpenRouterProvider/OpenRouterClient.swift` into
+  `OpenRouterClient.swift` (actor + `Attribution`) and a new `OpenRouterModels.swift` (the 14
+  request/response model types), mirroring the existing `PKOllamaProvider`/`PKAnthropicProvider`
+  model/client split. No public API change.
+- Internal refactor (PKCLEAN-002): split the value types out of
+  `Sources/PositronicKit/Services/Prompting/TimelinePromptHistory.swift` into a sibling
+  `TimelinePromptHistoryTypes.swift` (`PromptSectionEntry`, `PromptSnapshot`,
+  `PromptHistorySectionKind`, `PromptHistoryJournalDiff`, `PromptDiff`, `PromptHistoryUpdate`,
+  the deprecated `CompactionThresholds` typealias, and `RegistryEvictionPolicy`), leaving the two
+  actors (`TimelinePromptHistoryRegistry`, `TimelinePromptHistory`) in the original file. No
+  public API change.
+- Refactor: split the monolithic `Sources/PositronicKit/PositronicKit.swift` into `PositronicKit.swift` (core facade) and `PositronicKit+Configuration.swift` (`PersistenceConfiguration`, `RuntimeConfiguration`, and their grouped initializers). Public API is unchanged except for the removed aliases above.
+- Prompt assembly no longer routes section construction through the generic `Pipeline`
+  machinery (PKDEEP-001). The 10 pass-through `PromptAssemblyStage` structs, the
+  `PromptAssemblyContext` actor, and the `PromptAssemblyEvent` enum are gone; `PromptAssembler`
+  now builds its `[any Prompt]` inline via a private `buildSections` helper.
+  `PromptAssemblyOptions.overridePipeline` is replaced by `customSections:
+  (@Sendable () async -> [any Prompt])?`, which supplies the sections directly and bypasses the
+  default build. `ChatEngine.execute` and `TurnPreparer.prepareSession` no longer take an
+  `assemblyPipeline` parameter. The diagnostic log format changes from
+  `"Starting pipeline stage: <id>"`/`"Completed pipeline stage: <id> in …"` to
+  `"Starting prompt section: <id>"`/`"Completed prompt section: <id> in …"`; per-section logs are
+  emitted only on the default build path (not when `customSections` is supplied). The generic
+  `Pipeline`/`PipelineStage` infrastructure itself is unchanged and still backs the context-
+  gathering and chat-turn pipelines.
+- Docs: added a doc comment on `SidecarResult.Outcome.value` documenting the per-directive
+  payload-value contract — the `AnyCodable` case tag depends on the directive's schema shape
+  (leaf scalar → `.string`/`.number`; `@Schemable` object → `.dictionary`), and consumers must
+  not assume `AnyCodable.asString` (returns `nil` for `.dictionary`). Cites PKTEST-1.
+- Internal refactor: collapsed the `TimelineCache` protocol-with-one-adapter seam back into
+  `TimelineManager` (PKDEEP-002-impl, supersedes PKARCH-003). `TimelineLifecycleService` and
+  `WorkspaceAttachmentService` are gone; their methods are now `private extension` files on the
+  actor (`TimelineManager+Lifecycle.swift`, `TimelineManager+Attachments.swift`). The 9-method
+  `TimelineCache` protocol and `FakeTimelineCache` test fake are deleted. `ContextManager` reverts
+  from `package` to `internal`. `RuntimeToolPolicyFactory` is preserved (legitimate pure-helper
+  extraction). All `await cache.cacheX()` hops collapse to synchronous in-actor dict access. Public
+  API is unchanged.
+- Internal refactor: folded `TurnPreparer` and `TurnLoopController` back into `ChatEngine` as
+  `private extension` files (`ChatEngine+TurnPreparation.swift`,
+  `ChatEngine+TurnLoop.swift`), following the PKDEEP-002 `TimelineManager` pattern (PKDEEP2-001,
+  supersedes the PKARCH-001 split). The two single-caller helper structs are gone; their methods
+  now read `self.dependencies`/`self.logger` directly. `PromptSnapshotBuilder` and
+  `PartialAssistantPersistence` remain standalone internal helpers (genuinely separable — pure,
+  no marshalled state). `ExternalToolOutputSubmissionGate` remains a single shared (file-scope)
+  actor instance. `TurnLoopControllerTests` cases are recast at the execute level or deleted as
+  duplicates of `ChatEngineFailurePersistenceTests`/`ChatEngineTests`. No public API change.
+
+- Internal refactor: split `ToolRouter` into focused execution seams behind a stable public
+  surface (PKARCH-002). `ToolRouter` remains the public actor; its four former inline concerns are
+  now package-internal modules in their own files: `ToolExecutor` (approval-gate check,
+  tool-manager lookup, dynamic-tool priority merge, dispatch to the concrete tool),
+  `ToolTimeoutEnforcer` (wall-clock timeout race, with an injectable `sleep` closure so tests can
+  exercise the timeout branch with a fake clock and no `TimelineManager`), `ToolRoutingDecision`
+  (extended with `resolveWorkspace` plus explicit `workspaceID` argument handling, behind a
+  package `WorkspaceResolutionProvider` protocol that `TimelineManager` conforms to), and
+  `ToolTurnProjector` (extended to own the `.attempting` tool-progress event). The `TimeoutRaceResolver` actor and `executeWithTimeout`/`timeoutDescription` helpers move from
+  `ToolRouter.swift` to `ToolTimeoutEnforcer.swift`. Public API is unchanged.
+- Internal refactor: split `TimelineManager` into three package-internal services behind a stable
+  public surface (PKARCH-003). `TimelineManager` remains the public coordinator and cache owner;
+  lifecycle (`createTimeline`/`hydrateTimeline`/`updateTimelineTitle`/`deleteTimeline`/
+  `cleanupStaleTimelines`) is delegated to `TimelineLifecycleService`, workspace attachment
+  (`attachWorkspace`/`detachWorkspace`/`getWorkspaces`/`getWorkspace`) to
+  `WorkspaceAttachmentService`, and tool-policy construction (`createToolManager`) to
+  `RuntimeToolPolicyFactory`. The services operate on the caches through a narrow `package`
+  `TimelineCache` seam. `ContextManager` is promoted from `internal` to `package` so it can appear
+  in the `TimelineCache` method signatures; this visibility change is invisible to external
+  consumers. Public API is otherwise unchanged.
+- Internal refactor: unbundle `InMemoryStores.swift` into per-actor files (PKARCH-006).
+  The single 379-line file splits into one file per in-memory store actor
+  (`InMemoryMessageStore`, `InMemoryMemoryStore`, `InMemoryAgentInstanceStore`,
+  `InMemoryAgentTemplateStore`, `InMemoryRequestOriginStore`,
+  `InMemoryTimelinePersistence`, `InMemoryToolPersistence`,
+  `InMemoryWorkspacePersistence`). All public actors and their `package` test
+  accessors are preserved verbatim; no behavioral change. Public API is unchanged.
+
+- Narrowed the LLM service seam (PKARCH-004, public API refactor). The wide
+  `LLMServiceProtocol` (16 requirements) is split into three focused protocols:
+  - `LLMStreamClient` — streaming chat (`chatStream`, `chatStreamWithContext`) plus
+    `isConfigured`/`configuration` for setup inspection.
+  - `LLMConfigStore` — configuration lifecycle (`load`/`update`/`clear`/`restore`/
+    `export`/`import`).
+  - `LLMUtilityClient` — one-shot/utility tasks (`sendMessage`, `generateTags`,
+    `generateTitle`, `evaluateRecallPerformance`, `fetchAvailableModels`).
+  `LLMService` conforms to all three. `LLMServiceProtocol` is now a
+  `@available(*, deprecated)` empty protocol inheriting all three plus `HealthCheckable`,
+  so existing `any LLMServiceProtocol` usage still compiles with a deprecation warning.
+  The structured-output, stream, and utility default-implementation extensions were
+  re-targeted onto `LLMStreamClient` (and `LLMUtilityClient where Self: LLMStreamClient`
+  for the utility defaults that build on `sendStructured`). `HealthCheckable` stays on
+  `LLMService` directly, not on the narrow protocols. Consumers should narrow their seams
+  to the smallest protocol they need (`LLMStreamClient`, `LLMConfigStore`, or
+  `LLMUtilityClient`); the deprecated composite will be removed in a future release.
+  Migration note: `LLMService`/`MockLLMService`/`UnconfiguredLLMService` still conform to
+  `LLMServiceProtocol`, so `any LLMServiceProtocol` call sites compile unchanged (deprecation
+  warnings only). `ChatEngine`, `LLMStreamingStage`, `ChatTurnPipelineBuilder`, and
+  `TimelineArchiver` were narrowed to the seam they actually use.
+- Deepened the ChatEngine turn-orchestration module (PKARCH-001, internal refactor — no
+  public API impact). `ChatEngine` is now a thin coordinator that delegates to four focused
+  internal modules behind the same seam:
+  - `TurnLoopController` — the ReAct continuation loop, max-turns enforcement, and
+    cancellation handling (STAB-1 partial persistence on the error path).
+  - `TurnPreparer` — session preparation: saving inputs, gathering context, resolving
+    session entities, and building the initial prompt snapshot.
+  - `PromptSnapshotBuilder` — follow-up prompt synthesis with the incremental-string
+    assembly that avoids O(n²) re-rendering (PKR-10).
+  - `PartialAssistantPersistence` — STAB-1 partial-assistant persistence on stream
+    failure/cancellation.
+  `ChatTurnFollowUpPolicy` was already a top-level module and is unchanged. Behavior is
+  preserved exactly for cancellation, partial persistence, plugin follow-up, sidecar
+  validation, and prompt-history journal-diff continuity. `ChatEngine` now depends on
+  `LLMStreamClient` (streaming) plus `LLMUtilityClient` (RAG tag generation in
+  `TurnPreparer.fetchContext`) rather than the full `LLMServiceProtocol`.
+- Filesystem tools (`ReadFileTool`, `ListDirectoryTool`, `FindFileTool`, `SearchFilesTool`,
+  `SearchFileContentTool`) no longer declare a `workspaceID` schema parameter. Workspace tools
+  are constructed bound to their owning workspace, so routing context is structural (provenance)
+  rather than echoed per-call by the model. Historical calls with a stray `workspaceID`
+  argument continue to execute.
+
 ### Deprecated
 
 - `PositronicKit.CompactionThresholds` is now a deprecated typealias for
@@ -281,6 +461,18 @@ for tagged releases beginning with `1.0.0`.
 
 ### Removed
 
+- **Breaking (unreleased API):** removed `AgenticRuntime.workspaceId` and the `workspaceId:`
+  parameter of `PositronicKit.agenticRuntime(timelineId:agentInstanceId:)`. The value was a dead
+  passthrough — stored on the handle but never read and never forwarded into the turn
+  (`ChatRunRequest` has no workspace parameter); workspace routing is resolved from timeline
+  attachments and tool provenance. Both symbols were introduced after 1.1.0 (PKFAC-006), so no
+  released consumer is affected.
+- **Breaking:** removed three dead public types found in the pre-release audit, each with zero
+  references across PositronicKit sources/tests and all three consumers (Monad, Shuttle, Yakamoz):
+  `PKShared.ToolConfiguration` (per-session tool enable/disable record that nothing persisted or
+  read), `PositronicKit.WorkspaceToolError` (single-case error enum never thrown), and
+  `PositronicKit.InMemoryKeyValueStore` (in-memory `KeyValueStoreProtocol` conformance nothing
+  constructed — the protocol itself is kept; Monad's `DatabaseKeyValueStore` conforms to it).
 - **Breaking:** removed `PositronicKit.sidecarsIfEnabled(_:when:)`. Consumers can inline the equivalent ternary (`isEnabled ? sidecars : []`) at the call site. Yakamoz's `YakamozRuntime.makeChatViewModel` is updated accordingly.
 - **Breaking:** removed the unused `PositronicKit.PromptBuildContext` facade typealias and its intermediate `PositronicKitPromptBuildContext` alias. The canonical type remains `PromptBuildContext` in `PromptSectionProviding.swift`; conformers and callers should use that name directly.
 - **Breaking:** removed `PKOpenAIProvider.OpenAIEmbeddingService`, an abandoned experiment with zero references across PositronicKit, Monad, Shuttle, or Yakamoz. Production embedding paths use `LocalEmbeddingService`/`NoOpEmbeddingService`; this was public in the 1.x line, so flag for the release captain when cutting the next minor/major.
@@ -365,182 +557,6 @@ for tagged releases beginning with `1.0.0`.
   and `usage`. All-synthetic and all-non-synthetic chunks are unchanged. Previously the
   non-synthetic tool calls were silently discarded whenever a synthetic call was present in
   the same chunk.
-
-### Changed
-
-- Internal refactor (PKCLEAN-001): split `Sources/PKOpenRouterProvider/OpenRouterClient.swift` into
-  `OpenRouterClient.swift` (actor + `Attribution`) and a new `OpenRouterModels.swift` (the 14
-  request/response model types), mirroring the existing `PKOllamaProvider`/`PKAnthropicProvider`
-  model/client split. No public API change.
-- Internal refactor (PKCLEAN-002): split the value types out of
-  `Sources/PositronicKit/Services/Prompting/TimelinePromptHistory.swift` into a sibling
-  `TimelinePromptHistoryTypes.swift` (`PromptSectionEntry`, `PromptSnapshot`,
-  `PromptHistorySectionKind`, `PromptHistoryJournalDiff`, `PromptDiff`, `PromptHistoryUpdate`,
-  the deprecated `CompactionThresholds` typealias, and `RegistryEvictionPolicy`), leaving the two
-  actors (`TimelinePromptHistoryRegistry`, `TimelinePromptHistory`) in the original file. No
-  public API change.
-- Refactor: split the monolithic `Sources/PositronicKit/PositronicKit.swift` into `PositronicKit.swift` (core facade) and `PositronicKit+Configuration.swift` (`PersistenceConfiguration`, `RuntimeConfiguration`, and their grouped initializers). Public API is unchanged except for the removed aliases above.
-- Prompt assembly no longer routes section construction through the generic `Pipeline`
-  machinery (PKDEEP-001). The 10 pass-through `PromptAssemblyStage` structs, the
-  `PromptAssemblyContext` actor, and the `PromptAssemblyEvent` enum are gone; `PromptAssembler`
-  now builds its `[any Prompt]` inline via a private `buildSections` helper.
-  `PromptAssemblyOptions.overridePipeline` is replaced by `customSections:
-  (@Sendable () async -> [any Prompt])?`, which supplies the sections directly and bypasses the
-  default build. `ChatEngine.execute` and `TurnPreparer.prepareSession` no longer take an
-  `assemblyPipeline` parameter. The diagnostic log format changes from
-  `"Starting pipeline stage: <id>"`/`"Completed pipeline stage: <id> in …"` to
-  `"Starting prompt section: <id>"`/`"Completed prompt section: <id> in …"`; per-section logs are
-  emitted only on the default build path (not when `customSections` is supplied). The generic
-  `Pipeline`/`PipelineStage` infrastructure itself is unchanged and still backs the context-
-  gathering and chat-turn pipelines.
-- Docs: added a doc comment on `SidecarResult.Outcome.value` documenting the per-directive
-  payload-value contract — the `AnyCodable` case tag depends on the directive's schema shape
-  (leaf scalar → `.string`/`.number`; `@Schemable` object → `.dictionary`), and consumers must
-  not assume `AnyCodable.asString` (returns `nil` for `.dictionary`). Cites PKTEST-1.
-- Internal refactor: collapsed the `TimelineCache` protocol-with-one-adapter seam back into
-  `TimelineManager` (PKDEEP-002-impl, supersedes PKARCH-003). `TimelineLifecycleService` and
-  `WorkspaceAttachmentService` are gone; their methods are now `private extension` files on the
-  actor (`TimelineManager+Lifecycle.swift`, `TimelineManager+Attachments.swift`). The 9-method
-  `TimelineCache` protocol and `FakeTimelineCache` test fake are deleted. `ContextManager` reverts
-  from `package` to `internal`. `RuntimeToolPolicyFactory` is preserved (legitimate pure-helper
-  extraction). All `await cache.cacheX()` hops collapse to synchronous in-actor dict access. Public
-  API is unchanged.
-- Internal refactor: folded `TurnPreparer` and `TurnLoopController` back into `ChatEngine` as
-  `private extension` files (`ChatEngine+TurnPreparation.swift`,
-  `ChatEngine+TurnLoop.swift`), following the PKDEEP-002 `TimelineManager` pattern (PKDEEP2-001,
-  supersedes the PKARCH-001 split). The two single-caller helper structs are gone; their methods
-  now read `self.dependencies`/`self.logger` directly. `PromptSnapshotBuilder` and
-  `PartialAssistantPersistence` remain standalone internal helpers (genuinely separable — pure,
-  no marshalled state). `ExternalToolOutputSubmissionGate` remains a single shared (file-scope)
-  actor instance. `TurnLoopControllerTests` cases are recast at the execute level or deleted as
-  duplicates of `ChatEngineFailurePersistenceTests`/`ChatEngineTests`. No public API change.
-
-### Added
-
-- Tests: `SidecarOutcomeContractTests` pinning the `SidecarStreamExtractor` outcome shape for
-  leaf-scalar and object-schema directives, `null` → `.declined`, missing/wrong key → `.failed`,
-  `Codable` round-trip preserving the `AnyCodable` case tag, and a strict-mode contract test
-  asserting that composed sidecar schemas list every payload property in `required` and emit
-  `additionalProperties: false` under `strict: true` (PKTEST-1 investigation; the conflict it
-  surfaced is fixed by PKTEST-3).
-
-## [1.2.0] - 2026-07-07
-
-### Changed
-
-- Internal refactor: split `ToolRouter` into focused execution seams behind a stable public
-  surface (PKARCH-002). `ToolRouter` remains the public actor; its four former inline concerns are
-  now package-internal modules in their own files: `ToolExecutor` (approval-gate check,
-  tool-manager lookup, dynamic-tool priority merge, dispatch to the concrete tool),
-  `ToolTimeoutEnforcer` (wall-clock timeout race, with an injectable `sleep` closure so tests can
-  exercise the timeout branch with a fake clock and no `TimelineManager`), `ToolRoutingDecision`
-  (extended with `resolveWorkspace` plus explicit `workspaceID` argument handling, behind a
-  package `WorkspaceResolutionProvider` protocol that `TimelineManager` conforms to), and
-  `ToolTurnProjector` (extended to own the `.attempting` tool-progress event). The `TimeoutRaceResolver` actor and `executeWithTimeout`/`timeoutDescription` helpers move from
-  `ToolRouter.swift` to `ToolTimeoutEnforcer.swift`. Public API is unchanged.
-- Internal refactor: split `TimelineManager` into three package-internal services behind a stable
-  public surface (PKARCH-003). `TimelineManager` remains the public coordinator and cache owner;
-  lifecycle (`createTimeline`/`hydrateTimeline`/`updateTimelineTitle`/`deleteTimeline`/
-  `cleanupStaleTimelines`) is delegated to `TimelineLifecycleService`, workspace attachment
-  (`attachWorkspace`/`detachWorkspace`/`getWorkspaces`/`getWorkspace`) to
-  `WorkspaceAttachmentService`, and tool-policy construction (`createToolManager`) to
-  `RuntimeToolPolicyFactory`. The services operate on the caches through a narrow `package`
-  `TimelineCache` seam. `ContextManager` is promoted from `internal` to `package` so it can appear
-  in the `TimelineCache` method signatures; this visibility change is invisible to external
-  consumers. Public API is otherwise unchanged.
-- Internal refactor: unbundle `InMemoryStores.swift` into per-actor files (PKARCH-006).
-  The single 379-line file splits into one file per in-memory store actor
-  (`InMemoryMessageStore`, `InMemoryMemoryStore`, `InMemoryAgentInstanceStore`,
-  `InMemoryAgentTemplateStore`, `InMemoryRequestOriginStore`,
-  `InMemoryTimelinePersistence`, `InMemoryToolPersistence`,
-  `InMemoryWorkspacePersistence`). All public actors and their `package` test
-  accessors are preserved verbatim; no behavioral change. Public API is unchanged.
-
-### Added
-
-- Structured-output adapter seam (PKARCH-005): new `StructuredOutputAdapter` protocol and
-  `PreparedStructuredOutputRequest` in `PKShared`, plus `StructuredOutputAdapterRegistry` and a
-  `DefaultStructuredOutputAdapter` fallback. Each built-in provider target now owns its own
-  adapter implementation (`OpenAIStructuredOutputAdapter`, `OpenRouterStructuredOutputAdapter`,
-  `OllamaStructuredOutputAdapter`, `AnthropicStructuredOutputAdapter`, and
-  `OpenAICompatibleStructuredOutputAdapter`) and registers it alongside its client factory. The
-  core runtime no longer switches on `LLMProvider` to prepare structured-output requests; it
-  looks up the registered adapter and applies the prepared result. This keeps provider-specific
-  structured-output logic in dedicated provider targets while allowing hosts to register custom
-  adapters for arbitrary providers.
-- Workspace-scoped tool grouping (PKPOST-004): new `ToolProviding` protocol and structural
-  `ToolProvenance` enum in `PKShared` (`global`, `workspace(id:name:)`, `terminal(id:name:)`,
-  `named(String)`). `AnyTool.provenance` is now `ToolProvenance` with a one-release deprecated
-  string-init bridge. `TimelineToolManager` gains `registerToolProvider(_:id:)` /
-  `unregisterToolProvider(_:)` so the runtime assembles turn tools from global tools plus
-  workspace/terminal providers. `WorkspaceProtocol.executeTool(id:parameters:)` is now optional
-  with a default throwing implementation; the dead stub in `Monad.LocalWorkspace` is removed
-  on the consumer side (Monad commit `c69bdf2`, which adapts Monad to this `1.1.0` API — the
-  `PositronicKit` default implementation supersedes the stub, so no `PositronicKit`-side removal
-  was needed).
-- `PKFoundationModelsProvider` (PKPOST-003): Apple's on-device Foundation Models framework as
-  a provider — `FoundationModelsClient` maps `LanguageModelSession` streaming onto
-  `LLMStreamChunk` via a testable session-abstraction seam, bridges PositronicKit tools into
-  the framework's tool protocol (the session executes tools itself), maps
-  guardrail/termination outcomes to typed `FinishReason`, and surfaces
-  `SystemLanguageModel.availability` as a typed `PKError` with user-actionable guidance.
-  `#if canImport(FoundationModels)`-guarded; the package builds and tests green on hosts
-  without the framework, where `chatStream` throws a typed unsupported-platform error.
-- `PKAnthropicProvider` (PKPOST-001): native Anthropic Messages API adapter — event-based SSE
-  stream decoding (`message_start`/`content_block_delta`/`message_delta`…) mapped onto
-  `LLMStreamChunk`, `stop_reason` → typed `FinishReason`, tools via `input_schema` with
-  `tool_use`/`tool_result` id pairing, system messages hoisted to the top-level `system`
-  param, thinking deltas surfaced, retry-gate and sanitized-error-logging parity with the
-  other adapters, and a `PositronicKit(anthropicKey:)` convenience initializer. Structured
-  output rides the forced synthetic-tool path (`.anthropic` shares the `openAICompatible`
-  branch) since the Messages API has no `response_format`.
-
-### Changed
-
-- Narrowed the LLM service seam (PKARCH-004, public API refactor). The wide
-  `LLMServiceProtocol` (16 requirements) is split into three focused protocols:
-  - `LLMStreamClient` — streaming chat (`chatStream`, `chatStreamWithContext`) plus
-    `isConfigured`/`configuration` for setup inspection.
-  - `LLMConfigStore` — configuration lifecycle (`load`/`update`/`clear`/`restore`/
-    `export`/`import`).
-  - `LLMUtilityClient` — one-shot/utility tasks (`sendMessage`, `generateTags`,
-    `generateTitle`, `evaluateRecallPerformance`, `fetchAvailableModels`).
-  `LLMService` conforms to all three. `LLMServiceProtocol` is now a
-  `@available(*, deprecated)` empty protocol inheriting all three plus `HealthCheckable`,
-  so existing `any LLMServiceProtocol` usage still compiles with a deprecation warning.
-  The structured-output, stream, and utility default-implementation extensions were
-  re-targeted onto `LLMStreamClient` (and `LLMUtilityClient where Self: LLMStreamClient`
-  for the utility defaults that build on `sendStructured`). `HealthCheckable` stays on
-  `LLMService` directly, not on the narrow protocols. Consumers should narrow their seams
-  to the smallest protocol they need (`LLMStreamClient`, `LLMConfigStore`, or
-  `LLMUtilityClient`); the deprecated composite will be removed in a future release.
-  Migration note: `LLMService`/`MockLLMService`/`UnconfiguredLLMService` still conform to
-  `LLMServiceProtocol`, so `any LLMServiceProtocol` call sites compile unchanged (deprecation
-  warnings only). `ChatEngine`, `LLMStreamingStage`, `ChatTurnPipelineBuilder`, and
-  `TimelineArchiver` were narrowed to the seam they actually use.
-- Deepened the ChatEngine turn-orchestration module (PKARCH-001, internal refactor — no
-  public API impact). `ChatEngine` is now a thin coordinator that delegates to four focused
-  internal modules behind the same seam:
-  - `TurnLoopController` — the ReAct continuation loop, max-turns enforcement, and
-    cancellation handling (STAB-1 partial persistence on the error path).
-  - `TurnPreparer` — session preparation: saving inputs, gathering context, resolving
-    session entities, and building the initial prompt snapshot.
-  - `PromptSnapshotBuilder` — follow-up prompt synthesis with the incremental-string
-    assembly that avoids O(n²) re-rendering (PKR-10).
-  - `PartialAssistantPersistence` — STAB-1 partial-assistant persistence on stream
-    failure/cancellation.
-  `ChatTurnFollowUpPolicy` was already a top-level module and is unchanged. Behavior is
-  preserved exactly for cancellation, partial persistence, plugin follow-up, sidecar
-  validation, and prompt-history journal-diff continuity. `ChatEngine` now depends on
-  `LLMStreamClient` (streaming) plus `LLMUtilityClient` (RAG tag generation in
-  `TurnPreparer.fetchContext`) rather than the full `LLMServiceProtocol`.
-- Filesystem tools (`ReadFileTool`, `ListDirectoryTool`, `FindFileTool`, `SearchFilesTool`,
-  `SearchFileContentTool`) no longer declare a `workspaceID` schema parameter. Workspace tools
-  are constructed bound to their owning workspace, so routing context is structural (provenance)
-  rather than echoed per-call by the model. Historical calls with a stray `workspaceID`
-  argument continue to execute.
-
-### Fixed
 
 - `LLMStreamingStage.handleToolCallDeltas` (PKSTREAM-001): every yielded `ToolCallDelta` now
   carries the accumulator-resolved `id` for its index — OpenAI-style continuation chunks no

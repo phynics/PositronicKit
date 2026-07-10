@@ -44,7 +44,6 @@ public enum PositronicKitUsageExamples {
     public static func makeAgenticRuntimeExample() -> AgenticRuntime {
         makeOneShotRuntime().agenticRuntime(
             timelineId: UUID(),
-            workspaceId: UUID(),
             agentInstanceId: UUID()
         )
     }
@@ -301,7 +300,7 @@ public struct ExampleWorkspaceToolProvider: ToolProviding {
     public let toolProvenance: ToolProvenance
 
     public init(workspaceID: UUID, workspaceName: String) {
-        self.toolProvenance = .workspace(id: workspaceID, name: workspaceName)
+        toolProvenance = .workspace(id: workspaceID, name: workspaceName)
     }
 
     public func provideTools() async -> [AnyTool] {

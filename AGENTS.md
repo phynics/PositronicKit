@@ -11,9 +11,10 @@
 - `Sources/PKLocalEmbeddings` — platform-local embedding facade (`LocalEmbeddingService`); Natural Language on Apple by default, host-provisioned MiniLM on Linux.
 - `Sources/PKFastEmbed` / `Sources/CPKFastEmbed` — Rust bridge (via `fastembed`) and its Clang system-library wrapper for the in-process MiniLM backend (Linux default; Apple opt-in via the `MiniLMEmbeddings` trait).
 - `Sources/PKOpenAIProvider`, `Sources/PKOpenRouterProvider`, `Sources/PKOllamaProvider`, `Sources/PKAnthropicProvider`, `Sources/PKFoundationModelsProvider` — concrete provider adapters and provider-specific convenience APIs.
+- `Sources/PKObservable` — opt-in `@Observable` wrappers (`ObservableConversation`) for SwiftUI-facing consumers.
 - `Sources/PositronicKitExamples` — runnable examples; double as living documentation.
 - `Tests/PKTestSupport` — mocks, fixtures, test helpers (library product).
-- `Tests/PositronicKitTests`, `Tests/PKPromptTests`, `Tests/PKSharedTests`, `Tests/PKLocalEmbeddingsTests`, `Tests/PKFastEmbedTests`, `Tests/PKTestSupportTests` — per-module test targets.
+- `Tests/PositronicKitTests`, `Tests/PKPromptTests`, `Tests/PKSharedTests`, `Tests/PKLocalEmbeddingsTests`, `Tests/PKFastEmbedTests`, `Tests/PKObservableTests`, `Tests/PKTestSupportTests` — per-module test targets.
 
 ## Commands
 
@@ -136,7 +137,7 @@ Swift MiniLM matrix. Override `PKFASTEMBED_ASAN_TOOLCHAIN` or
 - Downstream pluggability is non-negotiable: persistence, workspace resolution, tool execution, prompting, and UI/network layers are all injectable.
 - Consume `PKPrompt` artifacts (`AssembledPrompt`, `RenderedPrompt`). Never reimplement prompt-tree semantics.
 - Extension points: persistence protocols, `WorkspaceCreating`/`WorkspaceProtocol`, `PromptSectionProviding`, `ToolRouter`, `ChatTurnPlugin`.
-- Primary entry point: the `PositronicKit` facade (`run(...)`). Advanced hosts may compose public runtime seams (`TimelineManager`, `ToolRouter`, persistence/workspace protocols) directly.
+- Primary entry point: the `PositronicKit` facade (a `final class` config owner). Choose the smallest operation tier: one-shot `complete(_:)`/`stream(_:)`, `Conversation` cursors, `timelineManager` + `run(...)`, `agenticRuntime(...)`, or raw public seams (`TimelineManager`, `ToolRouter`, persistence/workspace protocols).
 - Core public types: `Timeline`, `AgentInstance`, `TimelineManager`, `ToolRouter`, `WorkspaceManager`. `ChatEngine` and the turn pipeline are internal implementation details (driven through the facade).
 
 ## PKPrompt Invariants

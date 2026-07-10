@@ -7,16 +7,22 @@ import PKShared
 /// kit-owned timeline state for its `timelineId`, so callers may freely fetch
 /// fresh cursors without changing conversation identity.
 public struct Conversation: Identifiable, Sendable {
+    /// The persisted timeline this cursor points at.
     public let timelineId: UUID
 
-    public var id: UUID { timelineId }
+    /// Stable conversation identity; equal to `timelineId`.
+    public var id: UUID {
+        timelineId
+    }
 
     /// The shared timeline manager for tier-three operations.
-    public var timelineManager: TimelineManager { kit.timelineManager }
+    public var timelineManager: TimelineManager {
+        kit.timelineManager
+    }
 
     private let kit: PositronicKit
 
-    internal init(timelineId: UUID, kit: PositronicKit) {
+    init(timelineId: UUID, kit: PositronicKit) {
         self.timelineId = timelineId
         self.kit = kit
     }

@@ -2,32 +2,32 @@
 
 > A Swift toolkit for building AI agents: transport-neutral runtime orchestration (chat loop, timelines, tool routing), a structured prompt composition DSL, and the shared contracts that tie them together — without imposing a specific networking or hosting model.
 
-PositronicKit is pre-1.0. The core modules (`PositronicKit`, `PKPrompt`, `PKShared`) are verified on Apple platforms and Linux; `PKLocalEmbeddings` is verified on Apple default, Linux, and Apple MiniLM trait paths (see README Support Matrix). Add it as a Swift Package dependency and import only the modules you need — see Quick Start below before writing any code against it.
+PositronicKit follows semver for tagged releases beginning with `1.0.0`. The core modules (`PositronicKit`, `PKPrompt`, `PKShared`) and the provider adapters are verified on Apple platforms and Linux; `PKLocalEmbeddings` is verified on Apple default, Linux, and Apple MiniLM trait paths. Add it as a Swift Package dependency and import only the modules you need — see the Quick Start below before writing any code against it.
 
 ## Getting Started
 
-- [README: Quick Start](README.md#quick-start): add the package dependency, import the modules you need, and move any `PositronicKit.LocalEmbeddingService` references to `PKLocalEmbeddings`.
-- [README: Choosing A Layer](README.md#choosing-a-layer) and [Choose Your Entry Point](README.md#choose-your-entry-point): which module/entry point to start from for your use case (prompt-only, single-process runtime, host-owned execution, etc).
+- [README: Quick Start](README.md#quick-start): add the package dependency, import the modules you need, and pick the smallest operation tier (one-shot `complete`/`stream`, `Conversation`, `TimelineManager`, `AgenticRuntime`, raw seams).
+- [Setup Guide](docs/Setup.md): choosing an entry point, facade configuration (minimal vs. production), default tool installation, provider registration, logging, and errors.
 - [PositronicKitExamples](Sources/PositronicKitExamples): runnable examples that double as living documentation — read `main.swift`, `PositronicKitUsageExamples.swift`, and `PKPromptExamples.swift` before inventing your own composition pattern.
 
 ## Core Concepts
 
-- [README: Runtime — PositronicKit](README.md#runtime-positronickit): the `PositronicKit` facade (`run(...)`, `ChatEvent` stream) vs. direct runtime seams (`TimelineManager`, `ToolRouter`) for advanced hosts; Timeline/AgentInstance concepts; the turn lifecycle (gather context → assemble prompt → stream → tool calls → persist).
-- [README: v1 Extension Point Registry](README.md#v1-extension-point-registry): the stable public API surfaces intended for downstream extension — tool contracts, persistence protocols, workspace protocols, prompt-section hooks, provider contracts. Treat everything else in the runtime (`ChatEngine`, prompt-assembly internals, context-pipeline internals) as private, even if technically public.
-- [README: Extension Points](README.md#extension-points): `WorkspaceCreating`/`WorkspaceProtocol`, `PromptSectionProviding`, `ChatTurnPlugin`, and the persistence protocol set — use these instead of forking runtime internals.
-- [README: Default Runtime Tool Policy](README.md#default-runtime-tool-policy): which tools (filesystem, timeline observation/send) `TimelineManager` installs by default, and how to change that with `RuntimeToolPolicy`.
+- [Usage Guide](docs/Usage.md): managing agent instances, initialization and execution, running a `ChatEvent` stream, handling tool outputs, and local embeddings.
+- [Architecture](docs/Architecture.md): the pipeline pattern, context/state management, facade vs. direct-seam wiring, chat-engine execution flow, and the v1 extension point registry — treat everything not in that registry (`ChatEngine`, prompt-assembly internals, context-pipeline internals) as private, even if technically public.
+- [Prompt Composition](docs/PKPromptComposition.md): the `@PromptBuilder` DSL, assembly/rendering, cache policies, and `PromptJournal` stable-prefix journaling.
+- [Sidecar Directives](docs/SidecarDirectives.md): piggy-backed auxiliary generations (titles, tags, summaries) riding the same LLM request as the user-visible response.
 
 ## Providers
 
-- [README: Provider Registration](README.md#provider-registration): register a concrete provider (`PKOpenAIProvider`, `PKOpenRouterProvider`, `PKOllamaProvider`) before constructing an `LLMService` from configuration.
-- [README: Local Embeddings](README.md#local-embeddings): `PKLocalEmbeddings`/`LocalEmbeddingService` — Natural Language by default on Apple, `modelDirectory` construction on Linux, opt-in Apple MiniLM via the `MiniLMEmbeddings` trait, no provider or daemon fallback, and re-embed when moving content across backends or platforms.
+- [Setup Guide: Provider Registration](docs/Setup.md#provider-registration): register a concrete provider (`PKOpenAIProvider`, `PKOpenRouterProvider`, `PKOllamaProvider`, `PKAnthropicProvider`, `PKFoundationModelsProvider`) before constructing an `LLMService` from configuration.
+- [Usage Guide: Local Embeddings](docs/Usage.md#4-local-embeddings): `PKLocalEmbeddings`/`LocalEmbeddingService` — Natural Language by default on Apple, MiniLM on Linux, opt-in Apple MiniLM via the `MiniLMEmbeddings` trait; re-embed when moving content across backends or platforms.
 
 ## Reference
 
-- [CHANGELOG](CHANGELOG.md): breaking changes to v1 extension-point surfaces are called out under a `Breaking` heading here — check before upgrading a pinned revision.
-- [AGENTS.md](AGENTS.md): repo layout, module boundaries, and build/test/verify commands. Written for coding agents contributing *to* this package, not for agents consuming it at runtime — read it if you need to build, test, or modify PositronicKit itself.
+- [CHANGELOG](CHANGELOG.md): breaking changes to public surfaces are called out under a `Breaking` heading — check before upgrading a pinned version.
+- [Releasing](docs/Releasing.md): the release workflow, tagging steps, and downstream upgrade cadence.
+- [AGENTS.md](AGENTS.md): repo layout, module boundaries, and build/test/verify commands. Written for coding agents contributing *to* this package, not for agents consuming it at runtime.
 
 ## Optional
 
-- [README: Support Matrix](README.md#support-matrix): per-target Apple/Linux support status.
-- [README: Manual Verification](README.md#manual-verification): `make verify` / `verify-products` / `verify-minilm` gates, useful if you're vendoring or patching the package rather than just consuming its public API.
+- [README: Verification](README.md#verification): `make verify` / `verify-products` / `verify-minilm` / Linux gates, useful if you're vendoring or patching the package rather than just consuming its public API.

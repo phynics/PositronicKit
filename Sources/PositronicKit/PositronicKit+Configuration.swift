@@ -37,6 +37,9 @@ public extension PositronicKit {
         }
     }
 
+    /// Groups the persistence stores the runtime writes to. Every store is optional;
+    /// omitted stores default to their in-memory implementation, so partial persistence
+    /// setups (e.g. only a real message store) work without boilerplate.
     struct PersistenceConfiguration: Sendable {
         public let messageStore: any MessageStoreProtocol
         public let timelinePersistence: any TimelinePersistenceProtocol
@@ -64,11 +67,14 @@ public extension PositronicKit {
             self.requestOriginStore = requestOriginStore ?? InMemoryRequestOriginStore()
         }
 
+        /// A fully in-memory persistence configuration, suitable for prototyping and tests.
         public static func inMemory() -> PersistenceConfiguration {
             PersistenceConfiguration()
         }
     }
 
+    /// Groups the non-store runtime knobs: workspace creation, prompt-section providers,
+    /// tool policy and approval, chat-turn plugins, and prompt inspection.
     struct RuntimeConfiguration: Sendable {
         public let workspaceCreator: any WorkspaceCreating
         public let sectionProviders: [any PromptSectionProviding]
@@ -96,9 +102,14 @@ public extension PositronicKit {
             self.toolApprovalGate = toolApprovalGate
         }
 
-        public static var `default`: RuntimeConfiguration { RuntimeConfiguration() }
+        /// The default runtime configuration: no workspaces, no plugins, deny-all tool approval.
+        public static var `default`: RuntimeConfiguration {
+            RuntimeConfiguration()
+        }
     }
 
+    /// Creates a facade from a grouped configuration. This is the supported production entry
+    /// point; use `PositronicKit(llmService:)` for prototyping.
     convenience init(configuration: Configuration) {
         self.init(
             llmService: configuration.provider.llmService,

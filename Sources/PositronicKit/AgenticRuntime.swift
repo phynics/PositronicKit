@@ -7,9 +7,11 @@ import PKShared
 /// call. Agent lifecycle operations are delegated to the facade-owned manager, while turns are
 /// delegated to the facade's existing chat/tool loop.
 public final class AgenticRuntime: Sendable {
+    /// The timeline this runtime handle runs turns against.
     public let timelineId: UUID
-    public let workspaceId: UUID?
+    /// The agent instance whose identity and workspace bindings each turn runs under.
     public let agentInstanceId: UUID
+    /// The facade-owned agent-instance manager, shared by every handle the facade vends.
     public let agentInstanceManager: AgentInstanceManager
 
     private let kit: PositronicKit
@@ -17,14 +19,12 @@ public final class AgenticRuntime: Sendable {
     init(
         kit: PositronicKit,
         timelineId: UUID,
-        workspaceId: UUID?,
         agentInstanceId: UUID
     ) {
         self.kit = kit
         self.timelineId = timelineId
-        self.workspaceId = workspaceId
         self.agentInstanceId = agentInstanceId
-        self.agentInstanceManager = kit.agentInstanceManager
+        agentInstanceManager = kit.agentInstanceManager
     }
 
     /// Runs one agent turn through the facade's existing tool loop.
@@ -44,4 +44,3 @@ public final class AgenticRuntime: Sendable {
         ))
     }
 }
-

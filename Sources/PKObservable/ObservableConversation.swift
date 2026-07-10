@@ -10,13 +10,18 @@ private final class ActiveSend: @unchecked Sendable {
 @MainActor
 @Observable
 public final class ObservableConversation {
+    /// The completed messages of the conversation, oldest first.
     public private(set) var messages: [Message] = []
+    /// Whether a send is currently streaming a response.
     public private(set) var isStreaming = false
+    /// The partial assistant text of the in-flight turn; empty between turns.
     public private(set) var streamingText = ""
 
+    /// The underlying conversation cursor this controller mirrors.
     public let conversation: Conversation
     private let activeSend = ActiveSend()
 
+    /// Creates a controller for a conversation cursor, optionally seeded with prior messages.
     public init(_ conversation: Conversation, messages: [Message] = []) {
         self.conversation = conversation
         self.messages = messages
@@ -44,22 +49,15 @@ public final class ObservableConversation {
         }
 
         let stream = try await conversation.send(content)
-        do {
-            for try await event in stream {
-                try Task.checkCancellation()
-                if let text = event.textContent {
-                    streamingText += text
-                }
-                if let completed = event.completedMessage?.message {
-                    messages.append(completed)
-                    streamingText = ""
-                }
+        for try await event in stream {
+            try Task.checkCancellation()
+            if let text = event.textContent {
+                streamingText += text
             }
-        } catch {
-            if error is CancellationError {
-                throw error
+            if let completed = event.completedMessage?.message {
+                messages.append(completed)
+                streamingText = ""
             }
-            throw error
         }
     }
 

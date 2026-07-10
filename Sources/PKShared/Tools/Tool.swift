@@ -201,20 +201,6 @@ public extension [AnyTool] {
     }
 }
 
-/// Persistent configuration for a specific tool within a chat session.
-public struct ToolConfiguration: Codable, Identifiable, Sendable {
-    /// The unique identifier of the tool.
-    public let id: String
-
-    /// Whether the tool is active and can be called by the LLM in this session.
-    public var isEnabled: Bool
-
-    public init(toolId: String, isEnabled: Bool = true) {
-        id = toolId
-        self.isEnabled = isEnabled
-    }
-}
-
 // MARK: - Type-Erased Tool
 
 public protocol ToolReferenceProviding {

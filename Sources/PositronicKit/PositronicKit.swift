@@ -22,16 +22,9 @@ import PKShared
 /// `TimelinePromptHistory`, and the concrete turn pipeline remain runtime implementation details
 /// even when they are visible to tests inside this package.
 ///
-    /// Example usage:
-    /// - Minimal: `PositronicKit(llmService: myLLM)`
-    /// - Production: use `PositronicKit(configuration:)`.
-///
-/// The public operation ladder is progressive: tier 1 is timeline-free one-shot
-/// `complete(_:)`/`stream(_:)`; tier 2 is the stateful `Conversation` cursor; tier 3 is
-/// direct `timelineManager` access; tier 4 is the full `AgenticRuntime` tool/agent loop;
-/// tier 5 is the raw primitives (`toolRouter`, `llmService`, and the prompt DSL) for a
-/// bespoke pipeline. A typical application wraps one kit in an application-owned Service
-/// class, then passes the managers or controllers it vends to the relevant subsystems.
+/// Example usage:
+/// - Minimal: `PositronicKit(llmService: myLLM)`
+/// - Production: use `PositronicKit(configuration:)`.
 ///
 /// The public operation ladder is progressive: tier 1 is timeline-free one-shot
 /// `complete(_:)`/`stream(_:)`; tier 2 is the stateful `Conversation` cursor; tier 3 is
@@ -131,7 +124,7 @@ public final class PositronicKit: Sendable {
         self.embeddingService = embeddingService ?? NoOpEmbeddingService()
         self.chatTurnPlugins = chatTurnPlugins
         self.promptInspector = promptInspector
-        self.promptHistoryRegistry = sharedRegistry
+        promptHistoryRegistry = sharedRegistry
         self.workspaceRoot = workspaceRoot
         self.workspaceCreator = workspaceCreator
         self.sectionProviders = sectionProviders
@@ -157,7 +150,7 @@ public final class PositronicKit: Sendable {
             sectionProviders: sectionProviders,
             runtimeToolPolicy: runtimeToolPolicy,
             embeddingService: self.embeddingService,
-            promptHistoryRegistry: self.promptHistoryRegistry
+            promptHistoryRegistry: promptHistoryRegistry
         )
         timelineManager = resolvedTimelineManager
         agentInstanceManager = AgentInstanceManager(
@@ -188,7 +181,7 @@ public final class PositronicKit: Sendable {
                 toolRouter: toolRouter,
                 chatTurnPlugins: self.chatTurnPlugins,
                 promptInspector: self.promptInspector,
-                promptHistoryRegistry: self.promptHistoryRegistry
+                promptHistoryRegistry: promptHistoryRegistry
             )
         )
         engine.additionalStages = additionalStages
@@ -293,13 +286,11 @@ public final class PositronicKit: Sendable {
     /// Vends a fresh tier-four agent runtime handle.
     public func agenticRuntime(
         timelineId: UUID,
-        workspaceId: UUID? = nil,
         agentInstanceId: UUID
     ) -> AgenticRuntime {
         AgenticRuntime(
             kit: self,
             timelineId: timelineId,
-            workspaceId: workspaceId,
             agentInstanceId: agentInstanceId
         )
     }

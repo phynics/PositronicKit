@@ -54,12 +54,10 @@ struct PublicRuntimeStoriesTests {
         let agentId = UUID()
         let runtime = kit.agenticRuntime(
             timelineId: timelineId,
-            workspaceId: nil,
             agentInstanceId: agentId
         )
         let secondRuntime = kit.agenticRuntime(
             timelineId: timelineId,
-            workspaceId: nil,
             agentInstanceId: agentId
         )
 
