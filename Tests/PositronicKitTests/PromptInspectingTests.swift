@@ -5,16 +5,16 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-private actor InspectionRecorder: TurnInspecting {
-    private(set) var values: [TurnInspection] = []
+private actor InspectionRecorder: PromptInspecting {
+    private(set) var values: [PromptInspection] = []
 
-    func didComposeTurn(_ inspection: TurnInspection) {
+    func didComposePrompt(_ inspection: PromptInspection) {
         values.append(inspection)
     }
 }
 
 @Suite(.serialized) @MainActor
-struct TurnInspectingTests {
+struct PromptInspectingTests {
     private final class FacadeReconfigurationHarness {
         let persistence = MockPersistenceService()
         let inspector = InspectionRecorder()
@@ -34,7 +34,7 @@ struct TurnInspectingTests {
                 workspacePersistence: persistence,
                 memoryStore: persistence,
                 toolPersistence: persistence,
-                turnInspector: inspector
+                promptInspector: inspector
             )
             let timeline = try await baseKit.timelineManager.createTimeline(title: "Reconfiguration")
             timelineId = timeline.id
@@ -58,7 +58,7 @@ struct TurnInspectingTests {
         let persistence = MockPersistenceService()
         let engine: ChatEngine
 
-        init(inspector: (any TurnInspecting)? = nil) async throws {
+        init(inspector: (any PromptInspecting)? = nil) async throws {
             let timelineManager = TimelineManager(
                 stores: .init(
                     timelineStore: persistence,
@@ -82,7 +82,7 @@ struct TurnInspectingTests {
                     llmService: llm,
                     toolRouter: toolRouter,
                     chatTurnPlugins: [],
-                    turnInspector: inspector
+                    promptInspector: inspector
                 )
             )
 
@@ -294,7 +294,7 @@ struct TurnInspectingTests {
             workspacePersistence: harness.persistence,
             memoryStore: harness.persistence,
             toolPersistence: harness.persistence,
-            turnInspector: harness.inspector
+            promptInspector: harness.inspector
         )
         try await harness.run(kit: secondKit, message: "Second send")
 

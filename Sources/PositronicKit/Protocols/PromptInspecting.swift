@@ -8,8 +8,8 @@ import PKShared
 ///
 /// This is the read-only counterpart to `ChatTurnPlugin`. The two hooks fire in different
 /// phases and must not merge:
-/// - `TurnInspecting.didComposeTurn` fires at prompt-assembly time (no response yet),
-///   returns `Void`, and is a single optional `turnInspector`.
+/// - `PromptInspecting.didComposePrompt` fires at prompt-assembly time (no response yet),
+///   returns `Void`, and is a single optional `promptInspector`.
 /// - `ChatTurnPlugin.afterTurn` fires after the turn completes (with the full response),
 ///   returns `[LLMMessage]` to drive a follow-up turn, and is an ordered `chatTurnPlugins`
 ///   list.
@@ -17,13 +17,13 @@ import PKShared
 /// substantive data is disjoint (input snapshot vs. output). See `ChatTurnPlugin`.
 ///
 /// Intentional single-customer extension point: the sole production adapter is
-/// Yakamoz's `SwiftDataTurnInspector`. The protocol exists so downstream consumers
+/// Yakamoz's `SwiftDataPromptInspector`. The protocol exists so downstream consumers
 /// can plug in their own persistence/inspection layer without forking the runtime.
 /// "Do not generalize without a second adapter" applies to *this* protocol's surface
-/// (don't broaden `TurnInspection` or add methods without a second real conformer) —
+/// (don't broaden `PromptInspection` or add methods without a second real conformer) —
 /// it is not a reason to merge with `ChatTurnPlugin`.
-public protocol TurnInspecting: Sendable {
-    func didComposeTurn(_ inspection: TurnInspection) async
+public protocol PromptInspecting: Sendable {
+    func didComposePrompt(_ inspection: PromptInspection) async
 }
 
 /// Stable identity for one composed turn within a logical user send.
@@ -40,7 +40,7 @@ public struct TurnIdentity: Sendable, Hashable, Equatable {
     }
 }
 
-public struct TurnInspection: Sendable {
+public struct PromptInspection: Sendable {
     /// Consumer-facing mapping that groups every round-trip from one logical send.
     public let identity: TurnIdentity
     public let timelineId: UUID

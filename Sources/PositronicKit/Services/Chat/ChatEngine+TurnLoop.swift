@@ -139,7 +139,7 @@ private extension ChatEngine {
         do {
             try Task.checkCancellation()
             logger.trace("Turn \(turnLabel): starting pipeline for \(sid)")
-            await publishTurnInspectionIfNeeded(context: context)
+            await publishPromptInspectionIfNeeded(context: context)
             try await processTurn(context: context, continuation: continuation)
             logger.trace("Turn \(turnLabel): pipeline complete for \(sid)")
             return try await handleToolCallsAfterTurn(context: context, continuation: continuation)
@@ -240,7 +240,7 @@ private extension ChatEngine {
         }
     }
 
-    func publishTurnInspectionIfNeeded(context: ChatTurnContext) async {
+    func publishPromptInspectionIfNeeded(context: ChatTurnContext) async {
         // Audit trail: log which precondition failed so an operator asking "why didn't my
         // inspector fire?" gets a reason instead of silence (PKLOG-001).
         let baseMeta: Logger.Metadata = [
@@ -248,7 +248,7 @@ private extension ChatEngine {
             LogKeys.sendID: .string(context.sendId.uuidString),
             LogKeys.turnIndex: .string("\(context.turnCount)"),
         ]
-        guard let inspector = dependencies.turnInspector else {
+        guard let inspector = dependencies.promptInspector else {
             logger.debug("Turn inspection skipped: no turn inspector registered", metadata: baseMeta)
             return
         }
@@ -273,7 +273,7 @@ private extension ChatEngine {
 
         let turnIdentity = TurnIdentity(sendId: context.sendId, roundTrip: max(context.turnCount - 1, 0))
 
-        await inspector.didComposeTurn(TurnInspection(
+        await inspector.didComposePrompt(PromptInspection(
             identity: turnIdentity,
             timelineId: context.timelineId,
             agentInstanceId: context.agentInstanceId,

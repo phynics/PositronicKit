@@ -55,7 +55,7 @@ public final class PositronicKit: Sendable {
     private let agentInstanceStore: any AgentInstanceStoreProtocol
     private let requestOriginStore: any RequestOriginStoreProtocol
     private let chatTurnPlugins: [any ChatTurnPlugin]
-    private let turnInspector: (any TurnInspecting)?
+    private let promptInspector: (any PromptInspecting)?
     let defaultGenerationParameters: GenerationParameters?
     private let logger = Logger.module(named: "positronickit-facade")
 
@@ -118,7 +118,7 @@ public final class PositronicKit: Sendable {
     ///   - sectionProviders: Extension points for additional prompt sections, forwarded to TimelineManager.
     ///   - runtimeToolPolicy: Controls which built-in runtime tools TimelineManager installs.
     ///   - chatTurnPlugins: Post-turn plugins (e.g. autonomous reactions).
-    ///   - turnInspector: Optional sink for per-turn prompt/journal inspection projections.
+    ///   - promptInspector: Optional sink for per-turn prompt/journal inspection projections.
     ///   - generationParameters: Optional default parameters for generation.
     ///   - toolApprovalGate: Gate consulted at the runtime execution sink before any tool whose
     ///     `requiresPermission` is `true` runs. Defaults to `DenyAllToolApprovalGate` so
@@ -138,7 +138,7 @@ public final class PositronicKit: Sendable {
         sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: TimelineManager.RuntimeToolPolicy = .default,
         chatTurnPlugins: [any ChatTurnPlugin] = [],
-        turnInspector: (any TurnInspecting)? = nil,
+        promptInspector: (any PromptInspecting)? = nil,
         generationParameters: GenerationParameters? = nil,
         toolApprovalGate: any ToolApprovalGate = DenyAllToolApprovalGate()
     ) {
@@ -157,7 +157,7 @@ public final class PositronicKit: Sendable {
             sectionProviders: sectionProviders,
             runtimeToolPolicy: runtimeToolPolicy,
             chatTurnPlugins: chatTurnPlugins,
-            turnInspector: turnInspector,
+            promptInspector: promptInspector,
             generationParameters: generationParameters,
             toolApprovalGate: toolApprovalGate,
             sharedRegistry: TimelinePromptHistoryRegistry(),
@@ -180,7 +180,7 @@ public final class PositronicKit: Sendable {
         sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: TimelineManager.RuntimeToolPolicy = .default,
         chatTurnPlugins: [any ChatTurnPlugin] = [],
-        turnInspector: (any TurnInspecting)? = nil,
+        promptInspector: (any PromptInspecting)? = nil,
         generationParameters: GenerationParameters? = nil,
         toolApprovalGate: any ToolApprovalGate = DenyAllToolApprovalGate(),
         sharedRegistry: TimelinePromptHistoryRegistry,
@@ -196,7 +196,7 @@ public final class PositronicKit: Sendable {
         self.toolPersistence = toolPersistence ?? InMemoryToolPersistence()
         self.embeddingService = embeddingService ?? NoOpEmbeddingService()
         self.chatTurnPlugins = chatTurnPlugins
-        self.turnInspector = turnInspector
+        self.promptInspector = promptInspector
         self.promptHistoryRegistry = sharedRegistry
         self.workspaceRoot = workspaceRoot
         self.workspaceCreator = workspaceCreator
@@ -253,7 +253,7 @@ public final class PositronicKit: Sendable {
                 llmService: self.llmService,
                 toolRouter: toolRouter,
                 chatTurnPlugins: self.chatTurnPlugins,
-                turnInspector: self.turnInspector,
+                promptInspector: self.promptInspector,
                 promptHistoryRegistry: self.promptHistoryRegistry
             )
         )
@@ -286,7 +286,7 @@ public final class PositronicKit: Sendable {
             sectionProviders: sectionProviders,
             runtimeToolPolicy: runtimeToolPolicy,
             chatTurnPlugins: chatTurnPlugins,
-            turnInspector: turnInspector,
+            promptInspector: promptInspector,
             generationParameters: generationParameters ?? defaultGenerationParameters,
             toolApprovalGate: toolApprovalGate,
             sharedRegistry: promptHistoryRegistry,
@@ -311,7 +311,7 @@ public final class PositronicKit: Sendable {
             toolPersistence: toolPersistence, embeddingService: embeddingService,
             workspaceRoot: workspaceRoot, workspaceCreator: workspaceCreator,
             sectionProviders: sectionProviders, runtimeToolPolicy: runtimeToolPolicy,
-            chatTurnPlugins: chatTurnPlugins, turnInspector: turnInspector,
+            chatTurnPlugins: chatTurnPlugins, promptInspector: promptInspector,
             generationParameters: defaultGenerationParameters, toolApprovalGate: toolApprovalGate,
             sharedRegistry: promptHistoryRegistry,
             additionalStages: chatEngine.additionalStages + [stage]
@@ -329,7 +329,7 @@ public final class PositronicKit: Sendable {
             toolPersistence: toolPersistence, embeddingService: embeddingService,
             workspaceRoot: workspaceRoot, workspaceCreator: workspaceCreator,
             sectionProviders: sectionProviders, runtimeToolPolicy: runtimeToolPolicy,
-            chatTurnPlugins: chatTurnPlugins + [plugin], turnInspector: turnInspector,
+            chatTurnPlugins: chatTurnPlugins + [plugin], promptInspector: promptInspector,
             generationParameters: defaultGenerationParameters, toolApprovalGate: toolApprovalGate,
             sharedRegistry: promptHistoryRegistry, additionalStages: chatEngine.additionalStages
         )

@@ -9,12 +9,12 @@ import PKShared
 import PositronicKit
 
 public enum PositronicKitUsageExamples {
-    public actor ExampleTurnInspector: TurnInspecting {
+    public actor ExamplePromptInspector: PromptInspecting {
         public private(set) var latestTokenEstimate = 0
 
         public init() {}
 
-        public func didComposeTurn(_ inspection: TurnInspection) {
+        public func didComposePrompt(_ inspection: PromptInspection) {
             latestTokenEstimate = inspection.estimatedTokens
         }
     }
@@ -49,11 +49,11 @@ public enum PositronicKitUsageExamples {
         )
     }
 
-    public static func makeInspectableRuntime(inspector: any TurnInspecting) -> PositronicKit {
+    public static func makeInspectableRuntime(inspector: any PromptInspecting) -> PositronicKit {
         PositronicKit(configuration: .init(
             provider: .init(llmService: UnconfiguredLLMService()),
             persistence: .inMemory(),
-            runtime: .init(turnInspector: inspector)
+            runtime: .init(promptInspector: inspector)
         ))
     }
 

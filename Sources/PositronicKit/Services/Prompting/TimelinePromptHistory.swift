@@ -97,7 +97,7 @@ public actor TimelinePromptHistory {
     /// `ChatEngine.execute` calls (i.e. across user sends), not just within one.
     ///
     /// `ChatTurnContext.turnCount` resets to 0 at the start of every `execute()` call, so it
-    /// cannot be used as the persisted `TurnInspectionModel` row index — two different sends
+    /// cannot be used as the persisted `PromptInspectionModel` row index — two different sends
     /// would both produce row index 0 for their first internal round-trip, and the second
     /// send's row would silently overwrite the first send's row (same `"timelineId:turnIndex"`
     /// key). This counter increments once per `nextInspectionTurnIndex()` call and is never

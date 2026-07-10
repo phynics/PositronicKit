@@ -42,6 +42,16 @@ for tagged releases beginning with `1.0.0`.
   Downstream consumers that pass `metadata:` to these methods need to drop the argument on
   their next PositronicKit pin bump. The Monad GRDB migration to drop the persisted column
   is deferred to the downstream phase (PKFAC-008).
+- Renamed the compose-time observability seam to name its payload, not just its phase
+  (PKAPI-015): `protocol TurnInspecting` → `PromptInspecting`,
+  `func didComposeTurn(_:)` → `didComposePrompt(_:)`, `struct TurnInspection` → `PromptInspection`,
+  and the `turnInspector` init parameter/property (all sites) → `promptInspector`. The payload is
+  the fully composed, about-to-be-sent prompt (rendered prompt + sent messages + journal snapshot,
+  no response yet), so the name now says *what you receive*. Shared correlation types in the same
+  file (`TurnIdentity`, `TurnJournalSnapshot`) are unchanged. Downstream: Yakamoz's
+  `SwiftDataTurnInspector` conformer is renamed to `SwiftDataPromptInspector` and its facade wiring
+  updated on the next PositronicKit pin bump.
+
 - Unified reasoning/thinking terminology across public types (PKAPI-003):
   `Message.think` → `Message.reasoning`, `LLMStreamDelta.thinking` → `LLMStreamDelta.reasoning`,
   `ChatEvent.DeltaEvent.thinking`/`.thinking(_:)` → `.reasoning`/`.reasoning(_:)`. `LLMMessage.reasoning`

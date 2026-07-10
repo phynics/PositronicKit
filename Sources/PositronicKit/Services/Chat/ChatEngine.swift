@@ -90,7 +90,7 @@ struct ChatEngine {
         let utilityClient: any LLMUtilityClient
         let toolRouter: ToolRouter
         let chatTurnPlugins: [any ChatTurnPlugin]
-        let turnInspector: (any TurnInspecting)?
+        let promptInspector: (any PromptInspecting)?
         let promptHistoryRegistry: TimelinePromptHistoryRegistry
         let streamTimeout: TimeInterval
 
@@ -102,7 +102,7 @@ struct ChatEngine {
             llmService: any LLMStreamClient & LLMUtilityClient,
             toolRouter: ToolRouter,
             chatTurnPlugins: [any ChatTurnPlugin],
-            turnInspector: (any TurnInspecting)? = nil,
+            promptInspector: (any PromptInspecting)? = nil,
             promptHistoryRegistry: TimelinePromptHistoryRegistry? = nil,
             streamTimeout: TimeInterval = Self.defaultStreamTimeout
         ) {
@@ -114,7 +114,7 @@ struct ChatEngine {
             self.utilityClient = llmService
             self.toolRouter = toolRouter
             self.chatTurnPlugins = chatTurnPlugins
-            self.turnInspector = turnInspector
+            self.promptInspector = promptInspector
             self.promptHistoryRegistry = promptHistoryRegistry ?? TimelinePromptHistoryRegistry()
             self.streamTimeout = streamTimeout
         }

@@ -80,7 +80,7 @@ public extension PositronicKit {
         public let runtimeToolPolicy: TimelineManager.RuntimeToolPolicy
         public let workspaceRoot: URL?
         public let chatTurnPlugins: [any ChatTurnPlugin]
-        public let turnInspector: (any TurnInspecting)?
+        public let promptInspector: (any PromptInspecting)?
         public let toolApprovalGate: any ToolApprovalGate
 
         public init(
@@ -89,7 +89,7 @@ public extension PositronicKit {
             runtimeToolPolicy: TimelineManager.RuntimeToolPolicy = .default,
             workspaceRoot: URL? = nil,
             chatTurnPlugins: [any ChatTurnPlugin] = [],
-            turnInspector: (any TurnInspecting)? = nil,
+            promptInspector: (any PromptInspecting)? = nil,
             toolApprovalGate: any ToolApprovalGate = DenyAllToolApprovalGate()
         ) {
             self.workspaceCreator = workspaceCreator
@@ -97,7 +97,7 @@ public extension PositronicKit {
             self.runtimeToolPolicy = runtimeToolPolicy
             self.workspaceRoot = workspaceRoot
             self.chatTurnPlugins = chatTurnPlugins
-            self.turnInspector = turnInspector
+            self.promptInspector = promptInspector
             self.toolApprovalGate = toolApprovalGate
         }
 
@@ -120,7 +120,7 @@ public extension PositronicKit {
             sectionProviders: configuration.runtime.sectionProviders,
             runtimeToolPolicy: configuration.runtime.runtimeToolPolicy,
             chatTurnPlugins: configuration.runtime.chatTurnPlugins,
-            turnInspector: configuration.runtime.turnInspector,
+            promptInspector: configuration.runtime.promptInspector,
             generationParameters: configuration.generationParameters,
             toolApprovalGate: configuration.runtime.toolApprovalGate
         )
