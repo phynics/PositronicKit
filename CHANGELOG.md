@@ -10,6 +10,9 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- Documented the five-tier facade ladder, from timeline-free one-shot operations through
+  `Conversation`, `TimelineManager`, `AgenticRuntime`, and raw primitives, with compile-checked
+  examples for the recommended application-owned Service pattern.
 - Added timeline-free `PositronicKit.complete(_:)` and `stream(_:)` one-shot APIs. They send a
   minimal user prompt directly through `LLMStreamClient` and do not persist runtime state.
 - Added the opt-in `PKObservable` product with an `@Observable` `ObservableConversation` wrapper
