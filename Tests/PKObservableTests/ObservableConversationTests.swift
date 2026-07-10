@@ -31,7 +31,18 @@ struct ObservableConversationTests {
         let observable = ObservableConversation(conversation)
 
         let first = Task { try await observable.send("first") }
-        while observable.isStreaming == false { await Task.yield() }
+        // `isStreaming` flips inside `consume` *before* `conversation.send` reaches the LLM,
+        // so it is not enough to guarantee "first" has claimed a `chatStream` call. Without the
+        // second gate, a superseding "second" can be cancelled-in and reach `chatStream` first,
+        // taking call index 1 — the never-finishing stream keyed to that index — and hanging on
+        // the idle watchdog. Wait until "first" has actually invoked `chatStream` so the
+        // never-finishing index deterministically lands on "first".
+        while observable.isStreaming == false {
+            await Task.yield()
+        }
+        while runtime.llm.mockClient.streamCallCount < 1 {
+            await Task.yield()
+        }
 
         try await observable.send("second")
         first.cancel()
