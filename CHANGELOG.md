@@ -42,6 +42,13 @@ for tagged releases beginning with `1.0.0`.
   Downstream consumers that pass `metadata:` to these methods need to drop the argument on
   their next PositronicKit pin bump. The Monad GRDB migration to drop the persisted column
   is deferred to the downstream phase (PKFAC-008).
+- Collapsed `HealthCheckable` to a single health probe (PKCLEAN-014): removed the unused
+  `getHealthStatus()` requirement, keeping `checkHealth()` (live probe) and `getHealthDetails()`.
+  `getHealthStatus()` had no callers through the protocol — Monad's `StatusAPIController` uses only
+  `checkHealth()`/`getHealthDetails()` — and its in-package implementations duplicated `checkHealth()`.
+  Conformers with a leftover `getHealthStatus()` method still compile (extra methods are allowed); no
+  downstream migration is required.
+
 - Renamed the compose-time observability seam to name its payload, not just its phase
   (PKAPI-015): `protocol TurnInspecting` → `PromptInspecting`,
   `func didComposeTurn(_:)` → `didComposePrompt(_:)`, `struct TurnInspection` → `PromptInspection`,

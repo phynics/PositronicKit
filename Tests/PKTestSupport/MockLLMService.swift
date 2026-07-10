@@ -214,10 +214,6 @@ public final class MockLLMService: LLMStreamClient, LLMConfigStore, LLMUtilityCl
     public var mockHealthStatus: HealthStatus = .ok
     public var mockHealthDetails: [String: String]? = ["mock": "true"]
 
-    public func getHealthStatus() async -> HealthStatus {
-        mockHealthStatus
-    }
-
     public func getHealthDetails() async -> [String: String]? {
         mockHealthDetails
     }

@@ -1,9 +1,9 @@
 import Foundation
 import Logging
-@testable import PositronicKit
 import PKPrompt
 @testable import PKShared
 import PKTestSupport
+@testable import PositronicKit
 import Testing
 
 private final class CapturingLogSink: @unchecked Sendable {
@@ -49,9 +49,17 @@ private struct CapturingLogHandler: LogHandler {
 private enum TestUtilityError: Error, PKError {
     case failure
 
-    var errorDomain: String { PKErrorDomain.llm }
-    var errorCode: Int { 9_999 }
-    var userFriendlyMessage: String { "Friendly utility failure" }
+    var errorDomain: String {
+        PKErrorDomain.llm
+    }
+
+    var errorCode: Int {
+        9999
+    }
+
+    var userFriendlyMessage: String {
+        "Friendly utility failure"
+    }
 }
 
 /// Storage that suspends `load()` until `release()` is called, so tests can observe whether the
@@ -82,7 +90,7 @@ private actor DelayedConfigurationService: ConfigurationServiceProtocol {
     }
 
     func clear() async {
-        self.config = .openAI
+        config = .openAI
     }
 
     func migrateIfNeeded() async {}
@@ -93,7 +101,7 @@ private actor DelayedConfigurationService: ConfigurationServiceProtocol {
 
     func importConfiguration(from data: Data) async throws {
         let decoded = try JSONDecoder().decode(LLMConfiguration.self, from: data)
-        self.config = decoded
+        config = decoded
     }
 
     func restoreFromBackup() async throws -> LLMConfiguration? {
@@ -328,7 +336,7 @@ struct LLMServiceTests {
             return
         }
         #expect(tagSchema.name == "llm_tags")
-        let tagSchemaText = String(decoding: try JSONEncoder().encode(tagSchema.schema), as: UTF8.self)
+        let tagSchemaText = try String(decoding: JSONEncoder().encode(tagSchema.schema), as: UTF8.self)
         #expect(tagSchemaText.contains("\"tags\""))
 
         mockClient.nextResponse = #"{"title":"Condensed Title"}"#
@@ -342,16 +350,16 @@ struct LLMServiceTests {
             return
         }
         #expect(titleSchema.name == "llm_title")
-        let titleSchemaText = String(decoding: try JSONEncoder().encode(titleSchema.schema), as: UTF8.self)
+        let titleSchemaText = try String(decoding: JSONEncoder().encode(titleSchema.schema), as: UTF8.self)
         #expect(titleSchemaText.contains("\"title\""))
 
-        let firstMemory = Memory(
-            id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
+        let firstMemory = try Memory(
+            id: #require(UUID(uuidString: "00000000-0000-0000-0000-000000000001")),
             title: "First memory",
             content: "Useful detail"
         )
-        let secondMemory = Memory(
-            id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
+        let secondMemory = try Memory(
+            id: #require(UUID(uuidString: "00000000-0000-0000-0000-000000000002")),
             title: "Second memory",
             content: "Off-topic detail"
         )
@@ -372,7 +380,7 @@ struct LLMServiceTests {
             return
         }
         #expect(recallSchema.name == "recall_performance")
-        let recallSchemaText = String(decoding: try JSONEncoder().encode(recallSchema.schema), as: UTF8.self)
+        let recallSchemaText = try String(decoding: JSONEncoder().encode(recallSchema.schema), as: UTF8.self)
         #expect(recallSchemaText.contains("\"additionalProperties\""))
         #expect(recallSchemaText.contains("\"minimum\":-1"))
         #expect(recallSchemaText.contains("\"maximum\":1"))
@@ -419,7 +427,7 @@ struct LLMServiceTests {
     }
 
     @Test("Health details report typed provider identity, not endpoint substrings")
-    func healthDetailsUseTypedProvider() async throws {
+    func healthDetailsUseTypedProvider() async {
         let openRouterConfig = LLMConfiguration(
             endpoint: "https://my-proxy.example.com/v1",
             modelName: "gpt-4o",
@@ -433,15 +441,15 @@ struct LLMServiceTests {
         #expect(details?["model"] == "gpt-4o")
     }
 
-    @Test("Health status is degraded when not configured")
-    func healthStatusDegradedWhenNotConfigured() async throws {
+    @Test("Health check is degraded when not configured")
+    func healthStatusDegradedWhenNotConfigured() async {
         let service = LLMService(storage: MockConfigurationService())
-        let status = await service.getHealthStatus()
+        let status = await service.checkHealth()
         #expect(status == .degraded)
     }
 
     @Test("Health check is degraded when configured but no client exists")
-    func healthCheckDegradedWhenNoClient() async throws {
+    func healthCheckDegradedWhenNoClient() async {
         // LLMService init with a valid config creates a client via the registry,
         // but if the registry has no factory for that provider, the client is nil.
         // Use a storage-backed init with no client to exercise this path.
@@ -452,7 +460,7 @@ struct LLMServiceTests {
     }
 
     @Test("Health check is ok when configured client responds")
-    func healthCheckOkWhenClientReachable() async throws {
+    func healthCheckOkWhenClientReachable() async {
         let mockClient = MockLLMClient()
         let service = LLMService(storage: MockConfigurationService(), client: mockClient)
         let status = await service.checkHealth()
@@ -486,7 +494,7 @@ struct LLMServiceTests {
                     toolFormat: .openAI,
                     temperature: 0.8,
                     maxTokens: 500
-                )
+                ),
             ]
         )
         try await service.updateConfiguration(config)

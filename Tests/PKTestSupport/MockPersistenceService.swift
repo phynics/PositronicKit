@@ -34,10 +34,6 @@ public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProt
 
     public init() {}
 
-    public func getHealthStatus() async -> HealthStatus {
-        mockHealthStatus
-    }
-
     public func getHealthDetails() async -> [String: String]? {
         mockHealthDetails
     }

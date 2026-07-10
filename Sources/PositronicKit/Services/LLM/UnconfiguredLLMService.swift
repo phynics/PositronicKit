@@ -30,25 +30,44 @@ public struct UnconfiguredLLMService: LLMStreamClient, LLMConfigStore, LLMUtilit
         }
     }
 
-    public func getHealthStatus() async -> HealthStatus { .down }
-    public func getHealthDetails() async -> [String: String]? { ["error": "Unconfigured"] }
-    public func checkHealth() async -> HealthStatus { .down }
+    public func getHealthDetails() async -> [String: String]? {
+        ["error": "Unconfigured"]
+    }
+
+    public func checkHealth() async -> HealthStatus {
+        .down
+    }
 
     public func loadConfiguration() async {}
-    public func updateConfiguration(_: LLMConfiguration) async throws { throw error }
-    public func clearConfiguration() async {}
-    public func restoreFromBackup() async throws { throw error }
-    public func exportConfiguration() async throws -> Data { throw error }
-    public func importConfiguration(from _: Data) async throws { throw error }
+    public func updateConfiguration(_: LLMConfiguration) async throws {
+        throw error
+    }
 
-    public func sendMessage(_: String) async throws -> String { throw error }
+    public func clearConfiguration() async {}
+    public func restoreFromBackup() async throws {
+        throw error
+    }
+
+    public func exportConfiguration() async throws -> Data {
+        throw error
+    }
+
+    public func importConfiguration(from _: Data) async throws {
+        throw error
+    }
+
+    public func sendMessage(_: String) async throws -> String {
+        throw error
+    }
 
     public func sendMessage(
         _: String,
         responseFormat _: LLMResponseFormat?,
         generationParameters _: GenerationParameters?,
         useUtilityModel _: Bool
-    ) async throws -> String { throw error }
+    ) async throws -> String {
+        throw error
+    }
 
     public func chatStreamWithContext(_: LLMChatRequest) async throws -> LLMStreamResult {
         LLMStreamResult(stream: failingStream(), rawPrompt: "")
@@ -65,7 +84,15 @@ public struct UnconfiguredLLMService: LLMStreamClient, LLMConfigStore, LLMUtilit
         failingStream()
     }
 
-    public func getClient() async -> (any LLMClientProtocol)? { nil }
-    public func getUtilityClient() async -> (any LLMClientProtocol)? { nil }
-    public func fetchAvailableModels() async throws -> [String]? { throw error }
+    public func getClient() async -> (any LLMClientProtocol)? {
+        nil
+    }
+
+    public func getUtilityClient() async -> (any LLMClientProtocol)? {
+        nil
+    }
+
+    public func fetchAvailableModels() async throws -> [String]? {
+        throw error
+    }
 }

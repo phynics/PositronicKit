@@ -30,11 +30,6 @@ public actor LLMService: LLMStreamClient, LLMConfigStore, LLMUtilityClient, Heal
 
     // MARK: - HealthCheckable
 
-    public func getHealthStatus() async -> HealthStatus {
-        await preparationTaskBox.task?.value
-        return isConfigured ? .ok : .degraded
-    }
-
     public func getHealthDetails() async -> [String: String]? {
         await preparationTaskBox.task?.value
         return [
