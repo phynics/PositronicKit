@@ -22,7 +22,7 @@ public struct ChatRunRequest: Sendable, CustomStringConvertible {
         timelineId: UUID,
         sendId: UUID? = nil,
         message: String,
-        tools: [AnyTool] = [],
+        tools: [any Tool] = [],
         toolOutputs: [ToolOutputSubmission]? = nil,
         systemInstructions: String? = nil,
         agentInstanceId: UUID? = nil,
@@ -36,7 +36,7 @@ public struct ChatRunRequest: Sendable, CustomStringConvertible {
         self.timelineId = timelineId
         self.sendId = sendId
         self.message = message
-        self.tools = tools
+        self.tools = tools.map { $0.toAnyTool() }
         self.toolOutputs = toolOutputs
         self.systemInstructions = systemInstructions
         self.agentInstanceId = agentInstanceId

@@ -30,7 +30,7 @@ public final class AgenticRuntime: Sendable {
     /// Runs one agent turn through the facade's existing tool loop.
     public func run(
         message: String,
-        tools: [AnyTool] = [],
+        tools: [any Tool] = [],
         maxTurns: Int = 5,
         systemInstructions: String? = nil
     ) async throws -> AsyncThrowingStream<ChatEvent, Error> {

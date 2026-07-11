@@ -8,6 +8,18 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-07-11
+
+### Changed
+
+- **Public tool-passing call sites accept `[any Tool]` instead of `[AnyTool]`**:
+  `ChatRunRequest.init(tools:)`, `AgenticRuntime.run(tools:)`, and
+  `PositronicKit(foundationModelsTools:)` now take a plain `[any Tool]`, so callers no longer
+  need to call `.toAnyTool()` on their own `Tool` conformances before passing them in. Existing
+  callers passing `[AnyTool]` are unaffected — `AnyTool` still conforms to `Tool`. `AnyTool` now
+  also overrides `toAnyTool()` to return `self`, so re-erasing an already-erased tool no longer
+  silently resets its `provenance` to `.global`.
+
 ## [2.0.0] - 2026-07-10
 
 > Note: a `[1.2.0] - 2026-07-07` changelog section briefly existed on `main`, but no `1.2.0`

@@ -227,6 +227,12 @@ public struct AnyTool: Tool, Sendable {
         self.provenance = provenance
     }
 
+    /// Overrides the protocol default (which would rewrap in a fresh `AnyTool` and reset
+    /// `provenance` to `.global`) so re-erasing an already-erased tool is a no-op.
+    public func toAnyTool() -> AnyTool {
+        self
+    }
+
     public var callName: String {
         wrapped.callName
     }
