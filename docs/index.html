@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PositronicKit — Swift toolkit for production-ready AI agents</title>
+<meta name="description" content="PositronicKit is a high-performance, developer-friendly Swift toolkit for building production-ready AI agents. Swift 6 concurrency, declarative prompts, pluggable providers.">
+<style>
+  :root {
+    --violet: #7c5cff;
+    --violet-strong: #6a45f2;
+    --turquoise: #21c7b7;
+    --bg: #fbfaff;
+    --surface: #ffffff;
+    --text: #1c1a27;
+    --muted: #5c586e;
+    --border: #e5e1f2;
+    --code-bg: #17141f;
+    --code-text: #e8e4f5;
+    --code-keyword: #b79bff;
+    --code-string: #5fd9cb;
+    --code-comment: #8b859e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --violet: #9a7dff;
+      --violet-strong: #b79bff;
+      --turquoise: #35d9c8;
+      --bg: #131018;
+      --surface: #1c1824;
+      --text: #efecf7;
+      --muted: #a49ebb;
+      --border: #2e2940;
+      --code-bg: #0e0c13;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  code, pre { font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 1.25rem; }
+
+  /* Hero */
+  header {
+    padding: 4.5rem 0 3.5rem;
+    background:
+      radial-gradient(60rem 30rem at 15% -10%, color-mix(in srgb, var(--violet) 18%, transparent), transparent 70%),
+      radial-gradient(50rem 28rem at 90% 0%, color-mix(in srgb, var(--turquoise) 16%, transparent), transparent 70%);
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+  }
+  h1 {
+    font-size: clamp(2.4rem, 6vw, 3.6rem);
+    letter-spacing: -0.02em;
+    background: linear-gradient(100deg, var(--violet-strong), var(--turquoise));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .tagline { font-size: clamp(1.05rem, 2.5vw, 1.3rem); color: var(--muted); max-width: 42rem; margin: 1rem auto 0; }
+  .badges { display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; margin-top: 1.4rem; }
+  .badge {
+    font-size: .8rem; padding: .25rem .7rem; border-radius: 999px;
+    border: 1px solid var(--border); color: var(--muted); background: var(--surface);
+  }
+  .cta { display: flex; gap: .8rem; justify-content: center; flex-wrap: wrap; margin-top: 2rem; }
+  .btn {
+    display: inline-block; padding: .65rem 1.4rem; border-radius: .6rem;
+    font-weight: 600; text-decoration: none; transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-primary {
+    color: #fff;
+    background: linear-gradient(100deg, var(--violet-strong), var(--turquoise));
+    box-shadow: 0 4px 18px color-mix(in srgb, var(--violet) 35%, transparent);
+  }
+  .btn-ghost { color: var(--text); border: 1px solid var(--border); background: var(--surface); }
+
+  /* Sections */
+  section { padding: 3.5rem 0; }
+  h2 { font-size: 1.7rem; letter-spacing: -0.01em; margin-bottom: 1.6rem; }
+  h2 .tick { color: var(--turquoise); }
+
+  /* Cards */
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 1rem; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: .85rem;
+    padding: 1.25rem 1.35rem;
+    border-top: 3px solid var(--violet);
+  }
+  .card:nth-child(even) { border-top-color: var(--turquoise); }
+  .card h3 { font-size: 1.02rem; margin-bottom: .45rem; }
+  .card p { font-size: .92rem; color: var(--muted); }
+
+  /* Code */
+  pre {
+    background: var(--code-bg); color: var(--code-text);
+    border-radius: .85rem; padding: 1.2rem 1.4rem; overflow-x: auto;
+    font-size: .88rem; line-height: 1.6;
+    border: 1px solid var(--border);
+  }
+  pre + pre { margin-top: 1rem; }
+  .k { color: var(--code-keyword); }
+  .s { color: var(--code-string); }
+  .c { color: var(--code-comment); }
+
+  /* Docs links */
+  .doclinks { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: .7rem; }
+  .doclinks a {
+    display: block; padding: .85rem 1.1rem; border-radius: .7rem;
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); text-decoration: none; font-weight: 600; font-size: .95rem;
+  }
+  .doclinks a span { display: block; font-weight: 400; font-size: .84rem; color: var(--muted); margin-top: .15rem; }
+  .doclinks a:hover { border-color: var(--violet); }
+
+  footer {
+    border-top: 1px solid var(--border); padding: 2rem 0 3rem;
+    color: var(--muted); font-size: .9rem; text-align: center;
+  }
+  footer a { color: var(--violet); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>PositronicKit</h1>
+    <p class="tagline">A high-performance, developer-friendly Swift toolkit for building production-ready AI agents — transport-neutral orchestration, a declarative prompt DSL, and clean, pluggable contracts.</p>
+    <div class="badges">
+      <span class="badge">Swift 6</span>
+      <span class="badge">macOS &amp; Linux</span>
+      <span class="badge">Semantic versioning</span>
+      <span class="badge">Zero runtime lock-in</span>
+    </div>
+    <div class="cta">
+      <a class="btn btn-primary" href="https://github.com/phynics/PositronicKit">View on GitHub</a>
+      <a class="btn btn-ghost" href="https://github.com/phynics/PositronicKit#documentation">Read the Docs</a>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2><span class="tick">//</span> Quick Start</h2>
+    <pre><code><span class="c">// Package.swift</span>
+.package(url: <span class="s">"https://github.com/phynics/PositronicKit.git"</span>, from: <span class="s">"2.0.1"</span>)</code></pre>
+    <pre><code><span class="k">import</span> PositronicKit
+
+<span class="k">let</span> kit = <span class="k">PositronicKit</span>(llmService: myLLM)
+
+<span class="c">// Choose the smallest operation tier that fits the feature:</span>
+<span class="k">let</span> answer = <span class="k">try await</span> kit.complete(<span class="s">"Summarize this note."</span>)  <span class="c">// tier 1: one-shot</span>
+<span class="k">let</span> conversation = <span class="k">try await</span> kit.newConversation()           <span class="c">// tier 2: Conversation</span>
+<span class="k">let</span> agent = kit.agenticRuntime(                               <span class="c">// tier 4: agent loop</span>
+    timelineId: conversation.timelineId,
+    agentInstanceId: <span class="k">UUID</span>()
+)</code></pre>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <h2><span class="tick">//</span> Tool Use</h2>
+    <p style="color:var(--muted); margin-bottom:1rem">Hand a <code>Tool</code> conformance to the agent per turn — no workspace required:</p>
+    <pre><code><span class="k">let</span> agent = kit.agenticRuntime(timelineId: conversation.timelineId, agentInstanceId: <span class="k">UUID</span>())
+<span class="k">let</span> stream = <span class="k">try await</span> agent.run(message: <span class="s">"Greet Ada."</span>, tools: [<span class="k">GreetTool</span>()])
+
+<span class="k">for try await</span> event <span class="k">in</span> stream {
+    <span class="k">if case let</span> .delta(.toolExecution(id, status)) = event { print(<span class="s">"tool \(id): \(status)"</span>) }
+    <span class="k">if let</span> text = event.textContent { print(text, terminator: <span class="s">""</span>) }
+}</code></pre>
+    <p style="color:var(--muted); margin:1.4rem 0 1rem">Or give the runtime a workspace root — every timeline gets its own filesystem workspace, and the built-in file tools (read, write, list) install automatically:</p>
+    <pre><code><span class="k">let</span> kit = <span class="k">PositronicKit</span>(configuration: .init(
+    provider: .init(llmService: myLLM),
+    persistence: .inMemory(),
+    runtime: .init(workspaceRoot: workspaceRoot)  <span class="c">// filesystem tools installed per timeline</span>
+))
+
+<span class="k">let</span> timeline = <span class="k">try await</span> kit.timelineManager.createTimeline(title: <span class="s">"Docs agent"</span>)
+
+<span class="k">let</span> stream = <span class="k">try await</span> kit.run(.init(
+    timelineId: timeline.id,
+    message: <span class="s">"Read notes.md from the workspace and summarize it."</span>
+))</code></pre>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <h2><span class="tick">//</span> Key Strengths</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>SwiftUI-Style Declarative Prompts</h3>
+        <p>Author complex prompts as structured trees with a familiar body-composition DSL. Modifiers like <code>.priority(...)</code>, <code>.cachePolicy(...)</code>, and <code>.compression(...)</code> inherit automatically.</p>
+      </div>
+      <div class="card">
+        <h3>Smart Context Caching</h3>
+        <p><code>PromptJournal</code> tracks prompts dynamically, computing stable prefixes and volatile overlays to maximize LLM cache hit rates — lower latency, lower cost.</p>
+      </div>
+      <div class="card">
+        <h3>Zero-Latency Sidecar Directives</h3>
+        <p>Fetch titles, sentiment, or summaries piggy-backed on the <em>same single LLM request</em> as the user-visible response. No extra round-trips.</p>
+      </div>
+      <div class="card">
+        <h3>Swift 6 Structured Concurrency</h3>
+        <p>Fully thread-safe runtime built on actors and structured concurrency. Composable execution stages guarantee resource cleanup even on failure.</p>
+      </div>
+      <div class="card">
+        <h3>Completely Pluggable</h3>
+        <p>Swap persistence engines, tool routers, and workspace resolvers freely. Anthropic, OpenAI, Ollama, and OpenRouter supported out of the box with zero runtime dependencies.</p>
+      </div>
+      <div class="card">
+        <h3>First-Class Linux Support</h3>
+        <p>Compiles and tests seamlessly on Apple platforms and Linux via the bare Swift 6 toolchain, with an optimized Rust bridge for local MiniLM embeddings.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <h2><span class="tick">//</span> Documentation</h2>
+    <div class="doclinks">
+      <a href="https://github.com/phynics/PositronicKit/blob/main/docs/Setup.md">Setup Guide<span>Configuration, logging, and choosing your entry point.</span></a>
+      <a href="https://github.com/phynics/PositronicKit/blob/main/docs/Usage.md">Usage Guide<span>Managing agents, pipelines, and local embeddings.</span></a>
+      <a href="https://github.com/phynics/PositronicKit/blob/main/docs/Architecture.md">Architecture<span>Core concepts, state management, extension points.</span></a>
+      <a href="https://github.com/phynics/PositronicKit/blob/main/docs/PKPromptComposition.md">Prompt Composition<span>Authoring models, caching, and prompt journaling.</span></a>
+      <a href="https://github.com/phynics/PositronicKit/blob/main/docs/SidecarDirectives.md">Sidecar Directives<span>Auxiliary generations on the same LLM request.</span></a>
+      <a href="https://github.com/phynics/PositronicKit/blob/main/CHANGELOG.md">Changelog<span>Release notes and compatibility history.</span></a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>PositronicKit · <a href="https://github.com/phynics/PositronicKit">GitHub</a> · <a href="https://github.com/phynics/PositronicKit/blob/main/LICENSE">License</a></p>
+  </div>
+</footer>
+
+</body>
+</html>
