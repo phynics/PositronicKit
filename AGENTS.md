@@ -168,7 +168,8 @@ Put new specs/plans/tickets under `../workflow/PositronicKit/...`, **not** back 
 See the root `../CLAUDE.md` for the full layout.
 
 Tickets follow the workspace ticketing system (root `../CLAUDE.md`, "Ticketing system"):
-one `<SERIES>-<id>-<slug>.md` file per ticket with a `Status` line; the index is
+one `<SERIES>-<id>-<slug>.md` file per ticket with a `Status` line (new tickets also carry a
+`Triage:` line — see root `../CLAUDE.md`, "Triage labels"); the index is
 `../workflow/PositronicKit/tickets/README.md` and is updated in the same change as any
 status flip; `Done`/`Discarded` tickets move to `tickets/archive/`.
 
@@ -176,9 +177,7 @@ status flip; `Done`/`Discarded` tickets move to `tickets/archive/`.
 
 Since v1.0, PositronicKit follows semver and downstream consumers pin to released
 versions. You do **not** need to build or test Monad, Shuttle, or Yakamoz as part of every
-PositronicKit change. Do still grep all three consumers for the changed public symbols
-before closing a ticket so the release notes and upgrade path are accurate. Consumer
-build/test gates are run later, against the tagged PositronicKit release, following
-[`docs/Releasing.md`](docs/Releasing.md). Use the documented local-path override only when
-a specific consumer change is being developed in tandem with an unreleased PositronicKit
-API.
+PositronicKit change. Consumer build/test gates are run later, against the tagged
+PositronicKit release, following [`docs/Releasing.md`](docs/Releasing.md). Use the
+documented local-path override only when a specific consumer change is being developed
+in tandem with an unreleased PositronicKit API.
