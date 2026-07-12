@@ -23,8 +23,10 @@ swift build                        # or: make build
 swift test                         # or: make test
 swift run PositronicKitExamples
 make clean
-make verify                       # pin, docs, linkage, and test gates
-make verify-products              # build every product on this host
+make verify                       # pin, docs, linkage, products, examples, and test gates
+make verify-products              # build every library product declared by Package.swift
+make verify-examples              # build the PositronicKitExamples executable
+make verify-tests                 # run the test suite
 make verify-pin                   # check the pinned MiniLM artifact hashes are consistent
 make build-minilm                 # prepare assets/bridge and build the MiniLM trait product
 make verify-minilm                # prepare native MiniLM and run its tests
