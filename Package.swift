@@ -106,8 +106,6 @@ let package = Package(
         .target(
             name: "PKOpenAIProvider",
             dependencies: [
-                "PositronicKit",
-                "PKPrompt",
                 "PKShared",
                 "PKUtilities",
                 .product(name: "OpenAI", package: "OpenAI"),
@@ -118,7 +116,6 @@ let package = Package(
         .target(
             name: "PKOpenRouterProvider",
             dependencies: [
-                "PositronicKit",
                 "PKShared",
                 "PKUtilities",
                 .product(name: "Logging", package: "swift-log"),
@@ -128,7 +125,6 @@ let package = Package(
         .target(
             name: "PKOllamaProvider",
             dependencies: [
-                "PositronicKit",
                 "PKShared",
                 "PKUtilities",
                 .product(name: "Logging", package: "swift-log"),
@@ -138,7 +134,6 @@ let package = Package(
         .target(
             name: "PKAnthropicProvider",
             dependencies: [
-                "PositronicKit",
                 "PKShared",
                 "PKUtilities",
                 .product(name: "Logging", package: "swift-log"),
@@ -148,7 +143,6 @@ let package = Package(
         .target(
             name: "PKFoundationModelsProvider",
             dependencies: [
-                "PositronicKit",
                 "PKShared",
                 "PKUtilities",
                 .product(name: "Logging", package: "swift-log"),

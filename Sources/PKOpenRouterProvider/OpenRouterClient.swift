@@ -6,7 +6,6 @@ import struct JSONSchema.Schema
 import Logging
 import PKShared
 import PKUtilities
-import PositronicKit
 import Synchronization
 
 public actor OpenRouterClient: LLMClientProtocol {

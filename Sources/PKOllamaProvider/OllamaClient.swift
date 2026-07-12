@@ -5,7 +5,6 @@ import Foundation
 import Logging
 import PKShared
 import PKUtilities
-import PositronicKit
 import Synchronization
 
 struct OllamaTagsResponse: Codable {

@@ -1,12 +1,10 @@
 import Foundation
 import PKShared
-import PKUtilities
-import PositronicKit
 
 public enum PKOpenRouterProvider {
-    public static func makeLanguageModel(configuration: LLMConfiguration) -> LLMService {
+    public static func makeClient(configuration: LLMConfiguration) -> OpenRouterClient {
         let url = URL(string: configuration.endpoint)
-        let client = OpenRouterClient(
+        return OpenRouterClient(
             apiKey: configuration.apiKey,
             modelName: configuration.modelName,
             host: url?.host ?? "openrouter.ai",
@@ -19,38 +17,5 @@ public enum PKOpenRouterProvider {
                 applicationTitle: configuration.providers[.openRouter]?.applicationTitle
             )
         )
-        StructuredOutputAdapterRegistry.register(NativeJSONSchemaStructuredOutputAdapter(), for: .openRouter)
-        return LLMService(
-            storage: InMemoryConfigurationService(config: configuration),
-            client: client,
-            utilityClient: client,
-            fastClient: client
-        )
-    }
-}
-
-public extension PositronicKit {
-    convenience init(
-        openRouterKey: String,
-        model: String = "openai/gpt-4o",
-        endpoint: String = "https://openrouter.ai/api",
-        generationParameters: GenerationParameters? = nil,
-        applicationURL: String? = nil,
-        applicationTitle: String? = nil
-    ) {
-        let config = LLMConfiguration(
-            endpoint: endpoint,
-            modelName: model,
-            apiKey: openRouterKey,
-            provider: .openRouter,
-            applicationURL: applicationURL,
-            applicationTitle: applicationTitle
-        )
-        let llm = PKOpenRouterProvider.makeLanguageModel(configuration: config)
-        self.init(configuration: .init(
-            provider: .init(languageModel: llm),
-            persistence: .inMemory(),
-            generationParameters: generationParameters
-        ))
     }
 }

@@ -3,7 +3,6 @@ import Foundation
 import FoundationNetworking
 #endif
 import PKShared
-import PKUtilities
 
 package enum ProviderHTTPFailure {
     package static func makeError(
