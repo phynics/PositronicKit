@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 #if canImport(FoundationModels)
     import FoundationModels

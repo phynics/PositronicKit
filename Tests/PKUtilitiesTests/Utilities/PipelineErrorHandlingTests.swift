@@ -1,5 +1,6 @@
 import Foundation
 @testable import PKShared
+import PKUtilities
 import Testing
 
 struct PipelineErrorHandlingTests {

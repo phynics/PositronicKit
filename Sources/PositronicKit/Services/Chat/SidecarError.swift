@@ -1,5 +1,6 @@
 import ErrorKit
 import PKShared
+import PKUtilities
 
 /// Validation errors for sidecar directive composition.
 public enum SidecarError: Error, Sendable, Equatable {

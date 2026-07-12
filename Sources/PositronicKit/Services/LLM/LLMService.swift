@@ -3,6 +3,7 @@ import Foundation
 import Logging
 import Observation
 import PKShared
+import PKUtilities
 
 /// Set-once box for the one-shot preparation task. It is created before `LLMService` escapes
 /// `self` in its initializers, then populated with the actual task once `self` is fully

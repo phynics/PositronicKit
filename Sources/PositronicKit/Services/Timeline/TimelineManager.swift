@@ -3,6 +3,7 @@ import Foundation
 import Logging
 import PKPrompt
 import PKShared
+import PKUtilities
 
 /// Manages conversation timelines, their associated context, and tool execution environments.
 ///

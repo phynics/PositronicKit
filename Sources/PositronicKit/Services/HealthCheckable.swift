@@ -1,4 +1,5 @@
 import PKShared
+import PKUtilities
 
 /// Protocol for services that can report their health status.
 public protocol HealthCheckable: Sendable {

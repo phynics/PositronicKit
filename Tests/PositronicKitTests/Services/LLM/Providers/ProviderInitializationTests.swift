@@ -8,6 +8,7 @@ import OpenAI
 @testable import PKOpenAIProvider
 @testable import PKOpenRouterProvider
 import PKShared
+import PKUtilities
 import PKTestSupport
 @testable import PositronicKit
 import Synchronization
@@ -167,13 +168,10 @@ struct ProviderInitializationTests {
         #expect(json.contains("gpt-4o-mini"))
     }
 
-    @Test("PKOpenAIProvider.register() is idempotent and resolves a real client")
-    func openAIRegisterIsIdempotent() {
-        PKOpenAIProvider.register()
-        PKOpenAIProvider.register()
-
-        #expect(ExternalLLMProviderRegistry.factory(for: .openAI) != nil)
-        #expect(ExternalLLMProviderRegistry.factory(for: .openAICompatible) != nil)
+    @Test("OpenAI provider construction directly injects a client")
+    func openAIDirectInjection() async {
+        let model = PKOpenAIProvider.makeLanguageModel(configuration: .init(apiKey: "test", provider: .openAI))
+        #expect(await model.getClient() is OpenAIClient)
     }
 
     // MARK: - Anthropic
@@ -254,20 +252,10 @@ struct ProviderInitializationTests {
         #expect(request.url?.port == nil)
     }
 
-    @Test("PKAnthropicProvider.register() is idempotent and resolves a real client")
-    func anthropicRegisterIsIdempotent() async {
-        PKAnthropicProvider.register()
-        PKAnthropicProvider.register()
-
-        #expect(ExternalLLMProviderRegistry.factory(for: .anthropic) != nil)
-
-        let llm = LLMService(configuration: .init(
-            modelName: "claude-sonnet-4-5",
-            apiKey: "sk-test",
-            provider: .anthropic
-        ))
-        let client = await llm.getClient()
-        #expect(client is AnthropicClient)
+    @Test("Anthropic provider construction directly injects a client")
+    func anthropicDirectInjection() async {
+        let model = PKAnthropicProvider.makeLanguageModel(configuration: .init(apiKey: "test", provider: .anthropic))
+        #expect(await model.getClient() is AnthropicClient)
     }
 
     // MARK: - Ollama
@@ -329,20 +317,10 @@ struct ProviderInitializationTests {
         #expect(config.endpoint == "http://localhost:11434")
     }
 
-    @Test("PKOllamaProvider.register() is idempotent and resolves a real client")
-    func ollamaRegisterIsIdempotent() async {
-        PKOllamaProvider.register()
-        PKOllamaProvider.register()
-
-        #expect(ExternalLLMProviderRegistry.factory(for: .ollama) != nil)
-
-        let llm = LLMService(configuration: .init(
-            endpoint: "http://localhost:11434",
-            modelName: "llama3",
-            provider: .ollama
-        ))
-        let client = await llm.getClient()
-        #expect(client is OllamaClient)
+    @Test("Ollama provider construction directly injects a client")
+    func ollamaDirectInjection() async {
+        let model = PKOllamaProvider.makeLanguageModel(configuration: .init(provider: .ollama))
+        #expect(await model.getClient() is OllamaClient)
     }
 
     // MARK: - OpenRouter
@@ -437,11 +415,9 @@ struct ProviderInitializationTests {
         #expect(withoutRequest.value(forHTTPHeaderField: "X-Title") == nil)
     }
 
-    @Test("PKOpenRouterProvider.register() is idempotent and resolves a real client")
-    func openRouterRegisterIsIdempotent() {
-        PKOpenRouterProvider.register()
-        PKOpenRouterProvider.register()
-
-        #expect(ExternalLLMProviderRegistry.factory(for: .openRouter) != nil)
+    @Test("OpenRouter provider construction directly injects a client")
+    func openRouterDirectInjection() async {
+        let model = PKOpenRouterProvider.makeLanguageModel(configuration: .init(provider: .openRouter))
+        #expect(await model.getClient() is OpenRouterClient)
     }
 }

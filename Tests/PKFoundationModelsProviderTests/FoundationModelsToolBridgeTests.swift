@@ -2,6 +2,7 @@ import Foundation
 @testable import PKFoundationModelsProvider
 import JSONSchemaBuilder
 import PKShared
+import PKUtilities
 import Testing
 
 #if canImport(FoundationModels)

@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// A validated prompt section with concrete metadata and deferred rendering.
 public struct PromptSection: Sendable {

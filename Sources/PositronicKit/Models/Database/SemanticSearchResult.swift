@@ -1,4 +1,5 @@
 import PKShared
+import PKUtilities
 import Foundation
 
 /// Result of a semantic search including the memory and its similarity score

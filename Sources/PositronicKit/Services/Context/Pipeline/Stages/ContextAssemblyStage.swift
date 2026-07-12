@@ -2,6 +2,7 @@ import Foundation
 import Logging
 import PKPrompt
 import PKShared
+import PKUtilities
 
 /// Pipeline stage responsible for assembling the gathered results into a final `ContextData` object.
 struct ContextAssemblyStage: PipelineStage {

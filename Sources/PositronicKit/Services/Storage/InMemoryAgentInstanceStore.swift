@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// Thread-safe in-memory agent instance store for prototyping and development.
 public actor InMemoryAgentInstanceStore: AgentInstanceStoreProtocol {

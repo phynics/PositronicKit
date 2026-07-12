@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 import PositronicKit
 
 /// A minimal mock workspace for unit testing, backed by a temp directory.

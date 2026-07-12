@@ -1,6 +1,7 @@
 import Foundation
 import Logging
 import PKShared
+import PKUtilities
 
 /// Transport-neutral configuration for a single chat turn.
 public struct ChatRunRequest: Sendable, CustomStringConvertible {

@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// Thread-safe in-memory tool persistence for prototyping and development.
 public actor InMemoryToolPersistence: ToolPersistenceProtocol {

@@ -6,6 +6,7 @@ import PKFoundationModelsProvider
 import PKOllamaProvider
 import PKOpenAIProvider
 import PKShared
+import PKUtilities
 import PositronicKit
 
 public enum PositronicKitUsageExamples {

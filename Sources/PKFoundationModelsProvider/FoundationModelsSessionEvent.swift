@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// Transport-neutral events synthesized while streaming a `LanguageModelSession` response
 /// (PKPOST-003). `LanguageModelSession` is a Swift session API, not a wire protocol, so there

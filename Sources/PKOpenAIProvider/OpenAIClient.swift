@@ -5,6 +5,7 @@ import Foundation
 import Logging
 import OpenAI
 import PKShared
+import PKUtilities
 import PositronicKit
 import Synchronization
 

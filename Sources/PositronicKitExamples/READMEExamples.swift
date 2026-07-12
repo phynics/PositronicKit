@@ -2,6 +2,7 @@ import Foundation
 import JSONSchemaBuilder
 import PKPrompt
 import PKShared
+import PKUtilities
 import PositronicKit
 
 /// Compile-checked mirrors of the code snippets in `README.md`.

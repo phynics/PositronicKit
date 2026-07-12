@@ -1,5 +1,6 @@
 import Testing
 @testable import PKShared
+import PKUtilities
 
 @Suite("TokenEstimator")
 struct TokenEstimatorTests {

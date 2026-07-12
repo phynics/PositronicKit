@@ -3,6 +3,7 @@ import struct JSONSchema.Schema
 import Logging
 @testable import PKOllamaProvider
 import PKShared
+import PKUtilities
 import Testing
 
 private final class CapturingLogSink: @unchecked Sendable {

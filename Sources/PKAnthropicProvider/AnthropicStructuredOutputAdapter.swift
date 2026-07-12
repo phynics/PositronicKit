@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// Structured-output preparation for the Anthropic Messages API.
 ///

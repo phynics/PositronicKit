@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 package struct TextPromptPrimitive: PromptPrimitive {
     package let id: String

@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// Stateless history budgeting policy used during prompt assembly.
 enum PromptHistoryOptimizer {
@@ -24,7 +25,7 @@ enum PromptHistoryOptimizer {
         var usedTokens = 0
 
         for message in messages.reversed() {
-            let tokens = PKShared.TokenEstimator.estimate(text: message.content)
+            let tokens = TokenEstimator.estimate(text: message.content)
             if usedTokens + tokens <= availableTokens {
                 result.insert(message, at: 0)
                 usedTokens += tokens

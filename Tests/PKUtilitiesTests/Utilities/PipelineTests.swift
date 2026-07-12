@@ -1,6 +1,7 @@
 import Foundation
 import Logging
 @testable import PKShared
+import PKUtilities
 import Testing
 
 final class PipelineTests {

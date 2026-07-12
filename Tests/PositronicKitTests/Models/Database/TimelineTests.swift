@@ -1,6 +1,7 @@
 import Foundation
 @testable import PositronicKit
 @testable import PKShared
+import PKUtilities
 import Testing
 
 @Suite final class TimelineTests {

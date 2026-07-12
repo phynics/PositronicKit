@@ -3,6 +3,7 @@ import Logging
 import Testing
 @testable import PositronicKit
 @testable import PKShared
+import PKUtilities
 import PKTestSupport
 struct MockComplexTool: Tool, @unchecked Sendable {
     let callName = "complex_tool"

@@ -2,6 +2,7 @@ import ErrorKit
 import Foundation
 import Logging
 import PKShared
+import PKUtilities
 
 public enum RetryPolicy {
     private static let logger = Logger.module(named: "retry-policy")

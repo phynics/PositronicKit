@@ -1,3 +1,4 @@
+import PKShared
 import Foundation
 import struct JSONSchema.Schema
 import JSONSchemaBuilder

@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import PositronicKit
 @testable import PKShared
+import PKUtilities
 import PKTestSupport
 
 struct GenerationParametersTests {

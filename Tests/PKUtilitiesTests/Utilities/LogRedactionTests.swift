@@ -1,4 +1,5 @@
 @testable import PKShared
+import PKUtilities
 import Testing
 
 @Suite("LogRedaction")

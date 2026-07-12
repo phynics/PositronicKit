@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// Structured-output preparation for generic OpenAI-compatible endpoints that do not
 /// expose a native JSON Schema response format.

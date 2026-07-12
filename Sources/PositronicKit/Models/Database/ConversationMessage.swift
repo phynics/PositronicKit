@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// Individual message within a conversation
 public struct ConversationMessage: Codable, Identifiable, Sendable {

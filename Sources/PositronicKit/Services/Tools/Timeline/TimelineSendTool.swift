@@ -2,6 +2,7 @@ import Foundation
 import struct JSONSchema.Schema
 import JSONSchemaBuilder
 import PKShared
+import PKUtilities
 
 /// Allows an agent to post a message to a timeline without attaching to it.
 ///

@@ -1,4 +1,5 @@
 import PKShared
+import PKUtilities
 import Foundation
 
 public protocol ConfigurationServiceProtocol: Sendable {

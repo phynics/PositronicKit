@@ -1,6 +1,7 @@
 /// Protocol for persisting external request-origin identities and their hosted tool metadata.
 
 import PKShared
+import PKUtilities
 import Foundation
 
 public protocol RequestOriginStoreProtocol: Sendable {

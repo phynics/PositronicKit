@@ -1,6 +1,7 @@
 import Foundation
 @testable import PKLocalEmbeddings
 import PKShared
+import PKUtilities
 import PositronicKit
 import Testing
 

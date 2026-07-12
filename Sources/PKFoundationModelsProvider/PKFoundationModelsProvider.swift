@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 import PositronicKit
 
 /// Convenience registration/init for Apple's on-device Foundation Models provider (PKPOST-003).

@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// Protocol for managing the lifecycle of active Workspace instances.
 public protocol WorkspaceManagerProtocol: Sendable {

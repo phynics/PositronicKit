@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// A lightweight cursor for a persisted conversation timeline.
 ///

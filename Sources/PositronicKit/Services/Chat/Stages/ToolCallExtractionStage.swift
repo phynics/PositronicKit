@@ -2,8 +2,9 @@ import Foundation
 import Logging
 import PKPrompt
 import PKShared
+import PKUtilities
 
-private let redactedHash = PKShared.redactedHash
+private let redactedHash = PKUtilities.redactedHash
 
 /// Pipeline stage responsible for extracting and normalising tool calls from the LLM response.
 ///

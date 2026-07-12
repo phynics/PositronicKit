@@ -1,5 +1,7 @@
 import Foundation
 @testable import PKShared
+@testable import PKUtilities
+import PKUtilities
 import Testing
 
 struct FilesystemToolsTests {

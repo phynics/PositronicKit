@@ -4,6 +4,7 @@ import Foundation
 #endif
 import Logging
 import PKShared
+import PKUtilities
 import PositronicKit
 import Synchronization
 

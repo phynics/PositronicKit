@@ -1,6 +1,7 @@
 import Foundation
 import struct JSONSchema.Schema
 import PKShared
+import PKUtilities
 
 /// Pure composition of a combined structured-output request + instruction block
 /// from a set of sidecar directives. No `ChatEngine` state; fully unit-testable.

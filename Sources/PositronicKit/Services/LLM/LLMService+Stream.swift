@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 public extension LLMStreamClient {
     /// Stream chat with full prompt building (includes notes, history, etc.)

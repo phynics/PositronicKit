@@ -15,7 +15,7 @@ public enum StructuredOutputDecodingError: Error, Equatable {
 /// Decodes structured-output payloads returned by the model, tolerating minor JSON
 /// malformation that LLMs commonly produce.
 public enum StructuredOutputDecoder {
-    private static let logger = Logger.module(named: "structured-output-decoder")
+    private static let logger = Logger(label: "com.positronickit.structured-output-decoder")
 
     /// Decodes `payload` as `type`, first attempting strict JSON decoding and falling back
     /// to ``LenientJSONParser`` repair (e.g. trailing commas, unquoted keys) if that fails.

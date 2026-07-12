@@ -1,3 +1,4 @@
+import PKShared
 import Foundation
 
 /// Deterministic, platform/process-independent 64-bit hashing (FNV-1a), for use where

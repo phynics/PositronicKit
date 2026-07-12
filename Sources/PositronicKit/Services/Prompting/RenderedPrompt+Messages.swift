@@ -1,6 +1,7 @@
 import Foundation
 import PKPrompt
 import PKShared
+import PKUtilities
 
 private struct RenderedPromptProjection {
     let systemText: String?

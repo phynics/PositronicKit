@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// Errors raised when concrete prompt sections cannot form a valid assembled prompt.
 public enum PromptAssemblyError: PKError, Sendable, Equatable {

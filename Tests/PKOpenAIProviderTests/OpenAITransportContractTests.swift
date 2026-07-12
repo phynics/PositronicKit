@@ -4,6 +4,7 @@ import FoundationNetworking
 #endif
 import OpenAI
 import PKShared
+import PKUtilities
 import PositronicKit
 import Synchronization
 import Testing

@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 public extension PositronicKit {
     /// Generates a response for a single prompt without creating or updating a timeline.

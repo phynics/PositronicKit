@@ -1,6 +1,7 @@
 import Testing
 @testable import PositronicKit
 @testable import PKShared
+import PKUtilities
 import Foundation
 
 @Suite final class ConversationMessageTests {

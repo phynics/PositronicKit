@@ -1,6 +1,7 @@
 import Foundation
 import Logging
 import PKShared
+import PKUtilities
 
 /// Parser for streaming LLM responses with Chain of Thought support
 ///

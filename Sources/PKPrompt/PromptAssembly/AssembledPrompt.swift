@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// A validated, ordered prompt artifact built from concrete prompt sections.
 ///

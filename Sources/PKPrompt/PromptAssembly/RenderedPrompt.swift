@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// Canonical prompt output derived from a single rendering pass.
 public struct RenderedPrompt: Sendable {

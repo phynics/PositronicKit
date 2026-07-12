@@ -3,6 +3,7 @@ import Foundation
 import Logging
 import PKPrompt
 import PKShared
+import PKUtilities
 
 /// Pipeline stage responsible for streaming the response from the LLM and parsing deltas.
 struct LLMStreamingStage: PipelineStage {

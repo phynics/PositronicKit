@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// A prompt that renders to nothing. Used as the terminal `body` for prompt primitives and
 /// as an explicit no-op branch in conditional prompt-building logic; `makePromptNode()`

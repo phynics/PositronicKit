@@ -1,5 +1,6 @@
 @testable import PKPrompt
 import PKShared
+import PKUtilities
 import Testing
 
 @Suite("PromptJournalDiffer")

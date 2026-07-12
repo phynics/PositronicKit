@@ -3,6 +3,7 @@ import Testing
 
 @testable import PositronicKit
 @testable import PKShared
+import PKUtilities
 @Suite struct StreamingParserStressTests {
 
     // MARK: - Code Block Protection

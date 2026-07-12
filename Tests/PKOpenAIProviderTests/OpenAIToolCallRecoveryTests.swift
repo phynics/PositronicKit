@@ -2,6 +2,7 @@ import Foundation
 import OpenAI
 @testable import PKOpenAIProvider
 import PKShared
+import PKUtilities
 import Testing
 
 @Suite struct OpenAIToolCallRecoveryTests {

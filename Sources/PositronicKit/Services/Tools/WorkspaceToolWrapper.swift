@@ -1,6 +1,7 @@
 import Foundation
 import struct JSONSchema.Schema
 import PKShared
+import PKUtilities
 
 /// Wraps a tool from a workspace to conform to the Tool protocol
 public struct WorkspaceToolWrapper: Tool, Sendable {

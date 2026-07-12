@@ -5,6 +5,7 @@ import Foundation
 import struct JSONSchema.Schema
 import Logging
 import PKShared
+import PKUtilities
 import PositronicKit
 import Synchronization
 

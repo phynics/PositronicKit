@@ -2,6 +2,7 @@ import Testing
 import Foundation
 @testable import PositronicKit
 @testable import PKShared
+import PKUtilities
 import PKTestSupport
 @Suite struct MockVectorStoreTests {
 

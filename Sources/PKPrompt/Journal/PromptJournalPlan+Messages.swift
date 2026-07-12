@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 public extension PromptJournalPlan {
     /// Renders this journal plan into provider-neutral conversation messages.

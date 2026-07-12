@@ -4,6 +4,7 @@ import Logging
 import OpenAI
 import PKPrompt
 import PKShared
+import PKUtilities
 
 /// Logger used when an `LLMMessage` with `.tool` role is converted for the OpenAI wire format
 /// without a `toolCallID` (PKR-12). `LLMMessage.toolCallID` is `String?`, but a `.tool`-role

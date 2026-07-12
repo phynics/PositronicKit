@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// Entry point for compressing an assembled prompt's sections to fit within a token limit.
 /// Drives the structured-compression pipeline (``StructuredCompressionPlanner`` +

@@ -4,6 +4,7 @@ import OpenAI
 @testable import PKOpenRouterProvider
 import PKPrompt
 import PKShared
+import PKUtilities
 @testable import PositronicKit
 import Testing
 

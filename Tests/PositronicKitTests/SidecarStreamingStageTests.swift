@@ -2,6 +2,7 @@ import Foundation
 import JSONSchemaBuilder
 import Logging
 import PKShared
+import PKUtilities
 import PKTestSupport
 @testable import PositronicKit
 import Testing

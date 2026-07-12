@@ -2,6 +2,7 @@ import Foundation
 import Logging
 import PKPrompt
 import PKShared
+import PKUtilities
 
 /// Pipeline stage responsible for augmenting the search query with recent conversation history.
 struct QueryAugmentationStage: PipelineStage {

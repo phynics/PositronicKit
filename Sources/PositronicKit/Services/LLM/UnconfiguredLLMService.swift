@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 public struct UnconfiguredLLMService: LanguageModel {
     public init() {}

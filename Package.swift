@@ -11,6 +11,7 @@ let package = Package(
         .library(name: "PKObservable", targets: ["PKObservable"]),
         .library(name: "PKPrompt", targets: ["PKPrompt"]),
         .library(name: "PKShared", targets: ["PKShared"]),
+        .library(name: "PKUtilities", targets: ["PKUtilities"]),
         .library(name: "PKLocalEmbeddings", targets: ["PKLocalEmbeddings"]),
         .library(name: "PKOpenAIProvider", targets: ["PKOpenAIProvider"]),
         .library(name: "PKOpenRouterProvider", targets: ["PKOpenRouterProvider"]),
@@ -49,14 +50,25 @@ let package = Package(
         ),
         .target(
             name: "PKPrompt",
-            dependencies: ["PKShared"],
+            dependencies: ["PKShared", "PKUtilities"],
             path: "Sources/PKPrompt"
+        ),
+        .target(
+            name: "PKUtilities",
+            dependencies: [
+                "PKShared",
+                .product(name: "ErrorKit", package: "ErrorKit"),
+                .product(name: "Logging", package: "swift-log"),
+                .product(name: "Crypto", package: "swift-crypto"),
+            ],
+            path: "Sources/PKUtilities"
         ),
         .target(
             name: "PositronicKit",
             dependencies: [
                 "PKShared",
                 "PKPrompt",
+                "PKUtilities",
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "ErrorKit", package: "ErrorKit"),
                 .product(name: "JSONSchema", package: "swift-json-schema"),
@@ -88,7 +100,7 @@ let package = Package(
         ),
         .target(
             name: "PKFastEmbed",
-            dependencies: ["CPKFastEmbed", "PKShared", "PositronicKit"],
+            dependencies: ["CPKFastEmbed", "PKShared", "PKUtilities", "PositronicKit"],
             path: "Sources/PKFastEmbed"
         ),
         .target(
@@ -97,6 +109,7 @@ let package = Package(
                 "PositronicKit",
                 "PKPrompt",
                 "PKShared",
+                "PKUtilities",
                 .product(name: "OpenAI", package: "OpenAI"),
                 .product(name: "Logging", package: "swift-log"),
             ],
@@ -107,6 +120,7 @@ let package = Package(
             dependencies: [
                 "PositronicKit",
                 "PKShared",
+                "PKUtilities",
                 .product(name: "Logging", package: "swift-log"),
             ],
             path: "Sources/PKOpenRouterProvider"
@@ -116,6 +130,7 @@ let package = Package(
             dependencies: [
                 "PositronicKit",
                 "PKShared",
+                "PKUtilities",
                 .product(name: "Logging", package: "swift-log"),
             ],
             path: "Sources/PKOllamaProvider"
@@ -125,6 +140,7 @@ let package = Package(
             dependencies: [
                 "PositronicKit",
                 "PKShared",
+                "PKUtilities",
                 .product(name: "Logging", package: "swift-log"),
             ],
             path: "Sources/PKAnthropicProvider"
@@ -134,6 +150,7 @@ let package = Package(
             dependencies: [
                 "PositronicKit",
                 "PKShared",
+                "PKUtilities",
                 .product(name: "Logging", package: "swift-log"),
             ],
             path: "Sources/PKFoundationModelsProvider"
@@ -150,6 +167,7 @@ let package = Package(
                 "PKFoundationModelsProvider",
                 "PKPrompt",
                 "PKShared",
+                "PKUtilities",
                 .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
             ],
             path: "Sources/PositronicKitExamples"
@@ -159,6 +177,7 @@ let package = Package(
             dependencies: [
                 "PositronicKit",
                 "PKShared",
+                "PKUtilities",
                 "PKPrompt",
                 .product(name: "JSONSchema", package: "swift-json-schema"),
             ],
@@ -180,6 +199,7 @@ let package = Package(
                 // would drop that coverage rather than relocate it.
                 "PositronicKitExamples",
                 "PKShared",
+                "PKUtilities",
                 "PKTestSupport",
                 .product(name: "OpenAI", package: "OpenAI"),
             ],
@@ -196,6 +216,7 @@ let package = Package(
                 "PKLocalEmbeddings",
                 "PositronicKit",
                 "PKShared",
+                "PKUtilities",
                 "PKTestSupport",
             ],
             path: "Tests/PKLocalEmbeddingsTests",
@@ -210,13 +231,14 @@ let package = Package(
         ),
         .testTarget(
             name: "PKPromptTests",
-            dependencies: ["PKPrompt", "PKShared", "PKTestSupport"],
+            dependencies: ["PKPrompt", "PKShared", "PKUtilities", "PKTestSupport"],
             path: "Tests/PKPromptTests"
         ),
         .testTarget(
             name: "PKSharedTests",
             dependencies: [
                 "PKShared",
+                "PKUtilities",
                 "PKTestSupport",
                 .product(name: "JSONSchema", package: "swift-json-schema"),
                 .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
@@ -224,10 +246,16 @@ let package = Package(
             path: "Tests/PKSharedTests"
         ),
         .testTarget(
+            name: "PKUtilitiesTests",
+            dependencies: ["PKUtilities", "PKShared", "PKTestSupport"],
+            path: "Tests/PKUtilitiesTests"
+        ),
+        .testTarget(
             name: "PKOpenAIProviderTests",
             dependencies: [
                 "PKOpenAIProvider",
                 "PKShared",
+                "PKUtilities",
                 "PositronicKit",
                 .product(name: "OpenAI", package: "OpenAI"),
                 .product(name: "Logging", package: "swift-log"),
@@ -239,6 +267,7 @@ let package = Package(
             dependencies: [
                 "PKOpenRouterProvider",
                 "PKShared",
+                "PKUtilities",
                 .product(name: "Logging", package: "swift-log"),
             ],
             path: "Tests/PKOpenRouterProviderTests"
@@ -248,6 +277,7 @@ let package = Package(
             dependencies: [
                 "PKOllamaProvider",
                 "PKShared",
+                "PKUtilities",
                 .product(name: "JSONSchema", package: "swift-json-schema"),
                 .product(name: "Logging", package: "swift-log"),
             ],
@@ -258,6 +288,7 @@ let package = Package(
             dependencies: [
                 "PKAnthropicProvider",
                 "PKShared",
+                "PKUtilities",
                 "PKTestSupport",
                 "PositronicKit",
                 .product(name: "Logging", package: "swift-log"),
@@ -269,6 +300,7 @@ let package = Package(
             dependencies: [
                 "PKFoundationModelsProvider",
                 "PKShared",
+                "PKUtilities",
                 "PKTestSupport",
                 "PositronicKit",
                 .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
@@ -280,6 +312,7 @@ let package = Package(
             dependencies: [
                 "PKTestSupport",
                 "PKShared",
+                "PKUtilities",
             ],
             path: "Tests/PKTestSupportTests"
         ),

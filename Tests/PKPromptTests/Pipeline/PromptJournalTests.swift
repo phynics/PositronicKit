@@ -1,6 +1,7 @@
 import Testing
 @testable import PKPrompt
 import PKShared
+import PKUtilities
 
 @Suite("PromptJournal")
 struct PromptJournalTests {

@@ -1,6 +1,7 @@
 import CPKFastEmbed
 import Foundation
 import PKShared
+import PKUtilities
 
 public enum PKFastEmbedError: Error, Equatable, Sendable {
     case abiMismatch

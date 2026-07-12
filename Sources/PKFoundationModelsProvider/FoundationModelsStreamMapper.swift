@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// Maps `FoundationModelsSessionEvent`s onto the transport-neutral `LLMStreamChunk` contract
 /// (PKPOST-003; PKINT-001 conformance for the synthesized event sequence). Pure and

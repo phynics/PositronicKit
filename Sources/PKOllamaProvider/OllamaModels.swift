@@ -2,6 +2,7 @@ import Foundation
 import struct JSONSchema.Schema
 import Logging
 import PKShared
+import PKUtilities
 
 struct OllamaChatRequest: Codable {
     let model: String

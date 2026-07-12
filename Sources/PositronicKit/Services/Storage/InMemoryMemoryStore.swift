@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// Thread-safe in-memory memory store for prototyping and development.
 public actor InMemoryMemoryStore: MemoryStoreProtocol {

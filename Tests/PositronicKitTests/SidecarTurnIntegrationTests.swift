@@ -1,6 +1,7 @@
 import Foundation
 import JSONSchemaBuilder
 @testable import PKShared
+import PKUtilities
 import PKTestSupport
 @testable import PositronicKit
 import Testing

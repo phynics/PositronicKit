@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 extension WorkspaceToolDefinition {
     /// Create from an existing Tool protocol instance.

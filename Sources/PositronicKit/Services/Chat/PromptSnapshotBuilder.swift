@@ -2,6 +2,7 @@ import Foundation
 import Logging
 import PKPrompt
 import PKShared
+import PKUtilities
 
 /// Owns follow-up prompt synthesis for the ReAct loop: building an incremental follow-up
 /// `RenderedPrompt` after tool/plugin messages are appended, without O(n²) re-rendering.
@@ -53,7 +54,7 @@ struct PromptSnapshotBuilder {
             id: sectionID,
             role: .chatHistory,
             priority: PromptPriority.medium.rawValue,
-            estimatedTokens: PKShared.TokenEstimator.estimate(parts: appendedMessages.map(\.content)),
+            estimatedTokens: TokenEstimator.estimate(parts: appendedMessages.map(\.content)),
             compression: .keep,
             type: .list,
             cachePolicy: .volatile,

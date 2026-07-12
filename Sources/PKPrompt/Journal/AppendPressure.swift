@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// Shared append-pressure accounting consumed by both `PromptJournal` (PKPrompt) and
 /// `TimelinePromptHistory` (runtime).
