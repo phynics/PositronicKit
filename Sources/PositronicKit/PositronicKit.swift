@@ -27,7 +27,7 @@ import PKShared
 /// - Production: use `PositronicKit(configuration:)`.
 ///
 /// The public operation ladder is progressive: tier 1 is timeline-free one-shot
-/// `complete(_:)`/`stream(_:)`; tier 2 is the stateful `Conversation` cursor; tier 3 is
+/// `complete(_:)`/`stream(_:)`; tier 2 is the stateful `TimelineDriver`; tier 3 is
 /// direct `timelineManager` access; tier 4 is the full `AgenticRuntime` tool/agent loop;
 /// tier 5 is the raw primitives (`toolRouter`, `llmService`, and the prompt DSL) for a
 /// bespoke pipeline. A typical application wraps one kit in an application-owned Service
@@ -69,7 +69,7 @@ public final class PositronicKit: Sendable {
 
     private let chatEngine: ChatEngine
 
-    /// Owned internally; every conversation vended by this instance shares it automatically.
+    /// Owned internally; every timeline driver vended by this instance shares it automatically.
     /// Construct a new `PositronicKit` for a genuinely separate cross-send history.
     private let promptHistoryRegistry: TimelinePromptHistoryRegistry
     private let workspaceRoot: URL?

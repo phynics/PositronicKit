@@ -42,10 +42,11 @@ Choose the smallest operation tier that fits the feature:
 ```swift
 let kit = PositronicKit(llmService: myLLM)
 let answer = try await kit.complete("Summarize this note.")       // tier 1: one-shot
-let conversation = try await kit.newConversation()                // tier 2: Conversation
+let timeline = try await kit.timelineManager.createTimeline()
+let driver = kit.openTimeline(timeline.id)                        // tier 2: TimelineDriver
 let timelineManager = kit.timelineManager                          // tier 3: timelines
 let agent = kit.agenticRuntime(                                     // tier 4: agent loop
-    timelineId: conversation.timelineId,
+    timelineId: driver.timelineID,
     agentInstanceId: UUID()
 )
 let tools = kit.toolRouter                                         // tier 5: raw primitives
@@ -231,7 +232,7 @@ Provider targets ship separately so you opt in only to the integrations you want
 
 Supporting targets:
 
-- **PKObservable** — opt-in `@Observable` wrappers for UI-facing consumers; `ObservableConversation` mirrors `Conversation` streaming state for SwiftUI clients.
+- **PKObservable** — opt-in `@Observable` wrappers for UI-facing consumers; `TimelineController` mirrors `TimelineDriver` streaming state for SwiftUI clients.
 - **PositronicKitExamples** — runnable examples that double as living documentation.
 - **PKTestSupport** — shared mocks, fixtures, and test helpers for downstream test targets.
 

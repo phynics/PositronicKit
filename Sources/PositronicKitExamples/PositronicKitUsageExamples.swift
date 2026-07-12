@@ -30,9 +30,11 @@ public enum PositronicKitUsageExamples {
         PositronicKit(llmService: UnconfiguredLLMService())
     }
 
-    /// Tier 2: a persisted conversation cursor, created through the facade.
-    public static func makeConversationExample() async throws -> Conversation {
-        try await makeOneShotRuntime().newConversation(title: "Example Conversation")
+    /// Tier 2: a driver for a freshly created, persisted timeline.
+    public static func makeTimelineDriverExample() async throws -> TimelineDriver {
+        let kit = makeOneShotRuntime()
+        let timeline = try await kit.timelineManager.createTimeline(title: "Example Timeline")
+        return kit.openTimeline(timeline.id)
     }
 
     /// Tier 3: the facade-owned timeline manager for direct timeline/workspace control.

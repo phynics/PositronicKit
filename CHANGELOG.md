@@ -10,6 +10,20 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
+- **`TimelineDriver` replaces `Conversation` (PKV3-003)**: `Conversation` and its vending
+  methods (`PositronicKit.newConversation(title:)`, `PositronicKit.conversation(timelineId:)`)
+  are deleted. `PositronicKit.openTimeline(_:)` returns a new `TimelineDriver` — a lightweight,
+  stable handle with `timelineID`, `send(_:)`, and `cancel()`. Unlike `Conversation`,
+  `TimelineDriver` holds no mutable turn state, performs no persistence lookup on construction,
+  and does not expose the underlying `TimelineManager`; opening one is pure value
+  construction, with persistence happening lazily the first time `send(_:)` executes a turn,
+  exactly as before. To create and open a brand-new persisted timeline, call
+  `timelineManager.createTimeline(title:)` and then `kit.openTimeline(timeline.id)`.
+  `PKObservable.ObservableConversation` is renamed to `PKObservable.TimelineController`
+  (its `conversation` property is renamed to `driver`); its superseding-send behavior is
+  unchanged.
+
+
 - **Workspace vocabulary rename + injectable `WorkspaceResolver` (PKV3-002)**: renamed the
   overlapping workspace protocol/service names to make each role explicit —
   `WorkspaceProtocol` → `Workspace`, `WorkspaceCreating` → `WorkspaceFactory`,
