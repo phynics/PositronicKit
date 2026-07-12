@@ -21,10 +21,10 @@ import Testing
 @MainActor
 struct StructuredOutputPreparationTests {
     private static let registeredAdapters: Void = {
-        PKOpenAIProvider.register()
-        PKOpenRouterProvider.register()
-        PKOllamaProvider.register()
-        PKAnthropicProvider.register()
+        _ = PKOpenAIProvider.makeLanguageModel(configuration: .init(provider: .openAI))
+        _ = PKOpenRouterProvider.makeLanguageModel(configuration: .init(provider: .openRouter))
+        _ = PKOllamaProvider.makeLanguageModel(configuration: .init(provider: .ollama))
+        _ = PKAnthropicProvider.makeLanguageModel(configuration: .init(provider: .anthropic))
     }()
 
     init() {
