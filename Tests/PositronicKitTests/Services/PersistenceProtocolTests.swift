@@ -15,7 +15,7 @@ struct PersistenceProtocolTests {
         let _: MessageStoreProtocol = mock
         let _: TimelinePersistenceProtocol = mock
         let _: AgentTemplateStoreProtocol = mock
-        let _: WorkspacePersistenceProtocol = mock
+        let _: WorkspaceStore = mock
         let _: ToolPersistenceProtocol = mock
     }
 }
@@ -26,7 +26,7 @@ final class MockPersistenceStore:
     MessageStoreProtocol,
     TimelinePersistenceProtocol,
     AgentTemplateStoreProtocol,
-    WorkspacePersistenceProtocol,
+    WorkspaceStore,
     ToolPersistenceProtocol,
     @unchecked Sendable
 {
@@ -118,7 +118,7 @@ final class MockPersistenceStore:
         false
     }
 
-    // WorkspacePersistenceProtocol
+    // WorkspaceStore
     func saveWorkspace(_: WorkspaceReference) async throws {}
     func fetchWorkspace(id _: UUID) async throws -> WorkspaceReference? {
         nil

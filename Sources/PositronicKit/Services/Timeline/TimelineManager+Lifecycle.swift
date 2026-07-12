@@ -127,9 +127,9 @@ private extension TimelineManager {
         timeline: Timeline,
         workspaceURL: URL
     ) async {
-        let contextWorkspace: (any WorkspaceProtocol)?
+        let contextWorkspace: (any Workspace)?
         if let firstId = timeline.attachedWorkspaceIds.first {
-            contextWorkspace = try? await workspaceManager.getWorkspace(id: firstId)
+            contextWorkspace = try? await workspaceResolver.getWorkspace(id: firstId)
         } else {
             contextWorkspace = nil
         }
@@ -154,7 +154,7 @@ private extension TimelineManager {
         toolManagers[timeline.id] = toolManager
 
         for attachedId in timeline.attachedWorkspaceIds {
-            if let workspace = try? await workspaceManager.getWorkspace(id: attachedId) {
+            if let workspace = try? await workspaceResolver.getWorkspace(id: attachedId) {
                 await toolManager.registerWorkspace(workspace)
             }
         }

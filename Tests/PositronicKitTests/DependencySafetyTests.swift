@@ -49,7 +49,7 @@ struct DependencySafetyTests {
     func agentInstanceManagerDependencyInjection() async throws {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let persistence = MockPersistenceService()
-        let customRepo = AgentWorkspaceService(
+        let customRepo = DefaultWorkspaceCatalog(
             workspaceRoot: tempDir,
             workspacePersistence: persistence
         )

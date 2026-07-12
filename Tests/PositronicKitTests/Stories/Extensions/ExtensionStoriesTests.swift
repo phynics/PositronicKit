@@ -48,7 +48,7 @@ import Testing
         #expect(assistantReplies == ["First reply", "Second reply"])
     }
 
-    @Test("WorkspaceCreating can provide a custom executable workspace tool")
+    @Test("WorkspaceFactory can provide a custom executable workspace tool")
     func workspaceCreatingSupportsCustomWorkspaceTool() async throws {
         let creator = AcceptanceWorkspaceCreator()
         let (chat, mockLLM, mockPersistence, timelineId, workspaceRoot, timelineManager) = try await makeAcceptanceRuntime(
@@ -118,7 +118,7 @@ import Testing
     }
 
     private func makeAcceptanceRuntime(
-        workspaceCreator: any WorkspaceCreating = MockWorkspaceCreator(),
+        workspaceCreator: any WorkspaceFactory = MockWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = [],
         includeDefaultToolWorkspace: Bool = true
     ) async throws -> (PositronicKit, MockLLMService, MockPersistenceService, UUID, TestWorkspace, TimelineManager) {
@@ -183,7 +183,7 @@ private actor AcceptanceChatTurnPlugin: ChatTurnPlugin {
     }
 }
 
-private actor AcceptanceWorkspace: WorkspaceProtocol {
+private actor AcceptanceWorkspace: Workspace {
     let reference: WorkspaceReference
     nonisolated let id: UUID
 
@@ -216,11 +216,11 @@ private actor AcceptanceWorkspace: WorkspaceProtocol {
     }
 }
 
-private final class AcceptanceWorkspaceCreator: WorkspaceCreating, @unchecked Sendable {
+private final class AcceptanceWorkspaceCreator: WorkspaceFactory, @unchecked Sendable {
     private let lock = NSLock()
     private var created: [UUID] = []
 
-    func create(from reference: WorkspaceReference) throws -> any WorkspaceProtocol {
+    func create(from reference: WorkspaceReference) throws -> any Workspace {
         lock.lock()
         created.append(reference.id)
         lock.unlock()

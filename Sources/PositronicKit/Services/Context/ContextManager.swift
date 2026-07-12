@@ -6,12 +6,12 @@ import PKShared
 
 /// Manages the retrieval and organization of context for the chat.
 actor ContextManager {
-    let workspace: (any WorkspaceProtocol)?
+    let workspace: (any Workspace)?
     let pipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>
     private let logger = Logger.module(named: "context-manager")
 
     init(
-        workspace: (any WorkspaceProtocol)? = nil,
+        workspace: (any Workspace)? = nil,
         memoryStore: any MemoryStoreProtocol = InMemoryMemoryStore(),
         embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
         pipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil
@@ -26,7 +26,7 @@ actor ContextManager {
 
     /// Provides the standard stages for context gathering.
     static func defaultStages(
-        workspace: (any WorkspaceProtocol)? = nil,
+        workspace: (any Workspace)? = nil,
         memoryStore: any MemoryStoreProtocol = InMemoryMemoryStore(),
         embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService()
     ) -> [any PipelineStage<ContextPipelineContext, ContextGatheringEvent>] {

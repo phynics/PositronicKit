@@ -20,7 +20,7 @@ final class TimelineToolManagerTests {
         }
     }
 
-    struct MockWorkspace: WorkspaceProtocol, @unchecked Sendable {
+    struct MockWorkspace: Workspace, @unchecked Sendable {
         let id: UUID
         let reference: WorkspaceReference
         let toolsToReturn: [ToolReference]

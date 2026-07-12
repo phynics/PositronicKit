@@ -2,7 +2,7 @@ import Foundation
 import PKShared
 
 /// Protocol for managing the persistence and provisioning of agent private workspaces.
-public protocol AgentWorkspaceServiceProtocol: Sendable {
+public protocol WorkspaceCatalog: Sendable {
     /// Creates a new workspace and saves it to persistence.
     func createWorkspace(
         uri: WorkspaceURI,
@@ -30,7 +30,7 @@ public protocol AgentWorkspaceServiceProtocol: Sendable {
     func updateWorkspace(_ workspace: WorkspaceReference) async throws
 }
 
-extension AgentWorkspaceServiceProtocol {
+extension WorkspaceCatalog {
     public func createWorkspace(
         uri: WorkspaceURI,
         location: WorkspaceReference.WorkspaceLocation,

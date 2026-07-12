@@ -4,7 +4,7 @@ import PKShared
 
 import Foundation
 
-public protocol WorkspacePersistenceProtocol: Sendable {
+public protocol WorkspaceStore: Sendable {
     func saveWorkspace(_ workspace: WorkspaceReference) async throws
     func fetchWorkspace(id: UUID, includeTools: Bool) async throws -> WorkspaceReference?
     func fetchAllWorkspaces() async throws -> [WorkspaceReference]

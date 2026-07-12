@@ -3,12 +3,12 @@ import PKShared
 import PositronicKit
 import Synchronization
 
-/// In-memory `WorkspacePersistenceProtocol` test double backed by a mutex-guarded array.
+/// In-memory `WorkspaceStore` test double backed by a mutex-guarded array.
 ///
 /// Inspectable: `workspaces` reads/writes the backing store directly, so tests can seed
 /// fixtures or assert on saved state. `fetchWorkspace` ignores `includeTools` (tools are
 /// always present as stored, unlike the split real-persistence path).
-public final class MockWorkspacePersistence: WorkspacePersistenceProtocol, @unchecked Sendable {
+public final class MockWorkspacePersistence: WorkspaceStore, @unchecked Sendable {
     private let workspacesState = Mutex<[WorkspaceReference]>([])
 
     public var workspaces: [WorkspaceReference] {

@@ -9,7 +9,7 @@ The persistence layer is split into focused protocols to ensure high cohesion an
 - `MemoryStoreProtocol`: Vector and semantic memory storage.
 - `MessageStoreProtocol`: Chat history management.
 - `TimelinePersistenceProtocol`: Conversation timeline lifecycle.
-- `WorkspacePersistenceProtocol`: Virtual document workspace tracking.
+- `WorkspaceStore`: Virtual document workspace tracking.
 - `RequestOriginStoreProtocol`: Request-origin identity and attached-tool metadata.
 - `ToolPersistenceProtocol`: Tool registry and routing metadata.
 

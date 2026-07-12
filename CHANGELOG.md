@@ -8,6 +8,26 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Breaking
+
+- **Workspace vocabulary rename + injectable `WorkspaceResolver` (PKV3-002)**: renamed the
+  overlapping workspace protocol/service names to make each role explicit —
+  `WorkspaceProtocol` → `Workspace`, `WorkspaceCreating` → `WorkspaceFactory`,
+  `WorkspacePersistenceProtocol` → `WorkspaceStore`, the `AgentWorkspaceServiceProtocol`
+  protocol → `WorkspaceCatalog`, its concrete `AgentWorkspaceService` implementation →
+  `DefaultWorkspaceCatalog`, the `WorkspaceManagerProtocol` protocol → `WorkspaceResolver`, and
+  its concrete `WorkspaceManager` implementation → `DefaultWorkspaceResolver`.
+  `TimelineManager` now exposes `workspaceResolver: any WorkspaceResolver` (renamed from
+  `workspaceManager`) and gains a designated initializer that accepts `resolver: any
+  WorkspaceResolver` directly, so hosts can inject a fully custom resolver without
+  `TimelineManager` composing `DefaultWorkspaceCatalog`/`DefaultWorkspaceResolver` internally.
+  The bundled default catalog/factory/resolver composition now lives in the new
+  `WorkspaceResolverFactory.makeDefault(workspaceRoot:workspaceStore:workspaceCreator:)`, used
+  by both the `workspaceCreator:`-based `TimelineManager` convenience initializer and the
+  `PositronicKit` facade, so default behavior for existing callers is unchanged. All old public
+  names (`WorkspaceProtocol`, `WorkspaceCreating`, `WorkspacePersistenceProtocol`,
+  `AgentWorkspaceService`, `WorkspaceManager`, and their `*Protocol` variants) are gone.
+
 ### Removed
 
 - **Raw-text tool-call inference (`ToolOutputParser`)**: the fallback path in

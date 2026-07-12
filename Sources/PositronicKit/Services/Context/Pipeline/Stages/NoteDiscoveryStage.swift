@@ -7,12 +7,12 @@ import PKShared
 /// Pipeline stage responsible for discovering relevant filesystem notes in the workspace.
 struct NoteDiscoveryStage: PipelineStage {
     /// The workspace to search for notes.
-    let workspace: (any WorkspaceProtocol)?
+    let workspace: (any Workspace)?
     private let logger = Logger.module(named: "note-discovery")
 
     /// Initializes a new note discovery stage.
     /// - Parameter workspace: The workspace to search.
-    init(workspace: (any WorkspaceProtocol)? = nil) {
+    init(workspace: (any Workspace)? = nil) {
         self.workspace = workspace
     }
 

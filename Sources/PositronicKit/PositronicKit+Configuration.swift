@@ -43,7 +43,7 @@ public extension PositronicKit {
     struct PersistenceConfiguration: Sendable {
         public let messageStore: any MessageStoreProtocol
         public let timelinePersistence: any TimelinePersistenceProtocol
-        public let workspacePersistence: any WorkspacePersistenceProtocol
+        public let workspacePersistence: any WorkspaceStore
         public let memoryStore: any MemoryStoreProtocol
         public let toolPersistence: any ToolPersistenceProtocol
         public let agentInstanceStore: any AgentInstanceStoreProtocol
@@ -52,7 +52,7 @@ public extension PositronicKit {
         public init(
             messageStore: (any MessageStoreProtocol)? = nil,
             timelinePersistence: (any TimelinePersistenceProtocol)? = nil,
-            workspacePersistence: (any WorkspacePersistenceProtocol)? = nil,
+            workspacePersistence: (any WorkspaceStore)? = nil,
             memoryStore: (any MemoryStoreProtocol)? = nil,
             toolPersistence: (any ToolPersistenceProtocol)? = nil,
             agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,
@@ -76,7 +76,7 @@ public extension PositronicKit {
     /// Groups the non-store runtime knobs: workspace creation, prompt-section providers,
     /// tool policy and approval, chat-turn plugins, and prompt inspection.
     struct RuntimeConfiguration: Sendable {
-        public let workspaceCreator: any WorkspaceCreating
+        public let workspaceCreator: any WorkspaceFactory
         public let sectionProviders: [any PromptSectionProviding]
         public let runtimeToolPolicy: TimelineManager.RuntimeToolPolicy
         public let workspaceRoot: URL?
@@ -85,7 +85,7 @@ public extension PositronicKit {
         public let toolApprovalGate: any ToolApprovalGate
 
         public init(
-            workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
+            workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
             sectionProviders: [any PromptSectionProviding] = [],
             runtimeToolPolicy: TimelineManager.RuntimeToolPolicy = .default,
             workspaceRoot: URL? = nil,

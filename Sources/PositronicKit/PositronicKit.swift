@@ -17,7 +17,7 @@ import PKShared
 /// expected to be provided downstream via injected stores, workspace creators, and connection hooks.
 ///
 /// Intended extension seams for downstream applications are the facade itself plus public runtime
-/// protocols such as persistence stores, `WorkspaceCreating` / `WorkspaceProtocol`,
+/// protocols such as persistence stores, `WorkspaceFactory` / `Workspace`,
 /// `PromptSectionProviding`, and `ChatTurnPlugin`. Internal coordinators like `ChatEngine`,
 /// `TimelinePromptHistory`, and the concrete turn pipeline remain runtime implementation details
 /// even when they are visible to tests inside this package.
@@ -62,7 +62,7 @@ public final class PositronicKit: Sendable {
     // MARK: - Transitive dependencies (TimelineManager, ContextManager)
 
     private let timelinePersistence: any TimelinePersistenceProtocol
-    private let workspacePersistence: any WorkspacePersistenceProtocol
+    private let workspacePersistence: any WorkspaceStore
     private let memoryStore: any MemoryStoreProtocol
     private let toolPersistence: any ToolPersistenceProtocol
     private let embeddingService: any EmbeddingServiceProtocol
@@ -73,7 +73,7 @@ public final class PositronicKit: Sendable {
     /// Construct a new `PositronicKit` for a genuinely separate cross-send history.
     private let promptHistoryRegistry: TimelinePromptHistoryRegistry
     private let workspaceRoot: URL?
-    private let workspaceCreator: any WorkspaceCreating
+    private let workspaceCreator: any WorkspaceFactory
     private let sectionProviders: [any PromptSectionProviding]
     private let runtimeToolPolicy: TimelineManager.RuntimeToolPolicy
     private let toolApprovalGate: any ToolApprovalGate
@@ -98,12 +98,12 @@ public final class PositronicKit: Sendable {
         agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,
         requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
         timelinePersistence: (any TimelinePersistenceProtocol)? = nil,
-        workspacePersistence: (any WorkspacePersistenceProtocol)? = nil,
+        workspacePersistence: (any WorkspaceStore)? = nil,
         memoryStore: (any MemoryStoreProtocol)? = nil,
         toolPersistence: (any ToolPersistenceProtocol)? = nil,
         embeddingService: (any EmbeddingServiceProtocol)? = nil,
         workspaceRoot: URL? = nil,
-        workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
+        workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: TimelineManager.RuntimeToolPolicy = .default,
         chatTurnPlugins: [any ChatTurnPlugin] = [],
@@ -154,7 +154,7 @@ public final class PositronicKit: Sendable {
         )
         timelineManager = resolvedTimelineManager
         agentInstanceManager = AgentInstanceManager(
-            repository: AgentWorkspaceService(
+            repository: DefaultWorkspaceCatalog(
                 workspaceRoot: resolvedWorkspaceRoot,
                 workspacePersistence: self.workspacePersistence
             ),

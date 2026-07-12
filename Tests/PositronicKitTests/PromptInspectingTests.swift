@@ -110,7 +110,7 @@ struct PromptInspectingTests {
                 tools.append(MockTool().toAnyTool())
                 await toolManager.updateAvailableTools(tools)
 
-                if let workspace = try? await timelineManager.workspaceManager.getWorkspace(id: workspaceId) {
+                if let workspace = try? await timelineManager.workspaceResolver.getWorkspace(id: workspaceId) {
                     await toolManager.registerWorkspace(workspace)
                 }
             }

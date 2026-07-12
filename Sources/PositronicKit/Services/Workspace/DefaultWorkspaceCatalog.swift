@@ -7,13 +7,13 @@ import PKShared
 /// provisioning: creating sandboxed directories and seeding them from template files.
 /// This is the default local/runtime provisioning service shipped with PositronicKit, not a
 /// universal workspace model that hosts are required to adopt.
-public actor AgentWorkspaceService: AgentWorkspaceServiceProtocol {
-    private let persistenceService: any WorkspacePersistenceProtocol
+public actor DefaultWorkspaceCatalog: WorkspaceCatalog {
+    private let persistenceService: any WorkspaceStore
     private let workspaceRoot: URL
 
     public init(
         workspaceRoot: URL,
-        workspacePersistence: any WorkspacePersistenceProtocol
+        workspacePersistence: any WorkspaceStore
     ) {
         persistenceService = workspacePersistence
         self.workspaceRoot = workspaceRoot

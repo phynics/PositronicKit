@@ -8,7 +8,7 @@ import Testing
 @Suite("Context Manager Tests")
 struct ContextManagerTests {
     private func makeContextManager(
-        workspace: (any WorkspaceProtocol)? = nil,
+        workspace: (any Workspace)? = nil,
         persistence: MockPersistenceService,
         embedding: MockEmbeddingService
     ) -> ContextManager {
@@ -197,7 +197,7 @@ struct ContextManagerTests {
 
     @Test("Gather Context: Error Propagation")
     func gatherContextErrorPropagation() async throws {
-        struct FailingWorkspace: WorkspaceProtocol {
+        struct FailingWorkspace: Workspace {
             var id: UUID = .init()
             var reference: WorkspaceReference = .fixture()
             func listTools() async throws -> [ToolReference] {

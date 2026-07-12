@@ -4,21 +4,21 @@ import PKShared
 
 /// Manages the lifecycle of active Workspace instances.
 ///
-/// WorkspaceManager is responsible for resolving WorkspaceReferences into concrete
-/// WorkspaceProtocol implementations, maintaining a cache of active workspaces,
+/// DefaultWorkspaceResolver is responsible for resolving WorkspaceReferences into concrete
+/// Workspace implementations, maintaining a cache of active workspaces,
 /// and coordinating their lifecycle (creation, health checks, and shutdown).
 /// It does not define the concrete workspace behavior itself; that remains host-owned via
-/// `WorkspaceCreating` and `WorkspaceProtocol`.
-public actor WorkspaceManager: WorkspaceManagerProtocol {
-    private let repository: any AgentWorkspaceServiceProtocol
-    private let workspaceCreator: any WorkspaceCreating
+/// `WorkspaceFactory` and `Workspace`.
+public actor DefaultWorkspaceResolver: WorkspaceResolver {
+    private let repository: any WorkspaceCatalog
+    private let workspaceCreator: any WorkspaceFactory
 
     /// Cache of active workspace instances.
-    private var activeWorkspaces: [UUID: any WorkspaceProtocol] = [:]
+    private var activeWorkspaces: [UUID: any Workspace] = [:]
 
     public init(
-        repository: any AgentWorkspaceServiceProtocol,
-        workspaceCreator: any WorkspaceCreating
+        repository: any WorkspaceCatalog,
+        workspaceCreator: any WorkspaceFactory
     ) {
         self.repository = repository
         self.workspaceCreator = workspaceCreator
@@ -30,7 +30,7 @@ public actor WorkspaceManager: WorkspaceManagerProtocol {
     }
 
     /// Retrieves an active workspace instance by its ID, creating and caching it if necessary.
-    public func getWorkspace(id: UUID) async throws -> (any WorkspaceProtocol)? {
+    public func getWorkspace(id: UUID) async throws -> (any Workspace)? {
         // Check cache first
         if let active = activeWorkspaces[id] {
             return active

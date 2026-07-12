@@ -16,13 +16,13 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
         public let instanceStore: any AgentInstanceStoreProtocol
         public let timelineStore: any TimelinePersistenceProtocol
         public let messageStore: any MessageStoreProtocol
-        public let workspaceStore: any WorkspacePersistenceProtocol
+        public let workspaceStore: any WorkspaceStore
 
         public init(
             instanceStore: any AgentInstanceStoreProtocol,
             timelineStore: any TimelinePersistenceProtocol,
             messageStore: any MessageStoreProtocol,
-            workspaceStore: any WorkspacePersistenceProtocol
+            workspaceStore: any WorkspaceStore
         ) {
             self.instanceStore = instanceStore
             self.timelineStore = timelineStore
@@ -34,9 +34,9 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
     private let instanceStore: any AgentInstanceStoreProtocol
     private let timelineStore: any TimelinePersistenceProtocol
     private let messageStore: any MessageStoreProtocol
-    private let workspaceStore: any WorkspacePersistenceProtocol
+    private let workspaceStore: any WorkspaceStore
 
-    private let repository: any AgentWorkspaceServiceProtocol
+    private let repository: any WorkspaceCatalog
     /// When non-nil, private-timeline deletion routes through `TimelineManager.deleteTimeline(id:)`
     /// so the in-memory caches and prompt-history registry entry are evicted alongside persistence,
     /// not just the persisted row (PKR-3).
@@ -44,7 +44,7 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
     private let logger = Logger.module(named: "agent-instance-manager")
 
     public init(
-        repository: any AgentWorkspaceServiceProtocol,
+        repository: any WorkspaceCatalog,
         stores: Stores,
         timelineManager: TimelineManager? = nil
     ) {
@@ -56,7 +56,7 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
         self.timelineManager = timelineManager
     }
 
-    public init(repository: any AgentWorkspaceServiceProtocol) {
+    public init(repository: any WorkspaceCatalog) {
         self.init(
             repository: repository,
             stores: .init(

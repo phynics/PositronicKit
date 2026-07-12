@@ -25,7 +25,7 @@ public extension TimelineManager {
         try await timelineStore.saveTimeline(timeline)
 
         if let toolManager = toolManagers[timelineId] {
-            if let workspace = try? await workspaceManager.getWorkspace(id: workspaceId) {
+            if let workspace = try? await workspaceResolver.getWorkspace(id: workspaceId) {
                 await toolManager.registerWorkspace(workspace)
             }
         }

@@ -4,12 +4,12 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-@Suite("AgentWorkspaceService Tests")
+@Suite("DefaultWorkspaceCatalog Tests")
 struct AgentWorkspaceServiceTests {
     @Test("Create Workspace")
     func testCreateWorkspace() async throws {
         let persistence = MockPersistenceService()
-        let repository = AgentWorkspaceService(
+        let repository = DefaultWorkspaceCatalog(
             workspaceRoot: FileManager.default.temporaryDirectory,
             workspacePersistence: persistence
         )
@@ -33,7 +33,7 @@ struct AgentWorkspaceServiceTests {
     @Test("Get Workspace")
     func testGetWorkspace() async throws {
         let persistence = MockPersistenceService()
-        let repository = AgentWorkspaceService(
+        let repository = DefaultWorkspaceCatalog(
             workspaceRoot: FileManager.default.temporaryDirectory,
             workspacePersistence: persistence
         )
@@ -53,7 +53,7 @@ struct AgentWorkspaceServiceTests {
     @Test("List Workspaces")
     func testListWorkspaces() async throws {
         let persistence = MockPersistenceService()
-        let repository = AgentWorkspaceService(
+        let repository = DefaultWorkspaceCatalog(
             workspaceRoot: FileManager.default.temporaryDirectory,
             workspacePersistence: persistence
         )
@@ -72,7 +72,7 @@ struct AgentWorkspaceServiceTests {
     @Test("Delete Workspace")
     func testDeleteWorkspace() async throws {
         let persistence = MockPersistenceService()
-        let repository = AgentWorkspaceService(
+        let repository = DefaultWorkspaceCatalog(
             workspaceRoot: FileManager.default.temporaryDirectory,
             workspacePersistence: persistence
         )
@@ -88,7 +88,7 @@ struct AgentWorkspaceServiceTests {
     @Test("Update Workspace")
     func testUpdateWorkspace() async throws {
         let persistence = MockPersistenceService()
-        let repository = AgentWorkspaceService(
+        let repository = DefaultWorkspaceCatalog(
             workspaceRoot: FileManager.default.temporaryDirectory,
             workspacePersistence: persistence
         )
@@ -111,7 +111,7 @@ struct AgentWorkspaceServiceTests {
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
         let persistence = MockPersistenceService()
-        let repository = AgentWorkspaceService(
+        let repository = DefaultWorkspaceCatalog(
             workspaceRoot: tempDir,
             workspacePersistence: persistence
         )
@@ -160,7 +160,7 @@ struct AgentWorkspaceServiceTests {
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
         let persistence = MockPersistenceService()
-        let repository = AgentWorkspaceService(
+        let repository = DefaultWorkspaceCatalog(
             workspaceRoot: tempDir,
             workspacePersistence: persistence
         )
@@ -203,7 +203,7 @@ struct AgentWorkspaceServiceTests {
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
         let persistence = MockPersistenceService()
-        let repository = AgentWorkspaceService(
+        let repository = DefaultWorkspaceCatalog(
             workspaceRoot: tempDir,
             workspacePersistence: persistence
         )
@@ -243,7 +243,7 @@ struct AgentWorkspaceServiceTests {
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
         let persistence = MockPersistenceService()
-        let repository = AgentWorkspaceService(
+        let repository = DefaultWorkspaceCatalog(
             workspaceRoot: tempDir,
             workspacePersistence: persistence
         )
