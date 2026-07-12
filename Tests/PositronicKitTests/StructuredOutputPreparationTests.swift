@@ -7,6 +7,7 @@ import Network
 #endif
 import JSONSchemaBuilder
 import PKShared
+import PKUtilities
 import PKTestSupport
 @testable import PKAnthropicProvider
 @testable import PKOllamaProvider
@@ -21,10 +22,10 @@ import Testing
 @MainActor
 struct StructuredOutputPreparationTests {
     private static let registeredAdapters: Void = {
-        _ = PKOpenAIProvider.makeLanguageModel(configuration: .init(provider: .openAI))
-        _ = PKOpenRouterProvider.makeLanguageModel(configuration: .init(provider: .openRouter))
-        _ = PKOllamaProvider.makeLanguageModel(configuration: .init(provider: .ollama))
-        _ = PKAnthropicProvider.makeLanguageModel(configuration: .init(provider: .anthropic))
+        StructuredOutputAdapterRegistry.register(NativeJSONSchemaStructuredOutputAdapter(), for: .openAI)
+        StructuredOutputAdapterRegistry.register(NativeJSONSchemaStructuredOutputAdapter(), for: .openRouter)
+        StructuredOutputAdapterRegistry.register(OllamaStructuredOutputAdapter(), for: .ollama)
+        StructuredOutputAdapterRegistry.register(AnthropicStructuredOutputAdapter(), for: .anthropic)
     }()
 
     init() {

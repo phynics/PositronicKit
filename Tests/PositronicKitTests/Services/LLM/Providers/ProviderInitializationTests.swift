@@ -170,8 +170,8 @@ struct ProviderInitializationTests {
 
     @Test("OpenAI provider construction directly injects a client")
     func openAIDirectInjection() async {
-        let model = PKOpenAIProvider.makeLanguageModel(configuration: .init(apiKey: "test", provider: .openAI))
-        #expect(await model.getClient() is OpenAIClient)
+        let client = PKOpenAIProvider.makeClient(configuration: .init(apiKey: "test", provider: .openAI))
+        #expect(client is OpenAIClient)
     }
 
     // MARK: - Anthropic
@@ -254,8 +254,8 @@ struct ProviderInitializationTests {
 
     @Test("Anthropic provider construction directly injects a client")
     func anthropicDirectInjection() async {
-        let model = PKAnthropicProvider.makeLanguageModel(configuration: .init(apiKey: "test", provider: .anthropic))
-        #expect(await model.getClient() is AnthropicClient)
+        let client = PKAnthropicProvider.makeClient(configuration: .init(apiKey: "test", provider: .anthropic))
+        #expect(client is AnthropicClient)
     }
 
     // MARK: - Ollama
@@ -310,17 +310,16 @@ struct ProviderInitializationTests {
         #expect(json.contains("mistral"))
     }
 
-    @Test("Ollama documented default endpoint (http://localhost:11434) is real, at the PKOllamaProvider convenience-init layer")
+    @Test("Ollama documented default endpoint is preserved by direct provider composition")
     func ollamaDefaultEndpointIsReal() async {
-        let chat = PositronicKit(ollamaModel: "llama3")
-        let config = await chat.llmService.configuration
+        let config = LLMConfiguration(provider: .ollama)
         #expect(config.endpoint == "http://localhost:11434")
     }
 
     @Test("Ollama provider construction directly injects a client")
     func ollamaDirectInjection() async {
-        let model = PKOllamaProvider.makeLanguageModel(configuration: .init(provider: .ollama))
-        #expect(await model.getClient() is OllamaClient)
+        let client = PKOllamaProvider.makeClient(configuration: .init(provider: .ollama))
+        #expect(client is OllamaClient)
     }
 
     // MARK: - OpenRouter
@@ -417,7 +416,7 @@ struct ProviderInitializationTests {
 
     @Test("OpenRouter provider construction directly injects a client")
     func openRouterDirectInjection() async {
-        let model = PKOpenRouterProvider.makeLanguageModel(configuration: .init(provider: .openRouter))
-        #expect(await model.getClient() is OpenRouterClient)
+        let client = PKOpenRouterProvider.makeClient(configuration: .init(provider: .openRouter))
+        #expect(client is OpenRouterClient)
     }
 }
