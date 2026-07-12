@@ -3,24 +3,28 @@ import PKShared
 import PositronicKit
 
 public enum PKOpenRouterProvider {
-    public static func register() {
-        ExternalLLMProviderRegistry.register(factory: { request in
-            let attribution = OpenRouterClient.Attribution(
-                applicationURL: request.config.providers[.openRouter]?.applicationURL,
-                applicationTitle: request.config.providers[.openRouter]?.applicationTitle
+    public static func makeLanguageModel(configuration: LLMConfiguration) -> LLMService {
+        let url = URL(string: configuration.endpoint)
+        let client = OpenRouterClient(
+            apiKey: configuration.apiKey,
+            modelName: configuration.modelName,
+            host: url?.host ?? "openrouter.ai",
+            port: url?.port ?? 443,
+            scheme: url?.scheme ?? "https",
+            timeoutInterval: configuration.timeoutInterval,
+            maxRetries: configuration.maxRetries,
+            attribution: .init(
+                applicationURL: configuration.providers[.openRouter]?.applicationURL,
+                applicationTitle: configuration.providers[.openRouter]?.applicationTitle
             )
-            return OpenRouterClient(
-                apiKey: request.config.apiKey,
-                modelName: request.model ?? request.config.modelName,
-                host: request.components.host,
-                port: request.components.port,
-                scheme: request.components.scheme,
-                timeoutInterval: request.timeout,
-                maxRetries: request.retries,
-                attribution: attribution
-            )
-        }, for: .openRouter)
+        )
         StructuredOutputAdapterRegistry.register(NativeJSONSchemaStructuredOutputAdapter(), for: .openRouter)
+        return LLMService(
+            storage: InMemoryConfigurationService(config: configuration),
+            client: client,
+            utilityClient: client,
+            fastClient: client
+        )
     }
 }
 
@@ -33,7 +37,6 @@ public extension PositronicKit {
         applicationURL: String? = nil,
         applicationTitle: String? = nil
     ) {
-        PKOpenRouterProvider.register()
         let config = LLMConfiguration(
             endpoint: endpoint,
             modelName: model,
@@ -42,9 +45,9 @@ public extension PositronicKit {
             applicationURL: applicationURL,
             applicationTitle: applicationTitle
         )
-        let llm = LLMService(configuration: config)
+        let llm = PKOpenRouterProvider.makeLanguageModel(configuration: config)
         self.init(configuration: .init(
-            provider: .init(llmService: llm),
+            provider: .init(languageModel: llm),
             persistence: .inMemory(),
             generationParameters: generationParameters
         ))

@@ -3,19 +3,24 @@ import PKShared
 import PositronicKit
 
 public enum PKAnthropicProvider {
-    public static func register() {
-        ExternalLLMProviderRegistry.register(factory: { request in
-            AnthropicClient(
-                apiKey: request.config.apiKey,
-                modelName: request.model ?? request.config.modelName,
-                host: request.components.host,
-                port: request.components.port,
-                scheme: request.components.scheme,
-                timeoutInterval: request.timeout,
-                maxRetries: request.retries
-            )
-        }, for: .anthropic)
+    public static func makeLanguageModel(configuration: LLMConfiguration) -> LLMService {
+        let url = URL(string: configuration.endpoint)
+        let client = AnthropicClient(
+            apiKey: configuration.apiKey,
+            modelName: configuration.modelName,
+            host: url?.host ?? "api.anthropic.com",
+            port: url?.port ?? 443,
+            scheme: url?.scheme ?? "https",
+            timeoutInterval: configuration.timeoutInterval,
+            maxRetries: configuration.maxRetries
+        )
         StructuredOutputAdapterRegistry.register(AnthropicStructuredOutputAdapter(), for: .anthropic)
+        return LLMService(
+            storage: InMemoryConfigurationService(config: configuration),
+            client: client,
+            utilityClient: client,
+            fastClient: client
+        )
     }
 }
 
@@ -26,16 +31,15 @@ public extension PositronicKit {
         endpoint: String = "https://api.anthropic.com",
         generationParameters: GenerationParameters? = nil
     ) {
-        PKAnthropicProvider.register()
         let config = LLMConfiguration(
             endpoint: endpoint,
             modelName: model,
             apiKey: anthropicKey,
             provider: .anthropic
         )
-        let llm = LLMService(configuration: config)
+        let llm = PKAnthropicProvider.makeLanguageModel(configuration: config)
         self.init(configuration: .init(
-            provider: .init(llmService: llm),
+            provider: .init(languageModel: llm),
             persistence: .inMemory(),
             generationParameters: generationParameters
         ))

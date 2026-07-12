@@ -20,14 +20,14 @@ public enum PositronicKitUsageExamples {
     }
 
     public static func makePrototypeRuntime() -> PositronicKit {
-        PositronicKit(llmService: UnconfiguredLLMService())
+        PositronicKit(languageModel: UnconfiguredLLMService())
     }
 
     // MARK: - Facade operation ladder
 
     /// Tier 1: a timeline-free one-shot runtime.
     public static func makeOneShotRuntime() -> PositronicKit {
-        PositronicKit(llmService: UnconfiguredLLMService())
+        PositronicKit(languageModel: UnconfiguredLLMService())
     }
 
     /// Tier 2: a persisted conversation cursor, created through the facade.
@@ -50,7 +50,7 @@ public enum PositronicKitUsageExamples {
 
     public static func makeInspectableRuntime(inspector: any PromptInspecting) -> PositronicKit {
         PositronicKit(configuration: .init(
-            provider: .init(llmService: UnconfiguredLLMService()),
+            provider: .init(languageModel: UnconfiguredLLMService()),
             persistence: .inMemory(),
             runtime: .init(promptInspector: inspector)
         ))
@@ -72,19 +72,16 @@ public enum PositronicKitUsageExamples {
         )
 
         return PositronicKit(configuration: .init(
-            provider: .init(llmService: UnconfiguredLLMService(), embeddingService: NoOpEmbeddingService()),
+            provider: .init(languageModel: UnconfiguredLLMService(), embeddingService: NoOpEmbeddingService()),
             persistence: .inMemory(),
             runtime: runtime
         ))
     }
 
     public static func makeConfiguredOpenAIRuntime(apiKey: String = "sk-example") -> PositronicKit {
-        PKOpenAIProvider.register()
+        let configuration = LLMConfiguration(apiKey: apiKey, provider: .openAI)
         return PositronicKit(configuration: .init(
-            provider: .init(llmService: LLMService(configuration: .init(
-                apiKey: apiKey,
-                provider: .openAI
-            ))),
+            provider: .init(languageModel: PKOpenAIProvider.makeLanguageModel(configuration: configuration)),
             persistence: .inMemory()
         ))
     }
@@ -115,7 +112,7 @@ public enum PositronicKitUsageExamples {
         )
 
         return PositronicKit(configuration: .init(
-            provider: .init(llmService: UnconfiguredLLMService(), embeddingService: NoOpEmbeddingService()),
+            provider: .init(languageModel: UnconfiguredLLMService(), embeddingService: NoOpEmbeddingService()),
             persistence: .init(
                 messageStore: InMemoryMessageStore(),
                 timelinePersistence: InMemoryTimelinePersistence(),

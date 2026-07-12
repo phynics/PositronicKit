@@ -3,16 +3,20 @@ import PKShared
 import PositronicKit
 
 public enum PKOllamaProvider {
-    public static func register() {
-        ExternalLLMProviderRegistry.register(factory: { request in
-            OllamaClient(
-                endpoint: request.config.endpoint,
-                modelName: request.model ?? request.config.modelName,
-                timeoutInterval: request.timeout,
-                maxRetries: request.retries
-            )
-        }, for: .ollama)
+    public static func makeLanguageModel(configuration: LLMConfiguration) -> LLMService {
+        let client = OllamaClient(
+            endpoint: configuration.endpoint,
+            modelName: configuration.modelName,
+            timeoutInterval: configuration.timeoutInterval,
+            maxRetries: configuration.maxRetries
+        )
         StructuredOutputAdapterRegistry.register(OllamaStructuredOutputAdapter(), for: .ollama)
+        return LLMService(
+            storage: InMemoryConfigurationService(config: configuration),
+            client: client,
+            utilityClient: client,
+            fastClient: client
+        )
     }
 }
 
@@ -22,11 +26,10 @@ public extension PositronicKit {
         endpoint: String = "http://localhost:11434",
         generationParameters: GenerationParameters? = nil
     ) {
-        PKOllamaProvider.register()
         let config = LLMConfiguration(endpoint: endpoint, modelName: ollamaModel, provider: .ollama)
-        let llm = LLMService(configuration: config)
+        let llm = PKOllamaProvider.makeLanguageModel(configuration: config)
         self.init(configuration: .init(
-            provider: .init(llmService: llm),
+            provider: .init(languageModel: llm),
             persistence: .inMemory(),
             generationParameters: generationParameters
         ))

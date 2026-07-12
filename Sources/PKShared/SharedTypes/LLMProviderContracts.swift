@@ -1,6 +1,5 @@
 import Foundation
 import struct JSONSchema.Schema
-import Synchronization
 
 /// Provider-neutral description of a tool the LLM may call, sent alongside a chat request.
 public struct LLMToolDefinition: Sendable, Codable {
@@ -334,8 +333,7 @@ public struct EndpointComponents: Sendable, Equatable {
 }
 
 /// A concrete provider SDK adapter (OpenAI, Anthropic, Ollama, OpenRouter, ...) that
-/// speaks the provider-neutral `LLMMessage`/`LLMStreamChunk` contract. Implementations
-/// are registered per `LLMProvider` via `ExternalLLMProviderRegistry`.
+/// speaks the provider-neutral `LLMMessage`/`LLMStreamChunk` contract.
 public protocol LLMClientProtocol: Sendable {
     /// Streams a chat completion for the given messages/tools/parameters.
     func chatStream(
@@ -361,70 +359,6 @@ public protocol LLMClientProtocol: Sendable {
 public extension LLMClientProtocol {
     func fetchAvailableModels() async throws -> [String]? {
         nil
-    }
-}
-
-/// Labeled request payload for constructing a provider client via
-/// ``ExternalLLMProviderRegistry/Factory``.
-///
-/// Replaces the former unlabeled 5-tuple
-/// `(LLMConfiguration, EndpointComponents, TimeInterval, Int, String?)` — Swift closure type
-/// aliases can't carry argument labels, so `TimeInterval`, `Int`, and `String?` were
-/// unidentifiable at any call site. The struct makes every field self-documenting.
-public struct ProviderFactoryRequest: Sendable {
-    /// The resolved LLM configuration (active provider's settings live at
-    /// `config.providers[config.activeProvider]`).
-    public let config: LLMConfiguration
-    /// Parsed host/port/scheme of `config.endpoint`.
-    public let components: EndpointComponents
-    /// Per-request HTTP timeout interval.
-    public let timeout: TimeInterval
-    /// Per-request retry count.
-    public let retries: Int
-    /// Optional model-name override; `nil` means use `config.modelName` (or the tier-specific
-    /// model for utility/fast client construction).
-    public let model: String?
-
-    public init(
-        config: LLMConfiguration,
-        components: EndpointComponents,
-        timeout: TimeInterval,
-        retries: Int,
-        model: String? = nil
-    ) {
-        self.config = config
-        self.components = components
-        self.timeout = timeout
-        self.retries = retries
-        self.model = model
-    }
-}
-
-/// Process-wide registry mapping `LLMProvider` to a factory that constructs its
-/// `LLMClientProtocol` adapter. Provider SDK adapter modules (`PKOpenAIProvider`, etc.)
-/// register themselves here at startup so `PositronicKit` can construct clients without
-/// depending on any concrete provider module.
-public enum ExternalLLMProviderRegistry {
-    /// Constructs a provider client from a labeled ``ProviderFactoryRequest``.
-    public typealias Factory = @Sendable (ProviderFactoryRequest) -> (any LLMClientProtocol)?
-
-    private static let factories = Mutex<[LLMProvider: Factory]>([:])
-
-    /// Registers or replaces the factory for a provider.
-    ///
-    /// Re-registration is allowed and simply overwrites the existing factory for that provider.
-    /// Provider modules rely on this behavior so hosts can call `register()` defensively at startup.
-    public static func register(factory: @escaping Factory, for provider: LLMProvider) {
-        factories.withLock {
-            $0[provider] = factory
-        }
-    }
-
-    /// Returns the registered factory for `provider`, if any has been registered.
-    public static func factory(for provider: LLMProvider) -> Factory? {
-        factories.withLock {
-            $0[provider]
-        }
     }
 }
 

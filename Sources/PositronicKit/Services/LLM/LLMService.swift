@@ -24,7 +24,7 @@ private final class PreparationTaskBox: @unchecked Sendable {
 }
 
 /// Service for managing LLM interactions with configuration support
-public actor LLMService: LLMStreamClient, LLMConfigStore, LLMUtilityClient, HealthCheckable {
+public actor LLMService: LanguageModel, HealthCheckable {
     public private(set) var configuration: LLMConfiguration = .openAI
     public private(set) var isConfigured: Bool = false
 

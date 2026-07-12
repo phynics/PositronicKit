@@ -5,15 +5,34 @@ public extension PositronicKit {
     /// Groups provider-facing services used by the runtime.
     /// Embeddings stay with the LLM service because both are provider integrations.
     struct ProviderConfiguration: Sendable {
-        public let llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient
+        public let languageModel: any LanguageModel
         public let embeddingService: (any EmbeddingServiceProtocol)?
 
+        @available(*, deprecated, renamed: "languageModel")
+        public var llmService: any LanguageModel { languageModel }
+
+        public init(
+            languageModel: any LanguageModel,
+            embeddingService: (any EmbeddingServiceProtocol)? = nil
+        ) {
+            self.languageModel = languageModel
+            self.embeddingService = embeddingService
+        }
+
+        @available(*, deprecated, renamed: "init(languageModel:embeddingService:)")
+        public init(
+            llmService: any LanguageModel,
+            embeddingService: (any EmbeddingServiceProtocol)? = nil
+        ) {
+            self.init(languageModel: llmService, embeddingService: embeddingService)
+        }
+
+        @available(*, deprecated, renamed: "init(languageModel:embeddingService:)")
         public init(
             llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient,
             embeddingService: (any EmbeddingServiceProtocol)? = nil
         ) {
-            self.llmService = llmService
-            self.embeddingService = embeddingService
+            self.init(languageModel: AnyLanguageModel(base: llmService), embeddingService: embeddingService)
         }
     }
 
@@ -112,7 +131,7 @@ public extension PositronicKit {
     /// point; use `PositronicKit(llmService:)` for prototyping.
     convenience init(configuration: Configuration) {
         self.init(
-            llmService: configuration.provider.llmService,
+            languageModel: configuration.provider.languageModel,
             messageStore: configuration.persistence.messageStore,
             agentInstanceStore: configuration.persistence.agentInstanceStore,
             requestOriginStore: configuration.persistence.requestOriginStore,
