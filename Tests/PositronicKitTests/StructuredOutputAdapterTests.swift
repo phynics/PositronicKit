@@ -165,6 +165,7 @@ struct StructuredOutputAdapterTests {
         StructuredOutputAdapterRegistry.register(NativeJSONSchemaStructuredOutputAdapter(), for: .openRouter)
         StructuredOutputAdapterRegistry.register(OllamaStructuredOutputAdapter(), for: .ollama)
         StructuredOutputAdapterRegistry.register(AnthropicStructuredOutputAdapter(), for: .anthropic)
+        StructuredOutputAdapterRegistry.register(OpenAICompatibleStructuredOutputAdapter(), for: .openAICompatible)
 
         #expect(StructuredOutputAdapterRegistry.adapter(for: .openAI) is NativeJSONSchemaStructuredOutputAdapter)
         #expect(StructuredOutputAdapterRegistry.adapter(for: .openRouter) is NativeJSONSchemaStructuredOutputAdapter)

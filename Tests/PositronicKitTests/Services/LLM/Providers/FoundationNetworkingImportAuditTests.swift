@@ -14,8 +14,8 @@ struct FoundationNetworkingImportAuditTests {
             .deletingLastPathComponent()
 
         let files = [
-            "Sources/PositronicKit/Services/LLM/ProviderHTTPTransport.swift",
-            "Sources/PositronicKit/Services/LLM/ProviderHTTPFailure.swift",
+            "Sources/PKUtilities/ProviderHTTPTransport.swift",
+            "Sources/PKUtilities/ProviderHTTPFailure.swift",
             "Sources/PKOpenRouterProvider/OpenRouterClient.swift",
             "Sources/PKOllamaProvider/OllamaClient.swift",
             "Sources/PKOpenAIProvider/OpenAIClient.swift",
