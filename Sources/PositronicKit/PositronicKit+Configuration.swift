@@ -82,7 +82,7 @@ public extension PositronicKit {
         public let workspaceRoot: URL?
         public let chatTurnPlugins: [any ChatTurnPlugin]
         public let promptInspector: (any PromptInspecting)?
-        public let toolApprovalGate: any ToolApprovalGate
+        public let toolApprovalPolicy: any ToolApprovalPolicy
 
         public init(
             workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
@@ -91,7 +91,7 @@ public extension PositronicKit {
             workspaceRoot: URL? = nil,
             chatTurnPlugins: [any ChatTurnPlugin] = [],
             promptInspector: (any PromptInspecting)? = nil,
-            toolApprovalGate: any ToolApprovalGate = DenyAllToolApprovalGate()
+            toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy()
         ) {
             self.workspaceCreator = workspaceCreator
             self.sectionProviders = sectionProviders
@@ -99,7 +99,7 @@ public extension PositronicKit {
             self.workspaceRoot = workspaceRoot
             self.chatTurnPlugins = chatTurnPlugins
             self.promptInspector = promptInspector
-            self.toolApprovalGate = toolApprovalGate
+            self.toolApprovalPolicy = toolApprovalPolicy
         }
 
         /// The default runtime configuration: no workspaces, no plugins, deny-all tool approval.
@@ -128,7 +128,7 @@ public extension PositronicKit {
             chatTurnPlugins: configuration.runtime.chatTurnPlugins,
             promptInspector: configuration.runtime.promptInspector,
             generationParameters: configuration.generationParameters,
-            toolApprovalGate: configuration.runtime.toolApprovalGate,
+            toolApprovalPolicy: configuration.runtime.toolApprovalPolicy,
             sharedRegistry: TimelinePromptHistoryRegistry(),
             additionalStages: []
         )

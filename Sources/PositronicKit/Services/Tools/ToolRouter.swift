@@ -67,20 +67,20 @@ public actor ToolRouter {
     private let timelineManager: TimelineManager
     private let messageStore: any MessageStoreProtocol
     private let toolExecutionTimeout: TimeInterval
-    private let approvalGate: any ToolApprovalGate
+    private let approvalPolicy: any ToolApprovalPolicy
     private let sleep: @Sendable (UInt64) async throws -> Void
 
     public init(
         timelineManager: TimelineManager,
         messageStore: any MessageStoreProtocol,
         toolExecutionTimeout: TimeInterval = 60,
-        approvalGate: any ToolApprovalGate = DenyAllToolApprovalGate(),
+        approvalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
         sleep: (@Sendable (UInt64) async throws -> Void)? = nil
     ) {
         self.timelineManager = timelineManager
         self.messageStore = messageStore
         self.toolExecutionTimeout = toolExecutionTimeout
-        self.approvalGate = approvalGate
+        self.approvalPolicy = approvalPolicy
         self.sleep = sleep ?? ToolTimeoutEnforcer.defaultSleep
     }
 
@@ -383,7 +383,7 @@ public actor ToolRouter {
         // approval contract holds regardless of how the call was produced (YAK-31). Non-permissioned
         // tools skip the gate entirely.
         if resolvedTool.requiresPermission {
-            let decision = await approvalGate.requestApproval(tool: resolvedTool, arguments: arguments)
+            let decision = await approvalPolicy.requestApproval(tool: resolvedTool, arguments: arguments)
             guard decision == .approve else {
                 logger.warning("Permission denied for \(toolName)")
                 throw ToolError.permissionDenied(resolvedTool.name)

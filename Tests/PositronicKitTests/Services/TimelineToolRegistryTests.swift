@@ -3,7 +3,7 @@ import Foundation
 @testable import PKShared
 import Testing
 
-final class TimelineToolManagerTests {
+final class TimelineToolRegistryTests {
     struct MockTool: PKShared.Tool, @unchecked Sendable {
         let callName: String
         let name: String
@@ -52,7 +52,7 @@ final class TimelineToolManagerTests {
         let systemTool1 = AnyTool(MockTool(callName: "sys1", name: "System 1"))
         let systemTool2 = AnyTool(MockTool(callName: "sys2", name: "System 2"))
 
-        let manager = TimelineToolManager(availableTools: [systemTool1, systemTool2])
+        let manager = TimelineToolRegistry(availableTools: [systemTool1, systemTool2])
 
         let enabled = await manager.enabledTools
         #expect(enabled.count == 2)
@@ -65,7 +65,7 @@ final class TimelineToolManagerTests {
 
     @Test func updateAvailableToolsAutoEnablesNewTools() async {
         let systemTool1 = AnyTool(MockTool(callName: "sys1", name: "System 1"))
-        let manager = TimelineToolManager(availableTools: [systemTool1])
+        let manager = TimelineToolRegistry(availableTools: [systemTool1])
 
         // Add a new tool, and simulate one being removed
         let systemTool2 = AnyTool(MockTool(callName: "sys2", name: "System 2"))
@@ -79,7 +79,7 @@ final class TimelineToolManagerTests {
 
     @Test func toggleEnableDisableTools() async {
         let systemTool1 = AnyTool(MockTool(callName: "sys1", name: "System 1"))
-        let manager = TimelineToolManager(availableTools: [systemTool1])
+        let manager = TimelineToolRegistry(availableTools: [systemTool1])
 
         var enabled = await manager.enabledTools
         #expect(enabled.contains("sys1"))
@@ -98,7 +98,7 @@ final class TimelineToolManagerTests {
     }
 
     @Test func workspaceToolRegistration() async throws {
-        let manager = TimelineToolManager(availableTools: [])
+        let manager = TimelineToolRegistry(availableTools: [])
 
         let workspaceId = UUID()
         let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://test")), location: .runtime, originId: nil)
@@ -130,7 +130,7 @@ final class TimelineToolManagerTests {
 
     @Test func getToolResolvesCorrectly() async throws {
         let systemTool = AnyTool(MockTool(callName: "sys1", name: "System 1"))
-        let manager = TimelineToolManager(availableTools: [systemTool])
+        let manager = TimelineToolRegistry(availableTools: [systemTool])
 
         let sysResult = await manager.getTool(id: "sys1")
         try #require(sysResult != nil)
@@ -159,8 +159,8 @@ final class TimelineToolManagerTests {
         }
     }
 
-    @Test func workspaceToolsHaveProvenance() async throws {
-        let manager = TimelineToolManager(availableTools: [])
+    @Test func workspaceToolsHaveOrigin() async throws {
+        let manager = TimelineToolRegistry(availableTools: [])
         let workspaceId = UUID()
         let uri = try #require(WorkspaceURI(parsing: "pk://test-workspace-prov"))
         let workspaceRef = WorkspaceReference(id: workspaceId, uri: uri, location: .runtime, originId: nil)
@@ -170,22 +170,22 @@ final class TimelineToolManagerTests {
 
         await manager.registerWorkspace(mockWS)
 
-        // Verify the tool has the expected provenance injected
+        // Verify the tool has the expected origin injected
         let available = await manager.getAvailableTools()
         let tool = available.first(where: { $0.name == "provTool" })
         try #require(tool != nil)
-        #expect(tool?.provenance == .workspace(id: workspaceId, name: "pk://test-workspace-prov"))
+        #expect(tool?.origin == .workspace(id: workspaceId, name: "pk://test-workspace-prov"))
 
         let fetched = try await manager.getTool(id: #require(tool?.callName))
-        #expect(fetched?.provenance == .workspace(id: workspaceId, name: "pk://test-workspace-prov"))
+        #expect(fetched?.origin == .workspace(id: workspaceId, name: "pk://test-workspace-prov"))
     }
 
     @Test func toolProviderRegistration() async throws {
-        let manager = TimelineToolManager(availableTools: [])
+        let manager = TimelineToolRegistry(availableTools: [])
 
-        struct TestProvider: ToolProviding {
-            let toolProvenance: ToolProvenance = .workspace(id: UUID(), name: "Provider")
-            func provideTools() async -> [AnyTool] {
+        struct TestProvider: ToolSource {
+            let toolOrigin: ToolOrigin = .workspace(id: UUID(), name: "Provider")
+            func tools() async -> [AnyTool] {
                 [AnyTool(MockTool(callName: "provided", name: "Provided Tool"))]
             }
         }
@@ -197,7 +197,7 @@ final class TimelineToolManagerTests {
         let available = await manager.getAvailableTools()
         #expect(available.count == 1)
         #expect(available.first?.callName == "provided")
-        #expect(available.first?.provenance == provider.toolProvenance)
+        #expect(available.first?.origin == provider.toolOrigin)
 
         await manager.unregisterToolProvider(providerId)
         let availableAfter = await manager.getAvailableTools()
@@ -206,7 +206,7 @@ final class TimelineToolManagerTests {
 
     @Test func knownToolRefsResolved() async throws {
         let systemTool = AnyTool(MockTool(callName: "cat", name: "cat"))
-        let manager = TimelineToolManager(availableTools: [systemTool])
+        let manager = TimelineToolRegistry(availableTools: [systemTool])
 
         let workspaceId = UUID()
         let uri = try #require(WorkspaceURI(parsing: "pk://test-known-tool"))
@@ -217,19 +217,19 @@ final class TimelineToolManagerTests {
 
         await manager.registerWorkspace(mockWS)
 
-        // The system tool should now have provenance indicating it is tied to the workspace
+        // The system tool should now have origin indicating it is tied to the workspace
         let available = await manager.getAvailableTools()
         let tool = available.first(where: { $0.callName == "cat" })
         try #require(tool != nil)
-        #expect(tool?.provenance == .workspace(id: workspaceId, name: "pk://test-known-tool"))
+        #expect(tool?.origin == .workspace(id: workspaceId, name: "pk://test-known-tool"))
 
         let fetched = await manager.getTool(id: "cat")
-        #expect(fetched?.provenance == .workspace(id: workspaceId, name: "pk://test-known-tool"))
+        #expect(fetched?.origin == .workspace(id: workspaceId, name: "pk://test-known-tool"))
     }
 
-    @Test func multipleWorkspacesDeclaringSameKnownToolCollapseToDeterministicProvenance() async throws {
+    @Test func multipleWorkspacesDeclaringSameKnownToolCollapseToDeterministicOrigin() async throws {
         let systemTool = AnyTool(MockTool(callName: "cat", name: "cat"))
-        let manager = TimelineToolManager(availableTools: [systemTool])
+        let manager = TimelineToolRegistry(availableTools: [systemTool])
 
         // Two workspaces, named so the lexicographic ordering of their displayName is
         // "Workspace: pk://a-workspace" < "Workspace: pk://z-workspace".
@@ -254,15 +254,15 @@ final class TimelineToolManagerTests {
         await manager.registerWorkspace(mockA)
         await manager.registerWorkspace(mockB)
 
-        // Both workspaces declare "cat"; provenance collapses to the single
+        // Both workspaces declare "cat"; origin collapses to the single
         // lexicographically-smallest displayName (wsB's "a-workspace") so the prompt
         // label is deterministic rather than dependent on Set iteration order.
         let available = await manager.getAvailableTools()
         let tool = try #require(available.first { $0.callName == "cat" })
-        #expect(tool.provenance == .workspace(id: wsB, name: "pk://a-workspace"))
+        #expect(tool.origin == .workspace(id: wsB, name: "pk://a-workspace"))
 
         let fetched = await manager.getTool(id: "cat")
-        #expect(fetched?.provenance == .workspace(id: wsB, name: "pk://a-workspace"))
+        #expect(fetched?.origin == .workspace(id: wsB, name: "pk://a-workspace"))
     }
 
     @Test func getEnabledToolsAndAvailableToolsReturnDeterministicallySortedTools() async throws {
@@ -271,11 +271,11 @@ final class TimelineToolManagerTests {
         let systemTool1 = AnyTool(MockTool(callName: "sys-zeta", name: "Zeta"))
         let systemTool2 = AnyTool(MockTool(callName: "sys-alpha", name: "Alpha"))
         let systemTool3 = AnyTool(MockTool(callName: "sys-beta", name: "Beta"))
-        let manager = TimelineToolManager(availableTools: [systemTool1, systemTool2, systemTool3])
+        let manager = TimelineToolRegistry(availableTools: [systemTool1, systemTool2, systemTool3])
 
-        struct TestProvider: ToolProviding {
-            let toolProvenance: ToolProvenance = .workspace(id: UUID(), name: "Provider")
-            func provideTools() async -> [AnyTool] {
+        struct TestProvider: ToolSource {
+            let toolOrigin: ToolOrigin = .workspace(id: UUID(), name: "Provider")
+            func tools() async -> [AnyTool] {
                 [AnyTool(MockTool(callName: "provided-alpha", name: "Alpha"))]
             }
         }
@@ -300,8 +300,8 @@ final class TimelineToolManagerTests {
         let mockWS = MockWorkspace(id: workspaceId, reference: workspaceRef, toolsToReturn: [.custom(def)])
         await manager.registerWorkspace(mockWS)
 
-        // System Alpha has .global provenance; provider Alpha has workspace provenance.
-        // The provenance displayName is the tiebreaker, so system Alpha sorts first.
+        // System Alpha has .global origin; provider Alpha has workspace origin.
+        // The origin displayName is the tiebreaker, so system Alpha sorts first.
         let expectedNames = ["Alpha", "Alpha", "Beta", "Omega", "Zeta"]
 
         for _ in 0 ..< 10 {
@@ -318,12 +318,12 @@ final class TimelineToolManagerTests {
         let available = await manager.getAvailableTools()
         let alphaTools = available.filter { $0.name == "Alpha" }
         #expect(alphaTools.count == 2)
-        #expect(alphaTools[0].provenance == .global)
-        #expect(alphaTools[1].provenance == provider.toolProvenance)
+        #expect(alphaTools[0].origin == .global)
+        #expect(alphaTools[1].origin == provider.toolOrigin)
     }
 
     @Test func toolsInWorkspaceReturnsOnlyThatWorkspacesCustomTools() async throws {
-        let manager = TimelineToolManager(availableTools: [])
+        let manager = TimelineToolRegistry(availableTools: [])
 
         let wsA = UUID()
         let wsB = UUID()
@@ -339,12 +339,12 @@ final class TimelineToolManagerTests {
         let inA = await manager.tools(inWorkspace: wsA)
         #expect(inA.count == 1)
         #expect(inA.first?.name == "toolA")
-        #expect(inA.first?.provenance == .workspace(id: wsA, name: "pk://ws-a"))
+        #expect(inA.first?.origin == .workspace(id: wsA, name: "pk://ws-a"))
 
         let inB = await manager.tools(inWorkspace: wsB)
         #expect(inB.count == 1)
         #expect(inB.first?.name == "toolB")
-        #expect(inB.first?.provenance == .workspace(id: wsB, name: "pk://ws-b"))
+        #expect(inB.first?.origin == .workspace(id: wsB, name: "pk://ws-b"))
 
         // Grouping returns both workspaces, each with its own tool.
         let grouped = await manager.toolsGroupedByWorkspace()
@@ -355,7 +355,7 @@ final class TimelineToolManagerTests {
 
     @Test func toolsInWorkspaceIncludesKnownSystemToolsTaggedToIt() async throws {
         let systemTool = AnyTool(MockTool(callName: "cat", name: "cat"))
-        let manager = TimelineToolManager(availableTools: [systemTool])
+        let manager = TimelineToolRegistry(availableTools: [systemTool])
 
         let wsA = UUID()
         let refA = WorkspaceReference(id: wsA, uri: try #require(WorkspaceURI(parsing: "pk://ws-a")), location: .runtime, originId: nil)
@@ -369,7 +369,7 @@ final class TimelineToolManagerTests {
         let inA = await manager.tools(inWorkspace: wsA)
         #expect(inA.count == 1)
         #expect(inA.first?.callName == "cat")
-        #expect(inA.first?.provenance == .workspace(id: wsA, name: "pk://ws-a"))
+        #expect(inA.first?.origin == .workspace(id: wsA, name: "pk://ws-a"))
 
         // wsB declared no tools -> empty.
         let inB = await manager.tools(inWorkspace: wsB)

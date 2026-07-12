@@ -11,7 +11,7 @@ struct RuntimeToolPolicyFactoryTests {
         (InMemoryTimelinePersistence(), InMemoryMessageStore())
     }
 
-    private func toolIds(for toolManager: TimelineToolManager) async -> Set<String> {
+    private func toolIds(for toolManager: TimelineToolRegistry) async -> Set<String> {
         Set(await toolManager.getAvailableTools().map(\.callName))
     }
 
@@ -154,7 +154,7 @@ struct RuntimeToolPolicyFactoryTests {
         ])
     }
 
-    @Test("Tool context is propagated to the constructed TimelineToolManager")
+    @Test("Tool context is propagated to the constructed TimelineToolRegistry")
     func toolContextPropagated() async {
         let (timelineStore, messageStore) = makeStores()
         let timeline = Timeline(workingDirectory: "/tmp/test")
@@ -168,7 +168,7 @@ struct RuntimeToolPolicyFactoryTests {
             messageStore: messageStore
         )
 
-        // `TimelineToolManager.timelineContext` is a public `let`.
+        // `TimelineToolRegistry.timelineContext` is a public `let`.
         let ctx = await toolManager.timelineContext
         #expect(ctx != nil)
         #expect(ctx === toolContext)

@@ -110,7 +110,7 @@ public extension TimelineManager {
 
 private extension TimelineManager {
     /// Evicts all in-memory runtime state for a timeline: the cached `Timeline`,
-    /// `ContextManager`, `TimelineToolManager`, and (when a prompt-history registry
+    /// `ContextManager`, `TimelineToolRegistry`, and (when a prompt-history registry
     /// was injected) the journal-diff history entry. Does not touch persistence.
     ///
     /// This is the in-memory-only phase shared by `deleteTimeline(id:)` and

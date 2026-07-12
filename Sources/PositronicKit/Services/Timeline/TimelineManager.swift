@@ -66,7 +66,7 @@ public actor TimelineManager {
     var contextManagers: [UUID: ContextManager] = [:]
 
     /// Tool managers handling tool registration and availability for each timeline.
-    var toolManagers: [UUID: TimelineToolManager] = [:]
+    var toolManagers: [UUID: TimelineToolRegistry] = [:]
 
     /// Ongoing generation tasks for each timeline.
     var activeTasks: [UUID: Task<Void, Never>] = [:]
@@ -206,7 +206,7 @@ public extension TimelineManager {
     }
 
     /// Retrieves the tool manager for a timeline if it is active.
-    func getToolManager(for timelineId: UUID) -> TimelineToolManager? {
+    func getToolManager(for timelineId: UUID) -> TimelineToolRegistry? {
         return toolManagers[timelineId]
     }
 

@@ -76,7 +76,7 @@ public final class PositronicKit: Sendable {
     private let workspaceCreator: any WorkspaceCreating
     private let sectionProviders: [any PromptSectionProviding]
     private let runtimeToolPolicy: TimelineManager.RuntimeToolPolicy
-    private let toolApprovalGate: any ToolApprovalGate
+    private let toolApprovalPolicy: any ToolApprovalPolicy
 
     // MARK: - Init
 
@@ -109,7 +109,7 @@ public final class PositronicKit: Sendable {
         chatTurnPlugins: [any ChatTurnPlugin] = [],
         promptInspector: (any PromptInspecting)? = nil,
         generationParameters: GenerationParameters? = nil,
-        toolApprovalGate: any ToolApprovalGate = DenyAllToolApprovalGate(),
+        toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
         sharedRegistry: TimelinePromptHistoryRegistry,
         additionalStages: [any PipelineStage<ChatTurnContext, ChatEvent>]
     ) {
@@ -129,7 +129,7 @@ public final class PositronicKit: Sendable {
         self.workspaceCreator = workspaceCreator
         self.sectionProviders = sectionProviders
         self.runtimeToolPolicy = runtimeToolPolicy
-        self.toolApprovalGate = toolApprovalGate
+        self.toolApprovalPolicy = toolApprovalPolicy
         defaultGenerationParameters = generationParameters
 
         let resolvedWorkspaceRoot = workspaceRoot ?? FileManager.default.temporaryDirectory
@@ -169,7 +169,7 @@ public final class PositronicKit: Sendable {
         toolRouter = ToolRouter(
             timelineManager: resolvedTimelineManager,
             messageStore: self.messageStore,
-            approvalGate: toolApprovalGate
+            approvalPolicy: toolApprovalPolicy
         )
         var engine = ChatEngine(
             dependencies: .init(
@@ -215,7 +215,7 @@ public final class PositronicKit: Sendable {
             chatTurnPlugins: chatTurnPlugins,
             promptInspector: promptInspector,
             generationParameters: generationParameters ?? defaultGenerationParameters,
-            toolApprovalGate: toolApprovalGate,
+            toolApprovalPolicy: toolApprovalPolicy,
             sharedRegistry: promptHistoryRegistry,
             additionalStages: chatEngine.additionalStages
         )
@@ -248,7 +248,7 @@ public final class PositronicKit: Sendable {
             chatTurnPlugins: chatTurnPlugins,
             promptInspector: promptInspector,
             generationParameters: defaultGenerationParameters,
-            toolApprovalGate: toolApprovalGate,
+            toolApprovalPolicy: toolApprovalPolicy,
             sharedRegistry: promptHistoryRegistry,
             additionalStages: chatEngine.additionalStages + [stage]
         )
@@ -275,7 +275,7 @@ public final class PositronicKit: Sendable {
             chatTurnPlugins: chatTurnPlugins + [plugin],
             promptInspector: promptInspector,
             generationParameters: defaultGenerationParameters,
-            toolApprovalGate: toolApprovalGate,
+            toolApprovalPolicy: toolApprovalPolicy,
             sharedRegistry: promptHistoryRegistry,
             additionalStages: chatEngine.additionalStages
         )

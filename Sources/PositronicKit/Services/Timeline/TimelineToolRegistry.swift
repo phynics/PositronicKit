@@ -3,7 +3,7 @@ import Logging
 import PKShared
 
 /// Timeline-specific tool settings
-public actor TimelineToolManager {
+public actor TimelineToolRegistry {
     public private(set) var enabledTools: Set<String> = []
 
     /// available tools in the system
@@ -15,15 +15,15 @@ public actor TimelineToolManager {
     /// Registered workspaces providing tools
     private var workspaces: [UUID: any WorkspaceProtocol] = [:]
 
-    /// Cached workspace tools: toolId -> (wrapper, provenance)
-    private var workspaceTools: [String: (tool: WorkspaceToolWrapper, provenance: ToolProvenance)] = [:]
+    /// Cached workspace tools: toolId -> (wrapper, origin)
+    private var workspaceTools: [String: (tool: WorkspaceToolWrapper, origin: ToolOrigin)] = [:]
 
-    /// Cached known-tool overrides from workspaces: toolId -> Set of provenance tags.
-    private var knownToolProvenance: [String: Set<ToolProvenance>] = [:]
+    /// Cached known-tool overrides from workspaces: toolId -> Set of origin tags.
+    private var knownToolOrigin: [String: Set<ToolOrigin>] = [:]
 
     /// Explicitly registered tool providers (global or workspace-bound). Assembled alongside
     /// workspace-derived tools so the runtime has a single canonical source for turn tools.
-    private var toolProviders: [UUID: any ToolProviding] = [:]
+    private var toolProviders: [UUID: any ToolSource] = [:]
 
     /// Cached provider tools: toolId -> tool.
     private var providerTools: [String: AnyTool] = [:]
@@ -63,7 +63,7 @@ public actor TimelineToolManager {
 
     /// Register an explicit tool provider. Provider tools are assembled into the turn tool set
     /// alongside workspace-derived tools.
-    public func registerToolProvider(_ provider: any ToolProviding, id: UUID) async {
+    public func registerToolProvider(_ provider: any ToolSource, id: UUID) async {
         toolProviders[id] = provider
         await refreshProviderTools()
     }
@@ -76,11 +76,11 @@ public actor TimelineToolManager {
 
     /// Refresh tools from all registered workspaces
     private func refreshWorkspaceTools() async {
-        var newTools: [String: (tool: WorkspaceToolWrapper, provenance: ToolProvenance)] = [:]
-        var newKnownProvenance: [String: Set<ToolProvenance>] = [:]
+        var newTools: [String: (tool: WorkspaceToolWrapper, origin: ToolOrigin)] = [:]
+        var newKnownOrigin: [String: Set<ToolOrigin>] = [:]
 
         for workspace in workspaces.values {
-            let provenanceTag = ToolProvenance.workspace(
+            let originTag = ToolOrigin.workspace(
                 id: workspace.id,
                 name: workspace.reference.uri.description
             )
@@ -89,9 +89,9 @@ public actor TimelineToolManager {
                 for ref in refs {
                     switch ref {
                     case let .known(toolId):
-                        // Tag the system tool with this workspace's provenance
+                        // Tag the system tool with this workspace's origin
                         if availableTools.contains(where: { $0.callName == toolId }) {
-                            newKnownProvenance[toolId, default: []].insert(provenanceTag)
+                            newKnownOrigin[toolId, default: []].insert(originTag)
                         } else {
                             logger.warning(
                                 "Workspace declared .known tool '\(toolId)' but it is not a registered system tool"
@@ -99,7 +99,7 @@ public actor TimelineToolManager {
                         }
                     case let .custom(def):
                         let wrapper = WorkspaceToolWrapper(workspace: workspace, definition: def)
-                        newTools[wrapper.callName] = (tool: wrapper, provenance: provenanceTag)
+                        newTools[wrapper.callName] = (tool: wrapper, origin: originTag)
                     }
                 }
             } catch {
@@ -108,11 +108,11 @@ public actor TimelineToolManager {
         }
 
         workspaceTools = newTools
-        knownToolProvenance = newKnownProvenance
+        knownToolOrigin = newKnownOrigin
     }
 
     /// Refresh tools from all registered providers. Provider tools that declare `.global`
-    /// provenance are stamped with the provider's `toolProvenance` via `resolvedTools()`.
+    /// origin are stamped with the provider's `toolOrigin` via `resolvedTools()`.
     private func refreshProviderTools() async {
         var newProviderTools: [String: AnyTool] = [:]
         for provider in toolProviders.values {
@@ -124,36 +124,36 @@ public actor TimelineToolManager {
         providerTools = newProviderTools
     }
 
-    /// Stamps `tool` with the resolved provenance from the set of workspaces that declared it
-    /// as a `.known` tool. When multiple workspaces share a known tool, provenance collapses to
+    /// Stamps `tool` with the resolved origin from the set of workspaces that declared it
+    /// as a `.known` tool. When multiple workspaces share a known tool, origin collapses to
     /// a single representative — the lexicographically smallest `displayName` — so the prompt
     /// label is deterministic across refreshes rather than depending on `Set` iteration order.
-    /// A tool can only carry one provenance tag; the sort makes that one choice stable.
-    private func toolWithResolvedProvenance(_ tool: AnyTool) -> AnyTool {
-        guard let provenanceSet = knownToolProvenance[tool.callName], !provenanceSet.isEmpty else {
+    /// A tool can only carry one origin tag; the sort makes that one choice stable.
+    private func toolWithResolvedOrigin(_ tool: AnyTool) -> AnyTool {
+        guard let originSet = knownToolOrigin[tool.callName], !originSet.isEmpty else {
             return tool
         }
         var tagged = tool
-        tagged.provenance = provenanceSet.sorted(by: { $0.displayName < $1.displayName }).first ?? .global
+        tagged.origin = originSet.sorted(by: { $0.displayName < $1.displayName }).first ?? .global
         return tagged
     }
 
     /// Sorts the aggregated tool list into a deterministic order before it is serialized into
-    /// LLM requests or recorded in prompt history. The ordering key is `(name, provenance.displayName)`;
-    /// provenance breaks ties when the same tool name is offered by different sources.
+    /// LLM requests or recorded in prompt history. The ordering key is `(name, origin.displayName)`;
+    /// origin breaks ties when the same tool name is offered by different sources.
     private func sortToolsForOutput(_ tools: [AnyTool]) -> [AnyTool] {
         tools.sorted {
             if $0.name != $1.name {
                 return $0.name < $1.name
             }
-            return $0.provenance.displayName < $1.provenance.displayName
+            return $0.origin.displayName < $1.origin.displayName
         }
     }
 
-    /// True iff `provenance` tags a tool as belonging to `workspaceId` (i.e. it is the
+    /// True iff `origin` tags a tool as belonging to `workspaceId` (i.e. it is the
     /// `.workspace(id:name:)` case with a matching id). `.global`/`.named` never match.
-    private static func provenanceBelongsTo(_ provenance: ToolProvenance, _ workspaceId: UUID) -> Bool {
-        if case let .workspace(id, _) = provenance { return id == workspaceId }
+    private static func originBelongsTo(_ origin: ToolOrigin, _ workspaceId: UUID) -> Bool {
+        if case let .workspace(id, _) = origin { return id == workspaceId }
         return false
     }
 
@@ -161,18 +161,18 @@ public actor TimelineToolManager {
     public func getEnabledTools() async -> [AnyTool] {
         var tools = availableTools.filter { enabledTools.contains($0.callName) }
 
-        // Apply workspace provenance to .known system tools
-        tools = tools.map { toolWithResolvedProvenance($0) }
+        // Apply workspace origin to .known system tools
+        tools = tools.map { toolWithResolvedOrigin($0) }
 
         // Include context tools if a context is active
         if let timeline = timelineContext, await timeline.hasActiveContext {
             tools.append(contentsOf: await timeline.getContextTools())
         }
 
-        // Include workspace custom tools with provenance
+        // Include workspace custom tools with origin
         tools.append(contentsOf: workspaceTools.values.map { entry in
             var tool = AnyTool(entry.tool)
-            tool.provenance = entry.provenance
+            tool.origin = entry.origin
             return tool
         })
 
@@ -185,13 +185,13 @@ public actor TimelineToolManager {
     public func getAvailableTools() -> [AnyTool] {
         var tools = availableTools
 
-        // Apply provenance to .known system tools
-        tools = tools.map { toolWithResolvedProvenance($0) }
+        // Apply origin to .known system tools
+        tools = tools.map { toolWithResolvedOrigin($0) }
 
-        // Append workspace custom tools with provenance
+        // Append workspace custom tools with origin
         tools.append(contentsOf: workspaceTools.values.map { entry in
             var tool = AnyTool(entry.tool)
-            tool.provenance = entry.provenance
+            tool.origin = entry.origin
             return tool
         })
 
@@ -202,27 +202,27 @@ public actor TimelineToolManager {
 
     /// Returns the tools currently exposed by a specific workspace: its custom workspace
     /// tools plus any `.known` system tools it has declared, each carrying its resolved
-    /// provenance. Provider/global tools are excluded (they are not workspace-bound).
+    /// origin. Provider/global tools are excluded (they are not workspace-bound).
     ///
     /// This is the read-side counterpart to the per-workspace grouping `ToolRouter.resolveWorkspace`
     /// uses to route calls — the grouping data already exists internally; this exposes it as a
-    /// query so a consumer need not fetch the flat list and filter by `provenance` client-side.
+    /// query so a consumer need not fetch the flat list and filter by `origin` client-side.
     public func tools(inWorkspace workspaceId: UUID) -> [AnyTool] {
         var tools: [AnyTool] = []
 
-        // Custom workspace tools whose provenance matches this workspace.
-        for entry in workspaceTools.values where Self.provenanceBelongsTo(entry.provenance, workspaceId) {
+        // Custom workspace tools whose origin matches this workspace.
+        for entry in workspaceTools.values where Self.originBelongsTo(entry.origin, workspaceId) {
             var tool = AnyTool(entry.tool)
-            tool.provenance = entry.provenance
+            tool.origin = entry.origin
             tools.append(tool)
         }
 
-        // `.known` system tools this workspace has declared (tagged via knownToolProvenance).
-        for (toolId, provenanceSet) in knownToolProvenance {
-            if provenanceSet.contains(where: { Self.provenanceBelongsTo($0, workspaceId) }),
+        // `.known` system tools this workspace has declared (tagged via knownToolOrigin).
+        for (toolId, originSet) in knownToolOrigin {
+            if originSet.contains(where: { Self.originBelongsTo($0, workspaceId) }),
                let tool = availableTools.first(where: { $0.callName == toolId })
             {
-                tools.append(toolWithResolvedProvenance(tool))
+                tools.append(toolWithResolvedOrigin(tool))
             }
         }
 
@@ -266,7 +266,7 @@ public actor TimelineToolManager {
     public func getTool(id: String) async -> AnyTool? {
         // First check regular system tools
         if let tool = availableTools.first(where: { $0.callName == id }) {
-            return toolWithResolvedProvenance(tool)
+            return toolWithResolvedOrigin(tool)
         }
 
         // Then check context tools if a context is active
@@ -279,7 +279,7 @@ public actor TimelineToolManager {
         // Then check workspace tools
         if let entry = workspaceTools[id] {
             var tool = AnyTool(entry.tool)
-            tool.provenance = entry.provenance
+            tool.origin = entry.origin
             return tool
         }
 

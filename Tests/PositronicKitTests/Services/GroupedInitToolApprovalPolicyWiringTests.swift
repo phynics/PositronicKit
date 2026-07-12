@@ -6,16 +6,16 @@ import Testing
 
 /// Regression coverage for PKAPI-008: the grouped `PositronicKit` initializers that take a
 /// `RuntimeConfiguration` (and the persistence-grouped initializer) must thread their
-/// `toolApprovalGate` through to the facade-built `ToolRouter`, rather than silently dropping
-/// it in favor of `DenyAllToolApprovalGate`. A host integrating via the "recommended" grouped
+/// `toolApprovalPolicy` through to the facade-built `ToolRouter`, rather than silently dropping
+/// it in favor of `DenyAllToolApprovalPolicy`. A host integrating via the "recommended" grouped
 /// API must be able to inject a real approver without dropping to the flat initializer.
 ///
 /// The fixtures (`PermissionedTool`, `RecordingGate`) mirror the ones already established in
-/// `ToolRouterTests.swift` / `ToolApprovalGateFilesystemToolsTests.swift`; they are duplicated
+/// `ToolRouterTests.swift` / `ToolApprovalPolicyFilesystemToolsTests.swift`; they are duplicated
 /// here for the same reason those suites duplicate them — the helpers are `private` to their
 /// own files and there is no shared PKTestSupport extension point for them yet.
-@Suite("Grouped init toolApprovalGate wiring")
-struct GroupedInitToolApprovalGateWiringTests {
+@Suite("Grouped init toolApprovalPolicy wiring")
+struct GroupedInitToolApprovalPolicyWiringTests {
     /// A permissioned tool that records whether its body ever ran, so a test can assert that an
     /// un-approved call is blocked *before* execution rather than merely failing afterwards.
     final class PermissionedTool: PKShared.Tool, @unchecked Sendable {
@@ -40,7 +40,7 @@ struct GroupedInitToolApprovalGateWiringTests {
     }
 
     /// Records every gate consultation so a test can assert the gate was actually reached.
-    final class RecordingGate: ToolApprovalGate, @unchecked Sendable {
+    final class RecordingGate: ToolApprovalPolicy, @unchecked Sendable {
         let decision: ToolApprovalDecision
         private(set) var consultedToolIds: [String] = []
 
@@ -58,7 +58,7 @@ struct GroupedInitToolApprovalGateWiringTests {
     /// single permissioned tool in an attached workspace, and returns the facade, timeline id,
     /// and tool so the test can drive `chat.toolRouter.execute(...)` directly.
     private func makeChatViaRuntimeConfig(
-        gate: any ToolApprovalGate
+        gate: any ToolApprovalPolicy
     ) async throws -> (PositronicKit, UUID, PermissionedTool) {
         let tool = PermissionedTool(id: "needs_permission")
         let mockPersistence = MockPersistenceService()
@@ -79,7 +79,7 @@ struct GroupedInitToolApprovalGateWiringTests {
             runtime: .init(
                 workspaceCreator: MockWorkspaceCreator(),
                 workspaceRoot: workspace.root,
-                toolApprovalGate: gate
+                toolApprovalPolicy: gate
             )
         ))
         let timelineId = try await register(tool, on: chat, persistence: mockPersistence)
@@ -87,10 +87,10 @@ struct GroupedInitToolApprovalGateWiringTests {
     }
 
     /// Builds a facade via the persistence-grouped initializer (no `RuntimeConfiguration`),
-    /// passing `toolApprovalGate` as a direct parameter, to confirm that overload threads it
+    /// passing `toolApprovalPolicy` as a direct parameter, to confirm that overload threads it
     /// through as well.
     private func makeChatViaPersistenceGroupedInit(
-        gate: any ToolApprovalGate
+        gate: any ToolApprovalPolicy
     ) async throws -> (PositronicKit, UUID, PermissionedTool) {
         let tool = PermissionedTool(id: "needs_permission")
         let mockPersistence = MockPersistenceService()
@@ -108,7 +108,7 @@ struct GroupedInitToolApprovalGateWiringTests {
         let chat = PositronicKit(configuration: .init(
             provider: .init(llmService: UnconfiguredLLMService()),
             persistence: persistence,
-            runtime: .init(workspaceRoot: workspace.root, toolApprovalGate: gate)
+            runtime: .init(workspaceRoot: workspace.root, toolApprovalPolicy: gate)
         ))
         let timelineId = try await register(tool, on: chat, persistence: mockPersistence)
         return (chat, timelineId, tool)
