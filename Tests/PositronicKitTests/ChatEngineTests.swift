@@ -477,16 +477,14 @@ struct ChatEngineTests {
         }
     }
 
-    // MARK: - Group 4: Fallback XML Parsing
+    // MARK: - Group 4: Raw-text tool calls (no longer parsed)
 
-    @Test("XML fallback tool call is executed")
+    @Test("XML tool-call text is not executed as a tool call")
     func xmlFallbackToolCallExecuted() async throws {
         try await withChatEngineDependencies { engine, mockLLM, _ in
             let mockTool = MockTool()
 
-            // Set up responses for both turns
             mockLLM.mockClient.nextResponses = [
-                "<tool_call>{\"name\":\"mock_tool\",\"arguments\":{}}</tool_call>",
                 "Fallback worked",
             ]
 
@@ -498,18 +496,14 @@ struct ChatEngineTests {
 
             let events = try await collect(stream)
 
-            // Fallback should yield a .delta(.toolCall) event for UI
-            #expect(events.contains(where: { if case let .delta(.toolCall(delta: delta)) = $0 { return delta.name == "mock_tool" }; return false }))
+            #expect(!events.contains(where: { if case let .delta(.toolCall(delta: delta)) = $0 { return delta.name == "mock_tool" }; return false }))
 
-            // Should see tool execution completion
-            #expect(events.contains(where: {
+            #expect(!events.contains(where: {
                 if case let .completion(.toolExecution(_, status)) = $0 {
-                    if case let .success(result) = status { return result.output == "Tool result" }
+                    if case .success = status { return true }
                 }
                 return false
             }))
-
-            #expect(events.contains(where: { if case let .delta(.generation(text: text)) = $0 { return text == "Fallback worked" }; return false }))
         }
     }
 

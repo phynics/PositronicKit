@@ -158,21 +158,87 @@ struct ToolCallRegressionTests {
         #expect(nested?["val"] as? Double == 1.0)
     }
 
-    @Test("ToolOutputParser recovers fenced truncated JSON")
-    func testToolOutputParserRecoversFencedTruncatedJSON() {
-        let content = """
-        ```json
-        {"name":"complex_tool","arguments":{"tags":["a","b"],"user":{"name":"Alice","age":30}
-        ```
-        """
+    @Test("Legacy XML tool-call markers in assistant text do not produce tool accumulators")
+    func legacyXMLMarkersProduceNoToolCalls() async throws {
+        let context = ChatTurnContext(
+            timelineId: UUID(),
+            agentInstanceId: nil,
+            modelName: "test-model",
+            maxTurns: 1,
+            systemInstructions: nil,
+            availableTools: [MockComplexTool().toAnyTool()],
+            contextData: ContextData(),
+            remoteDepth: 0,
+            currentMessages: [],
+            turnCount: 1,
+            outputs: TurnOutputs()
+        )
 
-        let calls = ToolOutputParser.parse(from: content)
+        await context.outputs.appendResponse(
+            #"Let me search. {"name": "complex_tool", "arguments": {"tags": ["a"]}} "#
+        )
 
-        #expect(calls.count == 1)
-        #expect(calls.first?.name == "complex_tool")
-        let tags = calls.first?.arguments["tags"]?.value as? [Any]
-        #expect(tags?.count == 2)
-        let user = calls.first?.arguments["user"]?.value as? [String: Any]
-        #expect(user?["name"] as? String == "Alice")
+        let stage = ToolCallExtractionStage(logger: logger)
+        let stream = try await stage.process(context)
+        for try await _ in stream {}
+
+        let accumulators = await context.outputs.toolCallAccumulators
+        #expect(accumulators.isEmpty)
+    }
+
+    @Test("Pipe-delimited tool-call markers in assistant text do not produce tool accumulators")
+    func pipeMarkersProduceNoToolCalls() async throws {
+        let context = ChatTurnContext(
+            timelineId: UUID(),
+            agentInstanceId: nil,
+            modelName: "test-model",
+            maxTurns: 1,
+            systemInstructions: nil,
+            availableTools: [MockComplexTool().toAnyTool()],
+            contextData: ContextData(),
+            remoteDepth: 0,
+            currentMessages: [],
+            turnCount: 1,
+            outputs: TurnOutputs()
+        )
+
+        await context.outputs.appendResponse(
+            "<|tool_call_begin|>functions.complex_tool<|tool_call_argument_begin|>{\"tags\": [\"a\"]}<|tool_call_end|>"
+        )
+
+        let stage = ToolCallExtractionStage(logger: logger)
+        let stream = try await stage.process(context)
+        for try await _ in stream {}
+
+        let accumulators = await context.outputs.toolCallAccumulators
+        #expect(accumulators.isEmpty)
+    }
+
+    @Test("Fenced JSON in assistant text does not produce tool accumulators")
+    func fencedJSONProducesNoToolCalls() async throws {
+        let context = ChatTurnContext(
+            timelineId: UUID(),
+            agentInstanceId: nil,
+            modelName: "test-model",
+            maxTurns: 1,
+            systemInstructions: nil,
+            availableTools: [MockComplexTool().toAnyTool()],
+            contextData: ContextData(),
+            remoteDepth: 0,
+            currentMessages: [],
+            turnCount: 1,
+            outputs: TurnOutputs()
+        )
+
+        await context.outputs.appendResponse(
+            "```json\n{\"name\":\"complex_tool\",\"arguments\":{\"tags\":[\"a\",\"b\"]}}\n```"
+        )
+
+        let stage = ToolCallExtractionStage(logger: logger)
+        let stream = try await stage.process(context)
+        for try await _ in stream {}
+
+        let accumulators = await context.outputs.toolCallAccumulators
+        #expect(accumulators.isEmpty)
     }
 }

@@ -8,6 +8,16 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Removed
+
+- **Raw-text tool-call inference (`ToolOutputParser`)**: the fallback path in
+  `ToolCallExtractionStage` that parsed XML `<<tool_call>` markers, pipe-delimited Qwen-style
+  markers, and fenced JSON from assistant text into executable tool calls has been
+  removed. Models must emit provider-native structured tool-call deltas; raw text
+  containing legacy markers is now treated as ordinary content and does not produce
+  `ChatEvent.toolCall` or tool accumulators. `ToolOutputParser` and its dedicated tests
+  are deleted.
+
 ## [2.0.1] - 2026-07-11
 
 ### Changed

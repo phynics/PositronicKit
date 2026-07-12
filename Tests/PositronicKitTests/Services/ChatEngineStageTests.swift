@@ -24,9 +24,8 @@ final class ChatEngineStageTests {
         }
     }
 
-    @Test("Fallback text parsing fires when tools are available")
+    @Test("Raw-text tool calls do not produce accumulators even when tools are available")
     func toolExecutionStage_TextFallback() async throws {
-        // Given — a tool is registered so fallback is permitted
         let context = createTestContext(availableTools: [StubTool().toAnyTool()])
         let toolCallText = #"<tool_call>{"name": "stub_tool", "arguments": {"foo": "bar"}}</tool_call>"#
         await context.outputs.appendResponse(toolCallText)
@@ -40,10 +39,8 @@ final class ChatEngineStageTests {
         // Then
         let accumulators = await context.outputs.toolCallAccumulators
         let debugToolCalls = await context.outputs.debugToolCalls
-        #expect(accumulators.count == 1)
-        #expect(accumulators[0]?.name == "stub_tool")
-        #expect(debugToolCalls.count == 1)
-        #expect(debugToolCalls[0].name == "stub_tool")
+        #expect(accumulators.isEmpty)
+        #expect(debugToolCalls.isEmpty)
     }
 
     @Test("Fallback text parsing is skipped when no tools are offered")

@@ -9,7 +9,6 @@ private let redactedHash = PKShared.redactedHash
 ///
 /// This stage does NOT execute tools. It validates and cleans `context.outputs.toolCallAccumulators`
 /// so that `PersistenceStage` and `ChatEngine.runChatLoop` can rely on it:
-/// - Falls back to text parsing when the LLM didn't emit structured tool calls.
 /// - Strips sentinel and empty-named calls.
 /// - Appends records for the debug snapshot.
 ///
@@ -45,38 +44,6 @@ struct ToolCallExtractionStage: PipelineStage {
                 "  [accumulator \(index)] id=\(acc.callId) name=\(String(reflecting: name)) argsBytes=\(acc.args.utf8.count)",
                 metadata: meta
             )
-        }
-
-        // Fallback: parse tool calls from response text when structured calls are absent.
-        // Guard: skip fallback entirely when no tools were offered — any <tool_call> markers
-        // in the response text are then not legitimate calls and must not bypass approval gates.
-        if accumulators.isEmpty, !context.availableTools.isEmpty {
-            let fallbackCalls = ToolOutputParser.parse(from: await context.outputs.fullResponse)
-            if !fallbackCalls.isEmpty {
-                var meta = baseMeta
-                meta["fallbackCount"] = .string("\(fallbackCalls.count)")
-                logger.warning(
-                    "Structured tool calls empty — falling back to text parsing (\(fallbackCalls.count) call(s)).",
-                    metadata: meta
-                )
-                for (index, call) in fallbackCalls.enumerated() {
-                    let argsJson =
-                        (try? SerializationUtils.jsonEncoder.encode(call.arguments))
-                            .flatMap { String(bytes: $0, encoding: .utf8) } ?? "{}"
-                    await context.outputs.setToolCallAccumulator(
-                        index: index, id: UUID().uuidString, name: call.name, args: argsJson
-                    )
-                }
-
-                let updatedAccumulators = await context.outputs.toolCallAccumulators
-                for (index, value) in updatedAccumulators.sorted(by: { $0.key < $1.key }) {
-                    eventsToYield.append(
-                        .toolCall(ToolCallDelta(
-                            index: index, id: value.callId, name: value.name, arguments: value.args
-                        ))
-                    )
-                }
-            }
         }
 
         // Remove sentinel/empty calls so downstream stages see only actionable tool calls.
