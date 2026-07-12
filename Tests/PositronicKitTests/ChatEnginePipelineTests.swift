@@ -306,7 +306,7 @@ final class ToolCallExtractionStageBehavior {
     }
 
     @Test
-    func fallbackTextParsingTriggered() async throws {
+    func fallbackTextParsingNoLongerTriggered() async throws {
         let stage = ToolCallExtractionStage(logger: testLogger)
         let tool = StubTool(callName: "test_tool", name: "test_tool")
         let context = await makeContext(
@@ -317,8 +317,7 @@ final class ToolCallExtractionStageBehavior {
         _ = try await drain(await stage.process(context))
 
         let accumulators = await context.outputs.toolCallAccumulators
-        #expect(!accumulators.isEmpty)
-        #expect(accumulators.values.contains { $0.name == "test_tool" })
+        #expect(accumulators.isEmpty)
     }
 
     /// YAK-42: emitted records must carry the *raw* timelineId as `timelineID`
