@@ -133,9 +133,8 @@ public actor TimelineToolRegistry {
         guard let originSet = knownToolOrigin[tool.callName], !originSet.isEmpty else {
             return tool
         }
-        var tagged = tool
-        tagged.origin = originSet.sorted(by: { $0.displayName < $1.displayName }).first ?? .global
-        return tagged
+        let resolvedOrigin = originSet.sorted(by: { $0.displayName < $1.displayName }).first ?? .global
+        return tool.withOrigin(resolvedOrigin)
     }
 
     /// Sorts the aggregated tool list into a deterministic order before it is serialized into
@@ -171,9 +170,7 @@ public actor TimelineToolRegistry {
 
         // Include workspace custom tools with origin
         tools.append(contentsOf: workspaceTools.values.map { entry in
-            var tool = AnyTool(entry.tool)
-            tool.origin = entry.origin
-            return tool
+            AnyTool(entry.tool, origin: entry.origin)
         })
 
         // Include explicitly registered provider tools
@@ -190,9 +187,7 @@ public actor TimelineToolRegistry {
 
         // Append workspace custom tools with origin
         tools.append(contentsOf: workspaceTools.values.map { entry in
-            var tool = AnyTool(entry.tool)
-            tool.origin = entry.origin
-            return tool
+            AnyTool(entry.tool, origin: entry.origin)
         })
 
         // Append explicitly registered provider tools
@@ -212,9 +207,7 @@ public actor TimelineToolRegistry {
 
         // Custom workspace tools whose origin matches this workspace.
         for entry in workspaceTools.values where Self.originBelongsTo(entry.origin, workspaceId) {
-            var tool = AnyTool(entry.tool)
-            tool.origin = entry.origin
-            tools.append(tool)
+            tools.append(AnyTool(entry.tool, origin: entry.origin))
         }
 
         // `.known` system tools this workspace has declared (tagged via knownToolOrigin).
@@ -278,9 +271,7 @@ public actor TimelineToolRegistry {
 
         // Then check workspace tools
         if let entry = workspaceTools[id] {
-            var tool = AnyTool(entry.tool)
-            tool.origin = entry.origin
-            return tool
+            return AnyTool(entry.tool, origin: entry.origin)
         }
 
         // Then check explicitly registered provider tools

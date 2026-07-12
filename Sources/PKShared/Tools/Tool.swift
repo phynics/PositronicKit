@@ -38,11 +38,7 @@ public protocol ToolSource: Sendable {
 public extension ToolSource {
     func resolvedTools() async -> [AnyTool] {
         await tools().map { tool in
-            var resolved = tool
-            if resolved.origin == .global {
-                resolved.origin = toolOrigin
-            }
-            return resolved
+            tool.origin == .global ? tool.withOrigin(toolOrigin) : tool
         }
     }
 }
@@ -58,6 +54,13 @@ public protocol Tool: Sendable, PromptFormattable {
     /// function name the model emits in a tool call, not a display label. Use ``name`` for
     /// human-readable display.
     var callName: String { get }
+
+    /// Immutable identity used for internal routing and event emission.
+    ///
+    /// Captured once at ``AnyTool`` erasure and never re-derived. Tools that need a
+    /// non-default identity (e.g. a ``ToolReference.custom`` reference) override this;
+    /// the default derives ``known(id:)``-style from ``callName``.
+    var identity: ToolReference { get }
 
     /// Human-readable display name for the tool.
     var name: String { get }
@@ -119,6 +122,11 @@ public protocol Tool: Sendable, PromptFormattable {
 // MARK: - Default Implementation
 
 public extension Tool {
+    /// Default identity derived from ``callName``.
+    var identity: ToolReference {
+        .known(id: callName)
+    }
+
     /// Default: no usage example provided.
     var usageExample: String? {
         nil
@@ -203,10 +211,6 @@ public extension [AnyTool] {
 
 // MARK: - Type-Erased Tool
 
-public protocol ToolReferenceProviding {
-    var toolReference: ToolReference { get }
-}
-
 /// A type-erased wrapper around any `Tool` conformance.
 ///
 /// Use `AnyTool` when you need to store tools in a concrete type context
@@ -219,12 +223,21 @@ public protocol ToolReferenceProviding {
 public struct AnyTool: Tool, Sendable {
     private let wrapped: any Tool
 
-    /// Metadata about where the tool originated.
-    public var origin: ToolOrigin
+    /// Immutable metadata about where the tool originated.
+    public let origin: ToolOrigin
+
+    /// Immutable tool identity captured at erasure time.
+    public let identity: ToolReference
 
     public init(_ tool: any Tool, origin: ToolOrigin = .global) {
         wrapped = tool
         self.origin = origin
+        identity = tool.identity
+    }
+
+    /// Returns a copy of this tool with the origin replaced, preserving identity.
+    public func withOrigin(_ newOrigin: ToolOrigin) -> AnyTool {
+        AnyTool(wrapped, origin: newOrigin)
     }
 
     /// Overrides the protocol default (which would rewrap in a fresh `AnyTool` and reset
@@ -269,11 +282,8 @@ public struct AnyTool: Tool, Sendable {
         wrapped.summarize(parameters: parameters, result: result)
     }
 
-    /// Returns the ``ToolReference`` for this tool, used for internal routing and event emission.
+    /// Returns the ``ToolReference`` captured at erasure time.
     public var toolReference: ToolReference {
-        if let provider = wrapped as? ToolReferenceProviding {
-            return provider.toolReference
-        }
-        return .known(id: callName)
+        identity
     }
 }
