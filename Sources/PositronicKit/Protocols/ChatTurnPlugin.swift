@@ -33,14 +33,14 @@ public struct CompletedTurn: Sendable {
 /// calls resolved), with the turn's output (`CompletedTurn`). Return messages to inject
 /// and trigger a follow-up turn; return `[]` to let the loop end.
 ///
-/// This is the read-write counterpart to `PromptInspecting`. The two hooks fire in different
+/// This is the read-write counterpart to `PromptObserving`. The two hooks fire in different
 /// phases and must not merge:
 /// - `ChatTurnPlugin.afterTurn` fires post-LLM with the full response, returns `[LLMMessage]`
 ///   to drive a follow-up turn, and is an ordered `chatTurnPlugins` list.
-/// - `PromptInspecting.didComposePrompt` fires at prompt-assembly time (pre-response), returns
-///   `Void`, and is a single optional `promptInspector`.
+/// - `PromptObserving.didComposePrompt` fires at prompt-assembly time (pre-response), returns
+///   `Void`, and is a single optional `promptObserver`.
 /// Their payloads overlap only on correlation keys; the substantive data is disjoint
-/// (output vs. input snapshot). See `PromptInspecting`.
+/// (output vs. input snapshot). See `PromptObserving`.
 public protocol ChatTurnPlugin: Sendable {
     func afterTurn(_ turn: CompletedTurn) async throws -> [LLMMessage]
 }

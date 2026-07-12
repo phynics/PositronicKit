@@ -1,7 +1,7 @@
 import Foundation
 import PKShared
 
-/// Builds a `TimelineToolManager` for a session from a `RuntimeToolPolicy` and the timeline's
+/// Builds a `TimelineToolRegistry` for a session from a `RuntimeToolPolicy` and the timeline's
 /// attached-agent identity. Pure function with no side effects on the timeline cache.
 ///
 /// Extracted from `TimelineManager.createToolManager(for:jailRoot:toolContextTimeline:)` so the
@@ -15,7 +15,7 @@ package enum RuntimeToolPolicyFactory {
         runtimeToolPolicy: TimelineManager.RuntimeToolPolicy,
         timelineStore: any TimelinePersistenceProtocol,
         messageStore: any MessageStoreProtocol
-    ) -> TimelineToolManager {
+    ) -> TimelineToolRegistry {
         let currentWD = timeline.workingDirectory ?? jailRoot
 
         // Default runtime policy: these filesystem and timeline observation tools are installed by
@@ -57,7 +57,7 @@ package enum RuntimeToolPolicyFactory {
             )))
         }
 
-        return TimelineToolManager(
+        return TimelineToolRegistry(
             availableTools: availableTools,
             timelineContext: toolContextTimeline
         )

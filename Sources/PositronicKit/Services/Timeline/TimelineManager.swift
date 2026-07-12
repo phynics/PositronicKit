@@ -7,7 +7,7 @@ import PKShared
 /// Manages conversation timelines, their associated context, and tool execution environments.
 ///
 /// `TimelineManager` is the public coordinator/cache owner for timelines: it holds the
-/// in-memory `timelines`/`contextManagers`/`toolManagers`/`activeTasks` caches and manages
+/// in-memory `timelines`/`turnBriefingBuilders`/`toolManagers`/`activeTasks` caches and manages
 /// lifecycle, workspace-attachment, and tool-policy behavior. Concrete workspace behavior
 /// remains behind `WorkspaceManager` / `WorkspaceCreating` / `WorkspaceProtocol` so hosts can
 /// supply local or remote workspace implementations without changing core orchestration.
@@ -63,10 +63,10 @@ public actor TimelineManager {
     var timelines: [UUID: Timeline] = [:]
 
     /// Context managers responsible for RAG and context gathering for each timeline.
-    var contextManagers: [UUID: ContextManager] = [:]
+    var turnBriefingBuilders: [UUID: TurnBriefingBuilder] = [:]
 
     /// Tool managers handling tool registration and availability for each timeline.
-    var toolManagers: [UUID: TimelineToolManager] = [:]
+    var toolManagers: [UUID: TimelineToolRegistry] = [:]
 
     /// Ongoing generation tasks for each timeline.
     var activeTasks: [UUID: Task<Void, Never>] = [:]
@@ -87,7 +87,7 @@ public actor TimelineManager {
     /// Per-timeline prompt-history/journal-diff registry. When non-nil, `deleteTimeline(id:)`
     /// and `cleanupStaleTimelines(maxAge:)` evict the corresponding history entry alongside the
     /// in-memory caches, so deleted/stale timelines don't leak journal-diff state.
-    let promptHistoryRegistry: TimelinePromptHistoryRegistry?
+    let promptHistoryRegistry: TimelinePromptJournals?
 
     // MARK: - Initialization
 
@@ -97,8 +97,27 @@ public actor TimelineManager {
         workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: RuntimeToolPolicy = .default,
+        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService()
+    ) {
+        self.init(
+            stores: stores,
+            workspaceRoot: workspaceRoot,
+            workspaceCreator: workspaceCreator,
+            sectionProviders: sectionProviders,
+            runtimeToolPolicy: runtimeToolPolicy,
+            embeddingService: embeddingService,
+            promptHistoryRegistry: nil
+        )
+    }
+
+    init(
+        stores: Stores,
+        workspaceRoot: URL,
+        workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
+        sectionProviders: [any PromptSectionProviding] = [],
+        runtimeToolPolicy: RuntimeToolPolicy = .default,
         embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
-        promptHistoryRegistry: TimelinePromptHistoryRegistry? = nil
+        promptHistoryRegistry: TimelinePromptJournals? = nil
     ) {
         timelineStore = stores.timelineStore
         messageStore = stores.messageStore
@@ -124,8 +143,23 @@ public actor TimelineManager {
         workspaceRoot: URL,
         workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = [],
+        runtimeToolPolicy: RuntimeToolPolicy = .default
+    ) {
+        self.init(
+            workspaceRoot: workspaceRoot,
+            workspaceCreator: workspaceCreator,
+            sectionProviders: sectionProviders,
+            runtimeToolPolicy: runtimeToolPolicy,
+            promptHistoryRegistry: nil
+        )
+    }
+
+    init(
+        workspaceRoot: URL,
+        workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
+        sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: RuntimeToolPolicy = .default,
-        promptHistoryRegistry: TimelinePromptHistoryRegistry? = nil
+        promptHistoryRegistry: TimelinePromptJournals? = nil
     ) {
         self.init(
             stores: .init(
@@ -206,7 +240,7 @@ public extension TimelineManager {
     }
 
     /// Retrieves the tool manager for a timeline if it is active.
-    func getToolManager(for timelineId: UUID) -> TimelineToolManager? {
+    func getToolManager(for timelineId: UUID) -> TimelineToolRegistry? {
         return toolManagers[timelineId]
     }
 
@@ -272,11 +306,11 @@ public enum TimelineError: PKError {
     }
 }
 
-// MARK: - Internal ContextManager Access
+// MARK: - Internal TurnBriefingBuilder Access
 
 extension TimelineManager {
-    /// Retrieves the context manager for a timeline if it is active.
-    func getContextManager(for timelineId: UUID) -> ContextManager? {
-        return contextManagers[timelineId]
+    /// Retrieves the turn briefing builder for a timeline if it is active.
+    func getTurnBriefingBuilder(for timelineId: UUID) -> TurnBriefingBuilder? {
+        return turnBriefingBuilders[timelineId]
     }
 }

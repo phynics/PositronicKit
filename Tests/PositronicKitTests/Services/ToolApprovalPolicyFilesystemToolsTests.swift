@@ -4,12 +4,12 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-/// Enforcement of `ToolApprovalGate` does NOT live in `PKShared` — `ToolApprovalGate.swift` there
-/// only defines the protocol and the two default gate implementations (`DenyAllToolApprovalGate`,
-/// `AllowAllToolApprovalGate`). The actual gate consultation and denial happens at the runtime
+/// Enforcement of `ToolApprovalPolicy` does NOT live in `PKShared` — `ToolApprovalPolicy.swift` there
+/// only defines the protocol and the two default gate implementations (`DenyAllToolApprovalPolicy`,
+/// `AllowAllToolApprovalPolicy`). The actual gate consultation and denial happens at the runtime
 /// execution sink in `PositronicKit`'s `Sources/PositronicKit/Services/Tools/ToolRouter.swift`
 /// (in the private local-execution path): a tool whose `requiresPermission` is `true` is blocked
-/// from running unless `approvalGate.requestApproval(tool:arguments:)` returns `.approve`; denial
+/// from running unless `approvalPolicy.requestApproval(tool:arguments:)` returns `.approve`; denial
 /// throws `ToolError.permissionDenied(<tool.name>)`. This suite pins that enforcement across every
 /// current PKShared filesystem tool, since a regression here would silently grant tool access.
 ///
@@ -18,9 +18,9 @@ import Testing
 /// `private` to that file's `ToolRouterTests` class and there is no shared PKTestSupport extension
 /// point for them yet; duplicating the minimal set here keeps this suite self-contained without
 /// widening the visibility of another file's test-only internals.
-final class ToolApprovalGateFilesystemToolsTests {
+final class ToolApprovalPolicyFilesystemToolsTests {
     /// Records every gate consultation so a test can assert whether the gate was reached at all.
-    final class RecordingGate: ToolApprovalGate, @unchecked Sendable {
+    final class RecordingGate: ToolApprovalPolicy, @unchecked Sendable {
         let decision: ToolApprovalDecision
         private(set) var consultedToolIds: [String] = []
 
@@ -50,18 +50,18 @@ final class ToolApprovalGateFilesystemToolsTests {
     }
 
     /// Builds a timeline with a single registered tool and returns the router under test.
-    /// When `approvalGate` is nil, `ToolRouter`'s own default gate is used (currently
-    /// `DenyAllToolApprovalGate`), to pin the default-deny posture explicitly.
+    /// When `approvalPolicy` is nil, `ToolRouter`'s own default gate is used (currently
+    /// `DenyAllToolApprovalPolicy`), to pin the default-deny posture explicitly.
     private func setupRouter(
         with tool: any PKShared.Tool,
-        approvalGate: (any ToolApprovalGate)? = nil
+        approvalPolicy: (any ToolApprovalPolicy)? = nil
     ) async throws -> (ToolRouter, UUID) {
         let (timelineManager, mockPersistence) = try await setupTimelineManager()
-        let toolRouter = if let approvalGate {
+        let toolRouter = if let approvalPolicy {
             ToolRouter(
                 timelineManager: timelineManager,
                 messageStore: mockPersistence,
-                approvalGate: approvalGate
+                approvalPolicy: approvalPolicy
             )
         } else {
             ToolRouter(
@@ -114,7 +114,7 @@ final class ToolApprovalGateFilesystemToolsTests {
     func permissionedFilesystemToolBlockedWhenDenied(toolId: String) async throws {
         let tool = try #require(Self.permissionedFilesystemTools.first { $0.callName == toolId })
         let gate = RecordingGate(decision: .deny)
-        let (router, timelineId) = try await setupRouter(with: tool, approvalGate: gate)
+        let (router, timelineId) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         do {
             _ = try await router.execute(tool: .known(tool.callName), arguments: [:], timelineId: timelineId)
@@ -139,7 +139,7 @@ final class ToolApprovalGateFilesystemToolsTests {
 
         let tool = ReadFileTool(currentDirectory: tempDir.path)
         let gate = RecordingGate(decision: .approve)
-        let (router, timelineId) = try await setupRouter(with: tool, approvalGate: gate)
+        let (router, timelineId) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         let result = try await router.execute(
             tool: .known(tool.callName),
@@ -161,7 +161,7 @@ final class ToolApprovalGateFilesystemToolsTests {
         #expect(tool.requiresPermission == false)
 
         let gate = RecordingGate(decision: .deny)
-        let (router, timelineId) = try await setupRouter(with: tool, approvalGate: gate)
+        let (router, timelineId) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         do {
             _ = try await router.execute(
@@ -182,13 +182,13 @@ final class ToolApprovalGateFilesystemToolsTests {
     @Test("Absent an explicit gate, ToolRouter's default gate denies a permissioned filesystem tool")
     func defaultGateDeniesPermissionedToolByDefault() async throws {
         let tool = ReadFileTool(currentDirectory: NSTemporaryDirectory())
-        let (router, timelineId) = try await setupRouter(with: tool, approvalGate: nil)
+        let (router, timelineId) = try await setupRouter(with: tool, approvalPolicy: nil)
 
         do {
             _ = try await router.execute(tool: .known(tool.callName), arguments: [:], timelineId: timelineId)
             Issue.record("Expected permissionDenied to be thrown under the default gate")
         } catch ToolError.permissionDenied(tool.name) {
-            // expected — confirms ToolRouter's default approvalGate is DenyAllToolApprovalGate
+            // expected — confirms ToolRouter's default approvalPolicy is DenyAllToolApprovalPolicy
         } catch {
             Issue.record("Unexpected error: \(error)")
         }

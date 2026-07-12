@@ -27,7 +27,7 @@ import PKShared
 /// how many prior turns the conversation actually had. Routing every call through this
 /// registry keyed by `timelineId` fixes that: the second (and later) sends in a
 /// conversation now diff against the previous send's final prompt snapshot.
-public actor TimelinePromptHistoryRegistry {
+actor TimelinePromptJournals {
     private var historiesByTimelineId: [UUID: TimelinePromptHistory] = [:]
     /// Timeline ids ordered from least- to most-recently accessed. The front of the array is
     /// the next eviction candidate. Kept as a plain array (not a generic LRU abstraction) --
@@ -36,7 +36,7 @@ public actor TimelinePromptHistoryRegistry {
     private let thresholds: PromptJournalCompactionThresholds
     private let evictionPolicy: RegistryEvictionPolicy
 
-    public init(
+    init(
         thresholds: PromptJournalCompactionThresholds = .default,
         evictionPolicy: RegistryEvictionPolicy = .default
     ) {
@@ -48,7 +48,7 @@ public actor TimelinePromptHistoryRegistry {
     ///
     /// Every call (whether it reuses an existing history or creates a new one) refreshes
     /// `timelineId`'s recency for LRU eviction purposes.
-    public func history(for timelineId: UUID) -> TimelinePromptHistory {
+    func history(for timelineId: UUID) -> TimelinePromptHistory {
         if let existing = historiesByTimelineId[timelineId] {
             touch(timelineId)
             return existing
@@ -61,7 +61,7 @@ public actor TimelinePromptHistoryRegistry {
     }
 
     /// Drops the cached history for a timeline, e.g. when a conversation is deleted.
-    public func removeHistory(for timelineId: UUID) {
+    func removeHistory(for timelineId: UUID) {
         historiesByTimelineId.removeValue(forKey: timelineId)
         accessOrder.removeAll { $0 == timelineId }
     }

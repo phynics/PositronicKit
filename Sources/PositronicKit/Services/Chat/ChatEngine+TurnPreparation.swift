@@ -15,7 +15,7 @@ extension ChatEngine {
         message: String,
         tools: [AnyTool],
         toolOutputs: [ToolOutputSubmission]?,
-        contextManager: ContextManager?,
+        turnBriefingBuilder: TurnBriefingBuilder?,
         systemInstructions: String?,
         agentInstanceId: UUID?,
         maxTurns: Int,
@@ -49,7 +49,7 @@ extension ChatEngine {
         try validateToolHistory(history)
         let currentRemoteDepth = conversationMessages.map(\.remoteDepth).max() ?? 0
         let contextData = await fetchContext(
-            contextManager: contextManager,
+            turnBriefingBuilder: turnBriefingBuilder,
             message: message,
             history: history,
             pipeline: contextPipeline
@@ -216,15 +216,15 @@ private extension ChatEngine {
     }
 
     func fetchContext(
-        contextManager: ContextManager?,
+        turnBriefingBuilder: TurnBriefingBuilder?,
         message: String,
         history: [Message],
         pipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil
     ) async -> ContextData {
-        guard let contextManager else { return ContextData() }
+        guard let turnBriefingBuilder else { return ContextData() }
 
         do {
-            let stream = await contextManager.gatherContext(
+            let stream = await turnBriefingBuilder.gatherContext(
                 for: message.isEmpty ? (history.last?.content ?? "") : message,
                 history: history,
                 tagGenerator: { [utilityClient = dependencies.utilityClient] query in try await utilityClient.generateTags(for: query) },

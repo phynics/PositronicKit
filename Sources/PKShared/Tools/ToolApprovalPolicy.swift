@@ -17,11 +17,11 @@ public enum ToolApprovalDecision: Sendable, Equatable {
 /// return a decision; a `.deny` (or any non-`.approve`) result blocks execution with
 /// ``ToolError/permissionDenied(_:)``.
 ///
-/// The default gate wired into `ToolRouter` is ``DenyAllToolApprovalGate``: absent an explicit
+/// The default gate wired into `ToolRouter` is ``DenyAllToolApprovalPolicy``: absent an explicit
 /// approval path, permissioned tools are blocked rather than silently executed. Hosts that expose
 /// permissioned tools must inject a gate that returns `.approve` for sanctioned calls (e.g. a
-/// UI-bridging approver), or an ``AllowAllToolApprovalGate`` when approval is delegated elsewhere.
-public protocol ToolApprovalGate: Sendable {
+/// UI-bridging approver), or an ``AllowAllToolApprovalPolicy`` when approval is delegated elsewhere.
+public protocol ToolApprovalPolicy: Sendable {
     /// Returns the approval decision for a permissioned tool call.
     ///
     /// - Parameters:
@@ -35,7 +35,7 @@ public protocol ToolApprovalGate: Sendable {
 /// Used as `ToolRouter`'s default so a permissioned tool is never executed without an explicit,
 /// deliberately-injected approval path. A host that wants permissioned tools to run must inject a
 /// concrete gate instead of relying on this one.
-public struct DenyAllToolApprovalGate: ToolApprovalGate {
+public struct DenyAllToolApprovalPolicy: ToolApprovalPolicy {
     public init() {}
     public func requestApproval(
         tool _: AnyTool,
@@ -50,7 +50,7 @@ public struct DenyAllToolApprovalGate: ToolApprovalGate {
 /// For hosts that have already enforced approval upstream, or that intentionally trust all exposed
 /// tools (e.g. a fully sandboxed/jailed tool set). Selecting this is an explicit decision to bypass
 /// the runtime gate, never the default.
-public struct AllowAllToolApprovalGate: ToolApprovalGate {
+public struct AllowAllToolApprovalPolicy: ToolApprovalPolicy {
     public init() {}
     public func requestApproval(
         tool _: AnyTool,

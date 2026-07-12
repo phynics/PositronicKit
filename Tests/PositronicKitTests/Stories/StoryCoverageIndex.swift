@@ -43,7 +43,7 @@
 ///   `OpenAIToolCallRecoveryTests`, `OpenRouterToolCallRecoveryTests`,
 ///   `ToolCallRegressionTests`, `ChatEngineTests`
 /// - runtime limits / cancellation / event-stream reliability →
-///   `ChatEngineTests`, `ContextManagerCancellationTests`
+///   `ChatEngineTests`, `TurnBriefingBuilderCancellationTests`
 /// - prompt assembly / runtime prompt history / structured compression →
 ///   `PromptAssemblyTests`, `TimelinePromptHistoryTests`,
 ///   `StructuredCompressionIntegrationTests`

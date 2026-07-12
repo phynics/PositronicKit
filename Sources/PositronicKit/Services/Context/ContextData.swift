@@ -32,3 +32,6 @@ public struct ContextData: Sendable, Codable {
         self.executionTime = executionTime
     }
 }
+
+/// The selected memory/workspace material for one turn — the result of `TurnBriefingBuilder.gatherContext`.
+public typealias TurnBriefing = ContextData

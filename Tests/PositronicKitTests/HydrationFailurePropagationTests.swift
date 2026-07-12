@@ -20,7 +20,7 @@ struct HydrationFailurePropagationTests {
 
         let unresolvedTimelineId = UUID()
 
-        // The timeline is unknown to the facade's cache, so `resolveContextManager`
+        // The timeline is unknown to the facade's cache, so `resolveTurnBriefingBuilder`
         // falls through to `hydrateTimeline`, which hits the failing store. The turn
         // must still proceed (not throw) — hydration failure is logged, not propagated.
         let stream = try await kit.run(ChatRunRequest(
@@ -30,7 +30,7 @@ struct HydrationFailurePropagationTests {
         for try await _ in stream {}
 
         // The hydration attempt must actually have hit the store, proving
-        // `resolveContextManager` didn't short-circuit before reaching it.
+        // `resolveTurnBriefingBuilder` didn't short-circuit before reaching it.
         #expect(failingTimelinePersistence.fetchAttemptCount >= 1)
     }
 }

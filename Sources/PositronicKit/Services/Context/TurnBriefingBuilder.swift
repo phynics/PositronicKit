@@ -4,11 +4,11 @@ import Logging
 import PKPrompt
 import PKShared
 
-/// Manages the retrieval and organization of context for the chat.
-actor ContextManager {
+/// Builds the turn briefing — the selected memory/workspace material for one chat turn.
+actor TurnBriefingBuilder {
     let workspace: (any WorkspaceProtocol)?
     let pipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>
-    private let logger = Logger.module(named: "context-manager")
+    private let logger = Logger.module(named: "turn-briefing-builder")
 
     init(
         workspace: (any WorkspaceProtocol)? = nil,

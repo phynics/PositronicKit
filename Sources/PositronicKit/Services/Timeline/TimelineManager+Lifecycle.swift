@@ -110,14 +110,14 @@ public extension TimelineManager {
 
 private extension TimelineManager {
     /// Evicts all in-memory runtime state for a timeline: the cached `Timeline`,
-    /// `ContextManager`, `TimelineToolManager`, and (when a prompt-history registry
+    /// `TurnBriefingBuilder`, `TimelineToolRegistry`, and (when a prompt-history registry
     /// was injected) the journal-diff history entry. Does not touch persistence.
     ///
     /// This is the in-memory-only phase shared by `deleteTimeline(id:)` and
     /// `cleanupStaleTimelines(maxAge:)`.
     func evictTimelineFromMemory(id: UUID) async {
         timelines.removeValue(forKey: id)
-        contextManagers.removeValue(forKey: id)
+        turnBriefingBuilders.removeValue(forKey: id)
         toolManagers.removeValue(forKey: id)
         await promptHistoryRegistry?.removeHistory(for: id)
     }
@@ -134,12 +134,12 @@ private extension TimelineManager {
             contextWorkspace = nil
         }
 
-        let contextManager = ContextManager(
+        let turnBriefingBuilder = TurnBriefingBuilder(
             workspace: contextWorkspace,
             memoryStore: memoryStore,
             embeddingService: embeddingService
         )
-        contextManagers[timeline.id] = contextManager
+        turnBriefingBuilders[timeline.id] = turnBriefingBuilder
 
         let toolContextTimeline = ToolTimelineContext()
 

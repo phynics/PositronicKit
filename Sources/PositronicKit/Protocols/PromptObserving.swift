@@ -8,8 +8,8 @@ import PKShared
 ///
 /// This is the read-only counterpart to `ChatTurnPlugin`. The two hooks fire in different
 /// phases and must not merge:
-/// - `PromptInspecting.didComposePrompt` fires at prompt-assembly time (no response yet),
-///   returns `Void`, and is a single optional `promptInspector`.
+/// - `PromptObserving.didComposePrompt` fires at prompt-assembly time (no response yet),
+///   returns `Void`, and is a single optional `promptObserver`.
 /// - `ChatTurnPlugin.afterTurn` fires after the turn completes (with the full response),
 ///   returns `[LLMMessage]` to drive a follow-up turn, and is an ordered `chatTurnPlugins`
 ///   list.
@@ -22,7 +22,7 @@ import PKShared
 /// "Do not generalize without a second adapter" applies to *this* protocol's surface
 /// (don't broaden `PromptInspection` or add methods without a second real conformer) —
 /// it is not a reason to merge with `ChatTurnPlugin`.
-public protocol PromptInspecting: Sendable {
+public protocol PromptObserving: Sendable {
     func didComposePrompt(_ inspection: PromptInspection) async
 }
 

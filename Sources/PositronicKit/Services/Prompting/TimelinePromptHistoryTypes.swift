@@ -124,7 +124,7 @@ struct PromptHistoryUpdate {
 public typealias CompactionThresholds = PromptJournalCompactionThresholds
 
 /// Caps how many per-timeline `TimelinePromptHistory` instances
-/// `TimelinePromptHistoryRegistry` keeps resident at once.
+/// `TimelinePromptJournals` keeps resident at once.
 public struct RegistryEvictionPolicy: Sendable {
     /// Maximum number of timelines the registry holds before it evicts the
     /// least-recently-accessed entry to make room for a new one.

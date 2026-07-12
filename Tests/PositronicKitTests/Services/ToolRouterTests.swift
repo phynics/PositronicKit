@@ -108,7 +108,7 @@ final class ToolRouterTests {
     }
 
     /// Records every gate consultation so a test can assert the gate was actually reached.
-    final class RecordingGate: ToolApprovalGate, @unchecked Sendable {
+    final class RecordingGate: ToolApprovalPolicy, @unchecked Sendable {
         let decision: ToolApprovalDecision
         private(set) var consultedToolIds: [String] = []
 
@@ -125,13 +125,13 @@ final class ToolRouterTests {
     /// Builds a timeline with a single registered tool and returns the router under test.
     private func setupRouter(
         with tool: any PKShared.Tool,
-        approvalGate: any ToolApprovalGate
+        approvalPolicy: any ToolApprovalPolicy
     ) async throws -> (ToolRouter, UUID) {
         let (timelineManager, mockPersistence) = try await setupTimelineManager()
         let toolRouter = ToolRouter(
             timelineManager: timelineManager,
             messageStore: mockPersistence,
-            approvalGate: approvalGate
+            approvalPolicy: approvalPolicy
         )
 
         let session = try await timelineManager.createTimeline()
@@ -157,7 +157,7 @@ final class ToolRouterTests {
     func permissionedToolBlockedWhenDenied() async throws {
         let tool = PermissionedTool(id: "needs_permission")
         let gate = RecordingGate(decision: .deny)
-        let (router, timelineId) = try await setupRouter(with: tool, approvalGate: gate)
+        let (router, timelineId) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         do {
             _ = try await router.execute(
@@ -180,7 +180,7 @@ final class ToolRouterTests {
     func permissionedToolRunsWhenApproved() async throws {
         let tool = PermissionedTool(id: "needs_permission")
         let gate = RecordingGate(decision: .approve)
-        let (router, timelineId) = try await setupRouter(with: tool, approvalGate: gate)
+        let (router, timelineId) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         let result = try await router.execute(
             tool: .known("needs_permission"),
@@ -201,7 +201,7 @@ final class ToolRouterTests {
     func textFallbackToolCallBlockedWhenDenied() async throws {
         let tool = PermissionedTool(id: "needs_permission")
         let gate = RecordingGate(decision: .deny)
-        let (router, timelineId) = try await setupRouter(with: tool, approvalGate: gate)
+        let (router, timelineId) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         // A fallback-parsed call arrives as a ParsedToolCall through handlePendingToolCalls, the same
         // entry point the text-fallback path feeds. A denied permissioned tool must be projected as a
@@ -226,7 +226,7 @@ final class ToolRouterTests {
         let tool = MockTool(callName: "free_tool", name: "free_tool", result: .success("free output"))
         // A deny-all gate must not affect non-permissioned tools.
         let gate = RecordingGate(decision: .deny)
-        let (router, timelineId) = try await setupRouter(with: tool, approvalGate: gate)
+        let (router, timelineId) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         let result = try await router.execute(
             tool: .known("free_tool"),
@@ -456,7 +456,7 @@ final class ToolRouterTests {
     func explicitInvalidWorkspaceIDFailsClosed() async throws {
         let tool = MockTool(callName: "test_tool", name: "test_tool", result: .success("success"))
         let gate = RecordingGate(decision: .deny)
-        let (router, timelineId) = try await setupRouter(with: tool, approvalGate: gate)
+        let (router, timelineId) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         let invalidWorkspaceId = UUID()
         let arguments: [String: AnyCodable] = ["workspaceID": AnyCodable(invalidWorkspaceId.uuidString)]
@@ -479,7 +479,7 @@ final class ToolRouterTests {
     func unattachedExplicitWorkspaceIDFailsClosed() async throws {
         let tool = MockTool(callName: "test_tool", name: "test_tool", result: .success("success"))
         let gate = RecordingGate(decision: .deny)
-        let (router, timelineId) = try await setupRouter(with: tool, approvalGate: gate)
+        let (router, timelineId) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         // Create a valid UUID that is definitely not attached to this timeline
         let unattachedWorkspaceId = UUID()
@@ -503,7 +503,7 @@ final class ToolRouterTests {
     func omittedWorkspaceIDUsesDefaultResolution() async throws {
         let tool = MockTool(callName: "test_tool", name: "test_tool", result: .success("default workspace success"))
         let gate = RecordingGate(decision: .deny)
-        let (router, timelineId) = try await setupRouter(with: tool, approvalGate: gate)
+        let (router, timelineId) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         // No workspaceID in arguments — should proceed with normal default resolution
         let arguments: [String: AnyCodable] = [:]

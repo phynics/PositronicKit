@@ -9,7 +9,7 @@ import PKShared
 import PositronicKit
 
 public enum PositronicKitUsageExamples {
-    public actor ExamplePromptInspector: PromptInspecting {
+    public actor ExamplePromptObserver: PromptObserving {
         public private(set) var latestTokenEstimate = 0
 
         public init() {}
@@ -48,11 +48,11 @@ public enum PositronicKitUsageExamples {
         )
     }
 
-    public static func makeInspectableRuntime(inspector: any PromptInspecting) -> PositronicKit {
+    public static func makeInspectableRuntime(inspector: any PromptObserving) -> PositronicKit {
         PositronicKit(configuration: .init(
             provider: .init(llmService: UnconfiguredLLMService()),
             persistence: .inMemory(),
-            runtime: .init(promptInspector: inspector)
+            runtime: .init(promptObserver: inspector)
         ))
     }
 
@@ -137,16 +137,16 @@ public enum PositronicKitUsageExamples {
         [ExampleGreetingTool().toAnyTool()]
     }
 
-    /// PKPOST-004: `ToolProviding` is the canonical surface for grouping tools under a
-    /// structural `ToolProvenance` (rather than passing a flat `[AnyTool]`). Conform a type,
-    /// return its tools from `provideTools()`, and register it with a runtime's
-    /// `TimelineToolManager` (`registerToolProvider(_:id:)`); the `resolvedTools()` extension
-    /// re-stamps each tool's `.global` provenance with the provider's `toolProvenance` so the
+    /// PKPOST-004: `ToolSource` is the canonical surface for grouping tools under a
+    /// structural `ToolOrigin` (rather than passing a flat `[AnyTool]`). Conform a type,
+    /// return its tools from `tools()`, and register it with a runtime's
+    /// `TimelineToolRegistry` (`registerToolProvider(_:id:)`); the `resolvedTools()` extension
+    /// re-stamps each tool's `.global` origin with the provider's `toolOrigin` so the
     /// prompt labels tools as belonging to this workspace/terminal.
     public static func makeWorkspaceToolProviderExample(
         workspaceID: UUID = UUID(),
         workspaceName: String = "example-workspace"
-    ) -> any ToolProviding {
+    ) -> any ToolSource {
         ExampleWorkspaceToolProvider(workspaceID: workspaceID, workspaceName: workspaceName)
     }
 
@@ -293,19 +293,19 @@ public struct ExampleGreetingTool: Tool {
     }
 }
 
-/// PKPOST-004 example `ToolProviding` conformance: groups its tools under a `.workspace`
-/// provenance so the runtime labels them as belonging to that workspace. See
+/// PKPOST-004 example `ToolSource` conformance: groups its tools under a `.workspace`
+/// origin so the runtime labels them as belonging to that workspace. See
 /// `PositronicKitUsageExamples.makeWorkspaceToolProviderExample`.
-public struct ExampleWorkspaceToolProvider: ToolProviding {
-    public let toolProvenance: ToolProvenance
+public struct ExampleWorkspaceToolProvider: ToolSource {
+    public let toolOrigin: ToolOrigin
 
     public init(workspaceID: UUID, workspaceName: String) {
-        toolProvenance = .workspace(id: workspaceID, name: workspaceName)
+        toolOrigin = .workspace(id: workspaceID, name: workspaceName)
     }
 
-    public func provideTools() async -> [AnyTool] {
-        // Tools default to `.global` provenance; the `ToolProviding.resolvedTools()`
-        // extension re-stamps them with this provider's `toolProvenance`.
+    public func tools() async -> [AnyTool] {
+        // Tools default to `.global` origin; the `ToolSource.resolvedTools()`
+        // extension re-stamps them with this provider's `toolOrigin`.
         [ExampleGreetingTool().toAnyTool()]
     }
 }

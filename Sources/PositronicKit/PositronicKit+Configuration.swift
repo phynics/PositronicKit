@@ -74,15 +74,15 @@ public extension PositronicKit {
     }
 
     /// Groups the non-store runtime knobs: workspace creation, prompt-section providers,
-    /// tool policy and approval, chat-turn plugins, and prompt inspection.
+    /// tool policy and approval, chat-turn plugins, and prompt observation.
     struct RuntimeConfiguration: Sendable {
         public let workspaceCreator: any WorkspaceCreating
         public let sectionProviders: [any PromptSectionProviding]
         public let runtimeToolPolicy: TimelineManager.RuntimeToolPolicy
         public let workspaceRoot: URL?
         public let chatTurnPlugins: [any ChatTurnPlugin]
-        public let promptInspector: (any PromptInspecting)?
-        public let toolApprovalGate: any ToolApprovalGate
+        public let promptObserver: (any PromptObserving)?
+        public let toolApprovalPolicy: any ToolApprovalPolicy
 
         public init(
             workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
@@ -90,16 +90,16 @@ public extension PositronicKit {
             runtimeToolPolicy: TimelineManager.RuntimeToolPolicy = .default,
             workspaceRoot: URL? = nil,
             chatTurnPlugins: [any ChatTurnPlugin] = [],
-            promptInspector: (any PromptInspecting)? = nil,
-            toolApprovalGate: any ToolApprovalGate = DenyAllToolApprovalGate()
+            promptObserver: (any PromptObserving)? = nil,
+            toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy()
         ) {
             self.workspaceCreator = workspaceCreator
             self.sectionProviders = sectionProviders
             self.runtimeToolPolicy = runtimeToolPolicy
             self.workspaceRoot = workspaceRoot
             self.chatTurnPlugins = chatTurnPlugins
-            self.promptInspector = promptInspector
-            self.toolApprovalGate = toolApprovalGate
+            self.promptObserver = promptObserver
+            self.toolApprovalPolicy = toolApprovalPolicy
         }
 
         /// The default runtime configuration: no workspaces, no plugins, deny-all tool approval.
@@ -126,10 +126,10 @@ public extension PositronicKit {
             sectionProviders: configuration.runtime.sectionProviders,
             runtimeToolPolicy: configuration.runtime.runtimeToolPolicy,
             chatTurnPlugins: configuration.runtime.chatTurnPlugins,
-            promptInspector: configuration.runtime.promptInspector,
+            promptObserver: configuration.runtime.promptObserver,
             generationParameters: configuration.generationParameters,
-            toolApprovalGate: configuration.runtime.toolApprovalGate,
-            sharedRegistry: TimelinePromptHistoryRegistry(),
+            toolApprovalPolicy: configuration.runtime.toolApprovalPolicy,
+            sharedRegistry: TimelinePromptJournals(),
             additionalStages: []
         )
     }

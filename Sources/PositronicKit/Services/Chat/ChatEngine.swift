@@ -90,8 +90,8 @@ struct ChatEngine {
         let utilityClient: any LLMUtilityClient
         let toolRouter: ToolRouter
         let chatTurnPlugins: [any ChatTurnPlugin]
-        let promptInspector: (any PromptInspecting)?
-        let promptHistoryRegistry: TimelinePromptHistoryRegistry
+        let promptObserver: (any PromptObserving)?
+        let promptHistoryRegistry: TimelinePromptJournals
         let streamTimeout: TimeInterval
 
         init(
@@ -102,8 +102,8 @@ struct ChatEngine {
             llmService: any LLMStreamClient & LLMUtilityClient,
             toolRouter: ToolRouter,
             chatTurnPlugins: [any ChatTurnPlugin],
-            promptInspector: (any PromptInspecting)? = nil,
-            promptHistoryRegistry: TimelinePromptHistoryRegistry? = nil,
+            promptObserver: (any PromptObserving)? = nil,
+            promptHistoryRegistry: TimelinePromptJournals? = nil,
             streamTimeout: TimeInterval = Self.defaultStreamTimeout
         ) {
             self.timelineManager = timelineManager
@@ -114,8 +114,8 @@ struct ChatEngine {
             self.utilityClient = llmService
             self.toolRouter = toolRouter
             self.chatTurnPlugins = chatTurnPlugins
-            self.promptInspector = promptInspector
-            self.promptHistoryRegistry = promptHistoryRegistry ?? TimelinePromptHistoryRegistry()
+            self.promptObserver = promptObserver
+            self.promptHistoryRegistry = promptHistoryRegistry ?? TimelinePromptJournals()
             self.streamTimeout = streamTimeout
         }
     }
@@ -142,7 +142,7 @@ struct ChatEngine {
     ///   - message: The user's input message.
     ///   - tools: Pre-resolved tools available for this turn.
     ///   - toolOutputs: Optional list of tool outputs submitted from a previous externally executed turn.
-    ///   - contextManager: Optional context manager for RAG. If nil, no context is gathered.
+    ///   - turnBriefingBuilder: Optional turn briefing builder for RAG. If nil, no context is gathered.
     ///   - systemInstructions: Optional system instructions to override the default.
     ///   - agentInstanceId: Optional identifier for the agent instance.
     ///   - maxTurns: Maximum number of LLM turns before stopping. Defaults to 5.
@@ -153,7 +153,7 @@ struct ChatEngine {
         message: String,
         tools: [AnyTool],
         toolOutputs: [ToolOutputSubmission]? = nil,
-        contextManager: ContextManager? = nil,
+        turnBriefingBuilder: TurnBriefingBuilder? = nil,
         systemInstructions: String? = nil,
         agentInstanceId: UUID? = nil,
         maxTurns: Int = Constants.defaultMaxTurns,
@@ -179,7 +179,7 @@ struct ChatEngine {
             message: message,
             tools: tools,
             toolOutputs: toolOutputs,
-            contextManager: contextManager,
+            turnBriefingBuilder: turnBriefingBuilder,
             systemInstructions: systemInstructions,
             agentInstanceId: agentInstanceId,
             maxTurns: maxTurns,

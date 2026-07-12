@@ -2,14 +2,14 @@ import Foundation
 import struct JSONSchema.Schema
 
 /// Where a tool originated, used to scope its availability and to label it in prompts.
-public enum ToolProvenance: Sendable, Equatable, Hashable, Codable {
+public enum ToolOrigin: Sendable, Equatable, Hashable, Codable {
     /// A system-wide tool available regardless of workspace/terminal context.
     case global
     /// A tool contributed by a specific workspace; paths passed to it are relative to that workspace root.
     case workspace(id: UUID, name: String)
     /// A tool contributed by a specific terminal session.
     case terminal(id: UUID, name: String)
-    /// A tool with an arbitrary caller-supplied provenance label.
+    /// A tool with an arbitrary caller-supplied origin label.
     case named(String)
 
     public var promptLabel: String? {
@@ -30,19 +30,15 @@ public enum ToolProvenance: Sendable, Equatable, Hashable, Codable {
     }
 }
 
-public protocol ToolProviding: Sendable {
-    var toolProvenance: ToolProvenance { get }
-    func provideTools() async -> [AnyTool]
+public protocol ToolSource: Sendable {
+    var toolOrigin: ToolOrigin { get }
+    func tools() async -> [AnyTool]
 }
 
-public extension ToolProviding {
+public extension ToolSource {
     func resolvedTools() async -> [AnyTool] {
-        await provideTools().map { tool in
-            var resolved = tool
-            if resolved.provenance == .global {
-                resolved.provenance = toolProvenance
-            }
-            return resolved
+        await tools().map { tool in
+            tool.origin == .global ? tool.withOrigin(toolOrigin) : tool
         }
     }
 }
@@ -58,6 +54,13 @@ public protocol Tool: Sendable, PromptFormattable {
     /// function name the model emits in a tool call, not a display label. Use ``name`` for
     /// human-readable display.
     var callName: String { get }
+
+    /// Immutable identity used for internal routing and event emission.
+    ///
+    /// Captured once at ``AnyTool`` erasure and never re-derived. Tools that need a
+    /// non-default identity (e.g. a ``ToolReference.custom`` reference) override this;
+    /// the default derives ``known(id:)``-style from ``callName``.
+    var identity: ToolReference { get }
 
     /// Human-readable display name for the tool.
     var name: String { get }
@@ -119,6 +122,11 @@ public protocol Tool: Sendable, PromptFormattable {
 // MARK: - Default Implementation
 
 public extension Tool {
+    /// Default identity derived from ``callName``.
+    var identity: ToolReference {
+        .known(id: callName)
+    }
+
     /// Default: no usage example provided.
     var usageExample: String? {
         nil
@@ -158,12 +166,12 @@ public extension Tool {
 public extension Tool {
     /// Standard prompt representation for tools.
     var promptString: String {
-        promptString(provenance: .global)
+        promptString(origin: .global)
     }
 
-    /// Formatted content for inclusion in LLM prompt with optional provenance (e.g. workspace name).
-    func promptString(provenance: ToolProvenance) -> String {
-        let label = provenance.promptLabel.map { " [\($0)]" } ?? ""
+    /// Formatted content for inclusion in LLM prompt with optional origin (e.g. workspace name).
+    func promptString(origin: ToolOrigin) -> String {
+        let label = origin.promptLabel.map { " [\($0)]" } ?? ""
         return "- `\(callName)`\(label): \(description)"
     }
 }
@@ -179,7 +187,7 @@ public extension [AnyTool] {
 
         for tool in self {
             guard await tool.canExecute() else { continue }
-            toolSpecs.append(tool.promptString(provenance: tool.provenance))
+            toolSpecs.append(tool.promptString(origin: tool.origin))
         }
 
         guard !toolSpecs.isEmpty else { return "" }
@@ -190,7 +198,7 @@ public extension [AnyTool] {
 
         Rules:
         - Use tools only for missing context.
-        - Path Resolution: If a tool is tagged with a workspace provenance \
+        - Path Resolution: If a tool is tagged with a workspace origin \
         (e.g. `[Workspace: <name>]` or `[Terminal: <name>]`), all file paths passed to it MUST be relative \
         to that workspace root.
         - Summarize the result if it is excessively long.
@@ -202,10 +210,6 @@ public extension [AnyTool] {
 }
 
 // MARK: - Type-Erased Tool
-
-public protocol ToolReferenceProviding {
-    var toolReference: ToolReference { get }
-}
 
 /// A type-erased wrapper around any `Tool` conformance.
 ///
@@ -219,16 +223,25 @@ public protocol ToolReferenceProviding {
 public struct AnyTool: Tool, Sendable {
     private let wrapped: any Tool
 
-    /// Metadata about where the tool originated.
-    public var provenance: ToolProvenance
+    /// Immutable metadata about where the tool originated.
+    public let origin: ToolOrigin
 
-    public init(_ tool: any Tool, provenance: ToolProvenance = .global) {
+    /// Immutable tool identity captured at erasure time.
+    public let identity: ToolReference
+
+    public init(_ tool: any Tool, origin: ToolOrigin = .global) {
         wrapped = tool
-        self.provenance = provenance
+        self.origin = origin
+        identity = tool.identity
+    }
+
+    /// Returns a copy of this tool with the origin replaced, preserving identity.
+    public func withOrigin(_ newOrigin: ToolOrigin) -> AnyTool {
+        AnyTool(wrapped, origin: newOrigin)
     }
 
     /// Overrides the protocol default (which would rewrap in a fresh `AnyTool` and reset
-    /// `provenance` to `.global`) so re-erasing an already-erased tool is a no-op.
+    /// `origin` to `.global`) so re-erasing an already-erased tool is a no-op.
     public func toAnyTool() -> AnyTool {
         self
     }
@@ -269,11 +282,8 @@ public struct AnyTool: Tool, Sendable {
         wrapped.summarize(parameters: parameters, result: result)
     }
 
-    /// Returns the ``ToolReference`` for this tool, used for internal routing and event emission.
+    /// Returns the ``ToolReference`` captured at erasure time.
     public var toolReference: ToolReference {
-        if let provider = wrapped as? ToolReferenceProviding {
-            return provider.toolReference
-        }
-        return .known(id: callName)
+        identity
     }
 }

@@ -5,7 +5,7 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-private actor InspectionRecorder: PromptInspecting {
+private actor InspectionRecorder: PromptObserving {
     private(set) var values: [PromptInspection] = []
 
     func didComposePrompt(_ inspection: PromptInspection) {
@@ -14,7 +14,7 @@ private actor InspectionRecorder: PromptInspecting {
 }
 
 @Suite(.serialized) @MainActor
-struct PromptInspectingTests {
+struct PromptObservingTests {
     private final class FacadeReconfigurationHarness {
         let persistence = MockPersistenceService()
         let inspector = InspectionRecorder()
@@ -36,7 +36,7 @@ struct PromptInspectingTests {
                     agentInstanceStore: persistence,
                     requestOriginStore: persistence
                 ),
-                runtime: .init(promptInspector: inspector)
+                runtime: .init(promptObserver: inspector)
             ))
             let timeline = try await baseKit.timelineManager.createTimeline(title: "Reconfiguration")
             timelineId = timeline.id
@@ -60,7 +60,7 @@ struct PromptInspectingTests {
         let persistence = MockPersistenceService()
         let engine: ChatEngine
 
-        init(inspector: (any PromptInspecting)? = nil) async throws {
+        init(inspector: (any PromptObserving)? = nil) async throws {
             let timelineManager = TimelineManager(
                 stores: .init(
                     timelineStore: persistence,
@@ -84,7 +84,7 @@ struct PromptInspectingTests {
                     llmService: llm,
                     toolRouter: toolRouter,
                     chatTurnPlugins: [],
-                    promptInspector: inspector
+                    promptObserver: inspector
                 )
             )
 
@@ -298,7 +298,7 @@ struct PromptInspectingTests {
                 agentInstanceStore: harness.persistence,
                 requestOriginStore: harness.persistence
             ),
-            runtime: .init(promptInspector: harness.inspector)
+            runtime: .init(promptObserver: harness.inspector)
         ))
         try await harness.run(kit: secondKit, message: "Second send")
 
