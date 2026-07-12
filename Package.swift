@@ -63,8 +63,7 @@ let package = Package(
                 .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
                 .product(name: "PartialJSON", package: "PartialJSON"),
             ],
-            path: "Sources/PositronicKit",
-            exclude: ["README.md"]
+            path: "Sources/PositronicKit"
         ),
         .target(
             name: "PKObservable",
