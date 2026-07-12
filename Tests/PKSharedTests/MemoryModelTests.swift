@@ -1,6 +1,5 @@
 import Foundation
 @testable import PKShared
-@testable import PositronicKit
 import Testing
 
 final class MemoryModelTests {

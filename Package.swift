@@ -174,7 +174,6 @@ let package = Package(
                 "PKOpenRouterProvider",
                 "PKOllamaProvider",
                 "PKAnthropicProvider",
-                "PKFoundationModelsProvider",
                 // Kept intentionally: Tests/PositronicKitTests/Stories/Examples/*.swift
                 // exercises PKPromptExamples/PositronicKitUsageExamples directly (not a
                 // trivial compile check) so the living-documentation examples stay
@@ -224,6 +223,58 @@ let package = Package(
                 .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
             ],
             path: "Tests/PKSharedTests"
+        ),
+        .testTarget(
+            name: "PKOpenAIProviderTests",
+            dependencies: [
+                "PKOpenAIProvider",
+                "PKShared",
+                "PositronicKit",
+                .product(name: "OpenAI", package: "OpenAI"),
+                .product(name: "Logging", package: "swift-log"),
+            ],
+            path: "Tests/PKOpenAIProviderTests"
+        ),
+        .testTarget(
+            name: "PKOpenRouterProviderTests",
+            dependencies: [
+                "PKOpenRouterProvider",
+                "PKShared",
+                .product(name: "Logging", package: "swift-log"),
+            ],
+            path: "Tests/PKOpenRouterProviderTests"
+        ),
+        .testTarget(
+            name: "PKOllamaProviderTests",
+            dependencies: [
+                "PKOllamaProvider",
+                "PKShared",
+                .product(name: "JSONSchema", package: "swift-json-schema"),
+                .product(name: "Logging", package: "swift-log"),
+            ],
+            path: "Tests/PKOllamaProviderTests"
+        ),
+        .testTarget(
+            name: "PKAnthropicProviderTests",
+            dependencies: [
+                "PKAnthropicProvider",
+                "PKShared",
+                "PKTestSupport",
+                "PositronicKit",
+                .product(name: "Logging", package: "swift-log"),
+            ],
+            path: "Tests/PKAnthropicProviderTests"
+        ),
+        .testTarget(
+            name: "PKFoundationModelsProviderTests",
+            dependencies: [
+                "PKFoundationModelsProvider",
+                "PKShared",
+                "PKTestSupport",
+                "PositronicKit",
+                .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
+            ],
+            path: "Tests/PKFoundationModelsProviderTests"
         ),
         .testTarget(
             name: "PKTestSupportTests",

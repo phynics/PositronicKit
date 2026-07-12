@@ -1,6 +1,5 @@
 import Foundation
 import Testing
-@testable import PositronicKit
 @testable import PKShared
 @Suite struct AnyCodableTests {
 

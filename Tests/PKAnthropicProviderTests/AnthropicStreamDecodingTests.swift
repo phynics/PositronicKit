@@ -5,6 +5,7 @@ import Logging
 #endif
 @testable import PKAnthropicProvider
 import PKShared
+import PKTestSupport
 import PositronicKit
 import Testing
 
