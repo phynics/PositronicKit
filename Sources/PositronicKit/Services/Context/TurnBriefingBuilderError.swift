@@ -2,8 +2,8 @@ import ErrorKit
 import Foundation
 import PKShared
 
-/// Error types specific to ContextManager
-enum ContextManagerError: PKError {
+/// Error types specific to TurnBriefingBuilder
+enum TurnBriefingBuilderError: PKError {
     /// Embedding generation failed
     case embeddingFailed(Error)
     /// Database retrieval failed

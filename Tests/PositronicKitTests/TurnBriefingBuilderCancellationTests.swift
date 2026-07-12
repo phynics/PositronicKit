@@ -5,14 +5,14 @@ import PKTestSupport
 import Synchronization
 import Testing
 
-@Suite(.serialized) struct ContextManagerCancellationTests {
-    private func makeContextManager() async throws -> ContextManager {
-        ContextManager(workspace: nil)
+@Suite(.serialized) struct TurnBriefingBuilderCancellationTests {
+    private func makeTurnBriefingBuilder() async throws -> TurnBriefingBuilder {
+        TurnBriefingBuilder(workspace: nil)
     }
 
     @Test("gatherContext emits at least one progress event before completing")
     func gatherContext_emitsEvents() async throws {
-        let manager = try await makeContextManager()
+        let manager = try await makeTurnBriefingBuilder()
         let stream = await manager.gatherContext(for: "test query")
 
         var events: [ContextGatheringEvent] = []
@@ -29,7 +29,7 @@ import Testing
 
     @Test("gatherContext can be cancelled without hanging")
     func gatherContext_cancellation_doesNotHang() async throws {
-        let manager = try await makeContextManager()
+        let manager = try await makeTurnBriefingBuilder()
 
         // Deterministic checkpoint: flipped as soon as the stream emits its first event,
         // so cancellation is triggered mid-stream rather than after a guessed sleep duration.
@@ -62,7 +62,7 @@ import Testing
 
     @Test("gatherContext with empty query produces complete event")
     func gatherContext_emptyQuery_completesSuccessfully() async throws {
-        let manager = try await makeContextManager()
+        let manager = try await makeTurnBriefingBuilder()
         let stream = await manager.gatherContext(for: "")
 
         var sawComplete = false
@@ -76,7 +76,7 @@ import Testing
 
     @Test("Multiple sequential gatherContext calls complete successfully")
     func gatherContext_sequentialCalls_allComplete() async throws {
-        let manager = try await makeContextManager()
+        let manager = try await makeTurnBriefingBuilder()
 
         for index in 1 ... 3 {
             let stream = await manager.gatherContext(for: "query number \(index)")

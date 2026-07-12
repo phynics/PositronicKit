@@ -9,7 +9,7 @@ import PKShared
 import PositronicKit
 
 public enum PositronicKitUsageExamples {
-    public actor ExamplePromptInspector: PromptInspecting {
+    public actor ExamplePromptObserver: PromptObserving {
         public private(set) var latestTokenEstimate = 0
 
         public init() {}
@@ -48,11 +48,11 @@ public enum PositronicKitUsageExamples {
         )
     }
 
-    public static func makeInspectableRuntime(inspector: any PromptInspecting) -> PositronicKit {
+    public static func makeInspectableRuntime(inspector: any PromptObserving) -> PositronicKit {
         PositronicKit(configuration: .init(
             provider: .init(llmService: UnconfiguredLLMService()),
             persistence: .inMemory(),
-            runtime: .init(promptInspector: inspector)
+            runtime: .init(promptObserver: inspector)
         ))
     }
 

@@ -6,7 +6,7 @@ import Synchronization
 import Testing
 
 struct TimelineManagerTests {
-    @Test("Test Session Creation and Context Manager Access")
+    @Test("Test Session Creation and Turn Briefing Builder Access")
     func sessionCreation() async throws {
         let workspace = TestWorkspace()
         let timelineManager = TimelineManager(workspaceRoot: workspace.root)
@@ -19,9 +19,9 @@ struct TimelineManagerTests {
         #expect(retrievedSession != nil, "Should be able to retrieve created session")
         #expect(retrievedSession?.id == session.id)
 
-        // Verify ContextManager is created and has access to workspace
-        let contextManager = await timelineManager.getContextManager(for: session.id)
-        #expect(contextManager != nil, "ContextManager should be created for session")
+        // Verify TurnBriefingBuilder is created and has access to workspace
+        let turnBriefingBuilder = await timelineManager.getTurnBriefingBuilder(for: session.id)
+        #expect(turnBriefingBuilder != nil, "TurnBriefingBuilder should be created for session")
     }
 
     @Test("Test Stale Session Cleanup")
@@ -40,7 +40,7 @@ struct TimelineManagerTests {
     @Test("deleteTimeline(id:) evicts the prompt-history registry entry, not just the cache")
     func deleteTimelineEvictsPromptHistory() async throws {
         let workspace = TestWorkspace()
-        let registry = TimelinePromptHistoryRegistry()
+        let registry = TimelinePromptJournals()
         let timelineManager = TimelineManager(
             workspaceRoot: workspace.root,
             promptHistoryRegistry: registry
@@ -69,7 +69,7 @@ struct TimelineManagerTests {
     @Test("cleanupStaleTimelines(maxAge:) also drops the prompt-history registry entry")
     func cleanupStaleEvictsPromptHistory() async throws {
         let workspace = TestWorkspace()
-        let registry = TimelinePromptHistoryRegistry()
+        let registry = TimelinePromptJournals()
         let timelineManager = TimelineManager(
             workspaceRoot: workspace.root,
             promptHistoryRegistry: registry

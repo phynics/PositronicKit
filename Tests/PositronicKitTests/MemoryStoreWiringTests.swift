@@ -25,33 +25,33 @@ struct MemoryStoreWiringTests {
         }
     }
 
-    @Test("ContextManager default pipeline honors the injected memory store")
+    @Test("TurnBriefingBuilder default pipeline honors the injected memory store")
     func defaultPipelineUsesInjectedMemoryStore() async throws {
         let memoryStore = MockMemoryStore()
         let embedding = MockEmbeddingService()
         let memory = Memory.fixture(title: "Wired Memory", content: "Important fact", tags: [])
         memoryStore.searchResults = [(memory, 0.95)]
 
-        let contextManager = ContextManager(memoryStore: memoryStore, embeddingService: embedding)
-        let events = try await contextManager.gatherContext(for: "any query").collect()
+        let turnBriefingBuilder = TurnBriefingBuilder(memoryStore: memoryStore, embeddingService: embedding)
+        let events = try await turnBriefingBuilder.gatherContext(for: "any query").collect()
 
         let context = try #require(completeContext(from: events))
         #expect(context.memories.contains { $0.memory.id == memory.id })
         #expect(embedding.lastInput == "any query")
     }
 
-    @Test("ContextManager default pipeline short-circuits empty memory corpora")
+    @Test("TurnBriefingBuilder default pipeline short-circuits empty memory corpora")
     func defaultPipelineShortCircuitsEmptyMemoryCorpus() async throws {
         let memoryStore = MockMemoryStore()
         let embedding = MockEmbeddingService()
-        let contextManager = ContextManager(memoryStore: memoryStore, embeddingService: embedding)
+        let turnBriefingBuilder = TurnBriefingBuilder(memoryStore: memoryStore, embeddingService: embedding)
         let tagProbe = TagProbe()
         let tagGenerator: @Sendable (String) async throws -> [String] = { _ in
             await tagProbe.recordCall()
             return ["unexpected"]
         }
 
-        let events = try await contextManager.gatherContext(
+        let events = try await turnBriefingBuilder.gatherContext(
             for: "any query",
             tagGenerator: tagGenerator
         ).collect()
@@ -84,8 +84,8 @@ struct MemoryStoreWiringTests {
         let core = PositronicKit(configuration: .init(provider: .init(llmService: UnconfiguredLLMService(), embeddingService: embedding), persistence: persistence, runtime: .init(workspaceRoot: workspace.root)))
 
         let timeline = try await core.timelineManager.createTimeline()
-        let contextManager = try #require(await core.timelineManager.getContextManager(for: timeline.id))
-        let events = try await contextManager.gatherContext(for: "what are my preferences?").collect()
+        let turnBriefingBuilder = try #require(await core.timelineManager.getTurnBriefingBuilder(for: timeline.id))
+        let events = try await turnBriefingBuilder.gatherContext(for: "what are my preferences?").collect()
 
         let context = try #require(completeContext(from: events))
         #expect(context.memories.contains { $0.memory.id == memory.id })

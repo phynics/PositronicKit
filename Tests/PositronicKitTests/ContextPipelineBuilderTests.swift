@@ -50,14 +50,14 @@ import Testing
 
     // MARK: - Custom Pipeline Injection
 
-    @Test("ContextManager uses injected custom pipeline")
-    func contextManager_usesCustomPipeline() async throws {
+    @Test("TurnBriefingBuilder uses injected custom pipeline")
+    func turnBriefingBuilder_usesCustomPipeline() async throws {
         let tracker = StageRunTracker()
         let customPipeline = Pipeline<ContextPipelineContext, ContextGatheringEvent>()
             .add(TrackingStage(tracker: tracker, stageID: "custom"))
             .add(CompletionStage())
 
-        let manager = ContextManager(workspace: nil, pipeline: customPipeline)
+        let manager = TurnBriefingBuilder(workspace: nil, pipeline: customPipeline)
 
         let stream = await manager.gatherContext(for: "test")
         var sawComplete = false
@@ -70,14 +70,14 @@ import Testing
         #expect(sawComplete)
     }
 
-    @Test("ContextManager uses override pipeline in gatherContext")
-    func contextManager_usesOverridePipeline() async throws {
+    @Test("TurnBriefingBuilder uses override pipeline in gatherContext")
+    func turnBriefingBuilder_usesOverridePipeline() async throws {
         let tracker = StageRunTracker()
         let overridePipeline = Pipeline<ContextPipelineContext, ContextGatheringEvent>()
             .add(TrackingStage(tracker: tracker, stageID: "override"))
             .add(CompletionStage())
 
-        let manager = ContextManager(workspace: nil) // Uses default pipeline internally
+        let manager = TurnBriefingBuilder(workspace: nil) // Uses default pipeline internally
 
         let stream = await manager.gatherContext(for: "test", overridePipeline: overridePipeline)
         var sawComplete = false
@@ -90,9 +90,9 @@ import Testing
         #expect(sawComplete)
     }
 
-    @Test("ContextManager default pipeline emits complete event")
-    func contextManager_defaultPipeline_completes() async throws {
-        let manager = ContextManager(workspace: nil)
+    @Test("TurnBriefingBuilder default pipeline emits complete event")
+    func turnBriefingBuilder_defaultPipeline_completes() async throws {
+        let manager = TurnBriefingBuilder(workspace: nil)
 
         let stream = await manager.gatherContext(for: "hello")
         var sawComplete = false

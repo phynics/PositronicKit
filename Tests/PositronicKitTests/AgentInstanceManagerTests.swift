@@ -178,7 +178,7 @@ struct AgentInstanceManagerTests {
         let messageStore = InMemoryMessageStore()
         let workspaceStore = InMemoryWorkspacePersistence()
         let instanceStore = InMemoryAgentInstanceStore()
-        let registry = TimelinePromptHistoryRegistry()
+        let registry = TimelinePromptJournals()
         let workspaceRoot = getTestWorkspaceRoot().appendingPathComponent(UUID().uuidString)
 
         let timelineManager = TimelineManager(

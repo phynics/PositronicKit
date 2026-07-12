@@ -306,7 +306,7 @@ struct PublicRuntimeStoriesTests {
     }
 
     @Test
-    func runUsesTimelineContextManagerByDefault() async throws {
+    func runUsesTimelineTurnBriefingBuilderByDefault() async throws {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
         let workspace = TestWorkspace()

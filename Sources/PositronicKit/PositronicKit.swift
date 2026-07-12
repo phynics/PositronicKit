@@ -55,11 +55,11 @@ public final class PositronicKit: Sendable {
     private let agentInstanceStore: any AgentInstanceStoreProtocol
     private let requestOriginStore: any RequestOriginStoreProtocol
     private let chatTurnPlugins: [any ChatTurnPlugin]
-    private let promptInspector: (any PromptInspecting)?
+    private let promptObserver: (any PromptObserving)?
     let defaultGenerationParameters: GenerationParameters?
     private let logger = Logger.module(named: "positronickit-facade")
 
-    // MARK: - Transitive dependencies (TimelineManager, ContextManager)
+    // MARK: - Transitive dependencies (TimelineManager, TurnBriefingBuilder)
 
     private let timelinePersistence: any TimelinePersistenceProtocol
     private let workspacePersistence: any WorkspacePersistenceProtocol
@@ -71,7 +71,7 @@ public final class PositronicKit: Sendable {
 
     /// Owned internally; every conversation vended by this instance shares it automatically.
     /// Construct a new `PositronicKit` for a genuinely separate cross-send history.
-    private let promptHistoryRegistry: TimelinePromptHistoryRegistry
+    private let promptHistoryRegistry: TimelinePromptJournals
     private let workspaceRoot: URL?
     private let workspaceCreator: any WorkspaceCreating
     private let sectionProviders: [any PromptSectionProviding]
@@ -107,10 +107,10 @@ public final class PositronicKit: Sendable {
         sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: TimelineManager.RuntimeToolPolicy = .default,
         chatTurnPlugins: [any ChatTurnPlugin] = [],
-        promptInspector: (any PromptInspecting)? = nil,
+        promptObserver: (any PromptObserving)? = nil,
         generationParameters: GenerationParameters? = nil,
         toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
-        sharedRegistry: TimelinePromptHistoryRegistry,
+        sharedRegistry: TimelinePromptJournals,
         additionalStages: [any PipelineStage<ChatTurnContext, ChatEvent>]
     ) {
         self.llmService = llmService
@@ -123,7 +123,7 @@ public final class PositronicKit: Sendable {
         self.toolPersistence = toolPersistence ?? InMemoryToolPersistence()
         self.embeddingService = embeddingService ?? NoOpEmbeddingService()
         self.chatTurnPlugins = chatTurnPlugins
-        self.promptInspector = promptInspector
+        self.promptObserver = promptObserver
         promptHistoryRegistry = sharedRegistry
         self.workspaceRoot = workspaceRoot
         self.workspaceCreator = workspaceCreator
@@ -180,7 +180,7 @@ public final class PositronicKit: Sendable {
                 llmService: self.llmService,
                 toolRouter: toolRouter,
                 chatTurnPlugins: self.chatTurnPlugins,
-                promptInspector: self.promptInspector,
+                promptObserver: self.promptObserver,
                 promptHistoryRegistry: promptHistoryRegistry
             )
         )
@@ -213,7 +213,7 @@ public final class PositronicKit: Sendable {
             sectionProviders: sectionProviders,
             runtimeToolPolicy: runtimeToolPolicy,
             chatTurnPlugins: chatTurnPlugins,
-            promptInspector: promptInspector,
+            promptObserver: promptObserver,
             generationParameters: generationParameters ?? defaultGenerationParameters,
             toolApprovalPolicy: toolApprovalPolicy,
             sharedRegistry: promptHistoryRegistry,
@@ -246,7 +246,7 @@ public final class PositronicKit: Sendable {
             sectionProviders: sectionProviders,
             runtimeToolPolicy: runtimeToolPolicy,
             chatTurnPlugins: chatTurnPlugins,
-            promptInspector: promptInspector,
+            promptObserver: promptObserver,
             generationParameters: defaultGenerationParameters,
             toolApprovalPolicy: toolApprovalPolicy,
             sharedRegistry: promptHistoryRegistry,
@@ -273,7 +273,7 @@ public final class PositronicKit: Sendable {
             sectionProviders: sectionProviders,
             runtimeToolPolicy: runtimeToolPolicy,
             chatTurnPlugins: chatTurnPlugins + [plugin],
-            promptInspector: promptInspector,
+            promptObserver: promptObserver,
             generationParameters: defaultGenerationParameters,
             toolApprovalPolicy: toolApprovalPolicy,
             sharedRegistry: promptHistoryRegistry,
@@ -299,7 +299,7 @@ public final class PositronicKit: Sendable {
     /// - Parameter request: The full turn configuration.
     /// - Returns: An asynchronous stream of chat events.
     public func run(_ request: ChatRunRequest) async throws -> AsyncThrowingStream<ChatEvent, Error> {
-        let resolvedContextManager = await resolveContextManager(
+        let resolvedTurnBriefingBuilder = await resolveTurnBriefingBuilder(
             explicit: nil,
             timelineId: request.timelineId
         )
@@ -310,7 +310,7 @@ public final class PositronicKit: Sendable {
             message: request.message,
             tools: request.tools,
             toolOutputs: request.toolOutputs,
-            contextManager: resolvedContextManager,
+            turnBriefingBuilder: resolvedTurnBriefingBuilder,
             systemInstructions: request.systemInstructions,
             agentInstanceId: request.agentInstanceId,
             maxTurns: request.maxTurns,
@@ -322,23 +322,23 @@ public final class PositronicKit: Sendable {
         )
     }
 
-    /// Resolves the `ContextManager` for a turn, hydrating the timeline from persistence
+    /// Resolves the `TurnBriefingBuilder` for a turn, hydrating the timeline from persistence
     /// first if it isn't already cached in memory.
     ///
     /// Hydration failure is logged, not propagated: a brand-new (never-persisted) timeline
     /// legitimately has nothing to hydrate yet (`TimelineError.timelineNotFound`) — that is
     /// the expected first-message flow, not a fault. A transient store error looks identical
     /// from here, so both are logged at `.error` with the timeline ID and the turn proceeds
-    /// with `contextManager == nil`; downstream turn setup creates a fresh context as needed.
-    private func resolveContextManager(
-        explicit contextManager: ContextManager?,
+    /// with `turnBriefingBuilder == nil`; downstream turn setup creates a fresh context as needed.
+    private func resolveTurnBriefingBuilder(
+        explicit turnBriefingBuilder: TurnBriefingBuilder?,
         timelineId: UUID
-    ) async -> ContextManager? {
-        if let contextManager {
-            return contextManager
+    ) async -> TurnBriefingBuilder? {
+        if let turnBriefingBuilder {
+            return turnBriefingBuilder
         }
 
-        if let existing = await timelineManager.getContextManager(for: timelineId) {
+        if let existing = await timelineManager.getTurnBriefingBuilder(for: timelineId) {
             return existing
         }
 
@@ -349,6 +349,6 @@ public final class PositronicKit: Sendable {
                 "Failed to hydrate timeline \(timelineId) before turn start: \(ErrorKit.userFriendlyMessage(for: error)). Proceeding unhydrated."
             )
         }
-        return await timelineManager.getContextManager(for: timelineId)
+        return await timelineManager.getTurnBriefingBuilder(for: timelineId)
     }
 }

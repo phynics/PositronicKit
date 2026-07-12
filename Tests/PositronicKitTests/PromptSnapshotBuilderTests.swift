@@ -92,7 +92,7 @@ struct PromptSnapshotBuilderTests {
     @Test("buildFollowUpSnapshot threads promptHistory updates across turns")
     func buildFollowUpSnapshotUpdatesPromptHistory() async throws {
         let base = makeBase()
-        let promptHistory = await TimelinePromptHistoryRegistry().history(for: UUID())
+        let promptHistory = await TimelinePromptJournals().history(for: UUID())
         _ = await promptHistory.update(prompt: base)
 
         let context = ChatTurnContext(

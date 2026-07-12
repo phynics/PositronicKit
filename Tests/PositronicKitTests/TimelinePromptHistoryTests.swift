@@ -409,11 +409,11 @@ actor TimelinePromptHistoryTests {
     }
 }
 
-@Suite("TimelinePromptHistoryRegistry")
-actor TimelinePromptHistoryRegistryTests {
+@Suite("TimelinePromptJournals")
+actor TimelinePromptJournalsTests {
     @Test("history(for:) reuses the same instance for the same timeline id")
     func historyReusesSameInstanceForSameTimelineId() async {
-        let registry = TimelinePromptHistoryRegistry()
+        let registry = TimelinePromptJournals()
         let timelineId = UUID()
 
         let first = await registry.history(for: timelineId)
@@ -428,7 +428,7 @@ actor TimelinePromptHistoryRegistryTests {
 
     @Test("history(for:) isolates state across different timeline ids")
     func historyIsolatesStateAcrossDifferentTimelineIds() async {
-        let registry = TimelinePromptHistoryRegistry()
+        let registry = TimelinePromptJournals()
         let timelineA = UUID()
         let timelineB = UUID()
 
@@ -444,7 +444,7 @@ actor TimelinePromptHistoryRegistryTests {
 
     @Test("removeHistory(for:) followed by history(for:) yields a fresh instance")
     func removeHistoryYieldsFreshInstance() async {
-        let registry = TimelinePromptHistoryRegistry()
+        let registry = TimelinePromptJournals()
         let timelineId = UUID()
 
         let original = await registry.history(for: timelineId)
@@ -463,7 +463,7 @@ actor TimelinePromptHistoryRegistryTests {
     @Test("Exceeding the max entry count evicts the least-recently-accessed timeline")
     func exceedingMaxEntriesEvictsLeastRecentlyAccessed() async {
         let cap = 5
-        let registry = TimelinePromptHistoryRegistry(
+        let registry = TimelinePromptJournals(
             evictionPolicy: RegistryEvictionPolicy(maxEntries: cap)
         )
 

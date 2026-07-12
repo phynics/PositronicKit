@@ -248,7 +248,7 @@ private extension ChatEngine {
             LogKeys.sendID: .string(context.sendId.uuidString),
             LogKeys.turnIndex: .string("\(context.turnCount)"),
         ]
-        guard let inspector = dependencies.promptInspector else {
+        guard let inspector = dependencies.promptObserver else {
             logger.debug("Turn inspection skipped: no turn inspector registered", metadata: baseMeta)
             return
         }

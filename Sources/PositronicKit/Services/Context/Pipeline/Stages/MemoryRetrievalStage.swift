@@ -139,7 +139,7 @@ struct MemoryRetrievalStage: PipelineStage {
     ///   - query: The query string to embed.
     ///   - onProgress: Progress reporting callback.
     /// - Returns: The embedding vector.
-    /// - Throws: `ContextManagerError.embeddingFailed` if generation fails.
+    /// - Throws: `TurnBriefingBuilderError.embeddingFailed` if generation fails.
     private func generateQueryEmbedding(
         for query: String,
         onProgress: (@Sendable (Message.ContextGatheringProgress) -> Void)?
@@ -148,7 +148,7 @@ struct MemoryRetrievalStage: PipelineStage {
         do {
             return try await embeddingService.generateEmbedding(for: query)
         } catch {
-            throw ContextManagerError.embeddingFailed(error)
+            throw TurnBriefingBuilderError.embeddingFailed(error)
         }
     }
 
@@ -159,7 +159,7 @@ struct MemoryRetrievalStage: PipelineStage {
     ///   - limit: Max number of results.
     ///   - onProgress: Progress reporting callback.
     /// - Returns: A tuple with the raw search results.
-    /// - Throws: `ContextManagerError.persistenceFailed` if retrieval fails.
+    /// - Throws: `TurnBriefingBuilderError.persistenceFailed` if retrieval fails.
     private func performParallelSearch(
         embedding: [Double],
         tags: [String],
@@ -182,7 +182,7 @@ struct MemoryRetrievalStage: PipelineStage {
             }
             return (semanticResults, tagResults)
         } catch {
-            throw ContextManagerError.persistenceFailed(error)
+            throw TurnBriefingBuilderError.persistenceFailed(error)
         }
     }
 }
