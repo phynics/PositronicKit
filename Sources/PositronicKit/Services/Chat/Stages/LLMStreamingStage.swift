@@ -23,7 +23,8 @@ struct LLMStreamingStage: PipelineStage {
 
     func process(_ context: ChatTurnContext) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         let processStartTime = ContinuousClock.now
-        let provider = await llmService.configuration.provider.rawValue
+        let configuration = await llmService.configuration
+        let provider = configuration.provider.rawValue
         let streamData: AsyncThrowingStream<LLMStreamChunk, Error>
         // ChatEngine's entry point rejects turns that set both `structuredOutput` and
         // `sidecars` (SidecarError.conflictsWithExplicitStructuredOutput), so at most one
@@ -34,6 +35,26 @@ struct LLMStreamingStage: PipelineStage {
             } else {
                 try SidecarSchemaComposer.compose(directives: context.sidecars)
             }
+
+        for warning in ProviderCapabilityObservability.warnings(
+            provider: configuration.provider,
+            model: configuration.modelName,
+            hasTools: !context.toolParams.isEmpty,
+            hasResponseFormat: effectiveStructuredOutput != nil,
+            generationParameters: context.generationParameters
+        ) {
+            logger.warning(
+                "Provider capability variance: \(warning.reason)",
+                metadata: [
+                    LogKeys.timelineID: .string(context.timelineId.uuidString),
+                    LogKeys.turnIndex: .string("\(context.turnCount)"),
+                    LogKeys.provider: .string(warning.provider.rawValue),
+                    "model": .string(warning.model),
+                    "optionCategory": .string(warning.category.rawValue),
+                    "reason": .string(warning.reason),
+                ]
+            )
+        }
         if let structuredOutput = effectiveStructuredOutput {
             streamData = await llmService.chatStream(
                 messages: context.currentMessages,
