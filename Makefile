@@ -2,7 +2,7 @@
 	audit-default-linkage verify-pin verify verify-macos-default \
 	verify-linux verify-linux-base verify-linux-minimum verify-linux-current \
 	verify-linux-asan \
-	verify-products verify-macos-minilm \
+	verify-products verify-examples verify-tests verify-macos-minilm \
 	bootstrap-minilm build-minilm verify-minilm
 
 PKFASTEMBED_PREFIX ?= $(CURDIR)/.build/pkfastembed
@@ -20,8 +20,7 @@ PK_MINILM_MODEL_DIR ?= $(MINILM_MODEL_CACHE_DIR)
 export PKFASTEMBED_PREFIX
 export PK_MINILM_MODEL_DIR
 
-PRODUCTS := PKShared PKPrompt PositronicKit PKLocalEmbeddings \
-	PKOpenRouterProvider PKOllamaProvider PKOpenAIProvider PositronicKitExamples
+PRODUCTS := $(shell swift package describe --type json | swift Scripts/list-library-products.swift)
 PRODUCT_VERIFY_TARGETS := $(addprefix verify-product-,$(PRODUCTS))
 
 define product_verify_rule
@@ -44,7 +43,7 @@ help:
 	@echo "  make test                  Run tests"
 	@echo "  make test-parallel         Run tests in parallel"
 	@echo "  make harden                Run build and parallel hardening test gate"
-	@echo "  make verify                Run pin, docs, linkage, and test gates (macOS)"
+	@echo "  make verify                Run pin, docs, linkage, products, examples, and test gates (macOS)"
 	@echo "  make verify-macos-default  Run the default macOS gate"
 	@echo "  make verify-macos-minilm   Run the MiniLM macOS gate"
 	@echo "  make verify-linux          Run the current Linux gate"
@@ -52,7 +51,9 @@ help:
 	@echo "  make verify-linux-minimum  Run the minimum Linux gate"
 	@echo "  make verify-linux-current  Run the current Linux gate"
 	@echo "  make verify-linux-asan     Run PKFastEmbed tests under Linux x86_64 AddressSanitizer"
-	@echo "  make verify-products       Build every product on the current host"
+	@echo "  make verify-products       Build every library product declared by Package.swift"
+	@echo "  make verify-examples       Build the PositronicKitExamples executable"
+	@echo "  make verify-tests          Run the test suite"
 	@echo "  make verify-pin            Check the pinned MiniLM artifact hashes are consistent"
 	@echo "  make build-minilm          Prepare assets/native bridge and build the MiniLM trait product"
 	@echo "  make verify-minilm         Prepare pinned assets and run MiniLM gates"
@@ -94,9 +95,9 @@ verify-pin:
 	@echo "Checking MiniLM artifact pin consistency..."
 	@bash Scripts/check-model-pin.sh
 
-verify-macos-default: verify-pin validate-docs audit-default-linkage test
+verify-macos-default: verify
 
-verify: verify-macos-default
+verify: verify-pin validate-docs audit-default-linkage verify-products verify-examples verify-tests
 
 verify-linux-base: bootstrap-minilm
 	@echo "Running comprehensive Linux test suite..."
@@ -127,6 +128,12 @@ verify-linux-asan:
 verify-macos-minilm: verify-minilm
 
 verify-products: $(PRODUCT_VERIFY_TARGETS)
+
+verify-examples:
+	@echo "Building PositronicKitExamples..."
+	@swift build --product PositronicKitExamples
+
+verify-tests: test
 
 # Idempotent: verifies the pin, then downloads/checksums pinned assets and builds
 # the native bridge only when missing. Safe to declare as a prerequisite so the
