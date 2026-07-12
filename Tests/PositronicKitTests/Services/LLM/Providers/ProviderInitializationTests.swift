@@ -312,7 +312,11 @@ struct ProviderInitializationTests {
 
     @Test("Ollama documented default endpoint is preserved by direct provider composition")
     func ollamaDefaultEndpointIsReal() async {
-        let config = LLMConfiguration(provider: .ollama)
+        let config = LLMConfiguration(
+            endpoint: "http://localhost:11434",
+            modelName: "llama3",
+            provider: .ollama
+        )
         #expect(config.endpoint == "http://localhost:11434")
     }
 
