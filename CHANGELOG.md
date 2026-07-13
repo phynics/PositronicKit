@@ -14,6 +14,15 @@ Prerelease of the v3 vocabulary-and-composition batch (PKV3-001–014) for downs
 verification. Not yet a stable release — see `workflow/PositronicKit/tickets/PKV3-006-*.md` for
 the remaining consumer-migration and final-release work.
 
+### Fixed
+
+- **`PKTestSupport` restored as a public library product**: `PKHYG-002` (2026-07-12) removed it
+  from `products:`, on the premise that "no downstream migration required." That premise was
+  wrong — Monad's `MonadServerTests` target (16 files) depends on it as an external product;
+  the break only surfaced now because Monad hadn't yet resolved against a tag containing that
+  change. The `Tests/PKTestSupport` target itself was never touched by PKHYG-002; this just
+  re-adds the one-line product declaration.
+
 ### Breaking
 
 - **Direct `LanguageModel` injection (PKV3-001)**: public composition vocabulary renamed from

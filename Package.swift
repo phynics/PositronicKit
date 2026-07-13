@@ -18,6 +18,7 @@ let package = Package(
         .library(name: "PKOllamaProvider", targets: ["PKOllamaProvider"]),
         .library(name: "PKAnthropicProvider", targets: ["PKAnthropicProvider"]),
         .library(name: "PKFoundationModelsProvider", targets: ["PKFoundationModelsProvider"]),
+        .library(name: "PKTestSupport", targets: ["PKTestSupport"]),
         .executable(name: "PositronicKitExamples", targets: ["PositronicKitExamples"]),
     ],
     traits: [
