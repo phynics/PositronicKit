@@ -6,41 +6,47 @@ private final class ActiveSend: @unchecked Sendable {
     var task: Task<Void, Error>?
 }
 
-/// A SwiftUI-friendly controller for a ``Conversation`` cursor.
+/// A SwiftUI-friendly controller for a ``TimelineDriver``.
+///
+/// Issuing a new `send(_:)` while one is already in flight cancels/supersedes it: the prior
+/// task is cancelled, the driver's underlying generation is cancelled, and the new send starts
+/// fresh — mirroring the same superseding-send behavior the former `ObservableConversation`
+/// provided.
 @MainActor
 @Observable
-public final class ObservableConversation {
-    /// The completed messages of the conversation, oldest first.
+public final class TimelineController {
+    /// The completed messages of the timeline, oldest first.
     public private(set) var messages: [Message] = []
     /// Whether a send is currently streaming a response.
     public private(set) var isStreaming = false
     /// The partial assistant text of the in-flight turn; empty between turns.
     public private(set) var streamingText = ""
 
-    /// The underlying conversation cursor this controller mirrors.
-    public let conversation: Conversation
+    /// The underlying driver this controller mirrors.
+    public let driver: TimelineDriver
     private let activeSend = ActiveSend()
 
-    /// Creates a controller for a conversation cursor, optionally seeded with prior messages.
-    public init(_ conversation: Conversation, messages: [Message] = []) {
-        self.conversation = conversation
+    /// Creates a controller for a timeline driver, optionally seeded with prior messages.
+    public init(_ driver: TimelineDriver, messages: [Message] = []) {
+        self.driver = driver
         self.messages = messages
     }
 
-    /// Sends a message and mirrors its cursor events into the observable state.
+    /// Sends a message and mirrors its driver events into the observable state. Supersedes any
+    /// in-flight send for this controller's timeline.
     public func send(_ message: String) async throws {
         if activeSend.task != nil {
             activeSend.task?.cancel()
-            await conversation.timelineManager.cancelGeneration(for: conversation.timelineId)
+            await driver.cancel()
         }
-        let task = Task { [conversation] in
-            try await self.consume(message, from: conversation)
+        let task = Task { [driver] in
+            try await self.consume(message, from: driver)
         }
         activeSend.task = task
         try await task.value
     }
 
-    private func consume(_ content: String, from conversation: Conversation) async throws {
+    private func consume(_ content: String, from driver: TimelineDriver) async throws {
         messages.append(Message(content: content, role: .user))
         streamingText = ""
         isStreaming = true
@@ -48,7 +54,7 @@ public final class ObservableConversation {
             isStreaming = false
         }
 
-        let stream = try await conversation.send(content)
+        let stream = try await driver.send(content)
         for try await event in stream {
             try Task.checkCancellation()
             if let text = event.textContent {

@@ -15,7 +15,7 @@ import PositronicKit
 /// `memories`, `searchResults`, `messages`, `timelines`, `agentTemplates`, `workspaces`,
 /// `agentInstances` all forward to the underlying focused mocks. `resetDatabase()` clears
 /// every backing store.
-public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProtocol, TimelinePersistenceProtocol, WorkspacePersistenceProtocol, AgentTemplateStoreProtocol, RequestOriginStoreProtocol, ToolPersistenceProtocol, AgentInstanceStoreProtocol, HealthCheckable, @unchecked Sendable {
+public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProtocol, TimelinePersistenceProtocol, WorkspaceStore, AgentTemplateStoreProtocol, RequestOriginStoreProtocol, ToolPersistenceProtocol, AgentInstanceStoreProtocol, HealthCheckable, @unchecked Sendable {
     private let memoriesMock = MockMemoryStore()
     private let messagesMock = MockMessageStore()
     private let timelinesMock = MockTimelinePersistence()
@@ -183,7 +183,7 @@ public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProt
         await agentTemplatesMock.hasAgentTemplate(id: id)
     }
 
-    // MARK: - WorkspacePersistenceProtocol
+    // MARK: - WorkspaceStore
 
     public var workspaces: [WorkspaceReference] {
         get { workspacesMock.workspaces }

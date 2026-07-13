@@ -61,7 +61,7 @@ struct ChatEngineTests {
             tools.append(MockTool().toAnyTool())
             await toolManager.updateAvailableTools(tools)
 
-            if let ws = try? await timelineManager.workspaceManager.getWorkspace(id: wsId) {
+            if let ws = try? await timelineManager.workspaceResolver.getWorkspace(id: wsId) {
                 await toolManager.registerWorkspace(ws)
             }
         }
@@ -1020,7 +1020,7 @@ struct ChatEngineTests {
             tools.append(MockTool().toAnyTool())
             await toolManager.updateAvailableTools(tools)
 
-            if let ws = try? await timelineManager.workspaceManager.getWorkspace(id: wsId) {
+            if let ws = try? await timelineManager.workspaceResolver.getWorkspace(id: wsId) {
                 await toolManager.registerWorkspace(ws)
             }
         }

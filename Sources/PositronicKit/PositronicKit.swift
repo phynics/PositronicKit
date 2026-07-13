@@ -17,7 +17,7 @@ import PKShared
 /// expected to be provided downstream via injected stores, workspace creators, and connection hooks.
 ///
 /// Intended extension seams for downstream applications are the facade itself plus public runtime
-/// protocols such as persistence stores, `WorkspaceCreating` / `WorkspaceProtocol`,
+/// protocols such as persistence stores, `WorkspaceFactory` / `Workspace`,
 /// `PromptSectionProviding`, and `ChatTurnPlugin`. Internal coordinators like `ChatEngine`,
 /// `TimelinePromptHistory`, and the concrete turn pipeline remain runtime implementation details
 /// even when they are visible to tests inside this package.
@@ -27,7 +27,7 @@ import PKShared
 /// - Production: use `PositronicKit(configuration:)`.
 ///
 /// The public operation ladder is progressive: tier 1 is timeline-free one-shot
-/// `complete(_:)`/`stream(_:)`; tier 2 is the stateful `Conversation` cursor; tier 3 is
+/// `complete(_:)`/`stream(_:)`; tier 2 is the stateful `TimelineDriver`; tier 3 is
 /// direct `timelineManager` access; tier 4 is the full `AgenticRuntime` tool/agent loop;
 /// tier 5 is the raw primitives (`toolRouter`, `llmService`, and the prompt DSL) for a
 /// bespoke pipeline. A typical application wraps one kit in an application-owned Service
@@ -62,18 +62,18 @@ public final class PositronicKit: Sendable {
     // MARK: - Transitive dependencies (TimelineManager, TurnBriefingBuilder)
 
     private let timelinePersistence: any TimelinePersistenceProtocol
-    private let workspacePersistence: any WorkspacePersistenceProtocol
+    private let workspacePersistence: any WorkspaceStore
     private let memoryStore: any MemoryStoreProtocol
     private let toolPersistence: any ToolPersistenceProtocol
     private let embeddingService: any EmbeddingServiceProtocol
 
     private let chatEngine: ChatEngine
 
-    /// Owned internally; every conversation vended by this instance shares it automatically.
+    /// Owned internally; every timeline driver vended by this instance shares it automatically.
     /// Construct a new `PositronicKit` for a genuinely separate cross-send history.
     private let promptHistoryRegistry: TimelinePromptJournals
     private let workspaceRoot: URL?
-    private let workspaceCreator: any WorkspaceCreating
+    private let workspaceCreator: any WorkspaceFactory
     private let sectionProviders: [any PromptSectionProviding]
     private let runtimeToolPolicy: TimelineManager.RuntimeToolPolicy
     private let toolApprovalPolicy: any ToolApprovalPolicy
@@ -98,12 +98,12 @@ public final class PositronicKit: Sendable {
         agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,
         requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
         timelinePersistence: (any TimelinePersistenceProtocol)? = nil,
-        workspacePersistence: (any WorkspacePersistenceProtocol)? = nil,
+        workspacePersistence: (any WorkspaceStore)? = nil,
         memoryStore: (any MemoryStoreProtocol)? = nil,
         toolPersistence: (any ToolPersistenceProtocol)? = nil,
         embeddingService: (any EmbeddingServiceProtocol)? = nil,
         workspaceRoot: URL? = nil,
-        workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
+        workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: TimelineManager.RuntimeToolPolicy = .default,
         chatTurnPlugins: [any ChatTurnPlugin] = [],
@@ -154,7 +154,7 @@ public final class PositronicKit: Sendable {
         )
         timelineManager = resolvedTimelineManager
         agentInstanceManager = AgentInstanceManager(
-            repository: AgentWorkspaceService(
+            repository: DefaultWorkspaceCatalog(
                 workspaceRoot: resolvedWorkspaceRoot,
                 workspacePersistence: self.workspacePersistence
             ),

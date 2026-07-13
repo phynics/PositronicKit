@@ -156,9 +156,10 @@
 
 <span class="c">// Choose the smallest operation tier that fits the feature:</span>
 <span class="k">let</span> answer = <span class="k">try await</span> kit.complete(<span class="s">"Summarize this note."</span>)  <span class="c">// tier 1: one-shot</span>
-<span class="k">let</span> conversation = <span class="k">try await</span> kit.newConversation()           <span class="c">// tier 2: Conversation</span>
+<span class="k">let</span> timeline = <span class="k">try await</span> kit.timelineManager.createTimeline()
+<span class="k">let</span> driver = kit.openTimeline(timeline.id)               <span class="c">// tier 2: TimelineDriver</span>
 <span class="k">let</span> agent = kit.agenticRuntime(                               <span class="c">// tier 4: agent loop</span>
-    timelineId: conversation.timelineId,
+    timelineId: driver.timelineID,
     agentInstanceId: <span class="k">UUID</span>()
 )</code></pre>
   </div>
@@ -168,7 +169,7 @@
   <div class="wrap">
     <h2><span class="tick">//</span> Tool Use</h2>
     <p style="color:var(--muted); margin-bottom:1rem">Hand a <code>Tool</code> conformance to the agent per turn — no workspace required:</p>
-    <pre><code><span class="k">let</span> agent = kit.agenticRuntime(timelineId: conversation.timelineId, agentInstanceId: <span class="k">UUID</span>())
+    <pre><code><span class="k">let</span> agent = kit.agenticRuntime(timelineId: driver.timelineID, agentInstanceId: <span class="k">UUID</span>())
 <span class="k">let</span> stream = <span class="k">try await</span> agent.run(message: <span class="s">"Greet Ada."</span>, tools: [<span class="k">GreetTool</span>()])
 
 <span class="k">for try await</span> event <span class="k">in</span> stream {

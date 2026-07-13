@@ -10,8 +10,8 @@ private struct TestError: Error, Equatable {
     static let repositoryFailure = TestError()
 }
 
-/// Lightweight in-memory repository for `WorkspaceManager` unit tests.
-private actor FakeWorkspaceRepository: AgentWorkspaceServiceProtocol {
+/// Lightweight in-memory repository for `DefaultWorkspaceResolver` unit tests.
+private actor FakeWorkspaceRepository: WorkspaceCatalog {
     private var references: [UUID: WorkspaceReference] = [:]
     private var shouldThrow = false
 
@@ -73,7 +73,7 @@ private actor FakeWorkspaceRepository: AgentWorkspaceServiceProtocol {
 }
 
 /// Minimal workspace whose health check can be controlled from the test.
-private actor FakeWorkspace: WorkspaceProtocol {
+private actor FakeWorkspace: Workspace {
     let reference: WorkspaceReference
     nonisolated let id: UUID
     private let healthy: Bool
@@ -99,10 +99,10 @@ private actor FakeWorkspace: WorkspaceProtocol {
 }
 
 /// Creator that vends `FakeWorkspace` instances with per-ID health overrides.
-private struct FakeWorkspaceCreator: WorkspaceCreating {
+private struct FakeWorkspaceCreator: WorkspaceFactory {
     var healthByID: [UUID: Bool] = [:]
 
-    func create(from reference: WorkspaceReference) throws -> any WorkspaceProtocol {
+    func create(from reference: WorkspaceReference) throws -> any Workspace {
         FakeWorkspace(reference: reference, healthy: healthByID[reference.id] ?? true)
     }
 }
@@ -121,19 +121,19 @@ private func makeReference(id: UUID = UUID()) -> WorkspaceReference {
 private func makeManager(
     references: [WorkspaceReference] = [],
     healthByID: [UUID: Bool] = [:]
-) async -> (manager: WorkspaceManager, repository: FakeWorkspaceRepository, creator: FakeWorkspaceCreator) {
+) async -> (manager: DefaultWorkspaceResolver, repository: FakeWorkspaceRepository, creator: FakeWorkspaceCreator) {
     let repository = FakeWorkspaceRepository()
     for reference in references {
         await repository.addReference(reference)
     }
     let creator = FakeWorkspaceCreator(healthByID: healthByID)
-    let manager = WorkspaceManager(repository: repository, workspaceCreator: creator)
+    let manager = DefaultWorkspaceResolver(repository: repository, workspaceCreator: creator)
     return (manager, repository, creator)
 }
 
 // MARK: - Tests
 
-@Suite("WorkspaceManager Tests")
+@Suite("DefaultWorkspaceResolver Tests")
 struct WorkspaceManagerTests {
     @Test("activeWorkspaceCount starts at zero")
     func startsEmpty() async throws {

@@ -8,7 +8,7 @@ import Testing
 @Suite("Turn Briefing Builder Tests")
 struct TurnBriefingBuilderTests {
     private func makeTurnBriefingBuilder(
-        workspace: (any WorkspaceProtocol)? = nil,
+        workspace: (any Workspace)? = nil,
         persistence: MockPersistenceService,
         embedding: MockEmbeddingService
     ) -> TurnBriefingBuilder {
@@ -197,7 +197,7 @@ struct TurnBriefingBuilderTests {
 
     @Test("Gather Context: Error Propagation")
     func gatherContextErrorPropagation() async throws {
-        struct FailingWorkspace: WorkspaceProtocol {
+        struct FailingWorkspace: Workspace {
             var id: UUID = .init()
             var reference: WorkspaceReference = .fixture()
             func listTools() async throws -> [ToolReference] {

@@ -8,6 +8,40 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Breaking
+
+- **`TimelineDriver` replaces `Conversation` (PKV3-003)**: `Conversation` and its vending
+  methods (`PositronicKit.newConversation(title:)`, `PositronicKit.conversation(timelineId:)`)
+  are deleted. `PositronicKit.openTimeline(_:)` returns a new `TimelineDriver` — a lightweight,
+  stable handle with `timelineID`, `send(_:)`, and `cancel()`. Unlike `Conversation`,
+  `TimelineDriver` holds no mutable turn state, performs no persistence lookup on construction,
+  and does not expose the underlying `TimelineManager`; opening one is pure value
+  construction, with persistence happening lazily the first time `send(_:)` executes a turn,
+  exactly as before. To create and open a brand-new persisted timeline, call
+  `timelineManager.createTimeline(title:)` and then `kit.openTimeline(timeline.id)`.
+  `PKObservable.ObservableConversation` is renamed to `PKObservable.TimelineController`
+  (its `conversation` property is renamed to `driver`); its superseding-send behavior is
+  unchanged.
+
+
+- **Workspace vocabulary rename + injectable `WorkspaceResolver` (PKV3-002)**: renamed the
+  overlapping workspace protocol/service names to make each role explicit —
+  `WorkspaceProtocol` → `Workspace`, `WorkspaceCreating` → `WorkspaceFactory`,
+  `WorkspacePersistenceProtocol` → `WorkspaceStore`, the `AgentWorkspaceServiceProtocol`
+  protocol → `WorkspaceCatalog`, its concrete `AgentWorkspaceService` implementation →
+  `DefaultWorkspaceCatalog`, the `WorkspaceManagerProtocol` protocol → `WorkspaceResolver`, and
+  its concrete `WorkspaceManager` implementation → `DefaultWorkspaceResolver`.
+  `TimelineManager` now exposes `workspaceResolver: any WorkspaceResolver` (renamed from
+  `workspaceManager`) and gains a designated initializer that accepts `resolver: any
+  WorkspaceResolver` directly, so hosts can inject a fully custom resolver without
+  `TimelineManager` composing `DefaultWorkspaceCatalog`/`DefaultWorkspaceResolver` internally.
+  The bundled default catalog/factory/resolver composition now lives in the new
+  `WorkspaceResolverFactory.makeDefault(workspaceRoot:workspaceStore:workspaceCreator:)`, used
+  by both the `workspaceCreator:`-based `TimelineManager` convenience initializer and the
+  `PositronicKit` facade, so default behavior for existing callers is unchanged. All old public
+  names (`WorkspaceProtocol`, `WorkspaceCreating`, `WorkspacePersistenceProtocol`,
+  `AgentWorkspaceService`, `WorkspaceManager`, and their `*Protocol` variants) are gone.
+
 ### Removed
 
 - **Raw-text tool-call inference (`ToolOutputParser`)**: the fallback path in

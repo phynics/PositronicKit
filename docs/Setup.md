@@ -13,7 +13,7 @@ Pick the smallest surface that matches your need:
 | Runtime + OpenAI/OpenRouter/Ollama/Anthropic convenience setup | Add the matching provider package |
 | On-device Apple Intelligence models (no key, no network) | Add `PKFoundationModelsProvider` — `PositronicKit(foundationModelsTools:)`; requires macOS 26+/Apple Silicon with Apple Intelligence enabled, surfaces unavailability as a typed `PKError` |
 | Local embedding service | Add `PKLocalEmbeddings` |
-| Host-owned filesystem/execution/attachment behavior | `PositronicKit` + your own `WorkspaceCreating` / `WorkspaceProtocol` |
+| Host-owned filesystem/execution/attachment behavior | `PositronicKit` + your own `WorkspaceFactory` / `Workspace` |
 | Typed JSON / schema-first integrations | `PKShared` structured output types, optionally with the runtime later |
 
 ## 2. Facade Configuration

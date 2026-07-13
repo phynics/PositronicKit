@@ -28,9 +28,9 @@ import PositronicKit
             core.toolRouter
         }
 
-        public let agentWorkspaceService: AgentWorkspaceService
+        public let agentWorkspaceService: DefaultWorkspaceCatalog
         public let agentInstanceManager: AgentInstanceManager
-        public let workspaceManager: WorkspaceManager
+        public let workspaceManager: DefaultWorkspaceResolver
 
         /// Creates a fully-wired runtime. All collaborators default to values built from the
         /// supplied `persistence`, so the whole graph shares one backing store. The
@@ -48,7 +48,7 @@ import PositronicKit
             persistence: MockPersistenceService = MockPersistenceService(),
             llm: MockLLMService = MockLLMService(),
             embedding: MockEmbeddingService = MockEmbeddingService(),
-            workspaceCreator: any WorkspaceCreating = MockWorkspaceCreator()
+            workspaceCreator: any WorkspaceFactory = MockWorkspaceCreator()
         ) {
             self.persistence = persistence
             self.llm = llm
@@ -67,7 +67,7 @@ import PositronicKit
                     workspaceRoot: workspaceRoot
                 )))
 
-            let agentWorkspaceService = AgentWorkspaceService(
+            let agentWorkspaceService = DefaultWorkspaceCatalog(
                 workspaceRoot: workspaceRoot,
                 workspacePersistence: persistence
             )
@@ -81,7 +81,7 @@ import PositronicKit
                     workspaceStore: persistence
                 )
             )
-            workspaceManager = WorkspaceManager(
+            workspaceManager = DefaultWorkspaceResolver(
                 repository: agentWorkspaceService,
                 workspaceCreator: workspaceCreator
             )

@@ -7,7 +7,7 @@ import PKShared
 /// `PositronicKit` depends on this protocol but does not prescribe how a workspace is backed.
 /// Local filesystem workspaces, remote execution environments, or app-specific attachment models
 /// all belong on the host side behind this abstraction.
-public protocol WorkspaceProtocol: Sendable {
+public protocol Workspace: Sendable {
     /// The unique identifier of the workspace
     var id: UUID { get }
 
@@ -37,7 +37,7 @@ public protocol WorkspaceProtocol: Sendable {
     func healthCheck() async -> Bool
 }
 
-public extension WorkspaceProtocol {
+public extension Workspace {
     /// Default tool-execution sink: workspaces that do not implement their own execution
     /// route (e.g. local filesystem workspaces whose tools are bound instances) throw
     /// `toolExecutionNotSupported`. Remote or parity-path workspaces may override this.
@@ -92,15 +92,15 @@ public enum WorkspaceError: PKError, Sendable {
 }
 
 /// Abstracts workspace instantiation so the runtime can stay decoupled from concrete workspace backends.
-public protocol WorkspaceCreating: Sendable {
-    func create(from reference: WorkspaceReference) throws -> any WorkspaceProtocol
+public protocol WorkspaceFactory: Sendable {
+    func create(from reference: WorkspaceReference) throws -> any Workspace
 }
 
 /// A no-op workspace creator used when no concrete factory is available (e.g. in unit tests).
 /// Always throws `WorkspaceError.workspaceNotFound`.
-public struct NullWorkspaceCreator: WorkspaceCreating {
+public struct NullWorkspaceCreator: WorkspaceFactory {
     public init() {}
-    public func create(from reference: WorkspaceReference) throws -> any WorkspaceProtocol {
+    public func create(from reference: WorkspaceReference) throws -> any Workspace {
         throw WorkspaceError.workspaceNotFound
     }
 }

@@ -2,7 +2,7 @@ import Foundation
 import PKShared
 
 /// Thread-safe in-memory workspace persistence for prototyping and development.
-public actor InMemoryWorkspacePersistence: WorkspacePersistenceProtocol {
+public actor InMemoryWorkspacePersistence: WorkspaceStore {
     private var workspaces: [WorkspaceReference] = []
 
     public init() {}

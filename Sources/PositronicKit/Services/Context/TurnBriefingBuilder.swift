@@ -6,12 +6,12 @@ import PKShared
 
 /// Builds the turn briefing — the selected memory/workspace material for one chat turn.
 actor TurnBriefingBuilder {
-    let workspace: (any WorkspaceProtocol)?
+    let workspace: (any Workspace)?
     let pipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>
     private let logger = Logger.module(named: "turn-briefing-builder")
 
     init(
-        workspace: (any WorkspaceProtocol)? = nil,
+        workspace: (any Workspace)? = nil,
         memoryStore: any MemoryStoreProtocol = InMemoryMemoryStore(),
         embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
         pipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil
@@ -26,7 +26,7 @@ actor TurnBriefingBuilder {
 
     /// Provides the standard stages for context gathering.
     static func defaultStages(
-        workspace: (any WorkspaceProtocol)? = nil,
+        workspace: (any Workspace)? = nil,
         memoryStore: any MemoryStoreProtocol = InMemoryMemoryStore(),
         embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService()
     ) -> [any PipelineStage<ContextPipelineContext, ContextGatheringEvent>] {

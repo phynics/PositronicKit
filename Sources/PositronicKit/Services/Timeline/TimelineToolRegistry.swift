@@ -13,7 +13,7 @@ public actor TimelineToolRegistry {
     public let timelineContext: ToolTimelineContext?
 
     /// Registered workspaces providing tools
-    private var workspaces: [UUID: any WorkspaceProtocol] = [:]
+    private var workspaces: [UUID: any Workspace] = [:]
 
     /// Cached workspace tools: toolId -> (wrapper, origin)
     private var workspaceTools: [String: (tool: WorkspaceToolWrapper, origin: ToolOrigin)] = [:]
@@ -50,7 +50,7 @@ public actor TimelineToolRegistry {
     }
 
     /// Register a workspace and load its tools
-    public func registerWorkspace(_ workspace: any WorkspaceProtocol) async {
+    public func registerWorkspace(_ workspace: any Workspace) async {
         workspaces[workspace.id] = workspace
         await refreshWorkspaceTools()
     }

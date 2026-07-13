@@ -9,7 +9,7 @@ struct AgentInstanceManagerTests {
 
     @Test("Validation: Name too short")
     func nameTooShort() async throws {
-        let repo = AgentWorkspaceService(
+        let repo = DefaultWorkspaceCatalog(
             workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
             workspacePersistence: mock
         )
@@ -30,7 +30,7 @@ struct AgentInstanceManagerTests {
 
     @Test("Validation: Description empty")
     func descriptionEmpty() async throws {
-        let repo = AgentWorkspaceService(
+        let repo = DefaultWorkspaceCatalog(
             workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
             workspacePersistence: mock
         )
@@ -51,7 +51,7 @@ struct AgentInstanceManagerTests {
 
     @Test("Robustness: Cannot attach to private timeline")
     func cannotAttachToPrivate() async throws {
-        let repo = AgentWorkspaceService(
+        let repo = DefaultWorkspaceCatalog(
             workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
             workspacePersistence: mock
         )
@@ -86,7 +86,7 @@ struct AgentInstanceManagerTests {
 
     @Test("Robustness: Cannot detach agent from its own private timeline")
     func cannotDetachFromOwnPrivate() async throws {
-        let repo = AgentWorkspaceService(
+        let repo = DefaultWorkspaceCatalog(
             workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
             workspacePersistence: mock
         )
@@ -114,7 +114,7 @@ struct AgentInstanceManagerTests {
 
     @Test("Creation: Agent is automatically attached to private timeline")
     func createInstanceAttachesAgent() async throws {
-        let repo = AgentWorkspaceService(
+        let repo = DefaultWorkspaceCatalog(
             workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
             workspacePersistence: mock
         )
@@ -137,7 +137,7 @@ struct AgentInstanceManagerTests {
 
     @Test("Search: Find by name or description")
     func searchInstances() async throws {
-        let repo = AgentWorkspaceService(
+        let repo = DefaultWorkspaceCatalog(
             workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
             workspacePersistence: mock
         )
@@ -192,7 +192,7 @@ struct AgentInstanceManagerTests {
             promptHistoryRegistry: registry
         )
 
-        let repo = AgentWorkspaceService(
+        let repo = DefaultWorkspaceCatalog(
             workspaceRoot: workspaceRoot,
             workspacePersistence: workspaceStore
         )
@@ -237,7 +237,7 @@ struct AgentInstanceManagerTests {
         let timelineStore = InMemoryTimelinePersistence()
         let workspaceStore = InMemoryWorkspacePersistence()
         let messageStore = FailingMessageStore()
-        let repo = AgentWorkspaceService(
+        let repo = DefaultWorkspaceCatalog(
             workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
             workspacePersistence: workspaceStore
         )
@@ -278,7 +278,7 @@ struct AgentInstanceManagerTests {
         let timelineStore = InMemoryTimelinePersistence()
         let workspaceStore = InMemoryWorkspacePersistence()
         let messageStore = FailingMessageStore()
-        let repo = AgentWorkspaceService(
+        let repo = DefaultWorkspaceCatalog(
             workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
             workspacePersistence: workspaceStore
         )
@@ -322,7 +322,7 @@ struct AgentInstanceManagerTests {
         let messageStore = InMemoryMessageStore()
         let workspaceStore = InMemoryWorkspacePersistence()
         let workspaceRoot = getTestWorkspaceRoot().appendingPathComponent(UUID().uuidString)
-        let repo = AgentWorkspaceService(
+        let repo = DefaultWorkspaceCatalog(
             workspaceRoot: workspaceRoot,
             workspacePersistence: workspaceStore
         )

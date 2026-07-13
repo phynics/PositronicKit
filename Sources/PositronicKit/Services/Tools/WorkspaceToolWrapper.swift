@@ -4,7 +4,7 @@ import PKShared
 
 /// Wraps a tool from a workspace to conform to the Tool protocol
 public struct WorkspaceToolWrapper: Tool, Sendable {
-    public let workspace: any WorkspaceProtocol
+    public let workspace: any Workspace
     public let definition: WorkspaceToolDefinition
 
     public var callName: String { definition.id }
@@ -19,7 +19,7 @@ public struct WorkspaceToolWrapper: Tool, Sendable {
         Schema(definition.parametersSchema)
     }
 
-    public init(workspace: any WorkspaceProtocol, definition: WorkspaceToolDefinition) {
+    public init(workspace: any Workspace, definition: WorkspaceToolDefinition) {
         self.workspace = workspace
         self.definition = definition
     }

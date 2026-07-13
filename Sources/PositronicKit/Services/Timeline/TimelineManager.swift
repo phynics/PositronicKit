@@ -9,7 +9,7 @@ import PKShared
 /// `TimelineManager` is the public coordinator/cache owner for timelines: it holds the
 /// in-memory `timelines`/`turnBriefingBuilders`/`toolManagers`/`activeTasks` caches and manages
 /// lifecycle, workspace-attachment, and tool-policy behavior. Concrete workspace behavior
-/// remains behind `WorkspaceManager` / `WorkspaceCreating` / `WorkspaceProtocol` so hosts can
+/// remains behind `WorkspaceResolver` / `WorkspaceFactory` / `Workspace` so hosts can
 /// supply local or remote workspace implementations without changing core orchestration.
 public actor TimelineManager {
     public struct RuntimeToolPolicy: Sendable, Equatable {
@@ -38,14 +38,14 @@ public actor TimelineManager {
     public struct Stores: Sendable {
         public let timelineStore: any TimelinePersistenceProtocol
         public let messageStore: any MessageStoreProtocol
-        public let workspaceStore: any WorkspacePersistenceProtocol
+        public let workspaceStore: any WorkspaceStore
         public let toolPersistence: any ToolPersistenceProtocol
         public let memoryStore: any MemoryStoreProtocol
 
         public init(
             timelineStore: any TimelinePersistenceProtocol,
             messageStore: any MessageStoreProtocol,
-            workspaceStore: any WorkspacePersistenceProtocol,
+            workspaceStore: any WorkspaceStore,
             toolPersistence: any ToolPersistenceProtocol,
             memoryStore: any MemoryStoreProtocol = InMemoryMemoryStore()
         ) {
@@ -75,13 +75,13 @@ public actor TimelineManager {
 
     let timelineStore: any TimelinePersistenceProtocol
     let messageStore: any MessageStoreProtocol
-    let workspaceStore: any WorkspacePersistenceProtocol
+    let workspaceStore: any WorkspaceStore
     let toolPersistence: any ToolPersistenceProtocol
     let memoryStore: any MemoryStoreProtocol
     let embeddingService: any EmbeddingServiceProtocol
 
     let workspaceRoot: URL
-    public let workspaceManager: any WorkspaceManagerProtocol
+    public let workspaceResolver: any WorkspaceResolver
     let sectionProviders: [any PromptSectionProviding]
     let runtimeToolPolicy: RuntimeToolPolicy
     /// Per-timeline prompt-history/journal-diff registry. When non-nil, `deleteTimeline(id:)`
@@ -91,10 +91,17 @@ public actor TimelineManager {
 
     // MARK: - Initialization
 
+    /// Designated initializer: accepts a fully-formed `any WorkspaceResolver` directly.
+    ///
+    /// `TimelineManager` does not know how to assemble the default catalog/factory/resolver
+    /// stack; that composition lives in `WorkspaceResolverFactory` (and, for the top-level
+    /// facade's default behavior, in `PositronicKit.Configuration`). Hosts that want the
+    /// bundled local-filesystem default can build one via `WorkspaceResolverFactory.makeDefault`
+    /// or use the `workspaceCreator:`-based convenience initializer below.
     public init(
         stores: Stores,
         workspaceRoot: URL,
-        workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
+        resolver: any WorkspaceResolver,
         sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: RuntimeToolPolicy = .default,
         embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService()
@@ -129,19 +136,40 @@ public actor TimelineManager {
         self.sectionProviders = sectionProviders
         self.runtimeToolPolicy = runtimeToolPolicy
         self.promptHistoryRegistry = promptHistoryRegistry
+        workspaceResolver = resolver
+    }
 
-        workspaceManager = WorkspaceManager(
-            repository: AgentWorkspaceService(
+    /// Convenience initializer that builds the bundled default `WorkspaceResolver` (local
+    /// filesystem catalog + injected factory) via `WorkspaceResolverFactory`, preserving the
+    /// prior `workspaceCreator:`-based construction ergonomics without TimelineManager itself
+    /// composing `DefaultWorkspaceCatalog`/`DefaultWorkspaceResolver`.
+    public init(
+        stores: Stores,
+        workspaceRoot: URL,
+        workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
+        sectionProviders: [any PromptSectionProviding] = [],
+        runtimeToolPolicy: RuntimeToolPolicy = .default,
+        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
+        promptHistoryRegistry: TimelinePromptHistoryRegistry? = nil
+    ) {
+        self.init(
+            stores: stores,
+            workspaceRoot: workspaceRoot,
+            resolver: WorkspaceResolverFactory.makeDefault(
                 workspaceRoot: workspaceRoot,
-                workspacePersistence: stores.workspaceStore
+                workspaceStore: stores.workspaceStore,
+                workspaceCreator: workspaceCreator
             ),
-            workspaceCreator: workspaceCreator
+            sectionProviders: sectionProviders,
+            runtimeToolPolicy: runtimeToolPolicy,
+            embeddingService: embeddingService,
+            promptHistoryRegistry: promptHistoryRegistry
         )
     }
 
     public init(
         workspaceRoot: URL,
-        workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
+        workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: RuntimeToolPolicy = .default
     ) {
