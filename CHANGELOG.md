@@ -10,6 +10,17 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
+- **Compatibility surface removed (PKV3-007, partial)**: deleted the deprecated
+  `CompactionThresholds` typealias (use `PromptJournalCompactionThresholds`), the deprecated
+  `EmptySection` typealias (use `EmptyPrompt`), and `TimelineManager.getTimeline(id:)` (use
+  `timeline(id:)` for a pure lookup, or `touchTimeline(id:)` + `timeline(id:)` to preserve the
+  old touch-on-read behavior — Monad's `ChatAPIController`/`TimelineAPIController` were migrated
+  to that pattern). `StreamingParser` is no longer a public type (no external consumer found).
+  `VectorMath` and `ANSIColors` remain public — both have a demonstrated downstream consumer
+  (Monad's `MemoryRepository` and `WebSocketConnectionManager` respectively). **Deferred to a
+  follow-up**: the legacy flat `LLMConfiguration` initializer and its 18 write-through proxy
+  properties — used by all 4 provider adapters and many tests, too large to fold into this pass
+  without its own migration plan.
 - **`TimelineManager` narrowed to lifecycle operations (PKV3-010)**: `workspaceResolver` and
   `getToolManager(for:)` are no longer public. Hosts inject a `WorkspaceResolver` at
   construction rather than reading it back off `TimelineManager`; normal tool-execution flows go

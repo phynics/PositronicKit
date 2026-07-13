@@ -6,24 +6,24 @@ import PKShared
 ///
 /// Handles streaming responses that contain `<think>...</think>` blocks,
 /// separating reasoning from main content in real-time.
-public struct StreamingParser {
+struct StreamingParser {
     // MARK: - State
 
-    public private(set) var buffer = ""
-    public private(set) var thinking = ""
-    public private(set) var content = ""
+    private(set) var buffer = ""
+    private(set) var thinking = ""
+    private(set) var content = ""
 
-    public private(set) var isThinking = false
-    public private(set) var insideCodeBlock = false
-    public private(set) var hasReclassified = false
+    private(set) var isThinking = false
+    private(set) var insideCodeBlock = false
+    private(set) var hasReclassified = false
 
     private var rawBuffer = "" // Debug history
 
-    public init() {}
+    init() {}
 
     // MARK: - Public API
 
-    public mutating func process(_ chunk: String) {
+    mutating func process(_ chunk: String) {
         hasReclassified = false
         buffer += chunk
         rawBuffer += chunk
@@ -191,7 +191,7 @@ public struct StreamingParser {
     // MARK: - Tool Parsing
 
     /// Extract tool calls from text containing XML tags
-    public func extractToolCalls(from text: String) -> (cleanText: String, toolCalls: [ToolCall]) {
+    func extractToolCalls(from text: String) -> (cleanText: String, toolCalls: [ToolCall]) {
         var cleanText = text
         var toolCalls: [ToolCall] = []
 

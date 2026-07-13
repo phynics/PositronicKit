@@ -211,7 +211,7 @@ struct AgentInstanceManagerTests {
 
         // Hydrate the private timeline into the TimelineManager cache and populate the registry.
         try await timelineManager.hydrateTimeline(id: instance.privateTimelineId)
-        #expect(await timelineManager.getTimeline(id: instance.privateTimelineId) != nil)
+        #expect(await timelineManager.timeline(id: instance.privateTimelineId) != nil)
 
         let history = await registry.history(for: instance.privateTimelineId)
         await history.recordAppend(messageCount: 4, estimatedTokens: 120)
@@ -221,7 +221,7 @@ struct AgentInstanceManagerTests {
         // should be evicted alongside the persisted row, not orphaned.
         try await manager.deleteInstance(id: instance.id, force: false)
 
-        #expect(await timelineManager.getTimeline(id: instance.privateTimelineId) == nil,
+        #expect(await timelineManager.timeline(id: instance.privateTimelineId) == nil,
                "Private timeline should be evicted from the TimelineManager cache")
 
         let fresh = await registry.history(for: instance.privateTimelineId)

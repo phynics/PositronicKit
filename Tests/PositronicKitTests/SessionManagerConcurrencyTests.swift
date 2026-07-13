@@ -59,7 +59,7 @@ import Testing
     @Test("getTimeline returns nil for unknown ID")
     func getTimeline_unknownId_returnsNil() async throws {
         let manager = try await makeTimelineManager()
-        let session = await manager.getTimeline(id: UUID())
+        let session = await manager.timeline(id: UUID())
         #expect(session == nil)
     }
 
@@ -67,7 +67,7 @@ import Testing
     func createTimeline_thenGet_returnsSession() async throws {
         let manager = try await makeTimelineManager()
         let created = try await manager.createTimeline(title: "Test Session")
-        let fetched = await manager.getTimeline(id: created.id)
+        let fetched = await manager.timeline(id: created.id)
         #expect(fetched?.id == created.id)
     }
 
@@ -79,7 +79,7 @@ import Testing
         let results = await withTaskGroup(of: Timeline?.self, returning: [Timeline?].self) { group in
             for id in ids {
                 group.addTask {
-                    await manager.getTimeline(id: id)
+                    await manager.timeline(id: id)
                 }
             }
             var output: [Timeline?] = []

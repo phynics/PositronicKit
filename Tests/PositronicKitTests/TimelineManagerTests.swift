@@ -15,7 +15,7 @@ struct TimelineManagerTests {
 
         #expect(session.id != UUID(), "Session should have an ID")
 
-        let retrievedSession = await timelineManager.getTimeline(id: session.id)
+        let retrievedSession = await timelineManager.timeline(id: session.id)
         #expect(retrievedSession != nil, "Should be able to retrieve created session")
         #expect(retrievedSession?.id == session.id)
 
@@ -33,7 +33,7 @@ struct TimelineManagerTests {
 
         await timelineManager.cleanupStaleTimelines(maxAge: 0)
 
-        let retrieved = await timelineManager.getTimeline(id: session.id)
+        let retrieved = await timelineManager.timeline(id: session.id)
         #expect(retrieved == nil, "Session should be cleaned up")
     }
 
@@ -57,7 +57,7 @@ struct TimelineManagerTests {
         await timelineManager.deleteTimeline(id: session.id)
 
         // Cache evicted.
-        #expect(await timelineManager.getTimeline(id: session.id) == nil)
+        #expect(await timelineManager.timeline(id: session.id) == nil)
 
         // Registry evicted — re-fetch yields a fresh instance with reset state.
         let fresh = await registry.history(for: session.id)
@@ -83,7 +83,7 @@ struct TimelineManagerTests {
 
         await timelineManager.cleanupStaleTimelines(maxAge: 0)
 
-        #expect(await timelineManager.getTimeline(id: session.id) == nil)
+        #expect(await timelineManager.timeline(id: session.id) == nil)
 
         let fresh = await registry.history(for: session.id)
         #expect(await fresh.appendedMessageCount == 0)
@@ -99,7 +99,7 @@ struct TimelineManagerTests {
 
         await timelineManager.deleteTimeline(id: session.id)
 
-        #expect(await timelineManager.getTimeline(id: session.id) == nil)
+        #expect(await timelineManager.timeline(id: session.id) == nil)
     }
 
     @Test("Test Task Registration and Cancellation")
@@ -151,7 +151,7 @@ struct TimelineManagerTests {
         try await persistence.deleteTimeline(id: timeline.id)
 
         try await timelineManager.hydrateTimeline(id: timeline.id)
-        #expect(await timelineManager.getTimeline(id: timeline.id) != nil)
+        #expect(await timelineManager.timeline(id: timeline.id) != nil)
     }
 
     @Test("hydrateTimeline throws timelineNotFound when persistence has no timeline")
@@ -185,7 +185,7 @@ struct TimelineManagerTests {
 
         try await timelineManager.updateTimelineTitle(id: timeline.id, title: "renamed")
 
-        let cached = try #require(await timelineManager.getTimeline(id: timeline.id))
+        let cached = try #require(await timelineManager.timeline(id: timeline.id))
         #expect(cached.title == "renamed")
         let persisted = try #require(await persistence.fetchTimeline(id: timeline.id))
         #expect(persisted.title == "renamed")
@@ -222,7 +222,7 @@ struct TimelineManagerTests {
 
         await timelineManager.cleanupStaleTimelines(maxAge: 0)
 
-        #expect(await timelineManager.getTimeline(id: timeline.id) == nil)
+        #expect(await timelineManager.timeline(id: timeline.id) == nil)
         let persisted = try #require(await persistence.fetchTimeline(id: timeline.id))
         #expect(persisted.id == timeline.id)
     }

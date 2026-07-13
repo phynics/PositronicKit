@@ -1,12 +1,12 @@
 import Foundation
-import Testing
 @testable import PKPrompt
+import Testing
 
 @Suite("Prompt helper sections")
 struct GenericHelperSectionsTests {
     @Test("ContextPrompt stores explicit configuration")
-    func contextPromptInitialization() {
-        let section = try! TextPrompt(
+    func contextPromptInitialization() throws {
+        let section = try TextPrompt(
             "You are an AI.",
             id: "system",
             priority: 100,
@@ -24,22 +24,22 @@ struct GenericHelperSectionsTests {
     }
 
     @Test("ContextPrompt renders non-empty content")
-    func contextPromptRender() async {
-        let section = try! TextPrompt("Hello", id: "t1").assemblePrompt().sections[0]
+    func contextPromptRender() async throws {
+        let section = try TextPrompt("Hello", id: "t1").assemblePrompt().sections[0]
         #expect(await section.renderedContent()?.text == "Hello")
     }
 
     @Test("ContextPrompt renders nil for empty content")
-    func contextPromptRenderEmptyReturnsNil() async {
-        let section = try! TextPrompt("", id: "t1").assemblePrompt().sections[0]
+    func contextPromptRenderEmptyReturnsNil() async throws {
+        let section = try TextPrompt("", id: "t1").assemblePrompt().sections[0]
         #expect(await section.renderedContent()?.text == nil)
     }
 
-    @Test("EmptySection assembles to no leaves")
-    func emptySection() {
+    @Test("EmptyPrompt assembles to no leaves")
+    func emptySection() throws {
         let prompt = AnyPrompt {
-            EmptySection()
+            EmptyPrompt()
         }
-        #expect(try! prompt.assemblePrompt().sections.isEmpty)
+        #expect(try prompt.assemblePrompt().sections.isEmpty)
     }
 }

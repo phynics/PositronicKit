@@ -57,7 +57,8 @@ extension ChatEngine {
 
         // 3. Resolve workspaces and session entities
         let workspaceResult = await dependencies.timelineManager.getWorkspaces(for: timelineId)
-        let timeline = await dependencies.timelineManager.getTimeline(id: timelineId)
+        await dependencies.timelineManager.touchTimeline(id: timelineId)
+        let timeline = await dependencies.timelineManager.timeline(id: timelineId)
 
         var agentInstance: AgentInstance?
         if let agentId = agentInstanceId {

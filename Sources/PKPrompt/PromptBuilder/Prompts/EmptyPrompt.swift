@@ -14,6 +14,3 @@ public struct EmptyPrompt: Prompt {
         nil
     }
 }
-
-/// Semantic alias for a section that intentionally resolves to no output.
-public typealias EmptySection = EmptyPrompt

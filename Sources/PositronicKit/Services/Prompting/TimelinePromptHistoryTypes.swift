@@ -120,9 +120,6 @@ struct PromptHistoryUpdate {
 
 // MARK: - Thresholds
 
-@available(*, deprecated, renamed: "PromptJournalCompactionThresholds")
-public typealias CompactionThresholds = PromptJournalCompactionThresholds
-
 /// Caps how many per-timeline `TimelinePromptHistory` instances
 /// `TimelinePromptJournals` keeps resident at once.
 public struct RegistryEvictionPolicy: Sendable {
