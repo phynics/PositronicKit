@@ -10,6 +10,19 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
+- **Legacy `LLMConfiguration` compatibility surface removed (PKV3-014)**: deleted the legacy
+  flat initializer and its 18 write-through proxy properties (`endpoint`, `apiKey`, `modelName`,
+  `utilityModel`, `fastModel`, `toolFormat`, `timeoutInterval`, `maxRetries`, `temperature`,
+  `maxTokens`, `topP`, `frequencyPenalty`, `presencePenalty`, `seed`, `applicationURL`,
+  `applicationTitle`, `generationParameters`, `provider`). Added
+  `LLMConfiguration.activeProviderConfiguration: ProviderConfiguration` as the canonical
+  read-only replacement — it resolves `providers[activeProvider]`, falling back to
+  `ProviderConfiguration.defaultFor(activeProvider)` if absent. Construct/mutate
+  `providers[activeProvider]` directly to write. Migrated all 4 provider adapters
+  (`PKOpenAIProvider`, `PKOpenRouterProvider`, `PKOllamaProvider`, `PKAnthropicProvider`) and
+  every in-package call site. Note: `activeProviderConfiguration`'s per-provider defaults differ
+  from the old flat init's universal 60s `timeoutInterval` default — Ollama's canonical default
+  is 120s (local models can be slower), which the flat init previously masked.
 - **Compatibility surface removed (PKV3-007, partial)**: deleted the deprecated
   `CompactionThresholds` typealias (use `PromptJournalCompactionThresholds`), the deprecated
   `EmptySection` typealias (use `EmptyPrompt`), and `TimelineManager.getTimeline(id:)` (use

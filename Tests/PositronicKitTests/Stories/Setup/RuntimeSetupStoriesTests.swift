@@ -46,11 +46,11 @@ import Testing
 
     @Test("Configuration with missing API key for non-Ollama provider is invalid")
     func invalidConfigurationMissingApiKey() throws {
-        let config = LLMConfiguration(
+        let config = LLMConfiguration.fixture(
             endpoint: "https://api.openai.com",
             modelName: "gpt-4o",
             apiKey: "",
-            provider: .openAI
+            activeProvider: .openAI
         )
         #expect(!config.isValid)
         #expect(throws: ConfigurationError.self) {
@@ -60,11 +60,11 @@ import Testing
 
     @Test("Configuration with empty model name is invalid")
     func invalidConfigurationEmptyModel() throws {
-        let config = LLMConfiguration(
+        let config = LLMConfiguration.fixture(
             endpoint: "https://api.openai.com",
             modelName: "",
             apiKey: "sk-test",
-            provider: .openAI
+            activeProvider: .openAI
         )
         #expect(!config.isValid)
         #expect(throws: ConfigurationError.self) {
@@ -74,22 +74,22 @@ import Testing
 
     @Test("Ollama configuration without API key is valid")
     func ollamaConfigurationValidWithoutApiKey() {
-        let config = LLMConfiguration(
+        let config = LLMConfiguration.fixture(
             endpoint: "http://localhost:11434",
             modelName: "llama3",
             apiKey: "",
-            provider: .ollama
+            activeProvider: .ollama
         )
         #expect(config.isValid)
     }
 
     @Test("LLMService with invalid configuration is not configured")
     func serviceNotConfiguredWithInvalidConfig() async {
-        let config = LLMConfiguration(
+        let config = LLMConfiguration.fixture(
             endpoint: "https://api.openai.com",
             modelName: "",
             apiKey: "",
-            provider: .openAI
+            activeProvider: .openAI
         )
         let service = LLMService(configuration: config)
         let isConfigured = await service.isConfigured

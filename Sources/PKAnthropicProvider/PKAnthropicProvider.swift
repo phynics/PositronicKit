@@ -3,15 +3,16 @@ import PKShared
 
 public enum PKAnthropicProvider {
     public static func makeClient(configuration: LLMConfiguration) -> AnthropicClient {
-        let url = URL(string: configuration.endpoint)
+        let providerConfig = configuration.activeProviderConfiguration
+        let url = URL(string: providerConfig.endpoint)
         return AnthropicClient(
-            apiKey: configuration.apiKey,
-            modelName: configuration.modelName,
+            apiKey: providerConfig.apiKey,
+            modelName: providerConfig.modelName,
             host: url?.host ?? "api.anthropic.com",
             port: url?.port ?? 443,
             scheme: url?.scheme ?? "https",
-            timeoutInterval: configuration.timeoutInterval,
-            maxRetries: configuration.maxRetries
+            timeoutInterval: providerConfig.timeoutInterval,
+            maxRetries: providerConfig.maxRetries
         )
     }
 }

@@ -1,62 +1,64 @@
 import Foundation
-@testable import PositronicKit
 import PKShared
+import PKTestSupport
 import PKUtilities
+@testable import PositronicKit
 import Testing
 
-@Suite struct LLMConfigurationTests {
-
+struct LLMConfigurationTests {
     @Test("Default configuration validity")
     func defaultConfiguration() {
         let config = LLMConfiguration.openAI
         #expect(!config.isValid) // Invalid because API key is empty
-        #expect(config.provider == .openAI)
-        #expect(config.timeoutInterval == 60.0)
-        #expect(config.maxRetries == 3)
+        #expect(config.activeProvider == .openAI)
+        #expect(config.activeProviderConfiguration.timeoutInterval == 60.0)
+        #expect(config.activeProviderConfiguration.maxRetries == 3)
     }
 
     @Test("Valid OpenAI configuration")
     func validOpenAI() {
-        let config = LLMConfiguration(
+        let config = LLMConfiguration.fixture(
             endpoint: "https://api.openai.com",
             modelName: "gpt-4",
             apiKey: "sk-12345",
-            provider: .openAI
+            activeProvider: .openAI
         )
         #expect(config.isValid)
-        #expect(config.timeoutInterval == 60.0)
+        #expect(config.activeProviderConfiguration.timeoutInterval == 60.0)
     }
 
     @Test("Valid Ollama configuration (No API Key)")
     func validOllama() {
-        let config = LLMConfiguration(
+        let config = LLMConfiguration.fixture(
             endpoint: "http://localhost:11434",
             modelName: "llama3",
             apiKey: "",
-            provider: .ollama
+            activeProvider: .ollama
         )
         #expect(config.isValid)
-        #expect(config.timeoutInterval == 60.0)
+        // Ollama's canonical default is 120s (local models can be slower), not the flat
+        // init's old universal 60s default.
+        #expect(config.activeProviderConfiguration.timeoutInterval == 120.0)
     }
 
     @Test("Invalid Endpoint")
     func invalidEndpoint() {
-        let config = LLMConfiguration(
+        let config = LLMConfiguration.fixture(
             endpoint: "not-a-url",
             modelName: "gpt-4",
             apiKey: "sk-123",
-            provider: .openAI
+            activeProvider: .openAI
         )
         #expect(!config.isValid)
     }
 
     @Test("Missing Model Name")
     func missingModel() {
-        let config = LLMConfiguration(
+        let config = LLMConfiguration.fixture(
             endpoint: "https://api.openai.com",
             modelName: "",
             apiKey: "sk-123",
-            provider: .openAI
+            activeProvider: .openAI
         )
         #expect(!config.isValid)
     }
@@ -64,11 +66,11 @@ import Testing
     @Test("Custom timeout and retries")
     func customTimeoutAndRetries() {
         var config = LLMConfiguration.openAI
-        config.timeoutInterval = 30.0
-        config.maxRetries = 10
+        config.providers[config.activeProvider]?.timeoutInterval = 30.0
+        config.providers[config.activeProvider]?.maxRetries = 10
 
-        #expect(config.timeoutInterval == 30.0)
-        #expect(config.maxRetries == 10)
+        #expect(config.activeProviderConfiguration.timeoutInterval == 30.0)
+        #expect(config.activeProviderConfiguration.maxRetries == 10)
     }
 
     @Test("Legacy JSON Decoding")
@@ -98,7 +100,7 @@ import Testing
         }
 
         let config = try JSONDecoder().decode(LLMConfiguration.self, from: data)
-        #expect(config.timeoutInterval == 60.0)
-        #expect(config.maxRetries == 3)
+        #expect(config.activeProviderConfiguration.timeoutInterval == 60.0)
+        #expect(config.activeProviderConfiguration.maxRetries == 3)
     }
 }

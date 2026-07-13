@@ -245,7 +245,7 @@ struct StructuredOutputSyntheticToolStreamTests {
         mockClient.nextToolCalls = [[MockToolCall(id: "structured-call", name: syntheticToolName, arguments: #"{"tags":["swift"]}"#)]]
 
         let service = LLMService(storage: MockConfigurationService(), client: mockClient)
-        try await service.updateConfiguration(.init(provider: .openAICompatible))
+        try await service.updateConfiguration(.fixture(activeProvider: .openAICompatible))
         await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         let result = try await service.sendStructured(
@@ -274,7 +274,7 @@ struct StructuredOutputSyntheticToolStreamTests {
         ]]
 
         let service = LLMService(storage: MockConfigurationService(), client: mockClient)
-        try await service.updateConfiguration(.init(provider: .openAICompatible))
+        try await service.updateConfiguration(.fixture(activeProvider: .openAICompatible))
         await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         let result = try await service.sendStructured(

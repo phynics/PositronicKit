@@ -1,14 +1,14 @@
 import Foundation
-import PKTestSupport
-import Testing
-@testable import PositronicKit
 @testable import PKShared
+import PKTestSupport
 import PKUtilities
+@testable import PositronicKit
+import Testing
 
 @Suite("Structured Output Service Tests")
 @MainActor
 struct StructuredOutputServiceTests {
-    private struct TagPayload: Decodable, Equatable, Sendable {
+    private struct TagPayload: Decodable, Equatable {
         let tags: [String]
     }
 
@@ -33,7 +33,7 @@ struct StructuredOutputServiceTests {
         mockClient.nextResponse = "{" + #""tags":["swift"]"# + "}"
 
         let service = LLMService(storage: MockConfigurationService(), client: mockClient)
-        try await service.updateConfiguration(.init(provider: .ollama))
+        try await service.updateConfiguration(.fixture(activeProvider: .ollama))
         await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         let schema = StructuredOutputFixtures.tagSchemaDefinition()
@@ -52,7 +52,8 @@ struct StructuredOutputServiceTests {
         #expect(responseSchema.name == "tag_payload")
         #expect(responseSchema.schema != nil)
         if let lastMessage = mockClient.lastMessages.last,
-           lastMessage.role == .user {
+           lastMessage.role == .user
+        {
             let content = lastMessage.content
             #expect(content.contains("tag_payload"))
             #expect(content.contains("JSON Schema"))
@@ -68,7 +69,7 @@ struct StructuredOutputServiceTests {
             mockClient.nextResponse = "{" + #""tags":["swift"]"# + "}"
 
             let service = LLMService(storage: MockConfigurationService(), client: mockClient)
-            try await service.updateConfiguration(.init(provider: provider))
+            try await service.updateConfiguration(.fixture(activeProvider: provider))
             await service.setClients(main: mockClient, utility: nil, fast: nil)
 
             let result = try await service.sendStructured(
@@ -94,7 +95,7 @@ struct StructuredOutputServiceTests {
         mockClient.nextToolCalls = [[MockToolCall(id: "structured-call", name: "emit_structured_response", arguments: "{" + #""tags":["swift"]"# + "}")]]
 
         let service = LLMService(storage: MockConfigurationService(), client: mockClient)
-        try await service.updateConfiguration(.init(provider: .openAICompatible))
+        try await service.updateConfiguration(.fixture(activeProvider: .openAICompatible))
         await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         let schema = StructuredOutputFixtures.tagSchemaDefinition()
@@ -123,15 +124,15 @@ struct StructuredOutputServiceTests {
         let mockClient = MockLLMClient()
         mockClient.nextRawStreamChunks = [[
             ChatStreamResultFactory.toolCallChunk(calls: [
-                MockToolCall(id: "structured-call", name: "emit_structured_response", arguments: #"{"tags":[""#)
+                MockToolCall(id: "structured-call", name: "emit_structured_response", arguments: #"{"tags":[""#),
             ]),
             ChatStreamResultFactory.toolCallChunk(calls: [
-                MockToolCall(id: "structured-call", name: "emit_structured_response", arguments: #"swift"]}"#)
-            ])
+                MockToolCall(id: "structured-call", name: "emit_structured_response", arguments: #"swift"]}"#),
+            ]),
         ]]
 
         let service = LLMService(storage: MockConfigurationService(), client: mockClient)
-        try await service.updateConfiguration(.init(provider: .openAICompatible))
+        try await service.updateConfiguration(.fixture(activeProvider: .openAICompatible))
         await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         let stream = await service.chatStream(

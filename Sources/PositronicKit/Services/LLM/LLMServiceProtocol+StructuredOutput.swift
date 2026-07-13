@@ -33,7 +33,7 @@ public extension LLMStreamClient {
         generationParameters: GenerationParameters? = nil,
         modelTier: ModelTier = .primary
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
-        let provider = await configuration.provider
+        let provider = await configuration.activeProvider
         let prepared = StructuredOutputExecution.prepareRequest(
             messages: messages,
             tools: tools,

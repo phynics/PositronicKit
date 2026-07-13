@@ -3,14 +3,15 @@ import PKShared
 
 public enum PKOpenAIProvider {
     public static func makeClient(configuration: LLMConfiguration) -> OpenAIClient {
-        OpenAIClient(
-            apiKey: configuration.apiKey,
-            modelName: configuration.modelName,
-            host: URL(string: configuration.endpoint)?.host ?? "api.openai.com",
-            port: URL(string: configuration.endpoint)?.port ?? 443,
-            scheme: URL(string: configuration.endpoint)?.scheme ?? "https",
-            timeoutInterval: configuration.timeoutInterval,
-            maxRetries: configuration.maxRetries
+        let providerConfig = configuration.activeProviderConfiguration
+        return OpenAIClient(
+            apiKey: providerConfig.apiKey,
+            modelName: providerConfig.modelName,
+            host: URL(string: providerConfig.endpoint)?.host ?? "api.openai.com",
+            port: URL(string: providerConfig.endpoint)?.port ?? 443,
+            scheme: URL(string: providerConfig.endpoint)?.scheme ?? "https",
+            timeoutInterval: providerConfig.timeoutInterval,
+            maxRetries: providerConfig.maxRetries
         )
     }
 }

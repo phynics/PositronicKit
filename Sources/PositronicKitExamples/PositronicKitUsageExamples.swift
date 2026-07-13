@@ -60,7 +60,10 @@ public enum PositronicKitUsageExamples {
     }
 
     public static func makeOpenAIRuntime(apiKey: String = "sk-example") -> PositronicKit {
-        let config = LLMConfiguration(modelName: "gpt-4o", apiKey: apiKey, provider: .openAI)
+        var openAIConfig = ProviderConfiguration.defaultFor(.openAI)
+        openAIConfig.modelName = "gpt-4o"
+        openAIConfig.apiKey = apiKey
+        let config = LLMConfiguration(activeProvider: .openAI, providers: [.openAI: openAIConfig])
         let client = PKOpenAIProvider.makeClient(configuration: config)
         let model = LLMService(
             storage: InMemoryConfigurationService(config: config),
@@ -72,7 +75,9 @@ public enum PositronicKitUsageExamples {
     }
 
     public static func makeOllamaRuntime(model: String = "llama3") -> PositronicKit {
-        let config = LLMConfiguration(modelName: model, provider: .ollama)
+        var ollamaConfig = ProviderConfiguration.defaultFor(.ollama)
+        ollamaConfig.modelName = model
+        let config = LLMConfiguration(activeProvider: .ollama, providers: [.ollama: ollamaConfig])
         let client = PKOllamaProvider.makeClient(configuration: config)
         let languageModel = LLMService(
             storage: InMemoryConfigurationService(config: config),
@@ -98,7 +103,9 @@ public enum PositronicKitUsageExamples {
     }
 
     public static func makeConfiguredOpenAIRuntime(apiKey: String = "sk-example") -> PositronicKit {
-        let configuration = LLMConfiguration(apiKey: apiKey, provider: .openAI)
+        var openAIConfig = ProviderConfiguration.defaultFor(.openAI)
+        openAIConfig.apiKey = apiKey
+        let configuration = LLMConfiguration(activeProvider: .openAI, providers: [.openAI: openAIConfig])
         let client = PKOpenAIProvider.makeClient(configuration: configuration)
         let languageModel = LLMService(
             storage: InMemoryConfigurationService(config: configuration),
@@ -115,7 +122,9 @@ public enum PositronicKitUsageExamples {
     /// PKPOST-001: the native Anthropic adapter registers exactly like the other providers;
     /// `PositronicKit(anthropicKey:)` wraps registration + configuration in one call.
     public static func makeConfiguredAnthropicRuntime(apiKey: String = "sk-ant-example") -> PositronicKit {
-        let configuration = LLMConfiguration(apiKey: apiKey, provider: .anthropic)
+        var anthropicConfig = ProviderConfiguration.defaultFor(.anthropic)
+        anthropicConfig.apiKey = apiKey
+        let configuration = LLMConfiguration(activeProvider: .anthropic, providers: [.anthropic: anthropicConfig])
         let client = PKAnthropicProvider.makeClient(configuration: configuration)
         let languageModel = LLMService(
             storage: InMemoryConfigurationService(config: configuration),

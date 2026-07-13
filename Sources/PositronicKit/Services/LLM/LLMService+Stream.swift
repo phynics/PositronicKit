@@ -18,7 +18,7 @@ public extension LLMStreamClient {
             generationParameters: request.generationParameters
         )
         let result = try await PromptAssembler.prepare(promptRequest)
-        let provider = await configuration.provider
+        let provider = await configuration.activeProvider
         let toolParams = request.tools.isEmpty ? nil : request.tools.map { $0.toLLMToolDefinition() }
         let preparedOutput = request.structuredOutput.map {
             StructuredOutputExecution.prepareRequest(
@@ -86,7 +86,7 @@ public extension LLMService {
         }
 
         // Use provided parameters or default from configuration
-        let params = generationParameters ?? configuration.generationParameters
+        let params = generationParameters ?? configuration.activeProviderConfiguration.generationParameters
 
         return await client.chatStream(
             messages: messages,

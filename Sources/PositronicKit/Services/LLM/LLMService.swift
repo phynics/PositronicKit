@@ -34,8 +34,8 @@ public actor LLMService: LanguageModel, HealthCheckable {
     public func getHealthDetails() async -> [String: String]? {
         await preparationTaskBox.task?.value
         return [
-            "model": configuration.modelName,
-            "provider": configuration.provider.rawValue,
+            "model": configuration.activeProviderConfiguration.modelName,
+            "provider": configuration.activeProvider.rawValue,
         ]
     }
 
@@ -184,7 +184,8 @@ public actor LLMService: LanguageModel, HealthCheckable {
         isConfigured = config.isValid
 
         if config.isValid {
-            let modelInfo = "Main: \(config.modelName), Utility: \(config.utilityModel), Fast: \(config.fastModel)"
+            let providerConfig = config.activeProviderConfiguration
+            let modelInfo = "Main: \(providerConfig.modelName), Utility: \(providerConfig.utilityModel), Fast: \(providerConfig.fastModel)"
             logger.info("Loaded configuration. \(modelInfo)")
             updateClient(with: config)
         } else {
@@ -219,8 +220,9 @@ public actor LLMService: LanguageModel, HealthCheckable {
 
     public func updateConfiguration(_ config: LLMConfiguration) async throws {
         await preparationTaskBox.task?.value
+        let providerConfig = config.activeProviderConfiguration
         logger.info(
-            "Updating configuration to models: \(config.modelName) / \(config.utilityModel) / \(config.fastModel)"
+            "Updating configuration to models: \(providerConfig.modelName) / \(providerConfig.utilityModel) / \(providerConfig.fastModel)"
         )
         try await storage.save(config)
         configuration = config
@@ -273,7 +275,7 @@ public actor LLMService: LanguageModel, HealthCheckable {
         }
 
         // Use provided parameters or default from configuration
-        let params = generationParameters ?? configuration.generationParameters
+        let params = generationParameters ?? configuration.activeProviderConfiguration.generationParameters
 
         return try await client.sendMessage(
             content,

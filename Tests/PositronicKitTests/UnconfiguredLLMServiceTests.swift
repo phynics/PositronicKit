@@ -1,7 +1,7 @@
 import Foundation
 @testable import PKShared
-import PKUtilities
 import PKTestSupport
+import PKUtilities
 @testable import PositronicKit
 import Testing
 
@@ -22,7 +22,7 @@ struct UnconfiguredLLMServiceTests {
 
     @Test("Throwing configuration methods return notConfigured")
     func throwingConfigurationMethodsReturnNotConfigured() async throws {
-        let config = LLMConfiguration(endpoint: "https://example.com", modelName: "model", apiKey: "key")
+        let config = LLMConfiguration.fixture(endpoint: "https://example.com", modelName: "model", apiKey: "key")
 
         await #expect(throws: LLMServiceError.notConfigured) {
             try await service.updateConfiguration(config)

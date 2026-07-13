@@ -1,8 +1,8 @@
 import Foundation
 import OpenAI
 @testable import PKShared
-import PKUtilities
 import PKTestSupport
+import PKUtilities
 @testable import PositronicKit
 import Testing
 
@@ -169,7 +169,7 @@ struct PromptObservingTests {
         _ = try await harness.collect(message: "What is yakamoz?")
 
         let value = try #require(await recorder.values.first)
-        let modelName = await harness.llm.configuration.modelName
+        let modelName = await harness.llm.configuration.activeProviderConfiguration.modelName
         #expect(value.timelineId == harness.timelineId)
         #expect(value.turnIndex == 0)
         #expect(value.model == modelName)

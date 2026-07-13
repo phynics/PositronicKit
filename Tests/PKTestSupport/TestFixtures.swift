@@ -1,7 +1,7 @@
 import Foundation
-import PositronicKit
 import PKShared
 import PKUtilities
+import PositronicKit
 
 #if DEBUG
     public extension Message {
@@ -46,6 +46,59 @@ import PKUtilities
                 rootPath: rootPath,
                 trustLevel: .full,
                 status: status
+            )
+        }
+    }
+
+    public extension LLMConfiguration {
+        /// Test-only convenience: builds a single-provider `LLMConfiguration` from flat
+        /// arguments, replacing the removed public legacy flat initializer (PKV3-014). Fills in
+        /// `activeProvider`'s `ProviderConfiguration` from `ProviderConfiguration.defaultFor(_:)`
+        /// and overrides only the fields supplied here.
+        static func fixture(
+            endpoint: String? = nil,
+            modelName: String? = nil,
+            utilityModel: String? = nil,
+            fastModel: String? = nil,
+            apiKey: String? = nil,
+            activeProvider: LLMProvider = .openAI,
+            toolFormat: ToolCallFormat? = nil,
+            memoryContextLimit: Int = 5,
+            documentContextLimit: Int = 5,
+            timeoutInterval: TimeInterval? = nil,
+            maxRetries: Int? = nil,
+            temperature: Double? = nil,
+            maxTokens: Int? = nil,
+            topP: Double? = nil,
+            frequencyPenalty: Double? = nil,
+            presencePenalty: Double? = nil,
+            seed: Int? = nil,
+            applicationURL: String? = nil,
+            applicationTitle: String? = nil
+        ) -> LLMConfiguration {
+            var providerConfig = ProviderConfiguration.defaultFor(activeProvider)
+            if let endpoint { providerConfig.endpoint = endpoint }
+            if let modelName { providerConfig.modelName = modelName }
+            if let utilityModel { providerConfig.utilityModel = utilityModel }
+            if let fastModel { providerConfig.fastModel = fastModel }
+            if let apiKey { providerConfig.apiKey = apiKey }
+            if let toolFormat { providerConfig.toolFormat = toolFormat }
+            if let timeoutInterval { providerConfig.timeoutInterval = timeoutInterval }
+            if let maxRetries { providerConfig.maxRetries = maxRetries }
+            providerConfig.temperature = temperature
+            providerConfig.maxTokens = maxTokens
+            providerConfig.topP = topP
+            providerConfig.frequencyPenalty = frequencyPenalty
+            providerConfig.presencePenalty = presencePenalty
+            providerConfig.seed = seed
+            providerConfig.applicationURL = applicationURL
+            providerConfig.applicationTitle = applicationTitle
+
+            return LLMConfiguration(
+                activeProvider: activeProvider,
+                providers: [activeProvider: providerConfig],
+                memoryContextLimit: memoryContextLimit,
+                documentContextLimit: documentContextLimit
             )
         }
     }

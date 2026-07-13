@@ -121,7 +121,7 @@ struct LLMServiceTests {
 
     @Test("Test updating LLM configuration")
     func configurationUpdate() async throws {
-        let config = LLMConfiguration(
+        let config = LLMConfiguration.fixture(
             endpoint: "https://test.api.com",
             modelName: "test-model",
             apiKey: "test-key"
@@ -130,7 +130,7 @@ struct LLMServiceTests {
         try await llmService.updateConfiguration(config)
 
         #expect(await llmService.isConfigured)
-        #expect(await llmService.configuration.modelName == "test-model")
+        #expect(await llmService.configuration.activeProviderConfiguration.modelName == "test-model")
     }
 
     @Test("Test prompt building logic and structure")
@@ -430,11 +430,11 @@ struct LLMServiceTests {
 
     @Test("Health details report typed provider identity, not endpoint substrings")
     func healthDetailsUseTypedProvider() async {
-        let openRouterConfig = LLMConfiguration(
+        let openRouterConfig = LLMConfiguration.fixture(
             endpoint: "https://my-proxy.example.com/v1",
             modelName: "gpt-4o",
             apiKey: "test-key",
-            provider: .openRouter
+            activeProvider: .openRouter
         )
         let service = LLMService(configuration: openRouterConfig)
 
@@ -509,7 +509,7 @@ struct LLMServiceTests {
 
     @Test("Preparation task is assigned synchronously during init")
     func preparationTaskAssignedDuringInit() {
-        let config = LLMConfiguration(
+        let config = LLMConfiguration.fixture(
             endpoint: "https://test.example.com",
             modelName: "test-model",
             apiKey: "test-key"
@@ -522,7 +522,7 @@ struct LLMServiceTests {
 
     @Test("First public call awaits delayed configuration load")
     func firstCallAwaitsDelayedConfigurationLoad() async throws {
-        let config = LLMConfiguration(
+        let config = LLMConfiguration.fixture(
             endpoint: "https://test.example.com",
             modelName: "test-model",
             apiKey: "test-key"

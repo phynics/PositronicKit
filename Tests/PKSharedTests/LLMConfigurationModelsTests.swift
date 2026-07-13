@@ -103,33 +103,28 @@ final class LLMConfigurationModelsTests {
     }
 
     @Test
-    func lLMConfigurationProxyParameters() {
+    func lLMConfigurationActiveProviderConfiguration() {
         var config = LLMConfiguration.default
 
-        config.temperature = 0.8
-        config.maxTokens = 2000
-        config.topP = 0.95
-        config.frequencyPenalty = 0.1
-        config.presencePenalty = 0.2
-        config.seed = 42
+        config.providers[config.activeProvider]?.temperature = 0.8
+        config.providers[config.activeProvider]?.maxTokens = 2000
+        config.providers[config.activeProvider]?.topP = 0.95
+        config.providers[config.activeProvider]?.frequencyPenalty = 0.1
+        config.providers[config.activeProvider]?.presencePenalty = 0.2
+        config.providers[config.activeProvider]?.seed = 42
 
-        #expect(config.providers[config.activeProvider]?.temperature == 0.8)
-        #expect(config.providers[config.activeProvider]?.maxTokens == 2000)
-        #expect(config.providers[config.activeProvider]?.topP == 0.95)
-        #expect(config.providers[config.activeProvider]?.frequencyPenalty == 0.1)
-        #expect(config.providers[config.activeProvider]?.presencePenalty == 0.2)
-        #expect(config.providers[config.activeProvider]?.seed == 42)
+        #expect(config.activeProviderConfiguration.temperature == 0.8)
+        #expect(config.activeProviderConfiguration.maxTokens == 2000)
+        #expect(config.activeProviderConfiguration.topP == 0.95)
+        #expect(config.activeProviderConfiguration.frequencyPenalty == 0.1)
+        #expect(config.activeProviderConfiguration.presencePenalty == 0.2)
+        #expect(config.activeProviderConfiguration.seed == 42)
 
-        // Test legacy init with parameters
-        let legacyConfig = LLMConfiguration(
-            modelName: "test-model",
-            temperature: 0.5,
-            maxTokens: 500
-        )
-
-        #expect(legacyConfig.temperature == 0.5)
-        #expect(legacyConfig.maxTokens == 500)
-        #expect(legacyConfig.topP == nil)
+        // activeProviderConfiguration falls back to that provider's defaults when `providers`
+        // has no entry for it.
+        let sparse = LLMConfiguration(activeProvider: .anthropic, providers: [:])
+        #expect(sparse.activeProviderConfiguration.modelName == ProviderConfiguration.defaultFor(.anthropic).modelName)
+        #expect(sparse.activeProviderConfiguration.topP == nil)
     }
 
     // MARK: - ToolCallFormat

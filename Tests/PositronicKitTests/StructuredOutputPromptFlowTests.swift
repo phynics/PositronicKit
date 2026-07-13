@@ -47,7 +47,7 @@ struct StructuredOutputPromptFlowTests {
         let mockClient = MockLLMClient()
         mockClient.nextChunks = [["{\"tags\":[\"swift\"]}"]]
         let service = LLMService(storage: MockConfigurationService(), client: mockClient)
-        try await service.updateConfiguration(.init(provider: .ollama))
+        try await service.updateConfiguration(.fixture(activeProvider: .ollama))
         await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         let request = LLMChatRequest(
@@ -98,7 +98,7 @@ struct StructuredOutputPromptFlowTests {
         ]]
 
         let service = LLMService(storage: MockConfigurationService(), client: mockClient)
-        try await service.updateConfiguration(.init(provider: .openAICompatible))
+        try await service.updateConfiguration(.fixture(activeProvider: .openAICompatible))
         await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         let request = LLMChatRequest(

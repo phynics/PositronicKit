@@ -24,7 +24,7 @@ struct LLMStreamingStage: PipelineStage {
     func process(_ context: ChatTurnContext) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         let processStartTime = ContinuousClock.now
         let configuration = await llmService.configuration
-        let provider = configuration.provider.rawValue
+        let provider = configuration.activeProvider.rawValue
         let streamData: AsyncThrowingStream<LLMStreamChunk, Error>
         // ChatEngine's entry point rejects turns that set both `structuredOutput` and
         // `sidecars` (SidecarError.conflictsWithExplicitStructuredOutput), so at most one
@@ -37,8 +37,8 @@ struct LLMStreamingStage: PipelineStage {
             }
 
         for warning in ProviderCapabilityObservability.warnings(
-            provider: configuration.provider,
-            model: configuration.modelName,
+            provider: configuration.activeProvider,
+            model: configuration.activeProviderConfiguration.modelName,
             hasTools: !context.toolParams.isEmpty,
             hasResponseFormat: effectiveStructuredOutput != nil,
             generationParameters: context.generationParameters

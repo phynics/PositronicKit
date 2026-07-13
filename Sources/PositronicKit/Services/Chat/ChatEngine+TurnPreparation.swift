@@ -168,7 +168,7 @@ extension ChatEngine {
             logger.debug("Structured compression metrics: \(metrics)")
         }
 
-        let modelName = await dependencies.llmService.configuration.modelName
+        let modelName = await dependencies.llmService.configuration.activeProviderConfiguration.modelName
 
         return ChatTurnContext(
             timelineId: timelineId,

@@ -8,14 +8,14 @@ extension LLMService {
 
     /// Update LLM client with configuration
     func updateClient(with config: LLMConfiguration) {
-        Logger.module(named: "llm").debug("Updating clients for provider: \(config.provider.rawValue)")
+        Logger.module(named: "llm").debug("Updating clients for provider: \(config.activeProvider.rawValue)")
 
         let clients = Self.makeClients(with: config)
         setClients(main: clients.main, utility: clients.utility, fast: clients.fast)
     }
 
     /// Static version of client creation for use in init
-    static func makeClients(with config: LLMConfiguration) -> (
+    static func makeClients(with _: LLMConfiguration) -> (
         main: (any LLMClientProtocol)?, utility: (any LLMClientProtocol)?,
         fast: (any LLMClientProtocol)?
     ) {
@@ -45,5 +45,4 @@ extension LLMService {
 
         return EndpointComponents(host: host, port: port, scheme: scheme)
     }
-
 }
