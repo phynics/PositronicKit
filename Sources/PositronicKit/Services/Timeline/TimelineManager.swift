@@ -98,29 +98,14 @@ public actor TimelineManager {
     /// facade's default behavior, in `PositronicKit.Configuration`). Hosts that want the
     /// bundled local-filesystem default can build one via `WorkspaceResolverFactory.makeDefault`
     /// or use the `workspaceCreator:`-based convenience initializer below.
-    public init(
-        stores: Stores,
-        workspaceRoot: URL,
-        resolver: any WorkspaceResolver,
-        sectionProviders: [any PromptSectionProviding] = [],
-        runtimeToolPolicy: RuntimeToolPolicy = .default,
-        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService()
-    ) {
-        self.init(
-            stores: stores,
-            workspaceRoot: workspaceRoot,
-            workspaceCreator: workspaceCreator,
-            sectionProviders: sectionProviders,
-            runtimeToolPolicy: runtimeToolPolicy,
-            embeddingService: embeddingService,
-            promptHistoryRegistry: nil
-        )
-    }
-
+    ///
+    /// Not `public`: `promptHistoryRegistry`'s type (`TimelinePromptJournals`) is
+    /// package-internal, so this initializer can't be exposed with that parameter present.
+    /// Same-module callers (the facade) use it directly; public callers use the overload below.
     init(
         stores: Stores,
         workspaceRoot: URL,
-        workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
+        resolver: any WorkspaceResolver,
         sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: RuntimeToolPolicy = .default,
         embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
@@ -139,18 +124,40 @@ public actor TimelineManager {
         workspaceResolver = resolver
     }
 
+    /// Public designated initializer: accepts a fully-formed `any WorkspaceResolver` directly.
+    public init(
+        stores: Stores,
+        workspaceRoot: URL,
+        resolver: any WorkspaceResolver,
+        sectionProviders: [any PromptSectionProviding] = [],
+        runtimeToolPolicy: RuntimeToolPolicy = .default,
+        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService()
+    ) {
+        timelineStore = stores.timelineStore
+        messageStore = stores.messageStore
+        workspaceStore = stores.workspaceStore
+        toolPersistence = stores.toolPersistence
+        memoryStore = stores.memoryStore
+        self.embeddingService = embeddingService
+        self.workspaceRoot = workspaceRoot
+        self.sectionProviders = sectionProviders
+        self.runtimeToolPolicy = runtimeToolPolicy
+        promptHistoryRegistry = nil
+        workspaceResolver = resolver
+    }
+
     /// Convenience initializer that builds the bundled default `WorkspaceResolver` (local
     /// filesystem catalog + injected factory) via `WorkspaceResolverFactory`, preserving the
     /// prior `workspaceCreator:`-based construction ergonomics without TimelineManager itself
     /// composing `DefaultWorkspaceCatalog`/`DefaultWorkspaceResolver`.
-    public init(
+    init(
         stores: Stores,
         workspaceRoot: URL,
         workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: RuntimeToolPolicy = .default,
         embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
-        promptHistoryRegistry: TimelinePromptHistoryRegistry? = nil
+        promptHistoryRegistry: TimelinePromptJournals? = nil
     ) {
         self.init(
             stores: stores,
@@ -164,6 +171,25 @@ public actor TimelineManager {
             runtimeToolPolicy: runtimeToolPolicy,
             embeddingService: embeddingService,
             promptHistoryRegistry: promptHistoryRegistry
+        )
+    }
+
+    public init(
+        stores: Stores,
+        workspaceRoot: URL,
+        workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
+        sectionProviders: [any PromptSectionProviding] = [],
+        runtimeToolPolicy: RuntimeToolPolicy = .default,
+        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService()
+    ) {
+        self.init(
+            stores: stores,
+            workspaceRoot: workspaceRoot,
+            workspaceCreator: workspaceCreator,
+            sectionProviders: sectionProviders,
+            runtimeToolPolicy: runtimeToolPolicy,
+            embeddingService: embeddingService,
+            promptHistoryRegistry: nil
         )
     }
 
@@ -184,7 +210,7 @@ public actor TimelineManager {
 
     init(
         workspaceRoot: URL,
-        workspaceCreator: any WorkspaceCreating = NullWorkspaceCreator(),
+        workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: RuntimeToolPolicy = .default,
         promptHistoryRegistry: TimelinePromptJournals? = nil
