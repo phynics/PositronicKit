@@ -307,6 +307,33 @@ public extension TimelineManager {
         return try await toolPersistence.findWorkspaceId(forToolId: tool.toolId, in: workspaceIds)
     }
 
+    /// Enabled tools for an active timeline (empty if the timeline has no active tool manager).
+    /// A pure query, not subordinate-manager access: it does not expose `TimelineToolRegistry`
+    /// itself (PKV3-010), only the read a host needs to merge system tools with request-scoped
+    /// ones before sending a turn.
+    func enabledTools(for timelineId: UUID) async -> [AnyTool] {
+        guard let toolManager = toolManagers[timelineId] else { return [] }
+        return await toolManager.getEnabledTools()
+    }
+
+    /// Enables a tool by id on an active timeline. No-op (does not throw) if the timeline has
+    /// no active tool manager; returns whether a tool manager was found to act on.
+    @discardableResult
+    func enableTool(id: String, for timelineId: UUID) async -> Bool {
+        guard let toolManager = toolManagers[timelineId] else { return false }
+        await toolManager.enableTool(id: id)
+        return true
+    }
+
+    /// Disables a tool by id on an active timeline. No-op (does not throw) if the timeline has
+    /// no active tool manager; returns whether a tool manager was found to act on.
+    @discardableResult
+    func disableTool(id: String, for timelineId: UUID) async -> Bool {
+        guard let toolManager = toolManagers[timelineId] else { return false }
+        await toolManager.disableTool(id: id)
+        return true
+    }
+
     func getToolSource(toolId: String, for timelineId: UUID) async -> String? {
         guard let timeline = timelines[timelineId] else { return nil }
 

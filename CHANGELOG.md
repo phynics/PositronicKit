@@ -22,6 +22,11 @@ the remaining consumer-migration and final-release work.
   the break only surfaced now because Monad hadn't yet resolved against a tag containing that
   change. The `Tests/PKTestSupport` target itself was never touched by PKHYG-002; this just
   re-adds the one-line product declaration.
+- **`TimelineManager` tool query/mutation gap (found auditing PKV3-010 against Monad)**: PKV3-010
+  made `getToolManager(for:)` internal, but left no public replacement for reading or toggling a
+  timeline's enabled tools — a real host need, not subordinate-manager access. Added
+  `enabledTools(for:) async -> [AnyTool]`, `enableTool(id:for:) async -> Bool`, and
+  `disableTool(id:for:) async -> Bool`; none expose `TimelineToolRegistry` itself.
 
 ### Breaking
 
