@@ -58,8 +58,8 @@ public protocol Tool: Sendable, PromptFormattable {
     /// Immutable identity used for internal routing and event emission.
     ///
     /// Captured once at ``AnyTool`` erasure and never re-derived. Tools that need a
-    /// non-default identity (e.g. a ``ToolReference.custom`` reference) override this;
-    /// the default derives ``known(id:)``-style from ``callName``.
+    /// non-default identity (e.g. a `.custom` reference) override this; the default derives
+    /// a `.known(id:)`-style identity from ``callName``.
     var identity: ToolReference { get }
 
     /// Human-readable display name for the tool.
