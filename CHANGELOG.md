@@ -8,8 +8,52 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+## [3.0.0-beta.1] - 2026-07-13
+
+Prerelease of the v3 vocabulary-and-composition batch (PKV3-001–014) for downstream consumer
+verification. Not yet a stable release — see `workflow/PositronicKit/tickets/PKV3-006-*.md` for
+the remaining consumer-migration and final-release work.
+
 ### Breaking
 
+- **Direct `LanguageModel` injection (PKV3-001)**: public composition vocabulary renamed from
+  `llmService` to `languageModel` (`PositronicKit+Configuration`, and the corresponding facade
+  initializer parameters). Added public `LanguageModel` protocol as the composition of
+  stream/config/utility capabilities. Deleted `ExternalLLMProviderRegistry` and
+  `ProviderFactoryRequest` along with the process-global provider `register()` construction
+  paths — hosts select/construct their provider client directly instead. `ProviderHTTPTransport`
+  is package-internal (now in `PKUtilities`, see PKV3-009).
+- **Tool registration/execution/approval vocabulary (PKV3-004)**: `ToolProviding` → `ToolSource`,
+  `provideTools()` → `tools()`, `ToolProvenance` → `ToolOrigin`, `TimelineToolManager` →
+  `TimelineToolRegistry`, `ToolApprovalGate` → `ToolApprovalPolicy` (with
+  `DenyAllToolApprovalGate`/`AllowAllToolApprovalGate` → `DenyAllToolApprovalPolicy`/
+  `AllowAllToolApprovalPolicy`, `toolApprovalGate` → `toolApprovalPolicy`). All conformers, call
+  sites, tests, and examples migrated.
+- **Explicit `AnyTool` identity (PKV3-012)**: added `Tool.identity: ToolReference` (default
+  `.known(id: callName)`) and `AnyTool.identity`/`AnyTool.origin` (origin now `let`, captured
+  immutably at erasure). Added `AnyTool.withOrigin(_:)` for origin-stamping copies. Deleted
+  `ToolReferenceProviding` and its dynamic-cast fallback.
+- **Turn briefing and prompt journal vocabulary (PKV3-005)**: `ContextManager` →
+  `TurnBriefingBuilder`, `TimelinePromptHistoryRegistry` → `TimelinePromptJournals` (now
+  package-internal), `PromptInspecting` → `PromptObserving` (`promptInspector` →
+  `promptObserver`). Added a `TurnBriefing` typealias for `ContextData`.
+- **`PKUtilities` split from `PKShared` (PKV3-009)**: new public `PKUtilities` library product
+  (depends only on `PKShared`; `PKShared` does not import it). Cross-cutting observability
+  (`RetryPolicy`, `ProviderHTTPFailure`/`ProviderHTTPTransport`, `LogKeys`, `LogRedaction`,
+  `Logger+Extensions`), async/pipeline helpers (`Pipeline`, `Pipeline+Logging`,
+  `CancellableAsyncThrowingStream`, `Collection+UniqueIDs`), `StableHash`, `TokenEstimator`,
+  `PathSanitizer`, `LimitedErrorBodyCollector`, `ANSIColors`, and the concrete filesystem tools
+  (`ReadFileTool`, `FindFileTool`, `ListDirectoryTool`, `SearchFileContentTool`,
+  `SearchFilesTool`, `ChangeDirectoryTool`) moved from `PKShared`/`PositronicKit` into
+  `PKUtilities`. Consumers that referenced these types from `PKShared` or `PositronicKit` must
+  add a `PKUtilities` dependency and update imports.
+- **Provider targets are leaf modules (PKV3-011)**: `LanguageModel` and narrow capability
+  protocols relocated to `PKShared`. Every provider target (`PKOpenAIProvider`,
+  `PKOpenRouterProvider`, `PKOllamaProvider`, `PKAnthropicProvider`,
+  `PKFoundationModelsProvider`) now depends only on `PKShared`/`PKUtilities` plus its vendor
+  SDK — zero `import PositronicKit`. `PositronicKit`-side provider-convenience extensions
+  removed; hosts construct/inject concrete clients directly (e.g.
+  `PKOpenAIProvider.makeClient(configuration:)`).
 - **Legacy `LLMConfiguration` compatibility surface removed (PKV3-014)**: deleted the legacy
   flat initializer and its 18 write-through proxy properties (`endpoint`, `apiKey`, `modelName`,
   `utilityModel`, `fastModel`, `toolFormat`, `timeoutInterval`, `maxRetries`, `temperature`,
@@ -69,6 +113,26 @@ for tagged releases beginning with `1.0.0`.
   `PositronicKit` facade, so default behavior for existing callers is unchanged. All old public
   names (`WorkspaceProtocol`, `WorkspaceCreating`, `WorkspacePersistenceProtocol`,
   `AgentWorkspaceService`, `WorkspaceManager`, and their `*Protocol` variants) are gone.
+
+### Added
+
+- **Provider capability observability (PKV3-008)**: structured, payload-safe warnings (provider,
+  model, option category, reason, timeline ID, turn index — never prompt/tool-argument/response
+  content) are now emitted once per turn when a provider ignores or coerces
+  tools/tool-choice/response-format/generation-parameters. Published
+  `docs/ProviderCapabilityMatrix.md` documenting per-provider variance.
+
+### Confirmed unchanged
+
+- **Persistence seam audit (PKV3-013)**: both `AgentInstanceStoreProtocol` and
+  `RequestOriginStoreProtocol` are kept as public extension points (Monad provides GRDB
+  adapters, Yakamoz provides SwiftData adapters) — not a hypothetical single-conformer seam.
+  Added 36 new contract test cases.
+
+### Fixed
+
+- Fixed unresolvable DocC symbol links in `Tool.identity`'s doc comment (broken since PKV3-012),
+  which was failing `validate-docs`/`make verify`.
 
 ### Removed
 
