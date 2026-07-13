@@ -2,6 +2,7 @@ import Foundation
 import Logging
 import PKPrompt
 import PKShared
+import PKUtilities
 
 /// STAB-1 — Persist a partial assistant turn when the LLM stream fails or is cancelled
 /// mid-flight.

@@ -3,6 +3,7 @@ import Foundation
 import Logging
 import PKPrompt
 import PKShared
+import PKUtilities
 
 /// Errors thrown by `ChatEngine` during setup and execution.
 enum ChatEngineError: PKError {

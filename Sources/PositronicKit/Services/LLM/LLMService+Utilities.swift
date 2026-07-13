@@ -4,6 +4,7 @@ import struct JSONSchema.Schema
 import JSONSchemaBuilder
 import Logging
 import PKShared
+import PKUtilities
 
 public extension LLMUtilityClient where Self: LLMStreamClient {
     /// Generate tags/keywords for a given text using the LLM

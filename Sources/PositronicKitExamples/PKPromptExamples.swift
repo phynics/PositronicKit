@@ -1,6 +1,7 @@
 import Foundation
 import PKPrompt
 import PKShared
+import PKUtilities
 
 public enum PKPromptExamples {
     public struct ExampleTool: Identifiable, Sendable {

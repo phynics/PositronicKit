@@ -1,6 +1,7 @@
 import Foundation
 import Logging
 import PKShared
+import PKUtilities
 
 extension LLMService {
     // MARK: - Internal Configuration Helpers
@@ -18,92 +19,7 @@ extension LLMService {
         main: (any LLMClientProtocol)?, utility: (any LLMClientProtocol)?,
         fast: (any LLMClientProtocol)?
     ) {
-        let components = parseEndpoint(config.endpoint)
-        let timeout = config.timeoutInterval
-        let retries = config.maxRetries
-
-        switch config.provider {
-        case .ollama:
-            return (
-                main: makeExternalClient(
-                    provider: config.provider,
-                    config: config,
-                    components: components,
-                    timeout: timeout,
-                    retries: retries
-                ),
-                utility: makeExternalClient(
-                    provider: config.provider,
-                    config: config,
-                    components: components,
-                    timeout: timeout,
-                    retries: retries,
-                    model: config.utilityModel
-                ),
-                fast: makeExternalClient(
-                    provider: config.provider,
-                    config: config,
-                    components: components,
-                    timeout: timeout,
-                    retries: retries,
-                    model: config.fastModel
-                )
-            )
-
-        case .openRouter:
-            return (
-                main: makeExternalClient(
-                    provider: config.provider,
-                    config: config,
-                    components: components,
-                    timeout: timeout,
-                    retries: retries
-                ),
-                utility: makeExternalClient(
-                    provider: config.provider,
-                    config: config,
-                    components: components,
-                    timeout: timeout,
-                    retries: retries,
-                    model: config.utilityModel
-                ),
-                fast: makeExternalClient(
-                    provider: config.provider,
-                    config: config,
-                    components: components,
-                    timeout: timeout,
-                    retries: retries,
-                    model: config.fastModel
-                )
-            )
-
-        case .openAI, .openAICompatible, .anthropic:
-            return (
-                main: makeExternalClient(
-                    provider: config.provider,
-                    config: config,
-                    components: components,
-                    timeout: timeout,
-                    retries: retries
-                ),
-                utility: makeExternalClient(
-                    provider: config.provider,
-                    config: config,
-                    components: components,
-                    timeout: timeout,
-                    retries: retries,
-                    model: config.utilityModel
-                ),
-                fast: makeExternalClient(
-                    provider: config.provider,
-                    config: config,
-                    components: components,
-                    timeout: timeout,
-                    retries: retries,
-                    model: config.fastModel
-                )
-            )
-        }
+        return (main: nil, utility: nil, fast: nil)
     }
 
     /// Parse an endpoint URL into its host, port, and scheme components.
@@ -130,23 +46,4 @@ extension LLMService {
         return EndpointComponents(host: host, port: port, scheme: scheme)
     }
 
-    // MARK: - Client Factories
-
-    private static func makeExternalClient(
-        provider: LLMProvider,
-        config: LLMConfiguration,
-        components: EndpointComponents,
-        timeout: TimeInterval,
-        retries: Int,
-        model: String? = nil
-    ) -> (any LLMClientProtocol)? {
-        let request = ProviderFactoryRequest(
-            config: config,
-            components: components,
-            timeout: timeout,
-            retries: retries,
-            model: model
-        )
-        return ExternalLLMProviderRegistry.factory(for: provider)?(request)
-    }
 }

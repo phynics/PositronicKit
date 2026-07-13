@@ -2,6 +2,7 @@ import Foundation
 import Logging
 import PKPrompt
 import PKShared
+import PKUtilities
 
 /// Advanced options for prompt assembly.
 ///

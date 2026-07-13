@@ -1,6 +1,7 @@
 import Foundation
 import struct JSONSchema.Schema
 import PKShared
+import PKUtilities
 
 #if canImport(FoundationModels)
     import FoundationModels

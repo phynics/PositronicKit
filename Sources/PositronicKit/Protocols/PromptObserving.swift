@@ -1,6 +1,7 @@
 import Foundation
 import PKPrompt
 import PKShared
+import PKUtilities
 
 /// Compose-time observability hook: invoked once per round-trip *before* the LLM runs,
 /// with the rendered prompt, sent messages, and prompt-journal snapshot — i.e. the input

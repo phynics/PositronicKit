@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// Structured context data
 public struct ContextData: Sendable, Codable {

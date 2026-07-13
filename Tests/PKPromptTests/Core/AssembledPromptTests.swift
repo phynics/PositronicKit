@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import PKPrompt
 import PKShared
+import PKUtilities
 
 private struct DummyPromptSection: PromptPrimitive {
     let id: String

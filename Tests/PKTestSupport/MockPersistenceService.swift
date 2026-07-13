@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 import PositronicKit
 
 /// Composite in-memory test double for the full persistence surface (memories, messages,

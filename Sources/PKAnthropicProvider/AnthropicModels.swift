@@ -2,6 +2,7 @@ import Foundation
 import struct JSONSchema.Schema
 import Logging
 import PKShared
+import PKUtilities
 
 // MARK: - JSON value bridging
 

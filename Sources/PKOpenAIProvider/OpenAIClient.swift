@@ -5,7 +5,7 @@ import Foundation
 import Logging
 import OpenAI
 import PKShared
-import PositronicKit
+import PKUtilities
 import Synchronization
 
 public actor OpenAIClient: LLMClientProtocol {

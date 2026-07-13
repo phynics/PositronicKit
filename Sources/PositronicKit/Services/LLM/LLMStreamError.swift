@@ -1,6 +1,7 @@
 import ErrorKit
 import Foundation
 import PKShared
+import PKUtilities
 
 /// Wraps a foreign provider transport error that reached the turn loop without a
 /// `PKError` domain/code, so callers can classify turn failures by structured error

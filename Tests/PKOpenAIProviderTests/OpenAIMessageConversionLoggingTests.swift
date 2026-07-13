@@ -3,6 +3,7 @@ import Logging
 import OpenAI
 @testable import PKOpenAIProvider
 import PKShared
+import PKUtilities
 import Testing
 
 private final class CapturingLogSink: @unchecked Sendable {

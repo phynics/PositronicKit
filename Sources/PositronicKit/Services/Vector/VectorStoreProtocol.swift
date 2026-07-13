@@ -1,5 +1,6 @@
 import ErrorKit
 import PKShared
+import PKUtilities
 import Foundation
 
 public enum VectorStoreError: PKError {

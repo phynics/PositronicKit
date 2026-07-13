@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// Protocol for managing the persistence and provisioning of agent private workspaces.
 public protocol WorkspaceCatalog: Sendable {

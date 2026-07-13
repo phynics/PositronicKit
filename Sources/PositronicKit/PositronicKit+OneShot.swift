@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 public extension PositronicKit {
     /// Generates a response for a single prompt without creating or updating a timeline.
@@ -15,7 +16,7 @@ public extension PositronicKit {
     func stream(_ prompt: String) -> AsyncThrowingStream<LLMStreamChunk, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
-                let stream = await llmService.chatStream(
+                let stream = await languageModel.chatStream(
                     messages: [LLMMessage(role: .user, content: prompt)],
                     tools: nil,
                     toolChoice: nil,

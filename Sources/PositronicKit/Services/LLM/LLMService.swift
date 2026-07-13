@@ -3,6 +3,7 @@ import Foundation
 import Logging
 import Observation
 import PKShared
+import PKUtilities
 
 /// Set-once box for the one-shot preparation task. It is created before `LLMService` escapes
 /// `self` in its initializers, then populated with the actual task once `self` is fully
@@ -24,7 +25,7 @@ private final class PreparationTaskBox: @unchecked Sendable {
 }
 
 /// Service for managing LLM interactions with configuration support
-public actor LLMService: LLMStreamClient, LLMConfigStore, LLMUtilityClient, HealthCheckable {
+public actor LLMService: LanguageModel, HealthCheckable {
     public private(set) var configuration: LLMConfiguration = .openAI
     public private(set) var isConfigured: Bool = false
 
@@ -279,44 +280,5 @@ public actor LLMService: LLMStreamClient, LLMConfigStore, LLMUtilityClient, Heal
             responseFormat: responseFormat,
             generationParameters: params
         )
-    }
-}
-
-// MARK: - Error Types
-
-public enum LLMServiceError: PKError, Equatable {
-    case notConfigured
-    case invalidConfiguration
-    case networkError(String)
-    case httpError(provider: String, statusCode: Int, responseBody: String, retryAfter: TimeInterval?)
-
-    public var errorDomain: String {
-        PKErrorDomain.llm
-    }
-
-    public var errorCode: Int {
-        switch self {
-        case .notConfigured: return 1001
-        case .invalidConfiguration: return 1002
-        case .networkError: return 1003
-        case .httpError: return 1004
-        }
-    }
-
-    public var userFriendlyMessage: String {
-        switch self {
-        case .notConfigured:
-            return "LLM service is not configured. Please set up your API endpoint and key."
-        case .invalidConfiguration:
-            return "Invalid LLM configuration. Please check your settings."
-        case let .networkError(message):
-            return "Network error: \(message)"
-        case let .httpError(provider, statusCode, responseBody, _):
-            let trimmedBody = ProviderHTTPFailure.sanitize(responseBody)
-            guard !trimmedBody.isEmpty else {
-                return "\(provider) request failed with HTTP \(statusCode)."
-            }
-            return "\(provider) request failed with HTTP \(statusCode): \(trimmedBody)"
-        }
     }
 }

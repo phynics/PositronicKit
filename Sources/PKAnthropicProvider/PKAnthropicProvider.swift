@@ -1,43 +1,17 @@
 import Foundation
 import PKShared
-import PositronicKit
 
 public enum PKAnthropicProvider {
-    public static func register() {
-        ExternalLLMProviderRegistry.register(factory: { request in
-            AnthropicClient(
-                apiKey: request.config.apiKey,
-                modelName: request.model ?? request.config.modelName,
-                host: request.components.host,
-                port: request.components.port,
-                scheme: request.components.scheme,
-                timeoutInterval: request.timeout,
-                maxRetries: request.retries
-            )
-        }, for: .anthropic)
-        StructuredOutputAdapterRegistry.register(AnthropicStructuredOutputAdapter(), for: .anthropic)
-    }
-}
-
-public extension PositronicKit {
-    convenience init(
-        anthropicKey: String,
-        model: String = "claude-sonnet-4-5",
-        endpoint: String = "https://api.anthropic.com",
-        generationParameters: GenerationParameters? = nil
-    ) {
-        PKAnthropicProvider.register()
-        let config = LLMConfiguration(
-            endpoint: endpoint,
-            modelName: model,
-            apiKey: anthropicKey,
-            provider: .anthropic
+    public static func makeClient(configuration: LLMConfiguration) -> AnthropicClient {
+        let url = URL(string: configuration.endpoint)
+        return AnthropicClient(
+            apiKey: configuration.apiKey,
+            modelName: configuration.modelName,
+            host: url?.host ?? "api.anthropic.com",
+            port: url?.port ?? 443,
+            scheme: url?.scheme ?? "https",
+            timeoutInterval: configuration.timeoutInterval,
+            maxRetries: configuration.maxRetries
         )
-        let llm = LLMService(configuration: config)
-        self.init(configuration: .init(
-            provider: .init(llmService: llm),
-            persistence: .inMemory(),
-            generationParameters: generationParameters
-        ))
     }
 }

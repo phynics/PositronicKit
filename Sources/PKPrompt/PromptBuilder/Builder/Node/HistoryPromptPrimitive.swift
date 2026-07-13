@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 package struct HistoryPromptPrimitive: PromptPrimitive {
     package let id: String

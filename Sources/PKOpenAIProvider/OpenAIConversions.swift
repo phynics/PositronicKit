@@ -2,8 +2,8 @@ import Foundation
 import struct JSONSchema.Schema
 import Logging
 import OpenAI
-import PKPrompt
 import PKShared
+import PKUtilities
 
 /// Logger used when an `LLMMessage` with `.tool` role is converted for the OpenAI wire format
 /// without a `toolCallID` (PKR-12). `LLMMessage.toolCallID` is `String?`, but a `.tool`-role
@@ -207,17 +207,5 @@ private func mapRole(_ role: ChatQuery.ChatCompletionMessageParam.Role) -> LLMMe
         return .tool
     case .user:
         return .user
-    }
-}
-
-public extension RenderedPrompt {
-    func buildOpenAIMessages() -> [ChatQuery.ChatCompletionMessageParam] {
-        buildMessages().map { $0.toOpenAIMessageParam() }
-    }
-}
-
-public extension PKShared.Tool {
-    func toOpenAIToolParam() -> ChatQuery.ChatCompletionToolParam {
-        toLLMToolDefinition().toOpenAIToolParam()
     }
 }

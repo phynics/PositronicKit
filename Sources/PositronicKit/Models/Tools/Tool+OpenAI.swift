@@ -1,6 +1,7 @@
 import Foundation
 import struct JSONSchema.Schema
 import PKShared
+import PKUtilities
 
 public extension PKShared.Tool {
     func toLLMToolDefinition() -> LLMToolDefinition {

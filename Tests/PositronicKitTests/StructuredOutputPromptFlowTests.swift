@@ -2,6 +2,7 @@ import PKTestSupport
 import Testing
 @testable import PositronicKit
 @testable import PKShared
+import PKUtilities
 
 @Suite("Structured Output Prompt Flow Tests")
 @MainActor

@@ -3,6 +3,7 @@ import Foundation
 import Logging
 import PKPrompt
 import PKShared
+import PKUtilities
 
 /// Builds the turn briefing — the selected memory/workspace material for one chat turn.
 actor TurnBriefingBuilder {

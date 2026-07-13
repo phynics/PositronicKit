@@ -2,6 +2,7 @@ import Foundation
 import Logging
 import PKPrompt
 @testable import PKShared
+import PKUtilities
 import PKTestSupport
 @testable import PositronicKit
 import Testing

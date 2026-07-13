@@ -2,7 +2,7 @@ import Foundation
 import struct JSONSchema.Schema
 import Logging
 import PKShared
-import PositronicKit
+import PKUtilities
 
 struct OpenRouterModelsResponse: Codable {
     struct Model: Codable { let id: String }

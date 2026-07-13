@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 public extension LLMStreamClient {
     func sendStructuredMessage(

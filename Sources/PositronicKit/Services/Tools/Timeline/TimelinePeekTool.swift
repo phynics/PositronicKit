@@ -2,6 +2,7 @@ import Foundation
 import struct JSONSchema.Schema
 import JSONSchemaBuilder
 import PKShared
+import PKUtilities
 
 /// Allows an agent to read recent messages from a timeline without attaching to it.
 public struct TimelinePeekTool: PKShared.Tool, Sendable {

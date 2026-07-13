@@ -1,6 +1,7 @@
 import Foundation
 @testable import PKFoundationModelsProvider
 import PKShared
+import PKUtilities
 import Testing
 
 /// Unit tests for `FoundationModelsStreamMapper` (PKPOST-003): pure event→`LLMStreamChunk`

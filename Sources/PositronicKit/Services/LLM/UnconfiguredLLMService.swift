@@ -1,7 +1,8 @@
 import Foundation
 import PKShared
+import PKUtilities
 
-public struct UnconfiguredLLMService: LLMStreamClient, LLMConfigStore, LLMUtilityClient {
+public struct UnconfiguredLLMService: LanguageModel {
     public init() {}
 
     private var error: LLMServiceError {

@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 extension RenderedPrompt.Section {
     /// Derives structured node metadata for this rendered section using its content.

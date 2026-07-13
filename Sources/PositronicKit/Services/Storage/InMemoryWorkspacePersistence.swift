@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// Thread-safe in-memory workspace persistence for prototyping and development.
 public actor InMemoryWorkspacePersistence: WorkspaceStore {

@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// Builds a `TimelineToolRegistry` for a session from a `RuntimeToolPolicy` and the timeline's
 /// attached-agent identity. Pure function with no side effects on the timeline cache.

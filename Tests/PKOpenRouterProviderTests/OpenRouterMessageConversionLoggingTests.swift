@@ -2,6 +2,7 @@ import Foundation
 import Logging
 @testable import PKOpenRouterProvider
 import PKShared
+import PKUtilities
 import Testing
 
 private final class CapturingLogSink: @unchecked Sendable {

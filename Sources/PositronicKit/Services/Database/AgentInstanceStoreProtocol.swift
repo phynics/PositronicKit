@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// Protocol for persisting and querying agent instances.
 ///

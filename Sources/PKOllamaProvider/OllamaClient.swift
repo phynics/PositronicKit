@@ -4,7 +4,7 @@ import Foundation
 #endif
 import Logging
 import PKShared
-import PositronicKit
+import PKUtilities
 import Synchronization
 
 struct OllamaTagsResponse: Codable {

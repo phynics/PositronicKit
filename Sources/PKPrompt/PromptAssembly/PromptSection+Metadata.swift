@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 extension PromptSection {
     /// Derives structured node metadata for this section using its resolved content.

@@ -1,4 +1,5 @@
 import PKShared
+import PKUtilities
 
 // Protocol for managing chat history and message persistence.
 

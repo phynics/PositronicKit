@@ -1,6 +1,7 @@
 import Foundation
 @testable import PKOpenRouterProvider
 import PKShared
+import PKUtilities
 import Testing
 
 @Suite struct OpenRouterToolCallRecoveryTests {

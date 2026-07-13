@@ -2,6 +2,7 @@ import Foundation
 import struct JSONSchema.Schema
 import JSONSchemaBuilder
 import PKShared
+import PKUtilities
 
 /// Allows an agent to list available (non-private) timelines it can observe.
 public struct TimelineListTool: PKShared.Tool, Sendable {

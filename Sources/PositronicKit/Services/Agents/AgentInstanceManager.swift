@@ -2,6 +2,7 @@ import ErrorKit
 import Foundation
 import Logging
 import PKShared
+import PKUtilities
 
 /// Manages the lifecycle of agent instances: creation, attachment to timelines,
 /// detachment, and deletion.

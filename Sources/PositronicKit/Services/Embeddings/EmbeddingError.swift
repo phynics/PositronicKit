@@ -1,6 +1,7 @@
 import Foundation
 import ErrorKit
 import PKShared
+import PKUtilities
 
 public enum EmbeddingError: PKError, Equatable {
     case modelUnavailable

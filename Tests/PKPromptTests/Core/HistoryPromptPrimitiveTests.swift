@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import PKPrompt
 @testable import PKShared
+import PKUtilities
 
 @Suite("HistoryPromptPrimitive")
 struct HistoryPromptPrimitiveTests {

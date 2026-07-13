@@ -3,6 +3,8 @@ import Foundation
     import FoundationNetworking
 #endif
 import OpenAI
+import PKShared
+import PKUtilities
 @testable import PKOllamaProvider
 @testable import PKOpenAIProvider
 @testable import PKOpenRouterProvider

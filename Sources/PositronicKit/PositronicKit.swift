@@ -3,13 +3,14 @@ import Foundation
 import Logging
 import PKPrompt
 import PKShared
+import PKUtilities
 
 /// The public facade for PositronicKit's agent runtime subsystem.
 ///
 /// Accepts all required services as init parameters and wires them internally,
 /// so consumers never need to assemble a shared dependency container.
 ///
-/// Only `llmService` is required. All other parameters have sensible in-memory defaults
+/// Only `languageModel` is required. All other parameters have sensible in-memory defaults
 /// suitable for development and prototyping. For production, provide persistent stores.
 ///
 /// PositronicKit intentionally stays transport-neutral. Concepts like timelines, workspaces,
@@ -23,13 +24,13 @@ import PKShared
 /// even when they are visible to tests inside this package.
 ///
 /// Example usage:
-/// - Minimal: `PositronicKit(llmService: myLLM)`
+/// - Minimal: `PositronicKit(languageModel: myModel)`
 /// - Production: use `PositronicKit(configuration:)`.
 ///
 /// The public operation ladder is progressive: tier 1 is timeline-free one-shot
 /// `complete(_:)`/`stream(_:)`; tier 2 is the stateful `TimelineDriver`; tier 3 is
 /// direct `timelineManager` access; tier 4 is the full `AgenticRuntime` tool/agent loop;
-/// tier 5 is the raw primitives (`toolRouter`, `llmService`, and the prompt DSL) for a
+/// tier 5 is the raw primitives (`toolRouter`, `languageModel`, and the prompt DSL) for a
 /// bespoke pipeline. A typical application wraps one kit in an application-owned Service
 /// class, then passes the managers or controllers it vends to the relevant subsystems.
 ///
@@ -38,7 +39,10 @@ import PKShared
 public final class PositronicKit: Sendable {
     // MARK: - Direct ChatEngine dependencies
 
-    let llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient
+    let languageModel: any LanguageModel
+
+    @available(*, deprecated, renamed: "languageModel")
+    var llmService: any LanguageModel { languageModel }
     private let messageStore: any MessageStoreProtocol
 
     /// The timeline manager built by this facade. Hosts that need direct access (e.g. to wire
@@ -82,18 +86,33 @@ public final class PositronicKit: Sendable {
 
     /// Creates a provider-agnostic facade with in-memory persistence and default runtime policy.
     public convenience init(
-        llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient = UnconfiguredLLMService()
+        languageModel: any LanguageModel = UnconfiguredLLMService()
     ) {
         self.init(
             configuration: .init(
-                provider: .init(llmService: llmService),
+                provider: .init(languageModel: languageModel),
                 persistence: .inMemory()
             )
         )
     }
 
-    init(
+    @available(*, deprecated, renamed: "init(languageModel:)")
+    public convenience init(
+        llmService: any LanguageModel
+    ) {
+        self.init(languageModel: llmService)
+    }
+
+    @available(*, deprecated, renamed: "init(languageModel:generationParameters:)")
+    public func reconfigured(
         llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient,
+        generationParameters: GenerationParameters? = nil
+    ) -> PositronicKit {
+        reconfigured(languageModel: AnyLanguageModel(base: llmService), generationParameters: generationParameters)
+    }
+
+    init(
+        languageModel: any LanguageModel,
         messageStore: (any MessageStoreProtocol)? = nil,
         agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,
         requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
@@ -113,7 +132,7 @@ public final class PositronicKit: Sendable {
         sharedRegistry: TimelinePromptJournals,
         additionalStages: [any PipelineStage<ChatTurnContext, ChatEvent>]
     ) {
-        self.llmService = llmService
+        self.languageModel = languageModel
         self.messageStore = messageStore ?? InMemoryMessageStore()
         self.agentInstanceStore = agentInstanceStore ?? InMemoryAgentInstanceStore()
         self.requestOriginStore = requestOriginStore ?? InMemoryRequestOriginStore()
@@ -177,7 +196,7 @@ public final class PositronicKit: Sendable {
                 agentInstanceStore: self.agentInstanceStore,
                 requestOriginStore: self.requestOriginStore,
                 messageStore: self.messageStore,
-                llmService: self.llmService,
+                llmService: self.languageModel,
                 toolRouter: toolRouter,
                 chatTurnPlugins: self.chatTurnPlugins,
                 promptObserver: self.promptObserver,
@@ -195,11 +214,11 @@ public final class PositronicKit: Sendable {
     /// This is the supported path for hosts that must refresh provider settings between sends
     /// without silently resetting per-timeline prompt-history state.
     public func reconfigured(
-        llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient,
+        languageModel: any LanguageModel,
         generationParameters: GenerationParameters? = nil
     ) -> PositronicKit {
         PositronicKit(
-            llmService: llmService,
+            languageModel: languageModel,
             messageStore: messageStore,
             agentInstanceStore: agentInstanceStore,
             requestOriginStore: requestOriginStore,
@@ -232,7 +251,7 @@ public final class PositronicKit: Sendable {
     /// the concrete runtime pipeline topology.
     func addingStage(_ stage: any PipelineStage<ChatTurnContext, ChatEvent>) -> PositronicKit {
         PositronicKit(
-            llmService: llmService,
+            languageModel: languageModel,
             messageStore: messageStore,
             agentInstanceStore: agentInstanceStore,
             requestOriginStore: requestOriginStore,
@@ -259,7 +278,7 @@ public final class PositronicKit: Sendable {
     /// - Returns: A new instance with the plugin added.
     public func addingPlugin(_ plugin: any ChatTurnPlugin) -> PositronicKit {
         PositronicKit(
-            llmService: llmService,
+            languageModel: languageModel,
             messageStore: messageStore,
             agentInstanceStore: agentInstanceStore,
             requestOriginStore: requestOriginStore,

@@ -1,4 +1,5 @@
 import PKShared
+import PKUtilities
 /// Protocol for managing AgentTemplate definitions in persistent storage.
 
 import Foundation

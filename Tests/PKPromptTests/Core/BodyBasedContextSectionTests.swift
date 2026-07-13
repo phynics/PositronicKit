@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import PKPrompt
 @testable import PKShared
+import PKUtilities
 
 private struct StaticText: PromptPrimitive {
     let id: String

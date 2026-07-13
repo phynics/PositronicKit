@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// Controls when and whether a candidate memory is actually persisted.
 public enum MemorySavePolicy: Sendable {

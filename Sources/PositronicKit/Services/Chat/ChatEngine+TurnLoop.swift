@@ -2,6 +2,7 @@ import Foundation
 import Logging
 import PKPrompt
 import PKShared
+import PKUtilities
 
 private enum LoopContinuation {
     case stop
@@ -100,7 +101,7 @@ extension ChatEngine {
                     let responseText = await turnContext.outputs.fullResponse + turnContext.outputs.fullThinking
                     _ = await history.append(
                         messageCount: newMessages.count,
-                        estimatedTokens: PKShared.TokenEstimator.estimate(text: responseText)
+                        estimatedTokens: TokenEstimator.estimate(text: responseText)
                     )
                 }
                 let snapshot = await snapshotBuilder.buildFollowUpSnapshot(

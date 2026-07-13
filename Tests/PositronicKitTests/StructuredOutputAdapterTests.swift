@@ -161,10 +161,11 @@ struct StructuredOutputAdapterTests {
 
     @Test("Registry returns the registered adapter per provider")
     func registryLookup() {
-        PKOpenAIProvider.register()
-        PKOpenRouterProvider.register()
-        PKOllamaProvider.register()
-        PKAnthropicProvider.register()
+        StructuredOutputAdapterRegistry.register(NativeJSONSchemaStructuredOutputAdapter(), for: .openAI)
+        StructuredOutputAdapterRegistry.register(NativeJSONSchemaStructuredOutputAdapter(), for: .openRouter)
+        StructuredOutputAdapterRegistry.register(OllamaStructuredOutputAdapter(), for: .ollama)
+        StructuredOutputAdapterRegistry.register(AnthropicStructuredOutputAdapter(), for: .anthropic)
+        StructuredOutputAdapterRegistry.register(OpenAICompatibleStructuredOutputAdapter(), for: .openAICompatible)
 
         #expect(StructuredOutputAdapterRegistry.adapter(for: .openAI) is NativeJSONSchemaStructuredOutputAdapter)
         #expect(StructuredOutputAdapterRegistry.adapter(for: .openRouter) is NativeJSONSchemaStructuredOutputAdapter)

@@ -1,7 +1,7 @@
 import Foundation
 import Logging
 import PKShared
-import PositronicKit
+import PKUtilities
 
 #if canImport(FoundationModels)
     import FoundationModels

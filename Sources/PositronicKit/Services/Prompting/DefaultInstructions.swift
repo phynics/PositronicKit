@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// Default system instructions for the LLM
 public enum DefaultInstructions {

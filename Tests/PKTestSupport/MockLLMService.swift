@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 import PositronicKit
 
 /// In-memory `LLMClientProtocol` test double.
@@ -210,7 +211,7 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
 /// stubs), `stubbedStream` (override the stream returned by `chatStream`, bypassing
 /// `mockClient`).
 /// Call-capture: `generatedTitleInputs` (messages passed to each `generateTitle` call).
-public final class MockLLMService: LLMStreamClient, LLMConfigStore, LLMUtilityClient, @unchecked Sendable, HealthCheckable {
+public final class MockLLMService: LanguageModel, @unchecked Sendable, HealthCheckable {
     public var mockHealthStatus: HealthStatus = .ok
     public var mockHealthDetails: [String: String]? = ["mock": "true"]
 

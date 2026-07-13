@@ -2,6 +2,7 @@ import Foundation
 import Logging
 import OpenAI
 @testable import PKShared
+import PKUtilities
 import PKTestSupport
 @testable import PositronicKit
 import Testing

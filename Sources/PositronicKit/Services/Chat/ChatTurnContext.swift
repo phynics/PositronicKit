@@ -1,6 +1,7 @@
 import Foundation
 import PKPrompt
 import PKShared
+import PKUtilities
 
 /// Accumulates parts of a streamed tool call.
 struct StreamedToolCall {
@@ -83,7 +84,7 @@ actor TurnOutputs {
     func finalizeTurn(startTime: Date) {
         turnDuration = Date().timeIntervalSince(startTime)
         let completionTokens = streamUsage?.completionTokens
-            ?? PKShared.TokenEstimator.estimate(text: fullResponse + fullThinking)
+            ?? TokenEstimator.estimate(text: fullResponse + fullThinking)
         tokensPerSecond = turnDuration > 0 ? Double(completionTokens) / turnDuration : nil
     }
 }

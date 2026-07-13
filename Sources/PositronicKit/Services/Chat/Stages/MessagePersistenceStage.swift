@@ -2,6 +2,7 @@ import Foundation
 import Logging
 import PKPrompt
 import PKShared
+import PKUtilities
 
 /// Pipeline stage responsible for persisting the assistant message and emitting the completion event.
 ///
@@ -153,7 +154,7 @@ struct MessagePersistenceStage: PipelineStage {
             return TurnContextSnapshot.PromptMessage(
                 role: role,
                 content: content,
-                tokenCount: PKShared.TokenEstimator.estimate(text: content)
+                tokenCount: TokenEstimator.estimate(text: content)
             )
         }
 

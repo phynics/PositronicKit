@@ -12,6 +12,7 @@
 /// in-package conformers.
 
 import PKShared
+import PKUtilities
 import Foundation
 
 public protocol RequestOriginStoreProtocol: Sendable {

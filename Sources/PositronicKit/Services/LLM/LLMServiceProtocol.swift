@@ -1,6 +1,7 @@
 import Foundation
 import PKPrompt
 import PKShared
+import PKUtilities
 
 // MARK: - Request / Result Types
 
@@ -141,6 +142,39 @@ public struct LLMPromptRequest: Sendable {
 
 /// Parsed endpoint components.
 // MARK: - Narrow LLM seams
+
+/// The complete language-model capability required by the PositronicKit facade.
+/// Hosts inject one provider-selected value at their composition root.
+public protocol LanguageModel: LLMStreamClient, LLMConfigStore, LLMUtilityClient {}
+
+struct AnyLanguageModel: LanguageModel {
+    let base: any LLMStreamClient & LLMConfigStore & LLMUtilityClient
+
+    var isConfigured: Bool { get async { await base.isConfigured } }
+    var configuration: LLMConfiguration { get async { await base.configuration } }
+    func chatStreamWithContext(_ request: LLMChatRequest) async throws -> LLMStreamResult {
+        try await base.chatStreamWithContext(request)
+    }
+    func chatStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        await base.chatStream(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, modelTier: modelTier)
+    }
+    func loadConfiguration() async { await base.loadConfiguration() }
+    func updateConfiguration(_ config: LLMConfiguration) async throws { try await base.updateConfiguration(config) }
+    func clearConfiguration() async { await base.clearConfiguration() }
+    func restoreFromBackup() async throws { try await base.restoreFromBackup() }
+    func exportConfiguration() async throws -> Data { try await base.exportConfiguration() }
+    func importConfiguration(from data: Data) async throws { try await base.importConfiguration(from: data) }
+    func sendMessage(_ content: String) async throws -> String { try await base.sendMessage(content) }
+    func sendMessage(_ content: String, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, useUtilityModel: Bool) async throws -> String {
+        try await base.sendMessage(content, responseFormat: responseFormat, generationParameters: generationParameters, useUtilityModel: useUtilityModel)
+    }
+    func generateTags(for text: String) async throws -> [String] { try await base.generateTags(for: text) }
+    func generateTitle(for messages: [Message]) async throws -> String { try await base.generateTitle(for: messages) }
+    func evaluateRecallPerformance(transcript: String, recalledMemories: [Memory]) async throws -> [String: Double] {
+        try await base.evaluateRecallPerformance(transcript: transcript, recalledMemories: recalledMemories)
+    }
+    func fetchAvailableModels() async throws -> [String]? { try await base.fetchAvailableModels() }
+}
 
 /// Streaming chat seam: a consumer that drives LLM generation by streaming chat
 /// completions. This is the narrowest seam the runtime turn loop needs.

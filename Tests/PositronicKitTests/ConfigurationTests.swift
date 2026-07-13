@@ -1,6 +1,7 @@
 import Foundation
 @testable import PositronicKit
 import PKShared
+import PKUtilities
 import Testing
 
 @Suite struct LLMConfigurationTests {

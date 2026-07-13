@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 extension RenderedPrompt {
     /// A rendered snapshot of a single prompt section.

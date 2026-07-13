@@ -3,6 +3,7 @@ import Foundation
 import Logging
 import PKPrompt
 import PKShared
+import PKUtilities
 
 /// Pipeline stage responsible for retrieving relevant semantic memories and tags.
 struct MemoryRetrievalStage: PipelineStage {

@@ -2,6 +2,7 @@ import Testing
 import Synchronization
 @testable import PositronicKit
 @testable import PKShared
+import PKUtilities
 import Foundation
 
 @Suite("Retry Policy Tests")

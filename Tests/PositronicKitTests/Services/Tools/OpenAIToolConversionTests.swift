@@ -2,6 +2,7 @@ import Foundation
 import struct JSONSchema.Schema
 import JSONSchemaBuilder
 import PKShared
+import PKUtilities
 import Testing
 @testable import PositronicKit
 

@@ -6,6 +6,7 @@ import PKFoundationModelsProvider
 import PKOllamaProvider
 import PKOpenAIProvider
 import PKShared
+import PKUtilities
 import PositronicKit
 
 public enum PositronicKitUsageExamples {
@@ -20,14 +21,14 @@ public enum PositronicKitUsageExamples {
     }
 
     public static func makePrototypeRuntime() -> PositronicKit {
-        PositronicKit(llmService: UnconfiguredLLMService())
+        PositronicKit(languageModel: UnconfiguredLLMService())
     }
 
     // MARK: - Facade operation ladder
 
     /// Tier 1: a timeline-free one-shot runtime.
     public static func makeOneShotRuntime() -> PositronicKit {
-        PositronicKit(llmService: UnconfiguredLLMService())
+        PositronicKit(languageModel: UnconfiguredLLMService())
     }
 
     /// Tier 2: a driver for a freshly created, persisted timeline.
@@ -52,18 +53,34 @@ public enum PositronicKitUsageExamples {
 
     public static func makeInspectableRuntime(inspector: any PromptObserving) -> PositronicKit {
         PositronicKit(configuration: .init(
-            provider: .init(llmService: UnconfiguredLLMService()),
+            provider: .init(languageModel: UnconfiguredLLMService()),
             persistence: .inMemory(),
             runtime: .init(promptObserver: inspector)
         ))
     }
 
     public static func makeOpenAIRuntime(apiKey: String = "sk-example") -> PositronicKit {
-        PositronicKit(openAIKey: apiKey)
+        let config = LLMConfiguration(modelName: "gpt-4o", apiKey: apiKey, provider: .openAI)
+        let client = PKOpenAIProvider.makeClient(configuration: config)
+        let model = LLMService(
+            storage: InMemoryConfigurationService(config: config),
+            client: client,
+            utilityClient: client,
+            fastClient: client
+        )
+        return PositronicKit(languageModel: model)
     }
 
     public static func makeOllamaRuntime(model: String = "llama3") -> PositronicKit {
-        PositronicKit(ollamaModel: model)
+        let config = LLMConfiguration(modelName: model, provider: .ollama)
+        let client = PKOllamaProvider.makeClient(configuration: config)
+        let languageModel = LLMService(
+            storage: InMemoryConfigurationService(config: config),
+            client: client,
+            utilityClient: client,
+            fastClient: client
+        )
+        return PositronicKit(languageModel: languageModel)
     }
 
     public static func makeConfiguredRuntime() -> PositronicKit {
@@ -74,19 +91,23 @@ public enum PositronicKitUsageExamples {
         )
 
         return PositronicKit(configuration: .init(
-            provider: .init(llmService: UnconfiguredLLMService(), embeddingService: NoOpEmbeddingService()),
+            provider: .init(languageModel: UnconfiguredLLMService(), embeddingService: NoOpEmbeddingService()),
             persistence: .inMemory(),
             runtime: runtime
         ))
     }
 
     public static func makeConfiguredOpenAIRuntime(apiKey: String = "sk-example") -> PositronicKit {
-        PKOpenAIProvider.register()
+        let configuration = LLMConfiguration(apiKey: apiKey, provider: .openAI)
+        let client = PKOpenAIProvider.makeClient(configuration: configuration)
+        let languageModel = LLMService(
+            storage: InMemoryConfigurationService(config: configuration),
+            client: client,
+            utilityClient: client,
+            fastClient: client
+        )
         return PositronicKit(configuration: .init(
-            provider: .init(llmService: LLMService(configuration: .init(
-                apiKey: apiKey,
-                provider: .openAI
-            ))),
+            provider: .init(languageModel: languageModel),
             persistence: .inMemory()
         ))
     }
@@ -94,7 +115,15 @@ public enum PositronicKitUsageExamples {
     /// PKPOST-001: the native Anthropic adapter registers exactly like the other providers;
     /// `PositronicKit(anthropicKey:)` wraps registration + configuration in one call.
     public static func makeConfiguredAnthropicRuntime(apiKey: String = "sk-ant-example") -> PositronicKit {
-        PositronicKit(anthropicKey: apiKey)
+        let configuration = LLMConfiguration(apiKey: apiKey, provider: .anthropic)
+        let client = PKAnthropicProvider.makeClient(configuration: configuration)
+        let languageModel = LLMService(
+            storage: InMemoryConfigurationService(config: configuration),
+            client: client,
+            utilityClient: client,
+            fastClient: client
+        )
+        return PositronicKit(languageModel: languageModel)
     }
 
     /// PKPOST-003: Apple's on-device Foundation Models provider — no API key, no network.
@@ -106,7 +135,14 @@ public enum PositronicKitUsageExamples {
     /// framework (or pre-26 macOS), the resulting runtime's `chatStream` throws
     /// `FoundationModelsPlatformError.unsupportedPlatform` rather than crashing.
     public static func makeFoundationModelsRuntime(tools: [AnyTool] = []) -> PositronicKit {
-        PositronicKit(foundationModelsTools: tools)
+        let client = FoundationModelsClient(tools: tools.map { $0.toAnyTool() })
+        let languageModel = LLMService(
+            storage: InMemoryConfigurationService(config: .default),
+            client: client,
+            utilityClient: client,
+            fastClient: client
+        )
+        return PositronicKit(languageModel: languageModel)
     }
 
     public static func makeProductionRuntime() -> PositronicKit {
@@ -117,7 +153,7 @@ public enum PositronicKitUsageExamples {
         )
 
         return PositronicKit(configuration: .init(
-            provider: .init(llmService: UnconfiguredLLMService(), embeddingService: NoOpEmbeddingService()),
+            provider: .init(languageModel: UnconfiguredLLMService(), embeddingService: NoOpEmbeddingService()),
             persistence: .init(
                 messageStore: InMemoryMessageStore(),
                 timelinePersistence: InMemoryTimelinePersistence(),

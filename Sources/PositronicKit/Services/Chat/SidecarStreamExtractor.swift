@@ -2,6 +2,7 @@ import Foundation
 import Logging
 import PartialJSON
 import PKShared
+import PKUtilities
 
 /// Incremental extractor turning raw structured-output JSON deltas into routed
 /// sidecar-turn outputs. Pure value type: feed `consume(_:)` per content delta,

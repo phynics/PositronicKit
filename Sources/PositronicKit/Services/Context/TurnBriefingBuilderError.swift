@@ -1,6 +1,7 @@
 import ErrorKit
 import Foundation
 import PKShared
+import PKUtilities
 
 /// Error types specific to TurnBriefingBuilder
 enum TurnBriefingBuilderError: PKError {

@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// Handles ranking of semantic search results
 public struct ContextRanker: Sendable {

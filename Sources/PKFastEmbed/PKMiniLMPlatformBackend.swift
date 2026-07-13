@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 import PositronicKit
 
 /// Shared platform backend actor wrapping `MiniLMEmbedder`, consumed by `PKLocalEmbeddings`

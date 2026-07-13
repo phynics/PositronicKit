@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKUtilities
 
 /// A thread-safe, in-memory configuration service for transient state.
 /// Useful for prototyping and cases where persistence is not required.
