@@ -10,6 +10,10 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
+- **`TimelineManager` narrowed to lifecycle operations (PKV3-010)**: `workspaceResolver` and
+  `getToolManager(for:)` are no longer public. Hosts inject a `WorkspaceResolver` at
+  construction rather than reading it back off `TimelineManager`; normal tool-execution flows go
+  through `TimelineDriver`/`ChatEngine`, not direct `TimelineToolRegistry` access.
 - **`TimelineDriver` replaces `Conversation` (PKV3-003)**: `Conversation` and its vending
   methods (`PositronicKit.newConversation(title:)`, `PositronicKit.conversation(timelineId:)`)
   are deleted. `PositronicKit.openTimeline(_:)` returns a new `TimelineDriver` — a lightweight,

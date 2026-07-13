@@ -81,7 +81,10 @@ public actor TimelineManager {
     let embeddingService: any EmbeddingServiceProtocol
 
     let workspaceRoot: URL
-    public let workspaceResolver: any WorkspaceResolver
+    /// Not `public` (PKV3-010): resolution internals stay behind the lifecycle/attachment/query
+    /// surface. Hosts that need custom workspace behavior inject a `WorkspaceResolver` at
+    /// construction; they don't reach back through `TimelineManager` to get one.
+    let workspaceResolver: any WorkspaceResolver
     let sectionProviders: [any PromptSectionProviding]
     let runtimeToolPolicy: RuntimeToolPolicy
     /// Per-timeline prompt-history/journal-diff registry. When non-nil, `deleteTimeline(id:)`
@@ -293,11 +296,6 @@ public extension TimelineManager {
         timelines[id] = timeline
     }
 
-    /// Retrieves the tool manager for a timeline if it is active.
-    func getToolManager(for timelineId: UUID) -> TimelineToolRegistry? {
-        return toolManagers[timelineId]
-    }
-
     /// Fetches the message history for a specific timeline from persistence.
     func getHistory(for timelineId: UUID) async throws -> [Message] {
         let conversationMessages = try await messageStore.fetchMessages(for: timelineId)
@@ -360,11 +358,16 @@ public enum TimelineError: PKError {
     }
 }
 
-// MARK: - Internal TurnBriefingBuilder Access
+// MARK: - Internal Subordinate-Manager Access (PKV3-010: not part of the public surface)
 
 extension TimelineManager {
     /// Retrieves the turn briefing builder for a timeline if it is active.
     func getTurnBriefingBuilder(for timelineId: UUID) -> TurnBriefingBuilder? {
         return turnBriefingBuilders[timelineId]
+    }
+
+    /// Retrieves the tool manager for a timeline if it is active.
+    func getToolManager(for timelineId: UUID) -> TimelineToolRegistry? {
+        return toolManagers[timelineId]
     }
 }
