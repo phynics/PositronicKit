@@ -22,7 +22,9 @@ jobs:
             pkg-config \
             libssl-dev \
             curl \
-            perl
+            perl \
+            libdigest-sha-perl \
+            git
 
       - name: Setup Swift 6.3.2
         uses: swift-actions/setup-swift@v2

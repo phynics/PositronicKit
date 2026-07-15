@@ -23,6 +23,7 @@ export PK_MINILM_MODEL_DIR
 
 LINUX_IMAGE ?= positronickit-linux-dev
 
+ifeq ($(filter linux-image linux-build linux-test,$(MAKECMDGOALS)),)
 PRODUCTS := $(shell swift package describe --type json | swift Scripts/list-library-products.swift)
 PRODUCT_VERIFY_TARGETS := $(addprefix verify-product-,$(PRODUCTS))
 
@@ -33,6 +34,7 @@ verify-product-$(1):
 endef
 $(foreach product,$(PRODUCTS),$(eval $(call product_verify_rule,$(product))))
 .PHONY: $(PRODUCT_VERIFY_TARGETS)
+endif
 
 # Default target
 help:
@@ -135,7 +137,13 @@ verify-linux-asan:
 
 verify-macos-minilm: verify-minilm
 
-verify-products: $(PRODUCT_VERIFY_TARGETS)
+verify-products:
+	@set -eu; \
+	products="$$(swift package describe --type json | swift Scripts/list-library-products.swift)"; \
+	for product in $$products; do \
+		echo "Building $$product..."; \
+		swift build --product "$$product"; \
+	done
 
 verify-examples:
 	@echo "Building PositronicKitExamples..."
@@ -175,10 +183,14 @@ linux-image:
 
 linux-build: linux-image
 	@echo "Building in Linux container..."
-	@docker run --rm -v "$(CURDIR):/workspace" -w /workspace $(LINUX_IMAGE) \
+	@docker run --rm --user "$$(id -u):$$(id -g)" \
+		-e HOME=/tmp -e CARGO_HOME=/tmp/cargo \
+		-v "$(CURDIR):/workspace" -w /workspace $(LINUX_IMAGE) \
 		swift build
 
 linux-test: linux-image
 	@echo "Running Linux verification gate in container..."
-	@docker run --rm -v "$(CURDIR):/workspace" -w /workspace $(LINUX_IMAGE) \
+	@docker run --rm --user "$$(id -u):$$(id -g)" \
+		-e HOME=/tmp -e CARGO_HOME=/tmp/cargo \
+		-v "$(CURDIR):/workspace" -w /workspace $(LINUX_IMAGE) \
 		make verify-linux-current
