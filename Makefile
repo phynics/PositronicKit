@@ -22,6 +22,13 @@ export PKFASTEMBED_PREFIX
 export PK_MINILM_MODEL_DIR
 
 LINUX_IMAGE ?= positronickit-linux-dev
+CONTAINER_RUNTIME ?= docker
+CONTAINER_IS_PODMAN := $(shell $(CONTAINER_RUNTIME) --version 2>/dev/null | grep -qi podman && echo 1)
+ifeq ($(CONTAINER_IS_PODMAN),1)
+CONTAINER_USER_FLAGS := --userns=keep-id --user "$$(id -u):$$(id -g)"
+else
+CONTAINER_USER_FLAGS := --user "$$(id -u):$$(id -g)"
+endif
 
 ifeq ($(filter linux-image linux-build linux-test,$(MAKECMDGOALS)),)
 PRODUCTS := $(shell swift package describe --type json | swift Scripts/list-library-products.swift)
@@ -179,18 +186,18 @@ verify-minilm: bootstrap-minilm
 
 linux-image:
 	@echo "Building Linux development image..."
-	@docker build -t $(LINUX_IMAGE) -f .devcontainer/Dockerfile .
+	@$(CONTAINER_RUNTIME) build -t $(LINUX_IMAGE) -f .devcontainer/Dockerfile .
 
 linux-build: linux-image
 	@echo "Building in Linux container..."
-	@docker run --rm --user "$$(id -u):$$(id -g)" \
+	@$(CONTAINER_RUNTIME) run --rm $(CONTAINER_USER_FLAGS) \
 		-e HOME=/tmp -e CARGO_HOME=/tmp/cargo \
 		-v "$(CURDIR):/workspace:Z" -w /workspace $(LINUX_IMAGE) \
 		swift build
 
 linux-test: linux-image
 	@echo "Running Linux verification gate in container..."
-	@docker run --rm --user "$$(id -u):$$(id -g)" \
+	@$(CONTAINER_RUNTIME) run --rm $(CONTAINER_USER_FLAGS) \
 		-e HOME=/tmp -e CARGO_HOME=/tmp/cargo \
 		-v "$(CURDIR):/workspace:Z" -w /workspace $(LINUX_IMAGE) \
 		make verify-linux-current
