@@ -22,8 +22,11 @@ export PKFASTEMBED_PREFIX
 export PK_MINILM_MODEL_DIR
 
 LINUX_IMAGE ?= positronickit-linux-dev
-CONTAINER_RUNTIME ?= docker
-CONTAINER_IS_PODMAN := $(shell $(CONTAINER_RUNTIME) --version 2>/dev/null | grep -qi podman && echo 1)
+CONTAINER_RUNTIME ?= $(shell \
+	if command -v podman >/dev/null 2>&1; then command -v podman; \
+	elif command -v docker >/dev/null 2>&1; then command -v docker; \
+	fi)
+CONTAINER_IS_PODMAN := $(if $(filter podman podman-%,$(notdir $(CONTAINER_RUNTIME))),1,)
 ifeq ($(CONTAINER_IS_PODMAN),1)
 CONTAINER_USER_FLAGS := --userns=keep-id --user "$$(id -u):$$(id -g)"
 else
