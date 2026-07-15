@@ -10,17 +10,12 @@ extension LLMService {
     func updateClient(with config: LLMConfiguration) {
         Logger.module(named: "llm").debug("Updating clients for provider: \(config.activeProvider.rawValue)")
 
-        let clients = Self.makeClients(with: config)
+        let clients = clientFactory?(config)
+            ?? (main: nil, utility: nil, fast: nil)
         setClients(main: clients.main, utility: clients.utility, fast: clients.fast)
     }
 
-    /// Static version of client creation for use in init
-    static func makeClients(with _: LLMConfiguration) -> (
-        main: (any LLMClientProtocol)?, utility: (any LLMClientProtocol)?,
-        fast: (any LLMClientProtocol)?
-    ) {
-        return (main: nil, utility: nil, fast: nil)
-    }
+    
 
     /// Parse an endpoint URL into its host, port, and scheme components.
     static func parseEndpoint(_ endpoint: String) -> EndpointComponents {

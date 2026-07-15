@@ -67,6 +67,16 @@ public actor LLMService: LanguageModel, HealthCheckable {
 
     private let storage: any ConfigurationServiceProtocol
 
+/// Optional factory hook that builds provider clients from an `LLMConfiguration`.
+    /// Called by `updateClient(with:)` when a configuration change requires new clients.
+    /// Hosts compose their factory from each provider's `makeClient(configuration:)`,
+    /// keyed on `config.activeProvider`. Falls back to a `(nil, nil, nil)` triple if
+    /// none is supplied, matching the behavior for callers that do not need dynamic swapping.
+    var clientFactory: (@Sendable (LLMConfiguration) -> (
+        main: (any LLMClientProtocol)?, utility: (any LLMClientProtocol)?,
+        fast: (any LLMClientProtocol)?
+    ))?
+
     nonisolated let logger: Logger
 
     /// Holds the one-shot migration/configuration-load task so it can be assigned directly in
@@ -106,7 +116,11 @@ public actor LLMService: LanguageModel, HealthCheckable {
     /// Initializes with a direct configuration using in-memory storage.
     public init(
         configuration: LLMConfiguration,
-        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService()
+        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
+        clientFactory: (@Sendable (LLMConfiguration) -> (
+            main: (any LLMClientProtocol)?, utility: (any LLMClientProtocol)?,
+            fast: (any LLMClientProtocol)?
+        ))? = nil
     ) {
         logger = Logger.module(named: "llm")
         self.embeddingService = embeddingService
@@ -114,7 +128,8 @@ public actor LLMService: LanguageModel, HealthCheckable {
         self.configuration = configuration
         isConfigured = configuration.isValid
         if configuration.isValid {
-            let clients = Self.makeClients(with: configuration)
+            let clients = clientFactory?(configuration)
+                ?? (main: nil, utility: nil, fast: nil)
             client = clients.main
             utilityClient = clients.utility
             fastClient = clients.fast
@@ -123,6 +138,7 @@ public actor LLMService: LanguageModel, HealthCheckable {
             utilityClient = nil
             fastClient = nil
         }
+        self.clientFactory = clientFactory
     }
 
     public init(
@@ -130,7 +146,11 @@ public actor LLMService: LanguageModel, HealthCheckable {
         embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
         client: (any LLMClientProtocol)? = nil,
         utilityClient: (any LLMClientProtocol)? = nil,
-        fastClient: (any LLMClientProtocol)? = nil
+        fastClient: (any LLMClientProtocol)? = nil,
+        clientFactory: (@Sendable (LLMConfiguration) -> (
+            main: (any LLMClientProtocol)?, utility: (any LLMClientProtocol)?,
+            fast: (any LLMClientProtocol)?
+        ))? = nil
     ) {
         logger = Logger.module(named: "llm")
         self.embeddingService = embeddingService
@@ -138,6 +158,7 @@ public actor LLMService: LanguageModel, HealthCheckable {
         self.client = client
         self.utilityClient = utilityClient
         self.fastClient = fastClient
+        self.clientFactory = clientFactory
         isConfigured = client != nil
 
         let needsLoad = client == nil
@@ -156,6 +177,10 @@ public actor LLMService: LanguageModel, HealthCheckable {
         client: (any LLMClientProtocol)? = nil,
         utilityClient: (any LLMClientProtocol)? = nil,
         fastClient: (any LLMClientProtocol)? = nil,
+        clientFactory: (@Sendable (LLMConfiguration) -> (
+            main: (any LLMClientProtocol)?, utility: (any LLMClientProtocol)?,
+            fast: (any LLMClientProtocol)?
+        ))? = nil,
         logger: Logger
     ) {
         self.logger = logger
@@ -164,6 +189,7 @@ public actor LLMService: LanguageModel, HealthCheckable {
         self.client = client
         self.utilityClient = utilityClient
         self.fastClient = fastClient
+        self.clientFactory = clientFactory
         isConfigured = client != nil
 
         let needsLoad = client == nil
