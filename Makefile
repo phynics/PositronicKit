@@ -185,12 +185,12 @@ linux-build: linux-image
 	@echo "Building in Linux container..."
 	@docker run --rm --user "$$(id -u):$$(id -g)" \
 		-e HOME=/tmp -e CARGO_HOME=/tmp/cargo \
-		-v "$(CURDIR):/workspace" -w /workspace $(LINUX_IMAGE) \
+		-v "$(CURDIR):/workspace:Z" -w /workspace $(LINUX_IMAGE) \
 		swift build
 
 linux-test: linux-image
 	@echo "Running Linux verification gate in container..."
 	@docker run --rm --user "$$(id -u):$$(id -g)" \
 		-e HOME=/tmp -e CARGO_HOME=/tmp/cargo \
-		-v "$(CURDIR):/workspace" -w /workspace $(LINUX_IMAGE) \
+		-v "$(CURDIR):/workspace:Z" -w /workspace $(LINUX_IMAGE) \
 		make verify-linux-current
