@@ -3,7 +3,8 @@
 	verify-linux verify-linux-base verify-linux-minimum verify-linux-current \
 	verify-linux-asan \
 	verify-products verify-examples verify-tests verify-macos-minilm \
-	bootstrap-minilm build-minilm verify-minilm
+	bootstrap-minilm build-minilm verify-minilm \
+	linux-image linux-build linux-test
 
 PKFASTEMBED_PREFIX ?= $(CURDIR)/.build/pkfastembed
 PKFASTEMBED_ASAN_TOOLCHAIN ?= nightly
@@ -19,6 +20,8 @@ MINILM_MODEL_CACHE_DIR := $(MINILM_MODEL_CACHE_ROOT)/$(MINILM_MODEL_SHA256)
 PK_MINILM_MODEL_DIR ?= $(MINILM_MODEL_CACHE_DIR)
 export PKFASTEMBED_PREFIX
 export PK_MINILM_MODEL_DIR
+
+LINUX_IMAGE ?= positronickit-linux-dev
 
 PRODUCTS := $(shell swift package describe --type json | swift Scripts/list-library-products.swift)
 PRODUCT_VERIFY_TARGETS := $(addprefix verify-product-,$(PRODUCTS))
@@ -57,6 +60,11 @@ help:
 	@echo "  make verify-pin            Check the pinned MiniLM artifact hashes are consistent"
 	@echo "  make build-minilm          Prepare assets/native bridge and build the MiniLM trait product"
 	@echo "  make verify-minilm         Prepare pinned assets and run MiniLM gates"
+	@echo ""
+	@echo "Linux (Docker):"
+	@echo "  make linux-image           Build the Linux development Docker image"
+	@echo "  make linux-build           Build in a Linux container (bind-mounted)"
+	@echo "  make linux-test            Run the full Linux gate in a container"
 
 build:
 	@echo "Building PositronicKit..."
@@ -156,3 +164,21 @@ verify-minilm: bootstrap-minilm
 		LIBRARY_PATH="$(PKFASTEMBED_PREFIX)/lib$${LIBRARY_PATH:+:$$LIBRARY_PATH}" \
 		PK_MINILM_MODEL_DIR="$(MINILM_MODEL_CACHE_DIR)" \
 		swift test --traits MiniLMEmbeddings --filter PKFastEmbedTests
+
+# --- Linux Docker targets ----------------------------------------------------
+# Bind-mount the checkout so host edits are immediately visible in the container.
+# Build artifacts land in the host .build/ directory (gitignored).
+
+linux-image:
+	@echo "Building Linux development image..."
+	@docker build -t $(LINUX_IMAGE) -f .devcontainer/Dockerfile .
+
+linux-build: linux-image
+	@echo "Building in Linux container..."
+	@docker run --rm -v "$(CURDIR):/workspace" -w /workspace $(LINUX_IMAGE) \
+		swift build
+
+linux-test: linux-image
+	@echo "Running Linux verification gate in container..."
+	@docker run --rm -v "$(CURDIR):/workspace" -w /workspace $(LINUX_IMAGE) \
+		make verify-linux-current

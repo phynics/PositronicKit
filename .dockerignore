@@ -1,0 +1,23 @@
+# Build artifacts
+.build/
+build/
+DerivedData/
+
+# Native Rust build artifacts
+native/pkfastembed/target/
+
+# Git metadata
+.git/
+.gitignore
+.worktrees/
+
+# IDE / editor state
+.vscode/
+.claude/
+.letta/
+.swiftpm/
+*.xcodeproj/
+xcuserdata/
+
+# Packages
+Packages/

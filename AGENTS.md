@@ -35,6 +35,9 @@ make verify-linux-current         # run the current Linux matrix gate (Swift 6.3
 make verify-linux-asan            # run the PKFastEmbed bridge tests under Linux x86_64 AddressSanitizer
 make verify-macos-default         # run the default macOS gate
 make verify-macos-minilm          # run the MiniLM macOS gate
+make linux-image                  # build the Linux development Docker image
+make linux-build                  # swift build in a Linux container (bind-mounted)
+make linux-test                   # run the full Linux gate in a container
 ```
 
 See [docs/Releasing.md](docs/Releasing.md) for the release workflow, tagging steps, and
@@ -53,6 +56,23 @@ SHA-256 hashes live in `native/pkfastembed/model-assets.sha256` and
 `verify` and before every bootstrap) fails if those drift apart.
 
 ## Linux Development Setup
+
+### Docker (recommended for macOS hosts)
+
+The included Dev Container (`.devcontainer/`) provides Swift 6.3.2, Rust stable, and all
+native prerequisites on Ubuntu 24.04. From the repository root:
+
+```bash
+make linux-image   # Build the development image
+make linux-build   # swift build in the container (bind-mounted)
+make linux-test    # Full Linux gate: make verify-linux-current
+```
+
+Open in VS Code with the Dev Containers extension for a full IDE experience. The container
+bind-mounts your checkout at `/workspace`; build artifacts land in the host `.build/`
+directory.
+
+### Bare toolchain
 
 `PositronicKit`, `PKPrompt`, and `PKShared` build with a bare Swift 6.1+ toolchain (no
 extra system packages). Building or testing `PKLocalEmbeddings`/`PKFastEmbed` — the

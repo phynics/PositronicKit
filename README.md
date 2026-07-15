@@ -254,6 +254,30 @@ make verify-minilm     # Bootstrap pinned assets/native bridge and run MiniLM te
 
 `make verify-minilm` downloads the pinned Hugging Face model assets on first use, validates their checksums, builds the Rust bridge, and stores the native prefix and model under `.build`. Override the locations with `PKFASTEMBED_PREFIX=...` and `PK_MINILM_MODEL_DIR=...`. `make verify-linux-asan` requires nightly Rust plus `rust-src` and scopes to `native/pkfastembed` only.
 
+## Linux Development
+
+PositronicKit supports Linux development through two paths: a Docker-based workflow (recommended for macOS hosts) and a bare-toolchain approach.
+
+### Docker
+
+The included Dev Container provides Swift 6.3.2, Rust stable, and all native prerequisites on Ubuntu 24.04:
+
+```bash
+make linux-image   # Build the development image (swift:6.3.2-noble + Rust + native deps)
+make linux-build   # Compile in the container (bind-mounts your checkout)
+make linux-test    # Run the full Linux gate: make verify-linux-current
+```
+
+Open the project in VS Code with the Dev Containers extension for a full IDE experience, or use the Make targets from any terminal with Docker installed. The container bind-mounts your checkout at `/workspace`; build artifacts land in the host `.build/` directory.
+
+### Bare toolchain
+
+Alternatively, install the prerequisites directly on your Linux host — see [`AGENTS.md`](AGENTS.md#linux-development-setup) for the full dependency list. Once installed, the canonical gate is:
+
+```bash
+make verify-linux-current
+```
+
 ## Companion App
 
 [`Yakamoz`](https://github.com/phynics/Yakamoz) is the native macOS showcase app for PositronicKit. It drives the runtime from a SwiftUI chat client and exposes the prompt pipeline, sent provider payloads, prompt journal, response metadata, tool traces, and local workspace state through an inspector drawer.
