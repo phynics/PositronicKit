@@ -8,6 +8,81 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-07-15
+
+Stable release of the v3 vocabulary-and-composition batch. Includes all changes from
+`3.0.0-beta.1` plus the final consumer-migration blockers and a complete source-migration map.
+
+### Fixed
+
+- **`LLMService` dynamic provider-client swap (PKV3-015)**: replaced the dead `makeClients(with:)`
+  stub with an optional `clientFactory` hook on `LLMService`. All `LLMService` initializers accept
+  `clientFactory`, and `updateClient(with:)` delegates to it. This unblocks hosts such as
+  Monad's `ConfigurationAPIController` that reconfigure the active provider at runtime.
+- **`TimelineManager` tool query/mutation gap (PKV3-010 gap)**: added `enabledTools(for:)`,
+  `enableTool(id:for:)`, and `disableTool(id:for:)` so hosts can read/toggle timeline tools
+  without accessing the internal `TimelineToolRegistry`.
+
+### Changed
+
+- **Linux development container and CI**: added a Dev Container, Docker/Podman `make` targets,
+  and a GitHub Actions Linux gate. Hardened container and bind-mount handling for rootless
+  Podman and CI environments.
+
+### Added
+
+- **Source migration map** documenting the old v2 API, the v3 replacement, and behavior notes for
+  every breaking change in this release.
+
+### Source migration map
+
+| Old API | New API | Notes |
+|---------|---------|-------|
+| `llmService` parameter/property | `languageModel` | Use `any LanguageModel` as the composition seam for stream/config/utility capabilities. |
+| `ExternalLLMProviderRegistry` | removed | Construct provider clients directly; use `PKXProvider.makeClient(configuration:)`. |
+| `ProviderFactoryRequest` | removed | Replaced by direct provider client construction. |
+| `ToolProviding` | `ToolSource` | `provideTools()` → `tools()`. |
+| `ToolProvenance` | `ToolOrigin` | Renamed enum; `AnyTool.provenance` → `AnyTool.origin` (now `let`, captured at erasure). |
+| `AnyTool(_:provenance:)` | `AnyTool(_:origin:)` | `origin` defaults to `.global`. |
+| `ToolReferenceProviding` | removed | Override `Tool.identity` (default `.known(id: callName)`) instead. |
+| `TimelineToolManager` | `TimelineToolRegistry` | Internal tool-registry type renamed. |
+| `ToolApprovalGate` | `ToolApprovalPolicy` | `DenyAllToolApprovalGate` → `DenyAllToolApprovalPolicy`; `AllowAllToolApprovalGate` → `AllowAllToolApprovalPolicy`. |
+| `ContextManager` | `TurnBriefingBuilder` | Turn-briefing coordinator renamed. |
+| `TimelinePromptHistoryRegistry` | `TimelinePromptJournals` | Now internal; `TimelinePromptHistory` value types moved to `TimelinePromptHistoryTypes`. |
+| `PromptInspecting` / `TurnInspecting` | `PromptObserving` | `didComposeTurn(_:)` → `didComposePrompt(_:)`; `TurnInspection` → `PromptInspection`; `turnInspector` → `promptObserver`. |
+| `Conversation` | `TimelineDriver` | `PositronicKit.newConversation(title:)` / `.conversation(timelineId:)` → `createTimeline(title:)` + `openTimeline(_:)`. |
+| `PKObservable.ObservableConversation` | `PKObservable.TimelineController` | `conversation` property → `driver`. |
+| `WorkspaceProtocol` | `Workspace` | Workspace role names made explicit. |
+| `WorkspaceCreating` | `WorkspaceFactory` | |
+| `WorkspacePersistenceProtocol` | `WorkspaceStore` | |
+| `AgentWorkspaceService` | `DefaultWorkspaceCatalog` | |
+| `WorkspaceManager` | `DefaultWorkspaceResolver` | |
+| `WorkspaceManagerProtocol` | `WorkspaceResolver` | |
+| `TimelineManager.getTimeline(id:)` | `timeline(id:)` / `touchTimeline(id:)` | Use `timeline(id:)` for a pure lookup; `touchTimeline(id:)` to preserve the old update-on-read behavior. |
+| `TimelineManager.getToolManager(for:)` / `workspaceResolver` | no longer public | Use `enabledTools(for:)`, `enableTool(id:for:)`, `disableTool(id:for:)`. |
+| `LLMConfiguration` flat init + 18 write-through proxies | `LLMConfiguration(activeProvider:providers:)` | Read the active provider via `activeProviderConfiguration`; mutate `providers[activeProvider]`. |
+| `PKShared` filesystem tools, `ANSIColors`, `PathSanitizer`, `RetryPolicy`, `TokenEstimator`, `LogKeys`, `ProviderHTTPTransport` | `PKUtilities` | Add a `PKUtilities` product dependency and import. |
+| `Message.think` | `Message.reasoning` | Unified reasoning/thinking vocabulary. |
+| `LLMStreamDelta.thinking` | `LLMStreamDelta.reasoning` | |
+| `ChatEvent.delta(event:)` | `ChatEvent.delta(DeltaEvent)` | Wrapper cases flattened to match `Result` naming conventions. |
+| `ChatEvent.meta(event:)` | `ChatEvent.meta(MetaEvent)` | |
+| `ChatEvent.error(event:)` | `ChatEvent.error(ErrorEvent)` | |
+| `ChatEvent.completion(event:)` | `ChatEvent.completion(CompletionEvent)` | |
+| `ToolExecutionStatus.failure(String)` | `ToolExecutionStatus.executionError(String)` | Eliminates collision with `ToolResult.failure`. |
+| `PositronicKit.addPlugin(_:)` | `PositronicKit.addingPlugin(_:)` | Nonmutating participle-form naming. |
+| `MemorySavePolicy.preventSimilar(threshold:)` | `MemorySavePolicy.deduplicating(threshold:)` | Case grammar aligned with `.immediate` / `.deferred`. |
+| `formatToolsForPrompt(_:)` | `[AnyTool].formattedForPrompt()` | Free function with receiver argument moved to extension. |
+| `PositronicKit.sidecarsIfEnabled(_:when:)` | removed | Inline `isEnabled ? sidecars : []`. |
+| `ToolOutputParser` | removed | Models must emit provider-native structured tool calls. |
+| `PipelineBuilder` / `Collection.assertUniqueIDs()` / `CollectionUniqueIDError` | removed | Assemble pipelines imperatively; use `duplicateIDs(idKeyPath:)` instead. |
+| `PKOpenAIEmbeddingService` | removed | Use `LocalEmbeddingService` / `NoOpEmbeddingService`. |
+| `PKShared.MessageParser` | removed | `Message.parseResponse(_:)` / `Message.displayContent` now inline the implementations. |
+| `OpenAIStructuredOutputAdapter` / `OpenRouterStructuredOutputAdapter` | `PKShared.NativeJSONSchemaStructuredOutputAdapter` | Shared adapter registered by each provider. |
+| `AnyTool.init(_:provenance: String?)` | `AnyTool.init(_:provenance: ToolProvenance)` / `AnyTool(_:origin: ToolOrigin)` | String-provenance bridge was already deprecated and is now removed. |
+| `PositronicKit.PromptBuildContext` aliases | removed | Use `PromptBuildContext` directly. |
+| `AgenticRuntime.workspaceId` / `PositronicKit.agenticRuntime(...workspaceId:)` | removed | Dead passthrough; workspace routing is resolved from timeline attachments. |
+| `PKShared.ToolConfiguration` / `PositronicKit.WorkspaceToolError` / `PositronicKit.InMemoryKeyValueStore` | removed | Dead public types with zero consumers. |
+
 ## [3.0.0-beta.1] - 2026-07-13
 
 Prerelease of the v3 vocabulary-and-composition batch (PKV3-001–014) for downstream consumer
