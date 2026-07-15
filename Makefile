@@ -196,7 +196,7 @@ linux-build: linux-image
 	@$(CONTAINER_RUNTIME) run --rm $(CONTAINER_USER_FLAGS) \
 		-e HOME=/tmp -e CARGO_HOME=/tmp/cargo \
 		-v "$(CURDIR):/workspace:Z" -w /workspace $(LINUX_IMAGE) \
-		swift build
+		make build-minilm
 
 linux-test: linux-image
 	@echo "Running Linux verification gate in container..."
