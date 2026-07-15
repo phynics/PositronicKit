@@ -1,12 +1,7 @@
 {
   "name": "PositronicKit Linux",
   "build": {
-    "dockerfile": "Dockerfile",
-    "args": {
-      "USERNAME": "vscode",
-      "USER_UID": "1000",
-      "USER_GID": "1000"
-    }
+    "dockerfile": "Dockerfile"
   },
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
   "workspaceFolder": "/workspace",

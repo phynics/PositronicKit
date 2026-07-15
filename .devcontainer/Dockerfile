@@ -18,12 +18,9 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
 
 RUN chmod -R a+rX /usr/local/rustup /usr/local/cargo
 
-ARG USERNAME=vscode
-ARG USER_UID=1000
-ARG USER_GID=1000
-
-RUN groupadd --gid "${USER_GID}" "${USERNAME}" \
-    && useradd --uid "${USER_UID}" --gid "${USER_GID}" --create-home --shell /bin/bash "${USERNAME}"
+RUN if ! id -u vscode >/dev/null 2>&1; then \
+        useradd --create-home --shell /bin/bash vscode; \
+    fi
 
 USER ${USERNAME}
 WORKDIR /workspace
