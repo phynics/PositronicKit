@@ -3,13 +3,13 @@ import Foundation
 /// Why a compression action was chosen for a node. Currently there is a single reason;
 /// the type exists so `PlannedNodeAction`/`CompressionAction` can attach a rationale
 /// without hardcoding a string, and to leave room for future reasons.
-public enum CompressionReason: String, Sendable, Equatable {
+public enum CompressionReason: String, Sendable, Equatable, Codable {
     /// The node was compressed to make the assembled prompt fit the available token budget.
     case budgetReduction
 }
 
 /// The concrete action the compression planner decided to take for a node.
-public enum CompressionAction: Sendable, Equatable {
+public enum CompressionAction: Sendable, Equatable, Codable {
     /// Keep the node's content unchanged.
     case keep
     /// Replace the node's content with a summary of roughly `targetTokens` tokens, `reason`

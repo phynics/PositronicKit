@@ -11,6 +11,34 @@ import PKUtilities
 /// This is the prompt-layer journaling abstraction intended for public use. Reach for it when you
 /// want to reason about prompt evolution directly, outside the runtime loop.
 public struct PromptJournal: Sendable {
+    /// Codable, Sendable snapshot of the journal's complete replay state.
+    public struct State: Codable, Sendable, Equatable {
+        /// Sections committed as the journal's non-volatile base.
+        public let committedBaseSections: [RenderedPrompt.Section]
+        /// Sections from the latest accepted observation, including volatile sections.
+        public let latestObservedSections: [RenderedPrompt.Section]
+        /// Number of messages accumulated since the last compaction.
+        public let appendedMessageCount: Int
+        /// Estimated tokens accumulated since the last compaction.
+        public let appendedTokens: Int
+        /// Thresholds used to decide when append pressure triggers compaction.
+        public let thresholds: PromptJournalCompactionThresholds
+
+        public init(
+            committedBaseSections: [RenderedPrompt.Section],
+            latestObservedSections: [RenderedPrompt.Section],
+            appendedMessageCount: Int,
+            appendedTokens: Int,
+            thresholds: PromptJournalCompactionThresholds
+        ) {
+            self.committedBaseSections = committedBaseSections
+            self.latestObservedSections = latestObservedSections
+            self.appendedMessageCount = appendedMessageCount
+            self.appendedTokens = appendedTokens
+            self.thresholds = thresholds
+        }
+    }
+
     private var pressure: AppendPressure
     private var committedBaseSections: [RenderedPrompt.Section] = []
     private var latestObservedSections: [RenderedPrompt.Section] = []
@@ -21,6 +49,28 @@ public struct PromptJournal: Sendable {
     ///   latest accepted observation into a new committed base on the next `observe(_:)`.
     public init(thresholds: PromptJournalCompactionThresholds = .default) {
         pressure = AppendPressure(thresholds: thresholds)
+    }
+
+    /// Restores a journal from a previously captured state snapshot.
+    public init(state: State) {
+        pressure = AppendPressure(
+            thresholds: state.thresholds,
+            appendedMessageCount: state.appendedMessageCount,
+            appendedTokens: state.appendedTokens
+        )
+        committedBaseSections = state.committedBaseSections
+        latestObservedSections = state.latestObservedSections
+    }
+
+    /// The complete state needed to resume observation with identical plans.
+    public var state: State {
+        State(
+            committedBaseSections: committedBaseSections,
+            latestObservedSections: latestObservedSections,
+            appendedMessageCount: pressure.appendedMessageCount,
+            appendedTokens: pressure.appendedTokens,
+            thresholds: pressure.thresholds
+        )
     }
 
     /// Observes a rendered prompt and returns the journal plan for the current turn.

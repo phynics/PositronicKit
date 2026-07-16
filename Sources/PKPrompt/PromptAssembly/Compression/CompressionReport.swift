@@ -6,7 +6,7 @@ import Foundation
 /// token-budget enforcement or structured compression. It records the chosen action,
 /// token counts before/after, whether a cache was hit, and any fallback reason when
 /// a requested strategy couldn't be applied.
-public struct CompressionNodeReport: Sendable, Equatable {
+public struct CompressionNodeReport: Sendable, Equatable, Codable {
     /// Stable identifier of the source section/node.
     public let nodeId: String
     /// Stable path to the section in the composed prompt tree.
@@ -53,7 +53,7 @@ public struct CompressionNodeReport: Sendable, Equatable {
 /// Aggregated compression outcome for an entire prompt render.
 ///
 /// Contains one `CompressionNodeReport` per section that participated in compression.
-public struct CompressionReport: Sendable, Equatable {
+public struct CompressionReport: Sendable, Equatable, Codable {
     /// Per-node reports in render order (when available).
     public let nodeReports: [CompressionNodeReport]
 

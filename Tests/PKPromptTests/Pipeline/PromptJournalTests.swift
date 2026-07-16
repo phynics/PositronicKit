@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import PKPrompt
 import PKShared
@@ -5,6 +6,30 @@ import PKUtilities
 
 @Suite("PromptJournal")
 struct PromptJournalTests {
+    private func stateSection(id: String, content: PromptSection.Content) -> RenderedPrompt.Section {
+        RenderedPrompt.Section(
+            id: id,
+            role: .chatHistory,
+            priority: 75,
+            estimatedTokens: 12,
+            compression: .truncate(tail: false),
+            type: .list,
+            cachePolicy: .semiStable,
+            path: ["prompt", "history", id],
+            parentID: "history",
+            compressionOutcome: CompressionNodeReport(
+                nodeId: id,
+                path: ["prompt", "history", id],
+                action: .truncate(limit: 12, tail: false),
+                beforeTokens: 24,
+                afterTokens: 12,
+                cacheHit: true,
+                fallbackReason: "budget"
+            ),
+            content: content
+        )
+    }
+
     private func renderPrompt(system: String, context: String, query: String) async -> RenderedPrompt {
         let prompt = try! AnyPrompt.build {
             SystemPrompt(system)
@@ -196,6 +221,60 @@ struct PromptJournalTests {
         _ = journal.compact()
 
         #expect(!journal.shouldCompact)
+    }
+
+    @Test("Prompt journal state round-trips every hydration field")
+    func stateRoundTripPreservesSectionsMetadataContentAndPressure() throws {
+        var journal = PromptJournal(thresholds: .init(maxAppendedTokens: 17, maxAppendedMessages: 3))
+        let base = stateSection(id: "base", content: .text("base content"))
+        let latest = stateSection(
+            id: "latest",
+            content: .messages([Message(content: "assistant", role: .assistant)])
+        )
+        journal = PromptJournal(state: .init(
+            committedBaseSections: [base],
+            latestObservedSections: [base, latest],
+            appendedMessageCount: 2,
+            appendedTokens: 19,
+            thresholds: .init(maxAppendedTokens: 17, maxAppendedMessages: 3)
+        ))
+
+        let data = try JSONEncoder().encode(journal.state)
+        let decoded = try JSONDecoder().decode(PromptJournal.State.self, from: data)
+
+        #expect(decoded == journal.state)
+        #expect(decoded.committedBaseSections == [base])
+        #expect(decoded.latestObservedSections == [base, latest])
+        #expect(decoded.appendedMessageCount == 2)
+        #expect(decoded.appendedTokens == 19)
+        #expect(decoded.thresholds == .init(maxAppendedTokens: 17, maxAppendedMessages: 3))
+    }
+
+    @Test("Hydrated journal observes the same plan as the live journal")
+    func hydratedObservationMatchesLiveObservation() async throws {
+        var live = PromptJournal(thresholds: .init(maxAppendedTokens: 1, maxAppendedMessages: 1))
+        _ = live.observe(await renderPrompt(system: "System", context: "Context v1", query: "Question 1"))
+        _ = live.observe(await renderPrompt(system: "System", context: "Context v2", query: "Question 2"))
+        live.recordAppend(messageCount: 2, estimatedTokens: 3)
+
+        var hydrated = PromptJournal(state: try JSONDecoder().decode(
+            PromptJournal.State.self,
+            from: JSONEncoder().encode(live.state)
+        ))
+        let next = await renderPrompt(system: "System", context: "Context v3", query: "Question 3")
+
+        let livePlan = live.observe(next)
+        let hydratedPlan = hydrated.observe(next)
+
+        #expect(livePlan.baseSections.map(\.section) == hydratedPlan.baseSections.map(\.section))
+        #expect(livePlan.overlaySections.map(\.section) == hydratedPlan.overlaySections.map(\.section))
+        #expect(livePlan.volatileSections.map(\.section) == hydratedPlan.volatileSections.map(\.section))
+        #expect(livePlan.requiresHardReset == hydratedPlan.requiresHardReset)
+        #expect(livePlan.diff == hydratedPlan.diff)
+        #expect(livePlan.emissionMode == hydratedPlan.emissionMode)
+        #expect(livePlan.buildMessages().map(\.content) == hydratedPlan.buildMessages().map(\.content))
+        #expect(livePlan.buildMessages().map(\.role) == hydratedPlan.buildMessages().map(\.role))
+        #expect(live.state == hydrated.state)
     }
 }
 

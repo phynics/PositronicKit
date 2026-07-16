@@ -8,6 +8,12 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Added
+
+- **`PromptJournal` hydration state**: added the public `PromptJournal.State` Codable/Sendable
+  snapshot plus `state` and `init(state:)` APIs for replaying journal observations with identical
+  section plans, emission modes, and append-pressure behavior.
+
 ## [3.0.0] - 2026-07-15
 
 Stable release of the v3 vocabulary-and-composition batch. Includes all changes from

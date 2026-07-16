@@ -18,6 +18,16 @@ package struct AppendPressure: Sendable {
         self.thresholds = thresholds
     }
 
+    package init(
+        thresholds: PromptJournalCompactionThresholds,
+        appendedMessageCount: Int,
+        appendedTokens: Int
+    ) {
+        self.thresholds = thresholds
+        self.appendedMessageCount = appendedMessageCount
+        self.appendedTokens = appendedTokens
+    }
+
     package var shouldCompact: Bool {
         appendedTokens > thresholds.maxAppendedTokens
             || appendedMessageCount > thresholds.maxAppendedMessages

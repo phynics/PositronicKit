@@ -4,7 +4,7 @@ import PKUtilities
 
 extension RenderedPrompt {
     /// A rendered snapshot of a single prompt section.
-    public struct Section: Sendable {
+    public struct Section: Sendable, Equatable, Codable {
         /// Stable section identifier.
         public let id: String
         

@@ -5,7 +5,7 @@ import PKUtilities
 
 extension PromptSection {
     /// Rendered content carried by a prompt section.
-    public enum Content: Sendable, Equatable {
+    public enum Content: Sendable, Equatable, Codable {
         /// Plain text content for standard prompt sections.
         case text(String)
         

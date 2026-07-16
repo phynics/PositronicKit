@@ -20,7 +20,7 @@ import PKUtilities
 /// content when the compressor has to make room, on the assumption that stable content is
 /// unchanging (and so cheaper to regenerate/re-cache) while volatile content is the most
 /// contextually relevant right now.
-public enum CachePolicy: Sendable, Comparable {
+public enum CachePolicy: Sendable, Comparable, Codable {
     /// Content that rarely or never changes between turns (e.g. system instructions).
     case stable
     /// Content that changes occasionally, less often than every turn.
@@ -43,7 +43,7 @@ public enum CachePolicy: Sendable, Comparable {
 /// How a section's rendered content should be constrained when it doesn't fit the
 /// available token budget. Applied both at primitive render-time (via
 /// `applyRenderConstraint`) and by the structured compression planner.
-public enum CompressionStrategy: Sendable, Equatable {
+public enum CompressionStrategy: Sendable, Equatable, Codable {
     /// Render the content in full regardless of the token budget.
     case keep
     /// Truncate to fit; `tail` selects which end of the content is kept (`true` keeps the
@@ -57,7 +57,7 @@ public enum CompressionStrategy: Sendable, Equatable {
 }
 
 /// The shape of a rendered prompt section's content.
-public enum PromptSectionType: Sendable {
+public enum PromptSectionType: Sendable, Equatable, Codable {
     /// Free-form prose content.
     case text
     /// Content structured as a list (e.g. rendered as bullet points).
@@ -66,7 +66,7 @@ public enum PromptSectionType: Sendable {
 
 /// The functional role a prompt section plays in the assembled conversation, used for
 /// grouping/labeling sections (e.g. distinguishing system instructions from chat history).
-public enum PromptSectionRole: Sendable, Equatable {
+public enum PromptSectionRole: Sendable, Equatable, Codable {
     /// System-level instructions.
     case system
     /// Ambient/background context supplied to the model.

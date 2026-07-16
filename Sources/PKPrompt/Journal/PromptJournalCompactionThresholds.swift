@@ -6,7 +6,7 @@ import Foundation
 /// `AppendPressure` — the surviving public name for the unified compaction-pressure core.
 /// Each consumer owns its own post-compact action (base promotion or snapshot reset); this
 /// type only carries the threshold configuration.
-public struct PromptJournalCompactionThresholds: Sendable, Equatable {
+public struct PromptJournalCompactionThresholds: Sendable, Equatable, Codable {
     /// Maximum estimated appended tokens before the next observation auto-compacts the journal.
     public let maxAppendedTokens: Int
     /// Maximum appended message count before the next observation auto-compacts the journal.
