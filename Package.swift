@@ -5,6 +5,7 @@ let package = Package(
     name: "PositronicKit",
     platforms: [
         .macOS(.v15),
+        .iOS(.v18),
     ],
     products: [
         .library(name: "PositronicKit", targets: ["PositronicKit"]),
