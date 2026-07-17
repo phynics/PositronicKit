@@ -31,7 +31,7 @@ make verify-pin                   # check the pinned MiniLM artifact hashes are 
 make build-minilm                 # prepare assets/bridge and build the MiniLM trait product
 make verify-minilm                # prepare native MiniLM and run its tests
 make verify-linux-minimum         # run the minimum Linux matrix gate (Swift 6.1.3 on Ubuntu 24.04)
-make verify-linux-current         # run the current Linux matrix gate (Swift 6.3.2 on Ubuntu 24.04)
+make verify-linux-current         # run the current Linux matrix gate (Swift 6.3.3 on Ubuntu 24.04)
 make verify-linux-asan            # run the PKFastEmbed bridge tests under Linux x86_64 AddressSanitizer
 make verify-macos-default         # run the default macOS gate
 make verify-macos-minilm          # run the MiniLM macOS gate
@@ -59,7 +59,7 @@ SHA-256 hashes live in `native/pkfastembed/model-assets.sha256` and
 
 ### Docker (recommended for macOS hosts)
 
-The included Dev Container (`.devcontainer/`) provides Swift 6.3.2, Rust stable, and all
+The included Dev Container (`.devcontainer/`) provides Swift 6.3.3, Rust stable, and all
 native prerequisites on Ubuntu 24.04. From the repository root:
 
 ```bash

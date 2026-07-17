@@ -260,10 +260,10 @@ PositronicKit supports Linux development through two paths: a Docker-based workf
 
 ### Docker
 
-The included Dev Container provides Swift 6.3.2, Rust stable, and all native prerequisites on Ubuntu 24.04:
+The included Dev Container provides Swift 6.3.3, Rust stable, and all native prerequisites on Ubuntu 24.04:
 
 ```bash
-make linux-image   # Build the development image (swift:6.3.2-noble + Rust + native deps)
+make linux-image   # Build the development image (swift:6.3.3-noble + Rust + native deps)
 make linux-build   # Compile in the container (bind-mounts your checkout)
 make linux-test    # Run the full Linux gate: make verify-linux-current
 ```
