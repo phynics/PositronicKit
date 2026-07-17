@@ -8,8 +8,13 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+## [3.1.0-beta.1] - 2026-07-17
+
 ### Added
 
+- **iOS platform support**: added `.iOS(.v18)` to the package manifest. Core targets
+  (`PositronicKit`, `PKPrompt`, `PKShared`) and `PKAnthropicProvider` build for iOS. Native
+  MiniLM bridge (`PKFastEmbed`) remains macOS/Linux only via the `MiniLMEmbeddings` trait.
 - **`PromptJournal` hydration state**: added the public `PromptJournal.State` Codable/Sendable
   snapshot plus `state` and `init(state:)` APIs for replaying journal observations with identical
   section plans, emission modes, and append-pressure behavior.
