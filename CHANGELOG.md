@@ -8,6 +8,15 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Added
+
+- **Structured-output one-shot `complete(_:structuredOutput:)`**: a `PositronicKit` facade
+  extension mirroring the existing timeline-free `complete(_:)`/`stream(_:)` pair, but for
+  structured output. Threads a `StructuredOutputRequest` through the same provider-adapter
+  path as the full chat pipeline (`StructuredOutputExecution`/`sendStructuredMessage`),
+  including synthetic-tool-call rewriting for providers without native JSON-schema support,
+  and returns the assembled JSON payload as a `String` decodable via `StructuredOutputDecoder`.
+
 ## [3.1.0-beta.1] - 2026-07-17
 
 ### Added

@@ -57,6 +57,88 @@ struct FacadeOneShotTests {
         #expect(try await timelinePersistence.fetchAllTimelines(includeArchived: true).isEmpty)
     }
 
+    @Test("complete(_:structuredOutput:) passes the request through to the language model")
+    func completeStructuredOutputPassesRequestThrough() async throws {
+        let llm = MockLLMService()
+        try await llm.updateConfiguration(.fixture(activeProvider: .openAICompatible))
+        llm.mockClient.nextChunks = [[#"{"tags":["swift"]}"#]]
+        let kit = PositronicKit(configuration: .init(
+            provider: .init(llmService: llm),
+            persistence: PositronicKit.PersistenceConfiguration(
+                messageStore: InMemoryMessageStore(),
+                timelinePersistence: InMemoryTimelinePersistence(),
+                workspacePersistence: InMemoryWorkspacePersistence(),
+                memoryStore: InMemoryMemoryStore(),
+                toolPersistence: InMemoryToolPersistence(),
+                agentInstanceStore: InMemoryAgentInstanceStore(),
+                requestOriginStore: InMemoryRequestOriginStore()
+            )
+        ))
+
+        _ = try await kit.complete("extract tags", structuredOutput: .jsonObject)
+
+        #expect(llm.mockClient.lastResponseFormat == .jsonObject)
+        #expect(llm.mockClient.lastMessages == [LLMMessage(role: .user, content: "extract tags")])
+    }
+
+    @Test("complete(_:structuredOutput:) assembles the JSON payload from content deltas")
+    func completeStructuredOutputAssemblesContentDeltaPayload() async throws {
+        let llm = MockLLMService()
+        try await llm.updateConfiguration(.fixture(activeProvider: .openAICompatible))
+        llm.mockClient.nextChunks = [[#"{"tags":["#, #""swift"]}"#]]
+        let kit = PositronicKit(configuration: .init(
+            provider: .init(llmService: llm),
+            persistence: PositronicKit.PersistenceConfiguration(
+                messageStore: InMemoryMessageStore(),
+                timelinePersistence: InMemoryTimelinePersistence(),
+                workspacePersistence: InMemoryWorkspacePersistence(),
+                memoryStore: InMemoryMemoryStore(),
+                toolPersistence: InMemoryToolPersistence(),
+                agentInstanceStore: InMemoryAgentInstanceStore(),
+                requestOriginStore: InMemoryRequestOriginStore()
+            )
+        ))
+
+        let result = try await kit.complete("extract tags", structuredOutput: .jsonObject)
+
+        #expect(result == #"{"tags":["swift"]}"#)
+    }
+
+    @Test("complete(_:structuredOutput:) assembles the JSON payload from a synthetic tool call")
+    func completeStructuredOutputAssemblesSyntheticToolCallPayload() async throws {
+        let llm = MockLLMService()
+        try await llm.updateConfiguration(.fixture(activeProvider: .openAICompatible))
+        llm.mockClient.nextRawStreamChunks = [[
+            ChatStreamResultFactory.toolCallChunk(calls: [
+                MockToolCall(id: "structured-call", name: "emit_structured_response", arguments: "{" + #""tags":["#)
+            ]),
+            ChatStreamResultFactory.toolCallChunk(calls: [
+                MockToolCall(id: "structured-call", name: "emit_structured_response", arguments: #""swift"]}"#)
+            ]),
+        ]]
+        let kit = PositronicKit(configuration: .init(
+            provider: .init(llmService: llm),
+            persistence: PositronicKit.PersistenceConfiguration(
+                messageStore: InMemoryMessageStore(),
+                timelinePersistence: InMemoryTimelinePersistence(),
+                workspacePersistence: InMemoryWorkspacePersistence(),
+                memoryStore: InMemoryMemoryStore(),
+                toolPersistence: InMemoryToolPersistence(),
+                agentInstanceStore: InMemoryAgentInstanceStore(),
+                requestOriginStore: InMemoryRequestOriginStore()
+            )
+        ))
+
+        let result = try await kit.complete(
+            "extract tags",
+            structuredOutput: .jsonSchema(StructuredOutputFixtures.tagSchemaDefinition())
+        )
+
+        #expect(result == #"{"tags":["swift"]}"#)
+        let decoded = try StructuredOutputDecoder.decode([String: [String]].self, from: result)
+        #expect(decoded["tags"] == ["swift"])
+    }
+
     private static func stream(contents: [String]) -> AsyncThrowingStream<LLMStreamChunk, Error> {
         AsyncThrowingStream { continuation in
             for content in contents {
