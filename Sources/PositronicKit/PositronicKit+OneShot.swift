@@ -12,6 +12,25 @@ public extension PositronicKit {
         return text
     }
 
+    /// Generates a structured response for a single prompt without creating or
+    /// updating a timeline. The returned string is the raw structured payload
+    /// (JSON), decodable via `StructuredOutputDecoder`.
+    ///
+    /// Structured output is threaded through the same provider adapter path as the
+    /// full chat pipeline (`StructuredOutputExecution`): the request is translated into
+    /// either a native `responseFormat` or a synthetic forced tool call, and — for the
+    /// synthetic-tool path — the underlying stream's tool-call argument deltas are
+    /// rewritten into content deltas before being assembled here, so callers always see
+    /// a plain JSON string regardless of how the provider actually returned it.
+    func complete(_ prompt: String, structuredOutput: StructuredOutputRequest) async throws -> String {
+        try await languageModel.sendStructuredMessage(
+            prompt,
+            structuredOutput: structuredOutput,
+            generationParameters: defaultGenerationParameters,
+            modelTier: .primary
+        )
+    }
+
     /// Streams a response for a single prompt without creating or updating a timeline.
     func stream(_ prompt: String) -> AsyncThrowingStream<LLMStreamChunk, Error> {
         AsyncThrowingStream { continuation in

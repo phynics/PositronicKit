@@ -213,6 +213,15 @@ public enum PositronicKitUsageExamples {
         try StructuredOutputDecoder.decode(ExampleTagPayload.self, from: payload)
     }
 
+    /// Tier 1 structured-output variant: a one-shot `complete(_:structuredOutput:)`
+    /// call, no timeline created or updated. The returned string is the raw JSON
+    /// payload, decodable via `decodeStructuredOutputExample(from:)`/`StructuredOutputDecoder`.
+    public static func completeStructuredOutputExample(prompt: String) async throws -> ExampleTagPayload {
+        let kit = makeOneShotRuntime()
+        let payload = try await kit.complete(prompt, structuredOutput: makeStructuredOutputRequest())
+        return try decodeStructuredOutputExample(from: payload)
+    }
+
     /// Sidecar directives (piggy-backed requests): auxiliary generations riding the same
     /// request as a chat turn's response. `title` is nullable so the model can decline once
     /// a conversation already has one. Consume via `PositronicKit.run(_:)`:
