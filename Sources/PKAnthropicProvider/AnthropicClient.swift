@@ -180,10 +180,10 @@ public actor AnthropicClient: LLMClientProtocol {
         do {
             event = try Self.eventDecoder.decode(AnthropicStreamEvent.self, from: data)
         } catch {
-            logger.warning(
-                "Failed to decode Anthropic SSE event: \(error.localizedDescription). payloadBytes=\(data.count) payloadHash=\(redactedHash(dataString))"
+            logger.error(
+                "Malformed Anthropic SSE frame: \(error.localizedDescription). payloadBytes=\(data.count) payloadHash=\(redactedHash(dataString))"
             )
-            return
+            throw error
         }
 
         if event.type == "error" {

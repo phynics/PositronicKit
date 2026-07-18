@@ -6,6 +6,8 @@ public enum LLMServiceError: PKError, Equatable {
     case invalidConfiguration
     case networkError(String)
     case httpError(provider: String, statusCode: Int, responseBody: String, retryAfter: TimeInterval?)
+    case emptyResponse(provider: String)
+    case unexpectedResponse(provider: String, reason: String)
 
     public var errorDomain: String { PKErrorDomain.llm }
 
@@ -15,6 +17,8 @@ public enum LLMServiceError: PKError, Equatable {
         case .invalidConfiguration: return 1002
         case .networkError: return 1003
         case .httpError: return 1004
+        case .emptyResponse: return 1006
+        case .unexpectedResponse: return 1007
         }
     }
 
@@ -35,6 +39,10 @@ public enum LLMServiceError: PKError, Equatable {
             return limited.isEmpty
                 ? "\(provider) request failed with HTTP \(statusCode)."
                 : "\(provider) request failed with HTTP \(statusCode): \(limited)"
+        case let .emptyResponse(provider):
+            return "\(provider) returned an empty response where output was required."
+        case let .unexpectedResponse(provider, reason):
+            return "\(provider) returned an unexpected response: \(reason)"
         }
     }
 }

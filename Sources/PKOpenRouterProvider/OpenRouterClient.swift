@@ -181,7 +181,12 @@ public actor OpenRouterClient: LLMClientProtocol {
                                 logger.debug("OpenRouter tool-call recovery succeeded: \(recoveryChunk.choices.first?.delta.toolCalls?.count ?? 0) tool call(s) recovered")
                                 continuation.yield(recoveryChunk)
                             } else {
-                                logger.warning("OpenRouter tool-call recovery produced no usable tool calls (non-stream response had finishReason!=tool_calls or empty tool_calls)")
+                                let error = LLMServiceError.unexpectedResponse(
+                                    provider: "OpenRouter",
+                                    reason: "tool-call recovery returned no usable tool calls"
+                                )
+                                logger.error("\(error.userFriendlyMessage)")
+                                throw error
                             }
                         }
                     }
@@ -300,6 +305,7 @@ public actor OpenRouterClient: LLMClientProtocol {
             continuation.yield(result)
         } catch {
             logger.error("Failed to decode OpenRouter chunk: \(error.localizedDescription). payloadBytes=\(data.count) payloadHash=\(redactedHash(dataString))")
+            continuation.finish(throwing: error)
         }
     }
 

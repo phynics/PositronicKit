@@ -6,8 +6,16 @@ public extension PositronicKit {
     /// Generates a response for a single prompt without creating or updating a timeline.
     func complete(_ prompt: String) async throws -> String {
         var text = ""
-        for try await chunk in stream(prompt) {
-            text += chunk.choices.compactMap { $0.delta.content }.joined()
+        do {
+            for try await chunk in stream(prompt) {
+                text += chunk.choices.compactMap { $0.delta.content }.joined()
+            }
+        } catch {
+            throw wrapForeignError(error)
+        }
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            let provider = await languageModel.configuration.activeProvider
+            throw LLMServiceError.emptyResponse(provider: provider.rawValue)
         }
         return text
     }
@@ -49,7 +57,7 @@ public extension PositronicKit {
                     }
                     continuation.finish()
                 } catch {
-                    continuation.finish(throwing: error)
+                    continuation.finish(throwing: wrapForeignError(error))
                 }
             }
             continuation.onTermination = { _ in task.cancel() }

@@ -134,11 +134,11 @@ public actor OllamaClient: LLMClientProtocol {
                     continuation.yield(converted)
                 }
             } catch {
-                // Previously this was a silent `try?` that dropped malformed/partial NDJSON lines
-                // with zero diagnostic trace. OpenAI/OpenRouter handlers log decode failures, so
-                // we mirror that here — emitting a warning rather than changing control flow
-                // (the line is still skipped, exactly as before). See STAB-12.
-                logger.warning("Failed to decode Ollama NDJSON line: \(error.localizedDescription). payloadBytes=\(data.count) payloadHash=\(redactedHash(line))")
+                // A malformed provider frame is a stream failure, not a recoverable
+                // content omission. Preserve it for the public async API.
+                logger.error("Malformed Ollama NDJSON frame: \(error.localizedDescription). payloadBytes=\(data.count) payloadHash=\(redactedHash(line))")
+                continuation.finish(throwing: error)
+                return
             }
         }
     }

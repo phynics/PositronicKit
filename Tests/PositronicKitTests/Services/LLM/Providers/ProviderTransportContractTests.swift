@@ -203,7 +203,7 @@ struct ProviderTransportContractTests {
         #expect(request.value(forHTTPHeaderField: "X-Title") == nil)
     }
 
-    @Test("OpenRouter stream tolerates malformed and truncated payloads without hanging")
+    @Test("OpenRouter stream propagates malformed payloads")
     func openRouterMalformedAndTruncatedStream() async throws {
         let transport = TestProviderTransport { _ in
             .lines([
@@ -213,9 +213,9 @@ struct ProviderTransportContractTests {
         }
         let client = OpenRouterClient(apiKey: "secret", transport: transport)
         let stream = await client.chatStream(messages: [], tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil)
-        let chunks = try await stream.collect()
-        #expect(chunks.count == 1)
-        #expect(chunks.first?.choices.first?.delta.content == "partial")
+        await #expect(throws: DecodingError.self) {
+            _ = try await stream.collect()
+        }
     }
 
     @Test("OpenRouter model listing and malformed payload handling use injected transport")
@@ -265,7 +265,7 @@ struct ProviderTransportContractTests {
         #expect(request.httpBody != nil)
     }
 
-    @Test("Ollama stream tolerates malformed and truncated payloads without hanging")
+    @Test("Ollama stream propagates malformed payloads")
     func ollamaMalformedAndTruncatedStream() async throws {
         let transport = TestProviderTransport { _ in
             .lines([
@@ -276,9 +276,9 @@ struct ProviderTransportContractTests {
 
         let client = OllamaClient(endpoint: "http://localhost:11434", modelName: "llama3.1", transport: transport)
         let stream = await client.chatStream(messages: [], tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil)
-        let chunks = try await stream.collect()
-        #expect(chunks.count == 1)
-        #expect(chunks.first?.choices.first?.delta.content == "partial")
+        await #expect(throws: DecodingError.self) {
+            _ = try await stream.collect()
+        }
     }
 
     @Test("Ollama model listing and malformed payload handling use injected transport")

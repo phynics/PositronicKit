@@ -17,11 +17,19 @@ public extension LLMStreamClient {
             modelTier: modelTier
         )
 
+        let provider = await configuration.activeProvider
         var content = ""
-        for try await result in stream {
-            if let delta = result.choices.first?.delta.content {
-                content += delta
+        do {
+            for try await result in stream {
+                if let delta = result.choices.first?.delta.content {
+                    content += delta
+                }
             }
+        } catch {
+            throw wrapForeignError(error)
+        }
+        guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw LLMServiceError.emptyResponse(provider: provider.rawValue)
         }
         return content
     }

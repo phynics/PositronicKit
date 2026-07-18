@@ -139,6 +139,27 @@ struct FacadeOneShotTests {
         #expect(decoded["tags"] == ["swift"])
     }
 
+    @Test("complete(_:structuredOutput:) rejects an empty successful stream")
+    func completeStructuredOutputRejectsEmptyStream() async throws {
+        let llm = MockLLMService()
+        try await llm.updateConfiguration(.fixture(activeProvider: .openAICompatible))
+        llm.mockClient.nextChunks = [[]]
+        let kit = PositronicKit(configuration: .init(
+            provider: .init(llmService: llm),
+            persistence: PositronicKit.PersistenceConfiguration(
+                messageStore: InMemoryMessageStore(),
+                timelinePersistence: InMemoryTimelinePersistence()
+            )
+        ))
+
+        do {
+            _ = try await kit.complete("extract tags", structuredOutput: .jsonObject)
+            Issue.record("Expected an empty structured response to throw")
+        } catch let error as LLMServiceError {
+            #expect(error == .emptyResponse(provider: LLMProvider.openAICompatible.rawValue))
+        }
+    }
+
     private static func stream(contents: [String]) -> AsyncThrowingStream<LLMStreamChunk, Error> {
         AsyncThrowingStream { continuation in
             for content in contents {
