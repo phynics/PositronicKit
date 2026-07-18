@@ -8,6 +8,8 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+## [3.1.0-beta.2] - 2026-07-18
+
 ### Added
 
 - **Structured-output one-shot `complete(_:structuredOutput:)`**: a `PositronicKit` facade
