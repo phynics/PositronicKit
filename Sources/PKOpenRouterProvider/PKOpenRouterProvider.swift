@@ -3,6 +3,15 @@ import PKShared
 
 public enum PKOpenRouterProvider {
     public static func makeClient(configuration: LLMConfiguration) -> OpenRouterClient {
+        // OpenRouter supports native JSON Schema response formats. Registering
+        // this at the provider boundary prevents structured-output callers from
+        // silently falling back to a synthetic forced tool call, which some
+        // routed models (including `openrouter/free`) may not support.
+        StructuredOutputAdapterRegistry.register(
+            NativeJSONSchemaStructuredOutputAdapter(),
+            for: .openRouter
+        )
+
         let providerConfig = configuration.activeProviderConfiguration
         let url = URL(string: providerConfig.endpoint)
         return OpenRouterClient(

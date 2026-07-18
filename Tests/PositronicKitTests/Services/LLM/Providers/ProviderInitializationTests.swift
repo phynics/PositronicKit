@@ -423,4 +423,11 @@ struct ProviderInitializationTests {
         let client = PKOpenRouterProvider.makeClient(configuration: .fixture(activeProvider: .openRouter))
         #expect(client is OpenRouterClient)
     }
+
+    @Test("OpenRouter provider construction registers native structured output")
+    func openRouterRegistersNativeStructuredOutput() {
+        _ = PKOpenRouterProvider.makeClient(configuration: .fixture(activeProvider: .openRouter))
+
+        #expect(StructuredOutputAdapterRegistry.adapter(for: .openRouter) is NativeJSONSchemaStructuredOutputAdapter)
+    }
 }
