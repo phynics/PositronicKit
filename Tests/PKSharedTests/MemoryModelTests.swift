@@ -47,4 +47,84 @@ final class MemoryModelTests {
         // A consumer updates it manually. For the test, we'll just verify the initial creation time.
         #expect(oldDate == memory.updatedAt)
     }
+
+    // MARK: - Prompt Formatting
+
+    @Test("promptString includes ID, title, tags, and content")
+    func promptStringIncludesAllFields() {
+        let memory = Memory(
+            title: "Swift Tips",
+            content: "Use guard let for unwrapping.",
+            tags: ["swift", "ios"]
+        )
+        let prompt = memory.promptString
+
+        #expect(prompt.contains("ID: \(memory.id.uuidString)"))
+        #expect(prompt.contains("Title: Swift Tips"))
+        #expect(prompt.contains("Tags: swift, ios"))
+        #expect(prompt.contains("Content:"))
+        #expect(prompt.contains("Use guard let for unwrapping."))
+    }
+
+    @Test("promptString omits the Tags line when no tags are present")
+    func promptStringOmitsTagsWhenEmpty() {
+        let memory = Memory(title: "No Tags", content: "body")
+        let prompt = memory.promptString
+
+        #expect(!prompt.contains("Tags:"))
+        #expect(prompt.contains("Title: No Tags"))
+    }
+
+    @Test("Array.promptContent returns empty string for an empty array")
+    func emptyArrayPromptContentIsEmpty() {
+        let memories: [Memory] = []
+        #expect(memories.promptContent == "")
+    }
+
+    @Test("Array.promptContent joins multiple memories under a Memories header")
+    func arrayPromptContentJoinsMemories() {
+        let memories = [
+            Memory(title: "First", content: "first body", tags: ["a"]),
+            Memory(title: "Second", content: "second body", tags: ["b"]),
+        ]
+        let content = memories.promptContent
+
+        #expect(content.hasPrefix("# Memories"))
+        #expect(content.contains("Title: First"))
+        #expect(content.contains("Title: Second"))
+        #expect(content.contains("first body"))
+        #expect(content.contains("second body"))
+    }
+
+    // MARK: - Computed accessors
+
+    @Test("tagArray returns empty for malformed JSON")
+    func tagArrayMalformedJSON() {
+        let memory = Memory(
+            id: UUID(), title: "T", content: "C",
+            createdAt: Date(), updatedAt: Date(),
+            tags: "not-json", metadata: "{}", embedding: "[]"
+        )
+        #expect(memory.tagArray == [])
+    }
+
+    @Test("embeddingVector returns empty for malformed JSON")
+    func embeddingVectorMalformedJSON() {
+        let memory = Memory(
+            id: UUID(), title: "T", content: "C",
+            createdAt: Date(), updatedAt: Date(),
+            tags: "[]", metadata: "{}", embedding: "not-json"
+        )
+        #expect(memory.embeddingVector == [])
+    }
+
+    @Test("metadataDict returns empty for malformed JSON")
+    func metadataDictMalformedJSON() {
+        let memory = Memory(
+            id: UUID(), title: "T", content: "C",
+            createdAt: Date(), updatedAt: Date(),
+            tags: "[]", metadata: "not-json", embedding: "[]"
+        )
+        #expect(memory.metadataDict == [:])
+    }
 }
