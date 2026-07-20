@@ -8,6 +8,23 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [3.1.0] - 2026-07-20
+
+Stable release of the 3.1.0 line. Includes all changes from `3.1.0-beta.1` and `3.1.0-beta.2`
+(iOS platform support, `PromptJournal` hydration state, and the structured-output one-shot
+`complete(_:structuredOutput:)`) plus the fixes below.
+
+### Added
+
+- **Two new `LLMServiceError` cases**: `.emptyResponse(provider:)` (error code `1006`) and
+  `.unexpectedResponse(provider:reason:)` (error code `1007`). These give the timeline-free one-shot
+  paths (`PositronicKit.complete(_:)` and the structured-output `complete(_:structuredOutput:)`) typed
+  errors for empty/non-viable provider output instead of silently returning an empty string. Additive
+  enum cases — existing `switch` sites that are exhaustive over the previous cases need a new arm only if
+  they handle errors generically.
+
 ### Fixed
 
 - **Structured-output adapter registration (regression)**: restored `StructuredOutputAdapterRegistry.register(...)`
@@ -18,6 +35,13 @@ for tagged releases beginning with `1.0.0`.
   OpenAI-compatible endpoints (LandGo's "Custom OpenAI" provider) and Ollama, where the synthetic tool
   approach is unsupported by many servers/models.
 
+- **Malformed provider frames now propagate as errors**: the Anthropic, Ollama, and OpenRouter streaming
+  clients previously swallowed SSE/NDJSON decode failures (Anthropic logged a warning and returned;
+  Ollama logged and skipped the line; OpenRouter logged but did not finish the stream with an error).
+  A malformed frame is a stream failure, not a recoverable content omission, so all three now `throw`/
+  `continuation.finish(throwing:)` the decode error through the public async API. This restores
+  visibility of provider/transport breakage that was previously silently dropped.
+
 ### Changed
 
 - **`OpenAICompatibleStructuredOutputAdapter` now uses native `response_format: json_schema`** with prompt
@@ -26,6 +50,11 @@ for tagged releases beginning with `1.0.0`.
   llama.cpp) and local models do not support. The adapter now sends the schema as a native
   `response_format` constraint AND augments the prompt with the schema text, maximizing the chance of
   valid JSON output across heterogeneous OpenAI-compatible servers.
+
+- **One-shot APIs now guard against empty output**: `PositronicKit.complete(_:)` and the structured-output
+  one-shot path throw `LLMServiceError.emptyResponse(provider:)` when the assembled response is empty
+  after trimming whitespace, rather than returning an empty `String`. Errors from the underlying stream
+  are now wrapped via `wrapForeignError` so non-`PKError` failures surface with a friendly message.
 
 ## [3.1.0-beta.2] - 2026-07-18
 
