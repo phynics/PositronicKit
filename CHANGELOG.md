@@ -8,6 +8,25 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Structured-output adapter registration (regression)**: restored `StructuredOutputAdapterRegistry.register(...)`
+  calls in `PKOpenAIProvider.makeClient`, `PKAnthropicProvider.makeClient`, and `PKOllamaProvider.makeClient`
+  that were lost in `54349bc` ("refactor: make provider adapters leaf targets"). Only `PKOpenRouterProvider`
+  had been fixed (`3a57948`); the other three providers silently fell back to `DefaultStructuredOutputAdapter`
+  (synthetic tool calls) instead of their dedicated adapters. This caused structured-output failures on
+  OpenAI-compatible endpoints (LandGo's "Custom OpenAI" provider) and Ollama, where the synthetic tool
+  approach is unsupported by many servers/models.
+
+### Changed
+
+- **`OpenAICompatibleStructuredOutputAdapter` now uses native `response_format: json_schema`** with prompt
+  augmentation, mirroring the Ollama adapter's belt-and-suspenders approach. Previously it used synthetic
+  forced tool calls (`emit_structured_response`), which many OpenAI-compatible servers (LM Studio, vLLM,
+  llama.cpp) and local models do not support. The adapter now sends the schema as a native
+  `response_format` constraint AND augments the prompt with the schema text, maximizing the chance of
+  valid JSON output across heterogeneous OpenAI-compatible servers.
+
 ## [3.1.0-beta.2] - 2026-07-18
 
 ### Added

@@ -107,7 +107,7 @@ struct FacadeOneShotTests {
     @Test("complete(_:structuredOutput:) assembles the JSON payload from a synthetic tool call")
     func completeStructuredOutputAssemblesSyntheticToolCallPayload() async throws {
         let llm = MockLLMService()
-        try await llm.updateConfiguration(.fixture(activeProvider: .openAICompatible))
+        try await llm.updateConfiguration(.fixture(activeProvider: .anthropic))
         llm.mockClient.nextRawStreamChunks = [[
             ChatStreamResultFactory.toolCallChunk(calls: [
                 MockToolCall(id: "structured-call", name: "emit_structured_response", arguments: "{" + #""tags":["#)

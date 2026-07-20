@@ -26,6 +26,7 @@ struct StructuredOutputPreparationTests {
         StructuredOutputAdapterRegistry.register(NativeJSONSchemaStructuredOutputAdapter(), for: .openRouter)
         StructuredOutputAdapterRegistry.register(OllamaStructuredOutputAdapter(), for: .ollama)
         StructuredOutputAdapterRegistry.register(AnthropicStructuredOutputAdapter(), for: .anthropic)
+        StructuredOutputAdapterRegistry.register(OpenAICompatibleStructuredOutputAdapter(), for: .openAICompatible)
     }()
 
     init() {
@@ -94,10 +95,28 @@ struct StructuredOutputPreparationTests {
                     #expect(prepared.tools?.count == 1)
                     #expect(prepared.tools?.first?.name == baseTool.name)
                     #expect(prepared.tools?.first?.description == baseTool.description)
-                // Anthropic shares the openAICompatible synthetic-tool branch (no response_format
-                // equivalent in the Messages API).
-                case let (.openAICompatible, .jsonSchema(schema)),
-                    let (.anthropic, .jsonSchema(schema)):
+                // OpenAI-compatible endpoints use native response_format + prompt augmentation
+                // (same belt-and-suspenders approach as Ollama).
+                case let (.openAICompatible, .jsonSchema(schema)):
+                    guard case let .jsonSchema(responseSchema)? = prepared.responseFormat else {
+                        Issue.record("Expected OpenAI-compatible schema response format")
+                        continue
+                    }
+                    #expect(responseSchema.name == schema.name)
+                    #expect(responseSchema.description == schema.description)
+                    #expect(responseSchema.strict == schema.strict)
+                    #expect(responseSchema.schema != nil)
+                    #expect(prepared.promptAugmentation?.contains("Schema name: \(schema.name)") == true)
+                    #expect(prepared.promptAugmentation?.contains("JSON Schema") == true)
+                    #expect(prepared.messages.last?.content.contains("Schema name: \(schema.name)") == true)
+                    #expect(prepared.toolChoice == nil)
+                    #expect(prepared.syntheticToolName == nil)
+                    #expect(prepared.tools?.count == 1)
+                    #expect(prepared.tools?.first?.name == baseTool.name)
+                    #expect(prepared.tools?.first?.description == baseTool.description)
+                // Anthropic has no native JSON-schema response format, so it uses the
+                // synthetic-tool fallback.
+                case let (.anthropic, .jsonSchema(schema)):
                     #expect(prepared.messages.first == baseMessages.first)
                     #expect(prepared.responseFormat == nil)
                     #expect(prepared.promptAugmentation == nil)

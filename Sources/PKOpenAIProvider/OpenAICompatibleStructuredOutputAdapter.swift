@@ -2,15 +2,15 @@ import Foundation
 import PKShared
 import PKUtilities
 
-/// Structured-output preparation for generic OpenAI-compatible endpoints that do not
-/// expose a native JSON Schema response format.
+/// Structured-output preparation for generic OpenAI-compatible endpoints.
 ///
-/// This adapter uses the same forced synthetic-tool mechanism as Anthropic so that
-/// structured output works consistently across providers that only support tool-based
-/// schema enforcement.
+/// Most modern OpenAI-compatible servers (LM Studio, vLLM, llama.cpp, etc.) support
+/// the native `json_schema` response format. This adapter sends the schema as a
+/// `response_format` constraint and also augments the prompt with the schema text,
+/// mirroring the Ollama adapter's belt-and-suspenders approach. This avoids relying
+/// on synthetic tool calls, which many local models and servers handle poorly or not
+/// at all (no `tool_choice: "function"` support, no tool-call fine-tuning, etc.).
 public struct OpenAICompatibleStructuredOutputAdapter: StructuredOutputAdapter {
-    private let syntheticToolName = "emit_structured_response"
-
     public init() {}
 
     public func prepareRequest(
@@ -27,16 +27,18 @@ public struct OpenAICompatibleStructuredOutputAdapter: StructuredOutputAdapter {
                 responseFormat: .jsonObject
             )
         case let .jsonSchema(schema):
-            let syntheticTool = makeSyntheticStructuredOutputTool(
-                for: schema,
-                name: syntheticToolName
-            )
+            let augmentation = fallbackStructuredOutputPromptSuffix(for: schema)
             return PreparedStructuredOutputRequest(
-                messages: messages,
-                tools: (tools ?? []) + [syntheticTool],
-                toolChoice: .function(syntheticToolName),
-                responseFormat: nil,
-                syntheticToolName: syntheticToolName
+                messages: applyStructuredOutputPromptAugmentation(augmentation, to: messages),
+                tools: tools,
+                toolChoice: nil,
+                responseFormat: .jsonSchema(.init(
+                    name: schema.name,
+                    description: schema.description,
+                    schema: schema.schema,
+                    strict: schema.strict
+                )),
+                promptAugmentation: augmentation
             )
         }
     }

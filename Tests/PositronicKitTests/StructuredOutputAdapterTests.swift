@@ -119,7 +119,7 @@ struct StructuredOutputAdapterTests {
         #expect(prepared.tools?.contains(where: { $0.name == "emit_structured_response" }) == true)
     }
 
-    @Test("OpenAI-compatible adapter uses a forced synthetic tool")
+    @Test("OpenAI-compatible adapter uses native JSON schema response format with prompt augmentation")
     func openAICompatibleAdapter() {
         let adapter = OpenAICompatibleStructuredOutputAdapter()
         let schema = Self.tagSchema()
@@ -129,12 +129,18 @@ struct StructuredOutputAdapterTests {
             tools: [Self.baseTool],
             output: .jsonSchema(schema)
         )
-        #expect(prepared.messages == Self.baseMessages)
-        #expect(prepared.responseFormat == nil)
-        #expect(prepared.promptAugmentation == nil)
-        #expect(prepared.toolChoice == .function("emit_structured_response"))
-        #expect(prepared.syntheticToolName == "emit_structured_response")
-        #expect(prepared.tools?.count == 2)
+        #expect(prepared.messages.last?.content.contains("Schema name: \(schema.name)") == true)
+        #expect(prepared.promptAugmentation?.contains("JSON Schema") == true)
+        #expect(prepared.tools?.count == 1)
+        #expect(prepared.syntheticToolName == nil)
+        #expect(prepared.toolChoice == nil)
+        guard case let .jsonSchema(responseSchema)? = prepared.responseFormat else {
+            Issue.record("Expected JSON schema response format")
+            return
+        }
+        #expect(responseSchema.name == schema.name)
+        #expect(responseSchema.description == schema.description)
+        #expect(responseSchema.strict == schema.strict)
     }
 
     @Test("Default adapter uses synthetic tool fallback for JSON schema")

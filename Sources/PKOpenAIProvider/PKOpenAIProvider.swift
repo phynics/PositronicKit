@@ -3,6 +3,13 @@ import PKShared
 
 public enum PKOpenAIProvider {
     public static func makeClient(configuration: LLMConfiguration) -> OpenAIClient {
+        StructuredOutputAdapterRegistry.register(
+            configuration.activeProvider == .openAI
+                ? NativeJSONSchemaStructuredOutputAdapter()
+                : OpenAICompatibleStructuredOutputAdapter(),
+            for: configuration.activeProvider
+        )
+
         let providerConfig = configuration.activeProviderConfiguration
         return OpenAIClient(
             apiKey: providerConfig.apiKey,

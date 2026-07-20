@@ -3,6 +3,8 @@ import PKShared
 
 public enum PKAnthropicProvider {
     public static func makeClient(configuration: LLMConfiguration) -> AnthropicClient {
+        StructuredOutputAdapterRegistry.register(AnthropicStructuredOutputAdapter(), for: .anthropic)
+
         let providerConfig = configuration.activeProviderConfiguration
         let url = URL(string: providerConfig.endpoint)
         return AnthropicClient(
