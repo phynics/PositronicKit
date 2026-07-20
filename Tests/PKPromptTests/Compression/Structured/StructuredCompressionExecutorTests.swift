@@ -105,3 +105,132 @@ private final class LockedCounter: @unchecked Sendable {
         return count
     }
 }
+
+// MARK: - Additional executor coverage
+
+private struct FailingCompressor: SectionCompressor {
+    func summarize(_: String) async throws -> String {
+        throw NSError(domain: "test", code: 1)
+    }
+    func summarize(request _: SummaryRequest) async throws -> String {
+        throw NSError(domain: "test", code: 1)
+    }
+}
+
+private struct EmptySummaryCompressor: SectionCompressor {
+    func summarize(_: String) async throws -> String { "" }
+    func summarize(request _: SummaryRequest) async throws -> String { "" }
+}
+
+extension StructuredCompressionExecutorTests {
+    @Test("Truncate action constrains the section to the token limit")
+    func truncateAction() async {
+        let sections = resolveExecutorSections([
+            ExecutorMockSection(id: "s1", priority: 1, estimatedTokens: 300, compression: .truncate(tail: false), renderedContent: "A long body of text"),
+        ])
+        let plan = StructuredCompressionPlan(
+            availableTokens: 50,
+            totalEstimatedTokens: 300,
+            nodeActions: [
+                .init(nodeId: "s1", path: sections[0].path, nodeHash: 1, strategy: .truncate(tail: false), estimatedTokens: 300, action: .truncate(limit: 50, tail: false)),
+            ]
+        )
+
+        let executor = StructuredCompressionExecutor()
+        let result = await executor.execute(plan: plan, sections: sections, compressor: nil)
+
+        #expect(result.sections.count == 1)
+        #expect(result.sections[0].compressionOutcome?.action == .truncate(limit: 50, tail: false))
+        #expect(result.sections[0].compressionOutcome?.afterTokens == 50)
+    }
+
+    @Test("Drop action removes the section from the result")
+    func dropAction() async {
+        let sections = resolveExecutorSections([
+            ExecutorMockSection(id: "s1", priority: 1, estimatedTokens: 300, compression: .drop, renderedContent: "Drop me"),
+            ExecutorMockSection(id: "s2", priority: 1, estimatedTokens: 100, compression: .keep, renderedContent: "Keep me"),
+        ])
+        let plan = StructuredCompressionPlan(
+            availableTokens: 100,
+            totalEstimatedTokens: 400,
+            nodeActions: [
+                .init(nodeId: "s1", path: sections[0].path, nodeHash: 1, strategy: .drop, estimatedTokens: 300, action: .drop),
+                .init(nodeId: "s2", path: sections[1].path, nodeHash: 2, strategy: .keep, estimatedTokens: 100, action: .keep),
+            ]
+        )
+
+        let executor = StructuredCompressionExecutor()
+        let result = await executor.execute(plan: plan, sections: sections, compressor: nil)
+
+        // s1 is dropped, only s2 remains.
+        #expect(result.sections.count == 1)
+        #expect(result.sections[0].id == "s2")
+        // The report for s1 should still be present.
+        #expect(result.report.nodeReports.count == 2)
+        #expect(result.report.nodeReports[0].action == .drop)
+    }
+
+    @Test("Summarize without a compressor falls back to drop")
+    func summarizeWithoutCompressorFallsBackToDrop() async {
+        let sections = resolveExecutorSections([
+            ExecutorMockSection(id: "s1", priority: 1, estimatedTokens: 300, compression: .summarize, renderedContent: "A long body"),
+        ])
+        let plan = StructuredCompressionPlan(
+            availableTokens: 50,
+            totalEstimatedTokens: 300,
+            nodeActions: [
+                .init(nodeId: "s1", path: sections[0].path, nodeHash: 1, strategy: .summarize, estimatedTokens: 300, action: .summarize(targetTokens: 50, reason: .budgetReduction)),
+            ]
+        )
+
+        let executor = StructuredCompressionExecutor()
+        let result = await executor.execute(plan: plan, sections: sections, compressor: nil)
+
+        // Should drop with a fallback reason.
+        #expect(result.sections.count == 0)
+        #expect(result.report.nodeReports.first?.action == .drop)
+        #expect(result.report.nodeReports.first?.fallbackReason == "missing_compressor_or_content")
+    }
+
+    @Test("Summarize with an empty summary falls back to drop")
+    func summarizeWithEmptySummaryFallsBackToDrop() async {
+        let sections = resolveExecutorSections([
+            ExecutorMockSection(id: "s1", priority: 1, estimatedTokens: 300, compression: .summarize, renderedContent: "A long body"),
+        ])
+        let plan = StructuredCompressionPlan(
+            availableTokens: 50,
+            totalEstimatedTokens: 300,
+            nodeActions: [
+                .init(nodeId: "s1", path: sections[0].path, nodeHash: 1, strategy: .summarize, estimatedTokens: 300, action: .summarize(targetTokens: 50, reason: .budgetReduction)),
+            ]
+        )
+
+        let executor = StructuredCompressionExecutor()
+        let result = await executor.execute(plan: plan, sections: sections, compressor: EmptySummaryCompressor())
+
+        #expect(result.sections.count == 0)
+        #expect(result.report.nodeReports.first?.action == .drop)
+        #expect(result.report.nodeReports.first?.fallbackReason == "empty_summary")
+    }
+
+    @Test("Summarize with a failing compressor falls back to drop")
+    func summarizeWithFailingCompressorFallsBackToDrop() async {
+        let sections = resolveExecutorSections([
+            ExecutorMockSection(id: "s1", priority: 1, estimatedTokens: 300, compression: .summarize, renderedContent: "A long body"),
+        ])
+        let plan = StructuredCompressionPlan(
+            availableTokens: 50,
+            totalEstimatedTokens: 300,
+            nodeActions: [
+                .init(nodeId: "s1", path: sections[0].path, nodeHash: 1, strategy: .summarize, estimatedTokens: 300, action: .summarize(targetTokens: 50, reason: .budgetReduction)),
+            ]
+        )
+
+        let executor = StructuredCompressionExecutor()
+        let result = await executor.execute(plan: plan, sections: sections, compressor: FailingCompressor())
+
+        #expect(result.sections.count == 0)
+        #expect(result.report.nodeReports.first?.action == .drop)
+        #expect(result.report.nodeReports.first?.fallbackReason == "summary_failed")
+    }
+}
