@@ -252,6 +252,7 @@ let package = Package(
                 "PKOpenAIProvider",
                 "PKShared",
                 "PKUtilities",
+                "PKTestSupport",
                 "PositronicKit",
                 .product(name: "OpenAI", package: "OpenAI"),
                 .product(name: "Logging", package: "swift-log"),
@@ -264,6 +265,7 @@ let package = Package(
                 "PKOpenRouterProvider",
                 "PKShared",
                 "PKUtilities",
+                "PKTestSupport",
                 .product(name: "Logging", package: "swift-log"),
             ],
             path: "Tests/PKOpenRouterProviderTests"
@@ -274,6 +276,7 @@ let package = Package(
                 "PKOllamaProvider",
                 "PKShared",
                 "PKUtilities",
+                "PKTestSupport",
                 .product(name: "JSONSchema", package: "swift-json-schema"),
                 .product(name: "Logging", package: "swift-log"),
             ],

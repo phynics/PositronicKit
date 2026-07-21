@@ -137,4 +137,17 @@ public struct StructuredDiffHint: Sendable, Equatable {
         self.changedNodePaths = changedNodePaths
         self.stableNodePaths = stableNodePaths
     }
+
+    /// Convenience init that accepts variadic path components instead of `[[String]]`.
+    ///
+    /// ```swift
+    /// StructuredDiffHint(changed: ["root", "section1"], stable: ["root", "section2"])
+    /// ```
+    public init(
+        changed: [String]...,
+        stable: [String]...
+    ) {
+        self.changedNodePaths = Array(changed)
+        self.stableNodePaths = Array(stable)
+    }
 }

@@ -18,6 +18,14 @@ public struct TokenBudget: Sendable {
         self.reserveForResponse = reserveForResponse
     }
 
+    /// Convenience init with `reserveForResponse` defaulting to `0`.
+    ///
+    /// Most callers don't reserve tokens for the response — they want the full budget
+    /// available for the prompt. The two-parameter init remains for explicit callers.
+    public init(maxTokens: Int) {
+        self.init(maxTokens: maxTokens, reserveForResponse: 0)
+    }
+
     public func apply(
         to sections: [any Prompt],
         compressor: SectionCompressor? = nil,

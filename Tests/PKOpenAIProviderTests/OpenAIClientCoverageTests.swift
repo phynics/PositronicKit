@@ -4,14 +4,12 @@ import FoundationNetworking
 #endif
 import OpenAI
 import PKShared
+import PKTestSupport
 import PKUtilities
 import PositronicKit
 import Synchronization
 import Testing
 @testable import PKOpenAIProvider
-
-#if canImport(Network)
-import Network
 
 /// Coverage for `OpenAIClient` methods and `PKOpenAIProvider.makeClient` that are not
 /// exercised by the transport-contract or conversion suites.
@@ -30,19 +28,12 @@ struct OpenAIClientCoverageTests {
 
     // MARK: - Shared test infrastructure
 
-    private func makeStreamingServer(body: String) async throws -> SimpleHTTPServer {
-        try await SimpleHTTPServer.start(response: .init(
-            headers: ["Content-Type": "text/event-stream"],
-            body: Data(body.utf8)
-        ))
+    private func makeStreamingServer(body: String) async throws -> TestHTTPServer {
+        try await TestHTTPServer.start(response: .sse(body))
     }
 
-    private func makeJSONServer(body: String, statusCode: Int = 200) async throws -> SimpleHTTPServer {
-        try await SimpleHTTPServer.start(response: .init(
-            statusCode: statusCode,
-            headers: ["Content-Type": "application/json"],
-            body: Data(body.utf8)
-        ))
+    private func makeJSONServer(body: String, statusCode: Int = 200) async throws -> TestHTTPServer {
+        try await TestHTTPServer.start(response: .json(body, statusCode: statusCode))
     }
 
     // MARK: - Public convenience init
@@ -180,16 +171,10 @@ data: [DONE]
 {"id":"chatcmpl-1","object":"chat.completion","created":0,"model":"gpt-4o","choices":[{"index":0,"finish_reason":"tool_calls","message":{"role":"assistant","content":null,"tool_calls":[{"id":"call_1","type":"function","function":{"name":"get_weather","arguments":"{\"city\":\"Berlin\"}"}}]}}]}
 """#
 
-        let server = try await DualResponseHTTPServer.start(
-            firstResponse: .init(
-                headers: ["Content-Type": "text/event-stream"],
-                body: Data(streamBody.utf8)
-            ),
-            secondResponse: .init(
-                headers: ["Content-Type": "application/json"],
-                body: Data(nonStreamBody.utf8)
-            )
-        )
+        let server = try await TestHTTPServer.startSequential(responses: [
+            .sse(streamBody),
+            .json(nonStreamBody),
+        ])
         defer { server.stop() }
 
         let client = OpenAIClient(
@@ -262,16 +247,11 @@ data: [DONE]
 
     @Test("makeClient for .openAI registers native structured output adapter")
     func makeClientForOpenAI() {
-        let config = LLMConfiguration(
-            activeProvider: .openAI,
-            providers: [.openAI: ProviderConfiguration(
-                endpoint: "https://api.openai.com",
-                apiKey: "sk-test",
-                modelName: "gpt-4o",
-                utilityModel: "gpt-4o",
-                fastModel: "gpt-4o",
-                toolFormat: .openAI
-            )]
+        let config = LLMConfiguration.fixture(
+            endpoint: "https://api.openai.com",
+            modelName: "gpt-4o",
+            apiKey: "sk-test",
+            activeProvider: .openAI
         )
         let client = PKOpenAIProvider.makeClient(configuration: config)
         #expect(client is OpenAIClient)
@@ -279,16 +259,11 @@ data: [DONE]
 
     @Test("makeClient for OpenAI-compatible provider registers compatible structured output adapter")
     func makeClientForOpenAICompatible() {
-        let config = LLMConfiguration(
-            activeProvider: .openAICompatible,
-            providers: [.openAICompatible: ProviderConfiguration(
-                endpoint: "https://api.deepseek.com",
-                apiKey: "sk-test",
-                modelName: "deepseek-chat",
-                utilityModel: "deepseek-chat",
-                fastModel: "deepseek-chat",
-                toolFormat: .openAI
-            )]
+        let config = LLMConfiguration.fixture(
+            endpoint: "https://api.deepseek.com",
+            modelName: "deepseek-chat",
+            apiKey: "sk-test",
+            activeProvider: .openAICompatible
         )
         let client = PKOpenAIProvider.makeClient(configuration: config)
         #expect(client is OpenAIClient)
@@ -296,16 +271,11 @@ data: [DONE]
 
     @Test("makeClient falls back to default host/port/scheme for invalid endpoint")
     func makeClientInvalidEndpointFallback() {
-        let config = LLMConfiguration(
-            activeProvider: .openAI,
-            providers: [.openAI: ProviderConfiguration(
-                endpoint: "not-a-url",
-                apiKey: "sk-test",
-                modelName: "gpt-4o",
-                utilityModel: "gpt-4o",
-                fastModel: "gpt-4o",
-                toolFormat: .openAI
-            )]
+        let config = LLMConfiguration.fixture(
+            endpoint: "not-a-url",
+            modelName: "gpt-4o",
+            apiKey: "sk-test",
+            activeProvider: .openAI
         )
         // Should not crash; falls back to api.openai.com:443/https.
         let client = PKOpenAIProvider.makeClient(configuration: config)
@@ -313,231 +283,3 @@ data: [DONE]
     }
 }
 
-// MARK: - Simple HTTP server
-
-/// A local HTTP server that returns the same response on every request.
-private final class SimpleHTTPServer: @unchecked Sendable {
-    private let listener: NWListener
-    private let queue = DispatchQueue(label: "SimpleHTTPServer")
-    private let response: HTTPResponse
-
-    static func start(response: HTTPResponse) async throws -> SimpleHTTPServer {
-        let server = try SimpleHTTPServer(response: response)
-        try await server.waitUntilReady()
-        return server
-    }
-
-    private init(response: HTTPResponse) throws {
-        self.response = response
-        self.listener = try NWListener(using: .tcp, on: NWEndpoint.Port(rawValue: 0)!)
-    }
-
-    var port: UInt16 {
-        listener.port?.rawValue ?? 0
-    }
-
-    func stop() {
-        listener.cancel()
-    }
-
-    private func waitUntilReady() async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            listener.stateUpdateHandler = { [weak self] state in
-                switch state {
-                case .ready:
-                    guard let self, self.port != 0 else {
-                        continuation.resume(throwing: NSError(domain: "SimpleHTTPServer", code: 1, userInfo: [NSLocalizedDescriptionKey: "no port"]))
-                        return
-                    }
-                    continuation.resume(returning: ())
-                case .failed(let error):
-                    continuation.resume(throwing: error)
-                default:
-                    break
-                }
-            }
-            listener.newConnectionHandler = { [weak self] connection in
-                self?.handle(connection)
-            }
-            listener.start(queue: queue)
-        }
-    }
-
-    private func handle(_ connection: NWConnection) {
-        connection.start(queue: queue)
-        receive(on: connection, buffer: Data())
-    }
-
-    private func receive(on connection: NWConnection, buffer: Data) {
-        connection.receive(minimumIncompleteLength: 1, maximumLength: 64 * 1024) { [weak self] data, _, isComplete, error in
-            guard let self else { return }
-            var accumulated = buffer
-            if let data {
-                accumulated.append(data)
-            }
-
-            if let requestString = String(data: accumulated, encoding: .utf8), requestString.contains("\r\n\r\n") {
-                self.sendResponse(on: connection, response: self.response)
-                return
-            }
-
-            if isComplete || error != nil {
-                connection.cancel()
-                return
-            }
-
-            self.receive(on: connection, buffer: accumulated)
-        }
-    }
-
-    private func sendResponse(on connection: NWConnection, response: HTTPResponse) {
-        let responseData = Self.makeHTTPResponseData(response)
-        connection.send(content: responseData, completion: .contentProcessed { _ in
-            connection.cancel()
-        })
-    }
-
-    private static func makeHTTPResponseData(_ response: HTTPResponse) -> Data {
-        let statusLine = "HTTP/1.1 \(response.statusCode) \(reasonPhrase(for: response.statusCode))\r\n"
-        var headers = response.headers
-        headers["Content-Length"] = "\(response.body.count)"
-        headers["Connection"] = "close"
-        let headerLines = headers.map { "\($0.key): \($0.value)\r\n" }.sorted().joined()
-        return Data((statusLine + headerLines + "\r\n").utf8) + response.body
-    }
-
-    private static func reasonPhrase(for statusCode: Int) -> String {
-        switch statusCode {
-        case 200: return "OK"
-        case 401: return "Unauthorized"
-        case 429: return "Too Many Requests"
-        case 500: return "Internal Server Error"
-        default: return "HTTP Status"
-        }
-    }
-}
-
-// MARK: - Dual-response HTTP server
-
-/// A local HTTP server that returns a different response on the first vs. subsequent
-/// requests on the same connection port. Used to test the tool-call recovery path,
-/// which issues a streaming request followed by a non-streaming request.
-private final class DualResponseHTTPServer: @unchecked Sendable {
-    private let listener: NWListener
-    private let queue = DispatchQueue(label: "DualResponseHTTPServer")
-    private let firstResponse: HTTPResponse
-    private let secondResponse: HTTPResponse
-    private let requestCount = Mutex(0)
-
-    static func start(firstResponse: HTTPResponse, secondResponse: HTTPResponse) async throws -> DualResponseHTTPServer {
-        let server = try DualResponseHTTPServer(firstResponse: firstResponse, secondResponse: secondResponse)
-        try await server.waitUntilReady()
-        return server
-    }
-
-    private init(firstResponse: HTTPResponse, secondResponse: HTTPResponse) throws {
-        self.firstResponse = firstResponse
-        self.secondResponse = secondResponse
-        self.listener = try NWListener(using: .tcp, on: NWEndpoint.Port(rawValue: 0)!)
-    }
-
-    var port: UInt16 {
-        listener.port?.rawValue ?? 0
-    }
-
-    func stop() {
-        listener.cancel()
-    }
-
-    private func waitUntilReady() async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            listener.stateUpdateHandler = { [weak self] state in
-                switch state {
-                case .ready:
-                    guard let self, self.port != 0 else {
-                        continuation.resume(throwing: NSError(domain: "DualResponseHTTPServer", code: 1, userInfo: [NSLocalizedDescriptionKey: "no port"]))
-                        return
-                    }
-                    continuation.resume(returning: ())
-                case .failed(let error):
-                    continuation.resume(throwing: error)
-                default:
-                    break
-                }
-            }
-            listener.newConnectionHandler = { [weak self] connection in
-                self?.handle(connection)
-            }
-            listener.start(queue: queue)
-        }
-    }
-
-    private func handle(_ connection: NWConnection) {
-        connection.start(queue: queue)
-        receive(on: connection, buffer: Data())
-    }
-
-    private func receive(on connection: NWConnection, buffer: Data) {
-        connection.receive(minimumIncompleteLength: 1, maximumLength: 64 * 1024) { [weak self] data, _, isComplete, error in
-            guard let self else { return }
-            var accumulated = buffer
-            if let data {
-                accumulated.append(data)
-            }
-
-            if let requestString = String(data: accumulated, encoding: .utf8), requestString.contains("\r\n\r\n") {
-                let count = self.requestCount.withLock { count -> Int in
-                    count += 1
-                    return count
-                }
-                let response = count == 1 ? self.firstResponse : self.secondResponse
-                self.sendResponse(on: connection, response: response)
-                return
-            }
-
-            if isComplete || error != nil {
-                connection.cancel()
-                return
-            }
-
-            self.receive(on: connection, buffer: accumulated)
-        }
-    }
-
-    private func sendResponse(on connection: NWConnection, response: HTTPResponse) {
-        let responseData = Self.makeHTTPResponseData(response)
-        connection.send(content: responseData, completion: .contentProcessed { _ in
-            connection.cancel()
-        })
-    }
-
-    private static func makeHTTPResponseData(_ response: HTTPResponse) -> Data {
-        let statusLine = "HTTP/1.1 \(response.statusCode) \(reasonPhrase(for: response.statusCode))\r\n"
-        var headers = response.headers
-        headers["Content-Length"] = "\(response.body.count)"
-        headers["Connection"] = "close"
-        let headerLines = headers.map { "\($0.key): \($0.value)\r\n" }.sorted().joined()
-        return Data((statusLine + headerLines + "\r\n").utf8) + response.body
-    }
-
-    private static func reasonPhrase(for statusCode: Int) -> String {
-        switch statusCode {
-        case 200: return "OK"
-        case 401: return "Unauthorized"
-        case 429: return "Too Many Requests"
-        case 500: return "Internal Server Error"
-        default: return "HTTP Status"
-        }
-    }
-}
-
-private struct HTTPResponse: Sendable {
-    var statusCode: Int = 200
-    var headers: [String: String] = [:]
-    var body: Data = Data()
-}
-
-#else
-@Suite("OpenAI client coverage")
-struct OpenAIClientCoverageTests {}
-#endif

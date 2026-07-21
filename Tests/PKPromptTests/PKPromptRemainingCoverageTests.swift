@@ -1180,3 +1180,44 @@ extension PKPromptRemainingCoverageTests {
         // The path component should include the type name and id hash.
     }
 }
+
+// MARK: - New API verification
+
+extension PKPromptRemainingCoverageTests {
+    @Test("TokenBudget(maxTokens:) convenience init defaults reserveForResponse to 0")
+    func tokenBudgetSingleParamInit() {
+        let budget = TokenBudget(maxTokens: 1000)
+        #expect(budget.maxTokens == 1000)
+        #expect(budget.reserveForResponse == 0)
+    }
+
+    @Test("StructuredDiffHint variadic init accepts path components")
+    func structuredDiffHintVariadicInit() {
+        let diff = StructuredDiffHint(
+            changed: ["root", "section1"],
+            stable: ["root", "section2"]
+        )
+        #expect(diff.changedNodePaths == [["root", "section1"]])
+        #expect(diff.stableNodePaths == [["root", "section2"]])
+    }
+
+    @Test("StructuredDiffHint variadic init with multiple paths")
+    func structuredDiffHintVariadicMultiple() {
+        let diff = StructuredDiffHint(
+            changed: ["root", "a"], ["root", "b"],
+            stable: ["root", "c"]
+        )
+        #expect(diff.changedNodePaths.count == 2)
+        #expect(diff.stableNodePaths.count == 1)
+    }
+
+    @Test("StructuredDiffHint original init still works")
+    func structuredDiffHintOriginalInit() {
+        let diff = StructuredDiffHint(
+            changedNodePaths: [["root", "a"]],
+            stableNodePaths: [["root", "b"]]
+        )
+        #expect(diff.changedNodePaths == [["root", "a"]])
+        #expect(diff.stableNodePaths == [["root", "b"]])
+    }
+}

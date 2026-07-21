@@ -2,12 +2,10 @@ import Foundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
+import PKTestSupport
 @testable import PKShared
 @testable import PKUtilities
 import Testing
-
-#if canImport(Network)
-import Network
 
 /// Coverage for `URLSessionProviderHTTPTransport` — the concrete `URLSession`-backed
 /// HTTP transport used by all provider clients (Anthropic, Ollama, OpenRouter).
@@ -31,10 +29,7 @@ struct ProviderHTTPTransportTests {
 
     @Test("data(for:) returns the response body and URLResponse")
     func dataReturnsBodyAndResponse() async throws {
-        let server = try await LocalServer.start(response: .init(
-            headers: ["Content-Type": "application/json"],
-            body: Data(#"{"ok":true}"#.utf8)
-        ))
+        let server = try await TestHTTPServer.start(response: .json(#"{"ok":true}"#))
         defer { server.stop() }
 
         let transport = URLSessionProviderHTTPTransport(session: .shared)
@@ -48,7 +43,7 @@ struct ProviderHTTPTransportTests {
 
     @Test("data(for:) propagates HTTP error status codes")
     func dataPropagatesErrorStatus() async throws {
-        let server = try await LocalServer.start(response: .init(
+        let server = try await TestHTTPServer.start(response: .init(
             statusCode: 500,
             headers: ["Content-Type": "text/plain"],
             body: Data("internal error".utf8)
@@ -68,7 +63,7 @@ struct ProviderHTTPTransportTests {
     @Test("lines(for:) streams response body line by line")
     func linesStreamsLineByLine() async throws {
         let body = "line1\nline2\nline3\n"
-        let server = try await LocalServer.start(response: .init(
+        let server = try await TestHTTPServer.start(response: .init(
             headers: ["Content-Type": "text/plain"],
             body: Data(body.utf8)
         ))
@@ -93,7 +88,7 @@ struct ProviderHTTPTransportTests {
 
     @Test("lines(for:) handles empty response body")
     func linesHandlesEmptyBody() async throws {
-        let server = try await LocalServer.start(response: .init(
+        let server = try await TestHTTPServer.start(response: .init(
             headers: ["Content-Type": "text/plain"],
             body: Data()
         ))
@@ -127,107 +122,3 @@ struct ProviderHTTPTransportTests {
         _ = transport
     }
 }
-
-// MARK: - Local HTTP server
-
-private final class LocalServer: @unchecked Sendable {
-    private let listener: NWListener
-    private let queue = DispatchQueue(label: "ProviderHTTPTransportTests.LocalServer")
-    private let response: HTTPResponse
-
-    static func start(response: HTTPResponse) async throws -> LocalServer {
-        let server = try LocalServer(response: response)
-        try await server.waitUntilReady()
-        return server
-    }
-
-    private init(response: HTTPResponse) throws {
-        self.response = response
-        self.listener = try NWListener(using: .tcp, on: NWEndpoint.Port(rawValue: 0)!)
-    }
-
-    var port: UInt16 {
-        listener.port?.rawValue ?? 0
-    }
-
-    func stop() {
-        listener.cancel()
-    }
-
-    private func waitUntilReady() async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            listener.stateUpdateHandler = { [weak self] state in
-                switch state {
-                case .ready:
-                    guard let self, self.port != 0 else {
-                        continuation.resume(throwing: NSError(domain: "LocalServer", code: 1, userInfo: [NSLocalizedDescriptionKey: "no port"]))
-                        return
-                    }
-                    continuation.resume(returning: ())
-                case .failed(let error):
-                    continuation.resume(throwing: error)
-                default:
-                    break
-                }
-            }
-            listener.newConnectionHandler = { [weak self] connection in
-                self?.handle(connection)
-            }
-            listener.start(queue: queue)
-        }
-    }
-
-    private func handle(_ connection: NWConnection) {
-        connection.start(queue: queue)
-        receive(on: connection, buffer: Data())
-    }
-
-    private func receive(on connection: NWConnection, buffer: Data) {
-        connection.receive(minimumIncompleteLength: 1, maximumLength: 64 * 1024) { [weak self] data, _, isComplete, error in
-            guard let self else { return }
-            var accumulated = buffer
-            if let data {
-                accumulated.append(data)
-            }
-
-            if let requestString = String(data: accumulated, encoding: .utf8), requestString.contains("\r\n\r\n") {
-                self.sendResponse(on: connection)
-                return
-            }
-
-            if isComplete || error != nil {
-                connection.cancel()
-                return
-            }
-
-            self.receive(on: connection, buffer: accumulated)
-        }
-    }
-
-    private func sendResponse(on connection: NWConnection) {
-        let responseData = Self.makeHTTPResponseData(response)
-        connection.send(content: responseData, completion: .contentProcessed { _ in
-            connection.cancel()
-        })
-    }
-
-    private static func makeHTTPResponseData(_ response: HTTPResponse) -> Data {
-        let statusLine = "HTTP/1.1 \(response.statusCode) OK\r\n"
-        var headers = response.headers
-        headers["Content-Length"] = "\(response.body.count)"
-        headers["Connection"] = "close"
-        let headerLines = headers.map { "\($0.key): \($0.value)\r\n" }.sorted().joined()
-        return Data((statusLine + headerLines + "\r\n").utf8) + response.body
-    }
-}
-
-private struct HTTPResponse: Sendable {
-    var statusCode: Int = 200
-    var headers: [String: String] = [:]
-    var body: Data = Data()
-}
-
-#else
-@Suite("URLSessionProviderHTTPTransport")
-struct ProviderHTTPTransportTests {}
-#endif

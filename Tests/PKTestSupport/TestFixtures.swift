@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import PKPrompt
 import PKUtilities
 import PositronicKit
 
@@ -99,6 +100,36 @@ import PositronicKit
                 providers: [activeProvider: providerConfig],
                 memoryContextLimit: memoryContextLimit,
                 documentContextLimit: documentContextLimit
+            )
+        }
+    }
+
+    public extension RenderedPrompt.Section {
+        /// Test-only convenience factory that fills in sensible defaults for every field
+        /// except `id` and `content`, so tests don't have to spell out 11 parameters.
+        static func fixture(
+            id: String,
+            content: PromptSection.Content,
+            role: PromptSectionRole = .context,
+            priority: Int = 50,
+            estimatedTokens: Int = 10,
+            compression: CompressionStrategy = .keep,
+            type: PromptSectionType = .text,
+            cachePolicy: CachePolicy = .stable,
+            path: [String]? = nil,
+            parentID: String? = nil
+        ) -> RenderedPrompt.Section {
+            RenderedPrompt.Section(
+                id: id,
+                role: role,
+                priority: priority,
+                estimatedTokens: estimatedTokens,
+                compression: compression,
+                type: type,
+                cachePolicy: cachePolicy,
+                path: path ?? ["root", id],
+                parentID: parentID,
+                content: content
             )
         }
     }
