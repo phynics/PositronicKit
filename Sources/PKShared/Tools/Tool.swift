@@ -43,6 +43,28 @@ public extension ToolSource {
     }
 }
 
+/// The side-effect class of a tool, used by the timeout enforcer to decide whether
+/// abandonment after a wall-clock timeout is safe.
+///
+/// `ToolTimeoutEnforcer` cancels uncooperative tool tasks best-effort after timeout
+/// and returns promptly rather than blocking until the tool body finishes. For tools
+/// that mutate no external state this is honest — the operation effectively stopped.
+/// For tools that mutate in-process or external state, cancellation is not
+/// termination: the tool may still complete its side effects after the caller has
+/// been informed of the timeout, and retrying can duplicate writes, commands,
+/// payments, file changes, or remote operations. The enforcer uses this value to
+/// report a distinct terminal state (`ToolError.timedOutButMayStillBeRunning`)
+/// rather than a clean timeout when abandonment is not provably safe.
+public enum ToolSideEffects: Sendable, Equatable {
+    /// No external state is mutated; safe to abandon after timeout.
+    case none
+    /// In-process state may be mutated (files, memory, in-process records).
+    case mutating
+    /// External processes or remote services may be mutated; termination
+    /// requires an out-of-band kill path the runtime does not own.
+    case externalProcess
+}
+
 /// A tool that the LLM can call to interact with workspaces, data, or computations.
 ///
 /// Implement this protocol to add new capabilities to the AI assistant. Tools are automatically
@@ -71,6 +93,15 @@ public protocol Tool: Sendable, PromptFormattable {
     /// Whether the tool requires explicit user permission before execution.
     /// If true, the system will prompt the user to approve the tool call.
     var requiresPermission: Bool { get }
+
+    /// The side-effect class of this tool, used by the timeout enforcer to decide
+    /// whether abandonment after a wall-clock timeout is safe. Defaults to
+    /// `.mutating` — the conservative assumption for tools that do not declare
+    /// themselves side-effect-free. A tool that mutates no external state should
+    /// override this with `.none` to preserve the fast-abandon clean timeout;
+    /// a tool that drives external processes or remote services should override
+    /// it with `.externalProcess`.
+    var sideEffects: ToolSideEffects { get }
 
     /// Example usage of the tool, typically formatted as a JSON string.
     /// Used to provide guidance to the LLM when it makes errors.
@@ -130,6 +161,14 @@ public extension Tool {
     /// Default: no usage example provided.
     var usageExample: String? {
         nil
+    }
+
+    /// Default side-effect class: conservative assumption that the tool mutates
+    /// in-process state, so the timeout enforcer reports
+    /// `timedOutButMayStillBeRunning` rather than a clean timeout. Tools that are
+    /// genuinely side-effect-free should override this with `.none`.
+    var sideEffects: ToolSideEffects {
+        .mutating
     }
 
     /// Default summarize implementation that generates a compact description of inputs and outputs.
@@ -260,6 +299,10 @@ public struct AnyTool: Tool, Sendable {
 
     public var requiresPermission: Bool {
         wrapped.requiresPermission
+    }
+
+    public var sideEffects: ToolSideEffects {
+        wrapped.sideEffects
     }
 
     public var usageExample: String? {

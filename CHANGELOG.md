@@ -8,7 +8,52 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added
+
+- **`ToolSideEffects` enum + `Tool.sideEffects` property (PKRR-004)**: a new public enum on
+  `PKShared` (`ToolSideEffects.none` / `.mutating` / `.externalProcess`) declares the
+  side-effect class of a tool. The `Tool` protocol gains a `var sideEffects: ToolSideEffects
+  { get }` requirement with a default implementation returning `.mutating` — the conservative
+  assumption for tools that do not declare themselves side-effect-free. `AnyTool` forwards the
+  declared value. This is an additive, backward-compatible public API change: existing tool
+  conformers in `PositronicKit`, `Monad`, `Shuttle`, `Yakamoz`, and `LandGo` inherit the
+  `.mutating` default with no source changes.
+
+- **`ToolError.timedOutButMayStillBeRunning(timeout:)` (PKRR-004)**: a new typed
+  `ToolError` case (error code `212`) distinct from `.executionFailed`. It is thrown by
+  `ToolTimeoutEnforcer` when a `.mutating` or `.externalProcess` tool is abandoned after a
+  wall-clock timeout — the tool may still be executing out-of-band and retrying may duplicate
+  side effects. The associated value is the `TimeInterval` timeout, not a string. The
+  `userFriendlyMessage` and `remediation` surface the may-still-be-running condition and the
+  retry hazard to the model/UI/operator.
+
+- **`ToolError.timeoutDescription(_:)` (PKRR-004)**: a public overflow-safe formatter for
+  timeout values in human-readable messages. Shared by the clean-timeout and
+  may-still-be-running terminal states so the wording stays consistent. Overflow-safe: a
+  finite whole number larger than `Int.max` renders via the `Double` fallback rather than
+  trapping on `Int` conversion.
+
+### Changed
+
+- **`ToolTimeoutEnforcer` now reports side-effect-aware terminal states (PKRR-004)**: on
+  timeout, tools that declare `sideEffects == .none` preserve the current fast-abandon clean
+  timeout (`ToolError.executionFailed` with a "timed out" message) — this is the only case
+  where the runtime claims the operation stopped. Tools that declare `.mutating` or
+  `.externalProcess` (and tools that rely on the `.mutating` default) now throw
+  `ToolError.timedOutButMayStillBeRunning` so the caller is informed that the tool may still
+  be executing and retrying may duplicate side effects. The enforcer still cancels best-effort
+  and returns promptly; it does NOT block waiting for the uncooperative tool — only the
+  reported status changes. Callers that pattern-matched on `.executionFailed` with a
+  "timed out" substring for timeout classification should add an arm for
+  `.timedOutButMayStillBeRunning`.
+
+### Fixed
+
+- **`ToolTimeoutEnforcer` timeout-value validation (PKRR-004, relates to PKRR-030)**: the
+  enforcer now rejects negative, infinite, or NaN timeouts as a clean `executionFailed`
+  before the race starts, so a tool never runs against an invalid wall-clock bound. The
+  nanosecond conversion is overflow-safe: a finite timeout whose `UInt64` nanosecond product
+  would overflow is clamped to `UInt64.max` rather than trapping.
 
 ## [3.1.0] - 2026-07-20
 
