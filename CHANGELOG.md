@@ -10,6 +10,18 @@ for tagged releases beginning with `1.0.0`.
 
 ### Fixed
 
+- **Turn input persistence deferred until preparation succeeds (PKRR-006)**:
+  `prepareSession` now validates history, gathers context, resolves workspaces, and assembles
+  the prompt **before** persisting user input or tool outputs. If any preparation step throws,
+  no new messages are persisted, preventing orphan inputs on retry. The `sendId` is used as an
+  in-memory idempotency key: a second call with the same `sendId` throws
+  `ChatEngineError.duplicateSendId` (error code 9006) while the first is in progress or has
+  completed. On failure the `sendId` is released so the caller may retry. Tool-output batches
+  are resumable — already-persisted outputs are skipped on retry, so a partial batch can be
+  completed without duplication. The `ExternalToolOutputSubmissionGate` is split into
+  `validate` (reserve call IDs, no persistence) and `commit` (persist, skipping
+  already-present outputs) phases.
+
 - **Pipeline cancellation no longer reported as success (PKRR-009)**: `runPrimaryStages`
   now returns `CancellationError()` when `Task.isCancelled` is detected between stages
   or after the final stage, instead of breaking the loop and returning `nil` (success).

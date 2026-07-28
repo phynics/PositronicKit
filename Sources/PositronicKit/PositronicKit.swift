@@ -346,7 +346,7 @@ public final class PositronicKit: Sendable {
     ///
     /// Hydration failure propagates as a typed ``TimelineError``: `.timelineNotFound` for a
     /// missing ID, `.unavailable` for a transient store fault. The error reaches the caller
-    /// before `saveConversationSteps` runs, so no user input is persisted under an
+    /// before input persistence runs (PKRR-006), so no user input is persisted under an
     /// unestablished timeline.
     private func resolveTurnBriefingBuilder(
         explicit turnBriefingBuilder: TurnBriefingBuilder?,

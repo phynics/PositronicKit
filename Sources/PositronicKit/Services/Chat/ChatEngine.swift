@@ -12,6 +12,7 @@ enum ChatEngineError: PKError {
     case streamTimedOut(TimeInterval)
     case danglingToolCall(id: String)
     case danglingToolResult(id: String)
+    case duplicateSendId(UUID)
 
     var errorDomain: String {
         PKErrorDomain.chat
@@ -24,6 +25,7 @@ enum ChatEngineError: PKError {
         case .streamTimedOut: return 9003
         case .danglingToolCall: return 9004
         case .danglingToolResult: return 9005
+        case .duplicateSendId: return 9006
         }
     }
 
@@ -39,6 +41,8 @@ enum ChatEngineError: PKError {
             return "Conversation history contains an assistant tool call with id '\(id)' that has no matching tool result."
         case let .danglingToolResult(id):
             return "Conversation history contains a tool result with id '\(id)' that has no matching assistant tool call."
+        case let .duplicateSendId(sendId):
+            return "Turn \(sendId.uuidString.prefix(8)) has already been processed. Use a new sendId to start a new turn."
         }
     }
 
@@ -46,6 +50,8 @@ enum ChatEngineError: PKError {
         switch self {
         case .danglingToolCall, .danglingToolResult:
             return "Repair the persisted conversation history so assistant tool calls and tool results are paired before retrying."
+        case .duplicateSendId:
+            return "The previous turn with this sendId completed successfully. Use a new sendId for a new turn, or if the previous attempt failed it is safe to retry with the same sendId."
         case .llmServiceNotConfigured, .missingInput, .streamTimedOut:
             return nil
         }

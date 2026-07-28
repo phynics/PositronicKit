@@ -135,6 +135,54 @@ public final class FailingWorkspaceStore: WorkspaceStore, @unchecked Sendable {
     }
 }
 
+/// A `MessageStoreProtocol` mock backed by `MockMessageStore` that can be configured to
+/// fail after a configurable number of successful `saveMessage` calls. Use it to drive
+/// partial-batch / resumable-persistence tests (PKRR-006): set `failAfterSaveCount` to `N`
+/// and the `(N+1)`-th save throws `FailingStoreError.saveFailed`. Set it back to `nil` to
+/// stop failing so a retry can complete the batch.
+public final class BatchFailingMessageStore: MessageStoreProtocol, @unchecked Sendable {
+    private let backing = MockMessageStore()
+    private let failAfterSaveCountState = Mutex<Int?>(nil)
+    private let saveCountState = Mutex<Int>(0)
+
+    public init() {}
+
+    /// When non-nil, `saveMessage` throws after this many successful saves. Set to `nil`
+    /// to disable failure (e.g. for retry assertions).
+    public var failAfterSaveCount: Int? {
+        get { failAfterSaveCountState.withLock { $0 } }
+        set { failAfterSaveCountState.withLock { $0 = newValue } }
+    }
+
+    /// Number of `saveMessage` calls received so far.
+    public var saveCallCount: Int { saveCountState.withLock { $0 } }
+
+    public var messages: [ConversationMessage] {
+        backing.messages
+    }
+
+    public func saveMessage(_ message: ConversationMessage) async throws {
+        let count = saveCountState.withLock { $0 + 1 }
+        saveCountState.withLock { $0 = count }
+        if let limit = failAfterSaveCountState.withLock({ $0 }), count > limit {
+            throw FailingStoreError.saveFailed
+        }
+        try await backing.saveMessage(message)
+    }
+
+    public func fetchMessages(for timelineId: UUID) async throws -> [ConversationMessage] {
+        try await backing.fetchMessages(for: timelineId)
+    }
+
+    public func deleteMessages(for timelineId: UUID) async throws {
+        try await backing.deleteMessages(for: timelineId)
+    }
+
+    public func pruneMessages(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int { 0 }
+
+    public func fetchSnapshots(for timelineId: UUID) async throws -> [TurnSnapshot] { [] }
+}
+
 /// A `ToolPersistenceProtocol` mock that can be configured to throw on
 /// `fetchToolSource`, delegating all other operations to an in-memory backing store.
 /// Use it to drive failure-path coverage for `getToolSource`.
