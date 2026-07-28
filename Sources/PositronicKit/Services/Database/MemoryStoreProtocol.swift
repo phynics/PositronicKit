@@ -5,7 +5,7 @@ import PKUtilities
 
 import Foundation
 
-public protocol MemoryStoreProtocol: Sendable {
+public protocol MemoryStoreProtocol: DurabilityAware {
     func saveMemory(_ memory: Memory, policy: MemorySavePolicy) async throws -> UUID
     func fetchMemory(id: UUID) async throws -> Memory?
     func fetchAllMemories() async throws -> [Memory]

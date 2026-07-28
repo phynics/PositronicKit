@@ -14,7 +14,7 @@ import PKUtilities
 ///
 /// The protocol contract is exercised in `AgentInstanceStoreContractTests` against both
 /// in-package conformers.
-public protocol AgentInstanceStoreProtocol: Sendable {
+public protocol AgentInstanceStoreProtocol: DurabilityAware {
     func saveAgentInstance(_ instance: AgentInstance) async throws
     func fetchAgentInstance(id: UUID) async throws -> AgentInstance?
     func fetchAllAgentInstances() async throws -> [AgentInstance]

@@ -5,7 +5,7 @@ import PKUtilities
 
 import Foundation
 
-public protocol MessageStoreProtocol: Sendable {
+public protocol MessageStoreProtocol: DurabilityAware {
     func saveMessage(_ message: ConversationMessage) async throws
     func fetchMessages(for timelineId: UUID) async throws -> [ConversationMessage]
     func deleteMessages(for timelineId: UUID) async throws

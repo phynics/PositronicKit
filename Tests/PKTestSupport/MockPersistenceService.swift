@@ -27,6 +27,12 @@ public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProt
     public var mockHealthStatus: HealthStatus = .ok
     public var mockHealthDetails: [String: String]? = ["mock": "true"]
 
+    /// Overrides `isDurable` for all seven store protocol conformances.
+    /// Defaults to `false` (matching the protocol default); set to `true` to simulate a
+    /// durable (GRDB/SwiftData-backed) store in durability tests.
+    public var mockIsDurable: Bool = false
+    public var isDurable: Bool { mockIsDurable }
+
     // Mocks
     public var saveOriginMock: ((RequestOriginIdentity) async throws -> Void)?
     public var fetchOriginMock: ((UUID) async throws -> RequestOriginIdentity?)?
