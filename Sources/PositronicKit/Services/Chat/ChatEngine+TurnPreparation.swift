@@ -41,6 +41,10 @@ extension ChatEngine {
             ? nil
             : SidecarSchemaComposer.instructionBlock(directives: sidecars)
 
+        // 0. Validate timeline existence before persisting any user input. A missing or
+        // unavailable timeline throws before saveConversationSteps runs.
+        try await dependencies.timelineManager.ensureTimelineExists(id: timelineId)
+
         // 1. Save new inputs (user message or externally submitted tool outputs)
         try await saveConversationSteps(timelineId: timelineId, message: message, toolOutputs: toolOutputs)
 

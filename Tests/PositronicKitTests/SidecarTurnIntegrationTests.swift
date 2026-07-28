@@ -37,6 +37,7 @@ struct SidecarTurnIntegrationTests {
         let persistence = MockPersistenceService()
         let chat = makeChat(llmService: mockLLM, persistence: persistence)
         let timelineId = UUID()
+        try await persistence.saveTimeline(Timeline(id: timelineId, title: "Sidecar Turn"))
 
         let stream = try await chat.run(ChatRunRequest(
             timelineId: timelineId,
@@ -64,10 +65,12 @@ struct SidecarTurnIntegrationTests {
         let mockLLM = MockLLMService()
         let persistence = MockPersistenceService()
         let chat = makeChat(llmService: mockLLM, persistence: persistence)
+        let timelineId = UUID()
+        try await persistence.saveTimeline(Timeline(id: timelineId, title: "Sidecar Conflict"))
 
         await #expect(throws: SidecarError.conflictsWithExplicitStructuredOutput) {
             _ = try await chat.run(ChatRunRequest(
-                timelineId: UUID(),
+                timelineId: timelineId,
                 message: "hello",
                 structuredOutput: .jsonSchema(StructuredOutputFixtures.tagSchemaDefinition()),
                 sidecars: directives
@@ -83,9 +86,11 @@ struct SidecarTurnIntegrationTests {
         ]]
         let persistence = MockPersistenceService()
         let chat = makeChat(llmService: mockLLM, persistence: persistence)
+        let timelineId = UUID()
+        try await persistence.saveTimeline(Timeline(id: timelineId, title: "Instruction Block"))
 
         let stream = try await chat.run(ChatRunRequest(
-            timelineId: UUID(),
+            timelineId: timelineId,
             message: "hello",
             sidecars: directives
         ))
@@ -106,12 +111,15 @@ struct SidecarTurnIntegrationTests {
         #expect(schema.name == "sidecar_turn")
 
         // System message must be byte-identical to a run without sidecars — the directive
-        // list must not leak into the cache-stable system prefix.
+        // list must not leak into the cache-stable system prefix. Use the same timeline ID
+        // and title so the "Current Timeline" section is identical across both chats.
         let mockLLMWithout = MockLLMService()
         mockLLMWithout.mockClient.nextChunks = [["ok"]]
-        let chatWithout = makeChat(llmService: mockLLMWithout, persistence: MockPersistenceService())
+        let persistenceWithout = MockPersistenceService()
+        let chatWithout = makeChat(llmService: mockLLMWithout, persistence: persistenceWithout)
+        try await persistenceWithout.saveTimeline(Timeline(id: timelineId, title: "Instruction Block"))
         let streamWithout = try await chatWithout.run(ChatRunRequest(
-            timelineId: UUID(),
+            timelineId: timelineId,
             message: "hello"
         ))
         for try await _ in streamWithout {}
@@ -148,9 +156,11 @@ struct SidecarTurnIntegrationTests {
         ]
         let persistence = MockPersistenceService()
         let chat = makeChat(llmService: mockLLM, persistence: persistence)
+        let timelineId = UUID()
+        try await persistence.saveTimeline(Timeline(id: timelineId, title: "Multi-Turn Sidecar"))
 
         let stream = try await chat.run(ChatRunRequest(
-            timelineId: UUID(),
+            timelineId: timelineId,
             message: "hello",
             tools: [MockTool().toAnyTool()],
             sidecars: directives
@@ -173,11 +183,18 @@ struct SidecarTurnIntegrationTests {
             .init(name: "summary", instruction: "One sentence summary.", schema: JSONString().definition(), streaming: .buffered),
         ]
 
+        // All three chats use the same timeline ID and title so the "Current Timeline"
+        // section is byte-identical across them.
+        let sharedTimelineId = UUID()
+        let sharedTitle = "Stable System"
+
         let mockLLMA = MockLLMService()
         mockLLMA.mockClient.nextChunks = [[#"{"response": "ok", "sidecar_payload": {"title": "T", "tone": "flat"}}"#]]
-        let chatA = makeChat(llmService: mockLLMA, persistence: MockPersistenceService())
+        let persistenceA = MockPersistenceService()
+        let chatA = makeChat(llmService: mockLLMA, persistence: persistenceA)
+        try await persistenceA.saveTimeline(Timeline(id: sharedTimelineId, title: sharedTitle))
         let streamA = try await chatA.run(ChatRunRequest(
-            timelineId: UUID(),
+            timelineId: sharedTimelineId,
             message: "hello",
             sidecars: directives
         ))
@@ -185,9 +202,11 @@ struct SidecarTurnIntegrationTests {
 
         let mockLLMB = MockLLMService()
         mockLLMB.mockClient.nextChunks = [[#"{"response": "ok", "sidecar_payload": {"summary": "S"}}"#]]
-        let chatB = makeChat(llmService: mockLLMB, persistence: MockPersistenceService())
+        let persistenceB = MockPersistenceService()
+        let chatB = makeChat(llmService: mockLLMB, persistence: persistenceB)
+        try await persistenceB.saveTimeline(Timeline(id: sharedTimelineId, title: sharedTitle))
         let streamB = try await chatB.run(ChatRunRequest(
-            timelineId: UUID(),
+            timelineId: sharedTimelineId,
             message: "hello",
             sidecars: directivesB
         ))
@@ -195,9 +214,11 @@ struct SidecarTurnIntegrationTests {
 
         let mockLLMEmpty = MockLLMService()
         mockLLMEmpty.mockClient.nextChunks = [["ok"]]
-        let chatEmpty = makeChat(llmService: mockLLMEmpty, persistence: MockPersistenceService())
+        let persistenceEmpty = MockPersistenceService()
+        let chatEmpty = makeChat(llmService: mockLLMEmpty, persistence: persistenceEmpty)
+        try await persistenceEmpty.saveTimeline(Timeline(id: sharedTimelineId, title: sharedTitle))
         let streamEmpty = try await chatEmpty.run(ChatRunRequest(
-            timelineId: UUID(),
+            timelineId: sharedTimelineId,
             message: "hello",
             sidecars: []
         ))
@@ -213,11 +234,18 @@ struct SidecarTurnIntegrationTests {
 
     @Test("Mechanism preamble is stable, name-free system text opt-in")
     func preambleOptInAddsStableSystemText() async throws {
+        // Both chats use the same timeline ID and title so the "Current Timeline"
+        // section is byte-identical across them.
+        let sharedTimelineId = UUID()
+        let sharedTitle = "Preamble Stability"
+
         let mockLLMWith = MockLLMService()
         mockLLMWith.mockClient.nextChunks = [[#"{"response": "ok", "sidecar_payload": {"title": "T", "tone": "flat"}}"#]]
-        let chatWith = makeChat(llmService: mockLLMWith, persistence: MockPersistenceService())
+        let persistenceWith = MockPersistenceService()
+        let chatWith = makeChat(llmService: mockLLMWith, persistence: persistenceWith)
+        try await persistenceWith.saveTimeline(Timeline(id: sharedTimelineId, title: sharedTitle))
         let streamWith = try await chatWith.run(ChatRunRequest(
-            timelineId: UUID(),
+            timelineId: sharedTimelineId,
             message: "hello",
             sidecars: directives,
             includeSidecarMechanismPreamble: true
@@ -226,9 +254,11 @@ struct SidecarTurnIntegrationTests {
 
         let mockLLMEmpty = MockLLMService()
         mockLLMEmpty.mockClient.nextChunks = [["ok"]]
-        let chatEmpty = makeChat(llmService: mockLLMEmpty, persistence: MockPersistenceService())
+        let persistenceEmpty = MockPersistenceService()
+        let chatEmpty = makeChat(llmService: mockLLMEmpty, persistence: persistenceEmpty)
+        try await persistenceEmpty.saveTimeline(Timeline(id: sharedTimelineId, title: sharedTitle))
         let streamEmpty = try await chatEmpty.run(ChatRunRequest(
-            timelineId: UUID(),
+            timelineId: sharedTimelineId,
             message: "hello",
             sidecars: [],
             includeSidecarMechanismPreamble: true
@@ -248,9 +278,12 @@ struct SidecarTurnIntegrationTests {
     func defaultInstructionsSurvivePreambleWithNilSystemInstructions() async throws {
         let mockLLM = MockLLMService()
         mockLLM.mockClient.nextChunks = [["ok"]]
-        let chat = makeChat(llmService: mockLLM, persistence: MockPersistenceService())
+        let persistence = MockPersistenceService()
+        let chat = makeChat(llmService: mockLLM, persistence: persistence)
+        let timelineId = UUID()
+        try await persistence.saveTimeline(Timeline(id: timelineId, title: "Preamble Default"))
         let stream = try await chat.run(ChatRunRequest(
-            timelineId: UUID(),
+            timelineId: timelineId,
             message: "hello",
             includeSidecarMechanismPreamble: true
         ))
@@ -263,18 +296,23 @@ struct SidecarTurnIntegrationTests {
 
     @Test("Turn with sidecars: [] behaves identically to a turn without the parameter")
     func emptySidecarsIsANoOp() async throws {
+        let sharedTimelineId = UUID()
+        let sharedTitle = "Empty Sidecar NoOp"
+
         let mockLLMWithout = MockLLMService()
         mockLLMWithout.mockClient.nextChunks = [["Hello"]]
         let persistenceWithout = MockPersistenceService()
         let chatWithout = makeChat(llmService: mockLLMWithout, persistence: persistenceWithout)
+        try await persistenceWithout.saveTimeline(Timeline(id: sharedTimelineId, title: sharedTitle))
 
         let mockLLMWith = MockLLMService()
         mockLLMWith.mockClient.nextChunks = [["Hello"]]
         let persistenceWith = MockPersistenceService()
         let chatWith = makeChat(llmService: mockLLMWith, persistence: persistenceWith)
+        try await persistenceWith.saveTimeline(Timeline(id: sharedTimelineId, title: sharedTitle))
 
         let streamWithout = try await chatWithout.run(ChatRunRequest(
-            timelineId: UUID(),
+            timelineId: sharedTimelineId,
             message: "hi"
         ))
         var signaturesWithout: [String] = []
@@ -283,7 +321,7 @@ struct SidecarTurnIntegrationTests {
         }
 
         let streamWith = try await chatWith.run(ChatRunRequest(
-            timelineId: UUID(),
+            timelineId: sharedTimelineId,
             message: "hi",
             sidecars: []
         ))

@@ -8,7 +8,16 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
-_Nothing yet._
+### Changed
+
+- **`openTimeline(_:)` now requires an existing timeline (PKRR-005).** `PositronicKit.openTimeline(_:)`
+  opens an existing timeline only — a missing (never-persisted) ID is an error, not a silent creation.
+  Sending to a missing timeline via `TimelineDriver.send(_:)` or `PositronicKit.run(_:)` now throws
+  `TimelineError.timelineNotFound` **before** any user input is persisted. Previously, hydration errors
+  were logged and the turn proceeded unhydrated, which could persist messages under an ID with no
+  backing timeline/workspace record. Store-outage during hydration is distinguishable from not-found:
+  it throws `TimelineError.unavailable`. The explicit creation path remains
+  `TimelineManager.createTimeline(title:)`; no auto-creation on first send was added.
 
 ## [3.1.0] - 2026-07-20
 

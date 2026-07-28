@@ -43,6 +43,19 @@ public extension TimelineManager {
         return timeline
     }
 
+    /// Validates that a timeline exists before a turn proceeds. Throws
+    /// ``TimelineError/timelineNotFound`` for unknown IDs and
+    /// ``TimelineError/unavailable`` for transient store failures.
+    func ensureTimelineExists(id: UUID) async throws {
+        do {
+            try await hydrateTimeline(id: id)
+        } catch let error as TimelineError {
+            throw error
+        } catch {
+            throw TimelineError.unavailable
+        }
+    }
+
     /// Reconstructs a timeline and its components from persistence.
     func hydrateTimeline(id: UUID) async throws {
         if toolManagers[id] != nil { return }
