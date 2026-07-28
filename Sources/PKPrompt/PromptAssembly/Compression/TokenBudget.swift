@@ -2,6 +2,48 @@ import Foundation
 import PKShared
 import PKUtilities
 
+/// Errors raised when a ``TokenBudget`` is constructed with invalid capacities.
+public enum TokenBudgetError: PKError, Sendable, Equatable {
+    /// The context-window size was zero or negative.
+    case nonPositiveContextWindow(Int)
+    /// The output reserve (response limit + provider overhead) was negative.
+    case negativeOutputReserve(Int)
+    /// The output reserve consumed the entire context window, leaving no room for the prompt.
+    case outputReserveExceedsContextWindow(contextWindow: Int, reserve: Int)
+
+    public var errorDomain: String { PKErrorDomain.prompt }
+
+    public var errorCode: Int {
+        switch self {
+        case .nonPositiveContextWindow: return 1101
+        case .negativeOutputReserve: return 1102
+        case .outputReserveExceedsContextWindow: return 1103
+        }
+    }
+
+    public var userFriendlyMessage: String {
+        switch self {
+        case let .nonPositiveContextWindow(value):
+            return "The model context window must be a positive number of tokens (got \(value))."
+        case let .negativeOutputReserve(value):
+            return "The response output reserve must not be negative (got \(value))."
+        case let .outputReserveExceedsContextWindow(contextWindow, reserve):
+            return "The response output reserve (\(reserve) tokens) leaves no room for the prompt within the \(contextWindow)-token context window."
+        }
+    }
+
+    public var remediation: String? {
+        switch self {
+        case .nonPositiveContextWindow:
+            return "Set a positive `contextWindowTokens` on the provider configuration for the active model."
+        case .negativeOutputReserve:
+            return "Lower `GenerationParameters.maxTokens` or the provider overhead so the reserve is non-negative."
+        case .outputReserveExceedsContextWindow:
+            return "Lower `GenerationParameters.maxTokens` or use a model with a larger context window so the prompt fits."
+        }
+    }
+}
+
 /// Entry point for compressing an assembled prompt's sections to fit within a token limit.
 /// Drives the structured-compression pipeline (``StructuredCompressionPlanner`` +
 /// ``StructuredCompressionExecutor``) so the caller doesn't have to wire it up manually.
@@ -12,6 +54,9 @@ public struct TokenBudget: Sendable {
     /// Tokens to withhold from `maxTokens` for the model's own response, so compression
     /// targets `maxTokens - reserveForResponse` for the prompt itself.
     public let reserveForResponse: Int
+
+    /// The tokens available for the prompt itself: `maxTokens - reserveForResponse`.
+    public var availableTokens: Int { maxTokens - reserveForResponse }
 
     public init(maxTokens: Int, reserveForResponse: Int) {
         self.maxTokens = maxTokens
@@ -24,6 +69,33 @@ public struct TokenBudget: Sendable {
     /// available for the prompt. The two-parameter init remains for explicit callers.
     public init(maxTokens: Int) {
         self.init(maxTokens: maxTokens, reserveForResponse: 0)
+    }
+
+    /// Creates a validated budget from a context-window size and the tokens reserved for the
+    /// model's response (the output limit plus any provider overhead).
+    ///
+    /// The prompt budget is `contextWindow - outputReserve`. Use this throwing initializer on
+    /// the production path so an impossible configuration (zero/negative context window, or an
+    /// output reserve that consumes the entire context window) surfaces as a typed
+    /// ``TokenBudgetError`` rather than silently producing a destructive (negative/zero) budget.
+    ///
+    /// - Parameters:
+    ///   - contextWindow: The model's full context-window size in tokens. Must be positive.
+    ///   - outputReserve: Tokens withheld for the response and provider overhead. Must be
+    ///     non-negative and strictly less than `contextWindow`.
+    public init(contextWindow: Int, outputReserve: Int) throws {
+        guard contextWindow > 0 else {
+            throw TokenBudgetError.nonPositiveContextWindow(contextWindow)
+        }
+        guard outputReserve >= 0 else {
+            throw TokenBudgetError.negativeOutputReserve(outputReserve)
+        }
+        guard outputReserve < contextWindow else {
+            throw TokenBudgetError.outputReserveExceedsContextWindow(
+                contextWindow: contextWindow, reserve: outputReserve)
+        }
+        self.maxTokens = contextWindow
+        self.reserveForResponse = outputReserve
     }
 
     public func apply(

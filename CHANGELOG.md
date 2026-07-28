@@ -33,6 +33,26 @@ for tagged releases beginning with `1.0.0`.
   finite whole number larger than `Int.max` renders via the `Double` fallback rather than
   trapping on `Int` conversion.
 
+- **`ProviderConfiguration.contextWindowTokens` (PKRR-001)**: a new public property on
+  `PKShared.ProviderConfiguration` declaring the model's full context-window size in tokens.
+  Per-provider defaults are populated by ``defaultFor(_:)`` (e.g. 128_000 for OpenAI,
+  200_000 for Anthropic, 8_192 for Ollama/OpenAI-compatible). Hosts override it to steer
+  prompt budgeting per model. Codable round-trips and decoding of older configs that omit
+  the key fall back to 8_192. Additive, backward-compatible public API change.
+
+- **`TokenBudgetError` + validated `TokenBudget(contextWindow:outputReserve:)` (PKRR-001)**:
+  a new `PKPrompt` error enum conforming to `PKError` (domain `com.positronickit.core.prompt`,
+  codes 1101–1103) and a throwing initializer that rejects non-positive context windows,
+  negative output reserves, and reserves that consume the entire context window. Also adds
+  a public `TokenBudget.availableTokens` computed property (`maxTokens - reserveForResponse`).
+  The existing non-throwing `init(maxTokens:reserveForResponse:)`/`init(maxTokens:)`
+  initializers remain for direct/test use.
+
+- **`ChatEngine.makeTokenBudget(contextWindowTokens:maxOutputTokens:)` (PKRR-001)**: an
+  internal static helper that derives a validated `TokenBudget` from the model's context
+  window and the per-turn response output limit. The prompt budget is
+  `contextWindowTokens − (maxOutputTokens ?? defaultOutputReserve) − providerOverhead`.
+
 ### Changed
 
 - **`ToolTimeoutEnforcer` now reports side-effect-aware terminal states (PKRR-004)**: on
@@ -56,6 +76,16 @@ for tagged releases beginning with `1.0.0`.
   it throws `TimelineError.unavailable`. The explicit creation path remains
   `TimelineManager.createTimeline(title:)`; no auto-creation on first send was added.
 
+- **Prompt compression budget is now derived from the model context window, not the response
+  output limit (PKRR-001)**: `ChatEngine+TurnPreparation` no longer feeds
+  `GenerationParameters.maxTokens` (the response output limit) into `TokenBudget(maxTokens:)`
+  as the whole context-window budget. Instead it derives the budget from
+  `ProviderConfiguration.contextWindowTokens` minus the output reserve and a small provider
+  overhead via `ChatEngine.makeTokenBudget`. A small output limit (e.g. 512 tokens) no longer
+  destructively compresses a prompt that fits the model's context window. The budget is now
+  always applied (previously it was optional and only set when `maxTokens` was non-nil); when
+  `maxTokens` is nil a conservative default reserve (4_096) is used.
+
 ### Fixed
 
 - **A failed or cancelled turn is now terminal (PKRR-003)**: the turn loop previously treated
@@ -76,6 +106,15 @@ for tagged releases beginning with `1.0.0`.
   before the race starts, so a tool never runs against an invalid wall-clock bound. The
   nanosecond conversion is overflow-safe: a finite timeout whose `UInt64` nanosecond product
   would overflow is clamped to `UInt64.max` rather than trapping.
+
+- **Response `maxTokens` is no longer used as the prompt context-window budget (PKRR-001)**:
+  `GenerationParameters.maxTokens` (the response output limit) was fed directly into
+  `TokenBudget(maxTokens:)` as the whole prompt/context-window budget, so a small output limit
+  (e.g. 512 tokens) would compress the entire prompt toward roughly 256 tokens even when the
+  provider had a much larger context window. Zero or very small output limits could produce a
+  negative prompt budget. The budget is now derived from the model's context window
+  (`ProviderConfiguration.contextWindowTokens`) minus the output reserve and provider overhead,
+  and invalid capacities are rejected with a typed `TokenBudgetError`.
 
 ## [3.1.0] - 2026-07-20
 

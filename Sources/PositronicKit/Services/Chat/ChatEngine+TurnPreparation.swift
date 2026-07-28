@@ -103,9 +103,11 @@ extension ChatEngine {
 
         let promptHistory = await dependencies.promptHistoryRegistry.history(for: timelineId)
         let structuredDiff = await promptHistory.structuredDiffHint()
-        let budget = generationParameters?.maxTokens.map {
-            TokenBudget(maxTokens: $0, reserveForResponse: max(256, $0 / 5))
-        }
+        let providerConfig = await dependencies.llmService.configuration.activeProviderConfiguration
+        let budget = try ChatEngine.makeTokenBudget(
+            contextWindowTokens: providerConfig.contextWindowTokens,
+            maxOutputTokens: generationParameters?.maxTokens
+        )
 
         let renderedPrompt = try await PromptAssembler.assemble(
             promptRequest,
@@ -172,7 +174,7 @@ extension ChatEngine {
             logger.debug("Structured compression metrics: \(metrics)")
         }
 
-        let modelName = await dependencies.llmService.configuration.activeProviderConfiguration.modelName
+        let modelName = providerConfig.modelName
 
         return ChatTurnContext(
             timelineId: timelineId,
