@@ -37,11 +37,13 @@ public struct TimelineDriver: Identifiable, Sendable {
 }
 
 public extension PositronicKit {
-    /// Constructs a driver for an existing or future timeline id.
+    /// Opens an **existing** timeline for sending and cancellation.
     ///
-    /// This is pure driver construction: it performs no persistence I/O. A brand-new
-    /// (never-persisted) timeline id is valid here — the first `send(_:)` call is what
-    /// hydrates or creates the backing `Timeline` record, just as it always has.
+    /// This is pure driver construction: it performs no persistence I/O. The timeline
+    /// must have been created beforehand via ``TimelineManager/createTimeline(title:)``.
+    /// A missing (never-persisted) timeline id is an error, not a silent creation —
+    /// the first ``TimelineDriver/send(_:)`` call will throw
+    /// ``TimelineError/timelineNotFound`` before any message is persisted.
     func openTimeline(_ timelineID: UUID) -> TimelineDriver {
         TimelineDriver(timelineID: timelineID, kit: self)
     }

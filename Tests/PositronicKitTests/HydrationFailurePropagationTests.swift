@@ -5,13 +5,31 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-/// PKFLAKE-005: a hydration failure during `run(_:)` must be logged (not silently
-/// swallowed) rather than propagated — a brand-new, never-persisted timeline throws the
-/// same `TimelineError.timelineNotFound` as a transient store fault, and that is the
-/// expected first-message flow, so the turn proceeds with an unhydrated context.
+/// PKRR-005: hydration failure during `run(_:)` must propagate as a typed `TimelineError`
+/// before any user input is persisted. A brand-new, never-persisted timeline throws
+/// `TimelineError.timelineNotFound`; a transient store fault throws `TimelineError.unavailable`.
+/// Neither is swallowed — the turn does not proceed unhydrated.
 struct HydrationFailurePropagationTests {
-    @Test("run(_:) survives a hydration failure and proceeds unhydrated instead of throwing (PKFLAKE-005)")
-    func runSurvivesHydrationFailure() async throws {
+    @Test("run(_:) throws timelineNotFound for a never-created timeline ID (PKRR-005)")
+    func runThrowsForMissingTimeline() async throws {
+        let mockLLM = MockLLMService()
+        let kit = PositronicKit(configuration: .init(
+            provider: .init(llmService: mockLLM),
+            persistence: .inMemory()
+        ))
+
+        let unresolvedTimelineId = UUID()
+
+        await #expect(throws: TimelineError.timelineNotFound) {
+            _ = try await kit.run(ChatRunRequest(
+                timelineId: unresolvedTimelineId,
+                message: "should not reach the engine"
+            ))
+        }
+    }
+
+    @Test("run(_:) throws unavailable when the timeline store fails (PKRR-005)")
+    func runThrowsUnavailableForStoreFailure() async throws {
         let failingTimelinePersistence = FailingTimelinePersistence(fetchFails: true)
         let mockLLM = MockLLMService()
         let kit = PositronicKit(configuration: .init(
@@ -21,14 +39,12 @@ struct HydrationFailurePropagationTests {
 
         let unresolvedTimelineId = UUID()
 
-        // The timeline is unknown to the facade's cache, so `resolveTurnBriefingBuilder`
-        // falls through to `hydrateTimeline`, which hits the failing store. The turn
-        // must still proceed (not throw) — hydration failure is logged, not propagated.
-        let stream = try await kit.run(ChatRunRequest(
-            timelineId: unresolvedTimelineId,
-            message: "should still reach the engine unhydrated"
-        ))
-        for try await _ in stream {}
+        await #expect(throws: TimelineError.unavailable) {
+            _ = try await kit.run(ChatRunRequest(
+                timelineId: unresolvedTimelineId,
+                message: "should not reach the engine"
+            ))
+        }
 
         // The hydration attempt must actually have hit the store, proving
         // `resolveTurnBriefingBuilder` didn't short-circuit before reaching it.

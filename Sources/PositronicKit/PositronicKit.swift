@@ -318,7 +318,7 @@ public final class PositronicKit: Sendable {
     /// - Parameter request: The full turn configuration.
     /// - Returns: An asynchronous stream of chat events.
     public func run(_ request: ChatRunRequest) async throws -> AsyncThrowingStream<ChatEvent, Error> {
-        let resolvedTurnBriefingBuilder = await resolveTurnBriefingBuilder(
+        let resolvedTurnBriefingBuilder = try await resolveTurnBriefingBuilder(
             explicit: nil,
             timelineId: request.timelineId
         )
@@ -344,15 +344,14 @@ public final class PositronicKit: Sendable {
     /// Resolves the `TurnBriefingBuilder` for a turn, hydrating the timeline from persistence
     /// first if it isn't already cached in memory.
     ///
-    /// Hydration failure is logged, not propagated: a brand-new (never-persisted) timeline
-    /// legitimately has nothing to hydrate yet (`TimelineError.timelineNotFound`) — that is
-    /// the expected first-message flow, not a fault. A transient store error looks identical
-    /// from here, so both are logged at `.error` with the timeline ID and the turn proceeds
-    /// with `turnBriefingBuilder == nil`; downstream turn setup creates a fresh context as needed.
+    /// Hydration failure propagates as a typed ``TimelineError``: `.timelineNotFound` for a
+    /// missing ID, `.unavailable` for a transient store fault. The error reaches the caller
+    /// before `saveConversationSteps` runs, so no user input is persisted under an
+    /// unestablished timeline.
     private func resolveTurnBriefingBuilder(
         explicit turnBriefingBuilder: TurnBriefingBuilder?,
         timelineId: UUID
-    ) async -> TurnBriefingBuilder? {
+    ) async throws -> TurnBriefingBuilder? {
         if let turnBriefingBuilder {
             return turnBriefingBuilder
         }
@@ -361,13 +360,7 @@ public final class PositronicKit: Sendable {
             return existing
         }
 
-        do {
-            try await timelineManager.hydrateTimeline(id: timelineId)
-        } catch {
-            logger.error(
-                "Failed to hydrate timeline \(timelineId) before turn start: \(ErrorKit.userFriendlyMessage(for: error)). Proceeding unhydrated."
-            )
-        }
+        try await timelineManager.ensureTimelineExists(id: timelineId)
         return await timelineManager.getTurnBriefingBuilder(for: timelineId)
     }
 }

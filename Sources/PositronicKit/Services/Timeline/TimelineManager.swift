@@ -356,6 +356,7 @@ public extension TimelineManager {
 
 public enum TimelineError: PKError {
     case timelineNotFound
+    case unavailable
 
     public var errorDomain: String {
         PKErrorDomain.timeline
@@ -364,6 +365,7 @@ public enum TimelineError: PKError {
     public var errorCode: Int {
         switch self {
         case .timelineNotFound: return 6001
+        case .unavailable: return 6002
         }
     }
 
@@ -371,6 +373,8 @@ public enum TimelineError: PKError {
         switch self {
         case .timelineNotFound:
             return "The requested chat timeline could not be found."
+        case .unavailable:
+            return "The timeline store is currently unavailable. Please try again."
         }
     }
 }
