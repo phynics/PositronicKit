@@ -8,6 +8,16 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Pipeline cancellation no longer reported as success (PKRR-009)**: `runPrimaryStages`
+  now returns `CancellationError()` when `Task.isCancelled` is detected between stages
+  or after the final stage, instead of breaking the loop and returning `nil` (success).
+  Cleanup failures are no longer silently dropped when a primary error exists — they are
+  collected and returned as `PipelineError.compoundFailure(primary:cleanupFailures:)`
+  (error code 4003) so both primary and cleanup failures are observable without log
+  scraping. Cleanup always runs, even after cancellation.
+
 ### Added
 
 - **`ToolError.invalidWorkspaceID(String)` (PKRR-015)**: a new typed `ToolError` case

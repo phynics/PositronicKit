@@ -99,10 +99,15 @@ public final class Pipeline<Context: Sendable, Event: Sendable>: Sendable {
         continuation: AsyncThrowingStream<Event, Error>.Continuation
     ) async -> Error? {
         for stage in stages {
-            if Task.isCancelled { break }
+            if Task.isCancelled {
+                return CancellationError()
+            }
             if let error = await runStage(stage, context: context, continuation: continuation, label: "pipeline") {
                 return error
             }
+        }
+        if Task.isCancelled {
+            return CancellationError()
         }
         return nil
     }
@@ -112,15 +117,27 @@ public final class Pipeline<Context: Sendable, Event: Sendable>: Sendable {
         continuation: AsyncThrowingStream<Event, Error>.Continuation,
         priorError: Error?
     ) async -> Error? {
-        var finalError = priorError
+        var cleanupFailures: [Error] = []
         for stage in cleanupStages {
             if let error = await runStage(stage, context: context, continuation: continuation, label: "cleanup") {
-                if finalError == nil {
-                    finalError = error
-                }
+                cleanupFailures.append(error)
             }
         }
-        return finalError
+
+        if let priorError = priorError {
+            if cleanupFailures.isEmpty {
+                return priorError
+            } else {
+                return PipelineError.compoundFailure(primary: priorError, cleanupFailures: cleanupFailures)
+            }
+        } else if let firstCleanup = cleanupFailures.first {
+            if cleanupFailures.count == 1 {
+                return firstCleanup
+            } else {
+                return PipelineError.compoundFailure(primary: firstCleanup, cleanupFailures: Array(cleanupFailures.dropFirst()))
+            }
+        }
+        return nil
     }
 
     private func runStage(
@@ -163,6 +180,7 @@ public final class Pipeline<Context: Sendable, Event: Sendable>: Sendable {
 public enum PipelineError: Error, Sendable {
     case stageFailed(id: String, underlyingError: Error)
     case cleanupFailed(id: String, underlyingError: Error)
+    case compoundFailure(primary: Error, cleanupFailures: [Error])
 }
 
 extension PipelineError: PKError {
@@ -174,6 +192,7 @@ extension PipelineError: PKError {
         switch self {
         case .stageFailed: return 4001
         case .cleanupFailed: return 4002
+        case .compoundFailure: return 4003
         }
     }
 
@@ -183,6 +202,9 @@ extension PipelineError: PKError {
             return "Pipeline stage '\(id)' failed: \(ErrorKit.userFriendlyMessage(for: underlyingError))"
         case let .cleanupFailed(id, underlyingError):
             return "Pipeline cleanup stage '\(id)' failed: \(ErrorKit.userFriendlyMessage(for: underlyingError))"
+        case let .compoundFailure(primary, cleanupFailures):
+            let cleanupSummary = cleanupFailures.map { ErrorKit.userFriendlyMessage(for: $0) }.joined(separator: "; ")
+            return "Pipeline failed: \(ErrorKit.userFriendlyMessage(for: primary)). Cleanup also failed: \(cleanupSummary)"
         }
     }
 }
