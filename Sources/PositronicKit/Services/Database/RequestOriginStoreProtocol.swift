@@ -15,7 +15,7 @@ import PKShared
 import PKUtilities
 import Foundation
 
-public protocol RequestOriginStoreProtocol: Sendable {
+public protocol RequestOriginStoreProtocol: DurabilityAware {
     func saveOrigin(_ origin: RequestOriginIdentity) async throws
     func fetchOrigin(id: UUID) async throws -> RequestOriginIdentity?
     func fetchAllOrigins() async throws -> [RequestOriginIdentity]

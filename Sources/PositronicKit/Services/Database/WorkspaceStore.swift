@@ -5,7 +5,7 @@ import PKUtilities
 
 import Foundation
 
-public protocol WorkspaceStore: Sendable {
+public protocol WorkspaceStore: DurabilityAware {
     func saveWorkspace(_ workspace: WorkspaceReference) async throws
     func fetchWorkspace(id: UUID, includeTools: Bool) async throws -> WorkspaceReference?
     func fetchAllWorkspaces() async throws -> [WorkspaceReference]

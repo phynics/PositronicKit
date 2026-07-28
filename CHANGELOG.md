@@ -53,6 +53,33 @@ for tagged releases beginning with `1.0.0`.
   window and the per-turn response output limit. The prompt budget is
   `contextWindowTokens − (maxOutputTokens ?? defaultOutputReserve) − providerOverhead`.
 
+- **`DurabilityAware` protocol + `isDurable` on store protocols (PKRR-017)**: a new public
+  protocol `DurabilityAware` (with default `isDurable == false`) is now the parent of all
+  seven persistence store protocols (`MessageStoreProtocol`, `TimelinePersistenceProtocol`,
+  `WorkspaceStore`, `MemoryStoreProtocol`, `ToolPersistenceProtocol`,
+  `AgentInstanceStoreProtocol`, `RequestOriginStoreProtocol`). Durable adapters (GRDB,
+  SwiftData) override to `true`. A single parent default — rather than per-protocol defaults
+  — avoids ambiguity for types that conform to multiple store protocols. Additive,
+  backward-compatible: existing conformers inherit `false` with no source changes.
+
+- **`DurabilityReport` + `PersistenceConfiguration.validateDurability()` (PKRR-017)**: a new
+  public `DurabilityReport` struct (with `StoreDurability.durable` / `.ephemeral` enum)
+  classifies each of the seven stores. `PersistenceConfiguration.validateDurability()` returns
+  the report; `report.isMixed` is `true` when some stores are durable and others ephemeral;
+  `report.ephemeralStoreNames` lists the specific ephemeral stores; `report.mixedDurabilityWarning`
+  returns the full warning message or `nil`.
+
+- **`PersistenceConfiguration.fullyPersistent(stores:)` factory (PKRR-017)**: a static factory
+  that requires all seven stores as non-optional parameters — the explicit "full durability"
+  entry point for production hosts. The existing optional-store initializer remains for
+  mixed/ephemeral setups.
+
+- **Mixed-durability startup warning (PKRR-017)**: `PositronicKit.init(configuration:)` now
+  calls `validateDurability()` during construction. If the configuration is mixed (some
+  `.durable`, some `.ephemeral`), a `.warning` is logged naming the specific ephemeral stores
+  and noting that durable stores may reference entities missing after restart. The warning is
+  non-fatal; all-ephemeral and all-durable configurations do not trigger it.
+
 ### Changed
 
 - **`ToolTimeoutEnforcer` now reports side-effect-aware terminal states (PKRR-004)**: on

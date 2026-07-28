@@ -5,7 +5,7 @@ import PKUtilities
 
 import Foundation
 
-public protocol TimelinePersistenceProtocol: Sendable {
+public protocol TimelinePersistenceProtocol: DurabilityAware {
     func saveTimeline(_ timeline: Timeline) async throws
     func fetchTimeline(id: UUID) async throws -> Timeline?
     func fetchAllTimelines(includeArchived: Bool) async throws -> [Timeline]
