@@ -10,6 +10,13 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
     public var timeoutInterval: TimeInterval
     public var maxRetries: Int
 
+    /// The model's full context-window size in tokens. Prompt compression budgets are derived
+    /// from this value (minus the response output reserve and provider overhead), **not** from
+    /// `GenerationParameters.maxTokens` (which is the response output limit). Override this to
+    /// steer budgeting for a specific model; the per-provider default reflects the configured
+    /// `modelName`'s typical capacity (see ``defaultFor(_:)``).
+    public var contextWindowTokens: Int
+
     public var temperature: Double?
     public var maxTokens: Int?
     public var topP: Double?
@@ -44,6 +51,7 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
         toolFormat: ToolCallFormat,
         timeoutInterval: TimeInterval = 60.0,
         maxRetries: Int = 3,
+        contextWindowTokens: Int = 8_192,
         temperature: Double? = nil,
         maxTokens: Int? = nil,
         topP: Double? = nil,
@@ -61,6 +69,7 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
         self.toolFormat = toolFormat
         self.timeoutInterval = timeoutInterval
         self.maxRetries = maxRetries
+        self.contextWindowTokens = contextWindowTokens
         self.temperature = temperature
         self.maxTokens = maxTokens
         self.topP = topP
@@ -81,6 +90,7 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
         toolFormat = try container.decodeIfPresent(ToolCallFormat.self, forKey: .toolFormat) ?? .openAI
         timeoutInterval = try container.decodeIfPresent(TimeInterval.self, forKey: .timeoutInterval) ?? 60.0
         maxRetries = try container.decodeIfPresent(Int.self, forKey: .maxRetries) ?? 3
+        contextWindowTokens = try container.decodeIfPresent(Int.self, forKey: .contextWindowTokens) ?? 8_192
 
         temperature = try container.decodeIfPresent(Double.self, forKey: .temperature)
         maxTokens = try container.decodeIfPresent(Int.self, forKey: .maxTokens)
@@ -103,7 +113,8 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
                 fastModel: "gpt-4o-mini",
                 toolFormat: .openAI,
                 timeoutInterval: 60.0,
-                maxRetries: 3
+                maxRetries: 3,
+                contextWindowTokens: 128_000
             )
         case .openRouter:
             return ProviderConfiguration(
@@ -114,7 +125,8 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
                 fastModel: "openai/gpt-4o-mini",
                 toolFormat: .openAI,
                 timeoutInterval: 60.0,
-                maxRetries: 3
+                maxRetries: 3,
+                contextWindowTokens: 128_000
             )
         case .ollama:
             return ProviderConfiguration(
@@ -125,7 +137,8 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
                 fastModel: "llama3",
                 toolFormat: .openAI,
                 timeoutInterval: 120.0, // Local models can be slower
-                maxRetries: 3
+                maxRetries: 3,
+                contextWindowTokens: 8_192
             )
         case .anthropic:
             return ProviderConfiguration(
@@ -136,7 +149,8 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
                 fastModel: "claude-haiku-4-5",
                 toolFormat: .openAI,
                 timeoutInterval: 60.0,
-                maxRetries: 3
+                maxRetries: 3,
+                contextWindowTokens: 200_000
             )
         case .openAICompatible:
             return ProviderConfiguration(
@@ -147,7 +161,8 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
                 fastModel: "model",
                 toolFormat: .openAI,
                 timeoutInterval: 60.0,
-                maxRetries: 3
+                maxRetries: 3,
+                contextWindowTokens: 8_192
             )
         }
     }

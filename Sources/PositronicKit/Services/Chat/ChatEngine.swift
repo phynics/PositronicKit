@@ -127,6 +127,13 @@ struct ChatEngine {
         static let sentinelToolName = "tool_call"
         static let defaultMaxTurns = 5
         static let maxRemoteDepth = 3
+        /// Response tokens reserved for the model's output when the caller leaves
+        /// `GenerationParameters.maxTokens` nil. Matches Anthropic's `defaultMaxTokens` and is a
+        /// conservative default across providers.
+        static let defaultOutputReserve = 4_096
+        /// Extra tokens withheld from the context window for provider-side framing/overhead
+        /// that is neither prompt nor response (e.g. message wrappers, tool-call scaffolding).
+        static let providerOverhead = 512
     }
 
     let dependencies: Dependencies
@@ -134,6 +141,33 @@ struct ChatEngine {
     let logger = Logger.module(named: "chat-engine")
 
     var additionalStages: [any PipelineStage<ChatTurnContext, ChatEvent>] = []
+
+    // MARK: - Prompt Budget
+
+    /// Derives a ``TokenBudget`` for prompt compression from the model's context window and the
+    /// requested response output limit.
+    ///
+    /// The prompt budget is `contextWindowTokens - (maxOutputTokens ?? defaultOutputReserve)
+    /// - providerOverhead` — the remaining context window after reserving space for the
+    /// response. This deliberately does **not** infer context capacity from the output limit:
+    /// a small `maxOutputTokens` (e.g. 512) no longer shrinks the whole prompt budget.
+    ///
+    /// - Parameters:
+    ///   - contextWindowTokens: The model's full context-window size (from
+    ///     `ProviderConfiguration.contextWindowTokens`).
+    ///   - maxOutputTokens: The per-turn response output limit
+    ///     (`GenerationParameters.maxTokens`). `nil` falls back to
+    ///     ``Constants/defaultOutputReserve``.
+    /// - Returns: A validated `TokenBudget` whose `availableTokens` is the prompt budget.
+    /// - Throws: ``TokenBudgetError`` if the capacities are non-positive or the reserve
+    ///   consumes the entire context window.
+    static func makeTokenBudget(
+        contextWindowTokens: Int,
+        maxOutputTokens: Int?
+    ) throws -> TokenBudget {
+        let outputReserve = (maxOutputTokens ?? Constants.defaultOutputReserve) + Constants.providerOverhead
+        return try TokenBudget(contextWindow: contextWindowTokens, outputReserve: outputReserve)
+    }
 
     // MARK: - API
 
