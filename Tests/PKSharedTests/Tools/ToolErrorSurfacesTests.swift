@@ -59,4 +59,27 @@ final class ToolErrorSurfacesTests {
         #expect(error.errorCode == 203)
         #expect(error == .executionFailed("Timeout"))
     }
+
+    @Test
+    func timedOutButMayStillBeRunning() {
+        // PKRR-004: distinct terminal state for mutating/external-process tools abandoned
+        // after a wall-clock timeout. Typed case (carries the timeout value, not a string).
+        let error = ToolError.timedOutButMayStillBeRunning(timeout: 0.5)
+        #expect(error.errorDomain == PKErrorDomain.tool)
+        #expect(error.errorCode == 212)
+        #expect(error == .timedOutButMayStillBeRunning(timeout: 0.5))
+        #expect(!error.isBlocked)
+        #expect(error.userFriendlyMessage.contains("may still be running"))
+        #expect(error.userFriendlyMessage.contains("0.5 seconds"))
+        #expect((error.remediation ?? "").contains("duplicate"))
+    }
+
+    @Test
+    func timeoutDescriptionFormatsIntegersAndFractions() {
+        // PKRR-004: shared formatter used by the clean-timeout and may-still-be-running
+        // messages so the wording stays consistent across both terminal states.
+        #expect(ToolError.timeoutDescription(60) == "60 seconds")
+        #expect(ToolError.timeoutDescription(0.05) == "0.05 seconds")
+        #expect(ToolError.timeoutDescription(1.5) == "1.5 seconds")
+    }
 }

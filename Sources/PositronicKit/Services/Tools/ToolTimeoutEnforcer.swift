@@ -11,6 +11,16 @@ import PKUtilities
 /// timeout is enforced even for tools whose bodies ignore cooperative cancellation (e.g. a
 /// blocking subprocess or synchronous network call).
 ///
+/// The reported terminal state on timeout depends on the tool's declared `sideEffects`
+/// (PKRR-004):
+/// - `.none`: the enforcer throws `ToolError.executionFailed` with a clean timeout message.
+///   This is the only case where the runtime claims the operation stopped.
+/// - `.mutating` / `.externalProcess`: the enforcer throws
+///   `ToolError.timedOutButMayStillBeRunning` so the caller is informed that the tool may
+///   still be executing out-of-band and retrying may duplicate side effects. The enforcer
+///   does NOT block waiting for the uncooperative tool — the result is returned promptly,
+///   same as the `.none` case; only the reported status changes.
+///
 /// The `sleep` closure is injected so tests can substitute an instant-timeout fake clock and
 /// exercise the timeout branch without `Task.sleep`'s real-time delay or a `TimelineManager`.
 package enum ToolTimeoutEnforcer {
@@ -25,13 +35,18 @@ package enum ToolTimeoutEnforcer {
     /// - Parameters:
     ///   - tool: The tool to execute.
     ///   - arguments: Decoded arguments to pass to the tool.
-    ///   - timeout: Maximum wall-clock seconds to allow before timing out.
+    ///   - timeout: Maximum wall-clock seconds to allow before timing out. Must be finite and
+    ///     non-negative; a negative, infinite, or NaN value is treated as invalid and surfaced
+    ///     as a clean `executionFailed` error before the race starts (basic validation for
+    ///     PKRR-030 — full overflow-safe timeout configuration is tracked there).
     ///   - sleep: Sleep primitive used by the timeout race. Defaults to `Task.sleep(nanoseconds:)`.
     ///     Tests inject an instant-return closure to exercise the timeout branch without real-time
     ///     delay. The closure must throw on cancellation to mirror `Task.sleep` semantics so the
     ///     tool-completion path can cancel the pending timeout cleanly.
     /// - Returns: The tool's `ToolResult` if it completes within the timeout.
-    /// - Throws: `ToolError.executionFailed` with a timeout message if the wall-clock race wins;
+    /// - Throws: `ToolError.executionFailed` with a timeout message if the wall-clock race wins
+    ///   and the tool is side-effect-free (`.none`); `ToolError.timedOutButMayStillBeRunning`
+    ///   if the wall-clock race wins and the tool mutates state (`.mutating`/`.externalProcess`);
     ///   any error thrown by the tool body otherwise.
     package static func execute(
         _ tool: AnyTool,
@@ -39,8 +54,20 @@ package enum ToolTimeoutEnforcer {
         timeout: TimeInterval,
         sleep: @Sendable @escaping (UInt64) async throws -> Void = defaultSleep
     ) async throws -> ToolResult {
-        let nanoseconds = UInt64(max(0, timeout) * 1_000_000_000)
-        let timeoutMessage = "Tool execution timed out after \(timeoutDescription(timeout))"
+        // Basic timeout-value validation (PKRR-030 relationship). Negative, infinite, or NaN
+        // timeouts are not valid wall-clock bounds; surface them as a clean execution failure
+        // before starting the race so the tool never runs against an unusable timeout.
+        guard timeout.isFinite, timeout >= 0 else {
+            throw ToolError.executionFailed(
+                "Tool execution timeout \(timeout) is not a valid finite non-negative duration"
+            )
+        }
+        // Overflow-safe nanosecond conversion. `TimeInterval` is a `Double`; clamping to the
+        // `UInt64` max guards against values whose nanosecond product would overflow.
+        let nanoseconds = timeout >= TimeInterval(UInt64.max) / 1_000_000_000
+            ? UInt64.max
+            : UInt64(timeout * 1_000_000_000)
+        let timeoutMessage = "Tool execution timed out after \(ToolError.timeoutDescription(timeout))"
 
         // Note: this deliberately does not race the two sides inside a `withThrowingTaskGroup`.
         // A task group waits for every child it started before the group's body returns, even
@@ -84,7 +111,15 @@ package enum ToolTimeoutEnforcer {
                 case .timedOut:
                     toolTask.cancel()
                     continuation.finish()
-                    throw ToolError.executionFailed(timeoutMessage)
+                    // PKRR-004: only side-effect-free tools get a clean timeout. Tools that
+                    // mutate state may still be running out-of-band after best-effort
+                    // cancellation, so report the distinct terminal state.
+                    switch tool.sideEffects {
+                    case .none:
+                        throw ToolError.executionFailed(timeoutMessage)
+                    case .mutating, .externalProcess:
+                        throw ToolError.timedOutButMayStillBeRunning(timeout: timeout)
+                    }
                 case .sleepCancelled:
                     continue
                 }
@@ -109,12 +144,10 @@ package enum ToolTimeoutEnforcer {
         case sleepCancelled
     }
 
-    /// Formats a timeout for human-readable error messages: integers render without a decimal,
-    /// fractional timeouts keep their decimal representation.
+    /// Formats a timeout for human-readable error messages. Delegates to
+    /// `ToolError.timeoutDescription` so the clean-timeout and may-still-be-running messages
+    /// share a single source of truth for the wording.
     package static func timeoutDescription(_ timeout: TimeInterval) -> String {
-        if timeout.rounded() == timeout {
-            return "\(Int(timeout)) seconds"
-        }
-        return "\(timeout) seconds"
+        ToolError.timeoutDescription(timeout)
     }
 }
