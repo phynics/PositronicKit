@@ -72,7 +72,7 @@ struct PipelineErrorHandlingTests {
         }
     }
 
-    @Test("Primary error is prioritized over cleanup error")
+    @Test("Primary error is prioritized over cleanup error, with cleanup failures observable")
     func pipeline_primaryErrorPrioritized() async throws {
         let pipeline = Pipeline<TestContext, String>()
             .add(FailingStage(id: "primary", error: MockError.someError))
@@ -83,9 +83,13 @@ struct PipelineErrorHandlingTests {
             let stream = pipeline.execute(context)
             for try await _ in stream {}
             Issue.record("Should have thrown")
-        } catch let PipelineError.stageFailed(id, error) {
-            #expect(id == "primary")
-            #expect(error as? MockError == .someError)
+        } catch let PipelineError.compoundFailure(primary, cleanupFailures) {
+            if case let .stageFailed(_, underlying) = primary as? PipelineError {
+                #expect(underlying as? MockError == .someError)
+            } else {
+                Issue.record("Primary should be stageFailed, got \(primary)")
+            }
+            #expect(cleanupFailures.count == 1)
         } catch {
             Issue.record("Unexpected error type: \(error)")
         }

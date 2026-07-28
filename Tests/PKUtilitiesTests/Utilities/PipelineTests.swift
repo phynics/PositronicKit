@@ -200,20 +200,23 @@ final class PipelineTests {
 
     @Test
     func pipelineCleanupFailureDoesNotOverridePrimaryError() async throws {
-        // Given
         let pipeline = Pipeline<TestContext, Never>()
             .add(ErrorStage<Never>(id: "primaryError", error: MockError.someError))
             .cleanup(ErrorStage<Never>(id: "cleanupError", error: MockError.someError))
 
         let context = TestContext()
 
-        // When / Then
         do {
             let stream = pipeline.execute(context)
             for try await _ in stream {}
             Issue.record("Should have thrown error")
-        } catch let PipelineError.stageFailed(id, _) {
-            #expect(id == "primaryError")
+        } catch let PipelineError.compoundFailure(primary, cleanupFailures) {
+            if let stageFailed = primary as? PipelineError {
+                if case let .stageFailed(id, _) = stageFailed {
+                    #expect(id == "primaryError")
+                }
+            }
+            #expect(cleanupFailures.count == 1)
         } catch {
             Issue.record("Unexpected error type: \(error)")
         }
