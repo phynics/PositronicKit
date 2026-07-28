@@ -8,7 +8,20 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
-_Nothing yet._
+### Fixed
+
+- **A failed or cancelled turn is now terminal (PKRR-003)**: the turn loop previously treated
+  cancellation and error completion as a normal `.stop`, which the outer loop read as successful
+  completion and used to run `ChatTurnFollowUpPolicy`. After consumers received a terminal
+  failure/cancellation, the runtime could still invoke `ChatTurnPlugin.afterTurn`, append
+  messages, build follow-up prompt snapshots, and start another LLM turn — creating hidden cost,
+  state mutation after terminal delivery, and hard-to-reproduce races. The binary loop signal
+  (`.stop`/`.continueWith`) is replaced with typed terminal outcomes (`.completed`,
+  `.continueWith`, `.failed`, `.cancelled`); only `.completed` runs plugin follow-up policy, and
+  the terminal outcomes return immediately without any post-terminal activity. Stream
+  finalization for the terminal paths remains in `runOneTurn` (where the partial turn is
+  persisted and the continuation finished), so exactly one terminal stream state is emitted per
+  turn. Internal change to `ChatEngine`'s turn loop — no public API impact.
 
 ## [3.1.0] - 2026-07-20
 

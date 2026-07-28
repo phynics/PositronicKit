@@ -4,9 +4,24 @@ import PKPrompt
 import PKShared
 import PKUtilities
 
+/// Typed outcome of a single turn, driving the outer loop's continuation decision.
+///
+/// Only `.completed` may run `ChatTurnFollowUpPolicy` — the terminal outcomes (`.failed`,
+/// `.cancelled`) skip plugin follow-up, snapshot building, message appending, and further LLM
+/// turns, so no runtime activity occurs after the stream has been finished with an error or
+/// cancellation (PKRR-003).
 private enum LoopContinuation {
-    case stop
+    /// The turn completed normally (no pending tool calls). Eligible for plugin follow-up.
+    case completed
+    /// A tool result or internal thought needs the LLM to process it in the next turn.
     case continueWith([LLMMessage])
+    /// The turn failed. `runOneTurn` already persisted the partial turn and finished the
+    /// continuation with the error; the outer loop must not run any post-terminal activity.
+    case failed
+    /// The turn was cancelled. `runOneTurn` already persisted the partial turn, surfaced
+    /// `.generationCancelled()`, and finished the continuation; the outer loop must not run
+    /// any post-terminal activity.
+    case cancelled
 }
 
 // MARK: - Turn Loop
@@ -59,8 +74,9 @@ extension ChatEngine {
             priorOutput += currentResponse
 
             switch signal {
-            case .stop:
-                // Turn finished without further internal actions required
+            case .completed:
+                // Turn finished without further internal actions required. Only a completed
+                // turn may run plugin follow-up policy — terminal outcomes skip it (PKRR-003).
                 do {
                     let pluginMessages = try await ChatTurnFollowUpPolicy.pluginMessages(
                         for: context,
@@ -111,6 +127,20 @@ extension ChatEngine {
                 )
                 loopRenderedPrompt = snapshot.renderedPrompt
                 loopPromptHistoryUpdate = snapshot.promptHistoryUpdate
+
+            case .cancelled:
+                // Terminal: the stream was cancelled mid-flight. `runOneTurn` already
+                // persisted the partial turn, surfaced `.generationCancelled()`, and finished
+                // the continuation. No plugin follow-up, snapshot, message append, or further
+                // LLM turn is permitted after terminal delivery (PKRR-003).
+                return
+
+            case .failed:
+                // Terminal: the stream failed. `runOneTurn` already persisted the partial
+                // turn and finished the continuation with the error. No plugin follow-up,
+                // snapshot, message append, or further LLM turn is permitted after terminal
+                // delivery (PKRR-003).
+                return
             }
         }
 
@@ -152,7 +182,7 @@ private extension ChatEngine {
             await partialPersistence.persistPartialAssistantIfNeeded(context: context, status: .cancelled)
             continuation.yield(.generationCancelled())
             continuation.finish()
-            return .stop
+            return .cancelled
         } catch {
             logger.error("Error in chat loop turn \(context.turnCount): \(error)", metadata: [
                 LogKeys.timelineID: .string(context.timelineId.uuidString),
@@ -164,10 +194,13 @@ private extension ChatEngine {
             // `PipelineError.stageFailed` and lands here — unwrap it so a mid-stream
             // cancellation is still tagged `.cancelled` rather than `.partial`. The error event
             // is still surfaced to the UI (re-thrown below); STAB-5 handles retry separately.
-            let status: Message.MessageStatus = Self.isCancellationOrigin(error) ? .cancelled : .partial
+            let isCancellation = Self.isCancellationOrigin(error)
+            let status: Message.MessageStatus = isCancellation ? .cancelled : .partial
             await partialPersistence.persistPartialAssistantIfNeeded(context: context, status: status)
             continuation.finish(throwing: error)
-            return .stop
+            // Terminal outcome: a wrapped cancellation is still a cancellation for loop-control
+            // purposes, so the outer loop skips plugin follow-up either way (PKRR-003).
+            return isCancellation ? .cancelled : .failed
         }
     }
 
@@ -219,7 +252,7 @@ private extension ChatEngine {
 
         switch result {
         case .noToolCalls, .deferredExternally:
-            return .stop
+            return .completed
         case let .continueWith(messages):
             return .continueWith(messages)
         }
