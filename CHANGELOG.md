@@ -58,6 +58,24 @@ for tagged releases beginning with `1.0.0`.
 
 ### Fixed
 
+- **Timeline cancellation API is now wired to the active chat task (PKRR-002)**:
+  `TimelineDriver.cancel()` delegated to `TimelineManager.cancelGeneration(for:)`, but the
+  manager only cancelled tasks previously stored by `registerTask` — and `ChatEngine` created
+  its own stream-driving task without ever registering it. The documented cancellation path
+  was a silent no-op while provider streaming, tools, persistence, and plugins continued. A
+  new send-scoped `TimelineTaskRegistry` (owned by `TimelineManager`) now tracks the exact task
+  that drives each stream, keyed by `(timelineID, sendID)`. `ChatEngine.execute(...)` registers
+  its task before returning the stream and removes it on the terminal path (`defer`-equivalent).
+  `TimelineDriver.cancel()` cancels the active task via the registry; eviction/deletion cancels
+  and awaits bounded cleanup. Send-scoped handles ensure a stale send's terminal cleanup or
+  cancellation cannot evict or terminate a newer send. **Public API change:**
+  `TimelineManager.registerTask(_:for:)` is now `registerTask(_:sendID:for:)` (async, adds
+  `sendID` parameter); `TimelineManager.cancelGeneration(for:)` is now async; new
+  `cancelGeneration(sendID:for:)` provides send-scoped cancellation; new
+  `removeTask(sendID:for:)` and `cancelActiveTaskAndAwait(for:)` support terminal-path cleanup
+  and eviction. Downstream consumers (`Monad`, `Shuttle`, `Yakamoz`) that call
+  `cancelGeneration(for:)` already `await` it; `registerTask` had no production callers.
+
 - **A failed or cancelled turn is now terminal (PKRR-003)**: the turn loop previously treated
   cancellation and error completion as a normal `.stop`, which the outer loop read as successful
   completion and used to run `ChatTurnFollowUpPolicy`. After consumers received a terminal

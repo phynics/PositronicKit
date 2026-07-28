@@ -192,11 +192,15 @@ struct ChatEngine {
             assemblyLogger: assemblyLogger
         )
 
-        return AsyncThrowingStream<ChatEvent, Error> { continuation in
-            let task = Task {
-                await runChatLoop(continuation: continuation, context: context)
-            }
-            continuation.onTermination = { @Sendable _ in task.cancel() }
+        let (stream, continuation) = AsyncThrowingStream<ChatEvent, Error>.makeStream()
+        let sendID = context.sendId
+
+        let task = Task {
+            await runChatLoop(continuation: continuation, context: context)
+            await dependencies.timelineManager.removeTask(sendID: sendID, for: timelineId)
         }
+        await dependencies.timelineManager.registerTask(task, sendID: sendID, for: timelineId)
+        continuation.onTermination = { @Sendable _ in task.cancel() }
+        return stream
     }
 }

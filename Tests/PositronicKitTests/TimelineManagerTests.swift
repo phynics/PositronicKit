@@ -118,7 +118,7 @@ struct TimelineManagerTests {
             isCancelled.withLock { $0 = true }
         }
 
-        await timelineManager.registerTask(task, for: timelineId)
+        await timelineManager.registerTask(task, sendID: UUID(), for: timelineId)
 
         // Verify it's in the registry (using internal access if possible, or just through behavior)
         await timelineManager.cancelGeneration(for: timelineId)

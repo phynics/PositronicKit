@@ -8,8 +8,9 @@ import PKUtilities
 /// Manages conversation timelines, their associated context, and tool execution environments.
 ///
 /// `TimelineManager` is the public coordinator/cache owner for timelines: it holds the
-/// in-memory `timelines`/`turnBriefingBuilders`/`toolManagers`/`activeTasks` caches and manages
-/// lifecycle, workspace-attachment, and tool-policy behavior. Concrete workspace behavior
+/// in-memory `timelines`/`turnBriefingBuilders`/`toolManagers` caches and the
+/// `taskRegistry` (send-scoped active-task tracking), and manages lifecycle,
+/// workspace-attachment, and tool-policy behavior. Concrete workspace behavior
 /// remains behind `WorkspaceResolver` / `WorkspaceFactory` / `Workspace` so hosts can
 /// supply local or remote workspace implementations without changing core orchestration.
 public actor TimelineManager {
@@ -69,8 +70,10 @@ public actor TimelineManager {
     /// Tool managers handling tool registration and availability for each timeline.
     var toolManagers: [UUID: TimelineToolRegistry] = [:]
 
-    /// Ongoing generation tasks for each timeline.
-    var activeTasks: [UUID: Task<Void, Never>] = [:]
+    /// Send-scoped registry of the active stream-driving task for each timeline. Replaces the
+    /// former `activeTasks` dict so cancellation is send-scoped (a stale send cannot evict or
+    /// cancel a newer one) and eviction/deletion can await bounded cleanup.
+    let taskRegistry: TimelineTaskRegistry
 
     // MARK: - Dependencies
 
@@ -113,7 +116,8 @@ public actor TimelineManager {
         sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: RuntimeToolPolicy = .default,
         embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
-        promptHistoryRegistry: TimelinePromptJournals? = nil
+        promptHistoryRegistry: TimelinePromptJournals? = nil,
+        taskRegistry: TimelineTaskRegistry? = nil
     ) {
         timelineStore = stores.timelineStore
         messageStore = stores.messageStore
@@ -125,6 +129,7 @@ public actor TimelineManager {
         self.sectionProviders = sectionProviders
         self.runtimeToolPolicy = runtimeToolPolicy
         self.promptHistoryRegistry = promptHistoryRegistry
+        self.taskRegistry = taskRegistry ?? TimelineTaskRegistry()
         workspaceResolver = resolver
     }
 
@@ -147,6 +152,7 @@ public actor TimelineManager {
         self.sectionProviders = sectionProviders
         self.runtimeToolPolicy = runtimeToolPolicy
         promptHistoryRegistry = nil
+        taskRegistry = TimelineTaskRegistry()
         workspaceResolver = resolver
     }
 
@@ -161,7 +167,8 @@ public actor TimelineManager {
         sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: RuntimeToolPolicy = .default,
         embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
-        promptHistoryRegistry: TimelinePromptJournals? = nil
+        promptHistoryRegistry: TimelinePromptJournals? = nil,
+        taskRegistry: TimelineTaskRegistry? = nil
     ) {
         self.init(
             stores: stores,
@@ -174,7 +181,8 @@ public actor TimelineManager {
             sectionProviders: sectionProviders,
             runtimeToolPolicy: runtimeToolPolicy,
             embeddingService: embeddingService,
-            promptHistoryRegistry: promptHistoryRegistry
+            promptHistoryRegistry: promptHistoryRegistry,
+            taskRegistry: taskRegistry
         )
     }
 
@@ -217,7 +225,8 @@ public actor TimelineManager {
         workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: RuntimeToolPolicy = .default,
-        promptHistoryRegistry: TimelinePromptJournals? = nil
+        promptHistoryRegistry: TimelinePromptJournals? = nil,
+        taskRegistry: TimelineTaskRegistry? = nil
     ) {
         self.init(
             stores: .init(
@@ -230,7 +239,8 @@ public actor TimelineManager {
             workspaceCreator: workspaceCreator,
             sectionProviders: sectionProviders,
             runtimeToolPolicy: runtimeToolPolicy,
-            promptHistoryRegistry: promptHistoryRegistry
+            promptHistoryRegistry: promptHistoryRegistry,
+            taskRegistry: taskRegistry
         )
     }
 
@@ -257,15 +267,40 @@ public actor TimelineManager {
     // MARK: - Task Management
 
     /// Registers a generation task for a timeline, cancelling any previous active task.
-    public func registerTask(_ task: Task<Void, Never>, for timelineId: UUID) {
-        activeTasks[timelineId]?.cancel()
-        activeTasks[timelineId] = task
+    /// The `sendID` scopes the registration so a stale send's terminal cleanup cannot evict a
+    /// newer send's entry.
+    public func registerTask(_ task: Task<Void, Never>, sendID: UUID, for timelineId: UUID) async {
+        await taskRegistry.register(task, sendID: sendID, for: timelineId)
     }
 
-    /// Explicitly cancels an ongoing generation task for a timeline.
-    public func cancelGeneration(for timelineId: UUID) {
-        activeTasks[timelineId]?.cancel()
-        activeTasks.removeValue(forKey: timelineId)
+    /// Explicitly cancels an ongoing generation task for a timeline. The entry is removed by
+    /// the task's own terminal path.
+    public func cancelGeneration(for timelineId: UUID) async {
+        await taskRegistry.cancelActive(for: timelineId)
+    }
+
+    /// Removes the task entry on a terminal path, but only if `sendID` is still the active send.
+    /// A stale send (superseded by a newer one) is a no-op.
+    public func removeTask(sendID: UUID, for timelineId: UUID) async {
+        await taskRegistry.removeIfActive(sendID: sendID, for: timelineId)
+    }
+
+    /// Send-scoped cancellation: only cancels if `sendID` is still the active send. Returns
+    /// `false` for a stale send that has been superseded.
+    @discardableResult
+    public func cancelGeneration(sendID: UUID, for timelineId: UUID) async -> Bool {
+        await taskRegistry.cancel(sendID: sendID, for: timelineId)
+    }
+
+    /// Cancels any active task for the timeline and awaits its termination (bounded cleanup
+    /// for eviction/deletion).
+    public func cancelActiveTaskAndAwait(for timelineId: UUID) async {
+        await taskRegistry.cancelAndAwait(for: timelineId)
+    }
+
+    /// Whether a generation task is currently registered for the timeline.
+    func hasActiveTask(for timelineId: UUID) async -> Bool {
+        await taskRegistry.hasActiveSend(for: timelineId)
     }
 }
 

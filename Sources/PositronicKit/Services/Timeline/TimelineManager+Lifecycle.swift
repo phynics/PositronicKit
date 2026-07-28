@@ -127,9 +127,14 @@ private extension TimelineManager {
     /// `TurnBriefingBuilder`, `TimelineToolRegistry`, and (when a prompt-history registry
     /// was injected) the journal-diff history entry. Does not touch persistence.
     ///
+    /// Active generation work is cancelled and awaited (bounded cleanup) before cache eviction
+    /// so streaming/tools/persistence/plugins cannot continue against a timeline whose
+    /// in-memory state has already been torn down.
+    ///
     /// This is the in-memory-only phase shared by `deleteTimeline(id:)` and
     /// `cleanupStaleTimelines(maxAge:)`.
     func evictTimelineFromMemory(id: UUID) async {
+        await cancelActiveTaskAndAwait(for: id)
         timelines.removeValue(forKey: id)
         turnBriefingBuilders.removeValue(forKey: id)
         toolManagers.removeValue(forKey: id)
