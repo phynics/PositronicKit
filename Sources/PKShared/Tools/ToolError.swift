@@ -19,6 +19,8 @@ import Foundation
 /// - **attachedToolsDisallowedOnPrivateTimeline**: Private timelines reject externally hosted tools.
 /// - **permissionDenied**: A permissioned tool was not approved by the runtime approval gate.
 /// - **unmatchedToolOutput**: An externally submitted tool output does not match a pending call.
+/// - **invalidWorkspaceID**: The `workspaceID` argument was present but not a valid UUID string
+///   (PKRR-015 fail-closed).
 public enum ToolError: PKError, Sendable, Equatable {
     case missingArgument(String)
     case invalidArgument(String, expected: String, got: String)
@@ -32,6 +34,7 @@ public enum ToolError: PKError, Sendable, Equatable {
     case attachedToolsDisallowedOnPrivateTimeline
     case permissionDenied(String)
     case unmatchedToolOutput(String)
+    case invalidWorkspaceID(String)
 
     public var errorDomain: String {
         PKErrorDomain.tool
@@ -51,6 +54,7 @@ public enum ToolError: PKError, Sendable, Equatable {
         case .attachedToolsDisallowedOnPrivateTimeline: return 207
         case .permissionDenied: return 210
         case .unmatchedToolOutput: return 211
+        case .invalidWorkspaceID: return 213
         }
     }
 
@@ -92,6 +96,8 @@ public enum ToolError: PKError, Sendable, Equatable {
             return "The tool '\(name)' requires permission and was not approved."
         case let .unmatchedToolOutput(toolCallId):
             return "The submitted tool output '\(toolCallId)' does not match a pending tool call."
+        case let .invalidWorkspaceID(value):
+            return "The 'workspaceID' argument '\(value)' is not a valid UUID string."
         }
     }
 
@@ -130,6 +136,9 @@ public enum ToolError: PKError, Sendable, Equatable {
                 "authorizes it. Permissioned tools never execute without an explicit approval decision."
         case .unmatchedToolOutput:
             return "Submit tool outputs only for tool calls that the runtime previously deferred and has not consumed."
+        case .invalidWorkspaceID:
+            return "Provide a valid UUID string for 'workspaceID' that matches one of the workspaces " +
+                "attached to the current timeline, or omit it to use automatic workspace routing."
         }
     }
 

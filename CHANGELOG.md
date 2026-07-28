@@ -10,6 +10,12 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- **`ToolError.invalidWorkspaceID(String)` (PKRR-015)**: a new typed `ToolError` case
+  (error code `213`) thrown when the `workspaceID` argument is present but not a valid
+  UUID string. The associated value is the malformed input as received. Includes
+  `userFriendlyMessage` and `remediation` guiding the caller to supply a valid UUID or
+  omit the argument for automatic routing.
+
 - **`TimelineError` taxonomy expansion (PKRR-008)**: adds `corrupt(String)` (error code
   6003), `permissionDenied` (6004), and `invalidState(String)` (6005) to the existing
   `timelineNotFound` (6001) and `unavailable` (6002). Each case provides
@@ -168,6 +174,15 @@ for tagged releases beginning with `1.0.0`.
   `maxTokens` is nil a conservative default reserve (4_096) is used.
 
 ### Fixed
+
+- **Malformed explicit `workspaceID` no longer silently falls back to auto-routing
+  (PKRR-015)**: `ToolRouter.resolveWorkspace` now treats the presence of the `workspaceID`
+  argument as explicit routing intent. If the value is not a string or does not parse as a
+  UUID, `ToolError.invalidWorkspaceID` is thrown before tool execution. Previously, a
+  malformed value caused the `if let` to fail silently and fall through to
+  `findWorkspaceForTool`, potentially executing the tool against a different workspace than
+  the caller intended. A valid UUID that does not match any candidate workspace continues
+  to throw `ToolError.workspaceNotFound` (unchanged from YAK-33).
 
 - **Persistence and resolution errors no longer collapse into not-found or empty results
   (PKRR-008)**: `try?` patterns in `TimelineManager+Lifecycle`,

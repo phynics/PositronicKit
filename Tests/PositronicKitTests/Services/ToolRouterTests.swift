@@ -638,8 +638,8 @@ struct ToolRouterWorkspaceResolutionTests {
         return (timelineManager, mockPersistence)
     }
 
-    @Test("Malformed workspaceID string (not a UUID) falls back to default resolution")
-    func malformedWorkspaceIDFallsBack() async throws {
+    @Test("Malformed workspaceID string (not a UUID) fails closed with invalidWorkspaceID (PKRR-015)")
+    func malformedWorkspaceIDFailsClosed() async throws {
         let (timelineManager, mockPersistence) = try await setupTimelineManager()
         let toolRouter = ToolRouter(timelineManager: timelineManager, messageStore: mockPersistence)
 
@@ -662,17 +662,94 @@ struct ToolRouterWorkspaceResolutionTests {
 
         let arguments: [String: AnyCodable] = ["workspaceID": AnyCodable("not-a-uuid")]
 
-        let result = try await toolRouter.execute(
-            tool: .known("cat"),
-            arguments: arguments,
-            timelineId: session.id
-        )
-
-        guard case let .completed(output) = result else {
-            Issue.record("Expected .completed outcome, got \(result)")
-            return
+        do {
+            _ = try await toolRouter.execute(
+                tool: .known("cat"),
+                arguments: arguments,
+                timelineId: session.id
+            )
+            Issue.record("Expected invalidWorkspaceID to be thrown")
+        } catch let ToolError.invalidWorkspaceID(value) {
+            #expect(value == "not-a-uuid")
+        } catch {
+            Issue.record("Unexpected error: \(error)")
         }
-        #expect(output == "meow")
+    }
+
+    @Test("Empty-string workspaceID fails closed with invalidWorkspaceID (PKRR-015)")
+    func emptyWorkspaceIDFailsClosed() async throws {
+        let (timelineManager, mockPersistence) = try await setupTimelineManager()
+        let toolRouter = ToolRouter(timelineManager: timelineManager, messageStore: mockPersistence)
+
+        let session = try await timelineManager.createTimeline()
+        let workspaceId = UUID()
+        let workspaceRef = try WorkspaceReference(
+            id: workspaceId,
+            uri: #require(WorkspaceURI(parsing: "pk://local")),
+            location: .runtime,
+            originId: nil
+        )
+        try await mockPersistence.saveWorkspace(workspaceRef)
+        try await timelineManager.attachWorkspace(workspaceId, to: session.id)
+        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("cat"))
+
+        let toolManager = await timelineManager.getToolManager(for: session.id)
+        try #require(toolManager != nil)
+        let mockTool = MockTool(callName: "cat", name: "cat", result: .success("meow"))
+        await toolManager?.updateAvailableTools([mockTool.toAnyTool()])
+
+        let arguments: [String: AnyCodable] = ["workspaceID": AnyCodable("")]
+
+        do {
+            _ = try await toolRouter.execute(
+                tool: .known("cat"),
+                arguments: arguments,
+                timelineId: session.id
+            )
+            Issue.record("Expected invalidWorkspaceID to be thrown")
+        } catch ToolError.invalidWorkspaceID {
+            // expected
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+    }
+
+    @Test("Non-string workspaceID (number) fails closed with invalidWorkspaceID (PKRR-015)")
+    func nonStringWorkspaceIDFailsClosed() async throws {
+        let (timelineManager, mockPersistence) = try await setupTimelineManager()
+        let toolRouter = ToolRouter(timelineManager: timelineManager, messageStore: mockPersistence)
+
+        let session = try await timelineManager.createTimeline()
+        let workspaceId = UUID()
+        let workspaceRef = try WorkspaceReference(
+            id: workspaceId,
+            uri: #require(WorkspaceURI(parsing: "pk://local")),
+            location: .runtime,
+            originId: nil
+        )
+        try await mockPersistence.saveWorkspace(workspaceRef)
+        try await timelineManager.attachWorkspace(workspaceId, to: session.id)
+        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("cat"))
+
+        let toolManager = await timelineManager.getToolManager(for: session.id)
+        try #require(toolManager != nil)
+        let mockTool = MockTool(callName: "cat", name: "cat", result: .success("meow"))
+        await toolManager?.updateAvailableTools([mockTool.toAnyTool()])
+
+        let arguments: [String: AnyCodable] = ["workspaceID": AnyCodable(123)]
+
+        do {
+            _ = try await toolRouter.execute(
+                tool: .known("cat"),
+                arguments: arguments,
+                timelineId: session.id
+            )
+            Issue.record("Expected invalidWorkspaceID to be thrown")
+        } catch ToolError.invalidWorkspaceID {
+            // expected
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
     }
 
     @Test("Workspace lookup searches primary then attached in order")
@@ -1086,14 +1163,16 @@ struct ToolErrorModelTests {
             ToolError.malformedArguments("bad").errorCode,
             ToolError.schemaMismatch("bad").errorCode,
             ToolError.executionFailed("fail").errorCode,
+            ToolError.timedOutButMayStillBeRunning(timeout: 30).errorCode,
             ToolError.toolNotFound("t").errorCode,
             ToolError.workspaceNotFound(UUID()).errorCode,
             ToolError.requestOriginUnavailable.errorCode,
             ToolError.attachedToolsDisallowedOnPrivateTimeline.errorCode,
             ToolError.permissionDenied("t").errorCode,
             ToolError.unmatchedToolOutput("call_1").errorCode,
+            ToolError.invalidWorkspaceID("bad").errorCode,
         ]
-        #expect(codes.count == 11)
+        #expect(codes.count == 13)
     }
 
     @Test("All v1 error categories have non-empty user-friendly messages")
@@ -1104,12 +1183,14 @@ struct ToolErrorModelTests {
             .malformedArguments("not JSON"),
             .schemaMismatch("missing required field"),
             .executionFailed("timeout"),
+            .timedOutButMayStillBeRunning(timeout: 30),
             .toolNotFound("unknown"),
             .workspaceNotFound(UUID()),
             .requestOriginUnavailable,
             .attachedToolsDisallowedOnPrivateTimeline,
             .permissionDenied("tool"),
             .unmatchedToolOutput("call_1"),
+            .invalidWorkspaceID("not-a-uuid"),
         ]
         for err in errors {
             #expect(!err.userFriendlyMessage.isEmpty, "Empty message for \(err)")
@@ -1124,12 +1205,14 @@ struct ToolErrorModelTests {
             .malformedArguments("not JSON"),
             .schemaMismatch("missing required field"),
             .executionFailed("timeout"),
+            .timedOutButMayStillBeRunning(timeout: 30),
             .toolNotFound("unknown"),
             .workspaceNotFound(UUID()),
             .requestOriginUnavailable,
             .attachedToolsDisallowedOnPrivateTimeline,
             .permissionDenied("tool"),
             .unmatchedToolOutput("call_1"),
+            .invalidWorkspaceID("not-a-uuid"),
         ]
         for err in errors {
             #expect(err.remediation != nil, "Missing remediation for \(err)")

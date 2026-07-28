@@ -317,9 +317,11 @@ public actor ToolRouter {
     /// Resolves the workspace to execute `tool` against for a given timeline.
     ///
     /// Resolution order:
-    /// 1. If the caller supplied an explicit `workspaceID` argument, it must match one of the
-    ///    timeline's candidate workspace ids; otherwise `ToolError.workspaceNotFound` is thrown
-    ///    (YAK-33 fail-closed).
+    /// 1. If the caller supplied an explicit `workspaceID` argument, it must be a string that
+    ///    parses as a UUID and match one of the timeline's candidate workspace ids. A malformed
+    ///    value throws `ToolError.invalidWorkspaceID`; a valid UUID that is not attached throws
+    ///    `ToolError.workspaceNotFound` (PKRR-015 fail-closed — presence signals explicit
+    ///    intent, so a malformed value is an error, not a hint to auto-route).
     /// 2. Otherwise, defer to `TimelineManager.findWorkspaceForTool(_:in:)` over the candidate
     ///    list (primary first, then attached in declared order).
     /// 3. Returns `nil` if the timeline has no workspaces, or if no candidate workspace
@@ -338,10 +340,17 @@ public actor ToolRouter {
 
         let candidates = ([wsList.primary].compactMap { $0?.id }) + wsList.attached.map { $0.id }
 
-        // Check for explicit intent in arguments.
-        if let explicitIdString = arguments["workspaceID"]?.value as? String,
-           let explicitId = UUID(uuidString: explicitIdString.trimmingCharacters(in: .whitespacesAndNewlines))
-        {
+        // Check for explicit intent in arguments. Presence of `workspaceID` signals explicit
+        // routing intent: a malformed value is an error, not a hint to fall back to
+        // auto-routing (PKRR-015).
+        if let explicitAnyCodable = arguments["workspaceID"] {
+            let explicitValue = explicitAnyCodable.value
+            guard let explicitIdString = explicitValue as? String,
+                  let explicitId = UUID(uuidString: explicitIdString.trimmingCharacters(in: .whitespacesAndNewlines))
+            else {
+                throw ToolError.invalidWorkspaceID(explicitAnyCodable.description)
+            }
+
             guard candidates.contains(explicitId) else {
                 throw ToolError.workspaceNotFound(explicitId)
             }
