@@ -1,4 +1,6 @@
+import ErrorKit
 import Foundation
+import Logging
 import PKShared
 import PKUtilities
 
@@ -85,10 +87,21 @@ public extension TimelineManager {
         var timeline: Timeline
         if let memoryTimeline = timelines[id] {
             timeline = memoryTimeline
-        } else if let dbTimeline = try? await timelineStore.fetchTimeline(id: id) {
-            timeline = dbTimeline
         } else {
-            throw TimelineError.timelineNotFound
+            do {
+                guard let dbTimeline = try await timelineStore.fetchTimeline(id: id) else {
+                    throw TimelineError.timelineNotFound
+                }
+                timeline = dbTimeline
+            } catch let error as TimelineError {
+                throw error
+            } catch {
+                logger.error("""
+                updateTimelineTitle fetch failed — timeline: \(id.uuidString.prefix(8)), \
+                operation: fetchTimeline, error: \(ErrorKit.userFriendlyMessage(for: error))
+                """)
+                throw TimelineError.unavailable
+            }
         }
 
         timeline.title = title
@@ -148,7 +161,16 @@ private extension TimelineManager {
     ) async {
         let contextWorkspace: (any Workspace)?
         if let firstId = timeline.attachedWorkspaceIds.first {
-            contextWorkspace = try? await workspaceResolver.getWorkspace(id: firstId)
+            do {
+                contextWorkspace = try await workspaceResolver.getWorkspace(id: firstId)
+            } catch {
+                logger.warning("""
+                setupTimelineComponents: context workspace resolution failed — \
+                workspace: \(firstId.uuidString.prefix(8)), timeline: \(timeline.id.uuidString.prefix(8)), \
+                operation: resolveContextWorkspace, error: \(ErrorKit.userFriendlyMessage(for: error))
+                """)
+                contextWorkspace = nil
+            }
         } else {
             contextWorkspace = nil
         }
@@ -173,8 +195,16 @@ private extension TimelineManager {
         toolManagers[timeline.id] = toolManager
 
         for attachedId in timeline.attachedWorkspaceIds {
-            if let workspace = try? await workspaceResolver.getWorkspace(id: attachedId) {
-                await toolManager.registerWorkspace(workspace)
+            do {
+                if let workspace = try await workspaceResolver.getWorkspace(id: attachedId) {
+                    await toolManager.registerWorkspace(workspace)
+                }
+            } catch {
+                logger.warning("""
+                setupTimelineComponents: attached workspace registration failed — \
+                workspace: \(attachedId.uuidString.prefix(8)), timeline: \(timeline.id.uuidString.prefix(8)), \
+                operation: registerAttachedWorkspace, error: \(ErrorKit.userFriendlyMessage(for: error))
+                """)
             }
         }
     }

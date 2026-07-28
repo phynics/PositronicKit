@@ -96,6 +96,8 @@ public actor TimelineManager {
     /// in-memory caches, so deleted/stale timelines don't leak journal-diff state.
     let promptHistoryRegistry: TimelinePromptJournals?
 
+    let logger = Logger.module(named: "timeline-manager")
+
     // MARK: - Initialization
 
     /// Designated initializer: accepts a fully-formed `any WorkspaceResolver` directly.
@@ -369,7 +371,7 @@ public extension TimelineManager {
         return true
     }
 
-    func getToolSource(toolId: String, for timelineId: UUID) async -> String? {
+    func getToolSource(toolId: String, for timelineId: UUID) async throws -> String? {
         guard let timeline = timelines[timelineId] else { return nil }
 
         if let toolManager = toolManagers[timelineId] {
@@ -379,19 +381,30 @@ public extension TimelineManager {
             }
         }
 
-        return try? await toolPersistence.fetchToolSource(
-            toolId: toolId,
-            workspaceIds: timeline.attachedWorkspaceIds,
-            primaryWorkspaceId: nil
-        )
+        do {
+            return try await toolPersistence.fetchToolSource(
+                toolId: toolId,
+                workspaceIds: timeline.attachedWorkspaceIds,
+                primaryWorkspaceId: nil
+            )
+        } catch {
+            logger.error("""
+            getToolSource failed — toolId: \(toolId), timeline: \(timelineId.uuidString.prefix(8)), \
+            operation: fetchToolSource, error: \(ErrorKit.userFriendlyMessage(for: error))
+            """)
+            throw TimelineError.unavailable
+        }
     }
 }
 
 // MARK: - Errors
 
-public enum TimelineError: PKError {
+public enum TimelineError: PKError, Equatable {
     case timelineNotFound
     case unavailable
+    case corrupt(String)
+    case permissionDenied
+    case invalidState(String)
 
     public var errorDomain: String {
         PKErrorDomain.timeline
@@ -401,6 +414,9 @@ public enum TimelineError: PKError {
         switch self {
         case .timelineNotFound: return 6001
         case .unavailable: return 6002
+        case .corrupt: return 6003
+        case .permissionDenied: return 6004
+        case .invalidState: return 6005
         }
     }
 
@@ -410,7 +426,68 @@ public enum TimelineError: PKError {
             return "The requested chat timeline could not be found."
         case .unavailable:
             return "The timeline store is currently unavailable. Please try again."
+        case .corrupt:
+            return "The timeline data appears to be corrupted. Please contact support."
+        case .permissionDenied:
+            return "Permission denied when accessing the timeline store."
+        case .invalidState:
+            return "The timeline is in an invalid state for this operation."
         }
+    }
+
+    public var remediation: String? {
+        switch self {
+        case .unavailable:
+            return "Wait a moment and retry the operation."
+        case .corrupt:
+            return "Contact your administrator to inspect the persistence backend."
+        case .permissionDenied:
+            return "Verify that the runtime has the required access permissions."
+        case .invalidState:
+            return nil
+        case .timelineNotFound:
+            return nil
+        }
+    }
+}
+
+/// A typed record of a best-effort failure that was downgraded rather than thrown.
+/// Carries stable error identity and operation metadata so callers and operators can
+/// see *what* failed and *why*, rather than observing a silent empty/nil result.
+public struct StoreDegradation: Sendable {
+    public let operation: String
+    public let entityId: String
+    public let errorIdentity: ChatEvent.ErrorIdentity?
+    public let message: String
+
+    public init(operation: String, entityId: String, error: Error) {
+        self.operation = operation
+        self.entityId = entityId
+        self.errorIdentity = .extracting(from: error)
+        self.message = ErrorKit.userFriendlyMessage(for: error)
+    }
+
+    public init(operation: String, entityId: String, errorIdentity: ChatEvent.ErrorIdentity?, message: String) {
+        self.operation = operation
+        self.entityId = entityId
+        self.errorIdentity = errorIdentity
+        self.message = message
+    }
+}
+
+/// The result of a workspace query, including any best-effort degradations encountered
+/// while resolving individual workspaces. The timeline-level store failure is thrown as
+/// a `TimelineError` (not collapsed into an empty result); individual workspace fetch
+/// failures are collected as `degradations` so the caller can log or surface them.
+public struct WorkspaceQueryResult: Sendable {
+    public let primary: WorkspaceReference?
+    public let attached: [WorkspaceReference]
+    public let degradations: [StoreDegradation]
+
+    public init(primary: WorkspaceReference?, attached: [WorkspaceReference], degradations: [StoreDegradation] = []) {
+        self.primary = primary
+        self.attached = attached
+        self.degradations = degradations
     }
 }
 

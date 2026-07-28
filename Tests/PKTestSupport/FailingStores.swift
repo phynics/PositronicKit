@@ -100,3 +100,86 @@ public final class FailingTimelinePersistence: TimelinePersistenceProtocol, @unc
         )
     }
 }
+
+/// A `WorkspaceStore` mock that can be configured to throw on `fetchWorkspace`,
+/// delegating all other operations to an in-memory backing store. Use it to drive
+/// failure-path coverage for workspace resolution in `getWorkspaces` and
+/// `setupTimelineComponents`.
+public final class FailingWorkspaceStore: WorkspaceStore, @unchecked Sendable {
+    private let backing = MockWorkspacePersistence()
+    private let fetchFails: Bool
+    private let fetchAttemptState = Mutex<Int>(0)
+
+    public init(fetchFails: Bool = false) {
+        self.fetchFails = fetchFails
+    }
+
+    public var fetchAttemptCount: Int { fetchAttemptState.withLock { $0 } }
+
+    public func saveWorkspace(_ workspace: WorkspaceReference) async throws {
+        try await backing.saveWorkspace(workspace)
+    }
+
+    public func fetchWorkspace(id: UUID, includeTools: Bool) async throws -> WorkspaceReference? {
+        fetchAttemptState.withLock { $0 += 1 }
+        if fetchFails { throw FailingStoreError.fetchFailed }
+        return try await backing.fetchWorkspace(id: id, includeTools: includeTools)
+    }
+
+    public func fetchAllWorkspaces() async throws -> [WorkspaceReference] {
+        try await backing.fetchAllWorkspaces()
+    }
+
+    public func deleteWorkspace(id: UUID) async throws {
+        try await backing.deleteWorkspace(id: id)
+    }
+}
+
+/// A `ToolPersistenceProtocol` mock that can be configured to throw on
+/// `fetchToolSource`, delegating all other operations to an in-memory backing store.
+/// Use it to drive failure-path coverage for `getToolSource`.
+public final class FailingToolPersistence: ToolPersistenceProtocol, @unchecked Sendable {
+    private let backing = MockToolPersistence()
+    private let fetchSourceFails: Bool
+    private let fetchSourceAttemptState = Mutex<Int>(0)
+
+    public init(fetchSourceFails: Bool = false) {
+        self.fetchSourceFails = fetchSourceFails
+    }
+
+    public var fetchSourceAttemptCount: Int { fetchSourceAttemptState.withLock { $0 } }
+
+    public func addToolToWorkspace(workspaceId: UUID, tool: ToolReference) async throws {
+        try await backing.addToolToWorkspace(workspaceId: workspaceId, tool: tool)
+    }
+
+    public func syncTools(workspaceId: UUID, tools: [ToolReference]) async throws {
+        try await backing.syncTools(workspaceId: workspaceId, tools: tools)
+    }
+
+    public func fetchTools(forWorkspaces workspaceIds: [UUID]) async throws -> [ToolReference] {
+        try await backing.fetchTools(forWorkspaces: workspaceIds)
+    }
+
+    public func fetchOriginTools(originId: UUID) async throws -> [ToolReference] {
+        try await backing.fetchOriginTools(originId: originId)
+    }
+
+    public func findWorkspaceId(forToolId toolId: String, in workspaceIds: [UUID]) async throws -> UUID? {
+        try await backing.findWorkspaceId(forToolId: toolId, in: workspaceIds)
+    }
+
+    public func fetchToolSource(
+        toolId: String,
+        workspaceIds: [UUID],
+        primaryWorkspaceId: UUID?
+    ) async throws -> String? {
+        fetchSourceAttemptState.withLock { $0 += 1 }
+        if fetchSourceFails { throw FailingStoreError.fetchFailed }
+        return try await backing.fetchToolSource(
+            toolId: toolId,
+            workspaceIds: workspaceIds,
+            primaryWorkspaceId: primaryWorkspaceId
+        )
+    }
+}

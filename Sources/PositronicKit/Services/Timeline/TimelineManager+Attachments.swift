@@ -1,4 +1,6 @@
+import ErrorKit
 import Foundation
+import Logging
 import PKShared
 import PKUtilities
 
@@ -10,10 +12,21 @@ public extension TimelineManager {
 
         if let memoryTimeline = timelines[timelineId] {
             timeline = memoryTimeline
-        } else if let dbTimeline = try? await timelineStore.fetchTimeline(id: timelineId) {
-            timeline = dbTimeline
         } else {
-            throw TimelineError.timelineNotFound
+            do {
+                guard let dbTimeline = try await timelineStore.fetchTimeline(id: timelineId) else {
+                    throw TimelineError.timelineNotFound
+                }
+                timeline = dbTimeline
+            } catch let error as TimelineError {
+                throw error
+            } catch {
+                logger.error("""
+                attachWorkspace fetch failed — timeline: \(timelineId.uuidString.prefix(8)), \
+                operation: fetchTimeline, error: \(ErrorKit.userFriendlyMessage(for: error))
+                """)
+                throw TimelineError.unavailable
+            }
         }
 
         if !timeline.attachedWorkspaceIds.contains(workspaceId) {
@@ -26,8 +39,16 @@ public extension TimelineManager {
         try await timelineStore.saveTimeline(timeline)
 
         if let toolManager = toolManagers[timelineId] {
-            if let workspace = try? await workspaceResolver.getWorkspace(id: workspaceId) {
-                await toolManager.registerWorkspace(workspace)
+            do {
+                if let workspace = try await workspaceResolver.getWorkspace(id: workspaceId) {
+                    await toolManager.registerWorkspace(workspace)
+                }
+            } catch {
+                logger.warning("""
+                attachWorkspace: workspace registration failed — \
+                workspace: \(workspaceId.uuidString.prefix(8)), timeline: \(timelineId.uuidString.prefix(8)), \
+                operation: registerWorkspace, error: \(ErrorKit.userFriendlyMessage(for: error))
+                """)
             }
         }
     }
@@ -37,10 +58,21 @@ public extension TimelineManager {
 
         if let memoryTimeline = timelines[timelineId] {
             timeline = memoryTimeline
-        } else if let dbTimeline = try? await timelineStore.fetchTimeline(id: timelineId) {
-            timeline = dbTimeline
         } else {
-            throw TimelineError.timelineNotFound
+            do {
+                guard let dbTimeline = try await timelineStore.fetchTimeline(id: timelineId) else {
+                    throw TimelineError.timelineNotFound
+                }
+                timeline = dbTimeline
+            } catch let error as TimelineError {
+                throw error
+            } catch {
+                logger.error("""
+                detachWorkspace fetch failed — timeline: \(timelineId.uuidString.prefix(8)), \
+                operation: fetchTimeline, error: \(ErrorKit.userFriendlyMessage(for: error))
+                """)
+                throw TimelineError.unavailable
+            }
         }
 
         timeline.attachedWorkspaceIds.removeAll { $0 == workspaceId }
@@ -56,34 +88,60 @@ public extension TimelineManager {
 
     // MARK: - Workspace Lookup
 
-    func getWorkspaces(for timelineId: UUID) async -> (primary: WorkspaceReference?, attached: [WorkspaceReference])? {
+    func getWorkspaces(for timelineId: UUID) async throws -> WorkspaceQueryResult {
         let attachedIds: [UUID]
 
         if let timeline = timelines[timelineId] {
             attachedIds = timeline.attachedWorkspaceIds
-        } else if let timeline = try? await timelineStore.fetchTimeline(id: timelineId) {
-            attachedIds = timeline.attachedWorkspaceIds
         } else {
-            return nil
+            do {
+                guard let timeline = try await timelineStore.fetchTimeline(id: timelineId) else {
+                    throw TimelineError.timelineNotFound
+                }
+                attachedIds = timeline.attachedWorkspaceIds
+            } catch let error as TimelineError {
+                throw error
+            } catch {
+                logger.error("""
+                getWorkspaces fetch failed — timeline: \(timelineId.uuidString.prefix(8)), \
+                operation: fetchTimeline, error: \(ErrorKit.userFriendlyMessage(for: error))
+                """)
+                throw TimelineError.unavailable
+            }
         }
 
         var primary: WorkspaceReference?
         var attached: [WorkspaceReference] = []
+        var degradations: [StoreDegradation] = []
         for aid in attachedIds {
-            if let workspace = try? await getWorkspace(aid) {
-                let normalizedWorkspace = normalizeWorkspaceStatus(workspace)
+            do {
+                if let workspace = try await getWorkspace(aid) {
+                    let normalizedWorkspace = normalizeWorkspaceStatus(workspace)
 
-                if primary == nil,
-                   normalizedWorkspace.location == .runtime || normalizedWorkspace.location == .runtimeTimeline
-                {
-                    primary = normalizedWorkspace
-                } else {
-                    attached.append(normalizedWorkspace)
+                    if primary == nil,
+                       normalizedWorkspace.location == .runtime || normalizedWorkspace.location == .runtimeTimeline
+                    {
+                        primary = normalizedWorkspace
+                    } else {
+                        attached.append(normalizedWorkspace)
+                    }
                 }
+            } catch {
+                let degradation = StoreDegradation(
+                    operation: "getWorkspaces.fetchWorkspace",
+                    entityId: "workspace:\(aid.uuidString.prefix(8))",
+                    error: error
+                )
+                degradations.append(degradation)
+                logger.warning("""
+                getWorkspaces: individual workspace fetch failed — \
+                workspace: \(aid.uuidString.prefix(8)), timeline: \(timelineId.uuidString.prefix(8)), \
+                operation: fetchWorkspace, error: \(ErrorKit.userFriendlyMessage(for: error))
+                """)
             }
         }
 
-        return (primary, attached)
+        return WorkspaceQueryResult(primary: primary, attached: attached, degradations: degradations)
     }
 
     func getWorkspace(_ id: UUID) async throws -> WorkspaceReference? {

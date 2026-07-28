@@ -61,7 +61,7 @@ extension ChatEngine {
         )
 
         // 3. Resolve workspaces and session entities
-        let workspaceResult = await dependencies.timelineManager.getWorkspaces(for: timelineId)
+        let workspaceResult = try await dependencies.timelineManager.getWorkspaces(for: timelineId)
         await dependencies.timelineManager.touchTimeline(id: timelineId)
         let timeline = await dependencies.timelineManager.timeline(id: timelineId)
 
@@ -70,8 +70,8 @@ extension ChatEngine {
             agentInstance = try? await dependencies.agentInstanceStore.fetchAgentInstance(id: agentId)
         }
 
-        let requestOriginId = workspaceResult?.primary?.originId
-            ?? workspaceResult?.attached.lazy.compactMap(\.originId).first
+        let requestOriginId = workspaceResult.primary?.originId
+            ?? workspaceResult.attached.lazy.compactMap(\.originId).first
 
         var requestOriginName: String?
         if let originId = requestOriginId,
@@ -94,8 +94,8 @@ extension ChatEngine {
             memories: contextData.memories.map { $0.memory },
             chatHistory: history,
             tools: tools,
-            workspaces: workspaceResult?.attached ?? [],
-            primaryWorkspace: workspaceResult?.primary,
+            workspaces: workspaceResult.attached,
+            primaryWorkspace: workspaceResult.primary,
             requestOriginName: requestOriginName,
             systemInstructions: effectiveSystemInstructions,
             generationParameters: generationParameters

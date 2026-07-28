@@ -410,9 +410,9 @@ final class ToolRouterTests {
         for attachedId in session.attachedWorkspaceIds {
             try await timelineManager.detachWorkspace(attachedId, from: session.id)
         }
-        let workspaces = await timelineManager.getWorkspaces(for: session.id)
-        #expect(workspaces?.primary == nil)
-        #expect(workspaces?.attached.isEmpty == true)
+        let workspaces = try await timelineManager.getWorkspaces(for: session.id)
+        #expect(workspaces.primary == nil)
+        #expect(workspaces.attached.isEmpty == true)
 
         let toolId = "dynamic_demo_tool"
         let dynamicTool = MockTool(callName: toolId, name: toolId, result: .success("dynamic success"))
@@ -695,8 +695,8 @@ struct ToolRouterWorkspaceResolutionTests {
 
         // Register the tool in BOTH the primary workspace and the attached workspace.
         // The primary workspace is the runtime workspace created by `createTimeline`.
-        let workspaces = await timelineManager.getWorkspaces(for: session.id)
-        let primaryId = try #require(workspaces?.primary?.id)
+        let workspaces = try await timelineManager.getWorkspaces(for: session.id)
+        let primaryId = try #require(workspaces.primary?.id)
         let toolId = "shared_tool"
         try await mockPersistence.addToolToWorkspace(workspaceId: primaryId, tool: .known(toolId))
         try await mockPersistence.addToolToWorkspace(workspaceId: attachedWorkspaceId, tool: .known(toolId))
@@ -738,8 +738,8 @@ struct ToolRouterWorkspaceResolutionTests {
         try await timelineManager.attachWorkspace(attachedWorkspaceId, to: session.id)
 
         // Register the tool in the primary workspace only — default lookup would find it there.
-        let workspaces = await timelineManager.getWorkspaces(for: session.id)
-        let primaryId = try #require(workspaces?.primary?.id)
+        let workspaces = try await timelineManager.getWorkspaces(for: session.id)
+        let primaryId = try #require(workspaces.primary?.id)
         let toolId = "tool_a"
         try await mockPersistence.addToolToWorkspace(workspaceId: primaryId, tool: .known(toolId))
 
@@ -774,9 +774,9 @@ struct ToolRouterWorkspaceResolutionTests {
         for attachedId in session.attachedWorkspaceIds {
             try await timelineManager.detachWorkspace(attachedId, from: session.id)
         }
-        let workspaces = await timelineManager.getWorkspaces(for: session.id)
-        #expect(workspaces?.primary == nil)
-        #expect(workspaces?.attached.isEmpty == true)
+        let workspaces = try await timelineManager.getWorkspaces(for: session.id)
+        #expect(workspaces.primary == nil)
+        #expect(workspaces.attached.isEmpty == true)
 
         do {
             _ = try await toolRouter.execute(

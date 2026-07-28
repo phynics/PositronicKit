@@ -102,9 +102,8 @@ struct AttachWorkspaceTests {
 
             try await fix.manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
 
-            let workspaces = await fix.manager.getWorkspaces(for: timeline.id)
-            let attached = workspaces?.attached ?? []
-            #expect(attached.contains { $0.id == fix.clientWS.id })
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
+            #expect(workspaces.attached.contains { $0.id == fix.clientWS.id })
         }
     }
 
@@ -116,8 +115,8 @@ struct AttachWorkspaceTests {
             try await fix.manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
             try await fix.manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
 
-            let workspaces = await fix.manager.getWorkspaces(for: timeline.id)
-            let matching = (workspaces?.attached ?? []).filter { $0.id == fix.clientWS.id }
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
+            let matching = workspaces.attached.filter { $0.id == fix.clientWS.id }
             #expect(matching.count == 1)
         }
     }
@@ -130,11 +129,10 @@ struct AttachWorkspaceTests {
             try await fix.manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
             try await fix.manager.attachWorkspace(fix.extraWS.id, to: timeline.id)
 
-            let workspaces = await fix.manager.getWorkspaces(for: timeline.id)
-            let attached = workspaces?.attached ?? []
-            #expect(attached.contains { $0.id == fix.clientWS.id })
-            #expect(attached.contains { $0.id == fix.extraWS.id })
-            #expect(attached.count >= 2)
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
+            #expect(workspaces.attached.contains { $0.id == fix.clientWS.id })
+            #expect(workspaces.attached.contains { $0.id == fix.extraWS.id })
+            #expect(workspaces.attached.count >= 2)
         }
     }
 
@@ -154,9 +152,8 @@ struct AttachWorkspaceTests {
                 ),
                 workspaceRoot: fix.workspaceRoot
             )
-            let workspaces = await freshManager.getWorkspaces(for: timeline.id)
-            let attached = workspaces?.attached ?? []
-            #expect(attached.contains { $0.id == fix.clientWS.id })
+            let workspaces = try await freshManager.getWorkspaces(for: timeline.id)
+            #expect(workspaces.attached.contains { $0.id == fix.clientWS.id })
         }
     }
 
@@ -195,9 +192,8 @@ struct DetachWorkspaceTests {
 
             try await fix.manager.detachWorkspace(fix.clientWS.id, from: timeline.id)
 
-            let workspaces = await fix.manager.getWorkspaces(for: timeline.id)
-            let attached = workspaces?.attached ?? []
-            #expect(!attached.contains { $0.id == fix.clientWS.id })
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
+            #expect(!workspaces.attached.contains { $0.id == fix.clientWS.id })
         }
     }
 
@@ -206,11 +202,10 @@ struct DetachWorkspaceTests {
         try await withFixture { fix in
             let timeline = try await fix.manager.createTimeline()
 
-            // Should not throw
             try await fix.manager.detachWorkspace(fix.clientWS.id, from: timeline.id)
 
-            let workspaces = await fix.manager.getWorkspaces(for: timeline.id)
-            #expect(workspaces?.attached != nil)
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
+            #expect(workspaces.attached.isEmpty)
         }
     }
 
@@ -223,10 +218,9 @@ struct DetachWorkspaceTests {
 
             try await fix.manager.detachWorkspace(fix.clientWS.id, from: timeline.id)
 
-            let workspaces = await fix.manager.getWorkspaces(for: timeline.id)
-            let attached = workspaces?.attached ?? []
-            #expect(!attached.contains { $0.id == fix.clientWS.id })
-            #expect(attached.contains { $0.id == fix.extraWS.id })
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
+            #expect(!workspaces.attached.contains { $0.id == fix.clientWS.id })
+            #expect(workspaces.attached.contains { $0.id == fix.extraWS.id })
         }
     }
 
@@ -246,9 +240,8 @@ struct DetachWorkspaceTests {
                 ),
                 workspaceRoot: fix.workspaceRoot
             )
-            let workspaces = await freshManager.getWorkspaces(for: timeline.id)
-            let attached = workspaces?.attached ?? []
-            #expect(!attached.contains { $0.id == fix.clientWS.id })
+            let workspaces = try await freshManager.getWorkspaces(for: timeline.id)
+            #expect(!workspaces.attached.contains { $0.id == fix.clientWS.id })
         }
     }
 
@@ -266,11 +259,12 @@ struct DetachWorkspaceTests {
 
 @Suite("TimelineManager.getWorkspaces", .serialized)
 struct GetWorkspacesTests {
-    @Test("returns nil for unknown timeline")
-    func nilForUnknown() async throws {
+    @Test("throws timelineNotFound for unknown timeline")
+    func throwsForUnknown() async throws {
         try await withFixture { fix in
-            let result = await fix.manager.getWorkspaces(for: UUID())
-            #expect(result == nil)
+            await #expect(throws: TimelineError.timelineNotFound) {
+                _ = try await fix.manager.getWorkspaces(for: UUID())
+            }
         }
     }
 
@@ -280,10 +274,9 @@ struct GetWorkspacesTests {
             let timeline = Timeline()
             try await fix.persistence.saveTimeline(timeline)
 
-            let workspaces = await fix.manager.getWorkspaces(for: timeline.id)
-            #expect(workspaces != nil)
-            #expect(workspaces?.primary == nil)
-            #expect(workspaces?.attached.isEmpty == true)
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
+            #expect(workspaces.primary == nil)
+            #expect(workspaces.attached.isEmpty)
         }
     }
 
@@ -292,11 +285,11 @@ struct GetWorkspacesTests {
         try await withFixture { fix in
             let timeline = try await fix.manager.createTimeline()
 
-            let workspaces = await fix.manager.getWorkspaces(for: timeline.id)
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
 
-            #expect(workspaces?.primary != nil)
-            #expect(workspaces?.primary?.location == .runtime)
-            #expect(workspaces?.attached.isEmpty == true)
+            #expect(workspaces.primary != nil)
+            #expect(workspaces.primary?.location == .runtime)
+            #expect(workspaces.attached.isEmpty)
         }
     }
 
@@ -306,12 +299,12 @@ struct GetWorkspacesTests {
             let timeline = try await fix.manager.createTimeline()
 
             try await fix.manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
-            let afterAttach = await fix.manager.getWorkspaces(for: timeline.id)
-            #expect(afterAttach?.attached.contains { $0.id == fix.clientWS.id } == true)
+            let afterAttach = try await fix.manager.getWorkspaces(for: timeline.id)
+            #expect(afterAttach.attached.contains { $0.id == fix.clientWS.id } == true)
 
             try await fix.manager.detachWorkspace(fix.clientWS.id, from: timeline.id)
-            let afterDetach = await fix.manager.getWorkspaces(for: timeline.id)
-            #expect(afterDetach?.attached.contains { $0.id == fix.clientWS.id } == false)
+            let afterDetach = try await fix.manager.getWorkspaces(for: timeline.id)
+            #expect(afterDetach.attached.contains { $0.id == fix.clientWS.id } == false)
         }
     }
 
@@ -328,8 +321,8 @@ struct GetWorkspacesTests {
             let timeline = try await fix.manager.createTimeline()
             try await fix.manager.attachWorkspace(missingWS.id, to: timeline.id)
 
-            let workspaces = await fix.manager.getWorkspaces(for: timeline.id)
-            let ws = workspaces?.attached.first { $0.id == missingWS.id }
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
+            let ws = workspaces.attached.first { $0.id == missingWS.id }
             #expect(ws?.status == .missing)
         }
     }
@@ -347,8 +340,8 @@ struct GetWorkspacesTests {
             let timeline = try await fix.manager.createTimeline()
             try await fix.manager.attachWorkspace(clientWithPath.id, to: timeline.id)
 
-            let workspaces = await fix.manager.getWorkspaces(for: timeline.id)
-            let ws = workspaces?.attached.first { $0.id == clientWithPath.id }
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
+            let ws = workspaces.attached.first { $0.id == clientWithPath.id }
             #expect(ws?.status != .missing, "Attached workspace paths are not validated runtime")
         }
     }
@@ -369,8 +362,8 @@ struct GetWorkspacesTests {
             let timeline = try await fix.manager.createTimeline()
             try await fix.manager.attachWorkspace(ws.id, to: timeline.id)
 
-            let workspaces = await fix.manager.getWorkspaces(for: timeline.id)
-            let found = workspaces?.attached.first { $0.id == ws.id }
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
+            let found = workspaces.attached.first { $0.id == ws.id }
             #expect(found?.status == .active)
         }
     }
@@ -388,8 +381,8 @@ struct GetWorkspacesTests {
             let timeline = try await fix.manager.createTimeline()
             try await fix.manager.attachWorkspace(wsNoPath.id, to: timeline.id)
 
-            let workspaces = await fix.manager.getWorkspaces(for: timeline.id)
-            let found = workspaces?.attached.first { $0.id == wsNoPath.id }
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
+            let found = workspaces.attached.first { $0.id == wsNoPath.id }
             #expect(found?.status != .missing)
         }
     }
@@ -411,9 +404,9 @@ struct WorkspaceRoundTripTests {
             try await fix.manager.detachWorkspace(fix.clientWS.id, from: timeline.id)
             try await fix.manager.detachWorkspace(fix.extraWS.id, from: timeline.id)
 
-            let workspaces = await fix.manager.getWorkspaces(for: timeline.id)
-            #expect(workspaces?.primary?.location == .runtime)
-            let attached = workspaces?.attached ?? []
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
+            #expect(workspaces.primary?.location == .runtime)
+            let attached = workspaces.attached
             #expect(!attached.contains { $0.id == fix.runtimeWS.id })
             #expect(!attached.contains { $0.id == fix.clientWS.id })
             #expect(!attached.contains { $0.id == fix.extraWS.id })
@@ -429,8 +422,8 @@ struct WorkspaceRoundTripTests {
             try await fix.manager.detachWorkspace(fix.clientWS.id, from: timeline.id)
             try await fix.manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
 
-            let workspaces = await fix.manager.getWorkspaces(for: timeline.id)
-            #expect(workspaces?.attached.contains { $0.id == fix.clientWS.id } == true)
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
+            #expect(workspaces.attached.contains { $0.id == fix.clientWS.id } == true)
         }
     }
 }

@@ -10,6 +10,23 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- **`TimelineError` taxonomy expansion (PKRR-008)**: adds `corrupt(String)` (error code
+  6003), `permissionDenied` (6004), and `invalidState(String)` (6005) to the existing
+  `timelineNotFound` (6001) and `unavailable` (6002). Each case provides
+  `userFriendlyMessage` and targeted `remediation` guidance. `TimelineError` now conforms
+  to `Equatable`.
+
+- **`StoreDegradation` + `WorkspaceQueryResult` types (PKRR-008)**: `StoreDegradation`
+  captures a best-effort failure with stable error identity (`ChatEvent.ErrorIdentity`),
+  operation name, entity ID, and user-friendly message. `WorkspaceQueryResult` is the
+  return type of `getWorkspaces(for:)`, carrying the primary/attached workspaces alongside
+  any `degradations` encountered during individual workspace fetches.
+
+- **`FailingWorkspaceStore` + `FailingToolPersistence` test doubles (PKRR-008)**: new
+  `PKTestSupport` mocks that throw on `fetchWorkspace` and `fetchToolSource` respectively,
+  with attempt counters for assertion. Join the existing `FailingTimelinePersistence` and
+  `FailingMessageStore` for comprehensive store-failure test coverage.
+
 - **`ToolSideEffects` enum + `Tool.sideEffects` property (PKRR-004)**: a new public enum on
   `PKShared` (`ToolSideEffects.none` / `.mutating` / `.externalProcess`) declares the
   side-effect class of a tool. The `Tool` protocol gains a `var sideEffects: ToolSideEffects
@@ -55,6 +72,43 @@ for tagged releases beginning with `1.0.0`.
 
 ### Changed
 
+- **Store outages no longer collapse into not-found or silent nil (PKRR-008)**: all `try?`
+  patterns in `TimelineManager+Lifecycle`, `TimelineManager+Attachments`, and
+  `TimelineManager` that turned persistence failures into `timelineNotFound` or `nil`
+  have been replaced with typed error propagation. `updateTimelineTitle`,
+  `attachWorkspace`, `detachWorkspace`, and `getWorkspaces` now distinguish
+  `TimelineError.timelineNotFound` (entity genuinely absent) from
+  `TimelineError.unavailable` (store threw). `getToolSource` is now `throws` instead of
+  returning `nil` on store failure. Each error site logs stable error identity
+  (`errorDomain` + `errorCode`) and operation metadata (timeline ID, operation name)
+  via `ErrorKit.userFriendlyMessage(for:)`.
+
+- **`TimelineError` taxonomy expanded (PKRR-008)**: adds `corrupt(String)` (6003),
+  `permissionDenied` (6004), and `invalidState(String)` (6005) alongside the existing
+  `timelineNotFound` (6001) and `unavailable` (6002). All cases include `userFriendlyMessage`
+  and targeted `remediation` guidance. `TimelineError` now conforms to `Equatable`.
+
+- **`getWorkspaces(for:)` returns `WorkspaceQueryResult` instead of an optional tuple
+  (PKRR-008)**: the method is now `async throws -> WorkspaceQueryResult`. A missing timeline
+  throws `TimelineError.timelineNotFound`; a store outage throws `TimelineError.unavailable`.
+  Individual workspace fetch failures that were previously silently dropped are now collected
+  as `[StoreDegradation]` entries on the result, carrying stable error identity and operation
+  metadata. **Public API change:** callers that used `await getWorkspaces(for:)` must now
+  `try await` and access `.primary`/`.attached` directly (no optional unwrap). The
+  `ToolRouter` catches `timelineNotFound` to preserve its "tool not found" behavior; store
+  outages propagate as typed errors.
+
+- **`getToolSource(toolId:for:)` is now `throws` (PKRR-008)**: a store failure throws
+  `TimelineError.unavailable` instead of returning `nil`. A genuinely unknown tool still
+  returns `nil` (not-found is not an error). Callers that used `try?` or `await` without
+  `try` must now handle the error.
+
+- **Best-effort workspace resolution now logs degradations (PKRR-008)**:
+  `setupTimelineComponents` and `attachWorkspace`'s workspace-registration path catch and
+  log workspace resolver failures with stable error identity and operation metadata, rather
+  than silently dropping them via `try?`. The timeline remains usable (degraded) when an
+  attached workspace can't be resolved.
+
 - **`ToolTimeoutEnforcer` now reports side-effect-aware terminal states (PKRR-004)**: on
   timeout, tools that declare `sideEffects == .none` preserve the current fast-abandon clean
   timeout (`ToolError.executionFailed` with a "timed out" message) — this is the only case
@@ -87,6 +141,18 @@ for tagged releases beginning with `1.0.0`.
   `maxTokens` is nil a conservative default reserve (4_096) is used.
 
 ### Fixed
+
+- **Persistence and resolution errors no longer collapse into not-found or empty results
+  (PKRR-008)**: `try?` patterns in `TimelineManager+Lifecycle`,
+  `TimelineManager+Attachments`, and `TimelineManager` turned store outages into
+  `timelineNotFound`, `nil`, or skipped entries — making outages and corruption
+  indistinguishable from missing data. `updateTimelineTitle`, `attachWorkspace`,
+  `detachWorkspace`, `getWorkspaces`, and `getToolSource` now propagate typed
+  `TimelineError`s. Best-effort paths (`setupTimelineComponents` workspace resolution,
+  individual workspace fetches in `getWorkspaces`) log degradations with stable error
+  identity and return `StoreDegradation` diagnostics instead of silently dropping failures.
+  Operators retain causal information; the runtime no longer routes tools incorrectly or
+  tells users an entity does not exist when the store is merely unavailable.
 
 - **Timeline cancellation API is now wired to the active chat task (PKRR-002)**:
   `TimelineDriver.cancel()` delegated to `TimelineManager.cancelGeneration(for:)`, but the

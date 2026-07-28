@@ -329,7 +329,12 @@ public actor ToolRouter {
         in timelineId: UUID,
         arguments: [String: AnyCodable]
     ) async throws -> UUID? {
-        guard let wsList = await timelineManager.getWorkspaces(for: timelineId) else { return nil }
+        let wsList: WorkspaceQueryResult
+        do {
+            wsList = try await timelineManager.getWorkspaces(for: timelineId)
+        } catch TimelineError.timelineNotFound {
+            return nil
+        }
 
         let candidates = ([wsList.primary].compactMap { $0?.id }) + wsList.attached.map { $0.id }
 
