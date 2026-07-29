@@ -48,6 +48,15 @@ enum LLMStreamError: PKError {
     }
 }
 
+extension LLMStreamError: CausalError {
+    var underlyingCauses: [Error] {
+        switch self {
+        case let .providerStreamFailed(underlying):
+            return [underlying]
+        }
+    }
+}
+
 /// Wraps a foreign error so it carries a `PKError` domain/code, without changing the
 /// observable identity of errors that already conform to `PKError` or are a
 /// `CancellationError`.

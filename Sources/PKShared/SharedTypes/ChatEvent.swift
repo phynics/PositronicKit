@@ -33,14 +33,14 @@ public enum ChatEvent: Sendable, Codable {
     /// (STAB-6).
     ///
     /// It is a plain value type (`String` + `Int`) so `ChatEvent` stays `Sendable`,
-    /// `Equatable`, and `Codable` without carrying an untyped `Error`. Extraction is
-    /// a single top-level `as? any PKError` cast: the in-use "blocked" error types
-    /// (`ToolError.permissionDenied`, `PathError.accessDenied`,
-    /// `WorkspaceError.accessDenied`, `ToolError.attachedToolsDisallowedOnPrivateTimeline`)
-    /// are all thrown directly and conform to `PKError`, so a single cast covers the
-    /// production classification. Nested causes are not dug — non-`PKError` errors
-    /// (including provider failures) yield `identity == nil` and are intentionally
-    /// not classified as blocked (see `blockedIdentityContract`).
+    /// `Equatable`, and `Codable` without carrying an untyped `Error`. Extraction
+    /// traverses the causal chain through ``CausalError`` conformers (e.g.
+    /// `PipelineError`) to find the root `PKError` identity — so a provider 429
+    /// wrapped in a pipeline stage failure retains its LLM/HTTP identity instead of
+    /// collapsing to the generic pipeline code 4001 (PKRR-014). Non-`PKError` errors
+    /// (including `CancellationError` and foreign provider failures wrapped only by
+    /// `PipelineError`) yield `identity == nil` and are intentionally not classified
+    /// as blocked (see `blockedIdentityContract`).
     ///
     /// `isBlocked` is carried as a stored field, populated by `extracting(from:)`
     /// from `PKError.isBlocked` at extraction time. This moves the classification
@@ -64,12 +64,36 @@ public enum ChatEvent: Sendable, Codable {
             self.isBlocked = isBlocked
         }
 
-        /// Extracts an `ErrorIdentity` from `error` when its top-level type conforms
-        /// to `PKError`; returns `nil` for non-`PKError` errors. Nested causes are
-        /// not traversed (see the type's documented limitation). The `isBlocked`
+        /// Extracts an `ErrorIdentity` from `error` by traversing the causal chain
+        /// through ``CausalError`` conformers to find the root `PKError` identity
+        /// (PKRR-014).
+        ///
+        /// When the error is a `CausalError` wrapper (e.g.
+        /// `PipelineError.stageFailed`), extraction recurses into the underlying
+        /// causes and returns the first `PKError` identity found — preserving the
+        /// root cause's domain/code/isBlocked instead of the wrapper's. If no
+        /// `PKError` is found in the causal chain, the wrapper's own `PKError`
+        /// identity is used as a fallback when `usesOwnIdentityAsFallback` is
+        /// `true` (the default), or `nil` when it is `false` (e.g.
+        /// `PipelineError`, whose stage-failure code is orchestration context
+        /// rather than the root cause).
+        ///
+        /// Non-`CausalError` errors are inspected directly: if they conform to
+        /// `PKError`, their identity is returned; otherwise `nil`. The `isBlocked`
         /// field is populated from `PKError.isBlocked` so blocked-error
         /// classification lives on the error types themselves.
         public static func extracting(from error: Error) -> ErrorIdentity? {
+            if let causal = error as? CausalError {
+                for cause in causal.underlyingCauses {
+                    if let identity = extracting(from: cause) {
+                        return identity
+                    }
+                }
+                if causal.usesOwnIdentityAsFallback, let pk = error as? any PKError {
+                    return ErrorIdentity(domain: pk.errorDomain, code: pk.errorCode, isBlocked: pk.isBlocked)
+                }
+                return nil
+            }
             if let pk = error as? any PKError {
                 return ErrorIdentity(domain: pk.errorDomain, code: pk.errorCode, isBlocked: pk.isBlocked)
             }
@@ -309,14 +333,16 @@ public extension ChatEvent {
 }
 
 // MARK: - Blocked Error Identity Contract (STAB-6)
-
 //
 // Blocked-error classification now lives on `PKError.isBlocked` (default `false`,
 // overridden `true` on the error cases that represent blocked/approval/disallowed
 // conditions). `ErrorIdentity.extracting(from:)` copies `PKError.isBlocked` onto the
 // identity's stored `isBlocked` field at extraction time, so consumers classify turn
 // state by checking `identity?.isBlocked` without needing a hand-curated `(domain,
-// code)` set. The error types that override `isBlocked = true`:
+// code)` set. Extraction traverses `CausalError` wrappers (e.g. `PipelineError`) to
+// find the root `PKError`, so a blocked error wrapped by a pipeline stage retains
+// its blocked classification (PKRR-014). The error types that override
+// `isBlocked = true`:
 // - `ToolError.permissionDenied` — `com.positronickit.core.tool:210`
 // - `ToolError.attachedToolsDisallowedOnPrivateTimeline` — `com.positronickit.core.tool:207`
 // - `PathSanitizer.PathError.accessDenied` — `com.positronickit.core.filesystem:101`

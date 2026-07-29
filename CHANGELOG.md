@@ -10,6 +10,18 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- **Causal error chain traversal for `ErrorIdentity` (PKRR-014)**: A new
+  `CausalError` protocol in `PKShared` enables `ChatEvent.ErrorIdentity.extracting(from:)`
+  to traverse wrapper errors (e.g. `PipelineError.stageFailed`,
+  `.cleanupFailed`, `.compoundFailure`) and extract the root `PKError`'s domain/code/
+  `isBlocked` instead of collapsing to the generic pipeline code 4001. `PipelineError`
+  conforms with `usesOwnIdentityAsFallback = false` (its stage-failure code is
+  orchestration context, not the root cause); `LLMStreamError` conforms with the default
+  `true` (its identity IS the useful classification for the foreign errors it wraps).
+  Provider HTTP errors (e.g. a 429) and blocked tool errors now retain their structured
+  identity through pipeline wrapping, so consumers never need message substring matching
+  for supported errors.
+
 - **Distinct terminal events for max-turn exhaustion and deferred external tool work
   (PKRR-011)**: `ChatEvent.CompletionEvent` gains two new cases — `.maxTurnsReached` and
   `.deferredForExternalTool` — so consumers can reliably distinguish these outcomes from

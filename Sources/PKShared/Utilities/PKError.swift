@@ -41,6 +41,36 @@ public extension PKError {
     }
 }
 
+/// An error that wraps one or more underlying causes, enabling
+/// ``ChatEvent.ErrorIdentity`` to traverse the causal chain and extract the root
+/// ``PKError`` identity rather than the wrapper's (PKRR-014).
+///
+/// Conform wrapper types that carry an `underlyingError` to this protocol so
+/// `ErrorIdentity.extracting(from:)` can see through the wrapper to the root
+/// cause. Generic wrappers whose own `PKError` identity is orchestration context
+/// rather than the root cause (e.g. `PipelineError`) should override
+/// `usesOwnIdentityAsFallback` to `false`.
+public protocol CausalError: Error {
+    /// The underlying error(s) that this error wraps, ordered by significance
+    /// (primary cause first). `ErrorIdentity.extracting` traverses these to find
+    /// the root `PKError` identity.
+    var underlyingCauses: [Error] { get }
+
+    /// Whether `ErrorIdentity.extracting` should fall back to this error's own
+    /// `PKError` identity when no `PKError` is found in the causal chain.
+    ///
+    /// Defaults to `true` — purpose-built wrappers like `LLMStreamError` provide
+    /// a stable identity for the foreign errors they wrap, so their own identity
+    /// IS the useful classification. Generic wrappers like `PipelineError` should
+    /// override to `false` — their identity (stage failure code) is orchestration
+    /// context, not the root cause.
+    var usesOwnIdentityAsFallback: Bool { get }
+}
+
+public extension CausalError {
+    var usesOwnIdentityAsFallback: Bool { true }
+}
+
 /// Common error domains for PositronicKit modules.
 public enum PKErrorDomain {
     public static let shared = "com.positronickit.shared"

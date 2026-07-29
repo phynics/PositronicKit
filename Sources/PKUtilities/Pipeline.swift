@@ -183,6 +183,21 @@ public enum PipelineError: Error, Sendable {
     case compoundFailure(primary: Error, cleanupFailures: [Error])
 }
 
+extension PipelineError: CausalError {
+    public var underlyingCauses: [Error] {
+        switch self {
+        case let .stageFailed(_, underlyingError):
+            return [underlyingError]
+        case let .cleanupFailed(_, underlyingError):
+            return [underlyingError]
+        case let .compoundFailure(primary, cleanupFailures):
+            return [primary] + cleanupFailures
+        }
+    }
+
+    public var usesOwnIdentityAsFallback: Bool { false }
+}
+
 extension PipelineError: PKError {
     public var errorDomain: String {
         PKErrorDomain.pipeline
