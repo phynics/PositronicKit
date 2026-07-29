@@ -10,6 +10,12 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- **CI verification matrix (PKRR-025)**: CI now gates minimum and current pinned Linux
+  toolchains separately, runs the full macOS verification gate including docs snippets,
+  examples, products, and tests, and compiles/tests iOS library products on an iOS Simulator.
+  macOS coverage and platform test logs/results are published as workflow artifacts; Linux
+  native bridge exclusions and the iOS command-line example exclusion are explicit.
+
 - **Durable timeline deletion and explicit eviction API (PKRR-023)**: `TimelineManager`
   now distinguishes memory-only eviction from permanent deletion. The former
   `deleteTimeline(id:)` was an in-memory eviction that did not cancel active work (before
