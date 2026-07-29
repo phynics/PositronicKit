@@ -143,25 +143,6 @@ public actor FoundationModelsClient: LLMClientProtocol {
         makeSession?(tools, instructions)
     }
 
-    public func sendMessage(
-        _ content: String,
-        responseFormat: LLMResponseFormat? = nil,
-        generationParameters: GenerationParameters? = nil
-    ) async throws -> String {
-        var fullContent = ""
-        let stream = await chatStream(
-            messages: [LLMMessage(role: .user, content: content)],
-            tools: nil,
-            toolChoice: nil,
-            responseFormat: responseFormat,
-            generationParameters: generationParameters
-        )
-        for try await chunk in stream {
-            if let delta = chunk.choices.first?.delta.content { fullContent += delta }
-        }
-        return fullContent
-    }
-
     public func fetchAvailableModels() async throws -> [String]? {
         // Exactly one on-device system model exists; there is nothing to list.
         [modelName]

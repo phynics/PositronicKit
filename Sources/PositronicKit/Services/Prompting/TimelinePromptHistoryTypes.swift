@@ -30,17 +30,10 @@ struct PromptSectionEntry {
     let path: [String]
     let parentEntryId: String?
     let order: Int?
-    let sectionKind: PromptHistorySectionKind?
 }
 
 struct PromptSnapshot {
     let entries: [PromptSectionEntry]
-}
-
-enum PromptHistorySectionKind: String, Codable, Hashable {
-    case section
-    case group
-    case synthetic
 }
 
 struct PromptHistoryJournalDiff<Entry: Sendable> {

@@ -5,14 +5,13 @@ import PKUtilities
 /// Builds a `TimelineToolRegistry` for a session from a `RuntimeToolPolicy` and the timeline's
 /// attached-agent identity. Pure function with no side effects on the timeline cache.
 ///
-/// Extracted from `TimelineManager.createToolManager(for:jailRoot:toolContextTimeline:)` so the
+/// Extracted from `TimelineManager.createToolManager(for:jailRoot:)` so the
 /// runtime tool-installation policy has its own testable surface — exercised without bringing up
 /// a full `TimelineManager` (PKARCH-003).
 package enum RuntimeToolPolicyFactory {
     package static func createToolManager(
         for timeline: Timeline,
         jailRoot: String,
-        toolContextTimeline: ToolTimelineContext,
         runtimeToolPolicy: TimelineManager.RuntimeToolPolicy,
         timelineStore: any TimelinePersistenceProtocol,
         messageStore: any MessageStoreProtocol
@@ -59,8 +58,7 @@ package enum RuntimeToolPolicyFactory {
         }
 
         return TimelineToolRegistry(
-            availableTools: availableTools,
-            timelineContext: toolContextTimeline
+            availableTools: availableTools
         )
     }
 }

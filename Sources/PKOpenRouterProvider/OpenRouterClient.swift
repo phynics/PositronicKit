@@ -230,16 +230,10 @@ public actor OpenRouterClient: LLMClientProtocol {
         continuation: AsyncThrowingStream<LLMStreamChunk, Error>.Continuation
     ) async throws {
         let (stream, response) = try await transport.lines(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw LLMServiceError.networkError("Invalid response type from OpenRouter")
-        }
-        guard (200 ... 299).contains(httpResponse.statusCode) else {
+        let httpResponse = try HTTPHelpers.ensureHTTPResponse(response, provider: "OpenRouter")
+        if !(200 ... 299).contains(httpResponse.statusCode) {
             let errorBody = try await LimitedErrorBodyCollector.collect(from: stream)
-            throw ProviderHTTPFailure.makeError(
-                provider: "OpenRouter",
-                response: httpResponse,
-                responseBody: errorBody
-            )
+            try HTTPHelpers.ensureSuccessStatus(httpResponse, provider: "OpenRouter", body: Data(errorBody.utf8))
         }
         for try await line in stream {
             if Task.isCancelled { break }
@@ -259,17 +253,8 @@ public actor OpenRouterClient: LLMClientProtocol {
 
     private func fetchChatResponse(request: URLRequest) async throws -> OpenRouterChatResponse {
         let (data, response) = try await transport.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw LLMServiceError.networkError("Invalid response type from OpenRouter")
-        }
-        guard (200 ... 299).contains(httpResponse.statusCode) else {
-            let body = ProviderHTTPFailure.sanitize(String(data: data, encoding: .utf8) ?? "")
-            throw ProviderHTTPFailure.makeError(
-                provider: "OpenRouter",
-                response: httpResponse,
-                responseBody: body
-            )
-        }
+        let httpResponse = try HTTPHelpers.ensureHTTPResponse(response, provider: "OpenRouter")
+        try HTTPHelpers.ensureSuccessStatus(httpResponse, provider: "OpenRouter", body: data)
         return try JSONDecoder().decode(OpenRouterChatResponse.self, from: data)
     }
 
@@ -279,10 +264,8 @@ public actor OpenRouterClient: LLMClientProtocol {
         logger: Logger,
         continuation: AsyncThrowingStream<LLMStreamChunk, Error>.Continuation
     ) {
-        let trimmed = line.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty, trimmed.hasPrefix("data: ") else { return }
-        let dataString = String(trimmed.dropFirst(6))
-        guard dataString != "[DONE]", let data = dataString.data(using: .utf8) else { return }
+        guard let data = HTTPHelpers.extractSSEData(from: line) else { return }
+        let dataString = String(decoding: data, as: UTF8.self)
 
         do {
             // The wire format is snake_case (`tool_calls`, `finish_reason`) but `LLMStreamChunk`'s
@@ -359,19 +342,14 @@ public actor OpenRouterClient: LLMClientProtocol {
     ) async throws -> String {
         let maxRetries = self.maxRetries
         return try await RetryPolicy.retry(maxRetries: maxRetries) {
-            let messages = [LLMMessage(role: .user, content: content)]
-            var fullContent = ""
             let stream = await self.chatStream(
-                messages: messages,
+                messages: [LLMMessage(role: .user, content: content)],
                 tools: nil,
                 toolChoice: nil,
                 responseFormat: responseFormat,
                 generationParameters: generationParameters
             )
-            for try await result in stream {
-                if let delta = result.choices.first?.delta.content { fullContent += delta }
-            }
-            return fullContent
+            return try await accumulateStreamContent(from: stream)
         }
     }
 
@@ -383,16 +361,8 @@ public actor OpenRouterClient: LLMClientProtocol {
             var request = URLRequest(url: url)
             request.timeoutInterval = self.timeoutInterval
             let (data, response) = try await self.transport.data(for: request)
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw LLMServiceError.networkError("Invalid response type from OpenRouter models API")
-            }
-            guard (200 ... 299).contains(httpResponse.statusCode) else {
-                throw ProviderHTTPFailure.makeError(
-                    provider: "OpenRouter",
-                    response: httpResponse,
-                    responseBody: ProviderHTTPFailure.sanitize(String(data: data, encoding: .utf8) ?? "")
-                )
-            }
+            let httpResponse = try HTTPHelpers.ensureHTTPResponse(response, provider: "OpenRouter models API")
+            try HTTPHelpers.ensureSuccessStatus(httpResponse, provider: "OpenRouter", body: data)
             let modelsResponse = try JSONDecoder().decode(OpenRouterModelsResponse.self, from: data)
             return modelsResponse.data.map { $0.id }.sorted()
         }

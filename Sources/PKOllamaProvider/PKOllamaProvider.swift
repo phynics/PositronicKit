@@ -2,7 +2,7 @@ import PKShared
 
 public enum PKOllamaProvider {
     public static func makeClient(configuration: LLMConfiguration) -> OllamaClient {
-        StructuredOutputAdapterRegistry.register(OllamaStructuredOutputAdapter(), for: .ollama)
+        StructuredOutputAdapterRegistry.register(PromptAugmentedJSONSchemaAdapter(), for: .ollama)
 
         let providerConfig = configuration.activeProviderConfiguration
         return OllamaClient(

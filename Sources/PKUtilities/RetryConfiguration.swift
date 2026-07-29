@@ -99,7 +99,13 @@ public struct RetryConfiguration: Sendable {
 
     /// Default configuration matching pre-PKRR-030 `RetryPolicy.retry` behavior,
     /// with safe caps applied. Equivalent to `maxRetries: 3, baseDelay: 1.0`.
-    public static let `default` = try! RetryConfiguration()
+    public static let `default`: RetryConfiguration = {
+        do {
+            return try RetryConfiguration()
+        } catch {
+            preconditionFailure("RetryConfiguration.default failed validation: \(error)")
+        }
+    }()
 
     // MARK: Validation helper
 

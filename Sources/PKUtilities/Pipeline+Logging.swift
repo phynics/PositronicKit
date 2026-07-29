@@ -1,4 +1,3 @@
-import PKShared
 import Logging
 
 public extension Pipeline {

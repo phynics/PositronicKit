@@ -442,20 +442,20 @@ struct ProviderInitializationTests {
     func openAICompatibleRegistersStructuredOutput() {
         _ = PKOpenAIProvider.makeClient(configuration: .fixture(activeProvider: .openAICompatible))
 
-        #expect(StructuredOutputAdapterRegistry.adapter(for: .openAICompatible) is OpenAICompatibleStructuredOutputAdapter)
+        #expect(StructuredOutputAdapterRegistry.adapter(for: .openAICompatible) is PromptAugmentedJSONSchemaAdapter)
     }
 
     @Test("Anthropic provider construction registers Anthropic structured output")
     func anthropicRegistersStructuredOutput() {
         _ = PKAnthropicProvider.makeClient(configuration: .fixture(activeProvider: .anthropic))
 
-        #expect(StructuredOutputAdapterRegistry.adapter(for: .anthropic) is AnthropicStructuredOutputAdapter)
+        #expect(StructuredOutputAdapterRegistry.adapter(for: .anthropic) is DefaultStructuredOutputAdapter)
     }
 
     @Test("Ollama provider construction registers Ollama structured output")
     func ollamaRegistersStructuredOutput() {
         _ = PKOllamaProvider.makeClient(configuration: .fixture(activeProvider: .ollama))
 
-        #expect(StructuredOutputAdapterRegistry.adapter(for: .ollama) is OllamaStructuredOutputAdapter)
+        #expect(StructuredOutputAdapterRegistry.adapter(for: .ollama) is PromptAugmentedJSONSchemaAdapter)
     }
 }

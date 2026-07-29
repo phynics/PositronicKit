@@ -8,6 +8,48 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Added
+
+- **Code review cleanup (PKCR-001, PKCR-003, PKCR-004, PKCR-006, PKCR-007,
+  PKCR-009, PKCR-010)**: removed unadopted tool-context infrastructure and unused
+  imports, consolidated provider stream/HTTP helpers, split large runtime files,
+  centralized facade dependency wiring, and replaced the retry-default force try
+  and streaming-parser magic threshold. Dynamic sidecar schema dictionaries remain
+  intentional because they represent provider/LLM-defined JSON.
+
+- **Duplicate-content retry gate (PKCR-005)**: new public `DuplicateContentRetryGate`
+  type in `PKUtilities` encapsulates the duplicate-content retry gate logic that was
+  previously duplicated (as a private `Mutex<Bool>` + `markYieldedIfNeeded` helper) in the
+  Ollama and Anthropic provider clients. Both clients now construct a
+  `DuplicateContentRetryGate` and route through `gate.shouldRetry(error:)` /
+  `gate.markYieldedIfNeeded(_:)`; the OpenRouter client's separate
+  `LLMToolCallRecoveryState` mechanism is unaffected. Streaming retry behavior is
+  preserved exactly.
+
+### Changed
+
+- **Split turn-preparation file (PKCR-008)**: The private `TurnIdempotencyGate`
+  and `ExternalToolOutputSubmissionGate` actors (plus the `ReservedToolOutput`
+  struct) have been extracted from `ChatEngine+TurnPreparation.swift` into their
+  own files (`TurnIdempotencyGate.swift`, `ExternalToolOutputSubmissionGate.swift`).
+  Their file-global singletons are now `static let shared` on each actor type, and
+  the actors are module-internal so the `ChatEngine` extension can reach them.
+  No runtime logic changed; gate behavior (send-id idempotency and tool-output
+  validation/reservation from PKRR-006) is preserved exactly.
+
+- **Deduplicated structured-output adapters (PKCR-002)**: The three
+  provider-specific adapter types `OpenAICompatibleStructuredOutputAdapter`,
+  `OllamaStructuredOutputAdapter`, and `AnthropicStructuredOutputAdapter` have
+  been removed. OpenAI-compatible and Ollama providers now register the shared
+  `PromptAugmentedJSONSchemaAdapter` (prompt augmentation + native
+  `json_schema` response format); Anthropic now registers
+  `DefaultStructuredOutputAdapter` (synthetic-tool fallback). The
+  `.jsonObject` case is handled uniformly via a `jsonObjectRequest` helper in
+  the `StructuredOutputAdapter` protocol extension, eliminating five copies of
+  identical code. Downstream consumers referencing the deleted types by name
+  should switch to `PromptAugmentedJSONSchemaAdapter` or
+  `DefaultStructuredOutputAdapter`.
+
 ## [3.2.0] - 2026-07-29
 
 ### Added

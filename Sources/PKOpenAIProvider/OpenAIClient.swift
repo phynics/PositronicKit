@@ -146,21 +146,14 @@ public actor OpenAIClient: LLMClientProtocol {
 
         return try await RetryPolicy.retry(maxRetries: maxRetries) {
             do {
-                let messages = [LLMMessage(role: .user, content: content)]
-                var fullContent = ""
                 let stream = await self.chatStream(
-                    messages: messages,
+                    messages: [LLMMessage(role: .user, content: content)],
                     tools: nil,
                     toolChoice: nil,
                     responseFormat: responseFormat,
                     generationParameters: generationParameters
                 )
-                for try await result in stream {
-                    if let delta = result.choices.first?.delta.content {
-                        fullContent += delta
-                    }
-                }
-                return fullContent
+                return try await accumulateStreamContent(from: stream)
             } catch {
                 throw self.mapProviderError(error, provider: "OpenAI")
             }

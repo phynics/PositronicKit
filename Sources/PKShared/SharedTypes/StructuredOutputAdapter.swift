@@ -55,6 +55,19 @@ public protocol StructuredOutputAdapter: Sendable {
     ) -> PreparedStructuredOutputRequest
 }
 
+public extension StructuredOutputAdapter {
+    /// Handles the `.jsonObject` case uniformly. Providers should call this from their
+    /// `prepareRequest` for the `.jsonObject` case.
+    func jsonObjectRequest(messages: [LLMMessage], tools: [LLMToolDefinition]?) -> PreparedStructuredOutputRequest {
+        PreparedStructuredOutputRequest(
+            messages: messages,
+            tools: tools,
+            toolChoice: nil,
+            responseFormat: .jsonObject
+        )
+    }
+}
+
 /// Registry mapping `LLMProvider` values to their structured-output adapters.
 ///
 /// Provider modules register their adapter in their public `register()` entry point.
@@ -87,12 +100,7 @@ public struct NativeJSONSchemaStructuredOutputAdapter: StructuredOutputAdapter {
     ) -> PreparedStructuredOutputRequest {
         switch output {
         case .jsonObject:
-            return PreparedStructuredOutputRequest(
-                messages: messages,
-                tools: tools,
-                toolChoice: nil,
-                responseFormat: .jsonObject
-            )
+            return jsonObjectRequest(messages: messages, tools: tools)
         case let .jsonSchema(schema):
             return PreparedStructuredOutputRequest(
                 messages: messages,
@@ -127,12 +135,7 @@ public struct DefaultStructuredOutputAdapter: StructuredOutputAdapter {
     ) -> PreparedStructuredOutputRequest {
         switch output {
         case .jsonObject:
-            return PreparedStructuredOutputRequest(
-                messages: messages,
-                tools: tools,
-                toolChoice: nil,
-                responseFormat: .jsonObject
-            )
+            return jsonObjectRequest(messages: messages, tools: tools)
         case let .jsonSchema(schema):
             let syntheticTool = makeSyntheticStructuredOutputTool(
                 for: schema,
@@ -144,6 +147,37 @@ public struct DefaultStructuredOutputAdapter: StructuredOutputAdapter {
                 toolChoice: .function(syntheticToolName),
                 responseFormat: nil,
                 syntheticToolName: syntheticToolName
+            )
+        }
+    }
+}
+
+/// Structured-output adapter that augments the prompt with the schema text and emits
+/// a `json_schema` response format. Used by OpenAI-compatible and Ollama providers.
+public struct PromptAugmentedJSONSchemaAdapter: StructuredOutputAdapter {
+    public init() {}
+
+    public func prepareRequest(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        output: StructuredOutputRequest
+    ) -> PreparedStructuredOutputRequest {
+        switch output {
+        case .jsonObject:
+            return jsonObjectRequest(messages: messages, tools: tools)
+        case let .jsonSchema(schema):
+            let augmentation = fallbackStructuredOutputPromptSuffix(for: schema)
+            return PreparedStructuredOutputRequest(
+                messages: applyStructuredOutputPromptAugmentation(augmentation, to: messages),
+                tools: tools,
+                toolChoice: nil,
+                responseFormat: .jsonSchema(.init(
+                    name: schema.name,
+                    description: schema.description,
+                    schema: schema.schema,
+                    strict: schema.strict
+                )),
+                promptAugmentation: augmentation
             )
         }
     }

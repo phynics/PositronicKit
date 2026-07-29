@@ -1,4 +1,3 @@
-import ErrorKit
 import Foundation
 import Logging
 import PKPrompt
@@ -114,7 +113,7 @@ public final class PositronicKit: Sendable {
         reconfigured(languageModel: AnyLanguageModel(base: llmService), generationParameters: generationParameters)
     }
 
-    init(
+    convenience init(
         languageModel: any LanguageModel,
         messageStore: (any MessageStoreProtocol)? = nil,
         agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,
@@ -138,34 +137,68 @@ public final class PositronicKit: Sendable {
         sharedRegistry: TimelinePromptJournals,
         additionalStages: [any PipelineStage<ChatTurnContext, ChatEvent>]
     ) {
-        self.languageModel = languageModel
-        self.messageStore = messageStore ?? InMemoryMessageStore()
-        self.agentInstanceStore = agentInstanceStore ?? InMemoryAgentInstanceStore()
-        self.requestOriginStore = requestOriginStore ?? InMemoryRequestOriginStore()
-        self.timelinePersistence = timelinePersistence ?? InMemoryTimelinePersistence()
-        self.workspacePersistence = workspacePersistence ?? InMemoryWorkspacePersistence()
-        self.memoryStore = memoryStore ?? InMemoryMemoryStore()
-        self.toolPersistence = toolPersistence ?? InMemoryToolPersistence()
-        self.embeddingService = embeddingService ?? NoOpEmbeddingService()
-        self.chatTurnPlugins = chatTurnPlugins
-        self.promptObserver = promptObserver
-        self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
-        self.degradationPolicy = degradationPolicy
-        promptHistoryRegistry = sharedRegistry
-        self.workspaceProfile = workspaceProfile
-        self.workspaceCreator = workspaceCreator
-        self.sectionProviders = sectionProviders
-        self.runtimeToolPolicy = runtimeToolPolicy
-        self.toolApprovalPolicy = toolApprovalPolicy
-        self.loggingConfiguration = loggingConfiguration
-        defaultGenerationParameters = generationParameters
+        self.init(
+            dependencies: KitDependencies(
+                languageModel: languageModel,
+                messageStore: messageStore ?? InMemoryMessageStore(),
+                agentInstanceStore: agentInstanceStore ?? InMemoryAgentInstanceStore(),
+                requestOriginStore: requestOriginStore ?? InMemoryRequestOriginStore(),
+                timelinePersistence: timelinePersistence ?? InMemoryTimelinePersistence(),
+                workspacePersistence: workspacePersistence ?? InMemoryWorkspacePersistence(),
+                memoryStore: memoryStore ?? InMemoryMemoryStore(),
+                toolPersistence: toolPersistence ?? InMemoryToolPersistence(),
+                embeddingService: embeddingService ?? NoOpEmbeddingService(),
+                workspaceProfile: workspaceProfile,
+                workspaceCreator: workspaceCreator,
+                sectionProviders: sectionProviders,
+                runtimeToolPolicy: runtimeToolPolicy,
+                chatTurnPlugins: chatTurnPlugins,
+                promptObserver: promptObserver,
+                diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
+                degradationPolicy: degradationPolicy,
+                generationParameters: generationParameters,
+                toolApprovalPolicy: toolApprovalPolicy,
+                loggingConfiguration: loggingConfiguration,
+                sharedRegistry: sharedRegistry,
+                additionalStages: additionalStages
+            )
+        )
+    }
+
+    /// The designated initializer. Accepts a fully-resolved ``KitDependencies`` bundle and
+    /// wires the internal coordinators (`TimelineManager`, `AgentInstanceManager`, `ToolRouter`,
+    /// `ChatEngine`) from it. Builder methods (`reconfigured`, `addingStage`, `addingPlugin`)
+    /// extract the current dependencies, mutate the single field that changes, and forward
+    /// here — eliminating the repeated ~25-line parameter forwarding (PKCR-009).
+    init(dependencies: KitDependencies) {
+        languageModel = dependencies.languageModel
+        messageStore = dependencies.messageStore
+        agentInstanceStore = dependencies.agentInstanceStore
+        requestOriginStore = dependencies.requestOriginStore
+        timelinePersistence = dependencies.timelinePersistence
+        workspacePersistence = dependencies.workspacePersistence
+        memoryStore = dependencies.memoryStore
+        toolPersistence = dependencies.toolPersistence
+        embeddingService = dependencies.embeddingService
+        chatTurnPlugins = dependencies.chatTurnPlugins
+        promptObserver = dependencies.promptObserver
+        diagnosticSnapshotConfiguration = dependencies.diagnosticSnapshotConfiguration
+        degradationPolicy = dependencies.degradationPolicy
+        promptHistoryRegistry = dependencies.sharedRegistry
+        workspaceProfile = dependencies.workspaceProfile
+        workspaceCreator = dependencies.workspaceCreator
+        sectionProviders = dependencies.sectionProviders
+        runtimeToolPolicy = dependencies.runtimeToolPolicy
+        toolApprovalPolicy = dependencies.toolApprovalPolicy
+        loggingConfiguration = dependencies.loggingConfiguration
+        defaultGenerationParameters = dependencies.generationParameters
 
         // The catalog root anchors agent-private workspace provisioning (a separate, opt-in
         // path from timeline workspaces). For `.noWorkspace` there is no profile root, so fall
         // back to a process-temporary path so the catalog still has somewhere to anchor if a
         // host later creates agent workspaces. Timeline creation itself is unaffected: `.noWorkspace`
         // provisions no timeline directory regardless of this value.
-        let resolvedCatalogRoot = workspaceProfile.catalogRoot
+        let resolvedCatalogRoot = dependencies.workspaceProfile.catalogRoot
             ?? FileManager.default.temporaryDirectory
                 .appendingPathComponent("positronickit-workspaces", isDirectory: true)
         // The facade is the only place a TimelineManager gets built: every store it wraps
@@ -179,10 +212,10 @@ public final class PositronicKit: Sendable {
                 toolPersistence: self.toolPersistence,
                 memoryStore: self.memoryStore
             ),
-            workspaceProfile: workspaceProfile,
-            workspaceCreator: workspaceCreator,
-            sectionProviders: sectionProviders,
-            runtimeToolPolicy: runtimeToolPolicy,
+            workspaceProfile: dependencies.workspaceProfile,
+            workspaceCreator: dependencies.workspaceCreator,
+            sectionProviders: dependencies.sectionProviders,
+            runtimeToolPolicy: dependencies.runtimeToolPolicy,
             embeddingService: self.embeddingService,
             promptHistoryRegistry: promptHistoryRegistry
         )
@@ -203,8 +236,8 @@ public final class PositronicKit: Sendable {
         toolRouter = ToolRouter(
             timelineManager: resolvedTimelineManager,
             messageStore: self.messageStore,
-            approvalPolicy: toolApprovalPolicy,
-            loggingConfiguration: loggingConfiguration
+            approvalPolicy: dependencies.toolApprovalPolicy,
+            loggingConfiguration: dependencies.loggingConfiguration
         )
         var engine = ChatEngine(
             dependencies: .init(
@@ -216,27 +249,21 @@ public final class PositronicKit: Sendable {
                 toolRouter: toolRouter,
                 chatTurnPlugins: self.chatTurnPlugins,
                 promptObserver: self.promptObserver,
-                diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
-                loggingConfiguration: loggingConfiguration,
-                degradationPolicy: degradationPolicy,
+                diagnosticSnapshotConfiguration: dependencies.diagnosticSnapshotConfiguration,
+                loggingConfiguration: dependencies.loggingConfiguration,
+                degradationPolicy: dependencies.degradationPolicy,
                 promptHistoryRegistry: promptHistoryRegistry
             )
         )
-        engine.additionalStages = additionalStages
+        engine.additionalStages = dependencies.additionalStages
         chatEngine = engine
     }
 
-    /// Returns a new facade with updated provider/generation configuration while preserving the
-    /// current instance's runtime-owned cross-send state (prompt-history journal diffs and
-    /// inspection turn indexing), stores, tools, plugins, and workspace wiring.
-    ///
-    /// This is the supported path for hosts that must refresh provider settings between sends
-    /// without silently resetting per-timeline prompt-history state.
-    public func reconfigured(
-        languageModel: any LanguageModel,
-        generationParameters: GenerationParameters? = nil
-    ) -> PositronicKit {
-        PositronicKit(
+    /// Snapshots the facade's current resolved dependencies into a ``KitDependencies`` value
+    /// so builder methods can copy, mutate a single field, and forward to
+    /// ``init(dependencies:)`` without repeating the full parameter list.
+    var dependencies: KitDependencies {
+        KitDependencies(
             languageModel: languageModel,
             messageStore: messageStore,
             agentInstanceStore: agentInstanceStore,
@@ -254,12 +281,28 @@ public final class PositronicKit: Sendable {
             promptObserver: promptObserver,
             diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
             degradationPolicy: degradationPolicy,
-            generationParameters: generationParameters ?? defaultGenerationParameters,
+            generationParameters: defaultGenerationParameters,
             toolApprovalPolicy: toolApprovalPolicy,
             loggingConfiguration: loggingConfiguration,
             sharedRegistry: promptHistoryRegistry,
             additionalStages: chatEngine.additionalStages
         )
+    }
+
+    /// Returns a new facade with updated provider/generation configuration while preserving the
+    /// current instance's runtime-owned cross-send state (prompt-history journal diffs and
+    /// inspection turn indexing), stores, tools, plugins, and workspace wiring.
+    ///
+    /// This is the supported path for hosts that must refresh provider settings between sends
+    /// without silently resetting per-timeline prompt-history state.
+    public func reconfigured(
+        languageModel: any LanguageModel,
+        generationParameters: GenerationParameters? = nil
+    ) -> PositronicKit {
+        var deps = dependencies
+        deps.languageModel = languageModel
+        deps.generationParameters = generationParameters ?? defaultGenerationParameters
+        return PositronicKit(dependencies: deps)
     }
 
     // MARK: - Builder
@@ -272,58 +315,18 @@ public final class PositronicKit: Sendable {
     /// facade plus higher-level hooks such as `ChatTurnPlugin` and `PromptSectionProviding`, not
     /// the concrete runtime pipeline topology.
     func addingStage(_ stage: any PipelineStage<ChatTurnContext, ChatEvent>) -> PositronicKit {
-        PositronicKit(
-            languageModel: languageModel,
-            messageStore: messageStore,
-            agentInstanceStore: agentInstanceStore,
-            requestOriginStore: requestOriginStore,
-            timelinePersistence: timelinePersistence,
-            workspacePersistence: workspacePersistence,
-            memoryStore: memoryStore,
-            toolPersistence: toolPersistence,
-            embeddingService: embeddingService,
-            workspaceProfile: workspaceProfile,
-            workspaceCreator: workspaceCreator,
-            sectionProviders: sectionProviders,
-            runtimeToolPolicy: runtimeToolPolicy,
-            chatTurnPlugins: chatTurnPlugins,
-            promptObserver: promptObserver,
-            diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
-            generationParameters: defaultGenerationParameters,
-            toolApprovalPolicy: toolApprovalPolicy,
-            loggingConfiguration: loggingConfiguration,
-            sharedRegistry: promptHistoryRegistry,
-            additionalStages: chatEngine.additionalStages + [stage]
-        )
+        var deps = dependencies
+        deps.additionalStages += [stage]
+        return PositronicKit(dependencies: deps)
     }
 
     /// Adds a chat turn plugin that runs after each LLM turn.
     /// - Parameter plugin: The plugin to add.
     /// - Returns: A new instance with the plugin added.
     public func addingPlugin(_ plugin: any ChatTurnPlugin) -> PositronicKit {
-        PositronicKit(
-            languageModel: languageModel,
-            messageStore: messageStore,
-            agentInstanceStore: agentInstanceStore,
-            requestOriginStore: requestOriginStore,
-            timelinePersistence: timelinePersistence,
-            workspacePersistence: workspacePersistence,
-            memoryStore: memoryStore,
-            toolPersistence: toolPersistence,
-            embeddingService: embeddingService,
-            workspaceProfile: workspaceProfile,
-            workspaceCreator: workspaceCreator,
-            sectionProviders: sectionProviders,
-            runtimeToolPolicy: runtimeToolPolicy,
-            chatTurnPlugins: chatTurnPlugins + [plugin],
-            promptObserver: promptObserver,
-            diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
-            generationParameters: defaultGenerationParameters,
-            toolApprovalPolicy: toolApprovalPolicy,
-            loggingConfiguration: loggingConfiguration,
-            sharedRegistry: promptHistoryRegistry,
-            additionalStages: chatEngine.additionalStages
-        )
+        var deps = dependencies
+        deps.chatTurnPlugins += [plugin]
+        return PositronicKit(dependencies: deps)
     }
 
     // MARK: - Execution

@@ -23,7 +23,6 @@ struct RuntimeToolPolicyFactoryTests {
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
             for: timeline,
             jailRoot: "/tmp/test",
-            toolContextTimeline: ToolTimelineContext(),
             runtimeToolPolicy: .default,
             timelineStore: timelineStore,
             messageStore: messageStore
@@ -53,7 +52,6 @@ struct RuntimeToolPolicyFactoryTests {
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
             for: timeline,
             jailRoot: "/tmp/test",
-            toolContextTimeline: ToolTimelineContext(),
             runtimeToolPolicy: .default,
             timelineStore: timelineStore,
             messageStore: messageStore
@@ -70,7 +68,6 @@ struct RuntimeToolPolicyFactoryTests {
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
             for: timeline,
             jailRoot: "/tmp/test",
-            toolContextTimeline: ToolTimelineContext(),
             runtimeToolPolicy: .default, // installTimelineSendTool = true
             timelineStore: timelineStore,
             messageStore: messageStore
@@ -90,7 +87,6 @@ struct RuntimeToolPolicyFactoryTests {
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
             for: timeline,
             jailRoot: "/tmp/test",
-            toolContextTimeline: ToolTimelineContext(),
             runtimeToolPolicy: .init(
                 installFilesystemTools: false,
                 installTimelineObservationTools: true,
@@ -114,7 +110,6 @@ struct RuntimeToolPolicyFactoryTests {
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
             for: timeline,
             jailRoot: "/tmp/test",
-            toolContextTimeline: ToolTimelineContext(),
             runtimeToolPolicy: .denyAll,
             timelineStore: timelineStore,
             messageStore: messageStore
@@ -134,7 +129,6 @@ struct RuntimeToolPolicyFactoryTests {
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
             for: timeline,
             jailRoot: "/tmp/test",
-            toolContextTimeline: ToolTimelineContext(),
             runtimeToolPolicy: .init(
                 installFilesystemTools: true,
                 installTimelineObservationTools: false,
@@ -159,19 +153,15 @@ struct RuntimeToolPolicyFactoryTests {
     func toolContextPropagated() async {
         let (timelineStore, messageStore) = makeStores()
         let timeline = Timeline(workingDirectory: "/tmp/test")
-        let toolContext = ToolTimelineContext()
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
             for: timeline,
             jailRoot: "/tmp/test",
-            toolContextTimeline: toolContext,
             runtimeToolPolicy: .denyAll,
             timelineStore: timelineStore,
             messageStore: messageStore
         )
 
-        // `TimelineToolRegistry.timelineContext` is a public `let`.
-        let ctx = await toolManager.timelineContext
-        #expect(ctx != nil)
-        #expect(ctx === toolContext)
+        let ids = await toolIds(for: toolManager)
+        #expect(ids.isEmpty)
     }
 }

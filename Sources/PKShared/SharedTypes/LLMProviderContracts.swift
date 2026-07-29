@@ -360,6 +360,42 @@ public extension LLMClientProtocol {
     func fetchAvailableModels() async throws -> [String]? {
         nil
     }
+
+    /// Sends a single user message and returns the full accumulated text response.
+    ///
+    /// Providers that need custom retry wrapping (OpenAI, OpenRouter, Anthropic, Ollama)
+    /// override this with their own `sendMessage`; providers without retry needs
+    /// (FoundationModelsClient) rely on this default.
+    func sendMessage(
+        _ content: String,
+        responseFormat: LLMResponseFormat? = nil,
+        generationParameters: GenerationParameters? = nil
+    ) async throws -> String {
+        let stream = await chatStream(
+            messages: [LLMMessage(role: .user, content: content)],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters
+        )
+        return try await accumulateStreamContent(from: stream)
+    }
+}
+
+/// Accumulates text content from a stream of `LLMStreamChunk`s into a single string.
+///
+/// Extracted from the duplicated `fullContent += delta` loop that appeared in every
+/// provider's `sendMessage` and in `LLMStreamClient.sendStructuredMessage`.
+public func accumulateStreamContent(
+    from stream: AsyncThrowingStream<LLMStreamChunk, Error>
+) async throws -> String {
+    var fullContent = ""
+    for try await chunk in stream {
+        if let delta = chunk.choices.first?.delta.content {
+            fullContent += delta
+        }
+    }
+    return fullContent
 }
 
 public func makeEmptyObjectSchema() -> Schema {

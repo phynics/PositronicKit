@@ -18,13 +18,9 @@ public extension LLMStreamClient {
         )
 
         let provider = await configuration.activeProvider
-        var content = ""
+        let content: String
         do {
-            for try await result in stream {
-                if let delta = result.choices.first?.delta.content {
-                    content += delta
-                }
-            }
+            content = try await accumulateStreamContent(from: stream)
         } catch {
             throw wrapForeignError(error)
         }

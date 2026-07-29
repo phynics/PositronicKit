@@ -1,4 +1,3 @@
-import ErrorKit
 import Foundation
 import Logging
 import PKPrompt

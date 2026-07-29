@@ -6,7 +6,7 @@ public enum PKOpenAIProvider {
         StructuredOutputAdapterRegistry.register(
             configuration.activeProvider == .openAI
                 ? NativeJSONSchemaStructuredOutputAdapter()
-                : OpenAICompatibleStructuredOutputAdapter(),
+                : PromptAugmentedJSONSchemaAdapter(),
             for: configuration.activeProvider
         )
 

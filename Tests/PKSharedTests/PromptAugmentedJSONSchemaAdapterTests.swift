@@ -1,18 +1,16 @@
 import Foundation
 import struct JSONSchema.Schema
-@testable import PKOpenAIProvider
-import PKShared
-import PKUtilities
+@testable import PKShared
 import Testing
 
-/// Direct coverage for `OpenAICompatibleStructuredOutputAdapter`.
+/// Direct coverage for `PromptAugmentedJSONSchemaAdapter`.
 ///
-/// This adapter prepares structured-output requests for generic OpenAI-compatible endpoints
-/// (LM Studio, vLLM, llama.cpp, etc.). It was previously tested only from the
-/// `PositronicKitTests` target, which doesn't contribute coverage to the `PKOpenAIProvider`
-/// module. These tests drive both the `.jsonObject` and `.jsonSchema` branches directly.
-@Suite("OpenAI-compatible structured output adapter")
-struct OpenAICompatibleStructuredOutputAdapterTests {
+/// This adapter prepares structured-output requests by augmenting the final user message
+/// with the schema text and emitting a `json_schema` response format. It is used by
+/// OpenAI-compatible and Ollama providers. Tests drive both the `.jsonObject` and
+/// `.jsonSchema` branches directly.
+@Suite("Prompt-augmented JSON schema structured output adapter")
+struct PromptAugmentedJSONSchemaAdapterTests {
 
     private let baseMessages: [LLMMessage] = [
         LLMMessage(role: .system, content: "You are helpful."),
@@ -35,7 +33,7 @@ struct OpenAICompatibleStructuredOutputAdapterTests {
 
     @Test("jsonObject request sets responseFormat to jsonObject and leaves messages untouched")
     func jsonObjectRequest() {
-        let adapter = OpenAICompatibleStructuredOutputAdapter()
+        let adapter = PromptAugmentedJSONSchemaAdapter()
         let prepared = adapter.prepareRequest(
             messages: baseMessages,
             tools: baseTools,
@@ -52,7 +50,7 @@ struct OpenAICompatibleStructuredOutputAdapterTests {
 
     @Test("jsonObject request works with nil tools")
     func jsonObjectRequestNilTools() {
-        let adapter = OpenAICompatibleStructuredOutputAdapter()
+        let adapter = PromptAugmentedJSONSchemaAdapter()
         let prepared = adapter.prepareRequest(
             messages: baseMessages,
             tools: nil,
@@ -65,7 +63,7 @@ struct OpenAICompatibleStructuredOutputAdapterTests {
 
     @Test("jsonSchema request augments the prompt and sets responseFormat to jsonSchema")
     func jsonSchemaRequest() throws {
-        let adapter = OpenAICompatibleStructuredOutputAdapter()
+        let adapter = PromptAugmentedJSONSchemaAdapter()
         let schema = try makeSchema()
 
         let prepared = adapter.prepareRequest(
@@ -74,16 +72,13 @@ struct OpenAICompatibleStructuredOutputAdapterTests {
             output: .jsonSchema(schema)
         )
 
-        // The prompt augmentation should be appended to the last user message.
         #expect(prepared.messages.last?.content.contains("tag_result") == true)
         #expect(prepared.promptAugmentation?.contains("JSON Schema") == true)
 
-        // Tools are passed through unchanged.
         #expect(prepared.tools?.count == 1)
         #expect(prepared.toolChoice == nil)
         #expect(prepared.syntheticToolName == nil)
 
-        // The response format should carry the schema.
         guard case let .jsonSchema(responseSchema)? = prepared.responseFormat else {
             Issue.record("Expected .jsonSchema response format"); return
         }
@@ -94,7 +89,7 @@ struct OpenAICompatibleStructuredOutputAdapterTests {
 
     @Test("jsonSchema request works with nil tools")
     func jsonSchemaRequestNilTools() throws {
-        let adapter = OpenAICompatibleStructuredOutputAdapter()
+        let adapter = PromptAugmentedJSONSchemaAdapter()
         let schema = try makeSchema()
 
         let prepared = adapter.prepareRequest(
@@ -110,7 +105,7 @@ struct OpenAICompatibleStructuredOutputAdapterTests {
 
     @Test("jsonSchema request with no description still augments the prompt")
     func jsonSchemaRequestNoDescription() throws {
-        let adapter = OpenAICompatibleStructuredOutputAdapter()
+        let adapter = PromptAugmentedJSONSchemaAdapter()
         let schema = try Schema(instance: #"{"type":"object","properties":{"x":{"type":"number"}},"required":["x"]}"#)
         let outputSchema = StructuredOutputSchema(
             name: "numbers",

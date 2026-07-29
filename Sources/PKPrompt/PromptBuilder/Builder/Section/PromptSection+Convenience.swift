@@ -1,6 +1,4 @@
 import Foundation
-import PKShared
-import PKUtilities
 
 package extension PromptSection {
     /// Returns a constrained copy that never renders beyond the supplied token limit.

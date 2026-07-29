@@ -26,7 +26,6 @@ struct TimelineSendToolTests {
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
             for: source,
             jailRoot: workspaceRoot.path,
-            toolContextTimeline: ToolTimelineContext(),
             runtimeToolPolicy: .default,
             timelineStore: timelineStore,
             messageStore: messageStore

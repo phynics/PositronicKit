@@ -5,7 +5,6 @@ import Foundation
 import Logging
 import PKShared
 import PKUtilities
-import Synchronization
 
 /// Native Anthropic Messages API client (`POST /v1/messages`).
 ///
@@ -92,17 +91,15 @@ public actor AnthropicClient: LLMClientProtocol {
         let logger = self.logger
 
         return CancellableAsyncThrowingStream.make(of: LLMStreamChunk.self) { continuation in
-            // Duplicate-content retry gate (PKR-5): once anything has been yielded to the
-            // consumer, a transient transport error must NOT trigger a retry, or the caller
-            // would observe duplicated content.
-            let hasYielded = Mutex(false)
+            // Duplicate-content retry gate (PKR-5/PKCR-005): once anything has been yielded
+            // to the consumer, a transient transport error must NOT trigger a retry, or the
+            // caller would observe duplicated content.
+            let gate = DuplicateContentRetryGate()
 
             do {
                 try await RetryPolicy.retry(
                     maxRetries: maxRetries,
-                    shouldRetry: { error in
-                        hasYielded.withLock { !$0 } && RetryPolicy.isTransient(error: error)
-                    },
+                    shouldRetry: { gate.shouldRetry(error: $0) },
                     operation: {
                         let request = try self.buildChatRequest(
                             messages: messages,
@@ -113,7 +110,7 @@ public actor AnthropicClient: LLMClientProtocol {
                         )
                         try await self.streamResponse(
                             request: request,
-                            hasYielded: hasYielded,
+                            gate: gate,
                             logger: logger,
                             continuation: continuation
                         )
@@ -129,24 +126,19 @@ public actor AnthropicClient: LLMClientProtocol {
 
     private func streamResponse(
         request: URLRequest,
-        hasYielded: borrowing Mutex<Bool>,
+        gate: DuplicateContentRetryGate,
         logger: Logger,
         continuation: AsyncThrowingStream<LLMStreamChunk, Error>.Continuation
     ) async throws {
         let (stream, response) = try await transport.lines(for: request)
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw LLMServiceError.networkError("Invalid response type from Anthropic")
-        }
-
-        guard (200 ... 299).contains(httpResponse.statusCode) else {
+        let httpResponse = try HTTPHelpers.ensureHTTPResponse(response, provider: "Anthropic")
+        if !(200 ... 299).contains(httpResponse.statusCode) {
             let errorBody = try await LimitedErrorBodyCollector.collect(from: stream)
-            // Never log the raw error body — it is sanitized before being embedded in the
-            // thrown error, which is the only place it surfaces (PKR-11).
-            throw ProviderHTTPFailure.makeError(
+            try HTTPHelpers.ensureSuccessStatus(
+                httpResponse,
                 provider: "Anthropic",
-                response: httpResponse,
-                responseBody: errorBody
+                body: Data(errorBody.utf8)
             )
         }
 
@@ -156,7 +148,7 @@ public actor AnthropicClient: LLMClientProtocol {
             try processSSELine(
                 line,
                 state: &state,
-                hasYielded: hasYielded,
+                gate: gate,
                 logger: logger,
                 continuation: continuation
             )
@@ -166,15 +158,12 @@ public actor AnthropicClient: LLMClientProtocol {
     private nonisolated func processSSELine(
         _ line: String,
         state: inout AnthropicStreamState,
-        hasYielded: borrowing Mutex<Bool>,
+        gate: DuplicateContentRetryGate,
         logger: Logger,
         continuation: AsyncThrowingStream<LLMStreamChunk, Error>.Continuation
     ) throws {
-        let trimmed = line.trimmingCharacters(in: .whitespaces)
-        // The `event:` line duplicates the payload's `type` field; only `data:` lines carry JSON.
-        guard !trimmed.isEmpty, trimmed.hasPrefix("data: ") else { return }
-        let dataString = String(trimmed.dropFirst(6))
-        guard let data = dataString.data(using: .utf8) else { return }
+        guard let data = HTTPHelpers.extractSSEData(from: line) else { return }
+        let dataString = String(decoding: data, as: UTF8.self)
 
         let event: AnthropicStreamEvent
         do {
@@ -195,18 +184,8 @@ public actor AnthropicClient: LLMClientProtocol {
         }
 
         guard let chunk = state.consume(event) else { return }
-        markYieldedIfNeeded(chunk, hasYielded: hasYielded)
+        gate.markYieldedIfNeeded(chunk)
         continuation.yield(chunk)
-    }
-
-    private nonisolated func markYieldedIfNeeded(
-        _ chunk: LLMStreamChunk,
-        hasYielded: borrowing Mutex<Bool>
-    ) {
-        let delta = chunk.choices.first?.delta
-        if delta?.content?.isEmpty == false || delta?.reasoning?.isEmpty == false || delta?.toolCalls != nil {
-            hasYielded.withLock { $0 = true }
-        }
     }
 
     // MARK: - Request building
@@ -279,7 +258,6 @@ public actor AnthropicClient: LLMClientProtocol {
     ) async throws -> String {
         let maxRetries = self.maxRetries
         return try await RetryPolicy.retry(maxRetries: maxRetries) {
-            var fullContent = ""
             let stream = await self.chatStream(
                 messages: [LLMMessage(role: .user, content: content)],
                 tools: nil,
@@ -287,10 +265,7 @@ public actor AnthropicClient: LLMClientProtocol {
                 responseFormat: responseFormat,
                 generationParameters: generationParameters
             )
-            for try await chunk in stream {
-                if let delta = chunk.choices.first?.delta.content { fullContent += delta }
-            }
-            return fullContent
+            return try await accumulateStreamContent(from: stream)
         }
     }
 
@@ -303,127 +278,10 @@ public actor AnthropicClient: LLMClientProtocol {
             request.setValue(self.apiKey, forHTTPHeaderField: "x-api-key")
             request.setValue(Self.apiVersion, forHTTPHeaderField: "anthropic-version")
             let (data, response) = try await self.transport.data(for: request)
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw LLMServiceError.networkError("Invalid response type from Anthropic models API")
-            }
-            guard (200 ... 299).contains(httpResponse.statusCode) else {
-                throw ProviderHTTPFailure.makeError(
-                    provider: "Anthropic",
-                    response: httpResponse,
-                    responseBody: ProviderHTTPFailure.sanitize(String(data: data, encoding: .utf8) ?? "")
-                )
-            }
+            let httpResponse = try HTTPHelpers.ensureHTTPResponse(response, provider: "Anthropic models API")
+            try HTTPHelpers.ensureSuccessStatus(httpResponse, provider: "Anthropic", body: data)
             let modelsResponse = try JSONDecoder().decode(AnthropicModelsResponse.self, from: data)
             return modelsResponse.data.map { $0.id }.sorted()
         }
-    }
-}
-
-// MARK: - Stream state
-
-/// Accumulates cross-event state while mapping the Anthropic event stream to `LLMStreamChunk`s.
-///
-/// Tool-use inputs stream as `input_json_delta.partial_json` fragments scoped to a content
-/// block `index`; this state assigns each tool_use block an ordinal (the `LLMToolCallDelta.index`)
-/// so downstream accumulation reassembles arguments exactly like the OpenAI-family adapters.
-struct AnthropicStreamState {
-    let fallbackModel: String
-    private(set) var messageID = ""
-    private(set) var model: String
-    private var inputTokens: Int?
-    private var cachedTokens: Int?
-    private var toolOrdinalByBlockIndex: [Int: Int] = [:]
-    private var nextToolOrdinal = 0
-
-    init(fallbackModel: String) {
-        self.fallbackModel = fallbackModel
-        model = fallbackModel
-    }
-
-    mutating func consume(_ event: AnthropicStreamEvent) -> LLMStreamChunk? {
-        switch event.type {
-        case "message_start":
-            if let message = event.message {
-                messageID = message.id
-                model = message.model
-                inputTokens = message.usage?.inputTokens
-                cachedTokens = message.usage?.cacheReadInputTokens
-            }
-            return nil
-
-        case "content_block_start":
-            guard let block = event.contentBlock, block.type == "tool_use",
-                  let blockIndex = event.index
-            else { return nil }
-            let ordinal = nextToolOrdinal
-            nextToolOrdinal += 1
-            toolOrdinalByBlockIndex[blockIndex] = ordinal
-            return makeChunk(delta: LLMStreamDelta(
-                role: .assistant,
-                toolCalls: [LLMToolCallDelta(
-                    index: ordinal,
-                    id: block.id,
-                    function: LLMToolCallDeltaFunction(name: block.name, arguments: "")
-                )]
-            ))
-
-        case "content_block_delta":
-            guard let delta = event.delta else { return nil }
-            switch delta.type {
-            case "text_delta":
-                guard let text = delta.text, !text.isEmpty else { return nil }
-                return makeChunk(delta: LLMStreamDelta(role: .assistant, content: text))
-            case "thinking_delta":
-                guard let thinking = delta.thinking, !thinking.isEmpty else { return nil }
-                return makeChunk(delta: LLMStreamDelta(role: .assistant, reasoning: thinking))
-            case "input_json_delta":
-                guard let partial = delta.partialJson, !partial.isEmpty,
-                      let blockIndex = event.index,
-                      let ordinal = toolOrdinalByBlockIndex[blockIndex]
-                else { return nil }
-                return makeChunk(delta: LLMStreamDelta(
-                    role: .assistant,
-                    toolCalls: [LLMToolCallDelta(
-                        index: ordinal,
-                        function: LLMToolCallDeltaFunction(arguments: partial)
-                    )]
-                ))
-            default:
-                // signature_delta and future delta kinds carry nothing we map.
-                return nil
-            }
-
-        case "message_delta":
-            let stopReason = event.delta?.stopReason.map(mapAnthropicStopReason) ?? .stop
-            let outputTokens = event.usage?.outputTokens
-            let usage = LLMTokenUsage(
-                promptTokens: inputTokens,
-                completionTokens: outputTokens,
-                totalTokens: (inputTokens ?? 0) + (outputTokens ?? 0),
-                promptTokensDetails: cachedTokens.map { .init(cachedTokens: $0) }
-            )
-            return makeChunk(
-                delta: LLMStreamDelta(role: .assistant),
-                finishReason: stopReason.wireValue,
-                usage: usage
-            )
-
-        default:
-            // content_block_stop, message_stop, ping: nothing to map.
-            return nil
-        }
-    }
-
-    private func makeChunk(
-        delta: LLMStreamDelta,
-        finishReason: String? = nil,
-        usage: LLMTokenUsage? = nil
-    ) -> LLMStreamChunk {
-        LLMStreamChunk(
-            id: messageID.isEmpty ? UUID().uuidString : messageID,
-            model: model,
-            choices: [LLMStreamChoice(index: 0, delta: delta, finishReason: finishReason)],
-            usage: usage
-        )
     }
 }

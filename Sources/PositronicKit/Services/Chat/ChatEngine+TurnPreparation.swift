@@ -57,7 +57,7 @@ extension ChatEngine {
 
         // 1. Idempotency — mark the sendId as in-progress. A duplicate sendId is rejected
         //    before any validation or persistence runs.
-        guard await turnIdempotencyGate.checkAndMark(sendId: sendId) else {
+        guard await TurnIdempotencyGate.shared.checkAndMark(sendId: sendId) else {
             throw ChatEngineError.duplicateSendId(sendId)
         }
 
@@ -70,7 +70,7 @@ extension ChatEngine {
 
             // 3. Validate tool output submissions and reserve pending call IDs — no persistence.
             //    Already-persisted outputs are skipped (resumable batch support).
-            validatedToolOutputs = try await externalToolOutputSubmissionGate.validate(
+            validatedToolOutputs = try await ExternalToolOutputSubmissionGate.shared.validate(
                 toolOutputs ?? [],
                 timelineId: timelineId,
                 messageStore: dependencies.messageStore
@@ -191,7 +191,7 @@ extension ChatEngine {
             //     Tool outputs are committed first (resumable batch), then the user message.
             //     If either fails, the sendId is released so the caller can retry; the
             //     resumable batch ensures already-persisted tool outputs are not duplicated.
-            try await externalToolOutputSubmissionGate.commit(
+            try await ExternalToolOutputSubmissionGate.shared.commit(
                 validatedToolOutputs,
                 timelineId: timelineId,
                 messageStore: dependencies.messageStore
@@ -295,9 +295,9 @@ extension ChatEngine {
             )
         } catch {
             // Release the idempotency marker so the caller can retry with the same sendId.
-            await turnIdempotencyGate.release(sendId: sendId)
+            await TurnIdempotencyGate.shared.release(sendId: sendId)
             // Release any tool-output reservations made during validation.
-            await externalToolOutputSubmissionGate.releaseReservations(
+            await ExternalToolOutputSubmissionGate.shared.releaseReservations(
                 timelineId: timelineId,
                 toolCallIds: validatedToolOutputs.map(\.toolCallId)
             )
@@ -413,143 +413,4 @@ private extension ChatEngine {
             throw ChatEngineError.danglingToolCall(id: pendingToolCallIds.min() ?? "<unknown>")
         }
     }
-}
-
-// MARK: - Turn Idempotency Gate
-
-private let turnIdempotencyGate = TurnIdempotencyGate()
-
-private actor TurnIdempotencyGate {
-    private var processedSendIds: Set<UUID> = []
-
-    /// Marks `sendId` as in-progress. Returns `true` if newly marked, `false` if already
-    /// processed or in progress.
-    func checkAndMark(sendId: UUID) -> Bool {
-        guard !processedSendIds.contains(sendId) else { return false }
-        processedSendIds.insert(sendId)
-        return true
-    }
-
-    /// Releases the idempotency marker so the caller can retry with the same `sendId`.
-    func release(sendId: UUID) {
-        processedSendIds.remove(sendId)
-    }
-}
-
-// MARK: - External Tool Output Submission Gate
-
-private let externalToolOutputSubmissionGate = ExternalToolOutputSubmissionGate()
-
-private actor ExternalToolOutputSubmissionGate {
-    private var reservedToolOutputs: Set<ReservedToolOutput> = []
-
-    /// Validates that each tool output matches a pending assistant tool call and reserves the
-    /// call ID — **without persisting**. Already-persisted outputs are skipped so a partially
-    /// failed batch can be safely retried (resumable batch support).
-    ///
-    /// - Returns: The subset of `toolOutputs` that are validated and still need persistence.
-    func validate(
-        _ toolOutputs: [ToolOutputSubmission],
-        timelineId: UUID,
-        messageStore: any MessageStoreProtocol
-    ) async throws -> [ToolOutputSubmission] {
-        guard !toolOutputs.isEmpty else { return [] }
-
-        let existingMessages = try await messageStore.fetchMessages(for: timelineId)
-        var pendingToolCallIds = Set<String>()
-
-        // Only the latest uninterrupted assistant tool-call set is externally resumable.
-        for message in existingMessages.sorted(by: { $0.timestamp < $1.timestamp }) {
-            switch message.messageRole {
-            case .assistant:
-                pendingToolCallIds = Set(Self.decodeToolCalls(from: message.toolCalls).map(\.id))
-            case .tool:
-                if let toolCallId = message.toolCallId {
-                    pendingToolCallIds.remove(toolCallId)
-                }
-            case .user, .system, .summary:
-                pendingToolCallIds.removeAll()
-            }
-        }
-
-        // Remove call IDs already reserved by concurrent submissions.
-        for reservation in reservedToolOutputs where reservation.timelineId == timelineId {
-            pendingToolCallIds.remove(reservation.toolCallId)
-        }
-
-        // Track already-persisted tool call IDs for resumable batch support.
-        let persistedToolCallIds = Set(
-            existingMessages
-                .filter { $0.messageRole == .tool }
-                .compactMap { $0.toolCallId }
-        )
-
-        var validated: [ToolOutputSubmission] = []
-        for output in toolOutputs {
-            // Skip outputs already persisted by a previous (partial) batch.
-            if persistedToolCallIds.contains(output.toolCallId) {
-                continue
-            }
-            guard pendingToolCallIds.remove(output.toolCallId) != nil else {
-                throw ToolError.unmatchedToolOutput(output.toolCallId)
-            }
-            let reservation = ReservedToolOutput(timelineId: timelineId, toolCallId: output.toolCallId)
-            reservedToolOutputs.insert(reservation)
-            validated.append(output)
-        }
-
-        return validated
-    }
-
-    /// Persists validated tool output messages. Already-persisted outputs are skipped so a
-    /// partially failed batch can be retried without duplication (resumable batch support).
-    func commit(
-        _ validatedOutputs: [ToolOutputSubmission],
-        timelineId: UUID,
-        messageStore: any MessageStoreProtocol
-    ) async throws {
-        guard !validatedOutputs.isEmpty else { return }
-
-        // Re-check for already-persisted outputs — a prior partial batch may have persisted
-        // some messages before failing.
-        let existingMessages = try await messageStore.fetchMessages(for: timelineId)
-        let persistedToolCallIds = Set(
-            existingMessages
-                .filter { $0.messageRole == .tool }
-                .compactMap { $0.toolCallId }
-        )
-
-        for output in validatedOutputs {
-            if persistedToolCallIds.contains(output.toolCallId) { continue }
-            let msg = ConversationMessage(
-                timelineId: timelineId,
-                role: .tool,
-                content: output.output,
-                toolCallId: output.toolCallId
-            )
-            try await messageStore.saveMessage(msg)
-        }
-
-        // Release reservations for all validated outputs (persisted or already-present).
-        for output in validatedOutputs {
-            reservedToolOutputs.remove(ReservedToolOutput(timelineId: timelineId, toolCallId: output.toolCallId))
-        }
-    }
-
-    /// Releases reservations for the specified tool call IDs (on preparation failure).
-    func releaseReservations(timelineId: UUID, toolCallIds: [String]) {
-        for toolCallId in toolCallIds {
-            reservedToolOutputs.remove(ReservedToolOutput(timelineId: timelineId, toolCallId: toolCallId))
-        }
-    }
-
-    private static func decodeToolCalls(from json: String) -> [ToolCall] {
-        guard let data = json.data(using: .utf8) else { return [] }
-        return (try? SerializationUtils.jsonDecoder.decode([ToolCall].self, from: data)) ?? []
-    }
-}
-
-private struct ReservedToolOutput: Hashable {
-    let timelineId: UUID
-    let toolCallId: String
 }

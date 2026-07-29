@@ -1,9 +1,5 @@
 import Foundation
 import JSONSchemaBuilder
-@testable import PKAnthropicProvider
-@testable import PKOllamaProvider
-@testable import PKOpenAIProvider
-@testable import PKOpenRouterProvider
 import PKShared
 import Testing
 
@@ -80,7 +76,7 @@ struct StructuredOutputAdapterTests {
 
     @Test("Ollama adapter augments the prompt and still emits a JSON schema response format")
     func ollamaAdapter() {
-        let adapter = OllamaStructuredOutputAdapter()
+        let adapter = PromptAugmentedJSONSchemaAdapter()
         let schema = Self.tagSchema()
 
         let prepared = adapter.prepareRequest(
@@ -101,7 +97,7 @@ struct StructuredOutputAdapterTests {
 
     @Test("Anthropic adapter uses a forced synthetic tool")
     func anthropicAdapter() {
-        let adapter = AnthropicStructuredOutputAdapter()
+        let adapter = DefaultStructuredOutputAdapter()
         let schema = Self.tagSchema()
 
         let prepared = adapter.prepareRequest(
@@ -121,7 +117,7 @@ struct StructuredOutputAdapterTests {
 
     @Test("OpenAI-compatible adapter uses native JSON schema response format with prompt augmentation")
     func openAICompatibleAdapter() {
-        let adapter = OpenAICompatibleStructuredOutputAdapter()
+        let adapter = PromptAugmentedJSONSchemaAdapter()
         let schema = Self.tagSchema()
 
         let prepared = adapter.prepareRequest(
@@ -169,14 +165,14 @@ struct StructuredOutputAdapterTests {
     func registryLookup() {
         StructuredOutputAdapterRegistry.register(NativeJSONSchemaStructuredOutputAdapter(), for: .openAI)
         StructuredOutputAdapterRegistry.register(NativeJSONSchemaStructuredOutputAdapter(), for: .openRouter)
-        StructuredOutputAdapterRegistry.register(OllamaStructuredOutputAdapter(), for: .ollama)
-        StructuredOutputAdapterRegistry.register(AnthropicStructuredOutputAdapter(), for: .anthropic)
-        StructuredOutputAdapterRegistry.register(OpenAICompatibleStructuredOutputAdapter(), for: .openAICompatible)
+        StructuredOutputAdapterRegistry.register(PromptAugmentedJSONSchemaAdapter(), for: .ollama)
+        StructuredOutputAdapterRegistry.register(DefaultStructuredOutputAdapter(), for: .anthropic)
+        StructuredOutputAdapterRegistry.register(PromptAugmentedJSONSchemaAdapter(), for: .openAICompatible)
 
         #expect(StructuredOutputAdapterRegistry.adapter(for: .openAI) is NativeJSONSchemaStructuredOutputAdapter)
         #expect(StructuredOutputAdapterRegistry.adapter(for: .openRouter) is NativeJSONSchemaStructuredOutputAdapter)
-        #expect(StructuredOutputAdapterRegistry.adapter(for: .ollama) is OllamaStructuredOutputAdapter)
-        #expect(StructuredOutputAdapterRegistry.adapter(for: .anthropic) is AnthropicStructuredOutputAdapter)
-        #expect(StructuredOutputAdapterRegistry.adapter(for: .openAICompatible) is OpenAICompatibleStructuredOutputAdapter)
+        #expect(StructuredOutputAdapterRegistry.adapter(for: .ollama) is PromptAugmentedJSONSchemaAdapter)
+        #expect(StructuredOutputAdapterRegistry.adapter(for: .anthropic) is DefaultStructuredOutputAdapter)
+        #expect(StructuredOutputAdapterRegistry.adapter(for: .openAICompatible) is PromptAugmentedJSONSchemaAdapter)
     }
 }

@@ -1,6 +1,4 @@
 import Foundation
-import PKShared
-import PKUtilities
 
 /// Variadic structural prompt container used by ``PromptBuilder`` sibling composition.
 public struct PromptTuple<each Content: Prompt>: Prompt {

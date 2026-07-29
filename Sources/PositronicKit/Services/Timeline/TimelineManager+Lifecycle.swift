@@ -401,12 +401,9 @@ private extension TimelineManager {
         )
         turnBriefingBuilders[timeline.id] = turnBriefingBuilder
 
-        let toolContextTimeline = ToolTimelineContext()
-
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
             for: timeline,
             jailRoot: workspaceURL.path,
-            toolContextTimeline: toolContextTimeline,
             runtimeToolPolicy: runtimeToolPolicy,
             timelineStore: timelineStore,
             messageStore: messageStore

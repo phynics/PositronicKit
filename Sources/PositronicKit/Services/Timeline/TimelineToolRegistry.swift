@@ -10,9 +10,6 @@ public actor TimelineToolRegistry {
     /// available tools in the system
     public private(set) var availableTools: [AnyTool]
 
-    /// Context timeline for dynamic tool injection
-    public let timelineContext: ToolTimelineContext?
-
     /// Registered workspaces providing tools
     private var workspaces: [UUID: any Workspace] = [:]
 
@@ -31,9 +28,8 @@ public actor TimelineToolRegistry {
 
     private let logger = Logger.module(named: "timeline-tool-manager")
 
-    public init(availableTools: [AnyTool], timelineContext: ToolTimelineContext? = nil) {
+    public init(availableTools: [AnyTool]) {
         self.availableTools = availableTools
-        self.timelineContext = timelineContext
         // Enable all tools by default
         enabledTools = Set(availableTools.map { $0.callName })
     }
@@ -157,17 +153,12 @@ public actor TimelineToolRegistry {
         return false
     }
 
-    /// Get tools that are currently enabled, including context tools if a context is active
+    /// Get tools that are currently enabled
     public func getEnabledTools() async -> [AnyTool] {
         var tools = availableTools.filter { enabledTools.contains($0.callName) }
 
         // Apply workspace origin to .known system tools
         tools = tools.map { toolWithResolvedOrigin($0) }
-
-        // Include context tools if a context is active
-        if let timeline = timelineContext, await timeline.hasActiveContext {
-            tools.append(contentsOf: await timeline.getContextTools())
-        }
 
         // Include workspace custom tools with origin
         tools.append(contentsOf: workspaceTools.values.map { entry in
@@ -261,13 +252,6 @@ public actor TimelineToolRegistry {
         // First check regular system tools
         if let tool = availableTools.first(where: { $0.callName == id }) {
             return toolWithResolvedOrigin(tool)
-        }
-
-        // Then check context tools if a context is active
-        if let timeline = timelineContext, await timeline.hasActiveContext {
-            if let tool = await timeline.getContextTools().first(where: { $0.callName == id }) {
-                return tool
-            }
         }
 
         // Then check workspace tools

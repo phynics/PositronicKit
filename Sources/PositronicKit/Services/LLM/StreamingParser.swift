@@ -8,6 +8,8 @@ import PKUtilities
 /// Handles streaming responses that contain `<think>...</think>` blocks,
 /// separating reasoning from main content in real-time.
 struct StreamingParser {
+    private static let partialCodeDelimiterBufferLimit = 1000
+
     // MARK: - State
 
     private(set) var buffer = ""
@@ -106,7 +108,8 @@ struct StreamingParser {
 
     /// Returns true if buffer ends with a partial code delimiter that needs more data.
     private func holdingPartialCodeDelimiter() -> Bool {
-        buffer.count < 1000 && (buffer.hasSuffix("``") || buffer.hasSuffix("`"))
+        buffer.count < Self.partialCodeDelimiterBufferLimit
+            && (buffer.hasSuffix("``") || buffer.hasSuffix("`"))
     }
 
     /// Returns true if buffer ends with a partial <think> or </think> tag.

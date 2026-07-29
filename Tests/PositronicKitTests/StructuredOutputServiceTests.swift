@@ -1,7 +1,4 @@
 import Foundation
-@testable import PKAnthropicProvider
-@testable import PKOllamaProvider
-@testable import PKOpenAIProvider
 @testable import PKShared
 import PKTestSupport
 import PKUtilities
@@ -14,9 +11,9 @@ struct StructuredOutputServiceTests {
     private static let registeredAdapters: Void = {
         StructuredOutputAdapterRegistry.register(NativeJSONSchemaStructuredOutputAdapter(), for: .openAI)
         StructuredOutputAdapterRegistry.register(NativeJSONSchemaStructuredOutputAdapter(), for: .openRouter)
-        StructuredOutputAdapterRegistry.register(OllamaStructuredOutputAdapter(), for: .ollama)
-        StructuredOutputAdapterRegistry.register(AnthropicStructuredOutputAdapter(), for: .anthropic)
-        StructuredOutputAdapterRegistry.register(OpenAICompatibleStructuredOutputAdapter(), for: .openAICompatible)
+        StructuredOutputAdapterRegistry.register(PromptAugmentedJSONSchemaAdapter(), for: .ollama)
+        StructuredOutputAdapterRegistry.register(DefaultStructuredOutputAdapter(), for: .anthropic)
+        StructuredOutputAdapterRegistry.register(PromptAugmentedJSONSchemaAdapter(), for: .openAICompatible)
     }()
 
     init() {

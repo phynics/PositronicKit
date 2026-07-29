@@ -5,7 +5,6 @@ import Foundation
 import Logging
 import PKShared
 import PKUtilities
-import Synchronization
 
 struct OllamaTagsResponse: Codable {
     struct Model: Codable {
@@ -67,14 +66,15 @@ public actor OllamaClient: LLMClientProtocol {
         let logger = self.logger
 
         return CancellableAsyncThrowingStream.make(of: LLMStreamChunk.self) { continuation in
-            let hasYielded = Mutex(false)
+            // Duplicate-content retry gate (PKR-5/PKCR-005): once anything has been yielded
+            // to the consumer, a transient transport error must NOT trigger a retry, or the
+            // caller would observe duplicated content.
+            let gate = DuplicateContentRetryGate()
 
             do {
                 try await RetryPolicy.retry(
                     maxRetries: maxRetries,
-                    shouldRetry: { error in
-                        hasYielded.withLock { !$0 } && RetryPolicy.isTransient(error: error)
-                    },
+                    shouldRetry: { gate.shouldRetry(error: $0) },
                     operation: {
                         let request = try await self.buildRequest(
                             messages: messages,
@@ -84,7 +84,7 @@ public actor OllamaClient: LLMClientProtocol {
                         )
                         try await self.streamResponse(
                             request: request,
-                            hasYielded: hasYielded,
+                            gate: gate,
                             logger: logger,
                             continuation: continuation
                         )
@@ -103,26 +103,23 @@ public actor OllamaClient: LLMClientProtocol {
 
     private func streamResponse(
         request: URLRequest,
-        hasYielded: borrowing Mutex<Bool>,
+        gate: DuplicateContentRetryGate,
         logger: Logger,
         continuation: AsyncThrowingStream<LLMStreamChunk, Error>.Continuation
     ) async throws {
         let (stream, response) = try await transport.lines(for: request)
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw LLMServiceError.networkError("Invalid response type from Ollama")
-        }
-
-        guard (200 ... 299).contains(httpResponse.statusCode) else {
+        let httpResponse = try HTTPHelpers.ensureHTTPResponse(response, provider: "Ollama")
+        if !(200 ... 299).contains(httpResponse.statusCode) {
             let errorBody = try await collectErrorBody(from: stream)
             // Do not log the raw error body: an Ollama-compatible proxy could echo request
             // headers or other sensitive content in its error responses. `makeError` sanitizes
             // the body before it's embedded in the thrown error, which is the only place it
             // should surface (matches OpenAI/OpenRouter, which never log the raw body — PKR-11).
-            throw ProviderHTTPFailure.makeError(
+            try HTTPHelpers.ensureSuccessStatus(
+                httpResponse,
                 provider: "Ollama",
-                response: httpResponse,
-                responseBody: errorBody
+                body: Data(errorBody.utf8)
             )
         }
 
@@ -133,7 +130,7 @@ public actor OllamaClient: LLMClientProtocol {
             do {
                 let ollamaResponse = try JSONDecoder().decode(OllamaChatResponse.self, from: data)
                 if let converted = convertToChunk(ollamaResponse) {
-                    markYieldedIfNeeded(converted, hasYielded: hasYielded)
+                    gate.markYieldedIfNeeded(converted)
                     continuation.yield(converted)
                 }
             } catch {
@@ -148,18 +145,6 @@ public actor OllamaClient: LLMClientProtocol {
 
     private func collectErrorBody(from stream: AsyncThrowingStream<String, Error>) async throws -> String {
         try await LimitedErrorBodyCollector.collect(from: stream)
-    }
-
-    private nonisolated func markYieldedIfNeeded(_ result: LLMStreamChunk, hasYielded: borrowing Mutex<Bool>) {
-        if let content = result.choices.first?.delta.content, !content.isEmpty {
-            hasYielded.withLock { $0 = true }
-        }
-        if let thinking = result.choices.first?.delta.reasoning, !thinking.isEmpty {
-            hasYielded.withLock { $0 = true }
-        }
-        if result.choices.first?.delta.toolCalls != nil {
-            hasYielded.withLock { $0 = true }
-        }
     }
 
     private func buildRequest(
@@ -299,7 +284,6 @@ public actor OllamaClient: LLMClientProtocol {
     ) async throws -> String {
         let maxRetries = self.maxRetries
         return try await RetryPolicy.retry(maxRetries: maxRetries) {
-            var fullContent = ""
             let stream = await self.chatStream(
                 messages: [LLMMessage(role: .user, content: content)],
                 tools: nil,
@@ -307,10 +291,7 @@ public actor OllamaClient: LLMClientProtocol {
                 responseFormat: responseFormat,
                 generationParameters: generationParameters
             )
-            for try await result in stream {
-                if let delta = result.choices.first?.delta.content { fullContent += delta }
-            }
-            return fullContent
+            return try await accumulateStreamContent(from: stream)
         }
     }
 
@@ -325,16 +306,8 @@ public actor OllamaClient: LLMClientProtocol {
             var request = URLRequest(url: endpoint.tagsURL)
             request.timeoutInterval = self.timeoutInterval
             let (data, response) = try await self.transport.data(for: request)
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw LLMServiceError.networkError("Invalid response type from Ollama models API")
-            }
-            guard (200 ... 299).contains(httpResponse.statusCode) else {
-                throw ProviderHTTPFailure.makeError(
-                    provider: "Ollama",
-                    response: httpResponse,
-                    responseBody: ProviderHTTPFailure.sanitize(String(data: data, encoding: .utf8) ?? "")
-                )
-            }
+            let httpResponse = try HTTPHelpers.ensureHTTPResponse(response, provider: "Ollama models API")
+            try HTTPHelpers.ensureSuccessStatus(httpResponse, provider: "Ollama", body: data)
 
             let tagsResponse = try JSONDecoder().decode(OllamaTagsResponse.self, from: data)
             return tagsResponse.models.map { $0.name }
