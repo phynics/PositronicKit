@@ -215,17 +215,31 @@ public extension PositronicKit {
     /// Groups the non-store runtime knobs: workspace creation, prompt-section providers,
     /// tool policy and approval, chat-turn plugins, and prompt observation.
     struct RuntimeConfiguration: Sendable {
+        public let workspaceProfile: WorkspaceProfile
         public let workspaceCreator: any WorkspaceFactory
         public let sectionProviders: [any PromptSectionProviding]
         public let runtimeToolPolicy: TimelineManager.RuntimeToolPolicy
-        public let workspaceRoot: URL?
         public let chatTurnPlugins: [any ChatTurnPlugin]
         public let promptObserver: (any PromptObserving)?
         public let toolApprovalPolicy: any ToolApprovalPolicy
         public let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
         public let degradationPolicy: TurnDegradationPolicy
 
+        /// The workspace root this configuration resolves to, if any (PKRR-029).
+        ///
+        /// Returns `nil` for `.noWorkspace`. Preserved for backward compatibility with callers
+        /// that read the resolved root; prefer reading `workspaceProfile` directly.
+        public var workspaceRoot: URL? { workspaceProfile.catalogRoot }
+
+        /// - Parameters:
+        ///   - workspaceProfile: How the per-timeline filesystem workspace is provisioned.
+        ///     Defaults to `.noWorkspace` (no filesystem side effects). Pass `.hostManaged(root:)`
+        ///     to preserve the pre-PKRR-029 behavior of an explicit workspace root, or
+        ///     `.ephemeralWorkspace(root:)` for a self-cleaning scratch directory.
+        ///   - workspaceRoot: Legacy shorthand. When non-`nil` and `workspaceProfile` is omitted,
+        ///     maps to `.hostManaged(root: workspaceRoot, seedNotes: .default)`.
         public init(
+            workspaceProfile: WorkspaceProfile? = nil,
             workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
             sectionProviders: [any PromptSectionProviding] = [],
             runtimeToolPolicy: TimelineManager.RuntimeToolPolicy = .default,
@@ -236,10 +250,16 @@ public extension PositronicKit {
             diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
             degradationPolicy: TurnDegradationPolicy = .failRequired
         ) {
+            if let workspaceProfile {
+                self.workspaceProfile = workspaceProfile
+            } else if let workspaceRoot {
+                self.workspaceProfile = .hostManaged(root: workspaceRoot, seedNotes: .default)
+            } else {
+                self.workspaceProfile = .noWorkspace
+            }
             self.workspaceCreator = workspaceCreator
             self.sectionProviders = sectionProviders
             self.runtimeToolPolicy = runtimeToolPolicy
-            self.workspaceRoot = workspaceRoot
             self.chatTurnPlugins = chatTurnPlugins
             self.promptObserver = promptObserver
             self.toolApprovalPolicy = toolApprovalPolicy
@@ -271,7 +291,7 @@ public extension PositronicKit {
             memoryStore: configuration.persistence.memoryStore,
             toolPersistence: configuration.persistence.toolPersistence,
             embeddingService: configuration.provider.embeddingService,
-            workspaceRoot: configuration.runtime.workspaceRoot,
+            workspaceProfile: configuration.runtime.workspaceProfile,
             workspaceCreator: configuration.runtime.workspaceCreator,
             sectionProviders: configuration.runtime.sectionProviders,
             runtimeToolPolicy: configuration.runtime.runtimeToolPolicy,
