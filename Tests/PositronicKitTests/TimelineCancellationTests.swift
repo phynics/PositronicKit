@@ -187,7 +187,7 @@ struct TimelineCancellationTests {
 
     // MARK: - 4. Eviction/deletion cancels active work
 
-    @Test("deleteTimeline cancels active generation and awaits cleanup (PKRR-002)")
+    @Test("evictTimelineFromMemory cancels active generation and awaits cleanup (PKRR-002)")
     func deleteTimelineCancelsActiveWork() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString))
@@ -216,9 +216,9 @@ struct TimelineCancellationTests {
         try await Task.sleep(for: .milliseconds(150))
 
         // Delete the timeline — this must cancel and await the active task.
-        await kit.timelineManager.deleteTimeline(id: timeline.id)
+        await kit.timelineManager.evictTimelineFromMemory(id: timeline.id)
 
-        // deleteTimeline awaits bounded cleanup, so the stream should already be done.
+        // evictTimelineFromMemory awaits bounded cleanup, so the stream should already be done.
         let terminated = streamTerminated.withLock { $0 }
         let finalChunkCount = chunkCount.withLock { $0 }
         #expect(terminated, "Stream should terminate after deleteTimeline")

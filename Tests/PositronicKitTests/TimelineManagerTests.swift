@@ -38,7 +38,7 @@ struct TimelineManagerTests {
         #expect(retrieved == nil, "Session should be cleaned up")
     }
 
-    @Test("deleteTimeline(id:) evicts the prompt-history registry entry, not just the cache")
+    @Test("evictTimelineFromMemory(id:) evicts the prompt-history registry entry, not just the cache")
     func deleteTimelineEvictsPromptHistory() async throws {
         let workspace = TestWorkspace()
         let registry = TimelinePromptJournals()
@@ -54,8 +54,8 @@ struct TimelineManagerTests {
         await history.recordAppend(messageCount: 3, estimatedTokens: 90)
         #expect(await history.appendedMessageCount == 3)
 
-        // deleteTimeline is the runtime-eviction seam: cache + registry.
-        await timelineManager.deleteTimeline(id: session.id)
+        // evictTimelineFromMemory is the runtime-eviction seam: cache + registry.
+        await timelineManager.evictTimelineFromMemory(id: session.id)
 
         // Cache evicted.
         #expect(await timelineManager.timeline(id: session.id) == nil)
@@ -91,14 +91,14 @@ struct TimelineManagerTests {
         #expect(await fresh.appendedTokens == 0)
     }
 
-    @Test("deleteTimeline(id:) with no injected registry still evicts the cache")
+    @Test("evictTimelineFromMemory(id:) with no injected registry still evicts the cache")
     func deleteTimelineWithoutRegistry() async throws {
         let workspace = TestWorkspace()
         let timelineManager = TimelineManager(workspaceRoot: workspace.root)
 
         let session = try await timelineManager.createTimeline()
 
-        await timelineManager.deleteTimeline(id: session.id)
+        await timelineManager.evictTimelineFromMemory(id: session.id)
 
         #expect(await timelineManager.timeline(id: session.id) == nil)
     }

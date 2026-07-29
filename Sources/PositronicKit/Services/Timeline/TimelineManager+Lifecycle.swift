@@ -146,11 +146,122 @@ public extension TimelineManager {
         try await timelineStore.saveTimeline(timeline)
     }
 
-    /// Evicts all in-memory runtime state for a timeline. This is the runtime-eviction seam;
-    /// callers that also want to delete the persisted timeline must additionally call
-    /// `timelineStore.deleteTimeline(id:)`.
+    /// Evicts all in-memory runtime state for a timeline: the cached `Timeline`,
+    /// `TurnBriefingBuilder`, `TimelineToolRegistry`, timeline degradations, and (when a
+    /// prompt-history registry was injected) the journal-diff history entry. Does not touch
+    /// persistence.
+    ///
+    /// Active generation work is cancelled and awaited (bounded cleanup) before cache eviction
+    /// so streaming/tools/persistence/plugins cannot continue against a timeline whose
+    /// in-memory state has already been torn down.
+    ///
+    /// This is the in-memory-only eviction seam. Callers that also want to remove the
+    /// persisted timeline, messages, and workspace attachments should call
+    /// ``deleteTimelinePermanently(id:)`` instead.
+    func evictTimelineFromMemory(id: UUID) async {
+        await cancelActiveTaskAndAwait(for: id)
+        timelines.removeValue(forKey: id)
+        turnBriefingBuilders.removeValue(forKey: id)
+        toolManagers.removeValue(forKey: id)
+        timelineDegradations.removeValue(forKey: id)
+        await promptHistoryRegistry?.removeHistory(for: id)
+    }
+
+    /// Deprecated alias for ``evictTimelineFromMemory(id:)``.
+    ///
+    /// The name `deleteTimeline` suggested durable deletion, but this method only evicts
+    /// in-memory state — it neither cancels persisted records nor (before PKRR-002) guaranteed
+    /// active-work drainage. Use ``evictTimelineFromMemory(id:)`` for memory-only eviction, or
+    /// ``deleteTimelinePermanently(id:)`` to also remove persisted records.
+    @available(*, deprecated, renamed: "evictTimelineFromMemory(id:)")
     func deleteTimeline(id: UUID) async {
         await evictTimelineFromMemory(id: id)
+    }
+
+    /// Permanently deletes a timeline and all related persisted records: the timeline row, its
+    /// messages, and any attached workspace records. Active generation work is cancelled and
+    /// drained (bounded cleanup) and in-memory state is evicted before persistence is touched.
+    ///
+    /// Each store deletion is best-effort: if one store fails, the remaining stores are still
+    /// attempted and the failures are reported as `degradations` on the returned result. This
+    /// avoids leaking partial state when only some stores are reachable. The result's
+    /// `isComplete` is `true` only when every record was removed.
+    ///
+    /// - Parameter id: The timeline to delete permanently.
+    /// - Returns: A ``TimelineDeletionResult`` reporting any per-store cleanup failures.
+    @discardableResult
+    func deleteTimelinePermanently(id: UUID) async -> TimelineDeletionResult {
+        var degradations: [StoreDegradation] = []
+
+        // Capture attached workspace IDs before eviction — once the cache is dropped we can no
+        // longer read them from memory, and a store failure on fetch would otherwise strand
+        // workspace rows.
+        var attachedWorkspaceIds: [UUID] = []
+        if let cached = timelines[id] {
+            attachedWorkspaceIds = cached.attachedWorkspaceIds
+        } else {
+            do {
+                if let persisted = try await timelineStore.fetchTimeline(id: id) {
+                    attachedWorkspaceIds = persisted.attachedWorkspaceIds
+                }
+            } catch {
+                degradations.append(StoreDegradation(
+                    operation: "deleteTimelinePermanently.fetchTimeline",
+                    entityId: "timeline:\(id.uuidString.prefix(8))",
+                    error: error
+                ))
+            }
+        }
+
+        // Cancel + drain active work, then evict in-memory state. This is the same bounded
+        // cleanup `evictTimelineFromMemory(id:)` performs, ensuring no stream/tool/plugin can
+        // repopulate state or race with the persistence deletion below.
+        await evictTimelineFromMemory(id: id)
+
+        // Delete messages (best-effort).
+        do {
+            try await messageStore.deleteMessages(for: id)
+        } catch {
+            degradations.append(StoreDegradation(
+                operation: "deleteTimelinePermanently.deleteMessages",
+                entityId: "timeline:\(id.uuidString.prefix(8))",
+                error: error
+            ))
+        }
+
+        // Delete attached workspace records (best-effort, per-workspace).
+        for workspaceId in attachedWorkspaceIds {
+            do {
+                try await workspaceStore.deleteWorkspace(id: workspaceId)
+            } catch {
+                degradations.append(StoreDegradation(
+                    operation: "deleteTimelinePermanently.deleteWorkspace",
+                    entityId: "workspace:\(workspaceId.uuidString.prefix(8))",
+                    error: error
+                ))
+            }
+        }
+
+        // Delete the timeline record last, so messages and workspaces are cleaned up before
+        // the parent row disappears (mirrors `createTimeline`'s persist-first ordering).
+        do {
+            try await timelineStore.deleteTimeline(id: id)
+        } catch {
+            degradations.append(StoreDegradation(
+                operation: "deleteTimelinePermanently.deleteTimeline",
+                entityId: "timeline:\(id.uuidString.prefix(8))",
+                error: error
+            ))
+        }
+
+        if !degradations.isEmpty {
+            logger.warning("""
+            deleteTimelinePermanently: partial cleanup — timeline: \(id.uuidString.prefix(8)), \
+            failures: \(degradations.count), operations: \(degradations.map(\.operation).joined(separator: ", "))
+            """)
+        }
+
+        return TimelineDeletionResult(timelineId: id, degradations: degradations)
     }
 
     /// Removes active timelines from memory that have not been updated within the specified
@@ -171,25 +282,6 @@ public extension TimelineManager {
 // MARK: - Component Setup & Eviction
 
 private extension TimelineManager {
-    /// Evicts all in-memory runtime state for a timeline: the cached `Timeline`,
-    /// `TurnBriefingBuilder`, `TimelineToolRegistry`, and (when a prompt-history registry
-    /// was injected) the journal-diff history entry. Does not touch persistence.
-    ///
-    /// Active generation work is cancelled and awaited (bounded cleanup) before cache eviction
-    /// so streaming/tools/persistence/plugins cannot continue against a timeline whose
-    /// in-memory state has already been torn down.
-    ///
-    /// This is the in-memory-only phase shared by `deleteTimeline(id:)` and
-    /// `cleanupStaleTimelines(maxAge:)`.
-    func evictTimelineFromMemory(id: UUID) async {
-        await cancelActiveTaskAndAwait(for: id)
-        timelines.removeValue(forKey: id)
-        turnBriefingBuilders.removeValue(forKey: id)
-        toolManagers.removeValue(forKey: id)
-        timelineDegradations.removeValue(forKey: id)
-        await promptHistoryRegistry?.removeHistory(for: id)
-    }
-
     /// Initializes and configures the internal components for a conversation timeline.
     func setupTimelineComponents(
         timeline: Timeline,

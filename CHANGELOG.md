@@ -10,6 +10,21 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- **Durable timeline deletion and explicit eviction API (PKRR-023)**: `TimelineManager`
+  now distinguishes memory-only eviction from permanent deletion. The former
+  `deleteTimeline(id:)` was an in-memory eviction that did not cancel active work (before
+  PKRR-002) or touch persistence, yet its name suggested durable deletion — callers could
+  leak persisted data and active generation work. `evictTimelineFromMemory(id:)` is now the
+  canonical memory-only seam (cancels and drains active work via `TimelineTaskRegistry`
+  before removing cached state, leaves persistence untouched).
+  `deleteTimelinePermanently(id:)` cancels and drains active work, evicts memory, **and**
+  deletes the persisted timeline row, messages, and attached workspace records. Each store
+  deletion is best-effort: failures are collected as `StoreDegradation` entries on the
+  returned `TimelineDeletionResult` (with `isComplete` reflecting whether every store
+  succeeded), so a single store failure no longer strands the remaining records. The
+  legacy `deleteTimeline(id:)` is retained as a deprecated alias for
+  `evictTimelineFromMemory(id:)`.
+
 - **Docs snippet syntax gate (PKRR-027)**: `make verify` (and the new `make verify-doc-snippets`
   target) now runs `Scripts/compile-doc-snippets.sh`, which extracts every ```swift fenced block
   from `docs/` and `swiftc -parse`-checks it. This is a syntax-only guard (it catches malformed
@@ -112,6 +127,13 @@ for tagged releases beginning with `1.0.0`.
   reported `isConfigured == true` while sends failed later with `.notConfigured`.
 
 ### Deprecated
+
+- **`TimelineManager.deleteTimeline(id:)` is deprecated (PKRR-023)**: the name suggested
+  durable deletion but the method only evicts in-memory state (it neither removed persisted
+  records nor, before PKRR-002, guaranteed active-work drainage). It is retained as a
+  deprecated alias for `evictTimelineFromMemory(id:)`. Use `evictTimelineFromMemory(id:)`
+  for memory-only eviction, or `deleteTimelinePermanently(id:)` to also remove persisted
+  timeline, message, and workspace-attachment records.
 
 - **`.meta(.generationCompleted)` and `.completion(.streamCompleted)` are deprecated
   (PKRR-011)**: both cases were defined but never emitted in production (definition/docs-only

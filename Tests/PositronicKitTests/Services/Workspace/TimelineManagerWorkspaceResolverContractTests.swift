@@ -67,7 +67,7 @@ struct TimelineManagerWorkspaceResolverContractTests {
         #expect(timeline.title == "Custom Resolver Timeline")
         #expect(await manager.timeline(id: timeline.id) != nil)
 
-        await manager.deleteTimeline(id: timeline.id)
+        await manager.evictTimelineFromMemory(id: timeline.id)
         #expect(await manager.timeline(id: timeline.id) == nil)
 
         try await manager.hydrateTimeline(id: timeline.id)

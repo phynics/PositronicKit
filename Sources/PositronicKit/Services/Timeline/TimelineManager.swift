@@ -94,7 +94,7 @@ public actor TimelineManager {
     let workspaceResolver: any WorkspaceResolver
     let sectionProviders: [any PromptSectionProviding]
     let runtimeToolPolicy: RuntimeToolPolicy
-    /// Per-timeline prompt-history/journal-diff registry. When non-nil, `deleteTimeline(id:)`
+    /// Per-timeline prompt-history/journal-diff registry. When non-nil, `evictTimelineFromMemory(id:)`
     /// and `cleanupStaleTimelines(maxAge:)` evict the corresponding history entry alongside the
     /// in-memory caches, so deleted/stale timelines don't leak journal-diff state.
     let promptHistoryRegistry: TimelinePromptJournals?
@@ -490,6 +490,26 @@ public struct WorkspaceQueryResult: Sendable {
     public init(primary: WorkspaceReference?, attached: [WorkspaceReference], degradations: [StoreDegradation] = []) {
         self.primary = primary
         self.attached = attached
+        self.degradations = degradations
+    }
+}
+
+/// The result of ``TimelineManager/deleteTimelinePermanently(id:)``.
+///
+/// Permanent deletion is best-effort across multiple stores (timeline row, messages,
+/// workspace attachments). When every store succeeds, `isComplete` is `true` and
+/// `degradations` is empty. When one or more stores fail, the remaining stores are still
+/// attempted and each failure is recorded as a ``StoreDegradation`` so the caller can log,
+/// retry, or surface the partial cleanup.
+public struct TimelineDeletionResult: Sendable {
+    public let timelineId: UUID
+    public let degradations: [StoreDegradation]
+
+    /// `true` when every persisted record was removed; `false` when one or more stores failed.
+    public var isComplete: Bool { degradations.isEmpty }
+
+    public init(timelineId: UUID, degradations: [StoreDegradation] = []) {
+        self.timelineId = timelineId
         self.degradations = degradations
     }
 }
