@@ -98,6 +98,7 @@ struct ChatEngine {
         let toolRouter: ToolRouter
         let chatTurnPlugins: [any ChatTurnPlugin]
         let promptObserver: (any PromptObserving)?
+        let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
         let promptHistoryRegistry: TimelinePromptJournals
         let streamTimeout: TimeInterval
 
@@ -110,6 +111,7 @@ struct ChatEngine {
             toolRouter: ToolRouter,
             chatTurnPlugins: [any ChatTurnPlugin],
             promptObserver: (any PromptObserving)? = nil,
+            diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
             promptHistoryRegistry: TimelinePromptJournals? = nil,
             streamTimeout: TimeInterval = Self.defaultStreamTimeout
         ) {
@@ -122,6 +124,7 @@ struct ChatEngine {
             self.toolRouter = toolRouter
             self.chatTurnPlugins = chatTurnPlugins
             self.promptObserver = promptObserver
+            self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
             self.promptHistoryRegistry = promptHistoryRegistry ?? TimelinePromptJournals()
             self.streamTimeout = streamTimeout
         }

@@ -15,10 +15,16 @@ import PKUtilities
 struct MessagePersistenceStage: PipelineStage {
     let messageStore: any MessageStoreProtocol
     let logger: Logger
+    let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
 
-    init(messageStore: any MessageStoreProtocol, logger: Logger? = nil) {
+    init(
+        messageStore: any MessageStoreProtocol,
+        logger: Logger? = nil,
+        diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default
+    ) {
         self.messageStore = messageStore
         self.logger = logger ?? Logger.module(named: "message-persistence")
+        self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
     }
 
     func process(_ context: ChatTurnContext) async throws -> AsyncThrowingStream<ChatEvent, Error> {
@@ -38,8 +44,7 @@ struct MessagePersistenceStage: PipelineStage {
         let turnDuration = await context.outputs.turnDuration
         let tokensPerSecond = await context.outputs.tokensPerSecond
 
-        let snapshot = await buildTurnSnapshot(from: context)
-        let snapshotData = try? SerializationUtils.jsonEncoder.encode(snapshot)
+        let snapshotData = await buildSnapshotData(from: context)
 
         return AsyncThrowingStream { continuation in
             if !hasPendingToolCalls {
@@ -62,6 +67,20 @@ struct MessagePersistenceStage: PipelineStage {
                 }
             }
             continuation.finish()
+        }
+    }
+
+    private func buildSnapshotData(from context: ChatTurnContext) async -> Data? {
+        switch diagnosticSnapshotConfiguration.policy {
+        case .off, .metadataOnly:
+            return nil
+        case .redacted, .full:
+            let snapshot = await buildTurnSnapshot(from: context)
+            return DiagnosticSnapshotEncoder.encode(
+                snapshot,
+                policy: diagnosticSnapshotConfiguration.policy,
+                maxBytes: diagnosticSnapshotConfiguration.maxBytes
+            )
         }
     }
 
@@ -203,5 +222,90 @@ struct MessagePersistenceStage: PipelineStage {
         from param: LLMMessage
     ) -> (role: String, content: String) {
         (param.role.rawValue, param.content)
+    }
+}
+
+private enum DiagnosticSnapshotEncoder {
+    static func encode(
+        _ snapshot: TurnSnapshot,
+        policy: DiagnosticSnapshotPolicy,
+        maxBytes: Int
+    ) -> Data? {
+        guard maxBytes > 0 else { return nil }
+        let initialLimit = policy == .redacted ? 512 : Int.max
+        var limit = initialLimit
+
+        while limit >= 0 {
+            let candidate = sanitized(snapshot, maxStringLength: limit)
+            if let data = try? SerializationUtils.jsonEncoder.encode(candidate), data.count <= maxBytes {
+                return data
+            }
+            if limit == 0 { break }
+            limit = limit == Int.max ? 16_384 : limit / 2
+        }
+        return nil
+    }
+
+    private static func sanitized(_ snapshot: TurnSnapshot, maxStringLength: Int) -> TurnSnapshot {
+        func clean(_ value: String) -> String {
+            let redacted = redactSecrets(value)
+            guard redacted.count > maxStringLength else { return redacted }
+            return String(redacted.prefix(maxStringLength)) + "...[truncated]"
+        }
+
+        let context = snapshot.contextSnapshot.map { context in
+            TurnContextSnapshot(
+                promptMessages: context.promptMessages.map {
+                    .init(role: clean($0.role), content: clean($0.content), tokenCount: $0.tokenCount)
+                },
+                files: context.files.map { .init(name: clean($0.name), source: clean($0.source)) },
+                memories: context.memories.map {
+                    .init(id: $0.id, content: clean($0.content), similarity: $0.similarity)
+                },
+                generatedTags: context.generatedTags.map(clean),
+                augmentedQuery: context.augmentedQuery.map(clean),
+                executionTime: context.executionTime
+            )
+        }
+
+        return TurnSnapshot(
+            timestamp: snapshot.timestamp,
+            timelineId: snapshot.timelineId,
+            agentInstanceId: snapshot.agentInstanceId,
+            modelName: clean(snapshot.modelName),
+            turnCount: snapshot.turnCount,
+            maxTurns: snapshot.maxTurns,
+            systemInstructions: snapshot.systemInstructions.map(clean),
+            contextSnapshot: context,
+            availableToolIds: snapshot.availableToolIds.map(clean),
+            fullResponse: clean(snapshot.fullResponse),
+            fullThinking: clean(snapshot.fullThinking),
+            toolCalls: snapshot.toolCalls.map {
+                .init(name: clean($0.name), arguments: clean($0.arguments), turn: $0.turn)
+            },
+            toolResults: snapshot.toolResults.map {
+                .init(toolCallId: clean($0.toolCallId), name: clean($0.name), output: clean($0.output), turn: $0.turn)
+            },
+            turnDuration: snapshot.turnDuration,
+            tokensPerSecond: snapshot.tokensPerSecond,
+            promptTokens: snapshot.promptTokens,
+            completionTokens: snapshot.completionTokens,
+            totalTokens: snapshot.totalTokens,
+            cachedTokens: snapshot.cachedTokens
+        )
+    }
+
+    private static func redactSecrets(_ value: String) -> String {
+        var result = value
+        let patterns = [
+            #"(?i)(api[_-]?key|token|secret|password|authorization|bearer)\s*[:=]\s*[\"']?[^\s,\"']+"#,
+            #"\bsk-[A-Za-z0-9_-]+\b"#,
+        ]
+        for pattern in patterns {
+            guard let regex = try? NSRegularExpression(pattern: pattern) else { continue }
+            let range = NSRange(result.startIndex..., in: result)
+            result = regex.stringByReplacingMatches(in: result, range: range, withTemplate: "[REDACTED]")
+        }
+        return result
     }
 }
