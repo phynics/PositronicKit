@@ -3,6 +3,23 @@ import PKPrompt
 import PKShared
 import PKUtilities
 
+enum TimelinePromptHistoryError: PKError, Sendable, Equatable {
+    case duplicateSectionIDs([String])
+
+    var errorDomain: String { PKErrorDomain.prompt }
+    var errorCode: Int { 1203 }
+    var userFriendlyMessage: String {
+        "Prompt history contains duplicate section identifiers: \(duplicateIDs.joined(separator: ", "))."
+    }
+    var remediation: String? { "Ensure every prompt section has a unique stable identifier." }
+
+    private var duplicateIDs: [String] {
+        switch self {
+        case let .duplicateSectionIDs(ids): return ids
+        }
+    }
+}
+
 // MARK: - Snapshot Types
 
 struct PromptSectionEntry {

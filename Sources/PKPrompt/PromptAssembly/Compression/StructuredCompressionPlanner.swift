@@ -15,11 +15,11 @@ public struct StructuredCompressionPlanner: Sendable {
         nodes: [StructuredCompressionNode],
         availableTokens: Int,
         diff: StructuredDiffHint?
-    ) -> StructuredCompressionPlan {
-        precondition(
-            Set(nodes.map(\.id)).count == nodes.count,
-            "Duplicate structured node ids are not supported"
-        )
+    ) throws -> StructuredCompressionPlan {
+        let duplicateIDs = nodes.duplicateIDs(idKeyPath: \.id)
+        guard duplicateIDs.isEmpty else {
+            throw PromptCompressionError.duplicateSectionIDs(duplicateIDs)
+        }
         let totalEstimated = nodes.reduce(0) { $0 + $1.estimatedTokens }
         guard totalEstimated > availableTokens else {
             return StructuredCompressionPlan(

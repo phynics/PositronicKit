@@ -97,7 +97,7 @@ extension ChatEngine {
                         maxTurns: context.maxTurns
                     ) {
                         loopMessages += pluginMessages
-                        let snapshot = await snapshotBuilder.buildFollowUpSnapshot(
+                        let snapshot = try await snapshotBuilder.buildFollowUpSnapshot(
                             from: turnContext,
                             appendedMessages: pluginMessages,
                             nextTurnIndex: turnCount
@@ -124,11 +124,17 @@ extension ChatEngine {
                         estimatedTokens: TokenEstimator.estimate(text: responseText)
                     )
                 }
-                let snapshot = await snapshotBuilder.buildFollowUpSnapshot(
-                    from: turnContext,
-                    appendedMessages: newMessages,
-                    nextTurnIndex: turnCount
-                )
+                let snapshot: (renderedPrompt: RenderedPrompt?, promptHistoryUpdate: PromptHistoryUpdate?)
+                do {
+                    snapshot = try await snapshotBuilder.buildFollowUpSnapshot(
+                        from: turnContext,
+                        appendedMessages: newMessages,
+                        nextTurnIndex: turnCount
+                    )
+                } catch {
+                    continuation.finish(throwing: wrapForeignError(error))
+                    return
+                }
                 loopRenderedPrompt = snapshot.renderedPrompt
                 loopPromptHistoryUpdate = snapshot.promptHistoryUpdate
 

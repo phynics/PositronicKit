@@ -119,22 +119,22 @@ public actor TimelinePromptHistory {
 
     /// Record a rendered prompt snapshot and compact append state if thresholds were exceeded.
     @discardableResult
-    func update(prompt: RenderedPrompt) -> PromptHistoryUpdate {
-        let diff = record(prompt: prompt)
+    func update(prompt: RenderedPrompt) throws -> PromptHistoryUpdate {
+        let diff = try record(prompt: prompt)
         return PromptHistoryUpdate(diff: diff, didCompact: compactIfNeeded())
     }
 
     @discardableResult
-    func update(prompt: AssembledPrompt) async -> PromptHistoryUpdate {
-        update(prompt: await prompt.render())
+    func update(prompt: AssembledPrompt) async throws -> PromptHistoryUpdate {
+        try update(prompt: await prompt.render())
     }
 
     @discardableResult
     func update(
         sections: [PromptSection],
         renderedContent: [String: String]
-    ) -> PromptHistoryUpdate {
-        let diff = record(sections: sections, renderedContent: renderedContent)
+    ) throws -> PromptHistoryUpdate {
+        let diff = try record(sections: sections, renderedContent: renderedContent)
         return PromptHistoryUpdate(diff: diff, didCompact: compactIfNeeded())
     }
 
@@ -154,12 +154,11 @@ public actor TimelinePromptHistory {
 
     /// Record a rendered prompt snapshot without re-running prompt rendering.
     @discardableResult
-    func record(prompt: RenderedPrompt) -> PromptDiff {
+    func record(prompt: RenderedPrompt) throws -> PromptDiff {
         let duplicateIDs = prompt.sections.duplicateIDs(idKeyPath: \.id)
-        precondition(
-            duplicateIDs.isEmpty,
-            "Duplicate context section ids in TimelinePromptHistory.record: \(duplicateIDs.joined(separator: ", "))"
-        )
+        guard duplicateIDs.isEmpty else {
+            throw TimelinePromptHistoryError.duplicateSectionIDs(duplicateIDs)
+        }
         var entries: [PromptSectionEntry] = []
         for (index, section) in prompt.sections.enumerated() {
             entries.append(PromptSectionEntry(
@@ -188,12 +187,12 @@ public actor TimelinePromptHistory {
     }
 
     @discardableResult
-    func record(prompt: AssembledPrompt) async -> PromptDiff {
-        record(prompt: await prompt.render())
+    func record(prompt: AssembledPrompt) async throws -> PromptDiff {
+        try record(prompt: await prompt.render())
     }
 
     @discardableResult
-    func record(sections: [PromptSection], renderedContent: [String: String]) -> PromptDiff {
+    func record(sections: [PromptSection], renderedContent: [String: String]) throws -> PromptDiff {
         let renderedSections = sections.compactMap { section in
             renderedContent[section.id].map { content in
                 RenderedPrompt.Section(
@@ -212,7 +211,7 @@ public actor TimelinePromptHistory {
             }
         }
 
-        return record(prompt: RenderedPrompt(
+        return try record(prompt: RenderedPrompt(
             sections: renderedSections,
             string: renderedSections.compactMap { renderedContent[$0.id] }.joined(separator: "\n\n---\n\n"),
             sectionsByID: renderedContent

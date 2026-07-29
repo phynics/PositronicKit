@@ -21,7 +21,7 @@ struct PromptSnapshotBuilder {
         from context: ChatTurnContext,
         appendedMessages: [LLMMessage],
         nextTurnIndex: Int
-    ) async -> (renderedPrompt: RenderedPrompt?, promptHistoryUpdate: PromptHistoryUpdate?) {
+    ) async throws -> (renderedPrompt: RenderedPrompt?, promptHistoryUpdate: PromptHistoryUpdate?) {
         guard let priorRenderedPrompt = context.renderedPrompt else {
             return (context.renderedPrompt, context.promptHistoryUpdate)
         }
@@ -36,7 +36,7 @@ struct PromptSnapshotBuilder {
             return (followUpPrompt, context.promptHistoryUpdate)
         }
 
-        let update = await promptHistory.update(prompt: followUpPrompt)
+        let update = try await promptHistory.update(prompt: followUpPrompt)
         return (followUpPrompt, update)
     }
 

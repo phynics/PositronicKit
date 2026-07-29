@@ -181,9 +181,24 @@ extension ChatEngine {
             let resolvedSections = renderedPrompt.sections
 
             // 12. Record prompt snapshot for cache tracking
-            let update = await promptHistory.update(prompt: renderedPrompt)
+            let update: PromptHistoryUpdate
+            do {
+                update = try await promptHistory.update(prompt: renderedPrompt)
+            } catch {
+                logger.error("Prompt history update failed; aborting turn before returning context", metadata: [
+                    LogKeys.timelineID: .string(timelineId.uuidString),
+                    LogKeys.sendID: .string(sendId.uuidString),
+                    "error": .string(String(describing: error)),
+                ])
+                throw ChatEngineError.promptHistoryInconsistent(String(describing: error))
+            }
             guard let diff = update.diff else {
-                preconditionFailure("Prompt updates must always produce a prompt diff")
+                logger.error("Prompt history update produced no diff; aborting turn", metadata: [
+                    LogKeys.timelineID: .string(timelineId.uuidString),
+                    LogKeys.sendID: .string(sendId.uuidString),
+                    "journalState": .string("update_without_diff"),
+                ])
+                throw ChatEngineError.promptHistoryInconsistent("update produced no prompt diff")
             }
             logger.debug(
                 "Prompt journal updated: added=\(diff.added.count) removed=\(diff.removed.count) changed=\(diff.changed.count)",

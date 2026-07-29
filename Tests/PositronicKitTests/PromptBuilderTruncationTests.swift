@@ -55,7 +55,7 @@ struct PromptBuilderTruncationTests {
 
         let sections: [any Prompt] = [system, history]
         let budget = TokenBudget(maxTokens: 30, reserveForResponse: 0)
-        let processed = await budget.apply(to: sections)
+        let processed = try! await budget.apply(to: sections)
 
         #expect(processed.count == 2)
 

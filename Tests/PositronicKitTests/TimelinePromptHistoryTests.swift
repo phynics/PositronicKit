@@ -74,6 +74,55 @@ actor TimelinePromptHistoryTests {
         }
     }
 
+    @Test("Duplicate journal sections fail the transition with a typed error")
+    func duplicateJournalSectionsAreRecoverable() async throws {
+        let history = TimelinePromptHistory()
+        let prompt = try await PromptAssembler.assemble(LLMPromptRequest(
+            userQuery: "question",
+            contextNotes: [],
+            memories: [],
+            chatHistory: [],
+            tools: [],
+            workspaces: [],
+            primaryWorkspace: nil,
+            requestOriginName: nil
+        ))
+        let rendered = prompt
+        let duplicate = RenderedPrompt(
+            sections: [rendered.sections[0], rendered.sections[0]],
+            string: rendered.string,
+            sectionsByID: rendered.sectionsByID
+        )
+
+        do {
+            _ = try await history.record(prompt: duplicate)
+            Issue.record("Duplicate journal section was accepted")
+        } catch let error as TimelinePromptHistoryError {
+            #expect(error == .duplicateSectionIDs([rendered.sections[0].id]))
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+    }
+
+    @Test("Journal transitions remain valid across repeated append and compact cycles")
+    func journalTransitionPropertyLoop() async throws {
+        let history = TimelinePromptHistory(thresholds: .init(maxAppendedTokens: 20, maxAppendedMessages: 2))
+
+        for index in 0 ..< 32 {
+            let section = try AnyPrompt.build {
+                TextPrompt("context-\(index)", id: "context", cachePolicy: .semiStable)
+                UserPrompt("question-\(index)")
+            }.assemblePrompt()
+            _ = try await history.record(prompt: section)
+            await history.recordAppend(messageCount: 1, estimatedTokens: 8)
+            if await history.shouldCompact {
+                await history.compact()
+            }
+        }
+
+        #expect(await history.lastDiff != nil)
+    }
+
     @Test("History updates compact appended state when thresholds are exceeded")
     func historyUpdatesCompactWhenThresholdsExceeded() async throws {
         let history = TimelinePromptHistory(thresholds: .init(maxAppendedTokens: 1, maxAppendedMessages: 1))
@@ -82,7 +131,7 @@ actor TimelinePromptHistoryTests {
             TimelineSection(id: "query", cachePolicy: .volatile, text: "Question")
         }.assemblePrompt()
 
-        let initialUpdate = await history.update(prompt: prompt)
+        let initialUpdate = try! await history.update(prompt: prompt)
         #expect(initialUpdate.diff?.added.map(\.entryId) == ["system", "query"])
         #expect(initialUpdate.didCompact == false)
 
@@ -97,7 +146,7 @@ actor TimelinePromptHistoryTests {
         #expect(await history.appendedTokens == 0)
         #expect(!(await history.shouldCompact))
 
-        let nextUpdate = await history.update(prompt: prompt)
+        let nextUpdate = try! await history.update(prompt: prompt)
         #expect(nextUpdate.didCompact == false)
         #expect(nextUpdate.diff?.hasChanges == false)
         #expect(nextUpdate.diff?.stablePrefixCount == prompt.sections.count)
@@ -113,7 +162,7 @@ actor TimelinePromptHistoryTests {
             TimelineSection(id: "query", cachePolicy: .volatile, text: "Question")
         }.assemblePrompt()
 
-        let initialDiff = await history.record(prompt: initialPrompt)
+        let initialDiff = try! await history.record(prompt: initialPrompt)
         #expect(initialDiff.hasChanges)
         #expect(initialDiff.added.map(\.entryId) == ["system", "context", "query"])
         #expect(initialDiff.stablePrefixCount == 0)
@@ -124,7 +173,7 @@ actor TimelinePromptHistoryTests {
             TimelineSection(id: "query", cachePolicy: .volatile, text: "Question")
         }.assemblePrompt()
 
-        let diff = await history.record(prompt: updatedPrompt)
+        let diff = try! await history.record(prompt: updatedPrompt)
 
         #expect(diff.stablePrefixCount == 1)
         #expect(diff.stablePrefixTokens == updatedPrompt.sections[0].estimatedTokens)
@@ -146,7 +195,7 @@ actor TimelinePromptHistoryTests {
         let initialRendered = await initialPrompt.render()
 
         _ = journal.observe(initialRendered)
-        _ = await history.record(prompt: initialPrompt)
+        _ = try! await history.record(prompt: initialPrompt)
 
         let updatedPrompt = try AnyPrompt.build {
             TimelineSection(id: "system", cachePolicy: .stable, text: "System")
@@ -156,7 +205,7 @@ actor TimelinePromptHistoryTests {
         let updatedRendered = await updatedPrompt.render()
 
         let journalPlan = journal.observe(updatedRendered)
-        let runtimeDiff = await history.record(prompt: updatedPrompt)
+        let runtimeDiff = try! await history.record(prompt: updatedPrompt)
 
         #expect(journalPlan.requiresHardReset == false)
         #expect(journalPlan.diff == runtimeDiff.publicJournalDiff)
@@ -176,7 +225,7 @@ actor TimelinePromptHistoryTests {
         let mixedInitialRendered = await mixedInitial.render()
 
         _ = mixedJournal.observe(mixedInitialRendered)
-        _ = await mixedHistory.record(prompt: mixedInitial)
+        _ = try! await mixedHistory.record(prompt: mixedInitial)
 
         let mixedUpdated = try AnyPrompt.build {
             TimelineSection(id: "stable-a", cachePolicy: .stable, text: "Stable A")
@@ -187,7 +236,7 @@ actor TimelinePromptHistoryTests {
         let mixedUpdatedRendered = await mixedUpdated.render()
 
         let mixedJournalPlan = mixedJournal.observe(mixedUpdatedRendered)
-        let mixedRuntimeDiff = await mixedHistory.record(prompt: mixedUpdated)
+        let mixedRuntimeDiff = try! await mixedHistory.record(prompt: mixedUpdated)
 
         #expect(mixedJournalPlan.requiresHardReset == false)
         #expect(mixedJournalPlan.diff == mixedRuntimeDiff.publicJournalDiff)
@@ -216,8 +265,8 @@ actor TimelinePromptHistoryTests {
             TimelineSection(id: "volatile-a", cachePolicy: .volatile, text: "Volatile A v2")
         }.assemblePrompt()
 
-        _ = await history.record(prompt: initialPrompt)
-        let diff = await history.record(prompt: updatedPrompt)
+        _ = try! await history.record(prompt: initialPrompt)
+        let diff = try! await history.record(prompt: updatedPrompt)
 
         // Runtime diff must continue to track all policies for the cache prefix / subtree.
         #expect(diff.changed.map(\.entryId) == ["stable-a", "semi-a", "volatile-a"])
@@ -243,7 +292,7 @@ actor TimelinePromptHistoryTests {
         let initialRendered = await initialPrompt.render()
 
         _ = journal.observe(initialRendered)
-        _ = await history.record(prompt: initialPrompt)
+        _ = try! await history.record(prompt: initialPrompt)
 
         // Same text, different estimatedTokens — must NOT diff under the unified text-only scheme.
         let updatedPrompt = try AnyPrompt.build {
@@ -252,7 +301,7 @@ actor TimelinePromptHistoryTests {
         let updatedRendered = await updatedPrompt.render()
 
         let journalPlan = journal.observe(updatedRendered)
-        let runtimeDiff = await history.record(prompt: updatedPrompt)
+        let runtimeDiff = try! await history.record(prompt: updatedPrompt)
 
         #expect(journalPlan.diff == PromptJournalDiff())
         #expect(runtimeDiff.publicJournalDiff == PromptJournalDiff())
@@ -274,8 +323,8 @@ actor TimelinePromptHistoryTests {
             TimelineSection(id: "semi-b", cachePolicy: .semiStable, text: "Semi B")
         }.assemblePrompt()
 
-        _ = await history.record(prompt: initialPrompt)
-        let diff = await history.record(prompt: updatedPrompt)
+        _ = try! await history.record(prompt: initialPrompt)
+        let diff = try! await history.record(prompt: updatedPrompt)
 
         // Runtime diff records removals for all policies.
         #expect(diff.removed == ["stable-a", "semi-a"])
@@ -296,13 +345,13 @@ actor TimelinePromptHistoryTests {
             TimelineSection(id: "query", cachePolicy: .volatile, text: "B")
         }.assemblePrompt()
 
-        let initialDiff = await history.record(prompt: prompt)
+        let initialDiff = try! await history.record(prompt: prompt)
         let updatedPrompt = try AnyPrompt.build {
             TimelineSection(id: "system", cachePolicy: .stable, text: "A2")
             TimelineSection(id: "query", cachePolicy: .volatile, text: "B")
         }.assemblePrompt()
 
-        let diff = await history.record(prompt: updatedPrompt)
+        let diff = try! await history.record(prompt: updatedPrompt)
 
         #expect(initialDiff.added.map(\.entryId) == ["system", "query"])
         #expect(diff.changed.map(\.entryId) == ["system"])
@@ -332,7 +381,7 @@ actor TimelinePromptHistoryTests {
             TimelineSection(id: "query", cachePolicy: .volatile, text: "Question")
         }.assemblePrompt()
 
-        _ = await history.record(prompt: prompt)
+        _ = try! await history.record(prompt: prompt)
         await history.recordAppend(messages: [
             Message(content: "Assistant reply", role: .assistant),
             Message(content: "Tool output", role: .tool),
@@ -346,13 +395,13 @@ actor TimelinePromptHistoryTests {
         #expect(await history.appendedTokens == 0)
         #expect(!(await history.shouldCompact))
 
-        let softDiff = await history.record(prompt: prompt)
+        let softDiff = try! await history.record(prompt: prompt)
         #expect(!softDiff.hasChanges)
         #expect(softDiff.stablePrefixCount == prompt.sections.count)
 
         await history.compact(hard: true)
 
-        let hardDiff = await history.record(prompt: prompt)
+        let hardDiff = try! await history.record(prompt: prompt)
         #expect(hardDiff.added.map(\.entryId) == ["system", "query"])
         #expect(hardDiff.stablePrefixCount == 0)
     }
@@ -365,8 +414,8 @@ actor TimelinePromptHistoryTests {
             TimelineSection(id: "query", cachePolicy: .volatile, text: "B"),
         ]).assemblePrompt().sections
 
-        _ = await history.record(sections: sections, renderedContent: ["system": "A", "query": "B"])
-        let diff = await history.record(sections: sections, renderedContent: ["system": "A2", "query": "B"])
+        _ = try! await history.record(sections: sections, renderedContent: ["system": "A", "query": "B"])
+        let diff = try! await history.record(sections: sections, renderedContent: ["system": "A2", "query": "B"])
 
         #expect(diff.changedNodePaths == [sections[0].path])
         #expect(diff.stableNodePaths == [sections[1].path])
@@ -399,10 +448,10 @@ actor TimelinePromptHistoryTests {
         )
 
         let initialPrompt = try await PromptAssembler.assemble(requestV1)
-        _ = await history.record(prompt: initialPrompt)
+        _ = try! await history.record(prompt: initialPrompt)
 
         let updatedPrompt = try await PromptAssembler.assemble(requestV2)
-        let diff = await history.record(prompt: updatedPrompt)
+        let diff = try! await history.record(prompt: updatedPrompt)
 
         #expect(diff.changed.map { $0.entryId } == ["workspaces"])
         #expect(diff.added.isEmpty)

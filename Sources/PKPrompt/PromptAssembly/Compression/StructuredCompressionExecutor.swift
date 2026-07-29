@@ -32,16 +32,15 @@ public actor StructuredCompressionExecutor {
         plan: StructuredCompressionPlan,
         sections: [PromptSection],
         compressor: SectionCompressor?
-    ) async -> StructuredExecutionResult {
+    ) async throws -> StructuredExecutionResult {
         let duplicateIDs = sections.duplicateIDs(idKeyPath: \.id)
-        precondition(
-            duplicateIDs.isEmpty,
-            "Duplicate context section ids in StructuredCompressionExecutor.execute sections: \(duplicateIDs.joined(separator: ", "))"
-        )
-        precondition(
-            Set(plan.nodeActions.map(\.nodeId)).count == plan.nodeActions.count,
-            "Duplicate planned node ids are not supported"
-        )
+        guard duplicateIDs.isEmpty else {
+            throw PromptCompressionError.duplicateSectionIDs(duplicateIDs)
+        }
+        let duplicatePlanIDs = plan.nodeActions.duplicateIDs(idKeyPath: \.nodeId)
+        guard duplicatePlanIDs.isEmpty else {
+            throw PromptCompressionError.duplicatePlannedNodeIDs(duplicatePlanIDs)
+        }
         let actionById = Dictionary(uniqueKeysWithValues: plan.nodeActions.map { ($0.nodeId, $0) })
         let sectionsById = Dictionary(uniqueKeysWithValues: sections.map { ($0.id, $0) })
 
