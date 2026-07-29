@@ -1,4 +1,4 @@
-.PHONY: help build clean test test-parallel harden validate-docs \
+.PHONY: help build clean test test-parallel harden validate-docs verify-doc-snippets \
 	audit-default-linkage verify-pin verify verify-macos-default \
 	verify-linux verify-linux-base verify-linux-minimum verify-linux-current \
 	verify-linux-asan \
@@ -105,6 +105,10 @@ harden:
 validate-docs:
 	@bash Scripts/validate-docs.sh
 
+verify-doc-snippets:
+	@echo "Syntax-checking Swift fenced blocks in docs/..."
+	@bash Scripts/compile-doc-snippets.sh
+
 audit-default-linkage:
 	@echo "Auditing default Apple build for native MiniLM linkage..."
 	@mkdir -p .build
@@ -117,7 +121,7 @@ verify-pin:
 
 verify-macos-default: verify
 
-verify: verify-pin validate-docs audit-default-linkage verify-products verify-examples verify-tests
+verify: verify-pin validate-docs verify-doc-snippets audit-default-linkage verify-products verify-examples verify-tests
 
 verify-linux-base: bootstrap-minilm
 	@echo "Running comprehensive Linux test suite..."

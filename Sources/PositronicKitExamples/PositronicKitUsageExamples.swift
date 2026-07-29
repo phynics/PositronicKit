@@ -180,6 +180,70 @@ public enum PositronicKitUsageExamples {
         [ToolOutputSubmission(toolCallId: "call_123", output: "File contents...")]
     }
 
+    /// Consumes a `ChatEvent` stream with the canonical event switch from `docs/Usage.md`.
+    /// Compiles the documented handling shape — `delta`/`meta`/`completion`/`error` branches,
+    /// the PKRR-011 terminal events (`.maxTurnsReached`, `.deferredForExternalTool`), and
+    /// `ErrorIdentity.isBlocked` classification — against the real `ChatEvent` API, so docs
+    /// drift is caught by `make verify-examples` (a step of `make verify`).
+    public static func consumeChatEventStream(
+        _ stream: AsyncThrowingStream<ChatEvent, Error>
+    ) async throws {
+        for try await event in stream {
+            switch event {
+            case .delta(let event):
+                switch event {
+                case .reasoning(let text):
+                    print("\nThinking: \(text)", terminator: "")
+                case .generation(let text):
+                    print(text, terminator: "")
+                case .toolCall(let delta):
+                    print("\nTool delta: \(delta.name ?? "<continuation>")")
+                case .toolExecution(let toolCallId, let status):
+                    print("\nTool execution [\(toolCallId)]: \(status)")
+                case .sidecar(let delta):
+                    print("\n[\(delta.name)] \(delta.partialText)")
+                }
+            case .meta(let event):
+                switch event {
+                case .generationContext(let metadata):
+                    print("\nContext: \(metadata.files.count) files referenced")
+                default:
+                    // `.meta(.generationCompleted)` is deprecated and never emitted in production.
+                    break
+                }
+            case .completion(let event):
+                switch event {
+                case .generationCompleted(let message, _):
+                    print("\nDone: \(message.content)")
+                case .completedEmpty(let finishReason):
+                    print("\nCompleted empty (finishReason: \(finishReason ?? "nil"))")
+                case .toolExecution(let toolCallId, let status):
+                    print("\nTool completed [\(toolCallId)]: \(status)")
+                case .maxTurnsReached:
+                    print("\nMax turns reached — the agent did not produce a tool-free final response.")
+                case .deferredForExternalTool:
+                    print("\nTool calls deferred for external execution; stream paused for host-side work.")
+                case .sidecarsCompleted(let results):
+                    for result in results {
+                        print("\n[\(result.name)] \(result.outcome)")
+                    }
+                default:
+                    // `.completion(.streamCompleted)` is deprecated and never emitted in production.
+                    break
+                }
+            case .error(let event):
+                switch event {
+                case .toolCallError(let toolCallId, let name, let error):
+                    print("\nTool call error [\(toolCallId)] for \(name): \(error)")
+                case .error(let message, let identity):
+                    print("\nError: \(message) (blocked: \(identity?.isBlocked ?? false))")
+                case .generationCancelled:
+                    print("\nGeneration cancelled.")
+                }
+            }
+        }
+    }
+
     public static func makeTools() -> [AnyTool] {
         [ExampleGreetingTool().toAnyTool()]
     }

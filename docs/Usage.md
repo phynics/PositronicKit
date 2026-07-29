@@ -37,34 +37,73 @@ try await manager.attach(agentId: instance.id, to: timelineId)
 
 ## 2. Initialization and Execution
 
+The snippets below mirror functions in the `PositronicKitExamples` target, which compiles
+them as part of `make verify-examples` (a step of `make verify`) — so the canonical
+construction, run, and event-handling shapes here are type-checked against the current API.
+
 ### Simplified Initialization (Prototyping)
 
-The easiest way to get started is by providing your OpenAI API key or an Ollama model. This uses in-memory stores for everything.
+The facade's prototyping initializer takes a `languageModel` and defaults every store to
+in-memory. Construct a provider-backed `LanguageModel` from your provider's configuration,
+wrap it in an `LLMService`, then hand it to `PositronicKit`.
 
 ```swift
 import PositronicKit
+import PKShared
 import PKOpenAIProvider
-import PKOllamaProvider
 
-// For OpenAI
-let chat = PositronicKit(openAIKey: "sk-...")
-
-// For Ollama
-let chat = PositronicKit(ollamaModel: "llama3")
+// OpenAI: configure the provider, build its client, and wrap it as a LanguageModel.
+var openAIConfig = ProviderConfiguration.defaultFor(.openAI)
+openAIConfig.apiKey = "sk-..."
+let configuration = LLMConfiguration(activeProvider: .openAI, providers: [.openAI: openAIConfig])
+let client = PKOpenAIProvider.makeClient(configuration: configuration)
+let languageModel = LLMService(
+    storage: InMemoryConfigurationService(config: configuration),
+    client: client,
+    utilityClient: client,
+    fastClient: client
+)
+let chat = PositronicKit(languageModel: languageModel)
 ```
 
-This provider-backed path keeps the convenience initializer in the matching provider module while the core facade stays provider-neutral.
+For Ollama, use `PKOllamaProvider` and `ProviderConfiguration.defaultFor(.ollama)`:
+
+```swift
+import PositronicKit
+import PKShared
+import PKOllamaProvider
+
+var ollamaConfig = ProviderConfiguration.defaultFor(.ollama)
+ollamaConfig.modelName = "llama3"
+let configuration = LLMConfiguration(activeProvider: .ollama, providers: [.ollama: ollamaConfig])
+let client = PKOllamaProvider.makeClient(configuration: configuration)
+let languageModel = LLMService(
+    storage: InMemoryConfigurationService(config: configuration),
+    client: client,
+    utilityClient: client,
+    fastClient: client
+)
+let chat = PositronicKit(languageModel: languageModel)
+```
+
+The core facade stays provider-neutral: provider clients are built in their provider module
+and wrapped in an `LLMService` before being passed to `PositronicKit`.
 
 ### Full Initialization (Production)
 
-For production, you should provide persistent stores through the grouped `persistence:` initializer.
+For production, assemble a `PositronicKit.Configuration` and construct via
+`PositronicKit(configuration:)`. Every store in `PersistenceConfiguration` is optional and
+defaults to in-memory, so provide only the durable stores your host needs.
 
 ```swift
 import PositronicKit
 import PKShared
 
-let chat = PositronicKit(
-    llmService: myLLM,
+let chat = PositronicKit(configuration: .init(
+    provider: .init(
+        languageModel: myLLM,
+        embeddingService: myEmbeddingService
+    ),
     persistence: .init(
         messageStore: myMessageStore,
         timelinePersistence: myTimelinePersistence,
@@ -74,43 +113,27 @@ let chat = PositronicKit(
         agentInstanceStore: myAgentInstanceStore,
         requestOriginStore: myRequestOriginStore
     ),
-    embeddingService: myEmbeddingService,
     runtime: .init(
         workspaceCreator: myWorkspaceCreator
     )
-)
+))
 ```
 
 ### Running a Chat Stream
 
-The `run` method returns an `AsyncThrowingStream<ChatEvent, Error>`. This allows you to process real-time updates as the agent "thinks" and responds.
+The `run` method takes a `ChatRunRequest` and returns an `AsyncThrowingStream<ChatEvent, Error>`,
+so you can process real-time updates as the agent reasons and responds.
 
 ```swift
 import PositronicKit
 import PKShared
 
-let chat = PositronicKit(
-    llmService: myLLM,
-    persistence: .init(
-        messageStore: myMessageStore,
-        timelinePersistence: myTimelinePersistence,
-        workspacePersistence: myWorkspacePersistence,
-        memoryStore: myMemoryStore,
-        toolPersistence: myToolPersistence,
-        agentInstanceStore: myAgentInstanceStore,
-        requestOriginStore: myRequestOriginStore
-    ),
-    embeddingService: myEmbeddingService,
-    runtime: .init(
-        workspaceCreator: myWorkspaceCreator
-    )
-)
-
-let stream = try await chat.run(
+// `chat` is the PositronicKit instance from the initialization example above.
+let stream = try await chat.run(ChatRunRequest(
     timelineId: timelineId,
     message: "What are the latest trends in Swift concurrency?",
     agentInstanceId: instance.id // The agent we created earlier
-)
+))
 
 for try await event in stream {
     switch event {
@@ -133,8 +156,10 @@ for try await event in stream {
         switch event {
         case .generationContext(let metadata):
             print("\nContext: \(metadata.files.count) files referenced")
+        default:
+            // `.meta(.generationCompleted)` is deprecated and never emitted in production.
+            break
         }
-        // Note: `.meta(.generationCompleted)` is deprecated and never emitted in production.
 
     case .completion(let event):
         switch event {
@@ -153,8 +178,10 @@ for try await event in stream {
             for result in results {
                 print("\n[\(result.name)] \(result.outcome)")
             }
+        default:
+            // `.completion(.streamCompleted)` is deprecated and never emitted in production.
+            break
         }
-        // Note: `.completion(.streamCompleted)` is deprecated and never emitted in production.
 
     case .error(let event):
         switch event {
@@ -173,7 +200,7 @@ for try await event in stream {
 
 The runtime emits prompt-assembly diagnostics through `swift-log`. `PromptAssembler` and
 `PromptAssemblyOptions` are internal runtime types, so you don't call them directly — instead pass a
-`Logger` to `PositronicKit.run(..., promptAssemblyLogger:)` to enable diagnostics for that turn.
+`Logger` as `ChatRunRequest(promptAssemblyLogger:)` to enable diagnostics for that turn.
 
 ```swift
 import Logging
@@ -187,11 +214,11 @@ LoggingSystem.bootstrap { label in
 }
 
 let logger = Logger(label: "com.example.prompt-assembly")
-let events = try await chat.run(
+let events = try await chat.run(ChatRunRequest(
     timelineId: timelineId,
     message: "…",
     promptAssemblyLogger: logger
-)
+))
 ```
 
 ### Handling Tool Outputs
@@ -203,13 +230,13 @@ let toolOutputs = [
     ToolOutputSubmission(toolCallId: "call_123", output: "File contents...")
 ]
 
-let stream = try await chat.run(
+let stream = try await chat.run(ChatRunRequest(
     timelineId: timelineId,
     message: "", // Empty message as we're continuing from a tool call
     tools: tools,
     toolOutputs: toolOutputs,
     agentInstanceId: instance.id
-)
+))
 ```
 
 ## 3. Core Concepts
@@ -252,10 +279,10 @@ import PKLocalEmbeddings
 let appleDefault = LocalEmbeddingService()
 
 // Linux: host-provisioned MiniLM assets in an explicit model directory.
-let linux = LocalEmbeddingService(modelDirectory: URL(fileURLWithPath: "/path/to/model"))
+let linux = try LocalEmbeddingService(modelDirectory: URL(fileURLWithPath: "/path/to/model"))
 
 // Apple MiniLM: opt in with the MiniLMEmbeddings trait.
-let appleMiniLM = LocalEmbeddingService(miniLMModelDirectory: URL(fileURLWithPath: "/path/to/model"))
+let appleMiniLM = try LocalEmbeddingService(miniLMModelDirectory: URL(fileURLWithPath: "/path/to/model"))
 ```
 
 The Apple MiniLM path is built with the `MiniLMEmbeddings` trait (`swift test --traits MiniLMEmbeddings`); default Apple builds neither build nor link PKFastEmbed. Native setup is bootstrapped with `native/pkfastembed/bootstrap.sh --prefix <path>`, then discovered through `PKG_CONFIG_PATH`.
