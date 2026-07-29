@@ -274,7 +274,7 @@ public extension PositronicKit {
     }
 
     /// Creates a facade from a grouped configuration. This is the supported production entry
-    /// point; use `PositronicKit(llmService:)` for prototyping.
+    /// point; use `PositronicKit(languageModel:)` for prototyping.
     ///
     /// During construction the persistence configuration is checked for mixed durability
     /// (some stores durable, others in-memory). If mixed, a `.warning` is logged naming the
