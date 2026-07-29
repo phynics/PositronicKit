@@ -70,6 +70,9 @@ public actor TimelineManager {
     /// Tool managers handling tool registration and availability for each timeline.
     var toolManagers: [UUID: TimelineToolRegistry] = [:]
 
+    /// Preparation degradations discovered while hydrating a timeline's runtime components.
+    var timelineDegradations: [UUID: [TurnDiagnostic]] = [:]
+
     /// Send-scoped registry of the active stream-driving task for each timeline. Replaces the
     /// former `activeTasks` dict so cancellation is send-scoped (a stale send cannot evict or
     /// cancel a newer one) and eviction/deletion can await bounded cleanup.
@@ -502,5 +505,9 @@ extension TimelineManager {
     /// Retrieves the tool manager for a timeline if it is active.
     func getToolManager(for timelineId: UUID) -> TimelineToolRegistry? {
         return toolManagers[timelineId]
+    }
+
+    func consumeDegradations(for timelineId: UUID) -> [TurnDiagnostic] {
+        timelineDegradations.removeValue(forKey: timelineId) ?? []
     }
 }

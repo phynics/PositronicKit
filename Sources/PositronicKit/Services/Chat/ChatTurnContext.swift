@@ -105,6 +105,7 @@ struct ChatTurnContext {
     let generationParameters: GenerationParameters?
     let structuredOutput: StructuredOutputRequest?
     let sidecars: [SidecarDirective]
+    let diagnostics: [TurnDiagnostic]
 
     /// Shared actor tracking prompt snapshots and append chain growth across turns.
     /// Created once per `prepareSession()` call and threaded through all turns in the loop.
@@ -132,6 +133,7 @@ struct ChatTurnContext {
         generationParameters: GenerationParameters? = nil,
         structuredOutput: StructuredOutputRequest? = nil,
         sidecars: [SidecarDirective] = [],
+        diagnostics: [TurnDiagnostic] = [],
         promptHistory: TimelinePromptHistory? = nil,
         renderedPrompt: RenderedPrompt? = nil,
         promptHistoryUpdate: PromptHistoryUpdate? = nil,
@@ -151,6 +153,7 @@ struct ChatTurnContext {
         self.generationParameters = generationParameters
         self.structuredOutput = structuredOutput
         self.sidecars = sidecars
+        self.diagnostics = diagnostics
         self.promptHistory = promptHistory
         self.renderedPrompt = renderedPrompt
         self.promptHistoryUpdate = promptHistoryUpdate
@@ -184,6 +187,7 @@ struct ChatTurnContext {
             generationParameters: generationParameters,
             structuredOutput: structuredOutput,
             sidecars: sidecars,
+            diagnostics: diagnostics,
             promptHistory: promptHistory,
             renderedPrompt: renderedPrompt ?? self.renderedPrompt,
             promptHistoryUpdate: promptHistoryUpdate ?? self.promptHistoryUpdate,

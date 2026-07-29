@@ -220,6 +220,7 @@ public extension PositronicKit {
         public let promptObserver: (any PromptObserving)?
         public let toolApprovalPolicy: any ToolApprovalPolicy
         public let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
+        public let degradationPolicy: TurnDegradationPolicy
 
         public init(
             workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
@@ -229,7 +230,8 @@ public extension PositronicKit {
             chatTurnPlugins: [any ChatTurnPlugin] = [],
             promptObserver: (any PromptObserving)? = nil,
             toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
-            diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default
+            diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
+            degradationPolicy: TurnDegradationPolicy = .failRequired
         ) {
             self.workspaceCreator = workspaceCreator
             self.sectionProviders = sectionProviders
@@ -239,6 +241,7 @@ public extension PositronicKit {
             self.promptObserver = promptObserver
             self.toolApprovalPolicy = toolApprovalPolicy
             self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
+            self.degradationPolicy = degradationPolicy
         }
 
         /// The default runtime configuration: no workspaces, no plugins, deny-all tool approval.
@@ -272,6 +275,7 @@ public extension PositronicKit {
             chatTurnPlugins: configuration.runtime.chatTurnPlugins,
             promptObserver: configuration.runtime.promptObserver,
             diagnosticSnapshotConfiguration: configuration.runtime.diagnosticSnapshotConfiguration,
+            degradationPolicy: configuration.runtime.degradationPolicy,
             generationParameters: configuration.generationParameters,
             toolApprovalPolicy: configuration.runtime.toolApprovalPolicy,
             sharedRegistry: TimelinePromptJournals(),

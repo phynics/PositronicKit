@@ -186,6 +186,7 @@ private extension TimelineManager {
         timelines.removeValue(forKey: id)
         turnBriefingBuilders.removeValue(forKey: id)
         toolManagers.removeValue(forKey: id)
+        timelineDegradations.removeValue(forKey: id)
         await promptHistoryRegistry?.removeHistory(for: id)
     }
 
@@ -204,6 +205,13 @@ private extension TimelineManager {
                 workspace: \(firstId.uuidString.prefix(8)), timeline: \(timeline.id.uuidString.prefix(8)), \
                 operation: resolveContextWorkspace, error: \(ErrorKit.userFriendlyMessage(for: error))
                 """)
+                timelineDegradations[timeline.id, default: []].append(TurnDiagnostic(
+                    dependency: .workspace,
+                    operation: "resolveContextWorkspace",
+                    entityId: "workspace:\(firstId.uuidString.prefix(8))",
+                    errorIdentity: ChatEvent.ErrorIdentity.extracting(from: error),
+                    message: ErrorKit.userFriendlyMessage(for: error)
+                ))
                 contextWorkspace = nil
             }
         } else {
@@ -240,6 +248,13 @@ private extension TimelineManager {
                 workspace: \(attachedId.uuidString.prefix(8)), timeline: \(timeline.id.uuidString.prefix(8)), \
                 operation: registerAttachedWorkspace, error: \(ErrorKit.userFriendlyMessage(for: error))
                 """)
+                timelineDegradations[timeline.id, default: []].append(TurnDiagnostic(
+                    dependency: .workspace,
+                    operation: "registerAttachedWorkspace",
+                    entityId: "workspace:\(attachedId.uuidString.prefix(8))",
+                    errorIdentity: ChatEvent.ErrorIdentity.extracting(from: error),
+                    message: ErrorKit.userFriendlyMessage(for: error)
+                ))
             }
         }
     }

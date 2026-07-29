@@ -69,6 +69,23 @@ enum ChatEngineError: PKError {
     }
 }
 
+/// A required turn dependency failed during preparation.
+enum TurnDegradationError: PKError {
+    case required(TurnDiagnostic, Error)
+
+    var diagnostic: TurnDiagnostic {
+        switch self {
+        case let .required(diagnostic, _): return diagnostic
+        }
+    }
+
+    var errorDomain: String { PKErrorDomain.chat }
+    var errorCode: Int { 9010 }
+    var userFriendlyMessage: String {
+        "Required \(diagnostic.dependency.rawValue) dependency failed during turn preparation: \(diagnostic.message)"
+    }
+}
+
 /// Unified runtime turn orchestrator for both interactive chat and autonomous execution.
 /// Returns `AsyncThrowingStream<ChatEvent>` for all use cases — callers decide how to consume.
 ///
@@ -103,6 +120,7 @@ struct ChatEngine {
         let chatTurnPlugins: [any ChatTurnPlugin]
         let promptObserver: (any PromptObserving)?
         let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
+        let degradationPolicy: TurnDegradationPolicy
         let promptHistoryRegistry: TimelinePromptJournals
         let streamTimeout: TimeInterval
 
@@ -116,6 +134,7 @@ struct ChatEngine {
             chatTurnPlugins: [any ChatTurnPlugin],
             promptObserver: (any PromptObserving)? = nil,
             diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
+            degradationPolicy: TurnDegradationPolicy = .failRequired,
             promptHistoryRegistry: TimelinePromptJournals? = nil,
             streamTimeout: TimeInterval = Self.defaultStreamTimeout
         ) {
@@ -129,6 +148,7 @@ struct ChatEngine {
             self.chatTurnPlugins = chatTurnPlugins
             self.promptObserver = promptObserver
             self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
+            self.degradationPolicy = degradationPolicy
             self.promptHistoryRegistry = promptHistoryRegistry ?? TimelinePromptJournals()
             self.streamTimeout = streamTimeout
         }
