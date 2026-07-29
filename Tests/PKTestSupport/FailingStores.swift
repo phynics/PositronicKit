@@ -101,28 +101,43 @@ public final class FailingTimelinePersistence: TimelinePersistenceProtocol, @unc
     }
 }
 
-/// A `WorkspaceStore` mock that can be configured to throw on `fetchWorkspace`,
-/// delegating all other operations to an in-memory backing store. Use it to drive
-/// failure-path coverage for workspace resolution in `getWorkspaces` and
-/// `setupTimelineComponents`.
+/// A `WorkspaceStore` mock that can be configured to throw on `fetchWorkspace` and/or
+/// `saveWorkspace`, delegating all other operations to an in-memory backing store. Use it
+/// to drive failure-path coverage for workspace resolution in `getWorkspaces`,
+/// `setupTimelineComponents`, and lifecycle rollback in `createTimeline`/`attachWorkspace`.
 public final class FailingWorkspaceStore: WorkspaceStore, @unchecked Sendable {
     private let backing = MockWorkspacePersistence()
-    private let fetchFails: Bool
+    private let fetchFailsState = Mutex<Bool>(false)
+    private let saveFails: Bool
     private let fetchAttemptState = Mutex<Int>(0)
+    private let saveAttemptState = Mutex<Int>(0)
 
-    public init(fetchFails: Bool = false) {
-        self.fetchFails = fetchFails
+    public init(fetchFails: Bool = false, saveFails: Bool = false) {
+        self.fetchFailsState.withLock { $0 = fetchFails }
+        self.saveFails = saveFails
+    }
+
+    public var fetchFails: Bool {
+        get { fetchFailsState.withLock { $0 } }
+        set { fetchFailsState.withLock { $0 = newValue } }
     }
 
     public var fetchAttemptCount: Int { fetchAttemptState.withLock { $0 } }
+    public var saveAttemptCount: Int { saveAttemptState.withLock { $0 } }
+
+    public var workspaces: [WorkspaceReference] {
+        backing.workspaces
+    }
 
     public func saveWorkspace(_ workspace: WorkspaceReference) async throws {
+        saveAttemptState.withLock { $0 += 1 }
+        if saveFails { throw FailingStoreError.saveFailed }
         try await backing.saveWorkspace(workspace)
     }
 
     public func fetchWorkspace(id: UUID, includeTools: Bool) async throws -> WorkspaceReference? {
         fetchAttemptState.withLock { $0 += 1 }
-        if fetchFails { throw FailingStoreError.fetchFailed }
+        if fetchFailsState.withLock({ $0 }) { throw FailingStoreError.fetchFailed }
         return try await backing.fetchWorkspace(id: id, includeTools: includeTools)
     }
 

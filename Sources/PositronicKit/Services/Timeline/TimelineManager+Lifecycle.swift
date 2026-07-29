@@ -8,6 +8,11 @@ import PKUtilities
 
 public extension TimelineManager {
     /// Creates a new conversation timeline, initializes its workspace, and saves it to persistence.
+    ///
+    /// The timeline record is persisted **first** so that a store failure leaves no orphan
+    /// directories, workspace rows, or cached managers. If subsequent steps (directory creation,
+    /// notes, workspace save) fail, the timeline record and any partially created state are
+    /// rolled back before rethrowing.
     func createTimeline(title: String = "New Conversation") async throws -> Timeline {
         let timelineId = UUID()
 
@@ -16,20 +21,12 @@ public extension TimelineManager {
         )
         .appendingPathComponent(timelineId.uuidString, isDirectory: true)
 
-        try FileManager.default.createDirectory(
-            at: timelineWorkspaceURL, withIntermediateDirectories: true
-        )
-
-        try writeDefaultNotes(at: timelineWorkspaceURL)
-
         let workspace = WorkspaceReference(
             uri: .timelineWorkspace(timelineId),
             location: .runtime,
             rootPath: timelineWorkspaceURL.path,
             trustLevel: .full
         )
-
-        try await workspaceStore.saveWorkspace(workspace)
 
         var timeline = Timeline(
             id: timelineId,
@@ -38,9 +35,47 @@ public extension TimelineManager {
         )
         timeline.workingDirectory = timelineWorkspaceURL.path
 
+        do {
+            try await timelineStore.saveTimeline(timeline)
+        } catch {
+            logger.error("""
+            createTimeline: timeline persist failed — timeline: \(timelineId.uuidString.prefix(8)), \
+            operation: saveTimeline, error: \(ErrorKit.userFriendlyMessage(for: error))
+            """)
+            throw TimelineError.unavailable
+        }
+
+        do {
+            try FileManager.default.createDirectory(
+                at: timelineWorkspaceURL, withIntermediateDirectories: true
+            )
+            try writeDefaultNotes(at: timelineWorkspaceURL)
+        } catch {
+            logger.error("""
+            createTimeline: workspace directory setup failed — \
+            timeline: \(timelineId.uuidString.prefix(8)), \
+            operation: createDirectory, error: \(ErrorKit.userFriendlyMessage(for: error))
+            """)
+            try? await timelineStore.deleteTimeline(id: timelineId)
+            throw TimelineError.unavailable
+        }
+
+        do {
+            try await workspaceStore.saveWorkspace(workspace)
+        } catch {
+            logger.error("""
+            createTimeline: workspace persist failed — \
+            timeline: \(timelineId.uuidString.prefix(8)), \
+            workspace: \(workspace.id.uuidString.prefix(8)), \
+            operation: saveWorkspace, error: \(ErrorKit.userFriendlyMessage(for: error))
+            """)
+            try? FileManager.default.removeItem(at: timelineWorkspaceURL)
+            try? await timelineStore.deleteTimeline(id: timelineId)
+            throw TimelineError.unavailable
+        }
+
         timelines[timeline.id] = timeline
         await setupTimelineComponents(timeline: timeline, workspaceURL: timelineWorkspaceURL)
-        try await timelineStore.saveTimeline(timeline)
 
         return timeline
     }

@@ -178,7 +178,7 @@ struct StoreErrorClassificationTests {
     @Test("getWorkspaces returns degradation when individual workspace fetch fails")
     func getWorkspacesIndividualFetchFailureReturnsDegradation() async throws {
         let persistence = MockPersistenceService()
-        let failingWorkspaceStore = FailingWorkspaceStore(fetchFails: true)
+        let failingWorkspaceStore = FailingWorkspaceStore(fetchFails: false)
         let workspace = TestWorkspace()
         let manager = TimelineManager(
             stores: .init(
@@ -195,13 +195,13 @@ struct StoreErrorClassificationTests {
             uri: WorkspaceURI(host: "user-mac", path: "/projects/app"),
             location: .attached
         )
-        try await persistence.saveWorkspace(attachedWS)
+        try await failingWorkspaceStore.saveWorkspace(attachedWS)
         try await manager.attachWorkspace(attachedWS.id, to: timeline.id)
+
+        failingWorkspaceStore.fetchFails = true
 
         let result = try await manager.getWorkspaces(for: timeline.id)
 
-        // The attached workspace fetch failed, so it should not appear in `attached`,
-        // but the failure should be surfaced as a degradation — not silently dropped.
         #expect(!result.attached.contains { $0.id == attachedWS.id },
                "The failing workspace should not appear in the result")
         #expect(result.degradations.contains { deg in

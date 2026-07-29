@@ -10,6 +10,18 @@ for tagged releases beginning with `1.0.0`.
 
 ### Fixed
 
+- **Timeline creation and workspace attachment no longer leave partial state (PKRR-007)**:
+  `createTimeline` now persists the timeline record **first**, before creating directories,
+  notes, or workspace rows. If any subsequent step fails, the timeline record and any
+  partially created state are rolled back (directory removed, timeline deleted) before
+  rethrowing. Previously, directory creation, notes, workspace save, and in-memory caching
+  all happened before the final timeline save — so a store failure could leak orphan
+  directories, workspace rows, and cached managers. `attachWorkspace` now validates the
+  workspace exists in the store **before** persisting the attachment. If validation fails
+  (workspace not found or store error), the timeline is not mutated. Previously, the
+  attachment was persisted first and workspace resolution failure was silently swallowed,
+  leaving a dangling workspace ID in the timeline that was not usable at runtime.
+
 - **Tool terminal status is emitted only after the result is durable (PKRR-016)**:
   `ToolRouter` now persists the tool message to the message store **before** yielding the
   terminal `.success` or `.failed` event. Previously the event was yielded first, so a
@@ -39,6 +51,11 @@ for tagged releases beginning with `1.0.0`.
   scraping. Cleanup always runs, even after cancellation.
 
 ### Added
+
+- **`FailingWorkspaceStore` enhancements (PKRR-007)**: `FailingWorkspaceStore` now supports
+  `saveFails` (throws on `saveWorkspace`) and a mutable `fetchFails` property (toggleable at
+  runtime) with `saveAttemptCount`/`workspaces` accessors, enabling lifecycle fault-injection
+  tests for `createTimeline` and `attachWorkspace` rollback paths.
 
 - **`ToolExecutionStatus.persistenceFailed(reference:error:)` (PKRR-016)**: a new terminal
   status case emitted when the tool executed (successfully or with an error) but

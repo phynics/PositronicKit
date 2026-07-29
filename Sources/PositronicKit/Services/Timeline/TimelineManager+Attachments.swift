@@ -29,10 +29,32 @@ public extension TimelineManager {
             }
         }
 
+        do {
+            guard try await workspaceStore.fetchWorkspace(
+                id: workspaceId, includeTools: false
+            ) != nil else {
+                logger.warning("""
+                attachWorkspace: workspace not found — \
+                workspace: \(workspaceId.uuidString.prefix(8)), \
+                timeline: \(timelineId.uuidString.prefix(8)), operation: validateWorkspace
+                """)
+                throw TimelineError.invalidState("workspace \(workspaceId.uuidString.prefix(8)) not found")
+            }
+        } catch let error as TimelineError {
+            throw error
+        } catch {
+            logger.error("""
+            attachWorkspace: workspace validation failed — \
+            workspace: \(workspaceId.uuidString.prefix(8)), \
+            timeline: \(timelineId.uuidString.prefix(8)), \
+            operation: validateWorkspace, error: \(ErrorKit.userFriendlyMessage(for: error))
+            """)
+            throw TimelineError.unavailable
+        }
+
         if !timeline.attachedWorkspaceIds.contains(workspaceId) {
             timeline.attachedWorkspaceIds.append(workspaceId)
         }
-
         timeline.updatedAt = Date()
 
         if timelines[timeline.id] != nil { timelines[timeline.id] = timeline }
@@ -40,8 +62,8 @@ public extension TimelineManager {
 
         if let toolManager = toolManagers[timelineId] {
             do {
-                if let workspace = try await workspaceResolver.getWorkspace(id: workspaceId) {
-                    await toolManager.registerWorkspace(workspace)
+                if let resolved = try await workspaceResolver.getWorkspace(id: workspaceId) {
+                    await toolManager.registerWorkspace(resolved)
                 }
             } catch {
                 logger.warning("""
