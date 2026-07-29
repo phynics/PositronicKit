@@ -82,6 +82,7 @@ public final class PositronicKit: Sendable {
     private let workspaceCreator: any WorkspaceFactory
     private let sectionProviders: [any PromptSectionProviding]
     private let runtimeToolPolicy: TimelineManager.RuntimeToolPolicy
+    private let degradationPolicy: TurnDegradationPolicy
     private let toolApprovalPolicy: any ToolApprovalPolicy
 
     // MARK: - Init
@@ -130,6 +131,7 @@ public final class PositronicKit: Sendable {
         chatTurnPlugins: [any ChatTurnPlugin] = [],
         promptObserver: (any PromptObserving)? = nil,
         diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
+        degradationPolicy: TurnDegradationPolicy = .failRequired,
         generationParameters: GenerationParameters? = nil,
         toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
         loggingConfiguration: LoggingConfiguration = .default,
@@ -148,6 +150,7 @@ public final class PositronicKit: Sendable {
         self.chatTurnPlugins = chatTurnPlugins
         self.promptObserver = promptObserver
         self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
+        self.degradationPolicy = degradationPolicy
         promptHistoryRegistry = sharedRegistry
         self.workspaceRoot = workspaceRoot
         self.workspaceCreator = workspaceCreator
@@ -209,6 +212,7 @@ public final class PositronicKit: Sendable {
                 promptObserver: self.promptObserver,
                 diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
                 loggingConfiguration: loggingConfiguration,
+                degradationPolicy: degradationPolicy,
                 promptHistoryRegistry: promptHistoryRegistry
             )
         )
@@ -243,6 +247,7 @@ public final class PositronicKit: Sendable {
             chatTurnPlugins: chatTurnPlugins,
             promptObserver: promptObserver,
             diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
+            degradationPolicy: degradationPolicy,
             generationParameters: generationParameters ?? defaultGenerationParameters,
             toolApprovalPolicy: toolApprovalPolicy,
             loggingConfiguration: loggingConfiguration,

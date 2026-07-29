@@ -20,6 +20,12 @@ for tagged releases beginning with `1.0.0`.
   longer enter default structured logs; error logs carry stable domain, code, and correlation
   metadata.
 
+- **Turn degradation policy and diagnostics (PKRR-022)**: required context, agent, and workspace
+  preparation failures now abort before provider generation by default (`failRequired`). Hosts may
+  select `continueWithWarnings`; downgraded failures are carried as structured `TurnDiagnostic`
+  metadata on the initial `generationContext` event, including stable error identity and operation
+  details. Origin lookup remains optional and is observable through the same metadata.
+
 - **Structured one-shot generation results (PKRR-019)**: One-shot streaming now
   applies the same idle-timeout and cancellation semantics as timeline chat,
   accepts per-call generation parameters, and exposes `OneShotResult` with

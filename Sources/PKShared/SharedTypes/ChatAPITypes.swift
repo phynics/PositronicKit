@@ -31,9 +31,21 @@ public struct ChatMetadata: Sendable, Codable {
     public let memories: [UUID]
     /// List of file paths or identifiers retrieved for this turn.
     public let files: [String]
+    /// Preparation degradations observed before generation.
+    public let diagnostics: [TurnDiagnostic]
 
-    public init(memories: [UUID] = [], files: [String] = []) {
+    public init(memories: [UUID] = [], files: [String] = [], diagnostics: [TurnDiagnostic] = []) {
         self.memories = memories
         self.files = files
+        self.diagnostics = diagnostics
+    }
+
+    private enum CodingKeys: String, CodingKey { case memories, files, diagnostics }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        memories = try container.decode([UUID].self, forKey: .memories)
+        files = try container.decode([String].self, forKey: .files)
+        diagnostics = try container.decodeIfPresent([TurnDiagnostic].self, forKey: .diagnostics) ?? []
     }
 }

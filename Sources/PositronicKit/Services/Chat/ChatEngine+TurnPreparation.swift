@@ -94,31 +94,55 @@ extension ChatEngine {
             try validateToolHistory(history)
 
             // 7. Load context
-            let contextData = await fetchContext(
+            let contextResult = try await fetchContext(
                 turnBriefingBuilder: turnBriefingBuilder,
                 message: message,
                 history: history,
                 pipeline: contextPipeline
             )
+            var turnDiagnostics = contextResult.diagnostics
+            let contextData = contextResult.data
 
             // 8. Resolve workspaces and session entities
             let workspaceResult = try await dependencies.timelineManager.getWorkspaces(for: timelineId)
+            turnDiagnostics += workspaceResult.degradations.map {
+                TurnDiagnostic(
+                    dependency: .workspace,
+                    operation: $0.operation,
+                    entityId: $0.entityId,
+                    errorIdentity: $0.errorIdentity,
+                    message: $0.message
+                )
+            }
+            turnDiagnostics += await dependencies.timelineManager.consumeDegradations(for: timelineId)
+            try enforceRequired(turnDiagnostics)
             await dependencies.timelineManager.touchTimeline(id: timelineId)
             let timeline = await dependencies.timelineManager.timeline(id: timelineId)
 
             var agentInstance: AgentInstance?
             if let agentId = agentInstanceId {
-                agentInstance = try? await dependencies.agentInstanceStore.fetchAgentInstance(id: agentId)
+                do {
+                    agentInstance = try await dependencies.agentInstanceStore.fetchAgentInstance(id: agentId)
+                    if agentInstance == nil {
+                        let error = AgentInstanceError.instanceNotFound(agentId)
+                        turnDiagnostics.append(diagnostic(for: .agent, operation: "fetchAgentInstance", entityId: agentId.uuidString, error: error))
+                    }
+                } catch {
+                    turnDiagnostics.append(diagnostic(for: .agent, operation: "fetchAgentInstance", entityId: agentId.uuidString, error: error))
+                    try enforceRequired(turnDiagnostics)
+                }
             }
 
             let requestOriginId = workspaceResult.primary?.originId
                 ?? workspaceResult.attached.lazy.compactMap(\.originId).first
 
             var requestOriginName: String?
-            if let originId = requestOriginId,
-               let origin = try? await dependencies.requestOriginStore.fetchOrigin(id: originId)
-            {
-                requestOriginName = origin.displayName
+            if let originId = requestOriginId {
+                do {
+                    requestOriginName = try await dependencies.requestOriginStore.fetchOrigin(id: originId)?.displayName
+                } catch {
+                    turnDiagnostics.append(diagnostic(for: .origin, operation: "fetchOrigin", entityId: originId.uuidString, error: error))
+                }
             }
 
             // 9. Build the initial prompt messages
@@ -259,6 +283,7 @@ extension ChatEngine {
                 generationParameters: generationParameters,
                 structuredOutput: structuredOutput,
                 sidecars: sidecars,
+                diagnostics: turnDiagnostics,
                 promptHistory: promptHistory,
                 renderedPrompt: renderedPrompt,
                 promptHistoryUpdate: update,
@@ -287,8 +312,8 @@ private extension ChatEngine {
         message: String,
         history: [Message],
         pipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil
-    ) async -> ContextData {
-        guard let turnBriefingBuilder else { return ContextData() }
+    ) async throws -> (data: ContextData, diagnostics: [TurnDiagnostic]) {
+        guard let turnBriefingBuilder else { return (ContextData(), []) }
 
         do {
             let stream = await turnBriefingBuilder.gatherContext(
@@ -300,13 +325,59 @@ private extension ChatEngine {
 
             for try await event in stream {
                 if case let .complete(data) = event {
-                    return data
+                    return (data, [])
                 }
             }
         } catch {
+            let diagnostic = diagnostic(for: .context, operation: "gatherContext", entityId: "turn", error: error)
+            if dependencies.degradationPolicy == .failRequired {
+                throw TurnDegradationError.required(diagnostic, error)
+            }
             logger.warning("Failed to gather context: \(error)")
+            return (ContextData(), [diagnostic])
         }
-        return ContextData()
+        let diagnostic = TurnDiagnostic(
+            dependency: .context,
+            operation: "gatherContext",
+            entityId: "turn",
+            errorIdentity: .init(domain: PKErrorDomain.context, code: 9011),
+            message: "Context gathering completed without context data."
+        )
+        if dependencies.degradationPolicy == .failRequired {
+            throw TurnDegradationError.required(diagnostic, TurnBriefingBuilderError.persistenceFailed(NSError(domain: "PositronicKit", code: 1)))
+        }
+        return (ContextData(), [diagnostic])
+    }
+
+    func diagnostic(for dependency: TurnDependency, operation: String, entityId: String, error: Error) -> TurnDiagnostic {
+        TurnDiagnostic(
+            dependency: dependency,
+            operation: operation,
+            entityId: entityId,
+            errorIdentity: ChatEvent.ErrorIdentity.extracting(from: error),
+            message: ErrorKit.userFriendlyMessage(for: error)
+        )
+    }
+
+    func enforceRequired(_ diagnostics: [TurnDiagnostic]) throws {
+        guard dependencies.degradationPolicy == .failRequired,
+              let diagnostic = diagnostics.first(where: { diagnostic in
+                  switch diagnostic.dependency {
+                  case .context, .agent:
+                      return true
+                  case .workspace:
+                      // A missing optional attachment is observable but does not make the
+                      // timeline unusable. Store outages and resolver failures remain fatal.
+                      return diagnostic.errorIdentity?.code != 3004
+                  case .origin:
+                      return false
+                  }
+              })
+        else { return }
+        throw TurnDegradationError.required(
+            diagnostic,
+            NSError(domain: diagnostic.errorIdentity?.domain ?? PKErrorDomain.chat, code: diagnostic.errorIdentity?.code ?? 9010)
+        )
     }
 
     func validateToolHistory(_ history: [Message]) throws {

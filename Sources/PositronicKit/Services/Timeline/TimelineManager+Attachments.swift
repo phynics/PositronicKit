@@ -71,6 +71,13 @@ public extension TimelineManager {
                 workspace: \(workspaceId.uuidString.prefix(8)), timeline: \(timelineId.uuidString.prefix(8)), \
                 operation: registerWorkspace, error: \(ErrorKit.userFriendlyMessage(for: error))
                 """)
+                timelineDegradations[timelineId, default: []].append(TurnDiagnostic(
+                    dependency: .workspace,
+                    operation: "registerWorkspace",
+                    entityId: "workspace:\(workspaceId.uuidString.prefix(8))",
+                    errorIdentity: ChatEvent.ErrorIdentity.extracting(from: error),
+                    message: ErrorKit.userFriendlyMessage(for: error)
+                ))
             }
         }
     }
