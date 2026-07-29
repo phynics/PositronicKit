@@ -10,6 +10,14 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- **Docs snippet syntax gate (PKRR-027)**: `make verify` (and the new `make verify-doc-snippets`
+  target) now runs `Scripts/compile-doc-snippets.sh`, which extracts every ```swift fenced block
+  from `docs/` and `swiftc -parse`-checks it. This is a syntax-only guard (it catches malformed
+  snippets and establishes the hook for a fuller gate); the canonical construction / run /
+  event-handling shapes in `docs/Usage.md` are additionally type-checked as part of
+  `PositronicKitExamples` via `make verify-examples`. A full extract-and-typecheck docs gate is
+  tracked under PKRR-025.
+
 - **Hard token-budget enforcement (PKRR-021)**: token budgeting now returns a verified result that
   never exceeds the available prompt budget, fails typed when mandatory `.keep` sections cannot fit,
   and preserves summarizer failures instead of converting them into dropped sections.
@@ -87,6 +95,19 @@ for tagged releases beginning with `1.0.0`.
   cases for the corresponding terminal states.
 
 ### Fixed
+
+- **Usage guide snippets compile against the current API (PKRR-027)**:
+  `docs/Usage.md` examples were updated to match the current grouped `Configuration` API and
+  `ChatEvent` vocabulary. The "Simplified Initialization" and "Full Initialization" snippets now
+  use `PositronicKit(languageModel:)` and `PositronicKit(configuration:)` instead of the removed
+  `PositronicKit(openAIKey:)` / `PositronicKit(ollamaModel:)` / `PositronicKit(llmService:persistence:…)`
+  shapes; the "Running a Chat Stream", "Enabling Prompt Assembly Logs", and "Handling Tool
+  Outputs" snippets now call `chat.run(ChatRunRequest(…))` instead of the removed
+  `run(timelineId:message:…)` overload; and the event switch is exhaustive over the current
+  cases (`.delta(.reasoning)`, the PKRR-011 terminal events, `ErrorIdentity.isBlocked`), with the
+  deprecated `.meta(.generationCompleted)` / `.completion(.streamCompleted)` covered by `default`
+  rather than documented as active. The canonical event-handling shape is now compiled as
+  `PositronicKitUsageExamples.consumeChatEventStream(_:)` so `make verify-examples` catches drift.
 
 - **`LLMService` no longer reports configured while unable to send (PKRR-018)**:
   A valid configuration with no registered client factory previously set `isConfigured == true`
