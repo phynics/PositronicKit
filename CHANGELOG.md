@@ -8,6 +8,29 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Added
+
+- **Distinct terminal events for max-turn exhaustion and deferred external tool work
+  (PKRR-011)**: `ChatEvent.CompletionEvent` gains two new cases — `.maxTurnsReached` and
+  `.deferredForExternalTool` — so consumers can reliably distinguish these outcomes from
+  normal completion by a single terminal event. Previously, max-turn exhaustion only logged
+  and finished the stream (looking identical to a silent success), and deferred external tool
+  work finished with no terminal event at all. Every execution path through `ChatEngine` now
+  emits exactly one path-specific terminal event before the stream closes:
+  `.generationCompleted` (normal completion), `.maxTurnsReached` (turn budget exhausted),
+  `.deferredForExternalTool` (host-side tool execution), `.generationCancelled` (direct
+  cancellation), or a thrown error (failure). New factory shortcuts
+  `ChatEvent.maxTurnsReached()` and `ChatEvent.deferredForExternalTool()` are provided.
+
+### Deprecated
+
+- **`.meta(.generationCompleted)` and `.completion(.streamCompleted)` are deprecated
+  (PKRR-011)**: both cases were defined but never emitted in production (definition/docs-only
+  orphans). They are now marked `@available(*, deprecated)` and retained only for `Codable`
+  backward compatibility. Consumers should switch on `.completion(.generationCompleted)` for
+  terminal completion metadata and on the new `.maxTurnsReached` / `.deferredForExternalTool`
+  cases for the corresponding terminal states.
+
 ### Fixed
 
 - **Timeline creation and workspace attachment no longer leave partial state (PKRR-007)**:

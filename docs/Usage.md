@@ -116,7 +116,7 @@ for try await event in stream {
     switch event {
     case .delta(let event):
         switch event {
-        case .thinking(let text):
+        case .reasoning(let text):
             print("\nThinking: \(text)", terminator: "")
         case .generation(let text):
             print(text, terminator: "")
@@ -133,31 +133,35 @@ for try await event in stream {
         switch event {
         case .generationContext(let metadata):
             print("\nContext: \(metadata.files.count) files referenced")
-        case .generationCompleted(let message, let metadata):
-            print("\nMeta completion: \(message.content) (\(metadata.totalTokens ?? 0) tokens)")
         }
+        // Note: `.meta(.generationCompleted)` is deprecated and never emitted in production.
 
     case .completion(let event):
         switch event {
         case .generationCompleted(let message, _):
             print("\nDone: \(message.content)")
+        case .completedEmpty(let finishReason):
+            print("\nCompleted empty (finishReason: \(finishReason ?? "nil"))")
         case .toolExecution(let toolCallId, let status):
             print("\nTool completed [\(toolCallId)]: \(status)")
-        case .streamCompleted:
-            print("\nStream finished.")
+        case .maxTurnsReached:
+            print("\nMax turns reached — the agent did not produce a tool-free final response.")
+        case .deferredForExternalTool:
+            print("\nTool calls deferred for external execution; stream paused for host-side work.")
         case .sidecarsCompleted(let results):
             // Only emitted on turns passed `sidecars:` — see docs/SidecarDirectives.md.
             for result in results {
                 print("\n[\(result.name)] \(result.outcome)")
             }
         }
+        // Note: `.completion(.streamCompleted)` is deprecated and never emitted in production.
 
     case .error(let event):
         switch event {
         case .toolCallError(let toolCallId, let name, let error):
             print("\nTool call error [\(toolCallId)] for \(name): \(error)")
-        case .error(let message):
-            print("\nError: \(message)")
+        case .error(let message, let identity):
+            print("\nError: \(message) (blocked: \(identity?.isBlocked ?? false))")
         case .generationCancelled:
             print("\nGeneration cancelled.")
         }
@@ -212,14 +216,27 @@ let stream = try await chat.run(
 
 ### ChatEvent Stream
 The stream provides a rich set of events:
-- `.delta(.thinking)` and `.delta(.generation)` for streaming text.
+- `.delta(.reasoning)` and `.delta(.generation)` for streaming text.
 - `.delta(.toolCall)` and `.delta(.toolExecution)` for tool progress.
 - `.delta(.sidecar)` and `.completion(.sidecarsCompleted)` for piggy-backed directive results on
   turns passed `sidecars:` (see [Sidecar Directives](SidecarDirectives.md)).
 - `.meta(.generationContext)` for retrieved context metadata.
-- `.meta(.generationCompleted)` for informational completion metadata.
-- `.completion(.generationCompleted)` and `.completion(.streamCompleted)` for terminal events.
-- `.error(.toolCallError)`, `.error(.error)`, and `.error(.generationCancelled)` for failure and cancellation handling.
+- `.completion(.generationCompleted)` for the terminal event on normal completion (one per
+  completed turn; the final one closes the stream).
+- `.completion(.completedEmpty)` for a successful but empty assistant response.
+- `.completion(.maxTurnsReached)` for the terminal event when the ReAct loop exhausts its
+  `maxTurns` budget while tool calls are still pending — distinct from normal completion so
+  consumers can tell exhaustion apart from success.
+- `.completion(.deferredForExternalTool)` for the terminal event when at least one tool call is
+  deferred for external (host-side) execution — the stream pauses for the host to submit tool
+  outputs in a follow-up turn.
+- `.error(.toolCallError)`, `.error(.error)`, and `.error(.generationCancelled)` for failure and
+  cancellation handling. A turn failure surfaces as a thrown error on the stream (the throw is
+  that path's terminal signal); a direct cancellation emits `.generationCancelled`.
+
+The deprecated `.meta(.generationCompleted)` and `.completion(.streamCompleted)` cases are
+retained for `Codable` backward compatibility but are never emitted in production — switch on
+the cases above instead.
 
 ### Agent Persistence
 Agents are persistent. Their workspace (`primaryWorkspaceId`) contains their long-term memory, while their private timeline (`privateTimelineId`) stores their internal monologue and history.

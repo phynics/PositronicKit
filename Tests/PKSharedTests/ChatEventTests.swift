@@ -43,11 +43,12 @@ import ErrorKit
             name: "lookup_weather",
             error: "bad args"
         ))
-        let metaCompletionEvent = ChatEvent.meta(.generationCompleted(
+        let completionEvent = ChatEvent.completion(.generationCompleted(
             message: Message(content: "done", role: .assistant),
             metadata: completionMeta
         ))
-        let completionEvent = ChatEvent.completion(.streamCompleted)
+        let maxTurnsEvent = ChatEvent.maxTurnsReached()
+        let deferredEvent = ChatEvent.deferredForExternalTool()
 
         switch toolDeltaEvent {
         case .delta(let event):
@@ -76,29 +77,29 @@ import ErrorKit
             Issue.record("Expected outer error event")
         }
 
-        switch metaCompletionEvent {
-        case .meta(let event):
+        switch completionEvent {
+        case .completion(let event):
             switch event {
             case .generationCompleted(let message, let metadata):
                 #expect(message.content == "done")
                 #expect(metadata.totalTokens == 42)
             default:
-                Issue.record("Expected nested meta.generationCompleted event")
-            }
-        default:
-            Issue.record("Expected outer meta event")
-        }
-
-        switch completionEvent {
-        case .completion(let event):
-            switch event {
-            case .streamCompleted:
-                break
-            default:
-                Issue.record("Expected nested completion.streamCompleted event")
+                Issue.record("Expected nested completion.generationCompleted event")
             }
         default:
             Issue.record("Expected outer completion event")
+        }
+
+        if case .completion(.maxTurnsReached) = maxTurnsEvent {
+            // success
+        } else {
+            Issue.record("Expected completion.maxTurnsReached event, got \(maxTurnsEvent)")
+        }
+
+        if case .completion(.deferredForExternalTool) = deferredEvent {
+            // success
+        } else {
+            Issue.record("Expected completion.deferredForExternalTool event, got \(deferredEvent)")
         }
     }
 

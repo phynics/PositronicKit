@@ -22,6 +22,10 @@ private enum LoopContinuation {
     /// `.generationCancelled()`, and finished the continuation; the outer loop must not run
     /// any post-terminal activity.
     case cancelled
+    /// At least one tool call was deferred for external (host-side) execution. Terminal: the
+    /// outer loop emits `.deferredForExternalTool()` and finishes the stream without running
+    /// plugin follow-up or starting another LLM turn (PKRR-011).
+    case deferredExternally
 }
 
 // MARK: - Turn Loop
@@ -141,6 +145,16 @@ extension ChatEngine {
                 // snapshot, message append, or further LLM turn is permitted after terminal
                 // delivery (PKRR-003).
                 return
+
+            case .deferredExternally:
+                // Terminal: at least one tool call was deferred for external execution. The
+                // stream pauses for host-side tool execution — emit a distinct terminal event
+                // so consumers can distinguish deferred external tool work from normal
+                // completion, then finish without plugin follow-up or another LLM turn
+                // (PKRR-011).
+                continuation.yield(.deferredForExternalTool())
+                continuation.finish()
+                return
             }
         }
 
@@ -149,6 +163,11 @@ extension ChatEngine {
             LogKeys.sendID: .string(context.sendId.uuidString),
             LogKeys.turnIndex: .string("\(turnCount)"),
         ])
+        // Terminal: the loop exhausted its max-turn budget while tool calls were still pending.
+        // Emit a distinct terminal event so consumers can distinguish max-turn exhaustion from
+        // normal completion instead of the stream silently finishing as if it succeeded
+        // (PKRR-011).
+        continuation.yield(.maxTurnsReached())
         continuation.finish()
     }
 }
@@ -251,8 +270,10 @@ private extension ChatEngine {
         }
 
         switch result {
-        case .noToolCalls, .deferredExternally:
+        case .noToolCalls:
             return .completed
+        case .deferredExternally:
+            return .deferredExternally
         case let .continueWith(messages):
             return .continueWith(messages)
         }

@@ -126,7 +126,13 @@ public enum ChatEvent: Sendable, Codable {
     public enum MetaEvent: Sendable, Codable {
         /// RAG context metadata — emitted once at the start of the loop
         case generationContext(metadata: ChatMetadata)
-        /// Generation completed with metadata (informational)
+        /// Generation completed with metadata (informational).
+        ///
+        /// - Warning: This case is **never emitted in production**. The runtime emits the
+        ///   terminal completion via `.completion(.generationCompleted)` instead. Retained
+        ///   only for backward compatibility of `Codable` round-tripping; new consumers
+        ///   should switch on `.completion(.generationCompleted)` (PKRR-011).
+        @available(*, deprecated, message: "Never emitted in production. Use .completion(.generationCompleted) for terminal completion metadata.")
         case generationCompleted(message: Message, metadata: APIResponseMetadata)
     }
 
@@ -153,11 +159,28 @@ public enum ChatEvent: Sendable, Codable {
         case completedEmpty(finishReason: String?)
         /// Tool execution completed with final status
         case toolExecution(toolCallId: String, status: ToolExecutionStatus)
-        /// The entire stream is complete (terminal event)
-        case streamCompleted
+        /// The ReAct loop exhausted its `maxTurns` budget while tool calls were still pending,
+        /// so the agent never produced a tool-free final response. Terminal: emitted exactly
+        /// once before the stream closes, in place of `.generationCompleted`, so consumers can
+        /// distinguish max-turn exhaustion from normal completion (PKRR-011).
+        case maxTurnsReached
+        /// The turn ended because at least one tool call was deferred for external (host-side)
+        /// execution. Terminal: emitted exactly once before the stream closes, in place of
+        /// `.generationCompleted`, so consumers can distinguish deferred external tool work
+        /// from normal completion (PKRR-011).
+        case deferredForExternalTool
 
         /// All sidecar directives resolved for the turn (values, declines, failures)
         case sidecarsCompleted(results: [SidecarResult])
+
+        /// The entire stream is complete (terminal event).
+        ///
+        /// - Warning: This case is **never emitted in production**. The runtime signals
+        ///   stream completion through the path-specific terminal cases (`.generationCompleted`,
+        ///   `.maxTurnsReached`, `.deferredForExternalTool`) or by throwing. Retained only for
+        ///   backward compatibility of `Codable` round-tripping (PKRR-011).
+        @available(*, deprecated, message: "Never emitted in production. Switch on .generationCompleted / .maxTurnsReached / .deferredForExternalTool for terminal events.")
+        case streamCompleted
     }
 
     case delta(DeltaEvent)
@@ -230,6 +253,14 @@ public extension ChatEvent {
 
     static func streamCompleted() -> ChatEvent {
         .completion(.streamCompleted)
+    }
+
+    static func maxTurnsReached() -> ChatEvent {
+        .completion(.maxTurnsReached)
+    }
+
+    static func deferredForExternalTool() -> ChatEvent {
+        .completion(.deferredForExternalTool)
     }
 
     static func sidecarsCompleted(_ results: [SidecarResult]) -> ChatEvent {

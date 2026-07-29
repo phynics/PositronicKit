@@ -753,8 +753,17 @@ struct ChatEngineTests {
             }
             #expect(successEvents.count == 2)
 
-            // maxTurns exhausted while tool calls were pending — no generationCompleted is emitted.
-            // Verify the stream finished cleanly (no thrown error — collect would throw if it did).
+            // Max-turn exhaustion emits a distinct terminal event (PKRR-011). Previously the
+            // stream finished silently with no terminal signal, making exhaustion look like a
+            // success with no generationCompleted. Now it emits exactly one `.maxTurnsReached`.
+            let maxTurnsEvents = events.filter {
+                if case .completion(.maxTurnsReached) = $0 { return true }
+                return false
+            }
+            #expect(maxTurnsEvents.count == 1)
+
+            // The distinct terminal event replaces `.generationCompleted` — no normal completion
+            // is emitted when the loop exhausts its turn budget mid-tool.
             let completionCount = events.filter {
                 if case .completion(.generationCompleted) = $0 { return true }
                 return false
