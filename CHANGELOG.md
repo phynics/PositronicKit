@@ -18,6 +18,22 @@ for tagged releases beginning with `1.0.0`.
   `PositronicKitExamples` via `make verify-examples`. A full extract-and-typecheck docs gate is
   tracked under PKRR-025.
 
+- **Validated retry and timeout configuration (PKRR-030)**: `RetryPolicy` and
+  `ToolTimeoutEnforcer` no longer accept arbitrary numeric values that could create
+  immediate loops, excessive sleeps, or `UInt64` conversion traps. New public types
+  `RetryConfiguration` and `Timeout` (in `PKUtilities`) validate at construction:
+  negative, NaN, infinite, or extreme values fail with typed errors
+  (`RetryConfigurationError`, `TimeoutValidationError`) instead of silently producing
+  bad behavior. `RetryConfiguration` enforces finite delay ranges, caps server-advertised
+  `Retry-After` hints by `maxRetryAfter`, enforces both attempt (`maxRetries`) and
+  total-elapsed (`maxTotalElapsedTime`) limits, and supports injectable deterministic
+  jitter via `JitterStrategy` for tests. The legacy `RetryPolicy.retry(maxRetries:baseDelay:)`
+  signature delegates to `RetryConfiguration` and throws on invalid inputs (existing call
+  sites with valid values are unaffected — additive, backward-compatible). Provider
+  `Retry-After` parsing now rejects non-finite values (NaN, infinity) as defense-in-depth.
+  `ToolTimeoutEnforcer` uses the shared `Timeout` type for overflow-safe nanosecond
+  conversion while preserving its existing `ToolError.executionFailed` error surface.
+
 - **Hard token-budget enforcement (PKRR-021)**: token budgeting now returns a verified result that
   never exceeds the available prompt budget, fails typed when mandatory `.keep` sections cannot fit,
   and preserves summarizer failures instead of converting them into dropped sections.

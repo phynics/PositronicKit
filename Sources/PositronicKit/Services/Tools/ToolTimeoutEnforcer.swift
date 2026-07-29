@@ -54,19 +54,20 @@ package enum ToolTimeoutEnforcer {
         timeout: TimeInterval,
         sleep: @Sendable @escaping (UInt64) async throws -> Void = defaultSleep
     ) async throws -> ToolResult {
-        // Basic timeout-value validation (PKRR-030 relationship). Negative, infinite, or NaN
-        // timeouts are not valid wall-clock bounds; surface them as a clean execution failure
-        // before starting the race so the tool never runs against an unusable timeout.
-        guard timeout.isFinite, timeout >= 0 else {
+        // PKRR-030: validate the timeout via the reusable `Timeout` type so the
+        // validation logic and overflow-safe nanosecond conversion are shared with
+        // `RetryPolicy`. Negative, infinite, or NaN timeouts are not valid wall-clock
+        // bounds; surface them as a clean execution failure before starting the race so
+        // the tool never runs against an unusable timeout.
+        let timeoutValue: Timeout
+        do {
+            timeoutValue = try Timeout(seconds: timeout)
+        } catch {
             throw ToolError.executionFailed(
                 "Tool execution timeout \(timeout) is not a valid finite non-negative duration"
             )
         }
-        // Overflow-safe nanosecond conversion. `TimeInterval` is a `Double`; clamping to the
-        // `UInt64` max guards against values whose nanosecond product would overflow.
-        let nanoseconds = timeout >= TimeInterval(UInt64.max) / 1_000_000_000
-            ? UInt64.max
-            : UInt64(timeout * 1_000_000_000)
+        let nanoseconds = timeoutValue.nanoseconds
         let timeoutMessage = "Tool execution timed out after \(ToolError.timeoutDescription(timeout))"
 
         // Note: this deliberately does not race the two sides inside a `withThrowingTaskGroup`.

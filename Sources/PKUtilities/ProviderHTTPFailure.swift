@@ -24,7 +24,9 @@ package enum ProviderHTTPFailure {
             return nil
         }
 
-        if let seconds = TimeInterval(rawValue), seconds > 0 {
+        // PKRR-030: reject non-finite values (NaN, infinity) that would later trap on
+        // UInt64 nanosecond conversion. A hostile or buggy server could send "Retry-After: inf".
+        if let seconds = TimeInterval(rawValue), seconds > 0, seconds.isFinite {
             return seconds
         }
 
@@ -34,7 +36,8 @@ package enum ProviderHTTPFailure {
         formatter.dateFormat = "EEE',' dd MMM yyyy HH':'mm':'ss z"
 
         guard let date = formatter.date(from: rawValue) else { return nil }
-        return max(0, date.timeIntervalSinceNow)
+        let elapsed = max(0, date.timeIntervalSinceNow)
+        return elapsed.isFinite ? elapsed : nil
     }
 
     package static func sanitize(_ responseBody: String, limit: Int = LimitedErrorBodyCollector.defaultLimit) -> String {

@@ -90,4 +90,5 @@ public enum PKErrorDomain {
     public static let persistence = "com.positronickit.core.persistence"
     public static let rpc = "com.positronickit.core.rpc"
     public static let filesystem = "com.positronickit.core.filesystem"
+    public static let utilities = "com.positronickit.utilities"
 }
