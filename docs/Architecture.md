@@ -82,9 +82,9 @@ instead of paying a separate round-trip per auxiliary task. Full design:
   the `response` field to emit ordinary `.generation` deltas (raw JSON never reaches
   consumers), and emits directive fields as `.sidecar` deltas (buffered or incremental per
   directive) once each field completes.
-- **Events**: `ChatEvent.sidecar(delta:)` for streaming updates, `ChatEvent.sidecarsCompleted(results:)`
-  for terminal per-directive outcomes (`.value`, `.declined` for an explicit `null`, or
-  `.failed(reason:)`).
+- **Events**: `ChatEvent.sidecar(delta:)` streams directive observations. Committed outcomes use
+  `SidecarCompletion`, including `TurnIdentity`; terminal policy can defer that completion until
+  the logical send finishes.
 - **Error model**: a sidecar failure never fails the turn. Already-streamed response text is
   kept; incomplete directives report `.failed` in the completion event. A model that ignores
   the schema entirely (non-JSON prose) falls back to passthrough: the whole buffer becomes the

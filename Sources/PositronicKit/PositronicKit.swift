@@ -362,6 +362,7 @@ public final class PositronicKit: Sendable {
             generationParameters: request.generationParameters ?? defaultGenerationParameters,
             structuredOutput: request.structuredOutput,
             sidecars: request.sidecars,
+            sidecarCommitPolicy: request.sidecarCommitPolicy,
             includeSidecarMechanismPreamble: request.includeSidecarMechanismPreamble,
             assemblyLogger: request.promptAssemblyLogger
         )

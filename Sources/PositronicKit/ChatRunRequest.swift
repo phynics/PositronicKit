@@ -3,6 +3,12 @@ import Logging
 import PKShared
 import PKUtilities
 
+/// Controls when parsed sidecar results become committed completion events.
+public enum SidecarCommitPolicy: Sendable, Codable, Equatable {
+    case everyRoundTrip
+    case terminalRoundTrip
+}
+
 /// Transport-neutral configuration for a single chat turn.
 public struct ChatRunRequest: Sendable, CustomStringConvertible {
     public let timelineId: UUID
@@ -16,6 +22,7 @@ public struct ChatRunRequest: Sendable, CustomStringConvertible {
     public let generationParameters: GenerationParameters?
     public let structuredOutput: StructuredOutputRequest?
     public let sidecars: [SidecarDirective]
+    public let sidecarCommitPolicy: SidecarCommitPolicy
     public let includeSidecarMechanismPreamble: Bool
     public let promptAssemblyLogger: Logger?
 
@@ -31,6 +38,7 @@ public struct ChatRunRequest: Sendable, CustomStringConvertible {
         generationParameters: GenerationParameters? = nil,
         structuredOutput: StructuredOutputRequest? = nil,
         sidecars: [SidecarDirective] = [],
+        sidecarCommitPolicy: SidecarCommitPolicy = .everyRoundTrip,
         includeSidecarMechanismPreamble: Bool = false,
         promptAssemblyLogger: Logger? = nil
     ) {
@@ -45,6 +53,7 @@ public struct ChatRunRequest: Sendable, CustomStringConvertible {
         self.generationParameters = generationParameters
         self.structuredOutput = structuredOutput
         self.sidecars = sidecars
+        self.sidecarCommitPolicy = sidecarCommitPolicy
         self.includeSidecarMechanismPreamble = includeSidecarMechanismPreamble
         self.promptAssemblyLogger = promptAssemblyLogger
     }
@@ -56,6 +65,6 @@ public struct ChatRunRequest: Sendable, CustomStringConvertible {
         let generationParametersDescription = generationParameters.map { String(describing: $0) } ?? "nil"
         let structuredOutputDescription = structuredOutput.map { String(describing: $0) } ?? "nil"
         let promptAssemblyLoggerDescription = promptAssemblyLogger.map { $0.label } ?? "nil"
-        return "ChatRunRequest(timelineId: \(timelineId), sendId: \(sendIdDescription), message: <redacted>, tools: \(tools.count), toolOutputs: \(toolOutputCount), systemInstructions: \(systemInstructionsDescription), agentInstanceId: \(agentInstanceId?.uuidString ?? "nil"), maxTurns: \(maxTurns), generationParameters: \(generationParametersDescription), structuredOutput: \(structuredOutputDescription), sidecars: \(sidecars.count), includeSidecarMechanismPreamble: \(includeSidecarMechanismPreamble), promptAssemblyLogger: \(promptAssemblyLoggerDescription))"
+        return "ChatRunRequest(timelineId: \(timelineId), sendId: \(sendIdDescription), message: <redacted>, tools: \(tools.count), toolOutputs: \(toolOutputCount), systemInstructions: \(systemInstructionsDescription), agentInstanceId: \(agentInstanceId?.uuidString ?? "nil"), maxTurns: \(maxTurns), generationParameters: \(generationParametersDescription), structuredOutput: \(structuredOutputDescription), sidecars: \(sidecars.count), sidecarCommitPolicy: \(sidecarCommitPolicy), includeSidecarMechanismPreamble: \(includeSidecarMechanismPreamble), promptAssemblyLogger: \(promptAssemblyLoggerDescription))"
     }
 }

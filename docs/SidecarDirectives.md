@@ -69,9 +69,9 @@ for try await event in stream {
         // for that field.
         print("\n[\(delta.name)] \(delta.partialText)")
     }
-    if let results = event.sidecarResults {
-        // Terminal outcome per directive for the turn.
-        for result in results {
+    if let completion = event.sidecarCompletion {
+        // Durable side effects are keyed by identity, not event order.
+        for result in completion.results {
             switch result.outcome {
             case let .value(value):
                 print("\(result.name) = \(value)")
@@ -87,6 +87,16 @@ for try await event in stream {
 
 `sidecars` defaults to `[]` — omitting it is behaviorally identical to today's plain-text
 turns; no extractor is constructed and no extra schema is composed.
+
+## Commit policy
+
+Sidecars default to `SidecarCommitPolicy.everyRoundTrip`, which commits one identified
+`SidecarCompletion` per successfully parsed LLM round-trip. For curation that must represent
+the complete logical send, use `sidecarCommitPolicy: .terminalRoundTrip`. Intermediate
+`.delta(.sidecar)` values are streaming observations, not durable commits. Under the terminal
+policy, results are emitted only after tool and plugin follow-up work finishes normally;
+cancellation, failure, max-turn exhaustion, and external-tool deferral do not promote an
+intermediate result. Persist a completion idempotently using its `TurnIdentity`.
 
 ## Error model
 

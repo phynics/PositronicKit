@@ -105,6 +105,7 @@ struct ChatTurnContext {
     let generationParameters: GenerationParameters?
     let structuredOutput: StructuredOutputRequest?
     let sidecars: [SidecarDirective]
+    let sidecarCommitPolicy: SidecarCommitPolicy
     let diagnostics: [TurnDiagnostic]
 
     /// Shared actor tracking prompt snapshots and append chain growth across turns.
@@ -133,6 +134,7 @@ struct ChatTurnContext {
         generationParameters: GenerationParameters? = nil,
         structuredOutput: StructuredOutputRequest? = nil,
         sidecars: [SidecarDirective] = [],
+        sidecarCommitPolicy: SidecarCommitPolicy = .everyRoundTrip,
         diagnostics: [TurnDiagnostic] = [],
         promptHistory: TimelinePromptHistory? = nil,
         renderedPrompt: RenderedPrompt? = nil,
@@ -153,6 +155,7 @@ struct ChatTurnContext {
         self.generationParameters = generationParameters
         self.structuredOutput = structuredOutput
         self.sidecars = sidecars
+        self.sidecarCommitPolicy = sidecarCommitPolicy
         self.diagnostics = diagnostics
         self.promptHistory = promptHistory
         self.renderedPrompt = renderedPrompt
@@ -187,6 +190,7 @@ struct ChatTurnContext {
             generationParameters: generationParameters,
             structuredOutput: structuredOutput,
             sidecars: sidecars,
+            sidecarCommitPolicy: sidecarCommitPolicy,
             diagnostics: diagnostics,
             promptHistory: promptHistory,
             renderedPrompt: renderedPrompt ?? self.renderedPrompt,

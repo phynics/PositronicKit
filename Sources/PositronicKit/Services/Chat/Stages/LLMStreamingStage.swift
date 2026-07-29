@@ -195,7 +195,11 @@ struct LLMStreamingStage: PipelineStage {
             continuation.yield(.sidecar(delta))
         case let .completed(results):
             await context.outputs.setSidecarResults(results)
-            continuation.yield(.sidecarsCompleted(results))
+            guard context.sidecarCommitPolicy == .everyRoundTrip else { return }
+            continuation.yield(.sidecarsCompleted(SidecarCompletion(
+                identity: TurnIdentity(sendId: context.sendId, roundTrip: max(context.turnCount - 1, 0)),
+                results: results
+            )))
         }
     }
 

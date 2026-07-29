@@ -56,8 +56,20 @@ struct SidecarTurnIntegrationTests {
         let results = events.compactMap(\.sidecarResults).flatMap { $0 }
         #expect(results.contains(SidecarResult(name: "title", outcome: .value(AnyCodable("Greeting")))))
         #expect(results.contains(SidecarResult(name: "tone", outcome: .value(AnyCodable("warm")))))
+        #expect(events.compactMap(\.sidecarCompletion).count == 1)
+        #expect(events.compactMap(\.sidecarCompletion).first?.identity.roundTrip == 0)
 
         #expect(persistence.messages.last?.content == "Hi there")
+    }
+
+    @Test("Sidecar commit policy is Codable and defaults to every round-trip")
+    func sidecarCommitPolicyCodableAndDefault() throws {
+        let defaultRequest = ChatRunRequest(timelineId: UUID(), message: "hello")
+        #expect(defaultRequest.sidecarCommitPolicy == .everyRoundTrip)
+        for policy in [SidecarCommitPolicy.everyRoundTrip, .terminalRoundTrip] {
+            let data = try JSONEncoder().encode(policy)
+            #expect(try JSONDecoder().decode(SidecarCommitPolicy.self, from: data) == policy)
+        }
     }
 
     @Test("Passing both structuredOutput and sidecars throws a conflict error")
@@ -175,6 +187,50 @@ struct SidecarTurnIntegrationTests {
             let systemMessages = callMessages.filter { $0.role == .system }
             #expect(systemMessages.allSatisfy { !$0.content.contains("Piggy-backed") })
         }
+    }
+
+    @Test("Terminal policy suppresses the tool round and identifies the final round")
+    func terminalPolicyCommitsOnlyFinalRound() async throws {
+        struct MockTool: PKShared.Tool, @unchecked Sendable {
+            let callName = "mock_tool"
+            let name = "mock_tool"
+            let description = "A mock tool for testing"
+            let requiresPermission = false
+            let parametersSchema = makeEmptyObjectSchema()
+
+            func canExecute() async -> Bool { true }
+            func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult { .success("ok") }
+        }
+
+        let mockLLM = MockLLMService()
+        mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "call_1", name: "mock_tool")]]
+        mockLLM.mockClient.nextChunks = [
+            [#"{"response": "planning", "sidecar_payload": {"title": "intermediate"}}"#],
+            [#"{"response": "done", "sidecar_payload": {"title": "final"}}"#],
+        ]
+        let persistence = MockPersistenceService()
+        let chat = makeChat(llmService: mockLLM, persistence: persistence)
+        let timelineId = UUID()
+        try await persistence.saveTimeline(Timeline(id: timelineId, title: "Terminal policy"))
+        let sendId = UUID()
+
+        let stream = try await chat.run(ChatRunRequest(
+            timelineId: timelineId,
+            sendId: sendId,
+            message: "hello",
+            tools: [MockTool().toAnyTool()],
+            sidecars: directives,
+            sidecarCommitPolicy: .terminalRoundTrip
+        ))
+        var completions: [SidecarCompletion] = []
+        for try await event in stream {
+            if let completion = event.sidecarCompletion { completions.append(completion) }
+        }
+
+        #expect(completions.count == 1)
+        #expect(completions[0].identity == TurnIdentity(sendId: sendId, roundTrip: 1))
+        #expect(completions[0].results.contains(SidecarResult(name: "title", outcome: .value(AnyCodable("final")))))
+        #expect(persistence.messages.filter { $0.role == Message.MessageRole.assistant.rawValue }.allSatisfy { !$0.content.contains("sidecar_payload") })
     }
 
     @Test("System section stays byte-stable across changing directive sets")

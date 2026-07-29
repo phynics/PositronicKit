@@ -31,6 +31,7 @@ extension ChatEngine {
         generationParameters: GenerationParameters?,
         structuredOutput: StructuredOutputRequest?,
         sidecars: [SidecarDirective] = [],
+        sidecarCommitPolicy: SidecarCommitPolicy = .everyRoundTrip,
         includeSidecarMechanismPreamble: Bool = false,
         contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
         assemblyLogger: Logger? = nil
@@ -283,6 +284,7 @@ extension ChatEngine {
                 generationParameters: generationParameters,
                 structuredOutput: structuredOutput,
                 sidecars: sidecars,
+                sidecarCommitPolicy: sidecarCommitPolicy,
                 diagnostics: turnDiagnostics,
                 promptHistory: promptHistory,
                 renderedPrompt: renderedPrompt,
