@@ -20,6 +20,16 @@ for tagged releases beginning with `1.0.0`.
   longer enter default structured logs; error logs carry stable domain, code, and correlation
   metadata.
 
+- **Handler-owned terminal color for `ANSIColors` (PKRR-024)**: `ANSIColors.colorize(_:color:)`
+  always emitted escape sequences with no TTY detection, so any caller that routed its output
+  into a `Logger`/JSON/file/OSLog/telemetry sink polluted the record with escape bytes and
+  presentation emoji. Added `ANSIColors.colorize(_:color:enabled:)` (pass the owning handler's
+  TTY verdict explicitly; `enabled: false` yields plain text for structured sinks) and
+  `ANSIColors.strip(_:)`, the single source of truth for the CSI escape grammar now shared with
+  `LogRedactionPolicy.sanitize(_:)`. The public legacy `colorize(_:color:)` is retained for
+  downstream terminal consumers (PKV3-007); log message construction must use the metadata path
+  (`LogKeys`) plus `sanitizeStructured`, never embedded color.
+
 - **Turn degradation policy and diagnostics (PKRR-022)**: required context, agent, and workspace
   preparation failures now abort before provider generation by default (`failRequired`). Hosts may
   select `continueWithWarnings`; downgraded failures are carried as structured `TurnDiagnostic`

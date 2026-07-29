@@ -35,10 +35,7 @@ public struct LogRedactionPolicy: Sendable, Equatable {
 
     /// Removes terminal control sequences and non-ASCII presentation characters from log text.
     public func sanitize(_ value: String) -> String {
-        let ansiPattern = "\u{001B}\\[[0-?]*[ -/]*[@-~]"
-        let withoutANSI = (try? NSRegularExpression(pattern: ansiPattern))
-            .map { $0.stringByReplacingMatches(in: value, range: NSRange(value.startIndex..., in: value), withTemplate: "") }
-            ?? value
+        let withoutANSI = ANSIColors.strip(value)
         var result = ""
         var replacingPresentation = false
         for scalar in withoutANSI.unicodeScalars {
