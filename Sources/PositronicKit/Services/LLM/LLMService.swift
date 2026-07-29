@@ -27,16 +27,39 @@ private final class PreparationTaskBox: @unchecked Sendable {
 /// Service for managing LLM interactions with configuration support
 public actor LLMService: LanguageModel, HealthCheckable {
     public private(set) var configuration: LLMConfiguration = .openAI
+
+    /// Reports whether the LLM configuration is **valid** (all required fields present for
+    /// the active provider). This reflects configuration completeness only — it does **not**
+    /// guarantee a primary client is resolved and a send can start. A valid configuration with
+    /// no registered client factory yields `isConfigured == true` but ``isReady`` == `false`.
+    /// Use ``isReady`` for operational readiness checks before dispatching a request.
     public private(set) var isConfigured: Bool = false
+
+    /// Operational readiness: `true` only when the configuration is valid **and** a primary
+    /// client is resolved, guaranteeing a primary send can start. Unlike ``isConfigured``
+    /// (configuration validity only), this reflects whether the service can actually dispatch
+    /// a request. Preflight callers that need to know a send will not fail with a missing
+    /// client should check this instead of ``isConfigured``.
+    public var isReady: Bool {
+        configuration.isValid && client != nil
+    }
 
     // MARK: - HealthCheckable
 
     public func getHealthDetails() async -> [String: String]? {
         await preparationTaskBox.task?.value
-        return [
+        var details: [String: String] = [
             "model": configuration.activeProviderConfiguration.modelName,
             "provider": configuration.activeProvider.rawValue,
         ]
+        if !configuration.isValid {
+            details["readiness"] = "invalid configuration"
+        } else if client == nil {
+            details["readiness"] = "no client resolved for provider \(configuration.activeProvider.rawValue); no client factory registered"
+        } else {
+            details["readiness"] = "ready"
+        }
+        return details
     }
 
     public func checkHealth() async -> HealthStatus {
@@ -297,7 +320,9 @@ public actor LLMService: LanguageModel, HealthCheckable {
         }
 
         guard let client = selectedClient else {
-            throw LLMServiceError.notConfigured
+            throw configuration.isValid
+                ? LLMServiceError.clientNotResolved(provider: configuration.activeProvider.rawValue)
+                : LLMServiceError.notConfigured
         }
 
         // Use provided parameters or default from configuration

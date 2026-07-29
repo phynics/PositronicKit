@@ -34,6 +34,18 @@ for tagged releases beginning with `1.0.0`.
   cancellation), or a thrown error (failure). New factory shortcuts
   `ChatEvent.maxTurnsReached()` and `ChatEvent.deferredForExternalTool()` are provided.
 
+- **Operational readiness split from configuration validity (PKRR-018)**:
+  `LLMService` gains a public `isReady` property that is `true` only when the configuration
+  is valid **and** a primary client is resolved, guaranteeing a primary send can start.
+  `isConfigured` continues to report configuration validity only (backward compatible);
+  its doc comment now states this explicitly. `getHealthDetails()` adds a `readiness`
+  diagnostic that distinguishes "invalid configuration" from "no client resolved for
+  provider …; no client factory registered" from "ready". A new `LLMServiceError.clientNotResolved(provider:)`
+  case (error code 1008) is thrown by `sendMessage`/`chatStream` (defense-in-depth) when the
+  configuration is valid but no client could be created, instead of the generic
+  `.notConfigured`. Previously a valid configuration with no registered client factory
+  reported `isConfigured == true` while sends failed later with `.notConfigured`.
+
 ### Deprecated
 
 - **`.meta(.generationCompleted)` and `.completion(.streamCompleted)` are deprecated
@@ -44,6 +56,16 @@ for tagged releases beginning with `1.0.0`.
   cases for the corresponding terminal states.
 
 ### Fixed
+
+- **`LLMService` no longer reports configured while unable to send (PKRR-018)**:
+  A valid configuration with no registered client factory previously set `isConfigured == true`
+  while `sendMessage`/`chatStream` failed later with `.notConfigured`, so preflight
+  configuration checks passed and the request failed at dispatch. The new `isReady` property
+  (valid configuration **and** a resolved primary client) is the correct preflight gate, and
+  `getHealthDetails()` now explains whether the issue is invalid settings or a missing client
+  factory. The defense-in-depth guards now throw the more specific
+  `LLMServiceError.clientNotResolved(provider:)` when the configuration is valid but no client
+  exists.
 
 - **Timeline creation and workspace attachment no longer leave partial state (PKRR-007)**:
   `createTimeline` now persists the timeline record **first**, before creating directories,

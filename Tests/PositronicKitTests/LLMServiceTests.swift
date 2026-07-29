@@ -469,6 +469,143 @@ struct LLMServiceTests {
         #expect(status == .ok)
     }
 
+    // MARK: - PKRR-018: configuration validity vs operational readiness
+
+    @Test("isConfigured is true but isReady is false when config is valid but no client factory exists (PKRR-018)")
+    func configuredButNotReadyWhenNoClientFactory() async {
+        // Direct-config init with a valid configuration but no clientFactory: the
+        // configuration is valid so isConfigured == true, but no client can be resolved
+        // so isReady must be false. This is the configured-but-no-client state the ticket
+        // calls out — isConfigured alone does not guarantee a send can start.
+        let config = LLMConfiguration.fixture(
+            endpoint: "https://test.api.com",
+            modelName: "test-model",
+            apiKey: "test-key",
+            activeProvider: .openAI
+        )
+        let service = LLMService(configuration: config)
+
+        #expect(await service.isConfigured, "isConfigured reflects configuration validity only")
+        #expect(await service.isReady == false, "isReady is false when no primary client is resolved")
+        #expect(await service.getClient() == nil, "No client factory was registered")
+    }
+
+    @Test("isReady is true and guarantees a primary send can start when a client is resolved (PKRR-018)")
+    func isReadyGuaranteesSendWhenClientResolved() async throws {
+        let mockClient = MockLLMClient()
+        mockClient.nextResponse = "ok"
+        let config = LLMConfiguration.fixture(
+            endpoint: "https://test.api.com",
+            modelName: "test-model",
+            apiKey: "test-key"
+        )
+        let service = LLMService(configuration: config) { _ in
+            (main: mockClient as any LLMClientProtocol, utility: nil, fast: nil)
+        }
+
+        #expect(await service.isReady, "isReady is true when configuration is valid and a primary client is resolved")
+        #expect(await service.isConfigured, "isConfigured is also true here")
+
+        // A primary send must succeed when isReady is true.
+        let response = try await service.sendMessage("ping")
+        #expect(response == "ok")
+    }
+
+    @Test("Health details explain invalid configuration versus missing client factory (PKRR-018)")
+    func healthDetailsDistinguishInvalidConfigFromMissingClient() async {
+        // Invalid configuration: readiness reports invalid configuration.
+        let invalidConfig = LLMConfiguration.fixture(
+            endpoint: "https://api.openai.com",
+            modelName: "",
+            apiKey: "",
+            activeProvider: .openAI
+        )
+        let invalidService = LLMService(configuration: invalidConfig)
+        let invalidDetails = await invalidService.getHealthDetails()
+        #expect(invalidDetails?["readiness"] == "invalid configuration")
+        #expect(await invalidService.isConfigured == false)
+        #expect(await invalidService.isReady == false)
+
+        // Valid configuration but no client factory: readiness reports missing client.
+        let validConfig = LLMConfiguration.fixture(
+            endpoint: "https://test.api.com",
+            modelName: "test-model",
+            apiKey: "test-key",
+            activeProvider: .openRouter
+        )
+        let noClientService = LLMService(configuration: validConfig)
+        let noClientDetails = await noClientService.getHealthDetails()
+        #expect(noClientDetails?["provider"] == "OpenRouter")
+        #expect(noClientDetails?["readiness"] == "no client resolved for provider OpenRouter; no client factory registered")
+        #expect(await noClientService.isConfigured == true)
+        #expect(await noClientService.isReady == false)
+
+        // Valid configuration with a client: readiness reports ready.
+        let readyClient = MockLLMClient()
+        let readyService = LLMService(configuration: validConfig) { _ in
+            (main: readyClient as any LLMClientProtocol, utility: nil, fast: nil)
+        }
+        let readyDetails = await readyService.getHealthDetails()
+        #expect(readyDetails?["readiness"] == "ready")
+        #expect(await readyService.isReady == true)
+    }
+
+    @Test("sendMessage throws clientNotResolved when configured but no client exists (PKRR-018)")
+    func sendMessageThrowsClientNotResolvedWhenNoClient() async {
+        let config = LLMConfiguration.fixture(
+            endpoint: "https://test.api.com",
+            modelName: "test-model",
+            apiKey: "test-key",
+            activeProvider: .openAI
+        )
+        let service = LLMService(configuration: config)
+
+        // Config is valid but no client factory → the more specific clientNotResolved error,
+        // not the generic notConfigured.
+        let thrown = await #expect(throws: LLMServiceError.self) {
+            _ = try await service.sendMessage("Hello")
+        }
+        #expect(thrown == .clientNotResolved(provider: "OpenAI"))
+    }
+
+    @Test("chatStream finishes with clientNotResolved when configured but no client exists (PKRR-018)")
+    func chatStreamFinishesWithClientNotResolvedWhenNoClient() async {
+        let config = LLMConfiguration.fixture(
+            endpoint: "https://test.api.com",
+            modelName: "test-model",
+            apiKey: "test-key",
+            activeProvider: .openAI
+        )
+        let service = LLMService(configuration: config)
+
+        let stream = await service.chatStream(
+            messages: [LLMMessage(role: .user, content: "Hi")],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: nil,
+            modelTier: .primary
+        )
+
+        var capturedError: Error?
+        do {
+            for try await _ in stream {}
+        } catch {
+            capturedError = error
+        }
+        #expect(capturedError as? LLMServiceError == .clientNotResolved(provider: "OpenAI"))
+    }
+
+    @Test("sendMessage still throws notConfigured when configuration is invalid (PKRR-018)")
+    func sendMessageThrowsNotConfiguredWhenConfigInvalid() async {
+        // Storage-backed service with default (invalid) config and no client.
+        let service = LLMService(storage: MockConfigurationService())
+        let thrown = await #expect(throws: LLMServiceError.self) {
+            _ = try await service.sendMessage("Hello")
+        }
+        #expect(thrown == .notConfigured)
+    }
+
     @Test("Test generation parameters passing")
     func generationParametersPassing() async throws {
         let mockClient = MockLLMClient()

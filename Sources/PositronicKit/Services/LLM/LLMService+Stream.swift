@@ -80,8 +80,11 @@ public extension LLMService {
         }
 
         guard let client = selectedClient else {
+            let error: LLMServiceError = configuration.isValid
+                ? .clientNotResolved(provider: configuration.activeProvider.rawValue)
+                : .notConfigured
             return AsyncThrowingStream { continuation in
-                continuation.finish(throwing: LLMServiceError.notConfigured)
+                continuation.finish(throwing: error)
             }
         }
 

@@ -8,6 +8,7 @@ public enum LLMServiceError: PKError, Equatable {
     case httpError(provider: String, statusCode: Int, responseBody: String, retryAfter: TimeInterval?)
     case emptyResponse(provider: String)
     case unexpectedResponse(provider: String, reason: String)
+    case clientNotResolved(provider: String)
 
     public var errorDomain: String { PKErrorDomain.llm }
 
@@ -19,6 +20,7 @@ public enum LLMServiceError: PKError, Equatable {
         case .httpError: return 1004
         case .emptyResponse: return 1006
         case .unexpectedResponse: return 1007
+        case .clientNotResolved: return 1008
         }
     }
 
@@ -28,6 +30,8 @@ public enum LLMServiceError: PKError, Equatable {
             return "LLM service is not configured. Please set up your API endpoint and key."
         case .invalidConfiguration:
             return "Invalid LLM configuration. Please check your settings."
+        case .clientNotResolved(let provider):
+            return "LLM configuration is valid for \(provider), but no client could be created. Register a client factory for this provider."
         case let .networkError(message):
             return "Network error: \(message)"
         case let .httpError(provider, statusCode, responseBody, _):
