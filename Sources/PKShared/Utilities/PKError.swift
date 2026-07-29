@@ -42,7 +42,7 @@ public extension PKError {
 }
 
 /// An error that wraps one or more underlying causes, enabling
-/// ``ChatEvent.ErrorIdentity`` to traverse the causal chain and extract the root
+/// `ErrorIdentity` to traverse the causal chain and extract the root
 /// ``PKError`` identity rather than the wrapper's (PKRR-014).
 ///
 /// Conform wrapper types that carry an `underlyingError` to this protocol so

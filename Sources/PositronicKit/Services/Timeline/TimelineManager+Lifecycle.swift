@@ -14,7 +14,7 @@ public extension TimelineManager {
     /// notes, workspace save) fail, the timeline record and any partially created state are
     /// rolled back before rethrowing.
     ///
-    /// Filesystem behavior is governed by ``TimelineManager/workspaceProfile`` (PKRR-029):
+    /// Filesystem behavior is governed by the configured workspace profile (PKRR-029):
     /// - `.noWorkspace` (the default): no directory is created, no notes are written, no
     ///   workspace record is persisted, and `timeline.workingDirectory` is `nil`.
     /// - `.ephemeralWorkspace`: a scratch directory is created under `root` and removed on
@@ -190,7 +190,7 @@ public extension TimelineManager {
     /// so streaming/tools/persistence/plugins cannot continue against a timeline whose
     /// in-memory state has already been torn down.
     ///
-    /// When the timeline's ``workspaceProfile`` is `.ephemeralWorkspace`, the per-timeline
+    /// When the timeline's configured workspace profile is `.ephemeralWorkspace`, the per-timeline
     /// scratch directory is also removed (best-effort) — eviction ends the ephemeral workspace's
     /// life. `.hostManaged` directories are left in place (the host owns retention), and
     /// `.noWorkspace` has nothing to remove.

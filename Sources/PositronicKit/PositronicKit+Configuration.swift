@@ -238,6 +238,15 @@ public extension PositronicKit {
         ///     `.ephemeralWorkspace(root:)` for a self-cleaning scratch directory.
         ///   - workspaceRoot: Legacy shorthand. When non-`nil` and `workspaceProfile` is omitted,
         ///     maps to `.hostManaged(root: workspaceRoot, seedNotes: .default)`.
+        ///   - workspaceCreator: Creates per-timeline workspace directories when the selected
+        ///     profile requires them.
+        ///   - sectionProviders: Supplies additional prompt sections for each turn.
+        ///   - runtimeToolPolicy: Controls which tools the runtime may expose and execute.
+        ///   - chatTurnPlugins: Plugins that participate in chat-turn lifecycle hooks.
+        ///   - promptObserver: Optional observer for assembled prompt diagnostics.
+        ///   - toolApprovalPolicy: Controls whether runtime tool calls require approval.
+        ///   - diagnosticSnapshotConfiguration: Controls diagnostic response snapshots.
+        ///   - degradationPolicy: Controls whether required turn degradations fail the turn.
         public init(
             workspaceProfile: WorkspaceProfile? = nil,
             workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
