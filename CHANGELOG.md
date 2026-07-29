@@ -50,6 +50,17 @@ for tagged releases beginning with `1.0.0`.
   (error code 4003) so both primary and cleanup failures are observable without log
   scraping. Cleanup always runs, even after cancellation.
 
+- **Linux provider streams now deliver lines incrementally (PKRR-010)**:
+  `URLSessionProviderHTTPTransport.lines(for:)` on Linux previously used
+  `URLSession.data(for:)`, which buffered the entire HTTP response before splitting lines.
+  This caused first-token latency, unbounded memory on large responses, ineffective
+  cancellation, and idle-watchdog timeouts on steady streams. The Linux path now uses a
+  `URLSessionDataDelegate` that yields complete lines as data chunks arrive, matching the
+  incremental streaming behaviour of the Apple path (`URLSession.bytes(for:)`). A
+  cross-platform streaming conformance suite in `PKUtilitiesTests` verifies first-chunk
+  delivery before response completion, prompt cancellation, bounded buffering on large
+  streams, line reassembly across chunked TCP writes, and connection-error propagation.
+
 ### Added
 
 - **`FailingWorkspaceStore` enhancements (PKRR-007)**: `FailingWorkspaceStore` now supports

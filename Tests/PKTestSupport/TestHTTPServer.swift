@@ -39,15 +39,21 @@ public final class TestHTTPServer: @unchecked Sendable {
         public var statusCode: Int = 200
         public var headers: [String: String] = [:]
         public var body: Data = Data()
+        public var chunkedBody: [Data]? = nil
+        public var chunkDelay: TimeInterval = 0.05
 
         public init(
             statusCode: Int = 200,
             headers: [String: String] = [:],
-            body: Data = Data()
+            body: Data = Data(),
+            chunkedBody: [Data]? = nil,
+            chunkDelay: TimeInterval = 0.05
         ) {
             self.statusCode = statusCode
             self.headers = headers
             self.body = body
+            self.chunkedBody = chunkedBody
+            self.chunkDelay = chunkDelay
         }
 
         /// SSE response with the given event-stream body.
@@ -64,6 +70,38 @@ public final class TestHTTPServer: @unchecked Sendable {
                 statusCode: statusCode,
                 headers: ["Content-Type": "application/json"],
                 body: Data(body.utf8)
+            )
+        }
+
+        /// Streaming response that sends body chunks one at a time with a delay
+        /// between each chunk. The total `Content-Length` header is set to the
+        /// combined size of all chunks so the client knows the full body size.
+        /// Use this to verify incremental delivery (first-chunk-before-completion).
+        public static func streaming(
+            statusCode: Int = 200,
+            headers: [String: String] = [:],
+            chunks: [Data],
+            delay: TimeInterval = 0.05
+        ) -> Response {
+            Response(
+                statusCode: statusCode,
+                headers: headers,
+                body: Data(),
+                chunkedBody: chunks,
+                chunkDelay: delay
+            )
+        }
+
+        /// SSE streaming response that sends each chunk as a separate TCP write
+        /// with a delay between them.
+        public static func streamingSSE(
+            chunks: [String],
+            delay: TimeInterval = 0.05
+        ) -> Response {
+            streaming(
+                headers: ["Content-Type": "text/event-stream"],
+                chunks: chunks.map { Data($0.utf8) },
+                delay: delay
             )
         }
     }
@@ -196,19 +234,49 @@ public final class TestHTTPServer: @unchecked Sendable {
     }
 
     private func sendResponse(on connection: NWConnection, response: Response) {
-        let responseData = Self.makeHTTPResponseData(response)
-        connection.send(content: responseData, completion: .contentProcessed { _ in
-            connection.cancel()
-        })
+        if let chunks = response.chunkedBody {
+            sendChunkedResponse(on: connection, response: response, chunks: chunks, delay: response.chunkDelay)
+        } else {
+            let responseData = Self.makeHTTPResponseData(response)
+            connection.send(content: responseData, completion: .contentProcessed { _ in
+                connection.cancel()
+            })
+        }
+    }
+
+    private func sendChunkedResponse(
+        on connection: NWConnection,
+        response: Response,
+        chunks: [Data],
+        delay: TimeInterval
+    ) {
+        let totalSize = chunks.reduce(0) { $0 + $1.count }
+        let headerData = Self.makeHTTPResponseHeader(response: response, contentLength: totalSize)
+        connection.send(content: headerData, completion: .contentProcessed { _ in })
+
+        for (index, chunk) in chunks.enumerated() {
+            let isLast = index == chunks.count - 1
+            queue.asyncAfter(deadline: .now() + delay * Double(index + 1)) {
+                connection.send(content: chunk, completion: .contentProcessed { _ in
+                    if isLast {
+                        connection.cancel()
+                    }
+                })
+            }
+        }
     }
 
     private static func makeHTTPResponseData(_ response: Response) -> Data {
+        makeHTTPResponseHeader(response: response, contentLength: response.body.count) + response.body
+    }
+
+    private static func makeHTTPResponseHeader(response: Response, contentLength: Int) -> Data {
         let statusLine = "HTTP/1.1 \(response.statusCode) \(reasonPhrase(for: response.statusCode))\r\n"
         var headers = response.headers
-        headers["Content-Length"] = "\(response.body.count)"
+        headers["Content-Length"] = "\(contentLength)"
         headers["Connection"] = "close"
         let headerLines = headers.map { "\($0.key): \($0.value)\r\n" }.sorted().joined()
-        return Data((statusLine + headerLines + "\r\n").utf8) + response.body
+        return Data((statusLine + headerLines + "\r\n").utf8)
     }
 
     private static func reasonPhrase(for statusCode: Int) -> String {
