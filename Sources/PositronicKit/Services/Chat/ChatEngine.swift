@@ -13,6 +13,7 @@ enum ChatEngineError: PKError {
     case danglingToolCall(id: String)
     case danglingToolResult(id: String)
     case duplicateSendId(UUID)
+    case promptHistoryInconsistent(String)
 
     var errorDomain: String {
         PKErrorDomain.chat
@@ -26,6 +27,7 @@ enum ChatEngineError: PKError {
         case .danglingToolCall: return 9004
         case .danglingToolResult: return 9005
         case .duplicateSendId: return 9006
+        case .promptHistoryInconsistent: return 9007
         }
     }
 
@@ -43,6 +45,8 @@ enum ChatEngineError: PKError {
             return "Conversation history contains a tool result with id '\(id)' that has no matching assistant tool call."
         case let .duplicateSendId(sendId):
             return "Turn \(sendId.uuidString.prefix(8)) has already been processed. Use a new sendId to start a new turn."
+        case let .promptHistoryInconsistent(detail):
+            return "The prompt history could not record this turn safely: \(detail)"
         }
     }
 
@@ -52,7 +56,7 @@ enum ChatEngineError: PKError {
             return "Repair the persisted conversation history so assistant tool calls and tool results are paired before retrying."
         case .duplicateSendId:
             return "The previous turn with this sendId completed successfully. Use a new sendId for a new turn, or if the previous attempt failed it is safe to retry with the same sendId."
-        case .llmServiceNotConfigured, .missingInput, .streamTimedOut:
+        case .llmServiceNotConfigured, .missingInput, .streamTimedOut, .promptHistoryInconsistent:
             return nil
         }
     }

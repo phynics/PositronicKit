@@ -94,7 +94,7 @@ struct PromptSnapshotBuilderTests {
     func buildFollowUpSnapshotUpdatesPromptHistory() async throws {
         let base = makeBase()
         let promptHistory = await TimelinePromptJournals().history(for: UUID())
-        _ = await promptHistory.update(prompt: base)
+        _ = try! await promptHistory.update(prompt: base)
 
         let context = ChatTurnContext(
             timelineId: UUID(),
@@ -107,13 +107,13 @@ struct PromptSnapshotBuilderTests {
             remoteDepth: 0,
             promptHistory: promptHistory,
             renderedPrompt: base,
-            promptHistoryUpdate: await promptHistory.update(prompt: base),
+            promptHistoryUpdate: try! await promptHistory.update(prompt: base),
             currentMessages: [],
             turnCount: 1,
             outputs: TurnOutputs()
         )
 
-        let snapshot = await builder.buildFollowUpSnapshot(
+        let snapshot = try! await builder.buildFollowUpSnapshot(
             from: context,
             appendedMessages: batch(["follow-up"]),
             nextTurnIndex: 1

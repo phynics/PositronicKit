@@ -55,7 +55,7 @@ struct StructuredCompressionExecutorTests {
         )
 
         let executor = StructuredCompressionExecutor()
-        let result = await executor.execute(plan: plan, sections: sections, compressor: RecordingCompressor(result: "summary"))
+        let result = try! await executor.execute(plan: plan, sections: sections, compressor: RecordingCompressor(result: "summary"))
 
         #expect(result.sections.map(\.id) == ["s1", "s2"])
         #expect(result.sections[0].compression == .summarize)
@@ -82,8 +82,8 @@ struct StructuredCompressionExecutorTests {
         }
         let executor = StructuredCompressionExecutor()
 
-        _ = await executor.execute(plan: plan, sections: sections, compressor: compressor)
-        _ = await executor.execute(plan: plan, sections: sections, compressor: compressor)
+        _ = try! await executor.execute(plan: plan, sections: sections, compressor: compressor)
+        _ = try! await executor.execute(plan: plan, sections: sections, compressor: compressor)
 
         #expect(counter.value == 2)
     }
@@ -137,7 +137,7 @@ extension StructuredCompressionExecutorTests {
         )
 
         let executor = StructuredCompressionExecutor()
-        let result = await executor.execute(plan: plan, sections: sections, compressor: nil)
+        let result = try! await executor.execute(plan: plan, sections: sections, compressor: nil)
 
         #expect(result.sections.count == 1)
         #expect(result.sections[0].compressionOutcome?.action == .truncate(limit: 50, tail: false))
@@ -160,7 +160,7 @@ extension StructuredCompressionExecutorTests {
         )
 
         let executor = StructuredCompressionExecutor()
-        let result = await executor.execute(plan: plan, sections: sections, compressor: nil)
+        let result = try! await executor.execute(plan: plan, sections: sections, compressor: nil)
 
         // s1 is dropped, only s2 remains.
         #expect(result.sections.count == 1)
@@ -184,7 +184,7 @@ extension StructuredCompressionExecutorTests {
         )
 
         let executor = StructuredCompressionExecutor()
-        let result = await executor.execute(plan: plan, sections: sections, compressor: nil)
+        let result = try! await executor.execute(plan: plan, sections: sections, compressor: nil)
 
         // Should drop with a fallback reason.
         #expect(result.sections.count == 0)
@@ -206,7 +206,7 @@ extension StructuredCompressionExecutorTests {
         )
 
         let executor = StructuredCompressionExecutor()
-        let result = await executor.execute(plan: plan, sections: sections, compressor: EmptySummaryCompressor())
+        let result = try! await executor.execute(plan: plan, sections: sections, compressor: EmptySummaryCompressor())
 
         #expect(result.sections.count == 0)
         #expect(result.report.nodeReports.first?.action == .drop)
@@ -227,7 +227,7 @@ extension StructuredCompressionExecutorTests {
         )
 
         let executor = StructuredCompressionExecutor()
-        let result = await executor.execute(plan: plan, sections: sections, compressor: FailingCompressor())
+        let result = try! await executor.execute(plan: plan, sections: sections, compressor: FailingCompressor())
 
         #expect(result.sections.count == 0)
         #expect(result.report.nodeReports.first?.action == .drop)

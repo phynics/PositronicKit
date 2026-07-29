@@ -10,6 +10,11 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- **Recoverable prompt compression and journal validation (PKRR-020)**: duplicate section IDs and
+  duplicate compression-plan IDs now throw typed errors instead of terminating the host. Token
+  budget compression and runtime prompt-history recording are throwing validation boundaries, and
+  a missing prompt diff fails only the affected chat turn with diagnostic state.
+
 - **Causal error chain traversal for `ErrorIdentity` (PKRR-014)**: A new
   `CausalError` protocol in `PKShared` enables `ChatEvent.ErrorIdentity.extracting(from:)`
   to traverse wrapper errors (e.g. `PipelineError.stageFailed`,

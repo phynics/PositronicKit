@@ -16,7 +16,7 @@ struct StructuredCompressionPlannerTests {
             stableNodePaths: [["prompt", "stable", "system"]]
         )
 
-        let plan = planner.plan(nodes: nodes, availableTokens: 450, diff: diff)
+        let plan = try! planner.plan(nodes: nodes, availableTokens: 450, diff: diff)
 
         let history = plan.nodeActions.first { $0.nodeId == "history" }
         let system = plan.nodeActions.first { $0.nodeId == "system" }
@@ -34,8 +34,8 @@ struct StructuredCompressionPlannerTests {
             .init(id: "a", path: ["prompt", "volatile", "a"], nodeHash: 1, priority: 1, cachePolicy: .volatile, strategy: .drop, estimatedTokens: 100),
         ]
 
-        let first = planner.plan(nodes: nodes, availableTokens: 100, diff: nil)
-        let second = planner.plan(nodes: nodes, availableTokens: 100, diff: nil)
+        let first = try! planner.plan(nodes: nodes, availableTokens: 100, diff: nil)
+        let second = try! planner.plan(nodes: nodes, availableTokens: 100, diff: nil)
         #expect(first.nodeActions.map(\.nodeId) == second.nodeActions.map(\.nodeId))
         #expect(first.nodeActions.map(\.action) == second.nodeActions.map(\.action))
     }

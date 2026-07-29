@@ -105,8 +105,8 @@ public struct TokenBudget: Sendable {
         nodeMetadata: [String: StructuredNodeMetadata] = [:],
         planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
         executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
-    ) async -> [PromptSection] {
-        await apply(
+    ) async throws -> [PromptSection] {
+        try await apply(
             to: sections.flatMap { $0.resolveSections() },
             compressor: compressor,
             structuredDiff: structuredDiff,
@@ -123,8 +123,8 @@ public struct TokenBudget: Sendable {
         nodeMetadata: [String: StructuredNodeMetadata] = [:],
         planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
         executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
-    ) async -> (sections: [PromptSection], report: CompressionReport?) {
-        await applyWithReport(
+    ) async throws -> (sections: [PromptSection], report: CompressionReport?) {
+        try await applyWithReport(
             to: sections.flatMap { $0.resolveSections() },
             compressor: compressor,
             structuredDiff: structuredDiff,
@@ -141,8 +141,8 @@ public struct TokenBudget: Sendable {
         nodeMetadata: [String: StructuredNodeMetadata] = [:],
         planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
         executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
-    ) async -> [PromptSection] {
-        let result = await applyWithReport(
+    ) async throws -> [PromptSection] {
+        let result = try await applyWithReport(
             to: sections,
             compressor: compressor,
             structuredDiff: structuredDiff,
@@ -160,12 +160,11 @@ public struct TokenBudget: Sendable {
         nodeMetadata: [String: StructuredNodeMetadata] = [:],
         planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
         executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
-    ) async -> (sections: [PromptSection], report: CompressionReport?) {
+    ) async throws -> (sections: [PromptSection], report: CompressionReport?) {
         let duplicateIDs = sections.duplicateIDs(idKeyPath: \.id)
-        precondition(
-            duplicateIDs.isEmpty,
-            "Duplicate context section ids in TokenBudget.applyWithReport: \(duplicateIDs.joined(separator: ", "))"
-        )
+        guard duplicateIDs.isEmpty else {
+            throw PromptCompressionError.duplicateSectionIDs(duplicateIDs)
+        }
         let available = maxTokens - reserveForResponse
         let currentTotal = sections.reduce(0) { $0 + $1.estimatedTokens }
 
@@ -178,14 +177,14 @@ public struct TokenBudget: Sendable {
         // PromptAssembler code path, metadata is always supplied for budgeted prompts, so this
         // becomes the first reduction pass rather than an uncommon optional branch.
         if structuredDiff != nil || !nodeMetadata.isEmpty {
-            let plan = makeStructuredPlan(
+            let plan = try makeStructuredPlan(
                 sections: sections,
                 available: available,
                 structuredDiff: structuredDiff,
                 nodeMetadata: nodeMetadata,
                 planner: planner
             )
-            let structuredResult = await executor.execute(plan: plan, sections: sections, compressor: compressor)
+            let structuredResult = try await executor.execute(plan: plan, sections: sections, compressor: compressor)
             let structuredTotal = structuredResult.sections.reduce(0) { $0 + $1.estimatedTokens }
             if structuredTotal <= available {
                 return (structuredResult.sections, structuredResult.report)
@@ -213,7 +212,7 @@ public struct TokenBudget: Sendable {
         structuredDiff: StructuredDiffHint?,
         nodeMetadata: [String: StructuredNodeMetadata],
         planner: StructuredCompressionPlanner = StructuredCompressionPlanner()
-    ) -> StructuredCompressionPlan {
+    ) throws -> StructuredCompressionPlan {
         let nodes = sections.map { section in
             let metadata = nodeMetadata[section.id]
             return StructuredCompressionNode(
@@ -227,7 +226,7 @@ public struct TokenBudget: Sendable {
             )
         }
 
-        return planner.plan(nodes: nodes, availableTokens: available, diff: structuredDiff)
+        return try planner.plan(nodes: nodes, availableTokens: available, diff: structuredDiff)
     }
 
     private func allocateBudget(
