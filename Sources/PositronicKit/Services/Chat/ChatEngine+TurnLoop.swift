@@ -293,6 +293,7 @@ private extension ChatEngine {
             llmService: dependencies.llmService,
             messageStore: dependencies.messageStore,
             streamTimeout: dependencies.streamTimeout,
+            diagnosticSnapshotConfiguration: dependencies.diagnosticSnapshotConfiguration,
             additionalStages: additionalStages
         )
         let stream = pipeline.execute(context)

@@ -142,7 +142,11 @@ final class MessagePersistenceStageBehavior {
     @Test
     func turnSnapshotCapturesRenderedPromptOnFinalTurn() async throws {
         let store = MockPersistenceService()
-        let stage = MessagePersistenceStage(messageStore: store, logger: testLogger)
+        let stage = MessagePersistenceStage(
+            messageStore: store,
+            logger: testLogger,
+            diagnosticSnapshotConfiguration: .init(policy: .full)
+        )
         let context = await makeContext(
             fullResponse: "done",
             currentMessages: [LLMMessage(role: .user, content: "query")]
@@ -154,6 +158,52 @@ final class MessagePersistenceStageBehavior {
         let data = try #require(completed?.metadata.turnSnapshotData)
         let snapshot = try SerializationUtils.jsonDecoder.decode(TurnSnapshot.self, from: data)
         #expect(snapshot.fullResponse == "done")
+    }
+
+    @Test("Successful events do not contain diagnostic snapshots by default")
+    func defaultPolicyOmitsSnapshot() async throws {
+        let stage = MessagePersistenceStage(messageStore: MockPersistenceService(), logger: testLogger)
+        let events = try await drain(await stage.process(await makeContext(fullResponse: "private prompt context")))
+        let completed = try #require(events.compactMap { $0.completedMessage }.first)
+
+        #expect(completed.metadata.turnSnapshotData == nil)
+    }
+
+    @Test("Redacted snapshots mask secrets and obey their byte limit")
+    func redactedSnapshotMasksSecretsAndIsBounded() async throws {
+        let prompt = "api_key=sk-test-secret password=hunter2 " + String(repeating: "large prompt ", count: 1_000)
+        let stage = MessagePersistenceStage(
+            messageStore: MockPersistenceService(),
+            logger: testLogger,
+            diagnosticSnapshotConfiguration: .init(policy: .redacted, maxBytes: 2_000)
+        )
+        let events = try await drain(await stage.process(await makeContext(
+            fullResponse: prompt,
+            currentMessages: [LLMMessage(role: .user, content: prompt)]
+        )))
+        let data = try #require(events.compactMap { $0.completedMessage }.first?.metadata.turnSnapshotData)
+        let encoded = try #require(String(data: data, encoding: .utf8))
+
+        #expect(data.count <= 2_000)
+        #expect(!encoded.contains("sk-test-secret"))
+        #expect(!encoded.contains("hunter2"))
+        #expect(encoded.contains("[REDACTED]"))
+        #expect(encoded.contains("truncated") || prompt.count < 512)
+    }
+
+    @Test("Full snapshots require explicit opt-in and remain bounded")
+    func fullSnapshotIsExplicitAndBounded() async throws {
+        let stage = MessagePersistenceStage(
+            messageStore: MockPersistenceService(),
+            logger: testLogger,
+            diagnosticSnapshotConfiguration: .init(policy: .full, maxBytes: 1_500)
+        )
+        let events = try await drain(await stage.process(await makeContext(
+            fullResponse: String(repeating: "response ", count: 1_000)
+        )))
+        let data = try #require(events.compactMap { $0.completedMessage }.first?.metadata.turnSnapshotData)
+
+        #expect(data.count <= 1_500)
     }
 
     @Test

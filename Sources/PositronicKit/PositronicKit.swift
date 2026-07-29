@@ -60,6 +60,7 @@ public final class PositronicKit: Sendable {
     private let requestOriginStore: any RequestOriginStoreProtocol
     private let chatTurnPlugins: [any ChatTurnPlugin]
     private let promptObserver: (any PromptObserving)?
+    private let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
     let defaultGenerationParameters: GenerationParameters?
     private let logger = Logger.module(named: "positronickit-facade")
 
@@ -127,6 +128,7 @@ public final class PositronicKit: Sendable {
         runtimeToolPolicy: TimelineManager.RuntimeToolPolicy = .default,
         chatTurnPlugins: [any ChatTurnPlugin] = [],
         promptObserver: (any PromptObserving)? = nil,
+        diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
         generationParameters: GenerationParameters? = nil,
         toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
         sharedRegistry: TimelinePromptJournals,
@@ -143,6 +145,7 @@ public final class PositronicKit: Sendable {
         self.embeddingService = embeddingService ?? NoOpEmbeddingService()
         self.chatTurnPlugins = chatTurnPlugins
         self.promptObserver = promptObserver
+        self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
         promptHistoryRegistry = sharedRegistry
         self.workspaceRoot = workspaceRoot
         self.workspaceCreator = workspaceCreator
@@ -200,6 +203,7 @@ public final class PositronicKit: Sendable {
                 toolRouter: toolRouter,
                 chatTurnPlugins: self.chatTurnPlugins,
                 promptObserver: self.promptObserver,
+                diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
                 promptHistoryRegistry: promptHistoryRegistry
             )
         )
@@ -233,6 +237,7 @@ public final class PositronicKit: Sendable {
             runtimeToolPolicy: runtimeToolPolicy,
             chatTurnPlugins: chatTurnPlugins,
             promptObserver: promptObserver,
+            diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
             generationParameters: generationParameters ?? defaultGenerationParameters,
             toolApprovalPolicy: toolApprovalPolicy,
             sharedRegistry: promptHistoryRegistry,
@@ -266,6 +271,7 @@ public final class PositronicKit: Sendable {
             runtimeToolPolicy: runtimeToolPolicy,
             chatTurnPlugins: chatTurnPlugins,
             promptObserver: promptObserver,
+            diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
             generationParameters: defaultGenerationParameters,
             toolApprovalPolicy: toolApprovalPolicy,
             sharedRegistry: promptHistoryRegistry,
@@ -293,6 +299,7 @@ public final class PositronicKit: Sendable {
             runtimeToolPolicy: runtimeToolPolicy,
             chatTurnPlugins: chatTurnPlugins + [plugin],
             promptObserver: promptObserver,
+            diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
             generationParameters: defaultGenerationParameters,
             toolApprovalPolicy: toolApprovalPolicy,
             sharedRegistry: promptHistoryRegistry,

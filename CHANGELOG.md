@@ -20,6 +20,11 @@ for tagged releases beginning with `1.0.0`.
   budget compression and runtime prompt-history recording are throwing validation boundaries, and
   a missing prompt diff fails only the affected chat turn with diagnostic state.
 
+- **Opt-in diagnostic snapshots (PKRR-012)**: successful-turn response metadata no longer
+  carries prompt, memory, response, reasoning, or tool snapshots by default. Hosts can explicitly
+  select `redacted` or `full` snapshots with a byte limit; secret-like values are masked and large
+  content is truncated before encoding. Existing `turnSnapshotData` remains additive-compatible.
+
 - **Causal error chain traversal for `ErrorIdentity` (PKRR-014)**: A new
   `CausalError` protocol in `PKShared` enables `ChatEvent.ErrorIdentity.extracting(from:)`
   to traverse wrapper errors (e.g. `PipelineError.stageFailed`,
