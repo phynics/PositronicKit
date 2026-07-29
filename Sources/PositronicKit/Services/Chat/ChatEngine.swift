@@ -231,6 +231,7 @@ struct ChatEngine {
         generationParameters: GenerationParameters? = nil,
         structuredOutput: StructuredOutputRequest? = nil,
         sidecars: [SidecarDirective] = [],
+        sidecarCommitPolicy: SidecarCommitPolicy = .everyRoundTrip,
         includeSidecarMechanismPreamble: Bool = false,
         contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
         assemblyLogger: Logger? = nil
@@ -257,6 +258,7 @@ struct ChatEngine {
             generationParameters: generationParameters,
             structuredOutput: structuredOutput,
             sidecars: sidecars,
+            sidecarCommitPolicy: sidecarCommitPolicy,
             includeSidecarMechanismPreamble: includeSidecarMechanismPreamble,
             contextPipeline: contextPipeline,
             assemblyLogger: assemblyLogger

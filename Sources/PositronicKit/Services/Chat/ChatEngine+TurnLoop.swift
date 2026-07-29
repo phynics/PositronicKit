@@ -106,6 +106,17 @@ extension ChatEngine {
                         loopRenderedPrompt = snapshot.renderedPrompt
                         loopPromptHistoryUpdate = snapshot.promptHistoryUpdate
                     } else {
+                        // A plugin requested another logical round, but the send budget is
+                        // exhausted. This is max-turn termination, not a normal terminal round.
+                        if !pluginMessages.isEmpty && turnCount >= context.maxTurns {
+                            continuation.yield(.maxTurnsReached())
+                            continuation.finish()
+                            return
+                        }
+                        await emitTerminalSidecarCompletionIfNeeded(
+                            context: turnContext,
+                            continuation: continuation
+                        )
                         continuation.finish()
                         return
                     }
@@ -176,6 +187,19 @@ extension ChatEngine {
         // (PKRR-011).
         continuation.yield(.maxTurnsReached())
         continuation.finish()
+    }
+
+    func emitTerminalSidecarCompletionIfNeeded(
+        context: ChatTurnContext,
+        continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
+    ) async {
+        guard context.sidecarCommitPolicy == .terminalRoundTrip else { return }
+        let results = await context.outputs.sidecarResults
+        guard !results.isEmpty else { return }
+        continuation.yield(.sidecarsCompleted(SidecarCompletion(
+            identity: TurnIdentity(sendId: context.sendId, roundTrip: max(context.turnCount - 1, 0)),
+            results: results
+        )))
     }
 }
 

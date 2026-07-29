@@ -10,6 +10,14 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- **Terminal sidecar commit policy (SDC-10)**: `ChatRunRequest` accepts
+  `SidecarCommitPolicy` (default `.everyRoundTrip`). Sidecar completion events now carry a
+  Codable `SidecarCompletion` with a stable `TurnIdentity`; `.terminalRoundTrip` buffers
+  intermediate results and emits exactly one identified completion only after normal logical-send
+  completion. Consumers switching on `sidecarsCompleted` should use `completion.results` and
+  key durable persistence by `completion.identity`. Sidecars remain excluded from conversation
+  history.
+
 - **CI verification matrix (PKRR-025)**: CI now gates minimum and current pinned Linux
   toolchains separately, runs the full macOS verification gate including docs snippets,
   examples, products, and tests, and compiles/tests iOS library products on an iOS Simulator.

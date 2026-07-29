@@ -195,7 +195,7 @@ public enum ChatEvent: Sendable, Codable {
         case deferredForExternalTool
 
         /// All sidecar directives resolved for the turn (values, declines, failures)
-        case sidecarsCompleted(results: [SidecarResult])
+        case sidecarsCompleted(SidecarCompletion)
 
         /// The entire stream is complete (terminal event).
         ///
@@ -287,8 +287,16 @@ public extension ChatEvent {
         .completion(.deferredForExternalTool)
     }
 
+    static func sidecarsCompleted(_ completion: SidecarCompletion) -> ChatEvent {
+        .completion(.sidecarsCompleted(completion))
+    }
+
+    /// Compatibility factory for consumers that construct this event directly.
     static func sidecarsCompleted(_ results: [SidecarResult]) -> ChatEvent {
-        .completion(.sidecarsCompleted(results: results))
+        .sidecarsCompleted(SidecarCompletion(
+            identity: TurnIdentity(sendId: UUID(), roundTrip: 0),
+            results: results
+        ))
     }
 }
 
@@ -327,7 +335,14 @@ public extension ChatEvent {
 
     /// The sidecar results if this is a `.completion(.sidecarsCompleted(...))` event.
     var sidecarResults: [SidecarResult]? {
-        if case let .completion(event) = self, case let .sidecarsCompleted(results) = event { return results }
+        sidecarCompletion?.results
+    }
+
+    /// The identified sidecar completion if this is a committed sidecar event.
+    var sidecarCompletion: SidecarCompletion? {
+        if case let .completion(event) = self, case let .sidecarsCompleted(completion) = event {
+            return completion
+        }
         return nil
     }
 }

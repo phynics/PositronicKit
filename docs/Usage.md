@@ -173,9 +173,9 @@ for try await event in stream {
             print("\nMax turns reached — the agent did not produce a tool-free final response.")
         case .deferredForExternalTool:
             print("\nTool calls deferred for external execution; stream paused for host-side work.")
-        case .sidecarsCompleted(let results):
+        case .sidecarsCompleted(let completion):
             // Only emitted on turns passed `sidecars:` — see docs/SidecarDirectives.md.
-            for result in results {
+            for result in completion.results {
                 print("\n[\(result.name)] \(result.outcome)")
             }
         default:
@@ -290,4 +290,3 @@ The Apple MiniLM path is built with the `MiniLMEmbeddings` trait (`swift test --
 The pinned assets are `config.json`, `model.onnx`, `special_tokens_map.json`, `tokenizer.json`, `tokenizer_config.json`, and `vocab.txt` from `Qdrant/all-MiniLM-L6-v2-onnx` revision `5f1b8cd78bc4fb444dd171e59b18f3a3af89a079`. Exact checksums live in `native/pkfastembed/model-assets.sha256`; the host application owns fetching, verification, the model directory, and cache lifecycle.
 
 Natural Language and MiniLM vectors are not interchangeable and must not share an index. When moving content across backends or platforms, rebuild embeddings on the destination platform.
-

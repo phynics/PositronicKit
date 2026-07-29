@@ -27,20 +27,6 @@ public protocol PromptObserving: Sendable {
     func didComposePrompt(_ inspection: PromptInspection) async
 }
 
-/// Stable identity for one composed turn within a logical user send.
-///
-/// `sendId` stays constant across every round-trip produced by the same `ChatEngine.execute`
-/// call. `roundTrip` is the zero-based ordinal of that round-trip within the send.
-public struct TurnIdentity: Sendable, Hashable, Equatable {
-    public let sendId: UUID
-    public let roundTrip: Int
-
-    public init(sendId: UUID, roundTrip: Int) {
-        self.sendId = sendId
-        self.roundTrip = roundTrip
-    }
-}
-
 public struct PromptInspection: Sendable {
     /// Consumer-facing mapping that groups every round-trip from one logical send.
     public let identity: TurnIdentity

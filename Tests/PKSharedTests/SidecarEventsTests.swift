@@ -13,15 +13,29 @@ struct SidecarEventsTests {
     }
 
     @Test func sidecarsCompletedCarriesValuesAndErrors() throws {
+        let sendId = UUID()
         let results = [
             SidecarResult(name: "title", outcome: .value(AnyCodable("A Title"))),
             SidecarResult(name: "tone", outcome: .declined),
             SidecarResult(name: "memory", outcome: .failed(reason: "field never completed")),
         ]
-        let event = ChatEvent.sidecarsCompleted(results)
+        let completion = SidecarCompletion(
+            identity: TurnIdentity(sendId: sendId, roundTrip: 2),
+            results: results
+        )
+        let event = ChatEvent.sidecarsCompleted(completion)
         let data = try JSONEncoder().encode(event)
         let decoded = try JSONDecoder().decode(ChatEvent.self, from: data)
         #expect(decoded.sidecarResults?.count == 3)
         #expect(decoded.sidecarResults?[1].outcome == .declined)
+        #expect(decoded.sidecarCompletion?.identity == completion.identity)
+        #expect(decoded.sidecarCompletion?.results == results)
+    }
+
+    @Test func turnIdentityAndCommitPolicyRoundTripThroughCodable() throws {
+        let identity = TurnIdentity(sendId: UUID(), roundTrip: 7)
+        let identityData = try JSONEncoder().encode(identity)
+        #expect(try JSONDecoder().decode(TurnIdentity.self, from: identityData) == identity)
+
     }
 }

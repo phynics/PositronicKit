@@ -223,8 +223,9 @@ public enum PositronicKitUsageExamples {
                     print("\nMax turns reached — the agent did not produce a tool-free final response.")
                 case .deferredForExternalTool:
                     print("\nTool calls deferred for external execution; stream paused for host-side work.")
-                case .sidecarsCompleted(let results):
-                    for result in results {
+                case .sidecarsCompleted(let completion):
+                    print("\nSidecars for round \(completion.identity.roundTrip), send \(completion.identity.sendId)")
+                    for result in completion.results {
                         print("\n[\(result.name)] \(result.outcome)")
                     }
                 default:
