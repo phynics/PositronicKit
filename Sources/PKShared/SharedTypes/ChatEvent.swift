@@ -11,6 +11,12 @@ public enum ToolExecutionStatus: Sendable, Codable {
     /// which is the static factory that constructs a failed `ToolResult` value (a
     /// result, not a lifecycle status).
     case executionError(String)
+    /// The tool executed (successfully or with an error) but the result could not be
+    /// persisted to the message store. Emitted instead of `.success` or `.failed` when
+    /// `saveMessage` throws, so the terminal status is always consistent with persisted
+    /// history — a consumer that observes `.persistenceFailed` knows the result is not
+    /// durable and a retry may be needed (PKRR-016).
+    case persistenceFailed(reference: ToolReference, error: String)
 }
 
 /// Events emitted by ChatEngine during a chat turn.

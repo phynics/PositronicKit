@@ -10,6 +10,14 @@ for tagged releases beginning with `1.0.0`.
 
 ### Fixed
 
+- **Tool terminal status is emitted only after the result is durable (PKRR-016)**:
+  `ToolRouter` now persists the tool message to the message store **before** yielding the
+  terminal `.success` or `.failed` event. Previously the event was yielded first, so a
+  consumer could observe success and then lose the result when `saveMessage` threw —
+  leaving conversation history inconsistent with the emitted status and making retries
+  unsafe. If persistence fails, the router emits a `.persistenceFailed` terminal event
+  instead of `.success`/`.failed`, so a store failure never produces a terminal success.
+
 - **Turn input persistence deferred until preparation succeeds (PKRR-006)**:
   `prepareSession` now validates history, gathers context, resolves workspaces, and assembles
   the prompt **before** persisting user input or tool outputs. If any preparation step throws,
@@ -31,6 +39,12 @@ for tagged releases beginning with `1.0.0`.
   scraping. Cleanup always runs, even after cancellation.
 
 ### Added
+
+- **`ToolExecutionStatus.persistenceFailed(reference:error:)` (PKRR-016)**: a new terminal
+  status case emitted when the tool executed (successfully or with an error) but
+  `messageStore.saveMessage` threw. Distinct from `.success` and `.failed` — a consumer
+  that observes `.persistenceFailed` knows the result is not durable and a retry may be
+  needed.
 
 - **`ToolError.invalidWorkspaceID(String)` (PKRR-015)**: a new typed `ToolError` case
   (error code `213`) thrown when the `workspaceID` argument is present but not a valid

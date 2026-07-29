@@ -1116,6 +1116,321 @@ struct ToolTurnProjectionTests {
     }
 }
 
+// MARK: - Tool durability ordering tests (PKRR-016)
+
+struct ToolDurabilityOrderingTests {
+    private func setupTimelineManager() async throws -> (TimelineManager, MockPersistenceService) {
+        let mockPersistence = MockPersistenceService()
+        let workspace = TestWorkspace()
+        let timelineManager = TimelineManager(
+            stores: .init(
+                timelineStore: mockPersistence,
+                messageStore: mockPersistence,
+                workspaceStore: mockPersistence,
+                toolPersistence: mockPersistence
+            ),
+            workspaceRoot: workspace.root
+        )
+        return (timelineManager, mockPersistence)
+    }
+
+    private struct MockTool: PKShared.Tool, @unchecked Sendable {
+        let callName: String
+        let name: String
+        let description = "A mock tool for testing"
+        let requiresPermission = false
+        let parametersSchema = makeEmptyObjectSchema()
+
+        var result: ToolResult
+
+        func canExecute() async -> Bool { true }
+
+        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
+            result
+        }
+    }
+
+    private struct FailingTool: PKShared.Tool, @unchecked Sendable {
+        let callName: String
+        let name: String
+        let description = "A tool that always fails"
+        let requiresPermission = false
+        let thrownError: any Error
+        let parametersSchema = makeEmptyObjectSchema()
+
+        init(id: String, error: any Error) {
+            callName = id
+            name = id
+            thrownError = error
+        }
+
+        func canExecute() async -> Bool { true }
+
+        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
+            throw thrownError
+        }
+    }
+
+    /// Sets up a timeline with a single registered tool and returns the router (backed by a
+    /// `FailingMessageStore`) plus the timeline ID and the store for assertions.
+    private func setupRouterWithFailingStore(
+        tool: any PKShared.Tool
+    ) async throws -> (ToolRouter, FailingMessageStore, UUID) {
+        let (timelineManager, mockPersistence) = try await setupTimelineManager()
+        let failingStore = FailingMessageStore()
+        let toolRouter = ToolRouter(
+            timelineManager: timelineManager,
+            messageStore: failingStore
+        )
+
+        let session = try await timelineManager.createTimeline()
+        let workspaceId = UUID()
+        let workspaceRef = try WorkspaceReference(
+            id: workspaceId,
+            uri: #require(WorkspaceURI(parsing: "pk://local")),
+            location: .runtime,
+            originId: nil
+        )
+        try await mockPersistence.saveWorkspace(workspaceRef)
+        try await timelineManager.attachWorkspace(workspaceId, to: session.id)
+        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known(tool.callName))
+
+        let toolManager = await timelineManager.getToolManager(for: session.id)
+        try #require(toolManager != nil)
+        await toolManager?.updateAvailableTools([tool.toAnyTool()])
+
+        return (toolRouter, failingStore, session.id)
+    }
+
+    @Test("A successful tool with a failing store never emits terminal success (PKRR-016)")
+    func successfulToolFailingStoreDoesNotEmitSuccess() async throws {
+        let tool = MockTool(callName: "tool", name: "tool", result: .success("done"))
+        let (router, failingStore, timelineId) = try await setupRouterWithFailingStore(tool: tool)
+
+        let call = ParsedToolCall(callId: "call-1", name: "tool", argumentsJSON: "{}")
+
+        let events = try await captureProjectedToolEvents { continuation in
+            let result = try await router.handlePendingToolCalls(
+                timelineId: timelineId,
+                calls: [call],
+                availableTools: [],
+                continuation: continuation
+            )
+
+            #expect(result.hasDeferred == false)
+            #expect(result.resolvedToolParams.count == 1)
+            #expect(result.resolvedToolParams.first?.content == "done")
+        }
+
+        // Persistence was attempted (the store received the message before throwing).
+        #expect(failingStore.attemptedMessages.count == 1)
+        #expect(failingStore.attemptedMessages.first?.content == "done")
+        #expect(failingStore.attemptedMessages.first?.toolCallId == "call-1")
+
+        // The stream must NOT contain a terminal .success event — persistence failed, so
+        // success was never emitted.
+        #expect(!events.contains(where: {
+            if case let .completion(.toolExecution(toolCallId, status)) = $0,
+               case .success = status
+            {
+                return toolCallId == "call-1"
+            }
+            return false
+        }))
+
+        // The stream MUST contain a .persistenceFailed terminal event.
+        #expect(events.contains(where: {
+            if case let .completion(.toolExecution(toolCallId, status)) = $0,
+               case .persistenceFailed = status
+            {
+                return toolCallId == "call-1"
+            }
+            return false
+        }))
+    }
+
+    @Test("A failed tool with a failing store never emits terminal failure (PKRR-016)")
+    func failedToolFailingStoreDoesNotEmitFailed() async throws {
+        let tool = FailingTool(id: "tool", error: ToolError.executionFailed("boom"))
+        let (router, failingStore, timelineId) = try await setupRouterWithFailingStore(tool: tool)
+
+        let call = ParsedToolCall(callId: "call-2", name: "tool", argumentsJSON: "{}")
+
+        let events = try await captureProjectedToolEvents { continuation in
+            let result = try await router.handlePendingToolCalls(
+                timelineId: timelineId,
+                calls: [call],
+                availableTools: [],
+                continuation: continuation
+            )
+
+            #expect(result.hasDeferred == false)
+            #expect(result.resolvedToolParams.count == 1)
+            #expect(result.resolvedToolParams.first?.content.contains("Error:") == true)
+        }
+
+        // Persistence was attempted.
+        #expect(failingStore.attemptedMessages.count == 1)
+        #expect(failingStore.attemptedMessages.first?.content.contains("Error:") == true)
+        #expect(failingStore.attemptedMessages.first?.toolCallId == "call-2")
+
+        // The stream must NOT contain a terminal .failed event.
+        #expect(!events.contains(where: {
+            if case let .completion(.toolExecution(toolCallId, status)) = $0,
+               case .failed = status
+            {
+                return toolCallId == "call-2"
+            }
+            return false
+        }))
+
+        // The stream MUST contain a .persistenceFailed terminal event.
+        #expect(events.contains(where: {
+            if case let .completion(.toolExecution(toolCallId, status)) = $0,
+               case .persistenceFailed = status
+            {
+                return toolCallId == "call-2"
+            }
+            return false
+        }))
+    }
+
+    @Test("A successful tool with a working store emits terminal success and no persistenceFailed (PKRR-016)")
+    func successfulToolWorkingStoreEmitsSuccess() async throws {
+        let (timelineManager, mockPersistence) = try await setupTimelineManager()
+        let toolRouter = ToolRouter(
+            timelineManager: timelineManager,
+            messageStore: mockPersistence
+        )
+
+        let session = try await timelineManager.createTimeline()
+        let workspaceId = UUID()
+        let workspaceRef = try WorkspaceReference(
+            id: workspaceId,
+            uri: #require(WorkspaceURI(parsing: "pk://local")),
+            location: .runtime,
+            originId: nil
+        )
+        try await mockPersistence.saveWorkspace(workspaceRef)
+        try await timelineManager.attachWorkspace(workspaceId, to: session.id)
+        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("tool"))
+
+        let toolManager = await timelineManager.getToolManager(for: session.id)
+        try #require(toolManager != nil)
+        await toolManager?.updateAvailableTools([
+            MockTool(callName: "tool", name: "tool", result: .success("done")).toAnyTool()
+        ])
+
+        let call = ParsedToolCall(callId: "call-3", name: "tool", argumentsJSON: "{}")
+
+        let events = try await captureProjectedToolEvents { continuation in
+            _ = try await toolRouter.handlePendingToolCalls(
+                timelineId: session.id,
+                calls: [call],
+                availableTools: [],
+                continuation: continuation
+            )
+        }
+
+        // The message was persisted.
+        #expect(mockPersistence.messages.count == 1)
+        #expect(mockPersistence.messages.first?.content == "done")
+
+        // The stream contains a terminal .success event.
+        #expect(events.contains(where: {
+            if case let .completion(.toolExecution(toolCallId, status)) = $0,
+               case .success = status
+            {
+                return toolCallId == "call-3"
+            }
+            return false
+        }))
+
+        // The stream does NOT contain a .persistenceFailed event.
+        #expect(!events.contains(where: {
+            if case let .completion(.toolExecution(_, status)) = $0,
+               case .persistenceFailed = status
+            {
+                return true
+            }
+            return false
+        }))
+    }
+
+    @Test("Batch with one succeeding and one failing store: first emits success, second emits persistenceFailed (PKRR-016)")
+    func batchMixedPersistenceResults() async throws {
+        let (timelineManager, mockPersistence) = try await setupTimelineManager()
+        let batchStore = BatchFailingMessageStore()
+        batchStore.failAfterSaveCount = 1
+        let toolRouter = ToolRouter(
+            timelineManager: timelineManager,
+            messageStore: batchStore
+        )
+
+        let session = try await timelineManager.createTimeline()
+        let workspaceId = UUID()
+        let workspaceRef = try WorkspaceReference(
+            id: workspaceId,
+            uri: #require(WorkspaceURI(parsing: "pk://local")),
+            location: .runtime,
+            originId: nil
+        )
+        try await mockPersistence.saveWorkspace(workspaceRef)
+        try await timelineManager.attachWorkspace(workspaceId, to: session.id)
+        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("tool"))
+
+        let toolManager = await timelineManager.getToolManager(for: session.id)
+        try #require(toolManager != nil)
+        await toolManager?.updateAvailableTools([
+            MockTool(callName: "tool", name: "tool", result: .success("ok")).toAnyTool()
+        ])
+
+        let call1 = ParsedToolCall(callId: "call-a", name: "tool", argumentsJSON: "{}")
+        let call2 = ParsedToolCall(callId: "call-b", name: "tool", argumentsJSON: "{}")
+
+        let events = try await captureProjectedToolEvents { continuation in
+            _ = try await toolRouter.handlePendingToolCalls(
+                timelineId: session.id,
+                calls: [call1, call2],
+                availableTools: [],
+                continuation: continuation
+            )
+        }
+
+        // First save succeeds, second fails.
+        #expect(batchStore.saveCallCount == 2)
+        #expect(batchStore.messages.count == 1)
+
+        // First tool call: terminal .success.
+        #expect(events.contains(where: {
+            if case let .completion(.toolExecution(toolCallId, status)) = $0,
+               case .success = status
+            {
+                return toolCallId == "call-a"
+            }
+            return false
+        }))
+
+        // Second tool call: terminal .persistenceFailed (not .success).
+        #expect(events.contains(where: {
+            if case let .completion(.toolExecution(toolCallId, status)) = $0,
+               case .persistenceFailed = status
+            {
+                return toolCallId == "call-b"
+            }
+            return false
+        }))
+        #expect(!events.contains(where: {
+            if case let .completion(.toolExecution(toolCallId, status)) = $0,
+               case .success = status
+            {
+                return toolCallId == "call-b"
+            }
+            return false
+        }))
+    }
+}
+
 // MARK: - ParsedToolCall decode contract tests
 
 struct ParsedToolCallTests {

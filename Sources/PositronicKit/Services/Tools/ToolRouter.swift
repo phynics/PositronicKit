@@ -175,6 +175,7 @@ public actor ToolRouter {
                 let param = try await projectOutcome(
                     outcome,
                     call: call,
+                    toolRef: toolRef,
                     timelineId: timelineId,
                     continuation: continuation
                 )
@@ -437,9 +438,14 @@ public actor ToolRouter {
 
     /// Projects a successful or deferred outcome into a persisted tool message, a chat event,
     /// and an optional provider-neutral follow-up message.
+    ///
+    /// The tool result is persisted **before** the terminal `.success` event is emitted, so
+    /// a consumer that observes `.success` is guaranteed the result is durable. If persistence
+    /// fails, `.persistenceFailed` is emitted instead — never `.success` (PKRR-016).
     private func projectOutcome(
         _ outcome: ToolExecutionOutcome,
         call: ParsedToolCall,
+        toolRef: ToolReference,
         timelineId: UUID,
         continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
     ) async throws -> LLMMessage? {
@@ -447,10 +453,21 @@ public actor ToolRouter {
         switch outcome {
         case let .completed(output):
             logger.info("Tool \(toolDisplayName) succeeded")
-            continuation.yield(.toolCompleted(toolCallId: call.callId, status: .success(ToolResult.success(output))))
-            try await messageStore.saveMessage(
-                ConversationMessage(timelineId: timelineId, role: .tool, content: output, toolCallId: call.callId)
+            let message = ConversationMessage(
+                timelineId: timelineId, role: .tool, content: output, toolCallId: call.callId
             )
+            do {
+                try await messageStore.saveMessage(message)
+                continuation.yield(.toolCompleted(
+                    toolCallId: call.callId, status: .success(ToolResult.success(output))
+                ))
+            } catch {
+                logger.error("Tool \(toolDisplayName) succeeded but persistence failed: \(error.localizedDescription)")
+                continuation.yield(.toolCompleted(
+                    toolCallId: call.callId,
+                    status: .persistenceFailed(reference: toolRef, error: error.localizedDescription)
+                ))
+            }
             return LLMMessage(role: .tool, content: output, toolCallID: call.callId)
 
         case .deferredExternally:
@@ -461,6 +478,10 @@ public actor ToolRouter {
 
     /// Projects an execution error into a persisted error message (with remediation guidance),
     /// a failed chat event, and a provider-neutral follow-up message.
+    ///
+    /// The error message is persisted **before** the terminal `.failed` event is emitted, so
+    /// a consumer that observes `.failed` is guaranteed the error is durable. If persistence
+    /// fails, `.persistenceFailed` is emitted instead — never `.failed` (PKRR-016).
     private func projectError(
         _ error: Error,
         call: ParsedToolCall,
@@ -479,13 +500,22 @@ public actor ToolRouter {
         if let remediation = (error as? any PKError)?.remediation, !remediation.isEmpty {
             errorOutput += "\nHow to fix: \(remediation)"
         }
-        continuation.yield(.toolCompleted(
-            toolCallId: call.callId,
-            status: .failed(reference: toolRef, error: error.localizedDescription)
-        ))
-        try await messageStore.saveMessage(
-            ConversationMessage(timelineId: timelineId, role: .tool, content: errorOutput, toolCallId: call.callId)
+        let message = ConversationMessage(
+            timelineId: timelineId, role: .tool, content: errorOutput, toolCallId: call.callId
         )
+        do {
+            try await messageStore.saveMessage(message)
+            continuation.yield(.toolCompleted(
+                toolCallId: call.callId,
+                status: .failed(reference: toolRef, error: error.localizedDescription)
+            ))
+        } catch {
+            logger.error("Tool \(toolDisplayName) error could not be persisted: \(error.localizedDescription)")
+            continuation.yield(.toolCompleted(
+                toolCallId: call.callId,
+                status: .persistenceFailed(reference: toolRef, error: error.localizedDescription)
+            ))
+        }
         return LLMMessage(role: .tool, content: errorOutput, toolCallID: call.callId)
     }
 }
