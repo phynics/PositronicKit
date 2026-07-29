@@ -44,17 +44,20 @@ public extension PositronicKit {
         public let persistence: PersistenceConfiguration
         public let runtime: RuntimeConfiguration
         public let generationParameters: GenerationParameters?
+        public let logging: LoggingConfiguration
 
         public init(
             provider: ProviderConfiguration,
             persistence: PersistenceConfiguration,
             runtime: RuntimeConfiguration = .default,
-            generationParameters: GenerationParameters? = nil
+            generationParameters: GenerationParameters? = nil,
+            logging: LoggingConfiguration = .default
         ) {
             self.provider = provider
             self.persistence = persistence
             self.runtime = runtime
             self.generationParameters = generationParameters
+            self.logging = logging
         }
     }
 
@@ -274,11 +277,14 @@ public extension PositronicKit {
             diagnosticSnapshotConfiguration: configuration.runtime.diagnosticSnapshotConfiguration,
             generationParameters: configuration.generationParameters,
             toolApprovalPolicy: configuration.runtime.toolApprovalPolicy,
+            loggingConfiguration: configuration.logging,
             sharedRegistry: TimelinePromptJournals(),
             additionalStages: []
         )
         if let warning = configuration.persistence.validateDurability().mixedDurabilityWarning {
-            Logger.module(named: "positronickit-facade").warning("\(warning)")
+            configuration.logging.logger(named: "positronickit-facade").warning(
+                "\(configuration.logging.redactionPolicy.sanitizeStructured(warning))"
+            )
         }
     }
 }

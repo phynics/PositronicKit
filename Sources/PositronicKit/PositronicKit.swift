@@ -63,6 +63,7 @@ public final class PositronicKit: Sendable {
     private let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
     let defaultGenerationParameters: GenerationParameters?
     private let logger = Logger.module(named: "positronickit-facade")
+    private let loggingConfiguration: LoggingConfiguration
 
     // MARK: - Transitive dependencies (TimelineManager, TurnBriefingBuilder)
 
@@ -131,6 +132,7 @@ public final class PositronicKit: Sendable {
         diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
         generationParameters: GenerationParameters? = nil,
         toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
+        loggingConfiguration: LoggingConfiguration = .default,
         sharedRegistry: TimelinePromptJournals,
         additionalStages: [any PipelineStage<ChatTurnContext, ChatEvent>]
     ) {
@@ -152,6 +154,7 @@ public final class PositronicKit: Sendable {
         self.sectionProviders = sectionProviders
         self.runtimeToolPolicy = runtimeToolPolicy
         self.toolApprovalPolicy = toolApprovalPolicy
+        self.loggingConfiguration = loggingConfiguration
         defaultGenerationParameters = generationParameters
 
         let resolvedWorkspaceRoot = workspaceRoot ?? FileManager.default.temporaryDirectory
@@ -191,7 +194,8 @@ public final class PositronicKit: Sendable {
         toolRouter = ToolRouter(
             timelineManager: resolvedTimelineManager,
             messageStore: self.messageStore,
-            approvalPolicy: toolApprovalPolicy
+            approvalPolicy: toolApprovalPolicy,
+            loggingConfiguration: loggingConfiguration
         )
         var engine = ChatEngine(
             dependencies: .init(
@@ -204,6 +208,7 @@ public final class PositronicKit: Sendable {
                 chatTurnPlugins: self.chatTurnPlugins,
                 promptObserver: self.promptObserver,
                 diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
+                loggingConfiguration: loggingConfiguration,
                 promptHistoryRegistry: promptHistoryRegistry
             )
         )
@@ -240,6 +245,7 @@ public final class PositronicKit: Sendable {
             diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
             generationParameters: generationParameters ?? defaultGenerationParameters,
             toolApprovalPolicy: toolApprovalPolicy,
+            loggingConfiguration: loggingConfiguration,
             sharedRegistry: promptHistoryRegistry,
             additionalStages: chatEngine.additionalStages
         )
@@ -274,6 +280,7 @@ public final class PositronicKit: Sendable {
             diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
             generationParameters: defaultGenerationParameters,
             toolApprovalPolicy: toolApprovalPolicy,
+            loggingConfiguration: loggingConfiguration,
             sharedRegistry: promptHistoryRegistry,
             additionalStages: chatEngine.additionalStages + [stage]
         )
@@ -302,6 +309,7 @@ public final class PositronicKit: Sendable {
             diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
             generationParameters: defaultGenerationParameters,
             toolApprovalPolicy: toolApprovalPolicy,
+            loggingConfiguration: loggingConfiguration,
             sharedRegistry: promptHistoryRegistry,
             additionalStages: chatEngine.additionalStages
         )

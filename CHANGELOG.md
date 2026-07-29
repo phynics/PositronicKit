@@ -14,6 +14,12 @@ for tagged releases beginning with `1.0.0`.
   never exceeds the available prompt budget, fails typed when mandatory `.keep` sections cannot fit,
   and preserves summarizer failures instead of converting them into dropped sections.
 
+- **Injectable privacy-safe logging (PKRR-013)**: added `LoggingConfiguration` and a default-off
+  `LogRedactionPolicy` that hosts can inject through `PositronicKit.Configuration`. Request
+  descriptions, malformed tool arguments, tool errors, ANSI escapes, and presentation emoji no
+  longer enter default structured logs; error logs carry stable domain, code, and correlation
+  metadata.
+
 - **Structured one-shot generation results (PKRR-019)**: One-shot streaming now
   applies the same idle-timeout and cancellation semantics as timeline chat,
   accepts per-call generation parameters, and exposes `OneShotResult` with

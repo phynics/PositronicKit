@@ -103,6 +103,7 @@ struct ChatEngine {
         let chatTurnPlugins: [any ChatTurnPlugin]
         let promptObserver: (any PromptObserving)?
         let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
+        let loggingConfiguration: LoggingConfiguration
         let promptHistoryRegistry: TimelinePromptJournals
         let streamTimeout: TimeInterval
 
@@ -116,6 +117,7 @@ struct ChatEngine {
             chatTurnPlugins: [any ChatTurnPlugin],
             promptObserver: (any PromptObserving)? = nil,
             diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
+            loggingConfiguration: LoggingConfiguration = .default,
             promptHistoryRegistry: TimelinePromptJournals? = nil,
             streamTimeout: TimeInterval = Self.defaultStreamTimeout
         ) {
@@ -129,6 +131,7 @@ struct ChatEngine {
             self.chatTurnPlugins = chatTurnPlugins
             self.promptObserver = promptObserver
             self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
+            self.loggingConfiguration = loggingConfiguration
             self.promptHistoryRegistry = promptHistoryRegistry ?? TimelinePromptJournals()
             self.streamTimeout = streamTimeout
         }
@@ -212,7 +215,7 @@ struct ChatEngine {
         contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
         assemblyLogger: Logger? = nil
     ) async throws -> AsyncThrowingStream<ChatEvent, Error> {
-        let sid = ANSIColors.colorize(timelineId.uuidString.prefix(8).lowercased(), color: ANSIColors.brightBlue)
+        let sid = timelineId.uuidString.prefix(8).lowercased()
         logger.info("Starting chat stream for timeline \(sid)")
 
         guard await dependencies.llmService.isConfigured else { throw ChatEngineError.llmServiceNotConfigured }

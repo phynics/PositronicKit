@@ -4,8 +4,6 @@ import Logging
 import PKShared
 
 public enum RetryPolicy {
-    private static let logger = Logger.module(named: "retry-policy")
-
     /// Executes an async operation with retry logic
     /// - Parameters:
     ///   - maxRetries: Maximum number of retries (default: 3)
@@ -17,9 +15,11 @@ public enum RetryPolicy {
         maxRetries: Int = 3,
         baseDelay: TimeInterval = 1.0,
         shouldRetry: @escaping @Sendable (Error) -> Bool = RetryPolicy.isTransient,
+        loggingConfiguration: LoggingConfiguration = .default,
         operation: @escaping @Sendable () async throws -> T
     ) async throws -> T {
         var attempts = 0
+        let logger = loggingConfiguration.logger(named: "retry-policy")
 
         while true {
             do {
@@ -30,13 +30,12 @@ public enum RetryPolicy {
                 }
 
                 if attempts >= maxRetries {
-                    let msg = ErrorKit.userFriendlyMessage(for: error)
-                    logger.error("Max retries (\(maxRetries)) reached. Final error: \(msg)")
+                    logger.error("Max retries reached", metadata: LoggingMetadata.forError(error, correlationID: "retry"))
                     throw error
                 }
 
                 if !shouldRetry(error) {
-                    logger.error("Non-retryable error encountered: \(ErrorKit.userFriendlyMessage(for: error))")
+                    logger.error("Non-retryable error encountered", metadata: LoggingMetadata.forError(error, correlationID: "retry"))
                     throw error
                 }
 
@@ -44,10 +43,10 @@ public enum RetryPolicy {
 
                 let finalDelay = retryDelay(for: error, attempt: attempts, baseDelay: baseDelay)
 
-                let retryMsg = ErrorKit.userFriendlyMessage(for: error)
                 let delayStr = String(format: "%.2f", finalDelay)
                 logger.warning(
-                    "Retry attempt \(attempts)/\(maxRetries) in \(delayStr)s due to: \(retryMsg)"
+                    "Retry attempt \(attempts)/\(maxRetries) in \(delayStr)s",
+                    metadata: LoggingMetadata.forError(error, correlationID: "retry")
                 )
 
                 try await Task.sleep(nanoseconds: UInt64(finalDelay * 1_000_000_000))

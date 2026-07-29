@@ -38,4 +38,10 @@ public enum LogKeys {
     /// Stable `PKError` code (numeric) for a logged failure, so a failure's identity is
     /// machine-readable in logs without re-casting the error.
     public static let errorCode = "errorCode"
+
+    /// Stable domain for a logged error.
+    public static let errorDomain = "errorDomain"
+
+    /// Correlation identifier for one request or tool attempt.
+    public static let correlationID = "correlationID"
 }

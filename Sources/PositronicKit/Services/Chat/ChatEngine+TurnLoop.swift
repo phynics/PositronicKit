@@ -186,10 +186,8 @@ private extension ChatEngine {
         context: ChatTurnContext,
         partialPersistence: PartialAssistantPersistence
     ) async -> LoopContinuation {
-        let sid = ANSIColors.colorize(
-            context.timelineId.uuidString.prefix(8).lowercased(), color: ANSIColors.brightBlue
-        )
-        let turnLabel = ANSIColors.colorize("\(context.turnCount)", color: ANSIColors.brightYellow)
+        let sid = context.timelineId.uuidString.prefix(8).lowercased()
+        let turnLabel = "\(context.turnCount)"
         logger.info("Starting turn \(turnLabel) for timeline \(sid)")
 
         do {
@@ -294,6 +292,7 @@ private extension ChatEngine {
             messageStore: dependencies.messageStore,
             streamTimeout: dependencies.streamTimeout,
             diagnosticSnapshotConfiguration: dependencies.diagnosticSnapshotConfiguration,
+            loggingConfiguration: dependencies.loggingConfiguration,
             additionalStages: additionalStages
         )
         let stream = pipeline.execute(context)
