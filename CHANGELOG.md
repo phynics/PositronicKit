@@ -10,6 +10,11 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- **Structured one-shot generation results (PKRR-019)**: One-shot streaming now
+  applies the same idle-timeout and cancellation semantics as timeline chat,
+  accepts per-call generation parameters, and exposes `OneShotResult` with
+  content, usage, model, response ID, and finish metadata.
+
 - **Causal error chain traversal for `ErrorIdentity` (PKRR-014)**: A new
   `CausalError` protocol in `PKShared` enables `ChatEvent.ErrorIdentity.extracting(from:)`
   to traverse wrapper errors (e.g. `PipelineError.stageFailed`,

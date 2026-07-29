@@ -57,6 +57,93 @@ struct FacadeOneShotTests {
         #expect(try await timelinePersistence.fetchAllTimelines(includeArchived: true).isEmpty)
     }
 
+    @Test("one-shot result forwards parameters and exposes terminal metadata")
+    func oneShotResultForwardsParametersAndMetadata() async throws {
+        let llm = MockLLMService()
+        let usage = LLMTokenUsage(promptTokens: 3, completionTokens: 2, totalTokens: 5)
+        llm.mockClient.nextRawStreamChunks = [[
+            LLMStreamChunk(
+                id: "response-1",
+                model: "test-model",
+                choices: [LLMStreamChoice(
+                    index: 0,
+                    delta: LLMStreamDelta(content: "hello"),
+                    finishReason: "stop"
+                )],
+                usage: usage
+            )
+        ]]
+        let kit = PositronicKit(configuration: .init(
+            provider: .init(llmService: llm),
+            persistence: .init(
+                messageStore: InMemoryMessageStore(),
+                timelinePersistence: InMemoryTimelinePersistence()
+            )
+        ))
+        let parameters = GenerationParameters(temperature: 0.2, maxTokens: 12)
+
+        let result = try await kit.completeResult("hi", generationParameters: parameters)
+
+        #expect(result.content == "hello")
+        #expect(result.finishReason == "stop")
+        #expect(result.usage == usage)
+        #expect(result.id == "response-1")
+        #expect(result.model == "test-model")
+        #expect(llm.mockClient.lastParameters == parameters)
+    }
+
+    @Test("one-shot idle timeout terminates a stalled stream")
+    func oneShotIdleTimeout() async throws {
+        let llm = MockLLMService()
+        llm.stubbedStream = AsyncThrowingStream { _ in }
+        let kit = PositronicKit(configuration: .init(
+            provider: .init(llmService: llm),
+            persistence: .init(
+                messageStore: InMemoryMessageStore(),
+                timelinePersistence: InMemoryTimelinePersistence()
+            )
+        ))
+
+        do {
+            _ = try await kit.completeResult("hi", idleTimeout: 0.01)
+            Issue.record("Expected the stalled one-shot stream to time out")
+        } catch let error as ChatEngineError {
+            guard case let .streamTimedOut(timeout) = error else {
+                Issue.record("Expected stream timeout, got \(error)")
+                return
+            }
+            #expect(timeout == 0.01)
+        }
+    }
+
+    @Test("one-shot cancellation terminates promptly")
+    func oneShotCancellation() async throws {
+        let llm = MockLLMService()
+        llm.stubbedStream = AsyncThrowingStream { _ in }
+        let kit = PositronicKit(configuration: .init(
+            provider: .init(llmService: llm),
+            persistence: .init(
+                messageStore: InMemoryMessageStore(),
+                timelinePersistence: InMemoryTimelinePersistence()
+            )
+        ))
+        let task = Task {
+            try await kit.completeResult("hi", idleTimeout: 60)
+        }
+
+        try await Task.sleep(for: .milliseconds(10))
+        task.cancel()
+
+        do {
+            _ = try await task.value
+            Issue.record("Expected one-shot cancellation to throw")
+        } catch is CancellationError {
+            // Expected.
+        } catch {
+            Issue.record("Expected CancellationError, got \(error)")
+        }
+    }
+
     @Test("complete(_:structuredOutput:) passes the request through to the language model")
     func completeStructuredOutputPassesRequestThrough() async throws {
         let llm = MockLLMService()

@@ -79,29 +79,13 @@ struct LLMStreamingStage: PipelineStage {
                     // progressing long generation (or a reasoning model that streams steadily for
                     // minutes) is never killed — only a genuine hang where no data arrives for
                     // `streamTimeout` triggers `streamTimedOut`.
-                    let clock = ContinuousClock()
-                    let deadline = StreamIdleDeadline(timeout: streamTimeout, clock: clock)
-                    try await withThrowingTaskGroup(of: Void.self) { group in
-                        group.addTask {
-                            try await streamResponse(
-                                streamData,
-                                context: context,
-                                continuation: continuation,
-                                idleDeadline: deadline
-                            )
-                        }
-                        group.addTask {
-                            while true {
-                                let remaining = await deadline.remaining()
-                                if remaining <= .zero {
-                                    throw ChatEngineError.streamTimedOut(streamTimeout)
-                                }
-                                try await Task.sleep(for: remaining, clock: clock)
-                            }
-                        }
-
-                        _ = try await group.next()
-                        group.cancelAll()
+                    try await StreamIdleTimeout.run(timeout: streamTimeout) { deadline in
+                        try await streamResponse(
+                            streamData,
+                            context: context,
+                            continuation: continuation,
+                            idleDeadline: deadline
+                        )
                     }
                     continuation.finish()
                 } catch {
@@ -317,25 +301,5 @@ struct LLMStreamingStage: PipelineStage {
             await context.outputs.appendResponse(buffer)
             continuation.yield(.generation(parser.buffer))
         }
-    }
-}
-
-private actor StreamIdleDeadline {
-    private let timeout: TimeInterval
-    private let clock: ContinuousClock
-    private var deadline: ContinuousClock.Instant
-
-    init(timeout: TimeInterval, clock: ContinuousClock) {
-        self.timeout = timeout
-        self.clock = clock
-        deadline = clock.now.advanced(by: .seconds(timeout))
-    }
-
-    func reset() {
-        deadline = clock.now.advanced(by: .seconds(timeout))
-    }
-
-    func remaining() -> Duration {
-        deadline - clock.now
     }
 }
