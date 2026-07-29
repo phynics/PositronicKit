@@ -1,10 +1,10 @@
-.PHONY: help build clean test test-parallel harden validate-docs verify-doc-snippets \
+.PHONY: help build clean test test-parallel harden doctor validate-docs verify-doc-snippets \
 	audit-default-linkage verify-pin verify verify-macos-default \
 	verify-linux verify-linux-base verify-linux-minimum verify-linux-current \
 	verify-linux-asan \
 	verify-products verify-examples verify-tests verify-macos-minilm \
 	bootstrap-minilm build-minilm verify-minilm \
-	linux-image linux-build linux-test
+	linux-image linux-build linux-test require-container-runtime
 
 PKFASTEMBED_PREFIX ?= $(CURDIR)/.build/pkfastembed
 PKFASTEMBED_ASAN_TOOLCHAIN ?= nightly
@@ -33,18 +33,17 @@ else
 CONTAINER_USER_FLAGS := --user "$$(id -u):$$(id -g)"
 endif
 
-ifeq ($(filter linux-image linux-build linux-test,$(MAKECMDGOALS)),)
-PRODUCTS := $(shell swift package describe --type json | swift Scripts/list-library-products.swift)
-PRODUCT_VERIFY_TARGETS := $(addprefix verify-product-,$(PRODUCTS))
+# Library-product discovery is intentionally NOT done at parse time. It used to
+# run `swift package describe` for almost every target, so `make help` (and
+# unrelated targets) failed before execution whenever Swift or dependency
+# resolution was unavailable (PKRR-026). Discovery now happens lazily inside
+# the `verify-products` recipe below; per-product builds use the pattern rule
+# so there is no parse-time `swift package describe`.
 
-define product_verify_rule
-verify-product-$(1):
-	@echo "Building $(1)..."
-	@swift build --product "$(1)"
-endef
-$(foreach product,$(PRODUCTS),$(eval $(call product_verify_rule,$(product))))
-.PHONY: $(PRODUCT_VERIFY_TARGETS)
-endif
+# Build a single library product by name, e.g. `make verify-product-PKShared`.
+verify-product-%:
+	@echo "Building $*..."
+	@swift build --product "$*"
 
 # Default target
 help:
@@ -72,6 +71,7 @@ help:
 	@echo "  make verify-pin            Check the pinned MiniLM artifact hashes are consistent"
 	@echo "  make build-minilm          Prepare assets/native bridge and build the MiniLM trait product"
 	@echo "  make verify-minilm         Prepare pinned assets and run MiniLM gates"
+	@echo "  make doctor                Report missing prerequisites (Swift, Rust, container runtime, ...)"
 	@echo ""
 	@echo "Linux (Docker):"
 	@echo "  make linux-image           Build the Linux development Docker image"
@@ -119,6 +119,13 @@ verify-pin:
 	@echo "Checking MiniLM artifact pin consistency..."
 	@bash Scripts/check-model-pin.sh
 
+# Preflight: report every prerequisite the Makefile gates depend on (Swift,
+# Rust, C/C++ toolchain, pkg-config, OpenSSL, curl, shasum, container runtime,
+# MiniLM model assets, host platform) with actionable hints for anything missing.
+# Does not require Swift to run (parse-time discovery was removed in PKRR-026).
+doctor:
+	@bash Scripts/doctor.sh "$(CONTAINER_RUNTIME)" "$(PKFASTEMBED_PREFIX)"
+
 verify-macos-default: verify
 
 verify: verify-pin validate-docs verify-doc-snippets audit-default-linkage verify-products verify-examples verify-tests
@@ -154,6 +161,10 @@ verify-macos-minilm: verify-minilm
 verify-products:
 	@set -eu; \
 	products="$$(swift package describe --type json | swift Scripts/list-library-products.swift)"; \
+	if [ -z "$$products" ]; then \
+		echo "verify-products: no library products discovered from Package.swift (is 'swift package describe' working?)" >&2; \
+		exit 1; \
+	fi; \
 	for product in $$products; do \
 		echo "Building $$product..."; \
 		swift build --product "$$product"; \
@@ -187,22 +198,32 @@ verify-minilm: bootstrap-minilm
 		PK_MINILM_MODEL_DIR="$(MINILM_MODEL_CACHE_DIR)" \
 		swift test --traits MiniLMEmbeddings --filter PKFastEmbedTests
 
+# Fail fast with one clear message when no container runtime is configured,
+# instead of a cryptic shell error from an empty $(CONTAINER_RUNTIME).
+require-container-runtime:
+	@if [ -z "$(CONTAINER_RUNTIME)" ]; then \
+		echo "make: no container runtime found (neither podman nor docker on PATH, and CONTAINER_RUNTIME is empty)." >&2; \
+		echo "    Install podman or docker, or set CONTAINER_RUNTIME=/path/to/runtime." >&2; \
+		echo "    Run 'make doctor' for a full prerequisite check." >&2; \
+		exit 1; \
+	fi
+
 # --- Linux Docker targets ----------------------------------------------------
 # Bind-mount the checkout so host edits are immediately visible in the container.
 # Build artifacts land in the host .build/ directory (gitignored).
 
-linux-image:
+linux-image: require-container-runtime
 	@echo "Building Linux development image..."
 	@$(CONTAINER_RUNTIME) build -t $(LINUX_IMAGE) -f .devcontainer/Dockerfile .
 
-linux-build: linux-image
+linux-build: require-container-runtime linux-image
 	@echo "Building in Linux container..."
 	@$(CONTAINER_RUNTIME) run --rm $(CONTAINER_USER_FLAGS) \
 		-e HOME=/tmp -e CARGO_HOME=/tmp/cargo \
 		-v "$(CURDIR):/workspace:Z" -w /workspace $(LINUX_IMAGE) \
 		make build-minilm
 
-linux-test: linux-image
+linux-test: require-container-runtime linux-image
 	@echo "Running Linux verification gate in container..."
 	@$(CONTAINER_RUNTIME) run --rm $(CONTAINER_USER_FLAGS) \
 		-e HOME=/tmp -e CARGO_HOME=/tmp/cargo \

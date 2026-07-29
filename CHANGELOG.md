@@ -326,6 +326,19 @@ for tagged releases beginning with `1.0.0`.
 
 ### Changed
 
+- **Makefile no longer performs Swift package discovery at parse time (PKRR-026)**:
+  `swift package describe` used to run while parsing almost every target, so even
+  `make help` failed before execution when Swift or dependency resolution was
+  unavailable. Product discovery now runs lazily inside the `verify-products` recipe
+  (per-product builds still work via the `verify-product-<Name>` pattern rule), so
+  `make help`, `make clean`, and `make doctor` no longer require Swift. Added a
+  `make doctor` preflight that reports Swift, Rust, the C/C++ toolchain, pkg-config,
+  OpenSSL headers, curl, shasum, a container runtime, the pinned MiniLM model
+  assets, and the host platform, with actionable hints for anything missing. The
+  `linux-image`/`linux-build`/`linux-test` targets now fail with one clear message
+  when no container runtime (`CONTAINER_RUNTIME`) is configured, instead of a
+  cryptic shell error from an empty runtime.
+
 - **Store outages no longer collapse into not-found or silent nil (PKRR-008)**: all `try?`
   patterns in `TimelineManager+Lifecycle`, `TimelineManager+Attachments`, and
   `TimelineManager` that turned persistence failures into `timelineNotFound` or `nil`
