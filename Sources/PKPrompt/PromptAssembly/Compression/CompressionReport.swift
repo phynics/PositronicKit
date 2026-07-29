@@ -79,3 +79,27 @@ public struct StructuredExecutionResult: Sendable {
         self.report = report
     }
 }
+
+/// The verified result of applying a token budget to prompt sections.
+public struct TokenBudgetResult: Sendable {
+    /// Sections after compression.
+    public let sections: [PromptSection]
+    /// Detailed compression report, if compression was needed.
+    public let report: CompressionReport?
+    /// The estimated token count of the returned sections.
+    public let estimatedTokens: Int
+    /// The hard token limit used for this result.
+    public let availableTokens: Int
+
+    public init(
+        sections: [PromptSection],
+        report: CompressionReport?,
+        estimatedTokens: Int,
+        availableTokens: Int
+    ) {
+        self.sections = sections
+        self.report = report
+        self.estimatedTokens = estimatedTokens
+        self.availableTokens = availableTokens
+    }
+}

@@ -134,6 +134,25 @@ public struct TokenBudget: Sendable {
         )
     }
 
+    /// Applies the budget to prompt fragments and returns a verified result.
+    public func budget(
+        to sections: [any Prompt],
+        compressor: SectionCompressor? = nil,
+        structuredDiff: StructuredDiffHint? = nil,
+        nodeMetadata: [String: StructuredNodeMetadata] = [:],
+        planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
+        executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
+    ) async throws -> TokenBudgetResult {
+        try await budget(
+            to: sections.flatMap { $0.resolveSections() },
+            compressor: compressor,
+            structuredDiff: structuredDiff,
+            nodeMetadata: nodeMetadata,
+            planner: planner,
+            executor: executor
+        )
+    }
+
     public func apply(
         to sections: [PromptSection],
         compressor: SectionCompressor? = nil,
@@ -161,6 +180,27 @@ public struct TokenBudget: Sendable {
         planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
         executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
     ) async throws -> (sections: [PromptSection], report: CompressionReport?) {
+        let result = try await budget(
+            to: sections,
+            compressor: compressor,
+            structuredDiff: structuredDiff,
+            nodeMetadata: nodeMetadata,
+            planner: planner,
+            executor: executor
+        )
+        return (result.sections, result.report)
+    }
+
+    /// Applies the budget and returns a verified result whose estimated token count never
+    /// exceeds `availableTokens`.
+    public func budget(
+        to sections: [PromptSection],
+        compressor: SectionCompressor? = nil,
+        structuredDiff: StructuredDiffHint? = nil,
+        nodeMetadata: [String: StructuredNodeMetadata] = [:],
+        planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
+        executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
+    ) async throws -> TokenBudgetResult {
         let duplicateIDs = sections.duplicateIDs(idKeyPath: \.id)
         guard duplicateIDs.isEmpty else {
             throw PromptCompressionError.duplicateSectionIDs(duplicateIDs)
@@ -168,8 +208,30 @@ public struct TokenBudget: Sendable {
         let available = maxTokens - reserveForResponse
         let currentTotal = sections.reduce(0) { $0 + $1.estimatedTokens }
 
+        guard available >= 0 else {
+            throw PromptCompressionError.budgetUnsatisfied(availableTokens: available, estimatedTokens: 0)
+        }
+
+        let mandatorySections = sections.filter { $0.compression == .keep }
+        var mandatoryAvailable = available
+        for section in mandatorySections {
+            guard section.estimatedTokens <= mandatoryAvailable else {
+                throw PromptCompressionError.mandatorySectionOverflow(
+                    sectionID: section.id,
+                    estimatedTokens: section.estimatedTokens,
+                    availableTokens: mandatoryAvailable
+                )
+            }
+            mandatoryAvailable -= section.estimatedTokens
+        }
+
         if currentTotal <= available {
-            return (sections, nil)
+            return TokenBudgetResult(
+                sections: sections,
+                report: nil,
+                estimatedTokens: currentTotal,
+                availableTokens: available
+            )
         }
 
         // Structured compression runs only after the prompt is already known to be over budget,
@@ -187,7 +249,12 @@ public struct TokenBudget: Sendable {
             let structuredResult = try await executor.execute(plan: plan, sections: sections, compressor: compressor)
             let structuredTotal = structuredResult.sections.reduce(0) { $0 + $1.estimatedTokens }
             if structuredTotal <= available {
-                return (structuredResult.sections, structuredResult.report)
+                return TokenBudgetResult(
+                    sections: structuredResult.sections,
+                    report: structuredResult.report,
+                    estimatedTokens: structuredTotal,
+                    availableTokens: available
+                )
             }
         }
 
@@ -196,14 +263,26 @@ public struct TokenBudget: Sendable {
         let indexedSections = sections.enumerated().map { (index: $0.offset, section: $0.element) }
         let sortedByPriority = indexedSections.sorted { $0.section.priority > $1.section.priority }
 
-        let decisions = await allocateBudget(
+        let decisions = try await allocateBudget(
             sortedByPriority: sortedByPriority,
             available: available,
             compressor: compressor
         )
 
         let reconstructed = reconstructSections(indexedSections: indexedSections, decisions: decisions)
-        return (reconstructed.sections, CompressionReport(nodeReports: reconstructed.reports))
+        let estimatedTokens = reconstructed.sections.reduce(0) { $0 + $1.estimatedTokens }
+        guard estimatedTokens <= available else {
+            throw PromptCompressionError.budgetUnsatisfied(
+                availableTokens: available,
+                estimatedTokens: estimatedTokens
+            )
+        }
+        return TokenBudgetResult(
+            sections: reconstructed.sections,
+            report: CompressionReport(nodeReports: reconstructed.reports),
+            estimatedTokens: estimatedTokens,
+            availableTokens: available
+        )
     }
 
     public func makeStructuredPlan(
@@ -233,7 +312,7 @@ public struct TokenBudget: Sendable {
         sortedByPriority: [(index: Int, section: PromptSection)],
         available: Int,
         compressor: SectionCompressor?
-    ) async -> [Int: SectionDecision] {
+    ) async throws -> [Int: SectionDecision] {
         var decisions: [Int: SectionDecision] = [:]
         var remainingBudget = available
 
@@ -244,7 +323,7 @@ public struct TokenBudget: Sendable {
                 decisions[index] = .keepOriginal
                 remainingBudget -= size
             } else {
-                decisions[index] = await decideOverBudgetSection(
+                decisions[index] = try await decideOverBudgetSection(
                     section,
                     remainingBudget: &remainingBudget,
                     compressor: compressor
@@ -259,11 +338,14 @@ public struct TokenBudget: Sendable {
         _ section: PromptSection,
         remainingBudget: inout Int,
         compressor: SectionCompressor?
-    ) async -> SectionDecision {
+    ) async throws -> SectionDecision {
         switch section.compression {
         case .keep:
-            remainingBudget -= section.estimatedTokens
-            return .keepOriginal
+            throw PromptCompressionError.mandatorySectionOverflow(
+                sectionID: section.id,
+                estimatedTokens: section.estimatedTokens,
+                availableTokens: max(0, remainingBudget)
+            )
 
         case .truncate:
             if remainingBudget > 0 {
@@ -283,8 +365,9 @@ public struct TokenBudget: Sendable {
             guard let content = await section.renderedContent()?.text, !content.isEmpty else {
                 return .drop(fallbackReason: "missing_content")
             }
-            guard let summary = try? await compressor.summarize(content), !summary.isEmpty else {
-                return .drop(fallbackReason: "summary_failed_or_empty")
+            let summary = try await compressor.summarize(content)
+            guard !summary.isEmpty else {
+                return .drop(fallbackReason: "empty_summary")
             }
 
             let summaryTokens = estimateTokenCount(summary)

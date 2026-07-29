@@ -242,7 +242,7 @@ struct PKPromptRemainingCoverageTests {
         #expect(result.sections.count == 1)
     }
 
-    @Test("TokenBudget priority allocator drops keep-strategy sections that don't fit")
+    @Test("TokenBudget rejects mandatory keep-strategy sections that don't fit")
     func tokenBudgetDropsKeepSections() async {
         let budget = TokenBudget(maxTokens: 10, reserveForResponse: 0)
         let section = PromptSectionHelper.makeTextSection(
@@ -250,9 +250,11 @@ struct PKPromptRemainingCoverageTests {
             role: .context,
             compression: .keep
         )
-        let result = try! await budget.applyWithReport(to: [section])
-        // The section should be kept (keep strategy always keeps regardless of budget).
-        #expect(result.sections.count == 1)
+        await #expect(throws: PromptCompressionError.mandatorySectionOverflow(
+            sectionID: section.id, estimatedTokens: section.estimatedTokens, availableTokens: 10
+        )) {
+            try await budget.applyWithReport(to: [section])
+        }
     }
 
     @Test("TokenBudget priority allocator truncates sections with truncate strategy")
@@ -345,7 +347,7 @@ struct PKPromptRemainingCoverageTests {
         #expect(result.report?.nodeReports.first?.fallbackReason == "summary_exceeds_budget")
     }
 
-    @Test("TokenBudget priority allocator drops summarize when summary fails")
+    @Test("TokenBudget preserves summarizer failures")
     func tokenBudgetDropsSummarizeFails() async {
         struct FailingCompressor: SectionCompressor {
             func summarize(_ text: String) async throws -> String { throw NSError(domain: "x", code: 1) }
@@ -356,9 +358,15 @@ struct PKPromptRemainingCoverageTests {
             role: .context,
             compression: .summarize
         )
-        let result = try! await budget.applyWithReport(to: [section], compressor: FailingCompressor())
-        #expect(result.sections.count == 0)
-        #expect(result.report?.nodeReports.first?.fallbackReason == "summary_failed_or_empty")
+        do {
+            _ = try await budget.applyWithReport(to: [section], compressor: FailingCompressor())
+            Issue.record("Expected the summarizer error to propagate")
+        } catch let error as NSError {
+            #expect(error.domain == "x")
+            #expect(error.code == 1)
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
     }
 
     @Test("TokenBudget priority allocator drops summarize when summary is empty")
@@ -374,7 +382,7 @@ struct PKPromptRemainingCoverageTests {
         )
         let result = try! await budget.applyWithReport(to: [section], compressor: EmptyCompressor())
         #expect(result.sections.count == 0)
-        #expect(result.report?.nodeReports.first?.fallbackReason == "summary_failed_or_empty")
+        #expect(result.report?.nodeReports.first?.fallbackReason == "empty_summary")
     }
 
     @Test("TokenBudget makeStructuredPlan builds a plan from sections")

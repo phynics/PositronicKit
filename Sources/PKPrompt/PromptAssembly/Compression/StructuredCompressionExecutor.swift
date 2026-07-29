@@ -57,7 +57,7 @@ public actor StructuredCompressionExecutor {
         for planned in sortedPlanActions {
             guard let section = sectionsById[planned.nodeId] else { continue }
 
-            let output = await applyAction(planned, section: section, compressor: compressor)
+            let output = try await applyAction(planned, section: section, compressor: compressor)
             transformedSectionsById[planned.nodeId] = output.section
             reportsById[planned.nodeId] = output.report
         }
@@ -108,7 +108,7 @@ public actor StructuredCompressionExecutor {
         _ planned: PlannedNodeAction,
         section: PromptSection,
         compressor: SectionCompressor?
-    ) async -> (section: PromptSection, report: CompressionNodeReport) {
+    ) async throws -> (section: PromptSection, report: CompressionNodeReport) {
         switch planned.action {
         case .keep:
             let report = makeReport(
@@ -159,52 +159,23 @@ public actor StructuredCompressionExecutor {
                 )
             }
 
-            // Cache removed; always generate summary fresh.
-            do {
-                let request = SummaryRequest(
-                    nodeId: planned.nodeId,
-                    path: planned.path,
-                    text: content,
-                    targetTokens: targetTokens,
-                    reason: reason
-                )
-                let summary = try await compressor.summarize(request: request)
-                guard !summary.isEmpty else {
-                    let report = makeReport(
-                        nodeId: planned.nodeId,
-                        path: planned.path,
-                        action: .drop,
-                        before: planned.estimatedTokens,
-                        after: 0,
-                        fallback: "empty_summary"
-                    )
-                    let dropped = section.dropped(compressionOutcome: report)
-                    return (
-                        dropped,
-                        report
-                    )
-                }
-
-                let summaryTokens = TokenEstimator.estimate(text: summary)
-                let report = makeReport(
-                    nodeId: planned.nodeId,
-                    path: planned.path,
-                    action: planned.action,
-                    before: planned.estimatedTokens,
-                    after: summaryTokens
-                )
-                return (
-                    section.summarized(summary, estimatedTokens: summaryTokens, compressionOutcome: report),
-                    report
-                )
-            } catch {
+            // Cache removed; always generate summary fresh. Preserve the compressor's error identity.
+            let request = SummaryRequest(
+                nodeId: planned.nodeId,
+                path: planned.path,
+                text: content,
+                targetTokens: targetTokens,
+                reason: reason
+            )
+            let summary = try await compressor.summarize(request: request)
+            guard !summary.isEmpty else {
                 let report = makeReport(
                     nodeId: planned.nodeId,
                     path: planned.path,
                     action: .drop,
                     before: planned.estimatedTokens,
                     after: 0,
-                    fallback: "summary_failed"
+                    fallback: "empty_summary"
                 )
                 let dropped = section.dropped(compressionOutcome: report)
                 return (
@@ -212,6 +183,19 @@ public actor StructuredCompressionExecutor {
                     report
                 )
             }
+
+            let summaryTokens = TokenEstimator.estimate(text: summary)
+            let report = makeReport(
+                nodeId: planned.nodeId,
+                path: planned.path,
+                action: planned.action,
+                before: planned.estimatedTokens,
+                after: summaryTokens
+            )
+            return (
+                section.summarized(summary, estimatedTokens: summaryTokens, compressionOutcome: report),
+                report
+            )
 
         case .drop:
             let report = makeReport(

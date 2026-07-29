@@ -213,7 +213,7 @@ extension StructuredCompressionExecutorTests {
         #expect(result.report.nodeReports.first?.fallbackReason == "empty_summary")
     }
 
-    @Test("Summarize with a failing compressor falls back to drop")
+    @Test("Summarize with a failing compressor preserves the original error")
     func summarizeWithFailingCompressorFallsBackToDrop() async {
         let sections = resolveExecutorSections([
             ExecutorMockSection(id: "s1", priority: 1, estimatedTokens: 300, compression: .summarize, renderedContent: "A long body"),
@@ -227,10 +227,14 @@ extension StructuredCompressionExecutorTests {
         )
 
         let executor = StructuredCompressionExecutor()
-        let result = try! await executor.execute(plan: plan, sections: sections, compressor: FailingCompressor())
-
-        #expect(result.sections.count == 0)
-        #expect(result.report.nodeReports.first?.action == .drop)
-        #expect(result.report.nodeReports.first?.fallbackReason == "summary_failed")
+        do {
+            _ = try await executor.execute(plan: plan, sections: sections, compressor: FailingCompressor())
+            Issue.record("Expected the summarizer error to propagate")
+        } catch let error as NSError {
+            #expect(error.domain == "test")
+            #expect(error.code == 1)
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
     }
 }

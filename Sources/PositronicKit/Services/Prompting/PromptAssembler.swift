@@ -183,7 +183,7 @@ enum PromptAssembler {
         // compression pass runs first and the simple allocator acts as a fallback.
         let metadata = await buildStructuredMetadata(for: resolvedSections)
 
-        let compressionResult = try await tokenBudget.applyWithReport(
+        let compressionResult = try await tokenBudget.budget(
             to: resolvedSections,
             compressor: compressor,
             structuredDiff: structuredDiff,

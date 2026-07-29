@@ -43,6 +43,16 @@ private struct MockCompressor: SectionCompressor {
     }
 }
 
+private enum SummarizerError: Error, Equatable, Sendable {
+    case unavailable
+}
+
+private struct FailingCompressor: SectionCompressor {
+    func summarize(_: String) async throws -> String {
+        throw SummarizerError.unavailable
+    }
+}
+
 private func resolve(_ sections: [MockPrimitiveSection]) -> [PromptSection] {
     sections.map { $0.makeSection() }
 }
@@ -74,7 +84,7 @@ struct TokenBudgetTests {
         #expect(result[0].id == "high")
     }
 
-    @Test("Keep sections survive even when they exceed budget")
+    @Test("Keep sections fail when they cannot fit the budget")
     func applyKeepExceedsBudget() async throws {
         let budget = TokenBudget(maxTokens: 1000, reserveForResponse: 0)
         let sections = resolve([
@@ -82,8 +92,50 @@ struct TokenBudgetTests {
             MockPrimitiveSection(id: "keep2", priority: 1, estimatedTokens: 800, compression: .keep),
         ])
 
-        let result = try await budget.apply(to: sections)
-        #expect(result.map(\.id) == ["keep1", "keep2"])
+        await #expect(throws: PromptCompressionError.mandatorySectionOverflow(
+            sectionID: "keep2", estimatedTokens: 800, availableTokens: 200
+        )) {
+            try await budget.apply(to: sections)
+        }
+    }
+
+    @Test("A mandatory section that is larger than the budget fails with a typed overflow")
+    func mandatorySectionOverflowIsTyped() async throws {
+        let budget = TokenBudget(maxTokens: 100)
+        let sections = resolve([
+            MockPrimitiveSection(id: "mandatory", priority: 1, estimatedTokens: 101, compression: .keep),
+        ])
+
+        await #expect(throws: PromptCompressionError.mandatorySectionOverflow(
+            sectionID: "mandatory", estimatedTokens: 101, availableTokens: 100
+        )) {
+            try await budget.apply(to: sections)
+        }
+    }
+
+    @Test("Successful budgeting reports a result within the available budget")
+    func budgetResultNeverExceedsAvailable() async throws {
+        let budget = TokenBudget(maxTokens: 100)
+        let sections = resolve([
+            MockPrimitiveSection(id: "keep", priority: 2, estimatedTokens: 80, compression: .keep),
+            MockPrimitiveSection(id: "drop", priority: 1, estimatedTokens: 80, compression: .drop),
+        ])
+
+        let result = try await budget.budget(to: sections)
+        #expect(result.estimatedTokens <= result.availableTokens)
+    }
+
+    @Test("Summarizer failures preserve the original error")
+    func summarizerFailureIsNotConvertedToDrop() async throws {
+        let budget = TokenBudget(maxTokens: 100)
+        let sections = resolve([
+            MockPrimitiveSection(id: "keep", priority: 2, estimatedTokens: 80, compression: .keep),
+            MockPrimitiveSection(id: "summarize", priority: 1, estimatedTokens: 80, compression: .summarize),
+        ])
+
+        await #expect(throws: SummarizerError.unavailable) {
+            try await budget.apply(to: sections, compressor: FailingCompressor())
+        }
     }
 
     @Test("Truncate sections are constrained to remaining budget")
@@ -222,7 +274,7 @@ struct TokenBudgetTests {
         #expect(result[0].id == "changed")
     }
 
-    @Test("Structured compression never summarizes keep sections")
+    @Test("Structured compression rejects an impossible keep section")
     func applyStructuredCompressionNeverSummarizesKeepSections() async throws {
         let budget = TokenBudget(maxTokens: 100, reserveForResponse: 0)
         let sections = resolve([
@@ -230,8 +282,11 @@ struct TokenBudgetTests {
             MockPrimitiveSection(id: "other", priority: 1, estimatedTokens: 200, compression: .summarize, renderedContent: "compress me"),
         ])
 
-        let result = try await budget.apply(to: sections, compressor: MockCompressor(summarizedText: "tiny"))
-        #expect(result.contains { $0.id == "must_keep" })
+        await #expect(throws: PromptCompressionError.mandatorySectionOverflow(
+            sectionID: "must_keep", estimatedTokens: 200, availableTokens: 100
+        )) {
+            try await budget.apply(to: sections, compressor: MockCompressor(summarizedText: "tiny"))
+        }
     }
 
     @Test("Structured plan falls back if execution remains over budget")

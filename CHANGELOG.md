@@ -10,6 +10,10 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- **Hard token-budget enforcement (PKRR-021)**: token budgeting now returns a verified result that
+  never exceeds the available prompt budget, fails typed when mandatory `.keep` sections cannot fit,
+  and preserves summarizer failures instead of converting them into dropped sections.
+
 - **Structured one-shot generation results (PKRR-019)**: One-shot streaming now
   applies the same idle-timeout and cancellation semantics as timeline chat,
   accepts per-call generation parameters, and exposes `OneShotResult` with
