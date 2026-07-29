@@ -37,8 +37,8 @@ struct NoOpEmbeddingServiceTests {
 @Suite("ChatRunRequest.description")
 struct ChatRunRequestDescriptionTests {
 
-    @Test("description includes the timeline id and message")
-    func includesTimelineAndMessage() {
+    @Test("description includes the timeline id but redacts the message")
+    func includesTimelineAndRedactsMessage() {
         let timelineId = UUID()
         let request = ChatRunRequest(
             timelineId: timelineId,
@@ -48,7 +48,7 @@ struct ChatRunRequestDescriptionTests {
         let desc = request.description
 
         #expect(desc.contains(timelineId.uuidString))
-        #expect(desc.contains("\"Hello, world!\""))
+        #expect(desc.contains("message: <redacted>"))
         #expect(desc.contains("maxTurns: 3"))
         #expect(desc.contains("tools: 0"))
     }

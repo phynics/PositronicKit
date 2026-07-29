@@ -50,13 +50,12 @@ public struct ChatRunRequest: Sendable, CustomStringConvertible {
     }
 
     public var description: String {
-        let messageSummary = message.debugDescription
         let toolOutputCount = toolOutputs?.count ?? 0
         let sendIdDescription = sendId?.uuidString ?? "nil"
         let systemInstructionsDescription = systemInstructions.map { "set(\($0.count) chars)" } ?? "nil"
         let generationParametersDescription = generationParameters.map { String(describing: $0) } ?? "nil"
         let structuredOutputDescription = structuredOutput.map { String(describing: $0) } ?? "nil"
         let promptAssemblyLoggerDescription = promptAssemblyLogger.map { $0.label } ?? "nil"
-        return "ChatRunRequest(timelineId: \(timelineId), sendId: \(sendIdDescription), message: \(messageSummary), tools: \(tools.count), toolOutputs: \(toolOutputCount), systemInstructions: \(systemInstructionsDescription), agentInstanceId: \(agentInstanceId?.uuidString ?? "nil"), maxTurns: \(maxTurns), generationParameters: \(generationParametersDescription), structuredOutput: \(structuredOutputDescription), sidecars: \(sidecars.count), includeSidecarMechanismPreamble: \(includeSidecarMechanismPreamble), promptAssemblyLogger: \(promptAssemblyLoggerDescription))"
+        return "ChatRunRequest(timelineId: \(timelineId), sendId: \(sendIdDescription), message: <redacted>, tools: \(tools.count), toolOutputs: \(toolOutputCount), systemInstructions: \(systemInstructionsDescription), agentInstanceId: \(agentInstanceId?.uuidString ?? "nil"), maxTurns: \(maxTurns), generationParameters: \(generationParametersDescription), structuredOutput: \(structuredOutputDescription), sidecars: \(sidecars.count), includeSidecarMechanismPreamble: \(includeSidecarMechanismPreamble), promptAssemblyLogger: \(promptAssemblyLoggerDescription))"
     }
 }

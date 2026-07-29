@@ -1,0 +1,77 @@
+import Foundation
+import Logging
+import PKShared
+
+/// Controls logger construction and the amount of user-controlled data allowed in logs.
+/// Payloads are disabled by default; hosts must explicitly opt in for diagnostics.
+public struct LoggingConfiguration: Sendable {
+    public let loggerFactory: @Sendable (String) -> Logger
+    public let redactionPolicy: LogRedactionPolicy
+
+    public init(
+        redactionPolicy: LogRedactionPolicy = .default,
+        loggerFactory: @escaping @Sendable (String) -> Logger = { Logger.module(named: $0) }
+    ) {
+        self.loggerFactory = loggerFactory
+        self.redactionPolicy = redactionPolicy
+    }
+
+    public static let `default` = LoggingConfiguration()
+
+    public func logger(named name: String) -> Logger {
+        loggerFactory(name)
+    }
+}
+
+/// Redaction rules for structured PositronicKit logs.
+public struct LogRedactionPolicy: Sendable, Equatable {
+    public let logsPayloads: Bool
+
+    public init(logsPayloads: Bool = false) {
+        self.logsPayloads = logsPayloads
+    }
+
+    public static let `default` = LogRedactionPolicy()
+
+    /// Removes terminal control sequences and non-ASCII presentation characters from log text.
+    public func sanitize(_ value: String) -> String {
+        let ansiPattern = "\u{001B}\\[[0-?]*[ -/]*[@-~]"
+        let withoutANSI = (try? NSRegularExpression(pattern: ansiPattern))
+            .map { $0.stringByReplacingMatches(in: value, range: NSRange(value.startIndex..., in: value), withTemplate: "") }
+            ?? value
+        var result = ""
+        var replacingPresentation = false
+        for scalar in withoutANSI.unicodeScalars {
+            if scalar.value >= 0x20 && scalar.value <= 0x7E {
+                replacingPresentation = false
+                result.unicodeScalars.append(scalar)
+            } else if !replacingPresentation {
+                result += "[redacted]"
+                replacingPresentation = true
+            }
+        }
+        return result
+    }
+
+    /// Returns a payload only when the host explicitly enables payload logging.
+    public func payload(_ value: String) -> String {
+        logsPayloads ? sanitize(value) : "[redacted]"
+    }
+
+    /// Sanitizes trusted structured text without exposing payload content by default.
+    public func sanitizeStructured(_ value: String) -> String {
+        sanitize(value)
+    }
+}
+
+/// Stable metadata shared by all error log sites.
+public enum LoggingMetadata {
+    public static func forError(_ error: Error, correlationID: String) -> Logger.Metadata {
+        let identity = ChatEvent.ErrorIdentity.extracting(from: error)
+        return [
+            LogKeys.errorDomain: .string(identity?.domain ?? "com.positronickit.unknown"),
+            LogKeys.errorCode: .string(String(identity?.code ?? 0)),
+            LogKeys.correlationID: .string(correlationID),
+        ]
+    }
+}

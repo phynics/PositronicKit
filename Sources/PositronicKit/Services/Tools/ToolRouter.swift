@@ -63,7 +63,8 @@ package enum ToolTurnResult {
 /// immediately (persisting results to the message store) and defers externally hosted tools for
 /// async handling. `ChatEngine` calls this after each LLM turn that produces tool calls.
 public actor ToolRouter {
-    private let logger = Logger.module(named: "tool-router")
+    private let logger: Logger
+    private let loggingConfiguration: LoggingConfiguration
 
     private let timelineManager: TimelineManager
     private let messageStore: any MessageStoreProtocol
@@ -77,12 +78,15 @@ public actor ToolRouter {
         toolExecutionTimeout: TimeInterval = 60,
         approvalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
         sleep: (@Sendable (UInt64) async throws -> Void)? = nil
+        , loggingConfiguration: LoggingConfiguration = .default
     ) {
         self.timelineManager = timelineManager
         self.messageStore = messageStore
         self.toolExecutionTimeout = toolExecutionTimeout
         self.approvalPolicy = approvalPolicy
         self.sleep = sleep ?? ToolTimeoutEnforcer.defaultSleep
+        self.loggingConfiguration = loggingConfiguration
+        self.logger = loggingConfiguration.logger(named: "tool-router")
     }
 
     // MARK: - Turn-Level API
@@ -164,9 +168,7 @@ public actor ToolRouter {
 
             do {
                 guard let arguments = call.arguments else {
-                    throw ToolError.malformedArguments(
-                        "Tool '\(call.name)' produced arguments that are not valid JSON or not a JSON object: \(call.argumentsJSON.prefix(100))"
-                    )
+                    throw ToolError.malformedArguments("invalid JSON object")
                 }
                 let outcome = try await execute(
                     tool: toolRef, arguments: arguments,
@@ -222,10 +224,10 @@ public actor ToolRouter {
         timelineId: UUID,
         availableTools: [AnyTool]? = nil
     ) async throws -> ToolExecutionOutcome {
-        let toolName = ANSIColors.colorize(tool.displayName, color: ANSIColors.brightCyan)
-        let sid = ANSIColors.colorize(timelineId.uuidString.prefix(8).lowercased(), color: ANSIColors.dim)
+        let toolName = loggingConfiguration.redactionPolicy.sanitizeStructured(tool.displayName)
+        let sid = timelineId.uuidString.prefix(8).lowercased()
 
-        logger.info("Routing 🛠️ \(toolName) in timeline \(sid)", metadata: [
+        logger.info("Routing \(toolName) in timeline \(sid)", metadata: [
             LogKeys.timelineID: .string(timelineId.uuidString),
             LogKeys.toolName: .string(tool.displayName),
         ])
@@ -373,7 +375,7 @@ public actor ToolRouter {
         timelineId: UUID,
         dynamicTools: [AnyTool]?
     ) async throws -> String {
-        let toolName = ANSIColors.colorize(tool.displayName, color: ANSIColors.brightCyan)
+        let toolName = loggingConfiguration.redactionPolicy.sanitizeStructured(tool.displayName)
         logger.info("Executing locally: \(toolName)")
 
         guard let toolManager = await timelineManager.getToolManager(for: timelineId) else {
@@ -417,7 +419,7 @@ public actor ToolRouter {
             return result.output
         } else {
             let errorMsg = result.error ?? "Unknown error"
-            logger.error("Failed: \(toolName) - \(errorMsg)")
+            logger.error("Failed: \(toolName)", metadata: LoggingMetadata.forError(ToolError.executionFailed(errorMsg), correlationID: timelineId.uuidString))
             throw ToolError.executionFailed(errorMsg)
         }
     }
@@ -449,7 +451,7 @@ public actor ToolRouter {
         timelineId: UUID,
         continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
     ) async throws -> LLMMessage? {
-        let toolDisplayName = ANSIColors.colorize(call.name, color: ANSIColors.brightCyan)
+        let toolDisplayName = loggingConfiguration.redactionPolicy.sanitizeStructured(call.name)
         switch outcome {
         case let .completed(output):
             logger.info("Tool \(toolDisplayName) succeeded")
@@ -462,10 +464,10 @@ public actor ToolRouter {
                     toolCallId: call.callId, status: .success(ToolResult.success(output))
                 ))
             } catch {
-                logger.error("Tool \(toolDisplayName) succeeded but persistence failed: \(error.localizedDescription)")
+                logger.error("Tool persistence failed", metadata: LoggingMetadata.forError(error, correlationID: call.callId))
                 continuation.yield(.toolCompleted(
                     toolCallId: call.callId,
-                    status: .persistenceFailed(reference: toolRef, error: error.localizedDescription)
+                    status: .persistenceFailed(reference: toolRef, error: safeErrorMessage(error))
                 ))
             }
             return LLMMessage(role: .tool, content: output, toolCallID: call.callId)
@@ -489,9 +491,8 @@ public actor ToolRouter {
         timelineId: UUID,
         continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
     ) async throws -> LLMMessage {
-        let toolDisplayName = ANSIColors.colorize(call.name, color: ANSIColors.brightCyan)
         let errorMsg = ErrorKit.userFriendlyMessage(for: error)
-        logger.error("Tool \(toolDisplayName) error: \(error.localizedDescription)")
+        logger.error("Tool execution failed", metadata: LoggingMetadata.forError(error, correlationID: call.callId))
         // Surface the error's built-in remediation (a second-person "how to fix it" hint, often
         // with a worked example) back to the model so a failed tool call guides recovery rather
         // than dead-ending. Kept out of the steady-state prompt to stay lean — the model only
@@ -507,17 +508,24 @@ public actor ToolRouter {
             try await messageStore.saveMessage(message)
             continuation.yield(.toolCompleted(
                 toolCallId: call.callId,
-                status: .failed(reference: toolRef, error: error.localizedDescription)
+                 status: .failed(reference: toolRef, error: safeErrorMessage(error))
             ))
         } catch {
-            logger.error("Tool \(toolDisplayName) error could not be persisted: \(error.localizedDescription)")
+            logger.error("Tool error persistence failed", metadata: LoggingMetadata.forError(error, correlationID: call.callId))
             continuation.yield(.toolCompleted(
                 toolCallId: call.callId,
-                status: .persistenceFailed(reference: toolRef, error: error.localizedDescription)
+                status: .persistenceFailed(reference: toolRef, error: safeErrorMessage(error))
             ))
         }
         return LLMMessage(role: .tool, content: errorOutput, toolCallID: call.callId)
     }
+}
+
+private func safeErrorMessage(_ error: Error) -> String {
+    guard let identity = ChatEvent.ErrorIdentity.extracting(from: error) else {
+        return "The tool execution failed."
+    }
+    return "Tool execution failed (\(identity.domain):\(identity.code))."
 }
 
 // MARK: - Workspace Execution Disposition

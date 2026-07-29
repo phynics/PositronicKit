@@ -16,15 +16,18 @@ struct MessagePersistenceStage: PipelineStage {
     let messageStore: any MessageStoreProtocol
     let logger: Logger
     let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
+    let loggingConfiguration: LoggingConfiguration
 
     init(
         messageStore: any MessageStoreProtocol,
         logger: Logger? = nil,
         diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default
+        , loggingConfiguration: LoggingConfiguration = .default
     ) {
         self.messageStore = messageStore
         self.logger = logger ?? Logger.module(named: "message-persistence")
         self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
+        self.loggingConfiguration = loggingConfiguration
     }
 
     func process(_ context: ChatTurnContext) async throws -> AsyncThrowingStream<ChatEvent, Error> {
@@ -147,8 +150,10 @@ struct MessagePersistenceStage: PipelineStage {
             do {
                 args = try SerializationUtils.jsonDecoder.decode([String: AnyCodable].self, from: argsData)
             } catch {
-                let truncated = String(value.args.prefix(120))
-                logger.warning("Persisting tool call '\(value.name)' with empty arguments: decode failed (\(error.localizedDescription)). rawPrefix=\(truncated)")
+                logger.warning(
+                    "Persisting malformed tool call with empty arguments",
+                    metadata: LoggingMetadata.forError(error, correlationID: redactedHash(value.callId))
+                )
                 args = [:]
             }
             // Preserve the provider's tool-call id so the persisted assistant tool_call pairs

@@ -13,6 +13,7 @@ enum ChatTurnPipelineBuilder {
         messageStore: any MessageStoreProtocol,
         streamTimeout: TimeInterval,
         diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
+        loggingConfiguration: LoggingConfiguration = .default,
         additionalStages: [any PipelineStage<ChatTurnContext, ChatEvent>] = []
     ) -> Pipeline<ChatTurnContext, ChatEvent> {
         var pipeline = Pipeline<ChatTurnContext, ChatEvent>()
@@ -20,7 +21,8 @@ enum ChatTurnPipelineBuilder {
             .add(ToolCallExtractionStage())
             .add(MessagePersistenceStage(
                 messageStore: messageStore,
-                diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration
+                diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
+                loggingConfiguration: loggingConfiguration
             ))
 
         for stage in additionalStages {
