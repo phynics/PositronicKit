@@ -78,7 +78,7 @@ public final class PositronicKit: Sendable {
     /// Owned internally; every timeline driver vended by this instance shares it automatically.
     /// Construct a new `PositronicKit` for a genuinely separate cross-send history.
     private let promptHistoryRegistry: TimelinePromptJournals
-    private let workspaceRoot: URL?
+    private let workspaceProfile: WorkspaceProfile
     private let workspaceCreator: any WorkspaceFactory
     private let sectionProviders: [any PromptSectionProviding]
     private let runtimeToolPolicy: TimelineManager.RuntimeToolPolicy
@@ -124,7 +124,7 @@ public final class PositronicKit: Sendable {
         memoryStore: (any MemoryStoreProtocol)? = nil,
         toolPersistence: (any ToolPersistenceProtocol)? = nil,
         embeddingService: (any EmbeddingServiceProtocol)? = nil,
-        workspaceRoot: URL? = nil,
+        workspaceProfile: WorkspaceProfile = .noWorkspace,
         workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: TimelineManager.RuntimeToolPolicy = .default,
@@ -152,7 +152,7 @@ public final class PositronicKit: Sendable {
         self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
         self.degradationPolicy = degradationPolicy
         promptHistoryRegistry = sharedRegistry
-        self.workspaceRoot = workspaceRoot
+        self.workspaceProfile = workspaceProfile
         self.workspaceCreator = workspaceCreator
         self.sectionProviders = sectionProviders
         self.runtimeToolPolicy = runtimeToolPolicy
@@ -160,8 +160,14 @@ public final class PositronicKit: Sendable {
         self.loggingConfiguration = loggingConfiguration
         defaultGenerationParameters = generationParameters
 
-        let resolvedWorkspaceRoot = workspaceRoot ?? FileManager.default.temporaryDirectory
-            .appendingPathComponent("positronickit-workspaces", isDirectory: true)
+        // The catalog root anchors agent-private workspace provisioning (a separate, opt-in
+        // path from timeline workspaces). For `.noWorkspace` there is no profile root, so fall
+        // back to a process-temporary path so the catalog still has somewhere to anchor if a
+        // host later creates agent workspaces. Timeline creation itself is unaffected: `.noWorkspace`
+        // provisions no timeline directory regardless of this value.
+        let resolvedCatalogRoot = workspaceProfile.catalogRoot
+            ?? FileManager.default.temporaryDirectory
+                .appendingPathComponent("positronickit-workspaces", isDirectory: true)
         // The facade is the only place a TimelineManager gets built: every store it wraps
         // comes from the same `persistence` surface the rest of the facade uses, so there is
         // no seam where ChatEngine and TimelineManager can end up looking at different stores.
@@ -173,7 +179,7 @@ public final class PositronicKit: Sendable {
                 toolPersistence: self.toolPersistence,
                 memoryStore: self.memoryStore
             ),
-            workspaceRoot: resolvedWorkspaceRoot,
+            workspaceProfile: workspaceProfile,
             workspaceCreator: workspaceCreator,
             sectionProviders: sectionProviders,
             runtimeToolPolicy: runtimeToolPolicy,
@@ -183,7 +189,7 @@ public final class PositronicKit: Sendable {
         timelineManager = resolvedTimelineManager
         agentInstanceManager = AgentInstanceManager(
             repository: DefaultWorkspaceCatalog(
-                workspaceRoot: resolvedWorkspaceRoot,
+                workspaceRoot: resolvedCatalogRoot,
                 workspacePersistence: self.workspacePersistence
             ),
             stores: .init(
@@ -240,7 +246,7 @@ public final class PositronicKit: Sendable {
             memoryStore: memoryStore,
             toolPersistence: toolPersistence,
             embeddingService: embeddingService,
-            workspaceRoot: workspaceRoot,
+            workspaceProfile: workspaceProfile,
             workspaceCreator: workspaceCreator,
             sectionProviders: sectionProviders,
             runtimeToolPolicy: runtimeToolPolicy,
@@ -276,7 +282,7 @@ public final class PositronicKit: Sendable {
             memoryStore: memoryStore,
             toolPersistence: toolPersistence,
             embeddingService: embeddingService,
-            workspaceRoot: workspaceRoot,
+            workspaceProfile: workspaceProfile,
             workspaceCreator: workspaceCreator,
             sectionProviders: sectionProviders,
             runtimeToolPolicy: runtimeToolPolicy,
@@ -305,7 +311,7 @@ public final class PositronicKit: Sendable {
             memoryStore: memoryStore,
             toolPersistence: toolPersistence,
             embeddingService: embeddingService,
-            workspaceRoot: workspaceRoot,
+            workspaceProfile: workspaceProfile,
             workspaceCreator: workspaceCreator,
             sectionProviders: sectionProviders,
             runtimeToolPolicy: runtimeToolPolicy,
