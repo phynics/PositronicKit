@@ -23,7 +23,7 @@ struct ToolCallExtractionStage: PipelineStage {
     }
 
     func process(_ context: ChatTurnContext) async throws -> AsyncThrowingStream<ChatEvent, Error> {
-        var eventsToYield: [ChatEvent] = []
+        let eventsToYield: [ChatEvent] = []
 
         let accumulators = await context.outputs.toolCallAccumulators
         // timelineID is logged raw (not hashed) so PositronicKit records correlate

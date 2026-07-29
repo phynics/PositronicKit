@@ -276,7 +276,7 @@ public extension ChatEvent {
     }
 
     static func streamCompleted() -> ChatEvent {
-        .completion(.streamCompleted)
+        .completion(.completedEmpty(finishReason: nil))
     }
 
     static func maxTurnsReached() -> ChatEvent {

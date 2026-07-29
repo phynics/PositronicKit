@@ -8,6 +8,8 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-07-29
+
 ### Added
 
 - **Terminal sidecar commit policy (SDC-10)**: `ChatRunRequest` accepts

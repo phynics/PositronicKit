@@ -55,7 +55,7 @@ import PositronicKit
             self.llm = llm
             self.embedding = embedding
 
-            core = PositronicKit(configuration: .init(provider: .init(llmService: llm, embeddingService: embedding), persistence: .init(
+            core = PositronicKit(configuration: .init(provider: .init(languageModel: llm, embeddingService: embedding), persistence: .init(
                     messageStore: persistence,
                     timelinePersistence: persistence,
                     workspacePersistence: persistence,
