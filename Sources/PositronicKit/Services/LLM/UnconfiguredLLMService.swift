@@ -22,7 +22,7 @@ public struct UnconfiguredLLMService: LanguageModel {
     public var configuration: LLMConfiguration {
         get async {
             // Returns a minimal config with default provider entries populated by
-            // `LLMConfiguration`'s init (which always fills in `ProviderConfiguration.defaultFor(_:)`
+            // `LLMConfiguration`'s init (which always fills in `ProviderConfiguration.makeDefault(for:)`
             // for every `LLMProvider`). The zero limits and `version: 1` signal that no real
             // provider is configured — `isConfigured` is `false` and all throwing methods
             // return `.notConfigured`.

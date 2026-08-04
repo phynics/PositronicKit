@@ -6,7 +6,7 @@ public enum ToolReference: Codable, Sendable, Hashable {
     case custom(definition: WorkspaceToolDefinition)  // Host-provided definition
 
     /// The tool ID regardless of type
-    public var toolId: String {
+    public var toolID: String {
         switch self {
         case .known(let id):
             return id
@@ -14,6 +14,10 @@ public enum ToolReference: Codable, Sendable, Hashable {
             return definition.id
         }
     }
+
+    /// The tool identifier using the legacy 3.x spelling.
+    @available(*, deprecated, renamed: "toolID")
+    public var toolId: String { toolID }
 
     /// The tool name for display
     public var displayName: String {

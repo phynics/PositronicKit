@@ -219,7 +219,7 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
 
     // MARK: - Queries
 
-    public func getInstance(id: UUID) async throws -> AgentInstance? {
+    public func instance(id: UUID) async throws -> AgentInstance? {
         try await instanceStore.fetchAgentInstance(id: id)
     }
 
@@ -227,8 +227,8 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
         try await instanceStore.fetchAllAgentInstances()
     }
 
-    public func getTimelines(attachedTo agentId: UUID) async throws -> [Timeline] {
-        try await instanceStore.fetchTimelines(attachedToAgent: agentId)
+    public func timelines(attachedTo agentID: UUID) async throws -> [Timeline] {
+        try await instanceStore.fetchTimelines(attachedToAgent: agentID)
     }
 
     public func updateInstance(_ instance: AgentInstance) async throws {

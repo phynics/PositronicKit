@@ -123,6 +123,9 @@ public struct ChatHistory: Prompt {
         return ChatHistory(Array(messages.suffix(keepCount)))
     }
 
+    /// The estimated number of tokens across all message content.
+    ///
+    /// - Complexity: O(n), where n is the total number of characters in `messages`.
     public var estimatedTokens: Int {
         TokenEstimator.estimate(parts: messages.map(\.content))
     }

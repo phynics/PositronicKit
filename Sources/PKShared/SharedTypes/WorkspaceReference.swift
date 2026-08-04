@@ -17,7 +17,7 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
     public var location: WorkspaceLocation
     /// The identity that requested this workspace be created (`RequestOriginIdentity.id`),
     /// or `nil` for workspaces the runtime owns/creates itself.
-    public let originId: UUID? // RequestOriginIdentity.id or nil for runtime-owned
+    public let originID: UUID? // RequestOriginIdentity.id or nil for runtime-owned
     /// Tools available in this workspace
     public var tools: [ToolReference] // Tools available in this workspace
     /// Filesystem root for the workspace
@@ -69,7 +69,7 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         id: UUID = UUID(),
         uri: WorkspaceURI,
         location: WorkspaceLocation,
-        originId: UUID? = nil,
+        originID: UUID? = nil,
         tools: [ToolReference] = [],
         rootPath: String? = nil,
         trustLevel: WorkspaceTrustLevel = .full,
@@ -81,7 +81,7 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         self.id = id
         self.uri = uri
         self.location = location
-        self.originId = originId
+        self.originID = originID
         self.tools = tools
         self.rootPath = rootPath
         self.trustLevel = trustLevel
@@ -91,13 +91,48 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         self.createdAt = createdAt
     }
 
+    /// Creates a workspace reference using the legacy identifier spelling.
+    @_disfavoredOverload
+    @available(*, deprecated, message: "Use init(..., originID:...).")
+    public init(
+        id: UUID = UUID(),
+        uri: WorkspaceURI,
+        location: WorkspaceLocation,
+        originId: UUID? = nil,
+        tools: [ToolReference] = [],
+        rootPath: String? = nil,
+        trustLevel: WorkspaceTrustLevel = .full,
+        lastModifiedBy: UUID? = nil,
+        status: WorkspaceStatus = .active,
+        contextInjection: String? = nil,
+        createdAt: Date = Date()
+    ) {
+        self.init(
+            id: id,
+            uri: uri,
+            location: location,
+            originID: originId,
+            tools: tools,
+            rootPath: rootPath,
+            trustLevel: trustLevel,
+            lastModifiedBy: lastModifiedBy,
+            status: status,
+            contextInjection: contextInjection,
+            createdAt: createdAt
+        )
+    }
+
+    /// The request-origin identifier using the legacy 3.x spelling.
+    @available(*, deprecated, renamed: "originID")
+    public var originId: UUID? { originID }
+
     /// Returns a copy of this workspace with the given tools, preserving all other fields.
     public func withTools(_ newTools: [ToolReference]) -> WorkspaceReference {
         WorkspaceReference(
             id: id,
             uri: uri,
             location: location,
-            originId: originId,
+            originID: originID,
             tools: newTools,
             rootPath: rootPath,
             trustLevel: trustLevel,
@@ -108,16 +143,33 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         )
     }
 
-    /// Create a primary workspace for a timeline
-    public static func primaryForTimeline(
-        _ timelineId: UUID,
+    /// Creates a primary workspace for a timeline.
+    public static func makePrimary(
+        forTimeline timelineID: UUID,
         rootPath: String
     ) -> WorkspaceReference {
         WorkspaceReference(
-            uri: .timelineWorkspace(timelineId),
+            uri: .timelineWorkspace(timelineID),
             location: .runtime,
             rootPath: rootPath,
             trustLevel: .full
         )
+    }
+
+    /// Creates a primary workspace for a timeline.
+    @available(*, deprecated, renamed: "makePrimary(forTimeline:rootPath:)")
+    public static func primaryForTimeline(
+        _ timelineId: UUID,
+        rootPath: String
+    ) -> WorkspaceReference {
+        makePrimary(forTimeline: timelineId, rootPath: rootPath)
+    }
+}
+
+private extension WorkspaceReference {
+    enum CodingKeys: String, CodingKey {
+        case id, uri, location
+        case originID = "originId"
+        case tools, rootPath, trustLevel, lastModifiedBy, status, contextInjection, createdAt
     }
 }

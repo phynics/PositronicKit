@@ -3,7 +3,7 @@ import Foundation
 /// Per-node outcome of a compression pass, used for observability/diagnostics.
 public struct StructuredCompressionNodeMetric: Codable, Sendable, Equatable {
     /// Identifier of the compressed node.
-    public let nodeId: String
+    public let nodeID: String
     /// The node's structural path within the prompt tree.
     public let path: [String]
     /// The compression action applied to the node (e.g. `"keep"`, `"truncate"`, `"summarize"`, `"drop"`).
@@ -16,6 +16,24 @@ public struct StructuredCompressionNodeMetric: Codable, Sendable, Equatable {
     public let cacheHit: Bool
 
     public init(
+        nodeID: String,
+        path: [String],
+        action: String,
+        beforeTokens: Int,
+        afterTokens: Int,
+        cacheHit: Bool
+    ) {
+        self.nodeID = nodeID
+        self.path = path
+        self.action = action
+        self.beforeTokens = beforeTokens
+        self.afterTokens = afterTokens
+        self.cacheHit = cacheHit
+    }
+
+    /// Creates a node metric using the legacy identifier spelling.
+    @available(*, deprecated, message: "Use init(nodeID:path:action:beforeTokens:afterTokens:cacheHit:).")
+    public init(
         nodeId: String,
         path: [String],
         action: String,
@@ -23,12 +41,23 @@ public struct StructuredCompressionNodeMetric: Codable, Sendable, Equatable {
         afterTokens: Int,
         cacheHit: Bool
     ) {
-        self.nodeId = nodeId
-        self.path = path
-        self.action = action
-        self.beforeTokens = beforeTokens
-        self.afterTokens = afterTokens
-        self.cacheHit = cacheHit
+        self.init(
+            nodeID: nodeId,
+            path: path,
+            action: action,
+            beforeTokens: beforeTokens,
+            afterTokens: afterTokens,
+            cacheHit: cacheHit
+        )
+    }
+
+    /// The node identifier using the legacy 3.x spelling.
+    @available(*, deprecated, renamed: "nodeID")
+    public var nodeId: String { nodeID }
+
+    private enum CodingKeys: String, CodingKey {
+        case nodeID = "nodeId"
+        case path, action, beforeTokens, afterTokens, cacheHit
     }
 }
 

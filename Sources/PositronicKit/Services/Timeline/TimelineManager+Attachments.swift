@@ -62,7 +62,7 @@ public extension TimelineManager {
 
         if let toolManager = toolManagers[timelineId] {
             do {
-                if let resolved = try await workspaceResolver.getWorkspace(id: workspaceId) {
+                if let resolved = try await workspaceResolver.workspace(id: workspaceId) {
                     await toolManager.registerWorkspace(resolved)
                 }
             } catch {

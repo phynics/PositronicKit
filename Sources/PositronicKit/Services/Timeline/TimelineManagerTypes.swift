@@ -61,23 +61,39 @@ public enum TimelineError: PKError, Equatable {
 /// see *what* failed and *why*, rather than observing a silent empty/nil result.
 public struct StoreDegradation: Sendable {
     public let operation: String
-    public let entityId: String
+    public let entityID: String
     public let errorIdentity: ChatEvent.ErrorIdentity?
     public let message: String
 
-    public init(operation: String, entityId: String, error: Error) {
+    public init(operation: String, entityID: String, error: Error) {
         self.operation = operation
-        self.entityId = entityId
+        self.entityID = entityID
         self.errorIdentity = .extracting(from: error)
         self.message = ErrorKit.userFriendlyMessage(for: error)
     }
 
-    public init(operation: String, entityId: String, errorIdentity: ChatEvent.ErrorIdentity?, message: String) {
+    public init(operation: String, entityID: String, errorIdentity: ChatEvent.ErrorIdentity?, message: String) {
         self.operation = operation
-        self.entityId = entityId
+        self.entityID = entityID
         self.errorIdentity = errorIdentity
         self.message = message
     }
+
+    /// Creates a store degradation using the legacy identifier spelling.
+    @available(*, deprecated, message: "Use init(operation:entityID:error:).")
+    public init(operation: String, entityId: String, error: Error) {
+        self.init(operation: operation, entityID: entityId, error: error)
+    }
+
+    /// Creates a store degradation using the legacy identifier spelling.
+    @available(*, deprecated, message: "Use init(operation:entityID:errorIdentity:message:).")
+    public init(operation: String, entityId: String, errorIdentity: ChatEvent.ErrorIdentity?, message: String) {
+        self.init(operation: operation, entityID: entityId, errorIdentity: errorIdentity, message: message)
+    }
+
+    /// The entity identifier using the legacy 3.x spelling.
+    @available(*, deprecated, renamed: "entityID")
+    public var entityId: String { entityID }
 }
 
 /// The result of a workspace query, including any best-effort degradations encountered
@@ -104,14 +120,24 @@ public struct WorkspaceQueryResult: Sendable {
 /// attempted and each failure is recorded as a ``StoreDegradation`` so the caller can log,
 /// retry, or surface the partial cleanup.
 public struct TimelineDeletionResult: Sendable {
-    public let timelineId: UUID
+    public let timelineID: UUID
     public let degradations: [StoreDegradation]
 
     /// `true` when every persisted record was removed; `false` when one or more stores failed.
     public var isComplete: Bool { degradations.isEmpty }
 
-    public init(timelineId: UUID, degradations: [StoreDegradation] = []) {
-        self.timelineId = timelineId
+    public init(timelineID: UUID, degradations: [StoreDegradation] = []) {
+        self.timelineID = timelineID
         self.degradations = degradations
     }
+
+    /// Creates a deletion result using the legacy identifier spelling.
+    @available(*, deprecated, message: "Use init(timelineID:degradations:).")
+    public init(timelineId: UUID, degradations: [StoreDegradation] = []) {
+        self.init(timelineID: timelineId, degradations: degradations)
+    }
+
+    /// The timeline identifier using the legacy 3.x spelling.
+    @available(*, deprecated, renamed: "timelineID")
+    public var timelineId: UUID { timelineID }
 }

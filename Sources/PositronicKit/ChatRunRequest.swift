@@ -11,13 +11,13 @@ public enum SidecarCommitPolicy: Sendable, Codable, Equatable {
 
 /// Transport-neutral configuration for a single chat turn.
 public struct ChatRunRequest: Sendable, CustomStringConvertible {
-    public let timelineId: UUID
-    public let sendId: UUID?
+    public let timelineID: UUID
+    public let sendID: UUID?
     public let message: String
     public let tools: [AnyTool]
     public let toolOutputs: [ToolOutputSubmission]?
     public let systemInstructions: String?
-    public let agentInstanceId: UUID?
+    public let agentInstanceID: UUID?
     public let maxTurns: Int
     public let generationParameters: GenerationParameters?
     public let structuredOutput: StructuredOutputRequest?
@@ -26,6 +26,41 @@ public struct ChatRunRequest: Sendable, CustomStringConvertible {
     public let includeSidecarMechanismPreamble: Bool
     public let promptAssemblyLogger: Logger?
 
+    public init(
+        timelineID: UUID,
+        sendID: UUID? = nil,
+        message: String,
+        tools: [any Tool] = [],
+        toolOutputs: [ToolOutputSubmission]? = nil,
+        systemInstructions: String? = nil,
+        agentInstanceID: UUID? = nil,
+        maxTurns: Int = 5,
+        generationParameters: GenerationParameters? = nil,
+        structuredOutput: StructuredOutputRequest? = nil,
+        sidecars: [SidecarDirective] = [],
+        sidecarCommitPolicy: SidecarCommitPolicy = .everyRoundTrip,
+        includeSidecarMechanismPreamble: Bool = false,
+        promptAssemblyLogger: Logger? = nil
+    ) {
+        self.timelineID = timelineID
+        self.sendID = sendID
+        self.message = message
+        self.tools = tools.map { $0.toAnyTool() }
+        self.toolOutputs = toolOutputs
+        self.systemInstructions = systemInstructions
+        self.agentInstanceID = agentInstanceID
+        self.maxTurns = maxTurns
+        self.generationParameters = generationParameters
+        self.structuredOutput = structuredOutput
+        self.sidecars = sidecars
+        self.sidecarCommitPolicy = sidecarCommitPolicy
+        self.includeSidecarMechanismPreamble = includeSidecarMechanismPreamble
+        self.promptAssemblyLogger = promptAssemblyLogger
+    }
+
+    /// Creates a chat-run request using the legacy identifier spellings.
+    @_disfavoredOverload
+    @available(*, deprecated, message: "Use init(timelineID:sendID:message:tools:toolOutputs:systemInstructions:agentInstanceID:maxTurns:generationParameters:structuredOutput:sidecars:sidecarCommitPolicy:includeSidecarMechanismPreamble:promptAssemblyLogger:).")
     public init(
         timelineId: UUID,
         sendId: UUID? = nil,
@@ -42,29 +77,43 @@ public struct ChatRunRequest: Sendable, CustomStringConvertible {
         includeSidecarMechanismPreamble: Bool = false,
         promptAssemblyLogger: Logger? = nil
     ) {
-        self.timelineId = timelineId
-        self.sendId = sendId
-        self.message = message
-        self.tools = tools.map { $0.toAnyTool() }
-        self.toolOutputs = toolOutputs
-        self.systemInstructions = systemInstructions
-        self.agentInstanceId = agentInstanceId
-        self.maxTurns = maxTurns
-        self.generationParameters = generationParameters
-        self.structuredOutput = structuredOutput
-        self.sidecars = sidecars
-        self.sidecarCommitPolicy = sidecarCommitPolicy
-        self.includeSidecarMechanismPreamble = includeSidecarMechanismPreamble
-        self.promptAssemblyLogger = promptAssemblyLogger
+        self.init(
+            timelineID: timelineId,
+            sendID: sendId,
+            message: message,
+            tools: tools,
+            toolOutputs: toolOutputs,
+            systemInstructions: systemInstructions,
+            agentInstanceID: agentInstanceId,
+            maxTurns: maxTurns,
+            generationParameters: generationParameters,
+            structuredOutput: structuredOutput,
+            sidecars: sidecars,
+            sidecarCommitPolicy: sidecarCommitPolicy,
+            includeSidecarMechanismPreamble: includeSidecarMechanismPreamble,
+            promptAssemblyLogger: promptAssemblyLogger
+        )
     }
+
+    /// The timeline identifier using the legacy 3.x spelling.
+    @available(*, deprecated, renamed: "timelineID")
+    public var timelineId: UUID { timelineID }
+
+    /// The send identifier using the legacy 3.x spelling.
+    @available(*, deprecated, renamed: "sendID")
+    public var sendId: UUID? { sendID }
+
+    /// The agent-instance identifier using the legacy 3.x spelling.
+    @available(*, deprecated, renamed: "agentInstanceID")
+    public var agentInstanceId: UUID? { agentInstanceID }
 
     public var description: String {
         let toolOutputCount = toolOutputs?.count ?? 0
-        let sendIdDescription = sendId?.uuidString ?? "nil"
+        let sendIDDescription = sendID?.uuidString ?? "nil"
         let systemInstructionsDescription = systemInstructions.map { "set(\($0.count) chars)" } ?? "nil"
         let generationParametersDescription = generationParameters.map { String(describing: $0) } ?? "nil"
         let structuredOutputDescription = structuredOutput.map { String(describing: $0) } ?? "nil"
         let promptAssemblyLoggerDescription = promptAssemblyLogger.map { $0.label } ?? "nil"
-        return "ChatRunRequest(timelineId: \(timelineId), sendId: \(sendIdDescription), message: <redacted>, tools: \(tools.count), toolOutputs: \(toolOutputCount), systemInstructions: \(systemInstructionsDescription), agentInstanceId: \(agentInstanceId?.uuidString ?? "nil"), maxTurns: \(maxTurns), generationParameters: \(generationParametersDescription), structuredOutput: \(structuredOutputDescription), sidecars: \(sidecars.count), sidecarCommitPolicy: \(sidecarCommitPolicy), includeSidecarMechanismPreamble: \(includeSidecarMechanismPreamble), promptAssemblyLogger: \(promptAssemblyLoggerDescription))"
+        return "ChatRunRequest(timelineID: \(timelineID), sendID: \(sendIDDescription), message: <redacted>, tools: \(tools.count), toolOutputs: \(toolOutputCount), systemInstructions: \(systemInstructionsDescription), agentInstanceID: \(agentInstanceID?.uuidString ?? "nil"), maxTurns: \(maxTurns), generationParameters: \(generationParametersDescription), structuredOutput: \(structuredOutputDescription), sidecars: \(sidecars.count), sidecarCommitPolicy: \(sidecarCommitPolicy), includeSidecarMechanismPreamble: \(includeSidecarMechanismPreamble), promptAssemblyLogger: \(promptAssemblyLoggerDescription))"
     }
 }

@@ -46,8 +46,8 @@ public enum PositronicKitUsageExamples {
     /// Tier 4: an agentic runtime handle over a timeline and agent instance.
     public static func makeAgenticRuntimeExample() -> AgenticRuntime {
         makeOneShotRuntime().agenticRuntime(
-            timelineId: UUID(),
-            agentInstanceId: UUID()
+            timelineID: UUID(),
+            agentInstanceID: UUID()
         )
     }
 
@@ -60,7 +60,7 @@ public enum PositronicKitUsageExamples {
     }
 
     public static func makeOpenAIRuntime(apiKey: String = "sk-example") -> PositronicKit {
-        var openAIConfig = ProviderConfiguration.defaultFor(.openAI)
+        var openAIConfig = ProviderConfiguration.makeDefault(for: .openAI)
         openAIConfig.modelName = "gpt-4o"
         openAIConfig.apiKey = apiKey
         let config = LLMConfiguration(activeProvider: .openAI, providers: [.openAI: openAIConfig])
@@ -75,7 +75,7 @@ public enum PositronicKitUsageExamples {
     }
 
     public static func makeOllamaRuntime(model: String = "llama3") -> PositronicKit {
-        var ollamaConfig = ProviderConfiguration.defaultFor(.ollama)
+        var ollamaConfig = ProviderConfiguration.makeDefault(for: .ollama)
         ollamaConfig.modelName = model
         let config = LLMConfiguration(activeProvider: .ollama, providers: [.ollama: ollamaConfig])
         let client = PKOllamaProvider.makeClientAndRegisterStructuredOutputAdapter(configuration: config)
@@ -103,7 +103,7 @@ public enum PositronicKitUsageExamples {
     }
 
     public static func makeConfiguredOpenAIRuntime(apiKey: String = "sk-example") -> PositronicKit {
-        var openAIConfig = ProviderConfiguration.defaultFor(.openAI)
+        var openAIConfig = ProviderConfiguration.makeDefault(for: .openAI)
         openAIConfig.apiKey = apiKey
         let configuration = LLMConfiguration(activeProvider: .openAI, providers: [.openAI: openAIConfig])
         let client = PKOpenAIProvider.makeClientAndRegisterStructuredOutputAdapter(configuration: configuration)
@@ -122,7 +122,7 @@ public enum PositronicKitUsageExamples {
     /// PKPOST-001: the native Anthropic adapter registers exactly like the other providers;
     /// `PositronicKit(anthropicKey:)` wraps registration + configuration in one call.
     public static func makeConfiguredAnthropicRuntime(apiKey: String = "sk-ant-example") -> PositronicKit {
-        var anthropicConfig = ProviderConfiguration.defaultFor(.anthropic)
+        var anthropicConfig = ProviderConfiguration.makeDefault(for: .anthropic)
         anthropicConfig.apiKey = apiKey
         let configuration = LLMConfiguration(activeProvider: .anthropic, providers: [.anthropic: anthropicConfig])
         let client = PKAnthropicProvider.makeClientAndRegisterStructuredOutputAdapter(configuration: configuration)
@@ -177,7 +177,7 @@ public enum PositronicKitUsageExamples {
     }
 
     public static func makeToolOutputContinuation() -> [ToolOutputSubmission] {
-        [ToolOutputSubmission(toolCallId: "call_123", output: "File contents...")]
+        [ToolOutputSubmission(toolCallID: "call_123", output: "File contents...")]
     }
 
     /// Consumes a `ChatEvent` stream with the canonical event switch from `docs/Usage.md`.

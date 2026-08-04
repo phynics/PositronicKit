@@ -17,7 +17,7 @@ public struct LLMConfiguration: Codable, Sendable, Equatable {
     /// currently active provider's settings — construct/mutate `providers[activeProvider]`
     /// directly to write.
     public var activeProviderConfiguration: ProviderConfiguration {
-        providers[activeProvider] ?? .defaultFor(activeProvider)
+        providers[activeProvider] ?? .makeDefault(for: activeProvider)
     }
 
     public init(from decoder: Decoder) throws {
@@ -45,7 +45,7 @@ public struct LLMConfiguration: Codable, Sendable, Equatable {
         // Initialize providers with defaults if not provided
         var initialProviders: [LLMProvider: ProviderConfiguration] = [:]
         for provider in LLMProvider.allCases {
-            initialProviders[provider] = ProviderConfiguration.defaultFor(provider)
+            initialProviders[provider] = ProviderConfiguration.makeDefault(for: provider)
         }
 
         // Merge provided overrides

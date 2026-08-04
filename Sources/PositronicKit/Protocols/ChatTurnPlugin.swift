@@ -7,12 +7,28 @@ import PKUtilities
 /// Read-only snapshot of a completed chat turn. Plugins drive the loop by the messages
 /// they return from `afterTurn`, not by mutating this snapshot.
 public struct CompletedTurn: Sendable {
-    public let timelineId: UUID
-    public let agentInstanceId: UUID?
+    public let timelineID: UUID
+    public let agentInstanceID: UUID?
     public let turnCount: Int
     public let fullResponse: String
     public let modelName: String
 
+    public init(
+        timelineID: UUID,
+        agentInstanceID: UUID?,
+        turnCount: Int,
+        fullResponse: String,
+        modelName: String
+    ) {
+        self.timelineID = timelineID
+        self.agentInstanceID = agentInstanceID
+        self.turnCount = turnCount
+        self.fullResponse = fullResponse
+        self.modelName = modelName
+    }
+
+    /// Creates a completed turn using the legacy identifier spellings.
+    @available(*, deprecated, message: "Use init(timelineID:agentInstanceID:turnCount:fullResponse:modelName:).")
     public init(
         timelineId: UUID,
         agentInstanceId: UUID?,
@@ -20,12 +36,22 @@ public struct CompletedTurn: Sendable {
         fullResponse: String,
         modelName: String
     ) {
-        self.timelineId = timelineId
-        self.agentInstanceId = agentInstanceId
-        self.turnCount = turnCount
-        self.fullResponse = fullResponse
-        self.modelName = modelName
+        self.init(
+            timelineID: timelineId,
+            agentInstanceID: agentInstanceId,
+            turnCount: turnCount,
+            fullResponse: fullResponse,
+            modelName: modelName
+        )
     }
+
+    /// The timeline identifier using the legacy 3.x spelling.
+    @available(*, deprecated, renamed: "timelineID")
+    public var timelineId: UUID { timelineID }
+
+    /// The agent-instance identifier using the legacy 3.x spelling.
+    @available(*, deprecated, renamed: "agentInstanceID")
+    public var agentInstanceId: UUID? { agentInstanceID }
 }
 
 // MARK: - ChatTurnPlugin

@@ -333,14 +333,23 @@ public final class PositronicKit: Sendable {
 
     /// Vends a fresh tier-four agent runtime handle.
     public func agenticRuntime(
-        timelineId: UUID,
-        agentInstanceId: UUID
+        timelineID: UUID,
+        agentInstanceID: UUID
     ) -> AgenticRuntime {
         AgenticRuntime(
             kit: self,
-            timelineId: timelineId,
-            agentInstanceId: agentInstanceId
+            timelineID: timelineID,
+            agentInstanceID: agentInstanceID
         )
+    }
+
+    /// Vends a fresh tier-four agent runtime handle using legacy identifier spellings.
+    @available(*, deprecated, message: "Use agenticRuntime(timelineID:agentInstanceID:).")
+    public func agenticRuntime(
+        timelineId: UUID,
+        agentInstanceId: UUID
+    ) -> AgenticRuntime {
+        agenticRuntime(timelineID: timelineId, agentInstanceID: agentInstanceId)
     }
 
     /// Run a chat turn and return a stream of events.
@@ -349,18 +358,18 @@ public final class PositronicKit: Sendable {
     public func run(_ request: ChatRunRequest) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         let resolvedTurnBriefingBuilder = try await resolveTurnBriefingBuilder(
             explicit: nil,
-            timelineId: request.timelineId
+            timelineId: request.timelineID
         )
 
         return try await chatEngine.execute(
-            timelineId: request.timelineId,
-            sendId: request.sendId,
+            timelineId: request.timelineID,
+            sendId: request.sendID,
             message: request.message,
             tools: request.tools,
             toolOutputs: request.toolOutputs,
             turnBriefingBuilder: resolvedTurnBriefingBuilder,
             systemInstructions: request.systemInstructions,
-            agentInstanceId: request.agentInstanceId,
+            agentInstanceId: request.agentInstanceID,
             maxTurns: request.maxTurns,
             generationParameters: request.generationParameters ?? defaultGenerationParameters,
             structuredOutput: request.structuredOutput,

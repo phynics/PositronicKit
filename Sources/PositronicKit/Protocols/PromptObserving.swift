@@ -30,8 +30,8 @@ public protocol PromptObserving: Sendable {
 public struct PromptInspection: Sendable {
     /// Consumer-facing mapping that groups every round-trip from one logical send.
     public let identity: TurnIdentity
-    public let timelineId: UUID
-    public let agentInstanceId: UUID?
+    public let timelineID: UUID
+    public let agentInstanceID: UUID?
     /// Back-compat engine counter. This stays monotonic across the conversation and is
     /// still used as the persisted row key for historical rows.
     public let turnIndex: Int
@@ -42,7 +42,31 @@ public struct PromptInspection: Sendable {
     public let estimatedTokens: Int
 
     public init(
-        identity: TurnIdentity = TurnIdentity(sendId: UUID(), roundTrip: 0),
+        identity: TurnIdentity = TurnIdentity(sendID: UUID(), roundTrip: 0),
+        timelineID: UUID,
+        agentInstanceID: UUID?,
+        turnIndex: Int,
+        model: String,
+        rendered: RenderedPrompt,
+        sentMessages: [LLMMessage],
+        journal: TurnJournalSnapshot,
+        estimatedTokens: Int
+    ) {
+        self.identity = identity
+        self.timelineID = timelineID
+        self.agentInstanceID = agentInstanceID
+        self.turnIndex = turnIndex
+        self.model = model
+        self.rendered = rendered
+        self.sentMessages = sentMessages
+        self.journal = journal
+        self.estimatedTokens = estimatedTokens
+    }
+
+    /// Creates a prompt inspection using the legacy identifier spellings.
+    @available(*, deprecated, message: "Use init(identity:timelineID:agentInstanceID:turnIndex:model:rendered:sentMessages:journal:estimatedTokens:).")
+    public init(
+        identity: TurnIdentity = TurnIdentity(sendID: UUID(), roundTrip: 0),
         timelineId: UUID,
         agentInstanceId: UUID?,
         turnIndex: Int,
@@ -52,16 +76,26 @@ public struct PromptInspection: Sendable {
         journal: TurnJournalSnapshot,
         estimatedTokens: Int
     ) {
-        self.identity = identity
-        self.timelineId = timelineId
-        self.agentInstanceId = agentInstanceId
-        self.turnIndex = turnIndex
-        self.model = model
-        self.rendered = rendered
-        self.sentMessages = sentMessages
-        self.journal = journal
-        self.estimatedTokens = estimatedTokens
+        self.init(
+            identity: identity,
+            timelineID: timelineId,
+            agentInstanceID: agentInstanceId,
+            turnIndex: turnIndex,
+            model: model,
+            rendered: rendered,
+            sentMessages: sentMessages,
+            journal: journal,
+            estimatedTokens: estimatedTokens
+        )
     }
+
+    /// The timeline identifier using the legacy 3.x spelling.
+    @available(*, deprecated, renamed: "timelineID")
+    public var timelineId: UUID { timelineID }
+
+    /// The agent-instance identifier using the legacy 3.x spelling.
+    @available(*, deprecated, renamed: "agentInstanceID")
+    public var agentInstanceId: UUID? { agentInstanceID }
 }
 
 public struct TurnJournalSnapshot: Sendable {

@@ -5,17 +5,26 @@ import Accelerate
 
 /// Shared math utilities for vector operations with platform-specific backends.
 public enum VectorMath {
-    /// Calculate cosine similarity between two vectors
+    /// Calculates cosine similarity between two vectors.
     /// - Parameters:
-    ///   - vectorA: First vector
-    ///   - vectorB: Second vector
-    /// - Returns: Similarity score from -1.0 to 1.0 (0.0 if invalid)
-    public static func cosineSimilarity(_ vectorA: [Double], _ vectorB: [Double]) -> Double {
+    ///   - firstVector: The first vector.
+    ///   - secondVector: The second vector.
+    /// - Returns: A similarity score from -1.0 to 1.0, or 0.0 for invalid vectors.
+    public static func cosineSimilarity(
+        between firstVector: [Double],
+        and secondVector: [Double]
+    ) -> Double {
         #if canImport(Accelerate)
-        AccelerateVectorMath.cosineSimilarity(vectorA, vectorB)
+        AccelerateVectorMath.cosineSimilarity(firstVector, secondVector)
         #else
-        PortableVectorMath.cosineSimilarity(vectorA, vectorB)
+        PortableVectorMath.cosineSimilarity(firstVector, secondVector)
         #endif
+    }
+
+    /// Calculates cosine similarity between two vectors.
+    @available(*, deprecated, renamed: "cosineSimilarity(between:and:)")
+    public static func cosineSimilarity(_ firstVector: [Double], _ secondVector: [Double]) -> Double {
+        cosineSimilarity(between: firstVector, and: secondVector)
     }
 
     /// Normalize a vector to unit length

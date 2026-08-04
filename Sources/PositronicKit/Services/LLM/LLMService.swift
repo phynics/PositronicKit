@@ -40,7 +40,7 @@ public actor LLMService: LanguageModel, HealthCheckable {
     /// a request. Preflight callers that need to know a send will not fail with a missing
     /// client should check this instead of ``isConfigured``.
     public var isReady: Bool {
-        configuration.isValid && client != nil
+        configuration.isValid && primaryClient != nil
     }
 
     // MARK: - HealthCheckable
@@ -53,7 +53,7 @@ public actor LLMService: LanguageModel, HealthCheckable {
         ]
         if !configuration.isValid {
             details["readiness"] = "invalid configuration"
-        } else if client == nil {
+        } else if primaryClient == nil {
             details["readiness"] = "no client resolved for provider \(configuration.activeProvider.rawValue); no client factory registered"
         } else {
             details["readiness"] = "ready"
@@ -67,7 +67,7 @@ public actor LLMService: LanguageModel, HealthCheckable {
         guard isConfigured else { return .degraded }
 
         // Configured but no client instantiated → degraded (configuration may be incomplete)
-        guard let client = client else { return .degraded }
+        guard let client = primaryClient else { return .degraded }
 
         // Proactive connectivity check: if the provider supports model listing,
         // try it; on failure report degraded rather than silently claiming ok.
@@ -83,9 +83,9 @@ public actor LLMService: LanguageModel, HealthCheckable {
     /// Service for generating text embeddings
     public let embeddingService: any EmbeddingServiceProtocol
 
-    private var client: (any LLMClientProtocol)?
-    private var utilityClient: (any LLMClientProtocol)?
-    private var fastClient: (any LLMClientProtocol)?
+    private var primaryClient: (any LLMClientProtocol)?
+    private var configuredUtilityClient: (any LLMClientProtocol)?
+    private var configuredFastClient: (any LLMClientProtocol)?
 
     private let storage: any ConfigurationServiceProtocol
 
@@ -113,25 +113,46 @@ public actor LLMService: LanguageModel, HealthCheckable {
 
     // MARK: - Client Accessors
 
+    /// Returns the configured primary client.
+    public func client() -> (any LLMClientProtocol)? {
+        primaryClient
+    }
+
+    /// Returns the configured utility client.
+    public func utilityClient() -> (any LLMClientProtocol)? {
+        configuredUtilityClient
+    }
+
+    /// Returns the configured fast client.
+    public func fastClient() -> (any LLMClientProtocol)? {
+        configuredFastClient
+    }
+
+    /// Returns the configured primary client.
+    @available(*, deprecated, renamed: "client()")
     public func getClient() -> (any LLMClientProtocol)? {
-        return client
+        client()
     }
 
+    /// Returns the configured utility client.
+    @available(*, deprecated, renamed: "utilityClient()")
     public func getUtilityClient() -> (any LLMClientProtocol)? {
-        return utilityClient
+        utilityClient()
     }
 
+    /// Returns the configured fast client.
+    @available(*, deprecated, renamed: "fastClient()")
     public func getFastClient() -> (any LLMClientProtocol)? {
-        return fastClient
+        fastClient()
     }
 
     public func setClients(
         main: (any LLMClientProtocol)?, utility: (any LLMClientProtocol)?,
         fast: (any LLMClientProtocol)?
     ) {
-        client = main
-        utilityClient = utility
-        fastClient = fast
+        primaryClient = main
+        configuredUtilityClient = utility
+        configuredFastClient = fast
     }
 
     // MARK: - Initialization
@@ -153,13 +174,13 @@ public actor LLMService: LanguageModel, HealthCheckable {
         if configuration.isValid {
             let clients = clientFactory?(configuration)
                 ?? (main: nil, utility: nil, fast: nil)
-            client = clients.main
-            utilityClient = clients.utility
-            fastClient = clients.fast
+            primaryClient = clients.main
+            configuredUtilityClient = clients.utility
+            configuredFastClient = clients.fast
         } else {
-            client = nil
-            utilityClient = nil
-            fastClient = nil
+            primaryClient = nil
+            configuredUtilityClient = nil
+            configuredFastClient = nil
         }
         self.clientFactory = clientFactory
     }
@@ -178,9 +199,9 @@ public actor LLMService: LanguageModel, HealthCheckable {
         logger = Logger.module(named: "llm")
         self.embeddingService = embeddingService
         self.storage = storage
-        self.client = client
-        self.utilityClient = utilityClient
-        self.fastClient = fastClient
+        primaryClient = client
+        configuredUtilityClient = utilityClient
+        configuredFastClient = fastClient
         self.clientFactory = clientFactory
         isConfigured = client != nil
 
@@ -209,9 +230,9 @@ public actor LLMService: LanguageModel, HealthCheckable {
         self.logger = logger
         self.embeddingService = embeddingService
         self.storage = storage
-        self.client = client
-        self.utilityClient = utilityClient
-        self.fastClient = fastClient
+        primaryClient = client
+        configuredUtilityClient = utilityClient
+        configuredFastClient = fastClient
         self.clientFactory = clientFactory
         isConfigured = client != nil
 
@@ -295,7 +316,7 @@ public actor LLMService: LanguageModel, HealthCheckable {
 
     public func fetchAvailableModels() async throws -> [String]? {
         await preparationTaskBox.task?.value
-        guard let client = client else {
+        guard let client = primaryClient else {
             return nil
         }
         return try await client.fetchAvailableModels()
@@ -314,9 +335,9 @@ public actor LLMService: LanguageModel, HealthCheckable {
         await preparationTaskBox.task?.value
         let selectedClient: (any LLMClientProtocol)?
         if useUtilityModel {
-            selectedClient = utilityClient ?? client
+            selectedClient = configuredUtilityClient ?? primaryClient
         } else {
-            selectedClient = client
+            selectedClient = primaryClient
         }
 
         guard let client = selectedClient else {

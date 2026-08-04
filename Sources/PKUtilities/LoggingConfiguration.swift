@@ -63,12 +63,19 @@ public struct LogRedactionPolicy: Sendable, Equatable {
 
 /// Stable metadata shared by all error log sites.
 public enum LoggingMetadata {
-    public static func forError(_ error: Error, correlationID: String) -> Logger.Metadata {
+    /// Creates structured logging metadata for an error and its correlation identifier.
+    public static func makeMetadata(for error: Error, correlationID: String) -> Logger.Metadata {
         let identity = ChatEvent.ErrorIdentity.extracting(from: error)
         return [
             LogKeys.errorDomain: .string(identity?.domain ?? "com.positronickit.unknown"),
             LogKeys.errorCode: .string(String(identity?.code ?? 0)),
             LogKeys.correlationID: .string(correlationID),
         ]
+    }
+
+    /// Creates structured logging metadata for an error and its correlation identifier.
+    @available(*, deprecated, renamed: "makeMetadata(for:correlationID:)")
+    public static func forError(_ error: Error, correlationID: String) -> Logger.Metadata {
+        makeMetadata(for: error, correlationID: correlationID)
     }
 }

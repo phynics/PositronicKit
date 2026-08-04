@@ -10,6 +10,11 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- **Core API clarity (PKAPI-001)**: added canonical `ID`/`IDs` identifier spellings,
+  noun-style LLM/workspace/agent queries, `make…` factories, and labeled vector similarity
+  arguments. Deprecated 3.x forwarding APIs remain source-compatible, and existing serialized
+  keys are preserved explicitly.
+
 - **Code review cleanup (PKCR-001, PKCR-003, PKCR-004, PKCR-006, PKCR-007,
   PKCR-009, PKCR-010)**: removed unadopted tool-context infrastructure and unused
   imports, consolidated provider stream/HTTP helpers, split large runtime files,

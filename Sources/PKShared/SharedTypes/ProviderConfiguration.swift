@@ -14,7 +14,7 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
     /// from this value (minus the response output reserve and provider overhead), **not** from
     /// `GenerationParameters.maxTokens` (which is the response output limit). Override this to
     /// steer budgeting for a specific model; the per-provider default reflects the configured
-    /// `modelName`'s typical capacity (see ``defaultFor(_:)``).
+    /// `modelName`'s typical capacity (see ``makeDefault(for:)``).
     public var contextWindowTokens: Int
 
     public var temperature: Double?
@@ -102,7 +102,8 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
         applicationTitle = try container.decodeIfPresent(String.self, forKey: .applicationTitle)
     }
 
-    public static func defaultFor(_ provider: LLMProvider) -> ProviderConfiguration {
+    /// Creates the default configuration for a provider.
+    public static func makeDefault(for provider: LLMProvider) -> ProviderConfiguration {
         switch provider {
         case .openAI:
             return ProviderConfiguration(
@@ -165,5 +166,11 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
                 contextWindowTokens: 8_192
             )
         }
+    }
+
+    /// Creates the default configuration for a provider.
+    @available(*, deprecated, renamed: "makeDefault(for:)")
+    public static func defaultFor(_ provider: LLMProvider) -> ProviderConfiguration {
+        makeDefault(for: provider)
     }
 }

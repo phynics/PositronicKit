@@ -52,7 +52,7 @@ func runExamples() async throws {
     print("\n# PositronicKit Example\n")
     print("Prototype runtime and fully configured runtime both initialized successfully.")
     print("One-shot response: \(oneShot)")
-    print("Operation ladder examples: timeline \(timelineDriver.id), timeline manager \(timelineManager), agent \(agenticRuntime.agentInstanceId)")
+    print("Operation ladder examples: timeline \(timelineDriver.id), timeline manager \(timelineManager), agent \(agenticRuntime.agentInstanceID)")
     print(toolPrompt)
     print("\nStructured output schema: \(structuredOutput.name)")
     print("Structured output request: \(structuredOutputRequest)")

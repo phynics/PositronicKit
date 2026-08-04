@@ -72,11 +72,11 @@ public extension LLMService {
         let selectedClient: (any LLMClientProtocol)?
         switch modelTier {
         case .fast:
-            selectedClient = getFastClient() ?? getClient()
+            selectedClient = fastClient() ?? client()
         case .utility:
-            selectedClient = getUtilityClient() ?? getClient()
+            selectedClient = utilityClient() ?? client()
         case .primary:
-            selectedClient = getClient()
+            selectedClient = client()
         }
 
         guard let client = selectedClient else {

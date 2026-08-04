@@ -20,10 +20,26 @@ public enum TurnDegradationPolicy: String, Codable, Sendable, Equatable {
 public struct TurnDiagnostic: Codable, Sendable, Equatable {
     public let dependency: TurnDependency
     public let operation: String
-    public let entityId: String
+    public let entityID: String
     public let errorIdentity: ChatEvent.ErrorIdentity?
     public let message: String
 
+    public init(
+        dependency: TurnDependency,
+        operation: String,
+        entityID: String,
+        errorIdentity: ChatEvent.ErrorIdentity?,
+        message: String
+    ) {
+        self.dependency = dependency
+        self.operation = operation
+        self.entityID = entityID
+        self.errorIdentity = errorIdentity
+        self.message = message
+    }
+
+    /// Creates a diagnostic using the legacy identifier spelling.
+    @available(*, deprecated, message: "Use init(dependency:operation:entityID:errorIdentity:message:).")
     public init(
         dependency: TurnDependency,
         operation: String,
@@ -31,10 +47,22 @@ public struct TurnDiagnostic: Codable, Sendable, Equatable {
         errorIdentity: ChatEvent.ErrorIdentity?,
         message: String
     ) {
-        self.dependency = dependency
-        self.operation = operation
-        self.entityId = entityId
-        self.errorIdentity = errorIdentity
-        self.message = message
+        self.init(
+            dependency: dependency,
+            operation: operation,
+            entityID: entityId,
+            errorIdentity: errorIdentity,
+            message: message
+        )
+    }
+
+    /// The entity identifier using the legacy 3.x spelling.
+    @available(*, deprecated, renamed: "entityID")
+    public var entityId: String { entityID }
+
+    private enum CodingKeys: String, CodingKey {
+        case dependency, operation
+        case entityID = "entityId"
+        case errorIdentity, message
     }
 }

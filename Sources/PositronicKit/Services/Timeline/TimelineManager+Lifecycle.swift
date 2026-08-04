@@ -374,7 +374,7 @@ private extension TimelineManager {
         let contextWorkspace: (any Workspace)?
         if let firstId = timeline.attachedWorkspaceIds.first {
             do {
-                contextWorkspace = try await workspaceResolver.getWorkspace(id: firstId)
+                contextWorkspace = try await workspaceResolver.workspace(id: firstId)
             } catch {
                 logger.warning("""
                 setupTimelineComponents: context workspace resolution failed — \
@@ -412,7 +412,7 @@ private extension TimelineManager {
 
         for attachedId in timeline.attachedWorkspaceIds {
             do {
-                if let workspace = try await workspaceResolver.getWorkspace(id: attachedId) {
+                if let workspace = try await workspaceResolver.workspace(id: attachedId) {
                     await toolManager.registerWorkspace(workspace)
                 }
             } catch {

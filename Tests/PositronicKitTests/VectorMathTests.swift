@@ -41,6 +41,17 @@ struct VectorMathTests {
         #expect(abs(portable - dispatched) < 0.000_000_1)
     }
 
+    @Test("Labeled cosine similarity preserves the positional API result")
+    func labeledCosineSimilarityMatchesCompatibilityOverload() {
+        let vectorA = [1.0, 2.0, 3.0]
+        let vectorB = [3.0, 2.0, 1.0]
+
+        #expect(
+            VectorMath.cosineSimilarity(between: vectorA, and: vectorB)
+                == VectorMath.cosineSimilarity(vectorA, vectorB)
+        )
+    }
+
     #if canImport(Accelerate)
     @Test("Accelerate and portable backends stay numerically aligned")
     func accelerateAndPortableBackendsAgree() {

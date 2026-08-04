@@ -48,7 +48,10 @@ public struct ContextRanker: Sendable {
 
         // Add tag results that aren't already included, with boost
         for memory in tagBased where !existingIds.contains(memory.id) {
-            let sim = VectorMath.cosineSimilarity(queryEmbedding, memory.embeddingVector)
+            let sim = VectorMath.cosineSimilarity(
+                between: queryEmbedding,
+                and: memory.embeddingVector
+            )
             results.append(SemanticSearchResult(memory: memory, similarity: sim + tagBoost))
         }
 

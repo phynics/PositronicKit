@@ -30,7 +30,7 @@ public actor DefaultWorkspaceResolver: WorkspaceResolver {
     }
 
     /// Retrieves an active workspace instance by its ID, creating and caching it if necessary.
-    public func getWorkspace(id: UUID) async throws -> (any Workspace)? {
+    public func workspace(id: UUID) async throws -> (any Workspace)? {
         // Check cache first
         if let active = activeWorkspaces[id] {
             return active

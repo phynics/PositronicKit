@@ -9,9 +9,9 @@ import PKUtilities
 /// delegated to the facade's existing chat/tool loop.
 public final class AgenticRuntime: Sendable {
     /// The timeline this runtime handle runs turns against.
-    public let timelineId: UUID
+    public let timelineID: UUID
     /// The agent instance whose identity and workspace bindings each turn runs under.
-    public let agentInstanceId: UUID
+    public let agentInstanceID: UUID
     /// The facade-owned agent-instance manager, shared by every handle the facade vends.
     public let agentInstanceManager: AgentInstanceManager
 
@@ -19,14 +19,22 @@ public final class AgenticRuntime: Sendable {
 
     init(
         kit: PositronicKit,
-        timelineId: UUID,
-        agentInstanceId: UUID
+        timelineID: UUID,
+        agentInstanceID: UUID
     ) {
         self.kit = kit
-        self.timelineId = timelineId
-        self.agentInstanceId = agentInstanceId
+        self.timelineID = timelineID
+        self.agentInstanceID = agentInstanceID
         agentInstanceManager = kit.agentInstanceManager
     }
+
+    /// The timeline identifier using the legacy 3.x spelling.
+    @available(*, deprecated, renamed: "timelineID")
+    public var timelineId: UUID { timelineID }
+
+    /// The agent-instance identifier using the legacy 3.x spelling.
+    @available(*, deprecated, renamed: "agentInstanceID")
+    public var agentInstanceId: UUID { agentInstanceID }
 
     /// Runs one agent turn through the facade's existing tool loop.
     public func run(
@@ -36,11 +44,11 @@ public final class AgenticRuntime: Sendable {
         systemInstructions: String? = nil
     ) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         try await kit.run(ChatRunRequest(
-            timelineId: timelineId,
+            timelineID: timelineID,
             message: message,
             tools: tools,
             systemInstructions: systemInstructions,
-            agentInstanceId: agentInstanceId,
+            agentInstanceID: agentInstanceID,
             maxTurns: maxTurns
         ))
     }

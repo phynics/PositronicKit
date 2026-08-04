@@ -26,10 +26,10 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
     public var toolCalls: [ToolCall]?
 
     /// ID of the tool call this message is a response to (only for `.tool` role).
-    public var toolCallId: String?
+    public var toolCallID: String?
 
     /// Optional ID of the parent message in the conversation forest structure.
-    public var parentId: UUID?
+    public var parentID: UUID?
 
     /// Memories that were provided as context for generating this message.
     public var recalledMemories: [Memory]?
@@ -113,8 +113,8 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
         role: MessageRole,
         reasoning: String? = nil,
         toolCalls: [ToolCall]? = nil,
-        toolCallId: String? = nil,
-        parentId: UUID? = nil,
+        toolCallID: String? = nil,
+        parentID: UUID? = nil,
         recalledMemories: [Memory]? = nil,
         isSummary: Bool = false,
         summaryType: SummaryType? = nil,
@@ -126,12 +126,59 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
         self.role = role
         self.reasoning = reasoning
         self.toolCalls = toolCalls
-        self.toolCallId = toolCallId
-        self.parentId = parentId
+        self.toolCallID = toolCallID
+        self.parentID = parentID
         self.recalledMemories = recalledMemories
         self.isSummary = isSummary
         self.summaryType = summaryType
         self.status = status
+    }
+
+    /// Creates a message using the legacy identifier spellings.
+    @_disfavoredOverload
+    @available(*, deprecated, message: "Use init(..., toolCallID:parentID:...).")
+    public init(
+        id: UUID = UUID(),
+        timestamp: Date = Date(),
+        content: String,
+        role: MessageRole,
+        reasoning: String? = nil,
+        toolCalls: [ToolCall]? = nil,
+        toolCallId: String? = nil,
+        parentId: UUID? = nil,
+        recalledMemories: [Memory]? = nil,
+        isSummary: Bool = false,
+        summaryType: SummaryType? = nil,
+        status: MessageStatus? = nil
+    ) {
+        self.init(
+            id: id,
+            timestamp: timestamp,
+            content: content,
+            role: role,
+            reasoning: reasoning,
+            toolCalls: toolCalls,
+            toolCallID: toolCallId,
+            parentID: parentId,
+            recalledMemories: recalledMemories,
+            isSummary: isSummary,
+            summaryType: summaryType,
+            status: status
+        )
+    }
+
+    /// The tool-call identifier using the legacy 3.x spelling.
+    @available(*, deprecated, renamed: "toolCallID")
+    public var toolCallId: String? {
+        get { toolCallID }
+        set { toolCallID = newValue }
+    }
+
+    /// The parent-message identifier using the legacy 3.x spelling.
+    @available(*, deprecated, renamed: "parentID")
+    public var parentId: UUID? {
+        get { parentID }
+        set { parentID = newValue }
     }
 
     /// Content cleaned for UI display (removes <tool_call> tags)
@@ -153,6 +200,15 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
             range: NSRange(location: 0, length: nsString.length),
             withTemplate: ""
         ).trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+    }
+}
+
+private extension Message {
+    enum CodingKeys: String, CodingKey {
+        case id, content, role, timestamp, reasoning, toolCalls
+        case toolCallID = "toolCallId"
+        case parentID = "parentId"
+        case recalledMemories, isSummary, summaryType, status
     }
 }
 

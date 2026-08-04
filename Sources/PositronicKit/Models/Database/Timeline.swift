@@ -10,11 +10,11 @@ public struct Timeline: Identifiable, Sendable {
     public var updatedAt: Date
     public var isArchived: Bool
     public var workingDirectory: String?
-    public var attachedWorkspaceIds: [UUID]
+    public var attachedWorkspaceIDs: [UUID]
 
     /// The agent instance currently attached to this timeline (holds the generation lock).
     /// Multiple timelines can reference the same agent. Each timeline can have at most one agent.
-    public var attachedAgentInstanceId: UUID?
+    public var attachedAgentInstanceID: UUID?
 
     /// True for agent private timelines (internal monologue / cross-agent inbox).
     /// Private timelines are excluded from general listing.
@@ -27,8 +27,8 @@ public struct Timeline: Identifiable, Sendable {
         updatedAt: Date = Date(),
         isArchived: Bool = false,
         workingDirectory: String? = nil,
-        attachedWorkspaceIds: [UUID] = [],
-        attachedAgentInstanceId: UUID? = nil,
+        attachedWorkspaceIDs: [UUID] = [],
+        attachedAgentInstanceID: UUID? = nil,
         isPrivate: Bool = false
     ) {
         self.id = id
@@ -37,9 +37,50 @@ public struct Timeline: Identifiable, Sendable {
         self.updatedAt = updatedAt
         self.isArchived = isArchived
         self.workingDirectory = workingDirectory
-        self.attachedWorkspaceIds = attachedWorkspaceIds
-        self.attachedAgentInstanceId = attachedAgentInstanceId
+        self.attachedWorkspaceIDs = attachedWorkspaceIDs
+        self.attachedAgentInstanceID = attachedAgentInstanceID
         self.isPrivate = isPrivate
+    }
+
+    /// Creates a timeline using the legacy identifier spellings.
+    @_disfavoredOverload
+    @available(*, deprecated, message: "Use init(..., attachedWorkspaceIDs:attachedAgentInstanceID:...).")
+    public init(
+        id: UUID = UUID(),
+        title: String = "New Conversation",
+        createdAt: Date = Date(),
+        updatedAt: Date = Date(),
+        isArchived: Bool = false,
+        workingDirectory: String? = nil,
+        attachedWorkspaceIds: [UUID] = [],
+        attachedAgentInstanceId: UUID? = nil,
+        isPrivate: Bool = false
+    ) {
+        self.init(
+            id: id,
+            title: title,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            isArchived: isArchived,
+            workingDirectory: workingDirectory,
+            attachedWorkspaceIDs: attachedWorkspaceIds,
+            attachedAgentInstanceID: attachedAgentInstanceId,
+            isPrivate: isPrivate
+        )
+    }
+
+    /// Attached workspace identifiers using the legacy 3.x spelling.
+    @available(*, deprecated, renamed: "attachedWorkspaceIDs")
+    public var attachedWorkspaceIds: [UUID] {
+        get { attachedWorkspaceIDs }
+        set { attachedWorkspaceIDs = newValue }
+    }
+
+    /// The attached agent-instance identifier using the legacy 3.x spelling.
+    @available(*, deprecated, renamed: "attachedAgentInstanceID")
+    public var attachedAgentInstanceId: UUID? {
+        get { attachedAgentInstanceID }
+        set { attachedAgentInstanceID = newValue }
     }
 }
 
@@ -48,8 +89,9 @@ public struct Timeline: Identifiable, Sendable {
 extension Timeline: Codable {
     enum CodingKeys: String, CodingKey {
         case id, title, createdAt, updatedAt, isArchived, workingDirectory
-        case attachedWorkspaceIds
-        case attachedAgentInstanceId, isPrivate
+        case attachedWorkspaceIDs = "attachedWorkspaceIds"
+        case attachedAgentInstanceID = "attachedAgentInstanceId"
+        case isPrivate
     }
 
     public init(from decoder: Decoder) throws {
@@ -60,16 +102,16 @@ extension Timeline: Codable {
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
         isArchived = try container.decode(Bool.self, forKey: .isArchived)
         workingDirectory = try container.decodeIfPresent(String.self, forKey: .workingDirectory)
-        attachedAgentInstanceId = try container.decodeIfPresent(UUID.self, forKey: .attachedAgentInstanceId)
+        attachedAgentInstanceID = try container.decodeIfPresent(UUID.self, forKey: .attachedAgentInstanceID)
         isPrivate = (try? container.decode(Bool.self, forKey: .isPrivate)) ?? false
 
         // DB stores as JSON string; JSON contexts may provide an array — handle both
-        if let jsonString = try? container.decode(String.self, forKey: .attachedWorkspaceIds),
+        if let jsonString = try? container.decode(String.self, forKey: .attachedWorkspaceIDs),
            let data = jsonString.data(using: .utf8),
            let ids = try? JSONDecoder().decode([UUID].self, from: data) {
-            attachedWorkspaceIds = ids
+            attachedWorkspaceIDs = ids
         } else {
-            attachedWorkspaceIds = (try? container.decode([UUID].self, forKey: .attachedWorkspaceIds)) ?? []
+            attachedWorkspaceIDs = (try? container.decode([UUID].self, forKey: .attachedWorkspaceIDs)) ?? []
         }
     }
 
@@ -81,17 +123,17 @@ extension Timeline: Codable {
         try container.encode(updatedAt, forKey: .updatedAt)
         try container.encode(isArchived, forKey: .isArchived)
         try container.encodeIfPresent(workingDirectory, forKey: .workingDirectory)
-        try container.encodeIfPresent(attachedAgentInstanceId, forKey: .attachedAgentInstanceId)
+        try container.encodeIfPresent(attachedAgentInstanceID, forKey: .attachedAgentInstanceID)
         try container.encode(isPrivate, forKey: .isPrivate)
 
         // Encode as JSON string for DB storage
         let jsonString: String
-        if let data = try? JSONEncoder().encode(attachedWorkspaceIds),
+        if let data = try? JSONEncoder().encode(attachedWorkspaceIDs),
            let str = String(data: data, encoding: .utf8) {
             jsonString = str
         } else {
             jsonString = "[]"
         }
-        try container.encode(jsonString, forKey: .attachedWorkspaceIds)
+        try container.encode(jsonString, forKey: .attachedWorkspaceIDs)
     }
 }
