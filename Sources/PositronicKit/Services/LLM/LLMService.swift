@@ -91,7 +91,8 @@ public actor LLMService: LanguageModel, HealthCheckable {
 
 /// Optional factory hook that builds provider clients from an `LLMConfiguration`.
     /// Called by `updateClient(with:)` when a configuration change requires new clients.
-    /// Hosts compose their factory from each provider's `makeClient(configuration:)`,
+    /// Hosts compose their factory from each provider's
+    /// `makeClientAndRegisterStructuredOutputAdapter(configuration:)`,
     /// keyed on `config.activeProvider`. Falls back to a `(nil, nil, nil)` triple if
     /// none is supplied, matching the behavior for callers that do not need dynamic swapping.
     var clientFactory: (@Sendable (LLMConfiguration) -> (
