@@ -223,12 +223,22 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
         try await instanceStore.fetchAgentInstance(id: id)
     }
 
+    @available(*, deprecated, renamed: "instance(id:)")
+    public func getInstance(id: UUID) async throws -> AgentInstance? {
+        try await instance(id: id)
+    }
+
     public func listInstances() async throws -> [AgentInstance] {
         try await instanceStore.fetchAllAgentInstances()
     }
 
     public func timelines(attachedTo agentID: UUID) async throws -> [Timeline] {
         try await instanceStore.fetchTimelines(attachedToAgent: agentID)
+    }
+
+    @available(*, deprecated, renamed: "timelines(attachedTo:)")
+    public func getTimelines(attachedTo agentId: UUID) async throws -> [Timeline] {
+        try await timelines(attachedTo: agentId)
     }
 
     public func updateInstance(_ instance: AgentInstance) async throws {

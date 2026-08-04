@@ -6,6 +6,19 @@ import Testing
 
 @Suite("Core API clarity compatibility")
 struct CoreAPIClarityTests {
+    @Test("Default-heavy shared initializers resolve to the canonical overload")
+    func defaultHeavySharedInitializersResolveToCanonicalOverload() {
+        let message = Message(content: "hello", role: .user)
+        let workspace = WorkspaceReference(
+            uri: .timelineWorkspace(UUID()),
+            location: .runtime
+        )
+
+        #expect(message.toolCallID == nil)
+        #expect(message.parentID == nil)
+        #expect(workspace.originID == nil)
+    }
+
     @Test("Message canonical identifiers preserve legacy JSON keys")
     func messageCanonicalIdentifiersPreserveLegacyJSONKeys() throws {
         let parentID = UUID()

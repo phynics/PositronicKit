@@ -7,9 +7,6 @@ public protocol WorkspaceResolver: Sendable {
     /// Returns the number of currently active/cached workspaces.
     var activeWorkspaceCount: Int { get async }
 
-    /// Returns an active workspace by identifier, creating and caching it if necessary.
-    func workspace(id: UUID) async throws -> (any Workspace)?
-
     /// Retrieves an active workspace instance by its ID, creating and caching it if necessary.
     @available(*, deprecated, renamed: "workspace(id:)")
     func getWorkspace(id: UUID) async throws -> (any Workspace)?
@@ -25,11 +22,5 @@ public extension WorkspaceResolver {
     /// Returns an active workspace by identifier, creating and caching it if necessary.
     func workspace(id: UUID) async throws -> (any Workspace)? {
         try await getWorkspace(id: id)
-    }
-
-    /// Retrieves an active workspace instance by its ID, creating and caching it if necessary.
-    @available(*, deprecated, renamed: "workspace(id:)")
-    func getWorkspace(id: UUID) async throws -> (any Workspace)? {
-        try await workspace(id: id)
     }
 }

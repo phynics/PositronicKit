@@ -17,18 +17,12 @@ public protocol AgentInstanceManagerProtocol: Sendable {
     /// Detaches an agent instance from a timeline.
     func detach(agentId: UUID, from timelineId: UUID) async throws
 
-    /// Returns an agent instance by its unique identifier.
-    func instance(id: UUID) async throws -> AgentInstance?
-
     /// Fetches an agent instance by its unique identifier.
     @available(*, deprecated, renamed: "instance(id:)")
     func getInstance(id: UUID) async throws -> AgentInstance?
 
     /// Lists all agent instances.
     func listInstances() async throws -> [AgentInstance]
-
-    /// Returns all timelines attached to a specific agent instance.
-    func timelines(attachedTo agentID: UUID) async throws -> [Timeline]
 
     /// Lists all timelines attached to a specific agent instance.
     @available(*, deprecated, renamed: "timelines(attachedTo:)")
@@ -50,21 +44,9 @@ extension AgentInstanceManagerProtocol {
         try await getInstance(id: id)
     }
 
-    /// Fetches an agent instance by its unique identifier.
-    @available(*, deprecated, renamed: "instance(id:)")
-    public func getInstance(id: UUID) async throws -> AgentInstance? {
-        try await instance(id: id)
-    }
-
     /// Returns all timelines attached to a specific agent instance.
     public func timelines(attachedTo agentID: UUID) async throws -> [Timeline] {
         try await getTimelines(attachedTo: agentID)
-    }
-
-    /// Lists all timelines attached to a specific agent instance.
-    @available(*, deprecated, renamed: "timelines(attachedTo:)")
-    public func getTimelines(attachedTo agentId: UUID) async throws -> [Timeline] {
-        try await timelines(attachedTo: agentId)
     }
 
     public func createInstance(
