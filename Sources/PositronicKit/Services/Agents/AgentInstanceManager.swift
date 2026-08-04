@@ -141,17 +141,17 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
         }
 
         // Idempotent
-        if timeline.attachedAgentInstanceId == agentId { return }
+        if timeline.attachedAgentInstanceID == agentId { return }
 
         // Prevent attaching an agent to a private timeline owned by another agent
         if timeline.isPrivate {
-            if let currentOwner = timeline.attachedAgentInstanceId, currentOwner != agentId {
+            if let currentOwner = timeline.attachedAgentInstanceID, currentOwner != agentId {
                 throw AgentInstanceError.cannotAttachToPrivateTimeline(timelineId)
             }
         }
 
         // Check for existing attachment
-        if let existingId = timeline.attachedAgentInstanceId {
+        if let existingId = timeline.attachedAgentInstanceID {
             if try await instanceStore.fetchAgentInstance(id: existingId) != nil {
                 throw AgentInstanceError.differentAgentAlreadyAttached(existingId)
             }
@@ -160,13 +160,13 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
                 "Clearing dangling agent reference \(existingId) on timeline \(timelineId)")
         }
 
-        timeline.attachedAgentInstanceId = agentId
+        timeline.attachedAgentInstanceID = agentId
         timeline.updatedAt = Date()
         try await timelineStore.saveTimeline(timeline)
 
         // Log to agent's private timeline
         let logMsg = ConversationMessage(
-            timelineId: agent.privateTimelineId,
+            timelineID: agent.privateTimelineID,
             role: .system,
             content: "[ATTACH] Agent '\(agent.name)' (\(agentId.uuidString.prefix(8))) "
                 + "attached to timeline \"\(timeline.title)\" (\(timelineId.uuidString.prefix(8)))"
@@ -175,7 +175,7 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
             try await messageStore.saveMessage(logMsg)
         } catch {
             logger.warning(
-                "Failed to persist attach audit log for agent \(agentId) on timeline \(timelineId) (private timeline \(agent.privateTimelineId)): \(ErrorKit.userFriendlyMessage(for: error))")
+                "Failed to persist attach audit log for agent \(agentId) on timeline \(timelineId) (private timeline \(agent.privateTimelineID)): \(ErrorKit.userFriendlyMessage(for: error))")
         }
 
         logger.info("Agent '\(agent.name)' attached to timeline '\(timeline.title)'")
@@ -188,21 +188,21 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
             throw AgentInstanceError.timelineNotFound(timelineId)
         }
 
-        guard timeline.attachedAgentInstanceId == agentId else { return }
+        guard timeline.attachedAgentInstanceID == agentId else { return }
 
         // Prevent detaching an agent from its own private timeline
-        if timeline.isPrivate, timeline.attachedAgentInstanceId == agentId {
+        if timeline.isPrivate, timeline.attachedAgentInstanceID == agentId {
             throw AgentInstanceError.cannotDetachFromOwnPrivateTimeline(timelineId)
         }
 
-        timeline.attachedAgentInstanceId = nil
+        timeline.attachedAgentInstanceID = nil
         timeline.updatedAt = Date()
         try await timelineStore.saveTimeline(timeline)
 
         // Log to agent's private timeline if it still exists
         if let agent = try? await instanceStore.fetchAgentInstance(id: agentId) {
             let logMsg = ConversationMessage(
-                timelineId: agent.privateTimelineId,
+                timelineID: agent.privateTimelineID,
                 role: .system,
                 content: "[DETACH] Agent '\(agent.name)' detached from timeline "
                     + "\"\(timeline.title)\" (\(timelineId.uuidString.prefix(8)))"
@@ -211,7 +211,7 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
                 try await messageStore.saveMessage(logMsg)
             } catch {
                 logger.warning(
-                    "Failed to persist detach audit log for agent \(agentId) on timeline \(timelineId) (private timeline \(agent.privateTimelineId)): \(ErrorKit.userFriendlyMessage(for: error))")
+                    "Failed to persist detach audit log for agent \(agentId) on timeline \(timelineId) (private timeline \(agent.privateTimelineID)): \(ErrorKit.userFriendlyMessage(for: error))")
             }
             logger.info("Agent '\(agent.name)' detached from timeline '\(timeline.title)'")
         }
@@ -284,7 +284,7 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
 
         let allAttached = try await instanceStore.fetchTimelines(attachedToAgent: id)
         // Exclude the agent's own private timeline from the "still attached" check
-        let nonPrivateAttached = allAttached.filter { $0.id != instance.privateTimelineId }
+        let nonPrivateAttached = allAttached.filter { $0.id != instance.privateTimelineID }
 
         if !nonPrivateAttached.isEmpty, !force {
             throw AgentInstanceError.hasAttachedTimelines(count: nonPrivateAttached.count)
@@ -292,13 +292,13 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
 
         // Force-detach from non-private timelines
         for var timeline in nonPrivateAttached {
-            timeline.attachedAgentInstanceId = nil
+            timeline.attachedAgentInstanceID = nil
             timeline.updatedAt = Date()
             try await timelineStore.saveTimeline(timeline)
         }
 
         // 1. Delete primary workspace directory (high risk IO)
-        if let workspaceId = instance.primaryWorkspaceId {
+        if let workspaceId = instance.primaryWorkspaceID {
             do {
                 try await repository.deleteWorkspace(id: workspaceId, deleteDirectory: true)
             } catch {
@@ -310,13 +310,13 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
         //    registry via the TimelineManager seam when available (PKR-3), then
         //    delete the persisted row.
         if let timelineManager {
-            await timelineManager.evictTimelineFromMemory(id: instance.privateTimelineId)
+            await timelineManager.evictTimelineFromMemory(id: instance.privateTimelineID)
         }
         do {
-            try await timelineStore.deleteTimeline(id: instance.privateTimelineId)
+            try await timelineStore.deleteTimeline(id: instance.privateTimelineID)
         } catch {
             logger.error(
-                "Failed to delete private timeline \(instance.privateTimelineId) for agent \(id): \(ErrorKit.userFriendlyMessage(for: error))")
+                "Failed to delete private timeline \(instance.privateTimelineID) for agent \(id): \(ErrorKit.userFriendlyMessage(for: error))")
         }
 
         // 3. Delete database record

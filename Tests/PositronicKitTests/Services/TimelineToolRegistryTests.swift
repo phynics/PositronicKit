@@ -102,7 +102,7 @@ final class TimelineToolRegistryTests {
         let manager = TimelineToolRegistry(availableTools: [])
 
         let workspaceId = UUID()
-        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://test")), location: .runtime, originId: nil)
+        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://test")), location: .runtime, originID: nil)
 
         let def = WorkspaceToolDefinition(
             id: "wsTool1",
@@ -142,7 +142,7 @@ final class TimelineToolRegistryTests {
         let def = WorkspaceToolDefinition(id: "wsTool", name: "wsTool", description: "WS", parametersSchema: [:])
         let mockWS = try MockWorkspace(
             id: workspaceId,
-            reference: WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://test")), location: .runtime, originId: nil),
+            reference: WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://test")), location: .runtime, originID: nil),
             toolsToReturn: [.custom(def)]
         )
         await manager.registerWorkspace(mockWS)
@@ -164,7 +164,7 @@ final class TimelineToolRegistryTests {
         let manager = TimelineToolRegistry(availableTools: [])
         let workspaceId = UUID()
         let uri = try #require(WorkspaceURI(parsing: "pk://test-workspace-prov"))
-        let workspaceRef = WorkspaceReference(id: workspaceId, uri: uri, location: .runtime, originId: nil)
+        let workspaceRef = WorkspaceReference(id: workspaceId, uri: uri, location: .runtime, originID: nil)
 
         let def = WorkspaceToolDefinition(id: "provTool", name: "provTool", description: "prov", parametersSchema: [:])
         let mockWS = MockWorkspace(id: workspaceId, reference: workspaceRef, toolsToReturn: [.custom(def)])
@@ -211,7 +211,7 @@ final class TimelineToolRegistryTests {
 
         let workspaceId = UUID()
         let uri = try #require(WorkspaceURI(parsing: "pk://test-known-tool"))
-        let workspaceRef = WorkspaceReference(id: workspaceId, uri: uri, location: .runtime, originId: nil)
+        let workspaceRef = WorkspaceReference(id: workspaceId, uri: uri, location: .runtime, originID: nil)
 
         // Workspace declares it offers the "cat" known tool
         let mockWS = MockWorkspace(id: workspaceId, reference: workspaceRef, toolsToReturn: [.known(id: "cat")])
@@ -240,13 +240,13 @@ final class TimelineToolRegistryTests {
             id: wsA,
             uri: try #require(WorkspaceURI(parsing: "pk://z-workspace")),
             location: .runtime,
-            originId: nil
+            originID: nil
         )
         let refB = WorkspaceReference(
             id: wsB,
             uri: try #require(WorkspaceURI(parsing: "pk://a-workspace")),
             location: .runtime,
-            originId: nil
+            originID: nil
         )
 
         let mockA = MockWorkspace(id: wsA, reference: refA, toolsToReturn: [.known(id: "cat")])
@@ -290,7 +290,7 @@ final class TimelineToolRegistryTests {
             id: workspaceId,
             uri: #require(WorkspaceURI(parsing: "pk://test-workspace")),
             location: .runtime,
-            originId: nil
+            originID: nil
         )
         let def = WorkspaceToolDefinition(
             id: "ws-omega",
@@ -328,8 +328,8 @@ final class TimelineToolRegistryTests {
 
         let wsA = UUID()
         let wsB = UUID()
-        let refA = WorkspaceReference(id: wsA, uri: try #require(WorkspaceURI(parsing: "pk://ws-a")), location: .runtime, originId: nil)
-        let refB = WorkspaceReference(id: wsB, uri: try #require(WorkspaceURI(parsing: "pk://ws-b")), location: .runtime, originId: nil)
+        let refA = WorkspaceReference(id: wsA, uri: try #require(WorkspaceURI(parsing: "pk://ws-a")), location: .runtime, originID: nil)
+        let refB = WorkspaceReference(id: wsB, uri: try #require(WorkspaceURI(parsing: "pk://ws-b")), location: .runtime, originID: nil)
 
         let defA = WorkspaceToolDefinition(id: "toolA", name: "toolA", description: "A", parametersSchema: [:])
         let defB = WorkspaceToolDefinition(id: "toolB", name: "toolB", description: "B", parametersSchema: [:])
@@ -359,9 +359,9 @@ final class TimelineToolRegistryTests {
         let manager = TimelineToolRegistry(availableTools: [systemTool])
 
         let wsA = UUID()
-        let refA = WorkspaceReference(id: wsA, uri: try #require(WorkspaceURI(parsing: "pk://ws-a")), location: .runtime, originId: nil)
+        let refA = WorkspaceReference(id: wsA, uri: try #require(WorkspaceURI(parsing: "pk://ws-a")), location: .runtime, originID: nil)
         let wsB = UUID()
-        let refB = WorkspaceReference(id: wsB, uri: try #require(WorkspaceURI(parsing: "pk://ws-b")), location: .runtime, originId: nil)
+        let refB = WorkspaceReference(id: wsB, uri: try #require(WorkspaceURI(parsing: "pk://ws-b")), location: .runtime, originID: nil)
 
         // Only wsA declares the known "cat" tool; wsB declares nothing.
         await manager.registerWorkspace(MockWorkspace(id: wsA, reference: refA, toolsToReturn: [.known(id: "cat")]))

@@ -243,7 +243,7 @@ public actor ToolRouter {
         // folder workspace (the common case for a fresh conversation) would fail every tool call
         // with `toolNotFound`, even though the correct `AnyTool` was right there in `availableTools`.
         if let dynamicTools = availableTools,
-           dynamicTools.contains(where: { $0.toolReference == tool || $0.callName == tool.toolId })
+           dynamicTools.contains(where: { $0.toolReference == tool || $0.callName == tool.toolID })
         {
             let output = try await executeLocally(
                 tool: tool,
@@ -390,7 +390,7 @@ public actor ToolRouter {
         }
 
         guard let resolvedTool = toolList.first(where: {
-            $0.toolReference == tool || $0.callName == tool.toolId
+            $0.toolReference == tool || $0.callName == tool.toolID
         }) else {
             throw ToolError.toolNotFound(tool.displayName)
         }
@@ -419,7 +419,7 @@ public actor ToolRouter {
             return result.output
         } else {
             let errorMsg = result.error ?? "Unknown error"
-            logger.error("Failed: \(toolName)", metadata: LoggingMetadata.forError(ToolError.executionFailed(errorMsg), correlationID: timelineId.uuidString))
+            logger.error("Failed: \(toolName)", metadata: LoggingMetadata.makeMetadata(for: ToolError.executionFailed(errorMsg), correlationID: timelineId.uuidString))
             throw ToolError.executionFailed(errorMsg)
         }
     }
@@ -464,7 +464,7 @@ public actor ToolRouter {
                     toolCallId: call.callId, status: .success(ToolResult.success(output))
                 ))
             } catch {
-                logger.error("Tool persistence failed", metadata: LoggingMetadata.forError(error, correlationID: call.callId))
+                logger.error("Tool persistence failed", metadata: LoggingMetadata.makeMetadata(for: error, correlationID: call.callId))
                 continuation.yield(.toolCompleted(
                     toolCallId: call.callId,
                     status: .persistenceFailed(reference: toolRef, error: safeErrorMessage(error))
@@ -492,7 +492,7 @@ public actor ToolRouter {
         continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
     ) async throws -> LLMMessage {
         let errorMsg = ErrorKit.userFriendlyMessage(for: error)
-        logger.error("Tool execution failed", metadata: LoggingMetadata.forError(error, correlationID: call.callId))
+        logger.error("Tool execution failed", metadata: LoggingMetadata.makeMetadata(for: error, correlationID: call.callId))
         // Surface the error's built-in remediation (a second-person "how to fix it" hint, often
         // with a worked example) back to the model so a failed tool call guides recovery rather
         // than dead-ending. Kept out of the steady-state prompt to stay lean — the model only
@@ -511,7 +511,7 @@ public actor ToolRouter {
                  status: .failed(reference: toolRef, error: safeErrorMessage(error))
             ))
         } catch {
-            logger.error("Tool error persistence failed", metadata: LoggingMetadata.forError(error, correlationID: call.callId))
+            logger.error("Tool error persistence failed", metadata: LoggingMetadata.makeMetadata(for: error, correlationID: call.callId))
             continuation.yield(.toolCompleted(
                 toolCallId: call.callId,
                 status: .persistenceFailed(reference: toolRef, error: safeErrorMessage(error))

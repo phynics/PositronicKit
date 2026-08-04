@@ -99,7 +99,7 @@ public enum READMEExamples {
         )
 
         let stream = try await chat.run(.init(
-            timelineId: timelineId,
+            timelineID: timelineId,
             message: "What's the deal with actors in Swift 6?",
             sidecars: [title]
         ))

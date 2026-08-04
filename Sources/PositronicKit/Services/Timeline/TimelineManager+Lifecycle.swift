@@ -260,12 +260,12 @@ public extension TimelineManager {
         var attachedWorkspaceIds: [UUID] = []
         var capturedWorkingDirectory: String?
         if let cached = timelines[id] {
-            attachedWorkspaceIds = cached.attachedWorkspaceIds
+            attachedWorkspaceIds = cached.attachedWorkspaceIDs
             capturedWorkingDirectory = cached.workingDirectory
         } else {
             do {
                 if let persisted = try await timelineStore.fetchTimeline(id: id) {
-                    attachedWorkspaceIds = persisted.attachedWorkspaceIds
+                    attachedWorkspaceIds = persisted.attachedWorkspaceIDs
                     capturedWorkingDirectory = persisted.workingDirectory
                 }
             } catch {
@@ -345,7 +345,7 @@ public extension TimelineManager {
             """)
         }
 
-        return TimelineDeletionResult(timelineId: id, degradations: degradations)
+        return TimelineDeletionResult(timelineID: id, degradations: degradations)
     }
 
     /// Removes active timelines from memory that have not been updated within the specified
@@ -372,7 +372,7 @@ private extension TimelineManager {
         workspaceURL: URL
     ) async {
         let contextWorkspace: (any Workspace)?
-        if let firstId = timeline.attachedWorkspaceIds.first {
+        if let firstId = timeline.attachedWorkspaceIDs.first {
             do {
                 contextWorkspace = try await workspaceResolver.workspace(id: firstId)
             } catch {
@@ -410,7 +410,7 @@ private extension TimelineManager {
         )
         toolManagers[timeline.id] = toolManager
 
-        for attachedId in timeline.attachedWorkspaceIds {
+        for attachedId in timeline.attachedWorkspaceIDs {
             do {
                 if let workspace = try await workspaceResolver.workspace(id: attachedId) {
                     await toolManager.registerWorkspace(workspace)

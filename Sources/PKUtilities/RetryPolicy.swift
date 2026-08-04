@@ -67,7 +67,7 @@ public enum RetryPolicy {
                 }
 
                 if attempts >= configuration.maxRetries {
-                    logger.error("Max retries reached", metadata: LoggingMetadata.forError(error, correlationID: "retry"))
+                    logger.error("Max retries reached", metadata: LoggingMetadata.makeMetadata(for: error, correlationID: "retry"))
                     throw error
                 }
 
@@ -77,13 +77,13 @@ public enum RetryPolicy {
                 if elapsed >= .seconds(configuration.maxTotalElapsedTime) {
                     logger.error(
                         "Retry total elapsed budget exhausted (\(configuration.maxTotalElapsedTime)s) after \(attempts) attempts",
-                        metadata: LoggingMetadata.forError(error, correlationID: "retry")
+                        metadata: LoggingMetadata.makeMetadata(for: error, correlationID: "retry")
                     )
                     throw error
                 }
 
                 if !shouldRetry(error) {
-                    logger.error("Non-retryable error encountered", metadata: LoggingMetadata.forError(error, correlationID: "retry"))
+                    logger.error("Non-retryable error encountered", metadata: LoggingMetadata.makeMetadata(for: error, correlationID: "retry"))
                     throw error
                 }
 
@@ -94,7 +94,7 @@ public enum RetryPolicy {
                 let delayStr = String(format: "%.2f", finalDelay)
                 logger.warning(
                     "Retry attempt \(attempts)/\(configuration.maxRetries) in \(delayStr)s",
-                    metadata: LoggingMetadata.forError(error, correlationID: "retry")
+                    metadata: LoggingMetadata.makeMetadata(for: error, correlationID: "retry")
                 )
 
                 try await Task.sleep(nanoseconds: Timeout.nanoseconds(for: finalDelay))

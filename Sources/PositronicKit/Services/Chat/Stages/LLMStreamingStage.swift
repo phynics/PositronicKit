@@ -197,7 +197,7 @@ struct LLMStreamingStage: PipelineStage {
             await context.outputs.setSidecarResults(results)
             guard context.sidecarCommitPolicy == .everyRoundTrip else { return }
             continuation.yield(.sidecarsCompleted(SidecarCompletion(
-                identity: TurnIdentity(sendId: context.sendId, roundTrip: max(context.turnCount - 1, 0)),
+                identity: TurnIdentity(sendID: context.sendId, roundTrip: max(context.turnCount - 1, 0)),
                 results: results
             )))
         }

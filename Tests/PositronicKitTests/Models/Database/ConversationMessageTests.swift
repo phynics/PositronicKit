@@ -23,7 +23,7 @@ import Foundation
         let timelineId = UUID()
         let msg = ConversationMessage(
             id: UUID(),
-            timelineId: timelineId,
+            timelineID: timelineId,
             role: .user,
             content: "Ping",
             timestamp: Date()
@@ -38,7 +38,7 @@ import Foundation
         let date = Date()
         let dbMsg = ConversationMessage(
             id: uuid,
-            timelineId: UUID(),
+            timelineID: UUID(),
             role: .assistant,
             content: "Pong",
             timestamp: date

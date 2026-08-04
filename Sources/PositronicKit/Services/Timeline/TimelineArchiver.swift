@@ -91,12 +91,12 @@ public actor TimelineArchiver {
             }
 
             let conversationMsg = ConversationMessage(
-                timelineId: timeline.id,
+                timelineID: timeline.id,
                 role: .init(rawValue: msg.role.rawValue) ?? .user,
                 content: msg.content,
                 timestamp: msg.timestamp,
                 recalledMemories: "[]",
-                parentId: msg.parentId,
+                parentID: msg.parentID,
                 reasoning: msg.reasoning,
                 toolCalls: encodeToolCalls(msg.toolCalls)
             )

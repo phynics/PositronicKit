@@ -224,7 +224,7 @@ public enum PositronicKitUsageExamples {
                 case .deferredForExternalTool:
                     print("\nTool calls deferred for external execution; stream paused for host-side work.")
                 case .sidecarsCompleted(let completion):
-                    print("\nSidecars for round \(completion.identity.roundTrip), send \(completion.identity.sendId)")
+                    print("\nSidecars for round \(completion.identity.roundTrip), send \(completion.identity.sendID)")
                     for result in completion.results {
                         print("\n[\(result.name)] \(result.outcome)")
                     }
@@ -293,7 +293,7 @@ public enum PositronicKitUsageExamples {
     ///
     /// ```swift
     /// let stream = try await chat.run(.init(
-    ///     timelineId: id,
+    ///     timelineID: id,
     ///     message: text,
     ///     sidecars: makeSidecarDirectives()
     /// ))

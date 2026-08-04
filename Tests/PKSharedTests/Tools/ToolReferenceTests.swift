@@ -18,7 +18,7 @@ import Foundation
         let ref = ToolReference.known("search-api")
         try assertCodable(ref)
         #expect(ref.displayName == "search-api")
-        #expect(ref.toolId == "search-api")
+        #expect(ref.toolID == "search-api")
     }
 
     @Test
@@ -32,6 +32,6 @@ import Foundation
         let ref = ToolReference.custom(def)
         try assertCodable(ref)
         #expect(ref.displayName == "List Files")
-        #expect(ref.toolId == "list-files")
+        #expect(ref.toolID == "list-files")
     }
 }

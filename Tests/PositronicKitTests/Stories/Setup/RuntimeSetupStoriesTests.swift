@@ -11,7 +11,7 @@ import Testing
     @Test("PositronicKit default initialization")
     func defaultInitialization() async {
         let chat = PositronicKit()
-        let isConfigured = await chat.llmService.isConfigured
+        let isConfigured = await chat.languageModel.isConfigured
         #expect(!isConfigured, "Default init should not be configured")
     }
 
@@ -30,13 +30,13 @@ import Testing
             requestOriginStore: mockPersistence
         )
 
-        let chat = PositronicKit(configuration: .init(provider: .init(llmService: UnconfiguredLLMService()), persistence: persistence, runtime: .init(workspaceCreator: MockWorkspaceCreator(), workspaceRoot: workspace.root)))
+        let chat = PositronicKit(configuration: .init(provider: .init(languageModel: UnconfiguredLLMService()), persistence: persistence, runtime: .init(workspaceCreator: MockWorkspaceCreator(), workspaceRoot: workspace.root)))
 
         let timeline = try await chat.timelineManager.createTimeline(title: "Unconfigured")
 
         await #expect(throws: ChatEngineError.self) {
             _ = try await chat.run(ChatRunRequest(
-                timelineId: timeline.id,
+                timelineID: timeline.id,
                 message: "hello"
             ))
         }

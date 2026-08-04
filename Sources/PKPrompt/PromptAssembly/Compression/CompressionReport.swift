@@ -126,6 +126,13 @@ public struct TokenBudgetResult: Sendable {
     /// The hard token limit used for this result.
     public let availableTokens: Int
 
+    /// Creates a verified token-budget result with its output sections and accounting totals.
+    ///
+    /// - Parameters:
+    ///   - sections: The prompt sections remaining after budget enforcement.
+    ///   - report: Compression details, or `nil` when the input already fit the budget.
+    ///   - estimatedTokens: The estimated token count of `sections`.
+    ///   - availableTokens: The prompt-token limit enforced for this result.
     public init(
         sections: [PromptSection],
         report: CompressionReport?,

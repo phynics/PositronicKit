@@ -43,7 +43,7 @@ struct TimelineDriverTests {
             deleteFails: true
         )
         let kit = PositronicKit(configuration: .init(
-            provider: .init(llmService: UnconfiguredLLMService()),
+            provider: .init(languageModel: UnconfiguredLLMService()),
             persistence: .init(timelinePersistence: failingTimelineStore)
         ))
 

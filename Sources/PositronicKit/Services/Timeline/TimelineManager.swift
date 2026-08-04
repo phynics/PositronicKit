@@ -250,7 +250,7 @@ public extension TimelineManager {
     func findWorkspaceForTool(_ tool: ToolReference, in workspaceIds: [UUID]) async throws
         -> UUID?
     {
-        return try await toolPersistence.findWorkspaceId(forToolId: tool.toolId, in: workspaceIds)
+        return try await toolPersistence.findWorkspaceId(forToolId: tool.toolID, in: workspaceIds)
     }
 
     /// Enabled tools for an active timeline (empty if the timeline has no active tool manager).
@@ -293,7 +293,7 @@ public extension TimelineManager {
         do {
             return try await toolPersistence.fetchToolSource(
                 toolId: toolId,
-                workspaceIds: timeline.attachedWorkspaceIds,
+                workspaceIds: timeline.attachedWorkspaceIDs,
                 primaryWorkspaceId: nil
             )
         } catch {

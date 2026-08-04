@@ -17,7 +17,7 @@ struct SidecarTurnIntegrationTests {
     }
 
     private func makeChat(llmService: MockLLMService, persistence: MockPersistenceService) -> PositronicKit {
-        PositronicKit(configuration: .init(provider: .init(llmService: llmService), persistence: .init(
+        PositronicKit(configuration: .init(provider: .init(languageModel: llmService), persistence: .init(
                 messageStore: persistence,
                 timelinePersistence: persistence,
                 workspacePersistence: persistence,
@@ -40,7 +40,7 @@ struct SidecarTurnIntegrationTests {
         try await persistence.saveTimeline(Timeline(id: timelineId, title: "Sidecar Turn"))
 
         let stream = try await chat.run(ChatRunRequest(
-            timelineId: timelineId,
+            timelineID: timelineId,
             message: "hello",
             sidecars: directives
         ))
@@ -64,7 +64,7 @@ struct SidecarTurnIntegrationTests {
 
     @Test("Sidecar commit policy is Codable and defaults to every round-trip")
     func sidecarCommitPolicyCodableAndDefault() throws {
-        let defaultRequest = ChatRunRequest(timelineId: UUID(), message: "hello")
+        let defaultRequest = ChatRunRequest(timelineID: UUID(), message: "hello")
         #expect(defaultRequest.sidecarCommitPolicy == .everyRoundTrip)
         for policy in [SidecarCommitPolicy.everyRoundTrip, .terminalRoundTrip] {
             let data = try JSONEncoder().encode(policy)
@@ -82,7 +82,7 @@ struct SidecarTurnIntegrationTests {
 
         await #expect(throws: SidecarError.conflictsWithExplicitStructuredOutput) {
             _ = try await chat.run(ChatRunRequest(
-                timelineId: timelineId,
+                timelineID: timelineId,
                 message: "hello",
                 structuredOutput: .jsonSchema(StructuredOutputFixtures.tagSchemaDefinition()),
                 sidecars: directives
@@ -102,7 +102,7 @@ struct SidecarTurnIntegrationTests {
         try await persistence.saveTimeline(Timeline(id: timelineId, title: "Instruction Block"))
 
         let stream = try await chat.run(ChatRunRequest(
-            timelineId: timelineId,
+            timelineID: timelineId,
             message: "hello",
             sidecars: directives
         ))
@@ -131,7 +131,7 @@ struct SidecarTurnIntegrationTests {
         let chatWithout = makeChat(llmService: mockLLMWithout, persistence: persistenceWithout)
         try await persistenceWithout.saveTimeline(Timeline(id: timelineId, title: "Instruction Block"))
         let streamWithout = try await chatWithout.run(ChatRunRequest(
-            timelineId: timelineId,
+            timelineID: timelineId,
             message: "hello"
         ))
         for try await _ in streamWithout {}
@@ -172,7 +172,7 @@ struct SidecarTurnIntegrationTests {
         try await persistence.saveTimeline(Timeline(id: timelineId, title: "Multi-Turn Sidecar"))
 
         let stream = try await chat.run(ChatRunRequest(
-            timelineId: timelineId,
+            timelineID: timelineId,
             message: "hello",
             tools: [MockTool().toAnyTool()],
             sidecars: directives
@@ -215,8 +215,8 @@ struct SidecarTurnIntegrationTests {
         let sendId = UUID()
 
         let stream = try await chat.run(ChatRunRequest(
-            timelineId: timelineId,
-            sendId: sendId,
+            timelineID: timelineId,
+            sendID: sendId,
             message: "hello",
             tools: [MockTool().toAnyTool()],
             sidecars: directives,
@@ -228,7 +228,7 @@ struct SidecarTurnIntegrationTests {
         }
 
         #expect(completions.count == 1)
-        #expect(completions[0].identity == TurnIdentity(sendId: sendId, roundTrip: 1))
+        #expect(completions[0].identity == TurnIdentity(sendID: sendId, roundTrip: 1))
         #expect(completions[0].results.contains(SidecarResult(name: "title", outcome: .value(AnyCodable("final")))))
         #expect(persistence.messages.filter { $0.role == Message.MessageRole.assistant.rawValue }.allSatisfy { !$0.content.contains("sidecar_payload") })
     }
@@ -250,7 +250,7 @@ struct SidecarTurnIntegrationTests {
         let chatA = makeChat(llmService: mockLLMA, persistence: persistenceA)
         try await persistenceA.saveTimeline(Timeline(id: sharedTimelineId, title: sharedTitle))
         let streamA = try await chatA.run(ChatRunRequest(
-            timelineId: sharedTimelineId,
+            timelineID: sharedTimelineId,
             message: "hello",
             sidecars: directives
         ))
@@ -262,7 +262,7 @@ struct SidecarTurnIntegrationTests {
         let chatB = makeChat(llmService: mockLLMB, persistence: persistenceB)
         try await persistenceB.saveTimeline(Timeline(id: sharedTimelineId, title: sharedTitle))
         let streamB = try await chatB.run(ChatRunRequest(
-            timelineId: sharedTimelineId,
+            timelineID: sharedTimelineId,
             message: "hello",
             sidecars: directivesB
         ))
@@ -274,7 +274,7 @@ struct SidecarTurnIntegrationTests {
         let chatEmpty = makeChat(llmService: mockLLMEmpty, persistence: persistenceEmpty)
         try await persistenceEmpty.saveTimeline(Timeline(id: sharedTimelineId, title: sharedTitle))
         let streamEmpty = try await chatEmpty.run(ChatRunRequest(
-            timelineId: sharedTimelineId,
+            timelineID: sharedTimelineId,
             message: "hello",
             sidecars: []
         ))
@@ -301,7 +301,7 @@ struct SidecarTurnIntegrationTests {
         let chatWith = makeChat(llmService: mockLLMWith, persistence: persistenceWith)
         try await persistenceWith.saveTimeline(Timeline(id: sharedTimelineId, title: sharedTitle))
         let streamWith = try await chatWith.run(ChatRunRequest(
-            timelineId: sharedTimelineId,
+            timelineID: sharedTimelineId,
             message: "hello",
             sidecars: directives,
             includeSidecarMechanismPreamble: true
@@ -314,7 +314,7 @@ struct SidecarTurnIntegrationTests {
         let chatEmpty = makeChat(llmService: mockLLMEmpty, persistence: persistenceEmpty)
         try await persistenceEmpty.saveTimeline(Timeline(id: sharedTimelineId, title: sharedTitle))
         let streamEmpty = try await chatEmpty.run(ChatRunRequest(
-            timelineId: sharedTimelineId,
+            timelineID: sharedTimelineId,
             message: "hello",
             sidecars: [],
             includeSidecarMechanismPreamble: true
@@ -339,7 +339,7 @@ struct SidecarTurnIntegrationTests {
         let timelineId = UUID()
         try await persistence.saveTimeline(Timeline(id: timelineId, title: "Preamble Default"))
         let stream = try await chat.run(ChatRunRequest(
-            timelineId: timelineId,
+            timelineID: timelineId,
             message: "hello",
             includeSidecarMechanismPreamble: true
         ))
@@ -368,7 +368,7 @@ struct SidecarTurnIntegrationTests {
         try await persistenceWith.saveTimeline(Timeline(id: sharedTimelineId, title: sharedTitle))
 
         let streamWithout = try await chatWithout.run(ChatRunRequest(
-            timelineId: sharedTimelineId,
+            timelineID: sharedTimelineId,
             message: "hi"
         ))
         var signaturesWithout: [String] = []
@@ -377,7 +377,7 @@ struct SidecarTurnIntegrationTests {
         }
 
         let streamWith = try await chatWith.run(ChatRunRequest(
-            timelineId: sharedTimelineId,
+            timelineID: sharedTimelineId,
             message: "hi",
             sidecars: []
         ))

@@ -85,7 +85,7 @@ extension ChatEngine {
             //    user message, so validation, context gathering, and prompt assembly see the
             //    same history they would after persistence — without actually persisting yet.
             for output in validatedToolOutputs {
-                history.append(Message(content: output.output, role: .tool, toolCallId: output.toolCallId))
+                history.append(Message(content: output.output, role: .tool, toolCallID: output.toolCallID))
             }
             if !message.isEmpty {
                 history.append(Message(content: message, role: .user))
@@ -110,7 +110,7 @@ extension ChatEngine {
                 TurnDiagnostic(
                     dependency: .workspace,
                     operation: $0.operation,
-                    entityId: $0.entityId,
+                    entityID: $0.entityID,
                     errorIdentity: $0.errorIdentity,
                     message: $0.message
                 )
@@ -134,8 +134,8 @@ extension ChatEngine {
                 }
             }
 
-            let requestOriginId = workspaceResult.primary?.originId
-                ?? workspaceResult.attached.lazy.compactMap(\.originId).first
+            let requestOriginId = workspaceResult.primary?.originID
+                ?? workspaceResult.attached.lazy.compactMap(\.originID).first
 
             var requestOriginName: String?
             if let originId = requestOriginId {
@@ -197,7 +197,7 @@ extension ChatEngine {
                 messageStore: dependencies.messageStore
             )
             if !message.isEmpty {
-                let userMsg = ConversationMessage(timelineId: timelineId, role: .user, content: message)
+                let userMsg = ConversationMessage(timelineID: timelineId, role: .user, content: message)
                 try await dependencies.messageStore.saveMessage(userMsg)
             }
 
@@ -299,7 +299,7 @@ extension ChatEngine {
             // Release any tool-output reservations made during validation.
             await ExternalToolOutputSubmissionGate.shared.releaseReservations(
                 timelineId: timelineId,
-                toolCallIds: validatedToolOutputs.map(\.toolCallId)
+                toolCallIds: validatedToolOutputs.map(\.toolCallID)
             )
             throw error
         }
@@ -396,11 +396,11 @@ private extension ChatEngine {
                     pendingToolCallIds = Set(toolCalls.map(\.id))
                 }
             case .tool:
-                guard let toolCallId = message.toolCallId else {
+                guard let toolCallID = message.toolCallID else {
                     throw ChatEngineError.danglingToolResult(id: "<missing>")
                 }
-                guard pendingToolCallIds.remove(toolCallId) != nil else {
-                    throw ChatEngineError.danglingToolResult(id: toolCallId)
+                guard pendingToolCallIds.remove(toolCallID) != nil else {
+                    throw ChatEngineError.danglingToolResult(id: toolCallID)
                 }
             case .user, .system, .summary:
                 if !pendingToolCallIds.isEmpty {

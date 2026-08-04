@@ -13,7 +13,7 @@ struct GenerationParametersTests {
 
         // 1. Setup PositronicKit with default generation parameters
         let defaultParams = GenerationParameters(temperature: 0.7, maxTokens: 100)
-        let chat = PositronicKit(configuration: .init(provider: .init(llmService: mockLLM), persistence: .init(
+        let chat = PositronicKit(configuration: .init(provider: .init(languageModel: mockLLM), persistence: .init(
                 messageStore: mockPersistence,
                 timelinePersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
@@ -27,7 +27,7 @@ struct GenerationParametersTests {
 
         // 2. Run a chat turn without per-run parameters
         let stream = try await chat.run(ChatRunRequest(
-            timelineId: timeline.id,
+            timelineID: timeline.id,
             message: "Test message"
         ))
 
@@ -47,7 +47,7 @@ struct GenerationParametersTests {
 
         // 1. Setup PositronicKit with initial default parameters
         let defaultParams = GenerationParameters(temperature: 0.7, maxTokens: 100)
-        let chat = PositronicKit(configuration: .init(provider: .init(llmService: mockLLM), persistence: .init(
+        let chat = PositronicKit(configuration: .init(provider: .init(languageModel: mockLLM), persistence: .init(
                 messageStore: mockPersistence,
                 timelinePersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
@@ -62,7 +62,7 @@ struct GenerationParametersTests {
         // 2. Run a chat turn WITH per-run parameters that override the defaults
         let overrideParams = GenerationParameters(temperature: 0.2, maxTokens: 500, topP: 0.9)
         let stream = try await chat.run(ChatRunRequest(
-            timelineId: timeline.id,
+            timelineID: timeline.id,
             message: "Test message",
             generationParameters: overrideParams
         ))
@@ -82,13 +82,13 @@ struct GenerationParametersTests {
         let mockLLM = MockLLMService()
 
         // 1. Setup PositronicKit without any default parameters
-        let chat = PositronicKit(llmService: mockLLM)
+        let chat = PositronicKit(languageModel: mockLLM)
 
         let timeline = try await chat.timelineManager.createTimeline(title: "Nil Params")
 
         // 2. Run a chat turn without per-run parameters
         let stream = try await chat.run(ChatRunRequest(
-            timelineId: timeline.id,
+            timelineID: timeline.id,
             message: "Test message"
         ))
 

@@ -162,9 +162,10 @@ public struct PromptJournal: Sendable {
     ///   (`latestObservedSections`/pressure) and leaves the committed base intact, so the next
     ///   `observe(sections:)` diffs against prior history as usual. Pass `true` to *also* clear
     ///   `committedBaseSections`, discarding that history so the next observation starts from a
-    ///   completely empty journal, as if newly initialized. Use `reset(hard: true)` when you want
-    ///   to forget the journal's prior state entirely (e.g. starting a new conversation) — not for
-    ///   routine per-turn cleanup, which should use the default `false`.
+    ///   completely empty journal, as if newly initialized. Use
+    ///   ``resetDiscardingCommittedState()`` when you want to forget the journal's prior state
+    ///   entirely (e.g. starting a new conversation). For routine per-turn cleanup, use
+    ///   ``resetKeepingCommittedState()``.
     @available(*, deprecated, message: "Use resetKeepingCommittedState() or resetDiscardingCommittedState().")
     public mutating func reset(hard: Bool = false) {
         if hard {

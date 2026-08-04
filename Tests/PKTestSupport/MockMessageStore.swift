@@ -27,13 +27,13 @@ public final class MockMessageStore: MessageStoreProtocol, @unchecked Sendable {
 
     public func fetchMessages(for timelineId: UUID) async throws -> [ConversationMessage] {
         messagesState.withLock {
-            $0.filter { $0.timelineId == timelineId }
+            $0.filter { $0.timelineID == timelineId }
         }
     }
 
     public func deleteMessages(for timelineId: UUID) async throws {
         messagesState.withLock {
-            $0.removeAll { $0.timelineId == timelineId }
+            $0.removeAll { $0.timelineID == timelineId }
         }
     }
 
@@ -44,7 +44,7 @@ public final class MockMessageStore: MessageStoreProtocol, @unchecked Sendable {
     public func fetchSnapshots(for timelineId: UUID) async throws -> [TurnSnapshot] {
         messagesState.withLock {
             $0
-                .filter { $0.timelineId == timelineId && $0.role == "assistant" }
+                .filter { $0.timelineID == timelineId && $0.role == "assistant" }
                 .compactMap { message in
                     guard let data = message.snapshotData else { return nil }
                     return try? SerializationUtils.jsonDecoder.decode(TurnSnapshot.self, from: data)

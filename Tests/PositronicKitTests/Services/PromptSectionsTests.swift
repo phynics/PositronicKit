@@ -39,7 +39,7 @@ private func makeRuntimeWS(
 }
 
 private func makeAgent(name: String = "TestAgent", description: String = "") -> AgentInstance {
-    AgentInstance(name: name, description: description, privateTimelineId: UUID())
+    AgentInstance(name: name, description: description, privateTimelineID: UUID())
 }
 
 // MARK: - WorkspacesContext Tests

@@ -98,7 +98,27 @@ public struct TokenBudget: Sendable {
         self.reserveForResponse = outputReserve
     }
 
+    /// Applies this budget to unresolved prompt values and returns the verified structured result.
+    public func result(
+        forPrompts prompts: [any Prompt],
+        compressor: SectionCompressor? = nil,
+        structuredDiff: StructuredDiffHint? = nil,
+        nodeMetadata: [String: StructuredNodeMetadata] = [:],
+        planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
+        executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
+    ) async throws -> TokenBudgetResult {
+        try await result(
+            forResolvedSections: prompts.flatMap { $0.resolveSections() },
+            compressor: compressor,
+            structuredDiff: structuredDiff,
+            nodeMetadata: nodeMetadata,
+            planner: planner,
+            executor: executor
+        )
+    }
+
     /// Applies this budget to prompt values and returns the verified structured result.
+    @available(*, deprecated, message: "Use result(forPrompts:compressor:structuredDiff:nodeMetadata:planner:executor:).")
     public func result(
         for sections: [any Prompt],
         compressor: SectionCompressor? = nil,
@@ -108,7 +128,7 @@ public struct TokenBudget: Sendable {
         executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
     ) async throws -> TokenBudgetResult {
         try await result(
-            for: sections.flatMap { $0.resolveSections() },
+            forPrompts: sections,
             compressor: compressor,
             structuredDiff: structuredDiff,
             nodeMetadata: nodeMetadata,
@@ -118,7 +138,7 @@ public struct TokenBudget: Sendable {
     }
 
     /// Applies this budget to prompt values and returns only the resulting sections.
-    @available(*, deprecated, message: "Use result(for:compressor:structuredDiff:nodeMetadata:planner:executor:).sections.")
+    @available(*, deprecated, message: "Use result(forPrompts:compressor:structuredDiff:nodeMetadata:planner:executor:).sections.")
     public func apply(
         to sections: [any Prompt],
         compressor: SectionCompressor? = nil,
@@ -127,18 +147,18 @@ public struct TokenBudget: Sendable {
         planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
         executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
     ) async throws -> [PromptSection] {
-        try await apply(
-            to: sections.flatMap { $0.resolveSections() },
+        try await result(
+            forPrompts: sections,
             compressor: compressor,
             structuredDiff: structuredDiff,
             nodeMetadata: nodeMetadata,
             planner: planner,
             executor: executor
-        )
+        ).sections
     }
 
     /// Applies this budget to prompt values and returns the legacy tuple projection.
-    @available(*, deprecated, message: "Use result(for:compressor:structuredDiff:nodeMetadata:planner:executor:).")
+    @available(*, deprecated, message: "Use result(forPrompts:compressor:structuredDiff:nodeMetadata:planner:executor:).")
     public func applyWithReport(
         to sections: [any Prompt],
         compressor: SectionCompressor? = nil,
@@ -147,18 +167,19 @@ public struct TokenBudget: Sendable {
         planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
         executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
     ) async throws -> (sections: [PromptSection], report: CompressionReport?) {
-        try await applyWithReport(
-            to: sections.flatMap { $0.resolveSections() },
+        let result = try await result(
+            forPrompts: sections,
             compressor: compressor,
             structuredDiff: structuredDiff,
             nodeMetadata: nodeMetadata,
             planner: planner,
             executor: executor
         )
+        return (result.sections, result.report)
     }
 
     /// Applies the budget to prompt fragments and returns a verified result.
-    @available(*, deprecated, renamed: "result(for:compressor:structuredDiff:nodeMetadata:planner:executor:)")
+    @available(*, deprecated, renamed: "result(forPrompts:compressor:structuredDiff:nodeMetadata:planner:executor:)")
     public func budget(
         to sections: [any Prompt],
         compressor: SectionCompressor? = nil,
@@ -168,7 +189,7 @@ public struct TokenBudget: Sendable {
         executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
     ) async throws -> TokenBudgetResult {
         try await result(
-            for: sections.flatMap { $0.resolveSections() },
+            forPrompts: sections,
             compressor: compressor,
             structuredDiff: structuredDiff,
             nodeMetadata: nodeMetadata,
@@ -179,7 +200,7 @@ public struct TokenBudget: Sendable {
 
     /// Applies this budget to resolved sections and returns the verified structured result.
     public func result(
-        for sections: [PromptSection],
+        forResolvedSections sections: [PromptSection],
         compressor: SectionCompressor? = nil,
         structuredDiff: StructuredDiffHint? = nil,
         nodeMetadata: [String: StructuredNodeMetadata] = [:],
@@ -268,8 +289,29 @@ public struct TokenBudget: Sendable {
         )
     }
 
+    /// Applies this budget to resolved sections and returns the verified structured result.
+    @_disfavoredOverload
+    @available(*, deprecated, message: "Use result(forResolvedSections:compressor:structuredDiff:nodeMetadata:planner:executor:).")
+    public func result(
+        for sections: [PromptSection],
+        compressor: SectionCompressor? = nil,
+        structuredDiff: StructuredDiffHint? = nil,
+        nodeMetadata: [String: StructuredNodeMetadata] = [:],
+        planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
+        executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
+    ) async throws -> TokenBudgetResult {
+        try await result(
+            forResolvedSections: sections,
+            compressor: compressor,
+            structuredDiff: structuredDiff,
+            nodeMetadata: nodeMetadata,
+            planner: planner,
+            executor: executor
+        )
+    }
+
     /// Applies this budget to resolved sections and returns only the resulting sections.
-    @available(*, deprecated, message: "Use result(for:compressor:structuredDiff:nodeMetadata:planner:executor:).sections.")
+    @available(*, deprecated, message: "Use result(forResolvedSections:compressor:structuredDiff:nodeMetadata:planner:executor:).sections.")
     public func apply(
         to sections: [PromptSection],
         compressor: SectionCompressor? = nil,
@@ -278,8 +320,8 @@ public struct TokenBudget: Sendable {
         planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
         executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
     ) async throws -> [PromptSection] {
-        let result = try await applyWithReport(
-            to: sections,
+        let result = try await result(
+            forResolvedSections: sections,
             compressor: compressor,
             structuredDiff: structuredDiff,
             nodeMetadata: nodeMetadata,
@@ -290,7 +332,7 @@ public struct TokenBudget: Sendable {
     }
 
     /// Applies this budget to resolved sections and returns the legacy tuple projection.
-    @available(*, deprecated, message: "Use result(for:compressor:structuredDiff:nodeMetadata:planner:executor:).")
+    @available(*, deprecated, message: "Use result(forResolvedSections:compressor:structuredDiff:nodeMetadata:planner:executor:).")
     public func applyWithReport(
         to sections: [PromptSection],
         compressor: SectionCompressor? = nil,
@@ -300,7 +342,7 @@ public struct TokenBudget: Sendable {
         executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
     ) async throws -> (sections: [PromptSection], report: CompressionReport?) {
         let result = try await result(
-            for: sections,
+            forResolvedSections: sections,
             compressor: compressor,
             structuredDiff: structuredDiff,
             nodeMetadata: nodeMetadata,
@@ -312,7 +354,7 @@ public struct TokenBudget: Sendable {
 
     /// Applies the budget and returns a verified result whose estimated token count never
     /// exceeds `availableTokens`.
-    @available(*, deprecated, renamed: "result(for:compressor:structuredDiff:nodeMetadata:planner:executor:)")
+    @available(*, deprecated, renamed: "result(forResolvedSections:compressor:structuredDiff:nodeMetadata:planner:executor:)")
     public func budget(
         to sections: [PromptSection],
         compressor: SectionCompressor? = nil,
@@ -322,7 +364,7 @@ public struct TokenBudget: Sendable {
         executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
     ) async throws -> TokenBudgetResult {
         try await result(
-            for: sections,
+            forResolvedSections: sections,
             compressor: compressor,
             structuredDiff: structuredDiff,
             nodeMetadata: nodeMetadata,

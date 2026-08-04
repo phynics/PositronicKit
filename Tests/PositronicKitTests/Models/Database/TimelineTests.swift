@@ -27,10 +27,10 @@ import Testing
         let attachedId = UUID()
         let timeline = Timeline(
             title: "Project Alpha",
-            attachedWorkspaceIds: [attachedId]
+            attachedWorkspaceIDs: [attachedId]
         )
 
         try assertCodable(timeline)
-        #expect(timeline.attachedWorkspaceIds.first == attachedId)
+        #expect(timeline.attachedWorkspaceIDs.first == attachedId)
     }
 }

@@ -40,14 +40,14 @@ Convenience runtime initializers like `PositronicKit(openAIKey:)` or `Positronic
 Choose the smallest operation tier that fits the feature:
 
 ```swift
-let kit = PositronicKit(llmService: myLLM)
+let kit = PositronicKit(languageModel: myLLM)
 let answer = try await kit.complete("Summarize this note.")       // tier 1: one-shot
 let timeline = try await kit.timelineManager.createTimeline()
 let driver = kit.openTimeline(timeline.id)                        // tier 2: TimelineDriver
 let timelineManager = kit.timelineManager                          // tier 3: timelines
 let agent = kit.agenticRuntime(                                     // tier 4: agent loop
-    timelineId: driver.timelineID,
-    agentInstanceId: UUID()
+    timelineID: driver.timelineID,
+    agentInstanceID: UUID()
 )
 let tools = kit.toolRouter                                         // tier 5: raw primitives
 ```
@@ -107,7 +107,7 @@ let title = SidecarDirective(
 )
 
 let stream = try await chat.run(.init(
-    timelineId: timelineId,
+    timelineID: timelineId,
     message: "What's the deal with actors in Swift 6?",
     sidecars: [title]
 ))

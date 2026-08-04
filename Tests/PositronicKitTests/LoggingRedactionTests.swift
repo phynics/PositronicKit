@@ -11,7 +11,7 @@ struct LoggingRedactionTests {
     @Test("ChatRunRequest description does not include the user message")
     func requestDescriptionDoesNotLeakMessage() {
         let secret = "user-secret-prompt-7f3c"
-        let request = ChatRunRequest(timelineId: UUID(), message: secret)
+        let request = ChatRunRequest(timelineID: UUID(), message: secret)
 
         #expect(!request.description.contains(secret))
         #expect(request.description.contains("message: <redacted>"))
@@ -28,8 +28,8 @@ struct LoggingRedactionTests {
 
     @Test("logged errors expose stable identity and correlation metadata")
     func errorMetadata() {
-        let metadata = LoggingMetadata.forError(
-            ToolError.executionFailed("secret response"),
+        let metadata = LoggingMetadata.makeMetadata(
+            for: ToolError.executionFailed("secret response"),
             correlationID: "corr-123"
         )
 

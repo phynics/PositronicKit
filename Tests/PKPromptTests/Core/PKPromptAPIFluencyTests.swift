@@ -69,11 +69,22 @@ struct PKPromptAPIFluencyTests {
     func canonicalTokenBudgetResult() async throws {
         let sections: [any Prompt] = [TextPrompt("hello", id: "greeting")]
 
-        let result = try await TokenBudget(maxTokens: 20).result(for: sections)
+        let result = try await TokenBudget(maxTokens: 20).result(forPrompts: sections)
 
         #expect(result.sections.map(\.id) == ["greeting"])
         #expect(result.report == nil)
         #expect(result.estimatedTokens <= result.availableTokens)
+    }
+
+    @Test("Token budget result domains remain clear for empty arrays")
+    func canonicalTokenBudgetEmptyArrays() async throws {
+        let budget = TokenBudget(maxTokens: 20)
+
+        let promptResult = try await budget.result(forPrompts: [])
+        let sectionResult = try await budget.result(forResolvedSections: [])
+
+        #expect(promptResult.sections.isEmpty)
+        #expect(sectionResult.sections.isEmpty)
     }
 
     @Test("Canonical node ID properties retain the nodeId wire key")

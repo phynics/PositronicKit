@@ -20,7 +20,7 @@ struct SidecarEventsTests {
             SidecarResult(name: "memory", outcome: .failed(reason: "field never completed")),
         ]
         let completion = SidecarCompletion(
-            identity: TurnIdentity(sendId: sendId, roundTrip: 2),
+            identity: TurnIdentity(sendID: sendId, roundTrip: 2),
             results: results
         )
         let event = ChatEvent.sidecarsCompleted(completion)
@@ -33,7 +33,7 @@ struct SidecarEventsTests {
     }
 
     @Test func turnIdentityAndCommitPolicyRoundTripThroughCodable() throws {
-        let identity = TurnIdentity(sendId: UUID(), roundTrip: 7)
+        let identity = TurnIdentity(sendID: UUID(), roundTrip: 7)
         let identityData = try JSONEncoder().encode(identity)
         #expect(try JSONDecoder().decode(TurnIdentity.self, from: identityData) == identity)
 

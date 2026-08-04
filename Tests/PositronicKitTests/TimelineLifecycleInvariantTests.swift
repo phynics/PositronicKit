@@ -15,7 +15,7 @@ struct TimelineLifecycleInvariantTests {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
         let kit = PositronicKit(configuration: .init(
-            provider: .init(llmService: mockLLM),
+            provider: .init(languageModel: mockLLM),
             persistence: .init(
                 messageStore: mockPersistence,
                 timelinePersistence: mockPersistence,
@@ -46,7 +46,7 @@ struct TimelineLifecycleInvariantTests {
         let mockLLM = MockLLMService()
         let mockMessages = MockPersistenceService()
         let kit = PositronicKit(configuration: .init(
-            provider: .init(llmService: mockLLM),
+            provider: .init(languageModel: mockLLM),
             persistence: .init(
                 messageStore: mockMessages,
                 timelinePersistence: failingStore,
@@ -75,7 +75,7 @@ struct TimelineLifecycleInvariantTests {
     func driverSendToMissingTimelineThrows() async throws {
         let mockLLM = MockLLMService()
         let kit = PositronicKit(configuration: .init(
-            provider: .init(llmService: mockLLM),
+            provider: .init(languageModel: mockLLM),
             persistence: .inMemory()
         ))
 

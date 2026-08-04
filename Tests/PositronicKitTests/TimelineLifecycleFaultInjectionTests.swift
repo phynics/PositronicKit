@@ -118,7 +118,7 @@ struct TimelineLifecycleFaultInjectionTests {
 
         #expect(workspaceStore.workspaces.count == 1,
                "Exactly one workspace should be saved for a healthy timeline")
-        #expect(workspaceStore.workspaces.first?.id == timeline.attachedWorkspaceIds.first)
+        #expect(workspaceStore.workspaces.first?.id == timeline.attachedWorkspaceIDs.first)
 
         let workingDir = try #require(timeline.workingDirectory)
         #expect(FileManager.default.fileExists(atPath: workingDir),
@@ -183,7 +183,7 @@ struct TimelineLifecycleFaultInjectionTests {
         )
 
         let timeline = try await manager.createTimeline()
-        let originalAttachedIds = timeline.attachedWorkspaceIds
+        let originalAttachedIds = timeline.attachedWorkspaceIDs
         let missingWorkspaceId = UUID()
 
         do {
@@ -196,9 +196,9 @@ struct TimelineLifecycleFaultInjectionTests {
         }
 
         let persisted = try #require(await persistence.fetchTimeline(id: timeline.id))
-        #expect(persisted.attachedWorkspaceIds == originalAttachedIds,
+        #expect(persisted.attachedWorkspaceIDs == originalAttachedIds,
                "The timeline's attached workspace IDs must not change when validation fails")
-        #expect(!persisted.attachedWorkspaceIds.contains(missingWorkspaceId),
+        #expect(!persisted.attachedWorkspaceIDs.contains(missingWorkspaceId),
                "The missing workspace ID must not be persisted")
     }
 
@@ -218,7 +218,7 @@ struct TimelineLifecycleFaultInjectionTests {
         )
 
         let timeline = try await manager.createTimeline()
-        let originalAttachedIds = timeline.attachedWorkspaceIds
+        let originalAttachedIds = timeline.attachedWorkspaceIDs
         let workspaceId = UUID()
 
         do {
@@ -231,7 +231,7 @@ struct TimelineLifecycleFaultInjectionTests {
         }
 
         let persisted = try #require(await persistence.fetchTimeline(id: timeline.id))
-        #expect(persisted.attachedWorkspaceIds == originalAttachedIds,
+        #expect(persisted.attachedWorkspaceIDs == originalAttachedIds,
                "The timeline's attached workspace IDs must not change when the store fails")
     }
 
@@ -259,7 +259,7 @@ struct TimelineLifecycleFaultInjectionTests {
         try await manager.attachWorkspace(attachedWS.id, to: timeline.id)
 
         let persisted = try #require(await persistence.fetchTimeline(id: timeline.id))
-        #expect(persisted.attachedWorkspaceIds.contains(attachedWS.id),
+        #expect(persisted.attachedWorkspaceIDs.contains(attachedWS.id),
                "The workspace ID should be persisted in the timeline")
     }
 
@@ -299,7 +299,7 @@ struct TimelineLifecycleFaultInjectionTests {
         }
 
         let persisted = try #require(await persistence.fetchTimeline(id: timeline.id))
-        let attachmentCount = persisted.attachedWorkspaceIds.filter { $0 == attachedWS.id }.count
+        let attachmentCount = persisted.attachedWorkspaceIDs.filter { $0 == attachedWS.id }.count
         #expect(attachmentCount == 1,
                "The deleted workspace should not be re-attached or duplicated")
     }

@@ -21,7 +21,7 @@ struct FacadeOneShotTests {
             requestOriginStore: InMemoryRequestOriginStore()
         )
         let kit = PositronicKit(configuration: .init(
-            provider: .init(llmService: llm),
+            provider: .init(languageModel: llm),
             persistence: persistence
         ))
 
@@ -43,7 +43,7 @@ struct FacadeOneShotTests {
         let messageStore = InMemoryMessageStore()
         let timelinePersistence = InMemoryTimelinePersistence()
         let kit = PositronicKit(configuration: .init(
-            provider: .init(llmService: llm),
+            provider: .init(languageModel: llm),
             persistence: .init(
                 messageStore: messageStore,
                 timelinePersistence: timelinePersistence
@@ -74,7 +74,7 @@ struct FacadeOneShotTests {
             )
         ]]
         let kit = PositronicKit(configuration: .init(
-            provider: .init(llmService: llm),
+            provider: .init(languageModel: llm),
             persistence: .init(
                 messageStore: InMemoryMessageStore(),
                 timelinePersistence: InMemoryTimelinePersistence()
@@ -97,7 +97,7 @@ struct FacadeOneShotTests {
         let llm = MockLLMService()
         llm.stubbedStream = AsyncThrowingStream { _ in }
         let kit = PositronicKit(configuration: .init(
-            provider: .init(llmService: llm),
+            provider: .init(languageModel: llm),
             persistence: .init(
                 messageStore: InMemoryMessageStore(),
                 timelinePersistence: InMemoryTimelinePersistence()
@@ -121,7 +121,7 @@ struct FacadeOneShotTests {
         let llm = MockLLMService()
         llm.stubbedStream = AsyncThrowingStream { _ in }
         let kit = PositronicKit(configuration: .init(
-            provider: .init(llmService: llm),
+            provider: .init(languageModel: llm),
             persistence: .init(
                 messageStore: InMemoryMessageStore(),
                 timelinePersistence: InMemoryTimelinePersistence()
@@ -150,7 +150,7 @@ struct FacadeOneShotTests {
         try await llm.updateConfiguration(.fixture(activeProvider: .openAICompatible))
         llm.mockClient.nextChunks = [[#"{"tags":["swift"]}"#]]
         let kit = PositronicKit(configuration: .init(
-            provider: .init(llmService: llm),
+            provider: .init(languageModel: llm),
             persistence: PositronicKit.PersistenceConfiguration(
                 messageStore: InMemoryMessageStore(),
                 timelinePersistence: InMemoryTimelinePersistence(),
@@ -174,7 +174,7 @@ struct FacadeOneShotTests {
         try await llm.updateConfiguration(.fixture(activeProvider: .openAICompatible))
         llm.mockClient.nextChunks = [[#"{"tags":["#, #""swift"]}"#]]
         let kit = PositronicKit(configuration: .init(
-            provider: .init(llmService: llm),
+            provider: .init(languageModel: llm),
             persistence: PositronicKit.PersistenceConfiguration(
                 messageStore: InMemoryMessageStore(),
                 timelinePersistence: InMemoryTimelinePersistence(),
@@ -204,7 +204,7 @@ struct FacadeOneShotTests {
             ]),
         ]]
         let kit = PositronicKit(configuration: .init(
-            provider: .init(llmService: llm),
+            provider: .init(languageModel: llm),
             persistence: PositronicKit.PersistenceConfiguration(
                 messageStore: InMemoryMessageStore(),
                 timelinePersistence: InMemoryTimelinePersistence(),
@@ -232,7 +232,7 @@ struct FacadeOneShotTests {
         try await llm.updateConfiguration(.fixture(activeProvider: .openAICompatible))
         llm.mockClient.nextChunks = [[]]
         let kit = PositronicKit(configuration: .init(
-            provider: .init(llmService: llm),
+            provider: .init(languageModel: llm),
             persistence: PositronicKit.PersistenceConfiguration(
                 messageStore: InMemoryMessageStore(),
                 timelinePersistence: InMemoryTimelinePersistence()

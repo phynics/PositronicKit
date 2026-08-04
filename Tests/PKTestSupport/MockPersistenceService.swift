@@ -298,7 +298,7 @@ public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProt
     }
 
     public func fetchTimelines(attachedToAgent agentInstanceId: UUID) async throws -> [Timeline] {
-        timelines.filter { $0.attachedAgentInstanceId == agentInstanceId }
+        timelines.filter { $0.attachedAgentInstanceID == agentInstanceId }
     }
 
     public func resetDatabase() async throws {

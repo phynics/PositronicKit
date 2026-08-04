@@ -64,7 +64,7 @@ struct TimelineEvictionDeletionTests {
         #expect(persistedMessages.contains { $0.content == "seed" },
                 "Seeded message must survive eviction")
 
-        let workspaceId = try #require(timeline.attachedWorkspaceIds.first)
+        let workspaceId = try #require(timeline.attachedWorkspaceIDs.first)
         let persistedWorkspace = try #require(
             await runtime.persistence.fetchWorkspace(id: workspaceId, includeTools: false)
         )
@@ -117,7 +117,7 @@ struct TimelineEvictionDeletionTests {
         )
         let timeline = try await timelineManager.createTimeline()
 
-        await timelineManager.deleteTimeline(id: timeline.id)
+        await timelineManager.evictTimelineFromMemory(id: timeline.id)
 
         #expect(await timelineManager.timeline(id: timeline.id) == nil)
         // Persistence untouched.
@@ -141,7 +141,7 @@ struct TimelineEvictionDeletionTests {
             workspaceRoot: workspace.root
         )
         let timeline = try await timelineManager.createTimeline()
-        let workspaceId = try #require(timeline.attachedWorkspaceIds.first)
+        let workspaceId = try #require(timeline.attachedWorkspaceIDs.first)
 
         try await persistence.saveMessage(ConversationMessage(
             timelineId: timeline.id, role: .user, content: "hello"
@@ -211,7 +211,7 @@ struct TimelineEvictionDeletionTests {
             workspaceRoot: workspace.root
         )
         let timeline = try await timelineManager.createTimeline()
-        let workspaceId = try #require(timeline.attachedWorkspaceIds.first)
+        let workspaceId = try #require(timeline.attachedWorkspaceIDs.first)
 
         try await backing.saveMessage(ConversationMessage(
             timelineId: timeline.id, role: .user, content: "hello"

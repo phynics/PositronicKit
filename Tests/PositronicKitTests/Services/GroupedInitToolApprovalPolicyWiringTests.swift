@@ -75,7 +75,7 @@ struct GroupedInitToolApprovalPolicyWiringTests {
             requestOriginStore: mockPersistence
         )
         let chat = PositronicKit(configuration: .init(
-            provider: .init(llmService: UnconfiguredLLMService()),
+            provider: .init(languageModel: UnconfiguredLLMService()),
             persistence: persistence,
             runtime: .init(
                 workspaceCreator: MockWorkspaceCreator(),
@@ -107,7 +107,7 @@ struct GroupedInitToolApprovalPolicyWiringTests {
             requestOriginStore: mockPersistence
         )
         let chat = PositronicKit(configuration: .init(
-            provider: .init(llmService: UnconfiguredLLMService()),
+            provider: .init(languageModel: UnconfiguredLLMService()),
             persistence: persistence,
             runtime: .init(workspaceRoot: workspace.root, toolApprovalPolicy: gate)
         ))

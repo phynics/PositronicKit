@@ -111,8 +111,8 @@ struct TimelineArchiverTests {
         #expect(storedMessages.count == 2)
         #expect(storedMessages[0].content == "Message 1")
         #expect(storedMessages[1].content == "Message 2")
-        #expect(storedMessages[0].timelineId == timelineId)
-        #expect(storedMessages[1].timelineId == timelineId)
+        #expect(storedMessages[0].timelineID == timelineId)
+        #expect(storedMessages[1].timelineID == timelineId)
     }
 
     @Test

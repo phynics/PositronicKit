@@ -27,7 +27,7 @@ struct PromptObservingTests {
 
         init() async throws {
             baseKit = PositronicKit(configuration: .init(
-                provider: .init(llmService: firstLLM),
+                provider: .init(languageModel: firstLLM),
                 persistence: .init(
                     messageStore: persistence,
                     timelinePersistence: persistence,
@@ -48,7 +48,7 @@ struct PromptObservingTests {
             message: String
         ) async throws {
             let stream = try await kit.run(ChatRunRequest(
-                timelineId: timelineId,
+                timelineID: timelineId,
                 message: message
             ))
             for try await _ in stream {}
@@ -97,7 +97,7 @@ struct PromptObservingTests {
                 id: workspaceId,
                 uri: WorkspaceURI(parsing: "pk://local")!,
                 location: .runtimeTimeline,
-                originId: nil,
+                originID: nil,
                 rootPath: "/tmp"
             )
             try await persistence.saveWorkspace(workspaceRef)
@@ -111,7 +111,7 @@ struct PromptObservingTests {
                 tools.append(MockTool().toAnyTool())
                 await toolManager.updateAvailableTools(tools)
 
-                if let workspace = try? await timelineManager.workspaceResolver.getWorkspace(id: workspaceId) {
+                if let workspace = try? await timelineManager.workspaceResolver.workspace(id: workspaceId) {
                     await toolManager.registerWorkspace(workspace)
                 }
             }
@@ -170,7 +170,7 @@ struct PromptObservingTests {
 
         let value = try #require(await recorder.values.first)
         let modelName = await harness.llm.configuration.activeProviderConfiguration.modelName
-        #expect(value.timelineId == harness.timelineId)
+        #expect(value.timelineID == harness.timelineId)
         #expect(value.turnIndex == 0)
         #expect(value.model == modelName)
         #expect(value.sentMessages == value.rendered.buildMessages())
@@ -196,7 +196,7 @@ struct PromptObservingTests {
         let values = await recorder.values
         #expect(values.map { $0.turnIndex } == [0, 1])
         #expect(values.map(\.identity.roundTrip) == [0, 1])
-        #expect(values.map(\.identity.sendId).allSatisfy { $0 == values[0].identity.sendId })
+        #expect(values.map(\.identity.sendID).allSatisfy { $0 == values[0].identity.sendID })
         #expect(values[1].journal.stablePrefixCount > 0)
     }
 
@@ -213,7 +213,7 @@ struct PromptObservingTests {
         )
 
         let values = await recorder.values
-        let sendIds = values.map(\.identity.sendId)
+        let sendIds = values.map(\.identity.sendID)
         #expect(Set(sendIds).count == 1)
         #expect(values.map(\.identity.roundTrip) == [0, 1])
         #expect(values.last?.identity.roundTrip == 1)
@@ -269,7 +269,7 @@ struct PromptObservingTests {
 
         try await harness.run(kit: harness.baseKit, message: "First send")
         let reconfigured = harness.baseKit.reconfigured(
-            llmService: harness.secondLLM,
+            languageModel: harness.secondLLM,
             generationParameters: .init(temperature: 0.1)
         )
         try await harness.run(kit: reconfigured, message: "Second send")
@@ -277,7 +277,7 @@ struct PromptObservingTests {
         let values = await harness.inspector.values
         #expect(values.map(\.turnIndex) == [0, 1])
         #expect(values.map(\.identity.roundTrip) == [0, 0])
-        #expect(Set(values.map(\.identity.sendId)).count == 2)
+        #expect(Set(values.map(\.identity.sendID)).count == 2)
     }
 
     @Test("Fresh facade without shared state resets inspection continuity explicitly")
@@ -289,7 +289,7 @@ struct PromptObservingTests {
         try await harness.run(kit: harness.baseKit, message: "First send")
 
         let secondKit = PositronicKit(configuration: .init(
-            provider: .init(llmService: harness.secondLLM),
+            provider: .init(languageModel: harness.secondLLM),
             persistence: .init(
                 messageStore: harness.persistence,
                 timelinePersistence: harness.persistence,
@@ -306,6 +306,6 @@ struct PromptObservingTests {
         let values = await harness.inspector.values
         #expect(values.map(\.turnIndex) == [0, 0])
         #expect(values.map(\.identity.roundTrip) == [0, 0])
-        #expect(Set(values.map(\.identity.sendId)).count == 2)
+        #expect(Set(values.map(\.identity.sendID)).count == 2)
     }
 }

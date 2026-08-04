@@ -236,7 +236,7 @@ public struct WorkspacesContext: Prompt {
                 output.append("  Available Tools:\n")
                 for tool in workspace.tools {
                     output.append("    - `")
-                    output.append(tool.toolId)
+                    output.append(tool.toolID)
                     output.append("`\n")
                     if let toolInjection = tool.contextInjection, !toolInjection.isEmpty {
                         output.append("      Instructions: \(toolInjection)\n")

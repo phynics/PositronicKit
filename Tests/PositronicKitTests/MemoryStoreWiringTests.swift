@@ -82,7 +82,7 @@ struct MemoryStoreWiringTests {
             agentInstanceStore: InMemoryAgentInstanceStore(),
             requestOriginStore: InMemoryRequestOriginStore()
         )
-        let core = PositronicKit(configuration: .init(provider: .init(llmService: UnconfiguredLLMService(), embeddingService: embedding), persistence: persistence, runtime: .init(workspaceRoot: workspace.root)))
+        let core = PositronicKit(configuration: .init(provider: .init(languageModel: UnconfiguredLLMService(), embeddingService: embedding), persistence: persistence, runtime: .init(workspaceRoot: workspace.root)))
 
         let timeline = try await core.timelineManager.createTimeline()
         let turnBriefingBuilder = try #require(await core.timelineManager.getTurnBriefingBuilder(for: timeline.id))

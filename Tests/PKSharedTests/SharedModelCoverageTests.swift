@@ -219,13 +219,13 @@ struct WorkspaceReferenceHelperTests {
         #expect(copy.location == original.location)
         #expect(copy.rootPath == original.rootPath)
         #expect(copy.tools.count == 2)
-        #expect(copy.tools.map(\.toolId) == ["read_file", "list_dir"])
+        #expect(copy.tools.map(\.toolID) == ["read_file", "list_dir"])
     }
 
     @Test("primaryForTimeline creates a runtime workspace with full trust")
     func primaryForTimeline() {
         let timelineId = UUID()
-        let ws = WorkspaceReference.primaryForTimeline(timelineId, rootPath: "/projects/x")
+        let ws = WorkspaceReference.makePrimary(forTimeline: timelineId, rootPath: "/projects/x")
 
         #expect(ws.uri == .timelineWorkspace(timelineId))
         #expect(ws.location == .runtime)

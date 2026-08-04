@@ -31,8 +31,8 @@ actor ExternalToolOutputSubmissionGate {
             case .assistant:
                 pendingToolCallIds = Set(Self.decodeToolCalls(from: message.toolCalls).map(\.id))
             case .tool:
-                if let toolCallId = message.toolCallId {
-                    pendingToolCallIds.remove(toolCallId)
+                if let toolCallID = message.toolCallID {
+                    pendingToolCallIds.remove(toolCallID)
                 }
             case .user, .system, .summary:
                 pendingToolCallIds.removeAll()
@@ -48,19 +48,19 @@ actor ExternalToolOutputSubmissionGate {
         let persistedToolCallIds = Set(
             existingMessages
                 .filter { $0.messageRole == .tool }
-                .compactMap { $0.toolCallId }
+                .compactMap { $0.toolCallID }
         )
 
         var validated: [ToolOutputSubmission] = []
         for output in toolOutputs {
             // Skip outputs already persisted by a previous (partial) batch.
-            if persistedToolCallIds.contains(output.toolCallId) {
+            if persistedToolCallIds.contains(output.toolCallID) {
                 continue
             }
-            guard pendingToolCallIds.remove(output.toolCallId) != nil else {
-                throw ToolError.unmatchedToolOutput(output.toolCallId)
+            guard pendingToolCallIds.remove(output.toolCallID) != nil else {
+                throw ToolError.unmatchedToolOutput(output.toolCallID)
             }
-            let reservation = ReservedToolOutput(timelineId: timelineId, toolCallId: output.toolCallId)
+            let reservation = ReservedToolOutput(timelineId: timelineId, toolCallId: output.toolCallID)
             reservedToolOutputs.insert(reservation)
             validated.append(output)
         }
@@ -83,23 +83,23 @@ actor ExternalToolOutputSubmissionGate {
         let persistedToolCallIds = Set(
             existingMessages
                 .filter { $0.messageRole == .tool }
-                .compactMap { $0.toolCallId }
+                .compactMap { $0.toolCallID }
         )
 
         for output in validatedOutputs {
-            if persistedToolCallIds.contains(output.toolCallId) { continue }
+            if persistedToolCallIds.contains(output.toolCallID) { continue }
             let msg = ConversationMessage(
-                timelineId: timelineId,
+                timelineID: timelineId,
                 role: .tool,
                 content: output.output,
-                toolCallId: output.toolCallId
+                toolCallID: output.toolCallID
             )
             try await messageStore.saveMessage(msg)
         }
 
         // Release reservations for all validated outputs (persisted or already-present).
         for output in validatedOutputs {
-            reservedToolOutputs.remove(ReservedToolOutput(timelineId: timelineId, toolCallId: output.toolCallId))
+            reservedToolOutputs.remove(ReservedToolOutput(timelineId: timelineId, toolCallId: output.toolCallID))
         }
     }
 

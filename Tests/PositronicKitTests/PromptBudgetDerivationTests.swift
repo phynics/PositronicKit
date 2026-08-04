@@ -65,16 +65,16 @@ struct PromptBudgetDerivationTests {
 
     @Test("ProviderConfiguration defaultFor carries per-provider context windows")
     func providerDefaultsCarryContextWindows() {
-        #expect(ProviderConfiguration.defaultFor(.openAI).contextWindowTokens == 128_000)
-        #expect(ProviderConfiguration.defaultFor(.anthropic).contextWindowTokens == 200_000)
-        #expect(ProviderConfiguration.defaultFor(.ollama).contextWindowTokens == 8_192)
-        #expect(ProviderConfiguration.defaultFor(.openRouter).contextWindowTokens == 128_000)
-        #expect(ProviderConfiguration.defaultFor(.openAICompatible).contextWindowTokens == 8_192)
+        #expect(ProviderConfiguration.makeDefault(for: .openAI).contextWindowTokens == 128_000)
+        #expect(ProviderConfiguration.makeDefault(for: .anthropic).contextWindowTokens == 200_000)
+        #expect(ProviderConfiguration.makeDefault(for: .ollama).contextWindowTokens == 8_192)
+        #expect(ProviderConfiguration.makeDefault(for: .openRouter).contextWindowTokens == 128_000)
+        #expect(ProviderConfiguration.makeDefault(for: .openAICompatible).contextWindowTokens == 8_192)
     }
 
     @Test("Host can override contextWindowTokens on a provider configuration")
     func hostCanOverrideContextWindow() throws {
-        var config = ProviderConfiguration.defaultFor(.openAI)
+        var config = ProviderConfiguration.makeDefault(for: .openAI)
         config.contextWindowTokens = 32_000
         let budget = try ChatEngine.makeTokenBudget(
             contextWindowTokens: config.contextWindowTokens,

@@ -294,7 +294,7 @@ public extension ChatEvent {
     /// Compatibility factory for consumers that construct this event directly.
     static func sidecarsCompleted(_ results: [SidecarResult]) -> ChatEvent {
         .sidecarsCompleted(SidecarCompletion(
-            identity: TurnIdentity(sendId: UUID(), roundTrip: 0),
+            identity: TurnIdentity(sendID: UUID(), roundTrip: 0),
             results: results
         ))
     }

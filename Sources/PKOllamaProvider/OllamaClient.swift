@@ -94,7 +94,7 @@ public actor OllamaClient: LLMClientProtocol {
             } catch {
                 logger.error(
                     "Ollama stream failed",
-                    metadata: LoggingMetadata.forError(error, correlationID: "ollama")
+                    metadata: LoggingMetadata.makeMetadata(for: error, correlationID: "ollama")
                 )
                 continuation.finish(throwing: error)
             }

@@ -30,11 +30,11 @@ import Foundation
             id: UUID(),
             uri: WorkspaceURI(host: "macbook", path: "/Users/dev"),
             location: .attached,
-            originId: originId,
+            originID: originId,
             status: .missing
         )
         try assertCodable(ref)
-        #expect(ref.originId == originId)
+        #expect(ref.originID == originId)
         #expect(ref.status == .missing)
     }
 }

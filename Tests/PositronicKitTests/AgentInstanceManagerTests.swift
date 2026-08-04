@@ -67,10 +67,10 @@ struct AgentInstanceManagerTests {
         )
 
         let agentId = UUID()
-        let agent = AgentInstance(id: agentId, name: "Test Agent", description: "Desc", primaryWorkspaceId: UUID(), privateTimelineId: UUID())
+        let agent = AgentInstance(id: agentId, name: "Test Agent", description: "Desc", primaryWorkspaceID: UUID(), privateTimelineID: UUID())
         let otherAgentId = UUID()
-        let otherAgent = AgentInstance(id: otherAgentId, name: "Other Agent", description: "Desc", primaryWorkspaceId: UUID(), privateTimelineId: UUID())
-        let privateTimeline = Timeline(id: UUID(), title: "Private", attachedAgentInstanceId: agentId, isPrivate: true)
+        let otherAgent = AgentInstance(id: otherAgentId, name: "Other Agent", description: "Desc", primaryWorkspaceID: UUID(), privateTimelineID: UUID())
+        let privateTimeline = Timeline(id: UUID(), title: "Private", attachedAgentInstanceID: agentId, isPrivate: true)
 
         try await mock.saveAgentInstance(agent)
         try await mock.saveAgentInstance(otherAgent)
@@ -102,8 +102,8 @@ struct AgentInstanceManagerTests {
         )
 
         let agentId = UUID()
-        let agent = AgentInstance(id: agentId, name: "Test Agent", description: "Desc", primaryWorkspaceId: UUID(), privateTimelineId: UUID())
-        let privateTimeline = Timeline(id: agent.privateTimelineId, title: "Private", attachedAgentInstanceId: agentId, isPrivate: true)
+        let agent = AgentInstance(id: agentId, name: "Test Agent", description: "Desc", primaryWorkspaceID: UUID(), privateTimelineID: UUID())
+        let privateTimeline = Timeline(id: agent.privateTimelineID, title: "Private", attachedAgentInstanceID: agentId, isPrivate: true)
 
         try await mock.saveAgentInstance(agent)
         try await mock.saveTimeline(privateTimeline)
@@ -131,8 +131,8 @@ struct AgentInstanceManagerTests {
 
         let instance = try await manager.createInstance(name: "New Agent", description: "Desc")
 
-        let timeline = try await mock.fetchTimeline(id: instance.privateTimelineId)
-        #expect(timeline?.attachedAgentInstanceId == instance.id)
+        let timeline = try await mock.fetchTimeline(id: instance.privateTimelineID)
+        #expect(timeline?.attachedAgentInstanceID == instance.id)
         #expect(timeline?.isPrivate == true)
     }
 
@@ -152,8 +152,8 @@ struct AgentInstanceManagerTests {
             )
         )
 
-        let agent1 = AgentInstance(id: UUID(), name: "Researcher", description: "Finds things", primaryWorkspaceId: UUID(), privateTimelineId: UUID())
-        let agent2 = AgentInstance(id: UUID(), name: "Coder", description: "Writes Swift", primaryWorkspaceId: UUID(), privateTimelineId: UUID())
+        let agent1 = AgentInstance(id: UUID(), name: "Researcher", description: "Finds things", primaryWorkspaceID: UUID(), privateTimelineID: UUID())
+        let agent2 = AgentInstance(id: UUID(), name: "Coder", description: "Writes Swift", primaryWorkspaceID: UUID(), privateTimelineID: UUID())
 
         try await mock.saveAgentInstance(agent1)
         try await mock.saveAgentInstance(agent2)
@@ -211,10 +211,10 @@ struct AgentInstanceManagerTests {
         let instance = try await manager.createInstance(name: "Eviction Target", description: "Desc")
 
         // Hydrate the private timeline into the TimelineManager cache and populate the registry.
-        try await timelineManager.hydrateTimeline(id: instance.privateTimelineId)
-        #expect(await timelineManager.timeline(id: instance.privateTimelineId) != nil)
+        try await timelineManager.hydrateTimeline(id: instance.privateTimelineID)
+        #expect(await timelineManager.timeline(id: instance.privateTimelineID) != nil)
 
-        let history = await registry.history(for: instance.privateTimelineId)
+        let history = await registry.history(for: instance.privateTimelineID)
         await history.recordAppend(messageCount: 4, estimatedTokens: 120)
         #expect(await history.appendedMessageCount == 4)
 
@@ -222,10 +222,10 @@ struct AgentInstanceManagerTests {
         // should be evicted alongside the persisted row, not orphaned.
         try await manager.deleteInstance(id: instance.id, force: false)
 
-        #expect(await timelineManager.timeline(id: instance.privateTimelineId) == nil,
+        #expect(await timelineManager.timeline(id: instance.privateTimelineID) == nil,
                "Private timeline should be evicted from the TimelineManager cache")
 
-        let fresh = await registry.history(for: instance.privateTimelineId)
+        let fresh = await registry.history(for: instance.privateTimelineID)
         #expect(await fresh.appendedMessageCount == 0,
                "Prompt-history registry entry should be evicted, not orphaned")
     }
@@ -255,7 +255,7 @@ struct AgentInstanceManagerTests {
         let agentId = UUID()
         let agent = AgentInstance(
             id: agentId, name: "Audit Agent", description: "Desc",
-            primaryWorkspaceId: UUID(), privateTimelineId: UUID()
+            primaryWorkspaceID: UUID(), privateTimelineID: UUID()
         )
         let timeline = Timeline(id: UUID(), title: "Shared", isPrivate: false)
         try await instanceStore.saveAgentInstance(agent)
@@ -266,7 +266,7 @@ struct AgentInstanceManagerTests {
 
         // The attach itself succeeded: the timeline now references the agent.
         let updated = try await timelineStore.fetchTimeline(id: timeline.id)
-        #expect(updated?.attachedAgentInstanceId == agentId)
+        #expect(updated?.attachedAgentInstanceID == agentId)
 
         // The audit-log save was attempted (and failed) — observable, not swallowed.
         #expect(messageStore.attemptedMessages.count == 1)
@@ -296,11 +296,11 @@ struct AgentInstanceManagerTests {
         let agentId = UUID()
         let agent = AgentInstance(
             id: agentId, name: "Audit Agent", description: "Desc",
-            primaryWorkspaceId: UUID(), privateTimelineId: UUID()
+            primaryWorkspaceID: UUID(), privateTimelineID: UUID()
         )
         // A non-private timeline the agent is already attached to.
         let timeline = Timeline(
-            id: UUID(), title: "Shared", attachedAgentInstanceId: agentId, isPrivate: false
+            id: UUID(), title: "Shared", attachedAgentInstanceID: agentId, isPrivate: false
         )
         try await instanceStore.saveAgentInstance(agent)
         try await timelineStore.saveTimeline(timeline)
@@ -310,7 +310,7 @@ struct AgentInstanceManagerTests {
 
         // The detach itself succeeded: the agent reference is cleared.
         let updated = try await timelineStore.fetchTimeline(id: timeline.id)
-        #expect(updated?.attachedAgentInstanceId == nil)
+        #expect(updated?.attachedAgentInstanceID == nil)
 
         // The audit-log save was attempted (and failed) — observable, not swallowed.
         #expect(messageStore.attemptedMessages.count == 1)

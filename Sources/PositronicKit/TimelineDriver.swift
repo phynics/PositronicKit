@@ -27,7 +27,7 @@ public struct TimelineDriver: Identifiable, Sendable {
 
     /// Sends a message through the facade's normal chat-engine execution path.
     public func send(_ message: String) async throws -> AsyncThrowingStream<ChatEvent, Error> {
-        try await kit.run(ChatRunRequest(timelineId: timelineID, message: message))
+        try await kit.run(ChatRunRequest(timelineID: timelineID, message: message))
     }
 
     /// Cancels any in-flight generation for this driver's timeline.

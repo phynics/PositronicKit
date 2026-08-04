@@ -33,12 +33,12 @@ public actor InMemoryToolPersistence: ToolPersistenceProtocol {
     }
 
     public func fetchOriginTools(originId: UUID) async throws -> [ToolReference] {
-        workspaces.filter { $0.originId == originId }.flatMap(\.tools)
+        workspaces.filter { $0.originID == originId }.flatMap(\.tools)
     }
 
     public func findWorkspaceId(forToolId toolId: String, in workspaceIds: [UUID]) async throws -> UUID? {
         for workspace in workspaces where workspaceIds.contains(workspace.id) {
-            if workspace.tools.contains(where: { $0.toolId == toolId }) {
+            if workspace.tools.contains(where: { $0.toolID == toolId }) {
                 return workspace.id
             }
         }

@@ -53,14 +53,14 @@ public final class MockToolPersistence: ToolPersistenceProtocol, @unchecked Send
 
     public func fetchOriginTools(originId: UUID) async throws -> [ToolReference] {
         workspacesState.withLock {
-            $0.filter { $0.originId == originId }.flatMap(\.tools)
+            $0.filter { $0.originID == originId }.flatMap(\.tools)
         }
     }
 
     public func findWorkspaceId(forToolId toolId: String, in workspaceIds: [UUID]) async throws -> UUID? {
         workspacesState.withLock {
             for workspace in $0 where workspaceIds.contains(workspace.id) {
-                if workspace.tools.contains(where: { $0.toolId == toolId }) {
+                if workspace.tools.contains(where: { $0.toolID == toolId }) {
                     return workspace.id
                 }
             }
@@ -72,7 +72,7 @@ public final class MockToolPersistence: ToolPersistenceProtocol, @unchecked Send
         workspacesState.withLock {
             guard let workspace = $0.first(where: { workspace in
                 workspaceIds.contains(workspace.id)
-                    && workspace.tools.contains { $0.toolId == toolId }
+                    && workspace.tools.contains { $0.toolID == toolId }
             }) else {
                 return nil
             }

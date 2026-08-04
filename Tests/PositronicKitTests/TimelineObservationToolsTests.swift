@@ -170,7 +170,7 @@ struct TimelineObservationToolsTests {
         func listsNonPrivateNonArchived() async throws {
             let timelineStore = InMemoryTimelinePersistence()
             let public1 = Timeline(title: "Public One")
-            let public2 = Timeline(title: "Public Two", attachedAgentInstanceId: UUID())
+            let public2 = Timeline(title: "Public Two", attachedAgentInstanceID: UUID())
             let private1 = Timeline(title: "Private", isPrivate: true)
             let archived1 = Timeline(title: "Archived", isArchived: true)
             for t in [public1, public2, private1, archived1] {
@@ -192,7 +192,7 @@ struct TimelineObservationToolsTests {
         func includesAttachedAgentId() async throws {
             let timelineStore = InMemoryTimelinePersistence()
             let agentId = UUID()
-            let timeline = Timeline(title: "With Agent", attachedAgentInstanceId: agentId)
+            let timeline = Timeline(title: "With Agent", attachedAgentInstanceID: agentId)
             try await timelineStore.saveTimeline(timeline)
 
             let tool = TimelineListTool(timelineStore: timelineStore)

@@ -148,10 +148,10 @@ struct WorkspaceManagerTests {
         let reference = makeReference(id: id)
         let (manager, _, _) = await makeManager(references: [reference])
 
-        let first = try #require(await manager.getWorkspace(id: id) as? FakeWorkspace)
+        let first = try #require(await manager.workspace(id: id) as? FakeWorkspace)
         #expect(await manager.activeWorkspaceCount == 1)
 
-        let second = try #require(await manager.getWorkspace(id: id) as? FakeWorkspace)
+        let second = try #require(await manager.workspace(id: id) as? FakeWorkspace)
         #expect(first === second)
     }
 
@@ -161,9 +161,9 @@ struct WorkspaceManagerTests {
         let reference = makeReference(id: id)
         let (manager, _, _) = await makeManager(references: [reference])
 
-        let first = try #require(await manager.getWorkspace(id: id) as? FakeWorkspace)
-        let second = try #require(await manager.getWorkspace(id: id) as? FakeWorkspace)
-        let third = try #require(await manager.getWorkspace(id: id) as? FakeWorkspace)
+        let first = try #require(await manager.workspace(id: id) as? FakeWorkspace)
+        let second = try #require(await manager.workspace(id: id) as? FakeWorkspace)
+        let third = try #require(await manager.workspace(id: id) as? FakeWorkspace)
 
         #expect(first === second)
         #expect(second === third)
@@ -176,12 +176,12 @@ struct WorkspaceManagerTests {
         let reference = makeReference(id: id)
         let (manager, _, _) = await makeManager(references: [reference])
 
-        let first = try #require(await manager.getWorkspace(id: id) as? FakeWorkspace)
+        let first = try #require(await manager.workspace(id: id) as? FakeWorkspace)
         await manager.closeWorkspace(id: id)
 
         #expect(await manager.activeWorkspaceCount == 0)
 
-        let second = try #require(await manager.getWorkspace(id: id) as? FakeWorkspace)
+        let second = try #require(await manager.workspace(id: id) as? FakeWorkspace)
         #expect(first !== second)
         #expect(await manager.activeWorkspaceCount == 1)
     }
@@ -198,7 +198,7 @@ struct WorkspaceManagerTests {
     func getWorkspaceUnknownReturnsNil() async throws {
         let id = UUID()
         let (manager, _, _) = await makeManager()
-        let workspace = try await manager.getWorkspace(id: id)
+        let workspace = try await manager.workspace(id: id)
         #expect(workspace == nil)
         #expect(await manager.activeWorkspaceCount == 0)
     }
@@ -211,7 +211,7 @@ struct WorkspaceManagerTests {
         await repository.setShouldThrow(true)
 
         await #expect(throws: TestError.repositoryFailure) {
-            _ = try await manager.getWorkspace(id: id)
+            _ = try await manager.workspace(id: id)
         }
     }
 
@@ -222,8 +222,8 @@ struct WorkspaceManagerTests {
         let references = [makeReference(id: id1), makeReference(id: id2)]
         let (manager, _, _) = await makeManager(references: references)
 
-        _ = try await manager.getWorkspace(id: id1)
-        _ = try await manager.getWorkspace(id: id2)
+        _ = try await manager.workspace(id: id1)
+        _ = try await manager.workspace(id: id2)
         #expect(await manager.activeWorkspaceCount == 2)
 
         let results = await manager.healthCheckAll()
@@ -243,8 +243,8 @@ struct WorkspaceManagerTests {
             healthByID: [unhealthyID: false]
         )
 
-        _ = try await manager.getWorkspace(id: healthyID)
-        _ = try await manager.getWorkspace(id: unhealthyID)
+        _ = try await manager.workspace(id: healthyID)
+        _ = try await manager.workspace(id: unhealthyID)
         #expect(await manager.activeWorkspaceCount == 2)
 
         let results = await manager.healthCheckAll()
@@ -253,9 +253,9 @@ struct WorkspaceManagerTests {
         #expect(results[unhealthyID] == false)
         #expect(await manager.activeWorkspaceCount == 1)
 
-        let remaining = try await manager.getWorkspace(id: healthyID)
+        let remaining = try await manager.workspace(id: healthyID)
         #expect(remaining != nil)
-        let evicted = try await manager.getWorkspace(id: unhealthyID)
+        let evicted = try await manager.workspace(id: unhealthyID)
         #expect(evicted != nil)
         #expect(await manager.activeWorkspaceCount == 2)
     }
@@ -271,9 +271,9 @@ struct WorkspaceManagerTests {
             healthByID: [id1: false, id3: false]
         )
 
-        _ = try await manager.getWorkspace(id: id1)
-        _ = try await manager.getWorkspace(id: id2)
-        _ = try await manager.getWorkspace(id: id3)
+        _ = try await manager.workspace(id: id1)
+        _ = try await manager.workspace(id: id2)
+        _ = try await manager.workspace(id: id3)
         #expect(await manager.activeWorkspaceCount == 3)
 
         let results = await manager.healthCheckAll()
@@ -283,7 +283,7 @@ struct WorkspaceManagerTests {
         #expect(results[id3] == false)
         #expect(await manager.activeWorkspaceCount == 1)
 
-        let remaining = try await manager.getWorkspace(id: id2)
+        let remaining = try await manager.workspace(id: id2)
         #expect(remaining != nil)
     }
 
@@ -294,7 +294,7 @@ struct WorkspaceManagerTests {
         let (manager, _, _) = await makeManager(references: references)
 
         for id in ids {
-            _ = try await manager.getWorkspace(id: id)
+            _ = try await manager.workspace(id: id)
         }
         #expect(await manager.activeWorkspaceCount == ids.count)
 
@@ -304,11 +304,11 @@ struct WorkspaceManagerTests {
                     let id = ids[i % ids.count]
                     switch i % 3 {
                     case 0:
-                        _ = try await manager.getWorkspace(id: id)
+                        _ = try await manager.workspace(id: id)
                     case 1:
                         await manager.closeWorkspace(id: id)
                     case 2:
-                        _ = try await manager.getWorkspace(id: id)
+                        _ = try await manager.workspace(id: id)
                     default:
                         break
                     }

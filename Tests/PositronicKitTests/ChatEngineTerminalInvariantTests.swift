@@ -60,7 +60,7 @@ struct ChatEngineTerminalInvariantTests {
             id: wsId,
             uri: WorkspaceURI(parsing: "pk://local")!,
             location: .runtimeTimeline,
-            originId: nil,
+            originID: nil,
             rootPath: "/tmp"
         )
         try await mockPersistence.saveWorkspace(workspaceRef)

@@ -34,7 +34,7 @@ import Testing
             id: id,
             name: name,
             description: description,
-            privateTimelineId: UUID()
+            privateTimelineID: UUID()
         )
     }
 

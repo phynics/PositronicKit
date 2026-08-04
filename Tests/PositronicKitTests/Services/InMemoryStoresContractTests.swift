@@ -40,7 +40,7 @@ struct InMemoryStoresContractTests {
 
             let tools = try await store.fetchTools(forWorkspaces: [wsId])
             #expect(tools.count == 2)
-            #expect(tools.map(\.toolId) == ["read_file", "list_dir"])
+            #expect(tools.map(\.toolID) == ["read_file", "list_dir"])
         }
 
         @Test("addToolToWorkspace throws when workspace is missing")
@@ -63,7 +63,7 @@ struct InMemoryStoresContractTests {
 
             let tools = try await store.fetchTools(forWorkspaces: [wsId])
             #expect(tools.count == 2)
-            #expect(tools.map(\.toolId) == ["a", "b"])
+            #expect(tools.map(\.toolID) == ["a", "b"])
         }
 
         @Test("syncTools throws when workspace is missing")
@@ -90,7 +90,7 @@ struct InMemoryStoresContractTests {
 
             let tools = try await store.fetchTools(forWorkspaces: [wsA, wsC])
             #expect(tools.count == 2)
-            #expect(Set(tools.map(\.toolId)) == Set(["a1", "c1"]))
+            #expect(Set(tools.map(\.toolID)) == Set(["a1", "c1"]))
         }
 
         @Test("fetchOriginTools returns tools for workspaces matching the origin")
@@ -107,7 +107,7 @@ struct InMemoryStoresContractTests {
 
             let originTools = try await store.fetchOriginTools(originId: origin)
             #expect(originTools.count == 1)
-            #expect(originTools.first?.toolId == "a")
+            #expect(originTools.first?.toolID == "a")
         }
 
         @Test("findWorkspaceId locates the workspace owning a tool")
@@ -344,9 +344,9 @@ struct InMemoryStoresContractTests {
             let store = InMemoryMessageStore()
             let timelineA = UUID(), timelineB = UUID()
 
-            try await store.saveMessage(ConversationMessage(timelineId: timelineA, role: .user, content: "A1"))
-            try await store.saveMessage(ConversationMessage(timelineId: timelineA, role: .assistant, content: "A2"))
-            try await store.saveMessage(ConversationMessage(timelineId: timelineB, role: .user, content: "B1"))
+            try await store.saveMessage(ConversationMessage(timelineID: timelineA, role: .user, content: "A1"))
+            try await store.saveMessage(ConversationMessage(timelineID: timelineA, role: .assistant, content: "A2"))
+            try await store.saveMessage(ConversationMessage(timelineID: timelineB, role: .user, content: "B1"))
 
             let aMessages = try await store.fetchMessages(for: timelineA)
             let bMessages = try await store.fetchMessages(for: timelineB)
@@ -358,8 +358,8 @@ struct InMemoryStoresContractTests {
         func deleteTargetsSingleTimeline() async throws {
             let store = InMemoryMessageStore()
             let timelineA = UUID(), timelineB = UUID()
-            try await store.saveMessage(ConversationMessage(timelineId: timelineA, role: .user, content: "A"))
-            try await store.saveMessage(ConversationMessage(timelineId: timelineB, role: .user, content: "B"))
+            try await store.saveMessage(ConversationMessage(timelineID: timelineA, role: .user, content: "A"))
+            try await store.saveMessage(ConversationMessage(timelineID: timelineB, role: .user, content: "B"))
 
             try await store.deleteMessages(for: timelineA)
 
@@ -412,7 +412,7 @@ struct InMemoryStoresContractTests {
         func pruneIsNoOp() async throws {
             let store = InMemoryMessageStore()
             let timeline = UUID()
-            try await store.saveMessage(ConversationMessage(timelineId: timeline, role: .user, content: "x"))
+            try await store.saveMessage(ConversationMessage(timelineID: timeline, role: .user, content: "x"))
 
             #expect(try await store.pruneMessages(olderThan: 1000, dryRun: false) == 0)
             #expect(try await store.fetchMessages(for: timeline).count == 1)

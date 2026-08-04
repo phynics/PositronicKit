@@ -53,7 +53,7 @@ import PKShared
 import PKOpenAIProvider
 
 // OpenAI: configure the provider, build its client, and wrap it as a LanguageModel.
-var openAIConfig = ProviderConfiguration.defaultFor(.openAI)
+var openAIConfig = ProviderConfiguration.makeDefault(for: .openAI)
 openAIConfig.apiKey = "sk-..."
 let configuration = LLMConfiguration(activeProvider: .openAI, providers: [.openAI: openAIConfig])
 let client = PKOpenAIProvider.makeClientAndRegisterStructuredOutputAdapter(configuration: configuration)
@@ -66,14 +66,14 @@ let languageModel = LLMService(
 let chat = PositronicKit(languageModel: languageModel)
 ```
 
-For Ollama, use `PKOllamaProvider` and `ProviderConfiguration.defaultFor(.ollama)`:
+For Ollama, use `PKOllamaProvider` and `ProviderConfiguration.makeDefault(for: .ollama)`:
 
 ```swift
 import PositronicKit
 import PKShared
 import PKOllamaProvider
 
-var ollamaConfig = ProviderConfiguration.defaultFor(.ollama)
+var ollamaConfig = ProviderConfiguration.makeDefault(for: .ollama)
 ollamaConfig.modelName = "llama3"
 let configuration = LLMConfiguration(activeProvider: .ollama, providers: [.ollama: ollamaConfig])
 let client = PKOllamaProvider.makeClientAndRegisterStructuredOutputAdapter(configuration: configuration)
@@ -130,9 +130,9 @@ import PKShared
 
 // `chat` is the PositronicKit instance from the initialization example above.
 let stream = try await chat.run(ChatRunRequest(
-    timelineId: timelineId,
+    timelineID: timelineId,
     message: "What are the latest trends in Swift concurrency?",
-    agentInstanceId: instance.id // The agent we created earlier
+    agentInstanceID: instance.id // The agent we created earlier
 ))
 
 for try await event in stream {
@@ -227,15 +227,15 @@ If the agent calls a tool that requires host-side execution (e.g., a local file 
 
 ```swift
 let toolOutputs = [
-    ToolOutputSubmission(toolCallId: "call_123", output: "File contents...")
+    ToolOutputSubmission(toolCallID: "call_123", output: "File contents...")
 ]
 
 let stream = try await chat.run(ChatRunRequest(
-    timelineId: timelineId,
+    timelineID: timelineId,
     message: "", // Empty message as we're continuing from a tool call
     tools: tools,
     toolOutputs: toolOutputs,
-    agentInstanceId: instance.id
+    agentInstanceID: instance.id
 ))
 ```
 

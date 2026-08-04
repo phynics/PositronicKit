@@ -65,7 +65,7 @@ struct ChatEngineTerminalEventTests {
             id: wsId,
             uri: WorkspaceURI(parsing: "pk://local")!,
             location: .runtimeTimeline,
-            originId: nil,
+            originID: nil,
             rootPath: "/tmp"
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
@@ -79,7 +79,7 @@ struct ChatEngineTerminalEventTests {
             tools.append(MockTool().toAnyTool())
             await toolManager.updateAvailableTools(tools)
 
-            if let ws = try? await timelineManager.workspaceResolver.getWorkspace(id: wsId) {
+            if let ws = try? await timelineManager.workspaceResolver.workspace(id: wsId) {
                 await toolManager.registerWorkspace(ws)
             }
         }
@@ -132,7 +132,7 @@ struct ChatEngineTerminalEventTests {
             id: wsId,
             uri: WorkspaceURI(parsing: "pk://local")!,
             location: .attached,
-            originId: nil,
+            originID: nil,
             rootPath: "/tmp"
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
@@ -146,7 +146,7 @@ struct ChatEngineTerminalEventTests {
             tools.append(MockTool().toAnyTool())
             await toolManager.updateAvailableTools(tools)
 
-            if let ws = try? await timelineManager.workspaceResolver.getWorkspace(id: wsId) {
+            if let ws = try? await timelineManager.workspaceResolver.workspace(id: wsId) {
                 await toolManager.registerWorkspace(ws)
             }
         }

@@ -73,21 +73,21 @@ struct TimelineAttachedWorkspacesTests {
     @Test("defaults to empty array")
     func defaultsEmpty() {
         let timeline = Timeline()
-        #expect(timeline.attachedWorkspaceIds.isEmpty)
+        #expect(timeline.attachedWorkspaceIDs.isEmpty)
     }
 
     @Test("stores single UUID")
     func singleUUID() {
         let id = UUID()
-        let timeline = Timeline(attachedWorkspaceIds: [id])
-        #expect(timeline.attachedWorkspaceIds == [id])
+        let timeline = Timeline(attachedWorkspaceIDs: [id])
+        #expect(timeline.attachedWorkspaceIDs == [id])
     }
 
     @Test("stores multiple UUIDs preserving order")
     func multipleUUIDs() {
         let ids = [UUID(), UUID(), UUID()]
-        let timeline = Timeline(attachedWorkspaceIds: ids)
-        #expect(timeline.attachedWorkspaceIds == ids)
+        let timeline = Timeline(attachedWorkspaceIDs: ids)
+        #expect(timeline.attachedWorkspaceIDs == ids)
     }
 }
 
@@ -169,13 +169,13 @@ struct AttachWorkspaceTests {
     @Test("attach to a non-cached timeline still resolves from persistence")
     func attachUncachedTimeline() async throws {
         try await withFixture { fix in
-            let timeline = Timeline(attachedWorkspaceIds: [fix.runtimeWS.id])
+            let timeline = Timeline(attachedWorkspaceIDs: [fix.runtimeWS.id])
             try await fix.persistence.saveTimeline(timeline)
 
             try await fix.manager.attachWorkspace(fix.clientWS.id, to: timeline.id)
 
             let persisted = try #require(await fix.persistence.fetchTimeline(id: timeline.id))
-            #expect(persisted.attachedWorkspaceIds.contains(fix.clientWS.id))
+            #expect(persisted.attachedWorkspaceIDs.contains(fix.clientWS.id))
         }
     }
 }

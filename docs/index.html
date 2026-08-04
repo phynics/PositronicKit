@@ -152,15 +152,15 @@
 .package(url: <span class="s">"https://github.com/phynics/PositronicKit.git"</span>, from: <span class="s">"2.0.1"</span>)</code></pre>
     <pre><code><span class="k">import</span> PositronicKit
 
-<span class="k">let</span> kit = <span class="k">PositronicKit</span>(llmService: myLLM)
+<span class="k">let</span> kit = <span class="k">PositronicKit</span>(languageModel: myLLM)
 
 <span class="c">// Choose the smallest operation tier that fits the feature:</span>
 <span class="k">let</span> answer = <span class="k">try await</span> kit.complete(<span class="s">"Summarize this note."</span>)  <span class="c">// tier 1: one-shot</span>
 <span class="k">let</span> timeline = <span class="k">try await</span> kit.timelineManager.createTimeline()
 <span class="k">let</span> driver = kit.openTimeline(timeline.id)               <span class="c">// tier 2: TimelineDriver</span>
 <span class="k">let</span> agent = kit.agenticRuntime(                               <span class="c">// tier 4: agent loop</span>
-    timelineId: driver.timelineID,
-    agentInstanceId: <span class="k">UUID</span>()
+    timelineID: driver.timelineID,
+    agentInstanceID: <span class="k">UUID</span>()
 )</code></pre>
   </div>
 </section>

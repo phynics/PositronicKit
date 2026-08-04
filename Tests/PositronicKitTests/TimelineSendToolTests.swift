@@ -40,14 +40,14 @@ struct TimelineSendToolTests {
         let timelineStore = InMemoryTimelinePersistence()
 
         let agentId = UUID()
-        let source = Timeline(workingDirectory: workspace.root.path, attachedAgentInstanceId: agentId)
+        let source = Timeline(workingDirectory: workspace.root.path, attachedAgentInstanceID: agentId)
         try await timelineStore.saveTimeline(source)
         try await messageStore.saveMessage(ConversationMessage(
-            timelineId: source.id, role: .system, content: "inbound",
-            agentInstanceId: agentId, remoteDepth: ChatEngine.Constants.maxRemoteDepth
+            timelineID: source.id, role: .system, content: "inbound",
+            agentInstanceID: agentId, remoteDepth: ChatEngine.Constants.maxRemoteDepth
         ))
 
-        let destination = Timeline(workingDirectory: workspace.root.path, attachedAgentInstanceId: agentId)
+        let destination = Timeline(workingDirectory: workspace.root.path, attachedAgentInstanceID: agentId)
         try await timelineStore.saveTimeline(destination)
 
         let tool = try await sendTool(
@@ -70,15 +70,15 @@ struct TimelineSendToolTests {
         let timelineStore = InMemoryTimelinePersistence()
 
         let agentId = UUID()
-        let source = Timeline(workingDirectory: workspace.root.path, attachedAgentInstanceId: agentId)
+        let source = Timeline(workingDirectory: workspace.root.path, attachedAgentInstanceID: agentId)
         try await timelineStore.saveTimeline(source)
         // Source already sits one hop deep.
         try await messageStore.saveMessage(ConversationMessage(
-            timelineId: source.id, role: .system, content: "inbound",
-            agentInstanceId: agentId, remoteDepth: 1
+            timelineID: source.id, role: .system, content: "inbound",
+            agentInstanceID: agentId, remoteDepth: 1
         ))
 
-        let destination = Timeline(workingDirectory: workspace.root.path, attachedAgentInstanceId: agentId)
+        let destination = Timeline(workingDirectory: workspace.root.path, attachedAgentInstanceID: agentId)
         try await timelineStore.saveTimeline(destination)
 
         let tool = try await sendTool(

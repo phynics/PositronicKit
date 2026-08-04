@@ -60,7 +60,7 @@ public enum PKPromptExamples {
 
     /// Applies a token budget and returns its structured sections-and-report result.
     public static func applyTokenBudget(to prompt: some Prompt) async throws -> TokenBudgetResult {
-        try await TokenBudget(maxTokens: 4_096).result(for: [prompt])
+        try await TokenBudget(maxTokens: 4_096).result(forPrompts: [prompt])
     }
 
     // MARK: - README "Choosing A Layer" examples

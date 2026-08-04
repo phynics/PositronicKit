@@ -52,8 +52,8 @@ public extension TimelineManager {
             throw TimelineError.unavailable
         }
 
-        if !timeline.attachedWorkspaceIds.contains(workspaceId) {
-            timeline.attachedWorkspaceIds.append(workspaceId)
+        if !timeline.attachedWorkspaceIDs.contains(workspaceId) {
+            timeline.attachedWorkspaceIDs.append(workspaceId)
         }
         timeline.updatedAt = Date()
 
@@ -104,7 +104,7 @@ public extension TimelineManager {
             }
         }
 
-        timeline.attachedWorkspaceIds.removeAll { $0 == workspaceId }
+        timeline.attachedWorkspaceIDs.removeAll { $0 == workspaceId }
         timeline.updatedAt = Date()
 
         if timelines[timeline.id] != nil { timelines[timeline.id] = timeline }
@@ -121,13 +121,13 @@ public extension TimelineManager {
         let attachedIds: [UUID]
 
         if let timeline = timelines[timelineId] {
-            attachedIds = timeline.attachedWorkspaceIds
+            attachedIds = timeline.attachedWorkspaceIDs
         } else {
             do {
                 guard let timeline = try await timelineStore.fetchTimeline(id: timelineId) else {
                     throw TimelineError.timelineNotFound
                 }
-                attachedIds = timeline.attachedWorkspaceIds
+                attachedIds = timeline.attachedWorkspaceIDs
             } catch let error as TimelineError {
                 throw error
             } catch {

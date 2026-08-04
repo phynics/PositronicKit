@@ -41,7 +41,7 @@ struct ChatRunRequestDescriptionTests {
     func includesTimelineAndRedactsMessage() {
         let timelineId = UUID()
         let request = ChatRunRequest(
-            timelineId: timelineId,
+            timelineID: timelineId,
             message: "Hello, world!",
             maxTurns: 3
         )
@@ -56,14 +56,14 @@ struct ChatRunRequestDescriptionTests {
     @Test("description reports nil for optional fields when omitted")
     func nilOptionalsReportedAsNil() {
         let request = ChatRunRequest(
-            timelineId: UUID(),
+            timelineID: UUID(),
             message: "ping"
         )
         let desc = request.description
 
-        #expect(desc.contains("sendId: nil"))
+        #expect(desc.contains("sendID: nil"))
         #expect(desc.contains("systemInstructions: nil"))
-        #expect(desc.contains("agentInstanceId: nil"))
+        #expect(desc.contains("agentInstanceID: nil"))
         #expect(desc.contains("generationParameters: nil"))
         #expect(desc.contains("structuredOutput: nil"))
         #expect(desc.contains("promptAssemblyLogger: nil"))
@@ -74,11 +74,11 @@ struct ChatRunRequestDescriptionTests {
         let sendId = UUID()
         let agentId = UUID()
         let request = ChatRunRequest(
-            timelineId: UUID(),
-            sendId: sendId,
+            timelineID: UUID(),
+            sendID: sendId,
             message: "hi",
             systemInstructions: "Be helpful.",
-            agentInstanceId: agentId,
+            agentInstanceID: agentId,
             maxTurns: 10
         )
         let desc = request.description
@@ -92,10 +92,10 @@ struct ChatRunRequestDescriptionTests {
     @Test("description counts tools and tool outputs")
     func countsToolsAndOutputs() {
         let request = ChatRunRequest(
-            timelineId: UUID(),
+            timelineID: UUID(),
             message: "run",
             toolOutputs: [
-                ToolOutputSubmission(toolCallId: "call_1", output: "result"),
+                ToolOutputSubmission(toolCallID: "call_1", output: "result"),
             ]
         )
         let desc = request.description

@@ -197,7 +197,7 @@ extension ChatEngine {
         let results = await context.outputs.sidecarResults
         guard !results.isEmpty else { return }
         continuation.yield(.sidecarsCompleted(SidecarCompletion(
-            identity: TurnIdentity(sendId: context.sendId, roundTrip: max(context.turnCount - 1, 0)),
+            identity: TurnIdentity(sendID: context.sendId, roundTrip: max(context.turnCount - 1, 0)),
             results: results
         )))
     }
@@ -357,7 +357,7 @@ private extension ChatEngine {
         // row (`TimelinePromptHistory.nextInspectionTurnIndex` fixes this; see YAK-16).
         let turnIndex = await context.promptHistory?.nextInspectionTurnIndex() ?? (context.turnCount - 1)
 
-        let turnIdentity = TurnIdentity(sendId: context.sendId, roundTrip: max(context.turnCount - 1, 0))
+        let turnIdentity = TurnIdentity(sendID: context.sendId, roundTrip: max(context.turnCount - 1, 0))
 
         await inspector.didComposePrompt(PromptInspection(
             identity: turnIdentity,

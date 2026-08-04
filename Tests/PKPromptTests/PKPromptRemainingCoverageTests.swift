@@ -229,7 +229,7 @@ struct PKPromptRemainingCoverageTests {
     func tokenBudgetApplyToPromptArray() async {
         let budget = TokenBudget(maxTokens: 10000, reserveForResponse: 0)
         let sections: [any Prompt] = [TextPrompt("hello", id: "t1")]
-        let result = try! await budget.result(for: sections).sections
+        let result = try! await budget.result(forPrompts: sections).sections
         #expect(result.count == 1)
     }
 
@@ -237,7 +237,7 @@ struct PKPromptRemainingCoverageTests {
     func tokenBudgetApplyWithReportUnderBudget() async {
         let budget = TokenBudget(maxTokens: 10000, reserveForResponse: 0)
         let section = PromptSectionHelper.makeTextSection(content: .text("hi"), role: .context)
-        let result = try! await budget.result(for: [section])
+        let result = try! await budget.result(forResolvedSections: [section])
         #expect(result.report == nil)
         #expect(result.sections.count == 1)
     }
@@ -253,7 +253,7 @@ struct PKPromptRemainingCoverageTests {
         await #expect(throws: PromptCompressionError.mandatorySectionOverflow(
             sectionID: section.id, estimatedTokens: section.estimatedTokens, availableTokens: 10
         )) {
-            try await budget.result(for: [section])
+            try await budget.result(forResolvedSections: [section])
         }
     }
 
@@ -265,7 +265,7 @@ struct PKPromptRemainingCoverageTests {
             role: .context,
             compression: .truncate(keeping: .head)
         )
-        let result = try! await budget.result(for: [section])
+        let result = try! await budget.result(forResolvedSections: [section])
         // Should produce a report with truncate action.
         #expect(result.report != nil)
     }
@@ -278,7 +278,7 @@ struct PKPromptRemainingCoverageTests {
             role: .context,
             compression: .drop
         )
-        let result = try! await budget.result(for: [section])
+        let result = try! await budget.result(forResolvedSections: [section])
         #expect(result.sections.count == 0)
         #expect(result.report?.nodeReports.first?.action == .drop)
     }
@@ -294,7 +294,7 @@ struct PKPromptRemainingCoverageTests {
             role: .context,
             compression: .summarize
         )
-        let result = try! await budget.result(for: [section], compressor: StubCompressor())
+        let result = try! await budget.result(forResolvedSections: [section], compressor: StubCompressor())
         // Should produce a summary.
         let report = try #require(result.report)
         #expect(report.nodeReports.first?.action == .summarize(targetTokens: 1, reason: .budgetReduction))
@@ -308,7 +308,7 @@ struct PKPromptRemainingCoverageTests {
             role: .context,
             compression: .summarize
         )
-        let result = try! await budget.result(for: [section])
+        let result = try! await budget.result(forResolvedSections: [section])
         #expect(result.sections.count == 0)
         #expect(result.report?.nodeReports.first?.fallbackReason == "missing_compressor")
     }
@@ -326,7 +326,7 @@ struct PKPromptRemainingCoverageTests {
             cachePolicy: .volatile, path: ["root", "section"],
             render: { _ in .text("") }
         )
-        let result = try! await budget.result(for: [section], compressor: StubCompressor())
+        let result = try! await budget.result(forResolvedSections: [section], compressor: StubCompressor())
         #expect(result.sections.count == 0)
         #expect(result.report?.nodeReports.first?.fallbackReason == "missing_content")
     }
@@ -342,7 +342,7 @@ struct PKPromptRemainingCoverageTests {
             role: .context,
             compression: .summarize
         )
-        let result = try! await budget.result(for: [section], compressor: StubCompressor())
+        let result = try! await budget.result(forResolvedSections: [section], compressor: StubCompressor())
         #expect(result.sections.count == 0)
         #expect(result.report?.nodeReports.first?.fallbackReason == "summary_exceeds_budget")
     }
@@ -359,7 +359,7 @@ struct PKPromptRemainingCoverageTests {
             compression: .summarize
         )
         do {
-            _ = try await budget.result(for: [section], compressor: FailingCompressor())
+            _ = try await budget.result(forResolvedSections: [section], compressor: FailingCompressor())
             Issue.record("Expected the summarizer error to propagate")
         } catch let error as NSError {
             #expect(error.domain == "x")
@@ -380,7 +380,7 @@ struct PKPromptRemainingCoverageTests {
             role: .context,
             compression: .summarize
         )
-        let result = try! await budget.result(for: [section], compressor: EmptyCompressor())
+        let result = try! await budget.result(forResolvedSections: [section], compressor: EmptyCompressor())
         #expect(result.sections.count == 0)
         #expect(result.report?.nodeReports.first?.fallbackReason == "empty_summary")
     }
@@ -1016,7 +1016,7 @@ extension PKPromptRemainingCoverageTests {
     func tokenBudgetApplyWithReportPromptArray() async {
         let budget = TokenBudget(maxTokens: 10000, reserveForResponse: 0)
         let sections: [any Prompt] = [TextPrompt("hello", id: "t1")]
-        let result = try! await budget.result(for: sections)
+        let result = try! await budget.result(forPrompts: sections)
         #expect(result.sections.count == 1)
         #expect(result.report == nil)
     }

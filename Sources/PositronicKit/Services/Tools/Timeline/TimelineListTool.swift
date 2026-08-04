@@ -36,7 +36,7 @@ public struct TimelineListTool: PKShared.Tool, Sendable {
                 "id": timeline.id.uuidString,
                 "title": timeline.title
             ]
-            if let agentId = timeline.attachedAgentInstanceId {
+            if let agentId = timeline.attachedAgentInstanceID {
                 entry["attachedAgentId"] = agentId.uuidString
             }
             return entry

@@ -170,7 +170,7 @@ struct ProviderInitializationTests {
 
     @Test("Deprecated OpenAI factory forwards client construction and adapter registration")
     func deprecatedOpenAIFactoryForwards() {
-        let client = PKOpenAIProvider.makeClient(configuration: .fixture(apiKey: "test", activeProvider: .openAI))
+        let client = PKOpenAIProvider.makeClientAndRegisterStructuredOutputAdapter(configuration: .fixture(apiKey: "test", activeProvider: .openAI))
         #expect(client is OpenAIClient)
         #expect(StructuredOutputAdapterRegistry.adapter(for: .openAI) is NativeJSONSchemaStructuredOutputAdapter)
     }
@@ -255,7 +255,7 @@ struct ProviderInitializationTests {
 
     @Test("Deprecated Anthropic factory forwards client construction and adapter registration")
     func deprecatedAnthropicFactoryForwards() {
-        let client = PKAnthropicProvider.makeClient(configuration: .fixture(apiKey: "test", activeProvider: .anthropic))
+        let client = PKAnthropicProvider.makeClientAndRegisterStructuredOutputAdapter(configuration: .fixture(apiKey: "test", activeProvider: .anthropic))
         #expect(client is AnthropicClient)
         #expect(StructuredOutputAdapterRegistry.adapter(for: .anthropic) is DefaultStructuredOutputAdapter)
     }
@@ -324,7 +324,7 @@ struct ProviderInitializationTests {
 
     @Test("Deprecated Ollama factory forwards client construction and adapter registration")
     func deprecatedOllamaFactoryForwards() {
-        let client = PKOllamaProvider.makeClient(configuration: .fixture(activeProvider: .ollama))
+        let client = PKOllamaProvider.makeClientAndRegisterStructuredOutputAdapter(configuration: .fixture(activeProvider: .ollama))
         #expect(client is OllamaClient)
         #expect(StructuredOutputAdapterRegistry.adapter(for: .ollama) is PromptAugmentedJSONSchemaAdapter)
     }
@@ -423,7 +423,7 @@ struct ProviderInitializationTests {
 
     @Test("Deprecated OpenRouter factory forwards client construction and adapter registration")
     func deprecatedOpenRouterFactoryForwards() {
-        let client = PKOpenRouterProvider.makeClient(configuration: .fixture(activeProvider: .openRouter))
+        let client = PKOpenRouterProvider.makeClientAndRegisterStructuredOutputAdapter(configuration: .fixture(activeProvider: .openRouter))
         #expect(client is OpenRouterClient)
         #expect(StructuredOutputAdapterRegistry.adapter(for: .openRouter) is NativeJSONSchemaStructuredOutputAdapter)
     }

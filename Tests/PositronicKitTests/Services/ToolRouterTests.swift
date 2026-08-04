@@ -141,7 +141,7 @@ final class ToolRouterTests {
             id: workspaceId,
             uri: #require(WorkspaceURI(parsing: "pk://local")),
             location: .runtime,
-            originId: nil
+            originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await timelineManager.attachWorkspace(workspaceId, to: session.id)
@@ -306,7 +306,7 @@ final class ToolRouterTests {
         // Setup session and local workspace
         let session = try await timelineManager.createTimeline()
         let workspaceId = UUID()
-        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://local")), location: .runtime, originId: nil)
+        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://local")), location: .runtime, originID: nil)
 
         // Mock persistence expects WorkspaceReference
         try await mockPersistence.saveWorkspace(workspaceRef)
@@ -345,7 +345,7 @@ final class ToolRouterTests {
         let workspaceId = UUID()
 
         // Setup attached workspace
-        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://remote")), location: .attached, originId: UUID())
+        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://remote")), location: .attached, originID: UUID())
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await timelineManager.attachWorkspace(workspaceId, to: session.id)
 
@@ -376,7 +376,7 @@ final class ToolRouterTests {
         let workspaceId = UUID()
 
         // Setup attached workspace missing an originId
-        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://remote")), location: .attached, originId: nil)
+        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://remote")), location: .attached, originID: nil)
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await timelineManager.attachWorkspace(workspaceId, to: session.id)
 
@@ -407,7 +407,7 @@ final class ToolRouterTests {
         // never had a folder attached and exercises only workspace-independent demo tools like
         // `calculator`/`current_datetime`.
         let session = try await timelineManager.createTimeline()
-        for attachedId in session.attachedWorkspaceIds {
+        for attachedId in session.attachedWorkspaceIDs {
             try await timelineManager.detachWorkspace(attachedId, from: session.id)
         }
         let workspaces = try await timelineManager.getWorkspaces(for: session.id)
@@ -537,7 +537,7 @@ final class ToolRouterTests {
             id: workspaceId,
             uri: #require(WorkspaceURI(parsing: "pk://local")),
             location: .runtime,
-            originId: nil
+            originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await timelineManager.attachWorkspace(workspaceId, to: session.id)
@@ -589,7 +589,7 @@ final class ToolRouterTests {
             id: workspaceId,
             uri: #require(WorkspaceURI(parsing: "pk://local")),
             location: .runtime,
-            originId: nil
+            originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await timelineManager.attachWorkspace(workspaceId, to: session.id)
@@ -649,7 +649,7 @@ struct ToolRouterWorkspaceResolutionTests {
             id: workspaceId,
             uri: #require(WorkspaceURI(parsing: "pk://local")),
             location: .runtime,
-            originId: nil
+            originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await timelineManager.attachWorkspace(workspaceId, to: session.id)
@@ -687,7 +687,7 @@ struct ToolRouterWorkspaceResolutionTests {
             id: workspaceId,
             uri: #require(WorkspaceURI(parsing: "pk://local")),
             location: .runtime,
-            originId: nil
+            originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await timelineManager.attachWorkspace(workspaceId, to: session.id)
@@ -725,7 +725,7 @@ struct ToolRouterWorkspaceResolutionTests {
             id: workspaceId,
             uri: #require(WorkspaceURI(parsing: "pk://local")),
             location: .runtime,
-            originId: nil
+            originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await timelineManager.attachWorkspace(workspaceId, to: session.id)
@@ -765,7 +765,7 @@ struct ToolRouterWorkspaceResolutionTests {
             id: attachedWorkspaceId,
             uri: #require(WorkspaceURI(parsing: "pk://remote")),
             location: .attached,
-            originId: UUID()
+            originID: UUID()
         )
         try await mockPersistence.saveWorkspace(attachedWorkspaceRef)
         try await timelineManager.attachWorkspace(attachedWorkspaceId, to: session.id)
@@ -809,7 +809,7 @@ struct ToolRouterWorkspaceResolutionTests {
             id: attachedWorkspaceId,
             uri: #require(WorkspaceURI(parsing: "pk://remote")),
             location: .attached,
-            originId: UUID()
+            originID: UUID()
         )
         try await mockPersistence.saveWorkspace(attachedWorkspaceRef)
         try await timelineManager.attachWorkspace(attachedWorkspaceId, to: session.id)
@@ -848,7 +848,7 @@ struct ToolRouterWorkspaceResolutionTests {
 
         let session = try await timelineManager.createTimeline()
         // Detach all workspaces to simulate "no workspaces at all."
-        for attachedId in session.attachedWorkspaceIds {
+        for attachedId in session.attachedWorkspaceIDs {
             try await timelineManager.detachWorkspace(attachedId, from: session.id)
         }
         let workspaces = try await timelineManager.getWorkspaces(for: session.id)
@@ -987,7 +987,7 @@ struct ToolTurnProjectionTests {
             id: workspaceId,
             uri: #require(WorkspaceURI(parsing: "pk://local")),
             location: .runtime,
-            originId: nil
+            originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await timelineManager.attachWorkspace(workspaceId, to: session.id)
@@ -1036,7 +1036,7 @@ struct ToolTurnProjectionTests {
             id: workspaceId,
             uri: #require(WorkspaceURI(parsing: "pk://local")),
             location: .runtime,
-            originId: nil
+            originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await timelineManager.attachWorkspace(workspaceId, to: session.id)
@@ -1085,7 +1085,7 @@ struct ToolTurnProjectionTests {
             id: workspaceId,
             uri: #require(WorkspaceURI(parsing: "pk://local")),
             location: .runtime,
-            originId: nil
+            originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await timelineManager.attachWorkspace(workspaceId, to: session.id)
@@ -1189,7 +1189,7 @@ struct ToolDurabilityOrderingTests {
             id: workspaceId,
             uri: #require(WorkspaceURI(parsing: "pk://local")),
             location: .runtime,
-            originId: nil
+            originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await timelineManager.attachWorkspace(workspaceId, to: session.id)
@@ -1225,7 +1225,7 @@ struct ToolDurabilityOrderingTests {
         // Persistence was attempted (the store received the message before throwing).
         #expect(failingStore.attemptedMessages.count == 1)
         #expect(failingStore.attemptedMessages.first?.content == "done")
-        #expect(failingStore.attemptedMessages.first?.toolCallId == "call-1")
+        #expect(failingStore.attemptedMessages.first?.toolCallID == "call-1")
 
         // The stream must NOT contain a terminal .success event — persistence failed, so
         // success was never emitted.
@@ -1272,7 +1272,7 @@ struct ToolDurabilityOrderingTests {
         // Persistence was attempted.
         #expect(failingStore.attemptedMessages.count == 1)
         #expect(failingStore.attemptedMessages.first?.content.contains("Error:") == true)
-        #expect(failingStore.attemptedMessages.first?.toolCallId == "call-2")
+        #expect(failingStore.attemptedMessages.first?.toolCallID == "call-2")
 
         // The stream must NOT contain a terminal .failed event.
         #expect(!events.contains(where: {
@@ -1309,7 +1309,7 @@ struct ToolDurabilityOrderingTests {
             id: workspaceId,
             uri: #require(WorkspaceURI(parsing: "pk://local")),
             location: .runtime,
-            originId: nil
+            originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await timelineManager.attachWorkspace(workspaceId, to: session.id)
@@ -1373,7 +1373,7 @@ struct ToolDurabilityOrderingTests {
             id: workspaceId,
             uri: #require(WorkspaceURI(parsing: "pk://local")),
             location: .runtime,
-            originId: nil
+            originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await timelineManager.attachWorkspace(workspaceId, to: session.id)

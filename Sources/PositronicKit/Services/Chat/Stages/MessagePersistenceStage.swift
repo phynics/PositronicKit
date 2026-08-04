@@ -152,7 +152,7 @@ struct MessagePersistenceStage: PipelineStage {
             } catch {
                 logger.warning(
                     "Persisting malformed tool call with empty arguments",
-                    metadata: LoggingMetadata.forError(error, correlationID: redactedHash(value.callId))
+                    metadata: LoggingMetadata.makeMetadata(for: error, correlationID: redactedHash(value.callId))
                 )
                 args = [:]
             }
@@ -275,21 +275,21 @@ private enum DiagnosticSnapshotEncoder {
 
         return TurnSnapshot(
             timestamp: snapshot.timestamp,
-            timelineId: snapshot.timelineId,
-            agentInstanceId: snapshot.agentInstanceId,
+            timelineID: snapshot.timelineID,
+            agentInstanceID: snapshot.agentInstanceID,
             modelName: clean(snapshot.modelName),
             turnCount: snapshot.turnCount,
             maxTurns: snapshot.maxTurns,
             systemInstructions: snapshot.systemInstructions.map(clean),
             contextSnapshot: context,
-            availableToolIds: snapshot.availableToolIds.map(clean),
+            availableToolIDs: snapshot.availableToolIDs.map(clean),
             fullResponse: clean(snapshot.fullResponse),
             fullThinking: clean(snapshot.fullThinking),
             toolCalls: snapshot.toolCalls.map {
                 .init(name: clean($0.name), arguments: clean($0.arguments), turn: $0.turn)
             },
             toolResults: snapshot.toolResults.map {
-                .init(toolCallId: clean($0.toolCallId), name: clean($0.name), output: clean($0.output), turn: $0.turn)
+                .init(toolCallID: clean($0.toolCallID), name: clean($0.name), output: clean($0.output), turn: $0.turn)
             },
             turnDuration: snapshot.turnDuration,
             tokensPerSecond: snapshot.tokensPerSecond,

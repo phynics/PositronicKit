@@ -14,7 +14,7 @@ struct HydrationFailurePropagationTests {
     func runThrowsForMissingTimeline() async throws {
         let mockLLM = MockLLMService()
         let kit = PositronicKit(configuration: .init(
-            provider: .init(llmService: mockLLM),
+            provider: .init(languageModel: mockLLM),
             persistence: .inMemory()
         ))
 
@@ -22,7 +22,7 @@ struct HydrationFailurePropagationTests {
 
         await #expect(throws: TimelineError.timelineNotFound) {
             _ = try await kit.run(ChatRunRequest(
-                timelineId: unresolvedTimelineId,
+                timelineID: unresolvedTimelineId,
                 message: "should not reach the engine"
             ))
         }
@@ -33,7 +33,7 @@ struct HydrationFailurePropagationTests {
         let failingTimelinePersistence = FailingTimelinePersistence(fetchFails: true)
         let mockLLM = MockLLMService()
         let kit = PositronicKit(configuration: .init(
-            provider: .init(llmService: mockLLM),
+            provider: .init(languageModel: mockLLM),
             persistence: .init(timelinePersistence: failingTimelinePersistence)
         ))
 
@@ -41,7 +41,7 @@ struct HydrationFailurePropagationTests {
 
         await #expect(throws: TimelineError.unavailable) {
             _ = try await kit.run(ChatRunRequest(
-                timelineId: unresolvedTimelineId,
+                timelineID: unresolvedTimelineId,
                 message: "should not reach the engine"
             ))
         }

@@ -77,7 +77,7 @@ import PositronicKit
             applicationURL: String? = nil,
             applicationTitle: String? = nil
         ) -> LLMConfiguration {
-            var providerConfig = ProviderConfiguration.defaultFor(activeProvider)
+            var providerConfig = ProviderConfiguration.makeDefault(for: activeProvider)
             if let endpoint { providerConfig.endpoint = endpoint }
             if let modelName { providerConfig.modelName = modelName }
             if let utilityModel { providerConfig.utilityModel = utilityModel }

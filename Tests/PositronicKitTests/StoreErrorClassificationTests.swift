@@ -206,7 +206,7 @@ struct StoreErrorClassificationTests {
                "The failing workspace should not appear in the result")
         #expect(result.degradations.contains { deg in
             deg.operation == "getWorkspaces.fetchWorkspace"
-                && deg.entityId.contains(attachedWS.id.uuidString.prefix(8))
+                && deg.entityID.contains(attachedWS.id.uuidString.prefix(8))
         }, "A degradation should be recorded for the failed workspace fetch")
         #expect(failingWorkspaceStore.fetchAttemptCount >= 1)
     }
@@ -364,12 +364,12 @@ struct StoreErrorClassificationTests {
         func initCapturesFields() {
             let degradation = StoreDegradation(
                 operation: "getWorkspaces.fetchWorkspace",
-                entityId: "workspace:abc12345",
+                entityID: "workspace:abc12345",
                 error: FailingStoreError.fetchFailed
             )
 
             #expect(degradation.operation == "getWorkspaces.fetchWorkspace")
-            #expect(degradation.entityId == "workspace:abc12345")
+            #expect(degradation.entityID == "workspace:abc12345")
             // FailingStoreError does not conform to PKError, so identity is nil.
             #expect(degradation.errorIdentity == nil)
             #expect(!degradation.message.isEmpty)
@@ -380,7 +380,7 @@ struct StoreErrorClassificationTests {
             let error = TimelineError.unavailable
             let degradation = StoreDegradation(
                 operation: "test",
-                entityId: "timeline:abc",
+                entityID: "timeline:abc",
                 error: error
             )
 

@@ -42,7 +42,7 @@ struct DependencySafetyTests {
     @Test("PositronicKit facade's TimelineManager shares the memoryStore passed via persistence")
     func facadeTimelineManagerSharesMemoryStore() async {
         let mockPersistence = MockPersistenceService()
-        let chat = PositronicKit(configuration: .init(provider: .init(llmService: MockLLMService()), persistence: .init(
+        let chat = PositronicKit(configuration: .init(provider: .init(languageModel: MockLLMService()), persistence: .init(
                 messageStore: mockPersistence,
                 timelinePersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
@@ -74,7 +74,7 @@ struct DependencySafetyTests {
         )
 
         let instance = try await manager.createInstance(name: "Test", description: "Test")
-        if let workspaceId = instance.primaryWorkspaceId,
+        if let workspaceId = instance.primaryWorkspaceID,
            let workspace = try await persistence.fetchWorkspace(id: workspaceId, includeTools: false)
         {
             #expect(workspace.rootPath?.contains(tempDir.path) ?? false)

@@ -50,7 +50,7 @@ struct ChatEngineTests {
         try await mockPersistence.saveTimeline(session)
 
         let wsId = UUID()
-        let workspaceRef = WorkspaceReference(id: wsId, uri: WorkspaceURI(parsing: "pk://local")!, location: .runtimeTimeline, originId: nil, rootPath: "/tmp")
+        let workspaceRef = WorkspaceReference(id: wsId, uri: WorkspaceURI(parsing: "pk://local")!, location: .runtimeTimeline, originID: nil, rootPath: "/tmp")
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await timelineManager.attachWorkspace(wsId, to: timelineId)
         try await mockPersistence.addToolToWorkspace(workspaceId: wsId, tool: .known("mock_tool"))
@@ -62,7 +62,7 @@ struct ChatEngineTests {
             tools.append(MockTool().toAnyTool())
             await toolManager.updateAvailableTools(tools)
 
-            if let ws = try? await timelineManager.workspaceResolver.getWorkspace(id: wsId) {
+            if let ws = try? await timelineManager.workspaceResolver.workspace(id: wsId) {
                 await toolManager.registerWorkspace(ws)
             }
         }
@@ -831,7 +831,7 @@ struct ChatEngineTests {
                     timelineId: timelineId,
                     message: "Next question",
                     tools: [],
-                    toolOutputs: [ToolOutputSubmission(toolCallId: "forged_call", output: "tool result")]
+                    toolOutputs: [ToolOutputSubmission(toolCallID: "forged_call", output: "tool result")]
                 )
             }
 
@@ -844,7 +844,7 @@ struct ChatEngineTests {
     func duplicateToolOutputSubmissionsAreRejected() async throws {
         try await withChatEngineDependencies { engine, _, mockPersistence in
             try await mockPersistence.saveMessage(ConversationMessage(
-                timelineId: timelineId,
+                timelineID: timelineId,
                 role: .assistant,
                 content: "",
                 toolCalls: pendingToolCallsJSON(ids: ["call_1"])
@@ -856,8 +856,8 @@ struct ChatEngineTests {
                     message: "",
                     tools: [],
                     toolOutputs: [
-                        ToolOutputSubmission(toolCallId: "call_1", output: "first"),
-                        ToolOutputSubmission(toolCallId: "call_1", output: "duplicate"),
+                        ToolOutputSubmission(toolCallID: "call_1", output: "first"),
+                        ToolOutputSubmission(toolCallID: "call_1", output: "duplicate"),
                     ]
                 )
             }
@@ -871,7 +871,7 @@ struct ChatEngineTests {
     func concurrentToolOutputSubmissionsConsumePendingCallOnce() async throws {
         try await withChatEngineDependencies { engine, mockLLM, mockPersistence in
             try await mockPersistence.saveMessage(ConversationMessage(
-                timelineId: timelineId,
+                timelineID: timelineId,
                 role: .assistant,
                 content: "",
                 toolCalls: pendingToolCallsJSON(ids: ["call_race"])
@@ -888,7 +888,7 @@ struct ChatEngineTests {
                                 tools: [],
                                 toolOutputs: [
                                     ToolOutputSubmission(
-                                        toolCallId: "call_race",
+                                        toolCallID: "call_race",
                                         output: "tool result \(index)"
                                     ),
                                 ]
@@ -913,7 +913,7 @@ struct ChatEngineTests {
 
             #expect(results.filter(\.self).count == 1)
             let messages = try await mockPersistence.fetchMessages(for: timelineId)
-            let toolMessages = messages.filter { $0.role == "tool" && $0.toolCallId == "call_race" }
+            let toolMessages = messages.filter { $0.role == "tool" && $0.toolCallID == "call_race" }
             #expect(toolMessages.count == 1)
         }
     }
@@ -922,14 +922,14 @@ struct ChatEngineTests {
     func staleDanglingAssistantToolCallsAreRejected() async throws {
         try await withChatEngineDependencies { engine, _, mockPersistence in
             try await mockPersistence.saveMessage(ConversationMessage(
-                timelineId: timelineId,
+                timelineID: timelineId,
                 role: .assistant,
                 content: "",
                 timestamp: Date(timeIntervalSince1970: 100),
                 toolCalls: pendingToolCallsJSON(ids: ["stale_call"])
             ))
             try await mockPersistence.saveMessage(ConversationMessage(
-                timelineId: timelineId,
+                timelineID: timelineId,
                 role: .user,
                 content: "later user message",
                 timestamp: Date(timeIntervalSince1970: 200)
@@ -940,7 +940,7 @@ struct ChatEngineTests {
                     timelineId: timelineId,
                     message: "",
                     tools: [],
-                    toolOutputs: [ToolOutputSubmission(toolCallId: "stale_call", output: "stale result")]
+                    toolOutputs: [ToolOutputSubmission(toolCallID: "stale_call", output: "stale result")]
                 )
             }
 
@@ -953,7 +953,7 @@ struct ChatEngineTests {
     func danglingAssistantToolCallFailsBeforeProviderRequest() async throws {
         try await withChatEngineDependencies { engine, mockLLM, mockPersistence in
             try await mockPersistence.saveMessage(ConversationMessage(
-                timelineId: timelineId,
+                timelineID: timelineId,
                 role: .assistant,
                 content: "",
                 toolCalls: pendingToolCallsJSON(ids: ["dangling_call"])
@@ -1017,7 +1017,7 @@ struct ChatEngineTests {
             id: wsId,
             uri: #require(WorkspaceURI(parsing: "pk://local")),
             location: .runtimeTimeline,
-            originId: nil,
+            originID: nil,
             rootPath: "/tmp"
         )
         try await persistence.saveWorkspace(workspaceRef)
@@ -1030,22 +1030,22 @@ struct ChatEngineTests {
             tools.append(MockTool().toAnyTool())
             await toolManager.updateAvailableTools(tools)
 
-            if let ws = try? await timelineManager.workspaceResolver.getWorkspace(id: wsId) {
+            if let ws = try? await timelineManager.workspaceResolver.workspace(id: wsId) {
                 await toolManager.registerWorkspace(ws)
             }
         }
 
         try await persistence.saveMessage(ConversationMessage(
-            timelineId: timelineId,
+            timelineID: timelineId,
             role: .assistant,
             content: "",
             toolCalls: pendingToolCallsJSON(ids: ["provider_call"])
         ))
         try await persistence.saveMessage(ConversationMessage(
-            timelineId: timelineId,
+            timelineID: timelineId,
             role: .tool,
             content: "Tool result",
-            toolCallId: "provider_call"
+            toolCallID: "provider_call"
         ))
 
         mockLLM.mockClient.nextResponse = "First reply"
@@ -1100,7 +1100,7 @@ struct ChatEngineTests {
     func matchedToolOutputsPersistedBeforeUserMessage() async throws {
         try await withChatEngineDependencies { engine, mockLLM, mockPersistence in
             try await mockPersistence.saveMessage(ConversationMessage(
-                timelineId: timelineId,
+                timelineID: timelineId,
                 role: .assistant,
                 content: "",
                 toolCalls: pendingToolCallsJSON(ids: ["prev_call"])
@@ -1111,7 +1111,7 @@ struct ChatEngineTests {
                 timelineId: timelineId,
                 message: "Next question",
                 tools: [],
-                toolOutputs: [ToolOutputSubmission(toolCallId: "prev_call", output: "tool result")]
+                toolOutputs: [ToolOutputSubmission(toolCallID: "prev_call", output: "tool result")]
             )
 
             _ = try await collect(stream)
@@ -1130,7 +1130,7 @@ struct ChatEngineTests {
     func emptyMessageWithToolOutputsIsValid() async throws {
         try await withChatEngineDependencies { engine, mockLLM, mockPersistence in
             try await mockPersistence.saveMessage(ConversationMessage(
-                timelineId: timelineId,
+                timelineID: timelineId,
                 role: .assistant,
                 content: "",
                 toolCalls: pendingToolCallsJSON(ids: ["c1"])
@@ -1141,13 +1141,13 @@ struct ChatEngineTests {
                 timelineId: timelineId,
                 message: "",
                 tools: [],
-                toolOutputs: [ToolOutputSubmission(toolCallId: "c1", output: "output")]
+                toolOutputs: [ToolOutputSubmission(toolCallID: "c1", output: "output")]
             )
 
             _ = try await collect(stream)
 
             let messages = try await mockPersistence.fetchMessages(for: timelineId)
-            #expect(messages.contains(where: { $0.role == "tool" && $0.toolCallId == "c1" }))
+            #expect(messages.contains(where: { $0.role == "tool" && $0.toolCallID == "c1" }))
             #expect(!messages.contains(where: { $0.role == "user" }))
         }
     }
@@ -1292,7 +1292,7 @@ struct ChatEngineTests {
                 id: agentId,
                 name: "Test Agent",
                 description: "Testing",
-                privateTimelineId: UUID()
+                privateTimelineID: UUID()
             )
             try await mockPersistence.saveAgentInstance(agentInstance)
             mockLLM.mockClient.nextResponse = "Agent reply"
@@ -1308,7 +1308,7 @@ struct ChatEngineTests {
 
             let messages = try await mockPersistence.fetchMessages(for: timelineId)
             let assistantMsg = messages.first { $0.role == "assistant" }
-            #expect(assistantMsg?.agentInstanceId == agentId)
+            #expect(assistantMsg?.agentInstanceID == agentId)
         }
     }
 

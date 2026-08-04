@@ -48,7 +48,7 @@ package enum RuntimeToolPolicyFactory {
         }
 
         // Timeline Send: only available when an agent is attached (needs sender identity)
-        if runtimeToolPolicy.installTimelineSendTool, let agentId = timeline.attachedAgentInstanceId {
+        if runtimeToolPolicy.installTimelineSendTool, let agentId = timeline.attachedAgentInstanceID {
             availableTools.append(AnyTool(TimelineSendTool(
                 messageStore: messageStore,
                 timelineStore: timelineStore,

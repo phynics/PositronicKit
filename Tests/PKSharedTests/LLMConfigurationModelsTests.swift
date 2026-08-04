@@ -123,7 +123,7 @@ final class LLMConfigurationModelsTests {
         // activeProviderConfiguration falls back to that provider's defaults when `providers`
         // has no entry for it.
         let sparse = LLMConfiguration(activeProvider: .anthropic, providers: [:])
-        #expect(sparse.activeProviderConfiguration.modelName == ProviderConfiguration.defaultFor(.anthropic).modelName)
+        #expect(sparse.activeProviderConfiguration.modelName == ProviderConfiguration.makeDefault(for: .anthropic).modelName)
         #expect(sparse.activeProviderConfiguration.topP == nil)
     }
 

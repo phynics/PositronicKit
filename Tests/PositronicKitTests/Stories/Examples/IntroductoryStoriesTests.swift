@@ -105,7 +105,7 @@ struct IntroductoryStoriesTests {
         await toolManager?.updateAvailableTools([tool])
 
         let events = try await runtime.run(ChatRunRequest(
-            timelineId: timeline.id,
+            timelineID: timeline.id,
             message: "Greet Taylor using the available tool.",
             tools: [tool]
         )).collect()

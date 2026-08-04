@@ -123,7 +123,7 @@ struct ExampleUsageStoriesTests {
         _ = production
 
         #expect(toolOutputs.count == 1)
-        #expect(toolOutputs[0].toolCallId == "call_123")
+        #expect(toolOutputs[0].toolCallID == "call_123")
         #expect(toolOutputs[0].output == "File contents...")
     }
 

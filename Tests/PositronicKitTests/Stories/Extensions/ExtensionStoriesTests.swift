@@ -17,7 +17,7 @@ import Testing
         mockLLM.mockClient.nextResponse = "Saw extension section"
 
         _ = try await chat.run(ChatRunRequest(
-            timelineId: timelineId,
+            timelineID: timelineId,
             message: "Use extension prompt"
         )).collect()
 
@@ -34,7 +34,7 @@ import Testing
         mockLLM.mockClient.nextResponses = ["First reply", "Second reply"]
 
         let events = try await chat.run(ChatRunRequest(
-            timelineId: timelineId,
+            timelineID: timelineId,
             message: "Start plugin flow"
         )).collect()
 
@@ -77,7 +77,7 @@ import Testing
         mockLLM.mockClient.nextResponses = ["", "Workspace tool completed"]
 
         let events = try await chat.run(ChatRunRequest(
-            timelineId: timelineId,
+            timelineID: timelineId,
             message: "Use the attached workspace tool"
         )).collect()
 
@@ -103,7 +103,7 @@ import Testing
         mockLLM.mockClient.nextResponses = ["", "Custom tool completed"]
 
         let events = try await chat.run(ChatRunRequest(
-            timelineId: timelineId,
+            timelineID: timelineId,
             message: "Run the custom tool",
             tools: [tool.toAnyTool()]
         )).collect()
@@ -127,7 +127,7 @@ import Testing
         let mockPersistence = MockPersistenceService()
         let workspace = TestWorkspace()
 
-        let chat = PositronicKit(configuration: .init(provider: .init(llmService: mockLLM), persistence: .init(
+        let chat = PositronicKit(configuration: .init(provider: .init(languageModel: mockLLM), persistence: .init(
                 messageStore: mockPersistence,
                 timelinePersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
@@ -150,7 +150,7 @@ import Testing
                 id: workspaceId,
                 uri: WorkspaceURI(parsing: "pk://local")!,
                 location: .runtimeTimeline,
-                originId: nil,
+                originID: nil,
                 rootPath: workspace.root.path
             )
             try await mockPersistence.saveWorkspace(workspaceRef)
