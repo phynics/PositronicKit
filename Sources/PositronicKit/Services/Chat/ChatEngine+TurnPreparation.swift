@@ -257,7 +257,7 @@ extension ChatEngine {
                     cacheHits: report.nodeReports.filter { $0.cacheHit }.count,
                     nodeMetrics: report.nodeReports.map {
                         StructuredCompressionNodeMetric(
-                            nodeId: $0.nodeId,
+                            nodeId: $0.nodeID,
                             path: $0.path,
                             action: String(describing: $0.action),
                             beforeTokens: $0.beforeTokens,

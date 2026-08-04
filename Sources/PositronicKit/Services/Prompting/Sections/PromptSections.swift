@@ -139,7 +139,7 @@ public struct ContextNotes: Prompt {
         TextPrompt(
             id: "context_notes",
             priority: 90,
-            compression: .truncate(tail: true),
+            compression: .truncate(keeping: .head),
             cachePolicy: .volatile,
             estimatedTokens: TokenEstimator.estimate(parts: notes.map(\.content)),
             render: renderContent

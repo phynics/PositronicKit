@@ -141,7 +141,7 @@ struct AvailableTool: Sendable {
 func render(tools: [AvailableTool], query: String) async throws -> RenderedPrompt {
     try await AnyPrompt.build {
         SystemPrompt("You are a helpful coding assistant.")
-        ForEach(data: tools) { tool in
+        ForEach(tools) { tool in
             TextPrompt(tool.summary, id: "tool-\(tool.id)")
                 .cachePolicy(.semiStable)
         }

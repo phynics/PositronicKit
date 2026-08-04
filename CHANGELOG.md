@@ -28,6 +28,12 @@ for tagged releases beginning with `1.0.0`.
 
 ### Changed
 
+- **Fluent PKPrompt APIs (PKAPI-002)**: added explicit truncation retention, journal reset,
+  `ForEach`, token-budget result, and `nodeID` APIs. Existing Boolean truncation payloads and
+  encoded enum representations remain compatible; legacy reset, loop, token-budget, and
+  `nodeId` entry points forward to the canonical forms, and compression reports continue to
+  encode the `"nodeId"` key.
+
 - **Split turn-preparation file (PKCR-008)**: The private `TurnIdempotencyGate`
   and `ExternalToolOutputSubmissionGate` actors (plus the `ReservedToolOutput`
   struct) have been extracted from `ChatEngine+TurnPreparation.swift` into their

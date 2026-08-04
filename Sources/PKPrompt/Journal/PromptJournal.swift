@@ -144,6 +144,18 @@ public struct PromptJournal: Sendable {
         )
     }
 
+    /// Clears the current observation and append pressure while retaining the committed base.
+    public mutating func resetKeepingCommittedState() {
+        latestObservedSections = []
+        pressure.reset()
+    }
+
+    /// Clears the current observation, append pressure, and committed base.
+    public mutating func resetDiscardingCommittedState() {
+        resetKeepingCommittedState()
+        committedBaseSections = []
+    }
+
     /// Clears the current observation state.
     ///
     /// - Parameter hard: Defaults to `false`, which clears only the in-flight observation
@@ -153,11 +165,12 @@ public struct PromptJournal: Sendable {
     ///   completely empty journal, as if newly initialized. Use `reset(hard: true)` when you want
     ///   to forget the journal's prior state entirely (e.g. starting a new conversation) — not for
     ///   routine per-turn cleanup, which should use the default `false`.
+    @available(*, deprecated, message: "Use resetKeepingCommittedState() or resetDiscardingCommittedState().")
     public mutating func reset(hard: Bool = false) {
-        latestObservedSections = []
-        pressure.reset()
         if hard {
-            committedBaseSections = []
+            resetDiscardingCommittedState()
+        } else {
+            resetKeepingCommittedState()
         }
     }
 

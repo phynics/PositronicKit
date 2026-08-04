@@ -98,6 +98,27 @@ public struct TokenBudget: Sendable {
         self.reserveForResponse = outputReserve
     }
 
+    /// Applies this budget to prompt values and returns the verified structured result.
+    public func result(
+        for sections: [any Prompt],
+        compressor: SectionCompressor? = nil,
+        structuredDiff: StructuredDiffHint? = nil,
+        nodeMetadata: [String: StructuredNodeMetadata] = [:],
+        planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
+        executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
+    ) async throws -> TokenBudgetResult {
+        try await result(
+            for: sections.flatMap { $0.resolveSections() },
+            compressor: compressor,
+            structuredDiff: structuredDiff,
+            nodeMetadata: nodeMetadata,
+            planner: planner,
+            executor: executor
+        )
+    }
+
+    /// Applies this budget to prompt values and returns only the resulting sections.
+    @available(*, deprecated, message: "Use result(for:compressor:structuredDiff:nodeMetadata:planner:executor:).sections.")
     public func apply(
         to sections: [any Prompt],
         compressor: SectionCompressor? = nil,
@@ -116,6 +137,8 @@ public struct TokenBudget: Sendable {
         )
     }
 
+    /// Applies this budget to prompt values and returns the legacy tuple projection.
+    @available(*, deprecated, message: "Use result(for:compressor:structuredDiff:nodeMetadata:planner:executor:).")
     public func applyWithReport(
         to sections: [any Prompt],
         compressor: SectionCompressor? = nil,
@@ -135,6 +158,7 @@ public struct TokenBudget: Sendable {
     }
 
     /// Applies the budget to prompt fragments and returns a verified result.
+    @available(*, deprecated, renamed: "result(for:compressor:structuredDiff:nodeMetadata:planner:executor:)")
     public func budget(
         to sections: [any Prompt],
         compressor: SectionCompressor? = nil,
@@ -143,8 +167,8 @@ public struct TokenBudget: Sendable {
         planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
         executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
     ) async throws -> TokenBudgetResult {
-        try await budget(
-            to: sections.flatMap { $0.resolveSections() },
+        try await result(
+            for: sections.flatMap { $0.resolveSections() },
             compressor: compressor,
             structuredDiff: structuredDiff,
             nodeMetadata: nodeMetadata,
@@ -153,48 +177,9 @@ public struct TokenBudget: Sendable {
         )
     }
 
-    public func apply(
-        to sections: [PromptSection],
-        compressor: SectionCompressor? = nil,
-        structuredDiff: StructuredDiffHint? = nil,
-        nodeMetadata: [String: StructuredNodeMetadata] = [:],
-        planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
-        executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
-    ) async throws -> [PromptSection] {
-        let result = try await applyWithReport(
-            to: sections,
-            compressor: compressor,
-            structuredDiff: structuredDiff,
-            nodeMetadata: nodeMetadata,
-            planner: planner,
-            executor: executor
-        )
-        return result.sections
-    }
-
-    public func applyWithReport(
-        to sections: [PromptSection],
-        compressor: SectionCompressor? = nil,
-        structuredDiff: StructuredDiffHint? = nil,
-        nodeMetadata: [String: StructuredNodeMetadata] = [:],
-        planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
-        executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
-    ) async throws -> (sections: [PromptSection], report: CompressionReport?) {
-        let result = try await budget(
-            to: sections,
-            compressor: compressor,
-            structuredDiff: structuredDiff,
-            nodeMetadata: nodeMetadata,
-            planner: planner,
-            executor: executor
-        )
-        return (result.sections, result.report)
-    }
-
-    /// Applies the budget and returns a verified result whose estimated token count never
-    /// exceeds `availableTokens`.
-    public func budget(
-        to sections: [PromptSection],
+    /// Applies this budget to resolved sections and returns the verified structured result.
+    public func result(
+        for sections: [PromptSection],
         compressor: SectionCompressor? = nil,
         structuredDiff: StructuredDiffHint? = nil,
         nodeMetadata: [String: StructuredNodeMetadata] = [:],
@@ -235,9 +220,7 @@ public struct TokenBudget: Sendable {
         }
 
         // Structured compression runs only after the prompt is already known to be over budget,
-        // and only when callers provide a diff hint or precomputed node metadata. In the
-        // PromptAssembler code path, metadata is always supplied for budgeted prompts, so this
-        // becomes the first reduction pass rather than an uncommon optional branch.
+        // and only when callers provide a diff hint or precomputed node metadata.
         if structuredDiff != nil || !nodeMetadata.isEmpty {
             let plan = try makeStructuredPlan(
                 sections: sections,
@@ -282,6 +265,69 @@ public struct TokenBudget: Sendable {
             report: CompressionReport(nodeReports: reconstructed.reports),
             estimatedTokens: estimatedTokens,
             availableTokens: available
+        )
+    }
+
+    /// Applies this budget to resolved sections and returns only the resulting sections.
+    @available(*, deprecated, message: "Use result(for:compressor:structuredDiff:nodeMetadata:planner:executor:).sections.")
+    public func apply(
+        to sections: [PromptSection],
+        compressor: SectionCompressor? = nil,
+        structuredDiff: StructuredDiffHint? = nil,
+        nodeMetadata: [String: StructuredNodeMetadata] = [:],
+        planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
+        executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
+    ) async throws -> [PromptSection] {
+        let result = try await applyWithReport(
+            to: sections,
+            compressor: compressor,
+            structuredDiff: structuredDiff,
+            nodeMetadata: nodeMetadata,
+            planner: planner,
+            executor: executor
+        )
+        return result.sections
+    }
+
+    /// Applies this budget to resolved sections and returns the legacy tuple projection.
+    @available(*, deprecated, message: "Use result(for:compressor:structuredDiff:nodeMetadata:planner:executor:).")
+    public func applyWithReport(
+        to sections: [PromptSection],
+        compressor: SectionCompressor? = nil,
+        structuredDiff: StructuredDiffHint? = nil,
+        nodeMetadata: [String: StructuredNodeMetadata] = [:],
+        planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
+        executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
+    ) async throws -> (sections: [PromptSection], report: CompressionReport?) {
+        let result = try await result(
+            for: sections,
+            compressor: compressor,
+            structuredDiff: structuredDiff,
+            nodeMetadata: nodeMetadata,
+            planner: planner,
+            executor: executor
+        )
+        return (result.sections, result.report)
+    }
+
+    /// Applies the budget and returns a verified result whose estimated token count never
+    /// exceeds `availableTokens`.
+    @available(*, deprecated, renamed: "result(for:compressor:structuredDiff:nodeMetadata:planner:executor:)")
+    public func budget(
+        to sections: [PromptSection],
+        compressor: SectionCompressor? = nil,
+        structuredDiff: StructuredDiffHint? = nil,
+        nodeMetadata: [String: StructuredNodeMetadata] = [:],
+        planner: StructuredCompressionPlanner = StructuredCompressionPlanner(),
+        executor: StructuredCompressionExecutor = StructuredCompressionExecutor()
+    ) async throws -> TokenBudgetResult {
+        try await result(
+            for: sections,
+            compressor: compressor,
+            structuredDiff: structuredDiff,
+            nodeMetadata: nodeMetadata,
+            planner: planner,
+            executor: executor
         )
     }
 
@@ -440,7 +486,7 @@ public struct TokenBudget: Sendable {
         switch decision {
         case .keepOriginal:
             return CompressionNodeReport(
-                nodeId: section.id,
+                nodeID: section.id,
                 path: section.path,
                 action: .keep,
                 beforeTokens: section.estimatedTokens,
@@ -456,9 +502,9 @@ public struct TokenBudget: Sendable {
                 tail = true
             }
             return CompressionNodeReport(
-                nodeId: section.id,
+                nodeID: section.id,
                 path: section.path,
-                action: .truncate(limit: limit, tail: tail),
+                action: .truncate(limit: limit, keeping: tail ? .head : .tail),
                 beforeTokens: section.estimatedTokens,
                 afterTokens: min(section.estimatedTokens, limit),
                 cacheHit: false,
@@ -466,7 +512,7 @@ public struct TokenBudget: Sendable {
             )
         case let .replaceWithSummary(_, estimatedTokens):
             return CompressionNodeReport(
-                nodeId: section.id,
+                nodeID: section.id,
                 path: section.path,
                 action: .summarize(targetTokens: estimatedTokens, reason: .budgetReduction),
                 beforeTokens: section.estimatedTokens,
@@ -476,7 +522,7 @@ public struct TokenBudget: Sendable {
             )
         case let .drop(fallbackReason):
             return CompressionNodeReport(
-                nodeId: section.id,
+                nodeID: section.id,
                 path: section.path,
                 action: .drop,
                 beforeTokens: section.estimatedTokens,

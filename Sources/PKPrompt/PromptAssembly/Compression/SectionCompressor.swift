@@ -4,8 +4,11 @@ import Foundation
 /// ``SectionCompressor/summarize(request:)`` so an injected summarizer can use node
 /// identity/path context rather than just raw text.
 public struct SummaryRequest: Sendable, Equatable {
-    /// The id of the node being summarized.
-    public let nodeId: String
+    /// The ID of the node being summarized.
+    public let nodeID: String
+    /// The ID of the node being summarized.
+    @available(*, deprecated, renamed: "nodeID")
+    public var nodeId: String { nodeID }
     /// The node's structural path within the prompt tree.
     public let path: [String]
     /// The full text to summarize.
@@ -15,12 +18,19 @@ public struct SummaryRequest: Sendable, Equatable {
     /// Why this node is being summarized.
     public let reason: CompressionReason
 
-    public init(nodeId: String, path: [String], text: String, targetTokens: Int, reason: CompressionReason) {
-        self.nodeId = nodeId
+    /// Creates a node-aware summary request.
+    public init(nodeID: String, path: [String], text: String, targetTokens: Int, reason: CompressionReason) {
+        self.nodeID = nodeID
         self.path = path
         self.text = text
         self.targetTokens = targetTokens
         self.reason = reason
+    }
+
+    /// Creates a summary request using the legacy node identifier spelling.
+    @available(*, deprecated, message: "Use init(nodeID:path:text:targetTokens:reason:).")
+    public init(nodeId: String, path: [String], text: String, targetTokens: Int, reason: CompressionReason) {
+        self.init(nodeID: nodeId, path: path, text: text, targetTokens: targetTokens, reason: reason)
     }
 }
 

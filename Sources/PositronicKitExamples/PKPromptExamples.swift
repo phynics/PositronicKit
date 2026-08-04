@@ -44,7 +44,7 @@ public enum PKPromptExamples {
         AnyPrompt.build {
             SystemPrompt("You are helping with PositronicKit setup.")
 
-            ForEach(data: tools) { tool in
+            ForEach(tools) { tool in
                 TextPrompt(
                     tool.summary,
                     id: "tool-\(tool.id)",
@@ -56,6 +56,11 @@ public enum PKPromptExamples {
 
             UserPrompt(userQuery)
         }
+    }
+
+    /// Applies a token budget and returns its structured sections-and-report result.
+    public static func applyTokenBudget(to prompt: some Prompt) async throws -> TokenBudgetResult {
+        try await TokenBudget(maxTokens: 4_096).result(for: [prompt])
     }
 
     // MARK: - README "Choosing A Layer" examples

@@ -21,7 +21,7 @@ package struct HistoryPromptPrimitive: PromptPrimitive {
     }
 
     package var role: PromptSectionRole { .chatHistory }
-    package var compression: CompressionStrategy { .truncate(tail: false) }
+    package var compression: CompressionStrategy { .truncate(keeping: .tail) }
     package var type: PromptSectionType { .list }
 
     package var estimatedTokens: Int {

@@ -77,7 +77,7 @@ public enum PromptBuilder {
     /// section ids. No positional path disambiguation is added — callers are responsible
     /// for ensuring loop-generated sections have unique ids.
     public static func buildArray<Content: Prompt & Sendable>(_ components: [Content]) -> ForEach<Int, Content> {
-        ForEach(data: (0..<components.count).map { Int($0) }) {
+        ForEach((0..<components.count).map { Int($0) }) {
             components[$0]
         }
     }

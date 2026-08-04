@@ -8,7 +8,10 @@ import Foundation
 /// a requested strategy couldn't be applied.
 public struct CompressionNodeReport: Sendable, Equatable, Codable {
     /// Stable identifier of the source section/node.
-    public let nodeId: String
+    public let nodeID: String
+    /// Stable identifier of the source section/node.
+    @available(*, deprecated, renamed: "nodeID")
+    public var nodeId: String { nodeID }
     /// Stable path to the section in the composed prompt tree.
     public let path: [String]
     /// The compression action that was applied to this node.
@@ -24,13 +27,33 @@ public struct CompressionNodeReport: Sendable, Equatable, Codable {
 
     /// Create a node-level compression report.
     /// - Parameters:
-    ///   - nodeId: Stable identifier of the affected section.
+    ///   - nodeID: Stable identifier of the affected section.
     ///   - path: Stable path to the section in the composed prompt tree.
     ///   - action: The compression action that was applied.
     ///   - beforeTokens: Estimated tokens before compression.
     ///   - afterTokens: Estimated tokens after compression.
     ///   - cacheHit: Whether a cached result was used.
     ///   - fallbackReason: Reason for fallback when action couldn't be honored.
+    public init(
+        nodeID: String,
+        path: [String],
+        action: CompressionAction,
+        beforeTokens: Int,
+        afterTokens: Int,
+        cacheHit: Bool,
+        fallbackReason: String?
+    ) {
+        self.nodeID = nodeID
+        self.path = path
+        self.action = action
+        self.beforeTokens = beforeTokens
+        self.afterTokens = afterTokens
+        self.cacheHit = cacheHit
+        self.fallbackReason = fallbackReason
+    }
+
+    /// Creates a report using the legacy node identifier spelling.
+    @available(*, deprecated, message: "Use init(nodeID:path:action:beforeTokens:afterTokens:cacheHit:fallbackReason:).")
     public init(
         nodeId: String,
         path: [String],
@@ -40,13 +63,25 @@ public struct CompressionNodeReport: Sendable, Equatable, Codable {
         cacheHit: Bool,
         fallbackReason: String?
     ) {
-        self.nodeId = nodeId
-        self.path = path
-        self.action = action
-        self.beforeTokens = beforeTokens
-        self.afterTokens = afterTokens
-        self.cacheHit = cacheHit
-        self.fallbackReason = fallbackReason
+        self.init(
+            nodeID: nodeId,
+            path: path,
+            action: action,
+            beforeTokens: beforeTokens,
+            afterTokens: afterTokens,
+            cacheHit: cacheHit,
+            fallbackReason: fallbackReason
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case nodeID = "nodeId"
+        case path
+        case action
+        case beforeTokens
+        case afterTokens
+        case cacheHit
+        case fallbackReason
     }
 }
 

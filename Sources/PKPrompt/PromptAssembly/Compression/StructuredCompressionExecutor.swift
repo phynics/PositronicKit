@@ -37,11 +37,11 @@ public actor StructuredCompressionExecutor {
         guard duplicateIDs.isEmpty else {
             throw PromptCompressionError.duplicateSectionIDs(duplicateIDs)
         }
-        let duplicatePlanIDs = plan.nodeActions.duplicateIDs(idKeyPath: \.nodeId)
+        let duplicatePlanIDs = plan.nodeActions.duplicateIDs(idKeyPath: \.nodeID)
         guard duplicatePlanIDs.isEmpty else {
             throw PromptCompressionError.duplicatePlannedNodeIDs(duplicatePlanIDs)
         }
-        let actionById = Dictionary(uniqueKeysWithValues: plan.nodeActions.map { ($0.nodeId, $0) })
+        let actionById = Dictionary(uniqueKeysWithValues: plan.nodeActions.map { ($0.nodeID, $0) })
         let sectionsById = Dictionary(uniqueKeysWithValues: sections.map { ($0.id, $0) })
 
         // Process deeper nodes first so child transformations occur before parents.
@@ -55,11 +55,11 @@ public actor StructuredCompressionExecutor {
         var transformedSectionsById: [String: PromptSection] = [:]
 
         for planned in sortedPlanActions {
-            guard let section = sectionsById[planned.nodeId] else { continue }
+            guard let section = sectionsById[planned.nodeID] else { continue }
 
             let output = try await applyAction(planned, section: section, compressor: compressor)
-            transformedSectionsById[planned.nodeId] = output.section
-            reportsById[planned.nodeId] = output.report
+            transformedSectionsById[planned.nodeID] = output.section
+            reportsById[planned.nodeID] = output.report
         }
 
         // Reconstruct the final section list in original order, omitting any that were dropped.
@@ -82,7 +82,7 @@ public actor StructuredCompressionExecutor {
             } else if let planned = actionById[section.id] {
                 // Synthesize a no-op report for planned-but-unreported nodes
                 reports.append(makeReport(
-                    nodeId: planned.nodeId,
+                    nodeID: planned.nodeID,
                     path: planned.path,
                     action: planned.action,
                     before: planned.estimatedTokens,
@@ -112,7 +112,7 @@ public actor StructuredCompressionExecutor {
         switch planned.action {
         case .keep:
             let report = makeReport(
-                nodeId: planned.nodeId,
+                nodeID: planned.nodeID,
                 path: planned.path,
                 action: planned.action,
                 before: planned.estimatedTokens,
@@ -126,7 +126,7 @@ public actor StructuredCompressionExecutor {
         case let .truncate(limit, _):
             let limited = max(0, limit)
             let report = makeReport(
-                nodeId: planned.nodeId,
+                nodeID: planned.nodeID,
                 path: planned.path,
                 action: planned.action,
                 before: planned.estimatedTokens,
@@ -145,7 +145,7 @@ public actor StructuredCompressionExecutor {
                   !content.isEmpty
             else {
                 let report = makeReport(
-                    nodeId: planned.nodeId,
+                    nodeID: planned.nodeID,
                     path: planned.path,
                     action: .drop,
                     before: planned.estimatedTokens,
@@ -161,7 +161,7 @@ public actor StructuredCompressionExecutor {
 
             // Cache removed; always generate summary fresh. Preserve the compressor's error identity.
             let request = SummaryRequest(
-                nodeId: planned.nodeId,
+                nodeID: planned.nodeID,
                 path: planned.path,
                 text: content,
                 targetTokens: targetTokens,
@@ -170,7 +170,7 @@ public actor StructuredCompressionExecutor {
             let summary = try await compressor.summarize(request: request)
             guard !summary.isEmpty else {
                 let report = makeReport(
-                    nodeId: planned.nodeId,
+                    nodeID: planned.nodeID,
                     path: planned.path,
                     action: .drop,
                     before: planned.estimatedTokens,
@@ -186,7 +186,7 @@ public actor StructuredCompressionExecutor {
 
             let summaryTokens = TokenEstimator.estimate(text: summary)
             let report = makeReport(
-                nodeId: planned.nodeId,
+                nodeID: planned.nodeID,
                 path: planned.path,
                 action: planned.action,
                 before: planned.estimatedTokens,
@@ -199,7 +199,7 @@ public actor StructuredCompressionExecutor {
 
         case .drop:
             let report = makeReport(
-                nodeId: planned.nodeId,
+                nodeID: planned.nodeID,
                 path: planned.path,
                 action: .drop,
                 before: planned.estimatedTokens,
@@ -215,7 +215,7 @@ public actor StructuredCompressionExecutor {
 
     /// Build a `CompressionNodeReport` with common defaults.
     private func makeReport(
-        nodeId: String,
+        nodeID: String,
         path: [String],
         action: CompressionAction,
         before: Int,
@@ -224,7 +224,7 @@ public actor StructuredCompressionExecutor {
         fallback: String? = nil
     ) -> CompressionNodeReport {
         CompressionNodeReport(
-            nodeId: nodeId,
+            nodeID: nodeID,
             path: path,
             action: action,
             beforeTokens: before,

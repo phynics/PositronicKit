@@ -40,20 +40,33 @@ public enum CachePolicy: Sendable, Comparable, Codable {
     }
 }
 
+/// The end of truncated content that remains in the prompt.
+public enum TruncationRetention: Sendable, Equatable, Codable {
+    /// Retain content from the beginning and remove content from the end.
+    case head
+    /// Retain content from the end and remove content from the beginning.
+    case tail
+}
+
 /// How a section's rendered content should be constrained when it doesn't fit the
 /// available token budget. Applied both at primitive render-time (via
 /// `applyRenderConstraint`) and by the structured compression planner.
 public enum CompressionStrategy: Sendable, Equatable, Codable {
     /// Render the content in full regardless of the token budget.
     case keep
-    /// Truncate to fit; `tail` selects which end of the content is kept (`true` keeps the
-    /// head and appends a truncation marker, `false` keeps the tail and prepends one).
+    /// Truncate to fit; `tail` selects which end is removed (`true` keeps the head,
+    /// `false` keeps the tail).
     case truncate(tail: Bool)
     /// Replace the content with a compact summary produced out-of-band by an injected
     /// section compressor (not performed by the render-time constraint itself).
     case summarize
     /// Omit the section's content entirely when it doesn't fit.
     case drop
+
+    /// Creates a truncation strategy that explicitly states which end is retained.
+    public static func truncate(keeping retention: TruncationRetention) -> Self {
+        .truncate(tail: retention == .head)
+    }
 }
 
 /// The shape of a rendered prompt section's content.

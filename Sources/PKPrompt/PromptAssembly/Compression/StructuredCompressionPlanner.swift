@@ -27,7 +27,7 @@ public struct StructuredCompressionPlanner: Sendable {
                 totalEstimatedTokens: totalEstimated,
                 nodeActions: nodes.map {
                     PlannedNodeAction(
-                        nodeId: $0.id,
+                        nodeID: $0.id,
                         path: $0.path,
                         nodeHash: $0.nodeHash,
                         strategy: $0.strategy,
@@ -56,7 +56,7 @@ public struct StructuredCompressionPlanner: Sendable {
         for node in rankedNodes {
             let action = decideAction(for: node, remainingTokens: remaining, isStableNode: stableSet.contains(pathKey(node.path)))
             let planned = PlannedNodeAction(
-                nodeId: node.id,
+                nodeID: node.id,
                 path: node.path,
                 nodeHash: node.nodeHash,
                 strategy: node.strategy,
@@ -115,7 +115,7 @@ public struct StructuredCompressionPlanner: Sendable {
             return .keep
         case let .truncate(tail):
             guard remainingTokens > 0 else { return .drop }
-            return .truncate(limit: remainingTokens, tail: tail)
+            return .truncate(limit: remainingTokens, keeping: tail ? .head : .tail)
         case .summarize:
             guard remainingTokens > 0 else { return .drop }
             let target = max(1, min(remainingTokens, node.estimatedTokens / 3))

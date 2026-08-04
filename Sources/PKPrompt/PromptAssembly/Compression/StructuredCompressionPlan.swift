@@ -15,10 +15,15 @@ public enum CompressionAction: Sendable, Equatable, Codable {
     /// Replace the node's content with a summary of roughly `targetTokens` tokens, `reason`
     /// recording why the summary was needed.
     case summarize(targetTokens: Int, reason: CompressionReason)
-    /// Truncate the node's content to `limit` tokens; `tail` selects which end is kept.
+    /// Truncate the node's content to `limit` tokens; `tail` selects which end is removed.
     case truncate(limit: Int, tail: Bool)
     /// Drop the node's content entirely.
     case drop
+
+    /// Creates a truncation action that explicitly states which end is retained.
+    public static func truncate(limit: Int, keeping retention: TruncationRetention) -> Self {
+        .truncate(limit: limit, tail: retention == .head)
+    }
 }
 
 /// A candidate node the ``StructuredCompressionPlanner`` ranks and decides an action for.
@@ -59,8 +64,11 @@ public struct StructuredCompressionNode: Sendable, Equatable {
 /// The planner's decision for a single node, produced by `StructuredCompressionPlanner.plan(...)`
 /// and applied by `StructuredCompressionExecutor`.
 public struct PlannedNodeAction: Sendable, Equatable {
-    /// The id of the node this decision applies to.
-    public let nodeId: String
+    /// The ID of the node this decision applies to.
+    public let nodeID: String
+    /// The ID of the node this decision applies to.
+    @available(*, deprecated, renamed: "nodeID")
+    public var nodeId: String { nodeID }
     /// The node's structural path within the prompt tree.
     public let path: [String]
     /// Content fingerprint of the node at plan time.
@@ -74,6 +82,24 @@ public struct PlannedNodeAction: Sendable, Equatable {
     public let action: CompressionAction
 
     public init(
+        nodeID: String,
+        path: [String],
+        nodeHash: UInt64,
+        strategy: CompressionStrategy,
+        estimatedTokens: Int,
+        action: CompressionAction
+    ) {
+        self.nodeID = nodeID
+        self.path = path
+        self.nodeHash = nodeHash
+        self.strategy = strategy
+        self.estimatedTokens = estimatedTokens
+        self.action = action
+    }
+
+    /// Creates a planned action using the legacy node identifier spelling.
+    @available(*, deprecated, message: "Use init(nodeID:path:nodeHash:strategy:estimatedTokens:action:).")
+    public init(
         nodeId: String,
         path: [String],
         nodeHash: UInt64,
@@ -81,12 +107,14 @@ public struct PlannedNodeAction: Sendable, Equatable {
         estimatedTokens: Int,
         action: CompressionAction
     ) {
-        self.nodeId = nodeId
-        self.path = path
-        self.nodeHash = nodeHash
-        self.strategy = strategy
-        self.estimatedTokens = estimatedTokens
-        self.action = action
+        self.init(
+            nodeID: nodeId,
+            path: path,
+            nodeHash: nodeHash,
+            strategy: strategy,
+            estimatedTokens: estimatedTokens,
+            action: action
+        )
     }
 }
 
