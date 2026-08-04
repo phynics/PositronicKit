@@ -49,8 +49,8 @@ struct StructuredCompressionExecutorTests {
             availableTokens: 150,
             totalEstimatedTokens: 400,
             nodeActions: [
-                .init(nodeId: "s1", path: sections[0].path, nodeHash: 11, strategy: .summarize, estimatedTokens: 300, action: .summarize(targetTokens: 50, reason: .budgetReduction)),
-                .init(nodeId: "s2", path: sections[1].path, nodeHash: 22, strategy: .keep, estimatedTokens: 100, action: .keep),
+                .init(nodeID: "s1", path: sections[0].path, nodeHash: 11, strategy: .summarize, estimatedTokens: 300, action: .summarize(targetTokens: 50, reason: .budgetReduction)),
+                .init(nodeID: "s2", path: sections[1].path, nodeHash: 22, strategy: .keep, estimatedTokens: 100, action: .keep),
             ]
         )
 
@@ -72,7 +72,7 @@ struct StructuredCompressionExecutorTests {
             availableTokens: 50,
             totalEstimatedTokens: 300,
             nodeActions: [
-                .init(nodeId: "s1", path: sections[0].path, nodeHash: 100, strategy: .summarize, estimatedTokens: 300, action: .summarize(targetTokens: 20, reason: .budgetReduction)),
+                .init(nodeID: "s1", path: sections[0].path, nodeHash: 100, strategy: .summarize, estimatedTokens: 300, action: .summarize(targetTokens: 20, reason: .budgetReduction)),
             ]
         )
 
@@ -126,13 +126,13 @@ extension StructuredCompressionExecutorTests {
     @Test("Truncate action constrains the section to the token limit")
     func truncateAction() async {
         let sections = resolveExecutorSections([
-            ExecutorMockSection(id: "s1", priority: 1, estimatedTokens: 300, compression: .truncate(tail: false), renderedContent: "A long body of text"),
+            ExecutorMockSection(id: "s1", priority: 1, estimatedTokens: 300, compression: .truncate(keeping: .tail), renderedContent: "A long body of text"),
         ])
         let plan = StructuredCompressionPlan(
             availableTokens: 50,
             totalEstimatedTokens: 300,
             nodeActions: [
-                .init(nodeId: "s1", path: sections[0].path, nodeHash: 1, strategy: .truncate(tail: false), estimatedTokens: 300, action: .truncate(limit: 50, tail: false)),
+                .init(nodeID: "s1", path: sections[0].path, nodeHash: 1, strategy: .truncate(keeping: .tail), estimatedTokens: 300, action: .truncate(limit: 50, keeping: .tail)),
             ]
         )
 
@@ -140,7 +140,7 @@ extension StructuredCompressionExecutorTests {
         let result = try! await executor.execute(plan: plan, sections: sections, compressor: nil)
 
         #expect(result.sections.count == 1)
-        #expect(result.sections[0].compressionOutcome?.action == .truncate(limit: 50, tail: false))
+        #expect(result.sections[0].compressionOutcome?.action == .truncate(limit: 50, keeping: .tail))
         #expect(result.sections[0].compressionOutcome?.afterTokens == 50)
     }
 
@@ -154,8 +154,8 @@ extension StructuredCompressionExecutorTests {
             availableTokens: 100,
             totalEstimatedTokens: 400,
             nodeActions: [
-                .init(nodeId: "s1", path: sections[0].path, nodeHash: 1, strategy: .drop, estimatedTokens: 300, action: .drop),
-                .init(nodeId: "s2", path: sections[1].path, nodeHash: 2, strategy: .keep, estimatedTokens: 100, action: .keep),
+                .init(nodeID: "s1", path: sections[0].path, nodeHash: 1, strategy: .drop, estimatedTokens: 300, action: .drop),
+                .init(nodeID: "s2", path: sections[1].path, nodeHash: 2, strategy: .keep, estimatedTokens: 100, action: .keep),
             ]
         )
 
@@ -179,7 +179,7 @@ extension StructuredCompressionExecutorTests {
             availableTokens: 50,
             totalEstimatedTokens: 300,
             nodeActions: [
-                .init(nodeId: "s1", path: sections[0].path, nodeHash: 1, strategy: .summarize, estimatedTokens: 300, action: .summarize(targetTokens: 50, reason: .budgetReduction)),
+                .init(nodeID: "s1", path: sections[0].path, nodeHash: 1, strategy: .summarize, estimatedTokens: 300, action: .summarize(targetTokens: 50, reason: .budgetReduction)),
             ]
         )
 
@@ -201,7 +201,7 @@ extension StructuredCompressionExecutorTests {
             availableTokens: 50,
             totalEstimatedTokens: 300,
             nodeActions: [
-                .init(nodeId: "s1", path: sections[0].path, nodeHash: 1, strategy: .summarize, estimatedTokens: 300, action: .summarize(targetTokens: 50, reason: .budgetReduction)),
+                .init(nodeID: "s1", path: sections[0].path, nodeHash: 1, strategy: .summarize, estimatedTokens: 300, action: .summarize(targetTokens: 50, reason: .budgetReduction)),
             ]
         )
 
@@ -222,7 +222,7 @@ extension StructuredCompressionExecutorTests {
             availableTokens: 50,
             totalEstimatedTokens: 300,
             nodeActions: [
-                .init(nodeId: "s1", path: sections[0].path, nodeHash: 1, strategy: .summarize, estimatedTokens: 300, action: .summarize(targetTokens: 50, reason: .budgetReduction)),
+                .init(nodeID: "s1", path: sections[0].path, nodeHash: 1, strategy: .summarize, estimatedTokens: 300, action: .summarize(targetTokens: 50, reason: .budgetReduction)),
             ]
         )
 

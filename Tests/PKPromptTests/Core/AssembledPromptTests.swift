@@ -160,7 +160,7 @@ struct AssembledPromptTests {
     @Test("Rendered sections preserve compression outcome metadata")
     func renderedSectionsPreserveCompressionOutcome() async {
         let report = CompressionNodeReport(
-            nodeId: "s1",
+            nodeID: "s1",
             path: ["prompt", "s1"],
             action: .summarize(targetTokens: 10, reason: .budgetReduction),
             beforeTokens: 50,

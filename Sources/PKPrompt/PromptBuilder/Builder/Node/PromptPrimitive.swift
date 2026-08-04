@@ -54,8 +54,8 @@ public enum TruncationRetention: Sendable, Equatable, Codable {
 public enum CompressionStrategy: Sendable, Equatable, Codable {
     /// Render the content in full regardless of the token budget.
     case keep
-    /// Truncate to fit; `tail` selects which end is removed (`true` keeps the head,
-    /// `false` keeps the tail).
+    /// Legacy source-compatible truncation payload; `tail` selects which end is removed
+    /// (`true` keeps the head, `false` keeps the tail). Prefer ``truncate(keeping:)`` in new code.
     case truncate(tail: Bool)
     /// Replace the content with a compact summary produced out-of-band by an injected
     /// section compressor (not performed by the render-time constraint itself).

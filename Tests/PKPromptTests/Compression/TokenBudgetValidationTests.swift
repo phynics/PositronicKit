@@ -97,7 +97,7 @@ struct TokenBudgetValidationTests {
         let sections = resolve([
             MockPrimitiveSection(id: "ctx", priority: 1, estimatedTokens: 50_000, renderedContent: String(repeating: "x", count: 50_000)),
         ])
-    let result = try await budget.apply(to: sections)
+    let result = try await budget.result(for: sections).sections
         #expect(result.count == 1)
         #expect(result[0].estimatedTokens == 50_000)
     }

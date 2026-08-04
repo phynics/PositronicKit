@@ -52,7 +52,7 @@ struct PromptCoreTests {
     @Test("Truncate tail applies during constrained rendering")
     func truncateTailRendering() async {
         let resolved = TruncatablePromptPrimitive(
-            compression: .truncate(tail: true),
+            compression: .truncate(keeping: .head),
             text: "abcdefghijklmnop"
         ).makeSection()
 
@@ -63,7 +63,7 @@ struct PromptCoreTests {
     @Test("Truncate head applies during constrained rendering")
     func truncateHeadRendering() async {
         let resolved = TruncatablePromptPrimitive(
-            compression: .truncate(tail: false),
+            compression: .truncate(keeping: .tail),
             text: "abcdefghijklmnop"
         ).makeSection()
 
@@ -74,7 +74,7 @@ struct PromptCoreTests {
     @Test("Constrained rendering uses shared token estimator for CJK text")
     func constrainedRenderingUsesSharedEstimator() async {
         let resolved = TruncatablePromptPrimitive(
-            compression: .truncate(tail: true),
+            compression: .truncate(keeping: .head),
             text: "你好世界"
         ).makeSection()
 

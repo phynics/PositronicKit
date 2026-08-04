@@ -120,6 +120,30 @@ struct PKPromptAPIFluencyTests {
 
 @Suite("PKPrompt compatibility shims")
 struct PKPromptCompatibilityShimTests {
+    @Test("Legacy ForEach initializer forwards to the canonical element initializer")
+    func legacyForEachForwarding() {
+        let prompt = ForEach(data: ["one", "two"]) { element in
+            TextPrompt(element, id: element)
+        }
+
+        #expect(prompt.makePromptNode() != nil)
+    }
+
+    @Test("Legacy token-budget methods project the canonical result")
+    func legacyTokenBudgetForwarding() async throws {
+        let sections: [any Prompt] = [TextPrompt("hello", id: "greeting")]
+        let budget = TokenBudget(maxTokens: 20)
+
+        let applied = try await budget.apply(to: sections)
+        let reported = try await budget.applyWithReport(to: sections)
+        let budgeted = try await budget.budget(to: sections)
+
+        #expect(applied.map(\.id) == ["greeting"])
+        #expect(reported.sections.map(\.id) == ["greeting"])
+        #expect(reported.report == nil)
+        #expect(budgeted.sections.map(\.id) == ["greeting"])
+    }
+
     @Test("Legacy reset forwards to explicit reset operations")
     func legacyResetForwarding() {
         var soft = PromptJournal(state: journalState())

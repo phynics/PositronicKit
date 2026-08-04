@@ -15,7 +15,8 @@ public enum CompressionAction: Sendable, Equatable, Codable {
     /// Replace the node's content with a summary of roughly `targetTokens` tokens, `reason`
     /// recording why the summary was needed.
     case summarize(targetTokens: Int, reason: CompressionReason)
-    /// Truncate the node's content to `limit` tokens; `tail` selects which end is removed.
+    /// Legacy source-compatible truncation payload; `tail` selects which end is removed.
+    /// Prefer ``truncate(limit:keeping:)`` in new code.
     case truncate(limit: Int, tail: Bool)
     /// Drop the node's content entirely.
     case drop

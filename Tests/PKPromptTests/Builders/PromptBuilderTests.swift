@@ -80,7 +80,7 @@ struct PromptBuilderTests {
         #expect(sections.map { $0.path.suffix(2) } == [["volatile", "A"], ["volatile", "B"], ["volatile", "C"]])
     }
 
-    @Test("Builder supports ForEach(data:) expressions")
+    @Test("Builder supports ForEach element expressions")
     func forEachDataExpression() {
         let items = [
             IdentifiableItem(id: "note-a", content: "Alpha"),
@@ -89,7 +89,7 @@ struct PromptBuilderTests {
 
         @PromptBuilder
         func build() -> some Prompt {
-            ForEach(data: items) { item in
+            ForEach(items) { item in
                 TextPrompt(item.content, id: "leaf-\(item.id)")
             }
         }
@@ -158,7 +158,7 @@ struct PromptBuilderTests {
             IdentifiableItem(id: "dup", content: "Beta"),
         ]
 
-        let prompt = ForEach(data: items) { item in
+        let prompt = ForEach(items) { item in
             TextPrompt(item.content, id: item.id)
         }
 

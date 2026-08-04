@@ -67,7 +67,7 @@ struct TokenBudgetTests {
             MockPrimitiveSection(id: "s2", priority: 2, estimatedTokens: 300),
         ])
 
-        let result = try await budget.apply(to: sections)
+        let result = try await budget.result(for: sections).sections
         #expect(result.map(\.id) == ["s1", "s2"])
     }
 
@@ -79,7 +79,7 @@ struct TokenBudgetTests {
             MockPrimitiveSection(id: "high", priority: 2, estimatedTokens: 800, compression: .drop),
         ])
 
-        let result = try await budget.apply(to: sections)
+        let result = try await budget.result(for: sections).sections
         #expect(result.count == 1)
         #expect(result[0].id == "high")
     }
@@ -95,7 +95,7 @@ struct TokenBudgetTests {
         await #expect(throws: PromptCompressionError.mandatorySectionOverflow(
             sectionID: "keep2", estimatedTokens: 800, availableTokens: 200
         )) {
-            try await budget.apply(to: sections)
+            try await budget.result(for: sections)
         }
     }
 
@@ -109,7 +109,7 @@ struct TokenBudgetTests {
         await #expect(throws: PromptCompressionError.mandatorySectionOverflow(
             sectionID: "mandatory", estimatedTokens: 101, availableTokens: 100
         )) {
-            try await budget.apply(to: sections)
+            try await budget.result(for: sections)
         }
     }
 
@@ -121,7 +121,7 @@ struct TokenBudgetTests {
             MockPrimitiveSection(id: "drop", priority: 1, estimatedTokens: 80, compression: .drop),
         ])
 
-        let result = try await budget.budget(to: sections)
+        let result = try await budget.result(for: sections)
         #expect(result.estimatedTokens <= result.availableTokens)
     }
 
@@ -134,7 +134,7 @@ struct TokenBudgetTests {
         ])
 
         await #expect(throws: SummarizerError.unavailable) {
-            try await budget.apply(to: sections, compressor: FailingCompressor())
+            try await budget.result(for: sections, compressor: FailingCompressor())
         }
     }
 
@@ -143,10 +143,10 @@ struct TokenBudgetTests {
         let budget = TokenBudget(maxTokens: 1000, reserveForResponse: 0)
         let sections = resolve([
             MockPrimitiveSection(id: "keep", priority: 2, estimatedTokens: 800, compression: .keep),
-            MockPrimitiveSection(id: "truncate", priority: 1, estimatedTokens: 500, compression: .truncate(tail: true)),
+            MockPrimitiveSection(id: "truncate", priority: 1, estimatedTokens: 500, compression: .truncate(keeping: .head)),
         ])
 
-        let result = try await budget.apply(to: sections)
+        let result = try await budget.result(for: sections).sections
         #expect(result.count == 2)
         #expect(result[1].id == "truncate")
         #expect(result[1].estimatedTokens == 200)
@@ -161,10 +161,10 @@ struct TokenBudgetTests {
         let sections = resolve([
             MockPrimitiveSection(id: "s1", priority: 2, estimatedTokens: 1000, compression: .keep),
             MockPrimitiveSection(id: "drop", priority: 1, estimatedTokens: 500, compression: .drop),
-            MockPrimitiveSection(id: "truncate_dropped", priority: 0, estimatedTokens: 500, compression: .truncate(tail: true)),
+            MockPrimitiveSection(id: "truncate_dropped", priority: 0, estimatedTokens: 500, compression: .truncate(keeping: .head)),
         ])
 
-        let result = try await budget.apply(to: sections)
+        let result = try await budget.result(for: sections).sections
         #expect(result.count == 1)
         #expect(result[0].id == "s1")
     }
@@ -177,7 +177,7 @@ struct TokenBudgetTests {
             MockPrimitiveSection(id: "summarize", priority: 1, estimatedTokens: 500, compression: .summarize),
         ])
 
-        let result = try await budget.apply(to: sections)
+        let result = try await budget.result(for: sections).sections
         #expect(result.count == 1)
         #expect(result[0].id == "s1")
     }
@@ -190,7 +190,10 @@ struct TokenBudgetTests {
             MockPrimitiveSection(id: "summarize", priority: 1, estimatedTokens: 500, compression: .summarize, renderedContent: "A very long body"),
         ])
 
-        let result = try await budget.apply(to: sections, compressor: MockCompressor(summarizedText: "short summary"))
+        let result = try await budget.result(
+            for: sections,
+            compressor: MockCompressor(summarizedText: "short summary")
+        ).sections
 
         #expect(result.count == 2)
         #expect(result[1].id == "summarize")
@@ -206,7 +209,10 @@ struct TokenBudgetTests {
             MockPrimitiveSection(id: "summarize", priority: 1, estimatedTokens: 500, compression: .summarize, renderedContent: "A very long body"),
         ])
 
-        let result = try await budget.apply(to: sections, compressor: MockCompressor(summarizedText: "你好世界"))
+        let result = try await budget.result(
+            for: sections,
+            compressor: MockCompressor(summarizedText: "你好世界")
+        ).sections
 
         #expect(result.count == 2)
         #expect(result[1].estimatedTokens == 4)
@@ -220,8 +226,8 @@ struct TokenBudgetTests {
             MockPrimitiveSection(id: "summarize", priority: 1, estimatedTokens: 500, compression: .summarize, renderedContent: "A very long body"),
         ])
 
-        let result = try await budget.applyWithReport(
-            to: sections,
+        let result = try await budget.result(
+            for: sections,
             compressor: MockCompressor(summarizedText: "short summary")
         )
 
@@ -230,7 +236,7 @@ struct TokenBudgetTests {
         #expect(result.sections[1].compression == .summarize)
         #expect(result.sections[1].compressionOutcome?.action == .summarize(targetTokens: result.sections[1].estimatedTokens, reason: .budgetReduction))
         #expect(result.report?.nodeReports.contains(where: {
-            $0.nodeId == "summarize" && $0.action == .summarize(targetTokens: result.sections[1].estimatedTokens, reason: .budgetReduction)
+            $0.nodeID == "summarize" && $0.action == .summarize(targetTokens: result.sections[1].estimatedTokens, reason: .budgetReduction)
         }) == true)
     }
 
@@ -243,7 +249,10 @@ struct TokenBudgetTests {
         ])
 
         let tooLongSummary = String(repeating: "你", count: 1000)
-        let result = try await budget.apply(to: sections, compressor: MockCompressor(summarizedText: tooLongSummary))
+        let result = try await budget.result(
+            for: sections,
+            compressor: MockCompressor(summarizedText: tooLongSummary)
+        ).sections
 
         #expect(result.count == 1)
         #expect(result[0].id == "s1")
@@ -263,12 +272,12 @@ struct TokenBudgetTests {
         )
         let metadata = Dictionary(uniqueKeysWithValues: sections.map { ($0.id, StructuredNodeMetadata(path: $0.path, nodeHash: 1)) })
 
-        let result = try await budget.apply(
-            to: sections,
+        let result = try await budget.result(
+            for: sections,
             compressor: MockCompressor(summarizedText: "short"),
             structuredDiff: diff,
             nodeMetadata: metadata
-        )
+        ).sections
 
         #expect(result.count == 1)
         #expect(result[0].id == "changed")
@@ -285,7 +294,7 @@ struct TokenBudgetTests {
         await #expect(throws: PromptCompressionError.mandatorySectionOverflow(
             sectionID: "must_keep", estimatedTokens: 200, availableTokens: 100
         )) {
-            try await budget.apply(to: sections, compressor: MockCompressor(summarizedText: "tiny"))
+            try await budget.result(for: sections, compressor: MockCompressor(summarizedText: "tiny"))
         }
     }
 
@@ -298,11 +307,11 @@ struct TokenBudgetTests {
         ])
 
         let metadata = Dictionary(uniqueKeysWithValues: sections.map { ($0.id, StructuredNodeMetadata(path: $0.path, nodeHash: 1)) })
-        let result = try await budget.apply(
-            to: sections,
+        let result = try await budget.result(
+            for: sections,
             compressor: MockCompressor(summarizedText: String(repeating: "你", count: 1000)),
             nodeMetadata: metadata
-        )
+        ).sections
 
         #expect(result.count == 1)
         #expect(result[0].id == "keep_small")
@@ -317,7 +326,7 @@ struct TokenBudgetTests {
         ])
 
         do {
-            _ = try await budget.applyWithReport(to: sections)
+            _ = try await budget.result(for: sections)
             Issue.record("Duplicate section IDs were accepted")
         } catch let error as PromptCompressionError {
             #expect(error == .duplicateSectionIDs(["duplicate"]))
@@ -344,7 +353,7 @@ struct TokenBudgetTests {
                 MockPrimitiveSection(id: id, priority: 1, estimatedTokens: 10),
             ])
             do {
-                _ = try await TokenBudget(maxTokens: 100).apply(to: sections)
+                _ = try await TokenBudget(maxTokens: 100).result(for: sections)
                 Issue.record("Duplicate section ID was accepted")
             } catch let error as PromptCompressionError {
                 #expect(error == .duplicateSectionIDs([id]))

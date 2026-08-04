@@ -115,7 +115,7 @@ struct BodyBasedPromptTests {
         let prompt = TextPrompt(
             id: "dynamic_context",
             priority: PromptPriority.high.rawValue,
-            compression: .truncate(tail: true),
+            compression: .truncate(keeping: .head),
             cachePolicy: .semiStable,
             estimatedTokens: 12,
             render: {
@@ -128,7 +128,7 @@ struct BodyBasedPromptTests {
         #expect(sections.count == 1)
         #expect(sections[0].id == "dynamic_context")
         #expect(sections[0].priority == PromptPriority.high.rawValue)
-        #expect(sections[0].compression == CompressionStrategy.truncate(tail: true))
+        #expect(sections[0].compression == CompressionStrategy.truncate(keeping: .head))
         #expect(sections[0].cachePolicy == CachePolicy.semiStable)
         #expect(await sections[0].renderedContent()?.text == "Deferred context")
     }
