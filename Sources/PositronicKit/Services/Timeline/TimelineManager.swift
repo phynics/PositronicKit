@@ -232,25 +232,59 @@ public extension TimelineManager {
         timelines[id] = timeline
     }
 
-    /// Fetches the message history for a specific timeline from persistence.
-    func getHistory(for timelineId: UUID) async throws -> [Message] {
+    /// Fetches the message history for a timeline from persistence.
+    ///
+    /// - Parameter timelineId: The identifier of the timeline whose messages to fetch.
+    /// - Returns: The timeline's messages in the persistence store's established order.
+    /// - Throws: An error from the message store when the history cannot be fetched.
+    func history(for timelineId: UUID) async throws -> [Message] {
         let conversationMessages = try await messageStore.fetchMessages(for: timelineId)
         return conversationMessages.map { $0.toMessage() }
     }
 
     /// Lists all active (non-archived) timelines from persistence.
-    func listTimelines() async throws -> [Timeline] {
+    ///
+    /// - Returns: Active timelines in the persistence store's established order.
+    /// - Throws: An error from the timeline store when the timelines cannot be fetched.
+    func activeTimelines() async throws -> [Timeline] {
         return try await timelineStore.fetchAllTimelines(includeArchived: false)
+    }
+
+    /// Deprecated compatibility alias for ``history(for:)``.
+    @available(*, deprecated, renamed: "history(for:)")
+    func getHistory(for timelineId: UUID) async throws -> [Message] {
+        try await history(for: timelineId)
+    }
+
+    /// Deprecated compatibility alias for ``activeTimelines()``.
+    @available(*, deprecated, renamed: "activeTimelines()")
+    func listTimelines() async throws -> [Timeline] {
+        try await activeTimelines()
     }
 }
 
 // MARK: - Tool Management
 
 public extension TimelineManager {
-    func findWorkspaceForTool(_ tool: ToolReference, in workspaceIds: [UUID]) async throws
+    /// Finds the first candidate workspace that registers a tool.
+    ///
+    /// - Parameters:
+    ///   - tool: The tool to locate.
+    ///   - workspaceIds: Candidate workspace identifiers, in routing priority order.
+    /// - Returns: The matching workspace identifier, or `nil` when none registers the tool.
+    /// - Throws: An error from the tool persistence store when the lookup cannot be completed.
+    func workspaceID(for tool: ToolReference, among workspaceIds: [UUID]) async throws
         -> UUID?
     {
         return try await toolPersistence.findWorkspaceId(forToolId: tool.toolId, in: workspaceIds)
+    }
+
+    /// Deprecated compatibility alias for ``workspaceID(for:among:)``.
+    @available(*, deprecated, renamed: "workspaceID(for:among:)")
+    func findWorkspaceForTool(_ tool: ToolReference, in workspaceIds: [UUID]) async throws
+        -> UUID?
+    {
+        try await workspaceID(for: tool, among: workspaceIds)
     }
 
     /// Enabled tools for an active timeline (empty if the timeline has no active tool manager).
@@ -280,7 +314,15 @@ public extension TimelineManager {
         return true
     }
 
-    func getToolSource(toolId: String, for timelineId: UUID) async throws -> String? {
+    /// Returns the source associated with a tool in an active timeline.
+    ///
+    /// - Parameters:
+    ///   - toolId: The tool identifier to inspect.
+    ///   - timelineId: The active timeline that scopes the lookup.
+    /// - Returns: `"System"` for an available runtime tool, a persisted source, or `nil` when
+    ///   the timeline is inactive or no source exists.
+    /// - Throws: ``TimelineError/unavailable`` when the tool persistence lookup fails.
+    func toolSource(for toolId: String, in timelineId: UUID) async throws -> String? {
         guard let timeline = timelines[timelineId] else { return nil }
 
         if let toolManager = toolManagers[timelineId] {
@@ -298,11 +340,17 @@ public extension TimelineManager {
             )
         } catch {
             logger.error("""
-            getToolSource failed — toolId: \(toolId), timeline: \(timelineId.uuidString.prefix(8)), \
+            toolSource failed — toolId: \(toolId), timeline: \(timelineId.uuidString.prefix(8)), \
             operation: fetchToolSource, error: \(ErrorKit.userFriendlyMessage(for: error))
             """)
             throw TimelineError.unavailable
         }
+    }
+
+    /// Deprecated compatibility alias for ``toolSource(for:in:)``.
+    @available(*, deprecated, renamed: "toolSource(for:in:)")
+    func getToolSource(toolId: String, for timelineId: UUID) async throws -> String? {
+        try await toolSource(for: toolId, in: timelineId)
     }
 }
 

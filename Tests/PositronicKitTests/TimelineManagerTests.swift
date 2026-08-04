@@ -7,6 +7,69 @@ import Synchronization
 import Testing
 
 struct TimelineManagerTests {
+    @Test("Fluent timeline query APIs preserve legacy results, empty values, and actor isolation")
+    func fluentQueryAPIsPreserveLegacyBehavior() async throws {
+        let persistence = MockPersistenceService()
+        let workspace = TestWorkspace()
+        let manager = TimelineManager(
+            stores: .init(
+                timelineStore: persistence,
+                messageStore: persistence,
+                workspaceStore: persistence,
+                toolPersistence: persistence
+            ),
+            workspaceRoot: workspace.root
+        )
+
+        let timeline = try await manager.createTimeline()
+        let preferredHistory = try await manager.history(for: timeline.id)
+        let legacyHistory = try await manager.getHistory(for: timeline.id)
+        #expect(preferredHistory.isEmpty)
+        #expect(preferredHistory == legacyHistory)
+
+        let preferredTimelines = try await manager.activeTimelines()
+        let legacyTimelines = try await manager.listTimelines()
+        #expect(preferredTimelines.map(\.id) == legacyTimelines.map(\.id))
+
+        let unknownTool = ToolReference.known("unknown")
+        let preferredWorkspace = try await manager.workspaceID(for: unknownTool, among: [])
+        let legacyWorkspace = try await manager.findWorkspaceForTool(unknownTool, in: [])
+        #expect(preferredWorkspace == nil)
+        #expect(preferredWorkspace == legacyWorkspace)
+
+        let preferredSource = try await manager.toolSource(for: "unknown", in: timeline.id)
+        let legacySource = try await manager.getToolSource(toolId: "unknown", for: timeline.id)
+        #expect(preferredSource == nil)
+        #expect(preferredSource == legacySource)
+
+        let detachedHistory = try await Task.detached {
+            try await manager.history(for: timeline.id)
+        }.value
+        #expect(detachedHistory == preferredHistory)
+    }
+
+    @Test("toolSource maps tool-store failures to TimelineError.unavailable")
+    func toolSourceMapsStoreFailure() async throws {
+        let failingToolPersistence = FailingToolPersistence(fetchSourceFails: true)
+        let persistence = MockPersistenceService()
+        let workspace = TestWorkspace()
+        let manager = TimelineManager(
+            stores: .init(
+                timelineStore: persistence,
+                messageStore: persistence,
+                workspaceStore: persistence,
+                toolPersistence: failingToolPersistence
+            ),
+            workspaceRoot: workspace.root
+        )
+        let timeline = try await manager.createTimeline()
+
+        await #expect(throws: TimelineError.unavailable) {
+            _ = try await manager.toolSource(for: "some_tool", in: timeline.id)
+        }
+        #expect(failingToolPersistence.fetchSourceAttemptCount == 1)
+    }
+
     @Test("Test Session Creation and Turn Briefing Builder Access")
     func sessionCreation() async throws {
         let workspace = TestWorkspace()

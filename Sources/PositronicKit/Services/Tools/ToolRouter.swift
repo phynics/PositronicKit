@@ -72,13 +72,23 @@ public actor ToolRouter {
     private let approvalPolicy: any ToolApprovalPolicy
     private let sleep: @Sendable (UInt64) async throws -> Void
 
+    /// Creates a router for runtime-managed and externally hosted tool calls.
+    ///
+    /// - Parameters:
+    ///   - timelineManager: The timeline coordinator used to resolve tools and workspaces.
+    ///   - messageStore: The store used to persist resolved tool-result messages.
+    ///   - toolExecutionTimeout: Maximum local execution time, in seconds.
+    ///   - approvalPolicy: The policy that authorizes tools requiring permission.
+    ///   - sleep: Optional suspension implementation used by timeout enforcement. Its argument is
+    ///     a nanosecond count.
+    ///   - loggingConfiguration: The logging configuration for router diagnostics.
     public init(
         timelineManager: TimelineManager,
         messageStore: any MessageStoreProtocol,
         toolExecutionTimeout: TimeInterval = 60,
         approvalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
-        sleep: (@Sendable (UInt64) async throws -> Void)? = nil
-        , loggingConfiguration: LoggingConfiguration = .default
+        sleep: (@Sendable (_ nanoseconds: UInt64) async throws -> Void)? = nil,
+        loggingConfiguration: LoggingConfiguration = .default
     ) {
         self.timelineManager = timelineManager
         self.messageStore = messageStore
@@ -218,6 +228,16 @@ public actor ToolRouter {
     // MARK: - Core Routing
 
     /// Routes a single tool call to local or external execution.
+    ///
+    /// - Parameters:
+    ///   - tool: The requested tool reference.
+    ///   - arguments: Tool arguments. `workspaceID`, when present, selects an attached workspace
+    ///     and is not forwarded to the tool.
+    ///   - timelineId: The timeline that scopes tool and workspace resolution.
+    ///   - availableTools: Optional request-scoped tools, which take precedence for local execution.
+    /// - Returns: `.completed` with local output, or `.deferredExternally` for an attached-host tool.
+    /// - Throws: ``ToolError`` when routing, authorization, lookup, or execution fails, and errors
+    ///   propagated by the underlying timeline and tool services.
     public func execute(
         tool: ToolReference,
         arguments: [String: AnyCodable],
@@ -325,7 +345,7 @@ public actor ToolRouter {
     ///    value throws `ToolError.invalidWorkspaceID`; a valid UUID that is not attached throws
     ///    `ToolError.workspaceNotFound` (PKRR-015 fail-closed — presence signals explicit
     ///    intent, so a malformed value is an error, not a hint to auto-route).
-    /// 2. Otherwise, defer to `TimelineManager.findWorkspaceForTool(_:in:)` over the candidate
+    /// 2. Otherwise, defer to `TimelineManager.workspaceID(for:among:)` over the candidate
     ///    list (primary first, then attached in declared order).
     /// 3. Returns `nil` if the timeline has no workspaces, or if no candidate workspace
     ///    registers the tool. `execute` interprets `nil` as `toolNotFound`.
@@ -362,7 +382,7 @@ public actor ToolRouter {
             return explicitId
         }
 
-        return try await timelineManager.findWorkspaceForTool(tool, in: candidates)
+        return try await timelineManager.workspaceID(for: tool, among: candidates)
     }
 
     // MARK: - Local Execution
