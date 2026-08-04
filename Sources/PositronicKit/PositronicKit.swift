@@ -331,16 +331,35 @@ public final class PositronicKit: Sendable {
 
     // MARK: - Execution
 
+    /// Creates a fresh tier-four agent runtime handle.
+    ///
+    /// - Parameters:
+    ///   - timelineID: The timeline the runtime runs turns against.
+    ///   - agentInstanceID: The agent instance whose identity and workspace bindings the runtime uses.
+    /// - Returns: A lightweight runtime handle backed by this facade's managers.
+    public func makeAgenticRuntime(
+        timelineID: UUID,
+        agentInstanceID: UUID
+    ) -> AgenticRuntime {
+        AgenticRuntime(
+            kit: self,
+            timelineId: timelineID,
+            agentInstanceId: agentInstanceID
+        )
+    }
+
     /// Vends a fresh tier-four agent runtime handle.
+    ///
+    /// - Parameters:
+    ///   - timelineId: The timeline the runtime runs turns against.
+    ///   - agentInstanceId: The agent instance whose identity and workspace bindings the runtime uses.
+    /// - Returns: A lightweight runtime handle backed by this facade's managers.
+    @available(*, deprecated, renamed: "makeAgenticRuntime(timelineID:agentInstanceID:)")
     public func agenticRuntime(
         timelineId: UUID,
         agentInstanceId: UUID
     ) -> AgenticRuntime {
-        AgenticRuntime(
-            kit: self,
-            timelineId: timelineId,
-            agentInstanceId: agentInstanceId
-        )
+        makeAgenticRuntime(timelineID: timelineId, agentInstanceID: agentInstanceId)
     }
 
     /// Run a chat turn and return a stream of events.

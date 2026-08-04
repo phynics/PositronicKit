@@ -49,21 +49,24 @@ private struct CapturingLogHandler: LogHandler {
 
 @Suite("Public runtime stories", .serialized)
 struct PublicRuntimeStoriesTests {
-    @Test("agentic runtime delegates to the facade-owned manager and tool loop")
-    func agenticRuntimeRunsAnAgentTurn() async throws {
+    @Test("agent runtime factories preserve facade managers and identities")
+    func agentRuntimeFactoriesPreserveFacadeManagersAndIdentities() async throws {
         let (kit, mockLLM, _, timelineId, _) = try await makeAcceptanceRuntime()
         let agentId = UUID()
-        let runtime = kit.agenticRuntime(
-            timelineId: timelineId,
-            agentInstanceId: agentId
+        let runtime = kit.makeAgenticRuntime(
+            timelineID: timelineId,
+            agentInstanceID: agentId
         )
-        let secondRuntime = kit.agenticRuntime(
+        let deprecatedRuntime = kit.agenticRuntime(
             timelineId: timelineId,
             agentInstanceId: agentId
         )
 
         #expect(runtime.agentInstanceManager === kit.agentInstanceManager)
-        #expect(runtime !== secondRuntime)
+        #expect(deprecatedRuntime.agentInstanceManager === kit.agentInstanceManager)
+        #expect(runtime !== deprecatedRuntime)
+        #expect(runtime.timelineId == deprecatedRuntime.timelineId)
+        #expect(runtime.agentInstanceId == deprecatedRuntime.agentInstanceId)
 
         let mockTool = AcceptanceMockTool()
         mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "agent_call", name: "mock_tool")]]

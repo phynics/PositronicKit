@@ -4,7 +4,7 @@ import PKUtilities
 
 /// Tier-four handle for running an agent against a timeline and instance.
 ///
-/// The handle is intentionally lightweight and fresh per `PositronicKit.agenticRuntime(...)`
+/// The handle is intentionally lightweight and fresh per `PositronicKit.makeAgenticRuntime(...)`
 /// call. Agent lifecycle operations are delegated to the facade-owned manager, while turns are
 /// delegated to the facade's existing chat/tool loop.
 public final class AgenticRuntime: Sendable {
