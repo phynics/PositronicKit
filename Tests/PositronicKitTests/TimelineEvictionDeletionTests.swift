@@ -21,7 +21,7 @@ struct TimelineEvictionDeletionTests {
             .appendingPathComponent(UUID().uuidString))
         runtime.llm.mockClient.nextChunks = [Array(repeating: "a", count: 50)]
         runtime.llm.mockClient.nextStreamWait = 0.05
-        let kit = runtime.buildCore()
+        let kit = runtime.positronicKit
         let timeline = try await kit.timelineManager.createTimeline()
         let driver = kit.openTimeline(timeline.id)
 
@@ -171,7 +171,7 @@ struct TimelineEvictionDeletionTests {
             .appendingPathComponent(UUID().uuidString))
         runtime.llm.mockClient.nextChunks = [Array(repeating: "b", count: 50)]
         runtime.llm.mockClient.nextStreamWait = 0.05
-        let kit = runtime.buildCore()
+        let kit = runtime.positronicKit
         let timeline = try await kit.timelineManager.createTimeline()
         let driver = kit.openTimeline(timeline.id)
 

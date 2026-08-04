@@ -168,10 +168,11 @@ struct ProviderInitializationTests {
         #expect(json.contains("gpt-4o-mini"))
     }
 
-    @Test("OpenAI provider construction directly injects a client")
-    func openAIDirectInjection() {
+    @Test("Deprecated OpenAI factory forwards client construction and adapter registration")
+    func deprecatedOpenAIFactoryForwards() {
         let client = PKOpenAIProvider.makeClient(configuration: .fixture(apiKey: "test", activeProvider: .openAI))
         #expect(client is OpenAIClient)
+        #expect(StructuredOutputAdapterRegistry.adapter(for: .openAI) is NativeJSONSchemaStructuredOutputAdapter)
     }
 
     // MARK: - Anthropic
@@ -252,10 +253,11 @@ struct ProviderInitializationTests {
         #expect(request.url?.port == nil)
     }
 
-    @Test("Anthropic provider construction directly injects a client")
-    func anthropicDirectInjection() {
+    @Test("Deprecated Anthropic factory forwards client construction and adapter registration")
+    func deprecatedAnthropicFactoryForwards() {
         let client = PKAnthropicProvider.makeClient(configuration: .fixture(apiKey: "test", activeProvider: .anthropic))
         #expect(client is AnthropicClient)
+        #expect(StructuredOutputAdapterRegistry.adapter(for: .anthropic) is DefaultStructuredOutputAdapter)
     }
 
     // MARK: - Ollama
@@ -320,10 +322,11 @@ struct ProviderInitializationTests {
         #expect(config.activeProviderConfiguration.endpoint == "http://localhost:11434")
     }
 
-    @Test("Ollama provider construction directly injects a client")
-    func ollamaDirectInjection() {
+    @Test("Deprecated Ollama factory forwards client construction and adapter registration")
+    func deprecatedOllamaFactoryForwards() {
         let client = PKOllamaProvider.makeClient(configuration: .fixture(activeProvider: .ollama))
         #expect(client is OllamaClient)
+        #expect(StructuredOutputAdapterRegistry.adapter(for: .ollama) is PromptAugmentedJSONSchemaAdapter)
     }
 
     // MARK: - OpenRouter
@@ -418,43 +421,54 @@ struct ProviderInitializationTests {
         #expect(withoutRequest.value(forHTTPHeaderField: "X-Title") == nil)
     }
 
-    @Test("OpenRouter provider construction directly injects a client")
-    func openRouterDirectInjection() {
+    @Test("Deprecated OpenRouter factory forwards client construction and adapter registration")
+    func deprecatedOpenRouterFactoryForwards() {
         let client = PKOpenRouterProvider.makeClient(configuration: .fixture(activeProvider: .openRouter))
         #expect(client is OpenRouterClient)
+        #expect(StructuredOutputAdapterRegistry.adapter(for: .openRouter) is NativeJSONSchemaStructuredOutputAdapter)
     }
 
     @Test("OpenRouter provider construction registers native structured output")
     func openRouterRegistersNativeStructuredOutput() {
-        _ = PKOpenRouterProvider.makeClient(configuration: .fixture(activeProvider: .openRouter))
+        _ = PKOpenRouterProvider.makeClientAndRegisterStructuredOutputAdapter(
+            configuration: .fixture(activeProvider: .openRouter)
+        )
 
         #expect(StructuredOutputAdapterRegistry.adapter(for: .openRouter) is NativeJSONSchemaStructuredOutputAdapter)
     }
 
     @Test("OpenAI provider construction registers native structured output")
     func openAIRegistersNativeStructuredOutput() {
-        _ = PKOpenAIProvider.makeClient(configuration: .fixture(activeProvider: .openAI))
+        _ = PKOpenAIProvider.makeClientAndRegisterStructuredOutputAdapter(
+            configuration: .fixture(activeProvider: .openAI)
+        )
 
         #expect(StructuredOutputAdapterRegistry.adapter(for: .openAI) is NativeJSONSchemaStructuredOutputAdapter)
     }
 
     @Test("OpenAI-compatible provider construction registers compatible structured output")
     func openAICompatibleRegistersStructuredOutput() {
-        _ = PKOpenAIProvider.makeClient(configuration: .fixture(activeProvider: .openAICompatible))
+        _ = PKOpenAIProvider.makeClientAndRegisterStructuredOutputAdapter(
+            configuration: .fixture(activeProvider: .openAICompatible)
+        )
 
         #expect(StructuredOutputAdapterRegistry.adapter(for: .openAICompatible) is PromptAugmentedJSONSchemaAdapter)
     }
 
     @Test("Anthropic provider construction registers Anthropic structured output")
     func anthropicRegistersStructuredOutput() {
-        _ = PKAnthropicProvider.makeClient(configuration: .fixture(activeProvider: .anthropic))
+        _ = PKAnthropicProvider.makeClientAndRegisterStructuredOutputAdapter(
+            configuration: .fixture(activeProvider: .anthropic)
+        )
 
         #expect(StructuredOutputAdapterRegistry.adapter(for: .anthropic) is DefaultStructuredOutputAdapter)
     }
 
     @Test("Ollama provider construction registers Ollama structured output")
     func ollamaRegistersStructuredOutput() {
-        _ = PKOllamaProvider.makeClient(configuration: .fixture(activeProvider: .ollama))
+        _ = PKOllamaProvider.makeClientAndRegisterStructuredOutputAdapter(
+            configuration: .fixture(activeProvider: .ollama)
+        )
 
         #expect(StructuredOutputAdapterRegistry.adapter(for: .ollama) is PromptAugmentedJSONSchemaAdapter)
     }

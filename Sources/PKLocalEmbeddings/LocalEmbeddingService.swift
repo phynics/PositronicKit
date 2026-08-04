@@ -38,27 +38,8 @@ public final class LocalEmbeddingService: EmbeddingServiceProtocol, Sendable {
         inputBudget
     }
 
-    #if os(Linux)
-    public init(
-        modelDirectory: URL,
-        inputBudget: EmbeddingInputBudget = .default
-    ) throws {
-        self.inputBudget = inputBudget
-        try MiniLMModelAssets.validate(modelDirectory: modelDirectory)
-        self.miniLMBackend = try PKMiniLMPlatformBackend(
-            modelDirectory: modelDirectory,
-            inputBudget: inputBudget
-        )
-    }
-    #else
-    public init(inputBudget: EmbeddingInputBudget = .default) {
-        #if MiniLMEmbeddings
-        self.miniLMBackend = nil
-        #endif
-        self.inputBudget = inputBudget
-    }
-
-    #if MiniLMEmbeddings
+    #if os(Linux) || MiniLMEmbeddings
+    /// Creates a local embedding service backed by the MiniLM model at the supplied directory.
     public init(
         miniLMModelDirectory: URL,
         inputBudget: EmbeddingInputBudget = .default
@@ -70,7 +51,29 @@ public final class LocalEmbeddingService: EmbeddingServiceProtocol, Sendable {
             inputBudget: inputBudget
         )
     }
+
+    #if os(Linux)
+    /// Creates a local embedding service backed by the MiniLM model at the supplied directory.
+    @available(*, deprecated, renamed: "init(miniLMModelDirectory:inputBudget:)")
+    public init(
+        modelDirectory: URL,
+        inputBudget: EmbeddingInputBudget = .default
+    ) throws {
+        try self.init(
+            miniLMModelDirectory: modelDirectory,
+            inputBudget: inputBudget
+        )
+    }
     #endif
+    #endif
+
+    #if !os(Linux)
+    public init(inputBudget: EmbeddingInputBudget = .default) {
+        #if MiniLMEmbeddings
+        self.miniLMBackend = nil
+        #endif
+        self.inputBudget = inputBudget
+    }
     #endif
 
     public func generateEmbedding(for text: String) async throws -> [Float] {

@@ -29,7 +29,10 @@ public actor FoundationModelsClient: LLMClientProtocol {
     /// PositronicKit's `[LLMToolDefinition]` (JSON-Schema-shaped, transport-neutral) is bridged
     /// to the framework's typed `Tool` protocol by the production factory; tests pass their own
     /// factory and can ignore `tools` entirely for text-only fixtures.
-    public typealias SessionFactory = @Sendable ([LLMToolDefinition]?, String?) -> any FoundationModelsSessionProtocol
+    public typealias SessionFactory = @Sendable (
+        _ tools: [LLMToolDefinition]?,
+        _ instructions: String?
+    ) -> any FoundationModelsSessionProtocol
 
     private let modelName: String
     private let logger = Logger.module(named: "foundation-models-client")

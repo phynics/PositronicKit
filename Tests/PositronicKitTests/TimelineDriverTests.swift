@@ -9,7 +9,7 @@ struct TimelineDriverTests {
     func openingReturnsFreshHandlesWithStableIdentity() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString))
-        let kit = runtime.buildCore()
+        let kit = runtime.positronicKit
 
         let created = try await kit.timelineManager.createTimeline(title: "Cursor")
         let first = kit.openTimeline(created.id)
@@ -24,7 +24,7 @@ struct TimelineDriverTests {
     func openingDoesNotPersistATimeline() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString))
-        let kit = runtime.buildCore()
+        let kit = runtime.positronicKit
         let id = UUID()
 
         _ = kit.openTimeline(id)
@@ -57,7 +57,7 @@ struct TimelineDriverTests {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString))
         runtime.llm.mockClient.nextResponse = "reply"
-        let kit = runtime.buildCore()
+        let kit = runtime.positronicKit
         let timeline = try await kit.timelineManager.createTimeline(title: "Driver")
         let driver = kit.openTimeline(timeline.id)
 

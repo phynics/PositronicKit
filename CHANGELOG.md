@@ -34,6 +34,16 @@ for tagged releases beginning with `1.0.0`.
   `nodeId` entry points forward to the canonical forms, and compression reports continue to
   encode the `"nodeId"` key.
 
+- **Provider and support API clarity (PKAPI-003)**: provider factories now use
+  `makeClientAndRegisterStructuredOutputAdapter(configuration:)` so their global registry
+  mutation is visible at the call site; `LocalEmbeddingService` consistently uses
+  `miniLMModelDirectory:` across platforms; Foundation Models session-factory closure roles are
+  named; and `TestRuntime.positronicKit` exposes its stored facade as noun-like state. Existing
+  `makeClient(configuration:)`, Linux `modelDirectory:`, and `buildCore()` APIs remain as
+  deprecated forwarding shims. Every `PKFastEmbedError` case is now documented; associated-value
+  labels remain intentionally unchanged for source compatibility. Role labels (`message`,
+  `statusCode`, and `validationError`) are deferred to the next major release.
+
 - **Split turn-preparation file (PKCR-008)**: The private `TurnIdempotencyGate`
   and `ExternalToolOutputSubmissionGate` actors (plus the `ReservedToolOutput`
   struct) have been extracted from `ChatEngine+TurnPreparation.swift` into their

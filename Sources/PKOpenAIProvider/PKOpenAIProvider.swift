@@ -2,7 +2,10 @@ import Foundation
 import PKShared
 
 public enum PKOpenAIProvider {
-    public static func makeClient(configuration: LLMConfiguration) -> OpenAIClient {
+    /// Creates an OpenAI client and registers its structured-output adapter globally.
+    public static func makeClientAndRegisterStructuredOutputAdapter(
+        configuration: LLMConfiguration
+    ) -> OpenAIClient {
         StructuredOutputAdapterRegistry.register(
             configuration.activeProvider == .openAI
                 ? NativeJSONSchemaStructuredOutputAdapter()
@@ -20,5 +23,11 @@ public enum PKOpenAIProvider {
             timeoutInterval: providerConfig.timeoutInterval,
             maxRetries: providerConfig.maxRetries
         )
+    }
+
+    /// Creates an OpenAI client and registers its structured-output adapter globally.
+    @available(*, deprecated, renamed: "makeClientAndRegisterStructuredOutputAdapter(configuration:)")
+    public static func makeClient(configuration: LLMConfiguration) -> OpenAIClient {
+        makeClientAndRegisterStructuredOutputAdapter(configuration: configuration)
     }
 }

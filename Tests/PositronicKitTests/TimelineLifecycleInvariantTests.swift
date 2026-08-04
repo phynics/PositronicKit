@@ -91,7 +91,7 @@ struct TimelineLifecycleInvariantTests {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString))
         runtime.llm.mockClient.nextResponse = "reply"
-        let kit = runtime.buildCore()
+        let kit = runtime.positronicKit
         let timeline = try await kit.timelineManager.createTimeline(title: "Lifecycle Invariant")
         let driver = kit.openTimeline(timeline.id)
 
@@ -112,7 +112,7 @@ struct TimelineLifecycleInvariantTests {
     func ensureTimelineExistsNoOpForHydrated() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString))
-        let kit = runtime.buildCore()
+        let kit = runtime.positronicKit
         let timeline = try await kit.timelineManager.createTimeline(title: "Hydrated")
 
         // Should not throw — the timeline is already in cache from createTimeline.
@@ -123,7 +123,7 @@ struct TimelineLifecycleInvariantTests {
     func ensureTimelineExistsThrowsForUnknown() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString))
-        let kit = runtime.buildCore()
+        let kit = runtime.positronicKit
 
         await #expect(throws: TimelineError.timelineNotFound) {
             try await kit.timelineManager.ensureTimelineExists(id: UUID())

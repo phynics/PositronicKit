@@ -24,10 +24,19 @@ struct DependencySafetyTests {
         let resolved = try await runtime.agentWorkspaceService.getWorkspace(id: workspace.id)
         #expect(resolved?.id == workspace.id)
 
-        // buildCore() must reuse the runtime's own TimelineManager rather than fabricating a
+        // positronicKit must reuse the runtime's own TimelineManager rather than fabricating a
         // disconnected one.
-        let core = runtime.buildCore()
+        let core = runtime.positronicKit
         #expect(core.timelineManager === runtime.timelineManager)
+    }
+
+    @Test("Deprecated TestRuntime facade builder forwards the stored facade")
+    func deprecatedBuildCoreForwardsStoredFacade() {
+        let runtime = TestRuntime(
+            workspaceRoot: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        )
+
+        #expect(runtime.buildCore() === runtime.positronicKit)
     }
 
     @Test("PositronicKit facade's TimelineManager shares the memoryStore passed via persistence")

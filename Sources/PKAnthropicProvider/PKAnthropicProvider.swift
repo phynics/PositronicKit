@@ -2,7 +2,10 @@ import Foundation
 import PKShared
 
 public enum PKAnthropicProvider {
-    public static func makeClient(configuration: LLMConfiguration) -> AnthropicClient {
+    /// Creates an Anthropic client and registers its structured-output adapter globally.
+    public static func makeClientAndRegisterStructuredOutputAdapter(
+        configuration: LLMConfiguration
+    ) -> AnthropicClient {
         StructuredOutputAdapterRegistry.register(DefaultStructuredOutputAdapter(), for: .anthropic)
 
         let providerConfig = configuration.activeProviderConfiguration
@@ -16,5 +19,11 @@ public enum PKAnthropicProvider {
             timeoutInterval: providerConfig.timeoutInterval,
             maxRetries: providerConfig.maxRetries
         )
+    }
+
+    /// Creates an Anthropic client and registers its structured-output adapter globally.
+    @available(*, deprecated, renamed: "makeClientAndRegisterStructuredOutputAdapter(configuration:)")
+    public static func makeClient(configuration: LLMConfiguration) -> AnthropicClient {
+        makeClientAndRegisterStructuredOutputAdapter(configuration: configuration)
     }
 }

@@ -11,7 +11,7 @@ import Synchronization
 import Testing
 @testable import PKOpenAIProvider
 
-/// Coverage for `OpenAIClient` methods and `PKOpenAIProvider.makeClient` that are not
+/// Coverage for `OpenAIClient` methods and the `PKOpenAIProvider` factory that are not
 /// exercised by the transport-contract or conversion suites.
 ///
 /// Targets:
@@ -21,7 +21,7 @@ import Testing
 /// - The tool-call recovery path inside `chatStream` (stream finishes with
 ///   `finish_reason: tool_calls` but no streamed `delta.toolCalls`).
 /// - `mapProviderError`'s `CancellationError` passthrough.
-/// - `PKOpenAIProvider.makeClient(configuration:)` factory for both `.openAI` and
+/// - `PKOpenAIProvider.makeClientAndRegisterStructuredOutputAdapter(configuration:)` for both `.openAI` and
 ///   OpenAI-compatible providers.
 @Suite("OpenAI client coverage", .serialized)
 struct OpenAIClientCoverageTests {
@@ -253,7 +253,7 @@ data: [DONE]
             apiKey: "sk-test",
             activeProvider: .openAI
         )
-        let client = PKOpenAIProvider.makeClient(configuration: config)
+        let client = PKOpenAIProvider.makeClientAndRegisterStructuredOutputAdapter(configuration: config)
         #expect(client is OpenAIClient)
     }
 
@@ -265,7 +265,7 @@ data: [DONE]
             apiKey: "sk-test",
             activeProvider: .openAICompatible
         )
-        let client = PKOpenAIProvider.makeClient(configuration: config)
+        let client = PKOpenAIProvider.makeClientAndRegisterStructuredOutputAdapter(configuration: config)
         #expect(client is OpenAIClient)
     }
 
@@ -278,8 +278,7 @@ data: [DONE]
             activeProvider: .openAI
         )
         // Should not crash; falls back to api.openai.com:443/https.
-        let client = PKOpenAIProvider.makeClient(configuration: config)
+        let client = PKOpenAIProvider.makeClientAndRegisterStructuredOutputAdapter(configuration: config)
         #expect(client is OpenAIClient)
     }
 }
-

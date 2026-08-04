@@ -9,21 +9,39 @@ import XCTest
 final class MiniLMEmbeddingContractTests: XCTestCase {
     private func makeService() throws -> LocalEmbeddingService {
         let modelDirectory = try MiniLMTestSupport.requireModelDirectory()
-        #if os(Linux)
-        return try LocalEmbeddingService(modelDirectory: modelDirectory)
-        #else
         return try LocalEmbeddingService(miniLMModelDirectory: modelDirectory)
-        #endif
     }
 
     private func makeService(inputBudget: EmbeddingInputBudget) throws -> LocalEmbeddingService {
         let modelDirectory = try MiniLMTestSupport.requireModelDirectory()
-        #if os(Linux)
-        return try LocalEmbeddingService(modelDirectory: modelDirectory, inputBudget: inputBudget)
-        #else
         return try LocalEmbeddingService(miniLMModelDirectory: modelDirectory, inputBudget: inputBudget)
-        #endif
     }
+
+    #if os(Linux)
+    func testCanonicalAndDeprecatedMiniLMInitializersHaveEquivalentSemantics() async throws {
+        let modelDirectory = try MiniLMTestSupport.requireModelDirectory()
+        let inputBudget = EmbeddingInputBudget(
+            maxTextCount: 3,
+            maxBytesPerText: 64,
+            maxTotalBytes: 128
+        )
+        let canonical = try LocalEmbeddingService(
+            miniLMModelDirectory: modelDirectory,
+            inputBudget: inputBudget
+        )
+        let deprecated = try LocalEmbeddingService(
+            modelDirectory: modelDirectory,
+            inputBudget: inputBudget
+        )
+
+        XCTAssertEqual(canonical.backendIdentifier, deprecated.backendIdentifier)
+        XCTAssertEqual(canonical.inputBudget, deprecated.inputBudget)
+        XCTAssertEqual(
+            try await canonical.generateEmbedding(for: "Equivalent initializer semantics."),
+            try await deprecated.generateEmbedding(for: "Equivalent initializer semantics.")
+        )
+    }
+    #endif
 
     func testConstructsAndEmbedsNormalized384Vector() async throws {
         let service = try makeService()
@@ -200,11 +218,7 @@ final class MiniLMEmbeddingContractTests: XCTestCase {
     }
 
     private func constructService(at modelDirectory: URL) throws -> LocalEmbeddingService {
-        #if os(Linux)
-        return try LocalEmbeddingService(modelDirectory: modelDirectory)
-        #else
         return try LocalEmbeddingService(miniLMModelDirectory: modelDirectory)
-        #endif
     }
 
     private func assertLimitError(

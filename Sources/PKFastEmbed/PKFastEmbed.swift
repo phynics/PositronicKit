@@ -3,13 +3,30 @@ import Foundation
 import PKShared
 import PKUtilities
 
+/// Failures surfaced by the in-process MiniLM native bridge.
+///
+/// Associated values remain unlabeled for source-compatible pattern matching. A future major
+/// release should use `message` for diagnostic strings, `statusCode` plus `message` for
+/// `nativeFailure`, and `validationError` for `budgetExceeded`.
 public enum PKFastEmbedError: Error, Equatable, Sendable {
+    /// The loaded native bridge exposes an ABI version that this Swift wrapper does not support.
     case abiMismatch
+    /// The native bridge rejected an argument, with a diagnostic describing the invalid input.
     case invalidArgument(String)
+    /// The native bridge could not decode input text as UTF-8, with a diagnostic describing the
+    /// failure.
     case invalidUTF8(String)
+    /// The MiniLM model could not be loaded, with a diagnostic describing the failure.
     case modelLoadFailed(String)
+    /// MiniLM inference failed, with a diagnostic describing the failure.
     case inferenceFailed(String)
+    /// A caller-provided output buffer was too small, with a diagnostic describing the required
+    /// capacity.
     case bufferTooSmall(String)
+    /// The native bridge returned an unrecognized status code and its diagnostic message.
+    ///
+    /// The associated values remain unlabeled to preserve source-compatible pattern matching.
+    /// A future major release should label them `statusCode` and `message`.
     case nativeFailure(Int32, String)
     /// An `EmbeddingInputBudget` validation failure, carried as its typed value so callers
     /// never need to re-derive it by parsing `invalidArgument`'s formatted message string.

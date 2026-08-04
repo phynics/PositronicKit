@@ -13,7 +13,7 @@ import PositronicKit
     /// persistence backing across the timeline manager, tool router, and `PositronicKit`.
     ///
     /// Construct one per test with a unique `workspaceRoot`, then read its fields directly or
-    /// call `buildCore()` for a fully-wired facade.
+    /// access `positronicKit` for a fully-wired facade.
     public struct TestRuntime: Sendable {
         public let persistence: MockPersistenceService
         public let llm: MockLLMService
@@ -88,9 +88,15 @@ import PositronicKit
             )
         }
 
-        /// Builds a `PositronicKit` facade wired to this runtime's stores, managers, and services.
-        public func buildCore() -> PositronicKit {
+        /// The `PositronicKit` facade wired to this runtime's stores, managers, and services.
+        public var positronicKit: PositronicKit {
             core
+        }
+
+        /// Returns the `PositronicKit` facade wired to this runtime.
+        @available(*, deprecated, renamed: "positronicKit")
+        public func buildCore() -> PositronicKit {
+            positronicKit
         }
     }
 

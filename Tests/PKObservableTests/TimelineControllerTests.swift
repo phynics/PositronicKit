@@ -11,7 +11,7 @@ struct TimelineControllerTests {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString))
         runtime.llm.mockClient.nextChunks = [["Hello, ", "world!"]]
-        let kit = runtime.buildCore()
+        let kit = runtime.positronicKit
         let timeline = try await kit.timelineManager.createTimeline(title: "Controller")
         let driver = kit.openTimeline(timeline.id)
         let controller = TimelineController(driver)
@@ -29,7 +29,7 @@ struct TimelineControllerTests {
             .appendingPathComponent(UUID().uuidString))
         runtime.llm.mockClient.neverFinishingStreamCallIndices = [1]
         runtime.llm.mockClient.nextResponses = ["second reply"]
-        let kit = runtime.buildCore()
+        let kit = runtime.positronicKit
         let timeline = try await kit.timelineManager.createTimeline(title: "Controller")
         let driver = kit.openTimeline(timeline.id)
         let controller = TimelineController(driver)
