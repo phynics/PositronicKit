@@ -8,28 +8,14 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+## [3.4.0] - 2026-08-04
+
 ### Added
 
 - **Core API clarity (PKAPI-001)**: added canonical `ID`/`IDs` identifier spellings,
   noun-style LLM/workspace/agent queries, `make…` factories, and labeled vector similarity
   arguments. Deprecated 3.x forwarding APIs remain source-compatible, and existing serialized
   keys are preserved explicitly.
-
-- **Code review cleanup (PKCR-001, PKCR-003, PKCR-004, PKCR-006, PKCR-007,
-  PKCR-009, PKCR-010)**: removed unadopted tool-context infrastructure and unused
-  imports, consolidated provider stream/HTTP helpers, split large runtime files,
-  centralized facade dependency wiring, and replaced the retry-default force try
-  and streaming-parser magic threshold. Dynamic sidecar schema dictionaries remain
-  intentional because they represent provider/LLM-defined JSON.
-
-- **Duplicate-content retry gate (PKCR-005)**: new public `DuplicateContentRetryGate`
-  type in `PKUtilities` encapsulates the duplicate-content retry gate logic that was
-  previously duplicated (as a private `Mutex<Bool>` + `markYieldedIfNeeded` helper) in the
-  Ollama and Anthropic provider clients. Both clients now construct a
-  `DuplicateContentRetryGate` and route through `gate.shouldRetry(error:)` /
-  `gate.markYieldedIfNeeded(_:)`; the OpenRouter client's separate
-  `LLMToolCallRecoveryState` mechanism is unaffected. Streaming retry behavior is
-  preserved exactly.
 
 ### Changed
 
@@ -48,6 +34,28 @@ for tagged releases beginning with `1.0.0`.
   deprecated forwarding shims. Every `PKFastEmbedError` case is now documented; associated-value
   labels remain intentionally unchanged for source compatibility. Role labels (`message`,
   `statusCode`, and `validationError`) are deferred to the next major release.
+
+## [3.3.0] - 2026-07-29
+
+### Added
+
+- **Code review cleanup (PKCR-001, PKCR-003, PKCR-004, PKCR-006, PKCR-007,
+  PKCR-009, PKCR-010)**: removed unadopted tool-context infrastructure and unused
+  imports, consolidated provider stream/HTTP helpers, split large runtime files,
+  centralized facade dependency wiring, and replaced the retry-default force try
+  and streaming-parser magic threshold. Dynamic sidecar schema dictionaries remain
+  intentional because they represent provider/LLM-defined JSON.
+
+- **Duplicate-content retry gate (PKCR-005)**: new public `DuplicateContentRetryGate`
+  type in `PKUtilities` encapsulates the duplicate-content retry gate logic that was
+  previously duplicated (as a private `Mutex<Bool>` + `markYieldedIfNeeded` helper) in the
+  Ollama and Anthropic provider clients. Both clients now construct a
+  `DuplicateContentRetryGate` and route through `gate.shouldRetry(error:)` /
+  `gate.markYieldedIfNeeded(_:)`; the OpenRouter client's separate
+  `LLMToolCallRecoveryState` mechanism is unaffected. Streaming retry behavior is
+  preserved exactly.
+
+### Changed
 
 - **Split turn-preparation file (PKCR-008)**: The private `TurnIdempotencyGate`
   and `ExternalToolOutputSubmissionGate` actors (plus the `ReservedToolOutput`
