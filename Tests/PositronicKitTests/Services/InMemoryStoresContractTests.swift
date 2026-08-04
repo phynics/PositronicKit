@@ -25,7 +25,7 @@ struct InMemoryStoresContractTests {
             uri: WorkspaceURI = WorkspaceURI(host: "localhost", path: "/tmp/ws")
         ) -> WorkspaceReference {
             WorkspaceReference(
-                id: id, uri: uri, location: location, originId: originId, tools: []
+                id: id, uri: uri, location: location, originID: originId, tools: []
             )
         }
 
@@ -372,7 +372,7 @@ struct InMemoryStoresContractTests {
             let store = InMemoryMessageStore()
             let timeline = UUID()
             let snapshot = TurnSnapshot(
-                timelineId: timeline,
+                timelineID: timeline,
                 modelName: "test-model",
                 turnCount: 1,
                 maxTurns: 5,
@@ -380,11 +380,11 @@ struct InMemoryStoresContractTests {
             )
             let data = try SerializationUtils.jsonEncoder.encode(snapshot)
             try await store.saveMessage(ConversationMessage(
-                timelineId: timeline, role: .assistant, content: "Pong", snapshotData: data
+                timelineID: timeline, role: .assistant, content: "Pong", snapshotData: data
             ))
             // A user message without snapshot data should be skipped.
             try await store.saveMessage(ConversationMessage(
-                timelineId: timeline, role: .user, content: "Ping"
+                timelineID: timeline, role: .user, content: "Ping"
             ))
 
             let snapshots = try await store.fetchSnapshots(for: timeline)
@@ -397,10 +397,10 @@ struct InMemoryStoresContractTests {
             let store = InMemoryMessageStore()
             let timeline = UUID()
             try await store.saveMessage(ConversationMessage(
-                timelineId: timeline, role: .assistant, content: "no snapshot"
+                timelineID: timeline, role: .assistant, content: "no snapshot"
             ))
             try await store.saveMessage(ConversationMessage(
-                timelineId: timeline, role: .assistant, content: "bad snapshot",
+                timelineID: timeline, role: .assistant, content: "bad snapshot",
                 snapshotData: Data("not json".utf8)
             ))
 

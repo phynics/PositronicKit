@@ -361,8 +361,8 @@ private extension ChatEngine {
 
         await inspector.didComposePrompt(PromptInspection(
             identity: turnIdentity,
-            timelineId: context.timelineId,
-            agentInstanceId: context.agentInstanceId,
+            timelineID: context.timelineId,
+            agentInstanceID: context.agentInstanceId,
             turnIndex: turnIndex,
             model: context.modelName,
             rendered: renderedPrompt,

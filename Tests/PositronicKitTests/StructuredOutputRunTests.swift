@@ -41,7 +41,7 @@ struct StructuredOutputRunTests {
 
         let timeline = try await chat.timelineManager.createTimeline(title: "Structured Output")
         let request = ChatRunRequest(
-            timelineId: timeline.id,
+            timelineID: timeline.id,
             message: "Extract tags",
             tools: [StructuredOutputRunTestsTool().toAnyTool()],
             systemInstructions: "Follow the structured-output instructions exactly.",
@@ -82,7 +82,7 @@ struct StructuredOutputRunTests {
 
         let timeline = try await chat.timelineManager.createTimeline(title: "No Structured Output")
         let stream = try await chat.run(ChatRunRequest(
-            timelineId: timeline.id,
+            timelineID: timeline.id,
             message: "Hello"
         ))
 
@@ -107,7 +107,7 @@ struct StructuredOutputRunTests {
 
         let timeline = try await chat.timelineManager.createTimeline(title: "Minimal Defaults")
         let stream = try await chat.run(ChatRunRequest(
-            timelineId: timeline.id,
+            timelineID: timeline.id,
             message: "Hello"
         ))
 
@@ -135,7 +135,7 @@ struct StructuredOutputRunTests {
 
         let timeline = try await chat.timelineManager.createTimeline(title: "No Sidecars")
         let stream = try await chat.run(ChatRunRequest(
-            timelineId: timeline.id,
+            timelineID: timeline.id,
             message: "Hello",
             sidecars: []
         ))

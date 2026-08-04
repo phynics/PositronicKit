@@ -36,7 +36,7 @@ struct VectorMathTests {
         let vectorB = Array(1...512).reversed().map(Double.init)
 
         let portable = PortableVectorMath.cosineSimilarity(vectorA, vectorB)
-        let dispatched = VectorMath.cosineSimilarity(vectorA, vectorB)
+        let dispatched = VectorMath.cosineSimilarity(between: vectorA, and: vectorB)
 
         #expect(abs(portable - dispatched) < 0.000_000_1)
     }

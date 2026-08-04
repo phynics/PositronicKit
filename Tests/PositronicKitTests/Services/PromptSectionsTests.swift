@@ -19,7 +19,7 @@ private func makeAttachedWS(
     WorkspaceReference(
         uri: makeURI(),
         location: .attached,
-        originId: originId,
+        originID: originId,
         tools: tools,
         status: status,
         contextInjection: contextInjection

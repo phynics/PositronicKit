@@ -97,8 +97,8 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
         let privateTimeline = Timeline(
             id: privateTimelineId,
             title: "[\(name)] Private",
-            attachedWorkspaceIds: [workspace.id],
-            attachedAgentInstanceId: instanceId,
+            attachedWorkspaceIDs: [workspace.id],
+            attachedAgentInstanceID: instanceId,
             isPrivate: true
         )
         try await timelineStore.saveTimeline(privateTimeline)
@@ -108,14 +108,14 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
             id: instanceId,
             name: name,
             description: description,
-            primaryWorkspaceId: workspace.id,
-            privateTimelineId: privateTimelineId
+            primaryWorkspaceID: workspace.id,
+            privateTimelineID: privateTimelineId
         )
         try await instanceStore.saveAgentInstance(instance)
 
         // 4. Log creation to private timeline
         let creationMsg = ConversationMessage(
-            timelineId: privateTimelineId,
+            timelineID: privateTimelineId,
             role: .system,
             content: "[CREATED] Agent instance '\(name)' (\(instanceId.uuidString)) created."
         )

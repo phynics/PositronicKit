@@ -125,7 +125,7 @@ struct PromptSnapshotBuilder {
                     arguments: arguments.mapValues { AnyCodable($0) }
                 )
             },
-            toolCallId: message.toolCallID
+            toolCallID: message.toolCallID
         )
     }
 }

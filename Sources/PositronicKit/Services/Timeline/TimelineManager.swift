@@ -164,8 +164,8 @@ public actor TimelineManager {
         message: String
     ) async -> [any Prompt] {
         let buildContext = PromptBuildContext(
-            timelineId: timelineId,
-            agentInstanceId: agentInstanceId,
+            timelineID: timelineId,
+            agentInstanceID: agentInstanceId,
             message: message
         )
         var sections: [any Prompt] = []

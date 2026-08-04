@@ -184,7 +184,7 @@ enum PromptAssembler {
         let metadata = await buildStructuredMetadata(for: resolvedSections)
 
         let compressionResult = try await tokenBudget.result(
-            for: resolvedSections,
+            forResolvedSections: resolvedSections,
             compressor: compressor,
             structuredDiff: structuredDiff,
             nodeMetadata: metadata,

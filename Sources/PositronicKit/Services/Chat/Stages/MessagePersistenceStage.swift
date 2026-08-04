@@ -120,13 +120,13 @@ struct MessagePersistenceStage: PipelineStage {
         }
 
         return ConversationMessage(
-            timelineId: context.timelineId,
+            timelineID: context.timelineId,
             role: .assistant,
             content: fullResponse,
             recalledMemories: recalledMemories,
             reasoning: fullThinking.isEmpty ? nil : fullThinking,
             toolCalls: toolCallsJSON,
-            agentInstanceId: context.agentInstanceId,
+            agentInstanceID: context.agentInstanceId,
             status: status
         )
     }
@@ -200,14 +200,14 @@ struct MessagePersistenceStage: PipelineStage {
         )
 
         return TurnSnapshot(
-            timelineId: context.timelineId,
-            agentInstanceId: context.agentInstanceId,
+            timelineID: context.timelineId,
+            agentInstanceID: context.agentInstanceId,
             modelName: context.modelName,
             turnCount: context.turnCount,
             maxTurns: context.maxTurns,
             systemInstructions: context.systemInstructions,
             contextSnapshot: contextSnapshot,
-            availableToolIds: context.availableTools.map { $0.callName },
+            availableToolIDs: context.availableTools.map { $0.callName },
             fullResponse: fullResponse,
             fullThinking: fullThinking,
             toolCalls: debugToolCalls,

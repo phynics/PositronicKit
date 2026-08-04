@@ -41,7 +41,7 @@ private actor FakeWorkspaceRepository: WorkspaceCatalog {
             id: UUID(),
             uri: uri,
             location: location,
-            originId: originId,
+            originID: originId,
             rootPath: rootPath
         )
         references[reference.id] = reference

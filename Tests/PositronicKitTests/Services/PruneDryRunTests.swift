@@ -21,7 +21,7 @@ struct PruneDryRunTests {
         let store = MockMessageStore()
         let timelineId = UUID()
         let message = ConversationMessage(
-            timelineId: timelineId,
+            timelineID: timelineId,
             role: .user,
             content: "hello",
             timestamp: Date(timeIntervalSince1970: 0)
@@ -39,7 +39,7 @@ struct PruneDryRunTests {
         let store = InMemoryMessageStore()
         let timelineId = UUID()
         let message = ConversationMessage(
-            timelineId: timelineId,
+            timelineID: timelineId,
             role: .user,
             content: "hello",
             timestamp: Date(timeIntervalSince1970: 0)

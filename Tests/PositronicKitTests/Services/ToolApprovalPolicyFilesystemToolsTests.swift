@@ -77,7 +77,7 @@ final class ToolApprovalPolicyFilesystemToolsTests {
             id: workspaceId,
             uri: #require(WorkspaceURI(parsing: "pk://local")),
             location: .runtime,
-            originId: nil
+            originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await timelineManager.attachWorkspace(workspaceId, to: session.id)

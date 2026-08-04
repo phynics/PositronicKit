@@ -31,7 +31,7 @@ struct TimelineLifecycleInvariantTests {
 
         await #expect(throws: TimelineError.timelineNotFound) {
             _ = try await kit.run(ChatRunRequest(
-                timelineId: missingId,
+                timelineID: missingId,
                 message: "should not be persisted"
             ))
         }
@@ -62,7 +62,7 @@ struct TimelineLifecycleInvariantTests {
 
         await #expect(throws: TimelineError.unavailable) {
             _ = try await kit.run(ChatRunRequest(
-                timelineId: unresolvedId,
+                timelineID: unresolvedId,
                 message: "should not be persisted"
             ))
         }

@@ -90,10 +90,10 @@ public struct TimelineSendTool: PKShared.Tool, Sendable {
         }
 
         let msg = ConversationMessage(
-            timelineId: timelineId,
+            timelineID: timelineId,
             role: .system,
             content: "[Agent \(agentInstanceId.uuidString.prefix(8))]: \(messageContent)",
-            agentInstanceId: agentInstanceId,
+            agentInstanceID: agentInstanceId,
             remoteDepth: nextDepth
         )
         try await messageStore.saveMessage(msg)

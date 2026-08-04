@@ -47,7 +47,7 @@ struct RuntimeToolPolicyFactoryTests {
         let (timelineStore, messageStore) = makeStores()
         let timeline = Timeline(
             workingDirectory: "/tmp/test",
-            attachedAgentInstanceId: UUID()
+            attachedAgentInstanceID: UUID()
         )
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
             for: timeline,
@@ -82,7 +82,7 @@ struct RuntimeToolPolicyFactoryTests {
         let (timelineStore, messageStore) = makeStores()
         let timeline = Timeline(
             workingDirectory: "/tmp/test",
-            attachedAgentInstanceId: UUID()
+            attachedAgentInstanceID: UUID()
         )
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
             for: timeline,
@@ -105,7 +105,7 @@ struct RuntimeToolPolicyFactoryTests {
         let (timelineStore, messageStore) = makeStores()
         let timeline = Timeline(
             workingDirectory: "/tmp/test",
-            attachedAgentInstanceId: UUID()
+            attachedAgentInstanceID: UUID()
         )
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
             for: timeline,
@@ -124,7 +124,7 @@ struct RuntimeToolPolicyFactoryTests {
         let (timelineStore, messageStore) = makeStores()
         let timeline = Timeline(
             workingDirectory: "/tmp/test",
-            attachedAgentInstanceId: UUID()
+            attachedAgentInstanceID: UUID()
         )
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
             for: timeline,

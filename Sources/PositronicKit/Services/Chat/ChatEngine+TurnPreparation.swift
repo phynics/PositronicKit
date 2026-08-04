@@ -257,7 +257,7 @@ extension ChatEngine {
                     cacheHits: report.nodeReports.filter { $0.cacheHit }.count,
                     nodeMetrics: report.nodeReports.map {
                         StructuredCompressionNodeMetric(
-                            nodeId: $0.nodeID,
+                            nodeID: $0.nodeID,
                             path: $0.path,
                             action: String(describing: $0.action),
                             beforeTokens: $0.beforeTokens,
@@ -341,7 +341,7 @@ private extension ChatEngine {
         let diagnostic = TurnDiagnostic(
             dependency: .context,
             operation: "gatherContext",
-            entityId: "turn",
+            entityID: "turn",
             errorIdentity: .init(domain: PKErrorDomain.context, code: 9011),
             message: "Context gathering completed without context data."
         )
@@ -355,7 +355,7 @@ private extension ChatEngine {
         TurnDiagnostic(
             dependency: dependency,
             operation: operation,
-            entityId: entityId,
+            entityID: entityId,
             errorIdentity: ChatEvent.ErrorIdentity.extracting(from: error),
             message: ErrorKit.userFriendlyMessage(for: error)
         )

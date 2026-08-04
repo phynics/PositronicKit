@@ -37,7 +37,7 @@ public actor DefaultWorkspaceCatalog: WorkspaceCatalog {
         let workspace = WorkspaceReference(
             uri: uri,
             location: location,
-            originId: originId,
+            originID: originId,
             rootPath: rootPath
         )
         try await persistenceService.saveWorkspace(workspace)

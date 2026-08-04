@@ -128,7 +128,7 @@ struct GroupedInitToolApprovalPolicyWiringTests {
             id: workspaceId,
             uri: #require(WorkspaceURI(parsing: "pk://local")),
             location: .runtime,
-            originId: nil
+            originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await chat.timelineManager.attachWorkspace(workspaceId, to: timeline.id)

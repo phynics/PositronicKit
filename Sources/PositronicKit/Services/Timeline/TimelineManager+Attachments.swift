@@ -74,7 +74,7 @@ public extension TimelineManager {
                 timelineDegradations[timelineId, default: []].append(TurnDiagnostic(
                     dependency: .workspace,
                     operation: "registerWorkspace",
-                    entityId: "workspace:\(workspaceId.uuidString.prefix(8))",
+                    entityID: "workspace:\(workspaceId.uuidString.prefix(8))",
                     errorIdentity: ChatEvent.ErrorIdentity.extracting(from: error),
                     message: ErrorKit.userFriendlyMessage(for: error)
                 ))
@@ -158,7 +158,7 @@ public extension TimelineManager {
             } catch {
                 let degradation = StoreDegradation(
                     operation: "getWorkspaces.fetchWorkspace",
-                    entityId: "workspace:\(aid.uuidString.prefix(8))",
+                    entityID: "workspace:\(aid.uuidString.prefix(8))",
                     error: error
                 )
                 degradations.append(degradation)

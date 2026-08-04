@@ -34,7 +34,7 @@ public extension TimelineManager {
             let timeline = Timeline(
                 id: timelineId,
                 title: title,
-                attachedWorkspaceIds: []
+                attachedWorkspaceIDs: []
             )
             // workingDirectory stays nil: there is no workspace to point at.
 
@@ -63,7 +63,7 @@ public extension TimelineManager {
         var timeline = Timeline(
             id: timelineId,
             title: title,
-            attachedWorkspaceIds: [workspace.id]
+            attachedWorkspaceIDs: [workspace.id]
         )
         timeline.workingDirectory = timelineWorkspaceURL.path
 
@@ -271,7 +271,7 @@ public extension TimelineManager {
             } catch {
                 degradations.append(StoreDegradation(
                     operation: "deleteTimelinePermanently.fetchTimeline",
-                    entityId: "timeline:\(id.uuidString.prefix(8))",
+                    entityID: "timeline:\(id.uuidString.prefix(8))",
                     error: error
                 ))
             }
@@ -295,7 +295,7 @@ public extension TimelineManager {
                 } catch {
                     degradations.append(StoreDegradation(
                         operation: "deleteTimelinePermanently.removeEphemeralDirectory",
-                        entityId: "timeline:\(id.uuidString.prefix(8))",
+                        entityID: "timeline:\(id.uuidString.prefix(8))",
                         error: error
                     ))
                 }
@@ -308,7 +308,7 @@ public extension TimelineManager {
         } catch {
             degradations.append(StoreDegradation(
                 operation: "deleteTimelinePermanently.deleteMessages",
-                entityId: "timeline:\(id.uuidString.prefix(8))",
+                entityID: "timeline:\(id.uuidString.prefix(8))",
                 error: error
             ))
         }
@@ -320,7 +320,7 @@ public extension TimelineManager {
             } catch {
                 degradations.append(StoreDegradation(
                     operation: "deleteTimelinePermanently.deleteWorkspace",
-                    entityId: "workspace:\(workspaceId.uuidString.prefix(8))",
+                    entityID: "workspace:\(workspaceId.uuidString.prefix(8))",
                     error: error
                 ))
             }
@@ -333,7 +333,7 @@ public extension TimelineManager {
         } catch {
             degradations.append(StoreDegradation(
                 operation: "deleteTimelinePermanently.deleteTimeline",
-                entityId: "timeline:\(id.uuidString.prefix(8))",
+                entityID: "timeline:\(id.uuidString.prefix(8))",
                 error: error
             ))
         }
@@ -384,7 +384,7 @@ private extension TimelineManager {
                 timelineDegradations[timeline.id, default: []].append(TurnDiagnostic(
                     dependency: .workspace,
                     operation: "resolveContextWorkspace",
-                    entityId: "workspace:\(firstId.uuidString.prefix(8))",
+                    entityID: "workspace:\(firstId.uuidString.prefix(8))",
                     errorIdentity: ChatEvent.ErrorIdentity.extracting(from: error),
                     message: ErrorKit.userFriendlyMessage(for: error)
                 ))
@@ -424,7 +424,7 @@ private extension TimelineManager {
                 timelineDegradations[timeline.id, default: []].append(TurnDiagnostic(
                     dependency: .workspace,
                     operation: "registerAttachedWorkspace",
-                    entityId: "workspace:\(attachedId.uuidString.prefix(8))",
+                    entityID: "workspace:\(attachedId.uuidString.prefix(8))",
                     errorIdentity: ChatEvent.ErrorIdentity.extracting(from: error),
                     message: ErrorKit.userFriendlyMessage(for: error)
                 ))

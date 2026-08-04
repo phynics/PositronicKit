@@ -27,7 +27,7 @@ struct TimelineEvictionDeletionTests {
 
         // Seed a persisted message so we can prove eviction does not delete it.
         let seededMessage = ConversationMessage(
-            timelineId: timeline.id,
+            timelineID: timeline.id,
             role: .user,
             content: "seed"
         )
@@ -88,7 +88,7 @@ struct TimelineEvictionDeletionTests {
         )
         let timeline = try await timelineManager.createTimeline()
         try await persistence.saveMessage(ConversationMessage(
-            timelineId: timeline.id, role: .user, content: "hello"
+            timelineID: timeline.id, role: .user, content: "hello"
         ))
 
         await timelineManager.evictTimelineFromMemory(id: timeline.id)
@@ -144,10 +144,10 @@ struct TimelineEvictionDeletionTests {
         let workspaceId = try #require(timeline.attachedWorkspaceIDs.first)
 
         try await persistence.saveMessage(ConversationMessage(
-            timelineId: timeline.id, role: .user, content: "hello"
+            timelineID: timeline.id, role: .user, content: "hello"
         ))
         try await persistence.saveMessage(ConversationMessage(
-            timelineId: timeline.id, role: .assistant, content: "hi there"
+            timelineID: timeline.id, role: .assistant, content: "hi there"
         ))
 
         let result = await timelineManager.deleteTimelinePermanently(id: timeline.id)
@@ -214,7 +214,7 @@ struct TimelineEvictionDeletionTests {
         let workspaceId = try #require(timeline.attachedWorkspaceIDs.first)
 
         try await backing.saveMessage(ConversationMessage(
-            timelineId: timeline.id, role: .user, content: "hello"
+            timelineID: timeline.id, role: .user, content: "hello"
         ))
 
         let result = await timelineManager.deleteTimelinePermanently(id: timeline.id)

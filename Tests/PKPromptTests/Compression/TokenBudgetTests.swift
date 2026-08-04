@@ -191,7 +191,7 @@ struct TokenBudgetTests {
         ])
 
         let result = try await budget.result(
-            for: sections,
+            forResolvedSections: sections,
             compressor: MockCompressor(summarizedText: "short summary")
         ).sections
 
@@ -210,7 +210,7 @@ struct TokenBudgetTests {
         ])
 
         let result = try await budget.result(
-            for: sections,
+            forResolvedSections: sections,
             compressor: MockCompressor(summarizedText: "你好世界")
         ).sections
 
@@ -227,7 +227,7 @@ struct TokenBudgetTests {
         ])
 
         let result = try await budget.result(
-            for: sections,
+            forResolvedSections: sections,
             compressor: MockCompressor(summarizedText: "short summary")
         )
 
@@ -250,7 +250,7 @@ struct TokenBudgetTests {
 
         let tooLongSummary = String(repeating: "你", count: 1000)
         let result = try await budget.result(
-            for: sections,
+            forResolvedSections: sections,
             compressor: MockCompressor(summarizedText: tooLongSummary)
         ).sections
 
@@ -273,7 +273,7 @@ struct TokenBudgetTests {
         let metadata = Dictionary(uniqueKeysWithValues: sections.map { ($0.id, StructuredNodeMetadata(path: $0.path, nodeHash: 1)) })
 
         let result = try await budget.result(
-            for: sections,
+            forResolvedSections: sections,
             compressor: MockCompressor(summarizedText: "short"),
             structuredDiff: diff,
             nodeMetadata: metadata
@@ -308,7 +308,7 @@ struct TokenBudgetTests {
 
         let metadata = Dictionary(uniqueKeysWithValues: sections.map { ($0.id, StructuredNodeMetadata(path: $0.path, nodeHash: 1)) })
         let result = try await budget.result(
-            for: sections,
+            forResolvedSections: sections,
             compressor: MockCompressor(summarizedText: String(repeating: "你", count: 1000)),
             nodeMetadata: metadata
         ).sections

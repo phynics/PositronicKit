@@ -29,10 +29,10 @@ struct TimelineObservationToolsTests {
             let timeline = Timeline(title: "Public Chat")
             try await timelineStore.saveTimeline(timeline)
             try await messageStore.saveMessage(ConversationMessage(
-                timelineId: timeline.id, role: .user, content: "Hello"
+                timelineID: timeline.id, role: .user, content: "Hello"
             ))
             try await messageStore.saveMessage(ConversationMessage(
-                timelineId: timeline.id, role: .assistant, content: "Hi there"
+                timelineID: timeline.id, role: .assistant, content: "Hi there"
             ))
 
             let tool = TimelinePeekTool(messageStore: messageStore, timelineStore: timelineStore)
@@ -53,7 +53,7 @@ struct TimelineObservationToolsTests {
             try await timelineStore.saveTimeline(timeline)
             for i in 0..<60 {
                 try await messageStore.saveMessage(ConversationMessage(
-                    timelineId: timeline.id, role: .user, content: "msg \(i)"
+                    timelineID: timeline.id, role: .user, content: "msg \(i)"
                 ))
             }
 
@@ -75,7 +75,7 @@ struct TimelineObservationToolsTests {
             try await timelineStore.saveTimeline(timeline)
             for i in 0..<15 {
                 try await messageStore.saveMessage(ConversationMessage(
-                    timelineId: timeline.id, role: .user, content: "msg \(i)"
+                    timelineID: timeline.id, role: .user, content: "msg \(i)"
                 ))
             }
 
