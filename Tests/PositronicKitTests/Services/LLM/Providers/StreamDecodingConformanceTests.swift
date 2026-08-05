@@ -298,7 +298,10 @@ struct StreamDecodingConformanceTests {
         #expect(chunks.first?.choices.first?.delta.toolCalls == nil)
     }
 
-    @Test("OpenAI streamed tool_calls survive real transport decode")
+    @Test(
+        "OpenAI streamed tool_calls survive real transport decode",
+        .disabled(if: !networkFrameworkAvailable, "Network framework is unavailable on this platform")
+    )
     func openAIStreamDecodesToolCallFixture() async throws {
         #if canImport(Network)
         let server = try await LocalHTTPServer.start(response: .init(
@@ -331,12 +334,13 @@ struct StreamDecodingConformanceTests {
         #expect(toolCall.function?.name == "lookup_weather")
         #expect(toolCall.function?.arguments == #"{"city":"Berlin"}"#)
         #expect(toolCallChunk.choices.first?.finishReason == "tool_calls")
-        #else
-        Issue.record("Network framework is unavailable on this platform")
         #endif
     }
 
-    @Test("OpenAI plain-text streaming stays unchanged")
+    @Test(
+        "OpenAI plain-text streaming stays unchanged",
+        .disabled(if: !networkFrameworkAvailable, "Network framework is unavailable on this platform")
+    )
     func openAIPlainTextStreamPreservesContent() async throws {
         #if canImport(Network)
         let server = try await LocalHTTPServer.start(response: .init(
@@ -364,8 +368,6 @@ struct StreamDecodingConformanceTests {
 
         #expect(chunks.first?.choices.first?.delta.content == "hello world")
         #expect(chunks.first?.choices.first?.delta.toolCalls == nil)
-        #else
-        Issue.record("Network framework is unavailable on this platform")
         #endif
     }
 
@@ -418,3 +420,11 @@ struct StreamDecodingConformanceTests {
         #expect(chunks.first?.choices.first?.delta.toolCalls == nil)
     }
 }
+
+private let networkFrameworkAvailable: Bool = {
+    #if canImport(Network)
+    true
+    #else
+    false
+    #endif
+}()
