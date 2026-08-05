@@ -3,10 +3,11 @@ import Foundation
 import PKShared
 import PKUtilities
 import PositronicKit
-import XCTest
+import Testing
 
 #if os(Linux) || MiniLMEmbeddings
-final class MiniLMEmbeddingContractTests: XCTestCase {
+@Suite("MiniLM embedding contract")
+struct MiniLMEmbeddingContractTests {
     private func makeService() throws -> LocalEmbeddingService {
         let modelDirectory = try MiniLMTestSupport.requireModelDirectory()
         return try LocalEmbeddingService(miniLMModelDirectory: modelDirectory)
@@ -18,6 +19,7 @@ final class MiniLMEmbeddingContractTests: XCTestCase {
     }
 
     #if os(Linux)
+    @Test("Canonical and deprecated initializers have equivalent semantics")
     func testCanonicalAndDeprecatedMiniLMInitializersHaveEquivalentSemantics() async throws {
         let modelDirectory = try MiniLMTestSupport.requireModelDirectory()
         let inputBudget = EmbeddingInputBudget(
@@ -34,45 +36,49 @@ final class MiniLMEmbeddingContractTests: XCTestCase {
             inputBudget: inputBudget
         )
 
-        XCTAssertEqual(canonical.backendIdentifier, deprecated.backendIdentifier)
-        XCTAssertEqual(canonical.inputBudget, deprecated.inputBudget)
+        #expect(canonical.backendIdentifier == deprecated.backendIdentifier)
+        #expect(canonical.inputBudget == deprecated.inputBudget)
         let canonicalEmbedding = try await canonical.generateEmbedding(for: "Equivalent initializer semantics.")
         let deprecatedEmbedding = try await deprecated.generateEmbedding(for: "Equivalent initializer semantics.")
-        XCTAssertEqual(canonicalEmbedding, deprecatedEmbedding)
+        #expect(canonicalEmbedding == deprecatedEmbedding)
     }
     #endif
 
+    @Test("Constructs a normalized 384-element vector")
     func testConstructsAndEmbedsNormalized384Vector() async throws {
         let service = try makeService()
         let vector = try await service.generateEmbedding(for: "The cat sits on the mat.")
 
-        XCTAssertEqual(service.backendIdentifier, .miniLM)
-        XCTAssertEqual(vector.count, 384)
-        XCTAssertEqual(MiniLMTestSupport.l2Norm(vector), 1, accuracy: 0.00001)
+        #expect(service.backendIdentifier == .miniLM)
+        #expect(vector.count == 384)
+        #expect(abs(MiniLMTestSupport.l2Norm(vector) - 1) < 0.00001)
     }
 
+    @Test("Matches the PKFastEmbed golden vector")
     func testMatchesPKFastEmbedGoldenVector() async throws {
         let service = try makeService()
         let vector = try await service.generateEmbedding(for: "The cat sits on the mat.")
         let expected = try MiniLMTestSupport.goldenVectorPrefix()
 
-        XCTAssertGreaterThanOrEqual(vector.count, expected.count)
+        #expect(vector.count >= expected.count)
         for (actual, golden) in zip(vector, expected) {
-            XCTAssertEqual(actual, golden, accuracy: 0.00001)
+            #expect(abs(actual - golden) < 0.00001)
         }
     }
 
+    @Test("Repeated input is deterministic")
     func testDeterministicForRepeatedInput() async throws {
         let service = try makeService()
         let first = try await service.generateEmbedding(for: "A deterministic fixture sentence.")
         let second = try await service.generateEmbedding(for: "A deterministic fixture sentence.")
 
-        XCTAssertEqual(first.count, second.count)
+        #expect(first.count == second.count)
         for (lhs, rhs) in zip(first, second) {
-            XCTAssertEqual(lhs, rhs, accuracy: 0.00001)
+            #expect(abs(lhs - rhs) < 0.00001)
         }
     }
 
+    @Test("Batch embeddings match single embeddings")
     func testBatchMatchesSingleEmbeddings() async throws {
         let service = try makeService()
         let texts = ["alpha", "beta", "gamma"]
@@ -80,21 +86,23 @@ final class MiniLMEmbeddingContractTests: XCTestCase {
         let batch = try await service.generateEmbeddings(for: texts)
         let singles = try await texts.asyncMap { try await service.generateEmbedding(for: $0) }
 
-        XCTAssertEqual(batch.count, singles.count)
+        #expect(batch.count == singles.count)
         for (lhs, rhs) in zip(batch, singles) {
-            XCTAssertEqual(lhs.count, rhs.count)
+            #expect(lhs.count == rhs.count)
             for (left, right) in zip(lhs, rhs) {
-                XCTAssertEqual(left, right, accuracy: 0.00001)
+                #expect(abs(left - right) < 0.00001)
             }
         }
     }
 
+    @Test("Empty batch returns an empty result")
     func testEmptyBatchReturnsEmptyResult() async throws {
         let service = try makeService()
         let vectors = try await service.generateEmbeddings(for: [])
-        XCTAssertEqual(vectors, [])
+        #expect(vectors.isEmpty)
     }
 
+    @Test("Rejects text over the default byte limit")
     func testRejectsTextOverDefaultByteLimit() async throws {
         let service = try makeService()
         let text = String(repeating: "a", count: EmbeddingBudgetFixture.maxBytesPerText + 1)
@@ -106,6 +114,7 @@ final class MiniLMEmbeddingContractTests: XCTestCase {
         }
     }
 
+    @Test("Rejects a batch over the default text count limit")
     func testRejectsBatchOverDefaultTextCountLimit() async throws {
         let service = try makeService()
         let texts = Array(repeating: "a", count: EmbeddingBudgetFixture.maxTextCount + 1)
@@ -117,6 +126,7 @@ final class MiniLMEmbeddingContractTests: XCTestCase {
         }
     }
 
+    @Test("Rejects a batch over the default total byte limit")
     func testRejectsBatchOverDefaultTotalByteLimit() async throws {
         let service = try makeService()
         let text = String(repeating: "a", count: EmbeddingBudgetFixture.maxBytesPerText)
@@ -129,6 +139,7 @@ final class MiniLMEmbeddingContractTests: XCTestCase {
         }
     }
 
+    @Test("Configured budget propagates into the MiniLM backend")
     func testConfiguredBudgetPropagatesIntoMiniLMBackend() throws {
         let budget = EmbeddingInputBudget(
             maxTextCount: 3,
@@ -137,10 +148,11 @@ final class MiniLMEmbeddingContractTests: XCTestCase {
         )
         let service = try makeService(inputBudget: budget)
 
-        XCTAssertEqual(service.inputBudget, budget)
-        XCTAssertEqual(service.backendInputBudget, budget)
+        #expect(service.inputBudget == budget)
+        #expect(service.backendInputBudget == budget)
     }
 
+    @Test("Configured budget preserves typed limit errors")
     func testMiniLMBackendUsesConfiguredBudgetAndPreservesTypedLimitError() async throws {
         let budget = EmbeddingInputBudget(
             maxTextCount: 3,
@@ -151,14 +163,15 @@ final class MiniLMEmbeddingContractTests: XCTestCase {
 
         do {
             _ = try await service.generateEmbedding(for: "abc")
-            XCTFail("Expected configured per-text budget to be enforced.")
+            Issue.record("Expected configured per-text budget to be enforced.")
         } catch let error as EmbeddingError {
-            XCTAssertEqual(error, .perTextByteLimitExceeded(max: 2, actual: 3))
+            #expect(error == .perTextByteLimitExceeded(max: 2, actual: 3))
         } catch {
-            XCTFail("Expected EmbeddingError, got \(error)")
+            Issue.record("Expected EmbeddingError, got \(error)")
         }
     }
 
+    @Test("Concurrent calls are serialized safely")
     func testConcurrentCallsAreSerializedSafely() async throws {
         let service = try makeService()
         let expected = try await service.generateEmbedding(for: "Concurrent embedding fixture.")
@@ -177,42 +190,44 @@ final class MiniLMEmbeddingContractTests: XCTestCase {
             return results
         }
 
-        XCTAssertEqual(vectors.count, 8)
+        #expect(vectors.count == 8)
         for vector in vectors {
-            XCTAssertEqual(vector, expected)
+            #expect(vector == expected)
         }
     }
 
+    @Test("Related sentences rank above an unrelated sentence")
     func testRelatedSentencesRankAboveUnrelatedSentence() async throws {
         let service = try makeService()
         let anchor = try await service.generateEmbedding(for: "Swift concurrency uses actors for isolation.")
         let related = try await service.generateEmbedding(for: "Actors isolate mutable state in Swift.")
         let unrelated = try await service.generateEmbedding(for: "Bananas grow in tropical climates.")
 
-        XCTAssertGreaterThan(
-            MiniLMTestSupport.cosineSimilarity(anchor, related),
-            MiniLMTestSupport.cosineSimilarity(anchor, unrelated)
+        #expect(
+            MiniLMTestSupport.cosineSimilarity(anchor, related)
+                > MiniLMTestSupport.cosineSimilarity(anchor, unrelated)
         )
     }
 
+    @Test("Validation failures surface stable errors")
     func testValidationFailuresSurfaceStableErrors() throws {
         let sourceDirectory = try MiniLMTestSupport.requireModelDirectory()
 
         let missingDirectory = URL(fileURLWithPath: "/definitely/missing")
-        XCTAssertThrowsError(try constructService(at: missingDirectory)) { error in
-            XCTAssertEqual(error as? EmbeddingError, .modelDirectoryMissing)
+        #expect(throws: EmbeddingError.modelDirectoryMissing) {
+            try constructService(at: missingDirectory)
         }
 
         let missingFileDirectory = try MiniLMTestSupport.makeScratchCopy(of: sourceDirectory)
         try FileManager.default.removeItem(at: missingFileDirectory.appendingPathComponent("tokenizer.json"))
-        XCTAssertThrowsError(try constructService(at: missingFileDirectory)) { error in
-            XCTAssertEqual(error as? EmbeddingError, .modelFilesMissing)
+        #expect(throws: EmbeddingError.modelFilesMissing) {
+            try constructService(at: missingFileDirectory)
         }
 
         let checksumDirectory = try MiniLMTestSupport.makeScratchCopy(of: sourceDirectory)
         try Data("broken".utf8).write(to: checksumDirectory.appendingPathComponent("tokenizer.json"))
-        XCTAssertThrowsError(try constructService(at: checksumDirectory)) { error in
-            XCTAssertEqual(error as? EmbeddingError, .modelChecksumMismatch)
+        #expect(throws: EmbeddingError.modelChecksumMismatch) {
+            try constructService(at: checksumDirectory)
         }
     }
 
@@ -226,14 +241,11 @@ final class MiniLMEmbeddingContractTests: XCTestCase {
     ) async throws {
         do {
             try await operation()
-            XCTFail("Expected an EmbeddingError mentioning \(expectedSnippet).")
+            Issue.record("Expected an EmbeddingError mentioning \(expectedSnippet).")
         } catch let error as EmbeddingError {
-            XCTAssertTrue(
-                error.userFriendlyMessage.contains(expectedSnippet),
-                "Expected snippet '\(expectedSnippet)' in '\(error.userFriendlyMessage)'"
-            )
+            #expect(error.userFriendlyMessage.contains(expectedSnippet))
         } catch {
-            XCTFail("Expected EmbeddingError, got \(error)")
+            Issue.record("Expected EmbeddingError, got \(error)")
         }
     }
 }
