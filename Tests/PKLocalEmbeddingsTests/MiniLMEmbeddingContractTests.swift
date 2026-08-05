@@ -36,10 +36,9 @@ final class MiniLMEmbeddingContractTests: XCTestCase {
 
         XCTAssertEqual(canonical.backendIdentifier, deprecated.backendIdentifier)
         XCTAssertEqual(canonical.inputBudget, deprecated.inputBudget)
-        XCTAssertEqual(
-            try await canonical.generateEmbedding(for: "Equivalent initializer semantics."),
-            try await deprecated.generateEmbedding(for: "Equivalent initializer semantics.")
-        )
+        let canonicalEmbedding = try await canonical.generateEmbedding(for: "Equivalent initializer semantics.")
+        let deprecatedEmbedding = try await deprecated.generateEmbedding(for: "Equivalent initializer semantics.")
+        XCTAssertEqual(canonicalEmbedding, deprecatedEmbedding)
     }
     #endif
 
