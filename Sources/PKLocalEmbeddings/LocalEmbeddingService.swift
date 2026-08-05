@@ -55,7 +55,7 @@ public final class LocalEmbeddingService: EmbeddingServiceProtocol, Sendable {
     #if os(Linux)
     /// Creates a local embedding service backed by the MiniLM model at the supplied directory.
     @available(*, deprecated, renamed: "init(miniLMModelDirectory:inputBudget:)")
-    public init(
+    public convenience init(
         modelDirectory: URL,
         inputBudget: EmbeddingInputBudget = .default
     ) throws {

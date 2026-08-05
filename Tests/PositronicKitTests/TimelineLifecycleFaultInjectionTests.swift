@@ -137,8 +137,7 @@ struct TimelineLifecycleFaultInjectionTests {
         let workspace = TestWorkspace()
 
         let invalidRoot = workspace.root.appendingPathComponent("invalid")
-        try FileManager.default.createDirectory(at: invalidRoot, withIntermediateDirectories: true)
-        try FileManager.default.setAttributes([.immutable: true], ofItemAtPath: invalidRoot.path)
+        try Data().write(to: invalidRoot)
 
         let manager = TimelineManager(
             stores: .init(
@@ -156,8 +155,6 @@ struct TimelineLifecycleFaultInjectionTests {
         } catch {
             // Expected — either TimelineError.unavailable or a filesystem error
         }
-
-        try? FileManager.default.setAttributes([.immutable: false], ofItemAtPath: invalidRoot.path)
 
         let timelinesInStore = persistence.timelines
         #expect(timelinesInStore.allSatisfy { $0.title != "Dir Fail Timeline" },

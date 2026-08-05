@@ -205,7 +205,7 @@ struct StructuredOutputServiceTests {
 
         let service = LLMService(storage: MockConfigurationService(), client: mockClient)
 
-        await #expect(throws: NSError.self) {
+        await #expect(throws: LLMStreamError.self) {
             _ = try await service.sendStructured(
                 "Extract tags",
                 structuredOutput: .jsonObject,
