@@ -10,7 +10,8 @@ import Synchronization
 ///
 /// Inspectable: `workspaces` reads/writes the backing store directly, so tests can seed
 /// workspaces (with tools already attached) or assert on saved state. Mutating a workspace
-/// not present in `workspaces` throws `ToolError.workspaceNotFound`.
+/// not present in `workspaces` throws `ToolError.workspaceNotFound`. Inserts, replacements, and
+/// tool-array mutations each occur in one mutex transaction.
 public final class MockToolPersistence: ToolPersistenceProtocol {
     private let workspacesState = Mutex<[WorkspaceReference]>([])
 

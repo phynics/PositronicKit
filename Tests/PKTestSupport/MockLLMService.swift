@@ -4,6 +4,10 @@ import PKUtilities
 import PositronicKit
 import Synchronization
 
+/// Complete immutable capture of one low-level streaming request.
+///
+/// Histories append this record before the mock returns a configured error, never-finishing
+/// stream, delegated stream, or service-level stubbed stream.
 public struct MockLLMChatCapture: Sendable {
     public let messages: [LLMMessage]
     public let tools: [LLMToolDefinition]?
@@ -13,6 +17,9 @@ public struct MockLLMChatCapture: Sendable {
     public let modelTier: ModelTier
 }
 
+/// Complete immutable capture of one non-streaming send request.
+///
+/// `MockLLMClient` appends this record before surfacing an injected send error.
 public struct MockLLMSendMessageCapture: Sendable {
     public let content: String
     public let responseFormat: LLMResponseFormat?
@@ -29,9 +36,16 @@ public struct MockLLMSendMessageCapture: Sendable {
 /// delay via the injectable `clock`, e.g. `ImmediateClock` for instant tests),
 /// `shouldThrowError`/`errorToThrow`, and `neverFinishingStreamCallIndices` (simulate a
 /// hung stream for cancellation tests).
-/// Call-capture: `lastMessages`/`messageHistory` (every `chatStream` call's messages, in
-/// order), `lastTools`, `lastToolChoice`, `lastResponseFormat`, `lastParameters`, and
-/// `streamCallCount`.
+///
+/// Each call atomically captures its inputs and selects one plan in this order: a matching
+/// never-finishing call index, configured error, one `nextRawStreamChunks` entry, one
+/// `nextChunks` entry, one `nextResponses` entry, then `nextResponse`. Scripts are assigned in
+/// mutex-admission order, which need not match task creation order under concurrency. A normal
+/// text plan consumes at most one `nextToolCalls` entry; the earlier plans do not consume it.
+///
+/// `chatCaptureHistory` and `sendMessageCaptureHistory` retain complete request records,
+/// including calls that later fail; the legacy `last…` fields and `messageHistory` remain
+/// available. No mutex is held while a stream sleeps, yields, or waits for cancellation.
 public final class MockLLMClient: LLMClientProtocol {
     private struct State {
         var nextResponse = ""
@@ -69,8 +83,8 @@ public final class MockLLMClient: LLMClientProtocol {
 
     private let state = Mutex(State())
 
-    /// Clock used to drive inter-chunk delays. Inject `ImmediateClock` in tests for instant
-    /// execution, or leave the default `ContinuousClock` for realistic timing.
+    /// Clock used before each finite raw or text chunk when `nextStreamWait` is set.
+    /// Inject `ImmediateClock` for instant execution, or use the default `ContinuousClock`.
     public let clock: any Clock<Duration>
 
     public var nextResponse: String {
@@ -141,21 +155,22 @@ public final class MockLLMClient: LLMClientProtocol {
         set { state.withLock { $0.nextToolCalls = newValue } }
     }
 
-    /// Support for multi-chunk streaming. If not empty, this takes precedence over nextResponse.
+    /// Queued text-chunk scripts. Raw scripts take precedence; these take precedence over
+    /// `nextResponses` and `nextResponse`.
     public var nextChunks: [[String]] {
         get { state.withLock { $0.nextChunks } }
         set { state.withLock { $0.nextChunks = newValue } }
     }
 
-    /// Raw stream chunks for cases where tests need full control over tool-call delta fragmentation.
-    /// Each inner array represents one `chatStream` invocation.
+    /// Queued raw-chunk scripts for full control over tool-call delta fragmentation.
+    /// Raw scripts take precedence over every content-response script.
     public var nextRawStreamChunks: [[LLMStreamChunk]] {
         get { state.withLock { $0.nextRawStreamChunks } }
         set { state.withLock { $0.nextRawStreamChunks = newValue } }
     }
 
-    /// Optional delay between chunks for testing cancellation.
-    /// Uses `ContinuousClock` dependency — inject `ImmediateClock` in tests for instant execution.
+    /// Optional clock-driven delay before each finite raw or text chunk.
+    /// Stream termination cancels the producer task, and cancellation is checked around the sleep.
     public var nextStreamWait: TimeInterval? {
         get { state.withLock { $0.nextStreamWait } }
         set { state.withLock { $0.nextStreamWait = newValue } }
@@ -165,6 +180,8 @@ public final class MockLLMClient: LLMClientProtocol {
         state.withLock { $0.lastChatCapture }
     }
 
+    /// Complete low-level chat captures in atomic admission order, including failing and
+    /// never-finishing calls.
     public var chatCaptureHistory: [MockLLMChatCapture] {
         state.withLock { $0.chatCaptureHistory }
     }
@@ -173,6 +190,7 @@ public final class MockLLMClient: LLMClientProtocol {
         state.withLock { $0.lastSendMessageCapture }
     }
 
+    /// Complete non-streaming send captures in atomic admission order, including injected errors.
     public var sendMessageCaptureHistory: [MockLLMSendMessageCapture] {
         state.withLock { $0.sendMessageCaptureHistory }
     }
@@ -373,7 +391,15 @@ public final class MockLLMClient: LLMClientProtocol {
 /// (non-streamed reply text), `nextTags`/`nextGeneratedTitle` (tagging/title-generation
 /// stubs), `stubbedStream` (override the stream returned by `chatStream`, bypassing
 /// `mockClient`).
-/// Call-capture: `generatedTitleInputs` (messages passed to each `generateTitle` call).
+///
+/// `chatCaptureHistory`, `sendMessageCaptureHistory`, `chatRequestHistory`, and
+/// `modelTierHistory` capture calls before delegation or `stubbedStream` selection, so errors and
+/// stubs remain observable; `generatedTitleInputs` records every title request. The service starts
+/// configured with `.openAI`; `updateConfiguration` and successful import mark it configured,
+/// while `clearConfiguration` restores `.openAI` and marks it unconfigured. Export/import performs
+/// JSON work after taking a state snapshot and before committing decoded state;
+/// `loadConfiguration` and `restoreFromBackup` are no-op hooks. No lock crosses JSON work,
+/// delegated streaming, stream iteration, or caller-provided execution.
 public final class MockLLMService: LanguageModel, HealthCheckable {
     private struct State: Sendable {
         var mockHealthStatus: HealthStatus = .ok
@@ -459,7 +485,7 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
         set { state.withLock { $0.mockClient = newValue } }
     }
 
-    /// Allows tests to provide a custom stream for chatStream calls.
+    /// Overrides the stream returned by `chatStream`. The request is still captured first.
     public var stubbedStream: AsyncThrowingStream<LLMStreamChunk, Error>? {
         get { state.withLock { $0.stubbedStream } }
         set { state.withLock { $0.stubbedStream = newValue } }
@@ -469,6 +495,7 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
         state.withLock { $0.lastChatRequest }
     }
 
+    /// Complete high-level context requests in atomic admission order.
     public var chatRequestHistory: [LLMChatRequest] {
         state.withLock { $0.chatRequestHistory }
     }
@@ -477,6 +504,7 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
         state.withLock { $0.lastModelTier }
     }
 
+    /// Actual model tiers requested by low-level and high-level chat calls.
     public var modelTierHistory: [ModelTier] {
         state.withLock { $0.modelTierHistory }
     }
@@ -485,6 +513,7 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
         state.withLock { $0.lastChatCapture }
     }
 
+    /// Complete service-level chat captures, including calls returning `stubbedStream`.
     public var chatCaptureHistory: [MockLLMChatCapture] {
         state.withLock { $0.chatCaptureHistory }
     }
@@ -493,6 +522,7 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
         state.withLock { $0.lastSendMessageCapture }
     }
 
+    /// Complete service-level non-streaming send captures.
     public var sendMessageCaptureHistory: [MockLLMSendMessageCapture] {
         state.withLock { $0.sendMessageCaptureHistory }
     }

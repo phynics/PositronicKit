@@ -8,6 +8,28 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Added
+
+- **Downstream PKTestSupport harness contracts**: `PKTestSupport` now builds as a release product
+  and is exercised by an ordinary-import consumer target. Public LLM capture records and complete
+  histories expose messages, tools, response options, generation parameters, model tiers, full
+  context requests, and send options without requiring `@testable import`. These additions are
+  unreleased and are not available in the `3.4.0` tag; downstream consumers should wait for the
+  release containing this entry before updating semver pins.
+
+### Changed
+
+- **Concurrency-safe PKTestSupport mocks**: memory, embedding, LLM, persistence, and tool test
+  doubles now protect logically related state with atomic mutex transactions. LLM scripts have a
+  documented deterministic precedence and capture calls before injected errors or stubbed streams;
+  configuration update/import/clear now maintain truthful configured state; injectable clocks and
+  cancellation remain outside mutex boundaries. `BatchFailingMessageStore` admits exactly its
+  configured threshold under concurrency, composite persistence snapshots `@Sendable` callbacks
+  before awaiting them, and concurrent agent/workspace saves no longer lose updates.
+- **Test helper ownership contracts**: `TestWorkspace` cleanup follows object lifetime, and
+  `TestRuntime.agentInstanceManager` now returns the facade-owned manager instead of constructing a
+  divergent instance. Existing workspace compatibility helpers and public spellings remain.
+
 ## [3.4.0] - 2026-08-04
 
 ### Added

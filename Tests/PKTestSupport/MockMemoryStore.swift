@@ -10,7 +10,8 @@ import Synchronization
 /// directly) and `searchResults` (the fixed result set returned by the embedding-based
 /// `searchMemories(embedding:limit:minSimilarity:)` overload, since a real similarity
 /// search isn't performed). Text/tag-based search overloads filter `memories` directly.
-/// Vacuum/prune operations are no-ops that report zero affected rows.
+/// Vacuum/prune operations are no-ops that report zero affected rows. Each read/modify/write
+/// operation is one mutex transaction, so concurrent saves and updates do not lose unrelated data.
 public final class MockMemoryStore: MemoryStoreProtocol, @unchecked Sendable {
     private struct State: Sendable {
         var memories: [Memory] = []

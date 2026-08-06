@@ -17,6 +17,11 @@ import Synchronization
 /// `memories`, `searchResults`, `messages`, `timelines`, `agentTemplates`, `workspaces`,
 /// `agentInstances` all forward to the underlying focused mocks. `resetDatabase()` clears
 /// every backing store.
+///
+/// Health, durability, request-origin callbacks, and agent instances share one mutex state.
+/// Agent insert-or-replace and each tool-workspace mirror upsert are atomic; the two backing stores
+/// are not a cross-store transaction. Callback values are snapshotted while locked, then invoked
+/// after unlocking, so no mutex crosses an `await` or caller-provided code.
 public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProtocol, TimelinePersistenceProtocol, WorkspaceStore, AgentTemplateStoreProtocol, RequestOriginStoreProtocol, ToolPersistenceProtocol, AgentInstanceStoreProtocol, HealthCheckable {
     private struct State: Sendable {
         var mockHealthStatus: HealthStatus = .ok

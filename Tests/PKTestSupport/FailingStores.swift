@@ -154,7 +154,9 @@ public final class FailingWorkspaceStore: WorkspaceStore, @unchecked Sendable {
 /// fail after a configurable number of successful `saveMessage` calls. Use it to drive
 /// partial-batch / resumable-persistence tests (PKRR-006): set `failAfterSaveCount` to `N`
 /// and the `(N+1)`-th save throws `FailingStoreError.saveFailed`. Set it back to `nil` to
-/// stop failing so a retry can complete the batch.
+/// stop failing so a retry can complete the batch. The call count and threshold are evaluated in
+/// one mutex transaction, so exactly a configured nonnegative `N` concurrently admitted calls
+/// reach the backing store.
 public final class BatchFailingMessageStore: MessageStoreProtocol {
     private struct SaveState: Sendable {
         var failAfterSaveCount: Int?

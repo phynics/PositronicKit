@@ -11,7 +11,9 @@ import Synchronization
 /// returning `mockEmbedding` for everything — useful for similarity-search tests that need
 /// differentiated vectors), and `inputBudget` (mirrors `LocalEmbeddingService`'s validation
 /// so budget-rejection paths can be exercised).
-/// Call-capture: `lastInput` (the most recent single-text embedding request).
+/// Call-capture: `lastInput` (the most recently admitted single-text embedding request).
+/// Each operation snapshots its result configuration once; concurrent batch generation does not
+/// recursively mutate `lastInput` from child tasks.
 public final class MockEmbeddingService: EmbeddingServiceProtocol, @unchecked Sendable {
     private struct State: Sendable {
         var mockEmbedding: [Float] = [0.1, 0.2, 0.3]

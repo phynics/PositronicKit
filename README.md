@@ -217,6 +217,80 @@ Checks formatting and style.
 ```
 Once `journal.compact()` is called, these delta operations are merged directly back into the baseline snapshot for subsequent turns.
 
+## Testing downstream with PKTestSupport
+
+`PKTestSupport` is a public library product for downstream test targets. Import it normally—never
+with `@testable`—to use its mocks, fixtures, stream factories, and `TestRuntime` composition root.
+
+> Release availability: the hardened concurrency and capture-history contracts described below
+> are currently listed under [Unreleased](CHANGELOG.md#unreleased); they are not present in the
+> `3.4.0` tag used in Quick Start. Semver-pinned consumers should adopt them only after a release
+> containing that changelog entry is tagged. Use a local-path override only while developing a
+> coordinated unreleased change, as described in [Releasing](docs/Releasing.md#downstream-cadence).
+
+This example compiles in an ordinary downstream test target with `PKShared`, `PositronicKit`, and
+`PKTestSupport` product dependencies. It uses the single-response fallback deliberately; scripted
+queues are covered separately below.
+
+```swift
+import PKShared
+import PKTestSupport
+import PositronicKit
+import Testing
+
+@Test("captures a complete downstream request")
+func capturesDownstreamRequest() async throws {
+    let llm = MockLLMService()
+    llm.mockClient.nextResponse = "ok"
+
+    let stream = await llm.chatStream(
+        messages: [LLMMessage(role: .user, content: "hello")],
+        tools: nil,
+        toolChoice: nil,
+        responseFormat: .text,
+        generationParameters: GenerationParameters(temperature: 0.2),
+        modelTier: .fast
+    )
+    _ = try await stream.collect()
+
+    #expect(llm.chatCaptureHistory.count == 1)
+    #expect(llm.chatCaptureHistory.last?.messages.first?.content == "hello")
+    #expect(llm.chatCaptureHistory.last?.modelTier == .fast)
+}
+```
+
+The harness contracts are intentionally explicit:
+
+- `MockLLMClient` chooses one stream plan atomically in this precedence order: configured
+  never-finishing call index, configured error, one raw-chunk script, one text-chunk script, one
+  queued full response, then `nextResponse`. A normal text plan consumes at most one queued
+  `nextToolCalls` entry; error, never-finishing, and raw plans do not consume it. FIFO scripts are
+  assigned in mutex-admission order. With concurrent callers, do not infer a mapping from task
+  creation order to queue position.
+- Capture histories are complete atomic snapshots. `MockLLMClient` records chat and send requests
+  before surfacing injected errors; `MockLLMService` records low-level captures and model tiers
+  before returning `stubbedStream`, and records full context requests before delegation. Legacy
+  `last…` properties remain convenience views of the latest capture.
+- `MockLLMService` starts configured with `.openAI`. `updateConfiguration` and successful
+  `importConfiguration` mark it configured; `clearConfiguration` resets to `.openAI` and marks it
+  unconfigured. Export/import performs a real JSON round trip. `loadConfiguration` and
+  `restoreFromBackup` remain no-op test hooks.
+- `MockLLMClient(clock:)` drives `nextStreamWait` through the injected clock before each finite
+  raw or text chunk. Terminating those streams cancels their producer task; cancellation is checked
+  around each clock sleep. The mock never holds its mutex while sleeping, yielding, encoding,
+  decoding, delegating, or invoking a callback.
+- Memory, embedding, LLM, and persistence states use mutex-protected snapshots or atomic
+  read/modify/write operations. `BatchFailingMessageStore` increments its count and decides
+  threshold admission together, and composite request-origin callbacks are snapshotted under lock
+  then awaited after unlocking.
+- `TestWorkspace` creates a unique directory and removes it best-effort on deinitialization. Retain
+  the `TestWorkspace` object—not only its `root` URL—for the entire time the directory is needed.
+- `TestRuntime.timelineManager`, `toolRouter`, and `agentInstanceManager` are the exact
+  facade-owned instances; in particular,
+  `runtime.agentInstanceManager === runtime.positronicKit.agentInstanceManager`.
+  `agentWorkspaceService` and `workspaceManager` remain separate compatibility helpers backed by
+  the runtime's supplied persistence and workspace factory.
+
 ## Package Layout
 
 Core modules:
