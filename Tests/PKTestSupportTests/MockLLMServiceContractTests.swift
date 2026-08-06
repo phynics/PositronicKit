@@ -1,7 +1,25 @@
+import struct JSONSchema.Schema
 import PKShared
 import PKTestSupport
 import PositronicKit
 import Testing
+
+private struct CaptureProbeTool: Tool {
+    let callName = "capture_probe"
+    let name = "Capture Probe"
+    let description = "Verifies that mock service requests preserve tool metadata."
+    let requiresPermission = false
+
+    var parametersSchema: Schema {
+        ToolParameterSchema.object {}.schemaDefinition
+    }
+
+    func canExecute() async -> Bool { true }
+
+    func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
+        .success("captured")
+    }
+}
 
 @Suite("MockLLMService contracts")
 struct MockLLMServiceContractTests {
@@ -38,12 +56,13 @@ struct MockLLMServiceContractTests {
         let history = Message.fixture(content: "earlier")
         let workspace = WorkspaceReference.fixture(rootPath: "/tmp/workspace")
         let parameters = GenerationParameters(topP: 0.8, seed: 99)
+        let tool = AnyTool(CaptureProbeTool(), origin: .named("contract-test"))
         let request = LLMChatRequest(
             userQuery: "question",
             contextNotes: [note],
             memories: [memory],
             chatHistory: [history],
-            tools: [],
+            tools: [tool],
             workspaces: [workspace],
             primaryWorkspace: workspace,
             requestOriginName: "tests",
@@ -61,6 +80,11 @@ struct MockLLMServiceContractTests {
         #expect(captured?.contextNotes.map(\.name) == ["note"])
         #expect(captured?.memories.map(\.id) == [memory.id])
         #expect(captured?.chatHistory.map(\.id) == [history.id])
+        #expect(captured?.tools.map(\.identity) == [tool.identity])
+        #expect(captured?.tools.map(\.callName) == ["capture_probe"])
+        #expect(captured?.tools.map(\.name) == ["Capture Probe"])
+        #expect(captured?.tools.map(\.description) == ["Verifies that mock service requests preserve tool metadata."])
+        #expect(captured?.tools.map(\.origin) == [.named("contract-test")])
         #expect(captured?.workspaces.map(\.id) == [workspace.id])
         #expect(captured?.primaryWorkspace?.id == workspace.id)
         #expect(captured?.requestOriginName == "tests")

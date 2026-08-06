@@ -240,7 +240,7 @@ public final class MockLLMClient: LLMClientProtocol {
         case let .raw(rawChunks, wait):
             let clock = self.clock
 
-            struct RawStreamContext: @unchecked Sendable {
+            struct RawStreamContext: Sendable {
                 let chunks: [LLMStreamChunk]
                 let wait: TimeInterval?
                 let clock: any Clock<Duration>
@@ -281,7 +281,7 @@ public final class MockLLMClient: LLMClientProtocol {
         case let .content(responses, toolCalls, wait):
             let clock = self.clock
 
-            struct StreamContext: @unchecked Sendable {
+            struct StreamContext: Sendable {
                 let responses: [String]
                 let toolCalls: [MockToolCall]?
                 let wait: TimeInterval?
