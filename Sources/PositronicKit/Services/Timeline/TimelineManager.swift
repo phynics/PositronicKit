@@ -209,6 +209,12 @@ public actor TimelineManager {
         await taskRegistry.cancelAndAwait(for: timelineId)
     }
 
+    /// Snapshots the currently registered task without cancelling or removing it.
+    /// Awaiting the returned task joins its complete terminal path, including registry cleanup.
+    func activeTaskCompletion(for timelineId: UUID) async -> Task<Void, Never>? {
+        await taskRegistry.activeTaskCompletion(for: timelineId)
+    }
+
     /// Whether a generation task is currently registered for the timeline.
     func hasActiveTask(for timelineId: UUID) async -> Bool {
         await taskRegistry.hasActiveSend(for: timelineId)

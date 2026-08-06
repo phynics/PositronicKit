@@ -57,6 +57,11 @@ actor TimelineTaskRegistry {
         active.removeValue(forKey: timelineID)
     }
 
+    /// Returns a non-mutating snapshot of the currently registered task for joining.
+    func activeTaskCompletion(for timelineID: UUID) -> Task<Void, Never>? {
+        active[timelineID]?.task
+    }
+
     /// Whether a send is currently active for the timeline.
     func hasActiveSend(for timelineID: UUID) -> Bool {
         active[timelineID] != nil

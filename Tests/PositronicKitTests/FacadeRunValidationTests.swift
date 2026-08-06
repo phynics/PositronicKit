@@ -174,10 +174,14 @@ struct FacadeRunValidationTests {
 
         await probe.waitUntilStarted()
         #expect(await kit.timelineManager.hasActiveTask(for: timeline.id))
+        let activeTaskSnapshot = await kit.timelineManager.activeTaskCompletion(for: timeline.id)
+        let activeTask = try #require(activeTaskSnapshot)
+        #expect(probe.terminationCount == 0)
 
         consumer.cancel()
         await probe.waitUntilTerminated()
         _ = await consumer.result
+        _ = await activeTask.value
 
         #expect(probe.terminationCount == 1)
         #expect(await kit.timelineManager.hasActiveTask(for: timeline.id) == false)
