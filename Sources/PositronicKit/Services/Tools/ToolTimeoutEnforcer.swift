@@ -6,10 +6,12 @@ import PKUtilities
 ///
 /// Extracted from `ToolRouter.executeWithTimeout` (PKARCH-002). The enforcer races a tool's
 /// execution against a wall-clock timeout; whichever finishes first resolves the call. On
-/// timeout the tool task is cancelled best-effort and abandoned — the caller returns
-/// immediately rather than blocking until an uncooperative tool eventually finishes. The
-/// timeout is enforced even for tools whose bodies ignore cooperative cancellation (e.g. a
-/// blocking subprocess or synchronous network call).
+/// timeout the tool task is cancelled best-effort and abandoned. The ad-hoc race does not await a
+/// cancellation-ignoring asynchronous loser, so it can resolve once the timeout wins while the
+/// executor remains available. Prompt timeout delivery still depends on tool implementations
+/// suspending for waits: an ordinary Swift task cannot preempt or isolate synchronous work that
+/// blocks its cooperative executor, including a blocking subprocess wait or synchronous network
+/// call.
 ///
 /// The reported terminal state on timeout depends on the tool's declared `sideEffects`
 /// (PKRR-004):
@@ -18,8 +20,8 @@ import PKUtilities
 /// - `.mutating` / `.externalProcess`: the enforcer throws
 ///   `ToolError.timedOutButMayStillBeRunning` so the caller is informed that the tool may
 ///   still be executing out-of-band and retrying may duplicate side effects. The enforcer
-///   does NOT block waiting for the uncooperative tool — the result is returned promptly,
-///   same as the `.none` case; only the reported status changes.
+///   does not await a cancellation-ignoring asynchronous tool after the timeout wins; subject to
+///   the nonblocking tool contract above, only the reported status changes from the `.none` case.
 ///
 /// The `sleep` closure is injected so tests can substitute an instant-timeout fake clock and
 /// exercise the timeout branch without `Task.sleep`'s real-time delay or a `TimelineManager`.
@@ -72,10 +74,10 @@ package enum ToolTimeoutEnforcer {
 
         // Note: this deliberately does not race the two sides inside a `withThrowingTaskGroup`.
         // A task group waits for every child it started before the group's body returns, even
-        // children it has cancelled — so if the tool body ignores cooperative cancellation (e.g.
-        // a blocking `Thread.sleep` or synchronous network call), a group-based race would block
-        // the timeout path for the tool's full uncooperative duration instead of abandoning it
-        // promptly. Two ad hoc `Task`s below race by reporting into a shared `AsyncStream`, which
+        // children it has cancelled. Two ad hoc `Task`s below instead race by reporting into a
+        // shared `AsyncStream`, so the timeout path does not await a cancellation-ignoring
+        // asynchronous loser. This does not preempt or isolate synchronous work that blocks the
+        // cooperative executor; Tool.execute implementations must suspend for waits. AsyncStream
         // — unlike `CheckedContinuation` — tolerates being yielded into or finished more than
         // once, so a straggling loser can't crash a race that's already been resolved. Outer
         // cancellation is handled explicitly by cancelling both tasks and finishing the stream.
