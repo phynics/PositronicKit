@@ -40,6 +40,14 @@ public final class PositronicKit: Sendable {
 
     let languageModel: any LanguageModel
 
+    /// Whether the injected language model currently has usable provider configuration.
+    ///
+    /// This reads the model's live readiness without exposing provider configuration,
+    /// credentials, or mutation APIs through the facade.
+    public var isLanguageModelConfigured: Bool {
+        get async { await languageModel.isConfigured }
+    }
+
     @available(*, deprecated, renamed: "languageModel")
     var llmService: any LanguageModel { languageModel }
     private let messageStore: any MessageStoreProtocol

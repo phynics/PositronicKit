@@ -13,6 +13,12 @@ PositronicKit provides the public runtime entry point for timeline management, p
 - **Persistence Layer**: A suite of domain-specific store protocols.
 - **Tool System**: Runtime-managed and host-attached tool routing (`ToolRouter`) over shared tool contracts.
 
+### Language Model Readiness
+
+Await ``PositronicKit/isLanguageModelConfigured`` to determine whether the injected language
+model currently has usable provider configuration. The value is read live from the model;
+the facade does not expose provider details, credentials, or configuration mutation.
+
 ### Logging And Errors
 
 - Runtime diagnostics use `swift-log`.
