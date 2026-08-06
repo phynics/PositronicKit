@@ -356,6 +356,10 @@ public final class PositronicKit: Sendable {
     /// - Parameter request: The full turn configuration.
     /// - Returns: An asynchronous stream of chat events.
     public func run(_ request: ChatRunRequest) async throws -> AsyncThrowingStream<ChatEvent, Error> {
+        guard request.maxTurns >= 1 else {
+            throw ChatRunError.invalidMaxTurns(request.maxTurns)
+        }
+
         let resolvedTurnBriefingBuilder = try await resolveTurnBriefingBuilder(
             explicit: nil,
             timelineId: request.timelineID

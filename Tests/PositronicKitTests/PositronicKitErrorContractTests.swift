@@ -14,6 +14,37 @@ import Testing
 /// error identity undetectable.
 @Suite("PositronicKit error contracts")
 struct PositronicKitErrorContractTests {
+    // MARK: - ChatRunError
+
+    @Suite("ChatRunError")
+    struct ChatRunErrorTests {
+        @Test("invalidMaxTurns has a stable public error identity")
+        func stableErrorIdentity() {
+            let error = ChatRunError.invalidMaxTurns(0)
+
+            #expect(error.errorDomain == PKErrorDomain.chat)
+            #expect(error.errorCode == 9008)
+        }
+
+        @Test("invalidMaxTurns explains the invalid value and recovery")
+        func messageAndRemediation() {
+            let error = ChatRunError.invalidMaxTurns(-2)
+
+            #expect(error.userFriendlyMessage == "maxTurns must be at least 1; received -2.")
+            #expect(error.remediation == "Pass a maxTurns value greater than or equal to 1.")
+        }
+
+        @Test("invalidMaxTurns supports equality and checked sendability")
+        func equalityAndSendability() {
+            let error = ChatRunError.invalidMaxTurns(0)
+
+            #expect(error == .invalidMaxTurns(0))
+            #expect(error != .invalidMaxTurns(-1))
+            requireSendable(error)
+        }
+
+        private func requireSendable<T: Sendable>(_: T) {}
+    }
 
     // MARK: - AgentInstanceError
 
