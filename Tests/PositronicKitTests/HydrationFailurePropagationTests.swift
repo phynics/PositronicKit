@@ -26,6 +26,8 @@ struct HydrationFailurePropagationTests {
                 message: "should not reach the engine"
             ))
         }
+
+        #expect(mockLLM.chatCaptureHistory.isEmpty)
     }
 
     @Test("run(_:) throws unavailable when the timeline store fails (PKRR-005)")
@@ -49,5 +51,43 @@ struct HydrationFailurePropagationTests {
         // The hydration attempt must actually have hit the store, proving
         // `resolveTurnBriefingBuilder` didn't short-circuit before reaching it.
         #expect(failingTimelinePersistence.fetchAttemptCount >= 1)
+    }
+
+    @Test("run returns a stream before a provider failure surfaces with typed identity")
+    func providerFailureSurfacesThroughReturnedStream() async throws {
+        let foreignError = NSError(domain: "FacadeRunForeign", code: 91)
+        let mockLLM = MockLLMService()
+        mockLLM.stubbedStream = AsyncThrowingStream { continuation in
+            continuation.finish(throwing: foreignError)
+        }
+        let kit = PositronicKit(configuration: .init(
+            provider: .init(languageModel: mockLLM),
+            persistence: .inMemory()
+        ))
+        let timeline = try await kit.timelineManager.createTimeline()
+
+        let stream = try await kit.run(ChatRunRequest(
+            timelineID: timeline.id,
+            message: "fail during provider streaming"
+        ))
+
+        do {
+            _ = try await stream.collect()
+            Issue.record("Expected the returned stream to surface the provider failure")
+        } catch let error as PipelineError {
+            guard case let .stageFailed(_, underlying) = error else {
+                Issue.record("Expected PipelineError.stageFailed, got \(error)")
+                return
+            }
+            let streamError = try #require(underlying as? LLMStreamError)
+            #expect(streamError.errorDomain == PKErrorDomain.llm)
+            #expect(streamError.errorCode == 1005)
+            #expect((streamError.underlyingError as NSError) === foreignError)
+            let identity = ChatEvent.ErrorIdentity.extracting(from: error)
+            #expect(identity?.domain == PKErrorDomain.llm)
+            #expect(identity?.code == 1005)
+        } catch {
+            Issue.record("Expected a typed pipeline provider failure, got \(error)")
+        }
     }
 }

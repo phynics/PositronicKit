@@ -1,8 +1,10 @@
+// swiftlint:disable file_length
 import Foundation
 import PKTestSupport
 @testable import PKShared
 import PKUtilities
 @testable import PositronicKit
+import Synchronization
 import Testing
 
 @Suite("Facade one-shot operations")
@@ -56,6 +58,31 @@ struct FacadeOneShotTests {
         #expect(events.compactMap { $0.choices.first?.delta.content } == ["one", "two"])
         #expect(try await messageStore.fetchMessages(for: UUID()).isEmpty)
         #expect(try await timelinePersistence.fetchAllTimelines(includeArchived: true).isEmpty)
+    }
+
+    @Test("abandoning one-shot iteration cancels the provider exactly once")
+    func abandoningOneShotIterationCancelsProviderOnce() async throws {
+        let probe = OneShotTerminationProbe()
+        let llm = MockLLMService()
+        llm.stubbedStream = Self.cancellableProviderStream(probe: probe, initialContent: "first")
+        let kit = Self.makeKit(languageModel: llm)
+
+        let consumer = Task {
+            let stream = kit.stream("hi")
+            var iterator = stream.makeAsyncIterator()
+            return try await iterator.next()?.choices.first?.delta.content
+        }
+        defer {
+            consumer.cancel()
+            probe.releaseAll()
+        }
+
+        await probe.waitUntilStarted()
+        let firstContent = try await consumer.value
+        #expect(firstContent == "first")
+        await probe.waitUntilTerminated()
+
+        #expect(probe.terminationCount == 1)
     }
 
     @Test("one-shot result forwards parameters and exposes terminal metadata")
@@ -119,8 +146,9 @@ struct FacadeOneShotTests {
 
     @Test("one-shot cancellation terminates promptly")
     func oneShotCancellation() async throws {
+        let probe = OneShotTerminationProbe()
         let llm = MockLLMService()
-        llm.stubbedStream = AsyncThrowingStream { _ in }
+        llm.stubbedStream = Self.cancellableProviderStream(probe: probe)
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: llm),
             persistence: .init(
@@ -131,9 +159,14 @@ struct FacadeOneShotTests {
         let task = Task {
             try await kit.completeResult("hi", idleTimeout: 60)
         }
+        defer {
+            task.cancel()
+            probe.releaseAll()
+        }
 
-        try await Task.sleep(for: .milliseconds(10))
+        await probe.waitUntilStarted()
         task.cancel()
+        await probe.waitUntilTerminated()
 
         do {
             _ = try await task.value
@@ -142,6 +175,28 @@ struct FacadeOneShotTests {
             // Expected.
         } catch {
             Issue.record("Expected CancellationError, got \(error)")
+        }
+        #expect(probe.terminationCount == 1)
+    }
+
+    @Test("one-shot foreign provider errors retain wrapper and underlying identity")
+    func oneShotForeignProviderErrorIdentity() async throws {
+        let foreignError = NSError(domain: "FacadeOneShotForeign", code: 73)
+        let llm = MockLLMService()
+        llm.stubbedStream = AsyncThrowingStream { continuation in
+            continuation.finish(throwing: foreignError)
+        }
+        let kit = Self.makeKit(languageModel: llm)
+
+        do {
+            _ = try await kit.complete("hi")
+            Issue.record("Expected the foreign provider error to throw")
+        } catch let error as LLMStreamError {
+            #expect(error.errorDomain == PKErrorDomain.llm)
+            #expect(error.errorCode == 1005)
+            #expect((error.underlyingError as NSError) === foreignError)
+        } catch {
+            Issue.record("Expected LLMStreamError.providerStreamFailed, got \(error)")
         }
     }
 
@@ -221,8 +276,9 @@ struct FacadeOneShotTests {
 
     @Test("structured complete propagates cancellation without wrapping")
     func structuredCompleteCancellation() async throws {
+        let probe = OneShotTerminationProbe()
         let llm = MockLLMService()
-        llm.stubbedStream = AsyncThrowingStream { _ in }
+        llm.stubbedStream = Self.cancellableProviderStream(probe: probe)
         let kit = Self.makeKit(languageModel: llm)
         let task = Task {
             try await kit.complete(
@@ -231,9 +287,14 @@ struct FacadeOneShotTests {
                 idleTimeout: 60
             )
         }
+        defer {
+            task.cancel()
+            probe.releaseAll()
+        }
 
-        try await Task.sleep(for: .milliseconds(10))
+        await probe.waitUntilStarted()
         task.cancel()
+        await probe.waitUntilTerminated()
 
         do {
             _ = try await task.value
@@ -243,6 +304,7 @@ struct FacadeOneShotTests {
         } catch {
             Issue.record("Expected CancellationError, got \(error)")
         }
+        #expect(probe.terminationCount == 1)
     }
 
     @Test("structured complete wraps foreign provider stream errors")
@@ -368,6 +430,86 @@ struct FacadeOneShotTests {
             generationParameters: generationParameters
         ))
     }
+
+    private static func cancellableProviderStream(
+        probe: OneShotTerminationProbe,
+        initialContent: String? = nil
+    ) -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        AsyncThrowingStream { continuation in
+            continuation.onTermination = { @Sendable _ in
+                probe.recordTermination()
+            }
+            probe.markStarted()
+            if let initialContent {
+                continuation.yield(ChatStreamResultFactory.textChunk(initialContent))
+            }
+        }
+    }
 }
 
 private struct ForeignStructuredProviderError: Error {}
+
+private final class OneShotTerminationProbe: Sendable {
+    private let started = FacadeTestSignal()
+    private let terminated = FacadeTestSignal()
+    private let count = Mutex(0)
+
+    var terminationCount: Int {
+        count.withLock { $0 }
+    }
+
+    func markStarted() {
+        started.signal()
+    }
+
+    func waitUntilStarted() async {
+        await started.wait()
+    }
+
+    func recordTermination() {
+        count.withLock { $0 += 1 }
+        terminated.signal()
+    }
+
+    func waitUntilTerminated() async {
+        await terminated.wait()
+    }
+
+    func releaseAll() {
+        started.signal()
+        terminated.signal()
+    }
+}
+
+private final class FacadeTestSignal: Sendable {
+    private struct State {
+        var isSignaled = false
+        var waiter: CheckedContinuation<Void, Never>?
+    }
+
+    private let state = Mutex(State())
+
+    func wait() async {
+        await withCheckedContinuation { continuation in
+            let shouldResume = state.withLock { state in
+                guard !state.isSignaled else { return true }
+                precondition(state.waiter == nil)
+                state.waiter = continuation
+                return false
+            }
+            if shouldResume {
+                continuation.resume()
+            }
+        }
+    }
+
+    func signal() {
+        let waiter = state.withLock { state in
+            guard !state.isSignaled else { return nil as CheckedContinuation<Void, Never>? }
+            state.isSignaled = true
+            defer { state.waiter = nil }
+            return state.waiter
+        }
+        waiter?.resume()
+    }
+}

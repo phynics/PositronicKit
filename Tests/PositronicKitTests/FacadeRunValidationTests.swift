@@ -2,6 +2,7 @@ import Foundation
 import PKShared
 import PKTestSupport
 @testable import PositronicKit
+import Synchronization
 import Testing
 
 @Suite("Facade run validation")
@@ -144,6 +145,45 @@ struct FacadeRunValidationTests {
         #expect(harness.languageModel.chatCaptureHistory.count == 1)
     }
 
+    @Test("cancelling facade run iteration cancels the provider and clears its task registration")
+    func cancellingFacadeRunCancelsProviderAndRegistry() async throws {
+        let probe = RunTerminationProbe()
+        let languageModel = MockLLMService()
+        languageModel.stubbedStream = AsyncThrowingStream { continuation in
+            continuation.onTermination = { @Sendable _ in
+                probe.recordTermination()
+            }
+            probe.markStarted()
+        }
+        let kit = PositronicKit(configuration: .init(
+            provider: .init(languageModel: languageModel),
+            persistence: .inMemory(),
+        ))
+        let timeline = try await kit.timelineManager.createTimeline()
+        let stream = try await kit.run(ChatRunRequest(
+            timelineID: timeline.id,
+            message: "cancel this run",
+        ))
+        let consumer = Task {
+            try await stream.collect()
+        }
+        defer {
+            consumer.cancel()
+            probe.releaseAll()
+        }
+
+        await probe.waitUntilStarted()
+        #expect(await kit.timelineManager.hasActiveTask(for: timeline.id))
+
+        consumer.cancel()
+        await probe.waitUntilTerminated()
+        _ = await consumer.result
+        await kit.timelineManager.cancelActiveTaskAndAwait(for: timeline.id)
+
+        #expect(probe.terminationCount == 1)
+        #expect(await kit.timelineManager.hasActiveTask(for: timeline.id) == false)
+    }
+
     private func assertInvalidMaxTurns(_ maxTurns: Int) async throws {
         let languageModel = MockLLMService()
         let messageStore = FailingMessageStore()
@@ -251,5 +291,70 @@ private actor CountingAgentInstanceStore: AgentInstanceStoreProtocol {
 
     func fetchTimelines(attachedToAgent _: UUID) async throws -> [Timeline] {
         []
+    }
+}
+
+private final class RunTerminationProbe: Sendable {
+    private let started = RunTestSignal()
+    private let terminated = RunTestSignal()
+    private let count = Mutex(0)
+
+    var terminationCount: Int {
+        count.withLock { $0 }
+    }
+
+    func markStarted() {
+        started.signal()
+    }
+
+    func waitUntilStarted() async {
+        await started.wait()
+    }
+
+    func recordTermination() {
+        count.withLock { $0 += 1 }
+        terminated.signal()
+    }
+
+    func waitUntilTerminated() async {
+        await terminated.wait()
+    }
+
+    func releaseAll() {
+        started.signal()
+        terminated.signal()
+    }
+}
+
+private final class RunTestSignal: Sendable {
+    private struct State {
+        var isSignaled = false
+        var waiter: CheckedContinuation<Void, Never>?
+    }
+
+    private let state = Mutex(State())
+
+    func wait() async {
+        await withCheckedContinuation { continuation in
+            let shouldResume = state.withLock { state in
+                guard !state.isSignaled else { return true }
+                precondition(state.waiter == nil)
+                state.waiter = continuation
+                return false
+            }
+            if shouldResume {
+                continuation.resume()
+            }
+        }
+    }
+
+    func signal() {
+        let waiter = state.withLock { state in
+            guard !state.isSignaled else { return nil as CheckedContinuation<Void, Never>? }
+            state.isSignaled = true
+            defer { state.waiter = nil }
+            return state.waiter
+        }
+        waiter?.resume()
     }
 }
