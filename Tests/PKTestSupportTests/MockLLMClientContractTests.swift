@@ -116,6 +116,27 @@ struct MockLLMClientContractTests {
         #expect(client.lastSendMessageCapture?.content == "failing")
     }
 
+    @Test("send uses fallback without consuming queued stream responses")
+    func sendUsesFallbackWithoutConsumingQueuedStreamResponses() async throws {
+        let client = MockLLMClient()
+        client.nextResponse = "send-fallback"
+        client.nextResponses = ["stream-one", "stream-two"]
+
+        let sent = try await client.sendMessage(
+            "send",
+            responseFormat: .text,
+            generationParameters: nil
+        )
+        let streamed = try await (0 ..< 2).asyncMap { _ in
+            try await streamText(from: client)
+        }
+
+        #expect(sent == "send-fallback")
+        #expect(streamed == ["stream-one", "stream-two"])
+        #expect(client.sendMessageCaptureHistory.count == 1)
+        #expect(client.chatCaptureHistory.count == 2)
+    }
+
     private func streamText(from client: MockLLMClient) async throws -> String {
         let stream = await client.chatStream(
             messages: [],

@@ -29,7 +29,7 @@ public struct MockLLMSendMessageCapture: Sendable {
 
 /// In-memory `LLMClientProtocol` test double.
 ///
-/// Configurable: `nextResponse`/`nextResponses` (single/sequenced full-text replies),
+/// Configurable: `nextResponse` (single fallback reply), `nextResponses` (sequenced stream replies),
 /// `nextChunks` (multi-chunk streaming), `nextRawStreamChunks` (fully custom
 /// `LLMStreamChunk`s, for exercising tool-call delta fragmentation), `nextToolCalls`
 /// (typed tool calls appended to the last streamed chunk), `nextStreamWait` (inter-chunk
@@ -371,10 +371,7 @@ public final class MockLLMClient: LLMClientProtocol {
             if state.shouldThrowError {
                 return (nil, state.errorToThrow)
             }
-            let response = state.nextResponses.isEmpty
-                ? state.nextResponse
-                : state.nextResponses.removeFirst()
-            return (response, nil)
+            return (state.nextResponse, nil)
         }
 
         if let error = outcome.error { throw error }
