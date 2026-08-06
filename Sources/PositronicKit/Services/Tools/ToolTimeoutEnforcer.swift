@@ -16,12 +16,14 @@ import PKUtilities
 /// The reported terminal state on timeout depends on the tool's declared `sideEffects`
 /// (PKRR-004):
 /// - `.none`: the enforcer throws `ToolError.executionFailed` with a clean timeout message.
-///   This is the only case where the runtime claims the operation stopped.
+///   The clean status reflects the tool's declaration that abandonment and retry are safe;
+///   cancellation remains best-effort and does not claim the operation stopped.
 /// - `.mutating` / `.externalProcess`: the enforcer throws
 ///   `ToolError.timedOutButMayStillBeRunning` so the caller is informed that the tool may
-///   still be executing out-of-band and retrying may duplicate side effects. The enforcer
-///   does not await a cancellation-ignoring asynchronous tool after the timeout wins; subject to
-///   the nonblocking tool contract above, only the reported status changes from the `.none` case.
+///   still be executing, whether as another Swift task or in an external process or service, and
+///   retrying may duplicate side effects. The enforcer does not await a cancellation-ignoring
+///   asynchronous tool after the timeout wins; subject to the nonblocking tool contract above,
+///   only the reported status changes from the `.none` case.
 ///
 /// The `sleep` closure is injected so tests can substitute an instant-timeout fake clock and
 /// exercise the timeout branch without `Task.sleep`'s real-time delay or a `TimelineManager`.
