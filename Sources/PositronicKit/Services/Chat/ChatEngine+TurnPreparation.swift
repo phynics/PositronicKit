@@ -8,6 +8,49 @@ import PKUtilities
 // MARK: - Turn Preparation
 
 extension ChatEngine {
+    struct AgentPreflight: Sendable {
+        let instance: AgentInstance?
+        let diagnostics: [TurnDiagnostic]
+    }
+
+    /// Resolves a requested agent once, before provider readiness or turn persistence.
+    func preflightAgent(id agentId: UUID?) async throws -> AgentPreflight {
+        guard let agentId else {
+            return AgentPreflight(instance: nil, diagnostics: [])
+        }
+
+        let instance: AgentInstance?
+        do {
+            instance = try await dependencies.agentInstanceStore.fetchAgentInstance(id: agentId)
+        } catch {
+            let diagnostic = diagnostic(
+                for: .agent,
+                operation: "fetchAgentInstance",
+                entityId: agentId.uuidString,
+                error: error
+            )
+            try enforceRequired([diagnostic])
+            return AgentPreflight(instance: nil, diagnostics: [diagnostic])
+        }
+
+        guard let instance else {
+            let error = AgentInstanceError.instanceNotFound(agentId)
+            if dependencies.degradationPolicy == .failRequired {
+                throw error
+            }
+            return AgentPreflight(
+                instance: nil,
+                diagnostics: [diagnostic(
+                    for: .agent,
+                    operation: "fetchAgentInstance",
+                    entityId: agentId.uuidString,
+                    error: error
+                )]
+            )
+        }
+        return AgentPreflight(instance: instance, diagnostics: [])
+    }
+
     /// Consolidates all pre-turn logic: saving inputs, gathering context, resolving entities,
     /// and building the initial prompt.
     ///
@@ -27,6 +70,8 @@ extension ChatEngine {
         turnBriefingBuilder: TurnBriefingBuilder?,
         systemInstructions: String?,
         agentInstanceId: UUID?,
+        agentInstance: AgentInstance?,
+        agentDiagnostics: [TurnDiagnostic],
         maxTurns: Int,
         generationParameters: GenerationParameters?,
         structuredOutput: StructuredOutputRequest?,
@@ -119,20 +164,7 @@ extension ChatEngine {
             try enforceRequired(turnDiagnostics)
             await dependencies.timelineManager.touchTimeline(id: timelineId)
             let timeline = await dependencies.timelineManager.timeline(id: timelineId)
-
-            var agentInstance: AgentInstance?
-            if let agentId = agentInstanceId {
-                do {
-                    agentInstance = try await dependencies.agentInstanceStore.fetchAgentInstance(id: agentId)
-                    if agentInstance == nil {
-                        let error = AgentInstanceError.instanceNotFound(agentId)
-                        turnDiagnostics.append(diagnostic(for: .agent, operation: "fetchAgentInstance", entityId: agentId.uuidString, error: error))
-                    }
-                } catch {
-                    turnDiagnostics.append(diagnostic(for: .agent, operation: "fetchAgentInstance", entityId: agentId.uuidString, error: error))
-                    try enforceRequired(turnDiagnostics)
-                }
-            }
+            turnDiagnostics += agentDiagnostics
 
             let requestOriginId = workspaceResult.primary?.originID
                 ?? workspaceResult.attached.lazy.compactMap(\.originID).first
