@@ -51,7 +51,12 @@ struct PublicRuntimeStoriesTests {
     @Test("agentic runtime delegates to the facade-owned manager and tool loop")
     func agenticRuntimeRunsAnAgentTurn() async throws {
         let (kit, mockLLM, _, timelineId, _) = try await makeAcceptanceRuntime()
-        let agentId = UUID()
+        let agent = try await kit.agentInstanceManager.createInstance(
+            from: nil,
+            name: "Acceptance Agent",
+            description: "Exercises the public agentic runtime."
+        )
+        let agentId = agent.id
         let runtime = kit.agenticRuntime(
             timelineID: timelineId,
             agentInstanceID: agentId
