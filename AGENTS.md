@@ -173,22 +173,11 @@ Swift MiniLM matrix. Override `PKFASTEMBED_ASAN_TOOLCHAIN` or
 
 ## Workflow Artifacts
 
-This repo holds **reference docs** (`docs/`, `README.md`) and its own
-**workflow artifacts under `workflow/`**, namespaced by project:
-
-```text
-workflow/PositronicKit/
-  plans/   # design plans
-  specs/   # design specs
-  tickets/ # closed/archived ticket history (README.md is the index)
-```
-
-Historically PositronicKit's workflow artifacts lived at the monad-project workspace
-root under `workflow/PositronicKit/`. As of 2026-08-06 they are tracked in this
-standalone repo. **Open work is filed as GitHub issues on `phynics/PositronicKit`**, not
-as local ticket files; the `workflow/PositronicKit/tickets/` directory keeps only the
-archived/closed batch history. Put new specs/plans under
-`workflow/PositronicKit/plans/…` / `…/specs/…`.
+PositronicKit is a standalone repo. **Open work, planning, and tickets are tracked as
+GitHub issues on `phynics/PositronicKit`** — not as local ticket files or an in-repo
+`workflow/` directory. The historical `workflow/PositronicKit/` artifact set (plans,
+specs, archived tickets) was removed; any needed context is captured in the relevant
+GitHub issues or `docs/`.
 
 ### Downstream consumer compatibility
 
