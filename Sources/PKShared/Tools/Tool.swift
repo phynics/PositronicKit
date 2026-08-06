@@ -126,6 +126,13 @@ public protocol Tool: Sendable, PromptFormattable {
 
     /// Executes the tool logic with the parameters provided by the LLM.
     ///
+    /// Implementations run in ordinary Swift tasks and must remain nonblocking so cancellation
+    /// and wall-clock timeout handling can make progress. Suspend for waits through asynchronous
+    /// APIs; do not directly use `Thread.sleep`, semaphore waits, synchronous networking, or
+    /// blocking subprocess waits. Bridge unavoidable legacy blocking work to an
+    /// implementation-owned queue or thread, or wrap it in an asynchronous API whose lifecycle
+    /// the implementation controls.
+    ///
     /// - Parameter parameters: Dictionary of argument names to `AnyCodable` values (Sendable).
     /// - Returns: A ``ToolResult`` containing the output or error message.
     ///

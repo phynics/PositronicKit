@@ -4,14 +4,51 @@ import Logging
 import PKUtilities
 import PKTestSupport
 @testable import PositronicKit
+import Synchronization
 import Testing
 
-/// Cancellation-ignoring delay used to model an uncooperative async tool without blocking a
-/// cooperative-executor worker. The dispatch timer resumes independently after cancellation.
-private func cancellationIgnoringDelay(_ seconds: TimeInterval) async {
-    await withCheckedContinuation { continuation in
-        DispatchQueue.global().asyncAfter(deadline: .now() + seconds) {
-            continuation.resume()
+/// A one-shot asynchronous latch. Waiting uses a continuation, so task cancellation does not
+/// resume a waiter; `open()` deterministically resumes every current and future waiter.
+private final class AsyncLatch: Sendable {
+    private enum State: Sendable {
+        case closed([CheckedContinuation<Void, Never>])
+        case open
+    }
+
+    private let state = Mutex<State>(.closed([]))
+
+    func wait() async {
+        await withCheckedContinuation { continuation in
+            let resumeImmediately = state.withLock { state in
+                switch state {
+                case var .closed(waiters):
+                    waiters.append(continuation)
+                    state = .closed(waiters)
+                    return false
+                case .open:
+                    return true
+                }
+            }
+
+            if resumeImmediately {
+                continuation.resume()
+            }
+        }
+    }
+
+    func open() {
+        let waiters = state.withLock { state -> [CheckedContinuation<Void, Never>] in
+            switch state {
+            case let .closed(waiters):
+                state = .open
+                return waiters
+            case .open:
+                return []
+            }
+        }
+
+        for waiter in waiters {
+            waiter.resume()
         }
     }
 }
@@ -265,14 +302,14 @@ final class ToolRouterTests {
         }
     }
 
-    /// A tool that blocks its executor thread and ignores cooperative cancellation entirely,
-    /// modelling a synchronous/blocking tool body (e.g. a blocking subprocess or sync network call).
-    struct UncooperativeTool: PKShared.Tool {
+    /// A tool that suspends asynchronously and ignores cooperative cancellation until released.
+    private struct UncooperativeTool: PKShared.Tool {
         let callName = "uncooperative"
         let name = "uncooperative"
-        let description = "A tool that blocks and ignores cancellation"
+        let description = "A tool that suspends and ignores cancellation"
         let requiresPermission = false
-        let blockSeconds: TimeInterval
+        let started: AsyncLatch
+        let release: AsyncLatch
         let parametersSchema = makeEmptyObjectSchema()
 
         func canExecute() async -> Bool {
@@ -280,9 +317,8 @@ final class ToolRouterTests {
         }
 
         func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
-            // This async delay ignores task cancellation, so the timeout must win without awaiting
-            // the delayed completion.
-            await cancellationIgnoringDelay(blockSeconds)
+            started.open()
+            await release.wait()
             return .success("late")
         }
     }
@@ -582,10 +618,15 @@ final class ToolRouterTests {
     @Test("Timeout wins even for tools that ignore cancellation")
     func timeoutBoundsUncooperativeTool() async throws {
         let (timelineManager, mockPersistence) = try await setupTimelineManager()
+        let started = AsyncLatch()
+        let release = AsyncLatch()
+        defer { release.open() }
+
         let toolRouter = ToolRouter(
             timelineManager: timelineManager,
             messageStore: mockPersistence,
-            toolExecutionTimeout: 0.05
+            toolExecutionTimeout: 60,
+            sleep: { _ in await started.wait() }
         )
 
         let session = try await timelineManager.createTimeline()
@@ -602,8 +643,9 @@ final class ToolRouterTests {
 
         let toolManager = await timelineManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
-        // Tool body delays for 3 seconds and ignores cancellation; the 0.05s timeout must win.
-        await toolManager?.updateAvailableTools([UncooperativeTool(blockSeconds: 3).toAnyTool()])
+        await toolManager?.updateAvailableTools([
+            UncooperativeTool(started: started, release: release).toAnyTool(),
+        ])
 
         let call = ParsedToolCall(callId: "call-timeout", name: "uncooperative", argumentsJSON: "{}")
 

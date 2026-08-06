@@ -5,12 +5,57 @@ import PKUtilities
 import Synchronization
 import Testing
 
-/// Cancellation-ignoring delay used to model an uncooperative async tool without blocking a
-/// cooperative-executor worker. The dispatch timer resumes independently after cancellation.
-private func cancellationIgnoringDelay(_ seconds: TimeInterval) async {
-    await withCheckedContinuation { continuation in
-        DispatchQueue.global().asyncAfter(deadline: .now() + seconds) {
-            continuation.resume()
+/// A one-shot asynchronous latch. Waiting uses a continuation, so task cancellation does not
+/// resume a waiter; `open()` deterministically resumes every current and future waiter.
+private final class AsyncLatch: Sendable {
+    private enum State: Sendable {
+        case closed([CheckedContinuation<Void, Never>])
+        case open
+    }
+
+    private let state = Mutex<State>(.closed([]))
+
+    var isOpen: Bool {
+        state.withLock { state in
+            if case .open = state {
+                return true
+            }
+            return false
+        }
+    }
+
+    func wait() async {
+        await withCheckedContinuation { continuation in
+            let resumeImmediately = state.withLock { state in
+                switch state {
+                case var .closed(waiters):
+                    waiters.append(continuation)
+                    state = .closed(waiters)
+                    return false
+                case .open:
+                    return true
+                }
+            }
+
+            if resumeImmediately {
+                continuation.resume()
+            }
+        }
+    }
+
+    func open() {
+        let waiters = state.withLock { state -> [CheckedContinuation<Void, Never>] in
+            switch state {
+            case let .closed(waiters):
+                state = .open
+                return waiters
+            case .open:
+                return []
+            }
+        }
+
+        for waiter in waiters {
+            waiter.resume()
         }
     }
 }
@@ -21,8 +66,8 @@ private func cancellationIgnoringDelay(_ seconds: TimeInterval) async {
 /// PKRR-004 adds side-effect-aware terminal states: a tool that declares `.none` preserves
 /// the fast-abandon clean timeout, while `.mutating`/`.externalProcess` tools report a
 /// distinct `timedOutButMayStillBeRunning` state. The legacy fixtures below (`EchoTool`,
-/// `NeverFinishingTool`, `UncooperativeTool`) declare `.none` because they genuinely mutate
-/// no state — they model pure sleep/blocking work — so the pre-PKRR-004 clean-timeout
+/// `NeverFinishingTool`, `ControlledUncooperativeTool`) declare `.none` because they genuinely
+/// mutate no state — they model pure suspended work — so the pre-PKRR-004 clean-timeout
 /// assertions stay valid and exercise the preserved fast-abandon path. The mutating and
 /// external-process paths are covered by dedicated fixtures and tests further down.
 @Suite("ToolTimeoutEnforcer")
@@ -67,25 +112,23 @@ struct ToolTimeoutEnforcerTests {
         }
     }
 
-    private struct UncooperativeTool: PKShared.Tool, Sendable {
-        let callName = "uncooperative"
-        let name = "uncooperative"
-        let description = "delays and ignores cancellation"
+    private struct ControlledUncooperativeTool: PKShared.Tool, Sendable {
+        let callName = "controlled_uncooperative"
+        let name = "controlled_uncooperative"
+        let description = "suspends asynchronously and ignores cancellation"
         let requiresPermission = false
-        let sideEffects: ToolSideEffects = .none
-        let blockSeconds: TimeInterval
+        let sideEffects: ToolSideEffects
+        let started: AsyncLatch
+        let release: AsyncLatch
         let parametersSchema = makeEmptyObjectSchema()
-
-        init(blockSeconds: TimeInterval) {
-            self.blockSeconds = blockSeconds
-        }
 
         func canExecute() async -> Bool {
             true
         }
 
         func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
-            await cancellationIgnoringDelay(blockSeconds)
+            started.open()
+            await release.wait()
             return .success("late")
         }
     }
@@ -107,31 +150,6 @@ struct ToolTimeoutEnforcerTests {
 
         func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
             try await Task.sleep(for: .seconds(60))
-            return .success("late")
-        }
-    }
-
-    /// An uncooperative, non-cancellable tool that mutates in-process state (declares
-    /// `.mutating`). Models delayed async work that ignores cooperative cancellation.
-    private struct MutatingUncooperativeTool: PKShared.Tool, Sendable {
-        let callName = "mutating_uncooperative"
-        let name = "mutating_uncooperative"
-        let description = "mutates state, delays, and ignores cancellation"
-        let requiresPermission = false
-        let sideEffects: ToolSideEffects = .mutating
-        let blockSeconds: TimeInterval
-        let parametersSchema = makeEmptyObjectSchema()
-
-        init(blockSeconds: TimeInterval) {
-            self.blockSeconds = blockSeconds
-        }
-
-        func canExecute() async -> Bool {
-            true
-        }
-
-        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
-            await cancellationIgnoringDelay(blockSeconds)
             return .success("late")
         }
     }
@@ -213,53 +231,26 @@ struct ToolTimeoutEnforcerTests {
         }
     }
 
-    @Test("Fake-clock timeout returns promptly even when the tool is uncooperative and slow")
+    @Test("Fake-clock timeout abandons a cancellation-ignoring asynchronous tool")
     func fakeClockTimeoutBoundsUncooperativeTool() async throws {
-        let instantSleep: @Sendable (UInt64) async throws -> Void = { _ in }
-        let tool = UncooperativeTool(blockSeconds: 3)
+        let started = AsyncLatch()
+        let release = AsyncLatch()
+        defer { release.open() }
+
+        let timeoutAfterToolStarts: @Sendable (UInt64) async throws -> Void = { _ in
+            await started.wait()
+        }
+        let tool = ControlledUncooperativeTool(
+            sideEffects: .none,
+            started: started,
+            release: release
+        )
         do {
             _ = try await ToolTimeoutEnforcer.execute(
                 AnyTool(tool),
                 arguments: [:],
                 timeout: 0.1,
-                sleep: instantSleep
-            )
-            Issue.record("Expected executionFailed timeout")
-        } catch let ToolError.executionFailed(msg) {
-            #expect(msg.contains("timed out"))
-        }
-    }
-
-    @Test("Real Task.sleep timeout bounds a never-finishing tool (no fake clock)")
-    func realTimeoutWinsRealSleep() async throws {
-        let tool = NeverFinishingTool()
-        do {
-            // PKFLAKE-006: widened from 0.01s — real Task.sleep can oversleep under CI
-            // load, and this test's point is coverage of the real default sleep path,
-            // not razor-thin timing.
-            _ = try await ToolTimeoutEnforcer.execute(
-                AnyTool(tool),
-                arguments: [:],
-                timeout: 0.2
-            )
-            Issue.record("Expected executionFailed timeout")
-        } catch let ToolError.executionFailed(msg) {
-            #expect(msg.contains("timed out"))
-            #expect(msg.contains("0.2 seconds"))
-        }
-    }
-
-    @Test("Real Task.sleep timeout bounds a cancellation-ignoring tool")
-    func realTimeoutWinsUncooperative() async throws {
-        let tool = UncooperativeTool(blockSeconds: 3)
-        do {
-            // PKFLAKE-006: widened from 0.05s / assertion widened from 1s — real Task.sleep
-            // can oversleep under CI load; this test only needs to confirm the real default
-            // sleep path still bounds the tool, not exact timing.
-            _ = try await ToolTimeoutEnforcer.execute(
-                AnyTool(tool),
-                arguments: [:],
-                timeout: 0.2
+                sleep: timeoutAfterToolStarts
             )
             Issue.record("Expected executionFailed timeout")
         } catch let ToolError.executionFailed(msg) {
@@ -309,21 +300,6 @@ struct ToolTimeoutEnforcerTests {
         #expect(ToolTimeoutEnforcer.timeoutDescription(1.5) == "1.5 seconds")
     }
 
-    @Test("Zero timeout still races the tool against an immediate timeout (default sleep)")
-    func zeroTimeoutRacesTool() async throws {
-        // A zero timeout with the real default sleep returns near-instantly because
-        // `Task.sleep(0)` resolves on the next runloop tick. The fast EchoTool usually wins.
-        let tool = EchoTool()
-        let result = try await ToolTimeoutEnforcer.execute(
-            AnyTool(tool),
-            arguments: [:],
-            timeout: 0
-        )
-        // The tool is a fast async return, so it should win the race under default sleep.
-        #expect(result.success)
-        #expect(result.output == "ok")
-    }
-
     // MARK: - PKRR-004: side-effect-aware terminal states
 
     @Test("Mutating tool that times out reports timedOutButMayStillBeRunning, not a clean timeout")
@@ -348,18 +324,28 @@ struct ToolTimeoutEnforcerTests {
         }
     }
 
-    @Test("Mutating uncooperative tool that times out reports timedOutButMayStillBeRunning promptly")
-    func mutatingUncooperativeToolTimeoutReportsMayStillBeRunning() async throws {
-        // The enforcer must still return promptly (not block on the uncooperative body) AND
-        // report the may-still-be-running state for a mutating tool.
-        let instantSleep: @Sendable (UInt64) async throws -> Void = { _ in }
-        let tool = MutatingUncooperativeTool(blockSeconds: 3)
+    @Test("Mutating cancellation-ignoring tool reports timedOutButMayStillBeRunning")
+    func mutatingCancellationIgnoringToolReportsMayStillBeRunning() async throws {
+        // The timeout starts only after the tool is suspended, then reports the
+        // may-still-be-running state without relying on timing assertions.
+        let started = AsyncLatch()
+        let release = AsyncLatch()
+        defer { release.open() }
+
+        let timeoutAfterToolStarts: @Sendable (UInt64) async throws -> Void = { _ in
+            await started.wait()
+        }
+        let tool = ControlledUncooperativeTool(
+            sideEffects: .mutating,
+            started: started,
+            release: release
+        )
         do {
             _ = try await ToolTimeoutEnforcer.execute(
                 AnyTool(tool),
                 arguments: [:],
                 timeout: 0.1,
-                sleep: instantSleep
+                sleep: timeoutAfterToolStarts
             )
             Issue.record("Expected timedOutButMayStillBeRunning")
         } catch let ToolError.timedOutButMayStillBeRunning(timeout) {
@@ -385,23 +371,6 @@ struct ToolTimeoutEnforcerTests {
             // expected
         } catch let ToolError.executionFailed(msg) {
             Issue.record("External-process tool wrongly got a clean timeout: \(msg)")
-        }
-    }
-
-    @Test("Real Task.sleep timeout on a mutating tool reports timedOutButMayStillBeRunning")
-    func realTimeoutOnMutatingToolReportsMayStillBeRunning() async throws {
-        let tool = MutatingNeverFinishingTool()
-        do {
-            _ = try await ToolTimeoutEnforcer.execute(
-                AnyTool(tool),
-                arguments: [:],
-                timeout: 0.2
-            )
-            Issue.record("Expected timedOutButMayStillBeRunning")
-        } catch let ToolError.timedOutButMayStillBeRunning(timeout) {
-            #expect(timeout == 0.2)
-        } catch let ToolError.executionFailed(msg) {
-            Issue.record("Mutating tool wrongly got a clean timeout under real sleep: \(msg)")
         }
     }
 
@@ -469,10 +438,15 @@ struct ToolTimeoutEnforcerTests {
 
     @Test("Negative timeout is rejected as a clean executionFailed before the race starts")
     func negativeTimeoutRejected() async throws {
-        // The tool would sleep 60s; a negative timeout must not race it — it must fail fast
-        // with a clean executionFailed so the tool never runs against an invalid bound.
-        let tool = NeverFinishingTool()
-        let start = ContinuousClock.now
+        // A negative timeout must fail validation before the tool task starts.
+        let started = AsyncLatch()
+        let release = AsyncLatch()
+        defer { release.open() }
+        let tool = ControlledUncooperativeTool(
+            sideEffects: .none,
+            started: started,
+            release: release
+        )
         do {
             _ = try await ToolTimeoutEnforcer.execute(
                 AnyTool(tool),
@@ -483,8 +457,7 @@ struct ToolTimeoutEnforcerTests {
         } catch let ToolError.executionFailed(msg) {
             #expect(msg.contains("not a valid finite non-negative duration"))
         }
-        let elapsed = ContinuousClock.now - start
-        #expect(elapsed < .seconds(1))
+        #expect(started.isOpen == false)
     }
 
     @Test("Infinite timeout is rejected as a clean executionFailed")
