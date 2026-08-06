@@ -2,6 +2,23 @@ import Foundation
 import PKShared
 import PKUtilities
 import PositronicKit
+import Synchronization
+
+public struct MockLLMChatCapture: Sendable {
+    public let messages: [LLMMessage]
+    public let tools: [LLMToolDefinition]?
+    public let toolChoice: LLMToolChoice?
+    public let responseFormat: LLMResponseFormat?
+    public let generationParameters: GenerationParameters?
+    public let modelTier: ModelTier
+}
+
+public struct MockLLMSendMessageCapture: Sendable {
+    public let content: String
+    public let responseFormat: LLMResponseFormat?
+    public let generationParameters: GenerationParameters?
+    public let useUtilityModel: Bool
+}
 
 /// In-memory `LLMClientProtocol` test double.
 ///
@@ -15,42 +32,150 @@ import PositronicKit
 /// Call-capture: `lastMessages`/`messageHistory` (every `chatStream` call's messages, in
 /// order), `lastTools`, `lastToolChoice`, `lastResponseFormat`, `lastParameters`, and
 /// `streamCallCount`.
-public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
+public final class MockLLMClient: LLMClientProtocol {
+    private struct State {
+        var nextResponse = ""
+        var nextResponses: [String] = []
+        var lastMessages: [LLMMessage] = []
+        var messageHistory: [[LLMMessage]] = []
+        var lastTools: [LLMToolDefinition]?
+        var lastToolChoice: LLMToolChoice?
+        var lastResponseFormat: LLMResponseFormat?
+        var lastParameters: GenerationParameters?
+        var shouldThrowError = false
+        var errorToThrow: any Error = NSError(
+            domain: "MockError",
+            code: 1,
+            userInfo: [NSLocalizedDescriptionKey: "Simulated failure"]
+        )
+        var streamCallCount = 0
+        var neverFinishingStreamCallIndices: Set<Int> = []
+        var nextToolCalls: [[MockToolCall]] = []
+        var nextChunks: [[String]] = []
+        var nextRawStreamChunks: [[LLMStreamChunk]] = []
+        var nextStreamWait: TimeInterval?
+        var lastChatCapture: MockLLMChatCapture?
+        var chatCaptureHistory: [MockLLMChatCapture] = []
+        var lastSendMessageCapture: MockLLMSendMessageCapture?
+        var sendMessageCaptureHistory: [MockLLMSendMessageCapture] = []
+    }
+
+    private enum StreamPlan {
+        case neverFinishes
+        case failure(any Error)
+        case raw(chunks: [LLMStreamChunk], wait: TimeInterval?)
+        case content(chunks: [String], toolCalls: [MockToolCall]?, wait: TimeInterval?)
+    }
+
+    private let state = Mutex(State())
+
     /// Clock used to drive inter-chunk delays. Inject `ImmediateClock` in tests for instant
     /// execution, or leave the default `ContinuousClock` for realistic timing.
     public let clock: any Clock<Duration>
-    public var nextResponse: String = ""
-    public var nextResponses: [String] = []
-    public var lastMessages: [LLMMessage] = []
+
+    public var nextResponse: String {
+        get { state.withLock { $0.nextResponse } }
+        set { state.withLock { $0.nextResponse = newValue } }
+    }
+
+    public var nextResponses: [String] {
+        get { state.withLock { $0.nextResponses } }
+        set { state.withLock { $0.nextResponses = newValue } }
+    }
+
+    public var lastMessages: [LLMMessage] {
+        get { state.withLock { $0.lastMessages } }
+        set { state.withLock { $0.lastMessages = newValue } }
+    }
+
     /// Full history of messages passed to each `chatStream` call, in call order. Useful for
     /// asserting on multi-turn tool-loop behavior where `lastMessages` only exposes the final call.
-    public var messageHistory: [[LLMMessage]] = []
-    public var lastTools: [LLMToolDefinition]?
-    public var lastToolChoice: LLMToolChoice?
-    public var lastResponseFormat: LLMResponseFormat?
-    public var lastParameters: GenerationParameters?
-    public var shouldThrowError: Bool = false
-    public var errorToThrow: Error = NSError(
-        domain: "MockError",
-        code: 1,
-        userInfo: [NSLocalizedDescriptionKey: "Simulated failure"]
-    )
-    public var streamCallCount: Int = 0
-    public var neverFinishingStreamCallIndices: Set<Int> = []
+    public var messageHistory: [[LLMMessage]] {
+        get { state.withLock { $0.messageHistory } }
+        set { state.withLock { $0.messageHistory = newValue } }
+    }
+
+    public var lastTools: [LLMToolDefinition]? {
+        get { state.withLock { $0.lastTools } }
+        set { state.withLock { $0.lastTools = newValue } }
+    }
+
+    public var lastToolChoice: LLMToolChoice? {
+        get { state.withLock { $0.lastToolChoice } }
+        set { state.withLock { $0.lastToolChoice = newValue } }
+    }
+
+    public var lastResponseFormat: LLMResponseFormat? {
+        get { state.withLock { $0.lastResponseFormat } }
+        set { state.withLock { $0.lastResponseFormat = newValue } }
+    }
+
+    public var lastParameters: GenerationParameters? {
+        get { state.withLock { $0.lastParameters } }
+        set { state.withLock { $0.lastParameters = newValue } }
+    }
+
+    public var shouldThrowError: Bool {
+        get { state.withLock { $0.shouldThrowError } }
+        set { state.withLock { $0.shouldThrowError = newValue } }
+    }
+
+    public var errorToThrow: Error {
+        get { state.withLock { $0.errorToThrow } }
+        set { state.withLock { $0.errorToThrow = newValue } }
+    }
+
+    public var streamCallCount: Int {
+        get { state.withLock { $0.streamCallCount } }
+        set { state.withLock { $0.streamCallCount = newValue } }
+    }
+
+    public var neverFinishingStreamCallIndices: Set<Int> {
+        get { state.withLock { $0.neverFinishingStreamCallIndices } }
+        set { state.withLock { $0.neverFinishingStreamCallIndices = newValue } }
+    }
 
     /// Typed tool calls for stream simulation.
-    public var nextToolCalls: [[MockToolCall]] = []
+    public var nextToolCalls: [[MockToolCall]] {
+        get { state.withLock { $0.nextToolCalls } }
+        set { state.withLock { $0.nextToolCalls = newValue } }
+    }
 
     /// Support for multi-chunk streaming. If not empty, this takes precedence over nextResponse.
-    public var nextChunks: [[String]] = []
+    public var nextChunks: [[String]] {
+        get { state.withLock { $0.nextChunks } }
+        set { state.withLock { $0.nextChunks = newValue } }
+    }
 
     /// Raw stream chunks for cases where tests need full control over tool-call delta fragmentation.
     /// Each inner array represents one `chatStream` invocation.
-    public var nextRawStreamChunks: [[LLMStreamChunk]] = []
+    public var nextRawStreamChunks: [[LLMStreamChunk]] {
+        get { state.withLock { $0.nextRawStreamChunks } }
+        set { state.withLock { $0.nextRawStreamChunks = newValue } }
+    }
 
     /// Optional delay between chunks for testing cancellation.
     /// Uses `ContinuousClock` dependency — inject `ImmediateClock` in tests for instant execution.
-    public var nextStreamWait: TimeInterval?
+    public var nextStreamWait: TimeInterval? {
+        get { state.withLock { $0.nextStreamWait } }
+        set { state.withLock { $0.nextStreamWait = newValue } }
+    }
+
+    public var lastChatCapture: MockLLMChatCapture? {
+        state.withLock { $0.lastChatCapture }
+    }
+
+    public var chatCaptureHistory: [MockLLMChatCapture] {
+        state.withLock { $0.chatCaptureHistory }
+    }
+
+    public var lastSendMessageCapture: MockLLMSendMessageCapture? {
+        state.withLock { $0.lastSendMessageCapture }
+    }
+
+    public var sendMessageCaptureHistory: [MockLLMSendMessageCapture] {
+        state.withLock { $0.sendMessageCaptureHistory }
+    }
 
     public init(clock: any Clock<Duration> = ContinuousClock()) {
         self.clock = clock
@@ -63,29 +188,56 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
         responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
-        streamCallCount += 1
-        let streamCallIndex = streamCallCount
-        lastMessages = messages
-        messageHistory.append(messages)
-        lastTools = tools
-        lastToolChoice = toolChoice
-        lastResponseFormat = responseFormat
-        lastParameters = generationParameters
+        let plan = state.withLock { state -> StreamPlan in
+            state.streamCallCount += 1
+            let streamCallIndex = state.streamCallCount
+            let capture = MockLLMChatCapture(
+                messages: messages,
+                tools: tools,
+                toolChoice: toolChoice,
+                responseFormat: responseFormat,
+                generationParameters: generationParameters,
+                modelTier: .primary
+            )
+            state.lastMessages = messages
+            state.messageHistory.append(messages)
+            state.lastTools = tools
+            state.lastToolChoice = toolChoice
+            state.lastResponseFormat = responseFormat
+            state.lastParameters = generationParameters
+            state.lastChatCapture = capture
+            state.chatCaptureHistory.append(capture)
 
-        if neverFinishingStreamCallIndices.contains(streamCallIndex) {
-            return AsyncThrowingStream { _ in }
-        }
-
-        if shouldThrowError {
-            return AsyncThrowingStream { continuation in
-                continuation.finish(throwing: errorToThrow)
+            if state.neverFinishingStreamCallIndices.contains(streamCallIndex) {
+                return .neverFinishes
             }
+            if state.shouldThrowError {
+                return .failure(state.errorToThrow)
+            }
+            if !state.nextRawStreamChunks.isEmpty {
+                return .raw(chunks: state.nextRawStreamChunks.removeFirst(), wait: state.nextStreamWait)
+            }
+
+            let responses: [String]
+            if !state.nextChunks.isEmpty {
+                responses = state.nextChunks.removeFirst()
+            } else if !state.nextResponses.isEmpty {
+                responses = [state.nextResponses.removeFirst()]
+            } else {
+                responses = [state.nextResponse]
+            }
+            let toolCalls = state.nextToolCalls.isEmpty ? nil : state.nextToolCalls.removeFirst()
+            return .content(chunks: responses, toolCalls: toolCalls, wait: state.nextStreamWait)
         }
 
-        if !nextRawStreamChunks.isEmpty {
-            let rawChunks = nextRawStreamChunks.removeFirst()
-            let wait = nextStreamWait
-
+        switch plan {
+        case .neverFinishes:
+            return AsyncThrowingStream { _ in }
+        case let .failure(error):
+            return AsyncThrowingStream { continuation in
+                continuation.finish(throwing: error)
+            }
+        case let .raw(rawChunks, wait):
             let clock = self.clock
 
             struct RawStreamContext: @unchecked Sendable {
@@ -126,60 +278,54 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
                     task.cancel()
                 }
             }
-        }
+        case let .content(responses, toolCalls, wait):
+            let clock = self.clock
 
-        let responses = nextChunks.isEmpty
-            ? [nextResponses.isEmpty ? nextResponse : nextResponses.removeFirst()]
-            : nextChunks.removeFirst()
-        let toolCalls = nextToolCalls.isEmpty ? nil : nextToolCalls.removeFirst()
-        let wait = nextStreamWait
+            struct StreamContext: @unchecked Sendable {
+                let responses: [String]
+                let toolCalls: [MockToolCall]?
+                let wait: TimeInterval?
+                let clock: any Clock<Duration>
+            }
+            let ctx = StreamContext(responses: responses, toolCalls: toolCalls, wait: wait, clock: clock)
 
-        let clock = self.clock
-
-        struct StreamContext: @unchecked Sendable {
-            let responses: [String]
-            let toolCalls: [MockToolCall]?
-            let wait: TimeInterval?
-            let clock: any Clock<Duration>
-        }
-        let ctx = StreamContext(responses: responses, toolCalls: toolCalls, wait: wait, clock: clock)
-
-        return AsyncThrowingStream<LLMStreamChunk, Error> { continuation in
-            let task = Task {
-                for (index, chunk) in ctx.responses.enumerated() {
-                    if Task.isCancelled {
-                        continuation.finish(throwing: CancellationError())
-                        return
-                    }
-
-                    if let wait = ctx.wait {
-                        do {
-                            try await ctx.clock.sleep(for: .seconds(wait))
-                        } catch {
-                            continuation.finish(throwing: error)
+            return AsyncThrowingStream<LLMStreamChunk, Error> { continuation in
+                let task = Task {
+                    for (index, chunk) in ctx.responses.enumerated() {
+                        if Task.isCancelled {
+                            continuation.finish(throwing: CancellationError())
                             return
                         }
-                    }
 
-                    if Task.isCancelled {
-                        continuation.finish(throwing: CancellationError())
-                        return
-                    }
+                        if let wait = ctx.wait {
+                            do {
+                                try await ctx.clock.sleep(for: .seconds(wait))
+                            } catch {
+                                continuation.finish(throwing: error)
+                                return
+                            }
+                        }
 
-                    let isLast = index == ctx.responses.count - 1
-                    let result: LLMStreamChunk
-                    if let toolCalls = ctx.toolCalls, isLast {
-                        result = ChatStreamResultFactory.toolCallChunk(calls: toolCalls, content: chunk)
-                    } else {
-                        result = ChatStreamResultFactory.textChunk(chunk, finishReason: isLast ? "stop" : nil)
+                        if Task.isCancelled {
+                            continuation.finish(throwing: CancellationError())
+                            return
+                        }
+
+                        let isLast = index == ctx.responses.count - 1
+                        let result: LLMStreamChunk
+                        if let toolCalls = ctx.toolCalls, isLast {
+                            result = ChatStreamResultFactory.toolCallChunk(calls: toolCalls, content: chunk)
+                        } else {
+                            result = ChatStreamResultFactory.textChunk(chunk, finishReason: isLast ? "stop" : nil)
+                        }
+                        continuation.yield(result)
                     }
-                    continuation.yield(result)
+                    continuation.finish()
                 }
-                continuation.finish()
-            }
 
-            continuation.onTermination = { @Sendable _ in
-                task.cancel()
+                continuation.onTermination = { @Sendable _ in
+                    task.cancel()
+                }
             }
         }
     }
@@ -189,15 +335,32 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
         responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?
     ) async throws -> String {
-        if shouldThrowError {
-            throw errorToThrow
+        let outcome: (response: String?, error: (any Error)?) = state.withLock { state in
+            let capture = MockLLMSendMessageCapture(
+                content: content,
+                responseFormat: responseFormat,
+                generationParameters: generationParameters,
+                useUtilityModel: false
+            )
+            state.lastMessages = [LLMMessage(role: .user, content: content)]
+            state.lastTools = nil
+            state.lastToolChoice = nil
+            state.lastResponseFormat = responseFormat
+            state.lastParameters = generationParameters
+            state.lastSendMessageCapture = capture
+            state.sendMessageCaptureHistory.append(capture)
+
+            if state.shouldThrowError {
+                return (nil, state.errorToThrow)
+            }
+            let response = state.nextResponses.isEmpty
+                ? state.nextResponse
+                : state.nextResponses.removeFirst()
+            return (response, nil)
         }
-        lastMessages = [LLMMessage(role: .user, content: content)]
-        lastTools = nil
-        lastToolChoice = nil
-        lastResponseFormat = responseFormat
-        lastParameters = generationParameters
-        return nextResponse
+
+        if let error = outcome.error { throw error }
+        return outcome.response ?? ""
     }
 }
 
