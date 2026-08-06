@@ -2,7 +2,7 @@
 	audit-default-linkage verify-pin verify verify-macos-default \
 	verify-linux verify-linux-base verify-linux-minimum verify-linux-current \
 	verify-linux-asan \
-	verify-products verify-examples verify-tests verify-macos-minilm \
+	verify-products verify-examples verify-tests verify-pktestsupport verify-macos-minilm \
 	bootstrap-minilm build-minilm verify-minilm \
 	linux-image linux-build linux-test require-container-runtime
 
@@ -68,6 +68,7 @@ help:
 	@echo "  make verify-products       Build every library product declared by Package.swift"
 	@echo "  make verify-examples       Build the PositronicKitExamples executable"
 	@echo "  make verify-tests          Run the test suite"
+	@echo "  make verify-pktestsupport  Build PKTestSupport and an ordinary-import consumer in release mode"
 	@echo "  make verify-pin            Check the pinned MiniLM artifact hashes are consistent"
 	@echo "  make build-minilm          Prepare assets/native bridge and build the MiniLM trait product"
 	@echo "  make verify-minilm         Prepare pinned assets and run MiniLM gates"
@@ -128,7 +129,7 @@ doctor:
 
 verify-macos-default: verify
 
-verify: verify-pin validate-docs verify-doc-snippets audit-default-linkage verify-products verify-examples verify-tests
+verify: verify-pin validate-docs verify-doc-snippets audit-default-linkage verify-products verify-examples verify-pktestsupport verify-tests
 
 verify-linux-base: bootstrap-minilm
 	@echo "Running comprehensive Linux test suite..."
@@ -173,6 +174,12 @@ verify-products:
 verify-examples:
 	@echo "Building PositronicKitExamples..."
 	@swift build --product PositronicKitExamples
+
+verify-pktestsupport:
+	@echo "Building PKTestSupport in release configuration..."
+	@swift build -c release --product PKTestSupport
+	@echo "Compiling an ordinary-import PKTestSupport consumer..."
+	@swift build -c release --target PKTestSupportConsumer
 
 verify-tests: test
 

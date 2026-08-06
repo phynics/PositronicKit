@@ -4,7 +4,6 @@ import PKPrompt
 import PKUtilities
 import PositronicKit
 
-#if DEBUG
     public extension Message {
         static func fixture(
             id: UUID = UUID(),
@@ -133,4 +132,3 @@ import PositronicKit
             )
         }
     }
-#endif

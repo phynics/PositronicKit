@@ -7,6 +7,7 @@ public extension LLMStreamClient {
         _ content: String,
         structuredOutput: StructuredOutputRequest,
         generationParameters: GenerationParameters? = nil,
+        idleTimeout: TimeInterval = 60,
         modelTier: ModelTier = .primary
     ) async throws -> String {
         let stream = await chatStream(
@@ -20,7 +21,18 @@ public extension LLMStreamClient {
         let provider = await configuration.activeProvider
         let content: String
         do {
-            content = try await accumulateStreamContent(from: stream)
+            content = try await StreamIdleTimeout.run(timeout: idleTimeout) { deadline in
+                var fullContent = ""
+                for try await chunk in stream {
+                    if Task.isCancelled { throw CancellationError() }
+                    await deadline.reset()
+                    if let delta = chunk.choices.first?.delta.content {
+                        fullContent += delta
+                    }
+                }
+                if Task.isCancelled { throw CancellationError() }
+                return fullContent
+            }
         } catch {
             throw wrapForeignError(error)
         }

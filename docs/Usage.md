@@ -215,7 +215,7 @@ LoggingSystem.bootstrap { label in
 
 let logger = Logger(label: "com.example.prompt-assembly")
 let events = try await chat.run(ChatRunRequest(
-    timelineId: timelineId,
+    timelineID: timelineId,
     message: "…",
     promptAssemblyLogger: logger
 ))

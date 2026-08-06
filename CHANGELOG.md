@@ -8,8 +8,45 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Added
+
+- **Public facade validation and readiness contracts**: `ChatRunError.invalidMaxTurns` rejects
+  `maxTurns < 1` before timeline, persistence, or provider work, and the live read-only
+  `PositronicKit.isLanguageModelConfigured` property reports the injected model's configuration
+  readiness without exposing provider configuration or mutation APIs.
+- **Downstream PKTestSupport harness contracts**: `PKTestSupport` now builds as a release product
+  and is exercised by an ordinary-import consumer target. Public LLM capture records and complete
+  histories expose messages, tools, response options, generation parameters, model tiers, full
+  context requests, and send options without requiring `@testable import`. These additions are
+  unreleased and are not available in the `3.4.0` tag; downstream consumers should wait for the
+  release containing this entry before updating semver pins.
+
 ### Changed
 
+- **Facade preflight, one-shot, and stream lifecycle behavior**: requests with an
+  `agentInstanceID` resolve the agent once before provider readiness and input persistence;
+  `.failRequired` throws for a missing agent while `.continueWithWarnings` emits an agent
+  diagnostic and proceeds. Structured one-shot completion now accepts per-call generation
+  parameters and a reset-on-chunk inactivity timeout, matching the text one-shot surface.
+  Preparation failures throw from `run(_:)` before it returns, while later provider failures
+  arrive through the returned stream with their causal LLM error identity. Cancelling or
+  abandoning facade stream consumption propagates to provider work and releases registered run
+  tasks; one-shot cancellation remains `CancellationError`.
+- **Consumer-faithful runtime stories and documentation**: public Story suites now compile with
+  ordinary imports, internal-only mechanism stories live under `InternalStories`, and DocC
+  validation rejects future `@testable import` usage in public Stories. Active examples use the
+  canonical `timelineID`, `sendID`, and `agentInstanceID` spellings and document facade validation,
+  readiness, error-delivery, and cancellation boundaries.
+- **Concurrency-safe PKTestSupport mocks**: memory, embedding, LLM, persistence, and tool test
+  doubles now protect logically related state with atomic mutex transactions. LLM scripts have a
+  documented deterministic precedence and capture calls before injected errors or stubbed streams;
+  configuration update/import/clear now maintain truthful configured state; injectable clocks and
+  cancellation remain outside mutex boundaries. `BatchFailingMessageStore` admits exactly its
+  configured threshold under concurrency, composite persistence snapshots `@Sendable` callbacks
+  before awaiting them, and concurrent agent/workspace saves no longer lose updates.
+- **Test helper ownership contracts**: `TestWorkspace` cleanup follows object lifetime, and
+  `TestRuntime.agentInstanceManager` now returns the facade-owned manager instead of constructing a
+  divergent instance. Existing workspace compatibility helpers and public spellings remain.
 - **Nonblocking tool execution contract (PKRR-004)**: clarified that `Tool.execute(parameters:)`
   implementations run in ordinary Swift tasks and must suspend for waits instead of directly
   blocking with thread sleeps, semaphores, synchronous networking, or subprocess waits. The

@@ -3,8 +3,6 @@ import PKShared
 import PKUtilities
 import PositronicKit
 
-#if DEBUG
-
     /// Explicit test composition root for PositronicKit runtime tests.
     ///
     /// `TestRuntime` replaces the former ambient dependency-injection machinery with plain
@@ -13,7 +11,10 @@ import PositronicKit
     /// persistence backing across the timeline manager, tool router, and `PositronicKit`.
     ///
     /// Construct one per test with a unique `workspaceRoot`, then read its fields directly or
-    /// access `positronicKit` for a fully-wired facade.
+    /// access `positronicKit` for a fully-wired facade. `timelineManager`, `toolRouter`, and
+    /// `agentInstanceManager` return the exact facade-owned instances. `agentWorkspaceService`
+    /// and `workspaceManager` remain separately exposed compatibility helpers using the supplied
+    /// persistence and workspace factory.
     public struct TestRuntime: Sendable {
         public let persistence: MockPersistenceService
         public let llm: MockLLMService
@@ -30,13 +31,17 @@ import PositronicKit
         }
 
         public let agentWorkspaceService: DefaultWorkspaceCatalog
-        public let agentInstanceManager: AgentInstanceManager
+        /// The facade-owned manager; identical (`===`) to `positronicKit.agentInstanceManager`.
+        public var agentInstanceManager: AgentInstanceManager {
+            core.agentInstanceManager
+        }
         public let workspaceManager: DefaultWorkspaceResolver
 
         /// Creates a fully-wired runtime. All collaborators default to values built from the
         /// supplied `persistence`, so the whole graph shares one backing store. The
         /// `PositronicKit` facade is the sole place that builds the `TimelineManager` and
-        /// `ToolRouter` it wraps; `timelineManager`/`toolRouter` simply read those back.
+        /// `ToolRouter` and `AgentInstanceManager` it wraps; the corresponding properties simply
+        /// read those instances back.
         ///
         /// - Parameters:
         ///   - workspaceRoot: Unique root directory for this runtime's workspaces.
@@ -73,15 +78,6 @@ import PositronicKit
                 workspacePersistence: persistence
             )
             self.agentWorkspaceService = agentWorkspaceService
-            agentInstanceManager = AgentInstanceManager(
-                repository: agentWorkspaceService,
-                stores: .init(
-                    instanceStore: persistence,
-                    timelineStore: persistence,
-                    messageStore: persistence,
-                    workspaceStore: persistence
-                )
-            )
             workspaceManager = DefaultWorkspaceResolver(
                 repository: agentWorkspaceService,
                 workspaceCreator: workspaceCreator
@@ -99,5 +95,3 @@ import PositronicKit
             positronicKit
         }
     }
-
-#endif

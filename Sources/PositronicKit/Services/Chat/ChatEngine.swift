@@ -239,6 +239,7 @@ struct ChatEngine {
         let sid = timelineId.uuidString.prefix(8).lowercased()
         logger.info("Starting chat stream for timeline \(sid)")
 
+        let agentPreflight = try await preflightAgent(id: agentInstanceId)
         guard await dependencies.llmService.isConfigured else { throw ChatEngineError.llmServiceNotConfigured }
         guard structuredOutput == nil || sidecars.isEmpty else {
             throw SidecarError.conflictsWithExplicitStructuredOutput
@@ -254,6 +255,8 @@ struct ChatEngine {
             turnBriefingBuilder: turnBriefingBuilder,
             systemInstructions: systemInstructions,
             agentInstanceId: agentInstanceId,
+            agentInstance: agentPreflight.instance,
+            agentDiagnostics: agentPreflight.diagnostics,
             maxTurns: maxTurns,
             generationParameters: generationParameters,
             structuredOutput: structuredOutput,

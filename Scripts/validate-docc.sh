@@ -5,6 +5,13 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="${BUILD_DIR:-$ROOT/.build/arm64-apple-macosx/debug}"
 MODULES_DIR="$BUILD_DIR/Modules"
+
+if grep -R -n -E '^[[:space:]]*@testable[[:space:]]+import([[:space:]]|$)' \
+  "$ROOT/Tests/PositronicKitTests/Stories"; then
+  echo "Public Stories must compile with ordinary imports; move internal-only cases to InternalStories." >&2
+  exit 1
+fi
+
 DOCC_BIN="$(xcrun --find docc)"
 SYMBOLGRAPH_BIN="$(xcrun --find swift-symbolgraph-extract)"
 SDK_PATH="$(xcrun --show-sdk-path)"

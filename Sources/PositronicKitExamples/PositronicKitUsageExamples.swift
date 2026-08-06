@@ -283,7 +283,12 @@ public enum PositronicKitUsageExamples {
     /// payload, decodable via `decodeStructuredOutputExample(from:)`/`StructuredOutputDecoder`.
     public static func completeStructuredOutputExample(prompt: String) async throws -> ExampleTagPayload {
         let kit = makeOneShotRuntime()
-        let payload = try await kit.complete(prompt, structuredOutput: makeStructuredOutputRequest())
+        let payload = try await kit.complete(
+            prompt,
+            structuredOutput: makeStructuredOutputRequest(),
+            generationParameters: GenerationParameters(temperature: 0, maxTokens: 128),
+            idleTimeout: 30
+        )
         return try decodeStructuredOutputExample(from: payload)
     }
 
