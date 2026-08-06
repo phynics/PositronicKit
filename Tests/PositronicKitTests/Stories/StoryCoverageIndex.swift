@@ -18,8 +18,6 @@
 ///
 /// Setup stories
 /// - prototype runtime defaults exist → `RuntimeSetupStoriesTests`
-/// - provider convenience initialization (OpenAI / OpenRouter / Ollama) →
-///   `RuntimeSetupStoriesTests`
 /// - invalid provider configuration fails clearly → `RuntimeSetupStoriesTests`
 ///
 /// Public runtime stories
@@ -38,6 +36,7 @@
 ///
 /// Example stories
 /// - introductory prompt journaling flow → `IntroductoryStoriesTests`
+/// - provider convenience initialization (OpenAI / Ollama) → `ExampleUsageStoriesTests`
 /// - README/setup/usage examples stay buildable → `ExampleUsageStoriesTests`
 ///
 /// Internal mechanism stories
