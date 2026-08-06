@@ -56,14 +56,28 @@ struct FacadeRunValidationTests {
     @Test("missing agent continues with a warning when configured")
     func missingAgentContinuesWithWarning() async throws {
         let harness = try await makeAgentHarness(policy: .continueWithWarnings)
+        let agentID = UUID()
         harness.languageModel.mockClient.nextResponse = "continued"
 
         let stream = try await harness.kit.run(ChatRunRequest(
             timelineID: harness.timelineID,
             message: "continue without agent",
-            agentInstanceID: UUID(),
+            agentInstanceID: agentID,
         ))
-        _ = try await stream.collect()
+        let events = try await stream.collect()
+
+        let firstEvent = try #require(events.first)
+        guard case let .meta(.generationContext(metadata)) = firstEvent else {
+            Issue.record("Expected initial generation-context event, got \(firstEvent)")
+            return
+        }
+        let diagnostic = try #require(metadata.diagnostics.first)
+        #expect(metadata.diagnostics.count == 1)
+        #expect(diagnostic.dependency == .agent)
+        #expect(diagnostic.operation == "fetchAgentInstance")
+        #expect(diagnostic.entityID == agentID.uuidString)
+        #expect(diagnostic.errorIdentity?.domain == PKErrorDomain.agent)
+        #expect(diagnostic.errorIdentity?.code == 5001)
 
         #expect(await harness.agentStore.fetchCount == 1)
         #expect(harness.languageModel.chatCaptureHistory.count == 1)
