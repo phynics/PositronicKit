@@ -2,6 +2,7 @@ import Foundation
 import PKShared
 import PKUtilities
 import PositronicKit
+import Synchronization
 
 /// Composite in-memory test double for the full persistence surface (memories, messages,
 /// timelines, agent templates, workspaces, tools, request origins, agent instances,
@@ -16,37 +17,75 @@ import PositronicKit
 /// `memories`, `searchResults`, `messages`, `timelines`, `agentTemplates`, `workspaces`,
 /// `agentInstances` all forward to the underlying focused mocks. `resetDatabase()` clears
 /// every backing store.
-public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProtocol, TimelinePersistenceProtocol, WorkspaceStore, AgentTemplateStoreProtocol, RequestOriginStoreProtocol, ToolPersistenceProtocol, AgentInstanceStoreProtocol, HealthCheckable, @unchecked Sendable {
+public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProtocol, TimelinePersistenceProtocol, WorkspaceStore, AgentTemplateStoreProtocol, RequestOriginStoreProtocol, ToolPersistenceProtocol, AgentInstanceStoreProtocol, HealthCheckable {
+    private struct State: Sendable {
+        var mockHealthStatus: HealthStatus = .ok
+        var mockHealthDetails: [String: String]? = ["mock": "true"]
+        var mockIsDurable = false
+        var saveOriginMock: (@Sendable (RequestOriginIdentity) async throws -> Void)?
+        var fetchOriginMock: (@Sendable (UUID) async throws -> RequestOriginIdentity?)?
+        var fetchAllOriginsMock: (@Sendable () async throws -> [RequestOriginIdentity])?
+        var deleteOriginMock: (@Sendable (UUID) async throws -> Bool)?
+        var agentInstances: [AgentInstance] = []
+    }
+
     private let memoriesMock = MockMemoryStore()
     private let messagesMock = MockMessageStore()
     private let timelinesMock = MockTimelinePersistence()
     private let agentTemplatesMock = MockAgentTemplateStore()
     private let workspacesMock = MockWorkspacePersistence()
     private let toolsMock = MockToolPersistence()
+    private let state = Mutex(State())
 
-    public var mockHealthStatus: HealthStatus = .ok
-    public var mockHealthDetails: [String: String]? = ["mock": "true"]
+    public var mockHealthStatus: HealthStatus {
+        get { state.withLock { $0.mockHealthStatus } }
+        set { state.withLock { $0.mockHealthStatus = newValue } }
+    }
+
+    public var mockHealthDetails: [String: String]? {
+        get { state.withLock { $0.mockHealthDetails } }
+        set { state.withLock { $0.mockHealthDetails = newValue } }
+    }
 
     /// Overrides `isDurable` for all seven store protocol conformances.
     /// Defaults to `false` (matching the protocol default); set to `true` to simulate a
     /// durable (GRDB/SwiftData-backed) store in durability tests.
-    public var mockIsDurable: Bool = false
-    public var isDurable: Bool { mockIsDurable }
+    public var mockIsDurable: Bool {
+        get { state.withLock { $0.mockIsDurable } }
+        set { state.withLock { $0.mockIsDurable = newValue } }
+    }
+
+    public var isDurable: Bool { state.withLock { $0.mockIsDurable } }
 
     // Mocks
-    public var saveOriginMock: ((RequestOriginIdentity) async throws -> Void)?
-    public var fetchOriginMock: ((UUID) async throws -> RequestOriginIdentity?)?
-    public var fetchAllOriginsMock: (() async throws -> [RequestOriginIdentity])?
-    public var deleteOriginMock: ((UUID) async throws -> Bool)?
+    public var saveOriginMock: (@Sendable (RequestOriginIdentity) async throws -> Void)? {
+        get { state.withLock { $0.saveOriginMock } }
+        set { state.withLock { $0.saveOriginMock = newValue } }
+    }
+
+    public var fetchOriginMock: (@Sendable (UUID) async throws -> RequestOriginIdentity?)? {
+        get { state.withLock { $0.fetchOriginMock } }
+        set { state.withLock { $0.fetchOriginMock = newValue } }
+    }
+
+    public var fetchAllOriginsMock: (@Sendable () async throws -> [RequestOriginIdentity])? {
+        get { state.withLock { $0.fetchAllOriginsMock } }
+        set { state.withLock { $0.fetchAllOriginsMock = newValue } }
+    }
+
+    public var deleteOriginMock: (@Sendable (UUID) async throws -> Bool)? {
+        get { state.withLock { $0.deleteOriginMock } }
+        set { state.withLock { $0.deleteOriginMock = newValue } }
+    }
 
     public init() {}
 
     public func getHealthDetails() async -> [String: String]? {
-        mockHealthDetails
+        state.withLock { $0.mockHealthDetails }
     }
 
     public func checkHealth() async -> HealthStatus {
-        mockHealthStatus
+        state.withLock { $0.mockHealthStatus }
     }
 
     // MARK: - MemoryStoreProtocol
@@ -199,11 +238,7 @@ public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProt
 
     public func saveWorkspace(_ workspace: WorkspaceReference) async throws {
         try await workspacesMock.saveWorkspace(workspace)
-        if let idx = toolsMock.workspaces.firstIndex(where: { $0.id == workspace.id }) {
-            toolsMock.workspaces[idx] = workspace
-        } else {
-            toolsMock.workspaces.append(workspace)
-        }
+        toolsMock.upsertWorkspace(workspace)
     }
 
     public func fetchWorkspace(id: UUID, includeTools: Bool = false) async throws -> WorkspaceReference? {
@@ -253,21 +288,25 @@ public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProt
     // MARK: - RequestOriginStoreProtocol
 
     public func saveOrigin(_ origin: RequestOriginIdentity) async throws {
-        if let mock = saveOriginMock { try await mock(origin) }
+        let mock = state.withLock { $0.saveOriginMock }
+        if let mock { try await mock(origin) }
     }
 
     public func fetchOrigin(id: UUID) async throws -> RequestOriginIdentity? {
-        if let mock = fetchOriginMock { return try await mock(id) }
+        let mock = state.withLock { $0.fetchOriginMock }
+        if let mock { return try await mock(id) }
         return nil
     }
 
     public func fetchAllOrigins() async throws -> [RequestOriginIdentity] {
-        if let mock = fetchAllOriginsMock { return try await mock() }
+        let mock = state.withLock { $0.fetchAllOriginsMock }
+        if let mock { return try await mock() }
         return []
     }
 
     public func deleteOrigin(id: UUID) async throws -> Bool {
-        if let mock = deleteOriginMock {
+        let mock = state.withLock { $0.deleteOriginMock }
+        if let mock {
             return try await mock(id)
         }
         return false
@@ -275,26 +314,31 @@ public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProt
 
     // MARK: - AgentInstanceStoreProtocol
 
-    public var agentInstances: [AgentInstance] = []
+    public var agentInstances: [AgentInstance] {
+        get { state.withLock { $0.agentInstances } }
+        set { state.withLock { $0.agentInstances = newValue } }
+    }
 
     public func saveAgentInstance(_ instance: AgentInstance) async throws {
-        if let idx = agentInstances.firstIndex(where: { $0.id == instance.id }) {
-            agentInstances[idx] = instance
-        } else {
-            agentInstances.append(instance)
+        state.withLock {
+            if let index = $0.agentInstances.firstIndex(where: { $0.id == instance.id }) {
+                $0.agentInstances[index] = instance
+            } else {
+                $0.agentInstances.append(instance)
+            }
         }
     }
 
     public func fetchAgentInstance(id: UUID) async throws -> AgentInstance? {
-        agentInstances.first { $0.id == id }
+        state.withLock { $0.agentInstances.first { $0.id == id } }
     }
 
     public func fetchAllAgentInstances() async throws -> [AgentInstance] {
-        agentInstances
+        state.withLock { $0.agentInstances }
     }
 
     public func deleteAgentInstance(id: UUID) async throws {
-        agentInstances.removeAll { $0.id == id }
+        state.withLock { $0.agentInstances.removeAll { $0.id == id } }
     }
 
     public func fetchTimelines(attachedToAgent agentInstanceId: UUID) async throws -> [Timeline] {
@@ -308,7 +352,7 @@ public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProt
         timelines = []
         agentTemplates = []
         workspaces = []
-        agentInstances = []
+        state.withLock { $0.agentInstances = [] }
         toolsMock.workspaces = []
     }
 }
