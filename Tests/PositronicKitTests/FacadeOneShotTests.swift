@@ -6,6 +6,7 @@ import PKUtilities
 import Testing
 
 @Suite("Facade one-shot operations")
+// swiftlint:disable:next type_body_length
 struct FacadeOneShotTests {
     @Test("complete assembles streamed text without persisting a timeline turn")
     func completeIsTimelineFree() async throws {
@@ -168,6 +169,100 @@ struct FacadeOneShotTests {
         #expect(llm.mockClient.lastMessages == [LLMMessage(role: .user, content: "extract tags")])
     }
 
+    @Test("structured complete forwards per-call generation parameters")
+    func structuredCompleteForwardsPerCallGenerationParameters() async throws {
+        let llm = MockLLMService()
+        llm.mockClient.nextChunks = [[#"{"tags":["swift"]}"#]]
+        let kit = Self.makeKit(languageModel: llm)
+        let parameters = GenerationParameters(temperature: 0.2, maxTokens: 24)
+
+        _ = try await kit.complete(
+            "extract tags",
+            structuredOutput: .jsonObject,
+            generationParameters: parameters
+        )
+
+        #expect(llm.mockClient.lastParameters == parameters)
+    }
+
+    @Test("structured complete uses runtime generation parameters by default")
+    func structuredCompleteUsesDefaultGenerationParameters() async throws {
+        let llm = MockLLMService()
+        llm.mockClient.nextChunks = [[#"{"tags":["swift"]}"#]]
+        let defaults = GenerationParameters(temperature: 0.7, maxTokens: 48)
+        let kit = Self.makeKit(languageModel: llm, generationParameters: defaults)
+
+        _ = try await kit.complete("extract tags", structuredOutput: .jsonObject)
+
+        #expect(llm.mockClient.lastParameters == defaults)
+    }
+
+    @Test("structured complete times out when the provider stream stays idle")
+    func structuredCompleteIdleTimeout() async throws {
+        let llm = MockLLMService()
+        llm.stubbedStream = AsyncThrowingStream { _ in }
+        let kit = Self.makeKit(languageModel: llm)
+
+        do {
+            _ = try await kit.complete(
+                "extract tags",
+                structuredOutput: .jsonObject,
+                idleTimeout: 0.01
+            )
+            Issue.record("Expected the stalled structured stream to time out")
+        } catch let error as ChatEngineError {
+            guard case let .streamTimedOut(timeout) = error else {
+                Issue.record("Expected stream timeout, got \(error)")
+                return
+            }
+            #expect(timeout == 0.01)
+        }
+    }
+
+    @Test("structured complete propagates cancellation without wrapping")
+    func structuredCompleteCancellation() async throws {
+        let llm = MockLLMService()
+        llm.stubbedStream = AsyncThrowingStream { _ in }
+        let kit = Self.makeKit(languageModel: llm)
+        let task = Task {
+            try await kit.complete(
+                "extract tags",
+                structuredOutput: .jsonObject,
+                idleTimeout: 60
+            )
+        }
+
+        try await Task.sleep(for: .milliseconds(10))
+        task.cancel()
+
+        do {
+            _ = try await task.value
+            Issue.record("Expected structured one-shot cancellation to throw")
+        } catch is CancellationError {
+            // Expected.
+        } catch {
+            Issue.record("Expected CancellationError, got \(error)")
+        }
+    }
+
+    @Test("structured complete wraps foreign provider stream errors")
+    func structuredCompleteWrapsForeignProviderError() async throws {
+        let llm = MockLLMService()
+        llm.stubbedStream = AsyncThrowingStream { continuation in
+            continuation.finish(throwing: ForeignStructuredProviderError())
+        }
+        let kit = Self.makeKit(languageModel: llm)
+
+        do {
+            _ = try await kit.complete("extract tags", structuredOutput: .jsonObject)
+            Issue.record("Expected the foreign provider error to throw")
+        } catch let LLMStreamError.providerStreamFailed(underlying) {
+            #expect(underlying is ForeignStructuredProviderError)
+        } catch {
+            Issue.record("Expected LLMStreamError.providerStreamFailed, got \(error)")
+        }
+    }
+
     @Test("complete(_:structuredOutput:) assembles the JSON payload from content deltas")
     func completeStructuredOutputAssemblesContentDeltaPayload() async throws {
         let llm = MockLLMService()
@@ -259,4 +354,20 @@ struct FacadeOneShotTests {
             continuation.finish()
         }
     }
+
+    private static func makeKit(
+        languageModel: MockLLMService,
+        generationParameters: GenerationParameters? = nil
+    ) -> PositronicKit {
+        PositronicKit(configuration: .init(
+            provider: .init(languageModel: languageModel),
+            persistence: .init(
+                messageStore: InMemoryMessageStore(),
+                timelinePersistence: InMemoryTimelinePersistence()
+            ),
+            generationParameters: generationParameters
+        ))
+    }
 }
+
+private struct ForeignStructuredProviderError: Error {}
