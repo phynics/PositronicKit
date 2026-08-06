@@ -153,7 +153,7 @@ struct FacadeRunValidationTests {
             continuation.onTermination = { @Sendable _ in
                 probe.recordTermination()
             }
-            probe.markStarted()
+            continuation.yield(ChatStreamResultFactory.textChunk("provider-started"))
         }
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: languageModel),
@@ -165,7 +165,12 @@ struct FacadeRunValidationTests {
             message: "cancel this run",
         ))
         let consumer = Task {
-            try await stream.collect()
+            for try await event in stream {
+                if case let .delta(.generation(text)) = event,
+                   text == "provider-started" {
+                    probe.markStarted()
+                }
+            }
         }
         defer {
             consumer.cancel()
