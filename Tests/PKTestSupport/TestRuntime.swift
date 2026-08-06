@@ -28,7 +28,9 @@ import PositronicKit
         }
 
         public let agentWorkspaceService: DefaultWorkspaceCatalog
-        public let agentInstanceManager: AgentInstanceManager
+        public var agentInstanceManager: AgentInstanceManager {
+            core.agentInstanceManager
+        }
         public let workspaceManager: DefaultWorkspaceResolver
 
         /// Creates a fully-wired runtime. All collaborators default to values built from the
@@ -71,15 +73,6 @@ import PositronicKit
                 workspacePersistence: persistence
             )
             self.agentWorkspaceService = agentWorkspaceService
-            agentInstanceManager = AgentInstanceManager(
-                repository: agentWorkspaceService,
-                stores: .init(
-                    instanceStore: persistence,
-                    timelineStore: persistence,
-                    messageStore: persistence,
-                    workspaceStore: persistence
-                )
-            )
             workspaceManager = DefaultWorkspaceResolver(
                 repository: agentWorkspaceService,
                 workspaceCreator: workspaceCreator
