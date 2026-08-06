@@ -3,7 +3,6 @@ import PositronicKit
 import PKShared
 import PKUtilities
 
-#if DEBUG
     public extension AsyncStream {
         /// Collects all elements of the stream into an array.
         /// Only works for finite streams.
@@ -58,4 +57,3 @@ import PKUtilities
             try? FileManager.default.removeItem(at: root)
         }
     }
-#endif

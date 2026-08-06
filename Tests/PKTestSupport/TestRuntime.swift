@@ -3,8 +3,6 @@ import PKShared
 import PKUtilities
 import PositronicKit
 
-#if DEBUG
-
     /// Explicit test composition root for PositronicKit runtime tests.
     ///
     /// `TestRuntime` replaces the former ambient dependency-injection machinery with plain
@@ -99,5 +97,3 @@ import PositronicKit
             positronicKit
         }
     }
-
-#endif

@@ -3,8 +3,6 @@ import PKShared
 import PKUtilities
 import PositronicKit
 
-#if DEBUG
-
     /// Typed representation of a tool call for use in mock LLM responses.
     public struct MockToolCall: Sendable {
         public let id: String
@@ -104,5 +102,3 @@ import PositronicKit
             )
         }
     }
-
-#endif
