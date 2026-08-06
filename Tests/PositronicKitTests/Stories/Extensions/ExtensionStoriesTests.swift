@@ -1,9 +1,9 @@
 import Foundation
 import PKPrompt
-@testable import PKShared
-import PKUtilities
+import PKShared
 import PKTestSupport
-@testable import PositronicKit
+import PKUtilities
+import PositronicKit
 import struct PositronicKit.PromptBuildContext
 import Testing
 
@@ -38,7 +38,10 @@ import Testing
             message: "Start plugin flow"
         )).collect()
 
-        let completedMessages = events.compactMap(\.completedMessage).map(\.message.content)
+        let completedMessages = events.compactMap { event -> String? in
+            guard case let .completion(.generationCompleted(message, _)) = event else { return nil }
+            return message.content
+        }
         #expect(completedMessages == ["First reply", "Second reply"])
 
         let pluginInputs = await plugin.seenResponses()

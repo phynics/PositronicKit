@@ -52,6 +52,54 @@ let agent = kit.agenticRuntime(                                     // tier 4: a
 let tools = kit.toolRouter                                         // tier 5: raw primitives
 ```
 
+### Facade readiness, validation, and error delivery
+
+`await kit.isLanguageModelConfigured` is a live, read-only configuration-readiness signal from
+the injected language model. It does not expose credentials or provider configuration, and it is
+not a connectivity probe or a guarantee that a later request will succeed. Treat `run`, `stream`,
+or `complete` as the authoritative operation because model state can change after the check.
+
+`run(_:)` validates `ChatRunRequest.maxTurns` before timeline resolution, persistence, or provider
+work; values below `1` throw `ChatRunError.invalidMaxTurns` directly from the awaited `run` call.
+When `agentInstanceID` is present, the runtime resolves that agent once after timeline resolution
+and before provider readiness or input persistence. The default `.failRequired` degradation policy
+throws `AgentInstanceError.instanceNotFound`; `.continueWithWarnings` proceeds without the missing
+agent and includes an agent diagnostic in the initial generation-context event. A failed preflight
+does not consume `sendID`, so the same identifier can be retried after the dependency is repaired.
+
+One-shot text, result, stream, and structured-output calls all accept per-call generation
+parameters and an inactivity timeout on their configurable overloads. Per-call parameters override
+the facade defaults; `nil` uses those defaults. `idleTimeout` defaults to 60 seconds and resets
+after every provider chunk. Structured one-shot output uses the same native-response-format or
+synthetic-tool adapter path as full runs:
+
+```swift
+let json = try await kit.complete(
+    "Extract the project metadata.",
+    structuredOutput: request,
+    generationParameters: GenerationParameters(temperature: 0),
+    idleTimeout: 30
+)
+```
+
+Errors arrive at the boundary where the work occurs:
+
+- Request and preparation failures—invalid `maxTurns`, timeline hydration, required-agent
+  preflight, provider configuration, sidecar validation, and input/history preparation—throw from
+  `try await kit.run(request)` before a stream is returned.
+- Provider and pipeline failures after `run(_:)` returns arrive by throwing while the returned
+  stream is iterated. A foreign provider failure retains its original causal error and exposes the
+  stable LLM identity `PKErrorDomain.llm` / `1005` through
+  `ChatEvent.ErrorIdentity.extracting(from:)`, even when nested in a pipeline error.
+- `complete` and `completeResult` consume their stream internally, so preparation and provider
+  failures both throw from the one-shot call. `stream` returns immediately and reports provider
+  failures during iteration.
+
+Cancelling a task that consumes a facade run cancels its provider work and releases the timeline's
+active-task registration. Abandoning a facade `stream` iterator likewise cancels the provider;
+cancelling `complete` or `completeResult` surfaces `CancellationError` without foreign-error
+wrapping.
+
 In an application, hold `kit` in an app-owned `Service` class and pass the managers or
 controllers it vends to the subsystems that use them.
 

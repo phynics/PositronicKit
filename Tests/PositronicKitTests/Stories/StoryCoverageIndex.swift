@@ -10,6 +10,10 @@
 /// - `Stories/Examples/IntroductoryStoriesTests.swift`
 /// - `Stories/Examples/ExampleUsageStoriesTests.swift`
 ///
+/// Every suite above imports package products normally, so this directory exercises the same
+/// visibility available to downstream consumers. Tests that intentionally exercise internal
+/// runtime mechanisms live separately under `InternalStories/`.
+///
 /// Supported story map:
 ///
 /// Setup stories
@@ -34,15 +38,23 @@
 ///
 /// Example stories
 /// - introductory prompt journaling flow → `IntroductoryStoriesTests`
-/// - introductory runtime tool round-trip → `IntroductoryStoriesTests`
 /// - README/setup/usage examples stay buildable → `ExampleUsageStoriesTests`
+///
+/// Internal mechanism stories
+/// - direct timeline tool-registry mutation for an introductory round-trip →
+///   `IntroductoryRuntimeInternalStoriesTests`
+/// - direct custom pipeline-stage insertion → `CustomPipelineStageInternalStoriesTests`
 ///
 /// Supported stories that intentionally remain covered by mechanism-level suites:
 /// - structured output across providers → `StructuredOutputServiceTests`
 /// - tool-call recovery from provider streaming edge cases →
 ///   `OpenAIToolCallRecoveryTests`, `OpenRouterToolCallRecoveryTests`,
 ///   `ToolCallRegressionTests`, `ChatEngineTests`
-/// - runtime limits / cancellation / event-stream reliability →
+/// - facade turn-limit and required-agent preflight validation →
+///   `FacadeRunValidationTests`
+/// - facade one-shot parameters, structured output, timeout, and cancellation →
+///   `FacadeOneShotTests`
+/// - runtime cancellation / event-stream reliability → `FacadeRunValidationTests`,
 ///   `ChatEngineTests`, `TurnBriefingBuilderCancellationTests`
 /// - prompt assembly / runtime prompt history / structured compression →
 ///   `PromptAssemblyTests`, `TimelinePromptHistoryTests`,
