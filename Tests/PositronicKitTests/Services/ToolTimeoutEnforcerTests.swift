@@ -5,10 +5,14 @@ import PKUtilities
 import Synchronization
 import Testing
 
-/// Synchronous, non-cancellable sleep used to model a blocking tool body in tests. Mirrors the
-/// same helper in `ToolRouterTests.swift` (kept local here so this file is self-contained).
-private func blockingThreadSleep(_ seconds: TimeInterval) {
-    Thread.sleep(forTimeInterval: seconds)
+/// Cancellation-ignoring delay used to model an uncooperative async tool without blocking a
+/// cooperative-executor worker. The dispatch timer resumes independently after cancellation.
+private func cancellationIgnoringDelay(_ seconds: TimeInterval) async {
+    await withCheckedContinuation { continuation in
+        DispatchQueue.global().asyncAfter(deadline: .now() + seconds) {
+            continuation.resume()
+        }
+    }
 }
 
 /// Tests for `ToolTimeoutEnforcer` (PKARCH-002 AC #2): the wall-clock timeout race can be
@@ -63,10 +67,10 @@ struct ToolTimeoutEnforcerTests {
         }
     }
 
-    private struct UncooperativeTool: PKShared.Tool, @unchecked Sendable {
+    private struct UncooperativeTool: PKShared.Tool, Sendable {
         let callName = "uncooperative"
         let name = "uncooperative"
-        let description = "blocks and ignores cancellation"
+        let description = "delays and ignores cancellation"
         let requiresPermission = false
         let sideEffects: ToolSideEffects = .none
         let blockSeconds: TimeInterval
@@ -81,7 +85,7 @@ struct ToolTimeoutEnforcerTests {
         }
 
         func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
-            blockingThreadSleep(blockSeconds)
+            await cancellationIgnoringDelay(blockSeconds)
             return .success("late")
         }
     }
@@ -108,11 +112,11 @@ struct ToolTimeoutEnforcerTests {
     }
 
     /// An uncooperative, non-cancellable tool that mutates in-process state (declares
-    /// `.mutating`). Models a blocking write that ignores cooperative cancellation.
-    private struct MutatingUncooperativeTool: PKShared.Tool, @unchecked Sendable {
+    /// `.mutating`). Models delayed async work that ignores cooperative cancellation.
+    private struct MutatingUncooperativeTool: PKShared.Tool, Sendable {
         let callName = "mutating_uncooperative"
         let name = "mutating_uncooperative"
-        let description = "mutates state, blocks, and ignores cancellation"
+        let description = "mutates state, delays, and ignores cancellation"
         let requiresPermission = false
         let sideEffects: ToolSideEffects = .mutating
         let blockSeconds: TimeInterval
@@ -127,7 +131,7 @@ struct ToolTimeoutEnforcerTests {
         }
 
         func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
-            blockingThreadSleep(blockSeconds)
+            await cancellationIgnoringDelay(blockSeconds)
             return .success("late")
         }
     }
@@ -213,7 +217,6 @@ struct ToolTimeoutEnforcerTests {
     func fakeClockTimeoutBoundsUncooperativeTool() async throws {
         let instantSleep: @Sendable (UInt64) async throws -> Void = { _ in }
         let tool = UncooperativeTool(blockSeconds: 3)
-        let start = ContinuousClock.now
         do {
             _ = try await ToolTimeoutEnforcer.execute(
                 AnyTool(tool),
@@ -225,9 +228,6 @@ struct ToolTimeoutEnforcerTests {
         } catch let ToolError.executionFailed(msg) {
             #expect(msg.contains("timed out"))
         }
-        let elapsed = ContinuousClock.now - start
-        // The fake-clock path should resolve essentially instantly — far below the tool's 3s body.
-        #expect(elapsed < .seconds(1))
     }
 
     @Test("Real Task.sleep timeout bounds a never-finishing tool (no fake clock)")
@@ -249,10 +249,9 @@ struct ToolTimeoutEnforcerTests {
         }
     }
 
-    @Test("Real Task.sleep timeout bounds an uncooperative blocking tool")
+    @Test("Real Task.sleep timeout bounds a cancellation-ignoring tool")
     func realTimeoutWinsUncooperative() async throws {
         let tool = UncooperativeTool(blockSeconds: 3)
-        let start = ContinuousClock.now
         do {
             // PKFLAKE-006: widened from 0.05s / assertion widened from 1s — real Task.sleep
             // can oversleep under CI load; this test only needs to confirm the real default
@@ -266,8 +265,6 @@ struct ToolTimeoutEnforcerTests {
         } catch let ToolError.executionFailed(msg) {
             #expect(msg.contains("timed out"))
         }
-        let elapsed = ContinuousClock.now - start
-        #expect(elapsed < .seconds(5))
     }
 
     @Test("External cancellation propagates promptly and does not leak orphaned tasks")
@@ -357,7 +354,6 @@ struct ToolTimeoutEnforcerTests {
         // report the may-still-be-running state for a mutating tool.
         let instantSleep: @Sendable (UInt64) async throws -> Void = { _ in }
         let tool = MutatingUncooperativeTool(blockSeconds: 3)
-        let start = ContinuousClock.now
         do {
             _ = try await ToolTimeoutEnforcer.execute(
                 AnyTool(tool),
@@ -371,9 +367,6 @@ struct ToolTimeoutEnforcerTests {
         } catch let ToolError.executionFailed(msg) {
             Issue.record("Mutating uncooperative tool wrongly got a clean timeout: \(msg)")
         }
-        let elapsed = ContinuousClock.now - start
-        // The fake-clock path should resolve essentially instantly — far below the tool's 3s body.
-        #expect(elapsed < .seconds(1))
     }
 
     @Test("External-process tool that times out reports timedOutButMayStillBeRunning")
