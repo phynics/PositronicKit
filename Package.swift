@@ -181,7 +181,7 @@ let package = Package(
         ),
         .executableTarget(
             name: "PKTestSupportConsumer",
-            dependencies: ["PKTestSupport", "PositronicKit"],
+            dependencies: ["PKTestSupport", "PKShared", "PositronicKit"],
             path: "Tests/PKTestSupportConsumer"
         ),
         .testTarget(
