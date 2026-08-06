@@ -374,69 +374,200 @@ public final class MockLLMClient: LLMClientProtocol {
 /// stubs), `stubbedStream` (override the stream returned by `chatStream`, bypassing
 /// `mockClient`).
 /// Call-capture: `generatedTitleInputs` (messages passed to each `generateTitle` call).
-public final class MockLLMService: LanguageModel, @unchecked Sendable, HealthCheckable {
-    public var mockHealthStatus: HealthStatus = .ok
-    public var mockHealthDetails: [String: String]? = ["mock": "true"]
+public final class MockLLMService: LanguageModel, HealthCheckable {
+    private struct State: Sendable {
+        var mockHealthStatus: HealthStatus = .ok
+        var mockHealthDetails: [String: String]? = ["mock": "true"]
+        var mockIsConfigured = true
+        var mockConfig: LLMConfiguration = .openAI
+        var nextResponse = ""
+        var nextTags: [String] = []
+        var nextGeneratedTitle = "Mock Title"
+        var generatedTitleInputs: [[Message]] = []
+        var mockClient = MockLLMClient()
+        var stubbedStream: AsyncThrowingStream<LLMStreamChunk, Error>?
+        var lastChatRequest: LLMChatRequest?
+        var chatRequestHistory: [LLMChatRequest] = []
+        var lastModelTier: ModelTier?
+        var modelTierHistory: [ModelTier] = []
+        var lastChatCapture: MockLLMChatCapture?
+        var chatCaptureHistory: [MockLLMChatCapture] = []
+        var lastSendMessageCapture: MockLLMSendMessageCapture?
+        var sendMessageCaptureHistory: [MockLLMSendMessageCapture] = []
+    }
+
+    private let state = Mutex(State())
+
+    public var mockHealthStatus: HealthStatus {
+        get { state.withLock { $0.mockHealthStatus } }
+        set { state.withLock { $0.mockHealthStatus = newValue } }
+    }
+
+    public var mockHealthDetails: [String: String]? {
+        get { state.withLock { $0.mockHealthDetails } }
+        set { state.withLock { $0.mockHealthDetails = newValue } }
+    }
 
     public func getHealthDetails() async -> [String: String]? {
-        mockHealthDetails
+        state.withLock { $0.mockHealthDetails }
     }
 
     public func checkHealth() async -> HealthStatus {
-        return mockHealthStatus
+        state.withLock { $0.mockHealthStatus }
     }
 
-    public var mockIsConfigured: Bool = true
+    public var mockIsConfigured: Bool {
+        get { state.withLock { $0.mockIsConfigured } }
+        set { state.withLock { $0.mockIsConfigured = newValue } }
+    }
+
     public var isConfigured: Bool {
-        get async { mockIsConfigured }
+        get async { state.withLock { $0.mockIsConfigured } }
     }
 
     public var configuration: LLMConfiguration {
-        get async { mockConfig }
+        get async { state.withLock { $0.mockConfig } }
     }
 
-    public var mockConfig: LLMConfiguration = .openAI
-    public var nextResponse: String = ""
-    public var nextTags: [String] = []
-    public var nextGeneratedTitle: String = "Mock Title"
-    public var generatedTitleInputs: [[Message]] = []
-    public var mockClient = MockLLMClient()
+    public var mockConfig: LLMConfiguration {
+        get { state.withLock { $0.mockConfig } }
+        set { state.withLock { $0.mockConfig = newValue } }
+    }
+
+    public var nextResponse: String {
+        get { state.withLock { $0.nextResponse } }
+        set { state.withLock { $0.nextResponse = newValue } }
+    }
+
+    public var nextTags: [String] {
+        get { state.withLock { $0.nextTags } }
+        set { state.withLock { $0.nextTags = newValue } }
+    }
+
+    public var nextGeneratedTitle: String {
+        get { state.withLock { $0.nextGeneratedTitle } }
+        set { state.withLock { $0.nextGeneratedTitle = newValue } }
+    }
+
+    public var generatedTitleInputs: [[Message]] {
+        get { state.withLock { $0.generatedTitleInputs } }
+        set { state.withLock { $0.generatedTitleInputs = newValue } }
+    }
+
+    public var mockClient: MockLLMClient {
+        get { state.withLock { $0.mockClient } }
+        set { state.withLock { $0.mockClient = newValue } }
+    }
 
     /// Allows tests to provide a custom stream for chatStream calls.
-    public var stubbedStream: AsyncThrowingStream<LLMStreamChunk, Error>?
+    public var stubbedStream: AsyncThrowingStream<LLMStreamChunk, Error>? {
+        get { state.withLock { $0.stubbedStream } }
+        set { state.withLock { $0.stubbedStream = newValue } }
+    }
+
+    public var lastChatRequest: LLMChatRequest? {
+        state.withLock { $0.lastChatRequest }
+    }
+
+    public var chatRequestHistory: [LLMChatRequest] {
+        state.withLock { $0.chatRequestHistory }
+    }
+
+    public var lastModelTier: ModelTier? {
+        state.withLock { $0.lastModelTier }
+    }
+
+    public var modelTierHistory: [ModelTier] {
+        state.withLock { $0.modelTierHistory }
+    }
+
+    public var lastChatCapture: MockLLMChatCapture? {
+        state.withLock { $0.lastChatCapture }
+    }
+
+    public var chatCaptureHistory: [MockLLMChatCapture] {
+        state.withLock { $0.chatCaptureHistory }
+    }
+
+    public var lastSendMessageCapture: MockLLMSendMessageCapture? {
+        state.withLock { $0.lastSendMessageCapture }
+    }
+
+    public var sendMessageCaptureHistory: [MockLLMSendMessageCapture] {
+        state.withLock { $0.sendMessageCaptureHistory }
+    }
 
     public init() {}
 
     public func loadConfiguration() async {}
+
     public func updateConfiguration(_ config: LLMConfiguration) async throws {
-        mockConfig = config
+        state.withLock {
+            $0.mockConfig = config
+            $0.mockIsConfigured = true
+        }
     }
 
     public func clearConfiguration() async {
-        // can't easily change isConfigured if it's computed, but we can change mock state
+        state.withLock {
+            $0.mockConfig = .openAI
+            $0.mockIsConfigured = false
+        }
     }
 
     public func restoreFromBackup() async throws {}
+
     public func exportConfiguration() async throws -> Data {
-        return Data()
+        let configuration = state.withLock { $0.mockConfig }
+        return try JSONEncoder().encode(configuration)
     }
 
-    public func importConfiguration(from _: Data) async throws {}
+    public func importConfiguration(from data: Data) async throws {
+        let configuration = try JSONDecoder().decode(LLMConfiguration.self, from: data)
+        state.withLock {
+            $0.mockConfig = configuration
+            $0.mockIsConfigured = true
+        }
+    }
 
-    public func sendMessage(_: String) async throws -> String {
-        return nextResponse
+    public func sendMessage(_ content: String) async throws -> String {
+        state.withLock { state in
+            let capture = MockLLMSendMessageCapture(
+                content: content,
+                responseFormat: nil,
+                generationParameters: nil,
+                useUtilityModel: false
+            )
+            state.lastSendMessageCapture = capture
+            state.sendMessageCaptureHistory.append(capture)
+            return state.nextResponse
+        }
     }
 
     public func sendMessage(
-        _: String,
-        responseFormat _: LLMResponseFormat?,
-        generationParameters _: GenerationParameters?,
-        useUtilityModel _: Bool
+        _ content: String,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        useUtilityModel: Bool
     ) async throws -> String {
-        return nextResponse
+        state.withLock { state in
+            let capture = MockLLMSendMessageCapture(
+                content: content,
+                responseFormat: responseFormat,
+                generationParameters: generationParameters,
+                useUtilityModel: useUtilityModel
+            )
+            state.lastSendMessageCapture = capture
+            state.sendMessageCaptureHistory.append(capture)
+            return state.nextResponse
+        }
     }
 
     public func chatStreamWithContext(_ request: LLMChatRequest) async throws -> LLMStreamResult {
+        state.withLock {
+            $0.lastChatRequest = request
+            $0.chatRequestHistory.append(request)
+        }
         let stream = await chatStream(
             messages: [],
             tools: nil,
@@ -454,12 +585,31 @@ public final class MockLLMService: LanguageModel, @unchecked Sendable, HealthChe
         toolChoice: LLMToolChoice?,
         responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?,
-        modelTier _: ModelTier
+        modelTier: ModelTier
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
-        if let stubbed = stubbedStream {
+        let target = state.withLock { state -> (
+            stubbed: AsyncThrowingStream<LLMStreamChunk, Error>?,
+            client: MockLLMClient
+        ) in
+            let capture = MockLLMChatCapture(
+                messages: messages,
+                tools: tools,
+                toolChoice: toolChoice,
+                responseFormat: responseFormat,
+                generationParameters: generationParameters,
+                modelTier: modelTier
+            )
+            state.lastModelTier = modelTier
+            state.modelTierHistory.append(modelTier)
+            state.lastChatCapture = capture
+            state.chatCaptureHistory.append(capture)
+            return (state.stubbedStream, state.mockClient)
+        }
+
+        if let stubbed = target.stubbed {
             return stubbed
         }
-        return await mockClient.chatStream(
+        return await target.client.chatStream(
             messages: messages,
             tools: tools,
             toolChoice: toolChoice,
@@ -469,12 +619,16 @@ public final class MockLLMService: LanguageModel, @unchecked Sendable, HealthChe
     }
 
     public func generateTags(for _: String) async throws -> [String] {
-        return nextTags.map { $0.lowercased() }
+        let tags = state.withLock { $0.nextTags }
+        return tags.map { $0.lowercased() }
     }
 
     public func generateTitle(for messages: [Message]) async throws -> String {
-        generatedTitleInputs.append(messages)
-        let title = nextGeneratedTitle
+        let scriptedTitle = state.withLock { state in
+            state.generatedTitleInputs.append(messages)
+            return state.nextGeneratedTitle
+        }
+        let title = scriptedTitle
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: "\"", with: "")
         return title.isEmpty ? "New Conversation" : title
