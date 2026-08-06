@@ -47,6 +47,12 @@ for tagged releases beginning with `1.0.0`.
 - **Test helper ownership contracts**: `TestWorkspace` cleanup follows object lifetime, and
   `TestRuntime.agentInstanceManager` now returns the facade-owned manager instead of constructing a
   divergent instance. Existing workspace compatibility helpers and public spellings remain.
+- **Nonblocking tool execution contract (PKRR-004)**: clarified that `Tool.execute(parameters:)`
+  implementations run in ordinary Swift tasks and must suspend for waits instead of directly
+  blocking with thread sleeps, semaphores, synchronous networking, or subprocess waits. The
+  timeout race can return without awaiting a cancellation-ignoring asynchronous loser, but cannot
+  preempt or isolate synchronous cooperative-executor blocking. This documentation correction
+  changes no public signatures, side-effect classification, timeout errors, or runtime behavior.
 
 ## [3.4.0] - 2026-08-04
 
