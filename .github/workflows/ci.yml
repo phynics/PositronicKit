@@ -52,7 +52,9 @@ jobs:
             cargo-${{ runner.os }}-
 
       - name: Verify current Linux gate
-        run: make verify-linux-current 2>&1 | tee .build/linux-current.log
+        run: |
+          mkdir -p .build
+          make verify-linux-current 2>&1 | tee .build/linux-current.log
 
       - name: Publish current Linux test log
         if: always()
