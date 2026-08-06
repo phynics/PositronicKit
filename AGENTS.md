@@ -171,13 +171,13 @@ Swift MiniLM matrix. Override `PKFASTEMBED_ASAN_TOOLCHAIN` or
 - Trait modifiers (`.priority(...)`, `.compression(...)`, `.cachePolicy(...)`) inherit through subtree; resolved once at assembly.
 - Three consumption layers: `Prompt → String` | `Prompt → AssembledPrompt → RenderedPrompt` | `RenderedPrompt → PromptJournal`.
 
-## Workflow Artifacts
+## Workflow & Issue Tracking
 
-PositronicKit is a standalone repo. **Open work, planning, and tickets are tracked as
-GitHub issues on `phynics/PositronicKit`** — not as local ticket files or an in-repo
-`workflow/` directory. The historical `workflow/PositronicKit/` artifact set (plans,
-specs, archived tickets) was removed; any needed context is captured in the relevant
-GitHub issues or `docs/`.
+PositronicKit is a standalone repo (`github.com/phynics/PositronicKit`). **Open work,
+plans, and tickets are tracked as GitHub issues directly on `phynics/PositronicKit`** —
+not as local ticket files and not via an in-repo `workflow/` directory. The historical
+`workflow/PositronicKit/` artifact set (plans, specs, archived tickets) was removed;
+any needed context is captured in the relevant GitHub issues or `docs/`.
 
 ### Downstream consumer compatibility
 
