@@ -178,8 +178,14 @@ struct TimelineCancellationTests {
         let terminated = streamTerminated.withLock { $0 }
         #expect(terminated, "Stream should terminate after cancel")
 
-        // After cancellation terminates, the registry entry must be gone.
-        let activeAfter = await kit.timelineManager.hasActiveTask(for: timeline.id)
+        // Stream termination can become visible to the consumer just before the producer's
+        // terminal cleanup removes its registry entry. Wait for that cleanup explicitly.
+        let cleanupDeadline = ContinuousClock.now + .seconds(10)
+        var activeAfter = await kit.timelineManager.hasActiveTask(for: timeline.id)
+        while activeAfter, ContinuousClock.now < cleanupDeadline {
+            await Task.yield()
+            activeAfter = await kit.timelineManager.hasActiveTask(for: timeline.id)
+        }
         #expect(!activeAfter, "Registry entry should be removed after cancellation")
 
         consumeTask.cancel()

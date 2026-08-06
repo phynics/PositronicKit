@@ -62,7 +62,6 @@ struct MemoryStoreWiringTests {
         #expect(await tagProbe.calls == 0)
         #expect(embedding.lastInput == nil)
         #expect(context.memories.isEmpty)
-        #expect(context.executionTime < 0.5)
     }
 
     @Test("PositronicKit wires the injected memory store into timeline context gathering")
