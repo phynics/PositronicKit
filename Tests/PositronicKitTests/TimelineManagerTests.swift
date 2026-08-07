@@ -7,6 +7,29 @@ import Synchronization
 import Testing
 
 struct TimelineManagerTests {
+    @Test("importWorkspace persists into the store the manager validates against")
+    func importWorkspacePersistsIntoBackingStore() async throws {
+        let store = InMemoryWorkspacePersistence()
+        let manager = TimelineManager(
+            stores: .init(
+                timelineStore: InMemoryTimelinePersistence(),
+                messageStore: InMemoryMessageStore(),
+                workspaceStore: store,
+                toolPersistence: InMemoryToolPersistence()
+            ),
+            workspaceProfile: .noWorkspace
+        )
+        let reference = WorkspaceReference(
+            id: UUID(),
+            uri: WorkspaceURI(parsing: "workspace://import")!,
+            location: .runtime
+        )
+        try await manager.importWorkspace(reference)
+        // A subsequent attachWorkspace must no longer fail the store gate, and the
+        // reference is visible via the manager's store.
+        #expect(try await store.fetchWorkspace(id: reference.id, includeTools: false) != nil)
+    }
+
     @Test("Test Session Creation and Turn Briefing Builder Access")
     func sessionCreation() async throws {
         let workspace = TestWorkspace()
