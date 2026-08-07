@@ -22,14 +22,14 @@ The tagged version applies to the public products documented in
 3. Run the applicable verification gates:
 
 | Change scope | Required gate |
-|--------------|---------------|
+| -------------- | --------------- |
 | Core runtime, prompt, shared-contract, or docs-only release work | `make verify` |
 | Public product graph, examples, or package-layout changes | `make verify` and `make verify-products` |
 | `PKLocalEmbeddings` / `PKFastEmbed` / model asset changes | `make verify`, `make verify-products`, and `make verify-minilm` |
-| Linux compatibility changes | the matching Linux gate(s): `make verify-linux-minimum` and/or `make verify-linux-current` |
+| Linux compatibility changes | the matching Linux gate: `make verify-linux-current` |
 | Native bridge safety changes | `make verify-linux-asan` |
 
-4. Re-run any product-specific or platform-specific gates that changed behavior on the host you
+1. Re-run any product-specific or platform-specific gates that changed behavior on the host you
    are releasing from.
 
 ## Tagging Steps

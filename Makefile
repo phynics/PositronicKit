@@ -1,6 +1,6 @@
 .PHONY: help build clean test test-parallel harden doctor validate-docs verify-doc-snippets \
 	audit-default-linkage verify-pin verify verify-macos-default \
-	verify-linux verify-linux-base verify-linux-minimum verify-linux-current \
+	verify-linux verify-linux-base verify-linux-current \
 	verify-linux-asan \
 	verify-products verify-examples verify-tests verify-pktestsupport verify-macos-minilm \
 	bootstrap-minilm build-minilm verify-minilm \
@@ -62,7 +62,6 @@ help:
 	@echo "  make verify-macos-minilm   Run the MiniLM macOS gate"
 	@echo "  make verify-linux          Run the current Linux gate"
 	@echo "  make verify-linux-base     Run the shared Linux verification body"
-	@echo "  make verify-linux-minimum  Run the minimum Linux gate"
 	@echo "  make verify-linux-current  Run the current Linux gate"
 	@echo "  make verify-linux-asan     Run PKFastEmbed tests under Linux x86_64 AddressSanitizer"
 	@echo "  make verify-products       Build every library product declared by Package.swift"
@@ -141,8 +140,6 @@ verify-linux-base: bootstrap-minilm
 		LIBRARY_PATH="$(PKFASTEMBED_PREFIX)/lib$${LIBRARY_PATH:+:$$LIBRARY_PATH}" \
 		PK_MINILM_MODEL_DIR="$(MINILM_MODEL_CACHE_DIR)" \
 		swift test --traits MiniLMEmbeddings
-
-verify-linux-minimum: verify-linux-base
 
 verify-linux-current: verify-linux-base
 
