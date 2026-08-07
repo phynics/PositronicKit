@@ -187,16 +187,26 @@ make verify-linux-asan
 - Three consumption layers: `Prompt → String` | `Prompt → AssembledPrompt → RenderedPrompt` |
   `RenderedPrompt → PromptJournal`.
 
-## Issues
+## Workflow & Issue Tracking
 
-Repo holds **reference docs only** (`docs/`, `README.md`).
-Issues tracked on **GitHub** (`https://github.com/phynics/PositronicKit`) via `gh` CLI —
-not local folders.
+PositronicKit is a standalone repo (`github.com/phynics/PositronicKit`). **Open work,
+plans, and tickets are tracked as GitHub issues directly on `phynics/PositronicKit`** —
+not as local ticket files and not via an in-repo `workflow/` directory. The historical
+`workflow/PositronicKit/` artifact set (plans, specs, archived tickets) was removed;
+any needed context is captured in the relevant GitHub issues or `docs/`.
 
-- Every issue = GitHub issue; titles series-prefixed (e.g. `PKWS-001`, `PKAPI-004`,
-  `MM-001`, `PKREL-...`).
-- Common ops:
-  - `gh issue list --state open` — list open issues
-  - `gh issue create --title "..." --body "..."` — new issue
-  - `gh issue view <number>` — inspect one issue
-  - `gh issue close <number>` — close issue
+Common ops via `gh` CLI:
+
+- `gh issue list --state open` — list open issues
+- `gh issue create --title "..." --body "..."` — new issue
+- `gh issue view <number>` — inspect one issue
+- `gh issue close <number>` — close issue
+
+### Downstream consumer compatibility
+
+Since v1.0, PositronicKit follows semver and downstream consumers pin to released
+versions. You do **not** need to build or test Monad, Shuttle, or Yakamoz as part of every
+PositronicKit change. Consumer build/test gates are run later, against the tagged
+PositronicKit release, following [`docs/Releasing.md`](docs/Releasing.md). Use the
+documented local-path override only when a specific consumer change is being developed
+in tandem with an unreleased PositronicKit API.

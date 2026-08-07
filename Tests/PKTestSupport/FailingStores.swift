@@ -154,32 +154,41 @@ public final class FailingWorkspaceStore: WorkspaceStore, @unchecked Sendable {
 /// fail after a configurable number of successful `saveMessage` calls. Use it to drive
 /// partial-batch / resumable-persistence tests (PKRR-006): set `failAfterSaveCount` to `N`
 /// and the `(N+1)`-th save throws `FailingStoreError.saveFailed`. Set it back to `nil` to
-/// stop failing so a retry can complete the batch.
-public final class BatchFailingMessageStore: MessageStoreProtocol, @unchecked Sendable {
+/// stop failing so a retry can complete the batch. The call count and threshold are evaluated in
+/// one mutex transaction, so exactly a configured nonnegative `N` concurrently admitted calls
+/// reach the backing store.
+public final class BatchFailingMessageStore: MessageStoreProtocol {
+    private struct SaveState: Sendable {
+        var failAfterSaveCount: Int?
+        var saveCallCount = 0
+    }
+
     private let backing = MockMessageStore()
-    private let failAfterSaveCountState = Mutex<Int?>(nil)
-    private let saveCountState = Mutex<Int>(0)
+    private let saveState = Mutex(SaveState())
 
     public init() {}
 
     /// When non-nil, `saveMessage` throws after this many successful saves. Set to `nil`
     /// to disable failure (e.g. for retry assertions).
     public var failAfterSaveCount: Int? {
-        get { failAfterSaveCountState.withLock { $0 } }
-        set { failAfterSaveCountState.withLock { $0 = newValue } }
+        get { saveState.withLock { $0.failAfterSaveCount } }
+        set { saveState.withLock { $0.failAfterSaveCount = newValue } }
     }
 
     /// Number of `saveMessage` calls received so far.
-    public var saveCallCount: Int { saveCountState.withLock { $0 } }
+    public var saveCallCount: Int { saveState.withLock { $0.saveCallCount } }
 
     public var messages: [ConversationMessage] {
         backing.messages
     }
 
     public func saveMessage(_ message: ConversationMessage) async throws {
-        let count = saveCountState.withLock { $0 + 1 }
-        saveCountState.withLock { $0 = count }
-        if let limit = failAfterSaveCountState.withLock({ $0 }), count > limit {
+        let isAdmitted = saveState.withLock { state in
+            state.saveCallCount += 1
+            guard let limit = state.failAfterSaveCount else { return true }
+            return state.saveCallCount <= limit
+        }
+        if !isAdmitted {
             throw FailingStoreError.saveFailed
         }
         try await backing.saveMessage(message)

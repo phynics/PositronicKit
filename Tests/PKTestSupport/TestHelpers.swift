@@ -3,7 +3,6 @@ import PositronicKit
 import PKShared
 import PKUtilities
 
-#if DEBUG
     public extension AsyncStream {
         /// Collects all elements of the stream into an array.
         /// Only works for finite streams.
@@ -36,13 +35,14 @@ import PKUtilities
 
     /// Auto-cleaning temporary workspace directory for tests.
     ///
-    /// When the instance is deallocated, the directory is removed.
+    /// The initializer creates a unique directory. Deinitialization removes it best-effort, so
+    /// retain the `TestWorkspace` object—not only `root`—for as long as the directory is needed.
     /// Use as a stored property in your test suite:
     /// ```swift
     /// @Suite struct MyTests {
     ///     let workspace = TestWorkspace()
     ///     @Test func example() async throws {
-    ///         let manager = TimelineManager(workspaceRoot: workspace.root)
+    ///         let runtime = TestRuntime(workspaceRoot: workspace.root)
     ///     }
     /// }
     /// ```
@@ -58,4 +58,3 @@ import PKUtilities
             try? FileManager.default.removeItem(at: root)
         }
     }
-#endif

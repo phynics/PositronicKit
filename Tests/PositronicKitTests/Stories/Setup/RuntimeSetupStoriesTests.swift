@@ -1,17 +1,14 @@
 import Foundation
-import PKOllamaProvider
-@testable import PKOpenAIProvider
-@testable import PKOpenRouterProvider
-@testable import PKShared
+import PKShared
 import PKTestSupport
-@testable import PositronicKit
+import PositronicKit
 import Testing
 
 @Suite("Runtime setup stories", .serialized) struct RuntimeSetupStoriesTests {
     @Test("PositronicKit default initialization")
     func defaultInitialization() async {
         let chat = PositronicKit()
-        let isConfigured = await chat.languageModel.isConfigured
+        let isConfigured = await chat.isLanguageModelConfigured
         #expect(!isConfigured, "Default init should not be configured")
     }
 
@@ -34,11 +31,16 @@ import Testing
 
         let timeline = try await chat.timelineManager.createTimeline(title: "Unconfigured")
 
-        await #expect(throws: ChatEngineError.self) {
+        do {
             _ = try await chat.run(ChatRunRequest(
                 timelineID: timeline.id,
                 message: "hello"
             ))
+            Issue.record("Expected the unconfigured run to fail synchronously")
+        } catch {
+            let identity = ChatEvent.ErrorIdentity.extracting(from: error)
+            #expect(identity?.domain == PKErrorDomain.chat)
+            #expect(identity?.code == 9001)
         }
     }
 

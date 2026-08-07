@@ -2,6 +2,7 @@ import Foundation
 import PKShared
 import PKUtilities
 import PositronicKit
+import Synchronization
 
 /// In-memory `EmbeddingServiceProtocol` test double.
 ///
@@ -10,11 +11,32 @@ import PositronicKit
 /// returning `mockEmbedding` for everything — useful for similarity-search tests that need
 /// differentiated vectors), and `inputBudget` (mirrors `LocalEmbeddingService`'s validation
 /// so budget-rejection paths can be exercised).
-/// Call-capture: `lastInput` (the most recent single-text embedding request).
+/// Call-capture: `lastInput` (the most recently admitted single-text embedding request).
+/// Each operation snapshots its result configuration once; concurrent batch generation does not
+/// recursively mutate `lastInput` from child tasks.
 public final class MockEmbeddingService: EmbeddingServiceProtocol, @unchecked Sendable {
-    public var mockEmbedding: [Float] = [0.1, 0.2, 0.3]
-    public var lastInput: String?
-    public var useDistinctEmbeddings: Bool = false
+    private struct State: Sendable {
+        var mockEmbedding: [Float] = [0.1, 0.2, 0.3]
+        var lastInput: String?
+        var useDistinctEmbeddings = false
+    }
+
+    private let state = Mutex(State())
+
+    public var mockEmbedding: [Float] {
+        get { state.withLock { $0.mockEmbedding } }
+        set { state.withLock { $0.mockEmbedding = newValue } }
+    }
+
+    public var lastInput: String? {
+        get { state.withLock { $0.lastInput } }
+        set { state.withLock { $0.lastInput = newValue } }
+    }
+
+    public var useDistinctEmbeddings: Bool {
+        get { state.withLock { $0.useDistinctEmbeddings } }
+        set { state.withLock { $0.useDistinctEmbeddings = newValue } }
+    }
 
     /// Budget used to validate inputs before returning mock vectors, mirroring
     /// `LocalEmbeddingService`. Defaults to `.default` so existing tests are
@@ -27,35 +49,33 @@ public final class MockEmbeddingService: EmbeddingServiceProtocol, @unchecked Se
 
     public func generateEmbedding(for text: String) async throws -> [Float] {
         try validate(text)
-        lastInput = text
-        if useDistinctEmbeddings {
-            let hash = abs(text.hashValue)
-            var vector: [Float] = []
-            for idx in 1 ... 16 {
-                vector.append(Float((hash / (idx * idx)) % 100) / 100.0)
-            }
-            // Normalize manually if VectorMath is Double-only or unavailable
-            let magnitude = sqrt(vector.reduce(0) { $0 + $1 * $1 })
-            return vector.map { $0 / magnitude }
+        let snapshot = state.withLock { state in
+            state.lastInput = text
+            return (embedding: state.mockEmbedding, useDistinct: state.useDistinctEmbeddings)
         }
-        return mockEmbedding
+        return snapshot.useDistinct ? distinctEmbedding(for: text) : snapshot.embedding
     }
 
     public func generateEmbeddings(for texts: [String]) async throws -> [[Float]] {
         try validate(texts)
-        if useDistinctEmbeddings {
-            return try await withThrowingTaskGroup(of: [Float].self) { group in
-                for text in texts {
-                    group.addTask { try await self.generateEmbedding(for: text) }
-                }
-                var results: [[Float]] = []
-                for try await res in group {
-                    results.append(res)
-                }
-                return results
-            }
+        let snapshot = state.withLock {
+            (embedding: $0.mockEmbedding, useDistinct: $0.useDistinctEmbeddings)
         }
-        return texts.map { _ in mockEmbedding }
+        if snapshot.useDistinct {
+            return texts.map { distinctEmbedding(for: $0) }
+        }
+        return texts.map { _ in snapshot.embedding }
+    }
+
+    private func distinctEmbedding(for text: String) -> [Float] {
+        let hash = abs(text.hashValue)
+        var vector: [Float] = []
+        for idx in 1 ... 16 {
+            vector.append(Float((hash / (idx * idx)) % 100) / 100.0)
+        }
+        // Normalize manually if VectorMath is Double-only or unavailable
+        let magnitude = sqrt(vector.reduce(0) { $0 + $1 * $1 })
+        return vector.map { $0 / magnitude }
     }
 
     private func validate(_ text: String) throws {

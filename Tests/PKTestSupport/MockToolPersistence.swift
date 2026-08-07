@@ -10,8 +10,9 @@ import Synchronization
 ///
 /// Inspectable: `workspaces` reads/writes the backing store directly, so tests can seed
 /// workspaces (with tools already attached) or assert on saved state. Mutating a workspace
-/// not present in `workspaces` throws `ToolError.workspaceNotFound`.
-public final class MockToolPersistence: ToolPersistenceProtocol, @unchecked Sendable {
+/// not present in `workspaces` throws `ToolError.workspaceNotFound`. Inserts, replacements, and
+/// tool-array mutations each occur in one mutex transaction.
+public final class MockToolPersistence: ToolPersistenceProtocol {
     private let workspacesState = Mutex<[WorkspaceReference]>([])
 
     public var workspaces: [WorkspaceReference] {
@@ -20,6 +21,17 @@ public final class MockToolPersistence: ToolPersistenceProtocol, @unchecked Send
     }
 
     public init() {}
+
+    /// Inserts or replaces a workspace in one atomic mutation.
+    public func upsertWorkspace(_ workspace: WorkspaceReference) {
+        workspacesState.withLock {
+            if let index = $0.firstIndex(where: { $0.id == workspace.id }) {
+                $0[index] = workspace
+            } else {
+                $0.append(workspace)
+            }
+        }
+    }
 
     public func addToolToWorkspace(workspaceId: UUID, tool: ToolReference) async throws {
         try workspacesState.withLock {

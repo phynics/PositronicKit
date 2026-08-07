@@ -93,11 +93,17 @@ public extension PositronicKit {
     /// synthetic-tool path -- the underlying stream's tool-call argument deltas are
     /// rewritten into content deltas before being assembled here, so callers always see
     /// a plain JSON string regardless of how the provider actually returned it.
-    func complete(_ prompt: String, structuredOutput: StructuredOutputRequest) async throws -> String {
+    func complete(
+        _ prompt: String,
+        structuredOutput: StructuredOutputRequest,
+        generationParameters: GenerationParameters? = nil,
+        idleTimeout: TimeInterval = 60
+    ) async throws -> String {
         try await languageModel.sendStructuredMessage(
             prompt,
             structuredOutput: structuredOutput,
-            generationParameters: defaultGenerationParameters,
+            generationParameters: generationParameters ?? defaultGenerationParameters,
+            idleTimeout: idleTimeout,
             modelTier: .primary
         )
     }
