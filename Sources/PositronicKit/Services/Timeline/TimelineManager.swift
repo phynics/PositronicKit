@@ -87,6 +87,16 @@ public actor TimelineManager {
     let memoryStore: any MemoryStoreProtocol
     let embeddingService: any EmbeddingServiceProtocol
 
+    /// Persists a workspace reference into the store this manager validates,
+    /// so an import followed by `attachWorkspace(_:to:)` succeeds.
+    ///
+    /// Hosts that construct their runtime through the `PositronicKit` facade
+    /// (whose stores are not injectable) use this to import advertised
+    /// workspace references; it runs on the actor, so it is Sendable-safe.
+    func importWorkspace(_ reference: WorkspaceReference) async throws {
+        try await workspaceStore.saveWorkspace(reference)
+    }
+
     /// How the per-timeline filesystem workspace is provisioned and owned (PKRR-029).
     ///
     /// `.noWorkspace` (the default) creates no directory, writes no notes, and persists no
