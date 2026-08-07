@@ -4,17 +4,18 @@
 
 ## Layout
 
-- `Package.swift` — package manifest.
-- `Sources/PositronicKit` — runtime: orchestration stages, chat engine, tool routing, timelines, workspaces, LLM services.
-- `Sources/PKPrompt` — prompt composition: `PromptBuilder` DSL, `PromptNode` IR, assembly, compression, `PromptJournal`.
-- `Sources/PKShared` — shared contracts: API models, tool protocols, error types, logging, utilities.
-- `Sources/PKLocalEmbeddings` — platform-local embedding facade (`LocalEmbeddingService`); Natural Language on Apple by default, host-provisioned MiniLM on Linux.
-- `Sources/PKFastEmbed` / `Sources/CPKFastEmbed` — Rust bridge (via `fastembed`) and its Clang system-library wrapper for the in-process MiniLM backend (Linux default; Apple opt-in via the `MiniLMEmbeddings` trait).
-- `Sources/PKOpenAIProvider`, `Sources/PKOpenRouterProvider`, `Sources/PKOllamaProvider`, `Sources/PKAnthropicProvider`, `Sources/PKFoundationModelsProvider` — concrete provider adapters and provider-specific convenience APIs.
-- `Sources/PKObservable` — opt-in `@Observable` wrappers (`ObservableConversation`) for SwiftUI-facing consumers.
-- `Sources/PositronicKitExamples` — runnable examples; double as living documentation.
+- `Package.swift` — manifest.
+- `Sources/PositronicKit` — runtime: orchestration, chat engine, tool routing, timelines, workspaces, LLM services.
+- `Sources/PKPrompt` — prompt composition DSL + IR (`PromptBuilder`, `PromptNode`, `PromptJournal`).
+- `Sources/PKShared` — shared contracts: API models, tool protocols, errors, logging, utilities.
+- `Sources/PKUtilities` — cross-cutting helpers used by runtime + providers.
+- `Sources/PKLocalEmbeddings` — platform-local embedding facade; Natural Language on Apple, MiniLM on Linux.
+- `Sources/PKFastEmbed` + `Sources/CPKFastEmbed` — Rust bridge (via `fastembed`) + Clang wrapper for in-process MiniLM backend (Linux default; Apple opt-in via `MiniLMEmbeddings`).
+- `Sources/PKOpenAIProvider` / `PKOpenRouterProvider` / `PKOllamaProvider` / `PKAnthropicProvider` / `PKFoundationModelsProvider` — provider adapters + provider-specific convenience APIs.
+- `Sources/PKObservable` — opt-in `@Observable` wrappers for SwiftUI consumers.
+- `Sources/PositronicKitExamples` — runnable examples, live docs.
 - `Tests/PKTestSupport` — mocks, fixtures, test helpers (library product).
-- `Tests/PositronicKitTests`, `Tests/PKPromptTests`, `Tests/PKSharedTests`, `Tests/PKLocalEmbeddingsTests`, `Tests/PKFastEmbedTests`, `Tests/PKObservableTests`, `Tests/PKTestSupportTests` — per-module test targets.
+- `Tests/PositronicKitTests`, `Tests/PKPromptTests`, `Tests/PKSharedTests`, `Tests/PKUtilitiesTests`, `Tests/PKLocalEmbeddingsTests`, `Tests/PKFastEmbedTests`, `Tests/PKObservableTests`, `Tests/PKOpenAIProviderTests`, `Tests/PKOpenRouterProviderTests`, `Tests/PKOllamaProviderTests`, `Tests/PKAnthropicProviderTests`, `Tests/PKFoundationModelsProviderTests`, `Tests/PKTestSupportTests` — per-module test targets.
 
 ## Commands
 
@@ -22,98 +23,100 @@
 swift build                        # or: make build
 swift test                         # or: make test
 swift run PositronicKitExamples
-make clean
-make verify                       # pin, docs, linkage, products, examples, and test gates
-make verify-products              # build every library product declared by Package.swift
-make verify-examples              # build the PositronicKitExamples executable
-make verify-tests                 # run the test suite
-make verify-pin                   # check the pinned MiniLM artifact hashes are consistent
-make build-minilm                 # prepare assets/bridge and build the MiniLM trait product
-make verify-minilm                # prepare native MiniLM and run its tests
-make verify-linux-minimum         # run the minimum Linux matrix gate (Swift 6.1.3 on Ubuntu 24.04)
-make verify-linux-current         # run the current Linux matrix gate (Swift 6.3.3 on Ubuntu 24.04)
-make verify-linux-asan            # run the PKFastEmbed bridge tests under Linux x86_64 AddressSanitizer
-make verify-macos-default         # run the default macOS gate
-make verify-macos-minilm          # run the MiniLM macOS gate
-make linux-image                  # build the Linux development Docker image
-make linux-build                  # swift build in a Linux container (bind-mounted)
-make linux-test                   # run the full Linux gate in a container
+make verify                        # macOS full gate: pin, docs, linkage, products, examples, tests
+make verify-linux-current          # full Linux gate (Swift 6.3.3 / Ubuntu 24.04)
+make build-minilm                  # bootstrap assets + build MiniLM trait product
+make verify-minilm                 # bootstrap + run MiniLM gates
+make doctor                        # report missing prereqs (Swift, Rust, container runtime, ...)
 ```
 
-See [docs/Releasing.md](docs/Releasing.md) for the release workflow, tagging steps, and
+`make verify-linux-asan` runs PKFastEmbed bridge tests under Linux x86_64
+AddressSanitizer (needs nightly rustup toolchain + rust-src). Linux container targets
+then live in [Linux Development Setup](#linux-development-setup) below. `make help`
+lists all targets.
+
+See [docs/Releasing.md](docs/Releasing.md) for release workflow, tagging steps, and
 consumer upgrade cadence.
 
-`build-minilm` and `verify-minilm` both depend on `bootstrap-minilm`, which is
-idempotent: it downloads the pinned model assets on first use, verifies their
-checksums, and builds PKFastEmbed only when missing — so the MiniLM build/test
-pipeline prepares everything without a separate manual bootstrap step. Assets and
-the native prefix are stored under `.build` (gitignored) by default; override
-`PKFASTEMBED_PREFIX` and `MINILM_MODEL_CACHE_ROOT` to relocate the cache. The
-Makefile keys the default MiniLM cache directory by the pinned `model.onnx`
-SHA-256 so stale assets cannot be reused. The pinned revision and per-file
-SHA-256 hashes live in `native/pkfastembed/model-assets.sha256` and
-`Sources/PKLocalEmbeddings/MiniLMModelAssets.swift`; `verify-pin` (run by
-`verify` and before every bootstrap) fails if those drift apart.
+`build-minilm` + `verify-minilm` depend on `bootstrap-minilm`, idempotent: download
+pinned model assets on first use, verify checksums, build PKFastEmbed only when missing —
+no separate manual bootstrap. Assets + native prefix stored under `.build` (gitignored)
+by default; override `PKFASTEMBED_PREFIX` / `MINILM_MODEL_CACHE_ROOT` to relocate. Makefile
+keys default MiniLM cache by pinned `model.onnx` SHA-256, so stale assets unusable. Pinned
+revision + per-file SHA-256 live in `native/pkfastembed/model-assets.sha256` and
+`Sources/PKLocalEmbeddings/MiniLMModelAssets.swift`; `verify-pin` (run by `verify` and
+before every bootstrap) fails if they drift.
 
-## Linux Development Setup
+## Development Setup
 
-### Docker (recommended for macOS hosts)
+### macOS (native)
 
-The included Dev Container (`.devcontainer/`) provides Swift 6.3.3, Rust stable, and all
-native prerequisites on Ubuntu 24.04. From the repository root:
+Prefer native Swift/Xcode on macOS — no container needed for normal work. Gate:
+`make verify` (pin, docs, linkage, products, examples, tests) or
+`make verify-macos-minilm` when exercising the native MiniLM trait. MiniLM is opt-in on
+Apple via the `MiniLMEmbeddings` trait (uses Natural Language by default).
+
+### Linux (container)
+
+Container-based development is for **Linux** — use native Swift on macOS instead. Dev
+Container (`.devcontainer/`) provides Swift 6.3.3, Rust stable, all native prerequisites
+on Ubuntu 24.04. From repo root:
 
 ```bash
 make linux-image   # Build the development image
-make linux-build   # swift build in the container (bind-mounted)
-make linux-test    # Full Linux gate: make verify-linux-current
+make linux-build   # build-minilm in container (bind-mounted)
+make linux-test    # full Linux gate in container (make verify-linux-current)
 ```
 
-Open in VS Code with the Dev Containers extension for a full IDE experience. The container
-bind-mounts your checkout at `/workspace`; build artifacts land in the host `.build/`
-directory.
+Runtime auto-detected: `podman` preferred, else `docker`. Override
+`CONTAINER_RUNTIME=/path/to/runtime`; image tag via `LINUX_IMAGE` (default
+`positronickit-linux-dev`). No runtime on PATH — targets fail fast; `make doctor`
+reports missing prereqs.
 
-### Bare toolchain
+Containers run rootless (podman `--userns=keep-id`, docker `--user $(id -u):$(id -g)`)
+with `HOME=/tmp`, `CARGO_HOME=/tmp/cargo`. Checkout bind-mounted at `/workspace`
+(SELinux `:Z` label), so host edits visible immediately; build artifacts land in host
+`.build/` (gitignored). `linux-build` runs `make build-minilm`; `linux-test` runs
+`make verify-linux-current`.
 
-`PositronicKit`, `PKPrompt`, and `PKShared` build with a bare Swift 6.1+ toolchain (no
-extra system packages). Building or testing `PKLocalEmbeddings`/`PKFastEmbed` — the
-default on Linux, opt-in on Apple via the `MiniLMEmbeddings` trait — additionally
-requires:
+VS Code Dev Containers extension for full IDE experience.
+
+### Linux (bare toolchain)
+
+`PositronicKit`, `PKPrompt`, `PKShared` build with bare Swift 6.1+ toolchain (no extra
+system packages). Building/testing `PKLocalEmbeddings`/`PKFastEmbed` — default on Linux,
+opt-in on Apple via `MiniLMEmbeddings` trait — additionally requires:
 
 | Dependency | Why |
-|------------|-----|
+| ------------ | ----- |
 | Swift 6.1+ toolchain | Package manifest tools-version; [swiftly](https://swift.org/install) is the easiest install path. |
 | Rust toolchain (`cargo`, stable) | `native/pkfastembed/bootstrap.sh` runs `cargo build --release --locked` to produce `libpkfastembed.a`. |
 | C/C++ toolchain (`gcc`/`g++` or `clang`) | Links `libstdc++`; also needed by Rust's `cc` crate for native build scripts. |
 | `pkg-config` | `CPKFastEmbed` is declared as a SwiftPM `systemLibrary` with `pkgConfig: "pkfastembed"`; the Makefile also passes `PKG_CONFIG_PATH` directly to `swift build`/`swift test`. |
-| OpenSSL development headers (`libssl-dev` on Debian/Ubuntu, `openssl-devel` on Fedora/RHEL) | `fastembed`'s `ort-download-binaries-native-tls` feature depends on `native-tls` → `openssl-sys`, which links system OpenSSL (not vendored). |
+| OpenSSL dev headers | `fastembed`'s `native-tls` feature links system OpenSSL. |
 | `curl` | `Scripts/bootstrap-minilm-ci.sh` downloads the pinned Hugging Face model assets. |
-| `shasum` (Perl `Digest::SHA`, not just coreutils `sha256sum`) | `bootstrap-minilm-ci.sh` calls `shasum -a 256 --check` against `native/pkfastembed/model-assets.sha256`. |
-| Network access during first bootstrap | Cargo fetches crates.io dependencies and the ONNX Runtime binary; the model-asset download hits Hugging Face directly. |
+| `shasum` (Perl `Digest::SHA`) | `bootstrap-minilm-ci.sh` calls `shasum -a 256 --check` against `native/pkfastembed/model-assets.sha256`. |
+| Network access during first bootstrap | Cargo fetches crates.io deps + ONNX Runtime binary; model assets from Hugging Face. |
 
-**Known SwiftPM/Linux linking gap:** `systemLibrary` + `pkgConfig` only wires the
-`-I` (cflags) into the compile step on Linux — it does not propagate pkg-config's
-`Libs:` (`-L` search path) to the final link step. `-lpkfastembed` reaches the
-linker via Clang autolinking (`Sources/CPKFastEmbed/module.modulemap`'s `link`
-directive), so without an explicit `-L` the linker can't resolve it. The
-`PKFastEmbed` target's `linkerSettings` in `Package.swift` works around this by
-adding `-L<PKFASTEMBED_PREFIX>/lib` directly (`PKFASTEMBED_PREFIX` defaults to
-`.build/pkfastembed` and is exported by the Makefile).
+**Known SwiftPM/Linux linking gap:** `systemLibrary` + `pkgConfig` wires only `-I`
+(cflags) into compile, not pkg-config's `Libs:` (`-L` search path). `-lpkfastembed` reaches
+linker via Clang autolinking (`Sources/CPKFastEmbed/module.modulemap`'s `link` directive),
+so without explicit `-L` linker can't resolve. `PKFastEmbed`'s `linkerSettings` in
+`Package.swift` adds `-L<PKFASTEMBED_PREFIX>/lib` directly (`PKFASTEMBED_PREFIX` defaults
+to `.build/pkfastembed`, exported by Makefile).
 
-Once those are installed, the canonical Linux gate is:
+Canonical Linux gate:
 
 ```bash
-make verify-linux-current   # bootstrap-minilm, then default `swift test` + `swift test --traits MiniLMEmbeddings`
+make verify-linux-current   # bootstrap-minilm, then `swift test` + `swift test --traits MiniLMEmbeddings`
 ```
 
-`verify-linux-current` intentionally does **not** depend on `validate-docs` (unlike `verify`,
-the Apple gate) — DocC and `swift-symbolgraph-extract` are resolved from an Xcode
-toolchain path in `Scripts/validate-docc.sh` and don't exist on Linux. The story
-tests `validate-docs` also runs are a subset already covered by `verify-linux-current`'s
-full `swift test` step, so no coverage is lost.
-`verify-linux-minimum` is the same gate, reserved for the Swift 6.1.3 / Ubuntu 24.04
-matrix job.
+`verify-linux-current` skips `validate-docs` (unlike `verify` on Apple) — DocC +
+`swift-symbolgraph-extract` resolved from Xcode toolchain path in `Scripts/validate-docc.sh`,
+absent on Linux. Story tests `validate-docs` runs are subset of its full `swift test`, so
+no coverage lost.
 
-For the bridge-only AddressSanitizer qualification gate used by `PKFAST-006`, run:
+Bridge-only AddressSanitizer gate for `PKFAST-006`:
 
 ```bash
 rustup toolchain install nightly
@@ -121,18 +124,21 @@ rustup component add rust-src --toolchain nightly
 make verify-linux-asan
 ```
 
-`verify-linux-asan` scopes to `native/pkfastembed` only; it does not run the full
-Swift MiniLM matrix. Override `PKFASTEMBED_ASAN_TOOLCHAIN` or
-`PKFASTEMBED_ASAN_TARGET` when the host differs from the default nightly
-`x86_64-unknown-linux-gnu` setup.
+`verify-linux-asan` scopes to `native/pkfastembed` only. Override
+`PKFASTEMBED_ASAN_TOOLCHAIN` / `PKFASTEMBED_ASAN_TARGET` when host differs from default
+`x86_64-unknown-linux-gnu` nightly setup.
 
 ## Module Boundaries
 
 | Module | Owns | Does Not Own |
-|--------|------|--------------|
-| `PKShared` | API models, tool contracts, logging, utilities | Prompt logic, orchestration, persistence |
+| -------- | ------ | -------------- |
+| `PKShared` | API models, tool contracts, errors, logging, utilities | Prompt logic, orchestration, persistence |
+| `PKUtilities` | Cross-cutting helpers (crypto, docs, utils) reused by runtime + providers | Prompt IR, orchestration, transport |
 | `PKPrompt` | Prompt IR, assembly, rendering, compression, journaling | Runtime, persistence, transport |
 | `PositronicKit` | Orchestration, chat lifecycle, tool routing, timeline/workspace mgmt | Concrete provider SDK integrations, transport, RPC, hosting, prompt-tree internals |
+| `PKObservable` | `@Observable` wrappers for SwiftUI consumers | Runtime orchestration, transport, persistence |
+| `PKLocalEmbeddings` | Platform-local embedding facade (Natural Language / MiniLM) | Runtime orchestration, prompt-tree internals, transport |
+| `PKFastEmbed` + `CPKFastEmbed` | In-process MiniLM backend (Rust bridge + system wrapper) | Embedding API surface, runtime orchestration |
 | `PKOpenAIProvider` / `PKOpenRouterProvider` / `PKOllamaProvider` / `PKAnthropicProvider` / `PKFoundationModelsProvider` | Concrete provider clients, provider-specific conversions, convenience registration/init APIs | Runtime orchestration, prompt-tree internals |
 
 ## Conventions
@@ -140,66 +146,57 @@ Swift MiniLM matrix. Override `PKFASTEMBED_ASAN_TOOLCHAIN` or
 - Swift 6 concurrency: `Sendable`, actor isolation, no shared mutable state.
 - Composition over inheritance. Narrow protocols. Explicit `throws`.
 - Structured logging via `PKShared`.
-- Error handling uses `ErrorKit` through `PKShared.PKError`: package-defined errors should conform to `PKError`, use `PKErrorDomain`, provide stable `errorCode` values, and implement `userFriendlyMessage` (plus `remediation` when the caller has a concrete recovery step).
-- When surfacing nested errors to users, tools, or higher-level logs, prefer `ErrorKit.userFriendlyMessage(for:)`; reserve `localizedDescription` for low-level diagnostics.
-- Tests accompany every behavioral change; use `PKTestSupport` helpers.
+- Errors: `PKError` (via `ErrorKit`) with `PKErrorDomain`, stable `errorCode`, `userFriendlyMessage` (+ `remediation` where applicable). Surface nested errors with `ErrorKit.userFriendlyMessage(for:)`; keep `localizedDescription` for low-level diagnostics.
+- Tests accompany change; use `PKTestSupport`. Fixtures deterministic + lightweight; prefer reusable builders over inline setup.
 - Keep `PositronicKitExamples` compiling and current with public APIs.
-- Prefer `JSONSchema`/`JSONSchemaBuilder`; derive from `@Schemable` when schema mirrors a Swift model.
-- Do not introduce custom schema wrapper types when `JSONSchema`, `Schema`, `JSONSchemaBuilder`, or `@Schemable` already cover the use case.
-- Fixtures: deterministic, lightweight; prefer reusable builders over inline setup.
-- `swift build && swift test` before opening or updating PRs.
-- For public API changes, update `CHANGELOG.md` under `Unreleased` and follow
-  `docs/Releasing.md` for the tag/pin workflow instead of treating `main` as the consumer
-  source of truth.
+- Schema: prefer `JSONSchema`/`JSONSchemaBuilder`, derive from `@Schemable` when schema mirrors Swift model; no custom schema wrapper types.
+- `swift build && swift test` before opening/updating PRs.
+- Public API changes: update `CHANGELOG.md` under `Unreleased`, follow `docs/Releasing.md` for tag/pin workflow — `main` is not consumer source of truth.
 
 ## PositronicKit Invariants
 
-- Transport-neutral. Concrete networking, RPC, and hosting belong downstream.
-- Concrete provider implementations are downstream from `PositronicKit`: keep provider SDK adapters in dedicated provider targets, not in the core runtime target.
-- Downstream pluggability is non-negotiable: persistence, workspace resolution, tool execution, prompting, and UI/network layers are all injectable.
-- Consume `PKPrompt` artifacts (`AssembledPrompt`, `RenderedPrompt`). Never reimplement prompt-tree semantics.
-- Extension points: persistence protocols, `WorkspaceCreating`/`WorkspaceProtocol`, `PromptSectionProviding`, `ToolRouter`, `ChatTurnPlugin`.
-- Primary entry point: the `PositronicKit` facade (a `final class` config owner). Choose the smallest operation tier: one-shot `complete(_:)`/`stream(_:)`, `Conversation` cursors, `timelineManager` + `run(...)`, `agenticRuntime(...)`, or raw public seams (`TimelineManager`, `ToolRouter`, persistence/workspace protocols).
-- Core public types: `Timeline`, `AgentInstance`, `TimelineManager`, `ToolRouter`, `WorkspaceManager`. `ChatEngine` and the turn pipeline are internal implementation details (driven through the facade).
+- Transport-neutral. Concrete networking, RPC, hosting belong downstream.
+- Concrete providers downstream from `PositronicKit`: provider SDK adapters live in
+  dedicated provider targets, not core runtime target.
+- Downstream pluggability non-negotiable: persistence, workspace resolution, tool
+  execution, prompting, UI/network layers all injectable.
+- Consume `PKPrompt` artifacts (`AssembledPrompt`, `RenderedPrompt`). Never reimplement
+  prompt-tree semantics.
+- Extension points: persistence protocols, `WorkspaceCreating`/`WorkspaceProtocol`,
+  `PromptSectionProviding`, `ToolRouter`, `ChatTurnPlugin`.
+- Primary entry point: `PositronicKit` facade (`final class` config owner). Smallest
+  operation tier: one-shot `complete(_:)`/`stream(_:)`, `Conversation` cursors,
+  `timelineManager` + `run(...)`, `agenticRuntime(...)`, or raw public seams
+  (`TimelineManager`, `ToolRouter`, persistence/workspace protocols).
+- Core public types: `Timeline`, `AgentInstance`, `TimelineManager`, `ToolRouter`,
+  `WorkspaceManager`. `ChatEngine` + turn pipeline internal implementation details
+  (driven through facade).
 
 ## PKPrompt Invariants
 
-- `PromptNode` = canonical internal IR. `PromptBuilder` first composes structural `Prompt` values; `PromptAssembly` lowers them to nodes.
+- `PromptNode` = canonical internal IR. `PromptBuilder` composes structural `Prompt`
+  values; `PromptAssembly` lowers to nodes.
 - `AssembledPrompt` = validated section artifact. `RenderedPrompt` = canonical render output.
-- `PromptJournal` = prompt-history primitive. Cache policies determine lifecycle: stable → materialized base, semi-stable → overlays until `compact()`, volatile → current-only, stable mutations → hard reset.
-- Author prompts via `var body: some Prompt`, composing `SystemPrompt`, `TextPrompt`, `UserPrompt`, `HistoryPrompt`, and custom `Prompt` types.
-- Trait modifiers (`.priority(...)`, `.compression(...)`, `.cachePolicy(...)`) inherit through subtree; resolved once at assembly.
-- Three consumption layers: `Prompt → String` | `Prompt → AssembledPrompt → RenderedPrompt` | `RenderedPrompt → PromptJournal`.
+- `PromptJournal` = prompt-history primitive. Cache policies determine lifecycle:
+  stable → materialized base, semi-stable → overlays until `compact()`, volatile →
+  current-only, stable mutations → hard reset.
+- Author prompts via `var body: some Prompt`, composing `SystemPrompt`, `TextPrompt`,
+  `UserPrompt`, `HistoryPrompt`, custom `Prompt` types.
+- Trait modifiers (`.priority(...)`, `.compression(...)`, `.cachePolicy(...)`) inherit
+  through subtree; resolved once at assembly.
+- Three consumption layers: `Prompt → String` | `Prompt → AssembledPrompt → RenderedPrompt` |
+  `RenderedPrompt → PromptJournal`.
 
-## Workflow Artifacts
+## Issues
 
-This repo holds **reference docs only** (`docs/`, `README.md`).
-Agentic-workflow scaffolding (superpowers specs/plans, decomposed tickets, brainstorm output)
-lives centrally at the workspace root under `workflow/`, namespaced by project:
+Repo holds **reference docs only** (`docs/`, `README.md`).
+Issues tracked on **GitHub** (`https://github.com/phynics/PositronicKit`) via `gh` CLI —
+not local folders.
 
-```text
-../workflow/
-  PositronicKit/plans/ specs/ tickets/   # this project's artifacts
-  Monad/plans/
-  Shuttle/plans/ specs/
-  Yakamoz/plans/ specs/ checkpoints/ tickets/ brainstorm/
-  workspace/plans/                       # cross-cutting workspace plans
-```
-
-Put new specs/plans/tickets under `../workflow/PositronicKit/...`, **not** back inside `docs/`.
-See the root `../CLAUDE.md` for the full layout.
-
-Tickets follow the workspace ticketing system (root `../CLAUDE.md`, "Ticketing system"):
-one `<SERIES>-<id>-<slug>.md` file per ticket with a `Status` line (new tickets also carry a
-`Triage:` line — see root `../CLAUDE.md`, "Triage labels"); the index is
-`../workflow/PositronicKit/tickets/README.md` and is updated in the same change as any
-status flip; `Done`/`Discarded` tickets move to `tickets/archive/`.
-
-### Downstream consumer compatibility
-
-Since v1.0, PositronicKit follows semver and downstream consumers pin to released
-versions. You do **not** need to build or test Monad, Shuttle, or Yakamoz as part of every
-PositronicKit change. Consumer build/test gates are run later, against the tagged
-PositronicKit release, following [`docs/Releasing.md`](docs/Releasing.md). Use the
-documented local-path override only when a specific consumer change is being developed
-in tandem with an unreleased PositronicKit API.
+- Every issue = GitHub issue; titles series-prefixed (e.g. `PKWS-001`, `PKAPI-004`,
+  `MM-001`, `PKREL-...`).
+- Common ops:
+  - `gh issue list --state open` — list open issues
+  - `gh issue create --title "..." --body "..."` — new issue
+  - `gh issue view <number>` — inspect one issue
+  - `gh issue close <number>` — close issue
