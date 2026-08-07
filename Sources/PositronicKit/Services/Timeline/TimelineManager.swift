@@ -93,7 +93,7 @@ public actor TimelineManager {
     /// Hosts that construct their runtime through the `PositronicKit` facade
     /// (whose stores are not injectable) use this to import advertised
     /// workspace references; it runs on the actor, so it is Sendable-safe.
-    func importWorkspace(_ reference: WorkspaceReference) async throws {
+    public func importWorkspace(_ reference: WorkspaceReference) async throws {
         try await workspaceStore.saveWorkspace(reference)
     }
 
