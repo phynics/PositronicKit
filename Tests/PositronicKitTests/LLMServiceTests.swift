@@ -68,6 +68,7 @@ private enum TestUtilityError: Error, PKError {
 private actor DelayedConfigurationService: ConfigurationServiceProtocol {
     var config: LLMConfiguration
     private var loadContinuation: CheckedContinuation<LLMConfiguration, Never>?
+    private var loadStartedContinuation: CheckedContinuation<Void, Never>?
     private(set) var loadStarted = false
 
     init(config: LLMConfiguration) {
@@ -76,8 +77,17 @@ private actor DelayedConfigurationService: ConfigurationServiceProtocol {
 
     func load() async -> LLMConfiguration {
         loadStarted = true
+        loadStartedContinuation?.resume()
+        loadStartedContinuation = nil
         return await withCheckedContinuation { continuation in
             self.loadContinuation = continuation
+        }
+    }
+
+    func waitUntilLoadStarts() async {
+        guard !loadStarted else { return }
+        await withCheckedContinuation { continuation in
+            loadStartedContinuation = continuation
         }
     }
 
@@ -669,14 +679,43 @@ struct LLMServiceTests {
 
         let exportTask = Task { try await service.exportConfiguration() }
 
-        // The preparation task should reach storage.load() well within this window.
-        for _ in 0 ..< 50 {
-            if await storage.loadStarted { break }
-            try await Task.sleep(for: .milliseconds(10))
-        }
+        await storage.waitUntilLoadStarts()
         #expect(await storage.loadStarted)
 
         await storage.release()
         _ = try await exportTask.value
+    }
+
+    @Test("chatStream awaits delayed configuration before selecting a factory-created client")
+    func chatStreamAwaitsDelayedConfigurationBeforeSelectingFactoryClient() async {
+        let config = LLMConfiguration.fixture(
+            endpoint: "https://test.example.com",
+            modelName: "test-model",
+            apiKey: "test-key"
+        )
+        let storage = DelayedConfigurationService(config: config)
+        let mockClient = MockLLMClient()
+        let service = LLMService(storage: storage) { _ in
+            (main: mockClient as any LLMClientProtocol, utility: nil, fast: nil)
+        }
+
+        await storage.waitUntilLoadStarts()
+        let streamTask = Task {
+            await service.chatStream(
+                messages: [LLMMessage(role: .user, content: "Hi")],
+                tools: nil,
+                toolChoice: nil,
+                responseFormat: nil,
+                generationParameters: nil,
+                modelTier: .primary
+            )
+        }
+
+        await Task.yield()
+        #expect(mockClient.streamCallCount == 0)
+
+        await storage.release()
+        _ = await streamTask.value
+        #expect(mockClient.streamCallCount == 1)
     }
 }
