@@ -88,7 +88,11 @@ fn with_model<'a>(model: *mut Model) -> anyhow::Result<&'a Model> {
 }
 
 fn decode_text(bytes: *const u8, length: usize) -> anyhow::Result<String> {
-    if bytes.is_null() && length > 0 {
+    if length == 0 {
+        return Ok(String::new());
+    }
+
+    if bytes.is_null() {
         anyhow::bail!("Input bytes were null.")
     }
 
@@ -511,6 +515,11 @@ mod tests {
 
     fn sentinel_buffer(len: usize) -> Vec<f32> {
         vec![99.0; len]
+    }
+
+    #[test]
+    fn decode_text_accepts_null_for_empty_input() {
+        assert_eq!(decode_text(ptr::null(), 0).unwrap(), "");
     }
 
     #[test]
