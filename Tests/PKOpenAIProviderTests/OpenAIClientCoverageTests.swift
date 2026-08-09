@@ -1,5 +1,4 @@
 import Foundation
-#if canImport(Network)
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
@@ -283,4 +282,3 @@ data: [DONE]
         #expect(client is OpenAIClient)
     }
 }
-#endif
