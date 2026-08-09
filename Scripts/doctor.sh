@@ -33,11 +33,41 @@ printf "PositronicKit prerequisite report\n"
 printf "  host: %s %s\n\n" "$(uname -s)" "$(uname -m)"
 
 # --- Swift (required for every Swift gate) ----------------------------------
-if command -v swift >/dev/null 2>&1; then
-  ok "Swift: $(swift --version 2>/dev/null | head -n1 || echo unknown)"
+required_swift_version="$(sed -nE 's|^// swift-tools-version:[[:space:]]*([0-9]+\.[0-9]+).*|\1|p' "$repo_root/Package.swift" | head -n1)"
+required_swift_major="${required_swift_version%%.*}"
+required_swift_minor="${required_swift_version#*.}"
+
+if [ -z "$required_swift_version" ]; then
+  miss "Swift tools version could not be read from Package.swift"
+  hint "Required for all Swift gates: use the Swift version declared by Package.swift."
+  missing_required=1
+elif command -v swift >/dev/null 2>&1; then
+  swift_requirement_hint="Required for all Swift gates: Swift ${required_swift_version}+ via https://swift.org/install (swiftly is easiest)."
+  swift_version_output="$(swift --version 2>/dev/null || true)"
+  swift_version="$(printf '%s\n' "$swift_version_output" | sed -nE 's/.*Swift version ([0-9]+\.[0-9]+)(\.[0-9]+)?.*/\1/p' | head -n1)"
+  swift_display="$(printf '%s\n' "$swift_version_output" | head -n1)"
+  swift_display="${swift_display:-unknown}"
+
+  if [ -z "$swift_version" ]; then
+    miss "Swift version is missing or unparseable (reported: $swift_display)"
+    hint "$swift_requirement_hint"
+    missing_required=1
+  else
+    swift_major="${swift_version%%.*}"
+    swift_minor="${swift_version#*.}"
+    swift_minor="${swift_minor%%.*}"
+    if (( swift_major > required_swift_major ||
+      (swift_major == required_swift_major && swift_minor >= required_swift_minor) )); then
+      ok "Swift: $swift_display"
+    else
+      miss "Swift $swift_version is older than the required Swift $required_swift_version"
+      hint "$swift_requirement_hint"
+      missing_required=1
+    fi
+  fi
 else
   miss "Swift toolchain not found on PATH"
-  hint "Required for all Swift gates. Install Swift 6.1+ via https://swift.org/install (swiftly is easiest)."
+  hint "$swift_requirement_hint"
   missing_required=1
 fi
 
