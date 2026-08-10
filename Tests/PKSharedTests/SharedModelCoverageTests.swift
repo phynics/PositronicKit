@@ -75,6 +75,8 @@ struct LLMConfigurationValidationTests {
     @Test("validate throws for invalid endpoint (not a URL)")
     func validateThrowsForInvalidEndpoint() {
         var config = LLMConfiguration.openAI
+        config.providers[.openAI]?.apiKey = "sk-test"
+        config.providers[.openAI]?.modelName = "gpt-4o"
         config.providers[.openAI]?.endpoint = "not-a-url"
         #expect(throws: ConfigurationError.self) {
             try config.validate()
@@ -84,6 +86,8 @@ struct LLMConfigurationValidationTests {
     @Test("validate throws for endpoint with unsupported scheme")
     func validateThrowsForUnsupportedScheme() {
         var config = LLMConfiguration.openAI
+        config.providers[.openAI]?.apiKey = "sk-test"
+        config.providers[.openAI]?.modelName = "gpt-4o"
         config.providers[.openAI]?.endpoint = "ftp://files.example.com"
         #expect(throws: ConfigurationError.self) {
             try config.validate()
@@ -94,6 +98,8 @@ struct LLMConfigurationValidationTests {
     func validateThrowsForHostlessEndpoint() {
         for endpoint in ["https:", "https:api.example.com", "http:///api/v1"] {
             var config = LLMConfiguration.openAI
+            config.providers[.openAI]?.apiKey = "sk-test"
+            config.providers[.openAI]?.modelName = "gpt-4o"
             config.providers[.openAI]?.endpoint = endpoint
 
             do {
@@ -119,6 +125,8 @@ struct LLMConfigurationValidationTests {
             "http://localhost:11434/api",
         ] {
             var config = LLMConfiguration.openAI
+            config.providers[.openAI]?.apiKey = "sk-test"
+            config.providers[.openAI]?.modelName = "gpt-4o"
             config.providers[.openAI]?.endpoint = endpoint
             #expect(throws: Never.self) { try config.validate() }
         }
