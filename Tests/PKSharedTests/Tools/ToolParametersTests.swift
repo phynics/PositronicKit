@@ -121,4 +121,32 @@ struct ToolParametersTests {
 
         #expect(params.optional("count", as: Int.self) == 4)
     }
+
+    @Test("Int extraction preserves exact 64-bit integer parameters")
+    func intExtractionFromExactInteger() throws {
+        let params = ToolParameters(["count": AnyCodable(Int64.max)])
+
+        #expect(try params.require("count", as: Int.self) == Int.max)
+        #expect(params.optional("count", as: Int.self) == Int.max)
+    }
+
+    @Test("Int extraction rejects out-of-range unsigned integers")
+    func intExtractionRejectsOutOfRangeUnsignedInteger() {
+        let params = ToolParameters(["count": AnyCodable(UInt64.max)])
+
+        #expect(throws: ToolError.self) {
+            try params.require("count", as: Int.self)
+        }
+        #expect(params.optional("count", as: Int.self) == nil)
+    }
+
+    @Test("Int extraction rejects potentially lossy large doubles")
+    func intExtractionRejectsLossyLargeDouble() {
+        let params = ToolParameters(["count": AnyCodable(9_007_199_254_740_992.0)])
+
+        #expect(throws: ToolError.self) {
+            try params.require("count", as: Int.self)
+        }
+        #expect(params.optional("count", as: Int.self) == nil)
+    }
 }
