@@ -15,6 +15,20 @@ printf '%s\n' '#!/usr/bin/env bash' \
   'fi' > "$fake_bin/swift"
 chmod +x "$fake_bin/swift"
 
+bash_path="$(command -v bash)"
+swift_path="$(command -v swift || true)"
+swift_dir="${swift_path%/*}"
+path_without_swift="$PATH"
+if [ -n "$swift_path" ]; then
+  path_without_swift="$(printf '%s\n' "$PATH" | awk -v skip="$swift_dir" -F: '{
+    result = ""
+    for (i = 1; i <= NF; i++) {
+      if ($i != skip) result = result (result == "" ? "" : ":") $i
+    }
+    print result
+  }')"
+fi
+
 run_case() {
   local name="$1"
   local swift_output="$2"
@@ -45,6 +59,33 @@ run_case() {
   printf 'ok: %s\n' "$name"
 }
 
+run_missing_swift_case() {
+  local output
+  local status
+
+  set +e
+  output="$(
+    PATH="$path_without_swift" \
+      "$bash_path" "$doctor" "" "$tmp_dir/pkfastembed" 2>&1
+  )"
+  status=$?
+  set -e
+
+  if [ "$status" -ne 1 ]; then
+    printf 'FAIL: missing Swift: expected exit 1, got %s\n%s\n' \
+      "$status" "$output" >&2
+    exit 1
+  fi
+  if [[ "$output" != *'Swift toolchain not found on PATH'* ||
+    "$output" != *'Swift 6.1+'* ]]; then
+    printf 'FAIL: missing Swift: expected a clear installation diagnostic\n%s\n' \
+      "$output" >&2
+    exit 1
+  fi
+  printf 'ok: missing Swift\n'
+}
+
+run_missing_swift_case
 run_case 'rejects Swift 5.10.1' \
   'Swift version 5.10.1 (swift-5.10.1-RELEASE)' \
   1 'Swift 6.1+'
