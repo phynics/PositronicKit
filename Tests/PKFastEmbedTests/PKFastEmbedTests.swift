@@ -46,6 +46,28 @@
             }
         }
 
+        @Test("native batch embeddings accept empty strings and preserve mixed input ordering")
+        func batchHandlesEmptyStringsAndPreservesMixedOrdering() throws {
+            guard let model = try makeModel() else {
+                return
+            }
+
+            let emptyBatch = try model.embed([""])
+            let mixedTexts = ["", "alpha", "", "beta"]
+            let mixedBatch = try model.embed(mixedTexts)
+            let expected = try mixedTexts.map { try model.embed($0) }
+
+            #expect(emptyBatch.count == 1)
+            #expect(emptyBatch[0].count == 384)
+            #expect(mixedBatch.count == mixedTexts.count)
+            for (actual, expectedEmbedding) in zip(mixedBatch, expected) {
+                #expect(actual.count == expectedEmbedding.count)
+                for (actualValue, expectedValue) in zip(actual, expectedEmbedding) {
+                    #expect(abs(actualValue - expectedValue) < 0.000_01)
+                }
+            }
+        }
+
         @Test("empty batch returns no embeddings")
         func emptyBatch() throws {
             guard let model = try makeModel() else {

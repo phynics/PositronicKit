@@ -111,6 +111,10 @@ public actor LLMService: LanguageModel, HealthCheckable {
         preparationTaskBox.task != nil
     }
 
+    func awaitPreparation() async {
+        await preparationTaskBox.task?.value
+    }
+
     // MARK: - Client Accessors
 
     /// Returns the configured primary client.

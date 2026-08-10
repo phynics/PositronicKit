@@ -68,6 +68,25 @@ struct TimelineObservationToolsTests {
             #expect(result.output.contains("50 messages") == true)
         }
 
+        @Test("Rejects a negative limit without trapping")
+        func negativeLimitFailsWithoutTrap() async throws {
+            let (timelineStore, messageStore) = makeStores()
+            let timeline = Timeline(title: "Negative Limit")
+            try await timelineStore.saveTimeline(timeline)
+            try await messageStore.saveMessage(ConversationMessage(
+                timelineID: timeline.id, role: .user, content: "message"
+            ))
+
+            let tool = TimelinePeekTool(messageStore: messageStore, timelineStore: timelineStore)
+            let result = try await tool.execute(parameters: [
+                "timeline_id": AnyCodable(timeline.id.uuidString),
+                "limit": AnyCodable(-1),
+            ])
+
+            #expect(!result.success)
+            #expect(result.error?.contains("non-negative") == true)
+        }
+
         @Test("Uses a default limit of 10 when omitted")
         func defaultLimitIs10() async throws {
             let (timelineStore, messageStore) = makeStores()

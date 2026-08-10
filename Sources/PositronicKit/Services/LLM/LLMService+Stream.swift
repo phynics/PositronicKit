@@ -69,6 +69,7 @@ public extension LLMService {
         generationParameters: GenerationParameters?,
         modelTier: ModelTier
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        await awaitPreparation()
         let selectedClient: (any LLMClientProtocol)?
         switch modelTier {
         case .fast:

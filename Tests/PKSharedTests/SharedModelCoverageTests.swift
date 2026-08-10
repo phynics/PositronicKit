@@ -75,6 +75,8 @@ struct LLMConfigurationValidationTests {
     @Test("validate throws for invalid endpoint (not a URL)")
     func validateThrowsForInvalidEndpoint() {
         var config = LLMConfiguration.openAI
+        config.providers[.openAI]?.apiKey = "sk-test"
+        config.providers[.openAI]?.modelName = "gpt-4o"
         config.providers[.openAI]?.endpoint = "not-a-url"
         #expect(throws: ConfigurationError.self) {
             try config.validate()
@@ -84,9 +86,49 @@ struct LLMConfigurationValidationTests {
     @Test("validate throws for endpoint with unsupported scheme")
     func validateThrowsForUnsupportedScheme() {
         var config = LLMConfiguration.openAI
+        config.providers[.openAI]?.apiKey = "sk-test"
+        config.providers[.openAI]?.modelName = "gpt-4o"
         config.providers[.openAI]?.endpoint = "ftp://files.example.com"
         #expect(throws: ConfigurationError.self) {
             try config.validate()
+        }
+    }
+
+    @Test("validate throws for HTTP(S) endpoints without a host")
+    func validateThrowsForHostlessEndpoint() {
+        for endpoint in ["https:", "https:api.example.com", "http:///api/v1"] {
+            var config = LLMConfiguration.openAI
+            config.providers[.openAI]?.apiKey = "sk-test"
+            config.providers[.openAI]?.modelName = "gpt-4o"
+            config.providers[.openAI]?.endpoint = endpoint
+
+            do {
+                try config.validate()
+                Issue.record("Expected hostless endpoint to be rejected: \(endpoint)")
+            } catch let error as ConfigurationError {
+                guard case let .invalidEndpoint(invalidEndpoint) = error else {
+                    Issue.record("Expected invalidEndpoint for \(endpoint), got: \(error)")
+                    continue
+                }
+                #expect(invalidEndpoint == endpoint)
+            } catch {
+                Issue.record("Expected ConfigurationError for \(endpoint), got: \(error)")
+            }
+        }
+    }
+
+    @Test("validate preserves HTTP(S) endpoints with host, port, and path")
+    func validateSucceedsForEndpointAuthority() throws {
+        for endpoint in [
+            "https://api.example.com",
+            "https://api.example.com:8443/v1",
+            "http://localhost:11434/api",
+        ] {
+            var config = LLMConfiguration.openAI
+            config.providers[.openAI]?.apiKey = "sk-test"
+            config.providers[.openAI]?.modelName = "gpt-4o"
+            config.providers[.openAI]?.endpoint = endpoint
+            #expect(throws: Never.self) { try config.validate() }
         }
     }
 

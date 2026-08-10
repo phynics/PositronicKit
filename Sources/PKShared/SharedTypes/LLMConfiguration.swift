@@ -101,8 +101,13 @@ public struct LLMConfiguration: Codable, Sendable, Equatable {
 
     /// Validate endpoint URL format
     private func isValidEndpoint(_ endpoint: String) -> Bool {
-        guard let url = URL(string: endpoint) else { return false }
-        return url.scheme == "http" || url.scheme == "https"
+        guard let components = URLComponents(string: endpoint),
+              let scheme = components.scheme?.lowercased(),
+              scheme == "http" || scheme == "https",
+              let host = components.host,
+              !host.isEmpty else { return false }
+
+        return true
     }
 }
 

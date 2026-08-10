@@ -213,6 +213,37 @@ struct ProviderHTTPTransportTests {
         )
     }
 
+    @Test("lines(for:) cancels while waiting for response headers")
+    func linesCancellationBeforeHeadersFailsPromptly() async throws {
+        let server = try await TestHTTPServer.start(responseProvider: { _ in
+            Thread.sleep(forTimeInterval: 3)
+            return .init(headers: ["Content-Type": "text/plain"], body: Data())
+        })
+        defer { server.stop() }
+
+        let transport = URLSessionProviderHTTPTransport(session: .shared)
+        let request = URLRequest(url: URL(string: "http://127.0.0.1:\(server.port)/")!)
+        let startTime = Date()
+        let requestTask = Task {
+            try await transport.lines(for: request)
+        }
+
+        try await Task.sleep(for: .milliseconds(100))
+        requestTask.cancel()
+
+        do {
+            _ = try await requestTask.value
+            Issue.record("Expected cancellation before response headers")
+        } catch {
+            #expect(error is CancellationError)
+        }
+
+        #expect(
+            Date().timeIntervalSince(startTime) < 1,
+            "Cancellation should not wait for delayed response headers"
+        )
+    }
+
     @Test("lines(for:) handles a large chunked stream")
     func linesHandlesLargeChunkedStream() async throws {
         let lineCount = 50

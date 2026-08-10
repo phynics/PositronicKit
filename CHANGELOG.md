@@ -10,6 +10,13 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- **Precision-safe `AnyCodable` integers**: JSON integers now decode and encode through the
+  public `AnyCodable.integer(Int64)` and `AnyCodable.unsignedInteger(UInt64)` cases instead of
+  silently passing through `Double`. Existing `.number(Double)` callers retain floating behavior,
+  but exhaustive switches over `AnyCodable` must handle the two new cases. Tool numeric extraction
+  preserves the legacy integer-to-`Double` behavior when the value is exactly representable,
+  supports exact integer-to-`Float` conversion, and rejects fractional, out-of-range, or lossy
+  conversions.
 - **Public facade validation and readiness contracts**: `ChatRunError.invalidMaxTurns` rejects
   `maxTurns < 1` before timeline, persistence, or provider work, and the live read-only
   `PositronicKit.isLanguageModelConfigured` property reports the injected model's configuration

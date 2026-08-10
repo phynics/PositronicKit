@@ -3,6 +3,15 @@ import Foundation
 /// A wrapper for Any that is Codable
 public enum AnyCodable: Codable, Sendable, Equatable, Hashable, CustomStringConvertible {
     case string(String)
+    /// A signed JSON integer, retained exactly through decoding and encoding.
+    case integer(Int64)
+    /// An unsigned JSON integer too large for `Int64`, retained exactly through decoding and encoding.
+    case unsignedInteger(UInt64)
+    /// A floating-point JSON number.
+    ///
+    /// This case remains the source-compatible representation for callers that explicitly
+    /// construct floating values. Code that handles every JSON number should also handle
+    /// `integer` and `unsignedInteger`.
     case number(Double)
     case boolean(Bool)
     case dictionary([String: AnyCodable])
@@ -12,6 +21,8 @@ public enum AnyCodable: Codable, Sendable, Equatable, Hashable, CustomStringConv
     public var value: Any {
         switch self {
         case let .string(str): return str
+        case let .integer(num): return num
+        case let .unsignedInteger(num): return num
         case let .number(num): return num
         case let .boolean(bool): return bool
         case let .dictionary(dict): return dict.mapValues { $0.value }
@@ -23,6 +34,8 @@ public enum AnyCodable: Codable, Sendable, Equatable, Hashable, CustomStringConv
     public var description: String {
         switch self {
         case let .string(str): return str
+        case let .integer(num): return String(num)
+        case let .unsignedInteger(num): return String(num)
         case let .number(num): return String(num)
         case let .boolean(bool): return String(bool)
         case let .dictionary(dict): return String(describing: dict)
@@ -57,10 +70,30 @@ public enum AnyCodable: Codable, Sendable, Equatable, Hashable, CustomStringConv
         }
         if let value = value as? String {
             self = .string(value)
+        } else if let value = value as? Int {
+            self = .integer(Int64(value))
+        } else if let value = value as? Int8 {
+            self = .integer(Int64(value))
+        } else if let value = value as? Int16 {
+            self = .integer(Int64(value))
+        } else if let value = value as? Int32 {
+            self = .integer(Int64(value))
+        } else if let value = value as? Int64 {
+            self = .integer(value)
+        } else if let value = value as? UInt {
+            self = .unsignedInteger(UInt64(value))
+        } else if let value = value as? UInt8 {
+            self = .unsignedInteger(UInt64(value))
+        } else if let value = value as? UInt16 {
+            self = .unsignedInteger(UInt64(value))
+        } else if let value = value as? UInt32 {
+            self = .unsignedInteger(UInt64(value))
+        } else if let value = value as? UInt64 {
+            self = .unsignedInteger(value)
+        } else if let value = value as? Float {
+            self = .number(Double(value))
         } else if let value = value as? Double {
             self = .number(value)
-        } else if let value = value as? Int {
-            self = .number(Double(value))
         } else if let value = value as? Bool {
             self = .boolean(value)
         } else if let value = value as? [String: Any] {
@@ -76,10 +109,14 @@ public enum AnyCodable: Codable, Sendable, Equatable, Hashable, CustomStringConv
         let container = try decoder.singleValueContainer()
         if let value = try? container.decode(String.self) {
             self = .string(value)
-        } else if let value = try? container.decode(Double.self) {
-            self = .number(value)
         } else if let value = try? container.decode(Bool.self) {
             self = .boolean(value)
+        } else if let value = try? container.decode(Int64.self) {
+            self = .integer(value)
+        } else if let value = try? container.decode(UInt64.self) {
+            self = .unsignedInteger(value)
+        } else if let value = try? container.decode(Double.self) {
+            self = .number(value)
         } else if let value = try? container.decode([String: AnyCodable].self) {
             self = .dictionary(value)
         } else if let value = try? container.decode([AnyCodable].self) {
@@ -93,6 +130,8 @@ public enum AnyCodable: Codable, Sendable, Equatable, Hashable, CustomStringConv
         var container = encoder.singleValueContainer()
         switch self {
         case let .string(value): try container.encode(value)
+        case let .integer(value): try container.encode(value)
+        case let .unsignedInteger(value): try container.encode(value)
         case let .number(value): try container.encode(value)
         case let .boolean(value): try container.encode(value)
         case let .dictionary(value): try container.encode(value)
@@ -119,7 +158,7 @@ extension AnyCodable: ExpressibleByStringLiteral {
 
 extension AnyCodable: ExpressibleByIntegerLiteral {
     public init(integerLiteral value: Int) {
-        self = .number(Double(value))
+        self = .integer(Int64(value))
     }
 }
 

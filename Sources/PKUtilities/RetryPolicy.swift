@@ -41,6 +41,9 @@ public enum RetryPolicy {
     /// `Retry-After` hints by `maxRetryAfter`, and enforces a total wall-clock
     /// elapsed budget (`maxTotalElapsedTime`) so a hostile or buggy server cannot
     /// keep the caller retrying indefinitely (PKRR-030).
+    /// When a planned delay would exceed the remaining total-time budget, the
+    /// delay is clamped to that remaining budget. This preserves the retry
+    /// attempt while ensuring the policy never sleeps past its configured budget.
     ///
     /// - Parameters:
     ///   - configuration: Validated retry configuration (delays, caps, budgets, jitter).
@@ -54,8 +57,33 @@ public enum RetryPolicy {
         loggingConfiguration: LoggingConfiguration = .default,
         operation: @escaping @Sendable () async throws -> T
     ) async throws -> T {
-        var attempts = 0
         let startTime = ContinuousClock.now
+        return try await retry(
+            configuration: configuration,
+            shouldRetry: shouldRetry,
+            loggingConfiguration: loggingConfiguration,
+            elapsedTime: {
+                let components = startTime.duration(to: .now).components
+                return TimeInterval(components.seconds)
+                    + TimeInterval(components.attoseconds) / 1_000_000_000_000_000_000
+            },
+            sleeper: { delay in
+                try await Task.sleep(nanoseconds: Timeout.nanoseconds(for: delay))
+            },
+            operation: operation
+        )
+    }
+
+    /// Retry implementation with injectable timing seams for deterministic tests.
+    static func retry<T>(
+        configuration: RetryConfiguration,
+        shouldRetry: @escaping @Sendable (Error) -> Bool,
+        loggingConfiguration: LoggingConfiguration,
+        elapsedTime: @escaping @Sendable () -> TimeInterval,
+        sleeper: @escaping @Sendable (TimeInterval) async throws -> Void,
+        operation: @escaping @Sendable () async throws -> T
+    ) async throws -> T {
+        var attempts = 0
         let logger = loggingConfiguration.logger(named: "retry-policy")
 
         while true {
@@ -73,8 +101,8 @@ public enum RetryPolicy {
 
                 // Total elapsed-time budget: stop retrying if the wall-clock budget is exhausted,
                 // even if the attempt count has not yet hit maxRetries (PKRR-030).
-                let elapsed = startTime.duration(to: .now)
-                if elapsed >= .seconds(configuration.maxTotalElapsedTime) {
+                let elapsed = elapsedTime()
+                if elapsed >= configuration.maxTotalElapsedTime {
                     logger.error(
                         "Retry total elapsed budget exhausted (\(configuration.maxTotalElapsedTime)s) after \(attempts) attempts",
                         metadata: LoggingMetadata.makeMetadata(for: error, correlationID: "retry")
@@ -87,9 +115,21 @@ public enum RetryPolicy {
                     throw error
                 }
 
-                attempts += 1
+                let nextAttempt = attempts + 1
+                let plannedDelay = computeDelay(for: error, attempt: nextAttempt, configuration: configuration)
+                let remainingBudget = configuration.maxTotalElapsedTime - elapsedTime()
+                if remainingBudget <= 0 {
+                    logger.error(
+                        "Retry total elapsed budget exhausted (\(configuration.maxTotalElapsedTime)s) after \(attempts) attempts",
+                        metadata: LoggingMetadata.makeMetadata(for: error, correlationID: "retry")
+                    )
+                    throw error
+                }
 
-                let finalDelay = computeDelay(for: error, attempt: attempts, configuration: configuration)
+                // Clamp the sleep, rather than declining the retry, so the retry
+                // attempt count and all delay calculation inputs remain unchanged.
+                attempts = nextAttempt
+                let finalDelay = min(plannedDelay, remainingBudget)
 
                 let delayStr = String(format: "%.2f", finalDelay)
                 logger.warning(
@@ -97,7 +137,7 @@ public enum RetryPolicy {
                     metadata: LoggingMetadata.makeMetadata(for: error, correlationID: "retry")
                 )
 
-                try await Task.sleep(nanoseconds: Timeout.nanoseconds(for: finalDelay))
+                try await sleeper(finalDelay)
             }
         }
     }

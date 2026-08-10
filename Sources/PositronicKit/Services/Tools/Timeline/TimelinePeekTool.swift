@@ -28,7 +28,9 @@ public struct TimelinePeekTool: PKShared.Tool, Sendable {
             }
             .required()
             JSONProperty(key: "limit") {
-                JSONInteger().description("Maximum number of recent messages to return (default: 10, max: 50).")
+                JSONInteger()
+                    .minimum(0)
+                    .description("Maximum number of recent messages to return (default: 10, max: 50).")
             }
         }.schemaDefinition
     }
@@ -58,7 +60,11 @@ public struct TimelinePeekTool: PKShared.Tool, Sendable {
             return .failure("Cannot peek at private timelines.")
         }
 
-        let limit = min(params.optional("limit", as: Int.self) ?? 10, 50)
+        let requestedLimit = params.optional("limit", as: Int.self) ?? 10
+        guard requestedLimit >= 0 else {
+            return .failure("limit must be non-negative.")
+        }
+        let limit = min(requestedLimit, 50)
         let messages = try await messageStore.fetchMessages(for: timelineId)
         let recent = Array(messages.suffix(limit))
 

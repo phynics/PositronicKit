@@ -76,7 +76,22 @@ package struct URLSessionProviderHTTPTransport: ProviderHTTPTransport {
         let task = streamingSession.dataTask(with: request)
         task.resume()
 
-        let response = try await delegate.awaitResponse()
+        let response: URLResponse
+        do {
+            response = try await withTaskCancellationHandler {
+                let response = try await delegate.awaitResponse()
+                try Task.checkCancellation()
+                return response
+            } onCancel: {
+                delegate.cancelResponseWait()
+                task.cancel()
+                streamingSession.invalidateAndCancel()
+            }
+        } catch {
+            task.cancel()
+            streamingSession.invalidateAndCancel()
+            throw error
+        }
 
         let stream = AsyncThrowingStream<String, Error> { continuation in
             delegate.attachLineContinuation(continuation)
@@ -122,6 +137,24 @@ private final class StreamingLineDelegate: NSObject, URLSessionDataDelegate, @un
                 lock.unlock()
             }
         }
+    }
+
+    /// Fails a pending pre-stream response wait. The lock makes cancellation and
+    /// response delivery race to claim the continuation, so it is resumed once.
+    func cancelResponseWait() {
+        lock.lock()
+        guard capturedResponse == nil else {
+            lock.unlock()
+            return
+        }
+
+        didFinish = true
+        finishError = CancellationError()
+        let continuation = responseContinuation
+        responseContinuation = nil
+        lock.unlock()
+
+        continuation?.resume(throwing: CancellationError())
     }
 
     func attachLineContinuation(_ continuation: AsyncThrowingStream<String, Error>.Continuation) {

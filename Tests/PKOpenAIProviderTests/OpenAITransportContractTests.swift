@@ -1,5 +1,4 @@
 import Foundation
-#if canImport(Network)
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
@@ -167,4 +166,3 @@ data: {bad json
         }
     }
 }
-#endif

@@ -121,4 +121,75 @@ struct ToolParametersTests {
 
         #expect(params.optional("count", as: Int.self) == 4)
     }
+
+    @Test("Int extraction preserves exact 64-bit integer parameters")
+    func intExtractionFromExactInteger() throws {
+        let params = ToolParameters(["count": AnyCodable(Int64.max)])
+
+        #expect(try params.require("count", as: Int.self) == Int.max)
+        #expect(params.optional("count", as: Int.self) == Int.max)
+    }
+
+    @Test("Int extraction rejects out-of-range unsigned integers")
+    func intExtractionRejectsOutOfRangeUnsignedInteger() {
+        let params = ToolParameters(["count": AnyCodable(UInt64.max)])
+
+        #expect(throws: ToolError.self) {
+            try params.require("count", as: Int.self)
+        }
+        #expect(params.optional("count", as: Int.self) == nil)
+    }
+
+    @Test("Int extraction rejects potentially lossy large doubles")
+    func intExtractionRejectsLossyLargeDouble() {
+        let params = ToolParameters(["count": AnyCodable(9_007_199_254_740_992.0)])
+
+        #expect(throws: ToolError.self) {
+            try params.require("count", as: Int.self)
+        }
+        #expect(params.optional("count", as: Int.self) == nil)
+    }
+
+    @Test("Literal integer parameters convert exactly to floating types")
+    func literalIntegerExtractionAsFloatingPoint() throws {
+        let params = ToolParameters(["value": 42])
+
+        #expect(try params.require("value", as: Double.self) == 42.0)
+        #expect(params.optional("value", as: Double.self) == 42.0)
+        #expect(try params.require("value", as: Float.self) == 42.0)
+        #expect(params.optional("value", as: Float.self) == 42.0)
+    }
+
+    @Test("JSON integer parameters convert exactly to floating types")
+    func decodedIntegerExtractionAsFloatingPoint() throws {
+        let decoded = try JSONDecoder().decode(
+            [String: AnyCodable].self,
+            from: Data("{\"value\":42}".utf8)
+        )
+        let params = ToolParameters(decoded)
+
+        #expect(try params.require("value", as: Double.self) == 42.0)
+        #expect(params.optional("value", as: Double.self) == 42.0)
+        #expect(try params.require("value", as: Float.self) == 42.0)
+        #expect(params.optional("value", as: Float.self) == 42.0)
+    }
+
+    @Test("Floating extraction rejects integers that require rounding")
+    func floatingExtractionRejectsUnrepresentableIntegers() {
+        let binary64Loss = ToolParameters([
+            "value": AnyCodable(Int64(9_007_199_254_740_993)),
+        ])
+        let binary32Loss = ToolParameters([
+            "value": AnyCodable(Int64(16_777_217)),
+        ])
+
+        #expect(throws: ToolError.self) {
+            try binary64Loss.require("value", as: Double.self)
+        }
+        #expect(binary64Loss.optional("value", as: Double.self) == nil)
+        #expect(throws: ToolError.self) {
+            try binary32Loss.require("value", as: Float.self)
+        }
+        #expect(binary32Loss.optional("value", as: Float.self) == nil)
+    }
 }

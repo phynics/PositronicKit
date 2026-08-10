@@ -17,6 +17,32 @@ struct VectorMathTests {
         #expect(PortableVectorMath.cosineSimilarity([1.0, 0.0], [-1.0, 0.0]) == -1.0)
     }
 
+    @Test("Portable cosine similarity rejects non-finite inputs and results")
+    func portableCosineSimilarityRejectsNonFiniteValues() {
+        let invalidCases: [([Double], [Double])] = [
+            ([.nan, 1.0], [1.0, 1.0]),
+            ([.infinity, 1.0], [1.0, 1.0]),
+            ([-.infinity, 1.0], [1.0, 1.0]),
+            ([1.0, 1.0], [.nan, 1.0]),
+        ]
+
+        for (vectorA, vectorB) in invalidCases {
+            let result = PortableVectorMath.cosineSimilarity(vectorA, vectorB)
+            #expect(result == 0.0)
+            #expect(result.isFinite)
+            #expect((-1.0...1.0).contains(result))
+
+            #expect(VectorMath.cosineSimilarity(between: vectorA, and: vectorB) == result)
+        }
+
+        let overflowResult = PortableVectorMath.cosineSimilarity(
+            [Double.greatestFiniteMagnitude],
+            [Double.greatestFiniteMagnitude]
+        )
+        #expect(overflowResult == 0.0)
+        #expect(overflowResult.isFinite)
+    }
+
     @Test("Portable normalization preserves empty and zero vectors")
     func portableNormalizationHandlesDegenerateCases() {
         #expect(PortableVectorMath.normalize([]) == [])
@@ -28,6 +54,23 @@ struct VectorMathTests {
         let normalized = PortableVectorMath.normalize([3.0, 4.0])
         #expect(abs(normalized[0] - 0.6) < 0.000_001)
         #expect(abs(normalized[1] - 0.8) < 0.000_001)
+    }
+
+    @Test("Portable normalization uses a finite zero fallback for invalid inputs")
+    func portableNormalizationRejectsNonFiniteValues() {
+        let invalidVectors: [[Double]] = [
+            [.nan, 1.0],
+            [.infinity, 1.0],
+            [-.infinity, 1.0],
+            [Double.greatestFiniteMagnitude],
+        ]
+
+        for vector in invalidVectors {
+            let normalized = PortableVectorMath.normalize(vector)
+            #expect(normalized == [Double](repeating: 0.0, count: vector.count))
+            #expect(normalized.allSatisfy { $0.isFinite })
+            #expect(VectorMath.normalize(vector) == normalized)
+        }
     }
 
     @Test("Portable backend matches public API for larger vectors")
@@ -67,6 +110,28 @@ struct VectorMathTests {
         #expect(portableNormalized.count == accelerateNormalized.count)
         for index in portableNormalized.indices {
             #expect(abs(portableNormalized[index] - accelerateNormalized[index]) < 0.000_000_1)
+        }
+    }
+
+    @Test("Accelerate and portable backends share invalid input fallbacks")
+    func accelerateAndPortableBackendsRejectNonFiniteValues() {
+        let invalidVectors: [[Double]] = [
+            [.nan, 1.0],
+            [.infinity, 1.0],
+            [-.infinity, 1.0],
+            [Double.greatestFiniteMagnitude],
+        ]
+
+        for vector in invalidVectors {
+            let comparisonVector = [Double](repeating: 1.0, count: vector.count)
+            let portableCosine = PortableVectorMath.cosineSimilarity(vector, comparisonVector)
+            let accelerateCosine = AccelerateVectorMath.cosineSimilarity(vector, comparisonVector)
+            #expect(portableCosine == 0.0)
+            #expect(accelerateCosine == portableCosine)
+
+            let portableNormalized = PortableVectorMath.normalize(vector)
+            let accelerateNormalized = AccelerateVectorMath.normalize(vector)
+            #expect(accelerateNormalized == portableNormalized)
         }
     }
     #endif
