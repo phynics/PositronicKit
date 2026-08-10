@@ -20,9 +20,10 @@ struct TestHTTPServerTests {
         var request = URLRequest(url: URL(string: "http://127.0.0.1:\(server.port)/v1/test?mode=full")!)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = Data(#"{"input":"hello"}"#.utf8)
+        let payload = Data(#"{"input":"hello"}"#.utf8)
+        request.setValue(String(payload.count), forHTTPHeaderField: "Content-Length")
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.upload(for: request, from: payload)
         let captured = try #require(capturedRequest.withLock { $0 })
 
         #expect((response as? HTTPURLResponse)?.statusCode == 200)
@@ -30,7 +31,7 @@ struct TestHTTPServerTests {
         #expect(captured.method == "POST")
         #expect(captured.path == "/v1/test?mode=full")
         #expect(captured.headers["Content-Type"] == "application/json")
-        #expect(captured.body == Data(#"{"input":"hello"}"#.utf8))
+        #expect(captured.body == payload)
     }
 
     @Test("delivers sequential and delayed chunked responses")
