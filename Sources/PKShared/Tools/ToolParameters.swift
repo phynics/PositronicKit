@@ -4,7 +4,7 @@ import Foundation
 ///
 /// Use `ToolParameters` in your `Tool.execute` implementation to decode and validate
 /// arguments with precise error reporting. It handles safe numeric coercion (e.g. a small,
-/// integral `Double` → `Int`)
+/// integral `Double` → `Int`, or an exactly representable integer → `Double`/`Float`)
 /// and throws appropriate `ToolError` cases for missing or invalid arguments.
 ///
 /// ```swift
@@ -41,6 +41,28 @@ public struct ToolParameters: Sendable {
             return result
         }
 
+        if T.self == Double.self {
+            guard let doubleValue = Self.exactDouble(from: parameter), let result = doubleValue as? T else {
+                throw ToolError.invalidArgument(
+                    key,
+                    expected: String(describing: T.self),
+                    got: Self.integerConversionDescription(for: parameter)
+                )
+            }
+            return result
+        }
+
+        if T.self == Float.self {
+            guard let floatValue = Self.exactFloat(from: parameter), let result = floatValue as? T else {
+                throw ToolError.invalidArgument(
+                    key,
+                    expected: String(describing: T.self),
+                    got: Self.integerConversionDescription(for: parameter)
+                )
+            }
+            return result
+        }
+
         let value = parameter.value
         guard let typed = value as? T else {
             throw ToolError.invalidArgument(
@@ -57,6 +79,14 @@ public struct ToolParameters: Sendable {
 
         if T.self == Int.self {
             return Self.exactInt(from: parameter) as? T
+        }
+
+        if T.self == Double.self {
+            return Self.exactDouble(from: parameter) as? T
+        }
+
+        if T.self == Float.self {
+            return Self.exactFloat(from: parameter) as? T
         }
 
         return parameter.value as? T
@@ -79,6 +109,36 @@ public struct ToolParameters: Sendable {
                 return nil
             }
             return exactValue
+        case .string, .boolean, .dictionary, .array, .null:
+            return nil
+        }
+    }
+
+    /// Converts numeric values without rounding. Integral values that cannot be represented
+    /// exactly by binary64 are rejected rather than silently changing the tool argument.
+    private static func exactDouble(from parameter: AnyCodable) -> Double? {
+        switch parameter {
+        case let .integer(value):
+            return Double(exactly: value)
+        case let .unsignedInteger(value):
+            return Double(exactly: value)
+        case let .number(value):
+            return value
+        case .string, .boolean, .dictionary, .array, .null:
+            return nil
+        }
+    }
+
+    /// Converts numeric values without rounding. Existing floating values are accepted only
+    /// when binary32 can represent them exactly, matching the integer conversion policy.
+    private static func exactFloat(from parameter: AnyCodable) -> Float? {
+        switch parameter {
+        case let .integer(value):
+            return Float(exactly: value)
+        case let .unsignedInteger(value):
+            return Float(exactly: value)
+        case let .number(value):
+            return Float(exactly: value)
         case .string, .boolean, .dictionary, .array, .null:
             return nil
         }
