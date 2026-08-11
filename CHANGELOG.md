@@ -30,6 +30,13 @@ for tagged releases beginning with `1.0.0`.
 
 ### Changed
 
+- **Public identifier parameter consistency (PKAPI-004)**: remaining exported `Id`/`Ids`
+  parameter spellings now have canonical `ID`/`IDs` APIs. Legacy protocol requirements remain the
+  single customization point with one-way canonical conveniences, concrete legacy overloads are
+  deprecated forwards, and ChatEvent continues to encode the historical `"toolCallId"` wire key.
+- **Prompt journal observation validation**: `PromptJournal.observe(_:)` now throws
+  `PromptJournal.ValidationError` for duplicate stable or semi-stable section identifiers before
+  mutating journal state; valid diff behavior is unchanged.
 - **Facade preflight, one-shot, and stream lifecycle behavior**: requests with an
   `agentInstanceID` resolve the agent once before provider readiness and input persistence;
   `.failRequired` throws for a missing agent while `.continueWithWarnings` emits an agent

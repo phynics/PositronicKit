@@ -22,10 +22,12 @@ struct ChatEngineFailurePersistenceTests {
     /// self-contained. Seeds a hydrated timeline the engine can run a turn against.
     private func withChatEngineDependencies<T>(
         streamTimeout: TimeInterval = 60,
+        promptHistoryRegistry: TimelinePromptJournals? = nil,
         _ test: @Sendable (ChatEngine, MockLLMService, MockPersistenceService) async throws -> T
     ) async throws -> T {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
+        let registry = promptHistoryRegistry ?? TimelinePromptJournals()
         let timelineManager = TimelineManager(
             stores: .init(
                 timelineStore: mockPersistence,
@@ -49,6 +51,7 @@ struct ChatEngineFailurePersistenceTests {
                 llmService: mockLLM,
                 toolRouter: toolRouter,
                 chatTurnPlugins: [],
+                promptHistoryRegistry: registry,
                 streamTimeout: streamTimeout
             )
         )
@@ -71,6 +74,63 @@ struct ChatEngineFailurePersistenceTests {
         try await timelineManager.hydrateTimeline(id: timelineId)
 
         return try await test(engine, mockLLM, mockPersistence)
+    }
+
+    /// Uses a message store that admits the user and assistant rows, then fails the first tool
+    /// result save. The same store can be reopened for the retry assertion below.
+    private func withToolResultPersistenceFailureDependencies<T>(
+        _ test: @Sendable (ChatEngine, MockLLMService, BatchFailingMessageStore) async throws -> T
+    ) async throws -> T {
+        let mockLLM = MockLLMService()
+        let backing = MockPersistenceService()
+        let messageStore = BatchFailingMessageStore()
+        messageStore.failAfterSaveCount = 2
+        let timelineManager = TimelineManager(
+            stores: .init(
+                timelineStore: backing,
+                messageStore: messageStore,
+                workspaceStore: backing,
+                toolPersistence: backing
+            ),
+            workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
+            workspaceCreator: MockWorkspaceCreator()
+        )
+        let toolRouter = ToolRouter(
+            timelineManager: timelineManager,
+            messageStore: messageStore
+        )
+        let engine = ChatEngine(
+            dependencies: .init(
+                timelineManager: timelineManager,
+                agentInstanceStore: backing,
+                requestOriginStore: backing,
+                messageStore: messageStore,
+                llmService: mockLLM,
+                toolRouter: toolRouter,
+                chatTurnPlugins: [],
+                streamTimeout: 60
+            )
+        )
+
+        let session = Timeline(id: timelineId, title: "Tool persistence failure")
+        try await backing.saveTimeline(session)
+        let wsId = UUID()
+        let workspaceRef = WorkspaceReference(
+            id: wsId,
+            uri: WorkspaceURI(parsing: "pk://local")!,
+            location: .runtimeTimeline,
+            originID: nil,
+            rootPath: "/tmp"
+        )
+        try await backing.saveWorkspace(workspaceRef)
+        try await timelineManager.attachWorkspace(wsId, to: timelineId)
+        try await backing.addToolToWorkspace(workspaceId: wsId, tool: .known(PersistenceTestTool.toolID))
+        try await timelineManager.hydrateTimeline(id: timelineId)
+        if let toolManager = await timelineManager.getToolManager(for: timelineId) {
+            await toolManager.updateAvailableTools([PersistenceTestTool().toAnyTool()])
+        }
+
+        return try await test(engine, mockLLM, messageStore)
     }
 
     private func collect(_ stream: AsyncThrowingStream<ChatEvent, Error>) async throws -> [ChatEvent] {
@@ -125,6 +185,182 @@ struct ChatEngineFailurePersistenceTests {
         }
     }
 
+    @Test("A tool-result persistence failure stops the loop and leaves the call retryable")
+    func toolResultPersistenceFailureStopsLoopAndLeavesPendingCall() async throws {
+        try await withToolResultPersistenceFailureDependencies { engine, mockLLM, messageStore in
+            let sendID = UUID()
+            let tool = PersistenceTestTool()
+            mockLLM.mockClient.nextResponses = [""]
+            mockLLM.mockClient.nextToolCalls = [[
+                MockToolCall(id: "persist_retry_call", name: tool.callName)
+            ]]
+
+            let failedStream = try await engine.execute(
+                timelineId: timelineId,
+                sendId: sendID,
+                message: "run the retryable tool",
+                tools: [tool.toAnyTool()]
+            )
+            let failedEvents = try await collect(failedStream)
+
+            #expect(failedEvents.contains(where: {
+                if case let .completion(.toolExecution(toolCallId, status)) = $0,
+                   case .persistenceFailed = status
+                {
+                    return toolCallId == "persist_retry_call"
+                }
+                return false
+            }))
+            #expect(!failedEvents.contains(where: {
+                if case .completion(.generationCompleted) = $0 { return true }
+                return false
+            }))
+            #expect(mockLLM.chatCaptureHistory.count == 1)
+
+            let pendingMessages = try await messageStore.fetchMessages(for: timelineId)
+            #expect(pendingMessages.filter { $0.role == "assistant" }.count == 1)
+            #expect(pendingMessages.filter { $0.role == "tool" }.isEmpty)
+            let pendingAssistant = try #require(pendingMessages.first { $0.role == "assistant" })
+            #expect(pendingAssistant.toolCalls != "[]")
+
+            // The failed send released its reservation. Persist the same output through the
+            // existing pending-call submission path and verify the loop can recover.
+            messageStore.failAfterSaveCount = nil
+            mockLLM.mockClient.nextToolCalls = []
+            mockLLM.mockClient.nextResponse = "Recovered after retry"
+            let retryStream = try await engine.execute(
+                timelineId: timelineId,
+                sendId: sendID,
+                message: "",
+                tools: [tool.toAnyTool()],
+                toolOutputs: [ToolOutputSubmission(
+                    toolCallID: "persist_retry_call",
+                    output: "durable retry result"
+                )]
+            )
+            let retryEvents = try await collect(retryStream)
+
+            #expect(retryEvents.contains(where: {
+                if case .completion(.generationCompleted) = $0 { return true }
+                return false
+            }))
+            #expect(mockLLM.chatCaptureHistory.count == 2)
+            let recoveredMessages = try await messageStore.fetchMessages(for: timelineId)
+            #expect(recoveredMessages.filter { $0.role == "tool" && $0.toolCallID == "persist_retry_call" }.count == 1)
+            #expect(recoveredMessages.filter { $0.role == "assistant" }.count == 2)
+        }
+    }
+
+    @Test("A post-yield failure releases its send ID for a retry without duplicating user input")
+    func postYieldFailureReleasesSendIDForRetry() async throws {
+        try await withChatEngineDependencies { engine, mockLLM, mockPersistence in
+            let sendID = UUID()
+            mockLLM.stubbedStream = AsyncThrowingStream { continuation in
+                continuation.yield(ChatStreamResultFactory.toolCallChunk(
+                    calls: [MockToolCall(id: "retry_call", name: "external_tool")],
+                    content: "partial "
+                ))
+                continuation.finish(throwing: NSError(
+                    domain: "PK46ProviderDrop",
+                    code: 503,
+                    userInfo: [NSLocalizedDescriptionKey: "simulated provider 5xx"]
+                ))
+            }
+
+            let failedStream = try await engine.execute(
+                timelineId: timelineId,
+                sendId: sendID,
+                message: "start external work",
+                tools: []
+            )
+            await #expect(throws: Error.self) {
+                _ = try await collect(failedStream)
+            }
+
+            // Retry the same logical send with the durable external-tool result. The original
+            // user input must remain a singleton while the retry reaches the provider.
+            mockLLM.stubbedStream = nil
+            mockLLM.mockClient.nextResponse = "retry succeeded"
+            let retryStream = try await engine.execute(
+                timelineId: timelineId,
+                sendId: sendID,
+                message: "",
+                tools: [],
+                toolOutputs: [ToolOutputSubmission(toolCallID: "retry_call", output: "done")]
+            )
+            let retryEvents = try await collect(retryStream)
+
+            #expect(retryEvents.contains(where: {
+                if case .completion(.generationCompleted) = $0 { return true }
+                return false
+            }))
+            #expect(mockLLM.chatCaptureHistory.count == 2, "Retry must reach the provider")
+
+            let messages = try await mockPersistence.fetchMessages(for: timelineId)
+            #expect(messages.filter { $0.role == "user" }.count == 1)
+            #expect(messages.filter { $0.role == "tool" && $0.toolCallID == "retry_call" }.count == 1)
+        }
+    }
+
+    @Test("A fail-once prompt-history update retries inputs idempotently")
+    func promptHistoryFailureRetryIsInputIdempotent() async throws {
+        let registry = TimelinePromptJournals()
+        try await withChatEngineDependencies(promptHistoryRegistry: registry) { engine, mockLLM, mockPersistence in
+            let sendID = UUID()
+            let toolCallID = "history_retry_call"
+            let toolCalls = [ToolCall(id: toolCallID, name: "external_tool", arguments: [:])]
+            let toolCallsData = try SerializationUtils.jsonEncoder.encode(toolCalls)
+            try await mockPersistence.saveMessage(ConversationMessage(
+                timelineID: timelineId,
+                role: .assistant,
+                content: "",
+                toolCalls: String(decoding: toolCallsData, as: UTF8.self)
+            ))
+
+            let history = await registry.history(for: timelineId)
+            await history.failNextUpdate(with: .duplicateSectionIDs(["fail-once"]))
+
+            do {
+                _ = try await engine.execute(
+                    timelineId: timelineId,
+                    sendId: sendID,
+                    message: "retry after history failure",
+                    tools: [],
+                    toolOutputs: [ToolOutputSubmission(toolCallID: toolCallID, output: "tool result")]
+                )
+                Issue.record("Expected the fail-once prompt-history update to throw")
+            } catch let error as ChatEngineError {
+                guard case let .promptHistoryInconsistent(detail) = error else {
+                    Issue.record("Expected promptHistoryInconsistent, got \(error)")
+                    return
+                }
+                #expect(detail.contains("fail-once"), "The original prompt-history error must remain diagnosable")
+            } catch {
+                Issue.record("Expected ChatEngineError.promptHistoryInconsistent, got \(error)")
+            }
+
+            let messagesAfterFailure = try await mockPersistence.fetchMessages(for: timelineId)
+            #expect(messagesAfterFailure.filter { $0.role == "user" }.isEmpty)
+            #expect(messagesAfterFailure.filter { $0.role == "tool" }.isEmpty)
+
+            mockLLM.mockClient.nextResponse = "Recovered reply"
+            let retryStream = try await engine.execute(
+                timelineId: timelineId,
+                sendId: sendID,
+                message: "retry after history failure",
+                tools: [],
+                toolOutputs: [ToolOutputSubmission(toolCallID: toolCallID, output: "tool result")]
+            )
+            _ = try await collect(retryStream)
+
+            let messagesAfterRetry = try await mockPersistence.fetchMessages(for: timelineId)
+            let userMessages = messagesAfterRetry.filter { $0.role == "user" }
+            #expect(userMessages.count == 1)
+            #expect(userMessages.first?.id == sendID)
+            #expect(messagesAfterRetry.filter { $0.role == "tool" && $0.toolCallID == toolCallID }.count == 1)
+        }
+    }
+
     // MARK: - Cancellation path → `.cancelled`
 
     @Test("A stream cancelled after emitting text persists a .cancelled assistant message (STAB-1)")
@@ -165,6 +401,46 @@ struct ChatEngineFailurePersistenceTests {
         }
     }
 
+    @Test("A cancelled stream releases its send ID for a retry")
+    func cancelledStreamReleasesSendIDForRetry() async throws {
+        try await withChatEngineDependencies { engine, mockLLM, mockPersistence in
+            let sendID = UUID()
+            mockLLM.stubbedStream = AsyncThrowingStream { continuation in
+                continuation.yield(ChatStreamResultFactory.toolCallChunk(
+                    calls: [MockToolCall(id: "cancel_retry_call", name: "external_tool")],
+                    content: "partial "
+                ))
+                continuation.finish(throwing: CancellationError())
+            }
+
+            let cancelledStream = try await engine.execute(
+                timelineId: timelineId,
+                sendId: sendID,
+                message: "start cancellable work",
+                tools: []
+            )
+            await #expect(throws: Error.self) {
+                _ = try await collect(cancelledStream)
+            }
+
+            mockLLM.stubbedStream = nil
+            mockLLM.mockClient.nextResponse = "retry after cancellation"
+            let retryStream = try await engine.execute(
+                timelineId: timelineId,
+                sendId: sendID,
+                message: "",
+                tools: [],
+                toolOutputs: [ToolOutputSubmission(toolCallID: "cancel_retry_call", output: "done")]
+            )
+            _ = try await collect(retryStream)
+
+            #expect(mockLLM.chatCaptureHistory.count == 2, "Cancellation retry must reach the provider")
+            let messages = try await mockPersistence.fetchMessages(for: timelineId)
+            #expect(messages.filter { $0.role == "user" }.count == 1)
+            #expect(messages.filter { $0.role == "tool" && $0.toolCallID == "cancel_retry_call" }.count == 1)
+        }
+    }
+
     // MARK: - Success regression guard → untagged (`.complete`/nil)
 
     @Test("A clean successful turn persists an assistant message with no partial tag (STAB-1 regression)")
@@ -197,6 +473,31 @@ struct ChatEngineFailurePersistenceTests {
             #expect(assistant.content == "Clean complete reply")
             // Success path is byte-identical: status is `nil` (semantically `.complete`).
             #expect(assistant.status == nil)
+        }
+    }
+
+    @Test("An extension-stage failure does not duplicate a persisted assistant message")
+    func extensionStageFailureDoesNotDuplicateAssistant() async throws {
+        try await withChatEngineDependencies { baseEngine, mockLLM, mockPersistence in
+            var engine = baseEngine
+            engine.additionalStages = [ThrowingExtensionStage()]
+            mockLLM.mockClient.nextResponse = "Complete before extension failure"
+
+            let stream = try await engine.execute(
+                timelineId: timelineId,
+                message: "extension stage fails",
+                tools: []
+            )
+
+            await #expect(throws: Error.self) {
+                _ = try await collect(stream)
+            }
+
+            let assistantMessages = try await mockPersistence.fetchMessages(for: timelineId)
+                .filter { $0.role == "assistant" }
+            #expect(assistantMessages.count == 1)
+            #expect(assistantMessages[0].content == "Complete before extension failure")
+            #expect(assistantMessages[0].status == nil)
         }
     }
 
@@ -309,5 +610,31 @@ struct ChatEngineFailurePersistenceTests {
         #expect(identity?.domain == PKErrorDomain.workspace)
         #expect(identity?.code == 3002)
         #expect(identity?.isBlocked == true, "Expected WorkspaceError.accessDenied to be blocked")
+    }
+}
+
+private struct ThrowingExtensionStage: PipelineStage {
+    func process(_: ChatTurnContext) async throws -> AsyncThrowingStream<ChatEvent, Error> {
+        throw NSError(
+            domain: "STAB48ExtensionStage",
+            code: 1,
+            userInfo: [NSLocalizedDescriptionKey: "simulated extension failure"]
+        )
+    }
+}
+
+private struct PersistenceTestTool: PKShared.Tool, @unchecked Sendable {
+    static let toolID = "retryable_tool"
+
+    let callName = Self.toolID
+    let name = Self.toolID
+    let description = "A tool for persistence retry tests"
+    let requiresPermission = false
+    let parametersSchema = makeEmptyObjectSchema()
+
+    func canExecute() async -> Bool { true }
+
+    func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
+        .success("tool output")
     }
 }

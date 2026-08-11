@@ -6,7 +6,11 @@ import PKUtilities
 
 @Suite("PromptJournal")
 struct PromptJournalTests {
-    private func stateSection(id: String, content: PromptSection.Content) -> RenderedPrompt.Section {
+    private func stateSection(
+        id: String,
+        content: PromptSection.Content,
+        cachePolicy: CachePolicy = .semiStable
+    ) -> RenderedPrompt.Section {
         RenderedPrompt.Section(
             id: id,
             role: .chatHistory,
@@ -14,7 +18,7 @@ struct PromptJournalTests {
             estimatedTokens: 12,
             compression: .truncate(keeping: .tail),
             type: .list,
-            cachePolicy: .semiStable,
+            cachePolicy: cachePolicy,
             path: ["prompt", "history", id],
             parentID: "history",
             compressionOutcome: CompressionNodeReport(
@@ -27,6 +31,18 @@ struct PromptJournalTests {
                 fallbackReason: "budget"
             ),
             content: content
+        )
+    }
+
+    private func duplicatePrompt(cachePolicy: CachePolicy) -> RenderedPrompt {
+        let sections = [
+            stateSection(id: "duplicate", content: .text("first"), cachePolicy: cachePolicy),
+            stateSection(id: "duplicate", content: .text("second"), cachePolicy: cachePolicy),
+        ]
+        return RenderedPrompt(
+            sections: sections,
+            string: "first\nsecond",
+            sectionsByID: [:]
         )
     }
 
@@ -53,11 +69,11 @@ struct PromptJournalTests {
     }
 
     @Test("Initial observation materializes stable and semistable base while volatile stays current")
-    func initialObservationBuildsBaseAndVolatileLayers() async {
+    func initialObservationBuildsBaseAndVolatileLayers() async throws {
         var journal = PromptJournal()
         let rendered = await renderPrompt(system: "System v1", context: "Context v1", query: "Question")
 
-        let plan = journal.observe(rendered)
+        let plan = try journal.observe(rendered)
 
         #expect(plan.requiresHardReset == false)
         #expect(plan.baseSections.map(\.section.id) == ["system", "context"])
@@ -73,11 +89,11 @@ struct PromptJournalTests {
     }
 
     @Test("Semistable changes become overlay without mutating committed base")
-    func semistableChangesCreateOverlay() async {
+    func semistableChangesCreateOverlay() async throws {
         var journal = PromptJournal()
-        _ = journal.observe(await renderPrompt(system: "System v1", context: "Context v1", query: "Question"))
+        _ = try journal.observe(await renderPrompt(system: "System v1", context: "Context v1", query: "Question"))
 
-        let plan = journal.observe(await renderPrompt(system: "System v1", context: "Context v2", query: "Question"))
+        let plan = try journal.observe(await renderPrompt(system: "System v1", context: "Context v2", query: "Question"))
 
         #expect(plan.requiresHardReset == false)
         #expect(plan.baseSections.map(\.section.id) == ["system", "context"])
@@ -90,10 +106,10 @@ struct PromptJournalTests {
     }
 
     @Test("Compaction promotes latest semistable state into base and clears overlay")
-    func compactionPromotesOverlayIntoBase() async {
+    func compactionPromotesOverlayIntoBase() async throws {
         var journal = PromptJournal()
-        _ = journal.observe(await renderPrompt(system: "System v1", context: "Context v1", query: "Question"))
-        _ = journal.observe(await renderPrompt(system: "System v1", context: "Context v2", query: "Question"))
+        _ = try journal.observe(await renderPrompt(system: "System v1", context: "Context v1", query: "Question"))
+        _ = try journal.observe(await renderPrompt(system: "System v1", context: "Context v2", query: "Question"))
 
         let compacted = journal.compact()
 
@@ -105,10 +121,10 @@ struct PromptJournalTests {
     }
 
     @Test("Append pressure auto-compacts the latest accepted observation before the next diff")
-    func appendPressureAutoCompactsLatestObservation() async {
+    func appendPressureAutoCompactsLatestObservation() async throws {
         var journal = PromptJournal(thresholds: .init(maxAppendedTokens: 1, maxAppendedMessages: 1))
-        _ = journal.observe(await renderPrompt(system: "System v1", context: "Context v1", query: "Question"))
-        _ = journal.observe(await renderPrompt(system: "System v1", context: "Context v2", query: "Question"))
+        _ = try journal.observe(await renderPrompt(system: "System v1", context: "Context v1", query: "Question"))
+        _ = try journal.observe(await renderPrompt(system: "System v1", context: "Context v2", query: "Question"))
 
         journal.recordAppend(messages: [
             Message(content: "Assistant reply", role: .assistant),
@@ -117,7 +133,7 @@ struct PromptJournalTests {
 
         #expect(journal.shouldCompact)
 
-        let plan = journal.observe(await renderPrompt(system: "System v1", context: "Context v2", query: "Question"))
+        let plan = try journal.observe(await renderPrompt(system: "System v1", context: "Context v2", query: "Question"))
 
         #expect(!journal.shouldCompact)
         #expect(plan.requiresHardReset == false)
@@ -128,11 +144,11 @@ struct PromptJournalTests {
     }
 
     @Test("Volatile changes never enter the committed base")
-    func volatileChangesStayOutOfBase() async {
+    func volatileChangesStayOutOfBase() async throws {
         var journal = PromptJournal()
-        _ = journal.observe(await renderPrompt(system: "System v1", context: "Context v1", query: "Question 1"))
+        _ = try journal.observe(await renderPrompt(system: "System v1", context: "Context v1", query: "Question 1"))
 
-        let plan = journal.observe(await renderPrompt(system: "System v1", context: "Context v1", query: "Question 2"))
+        let plan = try journal.observe(await renderPrompt(system: "System v1", context: "Context v1", query: "Question 2"))
 
         #expect(plan.baseSections.map(\.section.id) == ["system", "context"])
         #expect(plan.overlaySections.isEmpty)
@@ -141,11 +157,11 @@ struct PromptJournalTests {
     }
 
     @Test("Stable changes require hard reset")
-    func stableChangesRequireHardReset() async {
+    func stableChangesRequireHardReset() async throws {
         var journal = PromptJournal()
-        _ = journal.observe(await renderPrompt(system: "System v1", context: "Context v1", query: "Question"))
+        _ = try journal.observe(await renderPrompt(system: "System v1", context: "Context v1", query: "Question"))
 
-        let plan = journal.observe(await renderPrompt(system: "System v2", context: "Context v1", query: "Question"))
+        let plan = try journal.observe(await renderPrompt(system: "System v2", context: "Context v1", query: "Question"))
 
         #expect(plan.requiresHardReset)
         #expect(plan.overlaySections.isEmpty)
@@ -154,9 +170,9 @@ struct PromptJournalTests {
     }
 
     @Test("Initial observation emits a snapshot message set")
-    func initialObservationBuildsSnapshotMessages() async {
+    func initialObservationBuildsSnapshotMessages() async throws {
         var journal = PromptJournal()
-        let plan = journal.observe(await renderPrompt(system: "System v1", context: "Context v1", query: "Question"))
+        let plan = try journal.observe(await renderPrompt(system: "System v1", context: "Context v1", query: "Question"))
 
         #expect(plan.emissionMode == .snapshot)
 
@@ -172,11 +188,11 @@ struct PromptJournalTests {
     }
 
     @Test("Semistable changes emit delta update messages")
-    func semistableChangesBuildDeltaMessages() async {
+    func semistableChangesBuildDeltaMessages() async throws {
         var journal = PromptJournal()
-        _ = journal.observe(await renderPrompt(system: "System v1", context: "Context v1", query: "Question"))
+        _ = try journal.observe(await renderPrompt(system: "System v1", context: "Context v1", query: "Question"))
 
-        let plan = journal.observe(await renderPrompt(system: "System v1", context: "Context v2", query: "Question"))
+        let plan = try journal.observe(await renderPrompt(system: "System v1", context: "Context v2", query: "Question"))
 
         #expect(plan.emissionMode == .delta)
 
@@ -191,11 +207,11 @@ struct PromptJournalTests {
     }
 
     @Test("Semistable removals emit remove update messages")
-    func semistableRemovalBuildsRemoveMessage() async {
+    func semistableRemovalBuildsRemoveMessage() async throws {
         var journal = PromptJournal()
-        _ = journal.observe(await renderPrompt(system: "System v1", context: "Context v1", query: "Question"))
+        _ = try journal.observe(await renderPrompt(system: "System v1", context: "Context v1", query: "Question"))
 
-        let plan = journal.observe(await renderPrompt(system: "System v1", context: nil, query: "Question"))
+        let plan = try journal.observe(await renderPrompt(system: "System v1", context: nil, query: "Question"))
 
         #expect(plan.emissionMode == .delta)
         #expect(plan.diff.removedSemiStableIDs == ["context"])
@@ -208,9 +224,9 @@ struct PromptJournalTests {
     }
 
     @Test("Manual compact clears append pressure")
-    func manualCompactClearsAppendPressure() async {
+    func manualCompactClearsAppendPressure() async throws {
         var journal = PromptJournal(thresholds: .init(maxAppendedTokens: 1, maxAppendedMessages: 1))
-        _ = journal.observe(await renderPrompt(system: "System v1", context: "Context v1", query: "Question"))
+        _ = try journal.observe(await renderPrompt(system: "System v1", context: "Context v1", query: "Question"))
 
         journal.recordAppend(messages: [
             Message(content: "Assistant reply", role: .assistant),
@@ -250,11 +266,57 @@ struct PromptJournalTests {
         #expect(decoded.thresholds == .init(maxAppendedTokens: 17, maxAppendedMessages: 3))
     }
 
+    @Test("Duplicate stable IDs are rejected before the first observation mutates state")
+    func duplicateStableIDsAreRejectedOnFirstObservation() {
+        var journal = PromptJournal()
+        let stateBefore = journal.state
+
+        #expect(throws: PromptJournal.ValidationError.duplicateStableSectionIDs(["duplicate"])) {
+            try journal.observe(duplicatePrompt(cachePolicy: .stable))
+        }
+        #expect(journal.state == stateBefore)
+    }
+
+    @Test("Duplicate stable IDs are rejected without mutating a subsequent observation")
+    func duplicateStableIDsAreRejectedOnSubsequentObservation() async throws {
+        var journal = PromptJournal()
+        _ = try journal.observe(await renderPrompt(system: "System", context: "Context", query: "Question"))
+        let stateBefore = journal.state
+
+        #expect(throws: PromptJournal.ValidationError.duplicateStableSectionIDs(["duplicate"])) {
+            try journal.observe(duplicatePrompt(cachePolicy: .stable))
+        }
+        #expect(journal.state == stateBefore)
+    }
+
+    @Test("Duplicate semi-stable IDs are rejected before the first observation mutates state")
+    func duplicateSemiStableIDsAreRejectedOnFirstObservation() {
+        var journal = PromptJournal()
+        let stateBefore = journal.state
+
+        #expect(throws: PromptJournal.ValidationError.duplicateSemiStableSectionIDs(["duplicate"])) {
+            try journal.observe(duplicatePrompt(cachePolicy: .semiStable))
+        }
+        #expect(journal.state == stateBefore)
+    }
+
+    @Test("Duplicate semi-stable IDs are rejected without mutating a subsequent observation")
+    func duplicateSemiStableIDsAreRejectedOnSubsequentObservation() async throws {
+        var journal = PromptJournal()
+        _ = try journal.observe(await renderPrompt(system: "System", context: "Context", query: "Question"))
+        let stateBefore = journal.state
+
+        #expect(throws: PromptJournal.ValidationError.duplicateSemiStableSectionIDs(["duplicate"])) {
+            try journal.observe(duplicatePrompt(cachePolicy: .semiStable))
+        }
+        #expect(journal.state == stateBefore)
+    }
+
     @Test("Hydrated journal observes the same plan as the live journal")
     func hydratedObservationMatchesLiveObservation() async throws {
         var live = PromptJournal(thresholds: .init(maxAppendedTokens: 1, maxAppendedMessages: 1))
-        _ = live.observe(await renderPrompt(system: "System", context: "Context v1", query: "Question 1"))
-        _ = live.observe(await renderPrompt(system: "System", context: "Context v2", query: "Question 2"))
+        _ = try live.observe(await renderPrompt(system: "System", context: "Context v1", query: "Question 1"))
+        _ = try live.observe(await renderPrompt(system: "System", context: "Context v2", query: "Question 2"))
         live.recordAppend(messageCount: 2, estimatedTokens: 3)
 
         var hydrated = PromptJournal(state: try JSONDecoder().decode(
@@ -263,8 +325,8 @@ struct PromptJournalTests {
         ))
         let next = await renderPrompt(system: "System", context: "Context v3", query: "Question 3")
 
-        let livePlan = live.observe(next)
-        let hydratedPlan = hydrated.observe(next)
+        let livePlan = try live.observe(next)
+        let hydratedPlan = try hydrated.observe(next)
 
         #expect(livePlan.baseSections.map(\.section) == hydratedPlan.baseSections.map(\.section))
         #expect(livePlan.overlaySections.map(\.section) == hydratedPlan.overlaySections.map(\.section))

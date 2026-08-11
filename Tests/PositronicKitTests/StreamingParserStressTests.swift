@@ -177,4 +177,56 @@ import PKUtilities
         #expect(content.contains("Final Answer") == true)
         #expect(content.contains("Start") == true)  // "Start " was before <think>
     }
+
+    @Test("Large streams keep the pending parser buffer bounded")
+    func testLargeStreamKeepsPendingBufferBounded() {
+        var parser = StreamingParser()
+        let chunk = String(repeating: "0123456789abcdef", count: 256)
+        let chunkCount = 2_048
+
+        for _ in 0..<chunkCount {
+            parser.process(chunk)
+            #expect(parser.buffer.isEmpty)
+        }
+
+        #expect(parser.content.count == chunk.count * chunkCount)
+        #expect(parser.content.hasPrefix("0123456789abcdef"))
+        #expect(parser.content.hasSuffix("0123456789abcdef"))
+    }
+
+    @Test("Large chunks preserve split code fence boundaries")
+    func testLargeChunkCodeFenceBoundaries() {
+        let cases = [
+            (fillerCount: 0, partial: "`", completion: "``"),
+            (fillerCount: 1_000, partial: "`", completion: "``"),
+            (fillerCount: 4_096, partial: "`", completion: "``"),
+            (fillerCount: 0, partial: "``", completion: "`"),
+            (fillerCount: 1_000, partial: "``", completion: "`"),
+            (fillerCount: 4_096, partial: "``", completion: "`")
+        ]
+
+        for testCase in cases {
+            var parser = StreamingParser()
+            let filler = String(repeating: "x", count: testCase.fillerCount)
+
+            parser.process(filler + testCase.partial)
+
+            #expect(parser.buffer == testCase.partial)
+
+            parser.process(
+                testCase.completion + "\n<think>literal</think>\n" + filler + testCase.partial
+            )
+
+            #expect(parser.buffer == testCase.partial)
+            #expect(parser.insideCodeBlock)
+            #expect(parser.thinking.isEmpty)
+            #expect(parser.content.contains("<think>literal</think>"))
+
+            parser.process(testCase.completion + "\n")
+
+            #expect(parser.insideCodeBlock == false)
+            #expect(parser.thinking.isEmpty)
+            #expect(parser.buffer.isEmpty)
+        }
+    }
 }

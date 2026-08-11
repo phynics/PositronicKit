@@ -8,6 +8,8 @@ import PKUtilities
 
 public extension TimelineManager {
     func attachWorkspace(_ workspaceId: UUID, to timelineId: UUID) async throws {
+        let livenessVersion = timelineLivenessVersion(for: timelineId)
+        try requireTimelineLiveness(for: timelineId, version: livenessVersion)
         var timeline: Timeline
 
         if let memoryTimeline = timelines[timelineId] {
@@ -18,6 +20,7 @@ public extension TimelineManager {
                     throw TimelineError.timelineNotFound
                 }
                 timeline = dbTimeline
+                try requireTimelineLiveness(for: timelineId, version: livenessVersion)
             } catch let error as TimelineError {
                 throw error
             } catch {
@@ -52,13 +55,23 @@ public extension TimelineManager {
             throw TimelineError.unavailable
         }
 
+        try requireTimelineLiveness(for: timelineId, version: livenessVersion)
+
         if !timeline.attachedWorkspaceIDs.contains(workspaceId) {
             timeline.attachedWorkspaceIDs.append(workspaceId)
         }
         timeline.updatedAt = Date()
 
-        if timelines[timeline.id] != nil { timelines[timeline.id] = timeline }
         try await timelineStore.saveTimeline(timeline)
+        do {
+            try requireTimelineLiveness(for: timelineId, version: livenessVersion)
+        } catch {
+            // A deletion may have interleaved with the save itself. Remove a stale upsert so the
+            // deleted timeline cannot be resurrected even when persistence operations reorder.
+            try? await timelineStore.deleteTimeline(id: timelineId)
+            throw error
+        }
+        if timelines[timeline.id] != nil { timelines[timeline.id] = timeline }
 
         if let toolManager = toolManagers[timelineId] {
             do {
@@ -107,8 +120,8 @@ public extension TimelineManager {
         timeline.attachedWorkspaceIDs.removeAll { $0 == workspaceId }
         timeline.updatedAt = Date()
 
-        if timelines[timeline.id] != nil { timelines[timeline.id] = timeline }
         try await timelineStore.saveTimeline(timeline)
+        if timelines[timeline.id] != nil { timelines[timeline.id] = timeline }
 
         if let toolManager = toolManagers[timelineId] {
             await toolManager.unregisterWorkspace(workspaceId)

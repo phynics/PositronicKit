@@ -1,4 +1,5 @@
 import Foundation
+import PKUtilities
 
 /// Text-only content fingerprint shared by `SectionSignature` (PKPrompt journal differ) and
 /// `PromptSectionEntry.contentHash` (runtime timeline history).
@@ -13,20 +14,23 @@ import Foundation
 /// `role` and `think` are reflected in rendered text, but `isSummary` is a display flag with no
 /// rendered-text footprint (a message with `role: .user` renders identically regardless of
 /// `isSummary`), so it must be hashed explicitly to avoid losing a content-bearing change.
+/// The fingerprint is deterministic so restored journal state compares identically in another
+/// process.
 package func sectionContentHash(_ content: PromptSection.Content) -> UInt64 {
-    var hasher = Hasher()
+    var components: [String] = []
     switch content {
     case let .text(text):
-        hasher.combine(0)
-        hasher.combine(text)
+        components = ["text", text]
     case let .messages(messages):
-        hasher.combine(1)
+        components = ["messages"]
         for message in messages {
-            hasher.combine(message.content)
-            hasher.combine(String(describing: message.role))
-            hasher.combine(message.reasoning)
-            hasher.combine(message.isSummary)
+            components.append(contentsOf: [
+                "content", message.content,
+                "role", String(describing: message.role),
+                "reasoning", String(reflecting: message.reasoning),
+                "isSummary", String(message.isSummary),
+            ])
         }
     }
-    return UInt64(bitPattern: Int64(hasher.finalize()))
+    return StableHash.hash(components: components)
 }

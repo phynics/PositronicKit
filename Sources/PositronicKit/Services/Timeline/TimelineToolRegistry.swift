@@ -187,6 +187,15 @@ public actor TimelineToolRegistry {
         return sortToolsForOutput(tools)
     }
 
+    /// Returns call names that are registered but currently disabled.
+    ///
+    /// Request-scoped tools are not part of this registry. Keeping this distinction lets the
+    /// router admit genuinely dynamic tools while still making a disabled registered name
+    /// authoritative when a dynamic tool collides with it.
+    func disabledToolIDs() -> Set<String> {
+        Set(availableTools.map(\.callName)).subtracting(enabledTools)
+    }
+
     /// Returns the tools currently exposed by a specific workspace: its custom workspace
     /// tools plus any `.known` system tools it has declared, each carrying its resolved
     /// origin. Provider/global tools are excluded (they are not workspace-bound).

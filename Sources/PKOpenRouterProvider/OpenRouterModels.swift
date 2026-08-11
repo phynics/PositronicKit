@@ -142,6 +142,7 @@ struct OpenRouterToolDefinition: Codable {
 }
 
 enum OpenRouterToolChoice: Codable {
+    case none
     case auto
     case function(String)
 
@@ -155,6 +156,8 @@ enum OpenRouterToolChoice: Codable {
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         switch self {
+        case .none:
+            try container.encode("none")
         case .auto:
             try container.encode("auto")
         case let .function(name):

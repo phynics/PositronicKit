@@ -21,9 +21,9 @@ struct OpenAIConversionsTests {
     // MARK: - LLMMessage.toOpenAIMessageParam
 
     @Test("system role maps to .system param with textContent")
-    func systemRoleConversion() {
+    func systemRoleConversion() throws {
         let message = LLMMessage(role: .system, content: "You are helpful.", name: "sys")
-        let param = message.toOpenAIMessageParam()
+        let param = try message.toOpenAIMessageParam()
 
         guard case let .system(systemMsg) = param else {
             Issue.record("Expected .system param"); return
@@ -37,9 +37,9 @@ struct OpenAIConversionsTests {
     }
 
     @Test("user role maps to .user param with string content")
-    func userRoleConversion() {
+    func userRoleConversion() throws {
         let message = LLMMessage(role: .user, content: "Hello!", name: "alice")
-        let param = message.toOpenAIMessageParam()
+        let param = try message.toOpenAIMessageParam()
 
         guard case let .user(userMsg) = param else {
             Issue.record("Expected .user param"); return
@@ -61,7 +61,7 @@ struct OpenAIConversionsTests {
                 LLMToolCall(id: "call_1", name: "get_weather", arguments: #"{"city":"Berlin"}"#),
             ]
         )
-        let param = message.toOpenAIMessageParam()
+        let param = try message.toOpenAIMessageParam()
 
         guard case let .assistant(assistantMsg) = param else {
             Issue.record("Expected .assistant param"); return
@@ -79,9 +79,9 @@ struct OpenAIConversionsTests {
     }
 
     @Test("assistant role without tool calls maps to .assistant param with nil toolCalls")
-    func assistantRoleWithoutToolCalls() {
+    func assistantRoleWithoutToolCalls() throws {
         let message = LLMMessage(role: .assistant, content: "Hi there.")
-        let param = message.toOpenAIMessageParam()
+        let param = try message.toOpenAIMessageParam()
 
         guard case let .assistant(assistantMsg) = param else {
             Issue.record("Expected .assistant param"); return
@@ -95,9 +95,9 @@ struct OpenAIConversionsTests {
     }
 
     @Test("developer role maps to .developer param")
-    func developerRoleConversion() {
+    func developerRoleConversion() throws {
         let message = LLMMessage(role: .developer, content: "Dev instructions.", name: "dev")
-        let param = message.toOpenAIMessageParam()
+        let param = try message.toOpenAIMessageParam()
 
         guard case let .developer(devMsg) = param else {
             Issue.record("Expected .developer param"); return
@@ -111,9 +111,9 @@ struct OpenAIConversionsTests {
     }
 
     @Test("tool role with toolCallID maps to .tool param without warning")
-    func toolRoleWithID() {
+    func toolRoleWithID() throws {
         let message = LLMMessage(role: .tool, content: "result", toolCallID: "call_1")
-        let param = message.toOpenAIMessageParam()
+        let param = try message.toOpenAIMessageParam()
 
         guard case let .tool(toolMsg) = param else {
             Issue.record("Expected .tool param"); return

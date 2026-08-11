@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 @testable import PKFoundationModelsProvider
 import PKShared
 import PKUtilities
@@ -55,6 +56,50 @@ struct FoundationModelsClientTests {
         let text = chunks.compactMap { $0.choices.first?.delta.content }.joined()
         #expect(text == "hello world")
         #expect(chunks.last?.choices.first?.finishReason == "stop")
+    }
+
+    @Test("Explicit LLMToolChoice.none removes per-turn tools before session creation")
+    func explicitNoneDisablesPerTurnTools() async throws {
+        let fake = FakeFoundationModelsSession(events: [.finished(.stop)])
+        let receivedTools = Mutex<[LLMToolDefinition]?>(nil)
+        let client = FoundationModelsClient(makeSession: { turnTools, _ in
+            receivedTools.withLock { $0 = turnTools }
+            return fake
+        })
+
+        let stream = await client.chatStream(
+            messages: [LLMMessage(role: .user, content: "Do not use tools")],
+            tools: [LLMToolDefinition(name: "side_effecting_tool")],
+            toolChoice: LLMToolChoice.none,
+            responseFormat: nil,
+            generationParameters: nil
+        )
+        _ = try await stream.collect()
+
+        let toolsWereRemoved = receivedTools.withLock { $0?.isEmpty == true }
+        #expect(toolsWereRemoved)
+    }
+
+    @Test("An omitted tool choice retains per-turn tools")
+    func omittedChoiceRetainsPerTurnTools() async throws {
+        let fake = FakeFoundationModelsSession(events: [.finished(.stop)])
+        let receivedTools = Mutex<[LLMToolDefinition]?>(nil)
+        let client = FoundationModelsClient(makeSession: { turnTools, _ in
+            receivedTools.withLock { $0 = turnTools }
+            return fake
+        })
+
+        let stream = await client.chatStream(
+            messages: [LLMMessage(role: .user, content: "You may use tools")],
+            tools: [LLMToolDefinition(name: "side_effecting_tool")],
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: nil
+        )
+        _ = try await stream.collect()
+
+        let toolsWereRetained = receivedTools.withLock { $0?.isEmpty == false }
+        #expect(toolsWereRetained)
     }
 
     @Test("Multi-tool turn surfaces both tool calls with distinct ordinals")

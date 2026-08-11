@@ -239,8 +239,9 @@ public extension TimelineManager {
     }
 
     /// Permanently deletes a timeline and all related persisted records: the timeline row, its
-    /// messages, and any attached workspace records. Active generation work is cancelled and
-    /// drained (bounded cleanup) and in-memory state is evicted before persistence is touched.
+    /// messages, and timeline-owned runtime workspace records. Caller-owned `.attached` and
+    /// shared runtime workspaces are preserved. Active generation work is cancelled and drained
+    /// (bounded cleanup) and in-memory state is evicted before persistence is touched.
     ///
     /// Each store deletion is best-effort: if one store fails, the remaining stores are still
     /// attempted and the failures are reported as `degradations` on the returned result. This
@@ -251,6 +252,10 @@ public extension TimelineManager {
     /// - Returns: A ``TimelineDeletionResult`` reporting any per-store cleanup failures.
     @discardableResult
     func deleteTimelinePermanently(id: UUID) async -> TimelineDeletionResult {
+        // Invalidate in-flight mutations before the first suspension. Actor reentrancy can let an
+        // attachment resume after this point, so it must observe the new version before saving.
+        invalidateTimelineLiveness(for: id)
+
         var degradations: [StoreDegradation] = []
 
         // Capture attached workspace IDs (and the working directory, for ephemeral cleanup)
@@ -313,8 +318,57 @@ public extension TimelineManager {
             ))
         }
 
-        // Delete attached workspace records (best-effort, per-workspace).
+        // Resolve ownership before deleting workspace records. `.attached` workspaces belong to
+        // the caller, while runtime workspaces can be shared; only timeline-specific runtime
+        // workspaces are eligible for deletion.
+        var timelineOwnedWorkspaceIds: [UUID] = []
         for workspaceId in attachedWorkspaceIds {
+            do {
+                guard let workspace = try await workspaceStore.fetchWorkspace(
+                    id: workspaceId, includeTools: false
+                ) else {
+                    continue
+                }
+
+                let isTimelineOwned = workspace.location == .runtimeTimeline
+                    || (workspace.location == .runtime
+                        && workspace.uri == .timelineWorkspace(id))
+                if isTimelineOwned, !timelineOwnedWorkspaceIds.contains(workspaceId) {
+                    timelineOwnedWorkspaceIds.append(workspaceId)
+                }
+            } catch {
+                degradations.append(StoreDegradation(
+                    operation: "deleteTimelinePermanently.fetchWorkspaceOwnership",
+                    entityID: "workspace:\(workspaceId.uuidString.prefix(8))",
+                    error: error
+                ))
+            }
+        }
+
+        // A timeline-specific runtime workspace may still be shared by another timeline. Keep it
+        // when ownership cannot be established exclusively for this deletion.
+        if !timelineOwnedWorkspaceIds.isEmpty {
+            do {
+                let otherTimelineWorkspaceIds = Set(
+                    try await timelineStore
+                        .fetchAllTimelines(includeArchived: true)
+                        .filter { $0.id != id }
+                        .flatMap(\.attachedWorkspaceIDs)
+                )
+                timelineOwnedWorkspaceIds.removeAll { otherTimelineWorkspaceIds.contains($0) }
+            } catch {
+                degradations.append(StoreDegradation(
+                    operation: "deleteTimelinePermanently.fetchWorkspaceReferences",
+                    entityID: "timeline:\(id.uuidString.prefix(8))",
+                    error: error
+                ))
+                timelineOwnedWorkspaceIds.removeAll()
+            }
+        }
+
+        // Delete timeline-owned workspace records (best-effort, per-workspace). Caller-owned and
+        // shared workspaces remain persisted, and the deleted timeline row removes their links.
+        for workspaceId in timelineOwnedWorkspaceIds {
             do {
                 try await workspaceStore.deleteWorkspace(id: workspaceId)
             } catch {
@@ -337,6 +391,8 @@ public extension TimelineManager {
                 error: error
             ))
         }
+
+        completeTimelineDeletionLiveness(for: id)
 
         if !degradations.isEmpty {
             logger.warning("""

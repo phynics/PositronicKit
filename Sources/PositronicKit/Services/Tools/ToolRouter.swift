@@ -38,6 +38,8 @@ package struct ParsedToolCall {
 package struct ToolHandlingResult {
     /// Whether any tool calls were deferred for external execution.
     package let hasDeferred: Bool
+    /// Whether a runtime tool result could not be persisted.
+    package let hasPersistenceFailure: Bool
     /// Provider-neutral tool result messages for runtime-resolved calls.
     package let resolvedToolParams: [LLMMessage]
 }
@@ -51,6 +53,9 @@ package enum ToolTurnResult {
     case noToolCalls
     /// All tool calls were resolved by this runtime; continue the loop with these messages.
     case continueWith([LLMMessage])
+    /// A tool result could not be persisted. The pending assistant call remains retryable, so the
+    /// loop must stop before sending an undurable result to the provider.
+    case persistenceFailed
     /// At least one tool call was deferred for external execution — stop and wait.
     case deferredExternally
 }
@@ -131,6 +136,7 @@ public actor ToolRouter {
             continuation: continuation
         )
 
+        if result.hasPersistenceFailure { return .persistenceFailed }
         if result.hasDeferred { return .deferredExternally }
         return .continueWith([assistantParam] + result.resolvedToolParams)
     }
@@ -149,6 +155,7 @@ public actor ToolRouter {
         continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
     ) async throws -> ToolHandlingResult {
         var hasDeferred = false
+        var hasPersistenceFailure = false
         var resolvedToolParams: [LLMMessage] = []
         var deferredCount = 0
         var failedCount = 0
@@ -174,14 +181,17 @@ public actor ToolRouter {
                     tool: toolRef, arguments: arguments,
                     timelineId: timelineId, availableTools: availableTools
                 )
-                let param = try await projectOutcome(
+                let projection = try await projectOutcome(
                     outcome,
                     call: call,
                     toolRef: toolRef,
                     timelineId: timelineId,
                     continuation: continuation
                 )
-                if let param { resolvedToolParams.append(param) }
+                if projection.persistenceFailed {
+                    hasPersistenceFailure = true
+                }
+                if let param = projection.message { resolvedToolParams.append(param) }
                 if case .deferredExternally = outcome {
                     hasDeferred = true
                     deferredCount += 1
@@ -189,14 +199,17 @@ public actor ToolRouter {
                 }
             } catch {
                 failedCount += 1
-                let param = try await projectError(
+                let projection = try await projectError(
                     error,
                     call: call,
                     toolRef: toolRef,
                     timelineId: timelineId,
                     continuation: continuation
                 )
-                resolvedToolParams.append(param)
+                if projection.persistenceFailed {
+                    hasPersistenceFailure = true
+                }
+                if let message = projection.message { resolvedToolParams.append(message) }
             }
         }
 
@@ -208,11 +221,16 @@ public actor ToolRouter {
             "deferred": .string("\(deferredCount)"),
             "resolved": .string("\(resolvedToolParams.count)"),
             "failed": .string("\(failedCount)"),
+            "persistenceFailed": .string(hasPersistenceFailure ? "true" : "false"),
             "deferredCallIDs": .array(deferredCallIDs),
         ]
         logger.debug("Tool batch routed", metadata: batchMeta)
 
-        return ToolHandlingResult(hasDeferred: hasDeferred, resolvedToolParams: resolvedToolParams)
+        return ToolHandlingResult(
+            hasDeferred: hasDeferred,
+            hasPersistenceFailure: hasPersistenceFailure,
+            resolvedToolParams: resolvedToolParams
+        )
     }
 
     // MARK: - Core Routing
@@ -395,6 +413,14 @@ public actor ToolRouter {
             throw ToolError.toolNotFound(tool.displayName)
         }
 
+        // Enabledness is an execution policy, not just prompt state. Check the resolved call
+        // name here, after dynamic tools have been merged, so a per-turn tool cannot bypass a
+        // disabled registered tool with the same name.
+        let disabledToolIDs = await toolManager.disabledToolIDs()
+        guard !disabledToolIDs.contains(resolvedTool.callName) else {
+            throw ToolError.toolNotFound(tool.displayName)
+        }
+
         // Approval gate: a tool that declares `requiresPermission` must not execute until the
         // injected gate returns `.approve`. This is the single runtime execution sink — both
         // structured provider tool calls and text-fallback `${tool}` calls reach it — so the
@@ -433,7 +459,7 @@ public actor ToolRouter {
         continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
     ) {
         continuation.yield(.toolProgress(
-            toolCallId: call.callId,
+            toolCallID: call.callId,
             status: .attempting(name: call.name, reference: toolRef)
         ))
     }
@@ -450,7 +476,7 @@ public actor ToolRouter {
         toolRef: ToolReference,
         timelineId: UUID,
         continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
-    ) async throws -> LLMMessage? {
+    ) async throws -> ToolProjection {
         let toolDisplayName = loggingConfiguration.redactionPolicy.sanitizeStructured(call.name)
         switch outcome {
         case let .completed(output):
@@ -461,20 +487,24 @@ public actor ToolRouter {
             do {
                 try await messageStore.saveMessage(message)
                 continuation.yield(.toolCompleted(
-                    toolCallId: call.callId, status: .success(ToolResult.success(output))
+                    toolCallID: call.callId, status: .success(ToolResult.success(output))
                 ))
             } catch {
                 logger.error("Tool persistence failed", metadata: LoggingMetadata.makeMetadata(for: error, correlationID: call.callId))
                 continuation.yield(.toolCompleted(
-                    toolCallId: call.callId,
+                    toolCallID: call.callId,
                     status: .persistenceFailed(reference: toolRef, error: safeErrorMessage(error))
                 ))
+                return ToolProjection(message: nil, persistenceFailed: true)
             }
-            return LLMMessage(role: .tool, content: output, toolCallID: call.callId)
+            return ToolProjection(
+                message: LLMMessage(role: .tool, content: output, toolCallID: call.callId),
+                persistenceFailed: false
+            )
 
         case .deferredExternally:
             logger.info("Tool \(toolDisplayName) deferred for external execution")
-            return nil
+            return ToolProjection(message: nil, persistenceFailed: false)
         }
     }
 
@@ -490,7 +520,7 @@ public actor ToolRouter {
         toolRef: ToolReference,
         timelineId: UUID,
         continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
-    ) async throws -> LLMMessage {
+    ) async throws -> ToolProjection {
         let errorMsg = ErrorKit.userFriendlyMessage(for: error)
         logger.error("Tool execution failed", metadata: LoggingMetadata.makeMetadata(for: error, correlationID: call.callId))
         // Surface the error's built-in remediation (a second-person "how to fix it" hint, often
@@ -507,18 +537,27 @@ public actor ToolRouter {
         do {
             try await messageStore.saveMessage(message)
             continuation.yield(.toolCompleted(
-                toolCallId: call.callId,
+                toolCallID: call.callId,
                  status: .failed(reference: toolRef, error: safeErrorMessage(error))
             ))
         } catch {
             logger.error("Tool error persistence failed", metadata: LoggingMetadata.makeMetadata(for: error, correlationID: call.callId))
             continuation.yield(.toolCompleted(
-                toolCallId: call.callId,
+                toolCallID: call.callId,
                 status: .persistenceFailed(reference: toolRef, error: safeErrorMessage(error))
             ))
+            return ToolProjection(message: nil, persistenceFailed: true)
         }
-        return LLMMessage(role: .tool, content: errorOutput, toolCallID: call.callId)
+        return ToolProjection(
+            message: LLMMessage(role: .tool, content: errorOutput, toolCallID: call.callId),
+            persistenceFailed: false
+        )
     }
+}
+
+private struct ToolProjection {
+    let message: LLMMessage?
+    let persistenceFailed: Bool
 }
 
 private func safeErrorMessage(_ error: Error) -> String {

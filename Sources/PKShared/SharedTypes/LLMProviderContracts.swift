@@ -26,7 +26,12 @@ public struct LLMToolDefinition: Sendable, Codable {
 }
 
 /// Controls whether/which tool the model is required to call for a given request.
+///
+/// This value is distinct from a `nil` `LLMToolChoice?`: `nil` leaves tool selection
+/// unspecified, while `.none` explicitly prohibits tool calls.
 public enum LLMToolChoice: Sendable, Codable, Equatable {
+    /// Do not call any tool; generate a normal assistant response instead.
+    case none
     /// Let the model decide whether to call a tool.
     case auto
     /// Force the model to call the named tool.

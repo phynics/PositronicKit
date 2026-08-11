@@ -126,7 +126,8 @@ struct ToolCallRegressionTests {
 
         if let user = args?["user"]?.value as? [String: Any] {
              #expect(user["name"] as? String == "Alice")
-             #expect(user["age"] as? Double == 30.0)
+             let age = user["age"]
+             #expect((age as? Int64) == 30 || (age as? UInt64) == 30)
         } else {
              Issue.record("user argument is missing or not a dictionary")
         }
@@ -156,7 +157,8 @@ struct ToolCallRegressionTests {
         #expect(tags?[0] as? String == "a")
 
         let nested = args?["nested"]?.value as? [String: Any]
-        #expect(nested?["val"] as? Double == 1.0)
+        let value = nested?["val"]
+        #expect((value as? Int64) == 1 || (value as? UInt64) == 1)
     }
 
     @Test("Legacy XML tool-call markers in assistant text do not produce tool accumulators")

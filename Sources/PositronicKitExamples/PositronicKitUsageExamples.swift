@@ -43,11 +43,19 @@ public enum PositronicKitUsageExamples {
         makeOneShotRuntime().timelineManager
     }
 
-    /// Tier 4: an agentic runtime handle over a timeline and agent instance.
-    public static func makeAgenticRuntimeExample() -> AgenticRuntime {
-        makeOneShotRuntime().agenticRuntime(
-            timelineID: UUID(),
-            agentInstanceID: UUID()
+    /// Tier 4: an agentic runtime handle over an attached timeline and agent instance.
+    public static func makeAgenticRuntimeExample() async throws -> AgenticRuntime {
+        let kit = makeOneShotRuntime()
+        let timeline = try await kit.timelineManager.createTimeline(title: "Agentic Example")
+        let agent = try await kit.agentInstanceManager.createInstance(
+            from: nil,
+            name: "Example Agent",
+            description: "Demonstrates an attached agentic runtime."
+        )
+        try await kit.agentInstanceManager.attach(agentID: agent.id, to: timeline.id)
+        return kit.agenticRuntime(
+            timelineID: timeline.id,
+            agentInstanceID: agent.id
         )
     }
 
@@ -198,8 +206,8 @@ public enum PositronicKitUsageExamples {
                     print(text, terminator: "")
                 case .toolCall(let delta):
                     print("\nTool delta: \(delta.name ?? "<continuation>")")
-                case .toolExecution(let toolCallId, let status):
-                    print("\nTool execution [\(toolCallId)]: \(status)")
+                case .toolExecution(let toolCallID, let status):
+                    print("\nTool execution [\(toolCallID)]: \(status)")
                 case .sidecar(let delta):
                     print("\n[\(delta.name)] \(delta.partialText)")
                 }
@@ -217,8 +225,8 @@ public enum PositronicKitUsageExamples {
                     print("\nDone: \(message.content)")
                 case .completedEmpty(let finishReason):
                     print("\nCompleted empty (finishReason: \(finishReason ?? "nil"))")
-                case .toolExecution(let toolCallId, let status):
-                    print("\nTool completed [\(toolCallId)]: \(status)")
+                case .toolExecution(let toolCallID, let status):
+                    print("\nTool completed [\(toolCallID)]: \(status)")
                 case .maxTurnsReached:
                     print("\nMax turns reached — the agent did not produce a tool-free final response.")
                 case .deferredForExternalTool:
@@ -234,8 +242,8 @@ public enum PositronicKitUsageExamples {
                 }
             case .error(let event):
                 switch event {
-                case .toolCallError(let toolCallId, let name, let error):
-                    print("\nTool call error [\(toolCallId)] for \(name): \(error)")
+                case .toolCallError(let toolCallID, let name, let error):
+                    print("\nTool call error [\(toolCallID)] for \(name): \(error)")
                 case .error(let message, let identity):
                     print("\nError: \(message) (blocked: \(identity?.isBlocked ?? false))")
                 case .generationCancelled:

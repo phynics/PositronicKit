@@ -69,6 +69,8 @@ struct PublicRuntimeStoriesTests {
         #expect(runtime.agentInstanceManager === kit.agentInstanceManager)
         #expect(runtime !== secondRuntime)
 
+        try await kit.agentInstanceManager.attach(agentId: agentId, to: timelineId)
+
         let mockTool = AcceptanceMockTool()
         mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "agent_call", name: "mock_tool")]]
         mockLLM.mockClient.nextResponses = ["", "Agent response"]
@@ -92,6 +94,76 @@ struct PublicRuntimeStoriesTests {
             }
             return false
         }))
+    }
+
+    @Test("agentic runtime rejects an unattached agent before side effects")
+    func agenticRuntimeRejectsUnattachedAgent() async throws {
+        let (kit, mockLLM, mockPersistence, timelineId, _) = try await makeAcceptanceRuntime()
+        let agent = try await kit.agentInstanceManager.createInstance(
+            from: nil,
+            name: "Unattached Agent",
+            description: "Must be attached before it can run."
+        )
+
+        await #expect(throws: AgentInstanceError.self) {
+            _ = try await kit.agenticRuntime(
+                timelineID: timelineId,
+                agentInstanceID: agent.id
+            ).run(message: "Should fail")
+        }
+
+        #expect(try await mockPersistence.fetchMessages(for: timelineId).isEmpty)
+        #expect(mockLLM.chatRequestHistory.isEmpty)
+    }
+
+    @Test("agentic runtime rejects a different attached agent before side effects")
+    func agenticRuntimeRejectsDifferentAttachedAgent() async throws {
+        let (kit, mockLLM, mockPersistence, timelineId, _) = try await makeAcceptanceRuntime()
+        let attachedAgent = try await kit.agentInstanceManager.createInstance(
+            from: nil,
+            name: "Attached Agent",
+            description: "Owns the acceptance timeline."
+        )
+        let requestedAgent = try await kit.agentInstanceManager.createInstance(
+            from: nil,
+            name: "Requested Agent",
+            description: "Must not run another agent's timeline."
+        )
+        try await kit.agentInstanceManager.attach(agentId: attachedAgent.id, to: timelineId)
+
+        await #expect(throws: AgentInstanceError.self) {
+            _ = try await kit.agenticRuntime(
+                timelineID: timelineId,
+                agentInstanceID: requestedAgent.id
+            ).run(message: "Should fail")
+        }
+
+        #expect(try await mockPersistence.fetchMessages(for: timelineId).isEmpty)
+        #expect(mockLLM.chatRequestHistory.isEmpty)
+    }
+
+    @Test("agentic runtime can run on an agent's private timeline")
+    func agenticRuntimeRunsOnPrivateTimeline() async throws {
+        let (kit, mockLLM, mockPersistence, _, _) = try await makeAcceptanceRuntime()
+        let agent = try await kit.agentInstanceManager.createInstance(
+            from: nil,
+            name: "Private Agent",
+            description: "Exercises the agent's private timeline."
+        )
+        mockLLM.mockClient.nextResponse = "Private response"
+
+        let events = try await kit.agenticRuntime(
+            timelineID: agent.privateTimelineID,
+            agentInstanceID: agent.id
+        ).run(message: "Think privately").collect()
+
+        #expect(events.contains(where: {
+            if case let .completion(.generationCompleted(message, _)) = $0 {
+                return message.content == "Private response"
+            }
+            return false
+        }))
+        #expect(try await mockPersistence.fetchMessages(for: agent.privateTimelineID).last?.content == "Private response")
     }
 
     @Test("promptAssemblyLogger surfaces prompt-assembly diagnostics through the facade")

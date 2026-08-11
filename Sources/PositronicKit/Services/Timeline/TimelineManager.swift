@@ -73,6 +73,14 @@ public actor TimelineManager {
     /// Preparation degradations discovered while hydrating a timeline's runtime components.
     var timelineDegradations: [UUID: [TurnDiagnostic]] = [:]
 
+    /// Monotonic liveness versions for timelines. Permanent deletion advances the version before
+    /// its first suspension so in-flight mutations can reject stale state before saving it.
+    var timelineLivenessVersions: [UUID: UInt64] = [:]
+
+    /// Tracks deletions in progress so a new mutation cannot join after the deletion version was
+    /// advanced but before persistence cleanup has finished.
+    var timelinesBeingPermanentlyDeleted: Set<UUID> = []
+
     /// Send-scoped registry of the active stream-driving task for each timeline. Replaces the
     /// former `activeTasks` dict so cancellation is send-scoped (a stale send cannot evict or
     /// cancel a newer one) and eviction/deletion can await bounded cleanup.
@@ -325,6 +333,35 @@ public extension TimelineManager {
 // MARK: - Internal Subordinate-Manager Access (PKV3-010: not part of the public surface)
 
 extension TimelineManager {
+    /// Returns the current liveness version for a timeline. A missing entry is the initial version.
+    func timelineLivenessVersion(for timelineId: UUID) -> UInt64 {
+        timelineLivenessVersions[timelineId] ?? 0
+    }
+
+    /// Invalidates operations that captured an earlier liveness version for the timeline and marks
+    /// the deletion active before its first suspension.
+    func invalidateTimelineLiveness(for timelineId: UUID) {
+        timelineLivenessVersions[timelineId] = (timelineLivenessVersions[timelineId] ?? 0) &+ 1
+        timelinesBeingPermanentlyDeleted.insert(timelineId)
+    }
+
+    /// Closes a deletion epoch. Advancing again prevents operations that captured the in-progress
+    /// version from saving after cleanup completes, while allowing a fresh retry if cleanup was
+    /// partial and the persisted row remains.
+    func completeTimelineDeletionLiveness(for timelineId: UUID) {
+        timelineLivenessVersions[timelineId] = (timelineLivenessVersions[timelineId] ?? 0) &+ 1
+        timelinesBeingPermanentlyDeleted.remove(timelineId)
+    }
+
+    /// Throws when a timeline was permanently deleted after an operation captured its version.
+    func requireTimelineLiveness(for timelineId: UUID, version: UInt64) throws {
+        guard !timelinesBeingPermanentlyDeleted.contains(timelineId),
+              timelineLivenessVersion(for: timelineId) == version else
+        {
+            throw TimelineError.timelineNotFound
+        }
+    }
+
     /// Retrieves the turn briefing builder for a timeline if it is active.
     func getTurnBriefingBuilder(for timelineId: UUID) -> TurnBriefingBuilder? {
         return turnBriefingBuilders[timelineId]

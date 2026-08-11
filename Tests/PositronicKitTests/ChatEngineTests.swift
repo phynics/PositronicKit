@@ -14,6 +14,7 @@ struct ChatEngineTests {
     private func withChatEngineDependencies<T>(
         streamTimeout: TimeInterval = 60,
         plugins: [any ChatTurnPlugin] = [],
+        attachedAgentInstanceID: UUID? = nil,
         _ test: @Sendable (ChatEngine, MockLLMService, MockPersistenceService) async throws -> T
     ) async throws -> T {
         let mockLLM = MockLLMService()
@@ -46,7 +47,11 @@ struct ChatEngineTests {
         )
 
         // Seed a session
-        let session = Timeline(id: timelineId, title: "Test Session")
+        let session = Timeline(
+            id: timelineId,
+            title: "Test Session",
+            attachedAgentInstanceID: attachedAgentInstanceID
+        )
         try await mockPersistence.saveTimeline(session)
 
         let wsId = UUID()
@@ -1286,8 +1291,8 @@ struct ChatEngineTests {
 
     @Test("agentInstanceId is recorded on the persisted assistant message")
     func agentInstanceIdSetOnMessage() async throws {
-        try await withChatEngineDependencies { engine, mockLLM, mockPersistence in
-            let agentId = UUID()
+        let agentId = UUID()
+        try await withChatEngineDependencies(attachedAgentInstanceID: agentId) { engine, mockLLM, mockPersistence in
             let agentInstance = AgentInstance(
                 id: agentId,
                 name: "Test Agent",

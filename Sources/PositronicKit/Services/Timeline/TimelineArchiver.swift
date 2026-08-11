@@ -37,15 +37,24 @@ public actor TimelineArchiver {
         vacuumPolicy: MemoryVacuumPolicy = .run(threshold: 0.95)
     ) async throws -> UUID {
         let title = await resolveTitle(from: messages)
-        let timeline = try await resolveTimeline(timelineId: timelineId, title: title)
+        let archiveState = try await resolveTimeline(timelineId: timelineId, title: title)
 
-        try await indexAndSaveMessages(messages, timeline: timeline, title: title)
+        do {
+            try await indexAndSaveMessages(
+                messages,
+                timeline: archiveState.archivedTimeline,
+                title: title
+            )
 
-        if case let .run(threshold) = vacuumPolicy {
-            _ = try await persistence.vacuumMemories(threshold: threshold)
+            if case let .run(threshold) = vacuumPolicy {
+                _ = try await persistence.vacuumMemories(threshold: threshold)
+            }
+        } catch {
+            await rollback(archiveState, after: error)
+            throw error
         }
 
-        return timeline.id
+        return archiveState.archivedTimeline.id
     }
 
     // MARK: - Helpers
@@ -66,19 +75,41 @@ public actor TimelineArchiver {
         return String(firstUserMessage.prefix(40))
     }
 
-    private func resolveTimeline(timelineId: UUID?, title: String) async throws -> Timeline {
+    private struct ArchiveState {
+        let archivedTimeline: Timeline
+        let previousTimeline: Timeline?
+    }
+
+    private func resolveTimeline(timelineId: UUID?, title: String) async throws -> ArchiveState {
         if let sid = timelineId, let existing = try await persistence.fetchTimeline(id: sid) {
             var updated = existing
             updated.title = title
             updated.isArchived = true
             updated.updatedAt = Date()
             try await persistence.saveTimeline(updated)
-            return updated
+            return ArchiveState(archivedTimeline: updated, previousTimeline: existing)
         } else {
             var newTimeline = Timeline(title: title)
             newTimeline.isArchived = true
             try await persistence.saveTimeline(newTimeline)
-            return newTimeline
+            return ArchiveState(archivedTimeline: newTimeline, previousTimeline: nil)
+        }
+    }
+
+    private func rollback(_ state: ArchiveState, after originalError: Error) async {
+        do {
+            if let previousTimeline = state.previousTimeline {
+                try await persistence.saveTimeline(previousTimeline)
+            } else {
+                try await persistence.deleteTimeline(id: state.archivedTimeline.id)
+            }
+        } catch {
+            let operation = state.previousTimeline == nil ? "deleteTimeline" : "restoreTimeline"
+            logger.error("""
+            Archive rollback failed — timeline: \(state.archivedTimeline.id.uuidString.prefix(8)), \
+            operation: \(operation), original error: \(ErrorKit.userFriendlyMessage(for: originalError)), \
+            cleanup error: \(ErrorKit.userFriendlyMessage(for: error))
+            """)
         }
     }
 

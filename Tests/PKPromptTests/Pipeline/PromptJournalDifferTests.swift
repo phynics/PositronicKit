@@ -21,14 +21,14 @@ struct PromptJournalDifferTests {
     }
 
     @Test("Reordering the same stable sections does not require a hard reset")
-    func reorderedStableSectionsDoNotTriggerHardReset() {
+    func reorderedStableSectionsDoNotTriggerHardReset() throws {
         let sectionA = stableSection(id: "alpha", text: "Alpha content")
         let sectionB = stableSection(id: "beta", text: "Beta content")
 
         let committedBase = [sectionA, sectionB]
         let currentReordered = [sectionB, sectionA]
 
-        let evaluation = PromptJournalDiffer.evaluate(
+        let evaluation = try PromptJournalDiffer.evaluate(
             committedBaseSections: committedBase,
             currentSections: currentReordered
         )
@@ -37,14 +37,14 @@ struct PromptJournalDifferTests {
     }
 
     @Test("Changing content of a stable section still requires a hard reset")
-    func changedStableSectionContentTriggersHardReset() {
+    func changedStableSectionContentTriggersHardReset() throws {
         let sectionA = stableSection(id: "alpha", text: "Alpha content")
         let sectionB = stableSection(id: "beta", text: "Beta content")
 
         let committedBase = [sectionA, sectionB]
         let currentChanged = [sectionB, stableSection(id: "alpha", text: "Alpha content CHANGED")]
 
-        let evaluation = PromptJournalDiffer.evaluate(
+        let evaluation = try PromptJournalDiffer.evaluate(
             committedBaseSections: committedBase,
             currentSections: currentChanged
         )
@@ -53,7 +53,7 @@ struct PromptJournalDifferTests {
     }
 
     @Test("Adding a new stable section still requires a hard reset")
-    func addedStableSectionTriggersHardReset() {
+    func addedStableSectionTriggersHardReset() throws {
         let sectionA = stableSection(id: "alpha", text: "Alpha content")
         let sectionB = stableSection(id: "beta", text: "Beta content")
         let sectionC = stableSection(id: "gamma", text: "Gamma content")
@@ -61,7 +61,7 @@ struct PromptJournalDifferTests {
         let committedBase = [sectionA, sectionB]
         let currentWithAddition = [sectionB, sectionA, sectionC]
 
-        let evaluation = PromptJournalDiffer.evaluate(
+        let evaluation = try PromptJournalDiffer.evaluate(
             committedBaseSections: committedBase,
             currentSections: currentWithAddition
         )
@@ -70,14 +70,14 @@ struct PromptJournalDifferTests {
     }
 
     @Test("Removing a stable section still requires a hard reset")
-    func removedStableSectionTriggersHardReset() {
+    func removedStableSectionTriggersHardReset() throws {
         let sectionA = stableSection(id: "alpha", text: "Alpha content")
         let sectionB = stableSection(id: "beta", text: "Beta content")
 
         let committedBase = [sectionA, sectionB]
         let currentWithRemoval = [sectionB]
 
-        let evaluation = PromptJournalDiffer.evaluate(
+        let evaluation = try PromptJournalDiffer.evaluate(
             committedBaseSections: committedBase,
             currentSections: currentWithRemoval
         )
@@ -86,7 +86,7 @@ struct PromptJournalDifferTests {
     }
 
     @Test("Token-only changes to a stable section do not trigger a hard reset")
-    func tokenOnlyStableChangeDoesNotTriggerHardReset() {
+    func tokenOnlyStableChangeDoesNotTriggerHardReset() throws {
         let sectionA = stableSection(id: "alpha", text: "Alpha content")
         let sectionAChangedTokens = RenderedPrompt.Section(
             id: "alpha",
@@ -101,7 +101,7 @@ struct PromptJournalDifferTests {
             content: .text("Alpha content")
         )
 
-        let evaluation = PromptJournalDiffer.evaluate(
+        let evaluation = try PromptJournalDiffer.evaluate(
             committedBaseSections: [sectionA],
             currentSections: [sectionAChangedTokens]
         )
@@ -110,7 +110,7 @@ struct PromptJournalDifferTests {
     }
 
     @Test("Token-only changes to a semistable section do not register as overlay changes")
-    func tokenOnlySemistableChangeDoesNotRegisterAsOverlay() {
+    func tokenOnlySemistableChangeDoesNotRegisterAsOverlay() throws {
         let section = RenderedPrompt.Section(
             id: "semi-a",
             role: .system,
@@ -136,7 +136,7 @@ struct PromptJournalDifferTests {
             content: .text("Same text")
         )
 
-        let evaluation = PromptJournalDiffer.evaluate(
+        let evaluation = try PromptJournalDiffer.evaluate(
             committedBaseSections: [section],
             currentSections: [sectionChangedTokens]
         )

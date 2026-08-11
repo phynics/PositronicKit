@@ -13,8 +13,9 @@ extension ChatEngine {
         let diagnostics: [TurnDiagnostic]
     }
 
-    /// Resolves a requested agent once, before provider readiness or turn persistence.
-    func preflightAgent(id agentId: UUID?) async throws -> AgentPreflight {
+    /// Resolves a requested agent and validates its exclusive timeline attachment before provider
+    /// readiness or turn persistence.
+    func preflightAgent(id agentId: UUID?, timelineId: UUID) async throws -> AgentPreflight {
         guard let agentId else {
             return AgentPreflight(instance: nil, diagnostics: [])
         }
@@ -48,6 +49,24 @@ extension ChatEngine {
                 )]
             )
         }
+        let timeline: Timeline?
+        do {
+            timeline = try await dependencies.timelineManager.timelineStore.fetchTimeline(id: timelineId)
+        } catch {
+            throw TimelineError.unavailable
+        }
+
+        guard let timeline else {
+            throw TimelineError.timelineNotFound
+        }
+        guard timeline.attachedAgentInstanceID == agentId else {
+            throw AgentInstanceError.timelineAgentMismatch(
+                timelineID: timelineId,
+                agentInstanceID: agentId,
+                attachedAgentInstanceID: timeline.attachedAgentInstanceID
+            )
+        }
+
         return AgentPreflight(instance: instance, diagnostics: [])
     }
 
@@ -55,12 +74,14 @@ extension ChatEngine {
     /// and building the initial prompt.
     ///
     /// PKRR-006: Input persistence is deferred until **after** history validation, context
-    /// gathering, workspace lookup, and prompt assembly all succeed. If any preparation step
-    /// throws, no user message or tool output is persisted, preventing orphan inputs on retry.
-    /// The `sendId` serves as an in-memory idempotency key: a second call with the same
-    /// `sendId` is rejected with ``ChatEngineError/duplicateSendId`` while the first is still
-    /// processed (or has completed successfully). On failure the `sendId` is released so the
-    /// caller may retry.
+    /// gathering, workspace lookup, prompt assembly, and the initial prompt-history transition
+    /// all succeed. If any preparation step throws, no new user message or tool output is
+    /// persisted, preventing orphan inputs on retry.
+    /// The `sendId` gates the in-memory turn and is reused as the user's existing message identity
+    /// for retry-safe persistence. A second call with the same `sendId` is rejected with
+    /// ``ChatEngineError/duplicateSendId`` while the first is still processed (or has completed
+    /// successfully). Preparation failures release the `sendId` here; stream-loop failures
+    /// release it when their terminal outcome is known.
     func prepareSession(
         timelineId: UUID,
         sendId: UUID,
@@ -219,25 +240,13 @@ extension ChatEngine {
                 )
             )
 
-            // 10. Commit persistence — AFTER all validation and preparation succeeds.
-            //     Tool outputs are committed first (resumable batch), then the user message.
-            //     If either fails, the sendId is released so the caller can retry; the
-            //     resumable batch ensures already-persisted tool outputs are not duplicated.
-            try await ExternalToolOutputSubmissionGate.shared.commit(
-                validatedToolOutputs,
-                timelineId: timelineId,
-                messageStore: dependencies.messageStore
-            )
-            if !message.isEmpty {
-                let userMsg = ConversationMessage(timelineID: timelineId, role: .user, content: message)
-                try await dependencies.messageStore.saveMessage(userMsg)
-            }
-
-            // 11. Reuse the final rendered artifact for messages + prompt history
+            // 10. Reuse the final rendered artifact for messages + prompt history
             let initialMessages = renderedPrompt.buildMessages()
             let resolvedSections = renderedPrompt.sections
 
-            // 12. Record prompt snapshot for cache tracking
+            // 11. Record prompt snapshot for cache tracking BEFORE committing inputs. This is the
+            //     remaining fallible preparation step; keeping it ahead of persistence avoids
+            //     orphaning a user/tool input when the journal rejects the transition.
             let update: PromptHistoryUpdate
             do {
                 update = try await promptHistory.update(prompt: renderedPrompt)
@@ -273,6 +282,28 @@ extension ChatEngine {
             )
             if update.didCompact {
                 logger.debug("Prompt history append state compacted after prompt update")
+            }
+
+            // 12. Commit persistence after all fallible preparation succeeds. Tool outputs are
+            //     committed first (resumable batch), then the user message. The user row uses the
+            //     send ID as its existing message identity, so a later preparation failure can
+            //     retry without inserting the same input twice.
+            try await ExternalToolOutputSubmissionGate.shared.commit(
+                validatedToolOutputs,
+                timelineId: timelineId,
+                messageStore: dependencies.messageStore
+            )
+            if !message.isEmpty {
+                let userMsg = ConversationMessage(
+                    id: sendId,
+                    timelineID: timelineId,
+                    role: .user,
+                    content: message
+                )
+                try await dependencies.messageStore.saveMessageIfAbsent(
+                    userMsg,
+                    idempotencyKey: sendId
+                )
             }
 
             if let report = renderedPrompt.compressionReport {

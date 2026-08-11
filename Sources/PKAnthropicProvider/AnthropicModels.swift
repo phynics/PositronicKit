@@ -165,7 +165,8 @@ enum AnthropicMessageConversion {
     static func convert(
         messages: [LLMMessage],
         logger: Logger
-    ) -> (system: String?, messages: [AnthropicMessage]) {
+    ) throws -> (system: String?, messages: [AnthropicMessage]) {
+        try validateLLMMessageHistory(messages)
         var systemParts: [String] = []
         var converted: [AnthropicMessage] = []
 
@@ -206,16 +207,12 @@ enum AnthropicMessageConversion {
                 }
                 append(role: "assistant", blocks: blocks)
             case .tool:
-                // PKINT-002: a tool-role message without a toolCallID is a contract violation —
-                // the Messages API requires `tool_use_id` on every tool_result block (PKR-12 parity).
-                if message.toolCallID == nil {
-                    logger.warning(
-                        "LLMMessage with .tool role is missing toolCallID (contract violation); sending an empty tool_use_id to Anthropic, which will likely surface as a 400."
-                    )
+                guard let toolCallID = message.toolCallID, !toolCallID.isEmpty else {
+                    throw LLMMessageValidationError.missingToolCallID
                 }
                 append(
                     role: "user",
-                    blocks: [.toolResult(toolUseID: message.toolCallID ?? "", content: message.content)]
+                    blocks: [.toolResult(toolUseID: toolCallID, content: message.content)]
                 )
             }
         }

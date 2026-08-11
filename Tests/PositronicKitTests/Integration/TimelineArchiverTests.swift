@@ -5,6 +5,104 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
+private actor ArchiveFaultInjectingPersistence:
+    TimelinePersistenceProtocol, MemoryStoreProtocol, MessageStoreProtocol
+{
+    private var timelines: [Timeline] = []
+    private var messages: [ConversationMessage] = []
+    private var failMessageSave = false
+
+    func setMessageSaveFailure(_ value: Bool) {
+        failMessageSave = value
+    }
+
+    func savedTimelines() -> [Timeline] {
+        timelines
+    }
+
+    func saveMemory(_ memory: Memory, policy _: MemorySavePolicy) async throws -> UUID {
+        memory.id
+    }
+
+    func fetchMemory(id _: UUID) async throws -> Memory? {
+        nil
+    }
+
+    func fetchAllMemories() async throws -> [Memory] {
+        []
+    }
+
+    func searchMemories(query _: String) async throws -> [Memory] {
+        []
+    }
+
+    func searchMemories(
+        embedding _: [Double], limit _: Int, minSimilarity _: Double
+    ) async throws -> [(memory: Memory, similarity: Double)] {
+        []
+    }
+
+    func searchMemories(matchingAnyTag _: [String]) async throws -> [Memory] {
+        []
+    }
+
+    func deleteMemory(id _: UUID) async throws {}
+    func updateMemory(_: Memory) async throws {}
+    func updateMemoryEmbedding(id _: UUID, newEmbedding _: [Double]) async throws {}
+    func vacuumMemories(threshold _: Double) async throws -> Int { 0 }
+    func pruneMemories(matching _: String, dryRun _: Bool) async throws -> Int { 0 }
+    func pruneMemories(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int { 0 }
+
+    func saveMessage(_ message: ConversationMessage) async throws {
+        if failMessageSave {
+            throw FailingStoreError.saveFailed
+        }
+        messages.append(message)
+    }
+
+    func fetchMessages(for timelineId: UUID) async throws -> [ConversationMessage] {
+        messages.filter { $0.timelineID == timelineId }
+    }
+
+    func deleteMessages(for timelineId: UUID) async throws {
+        messages.removeAll { $0.timelineID == timelineId }
+    }
+
+    func pruneMessages(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int { 0 }
+
+    func fetchSnapshots(for _: UUID) async throws -> [TurnSnapshot] {
+        []
+    }
+
+    func saveTimeline(_ timeline: Timeline) async throws {
+        if let index = timelines.firstIndex(where: { $0.id == timeline.id }) {
+            timelines[index] = timeline
+        } else {
+            timelines.append(timeline)
+        }
+    }
+
+    func fetchTimeline(id: UUID) async throws -> Timeline? {
+        timelines.first { $0.id == id }
+    }
+
+    func fetchAllTimelines(includeArchived: Bool) async throws -> [Timeline] {
+        includeArchived ? timelines : timelines.filter { !$0.isArchived }
+    }
+
+    func deleteTimeline(id: UUID) async throws {
+        timelines.removeAll { $0.id == id }
+    }
+
+    func pruneTimelines(
+        olderThan _: TimeInterval,
+        excluding _: [UUID],
+        dryRun _: Bool
+    ) async throws -> Int {
+        0
+    }
+}
+
 @Suite(.serialized)
 @MainActor
 struct TimelineArchiverTests {
@@ -134,6 +232,79 @@ struct TimelineArchiverTests {
         let updatedSession = try await persistence.fetchTimeline(id: existingSession.id)
         #expect(updatedSession?.title == "New Title")
         #expect(updatedSession?.isArchived == true)
+    }
+
+    @Test
+    func archiveRollsBackTimelineStateWhenMessageSaveFails() async throws {
+        let createPersistence = ArchiveFaultInjectingPersistence()
+        await createPersistence.setMessageSaveFailure(true)
+        let createArchiver = TimelineArchiver(
+            persistence: createPersistence,
+            llmService: MockLLMService(),
+            embeddingService: MockEmbeddingService()
+        )
+
+        var createDidThrowExpectedError = false
+        do {
+            _ = try await createArchiver.archive(
+                messages: [Message(content: "archive failure", role: .assistant)],
+                timelineId: nil,
+                vacuumPolicy: .skip
+            )
+        } catch FailingStoreError.saveFailed {
+            createDidThrowExpectedError = true
+        } catch {
+            Issue.record("Unexpected create error: \(error)")
+        }
+
+        #expect(createDidThrowExpectedError)
+        let createdTimelines = await createPersistence.savedTimelines()
+        #expect(createdTimelines.isEmpty)
+
+        let updatePersistence = ArchiveFaultInjectingPersistence()
+        let originalTimeline = Timeline(
+            id: UUID(),
+            title: "Original title",
+            createdAt: Date(timeIntervalSince1970: 100),
+            updatedAt: Date(timeIntervalSince1970: 200),
+            isArchived: false,
+            workingDirectory: "/tmp/archive",
+            attachedWorkspaceIDs: [UUID()],
+            attachedAgentInstanceID: UUID(),
+            isPrivate: true
+        )
+        try await updatePersistence.saveTimeline(originalTimeline)
+        await updatePersistence.setMessageSaveFailure(true)
+        let updateArchiver = TimelineArchiver(
+            persistence: updatePersistence,
+            llmService: MockLLMService(),
+            embeddingService: MockEmbeddingService()
+        )
+
+        var updateDidThrowExpectedError = false
+        do {
+            _ = try await updateArchiver.archive(
+                messages: [Message(content: "archive failure", role: .assistant)],
+                timelineId: originalTimeline.id,
+                vacuumPolicy: .skip
+            )
+        } catch FailingStoreError.saveFailed {
+            updateDidThrowExpectedError = true
+        } catch {
+            Issue.record("Unexpected update error: \(error)")
+        }
+
+        #expect(updateDidThrowExpectedError)
+        let restoredTimeline = try #require(await updatePersistence.fetchTimeline(id: originalTimeline.id))
+        #expect(restoredTimeline.id == originalTimeline.id)
+        #expect(restoredTimeline.title == originalTimeline.title)
+        #expect(restoredTimeline.createdAt == originalTimeline.createdAt)
+        #expect(restoredTimeline.updatedAt == originalTimeline.updatedAt)
+        #expect(restoredTimeline.isArchived == originalTimeline.isArchived)
+        #expect(restoredTimeline.workingDirectory == originalTimeline.workingDirectory)
+        #expect(restoredTimeline.attachedWorkspaceIDs == originalTimeline.attachedWorkspaceIDs)
+        #expect(restoredTimeline.attachedAgentInstanceID == originalTimeline.attachedAgentInstanceID)
+        #expect(restoredTimeline.isPrivate == originalTimeline.isPrivate)
     }
 
     @Test

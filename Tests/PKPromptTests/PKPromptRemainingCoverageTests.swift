@@ -15,10 +15,10 @@ struct PKPromptRemainingCoverageTests {
     // MARK: - PromptJournal.reset / compact-nil
 
     @Test("Resetting the observation preserves the committed base")
-    func resetSoftClearsObservation() async {
-        let journal = PromptJournalHelper.makeJournalWithBase()
+    func resetSoftClearsObservation() async throws {
+        let journal = try PromptJournalHelper.makeJournalWithBase()
         var j = journal.journal
-        _ = j.observe(journal.rendered)
+        _ = try j.observe(journal.rendered)
 
         j.resetKeepingCommittedState()
         // Should not crash; state reflects cleared observation.
@@ -29,10 +29,10 @@ struct PKPromptRemainingCoverageTests {
     }
 
     @Test("Resetting all journal state clears the committed base")
-    func resetHardClearsEverything() async {
-        let journal = PromptJournalHelper.makeJournalWithBase()
+    func resetHardClearsEverything() async throws {
+        let journal = try PromptJournalHelper.makeJournalWithBase()
         var j = journal.journal
-        _ = j.observe(journal.rendered)
+        _ = try j.observe(journal.rendered)
 
         j.resetDiscardingCommittedState()
         let state = j.state
@@ -689,7 +689,7 @@ enum PromptJournalHelper {
         let rendered: RenderedPrompt
     }
 
-    static func makeJournalWithBase() -> JournalWithBase {
+    static func makeJournalWithBase() throws -> JournalWithBase {
         let section = RenderedPrompt.Section(
             id: "base", role: .context, priority: 50, estimatedTokens: 10,
             compression: .keep, type: .text, cachePolicy: .stable,
@@ -697,7 +697,7 @@ enum PromptJournalHelper {
         )
         let rendered = RenderedPrompt(sections: [section], string: "base content", sectionsByID: ["base": "base content"])
         var journal = PromptJournal()
-        _ = journal.observe(rendered)
+        _ = try journal.observe(rendered)
         return JournalWithBase(journal: journal, rendered: rendered)
     }
 }
@@ -1091,7 +1091,7 @@ extension PKPromptRemainingCoverageTests {
     }
 
     @Test("PromptJournalDiffer detects added semistable sections")
-    func differDetectsAddedSections() async {
+    func differDetectsAddedSections() throws {
         let baseSection = RenderedPrompt.Section(
             id: "base", role: .context, priority: 50, estimatedTokens: 10,
             compression: .keep, type: .text, cachePolicy: .stable,
@@ -1102,7 +1102,7 @@ extension PKPromptRemainingCoverageTests {
             compression: .keep, type: .text, cachePolicy: .semiStable,
             path: ["root", "new"], parentID: nil, content: .text("new")
         )
-        let evaluation = PromptJournalDiffer.evaluate(
+        let evaluation = try PromptJournalDiffer.evaluate(
             committedBaseSections: [baseSection],
             currentSections: [baseSection, newSection]
         )

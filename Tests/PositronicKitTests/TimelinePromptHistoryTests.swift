@@ -194,7 +194,7 @@ actor TimelinePromptHistoryTests {
         }.assemblePrompt()
         let initialRendered = await initialPrompt.render()
 
-        _ = journal.observe(initialRendered)
+        _ = try journal.observe(initialRendered)
         _ = try! await history.record(prompt: initialPrompt)
 
         let updatedPrompt = try AnyPrompt.build {
@@ -204,7 +204,7 @@ actor TimelinePromptHistoryTests {
         }.assemblePrompt()
         let updatedRendered = await updatedPrompt.render()
 
-        let journalPlan = journal.observe(updatedRendered)
+        let journalPlan = try journal.observe(updatedRendered)
         let runtimeDiff = try! await history.record(prompt: updatedPrompt)
 
         #expect(journalPlan.requiresHardReset == false)
@@ -224,7 +224,7 @@ actor TimelinePromptHistoryTests {
         }.assemblePrompt()
         let mixedInitialRendered = await mixedInitial.render()
 
-        _ = mixedJournal.observe(mixedInitialRendered)
+        _ = try mixedJournal.observe(mixedInitialRendered)
         _ = try! await mixedHistory.record(prompt: mixedInitial)
 
         let mixedUpdated = try AnyPrompt.build {
@@ -235,7 +235,7 @@ actor TimelinePromptHistoryTests {
         }.assemblePrompt()
         let mixedUpdatedRendered = await mixedUpdated.render()
 
-        let mixedJournalPlan = mixedJournal.observe(mixedUpdatedRendered)
+        let mixedJournalPlan = try mixedJournal.observe(mixedUpdatedRendered)
         let mixedRuntimeDiff = try! await mixedHistory.record(prompt: mixedUpdated)
 
         #expect(mixedJournalPlan.requiresHardReset == false)
@@ -291,7 +291,7 @@ actor TimelinePromptHistoryTests {
         }.assemblePrompt()
         let initialRendered = await initialPrompt.render()
 
-        _ = journal.observe(initialRendered)
+        _ = try journal.observe(initialRendered)
         _ = try! await history.record(prompt: initialPrompt)
 
         // Same text, different estimatedTokens — must NOT diff under the unified text-only scheme.
@@ -300,7 +300,7 @@ actor TimelinePromptHistoryTests {
         }.assemblePrompt()
         let updatedRendered = await updatedPrompt.render()
 
-        let journalPlan = journal.observe(updatedRendered)
+        let journalPlan = try journal.observe(updatedRendered)
         let runtimeDiff = try! await history.record(prompt: updatedPrompt)
 
         #expect(journalPlan.diff == PromptJournalDiff())

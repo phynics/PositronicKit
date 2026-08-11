@@ -136,6 +136,93 @@ struct AgentInstanceManagerTests {
         #expect(timeline?.isPrivate == true)
     }
 
+    @Test("Creation rolls back partial writes", arguments: AgentCreationFailureStage.allCases)
+    func createInstanceRollsBackPartialWrites(
+        failingAt: AgentCreationFailureStage
+    ) async throws {
+        let workspaceRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("positronickit-agent-rollback-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: workspaceRoot) }
+
+        let stores = AgentCreationFaultStore(failingAt: failingAt)
+        let repository = DefaultWorkspaceCatalog(
+            workspaceRoot: workspaceRoot,
+            workspacePersistence: stores
+        )
+        let manager = AgentInstanceManager(
+            repository: repository,
+            stores: .init(
+                instanceStore: stores,
+                timelineStore: stores,
+                messageStore: stores,
+                workspaceStore: stores
+            )
+        )
+
+        let thrown = await #expect(throws: InjectedAgentCreationFailure.self) {
+            _ = try await manager.createInstance(
+                name: "Rollback Agent",
+                description: "Failure injection"
+            )
+        }
+        #expect(thrown?.stage == failingAt)
+
+        #expect(await stores.allInstances().isEmpty)
+        #expect(await stores.allTimelines().isEmpty)
+        #expect(await stores.allMessages().isEmpty)
+        #expect(await stores.allWorkspaces().isEmpty)
+
+        let agentsRoot = workspaceRoot.appendingPathComponent("agents", isDirectory: true)
+        let remainingDirectories = (try? FileManager.default.contentsOfDirectory(
+            at: agentsRoot,
+            includingPropertiesForKeys: nil
+        )) ?? []
+        #expect(remainingDirectories.isEmpty)
+
+        let expectedCleanup: [String]
+        switch failingAt {
+        case .workspace:
+            expectedCleanup = ["deleteWorkspace"]
+        case .timeline:
+            expectedCleanup = ["deleteTimeline", "deleteWorkspace"]
+        case .instance:
+            expectedCleanup = ["deleteAgentInstance", "deleteTimeline", "deleteWorkspace"]
+        case .audit:
+            expectedCleanup = [
+                "deleteMessages", "deleteAgentInstance", "deleteTimeline", "deleteWorkspace",
+            ]
+        }
+        #expect(await stores.cleanupOperations() == expectedCleanup)
+    }
+
+    @Test("Default in-memory stores protect attached agents")
+    func defaultInMemoryStorePreventsDeletingAttachedAgentWithoutForce() async throws {
+        let kit = PositronicKit()
+        let timeline = try await kit.timelineManager.createTimeline(title: "Shared Timeline")
+        let instance = try await kit.agentInstanceManager.createInstance(
+            name: "Attached Agent",
+            description: "Agent attached to a shared timeline"
+        )
+
+        try await kit.agentInstanceManager.attach(agentId: instance.id, to: timeline.id)
+
+        let thrown = await #expect(throws: AgentInstanceError.self) {
+            try await kit.agentInstanceManager.deleteInstance(id: instance.id, force: false)
+        }
+        if case let .hasAttachedTimelines(count)? = thrown {
+            #expect(count == 1)
+        } else {
+            Issue.record("Expected deletion to report an attached timeline")
+        }
+        #expect(try await kit.agentInstanceManager.instance(id: instance.id) != nil)
+
+        try await kit.agentInstanceManager.deleteInstance(id: instance.id, force: true)
+
+        let remainingTimelines = try await kit.timelineManager.listTimelines()
+        let remainingTimeline = try #require(remainingTimelines.first { $0.id == timeline.id })
+        #expect(remainingTimeline.attachedAgentInstanceID == nil)
+    }
+
     @Test("Search: Find by name or description")
     func searchInstances() async throws {
         let repo = DefaultWorkspaceCatalog(
@@ -316,8 +403,8 @@ struct AgentInstanceManagerTests {
         #expect(messageStore.attemptedMessages.count == 1)
     }
 
-    @Test("Cleanup: deleteInstance survives a failing private-timeline delete (PKFLAKE-005)")
-    func deleteInstanceSurvivesFailingTimelineDelete() async throws {
+    @Test("Cleanup: deleteInstance preserves the agent when private-timeline deletion fails")
+    func deleteInstanceDoesNotRemoveAgentWhenPrivateTimelineDeletionFails() async throws {
         let instanceStore = InMemoryAgentInstanceStore()
         let timelineStore = FailingTimelinePersistence(deleteFails: true)
         let messageStore = InMemoryMessageStore()
@@ -339,13 +426,167 @@ struct AgentInstanceManagerTests {
 
         let instance = try await manager.createInstance(name: "Del Target", description: "Desc")
 
-        // deleteInstance must NOT throw just because the private-timeline row delete failed.
-        try await manager.deleteInstance(id: instance.id, force: false)
+        let thrown = await #expect(throws: FailingStoreError.self) {
+            try await manager.deleteInstance(id: instance.id, force: false)
+        }
+        if case .deleteFailed? = thrown {
+            // Preserve the original typed persistence error for callers and retry logic.
+        } else {
+            Issue.record("Expected the private-timeline deletion error to be rethrown")
+        }
 
         // The delete was attempted (and failed) — observable, not swallowed.
         #expect(timelineStore.deleteAttemptCount >= 1)
 
-        // The agent instance record itself is gone: teardown proceeded past the failed cleanup.
-        #expect(try await instanceStore.fetchAgentInstance(id: instance.id) == nil)
+        // Failed cleanup leaves all records needed for a retry intact.
+        #expect(try await instanceStore.fetchAgentInstance(id: instance.id) != nil)
+        let workspaceID = try #require(instance.primaryWorkspaceID)
+        #expect(try await workspaceStore.fetchWorkspace(id: workspaceID, includeTools: false) != nil)
+        #expect(try await timelineStore.fetchTimeline(id: instance.privateTimelineID) != nil)
+    }
+}
+
+enum AgentCreationFailureStage: String, CaseIterable, Sendable, Equatable {
+    case workspace
+    case timeline
+    case instance
+    case audit
+}
+
+private struct InjectedAgentCreationFailure: Error, Sendable {
+    let stage: AgentCreationFailureStage
+}
+
+/// One test-only store makes each creation stage fail after its write, so rollback also covers
+/// stores that report an error after a durable write has occurred. The catalog must compensate
+/// the workspace row itself before the manager ever receives a workspace reference.
+private actor AgentCreationFaultStore: WorkspaceStore, TimelinePersistenceProtocol,
+    MessageStoreProtocol, AgentInstanceStoreProtocol
+{
+    private let failingAt: AgentCreationFailureStage
+    private var workspaces: [UUID: WorkspaceReference] = [:]
+    private var timelines: [UUID: Timeline] = [:]
+    private var messages: [ConversationMessage] = []
+    private var instances: [UUID: AgentInstance] = [:]
+    private var cleanupEvents: [String] = []
+
+    init(failingAt: AgentCreationFailureStage) {
+        self.failingAt = failingAt
+    }
+
+    func saveWorkspace(_ workspace: WorkspaceReference) async throws {
+        workspaces[workspace.id] = workspace
+        if failingAt == .workspace {
+            throw InjectedAgentCreationFailure(stage: .workspace)
+        }
+    }
+
+    func fetchWorkspace(id: UUID, includeTools _: Bool) async throws -> WorkspaceReference? {
+        workspaces[id]
+    }
+
+    func fetchAllWorkspaces() async throws -> [WorkspaceReference] {
+        Array(workspaces.values)
+    }
+
+    func deleteWorkspace(id: UUID) async throws {
+        cleanupEvents.append("deleteWorkspace")
+        workspaces.removeValue(forKey: id)
+    }
+
+    func saveTimeline(_ timeline: Timeline) async throws {
+        timelines[timeline.id] = timeline
+        if failingAt == .timeline {
+            throw InjectedAgentCreationFailure(stage: .timeline)
+        }
+    }
+
+    func fetchTimeline(id: UUID) async throws -> Timeline? {
+        timelines[id]
+    }
+
+    func fetchAllTimelines(includeArchived _: Bool) async throws -> [Timeline] {
+        Array(timelines.values)
+    }
+
+    func deleteTimeline(id: UUID) async throws {
+        cleanupEvents.append("deleteTimeline")
+        timelines.removeValue(forKey: id)
+    }
+
+    func pruneTimelines(
+        olderThan _: TimeInterval,
+        excluding _: [UUID],
+        dryRun _: Bool
+    ) async throws -> Int {
+        0
+    }
+
+    func saveMessage(_ message: ConversationMessage) async throws {
+        messages.append(message)
+        if failingAt == .audit {
+            throw InjectedAgentCreationFailure(stage: .audit)
+        }
+    }
+
+    func fetchMessages(for timelineId: UUID) async throws -> [ConversationMessage] {
+        messages.filter { $0.timelineID == timelineId }
+    }
+
+    func deleteMessages(for timelineId: UUID) async throws {
+        cleanupEvents.append("deleteMessages")
+        messages.removeAll { $0.timelineID == timelineId }
+    }
+
+    func pruneMessages(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int {
+        0
+    }
+
+    func fetchSnapshots(for timelineId: UUID) async throws -> [TurnSnapshot] {
+        []
+    }
+
+    func saveAgentInstance(_ instance: AgentInstance) async throws {
+        instances[instance.id] = instance
+        if failingAt == .instance {
+            throw InjectedAgentCreationFailure(stage: .instance)
+        }
+    }
+
+    func fetchAgentInstance(id: UUID) async throws -> AgentInstance? {
+        instances[id]
+    }
+
+    func fetchAllAgentInstances() async throws -> [AgentInstance] {
+        Array(instances.values)
+    }
+
+    func deleteAgentInstance(id: UUID) async throws {
+        cleanupEvents.append("deleteAgentInstance")
+        instances.removeValue(forKey: id)
+    }
+
+    func fetchTimelines(attachedToAgent agentInstanceId: UUID) async throws -> [Timeline] {
+        timelines.values.filter { $0.attachedAgentInstanceID == agentInstanceId }
+    }
+
+    func allInstances() -> [AgentInstance] {
+        Array(instances.values)
+    }
+
+    func allTimelines() -> [Timeline] {
+        Array(timelines.values)
+    }
+
+    func allMessages() -> [ConversationMessage] {
+        messages
+    }
+
+    func allWorkspaces() -> [WorkspaceReference] {
+        Array(workspaces.values)
+    }
+
+    func cleanupOperations() -> [String] {
+        cleanupEvents
     }
 }

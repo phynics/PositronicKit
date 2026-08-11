@@ -125,13 +125,13 @@ public enum PKPromptExamples {
             UserPrompt("Recommend the safest next step.")
         }.assemblePrompt().render()
 
-        let initialPlan = journal.observe(first)
-        let updatedPlan = journal.observe(second)
+        let initialPlan = try journal.observe(first)
+        let updatedPlan = try journal.observe(second)
         journal.recordAppend(messages: [
             Message(content: "Use build, then verify with tests.", role: .assistant),
             Message(content: "Tool output: build succeeded.", role: .tool),
         ])
-        let autoCompactedPlan = journal.observe(second)
+        let autoCompactedPlan = try journal.observe(second)
         let compactedPlan = journal.compact()
         return (initialPlan, updatedPlan, autoCompactedPlan, compactedPlan)
     }

@@ -1,4 +1,5 @@
 import Foundation
+import PKUtilities
 
 public extension Prompt {
     func makePromptNode() -> PromptNode? {
@@ -18,5 +19,6 @@ private func promptPathComponent<P: Prompt>(for prompt: P) -> String {
     guard let prompt = prompt as? any Identifiable else {
         return typeName
     }
-    return "\(typeName) \(prompt.id.hashValue)"
+    let identity = StableHash.hash(components: [typeName, String(describing: prompt.id)])
+    return "\(typeName) \(identity)"
 }

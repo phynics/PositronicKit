@@ -141,10 +141,120 @@ public enum ChatEvent: Sendable, Codable {
         case toolCall(delta: ToolCallDelta)
 
         /// Asynchronous tool execution status update (progress)
-        case toolExecution(toolCallId: String, status: ToolExecutionStatus)
+        case toolExecution(toolCallID: String, status: ToolExecutionStatus)
 
         /// Sidecar directive field update (piggy-backed structured output)
         case sidecar(delta: SidecarDelta)
+
+        /// Compatibility constructor using the legacy tool-call identifier spelling.
+        @_disfavoredOverload
+        @available(*, deprecated, message: "Use toolExecution(toolCallID:status:).")
+        public static func toolExecution(
+            toolCallId: String,
+            status: ToolExecutionStatus
+        ) -> DeltaEvent {
+            .toolExecution(toolCallID: toolCallId, status: status)
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case reasoning, generation, toolCall, toolExecution, sidecar
+        }
+
+        private enum TextCodingKeys: String, CodingKey {
+            case text
+        }
+
+        private enum DeltaCodingKeys: String, CodingKey {
+            case delta
+        }
+
+        private enum ToolExecutionCodingKeys: String, CodingKey {
+            case toolCallID = "toolCallId"
+            case status
+        }
+
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+
+            if container.contains(.reasoning) {
+                let values = try container.nestedContainer(
+                    keyedBy: TextCodingKeys.self,
+                    forKey: .reasoning
+                )
+                self = .reasoning(text: try values.decode(String.self, forKey: .text))
+                return
+            }
+
+            if container.contains(.generation) {
+                let values = try container.nestedContainer(
+                    keyedBy: TextCodingKeys.self,
+                    forKey: .generation
+                )
+                self = .generation(text: try values.decode(String.self, forKey: .text))
+                return
+            }
+
+            if container.contains(.toolCall) {
+                let values = try container.nestedContainer(
+                    keyedBy: DeltaCodingKeys.self,
+                    forKey: .toolCall
+                )
+                self = .toolCall(delta: try values.decode(ToolCallDelta.self, forKey: .delta))
+                return
+            }
+
+            if container.contains(.toolExecution) {
+                let values = try container.nestedContainer(
+                    keyedBy: ToolExecutionCodingKeys.self,
+                    forKey: .toolExecution
+                )
+                self = .toolExecution(
+                    toolCallID: try values.decode(String.self, forKey: .toolCallID),
+                    status: try values.decode(ToolExecutionStatus.self, forKey: .status)
+                )
+                return
+            }
+
+            if container.contains(.sidecar) {
+                let values = try container.nestedContainer(
+                    keyedBy: DeltaCodingKeys.self,
+                    forKey: .sidecar
+                )
+                self = .sidecar(delta: try values.decode(SidecarDelta.self, forKey: .delta))
+                return
+            }
+
+            throw DecodingError.dataCorrupted(.init(
+                codingPath: decoder.codingPath,
+                debugDescription: "Unknown ChatEvent delta case"
+            ))
+        }
+
+        public func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+
+            switch self {
+            case let .reasoning(text):
+                var values = container.nestedContainer(keyedBy: TextCodingKeys.self, forKey: .reasoning)
+                try values.encode(text, forKey: .text)
+            case let .generation(text):
+                var values = container.nestedContainer(keyedBy: TextCodingKeys.self, forKey: .generation)
+                try values.encode(text, forKey: .text)
+            case let .toolCall(delta):
+                var values = container.nestedContainer(keyedBy: DeltaCodingKeys.self, forKey: .toolCall)
+                try values.encode(delta, forKey: .delta)
+            case let .toolExecution(toolCallID, status):
+                var values = container.nestedContainer(
+                    keyedBy: ToolExecutionCodingKeys.self,
+                    forKey: .toolExecution
+                )
+                try values.encode(toolCallID, forKey: .toolCallID)
+                try values.encode(status, forKey: .status)
+            case let .sidecar(delta):
+                var values = container.nestedContainer(keyedBy: DeltaCodingKeys.self, forKey: .sidecar)
+                try values.encode(delta, forKey: .delta)
+            }
+        }
     }
 
     public enum MetaEvent: Sendable, Codable {
@@ -162,7 +272,7 @@ public enum ChatEvent: Sendable, Codable {
 
     public enum ErrorEvent: Sendable, Codable {
         /// Tool call failed before execution (e.g. not found, invalid arguments)
-        case toolCallError(toolCallId: String, name: String, error: String)
+        case toolCallError(toolCallID: String, name: String, error: String)
         /// General error occurred.
         ///
         /// `identity` carries an optional structured error identity (`errorDomain` +
@@ -174,6 +284,93 @@ public enum ChatEvent: Sendable, Codable {
         case error(message: String, identity: ErrorIdentity?)
         /// Generation was explicitly cancelled
         case generationCancelled
+
+        /// Compatibility constructor using the legacy tool-call identifier spelling.
+        @_disfavoredOverload
+        @available(*, deprecated, message: "Use toolCallError(toolCallID:name:error:).")
+        public static func toolCallError(
+            toolCallId: String,
+            name: String,
+            error: String
+        ) -> ErrorEvent {
+            .toolCallError(toolCallID: toolCallId, name: name, error: error)
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case toolCallError, error, generationCancelled
+        }
+
+        private enum ToolCallErrorCodingKeys: String, CodingKey {
+            case toolCallID = "toolCallId"
+            case name, error
+        }
+
+        private enum ErrorCodingKeys: String, CodingKey {
+            case message, identity
+        }
+
+        private struct EmptyPayload: Codable {}
+
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+
+            if container.contains(.toolCallError) {
+                let values = try container.nestedContainer(
+                    keyedBy: ToolCallErrorCodingKeys.self,
+                    forKey: .toolCallError
+                )
+                self = .toolCallError(
+                    toolCallID: try values.decode(String.self, forKey: .toolCallID),
+                    name: try values.decode(String.self, forKey: .name),
+                    error: try values.decode(String.self, forKey: .error)
+                )
+                return
+            }
+
+            if container.contains(.error) {
+                let values = try container.nestedContainer(
+                    keyedBy: ErrorCodingKeys.self,
+                    forKey: .error
+                )
+                self = .error(
+                    message: try values.decode(String.self, forKey: .message),
+                    identity: try values.decodeIfPresent(ChatEvent.ErrorIdentity.self, forKey: .identity)
+                )
+                return
+            }
+
+            if container.contains(.generationCancelled) {
+                _ = try container.decode(EmptyPayload.self, forKey: .generationCancelled)
+                self = .generationCancelled
+                return
+            }
+
+            throw DecodingError.dataCorrupted(.init(
+                codingPath: decoder.codingPath,
+                debugDescription: "Unknown ChatEvent error case"
+            ))
+        }
+
+        public func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+
+            switch self {
+            case let .toolCallError(toolCallID, name, error):
+                var values = container.nestedContainer(
+                    keyedBy: ToolCallErrorCodingKeys.self,
+                    forKey: .toolCallError
+                )
+                try values.encode(toolCallID, forKey: .toolCallID)
+                try values.encode(name, forKey: .name)
+                try values.encode(error, forKey: .error)
+            case let .error(message, identity):
+                var values = container.nestedContainer(keyedBy: ErrorCodingKeys.self, forKey: .error)
+                try values.encode(message, forKey: .message)
+                try values.encodeIfPresent(identity, forKey: .identity)
+            case .generationCancelled:
+                try container.encode(EmptyPayload(), forKey: .generationCancelled)
+            }
+        }
     }
 
     public enum CompletionEvent: Sendable, Codable {
@@ -182,7 +379,7 @@ public enum ChatEvent: Sendable, Codable {
         /// The provider finished successfully, but the reconstructed assistant text was empty.
         case completedEmpty(finishReason: String?)
         /// Tool execution completed with final status
-        case toolExecution(toolCallId: String, status: ToolExecutionStatus)
+        case toolExecution(toolCallID: String, status: ToolExecutionStatus)
         /// The ReAct loop exhausted its `maxTurns` budget while tool calls were still pending,
         /// so the agent never produced a tool-free final response. Terminal: emitted exactly
         /// once before the stream closes, in place of `.generationCompleted`, so consumers can
@@ -205,6 +402,152 @@ public enum ChatEvent: Sendable, Codable {
         ///   backward compatibility of `Codable` round-tripping (PKRR-011).
         @available(*, deprecated, message: "Never emitted in production. Switch on .generationCompleted / .maxTurnsReached / .deferredForExternalTool for terminal events.")
         case streamCompleted
+
+        /// Compatibility constructor using the legacy tool-call identifier spelling.
+        @_disfavoredOverload
+        @available(*, deprecated, message: "Use toolExecution(toolCallID:status:).")
+        public static func toolExecution(
+            toolCallId: String,
+            status: ToolExecutionStatus
+        ) -> CompletionEvent {
+            .toolExecution(toolCallID: toolCallId, status: status)
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case generationCompleted, completedEmpty, toolExecution
+            case maxTurnsReached, deferredForExternalTool, sidecarsCompleted, streamCompleted
+        }
+
+        private enum GenerationCompletedCodingKeys: String, CodingKey {
+            case message, metadata
+        }
+
+        private enum CompletedEmptyCodingKeys: String, CodingKey {
+            case finishReason
+        }
+
+        private enum ToolExecutionCodingKeys: String, CodingKey {
+            case toolCallID = "toolCallId"
+            case status
+        }
+
+        private enum UnlabeledCodingKeys: String, CodingKey {
+            case value = "_0"
+        }
+
+        private struct EmptyPayload: Codable {}
+
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+
+            if container.contains(.generationCompleted) {
+                let values = try container.nestedContainer(
+                    keyedBy: GenerationCompletedCodingKeys.self,
+                    forKey: .generationCompleted
+                )
+                self = .generationCompleted(
+                    message: try values.decode(Message.self, forKey: .message),
+                    metadata: try values.decode(APIResponseMetadata.self, forKey: .metadata)
+                )
+                return
+            }
+
+            if container.contains(.completedEmpty) {
+                let values = try container.nestedContainer(
+                    keyedBy: CompletedEmptyCodingKeys.self,
+                    forKey: .completedEmpty
+                )
+                self = .completedEmpty(
+                    finishReason: try values.decodeIfPresent(String.self, forKey: .finishReason)
+                )
+                return
+            }
+
+            if container.contains(.toolExecution) {
+                let values = try container.nestedContainer(
+                    keyedBy: ToolExecutionCodingKeys.self,
+                    forKey: .toolExecution
+                )
+                self = .toolExecution(
+                    toolCallID: try values.decode(String.self, forKey: .toolCallID),
+                    status: try values.decode(ToolExecutionStatus.self, forKey: .status)
+                )
+                return
+            }
+
+            if container.contains(.maxTurnsReached) {
+                _ = try container.decode(EmptyPayload.self, forKey: .maxTurnsReached)
+                self = .maxTurnsReached
+                return
+            }
+
+            if container.contains(.deferredForExternalTool) {
+                _ = try container.decode(EmptyPayload.self, forKey: .deferredForExternalTool)
+                self = .deferredForExternalTool
+                return
+            }
+
+            if container.contains(.sidecarsCompleted) {
+                let values = try container.nestedContainer(
+                    keyedBy: UnlabeledCodingKeys.self,
+                    forKey: .sidecarsCompleted
+                )
+                self = .sidecarsCompleted(
+                    try values.decode(SidecarCompletion.self, forKey: .value)
+                )
+                return
+            }
+
+            if container.contains(.streamCompleted) {
+                _ = try container.decode(EmptyPayload.self, forKey: .streamCompleted)
+                self = .streamCompleted
+                return
+            }
+
+            throw DecodingError.dataCorrupted(.init(
+                codingPath: decoder.codingPath,
+                debugDescription: "Unknown ChatEvent completion case"
+            ))
+        }
+
+        public func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+
+            switch self {
+            case let .generationCompleted(message, metadata):
+                var values = container.nestedContainer(
+                    keyedBy: GenerationCompletedCodingKeys.self,
+                    forKey: .generationCompleted
+                )
+                try values.encode(message, forKey: .message)
+                try values.encode(metadata, forKey: .metadata)
+            case let .completedEmpty(finishReason):
+                var values = container.nestedContainer(
+                    keyedBy: CompletedEmptyCodingKeys.self,
+                    forKey: .completedEmpty
+                )
+                try values.encodeIfPresent(finishReason, forKey: .finishReason)
+            case let .toolExecution(toolCallID, status):
+                var values = container.nestedContainer(
+                    keyedBy: ToolExecutionCodingKeys.self,
+                    forKey: .toolExecution
+                )
+                try values.encode(toolCallID, forKey: .toolCallID)
+                try values.encode(status, forKey: .status)
+            case .maxTurnsReached:
+                try container.encode(EmptyPayload(), forKey: .maxTurnsReached)
+            case .deferredForExternalTool:
+                try container.encode(EmptyPayload(), forKey: .deferredForExternalTool)
+            case let .sidecarsCompleted(completion):
+                var values = container.nestedContainer(
+                    keyedBy: UnlabeledCodingKeys.self,
+                    forKey: .sidecarsCompleted
+                )
+                try values.encode(completion, forKey: .value)
+            case .streamCompleted:
+                try container.encode(EmptyPayload(), forKey: .streamCompleted)
+            }
+        }
     }
 
     case delta(DeltaEvent)
@@ -229,8 +572,15 @@ public extension ChatEvent {
         .delta(.toolCall(delta: delta))
     }
 
+    static func toolProgress(toolCallID: String, status: ToolExecutionStatus) -> ChatEvent {
+        .delta(.toolExecution(toolCallID: toolCallID, status: status))
+    }
+
+    /// Compatibility factory using the legacy tool-call identifier spelling.
+    @_disfavoredOverload
+    @available(*, deprecated, message: "Use toolProgress(toolCallID:status:).")
     static func toolProgress(toolCallId: String, status: ToolExecutionStatus) -> ChatEvent {
-        .delta(.toolExecution(toolCallId: toolCallId, status: status))
+        toolProgress(toolCallID: toolCallId, status: status)
     }
 
     static func sidecar(_ delta: SidecarDelta) -> ChatEvent {
@@ -243,8 +593,15 @@ public extension ChatEvent {
     }
 
     /// Error shortcuts
+    static func toolCallError(toolCallID: String, name: String, error: String) -> ChatEvent {
+        .error(.toolCallError(toolCallID: toolCallID, name: name, error: error))
+    }
+
+    /// Compatibility factory using the legacy tool-call identifier spelling.
+    @_disfavoredOverload
+    @available(*, deprecated, message: "Use toolCallError(toolCallID:name:error:).")
     static func toolCallError(toolCallId: String, name: String, error: String) -> ChatEvent {
-        .error(.toolCallError(toolCallId: toolCallId, name: name, error: error))
+        toolCallError(toolCallID: toolCallId, name: name, error: error)
     }
 
     static func error(_ err: Error) -> ChatEvent {
@@ -271,8 +628,15 @@ public extension ChatEvent {
         .completion(.completedEmpty(finishReason: finishReason))
     }
 
+    static func toolCompleted(toolCallID: String, status: ToolExecutionStatus) -> ChatEvent {
+        .completion(.toolExecution(toolCallID: toolCallID, status: status))
+    }
+
+    /// Compatibility factory using the legacy tool-call identifier spelling.
+    @_disfavoredOverload
+    @available(*, deprecated, message: "Use toolCompleted(toolCallID:status:).")
     static func toolCompleted(toolCallId: String, status: ToolExecutionStatus) -> ChatEvent {
-        .completion(.toolExecution(toolCallId: toolCallId, status: status))
+        toolCompleted(toolCallID: toolCallId, status: status)
     }
 
     static func streamCompleted() -> ChatEvent {

@@ -165,6 +165,43 @@ struct TimelineEvictionDeletionTests {
         #expect(try await persistence.fetchWorkspace(id: workspaceId, includeTools: false) == nil)
     }
 
+    @Test("permanent deletion preserves caller-owned attached workspace")
+    func permanentDeletePreservesCallerOwnedAttachedWorkspace() async throws {
+        let persistence = MockPersistenceService()
+        let workspaceRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: workspaceRoot) }
+        try FileManager.default.createDirectory(at: workspaceRoot, withIntermediateDirectories: true)
+
+        let callerWorkspace = WorkspaceReference(
+            uri: WorkspaceURI(host: "user-mac", path: "/projects/app"),
+            location: .attached,
+            rootPath: workspaceRoot.path
+        )
+        try await persistence.saveWorkspace(callerWorkspace)
+
+        let timelineManager = TimelineManager(
+            stores: .init(
+                timelineStore: persistence,
+                messageStore: persistence,
+                workspaceStore: persistence,
+                toolPersistence: persistence
+            ),
+            workspaceProfile: .noWorkspace
+        )
+        let timeline = try await timelineManager.createTimeline()
+        try await timelineManager.attachWorkspace(callerWorkspace.id, to: timeline.id)
+
+        let result = await timelineManager.deleteTimelinePermanently(id: timeline.id)
+
+        #expect(result.isComplete)
+        #expect(try await persistence.fetchTimeline(id: timeline.id) == nil)
+        #expect(try await persistence.fetchWorkspace(
+            id: callerWorkspace.id, includeTools: false
+        )?.id == callerWorkspace.id)
+        #expect(FileManager.default.fileExists(atPath: workspaceRoot.path))
+    }
+
     @Test("deleteTimelinePermanently cancels active work before deleting records (PKRR-023)")
     func permanentDeleteCancelsActiveWork() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory

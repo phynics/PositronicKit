@@ -97,6 +97,7 @@ public actor AnthropicClient: LLMClientProtocol {
             let gate = DuplicateContentRetryGate()
 
             do {
+                try validateLLMMessageHistory(messages)
                 try await RetryPolicy.retry(
                     maxRetries: maxRetries,
                     shouldRetry: { gate.shouldRetry(error: $0) },
@@ -216,13 +217,14 @@ public actor AnthropicClient: LLMClientProtocol {
             )
         }
 
-        let (system, converted) = AnthropicMessageConversion.convert(messages: messages, logger: logger)
+        let (system, converted) = try AnthropicMessageConversion.convert(messages: messages, logger: logger)
+        let effectiveTools = toolChoice == .some(LLMToolChoice.none) ? nil : tools
         let payload = AnthropicChatRequest(
             model: modelName,
             maxTokens: generationParameters?.maxTokens ?? Self.defaultMaxTokens,
             system: system,
             messages: converted,
-            tools: tools?.map(AnthropicTool.init),
+            tools: effectiveTools?.map(AnthropicTool.init),
             toolChoice: mapToolChoice(toolChoice ?? (tools != nil ? .auto : nil)),
             temperature: generationParameters?.temperature,
             topP: generationParameters?.topP,
@@ -243,9 +245,9 @@ public actor AnthropicClient: LLMClientProtocol {
 
     private nonisolated func mapToolChoice(_ choice: LLMToolChoice?) -> AnthropicToolChoice? {
         switch choice {
-        case .none: return nil
-        case .auto: return .auto
-        case let .function(name): return .tool(name)
+        case nil, .some(.none): return nil
+        case .some(.auto): return .auto
+        case let .some(.function(name)): return .tool(name)
         }
     }
 
@@ -256,17 +258,14 @@ public actor AnthropicClient: LLMClientProtocol {
         responseFormat: LLMResponseFormat? = nil,
         generationParameters: GenerationParameters? = nil
     ) async throws -> String {
-        let maxRetries = self.maxRetries
-        return try await RetryPolicy.retry(maxRetries: maxRetries) {
-            let stream = await self.chatStream(
-                messages: [LLMMessage(role: .user, content: content)],
-                tools: nil,
-                toolChoice: nil,
-                responseFormat: responseFormat,
-                generationParameters: generationParameters
-            )
-            return try await accumulateStreamContent(from: stream)
-        }
+        let stream = await self.chatStream(
+            messages: [LLMMessage(role: .user, content: content)],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters
+        )
+        return try await accumulateStreamContent(from: stream)
     }
 
     public func fetchAvailableModels() async throws -> [String]? {

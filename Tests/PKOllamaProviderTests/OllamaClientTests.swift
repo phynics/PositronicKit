@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+    import FoundationNetworking
+#endif
 import struct JSONSchema.Schema
 import Logging
 @testable import PKOllamaProvider
@@ -46,17 +49,72 @@ private struct CapturingLogHandler: LogHandler {
     }
 }
 
+private actor OllamaTestTransport: ProviderHTTPTransport {
+    private var requestCount = 0
+
+    func data(for _: URLRequest) async throws -> (Data, URLResponse) {
+        requestCount += 1
+        throw UnexpectedTransportCall()
+    }
+
+    func lines(for _: URLRequest) async throws -> (AsyncThrowingStream<String, Error>, URLResponse) {
+        requestCount += 1
+        throw UnexpectedTransportCall()
+    }
+
+    func requestsMade() -> Int {
+        requestCount
+    }
+}
+
+private struct UnexpectedTransportCall: Error, Sendable {}
+
 struct OllamaClientTests {
     @Test func ollamaEndpointNormalization() {
         let e1 = OllamaEndpoint(rawValue: "http://localhost:11434/")
-        #expect(e1.url.absoluteString == "http://localhost:11434")
-        #expect(e1.chatURL.absoluteString == "http://localhost:11434/api/chat")
+        #expect(e1.url?.absoluteString == "http://localhost:11434")
+        #expect(e1.chatURL?.absoluteString == "http://localhost:11434/api/chat")
 
         let e2 = OllamaEndpoint(rawValue: "http://localhost:11434/api")
-        #expect(e2.url.absoluteString == "http://localhost:11434")
+        #expect(e2.url?.absoluteString == "http://localhost:11434")
 
         let e3 = OllamaEndpoint(rawValue: "  http://localhost:11434/api/  ")
-        #expect(e3.url.absoluteString == "http://localhost:11434")
+        #expect(e3.url?.absoluteString == "http://localhost:11434")
+    }
+
+    @Test func blankOllamaEndpointUsesLocalhostDefault() {
+        let endpoint = OllamaEndpoint(rawValue: "  \n  ")
+
+        #expect(endpoint.url?.absoluteString == "http://localhost:11434")
+    }
+
+    @Test func malformedOllamaEndpointIsNotSubstituted() {
+        let malformed = OllamaEndpoint(rawValue: "http:///api")
+
+        #expect(malformed.url == nil)
+        #expect(malformed.chatURL == nil)
+        #expect(malformed.tagsURL == nil)
+    }
+
+    @Test func malformedOllamaEndpointFailsBeforeTransport() async {
+        let transport = OllamaTestTransport()
+        let client = OllamaClient(
+            endpoint: "http:///api",
+            modelName: "llama3",
+            maxRetries: 0,
+            transport: transport
+        )
+
+        do {
+            _ = try await client.fetchAvailableModels()
+            Issue.record("Expected malformed endpoint validation to fail")
+        } catch let error as LLMServiceError {
+            #expect(error == .invalidConfiguration)
+        } catch {
+            Issue.record("Expected LLMServiceError.invalidConfiguration, got \(error)")
+        }
+
+        #expect(await transport.requestsMade() == 0)
     }
 
     @Test func ollamaMessageInitialization() {

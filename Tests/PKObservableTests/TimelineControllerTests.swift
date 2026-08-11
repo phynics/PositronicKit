@@ -23,6 +23,24 @@ struct TimelineControllerTests {
         #expect(controller.messages.map(\.content) == ["Hi", "Hello, world!"])
     }
 
+    @Test("a completed send clears its active task")
+    func completedSendClearsActiveTask() async throws {
+        let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString))
+        runtime.llm.mockClient.nextResponses = ["reply"]
+        let kit = runtime.positronicKit
+        let timeline = try await kit.timelineManager.createTimeline(title: "Controller")
+        let driver = kit.openTimeline(timeline.id)
+        var controller: TimelineController? = TimelineController(driver)
+        weak var releasedController = controller
+
+        try await controller!.send("Hi")
+        controller = nil
+        await Task.yield()
+
+        #expect(releasedController == nil)
+    }
+
     @Test("a superseding send cancels the previous stream")
     func supersedingSendCancelsPreviousStream() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
@@ -54,5 +72,41 @@ struct TimelineControllerTests {
 
         #expect(controller.isStreaming == false)
         #expect(controller.messages.map(\.content).contains("second reply"))
+    }
+
+    @Test("a superseded send cannot clear replacement streaming state")
+    func supersededSendCannotClearReplacementStreamingState() async throws {
+        let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString))
+        runtime.llm.mockClient.neverFinishingStreamCallIndices = [1, 2]
+        runtime.llm.mockClient.nextResponses = ["replacement reply"]
+        let kit = runtime.positronicKit
+        let timeline = try await kit.timelineManager.createTimeline(title: "Controller")
+        let driver = kit.openTimeline(timeline.id)
+        let controller = TimelineController(driver)
+
+        let first = Task { try await controller.send("first") }
+        while controller.isStreaming == false {
+            await Task.yield()
+        }
+        while runtime.llm.mockClient.streamCallCount < 1 {
+            await Task.yield()
+        }
+
+        let second = Task { try await controller.send("second") }
+        while runtime.llm.mockClient.streamCallCount < 2 {
+            await Task.yield()
+        }
+        for _ in 0..<10 {
+            await Task.yield()
+        }
+
+        #expect(controller.isStreaming)
+
+        try await controller.send("replacement")
+        second.cancel()
+        first.cancel()
+        _ = await second.result
+        _ = await first.result
     }
 }

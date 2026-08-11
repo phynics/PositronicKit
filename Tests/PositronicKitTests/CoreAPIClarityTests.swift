@@ -26,6 +26,8 @@ struct CoreAPIClarityTests {
         let timeline: Timeline
         private var instanceRequests = 0
         private var timelineRequests = 0
+        private var attachRequests = 0
+        private var detachRequests = 0
 
         init(agent: AgentInstance, timeline: Timeline) {
             self.agent = agent
@@ -38,8 +40,8 @@ struct CoreAPIClarityTests {
             description: String
         ) async throws -> AgentInstance { agent }
 
-        func attach(agentId: UUID, to timelineId: UUID) async throws {}
-        func detach(agentId: UUID, from timelineId: UUID) async throws {}
+        func attach(agentId: UUID, to timelineId: UUID) async throws { attachRequests += 1 }
+        func detach(agentId: UUID, from timelineId: UUID) async throws { detachRequests += 1 }
         func getInstance(id: UUID) async throws -> AgentInstance? {
             instanceRequests += 1
             return agent.id == id ? agent : nil
@@ -53,8 +55,48 @@ struct CoreAPIClarityTests {
         func searchInstances(query: String) async throws -> [AgentInstance] { [agent] }
         func deleteInstance(id: UUID, force: Bool) async throws {}
 
-        func requestCounts() -> (instances: Int, timelines: Int) {
-            (instanceRequests, timelineRequests)
+        func requestCounts() -> (instances: Int, timelines: Int, attaches: Int, detaches: Int) {
+            (instanceRequests, timelineRequests, attachRequests, detachRequests)
+        }
+    }
+
+    private actor LegacyOnlyWorkspaceCatalog: WorkspaceCatalog {
+        private var workspaceCreations = 0
+        private var agentWorkspaceCreations = 0
+
+        func createWorkspace(
+            uri: WorkspaceURI,
+            location: WorkspaceReference.WorkspaceLocation,
+            originId: UUID?,
+            rootPath: String?
+        ) async throws -> WorkspaceReference {
+            workspaceCreations += 1
+            return WorkspaceReference(
+                uri: uri,
+                location: location,
+                originID: originId,
+                rootPath: rootPath
+            )
+        }
+
+        func createAgentWorkspace(
+            instanceId: UUID,
+            template _: AgentTemplate?
+        ) async throws -> WorkspaceReference {
+            agentWorkspaceCreations += 1
+            return WorkspaceReference(
+                uri: .agentWorkspace(instanceId),
+                location: .runtime
+            )
+        }
+
+        func getWorkspace(id _: UUID, includeTools _: Bool) async throws -> WorkspaceReference? { nil }
+        func listWorkspaces() async throws -> [WorkspaceReference] { [] }
+        func deleteWorkspace(id _: UUID, deleteDirectory _: Bool) async throws {}
+        func updateWorkspace(_: WorkspaceReference) async throws {}
+
+        func creationCounts() -> (workspaces: Int, agentWorkspaces: Int) {
+            (workspaceCreations, agentWorkspaceCreations)
         }
     }
 
@@ -80,10 +122,29 @@ struct CoreAPIClarityTests {
 
         #expect(try await manager.instance(id: agent.id) == agent)
         let timelines = try await manager.timelines(attachedTo: agent.id)
+        try await manager.attach(agentID: agent.id, to: timeline.id)
+        try await manager.detach(agentID: agent.id, from: timeline.id)
         #expect(timelines.map(\.id) == [timeline.id])
         let counts = await legacyManager.requestCounts()
         #expect(counts.instances == 1)
         #expect(counts.timelines == 1)
+        #expect(counts.attaches == 1)
+        #expect(counts.detaches == 1)
+
+        let legacyCatalog = LegacyOnlyWorkspaceCatalog()
+        let catalog: any WorkspaceCatalog = legacyCatalog
+        let originID = UUID()
+        let instanceID = UUID()
+        _ = try await catalog.createWorkspace(
+            uri: WorkspaceURI(host: "external", path: "/project"),
+            location: .attached,
+            originID: originID,
+            rootPath: "/project"
+        )
+        _ = try await catalog.createAgentWorkspace(instanceID: instanceID, template: nil)
+        let creationCounts = await legacyCatalog.creationCounts()
+        #expect(creationCounts.workspaces == 1)
+        #expect(creationCounts.agentWorkspaces == 1)
     }
 
     @Test("Default-heavy Timeline initializer resolves to the canonical overload")

@@ -39,7 +39,7 @@ import ErrorKit
             arguments: "{}"
         )))
         let toolErrorEvent = ChatEvent.error(.toolCallError(
-            toolCallId: "call_1",
+            toolCallID: "call_1",
             name: "lookup_weather",
             error: "bad args"
         ))
@@ -66,8 +66,8 @@ import ErrorKit
         switch toolErrorEvent {
         case .error(let event):
             switch event {
-            case .toolCallError(let toolCallId, let name, let error):
-                #expect(toolCallId == "call_1")
+            case .toolCallError(let toolCallID, let name, let error):
+                #expect(toolCallID == "call_1")
                 #expect(name == "lookup_weather")
                 #expect(error == "bad args")
             default:
@@ -100,6 +100,65 @@ import ErrorKit
             // success
         } else {
             Issue.record("Expected completion.deferredForExternalTool event, got \(deferredEvent)")
+        }
+    }
+
+    @Test("Tool-call identifier APIs preserve legacy construction and wire keys")
+    func toolCallIdentifierCompatibility() throws {
+        let status = ToolExecutionStatus.executionError("bad args")
+        let canonicalEvents: [ChatEvent] = [
+            .toolProgress(toolCallID: "call_delta", status: status),
+            .toolCallError(toolCallID: "call_error", name: "lookup", error: "bad args"),
+            .toolCompleted(toolCallID: "call_completion", status: status),
+        ]
+
+        for event in canonicalEvents {
+            let encoded = try JSONEncoder().encode(event)
+            let json = try #require(String(data: encoded, encoding: .utf8))
+            #expect(json.contains("\"toolCallId\""))
+            #expect(!json.contains("\"toolCallID\""))
+
+            let decoded = try JSONDecoder().decode(ChatEvent.self, from: encoded)
+            switch decoded {
+            case .delta(.toolExecution(let toolCallID, _)):
+                #expect(toolCallID == "call_delta")
+            case .error(.toolCallError(let toolCallID, _, _)):
+                #expect(toolCallID == "call_error")
+            case .completion(.toolExecution(let toolCallID, _)):
+                #expect(toolCallID == "call_completion")
+            default:
+                Issue.record("Unexpected decoded event: \(decoded)")
+            }
+        }
+
+        let legacyDelta = ChatEvent.delta(.toolExecution(
+            toolCallId: "legacy_delta",
+            status: status
+        ))
+        let legacyError = ChatEvent.error(.toolCallError(
+            toolCallId: "legacy_error",
+            name: "lookup",
+            error: "bad args"
+        ))
+        let legacyCompletion = ChatEvent.completion(.toolExecution(
+            toolCallId: "legacy_completion",
+            status: status
+        ))
+
+        if case .delta(.toolExecution(let toolCallID, _)) = legacyDelta {
+            #expect(toolCallID == "legacy_delta")
+        } else {
+            Issue.record("Legacy delta construction did not forward")
+        }
+        if case .error(.toolCallError(let toolCallID, _, _)) = legacyError {
+            #expect(toolCallID == "legacy_error")
+        } else {
+            Issue.record("Legacy error construction did not forward")
+        }
+        if case .completion(.toolExecution(let toolCallID, _)) = legacyCompletion {
+            #expect(toolCallID == "legacy_completion")
+        } else {
+            Issue.record("Legacy completion construction did not forward")
         }
     }
 

@@ -187,8 +187,8 @@ let second = await (try! AnyPrompt.build {
     UserPrompt("Recommend the safest next step.")
 }.assemblePrompt()).render()
 
-let initialPlan = journal.observe(first)
-let updatedPlan = journal.observe(second)
+let initialPlan = try! journal.observe(first)
+let updatedPlan = try! journal.observe(second)
 let compactedPlan = journal.compact()
 
 print(initialPlan.baseSections.map(\.journalPath))
@@ -212,4 +212,3 @@ Cache policies drive the journaling behavior:
 - Plain `for` loops use positional identity (`item_0`, `item_1`, ...).
 - Use `ForEach(...)`, `PromptForEach(...)`, or `PromptBuilder.forEach(...)` when loop identity must come from domain data.
 - Trait modifiers like `.priority(...)`, `.compression(...)`, and `.cachePolicy(...)` inherit through the subtree and are resolved once during assembly.
-

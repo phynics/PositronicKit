@@ -29,6 +29,9 @@ actor TurnOutputs {
     private(set) var debugToolCalls: [ToolCallRecord] = []
     private(set) var debugToolResults: [ToolResultRecord] = []
     private(set) var sidecarResults: [SidecarResult] = []
+    /// Set only after the complete assistant message has been accepted by the message store.
+    /// This lets failure recovery distinguish a pre-persistence failure from a later stage error.
+    private(set) var assistantResponseDurable = false
 
     init() {}
 
@@ -78,6 +81,10 @@ actor TurnOutputs {
 
     func setSidecarResults(_ results: [SidecarResult]) {
         sidecarResults = results
+    }
+
+    func markAssistantResponseDurable() {
+        assistantResponseDurable = true
     }
 
     /// Finalizes the turn: computes timing and throughput metrics.

@@ -9,6 +9,7 @@ public enum AgentInstanceError: PKError, Sendable {
     case instanceNotFound(UUID)
     case timelineNotFound(UUID)
     case differentAgentAlreadyAttached(UUID)
+    case timelineAgentMismatch(timelineID: UUID, agentInstanceID: UUID, attachedAgentInstanceID: UUID?)
     case hasAttachedTimelines(count: Int)
     case nameTooShort(String)
     case descriptionEmpty
@@ -22,6 +23,7 @@ public enum AgentInstanceError: PKError, Sendable {
         case .instanceNotFound: return 5001
         case .timelineNotFound: return 5002
         case .differentAgentAlreadyAttached: return 5003
+        case .timelineAgentMismatch: return 5009
         case .hasAttachedTimelines: return 5004
         case .nameTooShort: return 5005
         case .descriptionEmpty: return 5006
@@ -38,6 +40,9 @@ public enum AgentInstanceError: PKError, Sendable {
             return "Timeline not found: \(id)"
         case .differentAgentAlreadyAttached(let id):
             return "A different agent (\(id)) is already attached. Detach it first."
+        case let .timelineAgentMismatch(timelineID, agentInstanceID, attachedAgentInstanceID):
+            let attachment = attachedAgentInstanceID.map { "agent \($0) is attached" } ?? "no agent is attached"
+            return "Agent instance \(agentInstanceID) is not attached to timeline \(timelineID); \(attachment)."
         case .hasAttachedTimelines(let count):
             return "Cannot delete: \(count) timeline(s) still attached. Use force=true to override."
         case .nameTooShort(let name):
@@ -60,6 +65,8 @@ public enum AgentInstanceError: PKError, Sendable {
         case .differentAgentAlreadyAttached(let id):
             return "Timeline already has agent \(id.uuidString.prefix(8)) attached. "
                 + "Please detach it before attaching a new one."
+        case .timelineAgentMismatch:
+            return "The requested agent is not attached to this timeline. Attach it before running the turn."
         case .hasAttachedTimelines(let count):
             return "This agent is currently active on \(count) timeline(s) and cannot be deleted."
         case .nameTooShort:

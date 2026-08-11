@@ -5,10 +5,8 @@ import OpenAI
 import PKShared
 import PKUtilities
 
-/// Logger used when an `LLMMessage` with `.tool` role is converted for the OpenAI wire format
-/// without a `toolCallID` (PKR-12). `LLMMessage.toolCallID` is `String?`, but a `.tool`-role
-/// message without one is a contract violation: OpenAI requires `tool_call_id` on tool messages,
-/// and silently substituting `""` only surfaces later as an opaque provider 400.
+/// Retained for source compatibility with the previous conversion logging hook. Invalid tool
+/// result history is now rejected with `LLMMessageValidationError` instead of logged and sent.
 public let openAIConversionLogger = Logger.module(named: "openai-message-conversion")
 
 public extension LLMToolDefinition {
@@ -23,7 +21,7 @@ public extension LLMToolDefinition {
 }
 
 public extension LLMMessage {
-    func toOpenAIMessageParam(logger: Logger = openAIConversionLogger) -> ChatQuery.ChatCompletionMessageParam {
+    func toOpenAIMessageParam(logger _: Logger = openAIConversionLogger) throws -> ChatQuery.ChatCompletionMessageParam {
         switch role {
         case .system:
             return .system(.init(content: .textContent(content), name: name))
@@ -44,12 +42,10 @@ public extension LLMMessage {
             }
             return .assistant(.init(content: .textContent(content), name: name, toolCalls: toolCalls))
         case .tool:
-            if toolCallID == nil {
-                logger.warning(
-                    "LLMMessage with .tool role is missing toolCallID (contract violation); sending empty tool_call_id to OpenAI, which will likely surface as a 400."
-                )
+            guard let toolCallID, !toolCallID.isEmpty else {
+                throw LLMMessageValidationError.missingToolCallID
             }
-            return .tool(.init(content: .textContent(content), toolCallId: toolCallID ?? ""))
+            return .tool(.init(content: .textContent(content), toolCallId: toolCallID))
         case .developer:
             return .developer(.init(content: .textContent(content), name: name))
         }
@@ -59,6 +55,8 @@ public extension LLMMessage {
 public extension LLMToolChoice {
     func toOpenAIToolChoice() -> ChatQuery.ChatCompletionFunctionCallOptionParam {
         switch self {
+        case .none:
+            return .none
         case .auto:
             return .auto
         case let .function(name):

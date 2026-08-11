@@ -168,6 +168,11 @@ let package = Package(
             ],
             path: "Sources/PositronicKitExamples"
         ),
+        .executableTarget(
+            name: "PKPromptJournalProcessFixture",
+            dependencies: ["PKPrompt"],
+            path: "Tests/PKPromptJournalProcessFixture"
+        ),
         .target(
             name: "PKTestSupport",
             dependencies: [

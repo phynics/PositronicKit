@@ -5,6 +5,88 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
+private actor AttachmentTimelinePersistence: TimelinePersistenceProtocol {
+    private let backing = MockTimelinePersistence()
+    private var saveFails = false
+
+    func setSaveFails(_ value: Bool) {
+        saveFails = value
+    }
+
+    func saveTimeline(_ timeline: Timeline) async throws {
+        if saveFails { throw FailingStoreError.saveFailed }
+        try await backing.saveTimeline(timeline)
+    }
+
+    func fetchTimeline(id: UUID) async throws -> Timeline? {
+        try await backing.fetchTimeline(id: id)
+    }
+
+    func fetchAllTimelines(includeArchived: Bool) async throws -> [Timeline] {
+        try await backing.fetchAllTimelines(includeArchived: includeArchived)
+    }
+
+    func deleteTimeline(id: UUID) async throws {
+        try await backing.deleteTimeline(id: id)
+    }
+
+    func pruneTimelines(
+        olderThan timeInterval: TimeInterval,
+        excluding excludedTimelineIds: [UUID],
+        dryRun: Bool
+    ) async throws -> Int {
+        try await backing.pruneTimelines(
+            olderThan: timeInterval,
+            excluding: excludedTimelineIds,
+            dryRun: dryRun
+        )
+    }
+}
+
+private actor BlockingWorkspaceStore: WorkspaceStore {
+    private var workspaces: [UUID: WorkspaceReference] = [:]
+    private var validationStarted = false
+    private var validationStartedContinuation: CheckedContinuation<Void, Never>?
+    private var validationContinuation: CheckedContinuation<WorkspaceReference?, Never>?
+    private var validationWorkspaceID: UUID?
+
+    func saveWorkspace(_ workspace: WorkspaceReference) async throws {
+        workspaces[workspace.id] = workspace
+    }
+
+    func fetchWorkspace(id: UUID, includeTools _: Bool) async throws -> WorkspaceReference? {
+        validationStarted = true
+        validationStartedContinuation?.resume()
+        validationStartedContinuation = nil
+        validationWorkspaceID = id
+        return await withCheckedContinuation { continuation in
+            validationContinuation = continuation
+        }
+    }
+
+    func fetchAllWorkspaces() async throws -> [WorkspaceReference] {
+        Array(workspaces.values)
+    }
+
+    func deleteWorkspace(id: UUID) async throws {
+        workspaces.removeValue(forKey: id)
+    }
+
+    func waitUntilValidationStarts() async {
+        guard !validationStarted else { return }
+        await withCheckedContinuation { continuation in
+            validationStartedContinuation = continuation
+        }
+    }
+
+    func releaseValidation() {
+        let workspace = validationWorkspaceID.flatMap { workspaces[$0] }
+        validationWorkspaceID = nil
+        validationContinuation?.resume(returning: workspace)
+        validationContinuation = nil
+    }
+}
+
 /// PKRR-007: Timeline creation and workspace attachment must not leave partial state.
 ///
 /// `createTimeline` persists the timeline record first, then creates ancillary state
@@ -18,6 +100,96 @@ import Testing
 /// rows, cached managers, or persisted attachment IDs remain.
 @Suite("Timeline lifecycle fault injection (PKRR-007)")
 struct TimelineLifecycleFaultInjectionTests {
+
+    @Test("attachWorkspaceDoesNotResurrectPermanentlyDeletedTimeline")
+    func attachWorkspaceDoesNotResurrectPermanentlyDeletedTimeline() async throws {
+        let timelineStore = MockPersistenceService()
+        let workspaceStore = BlockingWorkspaceStore()
+        let workspace = WorkspaceReference(
+            uri: WorkspaceURI(host: "user-mac", path: "/projects/app"),
+            location: .attached
+        )
+        try await workspaceStore.saveWorkspace(workspace)
+
+        let manager = TimelineManager(
+            stores: .init(
+                timelineStore: timelineStore,
+                messageStore: timelineStore,
+                workspaceStore: workspaceStore,
+                toolPersistence: timelineStore
+            ),
+            workspaceProfile: .noWorkspace
+        )
+        let timeline = try await manager.createTimeline()
+
+        let attachTask = Task {
+            try? await manager.attachWorkspace(workspace.id, to: timeline.id)
+        }
+        await workspaceStore.waitUntilValidationStarts()
+
+        let deleteTask = Task {
+            await manager.deleteTimelinePermanently(id: timeline.id)
+        }
+        let deletion = await deleteTask.value
+        #expect(deletion.isComplete)
+        #expect(try await timelineStore.fetchTimeline(id: timeline.id) == nil)
+
+        await workspaceStore.releaseValidation()
+        _ = await attachTask.value
+
+        #expect(try await timelineStore.fetchTimeline(id: timeline.id) == nil)
+    }
+
+    @Test("attachment store failure does not mutate the cached timeline")
+    func attachmentStoreFailureDoesNotMutateCachedTimeline() async throws {
+        let timelineStore = AttachmentTimelinePersistence()
+        let persistence = MockPersistenceService()
+        let manager = TimelineManager(
+            stores: .init(
+                timelineStore: timelineStore,
+                messageStore: persistence,
+                workspaceStore: persistence,
+                toolPersistence: persistence
+            ),
+            workspaceProfile: .noWorkspace
+        )
+        let workspace = WorkspaceReference(
+            uri: WorkspaceURI(host: "user-mac", path: "/projects/app"),
+            location: .attached
+        )
+        try await persistence.saveWorkspace(workspace)
+
+        let timeline = try await manager.createTimeline()
+        let original = try #require(await manager.timeline(id: timeline.id))
+
+        await timelineStore.setSaveFails(true)
+        do {
+            try await manager.attachWorkspace(workspace.id, to: timeline.id)
+            Issue.record("Expected attach save to fail")
+        } catch FailingStoreError.saveFailed {
+            // Expected.
+        }
+
+        let afterAttachFailure = try #require(await manager.timeline(id: timeline.id))
+        #expect(afterAttachFailure.attachedWorkspaceIDs == original.attachedWorkspaceIDs)
+        #expect(afterAttachFailure.updatedAt == original.updatedAt)
+
+        await timelineStore.setSaveFails(false)
+        try await manager.attachWorkspace(workspace.id, to: timeline.id)
+        let attached = try #require(await manager.timeline(id: timeline.id))
+
+        await timelineStore.setSaveFails(true)
+        do {
+            try await manager.detachWorkspace(workspace.id, from: timeline.id)
+            Issue.record("Expected detach save to fail")
+        } catch FailingStoreError.saveFailed {
+            // Expected.
+        }
+
+        let afterDetachFailure = try #require(await manager.timeline(id: timeline.id))
+        #expect(afterDetachFailure.attachedWorkspaceIDs == attached.attachedWorkspaceIDs)
+        #expect(afterDetachFailure.updatedAt == attached.updatedAt)
+    }
 
     // MARK: - createTimeline: timeline store failure leaves no orphan state
 

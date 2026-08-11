@@ -71,27 +71,28 @@ public actor OpenAIClient: LLMClientProtocol {
         let maxRetries = self.maxRetries
         let modelName = self.modelName
 
-        let query = ChatQuery(
-            messages: messages.map { $0.toOpenAIMessageParam(logger: logger) },
-            model: modelName,
-            frequencyPenalty: generationParameters?.frequencyPenalty,
-            maxCompletionTokens: generationParameters?.maxTokens,
-            parallelToolCalls: tools != nil ? false : nil,
-            presencePenalty: generationParameters?.presencePenalty,
-            responseFormat: responseFormat?.toOpenAIResponseFormat(),
-            seed: generationParameters?.seed,
-            temperature: generationParameters?.temperature,
-            toolChoice: toolChoice?.toOpenAIToolChoice() ?? (tools != nil ? .auto : nil),
-            tools: tools?.map { $0.toOpenAIToolParam() },
-            topP: generationParameters?.topP,
-            stream: true,
-            streamOptions: .init(includeUsage: true)
-        )
-
         return CancellableAsyncThrowingStream.make(of: LLMStreamChunk.self) { continuation in
             let recoveryState = Mutex(LLMToolCallRecoveryState())
 
             do {
+                try validateLLMMessageHistory(messages)
+                let query = ChatQuery(
+                    messages: try messages.map { try $0.toOpenAIMessageParam(logger: logger) },
+                    model: modelName,
+                    frequencyPenalty: generationParameters?.frequencyPenalty,
+                    maxCompletionTokens: generationParameters?.maxTokens,
+                    parallelToolCalls: tools != nil ? false : nil,
+                    presencePenalty: generationParameters?.presencePenalty,
+                    responseFormat: responseFormat?.toOpenAIResponseFormat(),
+                    seed: generationParameters?.seed,
+                    temperature: generationParameters?.temperature,
+                    toolChoice: toolChoice?.toOpenAIToolChoice() ?? (tools != nil ? .auto : nil),
+                    tools: tools?.map { $0.toOpenAIToolParam() },
+                    topP: generationParameters?.topP,
+                    stream: true,
+                    streamOptions: .init(includeUsage: true)
+                )
+
                 try await RetryPolicy.retry(
                     maxRetries: maxRetries,
                     shouldRetry: { error in
@@ -142,21 +143,17 @@ public actor OpenAIClient: LLMClientProtocol {
         responseFormat: LLMResponseFormat? = nil,
         generationParameters: GenerationParameters? = nil
     ) async throws -> String {
-        let maxRetries = self.maxRetries
-
-        return try await RetryPolicy.retry(maxRetries: maxRetries) {
-            do {
-                let stream = await self.chatStream(
-                    messages: [LLMMessage(role: .user, content: content)],
-                    tools: nil,
-                    toolChoice: nil,
-                    responseFormat: responseFormat,
-                    generationParameters: generationParameters
-                )
-                return try await accumulateStreamContent(from: stream)
-            } catch {
-                throw self.mapProviderError(error, provider: "OpenAI")
-            }
+        do {
+            let stream = await self.chatStream(
+                messages: [LLMMessage(role: .user, content: content)],
+                tools: nil,
+                toolChoice: nil,
+                responseFormat: responseFormat,
+                generationParameters: generationParameters
+            )
+            return try await accumulateStreamContent(from: stream)
+        } catch {
+            throw self.mapProviderError(error, provider: "OpenAI")
         }
     }
 

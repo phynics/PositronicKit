@@ -30,7 +30,8 @@ struct OpenAITransportContractTests {
         host: String,
         port: UInt16,
         middleware: CapturingMiddleware,
-        modelName: String = "gpt-4o"
+        modelName: String = "gpt-4o",
+        maxRetries: Int = 3
     ) -> OpenAIClient {
         OpenAIClient(
             apiKey: "secret-key",
@@ -38,6 +39,7 @@ struct OpenAITransportContractTests {
             host: host,
             port: Int(port),
             scheme: "http",
+            maxRetries: maxRetries,
             session: .shared,
             middlewares: [middleware]
         )
@@ -79,6 +81,37 @@ data: [DONE]
         #expect(request.value(forHTTPHeaderField: "Content-Type") == "application/json")
         let body = requestBody(request)
         #expect(body.contains("\"model\":\"gpt-4o\"") || body.contains("\"model\": \"gpt-4o\""))
+    }
+
+    @Test("OpenAI rejects malformed tool history before invoking transport")
+    func malformedToolHistoryDoesNotMakeRequest() async throws {
+        let server = try await TestHTTPServer.start(response: .init(
+            headers: ["Content-Type": "text/event-stream"],
+            body: Data("data: [DONE]\n\n".utf8)
+        ))
+        defer { server.stop() }
+
+        let middleware = CapturingMiddleware()
+        let client = makeClient(host: "127.0.0.1", port: server.port, middleware: middleware)
+        let stream = await client.chatStream(
+            messages: [LLMMessage(role: .tool, content: "result")],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: nil
+        )
+
+        do {
+            for try await _ in stream {}
+            Issue.record("Expected malformed tool history to be rejected")
+        } catch let error as LLMMessageValidationError {
+            #expect(error.errorCode == 1005)
+            #expect(error.remediation != nil)
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+
+        #expect(middleware.recordedRequests().isEmpty)
     }
 
     @Test("OpenAI stream tolerates malformed and truncated SSE without hanging")
@@ -164,5 +197,32 @@ data: {bad json
         } catch {
             Issue.record("Unexpected error: \(error)")
         }
+    }
+
+    @Test("OpenAI sendMessage does not add a second retry loop")
+    func sendMessageUsesSingleRetryLoop() async throws {
+        let server = try await TestHTTPServer.start(response: .init(
+            statusCode: 503,
+            headers: ["Content-Type": "application/json"],
+            body: Data("{\"error\":{\"message\":\"temporarily unavailable\"}}".utf8)
+        ))
+        defer { server.stop() }
+
+        let middleware = CapturingMiddleware()
+        let client = makeClient(
+            host: "127.0.0.1",
+            port: server.port,
+            middleware: middleware,
+            maxRetries: 1
+        )
+
+        do {
+            _ = try await client.sendMessage("hello")
+            Issue.record("Expected OpenAIClient.sendMessage() to throw")
+        } catch {
+            // The attempt count is the contract under test.
+        }
+
+        #expect(middleware.recordedRequests().count == 2)
     }
 }

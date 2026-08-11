@@ -16,13 +16,11 @@ public enum PKOpenRouterProvider {
         )
 
         let providerConfig = configuration.activeProviderConfiguration
-        let url = URL(string: providerConfig.endpoint)
+        let baseURL = OpenRouterClient.validatedBaseURL(from: providerConfig.endpoint)
         return OpenRouterClient(
             apiKey: providerConfig.apiKey,
             modelName: providerConfig.modelName,
-            host: url?.host ?? "openrouter.ai",
-            port: url?.port ?? 443,
-            scheme: url?.scheme ?? "https",
+            baseURL: baseURL,
             timeoutInterval: providerConfig.timeoutInterval,
             maxRetries: providerConfig.maxRetries,
             attribution: .init(

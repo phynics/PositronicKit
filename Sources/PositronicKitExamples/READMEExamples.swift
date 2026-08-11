@@ -62,12 +62,12 @@ public enum READMEExamples {
             .init(id: "lint", summary: "Checks formatting and style."),
         ], query: "What should I run first?")
 
-        let initialPlan = journal.observe(first)
+        let initialPlan = try journal.observe(first)
         print(initialPlan.baseSections.map(\.section.id))
         // ["system", "tool-build", "tool-test"]
         print(initialPlan.overlaySections.isEmpty)
 
-        let updatedPlan = journal.observe(second)
+        let updatedPlan = try journal.observe(second)
         print(updatedPlan.baseSections.map(\.section.id))
         // ["system", "tool-build", "tool-test"]
         print(updatedPlan.overlaySections.map(\.section.id))

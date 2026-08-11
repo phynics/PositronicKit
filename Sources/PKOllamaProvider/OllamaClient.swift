@@ -58,7 +58,7 @@ public actor OllamaClient: LLMClientProtocol {
     public func chatStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,
-        toolChoice _: LLMToolChoice?,
+        toolChoice: LLMToolChoice?,
         responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
@@ -79,6 +79,7 @@ public actor OllamaClient: LLMClientProtocol {
                         let request = try await self.buildRequest(
                             messages: messages,
                             tools: tools,
+                            toolChoice: toolChoice,
                             responseFormat: responseFormat,
                             generationParameters: generationParameters
                         )
@@ -150,10 +151,15 @@ public actor OllamaClient: LLMClientProtocol {
     private func buildRequest(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
         responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?
     ) throws -> URLRequest {
-        var request = URLRequest(url: endpoint.chatURL)
+        guard let chatURL = endpoint.chatURL else {
+            throw LLMServiceError.invalidConfiguration
+        }
+
+        var request = URLRequest(url: chatURL)
         request.httpMethod = "POST"
         request.timeoutInterval = timeoutInterval
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -177,7 +183,7 @@ public actor OllamaClient: LLMClientProtocol {
             messages: messages.map { OllamaMessage(from: $0, logger: logger) },
             stream: true,
             format: format,
-            tools: tools?.map { OllamaTool(from: $0) },
+            tools: toolChoice == .some(LLMToolChoice.none) ? nil : tools?.map { OllamaTool(from: $0) },
             options: OllamaOptions(from: generationParameters)
         )
 
@@ -301,9 +307,13 @@ public actor OllamaClient: LLMClientProtocol {
         let logger = self.logger
 
         return try await RetryPolicy.retry(maxRetries: maxRetries) {
-            logger.debug("Fetching Ollama models from: \(endpoint.tagsURL.absoluteString)")
+            guard let tagsURL = endpoint.tagsURL else {
+                throw LLMServiceError.invalidConfiguration
+            }
 
-            var request = URLRequest(url: endpoint.tagsURL)
+            logger.debug("Fetching Ollama models from: \(tagsURL.absoluteString)")
+
+            var request = URLRequest(url: tagsURL)
             request.timeoutInterval = self.timeoutInterval
             let (data, response) = try await self.transport.data(for: request)
             let httpResponse = try HTTPHelpers.ensureHTTPResponse(response, provider: "Ollama models API")

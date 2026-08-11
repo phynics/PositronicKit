@@ -24,3 +24,19 @@ public protocol MessageStoreProtocol: DurabilityAware {
     func pruneMessages(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int
     func fetchSnapshots(for timelineId: UUID) async throws -> [TurnSnapshot]
 }
+
+/// Persists a message once for a caller-owned identity key.
+///
+/// The default implementation deliberately uses the existing message `id` column rather than
+/// adding a send-key column to the persistence contract. The runtime's turn gate serializes
+/// retries within this process; durable stores should enforce uniqueness on their message IDs.
+package extension MessageStoreProtocol {
+    func saveMessageIfAbsent(
+        _ message: ConversationMessage,
+        idempotencyKey: UUID
+    ) async throws {
+        let existingMessages = try await fetchMessages(for: message.timelineID)
+        guard !existingMessages.contains(where: { $0.id == idempotencyKey }) else { return }
+        try await saveMessage(message)
+    }
+}

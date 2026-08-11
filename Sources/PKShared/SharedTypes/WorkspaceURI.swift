@@ -33,13 +33,13 @@ public struct WorkspaceURI: Codable, Sendable, Hashable, CustomStringConvertible
     }
 
     /// Create an agent workspace URI
-    public static func agentWorkspace(_ agentId: UUID) -> WorkspaceURI {
-        WorkspaceURI(host: "pk-runtime", path: "/agents/\(agentId.uuidString)")
+    public static func agentWorkspace(_ agentID: UUID) -> WorkspaceURI {
+        WorkspaceURI(host: "pk-runtime", path: "/agents/\(agentID.uuidString)")
     }
 
     /// Create a timeline workspace URI owned by this runtime
-    public static func timelineWorkspace(_ timelineId: UUID) -> WorkspaceURI {
-        WorkspaceURI(host: "pk-runtime", path: "/timelines/\(timelineId.uuidString)")
+    public static func timelineWorkspace(_ timelineID: UUID) -> WorkspaceURI {
+        WorkspaceURI(host: "pk-runtime", path: "/timelines/\(timelineID.uuidString)")
     }
 
     /// Create a request-origin shell workspace URI.

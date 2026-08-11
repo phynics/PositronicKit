@@ -34,6 +34,12 @@ struct PartialAssistantPersistence {
         context: ChatTurnContext,
         status: Message.MessageStatus
     ) async {
+        // The normal persistence stage runs before extension stages. If a later stage fails, the
+        // complete assistant row is already durable and must not be duplicated as a partial row.
+        if await context.outputs.assistantResponseDurable {
+            return
+        }
+
         let fullResponse = await context.outputs.fullResponse
         let fullThinking = await context.outputs.fullThinking
         let hasToolCalls = await !context.outputs.toolCallAccumulators.isEmpty

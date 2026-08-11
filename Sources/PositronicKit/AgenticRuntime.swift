@@ -37,6 +37,10 @@ public final class AgenticRuntime: Sendable {
     public var agentInstanceId: UUID { agentInstanceID }
 
     /// Runs one agent turn through the facade's existing tool loop.
+    ///
+    /// The agent must already be attached to `timelineID`; this handle does not establish the
+    /// attachment. An invalid relationship throws ``AgentInstanceError/timelineAgentMismatch``
+    /// before the turn is persisted or dispatched to the provider.
     public func run(
         message: String,
         tools: [any Tool] = [],

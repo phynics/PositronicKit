@@ -4,6 +4,7 @@ import PositronicKit
 
 private final class ActiveSend: @unchecked Sendable {
     var task: Task<Void, Error>?
+    var generation = 0
 }
 
 /// A SwiftUI-friendly controller for a ``TimelineDriver``.
@@ -35,28 +36,43 @@ public final class TimelineController {
     /// Sends a message and mirrors its driver events into the observable state. Supersedes any
     /// in-flight send for this controller's timeline.
     public func send(_ message: String) async throws {
+        activeSend.generation += 1
+        let generation = activeSend.generation
+
         if activeSend.task != nil {
             activeSend.task?.cancel()
             await driver.cancel()
         }
+        guard activeSend.generation == generation else {
+            throw CancellationError()
+        }
         let task = Task { [driver] in
-            try await self.consume(message, from: driver)
+            try await self.consume(message, from: driver, generation: generation)
         }
         activeSend.task = task
         try await task.value
     }
 
-    private func consume(_ content: String, from driver: TimelineDriver) async throws {
+    private func consume(
+        _ content: String,
+        from driver: TimelineDriver,
+        generation: Int
+    ) async throws {
+        guard activeSend.generation == generation else { return }
         messages.append(Message(content: content, role: .user))
         streamingText = ""
         isStreaming = true
         defer {
-            isStreaming = false
+            if activeSend.generation == generation {
+                isStreaming = false
+                activeSend.task = nil
+            }
         }
 
         let stream = try await driver.send(content)
         for try await event in stream {
             try Task.checkCancellation()
+            guard activeSend.generation == generation else { return }
             if let text = event.textContent {
                 streamingText += text
             }

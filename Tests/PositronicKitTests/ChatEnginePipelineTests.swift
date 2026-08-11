@@ -230,7 +230,8 @@ final class MessagePersistenceStageBehavior {
         let tags = toolCall.arguments["tags"]?.value as? [Any]
         #expect(tags?.count == 2)
         let nested = toolCall.arguments["nested"]?.value as? [String: Any]
-        #expect(nested?["value"] as? Double == 1.0)
+        let value = nested?["value"]
+        #expect((value as? Int64) == 1 || (value as? UInt64) == 1)
     }
 
     @Test("Malformed tool-call args fall back to empty arguments (STAB-12)")

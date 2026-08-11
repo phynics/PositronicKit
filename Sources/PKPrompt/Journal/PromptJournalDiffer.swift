@@ -5,11 +5,31 @@ import Foundation
 /// This helper decides whether stable content requires a hard reset and which semistable sections
 /// should be emitted as the current overlay.
 package enum PromptJournalDiffer {
+    /// Validates the section identifiers used by journal maps before any diffing occurs.
+    package static func validate(_ sections: [RenderedPrompt.Section]) throws {
+        let stableIDs = sections
+            .filter { $0.cachePolicy == .stable }
+            .duplicateIDs(idKeyPath: \.id)
+        guard stableIDs.isEmpty else {
+            throw PromptJournalValidationError.duplicateStableSectionIDs(stableIDs)
+        }
+
+        let semiStableIDs = sections
+            .filter { $0.cachePolicy == .semiStable }
+            .duplicateIDs(idKeyPath: \.id)
+        guard semiStableIDs.isEmpty else {
+            throw PromptJournalValidationError.duplicateSemiStableSectionIDs(semiStableIDs)
+        }
+    }
+
     /// Evaluates the current prompt against the committed journal base.
     package static func evaluate(
         committedBaseSections: [RenderedPrompt.Section],
         currentSections: [RenderedPrompt.Section]
-    ) -> PromptJournalEvaluation {
+    ) throws -> PromptJournalEvaluation {
+        try validate(committedBaseSections)
+        try validate(currentSections)
+
         if committedBaseSections.isEmpty {
             return PromptJournalEvaluation(
                 nextCommittedBaseSections: currentSections.filter { $0.cachePolicy != .volatile },

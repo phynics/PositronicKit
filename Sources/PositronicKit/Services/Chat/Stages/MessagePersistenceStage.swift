@@ -42,6 +42,7 @@ struct MessagePersistenceStage: PipelineStage {
             logger: logger
         )
         try await messageStore.saveMessage(assistantMsg)
+        await context.outputs.markAssistantResponseDurable()
 
         let streamUsage = await context.outputs.streamUsage
         let turnDuration = await context.outputs.turnDuration

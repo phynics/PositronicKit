@@ -55,6 +55,10 @@ private actor AnthropicTestTransport: ProviderHTTPTransport {
         requests.last
     }
 
+    func requestCount() -> Int {
+        requests.count
+    }
+
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
         requests.append(request)
         return (Data(lines.joined(separator: "\n").utf8), makeResponse(for: request))
@@ -84,8 +88,13 @@ private actor AnthropicTestTransport: ProviderHTTPTransport {
     }
 }
 
-private func makeClient(transport: AnthropicTestTransport) -> AnthropicClient {
-    AnthropicClient(apiKey: "secret", modelName: "claude-sonnet-4-5", transport: transport)
+private func makeClient(transport: AnthropicTestTransport, maxRetries: Int = 3) -> AnthropicClient {
+    AnthropicClient(
+        apiKey: "secret",
+        modelName: "claude-sonnet-4-5",
+        maxRetries: maxRetries,
+        transport: transport
+    )
 }
 
 @Suite("Anthropic stream decoding conformance")
@@ -235,6 +244,49 @@ struct AnthropicStreamDecodingTests {
         }
     }
 
+    @Test("Anthropic sendMessage does not add a second retry loop")
+    func sendMessageUsesSingleRetryLoop() async throws {
+        let transport = AnthropicTestTransport(
+            lines: [#"{"type":"error","error":{"type":"overloaded_error","message":"busy"}}"#],
+            statusCode: 503
+        )
+        let client = makeClient(transport: transport, maxRetries: 1)
+
+        do {
+            _ = try await client.sendMessage("hi")
+            Issue.record("Expected AnthropicClient.sendMessage() to throw")
+        } catch {
+            // The attempt count is the contract under test.
+        }
+
+        #expect(await transport.requestCount() == 2)
+    }
+
+    @Test("Anthropic rejects malformed tool history before invoking transport")
+    func malformedToolHistoryDoesNotMakeRequest() async throws {
+        let transport = AnthropicTestTransport(lines: [AnthropicWireFixtures.messageStop])
+        let client = makeClient(transport: transport)
+        let stream = await client.chatStream(
+            messages: [LLMMessage(role: .tool, content: "result")],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: nil
+        )
+
+        do {
+            _ = try await stream.collect()
+            Issue.record("Expected malformed tool history to be rejected")
+        } catch let error as LLMMessageValidationError {
+            #expect(error.errorCode == 1005)
+            #expect(error.remediation != nil)
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+
+        #expect(await transport.requestCount() == 0)
+    }
+
     @Test("Request carries Anthropic headers, max_tokens default, and hoisted system param")
     func requestShapeMatchesMessagesAPI() async throws {
         let transport = AnthropicTestTransport(lines: [
@@ -289,8 +341,8 @@ struct AnthropicMessageConversionTests {
     private let logger = Logger.module(named: "anthropic-conversion-tests")
 
     @Test("Assistant tool calls and tool results preserve id pairing (PKINT-002)")
-    func toolUseAndToolResultPreserveIdPairing() {
-        let (system, messages) = AnthropicMessageConversion.convert(
+    func toolUseAndToolResultPreserveIdPairing() throws {
+        let (system, messages) = try AnthropicMessageConversion.convert(
             messages: [
                 LLMMessage(role: .system, content: "be helpful"),
                 LLMMessage(role: .user, content: "weather in berlin?"),
@@ -319,8 +371,8 @@ struct AnthropicMessageConversionTests {
     }
 
     @Test("Consecutive same-role messages merge into one alternating-turn message")
-    func consecutiveSameRoleMessagesMerge() {
-        let (_, messages) = AnthropicMessageConversion.convert(
+    func consecutiveSameRoleMessagesMerge() throws {
+        let (_, messages) = try AnthropicMessageConversion.convert(
             messages: [
                 LLMMessage(role: .user, content: "first"),
                 LLMMessage(role: .user, content: "second"),
@@ -333,8 +385,8 @@ struct AnthropicMessageConversionTests {
     }
 
     @Test("Multiple system/developer messages hoist into one top-level system param")
-    func systemMessagesHoist() {
-        let (system, messages) = AnthropicMessageConversion.convert(
+    func systemMessagesHoist() throws {
+        let (system, messages) = try AnthropicMessageConversion.convert(
             messages: [
                 LLMMessage(role: .system, content: "rule one"),
                 LLMMessage(role: .developer, content: "rule two"),
@@ -348,8 +400,8 @@ struct AnthropicMessageConversionTests {
     }
 
     @Test("Invalid tool-call arguments JSON degrades to an empty input object, not a crash")
-    func invalidToolArgumentsDegradeToEmptyObject() {
-        let (_, messages) = AnthropicMessageConversion.convert(
+    func invalidToolArgumentsDegradeToEmptyObject() throws {
+        let (_, messages) = try AnthropicMessageConversion.convert(
             messages: [
                 LLMMessage(
                     role: .assistant,
@@ -364,5 +416,22 @@ struct AnthropicMessageConversionTests {
             role: "assistant",
             content: [.toolUse(id: "toolu_02", name: "broken", input: .object([:]))]
         )])
+    }
+
+    @Test("Tool-role message without toolCallID throws a typed validation error")
+    func toolResultWithoutIDThrows() throws {
+        do {
+            _ = try AnthropicMessageConversion.convert(
+                messages: [LLMMessage(role: .tool, content: "result")],
+                logger: logger
+            )
+            Issue.record("Expected malformed tool history to be rejected")
+        } catch let error as LLMMessageValidationError {
+            #expect(error.errorDomain == PKErrorDomain.llm)
+            #expect(error.errorCode == 1005)
+            #expect(error.remediation != nil)
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
     }
 }

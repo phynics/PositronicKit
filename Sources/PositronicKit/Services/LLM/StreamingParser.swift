@@ -8,8 +8,6 @@ import PKUtilities
 /// Handles streaming responses that contain `<think>...</think>` blocks,
 /// separating reasoning from main content in real-time.
 struct StreamingParser {
-    private static let partialCodeDelimiterBufferLimit = 1000
-
     // MARK: - State
 
     private(set) var buffer = ""
@@ -20,8 +18,6 @@ struct StreamingParser {
     private(set) var insideCodeBlock = false
     private(set) var hasReclassified = false
 
-    private var rawBuffer = "" // Debug history
-
     init() {}
 
     // MARK: - Public API
@@ -29,7 +25,6 @@ struct StreamingParser {
     mutating func process(_ chunk: String) {
         hasReclassified = false
         buffer += chunk
-        rawBuffer += chunk
 
         // Strip LLM formatting tokens like <|tool_calls_section_begin|>, <|tool_call_begin|>, etc.
         // Some models (e.g. Qwen) emit tool calls as raw text with these pipe-delimited markers.
@@ -83,7 +78,9 @@ struct StreamingParser {
         guard !buffer.isEmpty else { return nil }
 
         if let result = tryExtractCodeBlock() { return result }
-        if holdingPartialCodeDelimiter() { return nil }
+        if holdingPartialCodeDelimiter() {
+            return extractSegmentBeforePartialCodeDelimiter()
+        }
 
         if !insideCodeBlock {
             if let result = tryExtractThinkTags() { return result }
@@ -108,8 +105,22 @@ struct StreamingParser {
 
     /// Returns true if buffer ends with a partial code delimiter that needs more data.
     private func holdingPartialCodeDelimiter() -> Bool {
-        buffer.count < Self.partialCodeDelimiterBufferLimit
-            && (buffer.hasSuffix("``") || buffer.hasSuffix("`"))
+        buffer.hasSuffix("``") || buffer.hasSuffix("`")
+    }
+
+    /// Processes content before a partial code delimiter while retaining only its ambiguous suffix.
+    private mutating func extractSegmentBeforePartialCodeDelimiter() -> Segment? {
+        let partialDelimiter = buffer.hasSuffix("``") ? "``" : "`"
+        guard buffer.count > partialDelimiter.count else { return nil }
+
+        let splitIndex = buffer.index(buffer.endIndex, offsetBy: -partialDelimiter.count)
+        let prefix = String(buffer[..<splitIndex])
+        let suffix = String(buffer[splitIndex...])
+        buffer = prefix
+
+        let result = extractNextSegment()
+        buffer = buffer + suffix
+        return result
     }
 
     /// Returns true if buffer ends with a partial <think> or </think> tag.

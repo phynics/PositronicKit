@@ -168,8 +168,9 @@ final class ToolRouterTests {
     /// Builds a timeline with a single registered tool and returns the router under test.
     private func setupRouter(
         with tool: any PKShared.Tool,
-        approvalPolicy: any ToolApprovalPolicy
-    ) async throws -> (ToolRouter, UUID) {
+        approvalPolicy: any ToolApprovalPolicy,
+        disabledToolIDs: Set<String> = []
+    ) async throws -> (ToolRouter, UUID, MockPersistenceService) {
         let (timelineManager, mockPersistence) = try await setupTimelineManager()
         let toolRouter = ToolRouter(
             timelineManager: timelineManager,
@@ -193,14 +194,18 @@ final class ToolRouterTests {
         try #require(toolManager != nil)
         await toolManager?.updateAvailableTools([tool.toAnyTool()])
 
-        return (toolRouter, session.id)
+        for toolID in disabledToolIDs {
+            _ = await timelineManager.disableTool(id: toolID, for: session.id)
+        }
+
+        return (toolRouter, session.id, mockPersistence)
     }
 
     @Test("A permissioned tool is not executed when the approval gate denies it (structured call path)")
     func permissionedToolBlockedWhenDenied() async throws {
         let tool = PermissionedTool(id: "needs_permission")
         let gate = RecordingGate(decision: .deny)
-        let (router, timelineId) = try await setupRouter(with: tool, approvalPolicy: gate)
+        let (router, timelineId, _) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         do {
             _ = try await router.execute(
@@ -223,7 +228,7 @@ final class ToolRouterTests {
     func permissionedToolRunsWhenApproved() async throws {
         let tool = PermissionedTool(id: "needs_permission")
         let gate = RecordingGate(decision: .approve)
-        let (router, timelineId) = try await setupRouter(with: tool, approvalPolicy: gate)
+        let (router, timelineId, _) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         let result = try await router.execute(
             tool: .known("needs_permission"),
@@ -244,7 +249,7 @@ final class ToolRouterTests {
     func textFallbackToolCallBlockedWhenDenied() async throws {
         let tool = PermissionedTool(id: "needs_permission")
         let gate = RecordingGate(decision: .deny)
-        let (router, timelineId) = try await setupRouter(with: tool, approvalPolicy: gate)
+        let (router, timelineId, _) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         // A fallback-parsed call arrives as a ParsedToolCall through handlePendingToolCalls, the same
         // entry point the text-fallback path feeds. A denied permissioned tool must be projected as a
@@ -264,12 +269,90 @@ final class ToolRouterTests {
         #expect(result.resolvedToolParams.first?.content.contains("permission") == true)
     }
 
+    @Test("A disabled tool is rejected at the execution sink and projected as a failure")
+    func disabledToolIsRejectedAtExecutionSink() async throws {
+        let tool = PermissionedTool(id: "disabled_tool")
+        let gate = RecordingGate(decision: .approve)
+        let (router, timelineId, persistence) = try await setupRouter(
+            with: tool,
+            approvalPolicy: gate,
+            disabledToolIDs: ["disabled_tool"]
+        )
+
+        let call = ParsedToolCall(callId: "call-disabled", name: "disabled_tool", argumentsJSON: "{}")
+        let events = try await captureProjectedToolEvents { continuation in
+            let result = try await router.handlePendingToolCalls(
+                timelineId: timelineId,
+                calls: [call],
+                availableTools: [],
+                continuation: continuation
+            )
+
+            #expect(result.hasDeferred == false)
+            #expect(result.resolvedToolParams.count == 1)
+            #expect(result.resolvedToolParams.first?.content.contains("could not be found") == true)
+        }
+
+        #expect(tool.didExecute == false)
+        #expect(gate.consultedToolIds.isEmpty)
+        #expect(persistence.messages.count == 1)
+        #expect(persistence.messages.first?.content.contains("could not be found") == true)
+        #expect(events.contains(where: {
+            if case let .completion(event) = $0,
+               case let .toolExecution(toolCallId, status) = event,
+               case .failed = status
+            {
+                return toolCallId == "call-disabled"
+            }
+            return false
+        }))
+        #expect(!events.contains(where: {
+            if case let .completion(event) = $0,
+               case let .toolExecution(toolCallId, status) = event,
+               case .success = status
+            {
+                return toolCallId == "call-disabled"
+            }
+            return false
+        }))
+    }
+
+    @Test("A dynamic tool cannot bypass a disabled registered call name")
+    func dynamicToolCannotBypassDisabledCallName() async throws {
+        let registeredTool = PermissionedTool(id: "collision")
+        let dynamicTool = PermissionedTool(id: "collision")
+        let gate = RecordingGate(decision: .approve)
+        let (router, timelineId, _) = try await setupRouter(
+            with: registeredTool,
+            approvalPolicy: gate,
+            disabledToolIDs: ["collision"]
+        )
+
+        do {
+            _ = try await router.execute(
+                tool: .known("collision"),
+                arguments: [:],
+                timelineId: timelineId,
+                availableTools: [dynamicTool.toAnyTool()]
+            )
+            Issue.record("Expected toolNotFound for a disabled call name")
+        } catch ToolError.toolNotFound("collision") {
+            // expected
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+
+        #expect(registeredTool.didExecute == false)
+        #expect(dynamicTool.didExecute == false)
+        #expect(gate.consultedToolIds.isEmpty)
+    }
+
     @Test("A non-permissioned tool executes without consulting the approval gate (regression)")
     func nonPermissionedToolBypassesGate() async throws {
         let tool = MockTool(callName: "free_tool", name: "free_tool", result: .success("free output"))
         // A deny-all gate must not affect non-permissioned tools.
         let gate = RecordingGate(decision: .deny)
-        let (router, timelineId) = try await setupRouter(with: tool, approvalPolicy: gate)
+        let (router, timelineId, _) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         let result = try await router.execute(
             tool: .known("free_tool"),
@@ -498,7 +581,7 @@ final class ToolRouterTests {
     func explicitInvalidWorkspaceIDFailsClosed() async throws {
         let tool = MockTool(callName: "test_tool", name: "test_tool", result: .success("success"))
         let gate = RecordingGate(decision: .deny)
-        let (router, timelineId) = try await setupRouter(with: tool, approvalPolicy: gate)
+        let (router, timelineId, _) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         let invalidWorkspaceId = UUID()
         let arguments: [String: AnyCodable] = ["workspaceID": AnyCodable(invalidWorkspaceId.uuidString)]
@@ -521,7 +604,7 @@ final class ToolRouterTests {
     func unattachedExplicitWorkspaceIDFailsClosed() async throws {
         let tool = MockTool(callName: "test_tool", name: "test_tool", result: .success("success"))
         let gate = RecordingGate(decision: .deny)
-        let (router, timelineId) = try await setupRouter(with: tool, approvalPolicy: gate)
+        let (router, timelineId, _) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         // Create a valid UUID that is definitely not attached to this timeline
         let unattachedWorkspaceId = UUID()
@@ -545,7 +628,7 @@ final class ToolRouterTests {
     func omittedWorkspaceIDUsesDefaultResolution() async throws {
         let tool = MockTool(callName: "test_tool", name: "test_tool", result: .success("default workspace success"))
         let gate = RecordingGate(decision: .deny)
-        let (router, timelineId) = try await setupRouter(with: tool, approvalPolicy: gate)
+        let (router, timelineId, _) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         // No workspaceID in arguments — should proceed with normal default resolution
         let arguments: [String: AnyCodable] = [:]
@@ -1050,6 +1133,7 @@ struct ToolTurnProjectionTests {
             )
 
             #expect(result.hasDeferred == false)
+            #expect(result.hasPersistenceFailure == false)
             #expect(result.resolvedToolParams.count == 1)
             #expect(result.resolvedToolParams.first?.content == "done")
         }
@@ -1099,6 +1183,7 @@ struct ToolTurnProjectionTests {
             )
 
             #expect(result.hasDeferred == false)
+            #expect(result.hasPersistenceFailure == false)
             #expect(result.resolvedToolParams.count == 1)
             #expect(result.resolvedToolParams.first?.content.contains("Error:") == true)
         }
@@ -1260,8 +1345,8 @@ struct ToolDurabilityOrderingTests {
             )
 
             #expect(result.hasDeferred == false)
-            #expect(result.resolvedToolParams.count == 1)
-            #expect(result.resolvedToolParams.first?.content == "done")
+            #expect(result.hasPersistenceFailure)
+            #expect(result.resolvedToolParams.isEmpty)
         }
 
         // Persistence was attempted (the store received the message before throwing).
@@ -1307,8 +1392,8 @@ struct ToolDurabilityOrderingTests {
             )
 
             #expect(result.hasDeferred == false)
-            #expect(result.resolvedToolParams.count == 1)
-            #expect(result.resolvedToolParams.first?.content.contains("Error:") == true)
+            #expect(result.hasPersistenceFailure)
+            #expect(result.resolvedToolParams.isEmpty)
         }
 
         // Persistence was attempted.
@@ -1431,12 +1516,14 @@ struct ToolDurabilityOrderingTests {
         let call2 = ParsedToolCall(callId: "call-b", name: "tool", argumentsJSON: "{}")
 
         let events = try await captureProjectedToolEvents { continuation in
-            _ = try await toolRouter.handlePendingToolCalls(
+            let result = try await toolRouter.handlePendingToolCalls(
                 timelineId: session.id,
                 calls: [call1, call2],
                 availableTools: [],
                 continuation: continuation
             )
+            #expect(result.hasPersistenceFailure)
+            #expect(result.resolvedToolParams.count == 1)
         }
 
         // First save succeeds, second fails.

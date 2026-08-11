@@ -4,7 +4,7 @@
 	verify-linux-asan \
 	verify-products verify-examples verify-tests verify-pktestsupport verify-macos-minilm \
 	bootstrap-minilm build-minilm verify-minilm \
-	linux-image linux-build linux-test require-container-runtime
+	linux-image linux-build linux-test linux-test-scratch linux-test-filter require-container-runtime
 
 PKFASTEMBED_PREFIX ?= $(CURDIR)/.build/pkfastembed
 PKFASTEMBED_ASAN_TOOLCHAIN ?= nightly
@@ -22,6 +22,8 @@ export PKFASTEMBED_PREFIX
 export PK_MINILM_MODEL_DIR
 
 LINUX_IMAGE ?= positronickit-linux-dev
+LINUX_SCRATCH_DIR ?= $(CURDIR)/.build/linux-test-scratch
+LINUX_TEST_TRAITS ?=
 CONTAINER_RUNTIME ?= $(shell \
 	if command -v podman >/dev/null 2>&1; then command -v podman; \
 	elif command -v docker >/dev/null 2>&1; then command -v docker; \
@@ -77,6 +79,8 @@ help:
 	@echo "  make linux-image           Build the Linux development Docker image"
 	@echo "  make linux-build           Build in a Linux container (bind-mounted)"
 	@echo "  make linux-test            Run the full Linux gate in a container"
+	@echo "  make linux-test-scratch    Run both Linux suites in a reusable isolated scratch"
+	@echo "  make linux-test-filter LINUX_TEST_FILTER='…'  Run a focused Linux test in reusable scratch"
 
 build:
 	@echo "Building PositronicKit..."
@@ -233,3 +237,37 @@ linux-test: require-container-runtime linux-image
 		-e HOME=/tmp -e CARGO_HOME=/tmp/cargo \
 		-v "$(CURDIR):/workspace:Z" -w /workspace $(LINUX_IMAGE) \
 		make verify-linux-current
+
+# Run both canonical Linux suites without using the checkout's shared SwiftPM
+# build database. Reusing LINUX_SCRATCH_DIR makes subsequent gates much faster.
+linux-test-scratch: require-container-runtime linux-image
+	@mkdir -p "$(LINUX_SCRATCH_DIR)"
+	@$(CONTAINER_RUNTIME) run --rm $(CONTAINER_USER_FLAGS) \
+		-e HOME=/tmp -e CARGO_HOME=/tmp/cargo \
+		-e PKFASTEMBED_PREFIX=/workspace/.build/pkfastembed \
+		-e PKG_CONFIG_PATH=/workspace/.build/pkfastembed/lib/pkgconfig \
+		-e LIBRARY_PATH=/workspace/.build/pkfastembed/lib \
+		-e PK_MINILM_MODEL_DIR=/workspace/.build/minilm-model/$(MINILM_MODEL_SHA256) \
+		-v "$(CURDIR):/workspace:Z" -v "$(LINUX_SCRATCH_DIR):/scratch:Z" \
+		-w /workspace $(LINUX_IMAGE) \
+		bash -lc 'make bootstrap-minilm && swift test --scratch-path /scratch --jobs 1 && swift test --scratch-path /scratch --jobs 1 --traits MiniLMEmbeddings'
+
+# Run a focused Linux filter without contending for the checkout's shared
+# .build/build.db. Set a unique LINUX_SCRATCH_DIR for concurrent invocations.
+linux-test-filter: require-container-runtime linux-image
+	@if [ -z "$(LINUX_TEST_FILTER)" ]; then \
+		echo "make: LINUX_TEST_FILTER is required (for example: TestHTTPServerTests)." >&2; \
+		exit 2; \
+	fi
+	@mkdir -p "$(LINUX_SCRATCH_DIR)"
+	@$(CONTAINER_RUNTIME) run --rm $(CONTAINER_USER_FLAGS) \
+			-e HOME=/tmp -e CARGO_HOME=/tmp/cargo \
+			-e PKFASTEMBED_PREFIX=/workspace/.build/pkfastembed \
+			-e PKG_CONFIG_PATH=/workspace/.build/pkfastembed/lib/pkgconfig \
+			-e LIBRARY_PATH=/workspace/.build/pkfastembed/lib \
+			-e PK_MINILM_MODEL_DIR=/workspace/.build/minilm-model/$(MINILM_MODEL_SHA256) \
+			-e LINUX_TEST_FILTER="$(LINUX_TEST_FILTER)" \
+			-e LINUX_TEST_TRAITS="$(LINUX_TEST_TRAITS)" \
+			-v "$(CURDIR):/workspace:Z" -v "$(LINUX_SCRATCH_DIR):/scratch:Z" \
+			-w /workspace $(LINUX_IMAGE) \
+			bash -lc 'if [ -n "$$LINUX_TEST_TRAITS" ]; then swift test --scratch-path /scratch --jobs 1 --traits "$$LINUX_TEST_TRAITS" --filter "$$LINUX_TEST_FILTER"; else swift test --scratch-path /scratch --jobs 1 --filter "$$LINUX_TEST_FILTER"; fi'

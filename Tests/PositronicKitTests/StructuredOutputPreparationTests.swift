@@ -170,7 +170,7 @@ struct StructuredOutputPreparationTests {
     func openAIResponseFormatPreservesOrder() throws {
         let schema = try makeSchema()
         let query = ChatQuery(
-            messages: [LLMMessage(role: .user, content: "hello").toOpenAIMessageParam()],
+            messages: [try LLMMessage(role: .user, content: "hello").toOpenAIMessageParam()],
             model: "gpt-4o",
             responseFormat: LLMResponseFormat.jsonSchema(.init(
                 name: schema.name,

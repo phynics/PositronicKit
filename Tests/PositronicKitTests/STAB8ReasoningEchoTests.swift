@@ -137,7 +137,7 @@ struct STAB8ReasoningEchoTests {
     @Test("OpenAI outbound omits reasoning even when LLMMessage.reasoning is present")
     func openAIOutboundOmitsReasoning() throws {
         let message = LLMMessage(role: .assistant, content: "answer", reasoning: "should be dropped")
-        let param = message.toOpenAIMessageParam()
+        let param = try message.toOpenAIMessageParam()
 
         // Encode the openai-swift ChatCompletionMessageParam and assert no `reasoning` key.
         let encoder = JSONEncoder()

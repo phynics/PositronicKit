@@ -28,6 +28,8 @@ public actor OpenRouterClient: LLMClientProtocol {
     private let transport: any ProviderHTTPTransport
     private let attribution: Attribution
 
+    private static let defaultBaseURL = URL(string: "https://openrouter.ai/api")!
+
     /// Decoder for streamed `LLMStreamChunk`s. Uses `.convertFromSnakeCase` because the OpenAI/
     /// OpenRouter SSE wire format is snake_case (`tool_calls`, `finish_reason`, `prompt_tokens`)
     /// while `LLMStreamChunk` and its nested types use camelCase properties with no explicit
@@ -72,17 +74,88 @@ public actor OpenRouterClient: LLMClientProtocol {
         transport: any ProviderHTTPTransport,
         attribution: Attribution = .init()
     ) {
+        self.init(
+            apiKey: apiKey,
+            modelName: modelName,
+            baseURL: Self.baseURL(scheme: scheme, host: host, port: port),
+            timeoutInterval: timeoutInterval,
+            maxRetries: maxRetries,
+            transport: transport,
+            attribution: attribution
+        )
+    }
+
+    package init(
+        apiKey: String,
+        modelName: String = "openai/gpt-4o",
+        baseURL: URL,
+        timeoutInterval: TimeInterval = 60.0,
+        maxRetries: Int = 3,
+        attribution: Attribution = .init()
+    ) {
+        self.init(
+            apiKey: apiKey,
+            modelName: modelName,
+            baseURL: baseURL,
+            timeoutInterval: timeoutInterval,
+            maxRetries: maxRetries,
+            transport: URLSessionProviderHTTPTransport(timeoutIntervalForRequest: timeoutInterval),
+            attribution: attribution
+        )
+    }
+
+    package init(
+        apiKey: String,
+        modelName: String = "openai/gpt-4o",
+        baseURL: URL,
+        timeoutInterval: TimeInterval = 60.0,
+        maxRetries: Int = 3,
+        transport: any ProviderHTTPTransport,
+        attribution: Attribution = .init()
+    ) {
         self.apiKey = apiKey
         self.modelName = modelName
         self.timeoutInterval = timeoutInterval
         self.maxRetries = maxRetries
         self.transport = transport
         self.attribution = attribution
+        endpoint = Self.validatedBaseURL(baseURL)
+    }
 
+    /// Returns a normalized, validated OpenRouter API base URL while retaining any configured
+    /// reverse-proxy path prefix.
+    package static func validatedBaseURL(from endpoint: String) -> URL {
+        guard let url = URL(string: endpoint) else { return defaultBaseURL }
+        return validatedBaseURL(url)
+    }
+
+    private static func baseURL(scheme: String, host: String, port: Int) -> URL {
         var urlString = "\(scheme)://\(host)"
         if port != 443, port != 80 { urlString += ":\(port)" }
         if !urlString.contains("/api") { urlString += "/api" }
-        endpoint = URL(string: urlString) ?? URL(string: "https://openrouter.ai/api")!
+        return URL(string: urlString) ?? defaultBaseURL
+    }
+
+    private static func validatedBaseURL(_ url: URL) -> URL {
+        guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let scheme = components.scheme?.lowercased(),
+              scheme == "http" || scheme == "https",
+              let host = components.host,
+              !host.isEmpty else { return defaultBaseURL }
+
+        var path = components.path
+        while path.hasSuffix("/") { path.removeLast() }
+        if path.isEmpty {
+            path = "/api"
+        } else {
+            if !path.hasPrefix("/") { path.insert("/", at: path.startIndex) }
+            let lastPathComponent = path.split(separator: "/").last.map(String.init)
+            if lastPathComponent?.lowercased() != "api" {
+                path += "/api"
+            }
+        }
+        components.path = path
+        return components.url ?? defaultBaseURL
     }
 
     /// Exposes the configured attribution for `@testable` verification that the public
@@ -90,6 +163,10 @@ public actor OpenRouterClient: LLMClientProtocol {
     /// actually threads `applicationURL`/`applicationTitle` through to a real client (PKR-4).
     var currentAttribution: Attribution {
         attribution
+    }
+
+    package var currentBaseURL: URL {
+        endpoint
     }
 
     public func chatStream(
@@ -104,7 +181,10 @@ public actor OpenRouterClient: LLMClientProtocol {
         let modelName = self.modelName
         let logger = self.logger
         let maxRetries = self.maxRetries
-        let chatURL = endpoint.appendingPathComponent("v1/chat/completions")
+        let chatURL = endpoint
+            .appendingPathComponent("v1")
+            .appendingPathComponent("chat")
+            .appendingPathComponent("completions")
 
         return CancellableAsyncThrowingStream.make(of: LLMStreamChunk.self) { continuation in
             let recoveryState = Mutex(LLMToolCallRecoveryState())
@@ -130,7 +210,7 @@ public actor OpenRouterClient: LLMClientProtocol {
                                 responseFormat: self.mapResponseFormat(responseFormat),
                                 seed: generationParameters?.seed,
                                 temperature: generationParameters?.temperature,
-                                toolChoice: self.mapToolChoice(toolChoice ?? (tools != nil ? .auto : nil)),
+                                toolChoice: self.mapToolChoice(toolChoice, tools: tools),
                                 tools: tools?.map(OpenRouterTool.init),
                                 topP: generationParameters?.topP,
                                 stream: true,
@@ -169,7 +249,7 @@ public actor OpenRouterClient: LLMClientProtocol {
                                     responseFormat: self.mapResponseFormat(responseFormat),
                                     seed: generationParameters?.seed,
                                     temperature: generationParameters?.temperature,
-                                    toolChoice: self.mapToolChoice(toolChoice ?? (tools != nil ? .auto : nil)),
+                                    toolChoice: self.mapToolChoice(toolChoice, tools: tools),
                                     tools: tools?.map(OpenRouterTool.init),
                                     topP: generationParameters?.topP,
                                     stream: false,
@@ -357,7 +437,9 @@ public actor OpenRouterClient: LLMClientProtocol {
         let maxRetries = self.maxRetries
         let endpoint = self.endpoint
         return try await RetryPolicy.retry(maxRetries: maxRetries) {
-            let url = endpoint.appendingPathComponent("v1/models")
+            let url = endpoint
+                .appendingPathComponent("v1")
+                .appendingPathComponent("models")
             var request = URLRequest(url: url)
             request.timeoutInterval = self.timeoutInterval
             let (data, response) = try await self.transport.data(for: request)
@@ -368,11 +450,17 @@ public actor OpenRouterClient: LLMClientProtocol {
         }
     }
 
-    private nonisolated func mapToolChoice(_ choice: LLMToolChoice?) -> OpenRouterToolChoice? {
+    private nonisolated func mapToolChoice(
+        _ choice: LLMToolChoice?,
+        tools: [LLMToolDefinition]?
+    ) -> OpenRouterToolChoice? {
         switch choice {
-        case .none: return nil
-        case .auto: return .auto
-        case let .function(name): return .function(name)
+        case nil:
+            // Preserve OpenRouter's existing default: an unspecified choice with tools is auto.
+            return tools != nil ? .auto : nil
+        case .some(.none): return OpenRouterToolChoice.none
+        case .some(.auto): return .auto
+        case let .some(.function(name)): return .function(name)
         }
     }
 

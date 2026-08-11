@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 @testable import PKPrompt
+import PKUtilities
 
 private struct LoweringStaticText: PromptPrimitive {
     let id: String
@@ -70,7 +71,7 @@ struct PromptNodeLoweringTests {
         #expect(sections[0].path.last == "leaf")
     }
 
-    @Test("Identifiable prompts include their stable identity in path boundaries")
+    @Test("Identifiable prompts include a deterministic, type-scoped identity in path boundaries")
     func identifiablePromptsPreserveIdentityInPaths() {
         struct IdentifiedPrompt: Prompt, Identifiable {
             let id: String
@@ -84,7 +85,8 @@ struct PromptNodeLoweringTests {
         let sections = try! prompt.assemblePrompt().sections
 
         #expect(sections.count == 1)
-        #expect(sections[0].path.contains("IdentifiedPrompt \(AnyHashable(prompt.id).hashValue)"))
+        let identity = StableHash.hash(components: ["IdentifiedPrompt", prompt.id])
+        #expect(sections[0].path.contains("IdentifiedPrompt \(identity)"))
         #expect(sections[0].path.last == "leaf")
     }
 }

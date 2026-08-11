@@ -25,12 +25,12 @@ struct IntroductoryStoriesTests {
             userQuery: "What should I run first?"
         ).assemblePrompt()).render()
 
-        let initialPlan = journal.observe(initial)
+        let initialPlan = try journal.observe(initial)
         #expect(initialPlan.baseSections.map(\.section.id) == ["system", "tool-build", "tool-test"])
         #expect(initialPlan.overlaySections.isEmpty)
         #expect(initialPlan.volatileSections.map(\.section.id) == ["user_query"])
 
-        let updatedPlan = journal.observe(updated)
+        let updatedPlan = try journal.observe(updated)
         #expect(updatedPlan.baseSections.map(\.section.id) == ["system", "tool-build", "tool-test"])
         #expect(updatedPlan.overlaySections.map(\.section.id) == ["tool-test", "tool-lint"])
         #expect(updatedPlan.overlaySections.allSatisfy { $0.layer == .overlay })

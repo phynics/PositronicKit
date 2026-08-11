@@ -21,6 +21,7 @@ public actor TimelinePromptHistory {
     private var baseSnapshot: PromptSnapshot?
     private var pressure: AppendPressure
     private(set) var lastDiff: PromptDiff?
+    private var nextUpdateFailure: TimelinePromptHistoryError? = nil
 
     var appendedMessageCount: Int { pressure.appendedMessageCount }
     var appendedTokens: Int { pressure.appendedTokens }
@@ -52,8 +53,18 @@ public actor TimelinePromptHistory {
     /// Record a rendered prompt snapshot and compact append state if thresholds were exceeded.
     @discardableResult
     func update(prompt: RenderedPrompt) throws -> PromptHistoryUpdate {
+        if let nextUpdateFailure {
+            self.nextUpdateFailure = nil
+            throw nextUpdateFailure
+        }
         let diff = try record(prompt: prompt)
         return PromptHistoryUpdate(diff: diff, didCompact: compactIfNeeded())
+    }
+
+    /// Injects one transition failure for runtime retry tests without changing the persisted
+    /// prompt or message representations. The fault is consumed by the next rendered update.
+    func failNextUpdate(with error: TimelinePromptHistoryError) {
+        nextUpdateFailure = error
     }
 
     @discardableResult

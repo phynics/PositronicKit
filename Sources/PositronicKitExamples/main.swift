@@ -44,7 +44,7 @@ func runExamples() async throws {
     let oneShot = try await oneShotRuntime.complete("Say hello in one word.")
     let timelineDriver = try await PositronicKitUsageExamples.makeTimelineDriverExample()
     let timelineManager = PositronicKitUsageExamples.makeTimelineManagerExample()
-    let agenticRuntime = PositronicKitUsageExamples.makeAgenticRuntimeExample()
+    let agenticRuntime = try await PositronicKitUsageExamples.makeAgenticRuntimeExample()
 
     print("# PKPrompt Example\n")
     print(renderedPrompt)

@@ -5,6 +5,7 @@ import PKUtilities
 /// Protocol for managing the persistence and provisioning of agent private workspaces.
 public protocol WorkspaceCatalog: Sendable {
     /// Creates a new workspace and saves it to persistence.
+    @available(*, deprecated, message: "Use createWorkspace(uri:location:originID:rootPath:).")
     func createWorkspace(
         uri: WorkspaceURI,
         location: WorkspaceReference.WorkspaceLocation,
@@ -13,6 +14,7 @@ public protocol WorkspaceCatalog: Sendable {
     ) async throws -> WorkspaceReference
 
     /// Creates a new agent workspace and seeds it with template files.
+    @available(*, deprecated, message: "Use createAgentWorkspace(instanceID:template:).")
     func createAgentWorkspace(
         instanceId: UUID,
         template: AgentTemplate?
@@ -31,7 +33,36 @@ public protocol WorkspaceCatalog: Sendable {
     func updateWorkspace(_ workspace: WorkspaceReference) async throws
 }
 
-extension WorkspaceCatalog {
+public extension WorkspaceCatalog {
+    /// Creates a workspace using the canonical identifier spelling.
+    func createWorkspace(
+        uri: WorkspaceURI,
+        location: WorkspaceReference.WorkspaceLocation,
+        originID: UUID? = nil,
+        rootPath: String? = nil
+    ) async throws -> WorkspaceReference {
+        try await createWorkspace(
+            uri: uri,
+            location: location,
+            originId: originID,
+            rootPath: rootPath
+        )
+    }
+
+    /// Creates an agent workspace using the canonical identifier spelling.
+    func createAgentWorkspace(
+        instanceID: UUID,
+        template: AgentTemplate? = nil
+    ) async throws -> WorkspaceReference {
+        try await createAgentWorkspace(
+            instanceId: instanceID,
+            template: template
+        )
+    }
+
+    /// Compatibility overload for callers using the legacy identifier spelling.
+    @_disfavoredOverload
+    @available(*, deprecated, message: "Use createWorkspace(uri:location:originID:rootPath:).")
     public func createWorkspace(
         uri: WorkspaceURI,
         location: WorkspaceReference.WorkspaceLocation,
@@ -46,6 +77,9 @@ extension WorkspaceCatalog {
         )
     }
 
+    /// Compatibility overload for callers using the legacy identifier spelling.
+    @_disfavoredOverload
+    @available(*, deprecated, message: "Use createAgentWorkspace(instanceID:template:).")
     public func createAgentWorkspace(
         instanceId: UUID,
         template: AgentTemplate? = nil

@@ -195,6 +195,35 @@ struct TurnBriefingBuilderTests {
         #expect(note?.content == noteContent)
     }
 
+    @Test("Note discovery limits total files and bytes deterministically")
+    func noteDiscoveryLimitsTotalFilesAndBytes() async throws {
+        let workspace = NoteDiscoveryProbeWorkspace(
+            paths: ["Notes/z.md", "Notes/b.md", "Notes/a.md", "Notes/ignored.txt"],
+            contents: [
+                "Notes/z.md": "z",
+                "Notes/b.md": "bbbb",
+                "Notes/a.md": "aaaa",
+                "Notes/ignored.txt": "ignored",
+            ]
+        )
+        let stage = NoteDiscoveryStage(workspace: workspace, maxFileCount: 2, maxTotalBytes: 6)
+        let context = ContextPipelineContext(
+            query: "query",
+            history: [],
+            limit: 0,
+            tagGenerator: nil,
+            startTime: 0
+        )
+
+        let stream = try await stage.process(context)
+        for try await _ in stream {}
+
+        let notes = await context.notes
+        #expect(notes.map(\.source) == ["Notes/a.md", "Notes/b.md"])
+        #expect(notes.map(\.content) == ["aaaa", "bb"])
+        #expect(await workspace.readPaths == ["Notes/a.md", "Notes/b.md"])
+    }
+
     @Test("Gather Context: Error Propagation")
     func gatherContextErrorPropagation() async throws {
         struct FailingWorkspace: Workspace {
@@ -246,5 +275,49 @@ private actor TagProbe {
 
     func recordCall() {
         calls += 1
+    }
+}
+
+private actor NoteDiscoveryProbeWorkspace: Workspace {
+    nonisolated let id: UUID
+    nonisolated let reference: WorkspaceReference
+    private let paths: [String]
+    private let contents: [String: String]
+    private(set) var readPaths: [String] = []
+
+    init(paths: [String], contents: [String: String]) {
+        let reference = WorkspaceReference.fixture()
+        id = reference.id
+        self.reference = reference
+        self.paths = paths
+        self.contents = contents
+    }
+
+    func listTools() async throws -> [ToolReference] {
+        []
+    }
+
+    func executeTool(id _: String, parameters _: [String: AnyCodable]) async throws -> ToolResult {
+        throw WorkspaceError.toolExecutionNotSupported
+    }
+
+    func readFile(path: String) async throws -> String {
+        readPaths.append(path)
+        guard let content = contents[path] else {
+            throw WorkspaceError.workspaceNotFound
+        }
+        return content
+    }
+
+    func writeFile(path _: String, content _: String) async throws {}
+
+    func listFiles(path _: String) async throws -> [String] {
+        paths
+    }
+
+    func deleteFile(path _: String) async throws {}
+
+    func healthCheck() async -> Bool {
+        true
     }
 }

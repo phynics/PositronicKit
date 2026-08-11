@@ -65,8 +65,20 @@ public struct ContextRanker: Sendable {
             return SemanticSearchResult(memory: result.memory, similarity: decayedScore)
         }
 
-        // Re-sort everything by decayed similarity
-        results.sort { ($0.similarity ?? 0) > ($1.similarity ?? 0) }
+        // Re-sort by decayed similarity. Equal scores use stable memory fields so
+        // selection from the ranked results is independent of backend ordering.
+        // Newer memories win first; UUID strings provide the final deterministic tie-break.
+        results.sort { lhs, rhs in
+            let lhsScore = lhs.similarity ?? 0
+            let rhsScore = rhs.similarity ?? 0
+
+            if lhsScore > rhsScore { return true }
+            if lhsScore < rhsScore { return false }
+            if lhs.memory.updatedAt != rhs.memory.updatedAt {
+                return lhs.memory.updatedAt > rhs.memory.updatedAt
+            }
+            return lhs.memory.id.uuidString < rhs.memory.id.uuidString
+        }
         return results
     }
 }

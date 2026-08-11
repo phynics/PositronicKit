@@ -579,10 +579,14 @@ public final class TestHTTPServer: @unchecked Sendable {
         let headerData = data[..<range.lowerBound]
         let headerText = String(data: headerData, encoding: .utf8) ?? ""
         let contentLength = headerText
-            .split(separator: "\n")
-            .first { $0.lowercased().hasPrefix("content-length:") }
-            .flatMap { $0.split(separator: ":", maxSplits: 1).last }
-            .flatMap { Int($0.trimmingCharacters(in: .whitespacesAndNewlines)) } ?? 0
+            .components(separatedBy: "\r\n")
+            .compactMap { line -> Int? in
+                guard let colon = line.firstIndex(of: ":") else { return nil }
+                let fieldName = String(line[..<colon]).trimmingCharacters(in: .whitespacesAndNewlines)
+                guard fieldName.caseInsensitiveCompare("Content-Length") == .orderedSame else { return nil }
+                return Int(line[line.index(after: colon)...].trimmingCharacters(in: .whitespacesAndNewlines))
+            }
+            .first ?? 0
         return data.distance(from: range.upperBound, to: data.endIndex) >= contentLength
     }
 

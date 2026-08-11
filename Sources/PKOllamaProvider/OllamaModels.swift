@@ -243,18 +243,30 @@ extension OllamaTool {
 struct OllamaEndpoint {
     let rawValue: String
 
-    var url: URL {
+    var url: URL? {
         var cleanEndpoint = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleanEndpoint.isEmpty {
+            return URL(string: "http://localhost:11434")
+        }
         if cleanEndpoint.hasSuffix("/") { cleanEndpoint.removeLast() }
         if cleanEndpoint.hasSuffix("/api") { cleanEndpoint.removeLast(4) }
-        return URL(string: cleanEndpoint) ?? URL(string: "http://localhost:11434")!
+
+        guard let url = URL(string: cleanEndpoint),
+              let scheme = url.scheme?.lowercased(),
+              scheme == "http" || scheme == "https",
+              let host = url.host,
+              !host.isEmpty else {
+            return nil
+        }
+
+        return url
     }
 
-    var chatURL: URL {
-        url.appendingPathComponent("api/chat")
+    var chatURL: URL? {
+        url?.appendingPathComponent("api/chat")
     }
 
-    var tagsURL: URL {
-        url.appendingPathComponent("api/tags")
+    var tagsURL: URL? {
+        url?.appendingPathComponent("api/tags")
     }
 }

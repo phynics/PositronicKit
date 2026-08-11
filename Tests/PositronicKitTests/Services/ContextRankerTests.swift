@@ -187,4 +187,47 @@ final class ContextRankerTests {
         // Score should be 0.8 + 0.5 (tag boost) = 1.3
         #expect(abs((ranked[0].similarity ?? 0) - 1.3) < 0.0001)
     }
+
+    @Test
+    func contextRankerUsesStableTieBreakerForEqualScores() {
+        let olderID = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
+        let newerID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let memoryOlder = createMemory(
+            id: olderID,
+            title: "Older",
+            content: "Same score",
+            embedding: [1.0, 0.0],
+            date: now
+        )
+        let memoryNewer = createMemory(
+            id: newerID,
+            title: "Newer",
+            content: "Same score",
+            embedding: [1.0, 0.0],
+            date: now
+        )
+
+        let firstOrder = ranker.rankMemories(
+            semantic: [
+                SemanticSearchResult(memory: memoryOlder, similarity: 1.0),
+                SemanticSearchResult(memory: memoryNewer, similarity: 1.0),
+            ],
+            tagBased: [],
+            queryEmbedding: [1.0, 0.0],
+            now: { now }
+        )
+        let reversedOrder = ranker.rankMemories(
+            semantic: [
+                SemanticSearchResult(memory: memoryNewer, similarity: 1.0),
+                SemanticSearchResult(memory: memoryOlder, similarity: 1.0),
+            ],
+            tagBased: [],
+            queryEmbedding: [1.0, 0.0],
+            now: { now }
+        )
+
+        #expect(firstOrder.map(\.memory.id) == reversedOrder.map(\.memory.id))
+        #expect(firstOrder.prefix(1).map(\.memory.id) == [newerID])
+    }
 }

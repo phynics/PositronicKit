@@ -1,6 +1,38 @@
 import Foundation
 import PKShared
 
+/// Errors raised when a rendered prompt cannot be safely journaled.
+public enum PromptJournalValidationError: PKError, Sendable, Equatable {
+    /// More than one stable section used the same identifier.
+    case duplicateStableSectionIDs([String])
+    /// More than one semi-stable section used the same identifier.
+    case duplicateSemiStableSectionIDs([String])
+
+    public var errorDomain: String {
+        PKErrorDomain.prompt
+    }
+
+    public var errorCode: Int {
+        switch self {
+        case .duplicateStableSectionIDs: return 1301
+        case .duplicateSemiStableSectionIDs: return 1302
+        }
+    }
+
+    public var userFriendlyMessage: String {
+        switch self {
+        case let .duplicateStableSectionIDs(ids):
+            return "Prompt journaling found duplicate stable section identifiers: \(ids.joined(separator: ", "))."
+        case let .duplicateSemiStableSectionIDs(ids):
+            return "Prompt journaling found duplicate semi-stable section identifiers: \(ids.joined(separator: ", "))."
+        }
+    }
+
+    public var remediation: String? {
+        "Ensure each stable and semi-stable prompt section uses a unique identifier."
+    }
+}
+
 /// Tracks prompt snapshots across turns and projects them into journal layers.
 ///
 /// `PromptJournal` keeps a committed non-volatile base, compares new rendered prompts against
@@ -10,6 +42,9 @@ import PKShared
 /// This is the prompt-layer journaling abstraction intended for public use. Reach for it when you
 /// want to reason about prompt evolution directly, outside the runtime loop.
 public struct PromptJournal: Sendable {
+    /// Validation failures raised while observing a rendered prompt.
+    public typealias ValidationError = PromptJournalValidationError
+
     /// Codable, Sendable snapshot of the journal's complete replay state.
     public struct State: Codable, Sendable, Equatable {
         /// Sections committed as the journal's non-volatile base.
@@ -80,12 +115,16 @@ public struct PromptJournal: Sendable {
     ///
     /// - Parameter prompt: The rendered prompt snapshot to journal.
     /// - Returns: A plan describing the current base, overlay, and volatile layers.
-    public mutating func observe(_ prompt: RenderedPrompt) -> PromptJournalPlan {
+    /// - Throws: ``ValidationError`` when stable or semi-stable section identifiers are duplicated.
+    public mutating func observe(_ prompt: RenderedPrompt) throws -> PromptJournalPlan {
         let currentSections = prompt.sections
+        try PromptJournalDiffer.validate(committedBaseSections)
+        try PromptJournalDiffer.validate(latestObservedSections)
+        try PromptJournalDiffer.validate(currentSections)
         compactIfNeeded()
         defer { latestObservedSections = currentSections }
 
-        let evaluation = PromptJournalDiffer.evaluate(
+        let evaluation = try PromptJournalDiffer.evaluate(
             committedBaseSections: committedBaseSections,
             currentSections: currentSections
         )
@@ -160,7 +199,7 @@ public struct PromptJournal: Sendable {
     ///
     /// - Parameter hard: Defaults to `false`, which clears only the in-flight observation
     ///   (`latestObservedSections`/pressure) and leaves the committed base intact, so the next
-    ///   `observe(sections:)` diffs against prior history as usual. Pass `true` to *also* clear
+    ///   `observe(_:)` diffs against prior history as usual. Pass `true` to *also* clear
     ///   `committedBaseSections`, discarding that history so the next observation starts from a
     ///   completely empty journal, as if newly initialized. Use
     ///   ``resetDiscardingCommittedState()`` when you want to forget the journal's prior state

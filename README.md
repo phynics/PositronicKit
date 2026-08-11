@@ -211,13 +211,13 @@ let second = try await render(tools: [
     .init(id: "lint", summary: "Checks formatting and style."),
 ], query: "What should I run first?")
 
-let initialPlan = journal.observe(first)
+let initialPlan = try journal.observe(first)
 print(initialPlan.baseSections.map(\.section.id))
 // ["system", "tool-build", "tool-test"]
 print(initialPlan.overlaySections.isEmpty)
 // true — nothing has changed yet
 
-let updatedPlan = journal.observe(second)
+let updatedPlan = try journal.observe(second)
 print(updatedPlan.baseSections.map(\.section.id))
 // ["system", "tool-build", "tool-test"] — unchanged stable prefix stays materialized
 print(updatedPlan.overlaySections.map(\.section.id))

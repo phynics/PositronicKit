@@ -68,8 +68,9 @@ public actor FoundationModelsClient: LLMClientProtocol {
         } else {
             #if canImport(FoundationModels)
                 if #available(macOS 26.0, *) {
-                    self.makeSession = { _, instructions in
-                        LiveFoundationModelsSession(bridging: tools, instructions: instructions)
+                    self.makeSession = { turnTools, instructions in
+                        let executableTools = turnTools == nil || turnTools?.isEmpty == false ? tools : []
+                        return LiveFoundationModelsSession(bridging: executableTools, instructions: instructions)
                     }
                 } else {
                     self.makeSession = nil
@@ -95,10 +96,12 @@ public actor FoundationModelsClient: LLMClientProtocol {
                 "FoundationModels adapter maps only free-text responses today; \(String(describing: responseFormat)) is ignored."
             )
         }
-        if toolChoice != nil {
+        if toolChoice == .some(LLMToolChoice.none) {
+            logger.debug("Foundation Models disables executable tools for an explicit .none choice on this turn.")
+        } else if toolChoice != nil {
             logger.debug("FoundationModels ignores toolChoice (no forced-tool equivalent); tools remain auto-selectable by the model.")
         }
-        if tools?.isEmpty == false {
+        if tools?.isEmpty == false, toolChoice != nil {
             logger.debug(
                 "Per-turn [LLMToolDefinition] schema is not usable for on-device execution (no executor carried by the shared contract); pass executable AnyTools to FoundationModelsClient.init(tools:) instead."
             )
@@ -108,8 +111,12 @@ public actor FoundationModelsClient: LLMClientProtocol {
         let instructions = systemInstructions(from: messages)
         let userPrompt = latestUserPrompt(from: messages)
         let messageID = UUID().uuidString
+        // Preserve explicit `.none` as an empty, non-nil definition list so the live factory can
+        // construct this turn without its configured executable tools. A nil choice remains
+        // unspecified and retains the normal tool-capable turn.
+        let sessionTools = toolChoice == .some(LLMToolChoice.none) ? [] : tools
 
-        guard let session = resolveSession(tools: tools, instructions: instructions) else {
+        guard let session = resolveSession(tools: sessionTools, instructions: instructions) else {
             return AsyncThrowingStream { continuation in
                 continuation.finish(throwing: FoundationModelsPlatformError.unsupportedPlatform)
             }

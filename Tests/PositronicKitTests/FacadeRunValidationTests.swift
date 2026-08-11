@@ -95,6 +95,7 @@ struct FacadeRunValidationTests {
             privateTimelineID: UUID(),
         )
         let harness = try await makeAgentHarness(policy: .failRequired, agent: agent)
+        try await harness.kit.agentInstanceManager.attach(agentID: agent.id, to: harness.timelineID)
         harness.languageModel.mockClient.nextResponse = "resolved"
 
         let stream = try await harness.kit.run(ChatRunRequest(
@@ -104,7 +105,7 @@ struct FacadeRunValidationTests {
         ))
         _ = try await stream.collect()
 
-        #expect(await harness.agentStore.fetchCount == 1)
+        #expect(await harness.agentStore.fetchCount == 2)
         let prompt = try #require(harness.languageModel.lastChatCapture)
             .messages
             .map(\.content)
@@ -132,6 +133,7 @@ struct FacadeRunValidationTests {
         }
 
         try await harness.agentStore.saveAgentInstance(agent)
+        try await harness.kit.agentInstanceManager.attach(agentID: agent.id, to: harness.timelineID)
         harness.languageModel.mockClient.nextResponse = "retried"
         let stream = try await harness.kit.run(ChatRunRequest(
             timelineID: harness.timelineID,
@@ -141,7 +143,7 @@ struct FacadeRunValidationTests {
         ))
         _ = try await stream.collect()
 
-        #expect(await harness.agentStore.fetchCount == 2)
+        #expect(await harness.agentStore.fetchCount == 3)
         #expect(harness.languageModel.chatCaptureHistory.count == 1)
     }
 

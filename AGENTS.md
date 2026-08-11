@@ -79,6 +79,30 @@ with `HOME=/tmp`, `CARGO_HOME=/tmp/cargo`. Checkout bind-mounted at `/workspace`
 `.build/` (gitignored). `linux-build` runs `make build-minilm`; `linux-test` runs
 `make verify-linux-current`.
 
+### Focused Linux filters
+
+For Linux verification, prefer the isolated scratch targets rather than invoking
+`swift test` against the checkout's shared `.build` directory:
+
+```bash
+make linux-test-filter LINUX_TEST_FILTER='TestHTTPServerTests|OpenAITransportContractTests'
+make linux-test-filter LINUX_TEST_FILTER='MiniLMEmbeddingContractTests' LINUX_TEST_TRAITS=MiniLMEmbeddings
+make linux-test-scratch # full default + MiniLM trait suites
+```
+
+They apply the runtime's rootless identity flags, mount a reusable SwiftPM scratch directory,
+and export `PKFASTEMBED_PREFIX`, `PKG_CONFIG_PATH`, `LIBRARY_PATH`, and the checksum-keyed
+`PK_MINILM_MODEL_DIR`. Reuse makes the first compile expensive but subsequent focused and full
+gates fast. The default scratch is `.build/linux-test-scratch`; concurrent agents must pass a
+unique `LINUX_SCRATCH_DIR=/tmp/...` to avoid build-database contention. Do not run the default
+and trait suites concurrently against one scratch.
+
+An ad hoc container run needs the same user-namespace flags, model path, and linker environment.
+If using a temporary worktree, ensure it is readable by the container user (a restrictive umask
+can otherwise make its `Package.swift` inaccessible). On hosts where a shell-provided `swift`
+wrapper lacks `swift-test`, use these container targets rather than treating the wrapper failure
+as a package failure.
+
 VS Code Dev Containers extension for full IDE experience.
 
 ### Linux (bare toolchain)

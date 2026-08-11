@@ -22,6 +22,9 @@ private enum LoopContinuation {
     /// `.generationCancelled()`, and finished the continuation; the outer loop must not run
     /// any post-terminal activity.
     case cancelled
+    /// A tool result could not be persisted. The router already emitted `.persistenceFailed`,
+    /// while the durable assistant row remains pending for a retry; no provider follow-up is safe.
+    case persistenceFailed
     /// At least one tool call was deferred for external (host-side) execution. Terminal: the
     /// outer loop emits `.deferredForExternalTool()` and finishes the stream without running
     /// plugin follow-up or starting another LLM turn (PKRR-011).
@@ -109,6 +112,7 @@ extension ChatEngine {
                         // A plugin requested another logical round, but the send budget is
                         // exhausted. This is max-turn termination, not a normal terminal round.
                         if !pluginMessages.isEmpty && turnCount >= context.maxTurns {
+                            await releaseTurnReservation(for: context)
                             continuation.yield(.maxTurnsReached())
                             continuation.finish()
                             return
@@ -121,6 +125,9 @@ extension ChatEngine {
                         return
                     }
                 } catch {
+                    // A follow-up failure is a non-successful terminal outcome. Release before
+                    // finishing so a retry cannot race the stream's terminal delivery.
+                    await releaseTurnReservation(for: context)
                     continuation.finish(throwing: wrapForeignError(error))
                     return
                 }
@@ -144,6 +151,9 @@ extension ChatEngine {
                         nextTurnIndex: turnCount
                     )
                 } catch {
+                    // Snapshot failures terminate the send after preparation, so the caller may
+                    // retry with the same send ID.
+                    await releaseTurnReservation(for: context)
                     continuation.finish(throwing: wrapForeignError(error))
                     return
                 }
@@ -173,6 +183,14 @@ extension ChatEngine {
                 continuation.yield(.deferredForExternalTool())
                 continuation.finish()
                 return
+
+            case .persistenceFailed:
+                // Terminal but recoverable: the router emitted `.persistenceFailed` and left the
+                // assistant's pending tool call in durable history. Release the send reservation
+                // so the caller can retry with the existing pending-call submission semantics.
+                await releaseTurnReservation(for: context)
+                continuation.finish()
+                return
             }
         }
 
@@ -185,6 +203,7 @@ extension ChatEngine {
         // Emit a distinct terminal event so consumers can distinguish max-turn exhaustion from
         // normal completion instead of the stream silently finishing as if it succeeded
         // (PKRR-011).
+        await releaseTurnReservation(for: context)
         continuation.yield(.maxTurnsReached())
         continuation.finish()
     }
@@ -228,6 +247,7 @@ private extension ChatEngine {
             // tool calls) the user already watched stream in, tagged `.cancelled`. The cancel
             // event is still surfaced below — the UI needs it (STAB-5 handles retry separately).
             await partialPersistence.persistPartialAssistantIfNeeded(context: context, status: .cancelled)
+            await releaseTurnReservation(for: context)
             continuation.yield(.generationCancelled())
             continuation.finish()
             return .cancelled
@@ -245,6 +265,7 @@ private extension ChatEngine {
             let isCancellation = Self.isCancellationOrigin(error)
             let status: Message.MessageStatus = isCancellation ? .cancelled : .partial
             await partialPersistence.persistPartialAssistantIfNeeded(context: context, status: status)
+            await releaseTurnReservation(for: context)
             continuation.finish(throwing: error)
             // Terminal outcome: a wrapped cancellation is still a cancellation for loop-control
             // purposes, so the outer loop skips plugin follow-up either way (PKRR-003).
@@ -294,6 +315,8 @@ private extension ChatEngine {
             logger.debug("Turn \(context.turnCount): no tool calls; assistant content chars=\(contentChars)", metadata: turnMeta)
         case .deferredExternally:
             logger.debug("Turn \(context.turnCount): tool calls deferred for external execution", metadata: turnMeta)
+        case .persistenceFailed:
+            logger.debug("Turn \(context.turnCount): tool result persistence failed; stopping before follow-up", metadata: turnMeta)
         case let .continueWith(messages):
             logger.debug("Turn \(context.turnCount): \(messages.count) tool-result message(s) to feed back; assistant content chars=\(contentChars)", metadata: turnMeta)
         }
@@ -303,6 +326,8 @@ private extension ChatEngine {
             return .completed
         case .deferredExternally:
             return .deferredExternally
+        case .persistenceFailed:
+            return .persistenceFailed
         case let .continueWith(messages):
             return .continueWith(messages)
         }
@@ -324,6 +349,13 @@ private extension ChatEngine {
         for try await event in stream {
             continuation.yield(event)
         }
+    }
+
+    /// Preparation owns the reservation until the stream loop reaches a terminal outcome. Only
+    /// unsuccessful outcomes call this helper; successful and externally deferred sends remain
+    /// reserved by `TurnIdempotencyGate`.
+    func releaseTurnReservation(for context: ChatTurnContext) async {
+        await TurnIdempotencyGate.shared.release(sendId: context.sendId)
     }
 
     func publishPromptInspectionIfNeeded(context: ChatTurnContext) async {
