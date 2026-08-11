@@ -18,8 +18,8 @@ struct PromptJournalProcessTests {
 
     private func runFixture(mode: String, input: Data? = nil) throws -> Data {
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        process.arguments = ["swift", "run", "--quiet", "PKPromptJournalProcessFixture", mode]
+        process.executableURL = try fixtureExecutableURL()
+        process.arguments = [mode]
         process.currentDirectoryURL = packageRoot
 
         let outputPipe = Pipe()
@@ -52,6 +52,29 @@ struct PromptJournalProcessTests {
             throw FixtureProcessError(status: process.terminationStatus, message: "Fixture produced no output.")
         }
         return Data(jsonLine.utf8)
+    }
+
+    /// `swift test` has already built the fixture beside the package test bundle.
+    /// Launching `swift run` from inside the test process can deadlock on SwiftPM's
+    /// build-directory lock because the parent `swift test` is still active.
+    private func fixtureExecutableURL() throws -> URL {
+        let fileManager = FileManager.default
+        var directory = URL(fileURLWithPath: CommandLine.arguments[0])
+            .standardizedFileURL
+            .deletingLastPathComponent()
+
+        for _ in 0 ..< 6 {
+            let candidate = directory.appendingPathComponent("PKPromptJournalProcessFixture")
+            if fileManager.isExecutableFile(atPath: candidate.path) {
+                return candidate
+            }
+            directory.deleteLastPathComponent()
+        }
+
+        throw FixtureProcessError(
+            status: -1,
+            message: "Could not locate the built PKPromptJournalProcessFixture executable."
+        )
     }
 
     private var packageRoot: URL {
