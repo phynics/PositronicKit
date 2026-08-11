@@ -26,11 +26,16 @@ The tagged version applies to the public products documented in
 | Core runtime, prompt, shared-contract, or docs-only release work | `make verify` |
 | Public product graph, examples, or package-layout changes | `make verify` and `make verify-products` |
 | `PKLocalEmbeddings` / `PKFastEmbed` / model asset changes | `make verify`, `make verify-products`, and `make verify-minilm` |
-| Linux compatibility changes | the matching Linux gate: `make verify-linux-current` |
+| Linux compatibility changes | `make agent-verify` |
 | Native bridge safety changes | `make verify-linux-asan` |
 
 1. Re-run any product-specific or platform-specific gates that changed behavior on the host you
    are releasing from.
+
+On Linux, use `make agent-verify` as the release gate. It runs the product, example,
+PKTestSupport, default-test, and MiniLM-test gates inside the pinned Podman environment. If an
+agent sandbox blocks Podman, rerun the same command with escalated container-runtime permissions;
+do not fall back to host Swift or compose an ad hoc container command.
 
 ## Tagging Steps
 

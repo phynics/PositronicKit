@@ -1,8 +1,10 @@
 name: CI
 
 on:
-  push:
   pull_request:
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -51,10 +53,10 @@ jobs:
           restore-keys: |
             cargo-${{ runner.os }}-
 
-      - name: Verify current Linux gate
+      - name: Verify agent/CI Linux contract
         run: |
           mkdir -p .build
-          make verify-linux-current 2>&1 | tee .build/linux-current.log
+          make verify-linux-agent 2>&1 | tee .build/linux-current.log
 
       - name: Publish current Linux test log
         if: always()

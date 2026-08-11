@@ -2,19 +2,16 @@
 # doctor.sh — preflight prerequisite check for PositronicKit.
 #
 # Reports the presence (and version, where useful) of every tool the Makefile
-# gates depend on: Swift, Rust, the C/C++ toolchain, pkg-config, OpenSSL dev
-# headers, curl, shasum, a container runtime (Docker/Podman), and the pinned
-# MiniLM model assets. Missing items print an actionable hint so the operator
-# knows whether they matter for the gate they intend to run.
+# gates depend on. Linux verification is intentionally Podman-only, so host
+# Swift and native dependencies are informational there; macOS verification
+# requires a complete native Swift toolchain.
 #
-# Exits non-zero only when a *required* prerequisite (the Swift toolchain) is
-# absent; missing optional prerequisites are reported as warnings. Invoked by
-# `make doctor`, which passes its derived CONTAINER_RUNTIME and PKFASTEMBED_PREFIX
+# Invoked by `make doctor`, which passes its Podman path and PKFASTEMBED_PREFIX
 # so the report reflects the Makefile's own configuration. The script itself
-# does not require Swift to run (parse-time discovery was removed in PKRR-026).
+# does not require Swift to run.
 set -euo pipefail
 
-container_runtime="${1:-}"
+podman_bin="${1:-}"
 pkfastembed_prefix="${2:-}"
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -28,17 +25,20 @@ miss() { printf "  ${yellow}MISS${reset} %s\n" "$1"; }
 hint() { printf "        ${dim}%s${reset}\n" "$1"; }
 
 missing_required=0
+host_os="${DOCTOR_HOST_OS:-$(uname -s)}"
 
 printf "PositronicKit prerequisite report\n"
-printf "  host: %s %s\n\n" "$(uname -s)" "$(uname -m)"
+printf "  host: %s %s\n\n" "$host_os" "$(uname -m)"
 
-# --- Swift (required for every Swift gate) ----------------------------------
+# --- Swift (required only for native macOS gates) ---------------------------
 required_swift_version="$(sed -nE 's|^// swift-tools-version:[[:space:]]*([0-9]+\.[0-9]+).*|\1|p' "$repo_root/Package.swift" | head -n1)"
 required_swift_major="${required_swift_version%%.*}"
 required_swift_minor="${required_swift_version#*.}"
-swift_requirement_hint="Required for all Swift gates: Swift ${required_swift_version:-6.1}+ via https://swift.org/install (swiftly is easiest)."
+swift_requirement_hint="Native macOS gates require Swift ${required_swift_version:-6.1}+ with SwiftPM and Foundation."
 
-if [ -z "$required_swift_version" ]; then
+if [ "$host_os" = "Linux" ]; then
+  ok "Linux verification backend: Podman (host Swift is ignored)"
+elif [ -z "$required_swift_version" ]; then
   miss "Swift tools version could not be read from Package.swift"
   hint "Required for all Swift gates: use the Swift version declared by Package.swift."
   missing_required=1
@@ -58,7 +58,17 @@ elif command -v swift >/dev/null 2>&1; then
     swift_minor="${swift_minor%%.*}"
     if (( swift_major > required_swift_major ||
       (swift_major == required_swift_major && swift_minor >= required_swift_minor) )); then
-      ok "Swift: $swift_display"
+      if ! swift package --version >/dev/null 2>&1; then
+        miss "Swift reports $swift_version but SwiftPM is unavailable"
+        hint "$swift_requirement_hint"
+        missing_required=1
+      elif ! swift -e 'import Foundation' >/dev/null 2>&1; then
+        miss "Swift reports $swift_version but cannot import Foundation"
+        hint "$swift_requirement_hint"
+        missing_required=1
+      else
+        ok "Swift: $swift_display (SwiftPM and Foundation available)"
+      fi
     else
       miss "Swift $swift_version is older than the required Swift $required_swift_version"
       hint "$swift_requirement_hint"
@@ -71,6 +81,11 @@ else
   missing_required=1
 fi
 
+# Native build tools are supplied by the pinned image on Linux. Reporting the
+# host copies there is actively misleading because the Linux gate never uses them.
+if [ "$host_os" = "Linux" ]; then
+  ok "Swift, Rust, C/C++, pkg-config, OpenSSL, curl, and shasum supplied by the Podman image"
+else
 # --- Rust (required for PKFastEmbed / MiniLM) -------------------------------
 if command -v cargo >/dev/null 2>&1; then
   ok "Rust: $(cargo --version 2>/dev/null || echo unknown)"
@@ -122,14 +137,21 @@ else
   miss "shasum not found on PATH"
   hint "Only needed for MiniLM. macOS ships shasum; Linux: install perl Digest::SHA (e.g. libdigest-sha-perl)."
 fi
+fi
 
-# --- Container runtime (required for linux-* targets) ----------------------
-if [ -n "$container_runtime" ] && command -v "$container_runtime" >/dev/null 2>&1; then
-  ok "Container runtime: $container_runtime ($("$container_runtime" --version 2>/dev/null | head -n1 || echo unknown))"
+# --- Podman (required for every Linux build/test entrypoint) ----------------
+if [ -n "$podman_bin" ] && command -v "$podman_bin" >/dev/null 2>&1; then
+  if [ "$host_os" = "Linux" ] && ! "$podman_bin" info >/dev/null 2>&1; then
+    miss "Podman is installed but unavailable to this process"
+    hint "If an agent sandbox blocked Podman, rerun the same make command with escalated container-runtime permissions."
+    missing_required=1
+  else
+    ok "Podman: $podman_bin ($("$podman_bin" --version 2>/dev/null | head -n1 || echo unknown))"
+  fi
 else
-  miss "Container runtime not found (CONTAINER_RUNTIME='${container_runtime:-<empty>}')"
-  hint "Required for 'make linux-image/linux-build/linux-test'. Install podman or docker,"
-  hint "or set CONTAINER_RUNTIME=/path/to/runtime."
+  miss "Podman not found (PODMAN='${podman_bin:-<empty>}')"
+  hint "Linux verification has no native or Docker fallback. Install Podman or set PODMAN=/absolute/path/to/podman."
+  if [ "$host_os" = "Linux" ]; then missing_required=1; fi
 fi
 
 # --- MiniLM model asset pin -------------------------------------------------
@@ -156,7 +178,7 @@ fi
 
 printf "\n"
 if [ "$missing_required" -ne 0 ]; then
-  printf "%sRequired prerequisites missing — fix the items above before running Swift gates.%s\n" "$red" "$reset"
+  printf "%sRequired prerequisites missing — fix the items above before running the selected platform gate.%s\n" "$red" "$reset"
   exit 1
 fi
 printf "%sAll required prerequisites present. Items flagged above are optional for specific gates.%s\n" "$green" "$reset"

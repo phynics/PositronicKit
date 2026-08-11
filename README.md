@@ -362,43 +362,46 @@ All products are supported on Apple platforms and Linux (see [Verification](#ver
 
 ## Verification
 
-Build and test with standard SwiftPM commands (`swift build`, `swift test`, `swift run PositronicKitExamples`). Full verification runs through the root Makefile:
+On macOS, build and test with standard SwiftPM commands (`swift build`, `swift test`,
+`swift run PositronicKitExamples`). Linux verification always runs through Podman:
 
 ```bash
 make verify            # Default build, docs, linkage audit, and tests (macOS)
-make verify-linux      # Bootstrap pinned assets/native bridge and run the full Linux test suite
+make agent-verify      # Canonical full Linux gate in Podman
+make agent-test FILTER='MessageContentTests' # Focused Linux test in Podman
 make verify-linux-asan # PKFastEmbed bridge tests under Linux x86_64 AddressSanitizer (bridge-only)
 make verify-products   # Build every supported product on the current host
 make verify-minilm     # Bootstrap pinned assets/native bridge and run MiniLM tests
 ```
 
-`make verify-linux` needs a Rust toolchain, a C/C++ toolchain, `pkg-config`, OpenSSL development headers, `curl`, and `shasum` in addition to Swift — see [`AGENTS.md`](AGENTS.md#linux-development-setup) for details.
+`make agent-verify` needs Podman on the host. The pinned image supplies Swift, Rust,
+the C/C++ toolchain, and native dependencies. If an agent sandbox blocks Podman,
+rerun the same command with escalated container-runtime permissions; do not fall back
+to host Swift.
 
 `make verify-minilm` downloads the pinned Hugging Face model assets on first use, validates their checksums, builds the Rust bridge, and stores the native prefix and model under `.build`. Override the locations with `PKFASTEMBED_PREFIX=...` and `PK_MINILM_MODEL_DIR=...`. `make verify-linux-asan` requires nightly Rust plus `rust-src` and scopes to `native/pkfastembed` only.
 
 ## Linux Development
 
-PositronicKit supports Linux development through two paths: a Docker-based workflow (recommended for macOS hosts) and a bare-toolchain approach.
+PositronicKit uses one reproducible Linux development path: the pinned Podman image.
 
-### Docker
+### Podman
 
 The included Dev Container provides Swift 6.3.3, Rust stable, and all native prerequisites on Ubuntu 24.04:
 
 ```bash
 make linux-image   # Build the development image (swift:6.3.3-noble + Rust + native deps)
 make linux-build   # Compile in the container (bind-mounts your checkout)
-make linux-test    # Run the full Linux gate: make verify-linux-current
+make agent-verify  # Run the complete product, example, support, and test gate
+make agent-test FILTER='MessageContentTests' # Run one focused test selection
 ```
 
-Open the project in VS Code with the Dev Containers extension for a full IDE experience, or use the Make targets from any terminal with Docker installed. The container bind-mounts your checkout at `/workspace`; build artifacts land in the host `.build/` directory.
-
-### Bare toolchain
-
-Alternatively, install the prerequisites directly on your Linux host — see [`AGENTS.md`](AGENTS.md#linux-development-setup) for the full dependency list. Once installed, the canonical gate is:
-
-```bash
-make verify-linux-current
-```
+The shared runner verifies Podman access, builds the pinned image, applies the required
+rootless identity and native-linker environment, serializes shared build state, and logs
+the gate under `.build/agent-logs/`. The checkout is bind-mounted at `/workspace`, so host
+edits are visible immediately and reusable artifacts stay under the gitignored `.build/`
+directory. See [`AGENTS.md`](AGENTS.md#linux-development-setup) for focused-test and
+concurrency details.
 
 ## Companion App
 

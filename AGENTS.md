@@ -20,15 +20,18 @@
 ## Commands
 
 ```
-swift build                        # or: make build
-swift test                         # or: make test
-swift run PositronicKitExamples
-make verify                        # macOS full gate: pin, docs, linkage, products, examples, tests
-make verify-linux-current          # full Linux gate (Swift 6.3.3 / Ubuntu 24.04)
+make agent-verify                  # canonical Linux gate; always runs in Podman
+make agent-test FILTER='…'         # focused Linux test; add TRAITS=MiniLMEmbeddings if needed
+make verify                        # native macOS full gate
 make build-minilm                  # bootstrap assets + build MiniLM trait product
 make verify-minilm                 # bootstrap + run MiniLM gates
-make doctor                        # report missing prereqs (Swift, Rust, container runtime, ...)
+make doctor                        # report prerequisites for the current platform gate
 ```
+
+On Linux, agents must use `make agent-verify` or `make agent-test`; never invoke host
+`swift`, `make test`, `make verify-products`, or `make verify-linux-current` directly.
+Linux testing has no native or Docker fallback. If Podman is blocked by the agent sandbox,
+rerun the same make command with escalated container-runtime permissions.
 
 `make verify-linux-asan` runs PKFastEmbed bridge tests under Linux x86_64
 AddressSanitizer (needs nightly rustup toolchain + rust-src). Linux container targets
@@ -58,54 +61,45 @@ Apple via the `MiniLMEmbeddings` trait (uses Natural Language by default).
 
 ### Linux (container)
 
-Container-based development is for **Linux** — use native Swift on macOS instead. Dev
+Container-based development is required for **Linux testing** — use native Swift on macOS instead. Dev
 Container (`.devcontainer/`) provides Swift 6.3.3, Rust stable, all native prerequisites
 on Ubuntu 24.04. From repo root:
 
 ```bash
-make linux-image   # Build the development image
-make linux-build   # build-minilm in container (bind-mounted)
-make linux-test    # full Linux gate in container (make verify-linux-current)
+make agent-verify                                  # full products/examples/default/MiniLM gate
+make agent-test FILTER='MessageContentTests'       # focused default-trait test
+make agent-test FILTER='MiniLMEmbeddingContractTests' TRAITS=MiniLMEmbeddings
 ```
 
-Runtime auto-detected: `podman` preferred, else `docker`. Override
-`CONTAINER_RUNTIME=/path/to/runtime`; image tag via `LINUX_IMAGE` (default
-`positronickit-linux-dev`). No runtime on PATH — targets fail fast; `make doctor`
-reports missing prereqs.
+Podman is required and auto-detected; override its path with `PODMAN=/path/to/podman`.
+The image tag is controlled by `LINUX_IMAGE` (default `positronickit-linux-dev`). No
+Podman on PATH—or Podman blocked by a sandbox—fails fast with exact remediation.
 
-Containers run rootless (podman `--userns=keep-id`, docker `--user $(id -u):$(id -g)`)
-with `HOME=/tmp`, `CARGO_HOME=/tmp/cargo`. Checkout bind-mounted at `/workspace`
+Containers run rootless (`--userns=keep-id --user $(id -u):$(id -g)`)
+with `HOME=/tmp` and a reusable `CARGO_HOME` under `.build/`. Checkout bind-mounted at `/workspace`
 (SELinux `:Z` label), so host edits visible immediately; build artifacts land in host
-`.build/` (gitignored). `linux-build` runs `make build-minilm`; `linux-test` runs
-`make verify-linux-current`.
+`.build/` (gitignored). `Scripts/run-linux-container.sh` is the single owner of Podman
+flags, mounts, native linker paths, model paths, logging, and shared-build locking.
 
 ### Focused Linux filters
 
-For Linux verification, prefer the isolated scratch targets rather than invoking
-`swift test` against the checkout's shared `.build` directory:
+Focused Linux tests use an isolated, checksum-keyed SwiftPM scratch directory:
 
 ```bash
-make linux-test-filter LINUX_TEST_FILTER='TestHTTPServerTests|OpenAITransportContractTests'
-make linux-test-filter LINUX_TEST_FILTER='MiniLMEmbeddingContractTests' LINUX_TEST_TRAITS=MiniLMEmbeddings
-make linux-test-scratch # full default + MiniLM trait suites
+make agent-test FILTER='TestHTTPServerTests|OpenAITransportContractTests'
+make agent-test FILTER='MiniLMEmbeddingContractTests' TRAITS=MiniLMEmbeddings
 ```
 
-They apply the runtime's rootless identity flags, mount a reusable SwiftPM scratch directory,
-and export `PKFASTEMBED_PREFIX`, `PKG_CONFIG_PATH`, `LIBRARY_PATH`, and the checksum-keyed
-`PK_MINILM_MODEL_DIR`. Reuse makes the first compile expensive but subsequent focused and full
-gates fast. The default scratch is `.build/linux-test-scratch`; concurrent agents must pass a
-unique `LINUX_SCRATCH_DIR=/tmp/...` to avoid build-database contention. Do not run the default
-and trait suites concurrently against one scratch.
-
-An ad hoc container run needs the same user-namespace flags, model path, and linker environment.
-If using a temporary worktree, ensure it is readable by the container user (a restrictive umask
-can otherwise make its `Package.swift` inaccessible). On hosts where a shell-provided `swift`
-wrapper lacks `swift-test`, use these container targets rather than treating the wrapper failure
-as a package failure.
+The shared runner exports `PKFASTEMBED_PREFIX`, `PKG_CONFIG_PATH`, `LIBRARY_PATH`, and
+the checksum-keyed `PK_MINILM_MODEL_DIR`. It serializes access to shared SwiftPM state,
+so agents do not invent ad hoc container commands or manage scratch contention themselves.
 
 VS Code Dev Containers extension for full IDE experience.
 
-### Linux (bare toolchain)
+### Linux implementation prerequisites
+
+The following dependencies are installed inside the Podman image and GitHub Actions runner.
+They are implementation details of the gate, not host setup instructions for agents.
 
 `PositronicKit`, `PKPrompt`, `PKShared` build with bare Swift 6.1+ toolchain (no extra
 system packages). Building/testing `PKLocalEmbeddings`/`PKFastEmbed` — default on Linux,
@@ -129,13 +123,14 @@ so without explicit `-L` linker can't resolve. `PKFastEmbed`'s `linkerSettings` 
 `Package.swift` adds `-L<PKFASTEMBED_PREFIX>/lib` directly (`PKFASTEMBED_PREFIX` defaults
 to `.build/pkfastembed`, exported by Makefile).
 
-Canonical Linux gate:
+Inner Linux gate (used inside Podman and directly by GitHub Actions):
 
 ```bash
-make verify-linux-current   # bootstrap-minilm, then `swift test` + `swift test --traits MiniLMEmbeddings`
+make verify-linux-agent
 ```
 
-`verify-linux-current` skips `validate-docs` (unlike `verify` on Apple) — DocC +
+Agents call `make agent-verify`, not this inner target. The Linux contract skips
+`validate-docs` (unlike `verify` on Apple) — DocC +
 `swift-symbolgraph-extract` resolved from Xcode toolchain path in `Scripts/validate-docc.sh`,
 absent on Linux. Story tests `validate-docs` runs are subset of its full `swift test`, so
 no coverage lost.
@@ -174,7 +169,7 @@ make verify-linux-asan
 - Tests accompany change; use `PKTestSupport`. Fixtures deterministic + lightweight; prefer reusable builders over inline setup.
 - Keep `PositronicKitExamples` compiling and current with public APIs.
 - Schema: prefer `JSONSchema`/`JSONSchemaBuilder`, derive from `@Schemable` when schema mirrors Swift model; no custom schema wrapper types.
-- `swift build && swift test` before opening/updating PRs.
+- Before opening/updating PRs: `make agent-verify` on Linux; `make verify` on macOS.
 - Public API changes: update `CHANGELOG.md` under `Unreleased`, follow `docs/Releasing.md` for tag/pin workflow — `main` is not consumer source of truth.
 
 ## PositronicKit Invariants

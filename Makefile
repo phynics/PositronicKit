@@ -1,10 +1,12 @@
 .PHONY: help build clean test test-parallel harden doctor validate-docs verify-doc-snippets \
 	audit-default-linkage verify-pin verify verify-macos-default \
-	verify-linux verify-linux-base verify-linux-current \
+	verify-linux verify-linux-agent verify-linux-base verify-linux-current verify-linux-filter \
+	verify-linux-scratch verify-linux-suites \
 	verify-linux-asan \
-	verify-products verify-examples verify-tests verify-pktestsupport verify-macos-minilm \
+	verify-agent-harness verify-products verify-examples verify-tests verify-pktestsupport verify-macos-minilm \
 	bootstrap-minilm build-minilm verify-minilm \
-	linux-image linux-build linux-test linux-test-scratch linux-test-filter require-container-runtime
+	agent-verify agent-test linux-image linux-build linux-test linux-test-scratch \
+	linux-test-filter require-podman
 
 PKFASTEMBED_PREFIX ?= $(CURDIR)/.build/pkfastembed
 PKFASTEMBED_ASAN_TOOLCHAIN ?= nightly
@@ -22,18 +24,13 @@ export PKFASTEMBED_PREFIX
 export PK_MINILM_MODEL_DIR
 
 LINUX_IMAGE ?= positronickit-linux-dev
-LINUX_SCRATCH_DIR ?= $(CURDIR)/.build/linux-test-scratch
+LINUX_SCRATCH_DIR ?= $(CURDIR)/.build/agent-scratch/swift-6.3.3-$(MINILM_MODEL_SHA256)
 LINUX_TEST_TRAITS ?=
-CONTAINER_RUNTIME ?= $(shell \
-	if command -v podman >/dev/null 2>&1; then command -v podman; \
-	elif command -v docker >/dev/null 2>&1; then command -v docker; \
-	fi)
-CONTAINER_IS_PODMAN := $(if $(filter podman podman-%,$(notdir $(CONTAINER_RUNTIME))),1,)
-ifeq ($(CONTAINER_IS_PODMAN),1)
-CONTAINER_USER_FLAGS := --userns=keep-id --user "$$(id -u):$$(id -g)"
-else
-CONTAINER_USER_FLAGS := --user "$$(id -u):$$(id -g)"
-endif
+AGENT_LOG_DIR ?= $(CURDIR)/.build/agent-logs
+AGENT_LOCK_FILE ?= $(CURDIR)/.build/positronickit-agent-gate.lock
+PODMAN ?= $(shell command -v podman 2>/dev/null)
+FILTER ?=
+TRAITS ?=
 
 # Library-product discovery is intentionally NOT done at parse time. It used to
 # run `swift package describe` for almost every target, so `make help` (and
@@ -56,6 +53,8 @@ help:
 	@echo "  make clean                 Clean build artifacts"
 	@echo ""
 	@echo "Development:"
+	@echo "  make agent-verify          Canonical full gate (Podman-only on Linux)"
+	@echo "  make agent-test FILTER='…' Run a focused Podman Linux test"
 	@echo "  make test                  Run tests"
 	@echo "  make test-parallel         Run tests in parallel"
 	@echo "  make harden                Run build and parallel hardening test gate"
@@ -70,13 +69,14 @@ help:
 	@echo "  make verify-examples       Build the PositronicKitExamples executable"
 	@echo "  make verify-tests          Run the test suite"
 	@echo "  make verify-pktestsupport  Build PKTestSupport and an ordinary-import consumer in release mode"
+	@echo "  make verify-agent-harness Run agent test-entrypoint regression tests"
 	@echo "  make verify-pin            Check the pinned MiniLM artifact hashes are consistent"
 	@echo "  make build-minilm          Prepare assets/native bridge and build the MiniLM trait product"
 	@echo "  make verify-minilm         Prepare pinned assets and run MiniLM gates"
 	@echo "  make doctor                Report missing prerequisites (Swift, Rust, container runtime, ...)"
 	@echo ""
-	@echo "Linux (Docker):"
-	@echo "  make linux-image           Build the Linux development Docker image"
+	@echo "Linux (Podman):"
+	@echo "  make linux-image           Build the Linux development Podman image"
 	@echo "  make linux-build           Build in a Linux container (bind-mounted)"
 	@echo "  make linux-test            Run the full Linux gate in a container"
 	@echo "  make linux-test-scratch    Run both Linux suites in a reusable isolated scratch"
@@ -128,13 +128,13 @@ verify-pin:
 # MiniLM model assets, host platform) with actionable hints for anything missing.
 # Does not require Swift to run (parse-time discovery was removed in PKRR-026).
 doctor:
-	@bash Scripts/doctor.sh "$(CONTAINER_RUNTIME)" "$(PKFASTEMBED_PREFIX)"
+	@bash Scripts/doctor.sh "$(PODMAN)" "$(PKFASTEMBED_PREFIX)"
 
 verify-macos-default: verify
 
 verify: verify-pin validate-docs verify-doc-snippets audit-default-linkage verify-products verify-examples verify-pktestsupport verify-tests
 
-verify-linux-base: bootstrap-minilm
+verify-linux-suites:
 	@echo "Running comprehensive Linux test suite..."
 	@PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
 		LIBRARY_PATH="$(PKFASTEMBED_PREFIX)/lib$${LIBRARY_PATH:+:$$LIBRARY_PATH}" \
@@ -145,9 +145,40 @@ verify-linux-base: bootstrap-minilm
 		PK_MINILM_MODEL_DIR="$(MINILM_MODEL_CACHE_DIR)" \
 		swift test --traits MiniLMEmbeddings
 
+verify-linux-base: bootstrap-minilm
+	@PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
+		LIBRARY_PATH="$(PKFASTEMBED_PREFIX)/lib$${LIBRARY_PATH:+:$$LIBRARY_PATH}" \
+		PK_MINILM_MODEL_DIR="$(MINILM_MODEL_CACHE_DIR)" \
+		$(MAKE) verify-linux-suites
+
 verify-linux-current: verify-linux-base
 
 verify-linux: verify-linux-current
+
+# The inner Linux gate used by both GitHub Actions and the outer Podman agent
+# entrypoint. Native-linker discovery is exported once for every product,
+# example, support, and test command so callers cannot accidentally omit it.
+verify-linux-agent: bootstrap-minilm
+	@echo "Running agent/CI Linux verification contract..."
+	@PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
+		LIBRARY_PATH="$(PKFASTEMBED_PREFIX)/lib$${LIBRARY_PATH:+:$$LIBRARY_PATH}" \
+		PK_MINILM_MODEL_DIR="$(MINILM_MODEL_CACHE_DIR)" \
+		$(MAKE) verify-agent-harness verify-products verify-examples verify-pktestsupport verify-linux-suites
+
+verify-linux-filter: bootstrap-minilm
+	@if [ -z "$(LINUX_TEST_FILTER)" ]; then \
+		echo "make: LINUX_TEST_FILTER is required." >&2; \
+		exit 2; \
+	fi
+	@if [ -n "$(LINUX_TEST_TRAITS)" ]; then \
+		swift test --scratch-path /scratch --jobs 1 --traits "$(LINUX_TEST_TRAITS)" --filter "$(LINUX_TEST_FILTER)"; \
+	else \
+		swift test --scratch-path /scratch --jobs 1 --filter "$(LINUX_TEST_FILTER)"; \
+	fi
+
+verify-linux-scratch: bootstrap-minilm
+	@swift test --scratch-path /scratch --jobs 1
+	@swift test --scratch-path /scratch --jobs 1 --traits MiniLMEmbeddings
 
 verify-linux-asan:
 	@echo "Running PKFastEmbed tests under AddressSanitizer for $(PKFASTEMBED_ASAN_TARGET)..."
@@ -184,6 +215,10 @@ verify-pktestsupport:
 
 verify-tests: test
 
+verify-agent-harness:
+	@bash Tests/Scripts/doctor_test.sh
+	@bash Tests/Scripts/run_linux_container_test.sh
+
 # Idempotent: verifies the pin, then downloads/checksums pinned assets and builds
 # the native bridge only when missing. Safe to declare as a prerequisite so the
 # MiniLM build/test pipeline prepares everything without a separate manual step.
@@ -206,68 +241,68 @@ verify-minilm: bootstrap-minilm
 		PK_MINILM_MODEL_DIR="$(MINILM_MODEL_CACHE_DIR)" \
 		swift test --traits MiniLMEmbeddings --filter PKFastEmbedTests
 
-# Fail fast with one clear message when no container runtime is configured,
-# instead of a cryptic shell error from an empty $(CONTAINER_RUNTIME).
-require-container-runtime:
-	@if [ -z "$(CONTAINER_RUNTIME)" ]; then \
-		echo "make: no container runtime found (neither podman nor docker on PATH, and CONTAINER_RUNTIME is empty)." >&2; \
-		echo "    Install podman or docker, or set CONTAINER_RUNTIME=/path/to/runtime." >&2; \
+# Linux testing intentionally has no native or Docker fallback. The shared
+# runner performs the deeper access check and prints the sandbox-escalation
+# remediation when Podman is installed but unavailable.
+require-podman:
+	@if [ -z "$(PODMAN)" ]; then \
+		echo "make: PositronicKit Linux testing requires Podman." >&2; \
+		echo "    Install Podman or set PODMAN=/absolute/path/to/podman." >&2; \
 		echo "    Run 'make doctor' for a full prerequisite check." >&2; \
 		exit 1; \
 	fi
 
-# --- Linux Docker targets ----------------------------------------------------
+# --- Linux Podman targets ----------------------------------------------------
 # Bind-mount the checkout so host edits are immediately visible in the container.
 # Build artifacts land in the host .build/ directory (gitignored).
 
-linux-image: require-container-runtime
-	@echo "Building Linux development image..."
-	@$(CONTAINER_RUNTIME) build -t $(LINUX_IMAGE) -f .devcontainer/Dockerfile .
+agent-verify: require-podman
+	@mkdir -p "$(AGENT_LOG_DIR)"
+	@PODMAN="$(PODMAN)" LINUX_IMAGE="$(LINUX_IMAGE)" \
+		bash Scripts/run-linux-container.sh \
+		--log "$(AGENT_LOG_DIR)/verify.log" \
+		--lock "$(AGENT_LOCK_FILE)" \
+		-- make verify-linux-agent
 
-linux-build: require-container-runtime linux-image
-	@echo "Building in Linux container..."
-	@$(CONTAINER_RUNTIME) run --rm $(CONTAINER_USER_FLAGS) \
-		-e HOME=/tmp -e CARGO_HOME=/tmp/cargo \
-		-v "$(CURDIR):/workspace:Z" -w /workspace $(LINUX_IMAGE) \
-		make build-minilm
+agent-test: require-podman
+	@if [ -z "$(FILTER)" ]; then \
+		echo "make: FILTER is required (for example: make agent-test FILTER='MessageContentTests')." >&2; \
+		exit 2; \
+	fi
+	@mkdir -p "$(AGENT_LOG_DIR)" "$(LINUX_SCRATCH_DIR)"
+	@PODMAN="$(PODMAN)" LINUX_IMAGE="$(LINUX_IMAGE)" \
+		LINUX_TEST_FILTER="$(FILTER)" LINUX_TEST_TRAITS="$(TRAITS)" \
+		bash Scripts/run-linux-container.sh \
+		--log "$(AGENT_LOG_DIR)/test.log" \
+		--lock "$(AGENT_LOCK_FILE)" \
+		--scratch "$(LINUX_SCRATCH_DIR)" \
+		-- make verify-linux-filter
 
-linux-test: require-container-runtime linux-image
-	@echo "Running Linux verification gate in container..."
-	@$(CONTAINER_RUNTIME) run --rm $(CONTAINER_USER_FLAGS) \
-		-e HOME=/tmp -e CARGO_HOME=/tmp/cargo \
-		-v "$(CURDIR):/workspace:Z" -w /workspace $(LINUX_IMAGE) \
-		make verify-linux-current
+linux-image: require-podman
+	@PODMAN="$(PODMAN)" LINUX_IMAGE="$(LINUX_IMAGE)" \
+		bash Scripts/run-linux-container.sh --build-only
+
+linux-build: require-podman
+	@PODMAN="$(PODMAN)" LINUX_IMAGE="$(LINUX_IMAGE)" \
+		bash Scripts/run-linux-container.sh --lock "$(AGENT_LOCK_FILE)" -- make build-minilm
+
+linux-test: agent-verify
 
 # Run both canonical Linux suites without using the checkout's shared SwiftPM
 # build database. Reusing LINUX_SCRATCH_DIR makes subsequent gates much faster.
-linux-test-scratch: require-container-runtime linux-image
+linux-test-scratch: require-podman
 	@mkdir -p "$(LINUX_SCRATCH_DIR)"
-	@$(CONTAINER_RUNTIME) run --rm $(CONTAINER_USER_FLAGS) \
-		-e HOME=/tmp -e CARGO_HOME=/tmp/cargo \
-		-e PKFASTEMBED_PREFIX=/workspace/.build/pkfastembed \
-		-e PKG_CONFIG_PATH=/workspace/.build/pkfastembed/lib/pkgconfig \
-		-e LIBRARY_PATH=/workspace/.build/pkfastembed/lib \
-		-e PK_MINILM_MODEL_DIR=/workspace/.build/minilm-model/$(MINILM_MODEL_SHA256) \
-		-v "$(CURDIR):/workspace:Z" -v "$(LINUX_SCRATCH_DIR):/scratch:Z" \
-		-w /workspace $(LINUX_IMAGE) \
-		bash -lc 'make bootstrap-minilm && swift test --scratch-path /scratch --jobs 1 && swift test --scratch-path /scratch --jobs 1 --traits MiniLMEmbeddings'
+	@PODMAN="$(PODMAN)" LINUX_IMAGE="$(LINUX_IMAGE)" \
+		bash Scripts/run-linux-container.sh \
+		--lock "$(AGENT_LOCK_FILE)" \
+		--scratch "$(LINUX_SCRATCH_DIR)" \
+		-- make verify-linux-scratch
 
 # Run a focused Linux filter without contending for the checkout's shared
 # .build/build.db. Set a unique LINUX_SCRATCH_DIR for concurrent invocations.
-linux-test-filter: require-container-runtime linux-image
+linux-test-filter:
 	@if [ -z "$(LINUX_TEST_FILTER)" ]; then \
 		echo "make: LINUX_TEST_FILTER is required (for example: TestHTTPServerTests)." >&2; \
 		exit 2; \
 	fi
-	@mkdir -p "$(LINUX_SCRATCH_DIR)"
-	@$(CONTAINER_RUNTIME) run --rm $(CONTAINER_USER_FLAGS) \
-			-e HOME=/tmp -e CARGO_HOME=/tmp/cargo \
-			-e PKFASTEMBED_PREFIX=/workspace/.build/pkfastembed \
-			-e PKG_CONFIG_PATH=/workspace/.build/pkfastembed/lib/pkgconfig \
-			-e LIBRARY_PATH=/workspace/.build/pkfastembed/lib \
-			-e PK_MINILM_MODEL_DIR=/workspace/.build/minilm-model/$(MINILM_MODEL_SHA256) \
-			-e LINUX_TEST_FILTER="$(LINUX_TEST_FILTER)" \
-			-e LINUX_TEST_TRAITS="$(LINUX_TEST_TRAITS)" \
-			-v "$(CURDIR):/workspace:Z" -v "$(LINUX_SCRATCH_DIR):/scratch:Z" \
-			-w /workspace $(LINUX_IMAGE) \
-			bash -lc 'if [ -n "$$LINUX_TEST_TRAITS" ]; then swift test --scratch-path /scratch --jobs 1 --traits "$$LINUX_TEST_TRAITS" --filter "$$LINUX_TEST_FILTER"; else swift test --scratch-path /scratch --jobs 1 --filter "$$LINUX_TEST_FILTER"; fi'
+	@$(MAKE) agent-test FILTER="$(LINUX_TEST_FILTER)" TRAITS="$(LINUX_TEST_TRAITS)"
