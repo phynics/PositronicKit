@@ -52,6 +52,25 @@ struct OpenAIConversionsTests {
         #expect(userMsg.name == "alice")
     }
 
+    @Test("ordered user media maps to OpenAI content parts")
+    func orderedMultimodalUserConversion() throws {
+        let message = LLMMessage(role: .user, content: MessageContent(parts: [
+            .text("first"),
+            .image(ImageContent(data: Data([0x01, 0x02]), mediaType: "image/png", detail: .high)),
+            .audio(AudioContent(data: Data([0x03, 0x04]), format: .wav)),
+            .text("last"),
+        ]))
+
+        let encoded = try JSONEncoder().encode(try message.toOpenAIMessageParam())
+        let object = try #require(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        let content = try #require(object["content"] as? [[String: Any]])
+
+        #expect(content.compactMap { $0["type"] as? String } == ["text", "image_url", "input_audio", "text"])
+        #expect((content[1]["image_url"] as? [String: Any])?["url"] as? String == "data:image/png;base64,AQI=")
+        #expect((content[2]["input_audio"] as? [String: Any])?["data"] as? String == "AwQ=")
+        #expect((content[2]["input_audio"] as? [String: Any])?["format"] as? String == "wav")
+    }
+
     @Test("assistant role with tool calls maps to .assistant param with toolCalls")
     func assistantRoleWithToolCalls() throws {
         let message = LLMMessage(

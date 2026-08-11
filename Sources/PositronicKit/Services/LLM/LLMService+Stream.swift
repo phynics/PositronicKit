@@ -60,6 +60,37 @@ public extension LLMStreamClient {
 }
 
 public extension LLMService {
+    func chatStream(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        modelTier: ModelTier,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        await awaitPreparation()
+        let selectedClient: (any LLMClientProtocol)? = switch modelTier {
+        case .fast: fastClient() ?? client()
+        case .utility: utilityClient() ?? client()
+        case .primary: client()
+        }
+        guard let selectedClient else {
+            return AsyncThrowingStream { $0.finish(throwing: LLMServiceError.notConfigured) }
+        }
+        let parameters = generationParameters ?? configuration.activeProviderConfiguration.generationParameters
+        return await selectedClient.chatStream(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: parameters,
+            responseModalities: responseModalities,
+            audioOutput: audioOutput
+        )
+    }
+
     /// Stream chat responses (low-level API)
     func chatStream(
         messages: [LLMMessage],

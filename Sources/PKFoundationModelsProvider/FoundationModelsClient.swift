@@ -91,6 +91,18 @@ public actor FoundationModelsClient: LLMClientProtocol {
         let modelName = self.modelName
         let logger = self.logger
 
+        if let capability = messages.lazy.flatMap(\.messageContent.parts).compactMap({ part -> ModelCapability? in
+            switch part {
+            case .image: .imageInput
+            case .audio: .audioInput
+            case .text: nil
+            }
+        }).first {
+            return AsyncThrowingStream { continuation in
+                continuation.finish(throwing: MultimodalContentError.missingCapability(capability))
+            }
+        }
+
         if let responseFormat, responseFormat != .text {
             logger.warning(
                 "FoundationModels adapter maps only free-text responses today; \(String(describing: responseFormat)) is ignored."

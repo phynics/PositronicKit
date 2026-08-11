@@ -9,8 +9,14 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
     /// Unique identifier for the message.
     public let id: UUID
 
-    /// The main response content (with `<think>` and `<tool_call>` tags removed for display).
-    public var content: String
+    /// The canonical ordered message content.
+    public var messageContent: MessageContent
+
+    /// The legacy text projection of ``messageContent``.
+    public var content: String {
+        get { messageContent.text }
+        set { messageContent = MessageContent(newValue) }
+    }
 
     /// The role of the message author.
     public var role: MessageRole
@@ -122,7 +128,36 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
     ) {
         self.id = id
         self.timestamp = timestamp
-        self.content = content
+        messageContent = MessageContent(content)
+        self.role = role
+        self.reasoning = reasoning
+        self.toolCalls = toolCalls
+        self.toolCallID = toolCallID
+        self.parentID = parentID
+        self.recalledMemories = recalledMemories
+        self.isSummary = isSummary
+        self.summaryType = summaryType
+        self.status = status
+    }
+
+    /// Creates a message with ordered multimodal content.
+    public init(
+        id: UUID = UUID(),
+        timestamp: Date = Date(),
+        content: MessageContent,
+        role: MessageRole,
+        reasoning: String? = nil,
+        toolCalls: [ToolCall]? = nil,
+        toolCallID: String? = nil,
+        parentID: UUID? = nil,
+        recalledMemories: [Memory]? = nil,
+        isSummary: Bool = false,
+        summaryType: SummaryType? = nil,
+        status: MessageStatus? = nil
+    ) {
+        self.id = id
+        self.timestamp = timestamp
+        messageContent = content
         self.role = role
         self.reasoning = reasoning
         self.toolCalls = toolCalls
@@ -205,10 +240,56 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
 
 private extension Message {
     enum CodingKeys: String, CodingKey {
-        case id, content, role, timestamp, reasoning, toolCalls
+        case id, content, contentParts, role, timestamp, reasoning, toolCalls
         case toolCallID = "toolCallId"
         case parentID = "parentId"
         case recalledMemories, isSummary, summaryType, status
+    }
+}
+
+public extension Message {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        timestamp = try container.decode(Date.self, forKey: .timestamp)
+        let text = try container.decode(String.self, forKey: .content)
+        if let parts = try container.decodeIfPresent([MessageContentPart].self, forKey: .contentParts) {
+            let decoded = MessageContent(parts: parts)
+            guard decoded.text == text else {
+                throw DecodingError.dataCorruptedError(forKey: .contentParts, in: container, debugDescription: "Content parts do not match the text projection.")
+            }
+            messageContent = decoded
+        } else {
+            messageContent = MessageContent(text)
+        }
+        role = try container.decode(MessageRole.self, forKey: .role)
+        reasoning = try container.decodeIfPresent(String.self, forKey: .reasoning)
+        toolCalls = try container.decodeIfPresent([ToolCall].self, forKey: .toolCalls)
+        toolCallID = try container.decodeIfPresent(String.self, forKey: .toolCallID)
+        parentID = try container.decodeIfPresent(UUID.self, forKey: .parentID)
+        recalledMemories = try container.decodeIfPresent([Memory].self, forKey: .recalledMemories)
+        isSummary = try container.decodeIfPresent(Bool.self, forKey: .isSummary) ?? false
+        summaryType = try container.decodeIfPresent(SummaryType.self, forKey: .summaryType)
+        status = try container.decodeIfPresent(MessageStatus.self, forKey: .status)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(content, forKey: .content)
+        if messageContent.requiresContentPartsEncoding {
+            try container.encode(messageContent.parts, forKey: .contentParts)
+        }
+        try container.encode(role, forKey: .role)
+        try container.encode(timestamp, forKey: .timestamp)
+        try container.encodeIfPresent(reasoning, forKey: .reasoning)
+        try container.encodeIfPresent(toolCalls, forKey: .toolCalls)
+        try container.encodeIfPresent(toolCallID, forKey: .toolCallID)
+        try container.encodeIfPresent(parentID, forKey: .parentID)
+        try container.encodeIfPresent(recalledMemories, forKey: .recalledMemories)
+        try container.encode(isSummary, forKey: .isSummary)
+        try container.encodeIfPresent(summaryType, forKey: .summaryType)
+        try container.encodeIfPresent(status, forKey: .status)
     }
 }
 

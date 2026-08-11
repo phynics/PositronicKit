@@ -84,11 +84,12 @@ struct AnthropicMessage: Encodable, Equatable {
 
 enum AnthropicContentBlock: Encodable, Equatable {
     case text(String)
+    case image(mediaType: String, data: Data)
     case toolUse(id: String, name: String, input: AnthropicJSONValue)
     case toolResult(toolUseID: String, content: String)
 
     private enum CodingKeys: String, CodingKey {
-        case type, text, id, name, input, content
+        case type, text, id, name, input, content, source
         case toolUseID = "tool_use_id"
     }
 
@@ -98,6 +99,12 @@ enum AnthropicContentBlock: Encodable, Equatable {
         case let .text(text):
             try container.encode("text", forKey: .type)
             try container.encode(text, forKey: .text)
+        case let .image(mediaType, data):
+            try container.encode("image", forKey: .type)
+            try container.encode(
+                AnthropicImageSource(mediaType: mediaType, data: data.base64EncodedString()),
+                forKey: .source
+            )
         case let .toolUse(id, name, input):
             try container.encode("tool_use", forKey: .type)
             try container.encode(id, forKey: .id)
@@ -108,6 +115,17 @@ enum AnthropicContentBlock: Encodable, Equatable {
             try container.encode(toolUseID, forKey: .toolUseID)
             try container.encode(content, forKey: .content)
         }
+    }
+}
+
+private struct AnthropicImageSource: Encodable, Equatable {
+    let type = "base64"
+    let mediaType: String
+    let data: String
+
+    enum CodingKeys: String, CodingKey {
+        case type, data
+        case mediaType = "media_type"
     }
 }
 
@@ -183,15 +201,38 @@ enum AnthropicMessageConversion {
         for message in messages {
             switch message.role {
             case .system, .developer:
+                guard message.messageContent.isTextOnly else {
+                    throw MultimodalContentError.unsupportedContentLayout(provider: .anthropic)
+                }
                 if !message.content.isEmpty {
                     systemParts.append(message.content)
                 }
             case .user:
-                append(role: "user", blocks: [.text(message.content)])
+                append(role: "user", blocks: try message.messageContent.parts.map { part in
+                    switch part {
+                    case let .text(text):
+                        return .text(text)
+                    case let .image(image):
+                        return .image(mediaType: image.mediaType, data: image.data)
+                    case .audio:
+                        throw MultimodalContentError.missingCapability(.audioInput)
+                    }
+                })
             case .assistant:
+                guard !message.messageContent.parts.contains(where: {
+                    if case .image = $0 { return true }
+                    return false
+                }) else {
+                    throw MultimodalContentError.unsupportedContentLayout(provider: .anthropic)
+                }
                 var blocks: [AnthropicContentBlock] = []
                 if !message.content.isEmpty {
                     blocks.append(.text(message.content))
+                } else if let transcript = message.messageContent.parts.compactMap({ part -> String? in
+                    guard case let .audio(audio) = part else { return nil }
+                    return audio.transcript
+                }).first {
+                    blocks.append(.text(transcript))
                 }
                 for call in message.toolCalls ?? [] {
                     let input: AnthropicJSONValue
@@ -207,6 +248,9 @@ enum AnthropicMessageConversion {
                 }
                 append(role: "assistant", blocks: blocks)
             case .tool:
+                guard message.messageContent.isTextOnly else {
+                    throw MultimodalContentError.unsupportedContentLayout(provider: .anthropic)
+                }
                 guard let toolCallID = message.toolCallID, !toolCallID.isEmpty else {
                     throw LLMMessageValidationError.missingToolCallID
                 }

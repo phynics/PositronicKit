@@ -85,7 +85,7 @@ extension ChatEngine {
     func prepareSession(
         timelineId: UUID,
         sendId: UUID,
-        message: String,
+        messageContent: MessageContent,
         tools: [AnyTool],
         toolOutputs: [ToolOutputSubmission]?,
         turnBriefingBuilder: TurnBriefingBuilder?,
@@ -100,7 +100,9 @@ extension ChatEngine {
         sidecarCommitPolicy: SidecarCommitPolicy = .everyRoundTrip,
         includeSidecarMechanismPreamble: Bool = false,
         contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
-        assemblyLogger: Logger? = nil
+        assemblyLogger: Logger? = nil,
+        responseModalities: Set<ResponseModality> = [.text],
+        audioOutput: AudioOutputOptions? = nil
     ) async throws -> ChatTurnContext {
         // Sidecar directives steer generation only through prompt text (SDC-7). The per-turn
         // directive list is volatile (consumer-scheduled, changes turn-to-turn), so it rides
@@ -117,9 +119,22 @@ extension ChatEngine {
             : SidecarSchemaComposer.instructionBlock(directives: sidecars)
 
         // 0. Validate input — at least a message or tool outputs must be provided.
-        guard !message.isEmpty || !(toolOutputs?.isEmpty ?? true) else {
+        let hasMessage = !messageContent.parts.isEmpty
+            && (!messageContent.isTextOnly || !messageContent.text.isEmpty)
+        guard hasMessage || !(toolOutputs?.isEmpty ?? true) else {
             throw ChatEngineError.missingInput
         }
+
+        try messageContent.validateMedia()
+        let initialConfiguration = await dependencies.llmService.configuration
+        let initialProviderConfig = initialConfiguration.activeProviderConfiguration
+        try validateMultimodalRequest(
+            content: messageContent,
+            responseModalities: responseModalities,
+            audioOutput: audioOutput,
+            capabilities: initialProviderConfig.capabilities,
+            provider: initialConfiguration.activeProvider
+        )
 
         // 1. Idempotency — mark the sendId as in-progress. A duplicate sendId is rejected
         //    before any validation or persistence runs.
@@ -153,8 +168,8 @@ extension ChatEngine {
             for output in validatedToolOutputs {
                 history.append(Message(content: output.output, role: .tool, toolCallID: output.toolCallID))
             }
-            if !message.isEmpty {
-                history.append(Message(content: message, role: .user))
+            if hasMessage {
+                history.append(Message(content: messageContent, role: .user))
             }
 
             // 6. Validate the augmented tool-call history.
@@ -163,7 +178,7 @@ extension ChatEngine {
             // 7. Load context
             let contextResult = try await fetchContext(
                 turnBriefingBuilder: turnBriefingBuilder,
-                message: message,
+                message: messageContent.text,
                 history: history,
                 pipeline: contextPipeline
             )
@@ -203,11 +218,11 @@ extension ChatEngine {
             let extensionSections = await dependencies.timelineManager.gatherExtensionSections(
                 timelineId: timelineId,
                 agentInstanceId: agentInstance?.id,
-                message: message
+                message: messageContent.text
             )
 
             let promptRequest = LLMPromptRequest(
-                userQuery: message,
+                userContent: messageContent,
                 turnInstructions: sidecarTurnInstructions,
                 contextNotes: contextData.notes,
                 memories: contextData.memories.map { $0.memory },
@@ -241,7 +256,7 @@ extension ChatEngine {
             )
 
             // 10. Reuse the final rendered artifact for messages + prompt history
-            let initialMessages = renderedPrompt.buildMessages()
+            var initialMessages = renderedPrompt.buildMessages()
             let resolvedSections = renderedPrompt.sections
 
             // 11. Record prompt snapshot for cache tracking BEFORE committing inputs. This is the
@@ -282,6 +297,25 @@ extension ChatEngine {
             )
             if update.didCompact {
                 logger.debug("Prompt history append state compacted after prompt update")
+                initialMessages = try initialMessages.map { message in
+                    guard message.role == .assistant else { return message }
+                    let projectedText = message.messageContent.text
+                    let parts = try message.messageContent.parts.flatMap { part -> [MessageContentPart] in
+                        guard case let .audio(audio) = part else { return [part] }
+                        guard let transcript = audio.transcript, !transcript.isEmpty else {
+                            throw MultimodalContentError.missingAudioTranscript
+                        }
+                        return projectedText.contains(transcript) ? [] : [.text(transcript)]
+                    }
+                    return LLMMessage(
+                        role: message.role,
+                        content: MessageContent(parts: parts),
+                        name: message.name,
+                        toolCallID: message.toolCallID,
+                        toolCalls: message.toolCalls,
+                        reasoning: message.reasoning
+                    )
+                }
             }
 
             // 12. Commit persistence after all fallible preparation succeeds. Tool outputs are
@@ -293,12 +327,12 @@ extension ChatEngine {
                 timelineId: timelineId,
                 messageStore: dependencies.messageStore
             )
-            if !message.isEmpty {
+            if hasMessage {
                 let userMsg = ConversationMessage(
                     id: sendId,
                     timelineID: timelineId,
                     role: .user,
-                    content: message
+                    content: messageContent
                 )
                 try await dependencies.messageStore.saveMessageIfAbsent(
                     userMsg,
@@ -354,6 +388,8 @@ extension ChatEngine {
                 promptHistoryUpdate: update,
                 currentMessages: initialMessages,
                 turnCount: 0,
+                responseModalities: responseModalities,
+                audioOutput: audioOutput,
                 outputs: TurnOutputs()
             )
         } catch {
@@ -365,6 +401,73 @@ extension ChatEngine {
                 toolCallIds: validatedToolOutputs.map(\.toolCallID)
             )
             throw error
+        }
+    }
+
+    func validateMultimodalRequest(
+        content: MessageContent,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?,
+        capabilities: Set<ModelCapability>,
+        provider: LLMProvider
+    ) throws {
+        if content.parts.contains(where: { if case .image = $0 { return true }; return false }),
+           !capabilities.contains(.imageInput)
+        {
+            throw MultimodalContentError.missingCapability(.imageInput)
+        }
+        if content.parts.contains(where: { if case .audio = $0 { return true }; return false }),
+           !capabilities.contains(.audioInput)
+        {
+            throw MultimodalContentError.missingCapability(.audioInput)
+        }
+        if responseModalities.contains(.audio) {
+            guard capabilities.contains(.audioOutput) else {
+                throw MultimodalContentError.missingCapability(.audioOutput)
+            }
+            guard audioOutput != nil else { throw MultimodalContentError.missingAudioOutputOptions }
+        } else if audioOutput != nil {
+            throw MultimodalContentError.audioOptionsWithoutAudioModality
+        }
+
+        if let audioOutput, audioOutput.voice.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            throw MultimodalContentError.missingAudioOutputOptions
+        }
+
+        switch provider {
+        case .anthropic:
+            let supportedImageTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+            for part in content.parts {
+                guard case let .image(image) = part else { continue }
+                guard supportedImageTypes.contains(image.mediaType.lowercased()) else {
+                    throw MultimodalContentError.invalidImageMediaType(image.mediaType)
+                }
+            }
+            if content.parts.contains(where: { if case .audio = $0 { return true }; return false }) {
+                throw MultimodalContentError.missingCapability(.audioInput)
+            }
+            if responseModalities.contains(.audio) {
+                throw MultimodalContentError.missingCapability(.audioOutput)
+            }
+        case .ollama:
+            let containsImages = content.parts.contains { if case .image = $0 { return true }; return false }
+            let containsText = content.parts.contains { if case .text = $0 { return true }; return false }
+            if containsImages, containsText {
+                throw MultimodalContentError.unsupportedContentLayout(provider: .ollama)
+            }
+            if content.parts.contains(where: { if case .audio = $0 { return true }; return false }) {
+                throw MultimodalContentError.missingCapability(.audioInput)
+            }
+            if responseModalities.contains(.audio) {
+                throw MultimodalContentError.missingCapability(.audioOutput)
+            }
+        case .openAI, .openAICompatible, .openRouter:
+            for part in content.parts {
+                guard case let .audio(audio) = part else { continue }
+                guard audio.format == .wav || audio.format == .mp3 else {
+                    throw MultimodalContentError.unsupportedAudioFormat(audio.format, provider: provider)
+                }
+            }
         }
     }
 }

@@ -87,6 +87,8 @@ public struct AssembledPrompt: Sendable {
                     .map(Self.formatHistoryMessage)
                     .joined(separator: "\n\n")
             return content.isEmpty ? nil : content
+        case let .multimodal(content):
+            return content.text.isEmpty ? nil : content.text
         }
     }
 

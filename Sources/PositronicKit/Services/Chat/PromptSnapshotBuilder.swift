@@ -37,7 +37,10 @@ struct PromptSnapshotBuilder {
         }
 
         let update = try await promptHistory.update(prompt: followUpPrompt)
-        return (followUpPrompt, update)
+        let modelFacingPrompt = update.didCompact
+            ? try transcriptOnlyAudioHistory(in: followUpPrompt)
+            : followUpPrompt
+        return (modelFacingPrompt, update)
     }
 
     func synthesizeFollowUpPrompt(
@@ -100,7 +103,7 @@ struct PromptSnapshotBuilder {
         }
 
         return Message(
-            content: message.content,
+            content: message.messageContent,
             role: role,
             toolCalls: message.toolCalls?.compactMap { toolCall in
                 let arguments: [String: Any]
@@ -126,6 +129,59 @@ struct PromptSnapshotBuilder {
                 )
             },
             toolCallID: message.toolCallID
+        )
+    }
+
+    /// Removes generated audio references after history compaction while preserving readable
+    /// transcripts. This projection is used only for the next provider request; the durable
+    /// `Message` rows retain their original audio bytes for playback.
+    private func transcriptOnlyAudioHistory(in prompt: RenderedPrompt) throws -> RenderedPrompt {
+        let sections = try prompt.sections.map { section in
+            guard case let .messages(messages) = section.content else { return section }
+            let projectedMessages = try messages.map { message in
+                guard message.role == .assistant else { return message }
+                let projectedText = message.messageContent.text
+                let parts = try message.messageContent.parts.flatMap { part -> [MessageContentPart] in
+                    guard case let .audio(audio) = part else { return [part] }
+                    guard let transcript = audio.transcript, !transcript.isEmpty else {
+                        throw MultimodalContentError.missingAudioTranscript
+                    }
+                    return projectedText.contains(transcript) ? [] : [.text(transcript)]
+                }
+                return Message(
+                    id: message.id,
+                    timestamp: message.timestamp,
+                    content: MessageContent(parts: parts),
+                    role: message.role,
+                    reasoning: message.reasoning,
+                    toolCalls: message.toolCalls,
+                    toolCallID: message.toolCallID,
+                    parentID: message.parentID,
+                    recalledMemories: message.recalledMemories,
+                    isSummary: message.isSummary,
+                    summaryType: message.summaryType,
+                    status: message.status
+                )
+            }
+            return RenderedPrompt.Section(
+                id: section.id,
+                role: section.role,
+                priority: section.priority,
+                estimatedTokens: section.estimatedTokens,
+                compression: section.compression,
+                type: section.type,
+                cachePolicy: section.cachePolicy,
+                path: section.path,
+                parentID: section.parentID,
+                compressionOutcome: section.compressionOutcome,
+                content: .messages(projectedMessages)
+            )
+        }
+        return RenderedPrompt(
+            sections: sections,
+            string: prompt.string,
+            sectionsByID: prompt.sectionsByID,
+            compressionReport: prompt.compressionReport
         )
     }
 }

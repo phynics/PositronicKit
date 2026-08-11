@@ -122,9 +122,23 @@ public actor ToolRouter {
             LLMToolCall(id: value.callId, name: value.name, arguments: value.args)
         }
         let fullResponse = await outputs.fullResponse
+        let audioData = await outputs.audioData
+        let audioFormat = await outputs.audioFormat
+        let audioTranscript = await outputs.audioTranscript
+        let audioContinuation = await outputs.audioContinuation
+        var contentParts: [MessageContentPart] = []
+        if !fullResponse.isEmpty { contentParts.append(.text(fullResponse)) }
+        if !audioData.isEmpty, let audioFormat {
+            contentParts.append(.audio(AudioContent(
+                data: audioData,
+                format: audioFormat,
+                transcript: audioTranscript.isEmpty ? nil : audioTranscript,
+                continuation: audioContinuation
+            )))
+        }
         let assistantParam = LLMMessage(
             role: .assistant,
-            content: fullResponse,
+            content: MessageContent(parts: contentParts),
             toolCalls: toolCallsParam
         )
 

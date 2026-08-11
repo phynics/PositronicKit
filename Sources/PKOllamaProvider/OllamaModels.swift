@@ -78,6 +78,7 @@ struct OllamaToolFunction: Codable {
 struct OllamaMessage: Codable {
     let role: String
     let content: String
+    let images: [String]?
     /// Reasoning emitted by Ollama thinking models (e.g. qwen3-thinking) via the message's
     /// `thinking` field. Tolerates a legacy `think` key as a fallback when decoding responses.
     /// Included in `CodingKeys` so it IS encoded into outgoing request messages when present
@@ -90,6 +91,7 @@ struct OllamaMessage: Codable {
     enum CodingKeys: String, CodingKey {
         case role
         case content
+        case images
         case thinking
         case toolCalls = "tool_calls"
     }
@@ -97,11 +99,13 @@ struct OllamaMessage: Codable {
     init(
         role: String,
         content: String,
+        images: [String]? = nil,
         thinking: String? = nil,
         toolCalls: [OllamaToolCall]? = nil
     ) {
         self.role = role
         self.content = content
+        self.images = images
         self.thinking = thinking
         self.toolCalls = toolCalls
     }
@@ -113,10 +117,42 @@ struct OllamaMessage: Codable {
     private static let logger = Logger.module(named: "ollama-message-conversion")
 
     init(from param: LLMMessage, logger: Logger = OllamaMessage.logger) {
+        if let converted = try? OllamaMessage(validating: param, logger: logger) {
+            self = converted
+        } else {
+            self.init(
+                role: param.role == .developer ? "system" : param.role.rawValue,
+                content: param.content,
+                thinking: param.reasoning,
+                toolCalls: param.toolCalls?.compactMap { toolCall in
+                    Self.makeOllamaToolCall(from: toolCall, logger: logger)
+                }
+            )
+        }
+    }
+
+    init(validating param: LLMMessage, logger: Logger = OllamaMessage.logger) throws {
         let role = param.role == .developer ? "system" : param.role.rawValue
+        let imageParts = param.messageContent.parts.compactMap { part -> ImageContent? in
+            guard case let .image(image) = part else { return nil }
+            return image
+        }
+        if param.messageContent.parts.contains(where: {
+            if case .audio = $0 { return true }
+            return false
+        }) {
+            throw MultimodalContentError.missingCapability(.audioInput)
+        }
+        if !imageParts.isEmpty, param.messageContent.parts.contains(where: {
+            if case .text = $0 { return true }
+            return false
+        }) {
+            throw MultimodalContentError.unsupportedContentLayout(provider: .ollama)
+        }
         self.init(
             role: role,
             content: param.content,
+            images: imageParts.isEmpty ? nil : imageParts.map { $0.data.base64EncodedString() },
             thinking: param.reasoning,
             toolCalls: param.toolCalls?.compactMap { toolCall in
                 Self.makeOllamaToolCall(from: toolCall, logger: logger)
@@ -156,6 +192,7 @@ struct OllamaMessage: Codable {
         try self.init(
             role: container.decode(String.self, forKey: .role),
             content: container.decode(String.self, forKey: .content),
+            images: container.decodeIfPresent([String].self, forKey: .images),
             thinking: Self.decodeThinking(from: decoder),
             toolCalls: container.decodeIfPresent([OllamaToolCall].self, forKey: .toolCalls)
         )

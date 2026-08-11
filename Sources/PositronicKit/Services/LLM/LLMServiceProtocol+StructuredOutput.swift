@@ -73,6 +73,36 @@ public extension LLMStreamClient {
         return StructuredOutputExecution.rewriteSyntheticToolStream(stream, syntheticToolName: syntheticToolName)
     }
 
+    func chatStream(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]? = nil,
+        structuredOutput: StructuredOutputRequest,
+        generationParameters: GenerationParameters? = nil,
+        modelTier: ModelTier = .primary,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        let provider = await configuration.activeProvider
+        let prepared = StructuredOutputExecution.prepareRequest(
+            messages: messages,
+            tools: tools,
+            provider: provider,
+            output: structuredOutput
+        )
+        let stream = await chatStream(
+            messages: prepared.messages,
+            tools: prepared.tools,
+            toolChoice: prepared.toolChoice,
+            responseFormat: prepared.responseFormat,
+            generationParameters: generationParameters,
+            modelTier: modelTier,
+            responseModalities: responseModalities,
+            audioOutput: audioOutput
+        )
+        guard let syntheticToolName = prepared.syntheticToolName else { return stream }
+        return StructuredOutputExecution.rewriteSyntheticToolStream(stream, syntheticToolName: syntheticToolName)
+    }
+
     func sendStructured<T: Decodable & Sendable>(
         _ content: String,
         structuredOutput: StructuredOutputRequest,

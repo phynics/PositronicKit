@@ -26,7 +26,34 @@ public extension LLMMessage {
         case .system:
             return .system(.init(content: .textContent(content), name: name))
         case .user:
-            return .user(.init(content: .string(content), name: name))
+            if messageContent.isTextOnly {
+                return .user(.init(content: .string(content), name: name))
+            }
+            let parts = try messageContent.parts.map { part -> ChatQuery.ChatCompletionMessageParam.UserMessageParam.Content.ContentPart in
+                switch part {
+                case let .text(text):
+                    return .text(.init(text: text))
+                case let .image(image):
+                    let detail: ChatQuery.ChatCompletionMessageParam.ContentPartImageParam.ImageURL.Detail? = switch image.detail {
+                    case .automatic: .auto
+                    case .low: .low
+                    case .high: .high
+                    case nil: nil
+                    }
+                    return .image(.init(imageUrl: .init(
+                        url: "data:\(image.mediaType);base64,\(image.data.base64EncodedString())",
+                        detail: detail
+                    )))
+                case let .audio(audio):
+                    let format: ChatQuery.ChatCompletionMessageParam.ContentPartAudioParam.InputAudio.Format = switch audio.format {
+                    case .wav: .wav
+                    case .mp3: .mp3
+                    default: throw MultimodalContentError.unsupportedAudioFormat(audio.format, provider: .openAI)
+                    }
+                    return .audio(.init(inputAudio: .init(data: audio.data, format: format)))
+                }
+            }
+            return .user(.init(content: .contentParts(parts), name: name))
         case .assistant:
             // OpenAI `/chat/completions` has no reasoning-echo message field: o-series models
             // continue reasoning via the Responses API (`previous_response_id`), not via an
@@ -40,7 +67,16 @@ public extension LLMMessage {
                     function: .init(arguments: $0.arguments, name: $0.name)
                 )
             }
-            return .assistant(.init(content: .textContent(content), name: name, toolCalls: toolCalls))
+            let continuation = messageContent.parts.compactMap { part -> AudioContinuationReference? in
+                guard case let .audio(audio) = part else { return nil }
+                return audio.continuation
+            }.first(where: { $0.provider == .openAI && $0.isValid() })
+            return .assistant(.init(
+                content: content.isEmpty ? nil : .textContent(content),
+                audio: continuation.map { .init(id: $0.id) },
+                name: name,
+                toolCalls: toolCalls
+            ))
         case .tool:
             guard let toolCallID, !toolCallID.isEmpty else {
                 throw LLMMessageValidationError.missingToolCallID
@@ -84,7 +120,7 @@ public extension LLMResponseFormat {
 }
 
 extension ChatStreamResult {
-    func toLLMStreamChunk() -> LLMStreamChunk {
+    func toLLMStreamChunk(audioFormat: AudioFormat? = nil) -> LLMStreamChunk {
         let mappedChoices: [LLMStreamChoice] = choices.map { choice in
             let mappedToolCalls = choice.delta.toolCalls?.map {
                 LLMToolCallDelta(
@@ -97,12 +133,21 @@ extension ChatStreamResult {
                 )
             }
 
+            let audioDelta: LLMAudioDelta? = choice.delta.audio.flatMap { audio in
+                guard let audioFormat else { return nil }
+                let data = audio.data.flatMap { Data(base64Encoded: $0) } ?? Data()
+                let continuation: AudioContinuationReference? = if let id = audio.id, let expiresAt = audio.expiresAt {
+                    .init(provider: .openAI, id: id, expiresAt: Date(timeIntervalSince1970: TimeInterval(expiresAt)))
+                } else { nil }
+                return LLMAudioDelta(data: data, format: audioFormat, transcript: audio.transcript, continuation: continuation)
+            }
             return LLMStreamChoice(
                 index: choice.index,
                 delta: LLMStreamDelta(
                     role: choice.delta.role.flatMap(mapRole),
                     content: choice.delta.content,
                     reasoning: choice.delta.reasoning,
+                    audio: audioDelta,
                     toolCalls: mappedToolCalls
                 ),
                 finishReason: choice.finishReason.map { mapFinishReason($0).wireValue }

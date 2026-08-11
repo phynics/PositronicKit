@@ -168,22 +168,28 @@ public struct ContextNotes: Prompt {
 }
 
 public struct UserQuery: Prompt {
-    public let query: String
+    public let content: MessageContent
+    public var query: String { content.text }
     /// Optional per-turn instructions rendered after the query inside the same
     /// `.userQuery` section (single-section invariant preserved; volatile cache policy).
     public let turnInstructions: String?
 
     public init(_ query: String, turnInstructions: String? = nil) {
-        self.query = query
+        content = MessageContent(query)
+        self.turnInstructions = turnInstructions
+    }
+
+    public init(_ content: MessageContent, turnInstructions: String? = nil) {
+        self.content = content
         self.turnInstructions = turnInstructions
     }
 
     public var body: some Prompt {
-        let text: String = {
-            guard let turnInstructions, !turnInstructions.isEmpty else { return query }
-            return query + "\n" + turnInstructions
+        let resolved: MessageContent = {
+            guard let turnInstructions, !turnInstructions.isEmpty else { return content }
+            return MessageContent(parts: content.parts + [.text("\n" + turnInstructions)])
         }()
-        UserPrompt(text, estimatedTokens: TokenEstimator.estimate(text: text))
+        UserPrompt(resolved, estimatedTokens: resolved.estimatedTokens)
     }
 }
 

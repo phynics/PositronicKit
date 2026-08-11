@@ -127,6 +127,62 @@ struct PromptSnapshotBuilderTests {
         #expect(rendered.string.contains("follow-up"))
     }
 
+    @Test("History compaction replaces generated audio with its transcript for the provider")
+    func compactionProjectsGeneratedAudioToTranscript() async throws {
+        let base = makeBase()
+        let promptHistory = TimelinePromptHistory(thresholds: PromptJournalCompactionThresholds(
+            maxAppendedTokens: 1,
+            maxAppendedMessages: 1
+        ))
+        _ = try await promptHistory.update(prompt: base)
+        await promptHistory.recordAppend(messageCount: 2, estimatedTokens: 2)
+
+        let audio = AudioContent(
+            data: Data([0x01, 0x02]),
+            format: .wav,
+            transcript: "spoken reply",
+            continuation: AudioContinuationReference(
+                provider: .openAI,
+                id: "audio_123",
+                expiresAt: Date().addingTimeInterval(60)
+            )
+        )
+        let appended = [LLMMessage(role: .assistant, content: MessageContent(parts: [
+            .text("spoken reply"),
+            .audio(audio),
+        ]))]
+        let context = ChatTurnContext(
+            timelineId: UUID(),
+            agentInstanceId: nil,
+            modelName: "test-model",
+            maxTurns: 5,
+            systemInstructions: nil,
+            availableTools: [],
+            contextData: ContextData(),
+            remoteDepth: 0,
+            promptHistory: promptHistory,
+            renderedPrompt: base,
+            promptHistoryUpdate: nil,
+            currentMessages: [],
+            turnCount: 1,
+            outputs: TurnOutputs()
+        )
+
+        let snapshot = try await builder.buildFollowUpSnapshot(
+            from: context,
+            appendedMessages: appended,
+            nextTurnIndex: 1
+        )
+
+        #expect(snapshot.promptHistoryUpdate?.didCompact == true)
+        let assistant = try #require(snapshot.renderedPrompt?.buildMessages().last)
+        #expect(assistant.content == "spoken reply")
+        #expect(assistant.messageContent.parts.allSatisfy {
+            if case .audio = $0 { return false }
+            return true
+        })
+    }
+
     @Test("Incremental string over a base with an empty section still aligns")
     func incrementalWithEmptyBaseSection() async throws {
         // A base whose first section is empty: AssembledPrompt.render() skips empty content,

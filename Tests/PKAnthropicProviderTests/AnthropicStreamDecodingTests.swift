@@ -434,4 +434,23 @@ struct AnthropicMessageConversionTests {
             Issue.record("Unexpected error: \(error)")
         }
     }
+
+    @Test("Ordered image input maps to Anthropic base64 blocks")
+    func orderedImageInputMapsToBlocks() throws {
+        let (_, messages) = try AnthropicMessageConversion.convert(
+            messages: [LLMMessage(role: .user, content: MessageContent(parts: [
+                .text("before"),
+                .image(ImageContent(data: Data([0x01, 0x02]), mediaType: "image/png")),
+                .text("after"),
+            ]))],
+            logger: logger
+        )
+
+        let encoded = try JSONEncoder().encode(messages)
+        let array = try #require(JSONSerialization.jsonObject(with: encoded) as? [[String: Any]])
+        let blocks = try #require(array.first?["content"] as? [[String: Any]])
+        #expect(blocks.compactMap { $0["type"] as? String } == ["text", "image", "text"])
+        #expect((blocks[1]["source"] as? [String: Any])?["media_type"] as? String == "image/png")
+        #expect((blocks[1]["source"] as? [String: Any])?["data"] as? String == "AQI=")
+    }
 }

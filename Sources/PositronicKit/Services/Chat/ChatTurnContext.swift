@@ -29,6 +29,10 @@ actor TurnOutputs {
     private(set) var debugToolCalls: [ToolCallRecord] = []
     private(set) var debugToolResults: [ToolResultRecord] = []
     private(set) var sidecarResults: [SidecarResult] = []
+    private(set) var audioData = Data()
+    private(set) var audioFormat: AudioFormat?
+    private(set) var audioTranscript = ""
+    private(set) var audioContinuation: AudioContinuationReference?
     /// Set only after the complete assistant message has been accepted by the message store.
     /// This lets failure recovery distinguish a pre-persistence failure from a later stage error.
     private(set) var assistantResponseDurable = false
@@ -51,6 +55,19 @@ actor TurnOutputs {
 
     func appendResponse(_ chunk: String) {
         fullResponse += chunk
+    }
+
+    func appendAudio(_ delta: LLMAudioDelta) throws {
+        if let audioFormat, audioFormat != delta.format {
+            throw MultimodalContentError.inconsistentAudioFormat(
+                expected: audioFormat,
+                actual: delta.format
+            )
+        }
+        audioData.append(delta.data)
+        audioFormat = delta.format
+        if let transcript = delta.transcript { audioTranscript += transcript }
+        if let continuation = delta.continuation { audioContinuation = continuation }
     }
 
     func accumulateToolCall(index: Int, id: String?, name: String?, args: String?) {
@@ -114,6 +131,8 @@ struct ChatTurnContext {
     let sidecars: [SidecarDirective]
     let sidecarCommitPolicy: SidecarCommitPolicy
     let diagnostics: [TurnDiagnostic]
+    let responseModalities: Set<ResponseModality>
+    let audioOutput: AudioOutputOptions?
 
     /// Shared actor tracking prompt snapshots and append chain growth across turns.
     /// Created once per `prepareSession()` call and threaded through all turns in the loop.
@@ -148,6 +167,8 @@ struct ChatTurnContext {
         promptHistoryUpdate: PromptHistoryUpdate? = nil,
         currentMessages: [LLMMessage],
         turnCount: Int,
+        responseModalities: Set<ResponseModality> = [.text],
+        audioOutput: AudioOutputOptions? = nil,
         outputs: TurnOutputs = TurnOutputs()
     ) {
         self.timelineId = timelineId
@@ -164,6 +185,8 @@ struct ChatTurnContext {
         self.sidecars = sidecars
         self.sidecarCommitPolicy = sidecarCommitPolicy
         self.diagnostics = diagnostics
+        self.responseModalities = responseModalities
+        self.audioOutput = audioOutput
         self.promptHistory = promptHistory
         self.renderedPrompt = renderedPrompt
         self.promptHistoryUpdate = promptHistoryUpdate
@@ -204,6 +227,8 @@ struct ChatTurnContext {
             promptHistoryUpdate: promptHistoryUpdate ?? self.promptHistoryUpdate,
             currentMessages: messages,
             turnCount: turnCount,
+            responseModalities: responseModalities,
+            audioOutput: audioOutput,
             outputs: TurnOutputs()
         )
     }

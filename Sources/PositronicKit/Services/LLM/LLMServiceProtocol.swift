@@ -98,7 +98,8 @@ public struct LLMPromptResult: Sendable {
 
 /// Groups the parameters for building a prompt or context.
 public struct LLMPromptRequest: Sendable {
-    public let userQuery: String
+    public let userContent: MessageContent
+    public var userQuery: String { userContent.text }
     /// Per-turn instruction text rendered with the user query (final prompt section),
     /// NOT with system instructions, so the system prefix stays provider-cache-stable.
     /// Used by `ChatEngine` to inject the sidecar directive instruction block.
@@ -126,7 +127,34 @@ public struct LLMPromptRequest: Sendable {
         systemInstructions: String? = nil,
         generationParameters: GenerationParameters? = nil
     ) {
-        self.userQuery = userQuery
+        userContent = MessageContent(userQuery)
+        self.turnInstructions = turnInstructions
+        self.contextNotes = contextNotes
+        self.memories = memories
+        self.chatHistory = chatHistory
+        self.tools = tools
+        self.workspaces = workspaces
+        self.primaryWorkspace = primaryWorkspace
+        self.requestOriginName = requestOriginName
+        self.systemInstructions = systemInstructions
+        self.generationParameters = generationParameters
+    }
+
+    /// Creates a prompt request with ordered multimodal user content.
+    public init(
+        userContent: MessageContent,
+        turnInstructions: String? = nil,
+        contextNotes: [ContextFile] = [],
+        memories: [Memory] = [],
+        chatHistory: [Message],
+        tools: [AnyTool],
+        workspaces: [WorkspaceReference],
+        primaryWorkspace: WorkspaceReference?,
+        requestOriginName: String?,
+        systemInstructions: String? = nil,
+        generationParameters: GenerationParameters? = nil
+    ) {
+        self.userContent = userContent
         self.turnInstructions = turnInstructions
         self.contextNotes = contextNotes
         self.memories = memories
@@ -157,6 +185,9 @@ struct AnyLanguageModel: LanguageModel {
     }
     func chatStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
         await base.chatStream(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, modelTier: modelTier)
+    }
+    func chatStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        await base.chatStream(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, modelTier: modelTier, responseModalities: responseModalities, audioOutput: audioOutput)
     }
     func loadConfiguration() async { await base.loadConfiguration() }
     func updateConfiguration(_ config: LLMConfiguration) async throws { try await base.updateConfiguration(config) }
@@ -203,6 +234,17 @@ public protocol LLMStreamClient: Sendable {
         generationParameters: GenerationParameters?,
         modelTier: ModelTier
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error>
+
+    func chatStream(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        modelTier: ModelTier,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error>
 }
 
 /// Configuration lifecycle seam: load, update, clear, back up, and transfer an LLM
@@ -237,6 +279,31 @@ public protocol LLMUtilityClient: Sendable {
 }
 
 public extension LLMStreamClient {
+    func chatStream(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        modelTier: ModelTier,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        guard !responseModalities.contains(.audio), audioOutput == nil else {
+            return AsyncThrowingStream { continuation in
+                continuation.finish(throwing: MultimodalContentError.missingCapability(.audioOutput))
+            }
+        }
+        return await chatStream(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            modelTier: modelTier
+        )
+    }
+
     /// Default-args convenience for the low-level streaming entry point.
     func chatStream(
         messages: [LLMMessage],
