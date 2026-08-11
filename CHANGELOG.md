@@ -8,6 +8,8 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+## [3.6.0] - 2026-08-11
+
 ### Added
 
 - **General multimodal chat content (#15)**: ordered `MessageContent` values now carry text,
