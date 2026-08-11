@@ -129,6 +129,31 @@ struct OllamaClientTests {
         #expect(userMsg.content == "hello")
     }
 
+    @Test func ollamaImageOnlyMessageEncodesImageArray() throws {
+        let message = try OllamaMessage(validating: LLMMessage(
+            role: .user,
+            content: MessageContent(parts: [
+                .image(ImageContent(data: Data([0x01]), mediaType: "image/png")),
+                .image(ImageContent(data: Data([0x02]), mediaType: "image/jpeg")),
+            ])
+        ))
+
+        #expect(message.content.isEmpty)
+        #expect(message.images == ["AQ==", "Ag=="])
+    }
+
+    @Test func ollamaRejectsMixedTextImageLayout() {
+        #expect(throws: MultimodalContentError.self) {
+            _ = try OllamaMessage(validating: LLMMessage(
+                role: .user,
+                content: MessageContent(parts: [
+                    .text("before"),
+                    .image(ImageContent(data: Data([0x01]), mediaType: "image/png")),
+                ])
+            ))
+        }
+    }
+
     @Test func ollamaToolInitialization() {
         let toolParam = LLMToolDefinition(
             name: "test_tool",

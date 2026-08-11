@@ -204,6 +204,8 @@ public enum PositronicKitUsageExamples {
                     print("\nThinking: \(text)", terminator: "")
                 case .generation(let text):
                     print(text, terminator: "")
+                case .audio(let delta):
+                    print("\nAudio: \(delta.data.count) \(delta.format.rawValue) bytes")
                 case .toolCall(let delta):
                     print("\nTool delta: \(delta.name ?? "<continuation>")")
                 case .toolExecution(let toolCallID, let status):

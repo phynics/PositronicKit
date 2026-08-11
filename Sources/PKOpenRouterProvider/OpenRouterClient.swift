@@ -176,6 +176,18 @@ public actor OpenRouterClient: LLMClientProtocol {
         responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        await chatStream(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, responseModalities: [.text], audioOutput: nil)
+    }
+
+    public func chatStream(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
         let endpoint = self.endpoint
         let apiKey = self.apiKey
         let modelName = self.modelName
@@ -214,14 +226,17 @@ public actor OpenRouterClient: LLMClientProtocol {
                                 tools: tools?.map(OpenRouterTool.init),
                                 topP: generationParameters?.topP,
                                 stream: true,
-                                streamOptions: .init(includeUsage: true)
+                                streamOptions: .init(includeUsage: true),
+                                modalities: responseModalities.contains(.audio) ? [.text, .audio] : nil,
+                                audio: audioOutput
                             )
                         )
                         try await self.streamChatResponse(
                             request: request,
                             recoveryState: recoveryState,
                             logger: logger,
-                            continuation: continuation
+                            continuation: continuation,
+                            audioFormat: audioOutput?.format
                         )
 
                         // Summarize what the model returned, so a model that emits no tool call is
@@ -253,7 +268,9 @@ public actor OpenRouterClient: LLMClientProtocol {
                                     tools: tools?.map(OpenRouterTool.init),
                                     topP: generationParameters?.topP,
                                     stream: false,
-                                    streamOptions: nil
+                                    streamOptions: nil,
+                                    modalities: nil,
+                                    audio: nil
                                 )
                             )
                             let recoveryResult = try await self.fetchChatResponse(request: recoveryRequest)
@@ -307,7 +324,8 @@ public actor OpenRouterClient: LLMClientProtocol {
         request: URLRequest,
         recoveryState: borrowing Mutex<LLMToolCallRecoveryState>,
         logger: Logger,
-        continuation: AsyncThrowingStream<LLMStreamChunk, Error>.Continuation
+        continuation: AsyncThrowingStream<LLMStreamChunk, Error>.Continuation,
+        audioFormat: AudioFormat? = nil
     ) async throws {
         let (stream, response) = try await transport.lines(for: request)
         let httpResponse = try HTTPHelpers.ensureHTTPResponse(response, provider: "OpenRouter")
@@ -321,7 +339,8 @@ public actor OpenRouterClient: LLMClientProtocol {
                 line,
                 recoveryState: recoveryState,
                 logger: logger,
-                continuation: continuation
+                continuation: continuation,
+                audioFormat: audioFormat
             )
         }
         // A 2xx stream that yields neither content nor tool calls is abnormal (e.g. a model
@@ -342,7 +361,8 @@ public actor OpenRouterClient: LLMClientProtocol {
         _ line: String,
         recoveryState: borrowing Mutex<LLMToolCallRecoveryState>,
         logger: Logger,
-        continuation: AsyncThrowingStream<LLMStreamChunk, Error>.Continuation
+        continuation: AsyncThrowingStream<LLMStreamChunk, Error>.Continuation,
+        audioFormat: AudioFormat? = nil
     ) {
         guard let data = HTTPHelpers.extractSSEData(from: line) else { return }
         let dataString = String(decoding: data, as: UTF8.self)
@@ -357,7 +377,7 @@ public actor OpenRouterClient: LLMClientProtocol {
             // for reasoning models — STAB-7) then convert into the transport-neutral
             // `LLMStreamChunk`, mapping `reasoning` → `thinking`.
             let raw = try Self.streamChunkDecoder.decode(OpenRouterStreamChunk.self, from: data)
-            let result = raw.toLLMStreamChunk()
+            let result = raw.toLLMStreamChunk(audioFormat: audioFormat)
             recoveryState.withLock {
                 $0.observe(
                     yieldedContent: !(result.choices.first?.delta.content?.isEmpty ?? true),
@@ -400,7 +420,7 @@ public actor OpenRouterClient: LLMClientProtocol {
                 index: choice.index,
                 delta: LLMStreamDelta(
                     role: .assistant,
-                    content: choice.message.content,
+                    content: choice.message.content.text,
                     toolCalls: mappedToolCalls
                 ),
                 finishReason: FinishReason(wireValue: choice.finishReason).wireValue

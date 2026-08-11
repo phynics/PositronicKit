@@ -348,6 +348,24 @@ public final class MockLLMClient: LLMClientProtocol {
         }
     }
 
+    public func chatStream(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        responseModalities _: Set<ResponseModality>,
+        audioOutput _: AudioOutputOptions?
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        await chatStream(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters
+        )
+    }
+
     public func sendMessage(
         _ content: String,
         responseFormat: LLMResponseFormat?,
@@ -642,6 +660,26 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
             toolChoice: toolChoice,
             responseFormat: responseFormat,
             generationParameters: generationParameters
+        )
+    }
+
+    public func chatStream(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        modelTier: ModelTier,
+        responseModalities _: Set<ResponseModality>,
+        audioOutput _: AudioOutputOptions?
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        await chatStream(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            modelTier: modelTier
         )
     }
 

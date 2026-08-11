@@ -137,6 +137,8 @@ public enum ChatEvent: Sendable, Codable {
         case reasoning(text: String)
         /// Incremental content chunk from the LLM
         case generation(text: String)
+        /// Incremental decoded audio output.
+        case audio(delta: LLMAudioDelta)
         /// Tool call being assembled (streaming deltas)
         case toolCall(delta: ToolCallDelta)
 
@@ -157,7 +159,7 @@ public enum ChatEvent: Sendable, Codable {
         }
 
         private enum CodingKeys: String, CodingKey {
-            case reasoning, generation, toolCall, toolExecution, sidecar
+            case reasoning, generation, audio, toolCall, toolExecution, sidecar
         }
 
         private enum TextCodingKeys: String, CodingKey {
@@ -191,6 +193,12 @@ public enum ChatEvent: Sendable, Codable {
                     forKey: .generation
                 )
                 self = .generation(text: try values.decode(String.self, forKey: .text))
+                return
+            }
+
+            if container.contains(.audio) {
+                let values = try container.nestedContainer(keyedBy: DeltaCodingKeys.self, forKey: .audio)
+                self = .audio(delta: try values.decode(LLMAudioDelta.self, forKey: .delta))
                 return
             }
 
@@ -240,6 +248,9 @@ public enum ChatEvent: Sendable, Codable {
             case let .generation(text):
                 var values = container.nestedContainer(keyedBy: TextCodingKeys.self, forKey: .generation)
                 try values.encode(text, forKey: .text)
+            case let .audio(delta):
+                var values = container.nestedContainer(keyedBy: DeltaCodingKeys.self, forKey: .audio)
+                try values.encode(delta, forKey: .delta)
             case let .toolCall(delta):
                 var values = container.nestedContainer(keyedBy: DeltaCodingKeys.self, forKey: .toolCall)
                 try values.encode(delta, forKey: .delta)
@@ -567,6 +578,10 @@ public extension ChatEvent {
         .delta(.generation(text: text))
     }
 
+    static func audio(_ delta: LLMAudioDelta) -> ChatEvent {
+        .delta(.audio(delta: delta))
+    }
+
     static func toolCall(_ delta: ToolCallDelta) -> ChatEvent {
         .delta(.toolCall(delta: delta))
     }
@@ -675,6 +690,12 @@ public extension ChatEvent {
     /// The reasoning content if this is a `.delta(.reasoning(...))` event.
     var reasoningContent: String? {
         if case let .delta(event) = self, case let .reasoning(text) = event { return text }
+        return nil
+    }
+
+    /// The decoded audio fragment if this is an audio delta event.
+    var audioDelta: LLMAudioDelta? {
+        if case let .delta(event) = self, case let .audio(delta) = event { return delta }
         return nil
     }
 

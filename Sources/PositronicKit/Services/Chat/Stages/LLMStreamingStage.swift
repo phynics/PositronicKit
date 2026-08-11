@@ -60,14 +60,21 @@ struct LLMStreamingStage: PipelineStage {
                 messages: context.currentMessages,
                 tools: context.toolParams.isEmpty ? nil : context.toolParams,
                 structuredOutput: structuredOutput,
-                generationParameters: context.generationParameters
+                generationParameters: context.generationParameters,
+                modelTier: .primary,
+                responseModalities: context.responseModalities,
+                audioOutput: context.audioOutput
             )
         } else {
             streamData = await llmService.chatStream(
                 messages: context.currentMessages,
                 tools: context.toolParams.isEmpty ? nil : context.toolParams,
+                toolChoice: nil,
                 responseFormat: nil,
-                generationParameters: context.generationParameters
+                generationParameters: context.generationParameters,
+                modelTier: .primary,
+                responseModalities: context.responseModalities,
+                audioOutput: context.audioOutput
             )
         }
 
@@ -144,6 +151,7 @@ struct LLMStreamingStage: PipelineStage {
 
             await handleStreamUsage(result, context: context)
             await handleStructuredThinkingDelta(result, context: context, continuation: continuation)
+            try await handleAudioDelta(result, context: context, continuation: continuation)
             if sidecarExtractor != nil {
                 await handleSidecarContentDelta(
                     result, extractor: &sidecarExtractor, context: context, continuation: continuation
@@ -162,6 +170,11 @@ struct LLMStreamingStage: PipelineStage {
             await flushRemainingBuffer(&parser, context: context, continuation: continuation)
         }
         await context.outputs.finalizeTurn(startTime: turnStartTime)
+        if !(await context.outputs.audioData).isEmpty,
+           (await context.outputs.audioTranscript).isEmpty
+        {
+            throw MultimodalContentError.missingAudioTranscript
+        }
     }
 
     /// Feeds a content delta through the sidecar extractor instead of `StreamingParser`
@@ -262,6 +275,20 @@ struct LLMStreamingStage: PipelineStage {
         guard let thinking = result.choices.first?.delta.reasoning, !thinking.isEmpty else { return }
         await context.outputs.appendThinking(thinking)
         continuation.yield(.reasoning(thinking))
+    }
+
+    private func handleAudioDelta(
+        _ result: LLMStreamChunk,
+        context: ChatTurnContext,
+        continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
+    ) async throws {
+        guard let audio = result.choices.first?.delta.audio else { return }
+        try await context.outputs.appendAudio(audio)
+        continuation.yield(.audio(audio))
+        if let transcript = audio.transcript, !transcript.isEmpty {
+            await context.outputs.appendResponse(transcript)
+            continuation.yield(.generation(transcript))
+        }
     }
 
     private func handleToolCallDeltas(

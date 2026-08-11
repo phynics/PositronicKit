@@ -31,6 +31,32 @@ package func sectionContentHash(_ content: PromptSection.Content) -> UInt64 {
                 "isSummary", String(message.isSummary),
             ])
         }
+    case let .multimodal(content):
+        components = ["multimodal", content.text]
+        for part in content.parts {
+            switch part {
+            case let .text(text): components.append(contentsOf: ["text", text])
+            case let .image(image):
+                components.append(contentsOf: [
+                    "image",
+                    StableHash.hash(bytes: Array(image.data)).description,
+                    image.mediaType,
+                    image.detail?.rawValue ?? "",
+                    image.estimatedTokens.map(String.init) ?? "",
+                ])
+            case let .audio(audio):
+                components.append(contentsOf: [
+                    "audio",
+                    StableHash.hash(bytes: Array(audio.data)).description,
+                    audio.format.rawValue,
+                    audio.transcript ?? "",
+                    audio.estimatedTokens.map(String.init) ?? "",
+                    audio.continuation?.provider.rawValue ?? "",
+                    audio.continuation?.id ?? "",
+                    audio.continuation.map { String($0.expiresAt.timeIntervalSince1970) } ?? "",
+                ])
+            }
+        }
     }
     return StableHash.hash(components: components)
 }

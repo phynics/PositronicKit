@@ -13,7 +13,8 @@ public enum SidecarCommitPolicy: Sendable, Codable, Equatable {
 public struct ChatRunRequest: Sendable, CustomStringConvertible {
     public let timelineID: UUID
     public let sendID: UUID?
-    public let message: String
+    public let messageContent: MessageContent
+    public var message: String { messageContent.text }
     public let tools: [AnyTool]
     public let toolOutputs: [ToolOutputSubmission]?
     public let systemInstructions: String?
@@ -25,6 +26,8 @@ public struct ChatRunRequest: Sendable, CustomStringConvertible {
     public let sidecarCommitPolicy: SidecarCommitPolicy
     public let includeSidecarMechanismPreamble: Bool
     public let promptAssemblyLogger: Logger?
+    public let responseModalities: Set<ResponseModality>
+    public let audioOutput: AudioOutputOptions?
 
     public init(
         timelineID: UUID,
@@ -40,11 +43,13 @@ public struct ChatRunRequest: Sendable, CustomStringConvertible {
         sidecars: [SidecarDirective] = [],
         sidecarCommitPolicy: SidecarCommitPolicy = .everyRoundTrip,
         includeSidecarMechanismPreamble: Bool = false,
-        promptAssemblyLogger: Logger? = nil
+        promptAssemblyLogger: Logger? = nil,
+        responseModalities: Set<ResponseModality> = [.text],
+        audioOutput: AudioOutputOptions? = nil
     ) {
         self.timelineID = timelineID
         self.sendID = sendID
-        self.message = message
+        messageContent = MessageContent(message)
         self.tools = tools.map { $0.toAnyTool() }
         self.toolOutputs = toolOutputs
         self.systemInstructions = systemInstructions
@@ -56,6 +61,45 @@ public struct ChatRunRequest: Sendable, CustomStringConvertible {
         self.sidecarCommitPolicy = sidecarCommitPolicy
         self.includeSidecarMechanismPreamble = includeSidecarMechanismPreamble
         self.promptAssemblyLogger = promptAssemblyLogger
+        self.responseModalities = responseModalities
+        self.audioOutput = audioOutput
+    }
+
+    /// Creates a chat turn with ordered multimodal user content.
+    public init(
+        timelineID: UUID,
+        sendID: UUID? = nil,
+        content: MessageContent,
+        tools: [any Tool] = [],
+        toolOutputs: [ToolOutputSubmission]? = nil,
+        systemInstructions: String? = nil,
+        agentInstanceID: UUID? = nil,
+        maxTurns: Int = 5,
+        generationParameters: GenerationParameters? = nil,
+        structuredOutput: StructuredOutputRequest? = nil,
+        sidecars: [SidecarDirective] = [],
+        sidecarCommitPolicy: SidecarCommitPolicy = .everyRoundTrip,
+        includeSidecarMechanismPreamble: Bool = false,
+        promptAssemblyLogger: Logger? = nil,
+        responseModalities: Set<ResponseModality> = [.text],
+        audioOutput: AudioOutputOptions? = nil
+    ) {
+        self.timelineID = timelineID
+        self.sendID = sendID
+        messageContent = content
+        self.tools = tools.map { $0.toAnyTool() }
+        self.toolOutputs = toolOutputs
+        self.systemInstructions = systemInstructions
+        self.agentInstanceID = agentInstanceID
+        self.maxTurns = maxTurns
+        self.generationParameters = generationParameters
+        self.structuredOutput = structuredOutput
+        self.sidecars = sidecars
+        self.sidecarCommitPolicy = sidecarCommitPolicy
+        self.includeSidecarMechanismPreamble = includeSidecarMechanismPreamble
+        self.promptAssemblyLogger = promptAssemblyLogger
+        self.responseModalities = responseModalities
+        self.audioOutput = audioOutput
     }
 
     /// Creates a chat-run request using the legacy identifier spellings.
@@ -114,6 +158,6 @@ public struct ChatRunRequest: Sendable, CustomStringConvertible {
         let generationParametersDescription = generationParameters.map { String(describing: $0) } ?? "nil"
         let structuredOutputDescription = structuredOutput.map { String(describing: $0) } ?? "nil"
         let promptAssemblyLoggerDescription = promptAssemblyLogger.map { $0.label } ?? "nil"
-        return "ChatRunRequest(timelineID: \(timelineID), sendID: \(sendIDDescription), message: <redacted>, tools: \(tools.count), toolOutputs: \(toolOutputCount), systemInstructions: \(systemInstructionsDescription), agentInstanceID: \(agentInstanceID?.uuidString ?? "nil"), maxTurns: \(maxTurns), generationParameters: \(generationParametersDescription), structuredOutput: \(structuredOutputDescription), sidecars: \(sidecars.count), sidecarCommitPolicy: \(sidecarCommitPolicy), includeSidecarMechanismPreamble: \(includeSidecarMechanismPreamble), promptAssemblyLogger: \(promptAssemblyLoggerDescription))"
+        return "ChatRunRequest(timelineID: \(timelineID), sendID: \(sendIDDescription), message: <redacted>, mediaParts: \(messageContent.parts.count), tools: \(tools.count), toolOutputs: \(toolOutputCount), systemInstructions: \(systemInstructionsDescription), agentInstanceID: \(agentInstanceID?.uuidString ?? "nil"), maxTurns: \(maxTurns), generationParameters: \(generationParametersDescription), structuredOutput: \(structuredOutputDescription), sidecars: \(sidecars.count), sidecarCommitPolicy: \(sidecarCommitPolicy), includeSidecarMechanismPreamble: \(includeSidecarMechanismPreamble), promptAssemblyLogger: \(promptAssemblyLoggerDescription))"
     }
 }

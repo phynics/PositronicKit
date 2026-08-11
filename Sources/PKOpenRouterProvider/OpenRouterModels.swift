@@ -53,9 +53,11 @@ struct OpenRouterChatRequest: Codable {
     let topP: Double?
     let stream: Bool
     let streamOptions: OpenRouterStreamOptions?
+    let modalities: [ResponseModality]?
+    let audio: AudioOutputOptions?
 
     enum CodingKeys: String, CodingKey {
-        case messages, model, seed, temperature, tools, stream
+        case messages, model, seed, temperature, tools, stream, modalities, audio
         case frequencyPenalty = "frequency_penalty"
         case maxCompletionTokens = "max_completion_tokens"
         case presencePenalty = "presence_penalty"
@@ -68,10 +70,11 @@ struct OpenRouterChatRequest: Codable {
 
 struct OpenRouterMessage: Codable {
     let role: String
-    let content: String
+    let content: OpenRouterMessageContent
     let name: String?
     let toolCallID: String?
     let toolCalls: [OpenRouterToolCall]?
+    let audio: OpenRouterAssistantAudio?
 
     /// Reasoning to echo back to a reasoning model on follow-up turns (STAB-8). OpenRouter
     /// accepts a `reasoning` field on assistant history messages for reasoning models
@@ -82,7 +85,7 @@ struct OpenRouterMessage: Codable {
     let reasoning: String?
 
     enum CodingKeys: String, CodingKey {
-        case role, content, name, reasoning
+        case role, content, name, reasoning, audio
         case toolCallID = "tool_call_id"
         case toolCalls = "tool_calls"
     }
@@ -93,7 +96,20 @@ struct OpenRouterMessage: Codable {
     ///   value only surfaces later as an opaque provider 400.
     init(_ message: LLMMessage, logger: Logger = Logger.module(named: "openrouter-message-conversion")) {
         role = message.role.rawValue
-        content = message.content
+        if message.role == .assistant {
+            content = .text(message.content)
+            audio = message.messageContent.parts.compactMap { part -> AudioContinuationReference? in
+                guard case let .audio(value) = part else { return nil }
+                return value.continuation
+            }.first(where: { $0.provider == .openRouter && $0.isValid() }).map {
+                OpenRouterAssistantAudio(id: $0.id)
+            }
+        } else {
+            content = message.messageContent.isTextOnly
+                ? .text(message.content)
+                : .parts(message.messageContent.parts.map(OpenRouterContentPart.init))
+            audio = nil
+        }
         name = message.name
         toolCallID = message.toolCallID
         toolCalls = message.toolCalls?.map(OpenRouterToolCall.init)
@@ -103,6 +119,89 @@ struct OpenRouterMessage: Codable {
             logger.warning(
                 "LLMMessage with .tool role is missing toolCallID (contract violation); sending a nil tool_call_id to OpenRouter, which will likely surface as a 400."
             )
+        }
+    }
+}
+
+struct OpenRouterAssistantAudio: Codable {
+    let id: String
+}
+
+enum OpenRouterMessageContent: Codable {
+    case text(String)
+    case parts([OpenRouterContentPart])
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let text = try? container.decode(String.self) { self = .text(text) }
+        else { self = .parts(try container.decode([OpenRouterContentPart].self)) }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case let .text(text): try container.encode(text)
+        case let .parts(parts): try container.encode(parts)
+        }
+    }
+
+    var text: String {
+        switch self {
+        case let .text(text): text
+        case let .parts(parts): parts.compactMap { part in
+            guard case let .text(text) = part else { return nil }
+            return text
+        }.joined()
+        }
+    }
+}
+
+enum OpenRouterContentPart: Codable {
+    case text(String)
+    case image(ImageContent)
+    case audio(AudioContent)
+
+    private enum CodingKeys: String, CodingKey { case type, text, imageURL = "image_url", inputAudio = "input_audio" }
+    private struct ImageURL: Codable { let url: String; let detail: String? }
+    private struct InputAudio: Codable { let data: String; let format: String }
+
+    init(_ part: MessageContentPart) {
+        switch part {
+        case let .text(text): self = .text(text)
+        case let .image(image): self = .image(image)
+        case let .audio(audio): self = .audio(audio)
+        }
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        switch try container.decode(String.self, forKey: .type) {
+        case "text": self = .text(try container.decode(String.self, forKey: .text))
+        case "image_url":
+            let value = try container.decode(ImageURL.self, forKey: .imageURL)
+            guard let separator = value.url.range(of: ";base64,") else { throw DecodingError.dataCorruptedError(forKey: .imageURL, in: container, debugDescription: "Expected image data URL") }
+            let mediaType = String(value.url[value.url.index(value.url.startIndex, offsetBy: 5)..<separator.lowerBound])
+            let data = Data(base64Encoded: String(value.url[separator.upperBound...])) ?? Data()
+            self = .image(.init(data: data, mediaType: mediaType, detail: value.detail.flatMap { ImageDetail(rawValue: $0 == "auto" ? "automatic" : $0) }))
+        case "input_audio":
+            let value = try container.decode(InputAudio.self, forKey: .inputAudio)
+            self = .audio(.init(data: Data(base64Encoded: value.data) ?? Data(), format: AudioFormat(rawValue: value.format) ?? .wav))
+        default: throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "Unknown content part")
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case let .text(text):
+            try container.encode("text", forKey: .type); try container.encode(text, forKey: .text)
+        case let .image(image):
+            try container.encode("image_url", forKey: .type)
+            let detail = image.detail.map { $0 == .automatic ? "auto" : $0.rawValue }
+            try container.encode(ImageURL(url: "data:\(image.mediaType);base64,\(image.data.base64EncodedString())", detail: detail), forKey: .imageURL)
+        case let .audio(audio):
+            try container.encode("input_audio", forKey: .type)
+            try container.encode(InputAudio(data: audio.data.base64EncodedString(), format: audio.format.rawValue), forKey: .inputAudio)
         }
     }
 }
@@ -221,6 +320,15 @@ struct OpenRouterStreamChunk: Codable {
             let content: String?
             let reasoning: String?
             let toolCalls: [OpenRouterStreamToolCall]?
+            let audio: Audio?
+
+            struct Audio: Codable {
+                let data: String?
+                let transcript: String?
+                let id: String?
+                let expiresAt: Int?
+                enum CodingKeys: String, CodingKey { case data, transcript, id; case expiresAt = "expires_at" }
+            }
         }
 
         let index: Int
@@ -259,7 +367,7 @@ struct OpenRouterStreamChunk: Codable {
 extension OpenRouterStreamChunk {
     /// Converts the provider-specific chunk into the transport-neutral `LLMStreamChunk`,
     /// mapping `delta.reasoning` → `LLMStreamDelta.thinking`.
-    func toLLMStreamChunk() -> LLMStreamChunk {
+    func toLLMStreamChunk(audioFormat: AudioFormat? = nil) -> LLMStreamChunk {
         let mappedChoices: [LLMStreamChoice] = choices.map { choice in
             let mappedToolCalls = choice.delta.toolCalls?.map {
                 LLMToolCallDelta(
@@ -277,6 +385,18 @@ extension OpenRouterStreamChunk {
                     role: choice.delta.role.flatMap(LLMMessage.Role.init(rawValue:)),
                     content: choice.delta.content,
                     reasoning: choice.delta.reasoning,
+                    audio: choice.delta.audio.flatMap { audio -> LLMAudioDelta? in
+                        guard let audioFormat else { return nil }
+                        let continuation: AudioContinuationReference? = if let id = audio.id, let expiry = audio.expiresAt {
+                            .init(provider: .openRouter, id: id, expiresAt: Date(timeIntervalSince1970: TimeInterval(expiry)))
+                        } else { nil }
+                        return .init(
+                            data: audio.data.flatMap { Data(base64Encoded: $0) } ?? Data(),
+                            format: audioFormat,
+                            transcript: audio.transcript,
+                            continuation: continuation
+                        )
+                    },
                     toolCalls: mappedToolCalls
                 ),
                 finishReason: choice.finishReason.map { FinishReason(wireValue: $0).wireValue }

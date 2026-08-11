@@ -10,6 +10,9 @@ extension PromptSection {
         
         /// Structured chat history content preserved as message values.
         case messages([Message])
+
+        /// Ordered text and binary media content.
+        case multimodal(MessageContent)
         
         /// Returns the text payload when the content is plain text.
         public var text: String? {
@@ -20,6 +23,12 @@ extension PromptSection {
         /// Returns the message payload when the content is chat history.
         public var messages: [Message]? {
             if case let .messages(messages) = self { return messages }
+            return nil
+        }
+
+        /// Returns the ordered content when the section is multimodal.
+        public var multimodal: MessageContent? {
+            if case let .multimodal(content) = self { return content }
             return nil
         }
     }

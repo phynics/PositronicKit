@@ -81,6 +81,9 @@ package enum PromptJournalMessageRenderer {
                 if case let .text(content) = section.section.content, !content.isEmpty {
                     userQuery = Message(content: content, role: .user)
                 }
+                if case let .multimodal(content) = section.section.content {
+                    userQuery = Message(content: content, role: .user)
+                }
             case .system, .context:
                 if case let .text(content) = section.section.content, !content.isEmpty {
                     systemParts.append(content)
@@ -104,6 +107,8 @@ package enum PromptJournalMessageRenderer {
         case let .messages(messages):
             let value = messages.map(formatHistoryMessage).joined(separator: "\n\n")
             return value.isEmpty ? nil : value
+        case let .multimodal(content):
+            return content.text.isEmpty ? nil : content.text
         }
     }
 

@@ -148,6 +148,130 @@ struct ChatEngineTests {
         }
     }
 
+    @Test("Unsupported media fails before persistence or provider calls")
+    func unsupportedMediaFailsBeforeSideEffects() async throws {
+        try await withChatEngineDependencies { engine, mockLLM, mockPersistence in
+            let content = MessageContent(parts: [
+                .image(ImageContent(data: Data([0x01]), mediaType: "image/png")),
+            ])
+
+            await #expect(throws: MultimodalContentError.self) {
+                _ = try await engine.execute(
+                    timelineId: timelineId,
+                    messageContent: content,
+                    tools: []
+                )
+            }
+
+            #expect(mockLLM.mockClient.streamCallCount == 0)
+            let persisted = try await mockPersistence.fetchMessages(for: timelineId)
+            #expect(persisted.isEmpty)
+        }
+    }
+
+    @Test("Audio deltas assemble byte-for-byte and persist with their transcript")
+    func streamedAudioPersistsCompletedContent() async throws {
+        try await withChatEngineDependencies { engine, mockLLM, mockPersistence in
+            var configuration = mockLLM.mockConfig
+            configuration.providers[.openAI]?.capabilities = [.audioOutput]
+            mockLLM.mockConfig = configuration
+            mockLLM.mockClient.nextRawStreamChunks = [[
+                LLMStreamChunk(
+                    id: "audio-1",
+                    model: "mock",
+                    choices: [LLMStreamChoice(
+                        index: 0,
+                        delta: LLMStreamDelta(audio: LLMAudioDelta(
+                            data: Data([0x01, 0x02]),
+                            format: .wav,
+                            transcript: "hel"
+                        )),
+                        finishReason: nil
+                    )]
+                ),
+                LLMStreamChunk(
+                    id: "audio-1",
+                    model: "mock",
+                    choices: [LLMStreamChoice(
+                        index: 0,
+                        delta: LLMStreamDelta(audio: LLMAudioDelta(
+                            data: Data([0x03, 0x04]),
+                            format: .wav,
+                            transcript: "lo"
+                        )),
+                        finishReason: "stop"
+                    )]
+                ),
+            ]]
+
+            let stream = try await engine.execute(
+                timelineId: timelineId,
+                messageContent: MessageContent("speak"),
+                tools: [],
+                responseModalities: [.text, .audio],
+                audioOutput: AudioOutputOptions(format: .wav, voice: "alloy")
+            )
+            let events = try await collect(stream)
+
+            #expect(events.compactMap(\.audioDelta).map(\.data) == [Data([0x01, 0x02]), Data([0x03, 0x04])])
+            #expect(events.compactMap(\.textContent).joined() == "hello")
+
+            let messages = try await mockPersistence.fetchMessages(for: timelineId)
+            let assistant = try #require(messages.last(where: { $0.role == "assistant" }))
+            #expect(assistant.content == "hello")
+            let audio = assistant.messageContent.parts.compactMap { part -> AudioContent? in
+                guard case let .audio(value) = part else { return nil }
+                return value
+            }.first
+            #expect(audio?.data == Data([0x01, 0x02, 0x03, 0x04]))
+            #expect(audio?.transcript == "hello")
+        }
+    }
+
+    @Test("Completed audio without a transcript fails and preserves partial bytes")
+    func completedAudioWithoutTranscriptIsProviderContractError() async throws {
+        try await withChatEngineDependencies { engine, mockLLM, mockPersistence in
+            var configuration = mockLLM.mockConfig
+            configuration.providers[.openAI]?.capabilities = [.audioOutput]
+            mockLLM.mockConfig = configuration
+            mockLLM.mockClient.nextRawStreamChunks = [[
+                LLMStreamChunk(
+                    id: "audio-no-transcript",
+                    model: "mock",
+                    choices: [LLMStreamChoice(
+                        index: 0,
+                        delta: LLMStreamDelta(audio: LLMAudioDelta(
+                            data: Data([0x0A, 0x0B]),
+                            format: .wav
+                        )),
+                        finishReason: "stop"
+                    )]
+                ),
+            ]]
+
+            let stream = try await engine.execute(
+                timelineId: timelineId,
+                messageContent: MessageContent("speak without transcript"),
+                tools: [],
+                responseModalities: [.audio],
+                audioOutput: AudioOutputOptions(format: .wav, voice: "alloy")
+            )
+            await #expect(throws: Error.self) {
+                _ = try await collect(stream)
+            }
+
+            let messages = try await mockPersistence.fetchMessages(for: timelineId)
+            let assistant = try #require(messages.last(where: { $0.role == "assistant" }))
+            #expect(assistant.status == .partial)
+            let audio = assistant.messageContent.parts.compactMap { part -> AudioContent? in
+                guard case let .audio(value) = part else { return nil }
+                return value
+            }.first
+            #expect(audio?.data == Data([0x0A, 0x0B]))
+            #expect(audio?.transcript == nil)
+        }
+    }
+
     // MARK: - Group 2: Thinking / Reasoning Tags
 
     @Test("Thinking tags emit thought events")

@@ -125,8 +125,10 @@ public struct LLMMessage: Sendable, Codable, Equatable {
 
     /// The message's speaker role.
     public let role: Role
-    /// The message's text content.
-    public let content: String
+    /// The message's canonical ordered content.
+    public let messageContent: MessageContent
+    /// The legacy text projection of ``messageContent``.
+    public var content: String { messageContent.text }
     /// Optional name qualifying the sender (e.g. a tool's name for `.tool` messages).
     public let name: String?
     /// For `.tool` messages, the id of the tool call this message is the result of.
@@ -152,12 +154,67 @@ public struct LLMMessage: Sendable, Codable, Equatable {
         toolCalls: [LLMToolCall]? = nil,
         reasoning: String? = nil
     ) {
+        self.init(
+            role: role,
+            content: MessageContent(content),
+            name: name,
+            toolCallID: toolCallID,
+            toolCalls: toolCalls,
+            reasoning: reasoning
+        )
+    }
+
+    /// Creates a provider-neutral message with ordered multimodal content.
+    public init(
+        role: Role,
+        content: MessageContent,
+        name: String? = nil,
+        toolCallID: String? = nil,
+        toolCalls: [LLMToolCall]? = nil,
+        reasoning: String? = nil
+    ) {
         self.role = role
-        self.content = content
+        messageContent = content
         self.name = name
         self.toolCallID = toolCallID
         self.toolCalls = toolCalls
         self.reasoning = reasoning
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case role, content, contentParts, name, toolCallID, toolCalls, reasoning
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        role = try container.decode(Role.self, forKey: .role)
+        let text = try container.decode(String.self, forKey: .content)
+        if let parts = try container.decodeIfPresent([MessageContentPart].self, forKey: .contentParts) {
+            let decoded = MessageContent(parts: parts)
+            guard decoded.text == text else {
+                throw DecodingError.dataCorruptedError(forKey: .contentParts, in: container, debugDescription: "Content parts do not match the text projection.")
+            }
+            messageContent = decoded
+        } else {
+            messageContent = MessageContent(text)
+        }
+        name = try container.decodeIfPresent(String.self, forKey: .name)
+        toolCallID = try container.decodeIfPresent(String.self, forKey: .toolCallID)
+        toolCalls = try container.decodeIfPresent([LLMToolCall].self, forKey: .toolCalls)
+        reasoning = try container.decodeIfPresent(String.self, forKey: .reasoning)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(role, forKey: .role)
+        try container.encode(content, forKey: .content)
+        if messageContent.requiresContentPartsEncoding {
+            try container.encode(messageContent.parts, forKey: .contentParts)
+        }
+        try container.encodeIfPresent(name, forKey: .name)
+        try container.encodeIfPresent(toolCallID, forKey: .toolCallID)
+        try container.encodeIfPresent(toolCalls, forKey: .toolCalls)
+        try container.encodeIfPresent(reasoning, forKey: .reasoning)
     }
 }
 
@@ -252,6 +309,8 @@ public struct LLMStreamDelta: Sendable, Codable, Equatable {
     /// The `<think>...</think>` tag-scraping path in `StreamingParser` remains the fallback for
     /// models that emit inline reasoning text inside `content`.
     public let reasoning: String?
+    /// Decoded generated-audio bytes and optional transcript fragment.
+    public let audio: LLMAudioDelta?
 
     public let toolCalls: [LLMToolCallDelta]?
 
@@ -261,6 +320,7 @@ public struct LLMStreamDelta: Sendable, Codable, Equatable {
         case role
         case content
         case reasoning
+        case audio
         case toolCalls = "tool_calls"
     }
 
@@ -268,11 +328,13 @@ public struct LLMStreamDelta: Sendable, Codable, Equatable {
         role: LLMMessage.Role? = nil,
         content: String? = nil,
         reasoning: String? = nil,
+        audio: LLMAudioDelta? = nil,
         toolCalls: [LLMToolCallDelta]? = nil
     ) {
         self.role = role
         self.content = content
         self.reasoning = reasoning
+        self.audio = audio
         self.toolCalls = toolCalls
     }
 }
@@ -349,6 +411,17 @@ public protocol LLMClientProtocol: Sendable {
         generationParameters: GenerationParameters?
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error>
 
+    /// Streams a chat completion with explicit output modalities.
+    func chatStream(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error>
+
     /// Sends a single non-streamed message and returns the full text response.
     func sendMessage(
         _ content: String,
@@ -362,6 +435,29 @@ public protocol LLMClientProtocol: Sendable {
 }
 
 public extension LLMClientProtocol {
+    func chatStream(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        guard !responseModalities.contains(.audio), audioOutput == nil else {
+            return AsyncThrowingStream { continuation in
+                continuation.finish(throwing: MultimodalContentError.missingCapability(.audioOutput))
+            }
+        }
+        return await chatStream(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters
+        )
+    }
+
     func fetchAvailableModels() async throws -> [String]? {
         nil
     }

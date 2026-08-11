@@ -66,6 +66,26 @@ public actor OpenAIClient: LLMClientProtocol {
         responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        await chatStream(
+            messages: messages,
+            tools: tools,
+            toolChoice: toolChoice,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            responseModalities: [.text],
+            audioOutput: nil
+        )
+    }
+
+    public func chatStream(
+        messages: [LLMMessage],
+        tools: [LLMToolDefinition]?,
+        toolChoice: LLMToolChoice?,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
         let client = self.client
         let logger = self.logger
         let maxRetries = self.maxRetries
@@ -76,9 +96,17 @@ public actor OpenAIClient: LLMClientProtocol {
 
             do {
                 try validateLLMMessageHistory(messages)
+                let mappedAudioOptions: ChatQuery.AudioOptions? = try audioOutput.map { options in
+                    guard let format = ChatQuery.AudioOptions.AudioOptionsResponseFormat(rawValue: options.format.rawValue),
+                          let voice = ChatQuery.AudioOptions.AudioOptionsSpeechVoice(rawValue: options.voice)
+                    else { throw MultimodalContentError.unsupportedAudioVoice(options.voice, provider: .openAI) }
+                    return .init(format: format, voice: voice)
+                }
                 let query = ChatQuery(
                     messages: try messages.map { try $0.toOpenAIMessageParam(logger: logger) },
                     model: modelName,
+                    modalities: responseModalities.contains(.audio) ? [.text, .audio] : nil,
+                    audioOptions: mappedAudioOptions,
                     frequencyPenalty: generationParameters?.frequencyPenalty,
                     maxCompletionTokens: generationParameters?.maxTokens,
                     parallelToolCalls: tools != nil ? false : nil,
@@ -106,13 +134,14 @@ public actor OpenAIClient: LLMClientProtocol {
                                 if Task.isCancelled { break }
                                 recoveryState.withLock {
                                     $0.observe(
-                                        yieldedContent: !(result.choices.first?.delta.content?.isEmpty ?? true),
+                                        yieldedContent: !(result.choices.first?.delta.content?.isEmpty ?? true)
+                                            || result.choices.first?.delta.audio != nil,
                                         streamedToolCalls: result.choices.first?.delta.toolCalls != nil,
                                         finishedWithToolCalls: result.choices.contains(where: { $0.finishReason == .toolCalls })
                                     )
                                 }
 
-                                continuation.yield(result.toLLMStreamChunk())
+                                continuation.yield(result.toLLMStreamChunk(audioFormat: audioOutput?.format))
                             }
 
                             if !Task.isCancelled, recoveryState.withLock(\.shouldRecoverToolCalls) {

@@ -108,6 +108,7 @@ public enum PromptPriority: Int, Sendable {
 package enum PromptPrimitiveContent {
     case text(@Sendable () async -> String?)
     case messages([Message])
+    case multimodal(MessageContent)
 }
 
 /// Utility namespace for Primitives
@@ -197,6 +198,10 @@ package extension PromptPrimitive {
                         return nil
                     }
                     return .messages(messages)
+
+                case let .multimodal(content):
+                    guard !content.parts.isEmpty else { return nil }
+                    return .multimodal(content)
                 }
             }
         )

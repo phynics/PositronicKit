@@ -110,6 +110,21 @@ struct MessagePersistenceStage: PipelineStage {
 
         let fullResponse = await context.outputs.fullResponse
         let fullThinking = await context.outputs.fullThinking
+        let audioData = await context.outputs.audioData
+        let audioFormat = await context.outputs.audioFormat
+        let audioTranscript = await context.outputs.audioTranscript
+        let audioContinuation = await context.outputs.audioContinuation
+
+        var contentParts: [MessageContentPart] = []
+        if !fullResponse.isEmpty { contentParts.append(.text(fullResponse)) }
+        if !audioData.isEmpty, let audioFormat {
+            contentParts.append(.audio(AudioContent(
+                data: audioData,
+                format: audioFormat,
+                transcript: audioTranscript.isEmpty ? nil : audioTranscript,
+                continuation: audioContinuation
+            )))
+        }
 
         let recalledMemories: String
         if hasPendingToolCalls {
@@ -123,7 +138,7 @@ struct MessagePersistenceStage: PipelineStage {
         return ConversationMessage(
             timelineID: context.timelineId,
             role: .assistant,
-            content: fullResponse,
+            content: MessageContent(parts: contentParts),
             recalledMemories: recalledMemories,
             reasoning: fullThinking.isEmpty ? nil : fullThinking,
             toolCalls: toolCallsJSON,
@@ -170,6 +185,9 @@ struct MessagePersistenceStage: PipelineStage {
         let debugToolResults = await context.outputs.debugToolResults
         let fullResponse = await context.outputs.fullResponse
         let fullThinking = await context.outputs.fullThinking
+        let audioData = await context.outputs.audioData
+        let audioFormat = await context.outputs.audioFormat
+        let audioTranscript = await context.outputs.audioTranscript
         let turnDuration = await context.outputs.turnDuration
         let tokensPerSecond = await context.outputs.tokensPerSecond
         let streamUsage = await context.outputs.streamUsage
@@ -211,6 +229,9 @@ struct MessagePersistenceStage: PipelineStage {
             availableToolIDs: context.availableTools.map { $0.callName },
             fullResponse: fullResponse,
             fullThinking: fullThinking,
+            audioOutput: audioFormat.map {
+                AudioOutputSnapshot(format: $0, byteCount: audioData.count, transcript: audioTranscript)
+            },
             toolCalls: debugToolCalls,
             toolResults: debugToolResults,
             turnDuration: turnDuration,
@@ -286,6 +307,9 @@ private enum DiagnosticSnapshotEncoder {
             availableToolIDs: snapshot.availableToolIDs.map(clean),
             fullResponse: clean(snapshot.fullResponse),
             fullThinking: clean(snapshot.fullThinking),
+            audioOutput: snapshot.audioOutput.map {
+                .init(format: $0.format, byteCount: $0.byteCount, transcript: clean($0.transcript))
+            },
             toolCalls: snapshot.toolCalls.map {
                 .init(name: clean($0.name), arguments: clean($0.arguments), turn: $0.turn)
             },

@@ -8,6 +8,16 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Added
+
+- **General multimodal chat content (#15)**: ordered `MessageContent` values now carry text,
+  caller-resolved image bytes, and complete audio clips through prompts, journaling, persistence,
+  and provider messages. Explicit model capabilities reject unsupported input or output before
+  persistence or provider I/O. OpenAI and OpenRouter support ordered image/audio input and typed
+  streamed audio output; Anthropic supports ordered image blocks; Ollama supports image-only
+  arrays when their layout is exactly representable. Legacy text initializers and text-only
+  Codable payload shapes remain unchanged.
+
 ## [3.5.0] - 2026-08-11
 
 ### Added

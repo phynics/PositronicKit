@@ -376,7 +376,7 @@ public final class PositronicKit: Sendable {
         return try await chatEngine.execute(
             timelineId: request.timelineID,
             sendId: request.sendID,
-            message: request.message,
+            messageContent: request.messageContent,
             tools: request.tools,
             toolOutputs: request.toolOutputs,
             turnBriefingBuilder: resolvedTurnBriefingBuilder,
@@ -388,7 +388,9 @@ public final class PositronicKit: Sendable {
             sidecars: request.sidecars,
             sidecarCommitPolicy: request.sidecarCommitPolicy,
             includeSidecarMechanismPreamble: request.includeSidecarMechanismPreamble,
-            assemblyLogger: request.promptAssemblyLogger
+            assemblyLogger: request.promptAssemblyLogger,
+            responseModalities: request.responseModalities,
+            audioOutput: request.audioOutput
         )
     }
 

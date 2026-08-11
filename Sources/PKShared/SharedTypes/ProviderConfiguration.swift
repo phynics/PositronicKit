@@ -9,6 +9,8 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
     public var toolFormat: ToolCallFormat
     public var timeoutInterval: TimeInterval
     public var maxRetries: Int
+    /// Model media capabilities that callers have explicitly enabled.
+    public var capabilities: Set<ModelCapability>
 
     /// The model's full context-window size in tokens. Prompt compression budgets are derived
     /// from this value (minus the response output reserve and provider overhead), **not** from
@@ -52,6 +54,7 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
         timeoutInterval: TimeInterval = 60.0,
         maxRetries: Int = 3,
         contextWindowTokens: Int = 8_192,
+        capabilities: Set<ModelCapability> = [],
         temperature: Double? = nil,
         maxTokens: Int? = nil,
         topP: Double? = nil,
@@ -69,6 +72,7 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
         self.toolFormat = toolFormat
         self.timeoutInterval = timeoutInterval
         self.maxRetries = maxRetries
+        self.capabilities = capabilities
         self.contextWindowTokens = contextWindowTokens
         self.temperature = temperature
         self.maxTokens = maxTokens
@@ -90,6 +94,7 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
         toolFormat = try container.decodeIfPresent(ToolCallFormat.self, forKey: .toolFormat) ?? .openAI
         timeoutInterval = try container.decodeIfPresent(TimeInterval.self, forKey: .timeoutInterval) ?? 60.0
         maxRetries = try container.decodeIfPresent(Int.self, forKey: .maxRetries) ?? 3
+        capabilities = try container.decodeIfPresent(Set<ModelCapability>.self, forKey: .capabilities) ?? []
         contextWindowTokens = try container.decodeIfPresent(Int.self, forKey: .contextWindowTokens) ?? 8_192
 
         temperature = try container.decodeIfPresent(Double.self, forKey: .temperature)

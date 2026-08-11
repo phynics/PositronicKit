@@ -42,9 +42,10 @@ struct PartialAssistantPersistence {
 
         let fullResponse = await context.outputs.fullResponse
         let fullThinking = await context.outputs.fullThinking
+        let hasAudio = await !context.outputs.audioData.isEmpty
         let hasToolCalls = await !context.outputs.toolCallAccumulators.isEmpty
 
-        guard !fullResponse.isEmpty || !fullThinking.isEmpty || hasToolCalls else {
+        guard !fullResponse.isEmpty || !fullThinking.isEmpty || hasAudio || hasToolCalls else {
             return
         }
 

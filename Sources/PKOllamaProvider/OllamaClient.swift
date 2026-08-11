@@ -180,7 +180,7 @@ public actor OllamaClient: LLMClientProtocol {
 
         let payload = OllamaChatRequest(
             model: modelName,
-            messages: messages.map { OllamaMessage(from: $0, logger: logger) },
+            messages: try messages.map { try OllamaMessage(validating: $0, logger: logger) },
             stream: true,
             format: format,
             tools: toolChoice == .some(LLMToolChoice.none) ? nil : tools?.map { OllamaTool(from: $0) },

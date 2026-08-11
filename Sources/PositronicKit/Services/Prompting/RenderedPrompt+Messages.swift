@@ -10,13 +10,13 @@ private struct RenderedPromptProjection {
     /// authority level. See `Prompt+OpenAI.swift` for the provider-message projection policy.
     let contextText: String?
     let historyMessages: [Message]
-    let userQueryText: String?
+    let userQueryContent: MessageContent?
 
     init(prompt: RenderedPrompt) {
         var systemParts: [String] = []
         var contextParts: [String] = []
         var historyMessages: [Message] = []
-        var userQueryText: String?
+        var userQueryContent: MessageContent?
 
         for section in prompt.sections {
             switch section.role {
@@ -26,11 +26,15 @@ private struct RenderedPromptProjection {
                 }
 
             case .userQuery:
-                if userQueryText == nil,
-                   case let .text(content) = section.content,
-                   !content.isEmpty
-                {
-                    userQueryText = content
+                if userQueryContent == nil {
+                    switch section.content {
+                    case let .text(content) where !content.isEmpty:
+                        userQueryContent = MessageContent(content)
+                    case let .multimodal(content):
+                        userQueryContent = content
+                    default:
+                        break
+                    }
                 }
 
             case .system:
@@ -52,7 +56,7 @@ private struct RenderedPromptProjection {
         systemText = systemParts.isEmpty ? nil : systemParts.joined(separator: "\n\n---\n\n")
         contextText = contextParts.isEmpty ? nil : contextParts.joined(separator: "\n\n---\n\n")
         self.historyMessages = historyMessages
-        self.userQueryText = userQueryText
+        self.userQueryContent = userQueryContent
     }
 }
 
@@ -85,8 +89,8 @@ public extension RenderedPrompt {
     }
 
     private func buildUserQueryConversationMessage(from projection: RenderedPromptProjection) -> Message? {
-        guard let userQueryText = projection.userQueryText else { return nil }
-        return Message(content: userQueryText, role: .user)
+        guard let userQueryContent = projection.userQueryContent else { return nil }
+        return Message(content: userQueryContent, role: .user)
     }
 }
 
@@ -132,14 +136,14 @@ public extension RenderedPrompt {
     private func buildUserQueryMessage(
         from projection: RenderedPromptProjection
     ) -> LLMMessage? {
-        guard let userQueryText = projection.userQueryText else { return nil }
-        return LLMMessage(role: .user, content: userQueryText)
+        guard let userQueryContent = projection.userQueryContent else { return nil }
+        return LLMMessage(role: .user, content: userQueryContent)
     }
 
     private func convertHistoryMessage(_ msg: Message) -> LLMMessage {
         switch msg.role {
         case .user:
-            return LLMMessage(role: .user, content: msg.content)
+            return LLMMessage(role: .user, content: compactedHistoryContent(msg.messageContent))
 
         case .assistant:
             return buildAssistantMessage(msg)
@@ -155,10 +159,25 @@ public extension RenderedPrompt {
         }
     }
 
+    private func compactedHistoryContent(_ content: MessageContent, at date: Date = Date()) -> MessageContent {
+        MessageContent(parts: content.parts.flatMap { part in
+            guard case let .audio(audio) = part,
+                  let continuation = audio.continuation,
+                  !continuation.isValid(at: date)
+            else { return [part] }
+            return audio.transcript.map { [.text($0)] } ?? []
+        })
+    }
+
     private func buildAssistantMessage(_ msg: Message) -> LLMMessage {
-        var messageContent = msg.content
+        let projectedText = msg.messageContent.text
+        var messageContent = MessageContent(parts: msg.messageContent.parts.flatMap { part in
+            guard case let .audio(audio) = part else { return [part] }
+            if let continuation = audio.continuation, continuation.isValid() { return [part] }
+            return audio.transcript.map { projectedText.contains($0) ? [] : [.text($0)] } ?? []
+        })
         if let reasoning = msg.reasoning {
-            messageContent = "<think>\(reasoning)</think>\n\(messageContent)"
+            messageContent = MessageContent(parts: [.text("<think>\(reasoning)</think>\n")] + messageContent.parts)
         }
 
         var toolCalls: [LLMToolCall]?

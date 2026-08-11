@@ -236,6 +236,46 @@ struct ChatEngine {
         contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
         assemblyLogger: Logger? = nil
     ) async throws -> AsyncThrowingStream<ChatEvent, Error> {
+        try await execute(
+            timelineId: timelineId,
+            sendId: sendId,
+            messageContent: MessageContent(message),
+            tools: tools,
+            toolOutputs: toolOutputs,
+            turnBriefingBuilder: turnBriefingBuilder,
+            systemInstructions: systemInstructions,
+            agentInstanceId: agentInstanceId,
+            maxTurns: maxTurns,
+            generationParameters: generationParameters,
+            structuredOutput: structuredOutput,
+            sidecars: sidecars,
+            sidecarCommitPolicy: sidecarCommitPolicy,
+            includeSidecarMechanismPreamble: includeSidecarMechanismPreamble,
+            contextPipeline: contextPipeline,
+            assemblyLogger: assemblyLogger
+        )
+    }
+
+    func execute(
+        timelineId: UUID,
+        sendId: UUID? = nil,
+        messageContent: MessageContent,
+        tools: [AnyTool],
+        toolOutputs: [ToolOutputSubmission]? = nil,
+        turnBriefingBuilder: TurnBriefingBuilder? = nil,
+        systemInstructions: String? = nil,
+        agentInstanceId: UUID? = nil,
+        maxTurns: Int = Constants.defaultMaxTurns,
+        generationParameters: GenerationParameters? = nil,
+        structuredOutput: StructuredOutputRequest? = nil,
+        sidecars: [SidecarDirective] = [],
+        sidecarCommitPolicy: SidecarCommitPolicy = .everyRoundTrip,
+        includeSidecarMechanismPreamble: Bool = false,
+        contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
+        assemblyLogger: Logger? = nil,
+        responseModalities: Set<ResponseModality> = [.text],
+        audioOutput: AudioOutputOptions? = nil
+    ) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         let sid = timelineId.uuidString.prefix(8).lowercased()
         logger.info("Starting chat stream for timeline \(sid)")
 
@@ -249,7 +289,7 @@ struct ChatEngine {
         let context = try await prepareSession(
             timelineId: timelineId,
             sendId: sendId ?? UUID(),
-            message: message,
+            messageContent: messageContent,
             tools: tools,
             toolOutputs: toolOutputs,
             turnBriefingBuilder: turnBriefingBuilder,
@@ -264,7 +304,9 @@ struct ChatEngine {
             sidecarCommitPolicy: sidecarCommitPolicy,
             includeSidecarMechanismPreamble: includeSidecarMechanismPreamble,
             contextPipeline: contextPipeline,
-            assemblyLogger: assemblyLogger
+            assemblyLogger: assemblyLogger,
+            responseModalities: responseModalities,
+            audioOutput: audioOutput
         )
 
         let (stream, continuation) = AsyncThrowingStream<ChatEvent, Error>.makeStream()

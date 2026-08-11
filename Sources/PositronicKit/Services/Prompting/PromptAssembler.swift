@@ -132,7 +132,7 @@ enum PromptAssembler {
             ChatHistory(PromptHistoryOptimizer.optimizeForDefaultBudget(request.chatHistory))
         })
         try sections.append(withLogging("UserQuery", logger: logger) {
-            UserQuery(request.userQuery, turnInstructions: request.turnInstructions)
+            UserQuery(request.userContent, turnInstructions: request.turnInstructions)
         })
         sections.append(contentsOf: extensionSections)
 

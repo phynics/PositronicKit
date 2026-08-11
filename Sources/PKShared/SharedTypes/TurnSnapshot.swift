@@ -43,6 +43,19 @@ public struct ToolResultRecord: Codable, Sendable, Equatable {
     }
 }
 
+/// Non-binary generated-audio metadata retained in a diagnostic turn snapshot.
+public struct AudioOutputSnapshot: Codable, Sendable, Equatable {
+    public let format: AudioFormat
+    public let byteCount: Int
+    public let transcript: String
+
+    public init(format: AudioFormat, byteCount: Int, transcript: String) {
+        self.format = format
+        self.byteCount = byteCount
+        self.transcript = transcript
+    }
+}
+
 /// A serializable snapshot of a complete chat turn, capturing context provenance,
 /// LLM inputs/outputs, tool activity, and performance metrics.
 ///
@@ -66,6 +79,7 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
     // LLM outputs
     public let fullResponse: String
     public let fullThinking: String
+    public let audioOutput: AudioOutputSnapshot?
 
     // Tool activity
     public let toolCalls: [ToolCallRecord]
@@ -91,6 +105,7 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
         availableToolIDs: [String] = [],
         fullResponse: String = "",
         fullThinking: String = "",
+        audioOutput: AudioOutputSnapshot? = nil,
         toolCalls: [ToolCallRecord] = [],
         toolResults: [ToolResultRecord] = [],
         turnDuration: TimeInterval = 0,
@@ -111,6 +126,7 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
         self.availableToolIDs = availableToolIDs
         self.fullResponse = fullResponse
         self.fullThinking = fullThinking
+        self.audioOutput = audioOutput
         self.toolCalls = toolCalls
         self.toolResults = toolResults
         self.turnDuration = turnDuration
@@ -136,6 +152,7 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
         availableToolIds: [String] = [],
         fullResponse: String = "",
         fullThinking: String = "",
+        audioOutput: AudioOutputSnapshot? = nil,
         toolCalls: [ToolCallRecord] = [],
         toolResults: [ToolResultRecord] = [],
         turnDuration: TimeInterval = 0,
@@ -157,6 +174,7 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
             availableToolIDs: availableToolIds,
             fullResponse: fullResponse,
             fullThinking: fullThinking,
+            audioOutput: audioOutput,
             toolCalls: toolCalls,
             toolResults: toolResults,
             turnDuration: turnDuration,
@@ -186,7 +204,7 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
         case agentInstanceID = "agentInstanceId"
         case modelName, turnCount, maxTurns, systemInstructions, contextSnapshot
         case availableToolIDs = "availableToolIds"
-        case fullResponse, fullThinking, toolCalls, toolResults, turnDuration, tokensPerSecond
+        case fullResponse, fullThinking, audioOutput, toolCalls, toolResults, turnDuration, tokensPerSecond
         case promptTokens, completionTokens, totalTokens, cachedTokens
     }
 }
