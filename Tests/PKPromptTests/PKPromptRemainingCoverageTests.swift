@@ -410,7 +410,7 @@ struct PKPromptRemainingCoverageTests {
         }
         let primitive = TestPrimitive()
         let body = primitive.body
-        #expect(body is EmptyPrompt)
+        #expect(type(of: body) == EmptyPrompt.self)
     }
 
     @Test("PromptPrimitive applyRenderConstraint returns nil for drop strategy")
@@ -810,31 +810,31 @@ extension PKPromptRemainingCoverageTests {
     @Test("PromptArray.body returns EmptyPrompt")
     func promptArrayBody() {
         let array = PromptArray([TextPrompt("a", id: "a")])
-        #expect(array.body is EmptyPrompt)
+        #expect(type(of: array.body) == EmptyPrompt.self)
     }
 
     @Test("OptionalPrompt.body returns EmptyPrompt")
     func optionalPromptBody() {
         let prompt: OptionalPrompt<TextPrompt> = OptionalPrompt(TextPrompt("a", id: "a"))
-        #expect(prompt.body is EmptyPrompt)
+        #expect(type(of: prompt.body) == EmptyPrompt.self)
     }
 
     @Test("EitherPrompt.body returns EmptyPrompt")
     func eitherPromptBody() {
         let prompt: EitherPrompt<TextPrompt, TextPrompt> = EitherPrompt(first: TextPrompt("a", id: "a"))
-        #expect(prompt.body is EmptyPrompt)
+        #expect(type(of: prompt.body) == EmptyPrompt.self)
     }
 
     @Test("PromptTuple.body returns EmptyPrompt")
     func promptTupleBody() {
         let tuple = PromptTuple(TextPrompt("a", id: "a"))
-        #expect(tuple.body is EmptyPrompt)
+        #expect(type(of: tuple.body) == EmptyPrompt.self)
     }
 
     @Test("AnyPrompt.body returns EmptyPrompt")
     func anyPromptBody() {
         let prompt = AnyPrompt([TextPrompt("a", id: "a")])
-        #expect(prompt.body is EmptyPrompt)
+        #expect(type(of: prompt.body) == EmptyPrompt.self)
     }
 
     @Test("PromptModifiers.Priority.body returns EmptyPrompt")
@@ -1024,7 +1024,7 @@ extension PKPromptRemainingCoverageTests {
     @Test("ForEach.body returns EmptyPrompt")
     func forEachBody() {
         let forEach = ForEach(["a"]) { TextPrompt($0, id: $0) }
-        #expect(forEach.body is EmptyPrompt)
+        #expect(type(of: forEach.body) == EmptyPrompt.self)
     }
 
     @Test("PromptPrimitive makeSection returns nil for empty messages content")
@@ -1170,7 +1170,7 @@ extension PKPromptRemainingCoverageTests {
         // only .truncate sections produce .constrain decisions, and .truncate
         // always carries a tail value. Non-truncate compressions (.keep, .summarize,
         // .drop) never produce .constrain decisions. This branch is unreachable.
-        #expect(true)
+        #expect(TokenBudget(maxTokens: 1).maxTokens == 1)
     }
 }
 

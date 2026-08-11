@@ -20,6 +20,7 @@ struct MiniLMEmbeddingContractTests {
 
     #if os(Linux)
     @Test("Canonical and deprecated initializers have equivalent semantics")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
     func testCanonicalAndDeprecatedMiniLMInitializersHaveEquivalentSemantics() async throws {
         let modelDirectory = try MiniLMTestSupport.requireModelDirectory()
         let inputBudget = EmbeddingInputBudget(

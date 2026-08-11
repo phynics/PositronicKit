@@ -43,6 +43,7 @@ struct CoreAPIClarityTests {
     }
 
     @Test("Message legacy initializer forwards to canonical identifiers")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
     func messageLegacyInitializerForwardsToCanonicalIdentifiers() {
         let parentID = UUID()
         let message = Message(
@@ -57,6 +58,7 @@ struct CoreAPIClarityTests {
     }
 
     @Test("Canonical factories return the same values as compatibility factories")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
     func canonicalFactoriesMatchCompatibilityFactories() {
         #expect(
             ProviderConfiguration.makeDefault(for: .openAI)
@@ -75,6 +77,7 @@ struct CoreAPIClarityTests {
     }
 
     @Test("Canonical logging metadata preserves structured error fields")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
     func canonicalLoggingMetadataMatchesCompatibilityFactory() {
         let error = CocoaError(.fileNoSuchFile)
         let canonical = LoggingMetadata.makeMetadata(for: error, correlationID: "turn-1")

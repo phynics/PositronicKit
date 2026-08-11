@@ -200,7 +200,7 @@ struct TimelineObservationToolsTests {
             let result = try await tool.execute(parameters: [:])
 
             #expect(result.success)
-            let output = try #require(result.output)
+            let output = result.output
             #expect(output.contains(public1.id.uuidString))
             #expect(output.contains(public2.id.uuidString))
             #expect(!output.contains(private1.id.uuidString))

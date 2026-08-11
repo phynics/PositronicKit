@@ -1,6 +1,18 @@
 // swift-tools-version: 6.1
 import PackageDescription
 
+#if os(Linux)
+let pkFastEmbedDependency: Target.Dependency = .target(
+    name: "PKFastEmbed",
+    condition: .when(platforms: [.linux])
+)
+#else
+let pkFastEmbedDependency: Target.Dependency = .target(
+    name: "PKFastEmbed",
+    condition: .when(traits: ["MiniLMEmbeddings"])
+)
+#endif
+
 let package = Package(
     name: "PositronicKit",
     platforms: [
@@ -90,8 +102,7 @@ let package = Package(
                 "PositronicKit",
                 "PKShared",
                 .product(name: "Crypto", package: "swift-crypto"),
-                .target(name: "PKFastEmbed", condition: .when(platforms: [.linux])),
-                .target(name: "PKFastEmbed", condition: .when(traits: ["MiniLMEmbeddings"])),
+                pkFastEmbedDependency,
             ],
             path: "Sources/PKLocalEmbeddings"
         ),

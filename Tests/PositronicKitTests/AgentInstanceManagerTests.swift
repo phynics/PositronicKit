@@ -78,11 +78,11 @@ struct AgentInstanceManagerTests {
 
         // Fails: attaching different agent to private timeline
         await #expect(throws: AgentInstanceError.self) {
-            try await manager.attach(agentId: otherAgentId, to: privateTimeline.id)
+            try await manager.attach(agentID: otherAgentId, to: privateTimeline.id)
         }
 
         // Succeeds: attaching owner (idempotent)
-        try await manager.attach(agentId: agent.id, to: privateTimeline.id)
+        try await manager.attach(agentID: agent.id, to: privateTimeline.id)
     }
 
     @Test("Robustness: Cannot detach agent from its own private timeline")
@@ -109,7 +109,7 @@ struct AgentInstanceManagerTests {
         try await mock.saveTimeline(privateTimeline)
 
         await #expect(throws: AgentInstanceError.self) {
-            try await manager.detach(agentId: agentId, from: privateTimeline.id)
+            try await manager.detach(agentID: agentId, from: privateTimeline.id)
         }
     }
 
@@ -204,7 +204,7 @@ struct AgentInstanceManagerTests {
             description: "Agent attached to a shared timeline"
         )
 
-        try await kit.agentInstanceManager.attach(agentId: instance.id, to: timeline.id)
+        try await kit.agentInstanceManager.attach(agentID: instance.id, to: timeline.id)
 
         let thrown = await #expect(throws: AgentInstanceError.self) {
             try await kit.agentInstanceManager.deleteInstance(id: instance.id, force: false)
@@ -349,7 +349,7 @@ struct AgentInstanceManagerTests {
         try await timelineStore.saveTimeline(timeline)
 
         // attach must NOT throw just because the audit-log save failed.
-        try await manager.attach(agentId: agentId, to: timeline.id)
+        try await manager.attach(agentID: agentId, to: timeline.id)
 
         // The attach itself succeeded: the timeline now references the agent.
         let updated = try await timelineStore.fetchTimeline(id: timeline.id)
@@ -393,7 +393,7 @@ struct AgentInstanceManagerTests {
         try await timelineStore.saveTimeline(timeline)
 
         // detach must NOT throw just because the audit-log save failed.
-        try await manager.detach(agentId: agentId, from: timeline.id)
+        try await manager.detach(agentID: agentId, from: timeline.id)
 
         // The detach itself succeeded: the agent reference is cleared.
         let updated = try await timelineStore.fetchTimeline(id: timeline.id)

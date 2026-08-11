@@ -244,7 +244,7 @@ struct AgentWorkspaceServiceTests {
 
         let instanceId = UUID()
         _ = try await repository.createAgentWorkspace(
-            instanceId: instanceId,
+            instanceID: instanceId,
             template: template
         )
 
@@ -286,7 +286,7 @@ struct AgentWorkspaceServiceTests {
 
         do {
             _ = try await seedFailureRepository.createAgentWorkspace(
-                instanceId: seedFailureInstanceID,
+                instanceID: seedFailureInstanceID,
                 template: invalidTemplate
             )
             Issue.record("Expected seed provisioning to fail")
@@ -319,7 +319,7 @@ struct AgentWorkspaceServiceTests {
 
         do {
             _ = try await persistenceFailureRepository.createAgentWorkspace(
-                instanceId: persistenceFailureInstanceID,
+                instanceID: persistenceFailureInstanceID,
                 template: validTemplate
             )
             Issue.record("Expected persistence to fail")
@@ -347,7 +347,7 @@ struct AgentWorkspaceServiceTests {
 
         do {
             _ = try await persistenceFailureRepository.createAgentWorkspace(
-                instanceId: existingInstanceID,
+                instanceID: existingInstanceID,
                 template: validTemplate
             )
             Issue.record("Expected persistence to fail for the existing workspace")
@@ -387,7 +387,7 @@ struct AgentWorkspaceServiceTests {
         var didThrow = false
         do {
             _ = try await repository.createAgentWorkspace(
-                instanceId: instanceId,
+                instanceID: instanceId,
                 template: template
             )
         } catch {
@@ -431,7 +431,7 @@ struct AgentWorkspaceServiceTests {
         var didThrow = false
         do {
             _ = try await repository.createAgentWorkspace(
-                instanceId: instanceId,
+                instanceID: instanceId,
                 template: template
             )
         } catch {
@@ -470,7 +470,7 @@ struct AgentWorkspaceServiceTests {
         var didThrow = false
         do {
             _ = try await repository.createAgentWorkspace(
-                instanceId: instanceId,
+                instanceID: instanceId,
                 template: template
             )
         } catch {

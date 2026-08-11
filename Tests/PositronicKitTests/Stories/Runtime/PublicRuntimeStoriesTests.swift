@@ -69,7 +69,7 @@ struct PublicRuntimeStoriesTests {
         #expect(runtime.agentInstanceManager === kit.agentInstanceManager)
         #expect(runtime !== secondRuntime)
 
-        try await kit.agentInstanceManager.attach(agentId: agentId, to: timelineId)
+        try await kit.agentInstanceManager.attach(agentID: agentId, to: timelineId)
 
         let mockTool = AcceptanceMockTool()
         mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "agent_call", name: "mock_tool")]]
@@ -129,7 +129,7 @@ struct PublicRuntimeStoriesTests {
             name: "Requested Agent",
             description: "Must not run another agent's timeline."
         )
-        try await kit.agentInstanceManager.attach(agentId: attachedAgent.id, to: timelineId)
+        try await kit.agentInstanceManager.attach(agentID: attachedAgent.id, to: timelineId)
 
         await #expect(throws: AgentInstanceError.self) {
             _ = try await kit.agenticRuntime(

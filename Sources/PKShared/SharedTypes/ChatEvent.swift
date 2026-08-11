@@ -400,7 +400,6 @@ public enum ChatEvent: Sendable, Codable {
         ///   stream completion through the path-specific terminal cases (`.generationCompleted`,
         ///   `.maxTurnsReached`, `.deferredForExternalTool`) or by throwing. Retained only for
         ///   backward compatibility of `Codable` round-tripping (PKRR-011).
-        @available(*, deprecated, message: "Never emitted in production. Switch on .generationCompleted / .maxTurnsReached / .deferredForExternalTool for terminal events.")
         case streamCompleted
 
         /// Compatibility constructor using the legacy tool-call identifier spelling.

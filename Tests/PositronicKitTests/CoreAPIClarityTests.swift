@@ -156,6 +156,7 @@ struct CoreAPIClarityTests {
     }
 
     @Test("Chat requests expose canonical identifiers and preserve legacy initialization")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
     func chatRunRequestIdentifierCompatibility() {
         let timelineID = UUID()
         let sendID = UUID()
@@ -205,6 +206,7 @@ struct CoreAPIClarityTests {
     }
 
     @Test("Timeline legacy initializer forwards to canonical identifiers")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
     func timelineLegacyInitializerForwardsToCanonicalIdentifiers() {
         let workspaceID = UUID()
         let agentInstanceID = UUID()
@@ -242,6 +244,7 @@ struct CoreAPIClarityTests {
     }
 
     @Test("Canonical LLM client queries preserve legacy accessor results")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
     func canonicalLLMClientQueriesPreserveLegacyResults() async {
         let service = LLMService(storage: MockConfigurationService())
 

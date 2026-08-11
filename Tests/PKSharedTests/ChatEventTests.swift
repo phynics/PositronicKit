@@ -104,6 +104,7 @@ import ErrorKit
     }
 
     @Test("Tool-call identifier APIs preserve legacy construction and wire keys")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
     func toolCallIdentifierCompatibility() throws {
         let status = ToolExecutionStatus.executionError("bad args")
         let canonicalEvents: [ChatEvent] = [

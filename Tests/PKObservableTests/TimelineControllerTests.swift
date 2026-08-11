@@ -32,7 +32,8 @@ struct TimelineControllerTests {
         let timeline = try await kit.timelineManager.createTimeline(title: "Controller")
         let driver = kit.openTimeline(timeline.id)
         var controller: TimelineController? = TimelineController(driver)
-        weak var releasedController = controller
+        weak var releasedController: TimelineController? = nil
+        releasedController = controller
 
         try await controller!.send("Hi")
         controller = nil

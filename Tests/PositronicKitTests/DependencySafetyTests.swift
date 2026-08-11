@@ -31,6 +31,7 @@ struct DependencySafetyTests {
     }
 
     @Test("Deprecated TestRuntime facade builder forwards the stored facade")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
     func deprecatedBuildCoreForwardsStoredFacade() {
         let runtime = TestRuntime(
             workspaceRoot: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

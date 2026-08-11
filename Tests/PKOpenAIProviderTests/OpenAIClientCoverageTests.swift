@@ -223,7 +223,7 @@ data: [DONE]
             maxRetries: 0
         )
         let cancellation = CancellationError()
-        let mapped = await client.mapProviderError(cancellation, provider: "OpenAI")
+        let mapped = client.mapProviderError(cancellation, provider: "OpenAI")
         #expect(mapped is CancellationError)
     }
 
@@ -239,7 +239,7 @@ data: [DONE]
             maxRetries: 0
         )
         struct CustomError: Error {}
-        let mapped = await client.mapProviderError(CustomError(), provider: "OpenAI")
+        let mapped = client.mapProviderError(CustomError(), provider: "OpenAI")
         #expect(mapped is CustomError)
     }
 
@@ -254,7 +254,7 @@ data: [DONE]
             activeProvider: .openAI
         )
         let client = PKOpenAIProvider.makeClientAndRegisterStructuredOutputAdapter(configuration: config)
-        #expect(client is OpenAIClient)
+        #expect(type(of: client) == OpenAIClient.self)
     }
 
     @Test("makeClient for OpenAI-compatible provider registers compatible structured output adapter")
@@ -266,7 +266,7 @@ data: [DONE]
             activeProvider: .openAICompatible
         )
         let client = PKOpenAIProvider.makeClientAndRegisterStructuredOutputAdapter(configuration: config)
-        #expect(client is OpenAIClient)
+        #expect(type(of: client) == OpenAIClient.self)
     }
 
     @Test("makeClient falls back to default host/port/scheme for invalid endpoint")
@@ -279,6 +279,6 @@ data: [DONE]
         )
         // Should not crash; falls back to api.openai.com:443/https.
         let client = PKOpenAIProvider.makeClientAndRegisterStructuredOutputAdapter(configuration: config)
-        #expect(client is OpenAIClient)
+        #expect(type(of: client) == OpenAIClient.self)
     }
 }

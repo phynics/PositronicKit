@@ -2,7 +2,7 @@ import Foundation
 import Synchronization
 import Testing
 @testable import PKShared
-import PKUtilities
+@testable import PKUtilities
 
 /// Regression tests for PKRR-030: `RetryPolicy.retry` must reject invalid numeric
 /// values (negative, NaN, infinite, extreme) with typed errors rather than silently
@@ -71,8 +71,9 @@ struct RetryPolicyValidationTests {
     @Test("Excessive server Retry-After is capped and does not cause an excessive sleep")
     func retryAfterCappedByHostPolicy() async throws {
         // A hostile server advertises Retry-After: 999999 seconds. Without capping, the
-        // retry would sleep for ~16 minutes. With maxRetryAfter: 0.05, the actual sleep
-        // should be ~50ms.
+        // retry would sleep for ~16 minutes. With maxRetryAfter: 0.05, the retry should
+        // request a 50ms delay. Inject the timing seams so scheduler contention cannot
+        // turn this deterministic policy assertion into a wall-clock test.
         let config = try RetryConfiguration(
             maxRetries: 1,
             baseDelay: 0.001,
@@ -80,11 +81,16 @@ struct RetryPolicyValidationTests {
             jitter: .none
         )
         let attempts = Mutex(0)
-        let started = ContinuousClock.now
+        let sleepDelays = Mutex([TimeInterval]())
 
         let result = try await RetryPolicy.retry(
             configuration: config,
-            shouldRetry: { _ in true }
+            shouldRetry: { _ in true },
+            loggingConfiguration: .default,
+            elapsedTime: { 0 },
+            sleeper: { delay in
+                sleepDelays.withLock { $0.append(delay) }
+            }
         ) {
             attempts.withLock { $0 += 1 }
             if attempts.withLock({ $0 }) == 1 {
@@ -100,9 +106,7 @@ struct RetryPolicyValidationTests {
 
         #expect(result == "ok")
         #expect(attempts.withLock { $0 } == 2)
-        // The capped delay should be ~0.05s, not ~999999s. Allow generous tolerance for CI.
-        let elapsed = started.duration(to: .now)
-        #expect(elapsed < .seconds(5), "Retry-After was not capped: elapsed \(elapsed)")
+        #expect(sleepDelays.withLock { $0 } == [config.maxRetryAfter])
     }
 
     // MARK: - Total elapsed-time budget

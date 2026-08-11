@@ -31,7 +31,7 @@ import Testing
     @Test("Imperative pipeline supports conditionally adding stages")
     func builder_supportsConditionalStages() async throws {
         let tracker = StageRunTracker()
-        let includeExtra = false
+        let includeExtra = shouldIncludeConditionalStage()
         var pipeline = Pipeline<ContextPipelineContext, ContextGatheringEvent>()
             .add(TrackingStage(tracker: tracker, stageID: "always"))
         if includeExtra {
@@ -166,4 +166,8 @@ private struct CompletionStage: PipelineStage {
         await context.finalize(executionTime: 0)
         return AsyncThrowingStream { $0.finish() }
     }
+}
+
+private func shouldIncludeConditionalStage() -> Bool {
+    false
 }

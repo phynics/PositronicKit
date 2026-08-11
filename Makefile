@@ -45,7 +45,7 @@ endif
 # Build a single library product by name, e.g. `make verify-product-PKShared`.
 verify-product-%:
 	@echo "Building $*..."
-	@swift build --product "$*"
+	@swift build --target "$*"
 
 # Default target
 help:
@@ -169,7 +169,7 @@ verify-products:
 	fi; \
 	for product in $$products; do \
 		echo "Building $$product..."; \
-		swift build --product "$$product"; \
+		swift build --target "$$product"; \
 	done
 
 verify-examples:
@@ -178,7 +178,7 @@ verify-examples:
 
 verify-pktestsupport:
 	@echo "Building PKTestSupport in release configuration..."
-	@swift build -c release --product PKTestSupport
+	@swift build -c release --target PKTestSupport
 	@echo "Compiling an ordinary-import PKTestSupport consumer..."
 	@swift build -c release --target PKTestSupportConsumer
 

@@ -8,6 +8,8 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+## [3.5.0] - 2026-08-11
+
 ### Added
 
 - **Precision-safe `AnyCodable` integers**: JSON integers now decode and encode through the
@@ -25,8 +27,7 @@ for tagged releases beginning with `1.0.0`.
   and is exercised by an ordinary-import consumer target. Public LLM capture records and complete
   histories expose messages, tools, response options, generation parameters, model tiers, full
   context requests, and send options without requiring `@testable import`. These additions are
-  unreleased and are not available in the `3.4.0` tag; downstream consumers should wait for the
-  release containing this entry before updating semver pins.
+  available beginning in `3.5.0`.
 
 ### Changed
 
@@ -37,6 +38,9 @@ for tagged releases beginning with `1.0.0`.
 - **Prompt journal observation validation**: `PromptJournal.observe(_:)` now throws
   `PromptJournal.ValidationError` for duplicate stable or semi-stable section identifiers before
   mutating journal state; valid diff behavior is unchanged.
+- **Warning-free Swift 6.3 builds**: package, production, and test targets now compile without
+  warnings on a clean Linux build. Compatibility-shim tests remain covered without polluting build
+  output, and retry-delay validation uses injected timing instead of scheduler-sensitive wall time.
 - **Facade preflight, one-shot, and stream lifecycle behavior**: requests with an
   `agentInstanceID` resolve the agent once before provider readiness and input persistence;
   `.failRequired` throws for a missing agent while `.continueWithWarnings` emits an agent
@@ -67,6 +71,21 @@ for tagged releases beginning with `1.0.0`.
   timeout race can return without awaiting a cancellation-ignoring asynchronous loser, but cannot
   preempt or isolate synchronous cooperative-executor blocking. This documentation correction
   changes no public signatures, side-effect classification, timeout errors, or runtime behavior.
+
+## [3.4.2] - 2026-08-07
+
+### Changed
+
+- Made `TimelineManager.importWorkspace(_:)` public, fixing its cross-module accessibility after
+  its introduction in `3.4.1`.
+
+## [3.4.1] - 2026-08-07
+
+### Added
+
+- Added `TimelineManager.importWorkspace(_:)` to persist a workspace reference into the manager's
+  validation store before attachment. The initial declaration was not public; `3.4.2` corrected
+  that access-level regression.
 
 ## [3.4.0] - 2026-08-04
 

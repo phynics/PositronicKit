@@ -5,7 +5,6 @@ import PKUtilities
 /// Protocol for managing the persistence and provisioning of agent private workspaces.
 public protocol WorkspaceCatalog: Sendable {
     /// Creates a new workspace and saves it to persistence.
-    @available(*, deprecated, message: "Use createWorkspace(uri:location:originID:rootPath:).")
     func createWorkspace(
         uri: WorkspaceURI,
         location: WorkspaceReference.WorkspaceLocation,
@@ -14,7 +13,6 @@ public protocol WorkspaceCatalog: Sendable {
     ) async throws -> WorkspaceReference
 
     /// Creates a new agent workspace and seeds it with template files.
-    @available(*, deprecated, message: "Use createAgentWorkspace(instanceID:template:).")
     func createAgentWorkspace(
         instanceId: UUID,
         template: AgentTemplate?
@@ -63,7 +61,7 @@ public extension WorkspaceCatalog {
     /// Compatibility overload for callers using the legacy identifier spelling.
     @_disfavoredOverload
     @available(*, deprecated, message: "Use createWorkspace(uri:location:originID:rootPath:).")
-    public func createWorkspace(
+    func createWorkspace(
         uri: WorkspaceURI,
         location: WorkspaceReference.WorkspaceLocation,
         originId: UUID? = nil,
@@ -80,7 +78,7 @@ public extension WorkspaceCatalog {
     /// Compatibility overload for callers using the legacy identifier spelling.
     @_disfavoredOverload
     @available(*, deprecated, message: "Use createAgentWorkspace(instanceID:template:).")
-    public func createAgentWorkspace(
+    func createAgentWorkspace(
         instanceId: UUID,
         template: AgentTemplate? = nil
     ) async throws -> WorkspaceReference {
@@ -90,11 +88,11 @@ public extension WorkspaceCatalog {
         )
     }
 
-    public func getWorkspace(id: UUID, includeTools: Bool = true) async throws -> WorkspaceReference? {
+    func getWorkspace(id: UUID, includeTools: Bool = true) async throws -> WorkspaceReference? {
         try await getWorkspace(id: id, includeTools: includeTools)
     }
 
-    public func deleteWorkspace(id: UUID, deleteDirectory: Bool = false) async throws {
+    func deleteWorkspace(id: UUID, deleteDirectory: Bool = false) async throws {
         try await deleteWorkspace(id: id, deleteDirectory: deleteDirectory)
     }
 }

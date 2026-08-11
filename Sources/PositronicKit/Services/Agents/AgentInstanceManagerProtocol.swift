@@ -12,22 +12,18 @@ public protocol AgentInstanceManagerProtocol: Sendable {
     ) async throws -> AgentInstance
 
     /// Attaches an agent instance to a timeline.
-    @available(*, deprecated, message: "Use attach(agentID:to:).")
     func attach(agentId: UUID, to timelineId: UUID) async throws
 
     /// Detaches an agent instance from a timeline.
-    @available(*, deprecated, message: "Use detach(agentID:from:).")
     func detach(agentId: UUID, from timelineId: UUID) async throws
 
     /// Fetches an agent instance by its unique identifier.
-    @available(*, deprecated, renamed: "instance(id:)")
     func getInstance(id: UUID) async throws -> AgentInstance?
 
     /// Lists all agent instances.
     func listInstances() async throws -> [AgentInstance]
 
     /// Lists all timelines attached to a specific agent instance.
-    @available(*, deprecated, renamed: "timelines(attachedTo:)")
     func getTimelines(attachedTo agentId: UUID) async throws -> [Timeline]
 
     /// Updates an existing agent instance.

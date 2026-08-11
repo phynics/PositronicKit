@@ -70,7 +70,7 @@ private final class RecordingOpenAIMiddleware: OpenAIMiddleware, @unchecked Send
 /// Blocks all real network I/O for the OpenAI SDK's `URLSession`: every request is answered
 /// synchronously from process memory. Registered only on a dedicated ephemeral session, never
 /// on `URLSession.shared`.
-private final class NoNetworkURLProtocol: URLProtocol, @unchecked Sendable {
+private final class NoNetworkURLProtocol: URLProtocol {
     static let session: URLSession = {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [NoNetworkURLProtocol.self]
@@ -171,7 +171,7 @@ struct ProviderInitializationTests {
     @Test("Deprecated OpenAI factory forwards client construction and adapter registration")
     func deprecatedOpenAIFactoryForwards() {
         let client = PKOpenAIProvider.makeClientAndRegisterStructuredOutputAdapter(configuration: .fixture(apiKey: "test", activeProvider: .openAI))
-        #expect(client is OpenAIClient)
+        #expect(type(of: client) == OpenAIClient.self)
         #expect(StructuredOutputAdapterRegistry.adapter(for: .openAI) is NativeJSONSchemaStructuredOutputAdapter)
     }
 
@@ -256,7 +256,7 @@ struct ProviderInitializationTests {
     @Test("Deprecated Anthropic factory forwards client construction and adapter registration")
     func deprecatedAnthropicFactoryForwards() {
         let client = PKAnthropicProvider.makeClientAndRegisterStructuredOutputAdapter(configuration: .fixture(apiKey: "test", activeProvider: .anthropic))
-        #expect(client is AnthropicClient)
+        #expect(type(of: client) == AnthropicClient.self)
         #expect(StructuredOutputAdapterRegistry.adapter(for: .anthropic) is DefaultStructuredOutputAdapter)
     }
 
@@ -325,7 +325,7 @@ struct ProviderInitializationTests {
     @Test("Deprecated Ollama factory forwards client construction and adapter registration")
     func deprecatedOllamaFactoryForwards() {
         let client = PKOllamaProvider.makeClientAndRegisterStructuredOutputAdapter(configuration: .fixture(activeProvider: .ollama))
-        #expect(client is OllamaClient)
+        #expect(type(of: client) == OllamaClient.self)
         #expect(StructuredOutputAdapterRegistry.adapter(for: .ollama) is PromptAugmentedJSONSchemaAdapter)
     }
 
@@ -424,7 +424,7 @@ struct ProviderInitializationTests {
     @Test("Deprecated OpenRouter factory forwards client construction and adapter registration")
     func deprecatedOpenRouterFactoryForwards() {
         let client = PKOpenRouterProvider.makeClientAndRegisterStructuredOutputAdapter(configuration: .fixture(activeProvider: .openRouter))
-        #expect(client is OpenRouterClient)
+        #expect(type(of: client) == OpenRouterClient.self)
         #expect(StructuredOutputAdapterRegistry.adapter(for: .openRouter) is NativeJSONSchemaStructuredOutputAdapter)
     }
 

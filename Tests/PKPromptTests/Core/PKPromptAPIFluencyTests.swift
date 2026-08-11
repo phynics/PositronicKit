@@ -132,6 +132,7 @@ struct PKPromptAPIFluencyTests {
 @Suite("PKPrompt compatibility shims")
 struct PKPromptCompatibilityShimTests {
     @Test("Legacy ForEach initializer forwards to the canonical element initializer")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
     func legacyForEachForwarding() {
         let prompt = ForEach(data: ["one", "two"]) { element in
             TextPrompt(element, id: element)
@@ -141,6 +142,7 @@ struct PKPromptCompatibilityShimTests {
     }
 
     @Test("Legacy token-budget methods project the canonical result")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
     func legacyTokenBudgetForwarding() async throws {
         let sections: [any Prompt] = [TextPrompt("hello", id: "greeting")]
         let budget = TokenBudget(maxTokens: 20)
@@ -156,6 +158,7 @@ struct PKPromptCompatibilityShimTests {
     }
 
     @Test("Legacy reset forwards to explicit reset operations")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
     func legacyResetForwarding() {
         var soft = PromptJournal(state: journalState())
         var hard = PromptJournal(state: journalState())
@@ -168,6 +171,7 @@ struct PKPromptCompatibilityShimTests {
     }
 
     @Test("Legacy nodeId initializers and properties forward to nodeID")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
     func legacyNodeIDForwarding() {
         let report = CompressionNodeReport(
             nodeId: "legacy",

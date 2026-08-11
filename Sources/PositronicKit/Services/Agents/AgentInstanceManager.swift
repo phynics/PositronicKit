@@ -97,7 +97,7 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
         do {
             // 1. Create workspace via repository
             let createdWorkspace = try await repository.createAgentWorkspace(
-                instanceId: instanceId,
+                instanceID: instanceId,
                 template: template
             )
             workspace = createdWorkspace

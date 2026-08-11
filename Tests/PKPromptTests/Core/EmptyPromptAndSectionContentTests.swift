@@ -19,7 +19,7 @@ struct EmptyPromptTests {
         let prompt = EmptyPrompt()
         // The body of EmptyPrompt is EmptyPrompt itself.
         let body = prompt.body
-        #expect(body is EmptyPrompt)
+        #expect(type(of: body) == EmptyPrompt.self)
     }
 }
 

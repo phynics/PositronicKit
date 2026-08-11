@@ -33,7 +33,7 @@ struct InMemoryStoresContractTests {
         func addToolAppends() async throws {
             let store = InMemoryToolPersistence()
             let wsId = UUID()
-            try await store.replaceWorkspaces([makeWorkspace(id: wsId)])
+            await store.replaceWorkspaces([makeWorkspace(id: wsId)])
 
             try await store.addToolToWorkspace(workspaceId: wsId, tool: .known("read_file"))
             try await store.addToolToWorkspace(workspaceId: wsId, tool: .known("list_dir"))
@@ -56,7 +56,7 @@ struct InMemoryStoresContractTests {
         func syncToolsReplaces() async throws {
             let store = InMemoryToolPersistence()
             let wsId = UUID()
-            try await store.replaceWorkspaces([makeWorkspace(id: wsId)])
+            await store.replaceWorkspaces([makeWorkspace(id: wsId)])
             try await store.addToolToWorkspace(workspaceId: wsId, tool: .known("old_tool"))
 
             try await store.syncTools(workspaceId: wsId, tools: [.known("a"), .known("b")])
@@ -79,7 +79,7 @@ struct InMemoryStoresContractTests {
         func fetchToolsUnionsAcrossWorkspaces() async throws {
             let store = InMemoryToolPersistence()
             let wsA = UUID(), wsB = UUID(), wsC = UUID()
-            try await store.replaceWorkspaces([
+            await store.replaceWorkspaces([
                 makeWorkspace(id: wsA, originId: nil),
                 makeWorkspace(id: wsB, originId: nil),
                 makeWorkspace(id: wsC, originId: nil),
@@ -98,7 +98,7 @@ struct InMemoryStoresContractTests {
             let store = InMemoryToolPersistence()
             let origin = UUID()
             let wsA = UUID(), wsB = UUID()
-            try await store.replaceWorkspaces([
+            await store.replaceWorkspaces([
                 makeWorkspace(id: wsA, originId: origin),
                 makeWorkspace(id: wsB, originId: nil),
             ])
@@ -114,7 +114,7 @@ struct InMemoryStoresContractTests {
         func findWorkspaceIdLocatesOwner() async throws {
             let store = InMemoryToolPersistence()
             let wsA = UUID(), wsB = UUID()
-            try await store.replaceWorkspaces([makeWorkspace(id: wsA), makeWorkspace(id: wsB)])
+            await store.replaceWorkspaces([makeWorkspace(id: wsA), makeWorkspace(id: wsB)])
             try await store.addToolToWorkspace(workspaceId: wsA, tool: .known("a"))
             try await store.addToolToWorkspace(workspaceId: wsB, tool: .known("b"))
 
@@ -126,7 +126,7 @@ struct InMemoryStoresContractTests {
         func findWorkspaceIdUnknownReturnsNil() async throws {
             let store = InMemoryToolPersistence()
             let wsA = UUID()
-            try await store.replaceWorkspaces([makeWorkspace(id: wsA)])
+            await store.replaceWorkspaces([makeWorkspace(id: wsA)])
 
             let found = try await store.findWorkspaceId(forToolId: "nope", in: [wsA])
             #expect(found == nil)
@@ -136,7 +136,7 @@ struct InMemoryStoresContractTests {
         func findWorkspaceIdScopedToProvidedIds() async throws {
             let store = InMemoryToolPersistence()
             let wsA = UUID(), wsB = UUID()
-            try await store.replaceWorkspaces([makeWorkspace(id: wsA), makeWorkspace(id: wsB)])
+            await store.replaceWorkspaces([makeWorkspace(id: wsA), makeWorkspace(id: wsB)])
             try await store.addToolToWorkspace(workspaceId: wsB, tool: .known("b"))
 
             // Tool "b" exists in wsB, but wsB is not in the search set.
@@ -148,7 +148,7 @@ struct InMemoryStoresContractTests {
         func fetchToolSourceAttachedWorkspace() async throws {
             let store = InMemoryToolPersistence()
             let wsId = UUID()
-            try await store.replaceWorkspaces([
+            await store.replaceWorkspaces([
                 makeWorkspace(id: wsId, location: .attached)
             ])
             try await store.addToolToWorkspace(workspaceId: wsId, tool: .known("t"))
@@ -163,7 +163,7 @@ struct InMemoryStoresContractTests {
         func fetchToolSourcePrimaryWorkspace() async throws {
             let store = InMemoryToolPersistence()
             let wsId = UUID()
-            try await store.replaceWorkspaces([
+            await store.replaceWorkspaces([
                 makeWorkspace(id: wsId, location: .runtimeTimeline)
             ])
             try await store.addToolToWorkspace(workspaceId: wsId, tool: .known("t"))
@@ -179,7 +179,7 @@ struct InMemoryStoresContractTests {
             let store = InMemoryToolPersistence()
             let wsId = UUID()
             let uri = WorkspaceURI(host: "localhost", path: "/projects/extra")
-            try await store.replaceWorkspaces([
+            await store.replaceWorkspaces([
                 makeWorkspace(id: wsId, location: .runtimeTimeline, uri: uri)
             ])
             try await store.addToolToWorkspace(workspaceId: wsId, tool: .known("t"))
@@ -195,7 +195,7 @@ struct InMemoryStoresContractTests {
         func fetchToolSourceUnknownReturnsNil() async throws {
             let store = InMemoryToolPersistence()
             let wsId = UUID()
-            try await store.replaceWorkspaces([makeWorkspace(id: wsId)])
+            await store.replaceWorkspaces([makeWorkspace(id: wsId)])
 
             let source = try await store.fetchToolSource(
                 toolId: "ghost", workspaceIds: [wsId], primaryWorkspaceId: wsId
@@ -235,9 +235,9 @@ struct InMemoryStoresContractTests {
         @Test("searchMemories matches title and content substrings")
         func searchMatchesTitleAndContent() async throws {
             let store = InMemoryMemoryStore()
-            try await store.saveMemory(makeMemory(title: "Swift tips", content: "nope"), policy: .immediate)
-            try await store.saveMemory(makeMemory(title: "Other", content: "loves Swift"), policy: .immediate)
-            try await store.saveMemory(makeMemory(title: "Unrelated", content: "nothing"), policy: .immediate)
+            _ = try await store.saveMemory(makeMemory(title: "Swift tips", content: "nope"), policy: .immediate)
+            _ = try await store.saveMemory(makeMemory(title: "Other", content: "loves Swift"), policy: .immediate)
+            _ = try await store.saveMemory(makeMemory(title: "Unrelated", content: "nothing"), policy: .immediate)
 
             let results = try await store.searchMemories(query: "Swift")
             #expect(results.count == 2)
@@ -246,9 +246,9 @@ struct InMemoryStoresContractTests {
         @Test("searchMemories(matchingAnyTag:) returns memories sharing at least one tag")
         func searchByTag() async throws {
             let store = InMemoryMemoryStore()
-            try await store.saveMemory(makeMemory(title: "A", content: "a", tags: ["swift", "ios"]), policy: .immediate)
-            try await store.saveMemory(makeMemory(title: "B", content: "b", tags: ["rust"]), policy: .immediate)
-            try await store.saveMemory(makeMemory(title: "C", content: "c", tags: ["swift"]), policy: .immediate)
+            _ = try await store.saveMemory(makeMemory(title: "A", content: "a", tags: ["swift", "ios"]), policy: .immediate)
+            _ = try await store.saveMemory(makeMemory(title: "B", content: "b", tags: ["rust"]), policy: .immediate)
+            _ = try await store.saveMemory(makeMemory(title: "C", content: "c", tags: ["swift"]), policy: .immediate)
 
             let results = try await store.searchMemories(matchingAnyTag: ["swift"])
             #expect(results.count == 2)
@@ -257,7 +257,7 @@ struct InMemoryStoresContractTests {
         @Test("searchMemories(matchingAnyTag:) returns empty for no tag overlap")
         func searchByTagNoOverlap() async throws {
             let store = InMemoryMemoryStore()
-            try await store.saveMemory(makeMemory(tags: ["a"]), policy: .immediate)
+            _ = try await store.saveMemory(makeMemory(tags: ["a"]), policy: .immediate)
 
             let results = try await store.searchMemories(matchingAnyTag: ["z"])
             #expect(results.isEmpty)
@@ -267,7 +267,7 @@ struct InMemoryStoresContractTests {
         func deleteRemoves() async throws {
             let store = InMemoryMemoryStore()
             let memory = makeMemory()
-            try await store.saveMemory(memory, policy: .immediate)
+            _ = try await store.saveMemory(memory, policy: .immediate)
 
             try await store.deleteMemory(id: memory.id)
             let fetched = try await store.fetchMemory(id: memory.id)
@@ -278,7 +278,7 @@ struct InMemoryStoresContractTests {
         func updateOverwrites() async throws {
             let store = InMemoryMemoryStore()
             let memory = makeMemory(title: "Original")
-            try await store.saveMemory(memory, policy: .immediate)
+            _ = try await store.saveMemory(memory, policy: .immediate)
 
             var updated = memory
             updated.title = "Updated"
@@ -299,7 +299,7 @@ struct InMemoryStoresContractTests {
         func updateEmbeddingSerializes() async throws {
             let store = InMemoryMemoryStore()
             let memory = makeMemory()
-            try await store.saveMemory(memory, policy: .immediate)
+            _ = try await store.saveMemory(memory, policy: .immediate)
 
             try await store.updateMemoryEmbedding(id: memory.id, newEmbedding: [0.1, 0.2, 0.3])
 
@@ -317,7 +317,7 @@ struct InMemoryStoresContractTests {
         @Test("embedding-based search always returns empty (no vector index)")
         func embeddingSearchReturnsEmpty() async throws {
             let store = InMemoryMemoryStore()
-            try await store.saveMemory(makeMemory(), policy: .immediate)
+            _ = try await store.saveMemory(makeMemory(), policy: .immediate)
 
             let results = try await store.searchMemories(embedding: [0.5], limit: 10, minSimilarity: 0.0)
             #expect(results.isEmpty)
@@ -326,7 +326,7 @@ struct InMemoryStoresContractTests {
         @Test("vacuum and prune are no-ops returning zero")
         func vacuumAndPruneAreNoOps() async throws {
             let store = InMemoryMemoryStore()
-            try await store.saveMemory(makeMemory(), policy: .immediate)
+            _ = try await store.saveMemory(makeMemory(), policy: .immediate)
 
             #expect(try await store.vacuumMemories(threshold: 0.5) == 0)
             #expect(try await store.pruneMemories(matching: "x", dryRun: false) == 0)

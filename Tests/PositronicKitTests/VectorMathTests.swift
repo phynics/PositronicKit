@@ -85,6 +85,7 @@ struct VectorMathTests {
     }
 
     @Test("Labeled cosine similarity preserves the positional API result")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
     func labeledCosineSimilarityMatchesCompatibilityOverload() {
         let vectorA = [1.0, 2.0, 3.0]
         let vectorB = [3.0, 2.0, 1.0]
