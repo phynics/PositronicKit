@@ -93,6 +93,7 @@ struct ThreadIdentifierCompatibilityTests {
     }
 
     @Test("WorkspaceLocation remains String RawRepresentable")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
     func workspaceLocationRemainsRawRepresentable() {
         let location: any RawRepresentable = WorkspaceReference.WorkspaceLocation.runtimeTimeline
 
@@ -100,6 +101,7 @@ struct ThreadIdentifierCompatibilityTests {
     }
 
     @Test("historical runtimeTimeline decodes as the historical enum case")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
     func historicalRuntimeTimelineDecodesAsHistoricalCase() throws {
         let location = try JSONDecoder().decode(
             WorkspaceReference.WorkspaceLocation.self,

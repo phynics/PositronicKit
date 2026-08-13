@@ -99,3 +99,11 @@ actor ThreadPersistenceCompatibilityAdapter: TimelinePersistenceProtocol {
 /// Deprecated v3 spelling for the in-memory thread persistence.
 @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
 public typealias InMemoryTimelinePersistence = InMemoryThreadPersistence
+
+/// Deprecated v3 agent-instance query spelling retained as a one-way compatibility shim.
+public extension AgentInstanceStoreProtocol {
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    func fetchTimelines(attachedToAgent agentInstanceId: UUID) async throws -> [Thread] {
+        try await fetchThreads(attachedToAgent: agentInstanceId)
+    }
+}

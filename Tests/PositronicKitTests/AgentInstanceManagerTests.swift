@@ -2,6 +2,7 @@ import Foundation
 import PKShared
 import PKUtilities
 import PKTestSupport
+import struct PositronicKit.Thread
 @testable import PositronicKit
 import Testing
 
@@ -566,7 +567,7 @@ private actor AgentCreationFaultStore: WorkspaceStore, TimelinePersistenceProtoc
         instances.removeValue(forKey: id)
     }
 
-    func fetchTimelines(attachedToAgent agentInstanceId: UUID) async throws -> [Timeline] {
+    func fetchThreads(attachedToAgent agentInstanceId: UUID) async throws -> [Thread] {
         timelines.values.filter { $0.attachedAgentInstanceID == agentInstanceId }
     }
 

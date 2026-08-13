@@ -19,5 +19,5 @@ public protocol AgentInstanceStoreProtocol: DurabilityAware {
     func fetchAgentInstance(id: UUID) async throws -> AgentInstance?
     func fetchAllAgentInstances() async throws -> [AgentInstance]
     func deleteAgentInstance(id: UUID) async throws
-    func fetchTimelines(attachedToAgent agentInstanceId: UUID) async throws -> [Timeline]
+    func fetchThreads(attachedToAgent agentInstanceId: UUID) async throws -> [Thread]
 }

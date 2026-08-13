@@ -31,9 +31,4 @@ public actor InMemoryAgentInstanceStore: AgentInstanceStoreProtocol {
     public func fetchThreads(attachedToAgent _: UUID) async throws -> [Thread] {
         []
     }
-
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public func fetchTimelines(attachedToAgent agentInstanceID: UUID) async throws -> [Thread] {
-        try await fetchThreads(attachedToAgent: agentInstanceID)
-    }
 }

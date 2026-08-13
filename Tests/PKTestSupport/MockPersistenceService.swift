@@ -2,6 +2,7 @@ import Foundation
 import PKShared
 import PKUtilities
 import PositronicKit
+import struct PositronicKit.Thread
 import Synchronization
 
 /// Composite in-memory test double for the full persistence surface (memories, messages,
@@ -346,7 +347,7 @@ public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProt
         state.withLock { $0.agentInstances.removeAll { $0.id == id } }
     }
 
-    public func fetchTimelines(attachedToAgent agentInstanceId: UUID) async throws -> [Timeline] {
+    public func fetchThreads(attachedToAgent agentInstanceId: UUID) async throws -> [Thread] {
         timelines.filter { $0.attachedAgentInstanceID == agentInstanceId }
     }
 

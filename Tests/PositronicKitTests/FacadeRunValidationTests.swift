@@ -1,6 +1,7 @@
 import Foundation
 import PKShared
 import PKTestSupport
+import struct PositronicKit.Thread
 @testable import PositronicKit
 import Synchronization
 import Testing
@@ -299,7 +300,7 @@ private actor CountingAgentInstanceStore: AgentInstanceStoreProtocol {
         instances.removeValue(forKey: id)
     }
 
-    func fetchTimelines(attachedToAgent _: UUID) async throws -> [Timeline] {
+    func fetchThreads(attachedToAgent _: UUID) async throws -> [Thread] {
         []
     }
 }
