@@ -3,7 +3,7 @@ import PKPrompt
 import PKShared
 import PKUtilities
 
-// MARK: - TimelinePromptHistory
+// MARK: - ThreadPromptHistory
 
 // Runtime-only prompt diff/cache bookkeeping used by `PositronicKit` across turns.
 //
@@ -17,17 +17,17 @@ import PKUtilities
 // In other words: `PromptJournal` is a prompt-facing product surface, while this type is an
 // implementation detail of the runtime orchestration layer.
 
-public actor TimelinePromptHistory {
+public actor ThreadPromptHistory {
     private var baseSnapshot: PromptSnapshot?
     private var pressure: AppendPressure
     private(set) var lastDiff: PromptDiff?
-    private var nextUpdateFailure: TimelinePromptHistoryError? = nil
+    private var nextUpdateFailure: ThreadPromptHistoryError? = nil
 
     var appendedMessageCount: Int { pressure.appendedMessageCount }
     var appendedTokens: Int { pressure.appendedTokens }
     var thresholds: PromptJournalCompactionThresholds { pressure.thresholds }
 
-    /// The next inspection-turn index to assign for this timeline, persisted across
+    /// The next inspection-turn index to assign for this thread, persisted across
     /// `ChatEngine.execute` calls (i.e. across user sends), not just within one.
     ///
     /// `ChatTurnContext.turnCount` resets to 0 at the start of every `execute()` call, so it
@@ -63,7 +63,7 @@ public actor TimelinePromptHistory {
 
     /// Injects one transition failure for runtime retry tests without changing the persisted
     /// prompt or message representations. The fault is consumed by the next rendered update.
-    func failNextUpdate(with error: TimelinePromptHistoryError) {
+    func failNextUpdate(with error: ThreadPromptHistoryError) {
         nextUpdateFailure = error
     }
 
@@ -100,7 +100,7 @@ public actor TimelinePromptHistory {
     func record(prompt: RenderedPrompt) throws -> PromptDiff {
         let duplicateIDs = prompt.sections.duplicateIDs(idKeyPath: \.id)
         guard duplicateIDs.isEmpty else {
-            throw TimelinePromptHistoryError.duplicateSectionIDs(duplicateIDs)
+            throw ThreadPromptHistoryError.duplicateSectionIDs(duplicateIDs)
         }
         var entries: [PromptSectionEntry] = []
         for (index, section) in prompt.sections.enumerated() {

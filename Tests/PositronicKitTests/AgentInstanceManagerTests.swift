@@ -9,6 +9,38 @@ import Testing
 struct AgentInstanceManagerTests {
     private let mock = MockPersistenceService()
 
+    @Test("Canonical agent queries return attached threads")
+    func canonicalThreadsQuery() async throws {
+        let kit = PositronicKit()
+        let thread = try await kit.threadManager.createThread(title: "Attached")
+        let agent = try await kit.agentInstanceManager.createInstance(
+            name: "Thread Agent",
+            description: "Lists attached threads"
+        )
+        try await kit.agentInstanceManager.attach(agentID: agent.id, to: thread.id)
+
+        let attached = try await kit.agentInstanceManager.threads(attachedTo: agent.id)
+
+        #expect(attached.map(\.id).contains(thread.id))
+    }
+
+    @Test("Canonical error cases preserve legacy identity")
+    func canonicalErrorIdentity() {
+        let threadID = UUID()
+        let agentID = UUID()
+        let threadError = ThreadError.threadNotFound
+        let mismatch = AgentInstanceError.threadAgentMismatch(
+            threadID: threadID,
+            agentInstanceID: agentID,
+            attachedAgentInstanceID: nil
+        )
+
+        #expect(threadError.errorCode == 6001)
+        #expect(threadError.errorDomain == PKErrorDomain.timeline)
+        #expect(mismatch.errorCode == 5009)
+        #expect(mismatch.errorDescription?.contains(threadID.uuidString) == true)
+    }
+
     @Test("Validation: Name too short")
     func nameTooShort() async throws {
         let repo = DefaultWorkspaceCatalog(
@@ -210,10 +242,12 @@ struct AgentInstanceManagerTests {
         let thrown = await #expect(throws: AgentInstanceError.self) {
             try await kit.agentInstanceManager.deleteInstance(id: instance.id, force: false)
         }
-        if case let .hasAttachedTimelines(count)? = thrown {
+        if case let .hasAttachedThreads(count)? = thrown {
+            #expect(count == 1)
+        } else if case let .hasAttachedTimelines(count)? = thrown {
             #expect(count == 1)
         } else {
-            Issue.record("Expected deletion to report an attached timeline")
+            Issue.record("Expected deletion to report an attached thread")
         }
         #expect(try await kit.agentInstanceManager.instance(id: instance.id) != nil)
 

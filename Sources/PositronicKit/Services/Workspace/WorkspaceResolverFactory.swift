@@ -2,7 +2,7 @@ import Foundation
 import PKShared
 
 /// Composes the bundled default `WorkspaceResolver` stack (local `DefaultWorkspaceCatalog` +
-/// an injected `WorkspaceFactory`) so that neither `TimelineManager` nor the top-level
+/// an injected `WorkspaceFactory`) so that neither `ThreadManager` nor the top-level
 /// `PositronicKit` facade needs to know how the default catalog/factory/resolver pieces fit
 /// together. Hosts that want a fully custom `WorkspaceResolver` (no default catalog/factory
 /// involved at all) should construct and inject their own conformer instead of going through

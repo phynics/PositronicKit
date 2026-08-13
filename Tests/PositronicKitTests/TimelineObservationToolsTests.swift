@@ -15,6 +15,21 @@ import Testing
 @Suite("Timeline observation tools")
 struct TimelineObservationToolsTests {
 
+    @Test("canonical observation tools preserve timeline call names")
+    func canonicalObservationToolsPreserveCallNames() async throws {
+        let threadStore = InMemoryThreadPersistence()
+        let messageStore = InMemoryMessageStore()
+        let thread = Thread(title: "Canonical Observation")
+        try await threadStore.saveThread(thread)
+
+        let listTool = ThreadListTool(threadStore: threadStore)
+        let peekTool = ThreadPeekTool(messageStore: messageStore, threadStore: threadStore)
+
+        #expect(listTool.callName == "timeline_list")
+        #expect(peekTool.callName == "timeline_peek")
+        #expect((try await listTool.execute(parameters: [:])).success)
+    }
+
     // MARK: - TimelinePeekTool
 
     @Suite("TimelinePeekTool")

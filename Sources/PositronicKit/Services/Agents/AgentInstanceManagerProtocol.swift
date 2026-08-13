@@ -4,17 +4,17 @@ import PKUtilities
 
 /// Protocol for managing the lifecycle of agent instances.
 public protocol AgentInstanceManagerProtocol: Sendable {
-    /// Creates a new agent instance, its private workspace, and its private timeline atomically.
+    /// Creates a new agent instance, its private workspace, and its private thread atomically.
     func createInstance(
         from template: AgentTemplate?,
         name: String,
         description: String
     ) async throws -> AgentInstance
 
-    /// Attaches an agent instance to a timeline.
+    /// Attaches an agent instance to a thread.
     func attach(agentId: UUID, to timelineId: UUID) async throws
 
-    /// Detaches an agent instance from a timeline.
+    /// Detaches an agent instance from a thread.
     func detach(agentId: UUID, from timelineId: UUID) async throws
 
     /// Fetches an agent instance by its unique identifier.
@@ -24,6 +24,7 @@ public protocol AgentInstanceManagerProtocol: Sendable {
     func listInstances() async throws -> [AgentInstance]
 
     /// Lists all timelines attached to a specific agent instance.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     func getTimelines(attachedTo agentId: UUID) async throws -> [Timeline]
 
     /// Updates an existing agent instance.
@@ -37,6 +38,12 @@ public protocol AgentInstanceManagerProtocol: Sendable {
 }
 
 extension AgentInstanceManagerProtocol {
+    /// Deprecated spelling retained for source compatibility.
+    @available(*, deprecated, renamed: "threads(attachedTo:)", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public func timelines(attachedTo agentID: UUID) async throws -> [Timeline] {
+        try await getTimelines(attachedTo: agentID)
+    }
+
     /// Attaches an agent instance using the canonical identifier spellings.
     public func attach(agentID: UUID, to timelineID: UUID) async throws {
         try await attach(agentId: agentID, to: timelineID)
@@ -52,9 +59,14 @@ extension AgentInstanceManagerProtocol {
         try await getInstance(id: id)
     }
 
-    /// Returns all timelines attached to a specific agent instance.
-    public func timelines(attachedTo agentID: UUID) async throws -> [Timeline] {
+    /// Returns all threads attached to a specific agent instance.
+    public func getThreads(attachedTo agentID: UUID) async throws -> [Thread] {
         try await getTimelines(attachedTo: agentID)
+    }
+
+    /// Returns all threads attached to a specific agent instance.
+    public func threads(attachedTo agentID: UUID) async throws -> [Thread] {
+        try await getThreads(attachedTo: agentID)
     }
 
     public func createInstance(

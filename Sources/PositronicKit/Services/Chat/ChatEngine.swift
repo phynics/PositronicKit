@@ -122,7 +122,7 @@ struct ChatEngine {
         let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
         let loggingConfiguration: LoggingConfiguration
         let degradationPolicy: TurnDegradationPolicy
-        let promptHistoryRegistry: TimelinePromptJournals
+        let promptHistoryRegistry: ThreadPromptJournals
         let streamTimeout: TimeInterval
 
         init(
@@ -137,7 +137,7 @@ struct ChatEngine {
             diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
             loggingConfiguration: LoggingConfiguration = .default,
             degradationPolicy: TurnDegradationPolicy = .failRequired,
-            promptHistoryRegistry: TimelinePromptJournals? = nil,
+            promptHistoryRegistry: ThreadPromptJournals? = nil,
             streamTimeout: TimeInterval = Self.defaultStreamTimeout
         ) {
             self.threadManager = threadManager
@@ -152,7 +152,7 @@ struct ChatEngine {
             self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
             self.loggingConfiguration = loggingConfiguration
             self.degradationPolicy = degradationPolicy
-            self.promptHistoryRegistry = promptHistoryRegistry ?? TimelinePromptJournals()
+            self.promptHistoryRegistry = promptHistoryRegistry ?? ThreadPromptJournals()
             self.streamTimeout = streamTimeout
         }
 
@@ -170,7 +170,7 @@ struct ChatEngine {
             diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
             loggingConfiguration: LoggingConfiguration = .default,
             degradationPolicy: TurnDegradationPolicy = .failRequired,
-            promptHistoryRegistry: TimelinePromptJournals? = nil,
+            promptHistoryRegistry: ThreadPromptJournals? = nil,
             streamTimeout: TimeInterval = Self.defaultStreamTimeout
         ) {
             self.init(

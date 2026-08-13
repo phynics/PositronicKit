@@ -136,7 +136,7 @@ struct ChatTurnContext {
 
     /// Shared actor tracking prompt snapshots and append chain growth across turns.
     /// Created once per `prepareSession()` call and threaded through all turns in the loop.
-    let promptHistory: TimelinePromptHistory?
+    let promptHistory: ThreadPromptHistory?
     let renderedPrompt: RenderedPrompt?
     let promptHistoryUpdate: PromptHistoryUpdate?
 
@@ -162,7 +162,7 @@ struct ChatTurnContext {
         sidecars: [SidecarDirective] = [],
         sidecarCommitPolicy: SidecarCommitPolicy = .everyRoundTrip,
         diagnostics: [TurnDiagnostic] = [],
-        promptHistory: TimelinePromptHistory? = nil,
+        promptHistory: ThreadPromptHistory? = nil,
         renderedPrompt: RenderedPrompt? = nil,
         promptHistoryUpdate: PromptHistoryUpdate? = nil,
         currentMessages: [LLMMessage],
@@ -212,7 +212,7 @@ struct ChatTurnContext {
         sidecars: [SidecarDirective] = [],
         sidecarCommitPolicy: SidecarCommitPolicy = .everyRoundTrip,
         diagnostics: [TurnDiagnostic] = [],
-        promptHistory: TimelinePromptHistory? = nil,
+        promptHistory: ThreadPromptHistory? = nil,
         renderedPrompt: RenderedPrompt? = nil,
         promptHistoryUpdate: PromptHistoryUpdate? = nil,
         currentMessages: [LLMMessage],

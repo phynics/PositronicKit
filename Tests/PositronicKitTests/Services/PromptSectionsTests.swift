@@ -332,6 +332,15 @@ struct AgentContextTests {
 // MARK: - TimelineContext Tests
 
 struct TimelineContextTests {
+    @Test("canonical context exposes the thread")
+    func canonicalContextExposesThread() {
+        let thread = Thread(title: "Canonical Thread")
+        let context = ThreadContext(thread)
+
+        #expect(context.thread.id == thread.id)
+        #expect(context.threadTitle == "Canonical Thread")
+    }
+
     @Test("contains timeline ID and title")
     func idAndTitle() async throws {
         let timeline = Timeline(title: "My Project")

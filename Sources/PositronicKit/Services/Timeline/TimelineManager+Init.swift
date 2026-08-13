@@ -18,7 +18,7 @@ extension ThreadManager {
         sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: RuntimeToolPolicy = .default,
         embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
-        promptHistoryRegistry: TimelinePromptJournals? = nil,
+        promptHistoryRegistry: ThreadPromptJournals? = nil,
         taskRegistry: ThreadTaskRegistry? = nil
     ) {
         self.init(
@@ -87,7 +87,7 @@ extension ThreadManager {
         sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: RuntimeToolPolicy = .default,
         embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
-        promptHistoryRegistry: TimelinePromptJournals? = nil,
+        promptHistoryRegistry: ThreadPromptJournals? = nil,
         taskRegistry: ThreadTaskRegistry? = nil
     ) {
         let catalogRoot = workspaceProfile.catalogRoot
@@ -117,7 +117,7 @@ extension ThreadManager {
         sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: RuntimeToolPolicy = .default,
         embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
-        promptHistoryRegistry: TimelinePromptJournals? = nil,
+        promptHistoryRegistry: ThreadPromptJournals? = nil,
         taskRegistry: ThreadTaskRegistry? = nil
     ) {
         self.init(
@@ -207,7 +207,7 @@ extension ThreadManager {
         workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: RuntimeToolPolicy = .default,
-        promptHistoryRegistry: TimelinePromptJournals? = nil,
+        promptHistoryRegistry: ThreadPromptJournals? = nil,
         taskRegistry: ThreadTaskRegistry? = nil
     ) {
         self.init(
@@ -231,7 +231,7 @@ extension ThreadManager {
         workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: RuntimeToolPolicy = .default,
-        promptHistoryRegistry: TimelinePromptJournals? = nil,
+        promptHistoryRegistry: ThreadPromptJournals? = nil,
         taskRegistry: ThreadTaskRegistry? = nil
     ) {
         self.init(

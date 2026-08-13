@@ -132,7 +132,7 @@ public actor ThreadManager {
     /// Per-timeline prompt-history/journal-diff registry. When non-nil, `evictThreadFromMemory(id:)`
     /// and `cleanupStaleThreads(maxAge:)` evict the corresponding history entry alongside the
     /// in-memory caches, so deleted/stale timelines don't leak journal-diff state.
-    let promptHistoryRegistry: TimelinePromptJournals?
+    let promptHistoryRegistry: ThreadPromptJournals?
 
     let logger = Logger.module(named: "timeline-manager")
 
@@ -146,7 +146,7 @@ public actor ThreadManager {
     /// bundled local-filesystem default can build one via `WorkspaceResolverFactory.makeDefault`
     /// or use the `workspaceCreator:`-based convenience initializer below.
     ///
-    /// Not `public`: `promptHistoryRegistry`'s type (`TimelinePromptJournals`) is
+    /// Not `public`: `promptHistoryRegistry`'s type (`ThreadPromptJournals`) is
     /// package-internal, so this initializer can't be exposed with that parameter present.
     /// Same-module callers (the facade) use it directly; public callers use the overload below.
     init(
@@ -156,7 +156,7 @@ public actor ThreadManager {
         sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: RuntimeToolPolicy = .default,
         embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
-        promptHistoryRegistry: TimelinePromptJournals? = nil,
+        promptHistoryRegistry: ThreadPromptJournals? = nil,
         taskRegistry: ThreadTaskRegistry? = nil
     ) {
         threadStore = stores.threadStore
@@ -358,7 +358,7 @@ extension ThreadManager {
         guard !timelinesBeingPermanentlyDeleted.contains(threadID),
               threadLivenessVersion(for: threadID) == version else
         {
-            throw ThreadError.timelineNotFound
+            throw ThreadError.threadNotFound
         }
     }
 

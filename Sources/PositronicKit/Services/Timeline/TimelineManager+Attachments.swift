@@ -17,7 +17,7 @@ public extension ThreadManager {
         } else {
             do {
                 guard let dbTimeline = try await threadStore.fetchThread(id: threadID) else {
-                    throw ThreadError.timelineNotFound
+                    throw ThreadError.threadNotFound
                 }
                 timeline = dbTimeline
                 try requireThreadLiveness(for: threadID, version: livenessVersion)
@@ -103,7 +103,7 @@ public extension ThreadManager {
         } else {
             do {
                 guard let dbTimeline = try await threadStore.fetchThread(id: threadID) else {
-                    throw ThreadError.timelineNotFound
+                    throw ThreadError.threadNotFound
                 }
                 timeline = dbTimeline
             } catch let error as ThreadError {
@@ -138,7 +138,7 @@ public extension ThreadManager {
         } else {
             do {
                 guard let timeline = try await threadStore.fetchThread(id: threadID) else {
-                    throw ThreadError.timelineNotFound
+                    throw ThreadError.threadNotFound
                 }
                 attachedIds = timeline.attachedWorkspaceIDs
             } catch let error as ThreadError {

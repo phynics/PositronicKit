@@ -34,6 +34,6 @@ internal struct KitDependencies: Sendable {
     var generationParameters: GenerationParameters?
     var toolApprovalPolicy: any ToolApprovalPolicy
     var loggingConfiguration: LoggingConfiguration
-    var sharedRegistry: TimelinePromptJournals
+    var sharedRegistry: ThreadPromptJournals
     var additionalStages: [any PipelineStage<ChatTurnContext, ChatEvent>]
 }

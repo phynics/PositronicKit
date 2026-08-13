@@ -88,7 +88,7 @@ public final class PositronicKit: Sendable {
 
     /// Owned internally; every timeline driver vended by this instance shares it automatically.
     /// Construct a new `PositronicKit` for a genuinely separate cross-send history.
-    private let promptHistoryRegistry: TimelinePromptJournals
+    private let promptHistoryRegistry: ThreadPromptJournals
     private let workspaceProfile: WorkspaceProfile
     private let workspaceCreator: any WorkspaceFactory
     private let sectionProviders: [any PromptSectionProviding]
@@ -146,7 +146,7 @@ public final class PositronicKit: Sendable {
         generationParameters: GenerationParameters? = nil,
         toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
         loggingConfiguration: LoggingConfiguration = .default,
-        sharedRegistry: TimelinePromptJournals,
+        sharedRegistry: ThreadPromptJournals,
         additionalStages: [any PipelineStage<ChatTurnContext, ChatEvent>]
     ) {
         self.init(
@@ -239,14 +239,14 @@ public final class PositronicKit: Sendable {
             ),
             stores: .init(
                 instanceStore: self.agentInstanceStore,
-                timelineStore: ThreadPersistenceCompatibilityAdapter(self.threadPersistence),
+                threadStore: self.threadPersistence,
                 messageStore: self.messageStore,
                 workspaceStore: self.workspacePersistence
             ),
-            timelineManager: resolvedThreadManager
+            threadManager: resolvedThreadManager
         )
         toolRouter = ToolRouter(
-            timelineManager: resolvedThreadManager,
+            threadManager: resolvedThreadManager,
             messageStore: self.messageStore,
             approvalPolicy: dependencies.toolApprovalPolicy,
             loggingConfiguration: dependencies.loggingConfiguration

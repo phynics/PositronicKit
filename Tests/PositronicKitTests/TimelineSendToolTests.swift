@@ -17,6 +17,18 @@ import Testing
 /// exercised in this single-tool regression suite.
 @Suite("Timeline Send Tool")
 struct TimelineSendToolTests {
+    @Test("canonical send tool preserves the external call name")
+    func canonicalSendToolPreservesCallName() {
+        let tool = ThreadSendTool(
+            messageStore: InMemoryMessageStore(),
+            threadStore: InMemoryThreadPersistence(),
+            agentInstanceID: UUID(),
+            sourceThreadID: UUID()
+        )
+
+        #expect(tool.callName == "timeline_send")
+    }
+
     private func sendTool(
         timelineStore: InMemoryTimelinePersistence,
         messageStore: InMemoryMessageStore,

@@ -273,12 +273,20 @@ public struct WorkspacesContext: Prompt {
 
 public struct AgentContext: Prompt {
     public let agent: AgentInstance
-    public let timelineTitle: String?
+    public let threadTitle: String?
 
-    public init(_ agent: AgentInstance, timelineTitle: String? = nil) {
+    public init(_ agent: AgentInstance, threadTitle: String? = nil) {
         self.agent = agent
-        self.timelineTitle = timelineTitle
+        self.threadTitle = threadTitle
     }
+
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public init(_ agent: AgentInstance, timelineTitle: String?) {
+        self.init(agent, threadTitle: timelineTitle)
+    }
+
+    @available(*, deprecated, renamed: "threadTitle", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public var timelineTitle: String? { threadTitle }
 
     public var body: some Prompt {
         SystemPrompt(
@@ -297,32 +305,36 @@ public struct AgentContext: Prompt {
         if !agent.description.isEmpty {
             lines.append("Description: \(agent.description)")
         }
-        if let timelineTitle {
-            lines.append("Currently operating on timeline: \"\(timelineTitle)\"")
+        if let threadTitle {
+            lines.append("Currently operating on timeline: \"\(threadTitle)\"")
         }
         lines.append("Your private workspace contains your persistent memory (`Notes/` directory).")
         return lines.joined(separator: "\n")
     }
 }
 
-public struct TimelineContext: Prompt {
-    public let timeline: Timeline
+public struct ThreadContext: Prompt {
+    public let thread: Thread
+    public var threadTitle: String { thread.title }
 
-    public init(_ timeline: Timeline) {
-        self.timeline = timeline
+    public init(_ thread: Thread) {
+        self.thread = thread
     }
+
+    @available(*, deprecated, renamed: "thread", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public var timeline: Thread { thread }
 
     public var body: some Prompt {
         TextPrompt(
             """
             ## Current Timeline
-            - ID: `\(timeline.id.uuidString)`
-            - Title: \(timeline.title)
+            - ID: `\(thread.id.uuidString)`
+            - Title: \(thread.title)
             """,
             id: "timeline_context",
             priority: 72,
             cachePolicy: .semiStable,
-            estimatedTokens: TokenEstimator.estimate(text: timeline.title) + 20
+            estimatedTokens: TokenEstimator.estimate(text: thread.title) + 20
         )
     }
 }

@@ -57,11 +57,11 @@ extension ChatEngine {
         }
 
         guard let timeline else {
-            throw ThreadError.timelineNotFound
+            throw ThreadError.threadNotFound
         }
         guard timeline.attachedAgentInstanceID == agentId else {
-            throw AgentInstanceError.timelineAgentMismatch(
-                timelineID: threadID,
+            throw AgentInstanceError.threadAgentMismatch(
+                threadID: threadID,
                 agentInstanceID: agentId,
                 attachedAgentInstanceID: timeline.attachedAgentInstanceID
             )
@@ -246,7 +246,7 @@ extension ChatEngine {
             let renderedPrompt = try await PromptAssembler.assemble(
                 promptRequest,
                 agentInstance: agentInstance,
-                timeline: timeline,
+                thread: timeline,
                 extensionSections: extensionSections,
                 options: PromptAssemblyOptions(
                     tokenBudget: budget,

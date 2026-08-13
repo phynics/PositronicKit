@@ -1,6 +1,7 @@
 import Foundation
 import PKPrompt
 import PKShared
+import PKUtilities
 
 /// Deprecated v3 spelling for ``Thread``.
 @available(*, deprecated, renamed: "Thread", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
@@ -214,6 +215,114 @@ public typealias TimelineTaskRegistry = ThreadTaskRegistry
 /// Deprecated v3 spelling for the canonical tool registry.
 @available(*, deprecated, renamed: "ThreadToolRegistry", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
 public typealias TimelineToolRegistry = ThreadToolRegistry
+
+/// Deprecated v3 spelling for the canonical prompt history.
+@available(*, deprecated, renamed: "ThreadPromptHistory", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+public typealias TimelinePromptHistory = ThreadPromptHistory
+
+/// Deprecated v3 spelling for the canonical prompt journal registry.
+@available(*, deprecated, renamed: "ThreadPromptJournals", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+public typealias TimelinePromptJournals = ThreadPromptJournals
+
+/// Deprecated v3 spelling for the canonical prompt history error.
+@available(*, deprecated, renamed: "ThreadPromptHistoryError", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+public typealias TimelinePromptHistoryError = ThreadPromptHistoryError
+
+/// Deprecated v3 spelling for the canonical prompt context.
+@available(*, deprecated, renamed: "ThreadContext", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+public typealias TimelineContext = ThreadContext
+
+/// Deprecated v3 spelling for the canonical list tool.
+@available(*, deprecated, renamed: "ThreadListTool", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+public typealias TimelineListTool = ThreadListTool
+
+/// Deprecated v3 spelling for the canonical peek tool.
+@available(*, deprecated, renamed: "ThreadPeekTool", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+public typealias TimelinePeekTool = ThreadPeekTool
+
+/// Deprecated v3 spelling for the canonical send tool.
+@available(*, deprecated, renamed: "ThreadSendTool", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+public typealias TimelineSendTool = ThreadSendTool
+
+public extension ThreadListTool {
+    /// Deprecated v3 initializer spelling.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    @_disfavoredOverload
+    init(timelineStore: any TimelinePersistenceProtocol) {
+        self.init(threadStore: LegacyTimelinePersistenceAdapter(timelineStore))
+    }
+}
+
+public extension ThreadPeekTool {
+    /// Deprecated v3 initializer spelling.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    @_disfavoredOverload
+    init(messageStore: any MessageStoreProtocol, timelineStore: any TimelinePersistenceProtocol) {
+        self.init(
+            messageStore: messageStore,
+            threadStore: LegacyTimelinePersistenceAdapter(timelineStore)
+        )
+    }
+}
+
+public extension ThreadSendTool {
+    /// Deprecated v3 initializer spelling.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    @_disfavoredOverload
+    init(
+        messageStore: any MessageStoreProtocol,
+        timelineStore: any TimelinePersistenceProtocol,
+        agentInstanceId: UUID,
+        sourceTimelineId: UUID
+    ) {
+        self.init(
+            messageStore: messageStore,
+            threadStore: LegacyTimelinePersistenceAdapter(timelineStore),
+            agentInstanceID: agentInstanceId,
+            sourceThreadID: sourceTimelineId
+        )
+    }
+}
+
+public extension ToolRouter {
+    /// Deprecated v3 initializer spelling.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    @_disfavoredOverload
+    init(
+        timelineManager: ThreadManager,
+        messageStore: any MessageStoreProtocol,
+        toolExecutionTimeout: TimeInterval = 60,
+        approvalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
+        sleep: (@Sendable (UInt64) async throws -> Void)? = nil,
+        loggingConfiguration: LoggingConfiguration = .default
+    ) {
+        self.init(
+            threadManager: timelineManager,
+            messageStore: messageStore,
+            toolExecutionTimeout: toolExecutionTimeout,
+            approvalPolicy: approvalPolicy,
+            sleep: sleep,
+            loggingConfiguration: loggingConfiguration
+        )
+    }
+
+    /// Deprecated v3 execution label.
+    @available(*, deprecated, renamed: "execute(tool:arguments:threadID:availableTools:)", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    @_disfavoredOverload
+    func execute(
+        tool: ToolReference,
+        arguments: [String: AnyCodable],
+        timelineId: UUID,
+        availableTools: [AnyTool]? = nil
+    ) async throws -> ToolExecutionOutcome {
+        try await execute(
+            tool: tool,
+            arguments: arguments,
+            threadID: timelineId,
+            availableTools: availableTools
+        )
+    }
+}
 
 public extension ThreadManager.RuntimeToolPolicy {
     /// Deprecated v3 initializer spelling.

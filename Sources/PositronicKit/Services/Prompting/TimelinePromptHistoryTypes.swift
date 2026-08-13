@@ -3,15 +3,15 @@ import PKPrompt
 import PKShared
 import PKUtilities
 
-enum TimelinePromptHistoryError: PKError, Sendable, Equatable {
+public enum ThreadPromptHistoryError: PKError, Sendable, Equatable {
     case duplicateSectionIDs([String])
 
-    var errorDomain: String { PKErrorDomain.prompt }
-    var errorCode: Int { 1203 }
-    var userFriendlyMessage: String {
+    public var errorDomain: String { PKErrorDomain.prompt }
+    public var errorCode: Int { 1203 }
+    public var userFriendlyMessage: String {
         "Prompt history contains duplicate section identifiers: \(duplicateIDs.joined(separator: ", "))."
     }
-    var remediation: String? { "Ensure every prompt section has a unique stable identifier." }
+    public var remediation: String? { "Ensure every prompt section has a unique stable identifier." }
 
     private var duplicateIDs: [String] {
         switch self {
@@ -131,10 +131,10 @@ struct PromptHistoryUpdate {
 
 // MARK: - Thresholds
 
-/// Caps how many per-timeline `TimelinePromptHistory` instances
-/// `TimelinePromptJournals` keeps resident at once.
+/// Caps how many per-thread `ThreadPromptHistory` instances
+/// `ThreadPromptJournals` keeps resident at once.
 public struct RegistryEvictionPolicy: Sendable {
-    /// Maximum number of timelines the registry holds before it evicts the
+    /// Maximum number of threads the registry holds before it evicts the
     /// least-recently-accessed entry to make room for a new one.
     ///
     /// 1000 is a defensive process-lifetime cap, not a tuned capacity limit: a long-running

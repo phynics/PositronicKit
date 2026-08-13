@@ -17,9 +17,7 @@ package enum RuntimeToolPolicyFactory {
         messageStore: any MessageStoreProtocol
     ) -> ThreadToolRegistry {
         let currentWD = thread.workingDirectory ?? jailRoot
-        let legacyStore = ThreadPersistenceCompatibilityAdapter(threadStore)
-
-        // Default runtime policy: these filesystem and timeline observation tools are installed by
+        // Default runtime policy: these filesystem and thread observation tools are installed by
         // default for every timeline-managed session. Thread send is additionally installed when
         // an attached agent identity is available, because it requires a sender identity.
         var availableTools: [AnyTool] = []
@@ -43,18 +41,18 @@ package enum RuntimeToolPolicyFactory {
 
         if runtimeToolPolicy.installThreadObservationTools {
             availableTools.append(contentsOf: [
-                AnyTool(TimelineListTool(timelineStore: legacyStore)),
-                AnyTool(TimelinePeekTool(messageStore: messageStore, timelineStore: legacyStore)),
+                AnyTool(ThreadListTool(threadStore: threadStore)),
+                AnyTool(ThreadPeekTool(messageStore: messageStore, threadStore: threadStore)),
             ])
         }
 
         // Thread Send: only available when an agent is attached (needs sender identity)
         if runtimeToolPolicy.installThreadSendTool, let agentId = thread.attachedAgentInstanceID {
-            availableTools.append(AnyTool(TimelineSendTool(
+            availableTools.append(AnyTool(ThreadSendTool(
                 messageStore: messageStore,
-                timelineStore: legacyStore,
-                agentInstanceId: agentId,
-                sourceTimelineId: thread.id
+                threadStore: threadStore,
+                agentInstanceID: agentId,
+                sourceThreadID: thread.id
             )))
         }
 

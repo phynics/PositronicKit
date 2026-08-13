@@ -5,6 +5,8 @@ import PKShared
 // MARK: - Errors
 
 public enum ThreadError: PKError, Equatable {
+    case threadNotFound
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     case timelineNotFound
     case unavailable
     case corrupt(String)
@@ -12,12 +14,12 @@ public enum ThreadError: PKError, Equatable {
     case invalidState(String)
 
     public var errorDomain: String {
-        PKErrorDomain.timeline
+        PKErrorDomain.thread
     }
 
     public var errorCode: Int {
         switch self {
-        case .timelineNotFound: return 6001
+        case .threadNotFound, .timelineNotFound: return 6001
         case .unavailable: return 6002
         case .corrupt: return 6003
         case .permissionDenied: return 6004
@@ -27,7 +29,7 @@ public enum ThreadError: PKError, Equatable {
 
     public var userFriendlyMessage: String {
         switch self {
-        case .timelineNotFound:
+        case .threadNotFound, .timelineNotFound:
             return "The requested chat timeline could not be found."
         case .unavailable:
             return "The timeline store is currently unavailable. Please try again."
@@ -50,7 +52,7 @@ public enum ThreadError: PKError, Equatable {
             return "Verify that the runtime has the required access permissions."
         case .invalidState:
             return nil
-        case .timelineNotFound:
+        case .threadNotFound, .timelineNotFound:
             return nil
         }
     }

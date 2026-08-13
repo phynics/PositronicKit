@@ -151,11 +151,15 @@ public extension WorkspaceProfile {
         }
     }
 
-    /// Whether a per-timeline directory and workspace record should be provisioned at all.
-    var provisionsTimelineWorkspace: Bool {
+    /// Whether a per-thread directory and workspace record should be provisioned at all.
+    var provisionsThreadWorkspace: Bool {
         switch self {
         case .noWorkspace: false
         case .ephemeralWorkspace, .hostManaged: true
         }
     }
+
+    /// Deprecated timeline spelling retained for source compatibility.
+    @available(*, deprecated, renamed: "provisionsThreadWorkspace", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    var provisionsTimelineWorkspace: Bool { provisionsThreadWorkspace }
 }

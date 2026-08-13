@@ -30,7 +30,7 @@ public extension ThreadManager {
 
         // `.noWorkspace`: persist the timeline record only. No directory, no notes, no
         // workspace row — a minimal timeline has no filesystem side effects.
-        guard workspaceProfile.provisionsTimelineWorkspace else {
+        guard workspaceProfile.provisionsThreadWorkspace else {
             let timeline = Thread(
                 id: threadID,
                 title: title,
@@ -133,7 +133,7 @@ public extension ThreadManager {
         if toolManagers[id] != nil { return }
 
         guard let timeline = try await threadStore.fetchThread(id: id) else {
-            throw ThreadError.timelineNotFound
+            throw ThreadError.threadNotFound
         }
 
         let timelineWorkspaceURL: URL
@@ -160,7 +160,7 @@ public extension ThreadManager {
         } else {
             do {
                 guard let dbTimeline = try await threadStore.fetchThread(id: threadID) else {
-                    throw ThreadError.timelineNotFound
+                    throw ThreadError.threadNotFound
                 }
                 timeline = dbTimeline
             } catch let error as ThreadError {

@@ -403,7 +403,7 @@ public extension PositronicKit {
             generationParameters: configuration.generationParameters,
             toolApprovalPolicy: configuration.runtime.toolApprovalPolicy,
             loggingConfiguration: configuration.logging,
-            sharedRegistry: TimelinePromptJournals(),
+            sharedRegistry: ThreadPromptJournals(),
             additionalStages: []
         )
         if let warning = configuration.persistence.validateDurability().mixedDurabilityWarning {

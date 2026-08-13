@@ -21,6 +21,15 @@ final class ToolErrorSurfacesTests {
     }
 
     @Test
+    func attachedToolsDisallowedOnPrivateThreadPreservesIdentity() {
+        let error = ToolError.attachedToolsDisallowedOnPrivateThread
+
+        #expect(error.errorDomain == PKErrorDomain.tool)
+        #expect(error.errorCode == 207)
+        #expect(error == .attachedToolsDisallowedOnPrivateThread)
+    }
+
+    @Test
     func workspaceNotFound() throws {
         let id = try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000001"))
         let error = ToolError.workspaceNotFound(id)
