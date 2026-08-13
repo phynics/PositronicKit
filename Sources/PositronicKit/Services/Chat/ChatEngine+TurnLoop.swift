@@ -386,7 +386,7 @@ private extension ChatEngine {
         // `context.turnCount` resets to 0 at the start of every `execute()` call (every user
         // send), so it cannot identify a persisted inspection row uniquely across a whole
         // conversation — a second send's first round-trip would collide with the first send's
-        // row (`TimelinePromptHistory.nextInspectionTurnIndex` fixes this; see YAK-16).
+        // row (`ThreadPromptHistory.nextInspectionTurnIndex` fixes this; see YAK-16).
         let turnIndex = await context.promptHistory?.nextInspectionTurnIndex() ?? (context.turnCount - 1)
 
         let turnIdentity = TurnIdentity(sendID: context.sendId, roundTrip: max(context.turnCount - 1, 0))

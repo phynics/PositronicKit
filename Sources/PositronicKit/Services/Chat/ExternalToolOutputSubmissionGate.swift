@@ -17,12 +17,12 @@ actor ExternalToolOutputSubmissionGate {
     /// - Returns: The subset of `toolOutputs` that are validated and still need persistence.
     func validate(
         _ toolOutputs: [ToolOutputSubmission],
-        timelineId: UUID,
+        threadID: UUID,
         messageStore: any MessageStoreProtocol
     ) async throws -> [ToolOutputSubmission] {
         guard !toolOutputs.isEmpty else { return [] }
 
-        let existingMessages = try await messageStore.fetchMessages(for: timelineId)
+        let existingMessages = try await messageStore.fetchMessages(for: threadID)
         var pendingToolCallIds = Set<String>()
 
         // Only the latest uninterrupted assistant tool-call set is externally resumable.
@@ -40,7 +40,7 @@ actor ExternalToolOutputSubmissionGate {
         }
 
         // Remove call IDs already reserved by concurrent submissions.
-        for reservation in reservedToolOutputs where reservation.timelineId == timelineId {
+        for reservation in reservedToolOutputs where reservation.threadID == threadID {
             pendingToolCallIds.remove(reservation.toolCallId)
         }
 
@@ -60,7 +60,7 @@ actor ExternalToolOutputSubmissionGate {
             guard pendingToolCallIds.remove(output.toolCallID) != nil else {
                 throw ToolError.unmatchedToolOutput(output.toolCallID)
             }
-            let reservation = ReservedToolOutput(timelineId: timelineId, toolCallId: output.toolCallID)
+            let reservation = ReservedToolOutput(threadID: threadID, toolCallId: output.toolCallID)
             reservedToolOutputs.insert(reservation)
             validated.append(output)
         }
@@ -72,14 +72,14 @@ actor ExternalToolOutputSubmissionGate {
     /// partially failed batch can be retried without duplication (resumable batch support).
     func commit(
         _ validatedOutputs: [ToolOutputSubmission],
-        timelineId: UUID,
+        threadID: UUID,
         messageStore: any MessageStoreProtocol
     ) async throws {
         guard !validatedOutputs.isEmpty else { return }
 
         // Re-check for already-persisted outputs — a prior partial batch may have persisted
         // some messages before failing.
-        let existingMessages = try await messageStore.fetchMessages(for: timelineId)
+        let existingMessages = try await messageStore.fetchMessages(for: threadID)
         let persistedToolCallIds = Set(
             existingMessages
                 .filter { $0.messageRole == .tool }
@@ -89,7 +89,7 @@ actor ExternalToolOutputSubmissionGate {
         for output in validatedOutputs {
             if persistedToolCallIds.contains(output.toolCallID) { continue }
             let msg = ConversationMessage(
-                threadID: timelineId,
+                threadID: threadID,
                 role: .tool,
                 content: output.output,
                 toolCallID: output.toolCallID
@@ -99,14 +99,14 @@ actor ExternalToolOutputSubmissionGate {
 
         // Release reservations for all validated outputs (persisted or already-present).
         for output in validatedOutputs {
-            reservedToolOutputs.remove(ReservedToolOutput(timelineId: timelineId, toolCallId: output.toolCallID))
+            reservedToolOutputs.remove(ReservedToolOutput(threadID: threadID, toolCallId: output.toolCallID))
         }
     }
 
     /// Releases reservations for the specified tool call IDs (on preparation failure).
-    func releaseReservations(timelineId: UUID, toolCallIds: [String]) {
+    func releaseReservations(threadID: UUID, toolCallIds: [String]) {
         for toolCallId in toolCallIds {
-            reservedToolOutputs.remove(ReservedToolOutput(timelineId: timelineId, toolCallId: toolCallId))
+            reservedToolOutputs.remove(ReservedToolOutput(threadID: threadID, toolCallId: toolCallId))
         }
     }
 
@@ -117,6 +117,6 @@ actor ExternalToolOutputSubmissionGate {
 }
 
 private struct ReservedToolOutput: Hashable {
-    let timelineId: UUID
+    let threadID: UUID
     let toolCallId: String
 }

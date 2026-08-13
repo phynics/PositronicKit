@@ -71,11 +71,60 @@ struct ThreadAPICompatibilityTests {
         #expect(legacyTimelinePersistenceValue(from: report) == report.threadPersistence)
     }
 
+    @Test("message stores expose canonical existential and legacy compatibility paths")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
+    func messageStoreCompatibility() async throws {
+        let threadID = UUID()
+        let message = ConversationMessage(threadID: threadID, role: .user, content: "hello")
+        let canonical: any MessageStoreProtocol = InMemoryMessageStore()
+
+        try await canonical.saveMessage(message)
+        #expect(try await canonical.fetchMessages(for: threadID).map(\.id) == [message.id])
+
+        let legacy = LegacyTimelineMessageStore()
+        let adapted: any MessageStoreProtocol = LegacyTimelineMessageStoreAdapter(legacy)
+        try await adapted.saveMessage(message)
+        #expect(try await adapted.fetchMessages(for: threadID).map(\.id) == [message.id])
+        try await adapted.deleteMessages(for: threadID)
+        #expect(try await adapted.fetchMessages(for: threadID).isEmpty)
+
+        let payload = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(message)
+        ) as? [String: Any]
+        #expect(payload?["timelineId"] != nil)
+        #expect(payload?["threadID"] == nil)
+    }
+
     @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
     private func legacyTimelinePersistenceValue(
         from report: PositronicKit.DurabilityReport
     ) -> PositronicKit.StoreDurability {
         report.timelinePersistence
+    }
+
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
+    private actor LegacyTimelineMessageStore: TimelineMessageStoreProtocol {
+        private let backing = InMemoryMessageStore()
+
+        func saveMessage(_ message: ConversationMessage) async throws {
+            try await backing.saveMessage(message)
+        }
+
+        func fetchMessages(for timelineId: UUID) async throws -> [ConversationMessage] {
+            try await backing.fetchMessages(for: timelineId)
+        }
+
+        func deleteMessages(for timelineId: UUID) async throws {
+            try await backing.deleteMessages(for: timelineId)
+        }
+
+        func pruneMessages(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int {
+            try await backing.pruneMessages(olderThan: timeInterval, dryRun: dryRun)
+        }
+
+        func fetchSnapshots(for timelineId: UUID) async throws -> [TurnSnapshot] {
+            try await backing.fetchSnapshots(for: timelineId)
+        }
     }
 
     @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")

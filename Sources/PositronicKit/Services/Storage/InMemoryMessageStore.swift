@@ -12,21 +12,21 @@ public actor InMemoryMessageStore: MessageStoreProtocol {
         messages.append(message)
     }
 
-    public func fetchMessages(for timelineId: UUID) async throws -> [ConversationMessage] {
-        messages.filter { $0.threadID == timelineId }
+    public func fetchMessages(for threadID: UUID) async throws -> [ConversationMessage] {
+        messages.filter { $0.threadID == threadID }
     }
 
-    public func deleteMessages(for timelineId: UUID) async throws {
-        messages.removeAll { $0.threadID == timelineId }
+    public func deleteMessages(for threadID: UUID) async throws {
+        messages.removeAll { $0.threadID == threadID }
     }
 
     public func pruneMessages(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int {
         0
     }
 
-    public func fetchSnapshots(for timelineId: UUID) async throws -> [TurnSnapshot] {
+    public func fetchSnapshots(for threadID: UUID) async throws -> [TurnSnapshot] {
         messages
-            .filter { $0.threadID == timelineId && $0.role == "assistant" }
+            .filter { $0.threadID == threadID && $0.role == "assistant" }
             .compactMap { msg in
                 guard let data = msg.snapshotData else { return nil }
                 return try? SerializationUtils.jsonDecoder.decode(TurnSnapshot.self, from: data)

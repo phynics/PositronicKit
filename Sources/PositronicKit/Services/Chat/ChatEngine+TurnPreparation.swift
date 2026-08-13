@@ -153,7 +153,7 @@ extension ChatEngine {
             //    Already-persisted outputs are skipped (resumable batch support).
             validatedToolOutputs = try await ExternalToolOutputSubmissionGate.shared.validate(
                 toolOutputs ?? [],
-                timelineId: threadID,
+                threadID: threadID,
                 messageStore: dependencies.messageStore
             )
 
@@ -324,7 +324,7 @@ extension ChatEngine {
             //     retry without inserting the same input twice.
             try await ExternalToolOutputSubmissionGate.shared.commit(
                 validatedToolOutputs,
-                timelineId: threadID,
+                threadID: threadID,
                 messageStore: dependencies.messageStore
             )
             if hasMessage {
@@ -397,7 +397,7 @@ extension ChatEngine {
             await TurnIdempotencyGate.shared.release(sendId: sendId)
             // Release any tool-output reservations made during validation.
             await ExternalToolOutputSubmissionGate.shared.releaseReservations(
-                timelineId: threadID,
+                threadID: threadID,
                 toolCallIds: validatedToolOutputs.map(\.toolCallID)
             )
             throw error

@@ -61,6 +61,48 @@ public actor LegacyTimelinePersistenceAdapter: ThreadPersistenceProtocol {
     }
 }
 
+/// Deprecated v3 message-store requirements using the released timeline parameter names.
+@available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+public protocol TimelineMessageStoreProtocol: DurabilityAware {
+    func saveMessage(_ message: ConversationMessage) async throws
+    func fetchMessages(for timelineId: UUID) async throws -> [ConversationMessage]
+    func deleteMessages(for timelineId: UUID) async throws
+    func pruneMessages(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int
+    func fetchSnapshots(for timelineId: UUID) async throws -> [TurnSnapshot]
+}
+
+/// Adapts an existing v3 timeline-parameter message store to the canonical protocol.
+@available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+public actor LegacyTimelineMessageStoreAdapter: MessageStoreProtocol {
+    private let legacy: any TimelineMessageStoreProtocol
+
+    public init(_ legacy: any TimelineMessageStoreProtocol) {
+        self.legacy = legacy
+    }
+
+    public nonisolated var isDurable: Bool { legacy.isDurable }
+
+    public func saveMessage(_ message: ConversationMessage) async throws {
+        try await legacy.saveMessage(message)
+    }
+
+    public func fetchMessages(for threadID: UUID) async throws -> [ConversationMessage] {
+        try await legacy.fetchMessages(for: threadID)
+    }
+
+    public func deleteMessages(for threadID: UUID) async throws {
+        try await legacy.deleteMessages(for: threadID)
+    }
+
+    public func pruneMessages(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int {
+        try await legacy.pruneMessages(olderThan: timeInterval, dryRun: dryRun)
+    }
+
+    public func fetchSnapshots(for threadID: UUID) async throws -> [TurnSnapshot] {
+        try await legacy.fetchSnapshots(for: threadID)
+    }
+}
+
 /// Internal reverse adapter used while the timeline-named runtime seams are migrated.
 actor ThreadPersistenceCompatibilityAdapter: TimelinePersistenceProtocol {
     private let canonical: any ThreadPersistenceProtocol
@@ -171,17 +213,17 @@ actor LegacyThreadArchiverPersistence:
     func saveMessage(_ message: ConversationMessage) async throws {
         try await messages.saveMessage(message)
     }
-    func fetchMessages(for timelineId: UUID) async throws -> [ConversationMessage] {
-        try await messages.fetchMessages(for: timelineId)
+    func fetchMessages(for threadID: UUID) async throws -> [ConversationMessage] {
+        try await messages.fetchMessages(for: threadID)
     }
-    func deleteMessages(for timelineId: UUID) async throws {
-        try await messages.deleteMessages(for: timelineId)
+    func deleteMessages(for threadID: UUID) async throws {
+        try await messages.deleteMessages(for: threadID)
     }
     func pruneMessages(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int {
         try await messages.pruneMessages(olderThan: timeInterval, dryRun: dryRun)
     }
-    func fetchSnapshots(for timelineId: UUID) async throws -> [TurnSnapshot] {
-        try await messages.fetchSnapshots(for: timelineId)
+    func fetchSnapshots(for threadID: UUID) async throws -> [TurnSnapshot] {
+        try await messages.fetchSnapshots(for: threadID)
     }
 }
 

@@ -7,8 +7,8 @@ import Foundation
 
 public protocol MessageStoreProtocol: DurabilityAware {
     func saveMessage(_ message: ConversationMessage) async throws
-    func fetchMessages(for timelineId: UUID) async throws -> [ConversationMessage]
-    func deleteMessages(for timelineId: UUID) async throws
+    func fetchMessages(for threadID: UUID) async throws -> [ConversationMessage]
+    func deleteMessages(for threadID: UUID) async throws
     /// Deletes (or previews deleting) messages older than `timeInterval`.
     ///
     /// - Parameters:
@@ -22,7 +22,7 @@ public protocol MessageStoreProtocol: DurabilityAware {
     /// - Note: Conformers must not mutate persisted state when `dryRun == true`. Side effects that
     ///   don't affect persisted rows (e.g. logging the preview) are permitted in dry-run mode.
     func pruneMessages(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int
-    func fetchSnapshots(for timelineId: UUID) async throws -> [TurnSnapshot]
+    func fetchSnapshots(for threadID: UUID) async throws -> [TurnSnapshot]
 }
 
 /// Persists a message once for a caller-owned identity key.

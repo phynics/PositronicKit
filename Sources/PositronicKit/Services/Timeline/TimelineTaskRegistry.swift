@@ -24,7 +24,7 @@ public actor ThreadTaskRegistry {
     }
 
     /// Cancels whatever task is currently active for the timeline (used by
-    /// ``TimelineDriver/cancel()``). No-op if no send is active. The entry is removed by the
+    /// ``ThreadDriver/cancel()``). No-op if no send is active. The entry is removed by the
     /// task's own terminal path via ``removeIfActive(sendID:for:)``.
     func cancelActive(for threadID: UUID) {
         active[threadID]?.task.cancel()

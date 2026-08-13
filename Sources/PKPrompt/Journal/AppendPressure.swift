@@ -3,7 +3,7 @@ import PKShared
 import PKUtilities
 
 /// Shared append-pressure accounting consumed by both `PromptJournal` (PKPrompt) and
-/// `TimelinePromptHistory` (runtime).
+/// `ThreadPromptHistory` (runtime).
 ///
 /// Owns the append counters + threshold evaluation only. Post-compact action — promoting the
 /// latest observation into a committed base (PKPrompt) or resetting the base snapshot / last
