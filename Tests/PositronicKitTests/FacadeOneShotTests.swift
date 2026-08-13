@@ -10,8 +10,8 @@ import Testing
 @Suite("Facade one-shot operations")
 // swiftlint:disable:next type_body_length
 struct FacadeOneShotTests {
-    @Test("complete assembles streamed text without persisting a timeline turn")
-    func completeIsTimelineFree() async throws {
+    @Test("complete assembles streamed text without persisting a thread turn")
+    func completeIsThreadFree() async throws {
         let llm = MockLLMService()
         llm.stubbedStream = Self.stream(contents: ["hel", "lo"])
         let persistence = PositronicKit.PersistenceConfiguration(
@@ -40,7 +40,7 @@ struct FacadeOneShotTests {
     }
 
     @Test("stream exposes provider events without persistence")
-    func streamIsTimelineFree() async throws {
+    func streamIsThreadFree() async throws {
         let llm = MockLLMService()
         llm.stubbedStream = Self.stream(contents: ["one", "two"])
         let messageStore = InMemoryMessageStore()

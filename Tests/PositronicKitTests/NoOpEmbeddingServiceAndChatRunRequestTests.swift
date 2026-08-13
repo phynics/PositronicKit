@@ -37,6 +37,18 @@ struct NoOpEmbeddingServiceTests {
 @Suite("ChatRunRequest.description")
 struct ChatRunRequestDescriptionTests {
 
+    @Test("canonical thread identifier is stored and described")
+    func canonicalThreadIdentifier() {
+        let threadID = UUID()
+        let request = ChatRunRequest(
+            threadID: threadID,
+            message: "Hello, world!"
+        )
+
+        #expect(request.threadID == threadID)
+        #expect(request.description.contains(threadID.uuidString))
+    }
+
     @Test("description includes the timeline id but redacts the message")
     func includesTimelineAndRedactsMessage() {
         let timelineId = UUID()

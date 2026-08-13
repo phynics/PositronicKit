@@ -7,12 +7,28 @@ import PKUtilities
 /// Read-only snapshot of a completed chat turn. Plugins drive the loop by the messages
 /// they return from `afterTurn`, not by mutating this snapshot.
 public struct CompletedTurn: Sendable {
-    public let timelineID: UUID
+    public let threadID: UUID
     public let agentInstanceID: UUID?
     public let turnCount: Int
     public let fullResponse: String
     public let modelName: String
 
+    public init(
+        threadID: UUID,
+        agentInstanceID: UUID?,
+        turnCount: Int,
+        fullResponse: String,
+        modelName: String
+    ) {
+        self.threadID = threadID
+        self.agentInstanceID = agentInstanceID
+        self.turnCount = turnCount
+        self.fullResponse = fullResponse
+        self.modelName = modelName
+    }
+
+    /// Creates a completed turn using the deprecated v3 identifier spelling.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     public init(
         timelineID: UUID,
         agentInstanceID: UUID?,
@@ -20,15 +36,17 @@ public struct CompletedTurn: Sendable {
         fullResponse: String,
         modelName: String
     ) {
-        self.timelineID = timelineID
-        self.agentInstanceID = agentInstanceID
-        self.turnCount = turnCount
-        self.fullResponse = fullResponse
-        self.modelName = modelName
+        self.init(
+            threadID: timelineID,
+            agentInstanceID: agentInstanceID,
+            turnCount: turnCount,
+            fullResponse: fullResponse,
+            modelName: modelName
+        )
     }
 
-    /// Creates a completed turn using the legacy identifier spellings.
-    @available(*, deprecated, message: "Use init(timelineID:agentInstanceID:turnCount:fullResponse:modelName:).")
+    /// Creates a completed turn using the deprecated lower-camel v3 spellings.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     public init(
         timelineId: UUID,
         agentInstanceId: UUID?,
@@ -37,7 +55,7 @@ public struct CompletedTurn: Sendable {
         modelName: String
     ) {
         self.init(
-            timelineID: timelineId,
+            threadID: timelineId,
             agentInstanceID: agentInstanceId,
             turnCount: turnCount,
             fullResponse: fullResponse,
@@ -45,9 +63,13 @@ public struct CompletedTurn: Sendable {
         )
     }
 
-    /// The timeline identifier using the legacy 3.x spelling.
-    @available(*, deprecated, renamed: "timelineID")
-    public var timelineId: UUID { timelineID }
+    /// The thread identifier using the deprecated v3 spelling.
+    @available(*, deprecated, renamed: "threadID", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public var timelineID: UUID { threadID }
+
+    /// The thread identifier using the deprecated lower-camel v3 spelling.
+    @available(*, deprecated, renamed: "threadID", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public var timelineId: UUID { threadID }
 
     /// The agent-instance identifier using the legacy 3.x spelling.
     @available(*, deprecated, renamed: "agentInstanceID")

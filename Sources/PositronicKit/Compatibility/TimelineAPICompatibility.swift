@@ -191,6 +191,10 @@ public typealias InMemoryTimelinePersistence = InMemoryThreadPersistence
 @available(*, deprecated, renamed: "ThreadManager", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
 public typealias TimelineManager = ThreadManager
 
+/// Deprecated v3 spelling for the canonical thread driver.
+@available(*, deprecated, renamed: "ThreadDriver", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+public typealias TimelineDriver = ThreadDriver
+
 /// Deprecated v3 spelling for the canonical manager error.
 @available(*, deprecated, renamed: "ThreadError", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
 public typealias TimelineError = ThreadError

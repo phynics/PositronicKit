@@ -14,10 +14,14 @@ struct ThreadAPICompatibilityTests {
         let kit = runtime.positronicKit
 
         let thread = try await kit.threadManager.createThread(title: "Canonical")
-        let driver = kit.openThread(thread.id)
+        let driver: ThreadDriver = kit.openThread(thread.id)
+        let runtime = kit.agenticRuntime(threadID: thread.id, agentInstanceID: nil)
+        let request = ChatRunRequest(threadID: thread.id, message: "hello")
 
         #expect(thread.title == "Canonical")
         #expect(driver.threadID == thread.id)
+        #expect(runtime.threadID == thread.id)
+        #expect(request.threadID == thread.id)
     }
 
     @Test("the canonical persistence configuration consumes a legacy timeline store")

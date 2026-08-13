@@ -3,9 +3,24 @@ import PKTestSupport
 import Testing
 @testable import PositronicKit
 
-@Suite("TimelineDriver")
+@Suite("ThreadDriver")
 struct TimelineDriverTests {
-    @Test("opening returns fresh handles with stable timeline identity and no persistence I/O")
+    @Test("opening a thread returns a fresh handle with stable thread identity")
+    func openingReturnsThreadHandleWithStableIdentity() async throws {
+        let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString))
+        let kit = runtime.positronicKit
+
+        let created = try await kit.threadManager.createThread(title: "Cursor")
+        let first: ThreadDriver = kit.openThread(created.id)
+        let second = kit.openThread(created.id)
+
+        #expect(first.threadID == created.id)
+        #expect(second.threadID == created.id)
+        #expect(first.id == second.id)
+    }
+
+    @Test("opening returns fresh handles with stable thread identity and no persistence I/O")
     func openingReturnsFreshHandlesWithStableIdentity() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString))

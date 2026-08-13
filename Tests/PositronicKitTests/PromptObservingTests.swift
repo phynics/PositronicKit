@@ -170,7 +170,7 @@ struct PromptObservingTests {
 
         let value = try #require(await recorder.values.first)
         let modelName = await harness.llm.configuration.activeProviderConfiguration.modelName
-        #expect(value.timelineID == harness.timelineId)
+        #expect(value.threadID == harness.timelineId)
         #expect(value.turnIndex == 0)
         #expect(value.model == modelName)
         #expect(value.sentMessages == value.rendered.buildMessages())

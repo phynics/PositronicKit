@@ -194,8 +194,8 @@ extension ChatEngine {
             }
         }
 
-        logger.warning("Max turns (\(context.maxTurns)) reached for timeline \(context.timelineId)", metadata: [
-            LogKeys.timelineID: .string(context.timelineId.uuidString),
+        logger.warning("Max turns (\(context.maxTurns)) reached for thread \(context.threadID)", metadata: [
+            LogKeys.timelineID: .string(context.threadID.uuidString),
             LogKeys.sendID: .string(context.sendId.uuidString),
             LogKeys.turnIndex: .string("\(turnCount)"),
         ])
@@ -230,7 +230,7 @@ private extension ChatEngine {
         context: ChatTurnContext,
         partialPersistence: PartialAssistantPersistence
     ) async -> LoopContinuation {
-        let sid = context.timelineId.uuidString.prefix(8).lowercased()
+        let sid = context.threadID.uuidString.prefix(8).lowercased()
         let turnLabel = "\(context.turnCount)"
         logger.info("Starting turn \(turnLabel) for timeline \(sid)")
 
@@ -253,7 +253,7 @@ private extension ChatEngine {
             return .cancelled
         } catch {
             logger.error("Error in chat loop turn \(context.turnCount): \(error)", metadata: [
-                LogKeys.timelineID: .string(context.timelineId.uuidString),
+                LogKeys.timelineID: .string(context.threadID.uuidString),
                 LogKeys.sendID: .string(context.sendId.uuidString),
                 LogKeys.turnIndex: .string("\(context.turnCount)"),
             ])
@@ -296,7 +296,7 @@ private extension ChatEngine {
     ) async throws -> LoopContinuation {
         let result = try await dependencies.toolRouter.processToolCalls(
             outputs: context.outputs,
-            timelineId: context.timelineId,
+            timelineId: context.threadID,
             availableTools: context.availableTools,
             continuation: continuation
         )
@@ -306,7 +306,7 @@ private extension ChatEngine {
         // rather than the tool router.
         let contentChars = await context.outputs.fullResponse.count
         let turnMeta: Logger.Metadata = [
-            LogKeys.timelineID: .string(context.timelineId.uuidString),
+            LogKeys.timelineID: .string(context.threadID.uuidString),
             LogKeys.sendID: .string(context.sendId.uuidString),
             LogKeys.turnIndex: .string("\(context.turnCount)"),
         ]
@@ -362,7 +362,7 @@ private extension ChatEngine {
         // Audit trail: log which precondition failed so an operator asking "why didn't my
         // inspector fire?" gets a reason instead of silence (PKLOG-001).
         let baseMeta: Logger.Metadata = [
-            LogKeys.timelineID: .string(context.timelineId.uuidString),
+            LogKeys.timelineID: .string(context.threadID.uuidString),
             LogKeys.sendID: .string(context.sendId.uuidString),
             LogKeys.turnIndex: .string("\(context.turnCount)"),
         ]
@@ -393,7 +393,7 @@ private extension ChatEngine {
 
         await inspector.didComposePrompt(PromptInspection(
             identity: turnIdentity,
-            timelineID: context.timelineId,
+            threadID: context.threadID,
             agentInstanceID: context.agentInstanceId,
             turnIndex: turnIndex,
             model: context.modelName,

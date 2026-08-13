@@ -30,7 +30,7 @@ public protocol PromptObserving: Sendable {
 public struct PromptInspection: Sendable {
     /// Consumer-facing mapping that groups every round-trip from one logical send.
     public let identity: TurnIdentity
-    public let timelineID: UUID
+    public let threadID: UUID
     public let agentInstanceID: UUID?
     /// Back-compat engine counter. This stays monotonic across the conversation and is
     /// still used as the persisted row key for historical rows.
@@ -43,7 +43,7 @@ public struct PromptInspection: Sendable {
 
     public init(
         identity: TurnIdentity = TurnIdentity(sendID: UUID(), roundTrip: 0),
-        timelineID: UUID,
+        threadID: UUID,
         agentInstanceID: UUID?,
         turnIndex: Int,
         model: String,
@@ -53,7 +53,7 @@ public struct PromptInspection: Sendable {
         estimatedTokens: Int
     ) {
         self.identity = identity
-        self.timelineID = timelineID
+        self.threadID = threadID
         self.agentInstanceID = agentInstanceID
         self.turnIndex = turnIndex
         self.model = model
@@ -63,8 +63,34 @@ public struct PromptInspection: Sendable {
         self.estimatedTokens = estimatedTokens
     }
 
-    /// Creates a prompt inspection using the legacy identifier spellings.
-    @available(*, deprecated, message: "Use init(identity:timelineID:agentInstanceID:turnIndex:model:rendered:sentMessages:journal:estimatedTokens:).")
+    /// Creates a prompt inspection using the deprecated v3 identifier spelling.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public init(
+        identity: TurnIdentity = TurnIdentity(sendID: UUID(), roundTrip: 0),
+        timelineID: UUID,
+        agentInstanceID: UUID?,
+        turnIndex: Int,
+        model: String,
+        rendered: RenderedPrompt,
+        sentMessages: [LLMMessage],
+        journal: TurnJournalSnapshot,
+        estimatedTokens: Int
+    ) {
+        self.init(
+            identity: identity,
+            threadID: timelineID,
+            agentInstanceID: agentInstanceID,
+            turnIndex: turnIndex,
+            model: model,
+            rendered: rendered,
+            sentMessages: sentMessages,
+            journal: journal,
+            estimatedTokens: estimatedTokens
+        )
+    }
+
+    /// Creates a prompt inspection using the deprecated lower-camel v3 spellings.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     public init(
         identity: TurnIdentity = TurnIdentity(sendID: UUID(), roundTrip: 0),
         timelineId: UUID,
@@ -78,7 +104,7 @@ public struct PromptInspection: Sendable {
     ) {
         self.init(
             identity: identity,
-            timelineID: timelineId,
+            threadID: timelineId,
             agentInstanceID: agentInstanceId,
             turnIndex: turnIndex,
             model: model,
@@ -89,9 +115,13 @@ public struct PromptInspection: Sendable {
         )
     }
 
-    /// The timeline identifier using the legacy 3.x spelling.
-    @available(*, deprecated, renamed: "timelineID")
-    public var timelineId: UUID { timelineID }
+    /// The thread identifier using the deprecated v3 spelling.
+    @available(*, deprecated, renamed: "threadID", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public var timelineID: UUID { threadID }
+
+    /// The thread identifier using the deprecated lower-camel v3 spelling.
+    @available(*, deprecated, renamed: "threadID", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public var timelineId: UUID { threadID }
 
     /// The agent-instance identifier using the legacy 3.x spelling.
     @available(*, deprecated, renamed: "agentInstanceID")

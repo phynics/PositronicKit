@@ -310,7 +310,7 @@ public extension PositronicKit {
         public let workspaceProfile: WorkspaceProfile
         public let workspaceCreator: any WorkspaceFactory
         public let sectionProviders: [any PromptSectionProviding]
-        public let runtimeToolPolicy: TimelineManager.RuntimeToolPolicy
+        public let runtimeToolPolicy: ThreadManager.RuntimeToolPolicy
         public let chatTurnPlugins: [any ChatTurnPlugin]
         public let promptObserver: (any PromptObserving)?
         public let toolApprovalPolicy: any ToolApprovalPolicy
@@ -343,7 +343,7 @@ public extension PositronicKit {
             workspaceProfile: WorkspaceProfile? = nil,
             workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
             sectionProviders: [any PromptSectionProviding] = [],
-            runtimeToolPolicy: TimelineManager.RuntimeToolPolicy = .default,
+            runtimeToolPolicy: ThreadManager.RuntimeToolPolicy = .default,
             workspaceRoot: URL? = nil,
             chatTurnPlugins: [any ChatTurnPlugin] = [],
             promptObserver: (any PromptObserving)? = nil,
@@ -387,7 +387,7 @@ public extension PositronicKit {
             messageStore: configuration.persistence.messageStore,
             agentInstanceStore: configuration.persistence.agentInstanceStore,
             requestOriginStore: configuration.persistence.requestOriginStore,
-            timelinePersistence: configuration.persistence.timelinePersistence,
+            threadPersistence: configuration.persistence.threadPersistence,
             workspacePersistence: configuration.persistence.workspacePersistence,
             memoryStore: configuration.persistence.memoryStore,
             toolPersistence: configuration.persistence.toolPersistence,

@@ -2,7 +2,7 @@ import Foundation
 import PKShared
 import PKUtilities
 
-/// The terminal result of a one-shot generation, without timeline state.
+/// The terminal result of a one-shot generation, without thread state.
 public struct OneShotResult: Sendable, Equatable {
     public let content: String
     public let id: String?
@@ -26,7 +26,7 @@ public struct OneShotResult: Sendable, Equatable {
 }
 
 public extension PositronicKit {
-    /// Generates a response for a single prompt without creating or updating a timeline.
+    /// Generates a response for a single prompt without creating or updating a thread.
     func complete(_ prompt: String) async throws -> String {
         try await completeResult(prompt).content
     }
@@ -44,7 +44,7 @@ public extension PositronicKit {
         ).content
     }
 
-    /// Generates a response and returns provider terminal metadata without creating or updating a timeline.
+    /// Generates a response and returns provider terminal metadata without creating or updating a thread.
     func completeResult(
         _ prompt: String,
         generationParameters: GenerationParameters? = nil,
@@ -84,7 +84,7 @@ public extension PositronicKit {
     }
 
     /// Generates a structured response for a single prompt without creating or
-    /// updating a timeline. The returned string is the raw structured payload
+    /// updating a thread. The returned string is the raw structured payload
     /// (JSON), decodable via `StructuredOutputDecoder`.
     ///
     /// Structured output is threaded through the same provider adapter path as the
@@ -108,7 +108,7 @@ public extension PositronicKit {
         )
     }
 
-    /// Streams a response for a single prompt without creating or updating a timeline.
+    /// Streams a response for a single prompt without creating or updating a thread.
     func stream(_ prompt: String) -> AsyncThrowingStream<LLMStreamChunk, Error> {
         stream(prompt, generationParameters: nil, idleTimeout: 60)
     }
