@@ -239,7 +239,7 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
 
     /// Attaches an agent instance using the legacy identifier spellings.
     @_disfavoredOverload
-    @available(*, deprecated, message: "Use attach(agentID:to:).")
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     public func attach(agentId: UUID, to timelineId: UUID) async throws {
         try await attach(agentID: agentId, to: timelineId)
     }
@@ -282,7 +282,7 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
 
     /// Detaches an agent instance using the legacy identifier spellings.
     @_disfavoredOverload
-    @available(*, deprecated, message: "Use detach(agentID:from:).")
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     public func detach(agentId: UUID, from timelineId: UUID) async throws {
         try await detach(agentID: agentId, from: timelineId)
     }
@@ -316,7 +316,6 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
         try await threads(attachedTo: agentId)
     }
 
-    @available(*, deprecated, renamed: "threads(attachedTo:)", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     public func getThreads(attachedTo agentID: UUID) async throws -> [Thread] {
         try await threads(attachedTo: agentID)
     }

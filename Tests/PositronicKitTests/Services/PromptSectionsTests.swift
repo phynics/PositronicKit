@@ -339,6 +339,8 @@ struct TimelineContextTests {
 
         #expect(context.thread.id == thread.id)
         #expect(context.threadTitle == "Canonical Thread")
+        #expect(context.timeline.id == thread.id)
+        #expect(context.timelineTitle == "Canonical Thread")
     }
 
     @Test("contains timeline ID and title")

@@ -317,6 +317,9 @@ public struct ThreadContext: Prompt {
     public let thread: Thread
     public var threadTitle: String { thread.title }
 
+    @available(*, deprecated, renamed: "threadTitle", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public var timelineTitle: String { threadTitle }
+
     public init(_ thread: Thread) {
         self.thread = thread
     }
