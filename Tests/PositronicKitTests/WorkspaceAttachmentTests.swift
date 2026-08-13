@@ -293,6 +293,26 @@ struct GetWorkspacesTests {
         }
     }
 
+    @Test("canonical runtimeThread workspace is exposed as primary")
+    func canonicalRuntimeThreadWorkspaceIsPrimary() async throws {
+        try await withFixture { fix in
+            let timeline = Timeline()
+            let canonicalWorkspace = WorkspaceReference(
+                uri: .threadWorkspace(timeline.id),
+                location: .runtimeThread
+            )
+            try await fix.persistence.saveWorkspace(canonicalWorkspace)
+            var persistedTimeline = timeline
+            persistedTimeline.attachedWorkspaceIDs = [canonicalWorkspace.id]
+            try await fix.persistence.saveTimeline(persistedTimeline)
+
+            let workspaces = try await fix.manager.getWorkspaces(for: timeline.id)
+
+            #expect(workspaces.primary?.id == canonicalWorkspace.id)
+            #expect(workspaces.attached.isEmpty)
+        }
+    }
+
     @Test("reflects attach then detach in sequence")
     func attachThenDetach() async throws {
         try await withFixture { fix in

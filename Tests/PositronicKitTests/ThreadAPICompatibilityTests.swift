@@ -34,6 +34,7 @@ struct ThreadAPICompatibilityTests {
     }
 
     @Test("canonical persistence configuration exposes canonical durability naming")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
     func canonicalPersistenceConfigurationUsesThreadDurabilityNaming() {
         let configuration = PositronicKit.PersistenceConfiguration(
             threadPersistence: InMemoryThreadPersistence()
@@ -41,7 +42,14 @@ struct ThreadAPICompatibilityTests {
         let report = configuration.validateDurability()
 
         #expect(report.threadPersistence == .ephemeral)
-        #expect(report.timelinePersistence == report.threadPersistence)
+        #expect(legacyTimelinePersistenceValue(from: report) == report.threadPersistence)
+    }
+
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
+    private func legacyTimelinePersistenceValue(
+        from report: PositronicKit.DurabilityReport
+    ) -> PositronicKit.StoreDurability {
+        report.timelinePersistence
     }
 
     @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")

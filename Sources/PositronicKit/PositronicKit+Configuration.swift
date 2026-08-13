@@ -145,7 +145,7 @@ public extension PositronicKit {
 
         /// A fully in-memory persistence configuration, suitable for prototyping and tests.
         public static func inMemory() -> PersistenceConfiguration {
-            PersistenceConfiguration()
+            PersistenceConfiguration(threadPersistence: InMemoryThreadPersistence())
         }
 
         /// Requires all seven stores explicitly — the "full durability" entry point for

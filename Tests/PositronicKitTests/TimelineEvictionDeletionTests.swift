@@ -165,6 +165,38 @@ struct TimelineEvictionDeletionTests {
         #expect(try await persistence.fetchWorkspace(id: workspaceId, includeTools: false) == nil)
     }
 
+    @Test("permanent deletion removes canonical runtimeThread workspaces")
+    func permanentDeleteRemovesCanonicalRuntimeThreadWorkspace() async throws {
+        let persistence = MockPersistenceService()
+        let workspace = TestWorkspace()
+        let timelineManager = TimelineManager(
+            stores: .init(
+                timelineStore: persistence,
+                messageStore: persistence,
+                workspaceStore: persistence,
+                toolPersistence: persistence
+            ),
+            workspaceRoot: workspace.root
+        )
+        let timeline = Timeline()
+        let canonicalWorkspace = WorkspaceReference(
+            uri: .threadWorkspace(timeline.id),
+            location: .runtimeThread
+        )
+        var persistedTimeline = timeline
+        persistedTimeline.attachedWorkspaceIDs = [canonicalWorkspace.id]
+        try await persistence.saveWorkspace(canonicalWorkspace)
+        try await persistence.saveTimeline(persistedTimeline)
+
+        let result = await timelineManager.deleteTimelinePermanently(id: timeline.id)
+
+        #expect(result.isComplete)
+        #expect(try await persistence.fetchWorkspace(
+            id: canonicalWorkspace.id,
+            includeTools: false
+        ) == nil)
+    }
+
     @Test("permanent deletion preserves caller-owned attached workspace")
     func permanentDeletePreservesCallerOwnedAttachedWorkspace() async throws {
         let persistence = MockPersistenceService()

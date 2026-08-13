@@ -330,7 +330,8 @@ public extension TimelineManager {
                     continue
                 }
 
-                let isTimelineOwned = workspace.location == .runtimeTimeline
+                let isTimelineOwned = workspace.location == .runtimeThread
+                    || workspace.location == .runtimeTimeline
                     || (workspace.location == .runtime
                         && workspace.uri == .timelineWorkspace(id))
                 if isTimelineOwned, !timelineOwnedWorkspaceIds.contains(workspaceId) {

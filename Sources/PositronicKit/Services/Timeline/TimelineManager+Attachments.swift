@@ -161,7 +161,9 @@ public extension TimelineManager {
                     let normalizedWorkspace = normalizeWorkspaceStatus(workspace)
 
                     if primary == nil,
-                       normalizedWorkspace.location == .runtime || normalizedWorkspace.location == .runtimeTimeline
+                       normalizedWorkspace.location == .runtime
+                        || normalizedWorkspace.location == .runtimeThread
+                        || normalizedWorkspace.location == .runtimeTimeline
                     {
                         primary = normalizedWorkspace
                     } else {
