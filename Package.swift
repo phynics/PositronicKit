@@ -6,10 +6,21 @@ let pkFastEmbedDependency: Target.Dependency = .target(
     name: "PKFastEmbed",
     condition: .when(platforms: [.linux])
 )
+let cpkFastEmbedTarget: Target = .systemLibrary(
+    name: "CPKFastEmbed",
+    path: "Sources/CPKFastEmbed",
+    pkgConfig: "pkfastembed"
+)
 #else
 let pkFastEmbedDependency: Target.Dependency = .target(
     name: "PKFastEmbed",
     condition: .when(traits: ["MiniLMEmbeddings"])
+)
+// Apple builds use the bridge only when the MiniLM trait is enabled. Avoid
+// probing pkg-config during ordinary builds, where no native prefix is needed.
+let cpkFastEmbedTarget: Target = .systemLibrary(
+    name: "CPKFastEmbed",
+    path: "Sources/CPKFastEmbed"
 )
 #endif
 
@@ -89,7 +100,8 @@ let package = Package(
                 .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
                 .product(name: "PartialJSON", package: "PartialJSON"),
             ],
-            path: "Sources/PositronicKit"
+            path: "Sources/PositronicKit",
+            exclude: ["PositronicKit.docc"]
         ),
         .target(
             name: "PKObservable",
@@ -106,11 +118,7 @@ let package = Package(
             ],
             path: "Sources/PKLocalEmbeddings"
         ),
-        .systemLibrary(
-            name: "CPKFastEmbed",
-            path: "Sources/CPKFastEmbed",
-            pkgConfig: "pkfastembed"
-        ),
+        cpkFastEmbedTarget,
         .target(
             name: "PKFastEmbed",
             dependencies: ["CPKFastEmbed", "PKShared", "PKUtilities", "PositronicKit"],
