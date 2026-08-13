@@ -5,7 +5,7 @@ import PKShared
 /// ``Thread``.
 ///
 /// `ThreadDriver` holds no mutable turn state, does not perform persistence lookups on
-/// construction, and does not expose the underlying `TimelineManager`. Opening a driver via
+/// construction, and does not expose the underlying `ThreadManager`. Opening a driver via
 /// `PositronicKit.openThread(_:)` is pure value construction — persistence happens lazily,
 /// the first time `send(_:)` actually executes a turn, exactly as it always has for the
 /// underlying chat-engine turn path.
@@ -57,7 +57,7 @@ public extension PositronicKit {
     /// must have been created beforehand via ``ThreadManager/createThread(title:)``.
     /// A missing (never-persisted) thread id is an error, not a silent creation —
     /// the first ``ThreadDriver/send(_:)`` call will throw
-    /// ``ThreadError/timelineNotFound`` before any message is persisted.
+    /// ``ThreadError/threadNotFound`` before any message is persisted.
     func openThread(_ threadID: UUID) -> ThreadDriver {
         ThreadDriver(threadID: threadID, kit: self)
     }

@@ -84,6 +84,7 @@ public protocol TimelineAgentInstanceManagerProtocol: Sendable {
 }
 
 /// Adapts a v3 timeline-named manager conformer to the canonical Thread protocol.
+@available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
 public actor LegacyAgentInstanceManagerAdapter: AgentInstanceManagerProtocol {
     private let legacy: any TimelineAgentInstanceManagerProtocol
 

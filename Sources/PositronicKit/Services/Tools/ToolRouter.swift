@@ -357,7 +357,7 @@ public actor ToolRouter {
     ///    value throws `ToolError.invalidWorkspaceID`; a valid UUID that is not attached throws
     ///    `ToolError.workspaceNotFound` (PKRR-015 fail-closed — presence signals explicit
     ///    intent, so a malformed value is an error, not a hint to auto-route).
-    /// 2. Otherwise, defer to `TimelineManager.findWorkspaceForTool(_:in:)` over the candidate
+    /// 2. Otherwise, defer to `ThreadManager.findWorkspaceForTool(_:in:)` over the candidate
     ///    list (primary first, then attached in declared order).
     /// 3. Returns `nil` if the timeline has no workspaces, or if no candidate workspace
     ///    registers the tool. `execute` interprets `nil` as `toolNotFound`.

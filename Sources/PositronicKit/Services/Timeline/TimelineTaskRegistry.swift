@@ -5,7 +5,7 @@ import Foundation
 /// Each `ChatEngine.execute(...)` send registers its stream-driving `Task` here, keyed by
 /// `(threadID, sendID)`. Terminal paths remove the entry only when the sendID still matches
 /// the active one, so a stale send cannot evict or cancel a newer send.
-/// ``TimelineDriver/cancel()`` cancels whatever task is currently active for the timeline;
+/// ``ThreadDriver/cancel()`` cancels whatever task is currently active for the thread;
 /// eviction/deletion cancels and awaits bounded cleanup via ``cancelAndAwait(for:)``.
 public actor ThreadTaskRegistry {
     public init() {}
