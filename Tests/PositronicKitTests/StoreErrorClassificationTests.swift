@@ -62,7 +62,7 @@ struct StoreErrorClassificationTests {
 
     // MARK: - attachWorkspace: store outage must not surface as threadNotFound
 
-    @Test("attachWorkspace throws unavailable when the store fails, not timelineNotFound")
+    @Test("attachWorkspace throws unavailable when the store fails, not threadNotFound")
     func attachWorkspaceStoreFailureThrowsUnavailable() async throws {
         let failingStore = FailingThreadPersistence(fetchFails: true)
         let workspace = TestWorkspace()
@@ -95,7 +95,7 @@ struct StoreErrorClassificationTests {
 
     // MARK: - detachWorkspace: store outage must not surface as threadNotFound
 
-    @Test("detachWorkspace throws unavailable when the store fails, not timelineNotFound")
+    @Test("detachWorkspace throws unavailable when the store fails, not threadNotFound")
     func detachWorkspaceStoreFailureThrowsUnavailable() async throws {
         let failingStore = FailingThreadPersistence(fetchFails: true)
         let workspace = TestWorkspace()
@@ -146,11 +146,11 @@ struct StoreErrorClassificationTests {
 
         do {
             _ = try await manager.getWorkspaces(for: id)
-            Issue.record("Expected TimelineError.unavailable")
+            Issue.record("Expected ThreadError.unavailable")
         } catch ThreadError.unavailable {
             // Correct — store outage throws rather than returning nil.
         } catch ThreadError.threadNotFound {
-            Issue.record("Store outage was collapsed into timelineNotFound (the bug)")
+            Issue.record("Store outage was collapsed into threadNotFound (the bug)")
         } catch {
             Issue.record("Unexpected error: \(error)")
         }
@@ -158,14 +158,14 @@ struct StoreErrorClassificationTests {
         #expect(failingStore.fetchAttemptCount >= 1)
     }
 
-    @Test("getWorkspaces throws timelineNotFound when the timeline genuinely does not exist")
+    @Test("getWorkspaces throws threadNotFound when the thread genuinely does not exist")
     func getWorkspacesMissingThrowsNotFound() async throws {
         let workspace = TestWorkspace()
         let manager = ThreadManager(workspaceRoot: workspace.root)
 
         do {
             _ = try await manager.getWorkspaces(for: UUID())
-            Issue.record("Expected timelineNotFound")
+            Issue.record("Expected threadNotFound")
         } catch ThreadError.threadNotFound {
             // Correct.
         } catch {
@@ -232,7 +232,7 @@ struct StoreErrorClassificationTests {
 
         do {
             _ = try await manager.getToolSource(toolId: "some_tool", for: thread.id)
-            Issue.record("Expected TimelineError.unavailable")
+            Issue.record("Expected ThreadError.unavailable")
         } catch ThreadError.unavailable {
             // Correct — store outage throws rather than returning nil.
         } catch {
@@ -264,7 +264,7 @@ struct StoreErrorClassificationTests {
 
     // MARK: - setupThreadComponents: workspace resolution failure is survivable
 
-    @Test("createTimeline succeeds even when workspace resolver fails for attached workspaces")
+    @Test("createThread succeeds even when workspace resolver fails for attached workspaces")
     func createThreadSurvivesWorkspaceResolverFailure() async throws {
         let persistence = MockPersistenceService()
         let failingWorkspaceStore = FailingWorkspaceStore(fetchFails: true)
@@ -285,14 +285,14 @@ struct StoreErrorClassificationTests {
 
         #expect(thread.title == "Resilient Timeline")
         #expect(await manager.thread(id: thread.id) != nil,
-               "Timeline should be in memory even if workspace resolution degraded")
+               "Thread should be in memory even if workspace resolution degraded")
     }
 
     // MARK: - ThreadError taxonomy contract
 
-    @Suite("TimelineError taxonomy")
+    @Suite("ThreadError taxonomy")
     struct ThreadErrorTaxonomyTests {
-        @Test("Every case maps to a unique non-zero error code in the timeline domain")
+        @Test("Every case maps to a unique non-zero error code in the thread domain")
         func uniqueErrorCodes() {
             let cases: [ThreadError] = [
                 .threadNotFound,
@@ -342,7 +342,7 @@ struct StoreErrorClassificationTests {
             #expect(ThreadError.permissionDenied.remediation != nil)
         }
 
-        @Test("timelineNotFound and invalidState have no remediation")
+        @Test("threadNotFound and invalidState have no remediation")
         func noRemediationForNotFoundAndInvalidState() {
             #expect(ThreadError.threadNotFound.remediation == nil)
             #expect(ThreadError.invalidState("x").remediation == nil)

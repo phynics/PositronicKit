@@ -83,7 +83,7 @@ struct AgentInstanceManagerTests {
         }
     }
 
-    @Test("Robustness: Cannot attach to private timeline")
+    @Test("Robustness: Cannot attach to private thread")
     func cannotAttachToPrivate() async throws {
         let repo = DefaultWorkspaceCatalog(
             workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
@@ -118,7 +118,7 @@ struct AgentInstanceManagerTests {
         try await manager.attach(agentID: agent.id, to: privateThread.id)
     }
 
-    @Test("Robustness: Cannot detach agent from its own private timeline")
+    @Test("Robustness: Cannot detach agent from its own private thread")
     func cannotDetachFromOwnPrivate() async throws {
         let repo = DefaultWorkspaceCatalog(
             workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
@@ -146,7 +146,7 @@ struct AgentInstanceManagerTests {
         }
     }
 
-    @Test("Creation: Agent is automatically attached to private timeline")
+    @Test("Creation: Agent is automatically attached to private thread")
     func createInstanceAttachesAgent() async throws {
         let repo = DefaultWorkspaceCatalog(
             workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
@@ -292,7 +292,7 @@ struct AgentInstanceManagerTests {
         #expect(resultsEmpty.count == 2)
     }
 
-    @Test("Deletion: routes private-timeline deletion through TimelineManager when injected (PKR-3)")
+    @Test("Deletion: routes private-thread deletion through ThreadManager when injected (PKR-3)")
     func deleteInstanceEvictsThreadManagerCacheAndRegistry() async throws {
         // Use the same in-memory stores across the ThreadManager and the
         // AgentInstanceManager so the private thread created by the agent
@@ -438,7 +438,7 @@ struct AgentInstanceManagerTests {
         #expect(messageStore.attemptedMessages.count == 1)
     }
 
-    @Test("Cleanup: deleteInstance preserves the agent when private-timeline deletion fails")
+    @Test("Cleanup: deleteInstance preserves the agent when private-thread deletion fails")
     func deleteInstanceDoesNotRemoveAgentWhenPrivateThreadDeletionFails() async throws {
         let instanceStore = InMemoryAgentInstanceStore()
         let threadStore = FailingThreadPersistence(deleteFails: true)
@@ -467,7 +467,7 @@ struct AgentInstanceManagerTests {
         if case .deleteFailed? = thrown {
             // Preserve the original typed persistence error for callers and retry logic.
         } else {
-            Issue.record("Expected the private-timeline deletion error to be rethrown")
+            Issue.record("Expected the private-thread deletion error to be rethrown")
         }
 
         // The delete was attempted (and failed) — observable, not swallowed.

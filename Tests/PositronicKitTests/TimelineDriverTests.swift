@@ -35,7 +35,7 @@ struct ThreadDriverTests {
         #expect(first.id == second.id)
     }
 
-    @Test("opening does not persist a timeline")
+    @Test("opening does not persist a thread")
     func openingDoesNotPersistAThread() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString))

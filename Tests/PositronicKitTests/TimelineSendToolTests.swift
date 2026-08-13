@@ -16,7 +16,7 @@ import Testing
 /// Post-PKARCH-003: tests build tools via `RuntimeToolPolicyFactory` directly, with the same
 /// stores the original `ThreadManager.createToolManager` used, so `ThreadManager` is no longer
 /// exercised in this single-tool regression suite.
-@Suite("Timeline Send Tool")
+@Suite("Thread Send Tool")
 struct ThreadSendToolTests {
     @Test("canonical send tool preserves the external call name")
     func canonicalSendToolPreservesCallName() {

@@ -9,7 +9,7 @@ import Testing
 /// PKRR-002 cancellation invariants: `ThreadDriver.cancel()` must actually cancel the
 /// stream-driving task, the registry entry must be removed on every terminal path,
 /// eviction/deletion must cancel active work, and a stale send ID cannot cancel a newer send.
-@Suite("Timeline cancellation invariants (PKRR-002)", .serialized)
+@Suite("Thread cancellation invariants (PKRR-002)", .serialized)
 struct ThreadCancellationTests {
     // MARK: - 1. cancel() stops an active stream
 
@@ -193,7 +193,7 @@ struct ThreadCancellationTests {
 
     // MARK: - 4. Eviction/deletion cancels active work
 
-    @Test("evictTimelineFromMemory cancels active generation and awaits cleanup (PKRR-002)")
+    @Test("evictThreadFromMemory cancels active generation and awaits cleanup (PKRR-002)")
     func deleteThreadCancelsActiveWork() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString))
@@ -227,7 +227,7 @@ struct ThreadCancellationTests {
         // evictThreadFromMemory awaits bounded cleanup, so the stream should already be done.
         let terminated = streamTerminated.withLock { $0 }
         let finalChunkCount = chunkCount.withLock { $0 }
-        #expect(terminated, "Stream should terminate after deleteTimeline")
+        #expect(terminated, "Stream should terminate after thread eviction")
         #expect(finalChunkCount < 50, "Stream should stop after eviction (got \(finalChunkCount) chunks)")
 
         // Thread is evicted from cache.
@@ -237,7 +237,7 @@ struct ThreadCancellationTests {
         consumeTask.cancel()
     }
 
-    @Test("cleanupStaleTimelines cancels active generation and awaits cleanup (PKRR-002)")
+    @Test("cleanupStaleThreads cancels active generation and awaits cleanup (PKRR-002)")
     func cleanupStaleCancelsActiveWork() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString))
@@ -270,7 +270,7 @@ struct ThreadCancellationTests {
 
         let terminated = streamTerminated.withLock { $0 }
         let finalChunkCount = chunkCount.withLock { $0 }
-        #expect(terminated, "Stream should terminate after cleanupStaleTimelines")
+        #expect(terminated, "Stream should terminate after cleanupStaleThreads")
         #expect(finalChunkCount < 50, "Stream should stop after eviction (got \(finalChunkCount) chunks)")
 
         let evicted = await kit.threadManager.thread(id: thread.id)

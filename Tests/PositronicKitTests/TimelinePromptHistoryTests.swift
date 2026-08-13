@@ -49,9 +49,9 @@ private struct ThreadSection: Prompt {
     }
 }
 
-@Suite("TimelinePromptHistory")
+@Suite("ThreadPromptHistory")
 actor ThreadPromptHistoryTests {
-    @Test("Runtime metadata hashing stays aligned between prompt assembly and timeline history")
+    @Test("Runtime metadata hashing stays aligned between prompt assembly and thread history")
     func runtimeMetadataHashingStaysAligned() async throws {
         let history = ThreadPromptHistory()
         let rendered = try await PromptAssembler.assemble(LLMPromptRequest(
@@ -459,9 +459,9 @@ actor ThreadPromptHistoryTests {
     }
 }
 
-@Suite("TimelinePromptJournals")
+@Suite("ThreadPromptJournals")
 actor ThreadPromptJournalsTests {
-    @Test("history(for:) reuses the same instance for the same timeline id")
+    @Test("history(for:) reuses the same instance for the same thread ID")
     func historyReusesSameInstanceForSameThreadId() async {
         let registry = ThreadPromptJournals()
         let threadID = UUID()
@@ -476,7 +476,7 @@ actor ThreadPromptJournalsTests {
         #expect(await second.appendedTokens == 42)
     }
 
-    @Test("history(for:) isolates state across different timeline ids")
+    @Test("history(for:) isolates state across different thread IDs")
     func historyIsolatesStateAcrossDifferentThreadIds() async {
         let registry = ThreadPromptJournals()
         let threadA = UUID()
@@ -510,7 +510,7 @@ actor ThreadPromptJournalsTests {
         #expect(await fresh.lastDiff == nil)
     }
 
-    @Test("Exceeding the max entry count evicts the least-recently-accessed timeline")
+    @Test("Exceeding the max entry count evicts the least-recently-accessed thread")
     func exceedingMaxEntriesEvictsLeastRecentlyAccessed() async {
         let cap = 5
         let registry = ThreadPromptJournals(

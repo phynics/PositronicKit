@@ -11,12 +11,12 @@ import Testing
 /// leaves persistence intact) and `deleteThreadPermanently` removes all persisted records
 /// or reports partial cleanup. These guard against the original leak/race where the
 /// `deleteThread` name suggested durable deletion but only evicted memory.
-@Suite("Timeline eviction & permanent deletion (PKRR-023)")
+@Suite("Thread eviction & permanent deletion (PKRR-023)")
 struct ThreadEvictionDeletionTests {
 
     // MARK: - Eviction is memory-only: cancels active work, preserves persistence
 
-    @Test("evictTimelineFromMemory cancels active work and leaves persistence intact (PKRR-023)")
+    @Test("evictThreadFromMemory cancels active work and leaves persistence intact (PKRR-023)")
     func evictCancelsWorkAndPreservesPersistence() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString))
@@ -74,7 +74,7 @@ struct ThreadEvictionDeletionTests {
         consumeTask.cancel()
     }
 
-    @Test("evictTimelineFromMemory does not delete the timeline row or messages from persistence (PKRR-023)")
+    @Test("evictThreadFromMemory does not delete the thread row or messages from persistence (PKRR-023)")
     func evictPreservesThreadRow() async throws {
         let persistence = MockPersistenceService()
         let workspace = TestWorkspace()
@@ -128,7 +128,7 @@ struct ThreadEvictionDeletionTests {
 
     // MARK: - Permanent deletion
 
-    @Test("deleteTimelinePermanently removes timeline, messages, and workspace records (PKRR-023)")
+    @Test("deleteThreadPermanently removes thread, messages, and workspace records (PKRR-023)")
     func permanentDeleteRemovesAllRecords() async throws {
         let persistence = MockPersistenceService()
         let workspace = TestWorkspace()
@@ -235,7 +235,7 @@ struct ThreadEvictionDeletionTests {
         #expect(FileManager.default.fileExists(atPath: workspaceRoot.path))
     }
 
-    @Test("deleteTimelinePermanently cancels active work before deleting records (PKRR-023)")
+    @Test("deleteThreadPermanently cancels active work before deleting records (PKRR-023)")
     func permanentDeleteCancelsActiveWork() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString))
@@ -266,7 +266,7 @@ struct ThreadEvictionDeletionTests {
         consumeTask.cancel()
     }
 
-    @Test("deleteTimelinePermanently reports partial cleanup when a store fails (PKRR-023)")
+    @Test("deleteThreadPermanently reports partial cleanup when a store fails (PKRR-023)")
     func permanentDeleteReportsPartialCleanup() async throws {
         let failingThreadStore = FailingThreadPersistence(deleteFails: true)
         let backing = MockPersistenceService()
@@ -291,7 +291,7 @@ struct ThreadEvictionDeletionTests {
 
         // Partial: thread delete failed.
         #expect(!result.isComplete,
-                "Should report incomplete cleanup when timeline delete fails")
+                "Should report incomplete cleanup when thread deletion fails")
         #expect(result.degradations.count == 1)
         let degradation = try #require(result.degradations.first)
         #expect(degradation.operation.contains("deleteTimeline"))
@@ -308,7 +308,7 @@ struct ThreadEvictionDeletionTests {
         #expect(await threadManager.thread(id: thread.id) == nil)
     }
 
-    @Test("deleteTimelinePermanently on an unknown timeline is a no-op complete result (PKRR-023)")
+    @Test("deleteThreadPermanently on an unknown thread is a no-op complete result (PKRR-023)")
     func permanentDeleteUnknownThread() async throws {
         let persistence = MockPersistenceService()
         let workspace = TestWorkspace()

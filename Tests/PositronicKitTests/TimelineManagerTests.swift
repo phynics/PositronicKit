@@ -153,7 +153,7 @@ struct ThreadManagerTests {
         #expect(retrieved == nil, "Session should be cleaned up")
     }
 
-    @Test("evictTimelineFromMemory(id:) evicts the prompt-history registry entry, not just the cache")
+    @Test("evictThreadFromMemory(id:) evicts the prompt-history registry entry, not just the cache")
     func deleteThreadEvictsPromptHistory() async throws {
         let workspace = TestWorkspace()
         let registry = ThreadPromptJournals()
@@ -182,7 +182,7 @@ struct ThreadManagerTests {
         #expect(await fresh.lastDiff == nil)
     }
 
-    @Test("cleanupStaleTimelines(maxAge:) also drops the prompt-history registry entry")
+    @Test("cleanupStaleThreads(maxAge:) also drops the prompt-history registry entry")
     func cleanupStaleEvictsPromptHistory() async throws {
         let workspace = TestWorkspace()
         let registry = ThreadPromptJournals()
@@ -206,7 +206,7 @@ struct ThreadManagerTests {
         #expect(await fresh.appendedTokens == 0)
     }
 
-    @Test("evictTimelineFromMemory(id:) with no injected registry still evicts the cache")
+    @Test("evictThreadFromMemory(id:) with no injected registry still evicts the cache")
     func deleteThreadWithoutRegistry() async throws {
         let workspace = TestWorkspace()
         let threadManager = ThreadManager(workspaceRoot: workspace.root)
@@ -249,7 +249,7 @@ struct ThreadManagerTests {
         #expect(cancelledFinal, "Task should have been cancelled")
     }
 
-    @Test("hydrateTimeline short-circuits when a tool manager is already cached")
+    @Test("hydrateThread short-circuits when a tool manager is already cached")
     func hydrateShortCircuit() async throws {
         let persistence = MockPersistenceService()
         let workspace = TestWorkspace()
@@ -270,20 +270,20 @@ struct ThreadManagerTests {
         #expect(await threadManager.thread(id: thread.id) != nil)
     }
 
-    @Test("hydrateTimeline throws timelineNotFound when persistence has no timeline")
+    @Test("hydrateThread throws threadNotFound when persistence has no thread")
     func hydrateMissing() async throws {
         let workspace = TestWorkspace()
         let threadManager = ThreadManager(workspaceRoot: workspace.root)
 
         do {
             try await threadManager.hydrateThread(id: UUID())
-            Issue.record("Expected timelineNotFound")
+            Issue.record("Expected threadNotFound")
         } catch ThreadError.threadNotFound {
             // ok
         }
     }
 
-    @Test("updateTimelineTitle mutates cache and persistence")
+    @Test("updateThreadTitle mutates cache and persistence")
     func updateTitle() async throws {
         let persistence = MockPersistenceService()
         let workspace = TestWorkspace()
@@ -307,7 +307,7 @@ struct ThreadManagerTests {
         #expect(persisted.title == "renamed")
     }
 
-    @Test("updateTimelineTitle for a missing timeline throws timelineNotFound")
+    @Test("updateThreadTitle for a missing thread throws threadNotFound")
     func updateTitleMissing() async throws {
         let workspace = TestWorkspace()
         let threadManager = ThreadManager(workspaceRoot: workspace.root)
@@ -320,7 +320,7 @@ struct ThreadManagerTests {
         }
     }
 
-    @Test("cleanupStaleTimelines evicts from memory but not persistence")
+    @Test("cleanupStaleThreads evicts from memory but not persistence")
     func cleanupStaleDoesNotPersistDelete() async throws {
         let persistence = MockPersistenceService()
         let workspace = TestWorkspace()
@@ -343,7 +343,7 @@ struct ThreadManagerTests {
         #expect(persisted.id == thread.id)
     }
 
-    @Test("createTimeline creates Notes/Welcome.md and Notes/Project.md in the working directory")
+    @Test("createThread creates Notes/Welcome.md and Notes/Project.md in the working directory")
     func createThreadWritesDefaultNotes() async throws {
         let workspace = TestWorkspace()
         let threadManager = ThreadManager(workspaceRoot: workspace.root)

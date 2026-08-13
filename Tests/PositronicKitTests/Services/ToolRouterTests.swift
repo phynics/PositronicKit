@@ -521,7 +521,7 @@ final class ToolRouterTests {
         }
     }
 
-    @Test("A dynamic per-turn tool (passed via availableTools) executes locally even when the timeline has no attached workspace at all (YAK-19)")
+    @Test("A dynamic per-turn tool (passed via availableTools) executes locally even when the thread has no attached workspace at all (YAK-19)")
     func dynamicToolExecutesWithoutAnyWorkspace() async throws {
         let (threadManager, mockPersistence) = try await setupThreadManager()
         let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)

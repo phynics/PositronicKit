@@ -142,7 +142,7 @@ struct PublicRuntimeStoriesTests {
         #expect(mockLLM.chatRequestHistory.isEmpty)
     }
 
-    @Test("agentic runtime can run on an agent's private timeline")
+    @Test("agentic runtime can run on an agent's private thread")
     func agenticRuntimeRunsOnPrivateThread() async throws {
         let (kit, mockLLM, mockPersistence, _, _) = try await makeAcceptanceRuntime()
         let agent = try await kit.agentInstanceManager.createInstance(
@@ -396,7 +396,7 @@ struct PublicRuntimeStoriesTests {
         }
 
         if case let .meta(.generationContext(metadata)) = generationContext {
-            #expect(!metadata.files.isEmpty, "Timeline-managed Notes should be discovered by default")
+            #expect(!metadata.files.isEmpty, "Thread-managed Notes should be discovered by default")
         } else {
             Issue.record("First matching event was not generationContext")
         }

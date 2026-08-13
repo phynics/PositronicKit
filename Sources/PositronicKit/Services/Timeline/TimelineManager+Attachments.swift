@@ -25,7 +25,7 @@ public extension ThreadManager {
                 throw error
             } catch {
                 logger.error("""
-                attachWorkspace fetch failed — timeline: \(threadID.uuidString.prefix(8)), \
+                attachWorkspace fetch failed — thread: \(threadID.uuidString.prefix(8)), \
                 operation: fetchTimeline, error: \(ErrorKit.userFriendlyMessage(for: error))
                 """)
                 throw ThreadError.unavailable
@@ -39,7 +39,7 @@ public extension ThreadManager {
                 logger.warning("""
                 attachWorkspace: workspace not found — \
                 workspace: \(workspaceId.uuidString.prefix(8)), \
-                timeline: \(threadID.uuidString.prefix(8)), operation: validateWorkspace
+                thread: \(threadID.uuidString.prefix(8)), operation: validateWorkspace
                 """)
                 throw ThreadError.invalidState("workspace \(workspaceId.uuidString.prefix(8)) not found")
             }
@@ -49,7 +49,7 @@ public extension ThreadManager {
             logger.error("""
             attachWorkspace: workspace validation failed — \
             workspace: \(workspaceId.uuidString.prefix(8)), \
-            timeline: \(threadID.uuidString.prefix(8)), \
+            thread: \(threadID.uuidString.prefix(8)), \
             operation: validateWorkspace, error: \(ErrorKit.userFriendlyMessage(for: error))
             """)
             throw ThreadError.unavailable
@@ -67,7 +67,7 @@ public extension ThreadManager {
             try requireThreadLiveness(for: threadID, version: livenessVersion)
         } catch {
             // A deletion may have interleaved with the save itself. Remove a stale upsert so the
-            // deleted timeline cannot be resurrected even when persistence operations reorder.
+            // deleted thread cannot be resurrected even when persistence operations reorder.
             try? await threadStore.deleteThread(id: threadID)
             throw error
         }
@@ -81,7 +81,7 @@ public extension ThreadManager {
             } catch {
                 logger.warning("""
                 attachWorkspace: workspace registration failed — \
-                workspace: \(workspaceId.uuidString.prefix(8)), timeline: \(threadID.uuidString.prefix(8)), \
+                workspace: \(workspaceId.uuidString.prefix(8)), thread: \(threadID.uuidString.prefix(8)), \
                 operation: registerWorkspace, error: \(ErrorKit.userFriendlyMessage(for: error))
                 """)
                 timelineDegradations[threadID, default: []].append(TurnDiagnostic(
@@ -110,7 +110,7 @@ public extension ThreadManager {
                 throw error
             } catch {
                 logger.error("""
-                detachWorkspace fetch failed — timeline: \(threadID.uuidString.prefix(8)), \
+                detachWorkspace fetch failed — thread: \(threadID.uuidString.prefix(8)), \
                 operation: fetchTimeline, error: \(ErrorKit.userFriendlyMessage(for: error))
                 """)
                 throw ThreadError.unavailable
@@ -145,7 +145,7 @@ public extension ThreadManager {
                 throw error
             } catch {
                 logger.error("""
-                getWorkspaces fetch failed — timeline: \(threadID.uuidString.prefix(8)), \
+                getWorkspaces fetch failed — thread: \(threadID.uuidString.prefix(8)), \
                 operation: fetchTimeline, error: \(ErrorKit.userFriendlyMessage(for: error))
                 """)
                 throw ThreadError.unavailable
@@ -179,7 +179,7 @@ public extension ThreadManager {
                 degradations.append(degradation)
                 logger.warning("""
                 getWorkspaces: individual workspace fetch failed — \
-                workspace: \(aid.uuidString.prefix(8)), timeline: \(threadID.uuidString.prefix(8)), \
+                workspace: \(aid.uuidString.prefix(8)), thread: \(threadID.uuidString.prefix(8)), \
                 operation: fetchWorkspace, error: \(ErrorKit.userFriendlyMessage(for: error))
                 """)
             }

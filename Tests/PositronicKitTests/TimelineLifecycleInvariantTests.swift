@@ -8,9 +8,9 @@ import Testing
 /// PKRR-005 lifecycle invariants: `openThread` opens an existing thread only. Sending
 /// to a missing ID throws before any user input is persisted. Store failure is
 /// distinguishable from not-found.
-@Suite("Timeline lifecycle invariants (PKRR-005)")
+@Suite("Thread lifecycle invariants (PKRR-005)")
 struct ThreadLifecycleInvariantTests {
-    @Test("Sending to a never-created timeline throws timelineNotFound before persisting")
+    @Test("Sending to a never-created thread throws threadNotFound before persisting")
     func sendToMissingThreadThrowsBeforePersisting() async throws {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
@@ -37,7 +37,7 @@ struct ThreadLifecycleInvariantTests {
         }
 
         let messages = try await mockPersistence.fetchMessages(for: missingId)
-        #expect(messages.isEmpty, "No user input should be persisted when the timeline does not exist")
+        #expect(messages.isEmpty, "No user input should be persisted when the thread does not exist")
     }
 
     @Test("Store failure during hydration throws unavailable and no message is persisted")
@@ -71,7 +71,7 @@ struct ThreadLifecycleInvariantTests {
         #expect(messages.isEmpty, "No user input should be persisted when the store is unavailable")
     }
 
-    @Test("TimelineDriver.send to a missing timeline throws timelineNotFound")
+    @Test("ThreadDriver.send to a missing thread throws threadNotFound")
     func driverSendToMissingThreadThrows() async throws {
         let mockLLM = MockLLMService()
         let kit = PositronicKit(configuration: .init(
@@ -86,7 +86,7 @@ struct ThreadLifecycleInvariantTests {
         }
     }
 
-    @Test("A created timeline accepts sends normally")
+    @Test("A created thread accepts sends normally")
     func createdThreadAcceptsSends() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString))
@@ -108,7 +108,7 @@ struct ThreadLifecycleInvariantTests {
         #expect(messages == ["hello", "reply"])
     }
 
-    @Test("ensureTimelineExists is a no-op for an already-hydrated timeline")
+    @Test("ensureThreadExists is a no-op for an already-hydrated thread")
     func ensureThreadExistsNoOpForHydrated() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString))
@@ -119,7 +119,7 @@ struct ThreadLifecycleInvariantTests {
         try await kit.threadManager.ensureThreadExists(id: thread.id)
     }
 
-    @Test("ensureTimelineExists throws timelineNotFound for an unknown ID")
+    @Test("ensureThreadExists throws threadNotFound for an unknown ID")
     func ensureThreadExistsThrowsForUnknown() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString))

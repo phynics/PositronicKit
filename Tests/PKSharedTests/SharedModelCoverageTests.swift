@@ -264,7 +264,7 @@ struct WorkspaceReferenceHelperTests {
         #expect(copy.tools.map(\.toolID) == ["read_file", "list_dir"])
     }
 
-    @Test("primaryForTimeline creates a runtime workspace with full trust")
+    @Test("primaryForThread creates a runtime workspace with full trust")
     func primaryForThread() {
         let threadID = UUID()
         let ws = WorkspaceReference.makePrimary(forThread: threadID, rootPath: "/projects/x")

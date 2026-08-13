@@ -64,3 +64,28 @@ Round 1 verification:
 - `git diff --check` — clean.
 
 Round 1 baseline: `3f15f3b`.
+
+## Review Fix Round 2
+
+Complete. Human-facing attachment diagnostics and ordinary test metadata now consistently use
+`Thread` terminology:
+
+- Updated attach, detach, and workspace-query log prose in
+  `TimelineManager+Attachments.swift`, while retaining stable `fetchTimeline` operation values,
+  storage compatibility cases, and external identifiers.
+- Canonicalized ordinary suite/test display labels and assertion prose across lifecycle,
+  cancellation, eviction/deletion, prompt-history, manager, fault-injection, agent, runtime-story,
+  workspace-resolver, router, and shared-model coverage.
+- Retained compatibility-specific labels for deprecated Timeline aliases and forwarding behavior,
+  exact `timeline_*` tool names and `timeline_id`, historical JSON/storage spellings, stable
+  error text, and degradation operation identifiers.
+
+Round 2 verification:
+
+- Focused affected tests — passed; 175 tests in 23 PositronicKit suites and 32 tests in 6
+  PKShared suites.
+- Broad ordinary test-metadata audit — remaining Timeline references are compatibility,
+  wire/tool, historical serialization/storage, stable error, or deprecated-alias coverage.
+- Targeted attachment diagnostic audit and `git diff --check` — clean.
+
+Round 2 baseline: `fcf31ca`.

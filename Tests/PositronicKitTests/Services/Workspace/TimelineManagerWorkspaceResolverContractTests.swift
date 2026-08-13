@@ -7,7 +7,7 @@ import Testing
 /// Contract coverage for PKV3-002: a host can hand `ThreadManager` a fully custom
 /// `WorkspaceResolver` — one that involves no `DefaultWorkspaceCatalog`/`DefaultWorkspaceResolver`
 /// internals at all — and the thread lifecycle (create, hydrate, attach) still works end to end.
-@Suite("TimelineManager + custom WorkspaceResolver contract")
+@Suite("ThreadManager + custom WorkspaceResolver contract")
 struct ThreadManagerWorkspaceResolverContractTests {
     /// A resolver that vends a single fixed, always-healthy in-memory workspace for any ID and
     /// keeps no catalog/factory collaborators of its own.
@@ -48,7 +48,7 @@ struct ThreadManagerWorkspaceResolverContractTests {
         func healthCheck() async -> Bool { true }
     }
 
-    @Test("TimelineManager built with a custom WorkspaceResolver creates and hydrates timelines")
+    @Test("ThreadManager built with a custom WorkspaceResolver creates and hydrates threads")
     func createAndHydrateWithCustomResolver() async throws {
         let workspace = TestWorkspace()
 
