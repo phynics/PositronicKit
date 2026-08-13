@@ -8,6 +8,8 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+## [3.7.0] - 2026-08-13
+
 ### Deprecated
 
 - **Timeline-to-Thread API migration:** `Thread` is now the canonical terminology across the
