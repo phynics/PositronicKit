@@ -31,7 +31,7 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
     public let createdAt: Date
 
     /// Where a workspace lives relative to the runtime.
-    public enum WorkspaceLocation: Codable, Sendable, Equatable {
+    public enum WorkspaceLocation: RawRepresentable, Codable, Sendable, Equatable {
         /// A workspace owned directly by the runtime, not tied to a specific timeline.
         case runtime
         /// A workspace specific to a thread in this runtime.
@@ -41,6 +41,8 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         case runtimeTimeline
         /// A workspace attached from outside the runtime (e.g. an existing filesystem location).
         case attached
+
+        public typealias RawValue = String
 
         public var rawValue: String {
             switch self {
@@ -53,19 +55,10 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         public init?(rawValue: String) {
             switch rawValue {
             case "runtime": self = .runtime
-            case "runtimeTimeline", "runtimeThread": self = .runtimeThread
+            case "runtimeTimeline": self = .runtimeTimeline
+            case "runtimeThread": self = .runtimeThread
             case "attached": self = .attached
             default: return nil
-            }
-        }
-
-        public static func == (lhs: Self, rhs: Self) -> Bool {
-            switch (lhs, rhs) {
-            case (.runtimeThread, .runtimeThread), (.runtimeTimeline, .runtimeTimeline),
-                 (.runtimeThread, .runtimeTimeline), (.runtimeTimeline, .runtimeThread):
-                true
-            default:
-                lhs.rawValue == rhs.rawValue
             }
         }
 

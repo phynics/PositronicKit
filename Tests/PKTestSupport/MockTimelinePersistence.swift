@@ -2,6 +2,7 @@ import Foundation
 import PKShared
 import PKUtilities
 import PositronicKit
+import struct PositronicKit.Thread
 import Synchronization
 
 /// In-memory `TimelinePersistenceProtocol` test double backed by a mutex-guarded array.
@@ -9,6 +10,7 @@ import Synchronization
 /// Inspectable: `timelines` reads/writes the backing store directly. `fetchAllTimelines`
 /// filters out archived timelines unless `includeArchived` is `true`. `pruneTimelines`
 /// is a no-op that always reports zero pruned rows.
+@available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
 public final class MockTimelinePersistence: TimelinePersistenceProtocol, @unchecked Sendable {
     private let timelinesState = Mutex<[Timeline]>([])
 
@@ -54,11 +56,11 @@ public final class MockTimelinePersistence: TimelinePersistenceProtocol, @unchec
 
 /// Canonical actor test double for `ThreadPersistenceProtocol` compatibility coverage.
 public actor MockThreadPersistence: ThreadPersistenceProtocol {
-    private var threads: [Timeline] = []
+    private var threads: [Thread] = []
 
     public init() {}
 
-    public func saveThread(_ thread: Timeline) async throws {
+    public func saveThread(_ thread: Thread) async throws {
         if let index = threads.firstIndex(where: { $0.id == thread.id }) {
             threads[index] = thread
         } else {
@@ -66,11 +68,11 @@ public actor MockThreadPersistence: ThreadPersistenceProtocol {
         }
     }
 
-    public func fetchThread(id: UUID) async throws -> Timeline? {
+    public func fetchThread(id: UUID) async throws -> Thread? {
         threads.first { $0.id == id }
     }
 
-    public func fetchAllThreads(includeArchived: Bool) async throws -> [Timeline] {
+    public func fetchAllThreads(includeArchived: Bool) async throws -> [Thread] {
         includeArchived ? threads : threads.filter { !$0.isArchived }
     }
 

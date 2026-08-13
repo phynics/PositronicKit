@@ -92,6 +92,33 @@ struct ThreadIdentifierCompatibilityTests {
                 WorkspaceURI.timelineWorkspace(id).rawValue)
     }
 
+    @Test("WorkspaceLocation remains String RawRepresentable")
+    func workspaceLocationRemainsRawRepresentable() {
+        let location: any RawRepresentable = WorkspaceReference.WorkspaceLocation.runtimeTimeline
+
+        #expect(location.rawValue as? String == "runtimeTimeline")
+    }
+
+    @Test("historical runtimeTimeline decodes as the historical enum case")
+    func historicalRuntimeTimelineDecodesAsHistoricalCase() throws {
+        let location = try JSONDecoder().decode(
+            WorkspaceReference.WorkspaceLocation.self,
+            from: Data("\"runtimeTimeline\"".utf8)
+        )
+
+        switch location {
+        case .runtimeTimeline:
+            #expect(Bool(true))
+        default:
+            Issue.record("Historical runtimeTimeline must decode as .runtimeTimeline")
+        }
+    }
+
+    @Test("canonical runtimeThread preserves the historical wire value")
+    func canonicalRuntimeThreadPreservesHistoricalWireValue() {
+        #expect(WorkspaceReference.WorkspaceLocation.runtimeThread.rawValue == "runtimeTimeline")
+    }
+
     @Test("canonical persistence stores threads through the new requirements")
     func canonicalPersistenceStoresThreads() async throws {
         let store = InMemoryThreadPersistence()

@@ -81,6 +81,7 @@ public extension PositronicKit {
         public let agentInstanceStore: any AgentInstanceStoreProtocol
         public let requestOriginStore: any RequestOriginStoreProtocol
 
+        @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
         public init(
             messageStore: (any MessageStoreProtocol)? = nil,
             timelinePersistence: (any TimelinePersistenceProtocol)? = nil,
@@ -150,6 +151,7 @@ public extension PositronicKit {
         /// Requires all seven stores explicitly — the "full durability" entry point for
         /// production hosts (Monad, Shuttle). Unlike the optional-store init, no store can
         /// silently default to in-memory.
+        @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
         public static func fullyPersistent(
             messageStore: any MessageStoreProtocol,
             timelinePersistence: any TimelinePersistenceProtocol,
@@ -199,7 +201,7 @@ public extension PositronicKit {
         public func validateDurability() -> DurabilityReport {
             DurabilityReport(
                 messageStore: messageStore.isDurable ? .durable : .ephemeral,
-                timelinePersistence: timelinePersistence.isDurable ? .durable : .ephemeral,
+                threadPersistence: threadPersistence.isDurable ? .durable : .ephemeral,
                 workspacePersistence: workspacePersistence.isDurable ? .durable : .ephemeral,
                 memoryStore: memoryStore.isDurable ? .durable : .ephemeral,
                 toolPersistence: toolPersistence.isDurable ? .durable : .ephemeral,
@@ -225,13 +227,34 @@ public extension PositronicKit {
     /// (timelines, workspaces, agents) that will be missing after restart.
     struct DurabilityReport: Sendable, Equatable {
         public let messageStore: StoreDurability
-        public let timelinePersistence: StoreDurability
+        public let threadPersistence: StoreDurability
+        @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+        public var timelinePersistence: StoreDurability { threadPersistence }
         public let workspacePersistence: StoreDurability
         public let memoryStore: StoreDurability
         public let toolPersistence: StoreDurability
         public let agentInstanceStore: StoreDurability
         public let requestOriginStore: StoreDurability
 
+        public init(
+            messageStore: StoreDurability,
+            threadPersistence: StoreDurability,
+            workspacePersistence: StoreDurability,
+            memoryStore: StoreDurability,
+            toolPersistence: StoreDurability,
+            agentInstanceStore: StoreDurability,
+            requestOriginStore: StoreDurability
+        ) {
+            self.messageStore = messageStore
+            self.threadPersistence = threadPersistence
+            self.workspacePersistence = workspacePersistence
+            self.memoryStore = memoryStore
+            self.toolPersistence = toolPersistence
+            self.agentInstanceStore = agentInstanceStore
+            self.requestOriginStore = requestOriginStore
+        }
+
+        @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
         public init(
             messageStore: StoreDurability,
             timelinePersistence: StoreDurability,
@@ -241,18 +264,20 @@ public extension PositronicKit {
             agentInstanceStore: StoreDurability,
             requestOriginStore: StoreDurability
         ) {
-            self.messageStore = messageStore
-            self.timelinePersistence = timelinePersistence
-            self.workspacePersistence = workspacePersistence
-            self.memoryStore = memoryStore
-            self.toolPersistence = toolPersistence
-            self.agentInstanceStore = agentInstanceStore
-            self.requestOriginStore = requestOriginStore
+            self.init(
+                messageStore: messageStore,
+                threadPersistence: timelinePersistence,
+                workspacePersistence: workspacePersistence,
+                memoryStore: memoryStore,
+                toolPersistence: toolPersistence,
+                agentInstanceStore: agentInstanceStore,
+                requestOriginStore: requestOriginStore
+            )
         }
 
         public var isMixed: Bool {
             let all: [StoreDurability] = [
-                messageStore, timelinePersistence, workspacePersistence,
+                messageStore, threadPersistence, workspacePersistence,
                 memoryStore, toolPersistence, agentInstanceStore, requestOriginStore,
             ]
             return all.contains(.durable) && all.contains(.ephemeral)
@@ -262,7 +287,7 @@ public extension PositronicKit {
         public var ephemeralStoreNames: [String] {
             var names: [String] = []
             if messageStore == .ephemeral { names.append("messageStore") }
-            if timelinePersistence == .ephemeral { names.append("timelinePersistence") }
+            if threadPersistence == .ephemeral { names.append("timelinePersistence") }
             if workspacePersistence == .ephemeral { names.append("workspacePersistence") }
             if memoryStore == .ephemeral { names.append("memoryStore") }
             if toolPersistence == .ephemeral { names.append("toolPersistence") }

@@ -33,6 +33,17 @@ struct ThreadAPICompatibilityTests {
         _ = kit
     }
 
+    @Test("canonical persistence configuration exposes canonical durability naming")
+    func canonicalPersistenceConfigurationUsesThreadDurabilityNaming() {
+        let configuration = PositronicKit.PersistenceConfiguration(
+            threadPersistence: InMemoryThreadPersistence()
+        )
+        let report = configuration.validateDurability()
+
+        #expect(report.threadPersistence == .ephemeral)
+        #expect(report.timelinePersistence == report.threadPersistence)
+    }
+
     @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
     private actor LegacyTimelinePersistence: TimelinePersistenceProtocol {
         private let backing = MockTimelinePersistence()
