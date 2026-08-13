@@ -13,14 +13,14 @@ public enum MemoryVacuumPolicy: Sendable {
 }
 
 /// Service to archive conversations and index them for semantic recall
-public actor TimelineArchiver {
-    private let persistence: any TimelinePersistenceProtocol & MemoryStoreProtocol & MessageStoreProtocol
+public actor ThreadArchiver {
+    private let persistence: any ThreadPersistenceProtocol & MemoryStoreProtocol & MessageStoreProtocol
     private let llmService: any LLMUtilityClient
     private let embeddingService: any EmbeddingServiceProtocol
     private let logger = Logger.module(named: "timeline-archiver")
 
     public init(
-        persistence: any TimelinePersistenceProtocol & MemoryStoreProtocol & MessageStoreProtocol,
+        persistence: any ThreadPersistenceProtocol & MemoryStoreProtocol & MessageStoreProtocol,
         llmService: any LLMUtilityClient,
         embeddingService: any EmbeddingServiceProtocol
     ) {
@@ -29,15 +29,29 @@ public actor TimelineArchiver {
         self.embeddingService = embeddingService
     }
 
+    /// Deprecated v3 initializer. Legacy timeline persistence is adapted at the boundary.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public init(
+        persistence: any TimelinePersistenceProtocol & MemoryStoreProtocol & MessageStoreProtocol,
+        llmService: any LLMUtilityClient,
+        embeddingService: any EmbeddingServiceProtocol
+    ) {
+        self.init(
+            persistence: LegacyThreadArchiverPersistence(persistence),
+            llmService: llmService,
+            embeddingService: embeddingService
+        )
+    }
+
     /// Archive a conversation and index its messages as semantic memories
     @discardableResult
     public func archive(
         messages: [Message],
-        timelineId: UUID?,
+        threadID: UUID?,
         vacuumPolicy: MemoryVacuumPolicy = .run(threshold: 0.95)
     ) async throws -> UUID {
         let title = await resolveTitle(from: messages)
-        let archiveState = try await resolveTimeline(timelineId: timelineId, title: title)
+        let archiveState = try await resolveTimeline(threadID: threadID, title: title)
 
         do {
             try await indexAndSaveMessages(
@@ -55,6 +69,17 @@ public actor TimelineArchiver {
         }
 
         return archiveState.archivedTimeline.id
+    }
+
+    /// Deprecated v3 parameter label.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    @discardableResult
+    public func archive(
+        messages: [Message],
+        timelineId: UUID?,
+        vacuumPolicy: MemoryVacuumPolicy = .run(threshold: 0.95)
+    ) async throws -> UUID {
+        try await archive(messages: messages, threadID: timelineId, vacuumPolicy: vacuumPolicy)
     }
 
     // MARK: - Helpers
@@ -76,22 +101,22 @@ public actor TimelineArchiver {
     }
 
     private struct ArchiveState {
-        let archivedTimeline: Timeline
-        let previousTimeline: Timeline?
+        let archivedTimeline: Thread
+        let previousTimeline: Thread?
     }
 
-    private func resolveTimeline(timelineId: UUID?, title: String) async throws -> ArchiveState {
-        if let sid = timelineId, let existing = try await persistence.fetchTimeline(id: sid) {
+    private func resolveTimeline(threadID: UUID?, title: String) async throws -> ArchiveState {
+        if let sid = threadID, let existing = try await persistence.fetchThread(id: sid) {
             var updated = existing
             updated.title = title
             updated.isArchived = true
             updated.updatedAt = Date()
-            try await persistence.saveTimeline(updated)
+            try await persistence.saveThread(updated)
             return ArchiveState(archivedTimeline: updated, previousTimeline: existing)
         } else {
-            var newTimeline = Timeline(title: title)
+            var newTimeline = Thread(title: title)
             newTimeline.isArchived = true
-            try await persistence.saveTimeline(newTimeline)
+            try await persistence.saveThread(newTimeline)
             return ArchiveState(archivedTimeline: newTimeline, previousTimeline: nil)
         }
     }
@@ -99,9 +124,9 @@ public actor TimelineArchiver {
     private func rollback(_ state: ArchiveState, after originalError: Error) async {
         do {
             if let previousTimeline = state.previousTimeline {
-                try await persistence.saveTimeline(previousTimeline)
+                try await persistence.saveThread(previousTimeline)
             } else {
-                try await persistence.deleteTimeline(id: state.archivedTimeline.id)
+                try await persistence.deleteThread(id: state.archivedTimeline.id)
             }
         } catch {
             let operation = state.previousTimeline == nil ? "deleteTimeline" : "restoreTimeline"
@@ -114,7 +139,7 @@ public actor TimelineArchiver {
     }
 
     private func indexAndSaveMessages(
-        _ messages: [Message], timeline: Timeline, title: String
+        _ messages: [Message], timeline: Thread, title: String
     ) async throws {
         for msg in messages {
             if msg.content.count > 20 {
@@ -122,7 +147,7 @@ public actor TimelineArchiver {
             }
 
             let conversationMsg = ConversationMessage(
-                timelineID: timeline.id,
+                threadID: timeline.id,
                 role: .init(rawValue: msg.role.rawValue) ?? .user,
                 content: msg.content,
                 timestamp: msg.timestamp,

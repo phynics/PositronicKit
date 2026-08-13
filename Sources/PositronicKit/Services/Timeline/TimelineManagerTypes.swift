@@ -4,7 +4,7 @@ import PKShared
 
 // MARK: - Errors
 
-public enum TimelineError: PKError, Equatable {
+public enum ThreadError: PKError, Equatable {
     case timelineNotFound
     case unavailable
     case corrupt(String)
@@ -98,7 +98,7 @@ public struct StoreDegradation: Sendable {
 
 /// The result of a workspace query, including any best-effort degradations encountered
 /// while resolving individual workspaces. The timeline-level store failure is thrown as
-/// a `TimelineError` (not collapsed into an empty result); individual workspace fetch
+/// a `ThreadError` (not collapsed into an empty result); individual workspace fetch
 /// failures are collected as `degradations` so the caller can log or surface them.
 public struct WorkspaceQueryResult: Sendable {
     public let primary: WorkspaceReference?
@@ -112,32 +112,42 @@ public struct WorkspaceQueryResult: Sendable {
     }
 }
 
-/// The result of ``TimelineManager/deleteTimelinePermanently(id:)``.
+/// The result of ``ThreadManager/deleteThreadPermanently(id:)``.
 ///
 /// Permanent deletion is best-effort across multiple stores (timeline row, messages,
 /// workspace attachments). When every store succeeds, `isComplete` is `true` and
 /// `degradations` is empty. When one or more stores fail, the remaining stores are still
 /// attempted and each failure is recorded as a ``StoreDegradation`` so the caller can log,
 /// retry, or surface the partial cleanup.
-public struct TimelineDeletionResult: Sendable {
-    public let timelineID: UUID
+public struct ThreadDeletionResult: Sendable {
+    public let threadID: UUID
     public let degradations: [StoreDegradation]
 
     /// `true` when every persisted record was removed; `false` when one or more stores failed.
     public var isComplete: Bool { degradations.isEmpty }
 
-    public init(timelineID: UUID, degradations: [StoreDegradation] = []) {
-        self.timelineID = timelineID
+    public init(threadID: UUID, degradations: [StoreDegradation] = []) {
+        self.threadID = threadID
         self.degradations = degradations
     }
 
-    /// Creates a deletion result using the legacy identifier spelling.
-    @available(*, deprecated, message: "Use init(timelineID:degradations:).")
+    /// Creates a deletion result using the legacy 3.x identifier spelling.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public init(timelineID: UUID, degradations: [StoreDegradation] = []) {
+        self.init(threadID: timelineID, degradations: degradations)
+    }
+
+    /// Creates a deletion result using the legacy 3.x identifier spelling.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     public init(timelineId: UUID, degradations: [StoreDegradation] = []) {
-        self.init(timelineID: timelineId, degradations: degradations)
+        self.init(threadID: timelineId, degradations: degradations)
     }
 
     /// The timeline identifier using the legacy 3.x spelling.
-    @available(*, deprecated, renamed: "timelineID")
-    public var timelineId: UUID { timelineID }
+    @available(*, deprecated, renamed: "threadID", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public var timelineID: UUID { threadID }
+
+    /// The timeline identifier using the legacy 3.x spelling.
+    @available(*, deprecated, renamed: "threadID", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public var timelineId: UUID { threadID }
 }

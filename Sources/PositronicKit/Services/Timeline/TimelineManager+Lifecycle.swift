@@ -6,7 +6,7 @@ import PKUtilities
 
 // MARK: - Lifecycle
 
-public extension TimelineManager {
+public extension ThreadManager {
     /// Creates a new conversation timeline, initializes its workspace, and saves it to persistence.
     ///
     /// The timeline record is persisted **first** so that a store failure leaves no orphan
@@ -20,61 +20,61 @@ public extension TimelineManager {
     /// - `.ephemeralWorkspace`: a scratch directory is created under `root` and removed on
     ///   eviction/deletion.
     /// - `.hostManaged`: a directory is created under `root` (the host owns its retention).
-    func createTimeline(title: String = "New Conversation") async throws -> Timeline {
-        let timelineId = UUID()
+    func createThread(title: String = "New Conversation") async throws -> Thread {
+        let threadID = UUID()
 
         let timelineWorkspaceURL = workspaceRoot.appendingPathComponent(
             "timelines", isDirectory: true
         )
-        .appendingPathComponent(timelineId.uuidString, isDirectory: true)
+        .appendingPathComponent(threadID.uuidString, isDirectory: true)
 
         // `.noWorkspace`: persist the timeline record only. No directory, no notes, no
         // workspace row — a minimal timeline has no filesystem side effects.
         guard workspaceProfile.provisionsTimelineWorkspace else {
-            let timeline = Timeline(
-                id: timelineId,
+            let timeline = Thread(
+                id: threadID,
                 title: title,
                 attachedWorkspaceIDs: []
             )
             // workingDirectory stays nil: there is no workspace to point at.
 
             do {
-                try await timelineStore.saveTimeline(timeline)
+                try await threadStore.saveThread(timeline)
             } catch {
                 logger.error("""
-                createTimeline: timeline persist failed — timeline: \(timelineId.uuidString.prefix(8)), \
+                createThread: timeline persist failed — timeline: \(threadID.uuidString.prefix(8)), \
                 operation: saveTimeline, error: \(ErrorKit.userFriendlyMessage(for: error))
                 """)
-                throw TimelineError.unavailable
+                throw ThreadError.unavailable
             }
 
             timelines[timeline.id] = timeline
-            await setupTimelineComponents(timeline: timeline, workspaceURL: timelineWorkspaceURL)
+            await setupThreadComponents(timeline: timeline, workspaceURL: timelineWorkspaceURL)
             return timeline
         }
 
         let workspace = WorkspaceReference(
-            uri: .timelineWorkspace(timelineId),
+            uri: .timelineWorkspace(threadID),
             location: .runtime,
             rootPath: timelineWorkspaceURL.path,
             trustLevel: .full
         )
 
-        var timeline = Timeline(
-            id: timelineId,
+        var timeline = Thread(
+            id: threadID,
             title: title,
             attachedWorkspaceIDs: [workspace.id]
         )
         timeline.workingDirectory = timelineWorkspaceURL.path
 
         do {
-            try await timelineStore.saveTimeline(timeline)
+            try await threadStore.saveThread(timeline)
         } catch {
             logger.error("""
-            createTimeline: timeline persist failed — timeline: \(timelineId.uuidString.prefix(8)), \
+            createThread: timeline persist failed — timeline: \(threadID.uuidString.prefix(8)), \
             operation: saveTimeline, error: \(ErrorKit.userFriendlyMessage(for: error))
             """)
-            throw TimelineError.unavailable
+            throw ThreadError.unavailable
         }
 
         do {
@@ -84,20 +84,20 @@ public extension TimelineManager {
             try writeSeedNotes(workspaceProfile.seedNotes, at: timelineWorkspaceURL)
         } catch {
             logger.error("""
-            createTimeline: workspace directory setup failed — \
-            timeline: \(timelineId.uuidString.prefix(8)), \
+            createThread: workspace directory setup failed — \
+            timeline: \(threadID.uuidString.prefix(8)), \
             operation: createDirectory, error: \(ErrorKit.userFriendlyMessage(for: error))
             """)
-            try? await timelineStore.deleteTimeline(id: timelineId)
-            throw TimelineError.unavailable
+            try? await threadStore.deleteThread(id: threadID)
+            throw ThreadError.unavailable
         }
 
         do {
             try await workspaceStore.saveWorkspace(workspace)
         } catch {
             logger.error("""
-            createTimeline: workspace persist failed — \
-            timeline: \(timelineId.uuidString.prefix(8)), \
+            createThread: workspace persist failed — \
+            timeline: \(threadID.uuidString.prefix(8)), \
             workspace: \(workspace.id.uuidString.prefix(8)), \
             operation: saveWorkspace, error: \(ErrorKit.userFriendlyMessage(for: error))
             """)
@@ -105,35 +105,35 @@ public extension TimelineManager {
             // regardless of the profile's long-term ownership policy. Host-managed ownership
             // applies after a successful commit, not to partially-created state.
             try? FileManager.default.removeItem(at: timelineWorkspaceURL)
-            try? await timelineStore.deleteTimeline(id: timelineId)
-            throw TimelineError.unavailable
+            try? await threadStore.deleteThread(id: threadID)
+            throw ThreadError.unavailable
         }
 
         timelines[timeline.id] = timeline
-        await setupTimelineComponents(timeline: timeline, workspaceURL: timelineWorkspaceURL)
+        await setupThreadComponents(timeline: timeline, workspaceURL: timelineWorkspaceURL)
 
         return timeline
     }
 
     /// Validates that a timeline exists before a turn proceeds. Throws
-    /// ``TimelineError/timelineNotFound`` for unknown IDs and
-    /// ``TimelineError/unavailable`` for transient store failures.
-    func ensureTimelineExists(id: UUID) async throws {
+    /// ``ThreadError/timelineNotFound`` for unknown IDs and
+    /// ``ThreadError/unavailable`` for transient store failures.
+    func ensureThreadExists(id: UUID) async throws {
         do {
-            try await hydrateTimeline(id: id)
-        } catch let error as TimelineError {
+            try await hydrateThread(id: id)
+        } catch let error as ThreadError {
             throw error
         } catch {
-            throw TimelineError.unavailable
+            throw ThreadError.unavailable
         }
     }
 
     /// Reconstructs a timeline and its components from persistence.
-    func hydrateTimeline(id: UUID) async throws {
+    func hydrateThread(id: UUID) async throws {
         if toolManagers[id] != nil { return }
 
-        guard let timeline = try await timelineStore.fetchTimeline(id: id) else {
-            throw TimelineError.timelineNotFound
+        guard let timeline = try await threadStore.fetchThread(id: id) else {
+            throw ThreadError.timelineNotFound
         }
 
         let timelineWorkspaceURL: URL
@@ -146,31 +146,31 @@ public extension TimelineManager {
         }
 
         timelines[timeline.id] = timeline
-        await setupTimelineComponents(
+        await setupThreadComponents(
             timeline: timeline,
             workspaceURL: timelineWorkspaceURL
         )
     }
 
     /// Updates the title of a specific timeline.
-    func updateTimelineTitle(id: UUID, title: String) async throws {
-        var timeline: Timeline
-        if let memoryTimeline = timelines[id] {
+    func updateThreadTitle(_ threadID: UUID, title: String) async throws {
+        var timeline: Thread
+        if let memoryTimeline = timelines[threadID] {
             timeline = memoryTimeline
         } else {
             do {
-                guard let dbTimeline = try await timelineStore.fetchTimeline(id: id) else {
-                    throw TimelineError.timelineNotFound
+                guard let dbTimeline = try await threadStore.fetchThread(id: threadID) else {
+                    throw ThreadError.timelineNotFound
                 }
                 timeline = dbTimeline
-            } catch let error as TimelineError {
+            } catch let error as ThreadError {
                 throw error
             } catch {
                 logger.error("""
-                updateTimelineTitle fetch failed — timeline: \(id.uuidString.prefix(8)), \
+                updateThreadTitle fetch failed — timeline: \(threadID.uuidString.prefix(8)), \
                 operation: fetchTimeline, error: \(ErrorKit.userFriendlyMessage(for: error))
                 """)
-                throw TimelineError.unavailable
+                throw ThreadError.unavailable
             }
         }
 
@@ -178,11 +178,11 @@ public extension TimelineManager {
         timeline.updatedAt = Date()
 
         if timelines[timeline.id] != nil { timelines[timeline.id] = timeline }
-        try await timelineStore.saveTimeline(timeline)
+        try await threadStore.saveThread(timeline)
     }
 
-    /// Evicts all in-memory runtime state for a timeline: the cached `Timeline`,
-    /// `TurnBriefingBuilder`, `TimelineToolRegistry`, timeline degradations, and (when a
+    /// Evicts all in-memory runtime state for a timeline: the cached `Thread`,
+    /// `TurnBriefingBuilder`, `ThreadToolRegistry`, timeline degradations, and (when a
     /// prompt-history registry was injected) the journal-diff history entry. Does not touch
     /// persistence.
     ///
@@ -197,8 +197,8 @@ public extension TimelineManager {
     ///
     /// This is the in-memory-only eviction seam. Callers that also want to remove the
     /// persisted timeline, messages, and workspace attachments should call
-    /// ``deleteTimelinePermanently(id:)`` instead.
-    func evictTimelineFromMemory(id: UUID) async {
+    /// ``deleteThreadPermanently(id:)`` instead.
+    func evictThreadFromMemory(id: UUID) async {
         await cancelActiveTaskAndAwait(for: id)
 
         // Ephemeral workspace cleanup: remove the scratch directory before dropping the cache
@@ -212,7 +212,7 @@ public extension TimelineManager {
                     try FileManager.default.removeItem(at: dirURL)
                 } catch {
                     logger.warning("""
-                    evictTimelineFromMemory: ephemeral workspace cleanup failed — \
+                    evictThreadFromMemory: ephemeral workspace cleanup failed — \
                     timeline: \(id.uuidString.prefix(8)), \
                     path: \(workingDirectory), error: \(ErrorKit.userFriendlyMessage(for: error))
                     """)
@@ -227,15 +227,11 @@ public extension TimelineManager {
         await promptHistoryRegistry?.removeHistory(for: id)
     }
 
-    /// Deprecated alias for ``evictTimelineFromMemory(id:)``.
+    /// Evicts in-memory state without deleting persisted thread records.
     ///
-    /// The name `deleteTimeline` suggested durable deletion, but this method only evicts
-    /// in-memory state — it neither cancels persisted records nor (before PKRR-002) guaranteed
-    /// active-work drainage. Use ``evictTimelineFromMemory(id:)`` for memory-only eviction, or
-    /// ``deleteTimelinePermanently(id:)`` to also remove persisted records.
-    @available(*, deprecated, renamed: "evictTimelineFromMemory(id:)")
-    func deleteTimeline(id: UUID) async {
-        await evictTimelineFromMemory(id: id)
+    /// Use ``deleteThreadPermanently(id:)`` when durable deletion is required.
+    func deleteThread(id: UUID) async {
+        await evictThreadFromMemory(id: id)
     }
 
     /// Permanently deletes a timeline and all related persisted records: the timeline row, its
@@ -249,12 +245,12 @@ public extension TimelineManager {
     /// `isComplete` is `true` only when every record was removed.
     ///
     /// - Parameter id: The timeline to delete permanently.
-    /// - Returns: A ``TimelineDeletionResult`` reporting any per-store cleanup failures.
+    /// - Returns: A ``ThreadDeletionResult`` reporting any per-store cleanup failures.
     @discardableResult
-    func deleteTimelinePermanently(id: UUID) async -> TimelineDeletionResult {
+    func deleteThreadPermanently(id: UUID) async -> ThreadDeletionResult {
         // Invalidate in-flight mutations before the first suspension. Actor reentrancy can let an
         // attachment resume after this point, so it must observe the new version before saving.
-        invalidateTimelineLiveness(for: id)
+        invalidateThreadLiveness(for: id)
 
         var degradations: [StoreDegradation] = []
 
@@ -269,7 +265,7 @@ public extension TimelineManager {
             capturedWorkingDirectory = cached.workingDirectory
         } else {
             do {
-                if let persisted = try await timelineStore.fetchTimeline(id: id) {
+                if let persisted = try await threadStore.fetchThread(id: id) {
                     attachedWorkspaceIds = persisted.attachedWorkspaceIDs
                     capturedWorkingDirectory = persisted.workingDirectory
                 }
@@ -283,12 +279,12 @@ public extension TimelineManager {
         }
 
         // Cancel + drain active work, then evict in-memory state. This is the same bounded
-        // cleanup `evictTimelineFromMemory(id:)` performs, ensuring no stream/tool/plugin can
+        // cleanup `evictThreadFromMemory(id:)` performs, ensuring no stream/tool/plugin can
         // repopulate state or race with the persistence deletion below. Ephemeral workspace
         // cleanup runs inside eviction when the timeline is cached.
-        await evictTimelineFromMemory(id: id)
+        await evictThreadFromMemory(id: id)
 
-        // Ephemeral workspace cleanup for the non-cached path: `evictTimelineFromMemory` could
+        // Ephemeral workspace cleanup for the non-cached path: `evictThreadFromMemory` could
         // not see the working directory when the timeline wasn't in memory, so clean it here.
         // Best-effort, like every other deletion step; `fileExists` makes this safe even when
         // eviction already removed the directory.
@@ -351,8 +347,8 @@ public extension TimelineManager {
         if !timelineOwnedWorkspaceIds.isEmpty {
             do {
                 let otherTimelineWorkspaceIds = Set(
-                    try await timelineStore
-                        .fetchAllTimelines(includeArchived: true)
+                    try await threadStore
+                        .fetchAllThreads(includeArchived: true)
                         .filter { $0.id != id }
                         .flatMap(\.attachedWorkspaceIDs)
                 )
@@ -374,7 +370,7 @@ public extension TimelineManager {
                 try await workspaceStore.deleteWorkspace(id: workspaceId)
             } catch {
                 degradations.append(StoreDegradation(
-                    operation: "deleteTimelinePermanently.deleteWorkspace",
+                operation: "deleteTimelinePermanently.deleteWorkspace",
                     entityID: "workspace:\(workspaceId.uuidString.prefix(8))",
                     error: error
                 ))
@@ -382,9 +378,9 @@ public extension TimelineManager {
         }
 
         // Delete the timeline record last, so messages and workspaces are cleaned up before
-        // the parent row disappears (mirrors `createTimeline`'s persist-first ordering).
+        // the parent row disappears (mirrors `createThread`'s persist-first ordering).
         do {
-            try await timelineStore.deleteTimeline(id: id)
+            try await threadStore.deleteThread(id: id)
         } catch {
             degradations.append(StoreDegradation(
                 operation: "deleteTimelinePermanently.deleteTimeline",
@@ -393,39 +389,39 @@ public extension TimelineManager {
             ))
         }
 
-        completeTimelineDeletionLiveness(for: id)
+        completeThreadDeletionLiveness(for: id)
 
         if !degradations.isEmpty {
             logger.warning("""
-            deleteTimelinePermanently: partial cleanup — timeline: \(id.uuidString.prefix(8)), \
+            deleteThreadPermanently: partial cleanup — timeline: \(id.uuidString.prefix(8)), \
             failures: \(degradations.count), operations: \(degradations.map(\.operation).joined(separator: ", "))
             """)
         }
 
-        return TimelineDeletionResult(timelineID: id, degradations: degradations)
+        return ThreadDeletionResult(threadID: id, degradations: degradations)
     }
 
     /// Removes active timelines from memory that have not been updated within the specified
     /// interval. Evicts in-memory state only; persisted timelines are unaffected. Also drops
     /// the corresponding prompt-history entries when a registry was injected.
-    func cleanupStaleTimelines(maxAge: TimeInterval) async {
+    func cleanupStaleThreads(maxAge: TimeInterval) async {
         let now = Date()
         let staleIds = Array(timelines.values).filter { timeline in
             now.timeIntervalSince(timeline.updatedAt) > maxAge
         }.map { $0.id }
 
         for id in staleIds {
-            await evictTimelineFromMemory(id: id)
+            await evictThreadFromMemory(id: id)
         }
     }
 }
 
 // MARK: - Component Setup & Eviction
 
-private extension TimelineManager {
+private extension ThreadManager {
     /// Initializes and configures the internal components for a conversation timeline.
-    func setupTimelineComponents(
-        timeline: Timeline,
+    func setupThreadComponents(
+        timeline: Thread,
         workspaceURL: URL
     ) async {
         let contextWorkspace: (any Workspace)?
@@ -434,7 +430,7 @@ private extension TimelineManager {
                 contextWorkspace = try await workspaceResolver.workspace(id: firstId)
             } catch {
                 logger.warning("""
-                setupTimelineComponents: context workspace resolution failed — \
+                setupThreadComponents: context workspace resolution failed — \
                 workspace: \(firstId.uuidString.prefix(8)), timeline: \(timeline.id.uuidString.prefix(8)), \
                 operation: resolveContextWorkspace, error: \(ErrorKit.userFriendlyMessage(for: error))
                 """)
@@ -462,7 +458,7 @@ private extension TimelineManager {
             for: timeline,
             jailRoot: workspaceURL.path,
             runtimeToolPolicy: runtimeToolPolicy,
-            timelineStore: timelineStore,
+            threadStore: threadStore,
             messageStore: messageStore
         )
         toolManagers[timeline.id] = toolManager
@@ -474,7 +470,7 @@ private extension TimelineManager {
                 }
             } catch {
                 logger.warning("""
-                setupTimelineComponents: attached workspace registration failed — \
+                setupThreadComponents: attached workspace registration failed — \
                 workspace: \(attachedId.uuidString.prefix(8)), timeline: \(timeline.id.uuidString.prefix(8)), \
                 operation: registerAttachedWorkspace, error: \(ErrorKit.userFriendlyMessage(for: error))
                 """)
@@ -492,9 +488,9 @@ private extension TimelineManager {
     /// Writes the configured seed notes into a freshly created timeline workspace's `Notes/`
     /// directory (PKRR-029).
     ///
-    /// Replaces the former unconditional `writeDefaultNotes(at:)` which always wrote
+    /// Replaces the former unconditional `writeSeedNotes(at:)` which always wrote
     /// `Welcome.md` and `Project.md`. The notes written are now governed by the timeline's
-    /// ``TimelineManager/workspaceProfile``; pass ``WorkspaceSeedNotes/none`` to write nothing.
+    /// ``ThreadManager/workspaceProfile``; pass ``WorkspaceSeedNotes/none`` to write nothing.
     func writeSeedNotes(_ seedNotes: WorkspaceSeedNotes, at workspaceURL: URL) throws {
         guard !seedNotes.notes.isEmpty else { return }
 

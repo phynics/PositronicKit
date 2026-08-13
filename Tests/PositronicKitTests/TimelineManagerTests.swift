@@ -6,7 +6,56 @@ import PKTestSupport
 import Synchronization
 import Testing
 
-struct TimelineManagerTests {
+struct ThreadManagerTests {
+    @Test("canonical thread manager owns lifecycle and policy surface")
+    func canonicalThreadManagerSurface() async throws {
+        let persistence = MockPersistenceService()
+        let threadStore = MockThreadPersistence()
+        let manager = ThreadManager(
+            stores: .init(
+                threadStore: threadStore,
+                messageStore: persistence,
+                workspaceStore: persistence,
+                toolPersistence: persistence
+            ),
+            workspaceProfile: .noWorkspace
+        )
+
+        let workspace = WorkspaceReference(
+            id: UUID(),
+            uri: WorkspaceURI(parsing: "workspace://canonical")!,
+            location: .attached
+        )
+        try await manager.importWorkspace(workspace)
+
+        let thread = try await manager.createThread(title: "Lifecycle")
+        #expect(await manager.thread(id: thread.id)?.id == thread.id)
+
+        try await manager.updateThreadTitle(thread.id, title: "Renamed")
+        try await manager.attachWorkspace(workspace.id, to: thread.id)
+        let result = await manager.deleteThreadPermanently(id: thread.id)
+
+        #expect(result.threadID == thread.id)
+    }
+
+    @Test("canonical thread manager exposes store and runtime policy names")
+    func canonicalThreadManagerTypes() {
+        let policy = ThreadManager.RuntimeToolPolicy(
+            installThreadObservationTools: false,
+            installThreadSendTool: false
+        )
+        #expect(policy.installThreadObservationTools == false)
+        #expect(policy.installThreadSendTool == false)
+
+        let stores = ThreadManager.Stores(
+            threadStore: InMemoryThreadPersistence(),
+            messageStore: InMemoryMessageStore(),
+            workspaceStore: InMemoryWorkspacePersistence(),
+            toolPersistence: InMemoryToolPersistence()
+        )
+        _ = stores.threadStore
+    }
+
     @Test("importWorkspace persists into the store the manager validates against")
     func importWorkspacePersistsIntoBackingStore() async throws {
         let store = InMemoryWorkspacePersistence()

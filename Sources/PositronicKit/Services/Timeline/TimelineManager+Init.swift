@@ -6,7 +6,7 @@ import PKUtilities
 
 // MARK: - Initialization
 
-extension TimelineManager {
+extension ThreadManager {
     /// Designated initializer taking a `workspaceRoot` (legacy / backward-compatible).
     ///
     /// Maps to `.hostManaged(root: seedNotes: .default)`, preserving the pre-PKRR-029 behavior
@@ -19,7 +19,7 @@ extension TimelineManager {
         runtimeToolPolicy: RuntimeToolPolicy = .default,
         embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
         promptHistoryRegistry: TimelinePromptJournals? = nil,
-        taskRegistry: TimelineTaskRegistry? = nil
+        taskRegistry: ThreadTaskRegistry? = nil
     ) {
         self.init(
             stores: stores,
@@ -78,7 +78,7 @@ extension TimelineManager {
 
     /// Convenience initializer that builds the bundled default `WorkspaceResolver` (local
     /// filesystem catalog + injected factory) via `WorkspaceResolverFactory`, preserving the
-    /// prior `workspaceCreator:`-based construction ergonomics without TimelineManager itself
+    /// prior `workspaceCreator:`-based construction ergonomics without ThreadManager itself
     /// composing `DefaultWorkspaceCatalog`/`DefaultWorkspaceResolver`.
     init(
         stores: Stores,
@@ -88,7 +88,7 @@ extension TimelineManager {
         runtimeToolPolicy: RuntimeToolPolicy = .default,
         embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
         promptHistoryRegistry: TimelinePromptJournals? = nil,
-        taskRegistry: TimelineTaskRegistry? = nil
+        taskRegistry: ThreadTaskRegistry? = nil
     ) {
         let catalogRoot = workspaceProfile.catalogRoot
             ?? FileManager.default.temporaryDirectory
@@ -118,7 +118,7 @@ extension TimelineManager {
         runtimeToolPolicy: RuntimeToolPolicy = .default,
         embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
         promptHistoryRegistry: TimelinePromptJournals? = nil,
-        taskRegistry: TimelineTaskRegistry? = nil
+        taskRegistry: ThreadTaskRegistry? = nil
     ) {
         self.init(
             stores: stores,
@@ -208,11 +208,11 @@ extension TimelineManager {
         sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: RuntimeToolPolicy = .default,
         promptHistoryRegistry: TimelinePromptJournals? = nil,
-        taskRegistry: TimelineTaskRegistry? = nil
+        taskRegistry: ThreadTaskRegistry? = nil
     ) {
         self.init(
             stores: .init(
-                timelineStore: InMemoryTimelinePersistence(),
+                threadStore: InMemoryThreadPersistence(),
                 messageStore: InMemoryMessageStore(),
                 workspaceStore: InMemoryWorkspacePersistence(),
                 toolPersistence: InMemoryToolPersistence()
@@ -232,11 +232,11 @@ extension TimelineManager {
         sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: RuntimeToolPolicy = .default,
         promptHistoryRegistry: TimelinePromptJournals? = nil,
-        taskRegistry: TimelineTaskRegistry? = nil
+        taskRegistry: ThreadTaskRegistry? = nil
     ) {
         self.init(
             stores: .init(
-                timelineStore: InMemoryTimelinePersistence(),
+                threadStore: InMemoryThreadPersistence(),
                 messageStore: InMemoryMessageStore(),
                 workspaceStore: InMemoryWorkspacePersistence(),
                 toolPersistence: InMemoryToolPersistence()

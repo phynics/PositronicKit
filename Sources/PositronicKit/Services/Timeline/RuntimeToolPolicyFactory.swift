@@ -2,24 +2,25 @@ import Foundation
 import PKShared
 import PKUtilities
 
-/// Builds a `TimelineToolRegistry` for a session from a `RuntimeToolPolicy` and the timeline's
+/// Builds a `ThreadToolRegistry` for a session from a `RuntimeToolPolicy` and the timeline's
 /// attached-agent identity. Pure function with no side effects on the timeline cache.
 ///
-/// Extracted from `TimelineManager.createToolManager(for:jailRoot:)` so the
+/// Extracted from `ThreadManager.createToolManager(for:jailRoot:)` so the
 /// runtime tool-installation policy has its own testable surface — exercised without bringing up
-/// a full `TimelineManager` (PKARCH-003).
+/// a full `ThreadManager` (PKARCH-003).
 package enum RuntimeToolPolicyFactory {
     package static func createToolManager(
-        for timeline: Timeline,
+        for thread: Thread,
         jailRoot: String,
-        runtimeToolPolicy: TimelineManager.RuntimeToolPolicy,
-        timelineStore: any TimelinePersistenceProtocol,
+        runtimeToolPolicy: ThreadManager.RuntimeToolPolicy,
+        threadStore: any ThreadPersistenceProtocol,
         messageStore: any MessageStoreProtocol
-    ) -> TimelineToolRegistry {
-        let currentWD = timeline.workingDirectory ?? jailRoot
+    ) -> ThreadToolRegistry {
+        let currentWD = thread.workingDirectory ?? jailRoot
+        let legacyStore = ThreadPersistenceCompatibilityAdapter(threadStore)
 
         // Default runtime policy: these filesystem and timeline observation tools are installed by
-        // default for every timeline-managed session. Timeline send is additionally installed when
+        // default for every timeline-managed session. Thread send is additionally installed when
         // an attached agent identity is available, because it requires a sender identity.
         var availableTools: [AnyTool] = []
 
@@ -40,25 +41,43 @@ package enum RuntimeToolPolicyFactory {
             ])
         }
 
-        if runtimeToolPolicy.installTimelineObservationTools {
+        if runtimeToolPolicy.installThreadObservationTools {
             availableTools.append(contentsOf: [
-                AnyTool(TimelineListTool(timelineStore: timelineStore)),
-                AnyTool(TimelinePeekTool(messageStore: messageStore, timelineStore: timelineStore)),
+                AnyTool(TimelineListTool(timelineStore: legacyStore)),
+                AnyTool(TimelinePeekTool(messageStore: messageStore, timelineStore: legacyStore)),
             ])
         }
 
-        // Timeline Send: only available when an agent is attached (needs sender identity)
-        if runtimeToolPolicy.installTimelineSendTool, let agentId = timeline.attachedAgentInstanceID {
+        // Thread Send: only available when an agent is attached (needs sender identity)
+        if runtimeToolPolicy.installThreadSendTool, let agentId = thread.attachedAgentInstanceID {
             availableTools.append(AnyTool(TimelineSendTool(
                 messageStore: messageStore,
-                timelineStore: timelineStore,
+                timelineStore: legacyStore,
                 agentInstanceId: agentId,
-                sourceTimelineId: timeline.id
+                sourceTimelineId: thread.id
             )))
         }
 
-        return TimelineToolRegistry(
+        return ThreadToolRegistry(
             availableTools: availableTools
+        )
+    }
+
+    /// Deprecated v3 factory label and persistence protocol.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    package static func createToolManager(
+        for thread: Thread,
+        jailRoot: String,
+        runtimeToolPolicy: ThreadManager.RuntimeToolPolicy,
+        timelineStore: any TimelinePersistenceProtocol,
+        messageStore: any MessageStoreProtocol
+    ) -> ThreadToolRegistry {
+        createToolManager(
+            for: thread,
+            jailRoot: jailRoot,
+            runtimeToolPolicy: runtimeToolPolicy,
+            threadStore: LegacyTimelinePersistenceAdapter(timelineStore),
+            messageStore: messageStore
         )
     }
 }
