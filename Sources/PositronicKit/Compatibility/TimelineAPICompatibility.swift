@@ -191,24 +191,6 @@ public typealias InMemoryTimelinePersistence = InMemoryThreadPersistence
 @available(*, deprecated, renamed: "ThreadManager", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
 public typealias TimelineManager = ThreadManager
 
-/// Canonical driver spelling retained while the driver implementation is migrated.
-public typealias ThreadDriver = TimelineDriver
-
-public extension PositronicKit {
-    /// Canonical access to the facade-owned manager.
-    var threadManager: ThreadManager { timelineManager }
-
-    /// Opens an existing thread for sending and cancellation.
-    func openThread(_ threadID: UUID) -> ThreadDriver {
-        ThreadDriver(timelineID: threadID, kit: self)
-    }
-}
-
-public extension TimelineDriver {
-    /// Canonical identifier spelling.
-    var threadID: UUID { timelineID }
-}
-
 /// Deprecated v3 spelling for the canonical manager error.
 @available(*, deprecated, renamed: "ThreadError", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
 public typealias TimelineError = ThreadError

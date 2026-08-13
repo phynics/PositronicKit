@@ -7,6 +7,49 @@ import Synchronization
 import Testing
 
 struct ThreadManagerTests {
+    @Test("v3 manager parameter labels remain source compatible")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
+    func legacyManagerParameterLabels() async throws {
+        let manager = ThreadManager(workspaceProfile: .noWorkspace)
+        let timeline = try await manager.createTimeline(title: "Legacy labels")
+
+        _ = await manager.gatherExtensionSections(
+            timelineId: timeline.id,
+            agentInstanceId: nil,
+            message: "Hello"
+        )
+        _ = try await manager.getHistory(for: timeline.id)
+        _ = await manager.enabledTools(for: timeline.id)
+        _ = await manager.enableTool(id: "missing", for: timeline.id)
+        _ = await manager.disableTool(id: "missing", for: timeline.id)
+        #expect(try await manager.getToolSource(toolId: "missing", for: timeline.id) == nil)
+
+        let task = Task<Void, Never> {}
+        let sendID = UUID()
+        await manager.registerTask(task, sendID: sendID, for: timeline.id)
+        _ = await manager.cancelGeneration(sendID: sendID, for: timeline.id)
+        await manager.cancelGeneration(for: timeline.id)
+        await manager.removeTask(sendID: sendID, for: timeline.id)
+        await manager.cancelActiveTaskAndAwait(for: timeline.id)
+    }
+
+    @Test("v3 attachment parameter labels remain source compatible")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
+    func legacyAttachmentParameterLabels() async throws {
+        let manager = ThreadManager(workspaceProfile: .noWorkspace)
+        let timeline = try await manager.createTimeline(title: "Legacy attachments")
+        let workspace = WorkspaceReference(
+            uri: WorkspaceURI(parsing: "workspace://legacy-labels")!,
+            location: .attached
+        )
+        try await manager.importWorkspace(workspace)
+
+        try await manager.attachWorkspace(workspace.id, to: timeline.id)
+        #expect(try await manager.getWorkspaces(for: timeline.id).attached.map(\.id) == [workspace.id])
+        try await manager.detachWorkspace(workspace.id, from: timeline.id)
+        #expect(try await manager.getWorkspaces(for: timeline.id).attached.isEmpty)
+    }
+
     @Test("canonical thread manager owns lifecycle and policy surface")
     func canonicalThreadManagerSurface() async throws {
         let persistence = MockPersistenceService()
