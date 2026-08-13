@@ -496,7 +496,7 @@ public actor ToolRouter {
         case let .completed(output):
             logger.info("Tool \(toolDisplayName) succeeded")
             let message = ConversationMessage(
-                timelineID: timelineId, role: .tool, content: output, toolCallID: call.callId
+                threadID: timelineId, role: .tool, content: output, toolCallID: call.callId
             )
             do {
                 try await messageStore.saveMessage(message)
@@ -546,7 +546,7 @@ public actor ToolRouter {
             errorOutput += "\nHow to fix: \(remediation)"
         }
         let message = ConversationMessage(
-            timelineID: timelineId, role: .tool, content: errorOutput, toolCallID: call.callId
+            threadID: timelineId, role: .tool, content: errorOutput, toolCallID: call.callId
         )
         do {
             try await messageStore.saveMessage(message)

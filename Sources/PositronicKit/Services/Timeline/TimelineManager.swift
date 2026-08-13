@@ -182,7 +182,7 @@ public actor ThreadManager {
         message: String
     ) async -> [any Prompt] {
         let buildContext = PromptBuildContext(
-            timelineID: threadID,
+            threadID: threadID,
             agentInstanceID: agentInstanceId,
             message: message
         )

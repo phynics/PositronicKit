@@ -330,7 +330,7 @@ extension ChatEngine {
             if hasMessage {
                 let userMsg = ConversationMessage(
                     id: sendId,
-                    timelineID: threadID,
+                    threadID: threadID,
                     role: .user,
                     content: messageContent
                 )

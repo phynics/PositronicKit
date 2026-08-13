@@ -136,7 +136,7 @@ struct MessagePersistenceStage: PipelineStage {
         }
 
         return ConversationMessage(
-            timelineID: context.timelineId,
+            threadID: context.threadID,
             role: .assistant,
             content: MessageContent(parts: contentParts),
             recalledMemories: recalledMemories,
@@ -219,7 +219,7 @@ struct MessagePersistenceStage: PipelineStage {
         )
 
         return TurnSnapshot(
-            timelineID: context.timelineId,
+            threadID: context.threadID,
             agentInstanceID: context.agentInstanceId,
             modelName: context.modelName,
             turnCount: context.turnCount,
@@ -297,7 +297,7 @@ private enum DiagnosticSnapshotEncoder {
 
         return TurnSnapshot(
             timestamp: snapshot.timestamp,
-            timelineID: snapshot.timelineID,
+            threadID: snapshot.threadID,
             agentInstanceID: snapshot.agentInstanceID,
             modelName: clean(snapshot.modelName),
             turnCount: snapshot.turnCount,

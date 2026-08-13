@@ -23,7 +23,7 @@ enum ChatTurnFollowUpPolicy {
         logger: Logger
     ) async throws -> [LLMMessage] {
         let completedTurn = CompletedTurn(
-            timelineID: context.timelineId,
+            threadID: context.threadID,
             agentInstanceID: context.agentInstanceId,
             turnCount: turnCount,
             fullResponse: accumulatedOutput,

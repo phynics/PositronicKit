@@ -30,7 +30,7 @@ struct ToolCallExtractionStage: PipelineStage {
         // end-to-end with Yakamoz logs (YAK-40), which log the raw timelineId. A UUID is
         // an id, not a payload, so logging it raw is YAK-37 compliant.
         let baseMeta: Logger.Metadata = [
-            LogKeys.timelineID: .string(context.timelineId.uuidString),
+            LogKeys.timelineID: .string(context.threadID.uuidString),
             LogKeys.turnIndex: .string("\(context.turnCount)"),
             LogKeys.stage: .string("tool-call-extraction"),
         ]

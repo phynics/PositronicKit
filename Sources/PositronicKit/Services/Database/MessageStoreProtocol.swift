@@ -35,7 +35,7 @@ package extension MessageStoreProtocol {
         _ message: ConversationMessage,
         idempotencyKey: UUID
     ) async throws {
-        let existingMessages = try await fetchMessages(for: message.timelineID)
+        let existingMessages = try await fetchMessages(for: message.threadID)
         guard !existingMessages.contains(where: { $0.id == idempotencyKey }) else { return }
         try await saveMessage(message)
     }

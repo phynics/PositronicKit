@@ -89,7 +89,7 @@ actor ExternalToolOutputSubmissionGate {
         for output in validatedOutputs {
             if persistedToolCallIds.contains(output.toolCallID) { continue }
             let msg = ConversationMessage(
-                timelineID: timelineId,
+                threadID: timelineId,
                 role: .tool,
                 content: output.output,
                 toolCallID: output.toolCallID
