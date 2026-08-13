@@ -22,10 +22,10 @@ import PKUtilities
 /// misrepresent the turn (the already-persisted user message remains the turn's record).
 /// A failed turn that emitted *anything* (even a single content char) is still persisted.
 struct PartialAssistantPersistence {
-    let messageStore: any MessageStoreProtocol
+    let messageStore: any ThreadMessageStoreProtocol
     let logger: Logger
 
-    init(messageStore: any MessageStoreProtocol, logger: Logger? = nil) {
+    init(messageStore: any ThreadMessageStoreProtocol, logger: Logger? = nil) {
         self.messageStore = messageStore
         self.logger = logger ?? Logger.module(named: "partial-assistant-persistence")
     }

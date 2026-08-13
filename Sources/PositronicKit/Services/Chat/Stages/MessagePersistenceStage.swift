@@ -13,13 +13,13 @@ import PKUtilities
 /// After this stage, `ChatEngine.runChatLoop` inspects `context.outputs.toolCallAccumulators` to decide
 /// whether to invoke `ToolRouter.handlePendingToolCalls` and continue the loop.
 struct MessagePersistenceStage: PipelineStage {
-    let messageStore: any MessageStoreProtocol
+    let messageStore: any ThreadMessageStoreProtocol
     let logger: Logger
     let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
     let loggingConfiguration: LoggingConfiguration
 
     init(
-        messageStore: any MessageStoreProtocol,
+        messageStore: any ThreadMessageStoreProtocol,
         logger: Logger? = nil,
         diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default
         , loggingConfiguration: LoggingConfiguration = .default

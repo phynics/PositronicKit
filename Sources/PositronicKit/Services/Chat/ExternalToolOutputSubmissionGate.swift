@@ -18,7 +18,7 @@ actor ExternalToolOutputSubmissionGate {
     func validate(
         _ toolOutputs: [ToolOutputSubmission],
         threadID: UUID,
-        messageStore: any MessageStoreProtocol
+        messageStore: any ThreadMessageStoreProtocol
     ) async throws -> [ToolOutputSubmission] {
         guard !toolOutputs.isEmpty else { return [] }
 
@@ -73,7 +73,7 @@ actor ExternalToolOutputSubmissionGate {
     func commit(
         _ validatedOutputs: [ToolOutputSubmission],
         threadID: UUID,
-        messageStore: any MessageStoreProtocol
+        messageStore: any ThreadMessageStoreProtocol
     ) async throws {
         guard !validatedOutputs.isEmpty else { return }
 

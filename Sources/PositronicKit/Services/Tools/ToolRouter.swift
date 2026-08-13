@@ -72,14 +72,14 @@ public actor ToolRouter {
     private let loggingConfiguration: LoggingConfiguration
 
     private let threadManager: ThreadManager
-    private let messageStore: any MessageStoreProtocol
+    private let messageStore: any ThreadMessageStoreProtocol
     private let toolExecutionTimeout: TimeInterval
     private let approvalPolicy: any ToolApprovalPolicy
     private let sleep: @Sendable (UInt64) async throws -> Void
 
     public init(
         threadManager: ThreadManager,
-        messageStore: any MessageStoreProtocol,
+        messageStore: any ThreadMessageStoreProtocol,
         toolExecutionTimeout: TimeInterval = 60,
         approvalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
         sleep: (@Sendable (UInt64) async throws -> Void)? = nil

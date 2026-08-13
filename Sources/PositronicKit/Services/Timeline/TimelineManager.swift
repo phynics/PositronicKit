@@ -39,14 +39,14 @@ public actor ThreadManager {
 
     public struct Stores: Sendable {
         public let threadStore: any ThreadPersistenceProtocol
-        public let messageStore: any MessageStoreProtocol
+        public let messageStore: any ThreadMessageStoreProtocol
         public let workspaceStore: any WorkspaceStore
         public let toolPersistence: any ToolPersistenceProtocol
         public let memoryStore: any MemoryStoreProtocol
 
         public init(
             threadStore: any ThreadPersistenceProtocol,
-            messageStore: any MessageStoreProtocol,
+            messageStore: any ThreadMessageStoreProtocol,
             workspaceStore: any WorkspaceStore,
             toolPersistence: any ToolPersistenceProtocol,
             memoryStore: any MemoryStoreProtocol = InMemoryMemoryStore()
@@ -89,7 +89,7 @@ public actor ThreadManager {
     // MARK: - Dependencies
 
     let threadStore: any ThreadPersistenceProtocol
-    let messageStore: any MessageStoreProtocol
+    let messageStore: any ThreadMessageStoreProtocol
     let workspaceStore: any WorkspaceStore
     let toolPersistence: any ToolPersistenceProtocol
     let memoryStore: any MemoryStoreProtocol

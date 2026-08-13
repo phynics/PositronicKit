@@ -15,7 +15,7 @@ import PKUtilities
 /// Not part of the public API surface.
 internal struct KitDependencies: Sendable {
     var languageModel: any LanguageModel
-    var messageStore: any MessageStoreProtocol
+    var messageStore: any ThreadMessageStoreProtocol
     var agentInstanceStore: any AgentInstanceStoreProtocol
     var requestOriginStore: any RequestOriginStoreProtocol
     var threadPersistence: any ThreadPersistenceProtocol

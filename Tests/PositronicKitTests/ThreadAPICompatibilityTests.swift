@@ -76,13 +76,13 @@ struct ThreadAPICompatibilityTests {
     func messageStoreCompatibility() async throws {
         let threadID = UUID()
         let message = ConversationMessage(threadID: threadID, role: .user, content: "hello")
-        let canonical: any MessageStoreProtocol = InMemoryMessageStore()
+        let canonical: any ThreadMessageStoreProtocol = InMemoryMessageStore()
 
         try await canonical.saveMessage(message)
         #expect(try await canonical.fetchMessages(for: threadID).map(\.id) == [message.id])
 
         let legacy = LegacyTimelineMessageStore()
-        let adapted: any MessageStoreProtocol = LegacyTimelineMessageStoreAdapter(legacy)
+        let adapted: any ThreadMessageStoreProtocol = LegacyMessageStoreAdapter(legacy)
         try await adapted.saveMessage(message)
         #expect(try await adapted.fetchMessages(for: threadID).map(\.id) == [message.id])
         try await adapted.deleteMessages(for: threadID)
@@ -95,6 +95,24 @@ struct ThreadAPICompatibilityTests {
         #expect(payload?["threadID"] == nil)
     }
 
+    @Test("legacy MessageStoreProtocol conformers inject directly into persistence configuration")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
+    func legacyMessageStoreInjectsIntoPersistenceConfiguration() async throws {
+        let threadID = UUID()
+        let message = ConversationMessage(threadID: threadID, role: .user, content: "legacy")
+        let legacyStore = LegacyV3MessageStore()
+        let configuration = PositronicKit.PersistenceConfiguration(
+            messageStore: legacyStore,
+            threadPersistence: InMemoryThreadPersistence()
+        )
+        let canonicalStore: any ThreadMessageStoreProtocol = configuration.messageStore
+
+        try await canonicalStore.saveMessage(message)
+        #expect(try await canonicalStore.fetchMessages(for: threadID).map(\.id) == [message.id])
+        try await canonicalStore.deleteMessages(for: threadID)
+        #expect(try await canonicalStore.fetchMessages(for: threadID).isEmpty)
+    }
+
     @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
     private func legacyTimelinePersistenceValue(
         from report: PositronicKit.DurabilityReport
@@ -105,6 +123,33 @@ struct ThreadAPICompatibilityTests {
     @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
     private actor LegacyTimelineMessageStore: TimelineMessageStoreProtocol {
         private let backing = InMemoryMessageStore()
+
+        func saveMessage(_ message: ConversationMessage) async throws {
+            try await backing.saveMessage(message)
+        }
+
+        func fetchMessages(for timelineId: UUID) async throws -> [ConversationMessage] {
+            try await backing.fetchMessages(for: timelineId)
+        }
+
+        func deleteMessages(for timelineId: UUID) async throws {
+            try await backing.deleteMessages(for: timelineId)
+        }
+
+        func pruneMessages(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int {
+            try await backing.pruneMessages(olderThan: timeInterval, dryRun: dryRun)
+        }
+
+        func fetchSnapshots(for timelineId: UUID) async throws -> [TurnSnapshot] {
+            try await backing.fetchSnapshots(for: timelineId)
+        }
+    }
+
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
+    private actor LegacyV3MessageStore: MessageStoreProtocol {
+        private let backing = InMemoryMessageStore()
+
+        nonisolated var isDurable: Bool { backing.isDurable }
 
         func saveMessage(_ message: ConversationMessage) async throws {
             try await backing.saveMessage(message)

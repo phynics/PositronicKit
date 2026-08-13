@@ -108,7 +108,7 @@ struct ChatEngine {
         let threadManager: ThreadManager
         let agentInstanceStore: any AgentInstanceStoreProtocol
         let requestOriginStore: any RequestOriginStoreProtocol
-        let messageStore: any MessageStoreProtocol
+        let messageStore: any ThreadMessageStoreProtocol
         /// Streaming chat seam: the runtime turn loop, `LLMStreamingStage`, and the
         /// `isConfigured`/`configuration` precondition checks depend only on this.
         let llmService: any LLMStreamClient
@@ -129,7 +129,7 @@ struct ChatEngine {
             threadManager: ThreadManager,
             agentInstanceStore: any AgentInstanceStoreProtocol,
             requestOriginStore: any RequestOriginStoreProtocol,
-            messageStore: any MessageStoreProtocol,
+            messageStore: any ThreadMessageStoreProtocol,
             llmService: any LLMStreamClient & LLMUtilityClient,
             toolRouter: ToolRouter,
             chatTurnPlugins: [any ChatTurnPlugin],
@@ -162,7 +162,7 @@ struct ChatEngine {
             timelineManager: ThreadManager,
             agentInstanceStore: any AgentInstanceStoreProtocol,
             requestOriginStore: any RequestOriginStoreProtocol,
-            messageStore: any MessageStoreProtocol,
+            messageStore: any ThreadMessageStoreProtocol,
             llmService: any LLMStreamClient & LLMUtilityClient,
             toolRouter: ToolRouter,
             chatTurnPlugins: [any ChatTurnPlugin],

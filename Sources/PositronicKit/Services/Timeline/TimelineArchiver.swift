@@ -14,13 +14,13 @@ public enum MemoryVacuumPolicy: Sendable {
 
 /// Service to archive conversations and index them for semantic recall
 public actor ThreadArchiver {
-    private let persistence: any ThreadPersistenceProtocol & MemoryStoreProtocol & MessageStoreProtocol
+    private let persistence: any ThreadPersistenceProtocol & MemoryStoreProtocol & ThreadMessageStoreProtocol
     private let llmService: any LLMUtilityClient
     private let embeddingService: any EmbeddingServiceProtocol
     private let logger = Logger.module(named: "timeline-archiver")
 
     public init(
-        persistence: any ThreadPersistenceProtocol & MemoryStoreProtocol & MessageStoreProtocol,
+        persistence: any ThreadPersistenceProtocol & MemoryStoreProtocol & ThreadMessageStoreProtocol,
         llmService: any LLMUtilityClient,
         embeddingService: any EmbeddingServiceProtocol
     ) {
@@ -32,12 +32,26 @@ public actor ThreadArchiver {
     /// Deprecated v3 initializer. Legacy timeline persistence is adapted at the boundary.
     @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     public init(
-        persistence: any TimelinePersistenceProtocol & MemoryStoreProtocol & MessageStoreProtocol,
+        persistence: any TimelinePersistenceProtocol & MemoryStoreProtocol & ThreadMessageStoreProtocol,
         llmService: any LLMUtilityClient,
         embeddingService: any EmbeddingServiceProtocol
     ) {
         self.init(
             persistence: LegacyThreadArchiverPersistence(persistence),
+            llmService: llmService,
+            embeddingService: embeddingService
+        )
+    }
+
+    /// Deprecated v3 initializer. Legacy message persistence is adapted at the boundary.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public init(
+        persistence: any ThreadPersistenceProtocol & MemoryStoreProtocol & MessageStoreProtocol,
+        llmService: any LLMUtilityClient,
+        embeddingService: any EmbeddingServiceProtocol
+    ) {
+        self.init(
+            persistence: LegacyThreadMessageArchiverPersistence(persistence),
             llmService: llmService,
             embeddingService: embeddingService
         )

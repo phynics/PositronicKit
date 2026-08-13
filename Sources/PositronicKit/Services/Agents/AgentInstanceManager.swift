@@ -16,13 +16,13 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
     public struct Stores: Sendable {
         public let instanceStore: any AgentInstanceStoreProtocol
         public let threadStore: any ThreadPersistenceProtocol
-        public let messageStore: any MessageStoreProtocol
+        public let messageStore: any ThreadMessageStoreProtocol
         public let workspaceStore: any WorkspaceStore
 
         public init(
             instanceStore: any AgentInstanceStoreProtocol,
             threadStore: any ThreadPersistenceProtocol,
-            messageStore: any MessageStoreProtocol,
+            messageStore: any ThreadMessageStoreProtocol,
             workspaceStore: any WorkspaceStore
         ) {
             self.instanceStore = instanceStore
@@ -37,7 +37,7 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
         public init(
             instanceStore: any AgentInstanceStoreProtocol,
             timelineStore: any TimelinePersistenceProtocol,
-            messageStore: any MessageStoreProtocol,
+            messageStore: any ThreadMessageStoreProtocol,
             workspaceStore: any WorkspaceStore
         ) {
             self.init(
@@ -57,7 +57,7 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
 
     private let instanceStore: any AgentInstanceStoreProtocol
     private let threadStore: any ThreadPersistenceProtocol
-    private let messageStore: any MessageStoreProtocol
+    private let messageStore: any ThreadMessageStoreProtocol
     private let workspaceStore: any WorkspaceStore
 
     private let repository: any WorkspaceCatalog

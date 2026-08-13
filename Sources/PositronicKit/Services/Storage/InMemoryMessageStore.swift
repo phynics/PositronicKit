@@ -3,7 +3,7 @@ import PKShared
 import PKUtilities
 
 /// Thread-safe in-memory message store for prototyping and development.
-public actor InMemoryMessageStore: MessageStoreProtocol {
+public actor InMemoryMessageStore: ThreadMessageStoreProtocol {
     private var messages: [ConversationMessage] = []
 
     public init() {}

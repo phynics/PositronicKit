@@ -1,4 +1,5 @@
 import Foundation
+import Logging
 import PKPrompt
 import PKShared
 import PKUtilities
@@ -61,22 +62,15 @@ public actor LegacyTimelinePersistenceAdapter: ThreadPersistenceProtocol {
     }
 }
 
-/// Deprecated v3 message-store requirements using the released timeline parameter names.
-@available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-public protocol TimelineMessageStoreProtocol: DurabilityAware {
-    func saveMessage(_ message: ConversationMessage) async throws
-    func fetchMessages(for timelineId: UUID) async throws -> [ConversationMessage]
-    func deleteMessages(for timelineId: UUID) async throws
-    func pruneMessages(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int
-    func fetchSnapshots(for timelineId: UUID) async throws -> [TurnSnapshot]
-}
+/// Deprecated transitional spelling for the released v3 message-store protocol.
+@available(*, deprecated, renamed: "MessageStoreProtocol", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+public typealias TimelineMessageStoreProtocol = MessageStoreProtocol
 
 /// Adapts an existing v3 timeline-parameter message store to the canonical protocol.
-@available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-public actor LegacyTimelineMessageStoreAdapter: MessageStoreProtocol {
-    private let legacy: any TimelineMessageStoreProtocol
+public actor LegacyMessageStoreAdapter: ThreadMessageStoreProtocol {
+    private let legacy: any MessageStoreProtocol
 
-    public init(_ legacy: any TimelineMessageStoreProtocol) {
+    public init(_ legacy: any MessageStoreProtocol) {
         self.legacy = legacy
     }
 
@@ -102,6 +96,10 @@ public actor LegacyTimelineMessageStoreAdapter: MessageStoreProtocol {
         try await legacy.fetchSnapshots(for: threadID)
     }
 }
+
+/// Deprecated spelling retained for source compatibility.
+@available(*, deprecated, renamed: "LegacyMessageStoreAdapter", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+public typealias LegacyTimelineMessageStoreAdapter = LegacyMessageStoreAdapter
 
 /// Internal reverse adapter used while the timeline-named runtime seams are migrated.
 actor ThreadPersistenceCompatibilityAdapter: TimelinePersistenceProtocol {
@@ -145,13 +143,13 @@ actor ThreadPersistenceCompatibilityAdapter: TimelinePersistenceProtocol {
 /// Bridges a legacy composite store to the canonical archiver composition without changing
 /// message or memory persistence behavior.
 actor LegacyThreadArchiverPersistence:
-    ThreadPersistenceProtocol, MemoryStoreProtocol, MessageStoreProtocol
+    ThreadPersistenceProtocol, MemoryStoreProtocol, ThreadMessageStoreProtocol
 {
     private let timeline: any TimelinePersistenceProtocol
     private let memory: any MemoryStoreProtocol
-    private let messages: any MessageStoreProtocol
+    private let messages: any ThreadMessageStoreProtocol
 
-    init(_ persistence: any TimelinePersistenceProtocol & MemoryStoreProtocol & MessageStoreProtocol) {
+    init(_ persistence: any TimelinePersistenceProtocol & MemoryStoreProtocol & ThreadMessageStoreProtocol) {
         timeline = persistence
         memory = persistence
         messages = persistence
@@ -171,6 +169,90 @@ actor LegacyThreadArchiverPersistence:
         dryRun: Bool
     ) async throws -> Int {
         try await timeline.pruneTimelines(
+            olderThan: timeInterval,
+            excluding: excludedThreadIDs,
+            dryRun: dryRun
+        )
+    }
+
+    func saveMemory(_ memory: Memory, policy: MemorySavePolicy) async throws -> UUID {
+        try await self.memory.saveMemory(memory, policy: policy)
+    }
+    func fetchMemory(id: UUID) async throws -> Memory? { try await memory.fetchMemory(id: id) }
+    func fetchAllMemories() async throws -> [Memory] { try await memory.fetchAllMemories() }
+    func searchMemories(query: String) async throws -> [Memory] {
+        try await memory.searchMemories(query: query)
+    }
+    func searchMemories(
+        embedding: [Double], limit: Int, minSimilarity: Double
+    ) async throws -> [(memory: Memory, similarity: Double)] {
+        try await memory.searchMemories(
+            embedding: embedding, limit: limit, minSimilarity: minSimilarity
+        )
+    }
+    func searchMemories(matchingAnyTag tags: [String]) async throws -> [Memory] {
+        try await memory.searchMemories(matchingAnyTag: tags)
+    }
+    func deleteMemory(id: UUID) async throws { try await memory.deleteMemory(id: id) }
+    func updateMemory(_ memory: Memory) async throws { try await self.memory.updateMemory(memory) }
+    func updateMemoryEmbedding(id: UUID, newEmbedding: [Double]) async throws {
+        try await memory.updateMemoryEmbedding(id: id, newEmbedding: newEmbedding)
+    }
+    func vacuumMemories(threshold: Double) async throws -> Int {
+        try await memory.vacuumMemories(threshold: threshold)
+    }
+    func pruneMemories(matching query: String, dryRun: Bool) async throws -> Int {
+        try await memory.pruneMemories(matching: query, dryRun: dryRun)
+    }
+    func pruneMemories(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int {
+        try await memory.pruneMemories(olderThan: timeInterval, dryRun: dryRun)
+    }
+
+    func saveMessage(_ message: ConversationMessage) async throws {
+        try await messages.saveMessage(message)
+    }
+    func fetchMessages(for threadID: UUID) async throws -> [ConversationMessage] {
+        try await messages.fetchMessages(for: threadID)
+    }
+    func deleteMessages(for threadID: UUID) async throws {
+        try await messages.deleteMessages(for: threadID)
+    }
+    func pruneMessages(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int {
+        try await messages.pruneMessages(olderThan: timeInterval, dryRun: dryRun)
+    }
+    func fetchSnapshots(for threadID: UUID) async throws -> [TurnSnapshot] {
+        try await messages.fetchSnapshots(for: threadID)
+    }
+}
+
+/// Bridges a canonical thread/memory store with a legacy message store for archiving.
+actor LegacyThreadMessageArchiverPersistence:
+    ThreadPersistenceProtocol, MemoryStoreProtocol, ThreadMessageStoreProtocol
+{
+    private let thread: any ThreadPersistenceProtocol
+    private let memory: any MemoryStoreProtocol
+    private let messages: any MessageStoreProtocol
+
+    init(_ persistence: any ThreadPersistenceProtocol & MemoryStoreProtocol & MessageStoreProtocol) {
+        thread = persistence
+        memory = persistence
+        messages = persistence
+    }
+
+    nonisolated var isDurable: Bool { thread.isDurable }
+
+    func saveThread(_ thread: Thread) async throws { try await self.thread.saveThread(thread) }
+    func fetchThread(id: UUID) async throws -> Thread? { try await thread.fetchThread(id: id) }
+    func fetchAllThreads(includeArchived: Bool) async throws -> [Thread] {
+        try await thread.fetchAllThreads(includeArchived: includeArchived)
+    }
+    func deleteThread(id: UUID) async throws { try await thread.deleteThread(id: id) }
+    func pruneThreads(
+        olderThan timeInterval: TimeInterval,
+        excluding excludedThreadIDs: [UUID],
+        dryRun: Bool
+    ) async throws -> Int {
+        try await thread.pruneThreads(
             olderThan: timeInterval,
             excluding: excludedThreadIDs,
             dryRun: dryRun
@@ -302,7 +384,7 @@ public extension ThreadPeekTool {
     @_disfavoredOverload
     init(messageStore: any MessageStoreProtocol, timelineStore: any TimelinePersistenceProtocol) {
         self.init(
-            messageStore: messageStore,
+            messageStore: LegacyMessageStoreAdapter(messageStore),
             threadStore: LegacyTimelinePersistenceAdapter(timelineStore)
         )
     }
@@ -319,7 +401,7 @@ public extension ThreadSendTool {
         sourceTimelineId: UUID
     ) {
         self.init(
-            messageStore: messageStore,
+            messageStore: LegacyMessageStoreAdapter(messageStore),
             threadStore: LegacyTimelinePersistenceAdapter(timelineStore),
             agentInstanceID: agentInstanceId,
             sourceThreadID: sourceTimelineId
@@ -341,7 +423,7 @@ public extension ToolRouter {
     ) {
         self.init(
             threadManager: timelineManager,
-            messageStore: messageStore,
+            messageStore: LegacyMessageStoreAdapter(messageStore),
             toolExecutionTimeout: toolExecutionTimeout,
             approvalPolicy: approvalPolicy,
             sleep: sleep,
@@ -393,6 +475,25 @@ public extension ThreadManager.RuntimeToolPolicy {
 }
 
 public extension ThreadManager.Stores {
+    /// Deprecated v3 initializer. The legacy message store is adapted at the boundary.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    @_disfavoredOverload
+    init(
+        threadStore: any ThreadPersistenceProtocol,
+        messageStore: any MessageStoreProtocol,
+        workspaceStore: any WorkspaceStore,
+        toolPersistence: any ToolPersistenceProtocol,
+        memoryStore: any MemoryStoreProtocol = InMemoryMemoryStore()
+    ) {
+        self.init(
+            threadStore: threadStore,
+            messageStore: LegacyMessageStoreAdapter(messageStore),
+            workspaceStore: workspaceStore,
+            toolPersistence: toolPersistence,
+            memoryStore: memoryStore
+        )
+    }
+
     /// Deprecated v3 initializer spelling. The legacy store is adapted once at the boundary.
     @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     init(
@@ -404,7 +505,7 @@ public extension ThreadManager.Stores {
     ) {
         self.init(
             threadStore: LegacyTimelinePersistenceAdapter(timelineStore),
-            messageStore: messageStore,
+            messageStore: LegacyMessageStoreAdapter(messageStore),
             workspaceStore: workspaceStore,
             toolPersistence: toolPersistence,
             memoryStore: memoryStore
@@ -506,10 +607,117 @@ public extension ThreadManager {
     }
 }
 
+public extension ToolRouter {
+    /// Deprecated v3 initializer. The legacy message store is adapted at the boundary.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    @_disfavoredOverload
+    init(
+        threadManager: ThreadManager,
+        messageStore: any MessageStoreProtocol,
+        toolExecutionTimeout: TimeInterval = 60,
+        approvalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
+        sleep: (@Sendable (UInt64) async throws -> Void)? = nil,
+        loggingConfiguration: LoggingConfiguration = .default
+    ) {
+        self.init(
+            threadManager: threadManager,
+            messageStore: LegacyMessageStoreAdapter(messageStore),
+            toolExecutionTimeout: toolExecutionTimeout,
+            approvalPolicy: approvalPolicy,
+            sleep: sleep,
+            loggingConfiguration: loggingConfiguration
+        )
+    }
+}
+
 /// Deprecated v3 agent-instance query spelling retained as a one-way compatibility shim.
 public extension AgentInstanceStoreProtocol {
     @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     func fetchTimelines(attachedToAgent agentInstanceId: UUID) async throws -> [Thread] {
         try await fetchThreads(attachedToAgent: agentInstanceId)
+    }
+}
+
+extension AgentInstanceManager.Stores {
+    /// Deprecated v3 initializer. The legacy message store is adapted at the boundary.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    @_disfavoredOverload
+    init(
+        instanceStore: any AgentInstanceStoreProtocol,
+        threadStore: any ThreadPersistenceProtocol,
+        messageStore: any MessageStoreProtocol,
+        workspaceStore: any WorkspaceStore
+    ) {
+        self.init(
+            instanceStore: instanceStore,
+            threadStore: threadStore,
+            messageStore: LegacyMessageStoreAdapter(messageStore),
+            workspaceStore: workspaceStore
+        )
+    }
+}
+
+extension MessagePersistenceStage {
+    /// Deprecated v3 initializer. The legacy message store is adapted at the boundary.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    @_disfavoredOverload
+    init(
+        messageStore: any MessageStoreProtocol,
+        logger: Logger? = nil,
+        diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
+        loggingConfiguration: LoggingConfiguration = .default
+    ) {
+        self.init(
+            messageStore: LegacyMessageStoreAdapter(messageStore),
+            logger: logger,
+            diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
+            loggingConfiguration: loggingConfiguration
+        )
+    }
+}
+
+extension PartialAssistantPersistence {
+    /// Deprecated v3 initializer. The legacy message store is adapted at the boundary.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    @_disfavoredOverload
+    init(messageStore: any MessageStoreProtocol, logger: Logger? = nil) {
+        self.init(messageStore: LegacyMessageStoreAdapter(messageStore), logger: logger)
+    }
+}
+
+extension ChatEngine.Dependencies {
+    /// Deprecated v3 initializer. The legacy message store is adapted at the boundary.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    @_disfavoredOverload
+    init(
+        threadManager: ThreadManager,
+        agentInstanceStore: any AgentInstanceStoreProtocol,
+        requestOriginStore: any RequestOriginStoreProtocol,
+        messageStore: any MessageStoreProtocol,
+        llmService: any LLMStreamClient & LLMUtilityClient,
+        toolRouter: ToolRouter,
+        chatTurnPlugins: [any ChatTurnPlugin],
+        promptObserver: (any PromptObserving)? = nil,
+        diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
+        loggingConfiguration: LoggingConfiguration = .default,
+        degradationPolicy: TurnDegradationPolicy = .failRequired,
+        promptHistoryRegistry: ThreadPromptJournals? = nil,
+        streamTimeout: TimeInterval = Self.defaultStreamTimeout
+    ) {
+        self.init(
+            threadManager: threadManager,
+            agentInstanceStore: agentInstanceStore,
+            requestOriginStore: requestOriginStore,
+            messageStore: LegacyMessageStoreAdapter(messageStore),
+            llmService: llmService,
+            toolRouter: toolRouter,
+            chatTurnPlugins: chatTurnPlugins,
+            promptObserver: promptObserver,
+            diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
+            loggingConfiguration: loggingConfiguration,
+            degradationPolicy: degradationPolicy,
+            promptHistoryRegistry: promptHistoryRegistry,
+            streamTimeout: streamTimeout
+        )
     }
 }

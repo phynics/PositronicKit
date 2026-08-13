@@ -50,7 +50,7 @@ public final class PositronicKit: Sendable {
 
     @available(*, deprecated, renamed: "languageModel")
     var llmService: any LanguageModel { languageModel }
-    private let messageStore: any MessageStoreProtocol
+    private let messageStore: any ThreadMessageStoreProtocol
 
     /// The thread manager built by this facade. Hosts that need direct access (e.g. to wire
     /// their own routes) should read this instead of building a second `ThreadManager`, which
@@ -127,7 +127,7 @@ public final class PositronicKit: Sendable {
 
     convenience init(
         languageModel: any LanguageModel,
-        messageStore: (any MessageStoreProtocol)? = nil,
+        messageStore: (any ThreadMessageStoreProtocol)? = nil,
         agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,
         requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
         threadPersistence: (any ThreadPersistenceProtocol)? = nil,

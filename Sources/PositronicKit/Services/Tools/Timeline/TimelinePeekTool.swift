@@ -13,10 +13,10 @@ public struct ThreadPeekTool: PKShared.Tool, Sendable {
         "Use this to observe what is happening in a timeline without attaching to it."
     public let requiresPermission = false
 
-    private let messageStore: any MessageStoreProtocol
+    private let messageStore: any ThreadMessageStoreProtocol
     private let threadStore: any ThreadPersistenceProtocol
 
-    public init(messageStore: any MessageStoreProtocol, threadStore: any ThreadPersistenceProtocol) {
+    public init(messageStore: any ThreadMessageStoreProtocol, threadStore: any ThreadPersistenceProtocol) {
         self.messageStore = messageStore
         self.threadStore = threadStore
     }

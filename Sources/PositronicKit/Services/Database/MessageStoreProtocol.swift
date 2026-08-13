@@ -5,7 +5,7 @@ import PKUtilities
 
 import Foundation
 
-public protocol MessageStoreProtocol: DurabilityAware {
+public protocol ThreadMessageStoreProtocol: DurabilityAware {
     func saveMessage(_ message: ConversationMessage) async throws
     func fetchMessages(for threadID: UUID) async throws -> [ConversationMessage]
     func deleteMessages(for threadID: UUID) async throws
@@ -30,12 +30,34 @@ public protocol MessageStoreProtocol: DurabilityAware {
 /// The default implementation deliberately uses the existing message `id` column rather than
 /// adding a send-key column to the persistence contract. The runtime's turn gate serializes
 /// retries within this process; durable stores should enforce uniqueness on their message IDs.
-package extension MessageStoreProtocol {
+package extension ThreadMessageStoreProtocol {
     func saveMessageIfAbsent(
         _ message: ConversationMessage,
         idempotencyKey: UUID
     ) async throws {
         let existingMessages = try await fetchMessages(for: message.threadID)
+        guard !existingMessages.contains(where: { $0.id == idempotencyKey }) else { return }
+        try await saveMessage(message)
+    }
+}
+
+/// Deprecated v3 message-store requirements using the released timeline parameter names.
+@available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+public protocol MessageStoreProtocol: DurabilityAware {
+    func saveMessage(_ message: ConversationMessage) async throws
+    func fetchMessages(for timelineId: UUID) async throws -> [ConversationMessage]
+    func deleteMessages(for timelineId: UUID) async throws
+    func pruneMessages(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int
+    func fetchSnapshots(for timelineId: UUID) async throws -> [TurnSnapshot]
+}
+
+@available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+package extension MessageStoreProtocol {
+    func saveMessageIfAbsent(
+        _ message: ConversationMessage,
+        idempotencyKey: UUID
+    ) async throws {
+        let existingMessages = try await fetchMessages(for: message.timelineId)
         guard !existingMessages.contains(where: { $0.id == idempotencyKey }) else { return }
         try await saveMessage(message)
     }

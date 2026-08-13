@@ -8,7 +8,7 @@ import Testing
 /// Tests for `RuntimeToolPolicyFactory` (PKARCH-003 AC #4): verifies which tools are installed
 /// for each `RuntimeToolPolicy` flag combination, without bringing up a full `ThreadManager`.
 struct RuntimeToolPolicyFactoryTests {
-    private func makeStores() -> (any ThreadPersistenceProtocol, any MessageStoreProtocol) {
+    private func makeStores() -> (any ThreadPersistenceProtocol, any ThreadMessageStoreProtocol) {
         (InMemoryThreadPersistence(), InMemoryMessageStore())
     }
 

@@ -17,7 +17,7 @@ public struct ThreadSendTool: PKShared.Tool, Sendable {
         "The message is queued and will be visible to the next agent that processes that timeline."
     public let requiresPermission = true
 
-    private let messageStore: any MessageStoreProtocol
+    private let messageStore: any ThreadMessageStoreProtocol
     private let threadStore: any ThreadPersistenceProtocol
     private let agentInstanceID: UUID
     /// The thread this tool sends *from*. The current remote depth is derived from this
@@ -25,7 +25,7 @@ public struct ThreadSendTool: PKShared.Tool, Sendable {
     /// the cross-agent chain already is rather than a value captured when the tool was built.
     private let sourceThreadID: UUID
     public init(
-        messageStore: any MessageStoreProtocol,
+        messageStore: any ThreadMessageStoreProtocol,
         threadStore: any ThreadPersistenceProtocol,
         agentInstanceID: UUID,
         sourceThreadID: UUID

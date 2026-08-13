@@ -14,7 +14,7 @@ package enum RuntimeToolPolicyFactory {
         jailRoot: String,
         runtimeToolPolicy: ThreadManager.RuntimeToolPolicy,
         threadStore: any ThreadPersistenceProtocol,
-        messageStore: any MessageStoreProtocol
+        messageStore: any ThreadMessageStoreProtocol
     ) -> ThreadToolRegistry {
         let currentWD = thread.workingDirectory ?? jailRoot
         // Default runtime policy: these filesystem and thread observation tools are installed by
@@ -61,6 +61,24 @@ package enum RuntimeToolPolicyFactory {
         )
     }
 
+    /// Deprecated v3 message-store seam. The legacy store is adapted at the boundary.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    package static func createToolManager(
+        for thread: Thread,
+        jailRoot: String,
+        runtimeToolPolicy: ThreadManager.RuntimeToolPolicy,
+        threadStore: any ThreadPersistenceProtocol,
+        messageStore: any MessageStoreProtocol
+    ) -> ThreadToolRegistry {
+        createToolManager(
+            for: thread,
+            jailRoot: jailRoot,
+            runtimeToolPolicy: runtimeToolPolicy,
+            threadStore: threadStore,
+            messageStore: LegacyMessageStoreAdapter(messageStore)
+        )
+    }
+
     /// Deprecated v3 factory label and persistence protocol.
     @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     package static func createToolManager(
@@ -68,7 +86,7 @@ package enum RuntimeToolPolicyFactory {
         jailRoot: String,
         runtimeToolPolicy: ThreadManager.RuntimeToolPolicy,
         timelineStore: any TimelinePersistenceProtocol,
-        messageStore: any MessageStoreProtocol
+        messageStore: any ThreadMessageStoreProtocol
     ) -> ThreadToolRegistry {
         createToolManager(
             for: thread,
