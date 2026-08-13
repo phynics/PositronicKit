@@ -22,6 +22,7 @@ public protocol TimelinePersistenceProtocol: DurabilityAware {
 }
 
 /// Adapts an existing v3 timeline persistence conformer to the canonical thread protocol.
+@available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
 public actor LegacyTimelinePersistenceAdapter: ThreadPersistenceProtocol {
     private let legacy: any TimelinePersistenceProtocol
 
