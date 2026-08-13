@@ -7,16 +7,16 @@ import PKUtilities
 // MARK: - Lifecycle
 
 public extension ThreadManager {
-    /// Creates a new conversation timeline, initializes its workspace, and saves it to persistence.
+    /// Creates a new conversation thread, initializes its workspace, and saves it to persistence.
     ///
-    /// The timeline record is persisted **first** so that a store failure leaves no orphan
+    /// The thread record is persisted **first** so that a store failure leaves no orphan
     /// directories, workspace rows, or cached managers. If subsequent steps (directory creation,
-    /// notes, workspace save) fail, the timeline record and any partially created state are
+    /// notes, workspace save) fail, the thread record and any partially created state are
     /// rolled back before rethrowing.
     ///
     /// Filesystem behavior is governed by the configured workspace profile (PKRR-029):
     /// - `.noWorkspace` (the default): no directory is created, no notes are written, no
-    ///   workspace record is persisted, and `timeline.workingDirectory` is `nil`.
+    ///   workspace record is persisted, and `thread.workingDirectory` is `nil`.
     /// - `.ephemeralWorkspace`: a scratch directory is created under `root` and removed on
     ///   eviction/deletion.
     /// - `.hostManaged`: a directory is created under `root` (the host owns its retention).
@@ -28,8 +28,8 @@ public extension ThreadManager {
         )
         .appendingPathComponent(threadID.uuidString, isDirectory: true)
 
-        // `.noWorkspace`: persist the timeline record only. No directory, no notes, no
-        // workspace row — a minimal timeline has no filesystem side effects.
+        // `.noWorkspace`: persist the thread record only. No directory, no notes, no
+        // workspace row — a minimal thread has no filesystem side effects.
         guard workspaceProfile.provisionsThreadWorkspace else {
             let timeline = Thread(
                 id: threadID,
@@ -54,7 +54,7 @@ public extension ThreadManager {
         }
 
         let workspace = WorkspaceReference(
-            uri: .timelineWorkspace(threadID),
+            uri: .threadWorkspace(threadID),
             location: .runtime,
             rootPath: timelineWorkspaceURL.path,
             trustLevel: .full
@@ -115,8 +115,8 @@ public extension ThreadManager {
         return timeline
     }
 
-    /// Validates that a timeline exists before a turn proceeds. Throws
-    /// ``ThreadError/timelineNotFound`` for unknown IDs and
+    /// Validates that a thread exists before a turn proceeds. Throws
+    /// ``ThreadError/threadNotFound`` for unknown IDs and
     /// ``ThreadError/unavailable`` for transient store failures.
     func ensureThreadExists(id: UUID) async throws {
         do {
@@ -128,7 +128,7 @@ public extension ThreadManager {
         }
     }
 
-    /// Reconstructs a timeline and its components from persistence.
+    /// Reconstructs a thread and its components from persistence.
     func hydrateThread(id: UUID) async throws {
         if toolManagers[id] != nil { return }
 
@@ -152,7 +152,7 @@ public extension ThreadManager {
         )
     }
 
-    /// Updates the title of a specific timeline.
+    /// Updates the title of a specific thread.
     func updateThreadTitle(_ threadID: UUID, title: String) async throws {
         var timeline: Thread
         if let memoryTimeline = timelines[threadID] {
@@ -181,22 +181,22 @@ public extension ThreadManager {
         try await threadStore.saveThread(timeline)
     }
 
-    /// Evicts all in-memory runtime state for a timeline: the cached `Thread`,
-    /// `TurnBriefingBuilder`, `ThreadToolRegistry`, timeline degradations, and (when a
+    /// Evicts all in-memory runtime state for a thread: the cached `Thread`,
+    /// `TurnBriefingBuilder`, `ThreadToolRegistry`, thread degradations, and (when a
     /// prompt-history registry was injected) the journal-diff history entry. Does not touch
     /// persistence.
     ///
     /// Active generation work is cancelled and awaited (bounded cleanup) before cache eviction
-    /// so streaming/tools/persistence/plugins cannot continue against a timeline whose
+    /// so streaming/tools/persistence/plugins cannot continue against a thread whose
     /// in-memory state has already been torn down.
     ///
-    /// When the timeline's configured workspace profile is `.ephemeralWorkspace`, the per-timeline
+    /// When the thread's configured workspace profile is `.ephemeralWorkspace`, the per-thread
     /// scratch directory is also removed (best-effort) — eviction ends the ephemeral workspace's
     /// life. `.hostManaged` directories are left in place (the host owns retention), and
     /// `.noWorkspace` has nothing to remove.
     ///
     /// This is the in-memory-only eviction seam. Callers that also want to remove the
-    /// persisted timeline, messages, and workspace attachments should call
+    /// persisted thread, messages, and workspace attachments should call
     /// ``deleteThreadPermanently(id:)`` instead.
     func evictThreadFromMemory(id: UUID) async {
         await cancelActiveTaskAndAwait(for: id)
@@ -234,8 +234,8 @@ public extension ThreadManager {
         await evictThreadFromMemory(id: id)
     }
 
-    /// Permanently deletes a timeline and all related persisted records: the timeline row, its
-    /// messages, and timeline-owned runtime workspace records. Caller-owned `.attached` and
+    /// Permanently deletes a thread and all related persisted records: the thread row, its
+    /// messages, and thread-owned runtime workspace records. Caller-owned `.attached` and
     /// shared runtime workspaces are preserved. Active generation work is cancelled and drained
     /// (bounded cleanup) and in-memory state is evicted before persistence is touched.
     ///
@@ -244,7 +244,7 @@ public extension ThreadManager {
     /// avoids leaking partial state when only some stores are reachable. The result's
     /// `isComplete` is `true` only when every record was removed.
     ///
-    /// - Parameter id: The timeline to delete permanently.
+    /// - Parameter id: The thread to delete permanently.
     /// - Returns: A ``ThreadDeletionResult`` reporting any per-store cleanup failures.
     @discardableResult
     func deleteThreadPermanently(id: UUID) async -> ThreadDeletionResult {
@@ -281,11 +281,11 @@ public extension ThreadManager {
         // Cancel + drain active work, then evict in-memory state. This is the same bounded
         // cleanup `evictThreadFromMemory(id:)` performs, ensuring no stream/tool/plugin can
         // repopulate state or race with the persistence deletion below. Ephemeral workspace
-        // cleanup runs inside eviction when the timeline is cached.
+        // cleanup runs inside eviction when the thread is cached.
         await evictThreadFromMemory(id: id)
 
         // Ephemeral workspace cleanup for the non-cached path: `evictThreadFromMemory` could
-        // not see the working directory when the timeline wasn't in memory, so clean it here.
+        // not see the working directory when the thread wasn't in memory, so clean it here.
         // Best-effort, like every other deletion step; `fileExists` makes this safe even when
         // eviction already removed the directory.
         if workspaceProfile.ownsDirectoryLifecycle, let workingDirectory = capturedWorkingDirectory {
@@ -315,7 +315,7 @@ public extension ThreadManager {
         }
 
         // Resolve ownership before deleting workspace records. `.attached` workspaces belong to
-        // the caller, while runtime workspaces can be shared; only timeline-specific runtime
+        // the caller, while runtime workspaces can be shared; only thread-specific runtime
         // workspaces are eligible for deletion.
         var timelineOwnedWorkspaceIds: [UUID] = []
         for workspaceId in attachedWorkspaceIds {
@@ -329,7 +329,7 @@ public extension ThreadManager {
                 let isTimelineOwned = workspace.location == .runtimeThread
                     || workspace.location == .runtimeTimeline
                     || (workspace.location == .runtime
-                        && workspace.uri == .timelineWorkspace(id))
+                        && workspace.uri == .threadWorkspace(id))
                 if isTimelineOwned, !timelineOwnedWorkspaceIds.contains(workspaceId) {
                     timelineOwnedWorkspaceIds.append(workspaceId)
                 }
@@ -342,7 +342,7 @@ public extension ThreadManager {
             }
         }
 
-        // A timeline-specific runtime workspace may still be shared by another timeline. Keep it
+        // A thread-specific runtime workspace may still be shared by another thread. Keep it
         // when ownership cannot be established exclusively for this deletion.
         if !timelineOwnedWorkspaceIds.isEmpty {
             do {
@@ -363,8 +363,8 @@ public extension ThreadManager {
             }
         }
 
-        // Delete timeline-owned workspace records (best-effort, per-workspace). Caller-owned and
-        // shared workspaces remain persisted, and the deleted timeline row removes their links.
+        // Delete thread-owned workspace records (best-effort, per-workspace). Caller-owned and
+        // shared workspaces remain persisted, and the deleted thread row removes their links.
         for workspaceId in timelineOwnedWorkspaceIds {
             do {
                 try await workspaceStore.deleteWorkspace(id: workspaceId)
@@ -377,7 +377,7 @@ public extension ThreadManager {
             }
         }
 
-        // Delete the timeline record last, so messages and workspaces are cleaned up before
+        // Delete the thread record last, so messages and workspaces are cleaned up before
         // the parent row disappears (mirrors `createThread`'s persist-first ordering).
         do {
             try await threadStore.deleteThread(id: id)
@@ -401,8 +401,8 @@ public extension ThreadManager {
         return ThreadDeletionResult(threadID: id, degradations: degradations)
     }
 
-    /// Removes active timelines from memory that have not been updated within the specified
-    /// interval. Evicts in-memory state only; persisted timelines are unaffected. Also drops
+    /// Removes active threads from memory that have not been updated within the specified
+    /// interval. Evicts in-memory state only; persisted threads are unaffected. Also drops
     /// the corresponding prompt-history entries when a registry was injected.
     func cleanupStaleThreads(maxAge: TimeInterval) async {
         let now = Date()
@@ -419,7 +419,7 @@ public extension ThreadManager {
 // MARK: - Component Setup & Eviction
 
 private extension ThreadManager {
-    /// Initializes and configures the internal components for a conversation timeline.
+    /// Initializes and configures the internal components for a conversation thread.
     func setupThreadComponents(
         timeline: Thread,
         workspaceURL: URL
@@ -485,11 +485,11 @@ private extension ThreadManager {
         }
     }
 
-    /// Writes the configured seed notes into a freshly created timeline workspace's `Notes/`
+    /// Writes the configured seed notes into a freshly created thread workspace's `Notes/`
     /// directory (PKRR-029).
     ///
     /// Replaces the former unconditional `writeSeedNotes(at:)` which always wrote
-    /// `Welcome.md` and `Project.md`. The notes written are now governed by the timeline's
+    /// `Welcome.md` and `Project.md`. The notes written are now governed by the thread's
     /// ``ThreadManager/workspaceProfile``; pass ``WorkspaceSeedNotes/none`` to write nothing.
     func writeSeedNotes(_ seedNotes: WorkspaceSeedNotes, at workspaceURL: URL) throws {
         guard !seedNotes.notes.isEmpty else { return }

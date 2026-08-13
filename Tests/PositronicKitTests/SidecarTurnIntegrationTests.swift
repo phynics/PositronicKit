@@ -124,7 +124,7 @@ struct SidecarTurnIntegrationTests {
 
         // System message must be byte-identical to a run without sidecars — the directive
         // list must not leak into the cache-stable system prefix. Use the same thread ID
-        // and title so the "Current Timeline" section is identical across both chats.
+        // and title so the "Current Thread" section is identical across both chats.
         let mockLLMWithout = MockLLMService()
         mockLLMWithout.mockClient.nextChunks = [["ok"]]
         let persistenceWithout = MockPersistenceService()
@@ -239,7 +239,7 @@ struct SidecarTurnIntegrationTests {
             .init(name: "summary", instruction: "One sentence summary.", schema: JSONString().definition(), streaming: .buffered),
         ]
 
-        // All three chats use the same thread ID and title so the "Current Timeline"
+        // All three chats use the same thread ID and title so the "Current Thread"
         // section is byte-identical across them.
         let sharedThreadId = UUID()
         let sharedTitle = "Stable System"
@@ -290,7 +290,7 @@ struct SidecarTurnIntegrationTests {
 
     @Test("Mechanism preamble is stable, name-free system text opt-in")
     func preambleOptInAddsStableSystemText() async throws {
-        // Both chats use the same thread ID and title so the "Current Timeline"
+        // Both chats use the same thread ID and title so the "Current Thread"
         // section is byte-identical across them.
         let sharedThreadId = UUID()
         let sharedTitle = "Preamble Stability"

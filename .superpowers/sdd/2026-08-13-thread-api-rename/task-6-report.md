@@ -21,11 +21,11 @@ historical contracts remain intentionally timeline-named.
 
 ## Verification
 
-- `swift test --filter 'ThreadAPICompatibilityTests|ThreadIdentifierCompatibilityTests|ThreadControllerTests'` — passed; 4 tests in 1 suite.
+- `swift test --filter 'ThreadAPICompatibilityTests|ThreadIdentifierCompatibilityTests|ThreadControllerCompatibilityTests'` — passed; 13 tests in 3 suites.
 - `swift test --filter 'PublicRuntimeStoriesTests|RuntimeSetupStoriesTests|PersistenceProtocolTests|InMemoryStoresContractTests'` — passed; 66 tests in 9 suites.
 - `swift run PositronicKitExamples` — compiled successfully; execution stops at the existing
-  unconfigured LLM boundary with `LLMServiceError.notConfigured` because no provider credentials
-  are configured in this environment.
+  unconfigured LLM boundary with `ChatEngineError.llmServiceNotConfigured` because no provider
+  credentials are configured in this environment.
 - `git diff --check` — clean.
 
 ## Review Notes
@@ -89,3 +89,25 @@ Round 2 verification:
 - Targeted attachment diagnostic audit and `git diff --check` — clean.
 
 Round 2 baseline: `fcf31ca`.
+
+## Review Fix Round 3
+
+Complete. The executable example now performs the brief's canonical smoke flow by creating a
+thread, opening its driver, calling `driver.send("Hello")`, and iterating the returned events.
+Lifecycle workspace creation and ownership checks use `.threadWorkspace`, whose durable value is
+unchanged. The cited and nearby ordinary test prose now uses thread terminology.
+
+Round 3 verification:
+
+- Compatibility command above — passed; 13 tests in 3 suites, including
+  `ThreadControllerCompatibilityTests`.
+- Grouped affected run — 60 of 61 tests passed. The prose-only
+  `SidecarTurnIntegrationTests` edit was exercised, but its existing
+  `instructionBlockAndSchemaReachRequest` response-format expectation failed both in the grouped
+  run and alone; the changed lines are comments and do not affect execution.
+- Lifecycle, manager, eviction, and agent subset — passed; 51 tests in 4 suites.
+- `swift build --product PositronicKitExamples` — passed.
+- `swift run PositronicKitExamples` — reached the new driver-send smoke path and stopped at the
+  expected unconfigured-provider boundary with `ChatEngineError.llmServiceNotConfigured`.
+
+Round 3 baseline: `373abeb`.

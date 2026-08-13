@@ -211,7 +211,7 @@ struct ThreadLifecycleFaultInjectionTests {
         )
 
         do {
-            _ = try await manager.createThread(title: "Failing Timeline")
+            _ = try await manager.createThread(title: "Failing Thread")
             Issue.record("Expected ThreadError.unavailable")
         } catch ThreadError.unavailable {
             // Correct — the store failure is surfaced.
@@ -244,7 +244,7 @@ struct ThreadLifecycleFaultInjectionTests {
 
         var createdThreadId: UUID?
         do {
-            let thread = try await manager.createThread(title: "WS Fail Timeline")
+            let thread = try await manager.createThread(title: "WS Fail Thread")
             createdThreadId = thread.id
         } catch ThreadError.unavailable {
             // Correct — the workspace store failure is surfaced.
@@ -284,7 +284,7 @@ struct ThreadLifecycleFaultInjectionTests {
             workspaceRoot: workspace.root
         )
 
-        let thread = try await manager.createThread(title: "Healthy Timeline")
+        let thread = try await manager.createThread(title: "Healthy Thread")
 
         let persistedThread = try #require(await persistence.fetchThread(id: thread.id))
         #expect(persistedThread.id == thread.id)
@@ -323,14 +323,14 @@ struct ThreadLifecycleFaultInjectionTests {
         )
 
         do {
-            _ = try await manager.createThread(title: "Dir Fail Timeline")
+            _ = try await manager.createThread(title: "Dir Fail Thread")
             Issue.record("Expected an error")
         } catch {
             // Expected — either ThreadError.unavailable or a filesystem error
         }
 
         let threadsInStore = persistence.threads
-        #expect(threadsInStore.allSatisfy { $0.title != "Dir Fail Timeline" },
+        #expect(threadsInStore.allSatisfy { $0.title != "Dir Fail Thread" },
                "No thread record with the failing title should persist")
         #expect(workspaceStore.workspaces.isEmpty,
                "No workspace row should be left when directory creation fails")
@@ -402,7 +402,7 @@ struct ThreadLifecycleFaultInjectionTests {
 
         let persisted = try #require(await persistence.fetchThread(id: thread.id))
         #expect(persisted.attachedWorkspaceIDs == originalAttachedIds,
-               "The timeline's attached workspace IDs must not change when the store fails")
+               "The thread's attached workspace IDs must not change when the store fails")
     }
 
     @Test("attachWorkspace persists the attachment when the workspace exists")
@@ -430,7 +430,7 @@ struct ThreadLifecycleFaultInjectionTests {
 
         let persisted = try #require(await persistence.fetchThread(id: thread.id))
         #expect(persisted.attachedWorkspaceIDs.contains(attachedWS.id),
-               "The workspace ID should be persisted in the timeline")
+               "The workspace ID should be persisted in the thread")
     }
 
     // MARK: - attachWorkspace: already-attached workspace is re-validated

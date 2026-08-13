@@ -231,10 +231,10 @@ struct AgentInstanceManagerTests {
     @Test("Default in-memory stores protect attached agents")
     func defaultInMemoryStorePreventsDeletingAttachedAgentWithoutForce() async throws {
         let kit = PositronicKit()
-        let thread = try await kit.threadManager.createThread(title: "Shared Timeline")
+        let thread = try await kit.threadManager.createThread(title: "Shared Thread")
         let instance = try await kit.agentInstanceManager.createInstance(
             name: "Attached Agent",
-            description: "Agent attached to a shared timeline"
+            description: "Agent attached to a shared thread"
         )
 
         try await kit.agentInstanceManager.attach(agentID: instance.id, to: thread.id)
@@ -345,7 +345,7 @@ struct AgentInstanceManagerTests {
         try await manager.deleteInstance(id: instance.id, force: false)
 
         #expect(await threadManager.thread(id: instance.privateThreadID) == nil,
-               "Private timeline should be evicted from the TimelineManager cache")
+               "Private thread should be evicted from the ThreadManager cache")
 
         let fresh = await registry.history(for: instance.privateThreadID)
         #expect(await fresh.appendedMessageCount == 0,
