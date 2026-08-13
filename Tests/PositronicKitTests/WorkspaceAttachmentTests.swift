@@ -69,7 +69,7 @@ private func withFixture(
 
 // MARK: - Thread.attachedWorkspaceIds (model)
 
-@Suite("Timeline.attachedWorkspaceIds")
+@Suite("Thread.attachedWorkspaceIDs")
 struct ThreadAttachedWorkspacesTests {
     @Test("defaults to empty array")
     func defaultsEmpty() {
@@ -94,7 +94,7 @@ struct ThreadAttachedWorkspacesTests {
 
 // MARK: - attachWorkspace
 
-@Suite("TimelineManager.attachWorkspace")
+@Suite("ThreadManager.attachWorkspace")
 struct AttachWorkspaceTests {
     @Test("attaching adds to attachedWorkspaceIds")
     func attach() async throws {
@@ -158,7 +158,7 @@ struct AttachWorkspaceTests {
         }
     }
 
-    @Test("attaching to unknown timeline throws")
+    @Test("attaching to unknown thread throws")
     func unknownThreadThrows() async throws {
         try await withFixture { fix in
             await #expect(throws: (any Error).self) {
@@ -167,7 +167,7 @@ struct AttachWorkspaceTests {
         }
     }
 
-    @Test("attach to a non-cached timeline still resolves from persistence")
+    @Test("attach to a non-cached thread still resolves from persistence")
     func attachUncachedThread() async throws {
         try await withFixture { fix in
             let thread = Thread(attachedWorkspaceIDs: [fix.runtimeWS.id])
@@ -183,7 +183,7 @@ struct AttachWorkspaceTests {
 
 // MARK: - detachWorkspace
 
-@Suite("TimelineManager.detachWorkspace")
+@Suite("ThreadManager.detachWorkspace")
 struct DetachWorkspaceTests {
     @Test("detaching an attached workspace removes it from the list")
     func detachAttached() async throws {
@@ -246,7 +246,7 @@ struct DetachWorkspaceTests {
         }
     }
 
-    @Test("detaching from unknown timeline throws")
+    @Test("detaching from unknown thread throws")
     func unknownThreadThrows() async throws {
         try await withFixture { fix in
             await #expect(throws: (any Error).self) {
@@ -258,9 +258,9 @@ struct DetachWorkspaceTests {
 
 // MARK: - getWorkspaces
 
-@Suite("TimelineManager.getWorkspaces", .serialized)
+@Suite("ThreadManager.getWorkspaces", .serialized)
 struct GetWorkspacesTests {
-    @Test("throws timelineNotFound for unknown timeline")
+    @Test("throws threadNotFound for unknown thread")
     func throwsForUnknown() async throws {
         try await withFixture { fix in
             await #expect(throws: ThreadError.threadNotFound) {
@@ -281,7 +281,7 @@ struct GetWorkspacesTests {
         }
     }
 
-    @Test("createTimeline exposes its runtime workspace as primary")
+    @Test("createThread exposes its runtime workspace as primary")
     func createThreadPrimaryWorkspace() async throws {
         try await withFixture { fix in
             let thread = try await fix.manager.createThread()

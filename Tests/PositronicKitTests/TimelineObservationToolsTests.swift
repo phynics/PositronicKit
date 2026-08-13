@@ -12,7 +12,7 @@ import Testing
 /// `RuntimeToolPolicyFactory` tool set, which left their parameter validation, privacy
 /// guards, and message-limit clamping unverified. These tests drive each tool directly
 /// against in-memory stores.
-@Suite("Timeline observation tools")
+@Suite("Thread observation tools")
 struct ThreadObservationToolsTests {
 
     @Test("canonical observation tools preserve timeline call names")
@@ -32,13 +32,13 @@ struct ThreadObservationToolsTests {
 
     // MARK: - ThreadPeekTool
 
-    @Suite("TimelinePeekTool")
+    @Suite("ThreadPeekTool")
     struct PeekToolTests {
         private func makeStores() -> (InMemoryThreadPersistence, InMemoryMessageStore) {
             (InMemoryThreadPersistence(), InMemoryMessageStore())
         }
 
-        @Test("Returns recent messages from a non-private timeline")
+        @Test("Returns recent messages from a non-private thread")
         func returnsRecentMessages() async throws {
             let (threadStore, messageStore) = makeStores()
             let thread = Thread(title: "Public Chat")
@@ -122,7 +122,7 @@ struct ThreadObservationToolsTests {
             #expect(result.output.contains("10 messages") == true)
         }
 
-        @Test("Refuses to peek at a private timeline")
+        @Test("Refuses to peek at a private thread")
         func refusesPrivateThread() async throws {
             let (threadStore, messageStore) = makeStores()
             let thread = Thread(title: "Secret", isPrivate: true)
@@ -137,7 +137,7 @@ struct ThreadObservationToolsTests {
             #expect(result.error?.contains("private") == true)
         }
 
-        @Test("Fails gracefully for an unknown timeline id")
+        @Test("Fails gracefully for an unknown thread id")
         func unknownThreadFails() async throws {
             let (threadStore, messageStore) = makeStores()
 
@@ -180,7 +180,7 @@ struct ThreadObservationToolsTests {
             #expect(await tool.canExecute() == true)
         }
 
-        @Test("Returns zero messages for an empty timeline")
+        @Test("Returns zero messages for an empty thread")
         func emptyThreadReturnsZero() async throws {
             let (threadStore, messageStore) = makeStores()
             let thread = Thread(title: "Empty")
@@ -198,9 +198,9 @@ struct ThreadObservationToolsTests {
 
     // MARK: - ThreadListTool
 
-    @Suite("TimelineListTool")
+    @Suite("ThreadListTool")
     struct ListToolTests {
-        @Test("Lists only non-private, non-archived timelines")
+        @Test("Lists only non-private, non-archived threads")
         func listsNonPrivateNonArchived() async throws {
             let threadStore = InMemoryThreadPersistence()
             let public1 = Thread(title: "Public One")
@@ -236,7 +236,7 @@ struct ThreadObservationToolsTests {
             #expect(result.output.contains(agentId.uuidString) == true)
         }
 
-        @Test("Returns empty list when no timelines exist")
+        @Test("Returns empty list when no threads exist")
         func emptyWhenNoThreads() async throws {
             let threadStore = InMemoryThreadPersistence()
 
@@ -247,7 +247,7 @@ struct ThreadObservationToolsTests {
             #expect(result.output.contains("[]") == true)
         }
 
-        @Test("Excludes archived timelines even if non-private")
+        @Test("Excludes archived threads even if non-private")
         func excludesArchived() async throws {
             let threadStore = InMemoryThreadPersistence()
             let archived = Thread(title: "Old", isArchived: true)

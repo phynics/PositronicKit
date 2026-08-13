@@ -42,7 +42,7 @@ public extension ThreadManager {
                 try await threadStore.saveThread(timeline)
             } catch {
                 logger.error("""
-                createThread: timeline persist failed — timeline: \(threadID.uuidString.prefix(8)), \
+                createThread: thread persist failed — thread: \(threadID.uuidString.prefix(8)), \
                 operation: saveTimeline, error: \(ErrorKit.userFriendlyMessage(for: error))
                 """)
                 throw ThreadError.unavailable
@@ -71,7 +71,7 @@ public extension ThreadManager {
             try await threadStore.saveThread(timeline)
         } catch {
             logger.error("""
-            createThread: timeline persist failed — timeline: \(threadID.uuidString.prefix(8)), \
+            createThread: thread persist failed — thread: \(threadID.uuidString.prefix(8)), \
             operation: saveTimeline, error: \(ErrorKit.userFriendlyMessage(for: error))
             """)
             throw ThreadError.unavailable
@@ -85,7 +85,7 @@ public extension ThreadManager {
         } catch {
             logger.error("""
             createThread: workspace directory setup failed — \
-            timeline: \(threadID.uuidString.prefix(8)), \
+            thread: \(threadID.uuidString.prefix(8)), \
             operation: createDirectory, error: \(ErrorKit.userFriendlyMessage(for: error))
             """)
             try? await threadStore.deleteThread(id: threadID)
@@ -97,7 +97,7 @@ public extension ThreadManager {
         } catch {
             logger.error("""
             createThread: workspace persist failed — \
-            timeline: \(threadID.uuidString.prefix(8)), \
+            thread: \(threadID.uuidString.prefix(8)), \
             workspace: \(workspace.id.uuidString.prefix(8)), \
             operation: saveWorkspace, error: \(ErrorKit.userFriendlyMessage(for: error))
             """)
@@ -167,7 +167,7 @@ public extension ThreadManager {
                 throw error
             } catch {
                 logger.error("""
-                updateThreadTitle fetch failed — timeline: \(threadID.uuidString.prefix(8)), \
+                updateThreadTitle fetch failed — thread: \(threadID.uuidString.prefix(8)), \
                 operation: fetchTimeline, error: \(ErrorKit.userFriendlyMessage(for: error))
                 """)
                 throw ThreadError.unavailable
@@ -213,7 +213,7 @@ public extension ThreadManager {
                 } catch {
                     logger.warning("""
                     evictThreadFromMemory: ephemeral workspace cleanup failed — \
-                    timeline: \(id.uuidString.prefix(8)), \
+                    thread: \(id.uuidString.prefix(8)), \
                     path: \(workingDirectory), error: \(ErrorKit.userFriendlyMessage(for: error))
                     """)
                 }
@@ -393,7 +393,7 @@ public extension ThreadManager {
 
         if !degradations.isEmpty {
             logger.warning("""
-            deleteThreadPermanently: partial cleanup — timeline: \(id.uuidString.prefix(8)), \
+            deleteThreadPermanently: partial cleanup — thread: \(id.uuidString.prefix(8)), \
             failures: \(degradations.count), operations: \(degradations.map(\.operation).joined(separator: ", "))
             """)
         }
@@ -431,7 +431,7 @@ private extension ThreadManager {
             } catch {
                 logger.warning("""
                 setupThreadComponents: context workspace resolution failed — \
-                workspace: \(firstId.uuidString.prefix(8)), timeline: \(timeline.id.uuidString.prefix(8)), \
+                workspace: \(firstId.uuidString.prefix(8)), thread: \(timeline.id.uuidString.prefix(8)), \
                 operation: resolveContextWorkspace, error: \(ErrorKit.userFriendlyMessage(for: error))
                 """)
                 timelineDegradations[timeline.id, default: []].append(TurnDiagnostic(
@@ -471,7 +471,7 @@ private extension ThreadManager {
             } catch {
                 logger.warning("""
                 setupThreadComponents: attached workspace registration failed — \
-                workspace: \(attachedId.uuidString.prefix(8)), timeline: \(timeline.id.uuidString.prefix(8)), \
+                workspace: \(attachedId.uuidString.prefix(8)), thread: \(timeline.id.uuidString.prefix(8)), \
                 operation: registerAttachedWorkspace, error: \(ErrorKit.userFriendlyMessage(for: error))
                 """)
                 timelineDegradations[timeline.id, default: []].append(TurnDiagnostic(

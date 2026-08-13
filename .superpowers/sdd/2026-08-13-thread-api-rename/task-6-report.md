@@ -38,3 +38,29 @@ rewritten merely to remove historical identifiers.
 
 - Task brief: `.superpowers/sdd/2026-08-13-thread-api-rename/task-6-brief.md`.
 - Prior implementation baseline: `1b13280`.
+
+## Review Fix Round 1
+
+Complete. Review findings were addressed without changing compatibility, wire, database, error,
+or external-tool identifiers:
+
+- Restored explicit legacy `.hasAttachedTimelines` branch coverage alongside the canonical
+  `.hasAttachedThreads` branch.
+- Updated the `ChatRunRequest` sidecar example to use `threadID`.
+- Canonicalized ordinary workspace-attachment and observation-tool test labels while retaining
+  compatibility-specific `timeline` call-name and `timeline_id` assertions.
+- Updated lifecycle and partial-assistant runtime diagnostic prose to `thread`, preserving stable
+  structured keys such as `timelineID` and historical operation/entity identifiers.
+
+Round 1 verification:
+
+- Focused affected tests — passed; 64 tests in 9 suites.
+- `swift build --product PositronicKitExamples` — passed.
+- `make validate-docs` story/example phase — passed; 29 tests in 4 suites. The subsequent
+  symbolgraph step is blocked by the local Xcode 27 beta build-layout mismatch: the script expects
+  `.build/arm64-apple-macosx/debug/Modules`, which that toolchain did not produce.
+- Targeted stale-label/runtime-prose audits — clean except the two intentional external-contract
+  labels (`timeline` call names and missing `timeline_id`).
+- `git diff --check` — clean.
+
+Round 1 baseline: `3f15f3b`.

@@ -54,7 +54,7 @@ let tone = SidecarDirective(
 
 ```swift
 let stream = try await chat.run(ChatRunRequest(
-    timelineID: timelineId,
+    threadID: threadID,
     message: "What's the deal with actors in Swift 6?",
     sidecars: [title, tone]
 ))

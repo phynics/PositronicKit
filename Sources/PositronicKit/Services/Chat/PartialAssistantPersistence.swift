@@ -58,11 +58,11 @@ struct PartialAssistantPersistence {
             )
             try await messageStore.saveMessage(assistantMsg)
             logger.warning(
-                "Persisted partial assistant turn for timeline \(context.timelineId) status=\(status.rawValue) contentChars=\(fullResponse.count) thinkingChars=\(fullThinking.count) toolCalls=\(hasToolCalls)"
+                "Persisted partial assistant turn for thread \(context.threadID) status=\(status.rawValue) contentChars=\(fullResponse.count) thinkingChars=\(fullThinking.count) toolCalls=\(hasToolCalls)"
             )
         } catch {
             logger.error(
-                "Failed to persist partial assistant turn for timeline \(context.timelineId) status=\(status.rawValue): \(error)"
+                "Failed to persist partial assistant turn for thread \(context.threadID) status=\(status.rawValue): \(error)"
             )
         }
     }
