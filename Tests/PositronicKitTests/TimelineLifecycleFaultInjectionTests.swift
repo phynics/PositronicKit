@@ -3,41 +3,42 @@ import Foundation
 import PKUtilities
 import PKTestSupport
 @testable import PositronicKit
+import struct PositronicKit.Thread
 import Testing
 
-private actor AttachmentTimelinePersistence: TimelinePersistenceProtocol {
-    private let backing = MockTimelinePersistence()
+private actor AttachmentThreadPersistence: ThreadPersistenceProtocol {
+    private let backing = MockThreadPersistence()
     private var saveFails = false
 
     func setSaveFails(_ value: Bool) {
         saveFails = value
     }
 
-    func saveTimeline(_ timeline: Timeline) async throws {
+    func saveThread(_ thread: Thread) async throws {
         if saveFails { throw FailingStoreError.saveFailed }
-        try await backing.saveTimeline(timeline)
+        try await backing.saveThread(thread)
     }
 
-    func fetchTimeline(id: UUID) async throws -> Timeline? {
-        try await backing.fetchTimeline(id: id)
+    func fetchThread(id: UUID) async throws -> Thread? {
+        try await backing.fetchThread(id: id)
     }
 
-    func fetchAllTimelines(includeArchived: Bool) async throws -> [Timeline] {
-        try await backing.fetchAllTimelines(includeArchived: includeArchived)
+    func fetchAllThreads(includeArchived: Bool) async throws -> [Thread] {
+        try await backing.fetchAllThreads(includeArchived: includeArchived)
     }
 
-    func deleteTimeline(id: UUID) async throws {
-        try await backing.deleteTimeline(id: id)
+    func deleteThread(id: UUID) async throws {
+        try await backing.deleteThread(id: id)
     }
 
-    func pruneTimelines(
+    func pruneThreads(
         olderThan timeInterval: TimeInterval,
-        excluding excludedTimelineIds: [UUID],
+        excluding excludedThreadIds: [UUID],
         dryRun: Bool
     ) async throws -> Int {
-        try await backing.pruneTimelines(
+        try await backing.pruneThreads(
             olderThan: timeInterval,
-            excluding: excludedTimelineIds,
+            excluding: excludedThreadIds,
             dryRun: dryRun
         )
     }
@@ -87,23 +88,23 @@ private actor BlockingWorkspaceStore: WorkspaceStore {
     }
 }
 
-/// PKRR-007: Timeline creation and workspace attachment must not leave partial state.
+/// PKRR-007: Thread creation and workspace attachment must not leave partial state.
 ///
-/// `createTimeline` persists the timeline record first, then creates ancillary state
+/// `createThread` persists the thread record first, then creates ancillary state
 /// (directory, notes, workspace row, in-memory caches). If any step fails, all
 /// previously created state is rolled back before rethrowing.
 ///
 /// `attachWorkspace` validates the workspace exists in the store before persisting the
-/// attachment. If validation fails, the timeline is not mutated.
+/// attachment. If validation fails, the thread is not mutated.
 ///
 /// These tests inject failures at each step and assert no orphan directories, workspace
 /// rows, cached managers, or persisted attachment IDs remain.
-@Suite("Timeline lifecycle fault injection (PKRR-007)")
-struct TimelineLifecycleFaultInjectionTests {
+@Suite("Thread lifecycle fault injection (PKRR-007)")
+struct ThreadLifecycleFaultInjectionTests {
 
-    @Test("attachWorkspaceDoesNotResurrectPermanentlyDeletedTimeline")
-    func attachWorkspaceDoesNotResurrectPermanentlyDeletedTimeline() async throws {
-        let timelineStore = MockPersistenceService()
+    @Test("attachWorkspace does not resurrect a permanently deleted thread")
+    func attachWorkspaceDoesNotResurrectPermanentlyDeletedThread() async throws {
+        let threadStore = MockPersistenceService()
         let workspaceStore = BlockingWorkspaceStore()
         let workspace = WorkspaceReference(
             uri: WorkspaceURI(host: "user-mac", path: "/projects/app"),
@@ -111,42 +112,42 @@ struct TimelineLifecycleFaultInjectionTests {
         )
         try await workspaceStore.saveWorkspace(workspace)
 
-        let manager = TimelineManager(
+        let manager = ThreadManager(
             stores: .init(
-                timelineStore: timelineStore,
-                messageStore: timelineStore,
+                threadStore: threadStore,
+                messageStore: threadStore,
                 workspaceStore: workspaceStore,
-                toolPersistence: timelineStore
+                toolPersistence: threadStore
             ),
             workspaceProfile: .noWorkspace
         )
-        let timeline = try await manager.createTimeline()
+        let thread = try await manager.createThread()
 
         let attachTask = Task {
-            try? await manager.attachWorkspace(workspace.id, to: timeline.id)
+            try? await manager.attachWorkspace(workspace.id, to: thread.id)
         }
         await workspaceStore.waitUntilValidationStarts()
 
         let deleteTask = Task {
-            await manager.deleteTimelinePermanently(id: timeline.id)
+            await manager.deleteThreadPermanently(id: thread.id)
         }
         let deletion = await deleteTask.value
         #expect(deletion.isComplete)
-        #expect(try await timelineStore.fetchTimeline(id: timeline.id) == nil)
+        #expect(try await threadStore.fetchThread(id: thread.id) == nil)
 
         await workspaceStore.releaseValidation()
         _ = await attachTask.value
 
-        #expect(try await timelineStore.fetchTimeline(id: timeline.id) == nil)
+        #expect(try await threadStore.fetchThread(id: thread.id) == nil)
     }
 
-    @Test("attachment store failure does not mutate the cached timeline")
-    func attachmentStoreFailureDoesNotMutateCachedTimeline() async throws {
-        let timelineStore = AttachmentTimelinePersistence()
+    @Test("attachment store failure does not mutate the cached thread")
+    func attachmentStoreFailureDoesNotMutateCachedThread() async throws {
+        let threadStore = AttachmentThreadPersistence()
         let persistence = MockPersistenceService()
-        let manager = TimelineManager(
+        let manager = ThreadManager(
             stores: .init(
-                timelineStore: timelineStore,
+                threadStore: threadStore,
                 messageStore: persistence,
                 workspaceStore: persistence,
                 toolPersistence: persistence
@@ -159,49 +160,49 @@ struct TimelineLifecycleFaultInjectionTests {
         )
         try await persistence.saveWorkspace(workspace)
 
-        let timeline = try await manager.createTimeline()
-        let original = try #require(await manager.timeline(id: timeline.id))
+        let thread = try await manager.createThread()
+        let original = try #require(await manager.thread(id: thread.id))
 
-        await timelineStore.setSaveFails(true)
+        await threadStore.setSaveFails(true)
         do {
-            try await manager.attachWorkspace(workspace.id, to: timeline.id)
+            try await manager.attachWorkspace(workspace.id, to: thread.id)
             Issue.record("Expected attach save to fail")
         } catch FailingStoreError.saveFailed {
             // Expected.
         }
 
-        let afterAttachFailure = try #require(await manager.timeline(id: timeline.id))
+        let afterAttachFailure = try #require(await manager.thread(id: thread.id))
         #expect(afterAttachFailure.attachedWorkspaceIDs == original.attachedWorkspaceIDs)
         #expect(afterAttachFailure.updatedAt == original.updatedAt)
 
-        await timelineStore.setSaveFails(false)
-        try await manager.attachWorkspace(workspace.id, to: timeline.id)
-        let attached = try #require(await manager.timeline(id: timeline.id))
+        await threadStore.setSaveFails(false)
+        try await manager.attachWorkspace(workspace.id, to: thread.id)
+        let attached = try #require(await manager.thread(id: thread.id))
 
-        await timelineStore.setSaveFails(true)
+        await threadStore.setSaveFails(true)
         do {
-            try await manager.detachWorkspace(workspace.id, from: timeline.id)
+            try await manager.detachWorkspace(workspace.id, from: thread.id)
             Issue.record("Expected detach save to fail")
         } catch FailingStoreError.saveFailed {
             // Expected.
         }
 
-        let afterDetachFailure = try #require(await manager.timeline(id: timeline.id))
+        let afterDetachFailure = try #require(await manager.thread(id: thread.id))
         #expect(afterDetachFailure.attachedWorkspaceIDs == attached.attachedWorkspaceIDs)
         #expect(afterDetachFailure.updatedAt == attached.updatedAt)
     }
 
-    // MARK: - createTimeline: timeline store failure leaves no orphan state
+    // MARK: - createThread: thread store failure leaves no orphan state
 
-    @Test("createTimeline rolls back when the timeline store fails on save")
-    func createTimelineRollsBackOnTimelineStoreFailure() async throws {
+    @Test("createThread rolls back when the thread store fails on save")
+    func createThreadRollsBackOnThreadStoreFailure() async throws {
         let persistence = MockPersistenceService()
-        let failingTimelineStore = FailingTimelinePersistence(saveFails: true)
+        let failingThreadStore = FailingThreadPersistence(saveFails: true)
         let workspaceStore = MockWorkspacePersistence()
         let workspace = TestWorkspace()
-        let manager = TimelineManager(
+        let manager = ThreadManager(
             stores: .init(
-                timelineStore: failingTimelineStore,
+                threadStore: failingThreadStore,
                 messageStore: persistence,
                 workspaceStore: workspaceStore,
                 toolPersistence: persistence
@@ -210,30 +211,30 @@ struct TimelineLifecycleFaultInjectionTests {
         )
 
         do {
-            _ = try await manager.createTimeline(title: "Failing Timeline")
-            Issue.record("Expected TimelineError.unavailable")
-        } catch TimelineError.unavailable {
+            _ = try await manager.createThread(title: "Failing Thread")
+            Issue.record("Expected ThreadError.unavailable")
+        } catch ThreadError.unavailable {
             // Correct — the store failure is surfaced.
         } catch {
             Issue.record("Unexpected error: \(error)")
         }
 
         #expect(workspaceStore.workspaces.isEmpty,
-               "No workspace row should be left when the timeline store fails")
-        #expect(persistence.timelines.isEmpty,
-               "No timeline record should be left in the message store")
-        #expect(await manager.timeline(id: UUID()) == nil,
-               "No timeline should be cached in memory")
+               "No workspace row should be left when the thread store fails")
+        #expect(persistence.threads.isEmpty,
+               "No thread record should be left in the message store")
+        #expect(await manager.thread(id: UUID()) == nil,
+               "No thread should be cached in memory")
     }
 
-    @Test("createTimeline rolls back when the workspace store fails on save")
-    func createTimelineRollsBackOnWorkspaceStoreFailure() async throws {
+    @Test("createThread rolls back when the workspace store fails on save")
+    func createThreadRollsBackOnWorkspaceStoreFailure() async throws {
         let persistence = MockPersistenceService()
         let failingWorkspaceStore = FailingWorkspaceStore(saveFails: true)
         let workspace = TestWorkspace()
-        let manager = TimelineManager(
+        let manager = ThreadManager(
             stores: .init(
-                timelineStore: persistence,
+                threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: failingWorkspaceStore,
                 toolPersistence: persistence
@@ -241,41 +242,41 @@ struct TimelineLifecycleFaultInjectionTests {
             workspaceRoot: workspace.root
         )
 
-        var createdTimelineId: UUID?
+        var createdThreadId: UUID?
         do {
-            let timeline = try await manager.createTimeline(title: "WS Fail Timeline")
-            createdTimelineId = timeline.id
-        } catch TimelineError.unavailable {
+            let thread = try await manager.createThread(title: "WS Fail Thread")
+            createdThreadId = thread.id
+        } catch ThreadError.unavailable {
             // Correct — the workspace store failure is surfaced.
         } catch {
             Issue.record("Unexpected error: \(error)")
         }
 
-        #expect(createdTimelineId == nil, "createTimeline should not return a timeline on failure")
+        #expect(createdThreadId == nil, "createThread should not return a thread on failure")
 
-        let timelinesInStore = persistence.timelines
-        #expect(timelinesInStore.isEmpty,
-               "No timeline record should persist when the workspace store fails")
+        let threadsInStore = persistence.threads
+        #expect(threadsInStore.isEmpty,
+               "No thread record should persist when the workspace store fails")
 
-        let timelinesDir = workspace.root.appendingPathComponent("timelines", isDirectory: true)
-        if FileManager.default.fileExists(atPath: timelinesDir.path) {
-            let contents = try FileManager.default.contentsOfDirectory(atPath: timelinesDir.path)
+        let threadsDir = workspace.root.appendingPathComponent("timelines", isDirectory: true)
+        if FileManager.default.fileExists(atPath: threadsDir.path) {
+            let contents = try FileManager.default.contentsOfDirectory(atPath: threadsDir.path)
             #expect(contents.isEmpty,
-                    "No timeline directory should remain when the workspace store fails")
+                    "No thread directory should remain when the workspace store fails")
         }
 
         #expect(failingWorkspaceStore.saveAttemptCount >= 1,
                "The workspace store save must have been attempted")
     }
 
-    @Test("createTimeline succeeds when all stores are healthy and leaves no orphans")
-    func createTimelineHealthyLeavesNoOrphans() async throws {
+    @Test("createThread succeeds when all stores are healthy and leaves no orphans")
+    func createThreadHealthyLeavesNoOrphans() async throws {
         let persistence = MockPersistenceService()
         let workspaceStore = MockWorkspacePersistence()
         let workspace = TestWorkspace()
-        let manager = TimelineManager(
+        let manager = ThreadManager(
             stores: .init(
-                timelineStore: persistence,
+                threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: workspaceStore,
                 toolPersistence: persistence
@@ -283,27 +284,27 @@ struct TimelineLifecycleFaultInjectionTests {
             workspaceRoot: workspace.root
         )
 
-        let timeline = try await manager.createTimeline(title: "Healthy Timeline")
+        let thread = try await manager.createThread(title: "Healthy Thread")
 
-        let persistedTimeline = try #require(await persistence.fetchTimeline(id: timeline.id))
-        #expect(persistedTimeline.id == timeline.id)
+        let persistedThread = try #require(await persistence.fetchThread(id: thread.id))
+        #expect(persistedThread.id == thread.id)
 
         #expect(workspaceStore.workspaces.count == 1,
-               "Exactly one workspace should be saved for a healthy timeline")
-        #expect(workspaceStore.workspaces.first?.id == timeline.attachedWorkspaceIDs.first)
+               "Exactly one workspace should be saved for a healthy thread")
+        #expect(workspaceStore.workspaces.first?.id == thread.attachedWorkspaceIDs.first)
 
-        let workingDir = try #require(timeline.workingDirectory)
+        let workingDir = try #require(thread.workingDirectory)
         #expect(FileManager.default.fileExists(atPath: workingDir),
                "The working directory should exist")
 
-        let cached = await manager.timeline(id: timeline.id)
-        #expect(cached != nil, "The timeline should be cached in memory")
+        let cached = await manager.thread(id: thread.id)
+        #expect(cached != nil, "The thread should be cached in memory")
     }
 
-    // MARK: - createTimeline: directory or filesystem failure rollback
+    // MARK: - createThread: directory or filesystem failure rollback
 
-    @Test("createTimeline rolls back the timeline record when directory creation fails")
-    func createTimelineRollsBackOnDirectoryFailure() async throws {
+    @Test("createThread rolls back the thread record when directory creation fails")
+    func createThreadRollsBackOnDirectoryFailure() async throws {
         let persistence = MockPersistenceService()
         let workspaceStore = MockWorkspacePersistence()
         let workspace = TestWorkspace()
@@ -311,9 +312,9 @@ struct TimelineLifecycleFaultInjectionTests {
         let invalidRoot = workspace.root.appendingPathComponent("invalid")
         try Data().write(to: invalidRoot)
 
-        let manager = TimelineManager(
+        let manager = ThreadManager(
             stores: .init(
-                timelineStore: persistence,
+                threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: workspaceStore,
                 toolPersistence: persistence
@@ -322,28 +323,28 @@ struct TimelineLifecycleFaultInjectionTests {
         )
 
         do {
-            _ = try await manager.createTimeline(title: "Dir Fail Timeline")
+            _ = try await manager.createThread(title: "Dir Fail Thread")
             Issue.record("Expected an error")
         } catch {
-            // Expected — either TimelineError.unavailable or a filesystem error
+            // Expected — either ThreadError.unavailable or a filesystem error
         }
 
-        let timelinesInStore = persistence.timelines
-        #expect(timelinesInStore.allSatisfy { $0.title != "Dir Fail Timeline" },
-               "No timeline record with the failing title should persist")
+        let threadsInStore = persistence.threads
+        #expect(threadsInStore.allSatisfy { $0.title != "Dir Fail Thread" },
+               "No thread record with the failing title should persist")
         #expect(workspaceStore.workspaces.isEmpty,
                "No workspace row should be left when directory creation fails")
     }
 
     // MARK: - attachWorkspace: workspace validation before persistence
 
-    @Test("attachWorkspace throws and does not mutate the timeline when the workspace does not exist")
+    @Test("attachWorkspace throws and does not mutate the thread when the workspace does not exist")
     func attachWorkspaceRejectsMissingWorkspace() async throws {
         let persistence = MockPersistenceService()
         let workspace = TestWorkspace()
-        let manager = TimelineManager(
+        let manager = ThreadManager(
             stores: .init(
-                timelineStore: persistence,
+                threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
                 toolPersistence: persistence
@@ -351,34 +352,34 @@ struct TimelineLifecycleFaultInjectionTests {
             workspaceRoot: workspace.root
         )
 
-        let timeline = try await manager.createTimeline()
-        let originalAttachedIds = timeline.attachedWorkspaceIDs
+        let thread = try await manager.createThread()
+        let originalAttachedIds = thread.attachedWorkspaceIDs
         let missingWorkspaceId = UUID()
 
         do {
-            try await manager.attachWorkspace(missingWorkspaceId, to: timeline.id)
-            Issue.record("Expected TimelineError.invalidState")
-        } catch TimelineError.invalidState {
+            try await manager.attachWorkspace(missingWorkspaceId, to: thread.id)
+            Issue.record("Expected ThreadError.invalidState")
+        } catch ThreadError.invalidState {
             // Correct — the workspace does not exist.
         } catch {
             Issue.record("Unexpected error: \(error)")
         }
 
-        let persisted = try #require(await persistence.fetchTimeline(id: timeline.id))
+        let persisted = try #require(await persistence.fetchThread(id: thread.id))
         #expect(persisted.attachedWorkspaceIDs == originalAttachedIds,
-               "The timeline's attached workspace IDs must not change when validation fails")
+               "The thread's attached workspace IDs must not change when validation fails")
         #expect(!persisted.attachedWorkspaceIDs.contains(missingWorkspaceId),
                "The missing workspace ID must not be persisted")
     }
 
-    @Test("attachWorkspace throws and does not mutate the timeline when the workspace store fails")
+    @Test("attachWorkspace throws and does not mutate the thread when the workspace store fails")
     func attachWorkspaceRejectsOnStoreFailure() async throws {
         let persistence = MockPersistenceService()
         let failingWorkspaceStore = FailingWorkspaceStore(fetchFails: true)
         let workspace = TestWorkspace()
-        let manager = TimelineManager(
+        let manager = ThreadManager(
             stores: .init(
-                timelineStore: persistence,
+                threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: failingWorkspaceStore,
                 toolPersistence: persistence
@@ -386,31 +387,31 @@ struct TimelineLifecycleFaultInjectionTests {
             workspaceRoot: workspace.root
         )
 
-        let timeline = try await manager.createTimeline()
-        let originalAttachedIds = timeline.attachedWorkspaceIDs
+        let thread = try await manager.createThread()
+        let originalAttachedIds = thread.attachedWorkspaceIDs
         let workspaceId = UUID()
 
         do {
-            try await manager.attachWorkspace(workspaceId, to: timeline.id)
-            Issue.record("Expected TimelineError.unavailable")
-        } catch TimelineError.unavailable {
+            try await manager.attachWorkspace(workspaceId, to: thread.id)
+            Issue.record("Expected ThreadError.unavailable")
+        } catch ThreadError.unavailable {
             // Correct — the store failure is surfaced.
         } catch {
             Issue.record("Unexpected error: \(error)")
         }
 
-        let persisted = try #require(await persistence.fetchTimeline(id: timeline.id))
+        let persisted = try #require(await persistence.fetchThread(id: thread.id))
         #expect(persisted.attachedWorkspaceIDs == originalAttachedIds,
-               "The timeline's attached workspace IDs must not change when the store fails")
+               "The thread's attached workspace IDs must not change when the store fails")
     }
 
     @Test("attachWorkspace persists the attachment when the workspace exists")
     func attachWorkspaceSucceedsWhenWorkspaceExists() async throws {
         let persistence = MockPersistenceService()
         let workspace = TestWorkspace()
-        let manager = TimelineManager(
+        let manager = ThreadManager(
             stores: .init(
-                timelineStore: persistence,
+                threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
                 toolPersistence: persistence
@@ -418,18 +419,18 @@ struct TimelineLifecycleFaultInjectionTests {
             workspaceRoot: workspace.root
         )
 
-        let timeline = try await manager.createTimeline()
+        let thread = try await manager.createThread()
         let attachedWS = WorkspaceReference(
             uri: WorkspaceURI(host: "user-mac", path: "/projects/app"),
             location: .attached
         )
         try await persistence.saveWorkspace(attachedWS)
 
-        try await manager.attachWorkspace(attachedWS.id, to: timeline.id)
+        try await manager.attachWorkspace(attachedWS.id, to: thread.id)
 
-        let persisted = try #require(await persistence.fetchTimeline(id: timeline.id))
+        let persisted = try #require(await persistence.fetchThread(id: thread.id))
         #expect(persisted.attachedWorkspaceIDs.contains(attachedWS.id),
-               "The workspace ID should be persisted in the timeline")
+               "The workspace ID should be persisted in the thread")
     }
 
     // MARK: - attachWorkspace: already-attached workspace is re-validated
@@ -438,9 +439,9 @@ struct TimelineLifecycleFaultInjectionTests {
     func attachWorkspaceRevalidatesAlreadyAttached() async throws {
         let persistence = MockPersistenceService()
         let workspace = TestWorkspace()
-        let manager = TimelineManager(
+        let manager = ThreadManager(
             stores: .init(
-                timelineStore: persistence,
+                threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
                 toolPersistence: persistence
@@ -448,42 +449,42 @@ struct TimelineLifecycleFaultInjectionTests {
             workspaceRoot: workspace.root
         )
 
-        let timeline = try await manager.createTimeline()
+        let thread = try await manager.createThread()
         let attachedWS = WorkspaceReference(
             uri: WorkspaceURI(host: "user-mac", path: "/projects/app"),
             location: .attached
         )
         try await persistence.saveWorkspace(attachedWS)
-        try await manager.attachWorkspace(attachedWS.id, to: timeline.id)
+        try await manager.attachWorkspace(attachedWS.id, to: thread.id)
 
         try await persistence.deleteWorkspace(id: attachedWS.id)
 
         do {
-            try await manager.attachWorkspace(attachedWS.id, to: timeline.id)
-            Issue.record("Expected TimelineError.invalidState after workspace deletion")
-        } catch TimelineError.invalidState {
+            try await manager.attachWorkspace(attachedWS.id, to: thread.id)
+            Issue.record("Expected ThreadError.invalidState after workspace deletion")
+        } catch ThreadError.invalidState {
             // Correct — the workspace no longer exists.
         } catch {
             Issue.record("Unexpected error: \(error)")
         }
 
-        let persisted = try #require(await persistence.fetchTimeline(id: timeline.id))
+        let persisted = try #require(await persistence.fetchThread(id: thread.id))
         let attachmentCount = persisted.attachedWorkspaceIDs.filter { $0 == attachedWS.id }.count
         #expect(attachmentCount == 1,
                "The deleted workspace should not be re-attached or duplicated")
     }
 
-    // MARK: - createTimeline: retry after failure succeeds (no stale state)
+    // MARK: - createThread: retry after failure succeeds (no stale state)
 
-    @Test("createTimeline can be retried after a transient store failure")
-    func createTimelineRetryAfterFailure() async throws {
+    @Test("createThread can be retried after a transient store failure")
+    func createThreadRetryAfterFailure() async throws {
         let persistence = MockPersistenceService()
-        let failingTimelineStore = FailingTimelinePersistence(saveFails: true)
+        let failingThreadStore = FailingThreadPersistence(saveFails: true)
         let workspaceStore = MockWorkspacePersistence()
         let workspace = TestWorkspace()
-        let manager = TimelineManager(
+        let manager = ThreadManager(
             stores: .init(
-                timelineStore: failingTimelineStore,
+                threadStore: failingThreadStore,
                 messageStore: persistence,
                 workspaceStore: workspaceStore,
                 toolPersistence: persistence
@@ -492,7 +493,7 @@ struct TimelineLifecycleFaultInjectionTests {
         )
 
         do {
-            _ = try await manager.createTimeline(title: "First Attempt")
+            _ = try await manager.createThread(title: "First Attempt")
         } catch {
             // Expected
         }
@@ -500,10 +501,10 @@ struct TimelineLifecycleFaultInjectionTests {
         #expect(workspaceStore.workspaces.isEmpty,
                "No orphan workspace after first failure")
 
-        let healthyStore = MockTimelinePersistence()
-        let healthyManager = TimelineManager(
+        let healthyStore = MockThreadPersistence()
+        let healthyManager = ThreadManager(
             stores: .init(
-                timelineStore: healthyStore,
+                threadStore: healthyStore,
                 messageStore: persistence,
                 workspaceStore: workspaceStore,
                 toolPersistence: persistence
@@ -511,11 +512,11 @@ struct TimelineLifecycleFaultInjectionTests {
             workspaceRoot: workspace.root
         )
 
-        let timeline = try await healthyManager.createTimeline(title: "Retry Attempt")
-        #expect(timeline.title == "Retry Attempt")
+        let thread = try await healthyManager.createThread(title: "Retry Attempt")
+        #expect(thread.title == "Retry Attempt")
 
-        let persisted = try #require(await healthyStore.fetchTimeline(id: timeline.id))
-        #expect(persisted.id == timeline.id)
+        let persisted = try #require(await healthyStore.fetchThread(id: thread.id))
+        #expect(persisted.id == thread.id)
         #expect(workspaceStore.workspaces.count == 1,
                "Exactly one workspace after the successful retry")
     }

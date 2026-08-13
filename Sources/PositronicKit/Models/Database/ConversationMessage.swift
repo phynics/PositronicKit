@@ -5,7 +5,7 @@ import PKUtilities
 /// Individual message within a conversation
 public struct ConversationMessage: Codable, Identifiable, Sendable {
     public var id: UUID
-    public var timelineID: UUID
+    public var threadID: UUID
     public var role: String
     public var messageContent: MessageContent
     public var content: String {
@@ -36,7 +36,7 @@ public struct ConversationMessage: Codable, Identifiable, Sendable {
 
     public init(
         id: UUID = UUID(),
-        timelineID: UUID,
+        threadID: UUID,
         role: Message.MessageRole,
         content: String,
         timestamp: Date = Date(),
@@ -51,7 +51,7 @@ public struct ConversationMessage: Codable, Identifiable, Sendable {
         status: Message.MessageStatus? = nil
     ) {
         self.id = id
-        self.timelineID = timelineID
+        self.threadID = threadID
         self.role = role.rawValue
         messageContent = MessageContent(content)
         self.timestamp = timestamp
@@ -69,7 +69,7 @@ public struct ConversationMessage: Codable, Identifiable, Sendable {
     /// Creates a persisted conversation row with ordered multimodal content.
     public init(
         id: UUID = UUID(),
-        timelineID: UUID,
+        threadID: UUID,
         role: Message.MessageRole,
         content: MessageContent,
         timestamp: Date = Date(),
@@ -84,7 +84,7 @@ public struct ConversationMessage: Codable, Identifiable, Sendable {
         status: Message.MessageStatus? = nil
     ) {
         self.id = id
-        self.timelineID = timelineID
+        self.threadID = threadID
         self.role = role.rawValue
         messageContent = content
         self.timestamp = timestamp
@@ -99,8 +99,44 @@ public struct ConversationMessage: Codable, Identifiable, Sendable {
         self.status = status
     }
 
+    /// Creates a conversation message using the legacy timeline identifier spelling.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public init(
+        id: UUID = UUID(),
+        timelineID: UUID,
+        role: Message.MessageRole,
+        content: MessageContent,
+        timestamp: Date = Date(),
+        recalledMemories: String = "[]",
+        parentID: UUID? = nil,
+        reasoning: String? = nil,
+        toolCalls: String = "[]",
+        toolCallID: String? = nil,
+        agentInstanceID: UUID? = nil,
+        remoteDepth: Int = 0,
+        snapshotData: Data? = nil,
+        status: Message.MessageStatus? = nil
+    ) {
+        self.init(
+            id: id,
+            threadID: timelineID,
+            role: role,
+            content: content,
+            timestamp: timestamp,
+            recalledMemories: recalledMemories,
+            parentID: parentID,
+            reasoning: reasoning,
+            toolCalls: toolCalls,
+            toolCallID: toolCallID,
+            agentInstanceID: agentInstanceID,
+            remoteDepth: remoteDepth,
+            snapshotData: snapshotData,
+            status: status
+        )
+    }
+
     /// Creates a conversation message using the legacy identifier spellings.
-    @available(*, deprecated, message: "Use init(..., timelineID:...parentID:...toolCallID:agentInstanceID:...).")
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     public init(
         id: UUID = UUID(),
         timelineId: UUID,
@@ -119,7 +155,7 @@ public struct ConversationMessage: Codable, Identifiable, Sendable {
     ) {
         self.init(
             id: id,
-            timelineID: timelineId,
+            threadID: timelineId,
             role: role,
             content: content,
             timestamp: timestamp,
@@ -135,11 +171,54 @@ public struct ConversationMessage: Codable, Identifiable, Sendable {
         )
     }
 
+    /// Creates a conversation message using the legacy identifier spelling.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public init(
+        id: UUID = UUID(),
+        timelineID: UUID,
+        role: Message.MessageRole,
+        content: String,
+        timestamp: Date = Date(),
+        recalledMemories: String = "[]",
+        parentID: UUID? = nil,
+        reasoning: String? = nil,
+        toolCalls: String = "[]",
+        toolCallID: String? = nil,
+        agentInstanceID: UUID? = nil,
+        remoteDepth: Int = 0,
+        snapshotData: Data? = nil,
+        status: Message.MessageStatus? = nil
+    ) {
+        self.init(
+            id: id,
+            threadID: timelineID,
+            role: role,
+            content: content,
+            timestamp: timestamp,
+            recalledMemories: recalledMemories,
+            parentID: parentID,
+            reasoning: reasoning,
+            toolCalls: toolCalls,
+            toolCallID: toolCallID,
+            agentInstanceID: agentInstanceID,
+            remoteDepth: remoteDepth,
+            snapshotData: snapshotData,
+            status: status
+        )
+    }
+
+    /// The thread identifier using the legacy 3.x spelling.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public var timelineID: UUID {
+        get { threadID }
+        set { threadID = newValue }
+    }
+
     /// The timeline identifier using the legacy 3.x spelling.
-    @available(*, deprecated, renamed: "timelineID")
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     public var timelineId: UUID {
-        get { timelineID }
-        set { timelineID = newValue }
+        get { threadID }
+        set { threadID = newValue }
     }
 
     /// The parent-message identifier using the legacy 3.x spelling.
@@ -199,7 +278,7 @@ public struct ConversationMessage: Codable, Identifiable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case id
-        case timelineID = "timelineId"
+        case threadID = "timelineId"
         case role, content, contentParts, timestamp, recalledMemories
         case parentID = "parentId"
         case reasoning, toolCalls
@@ -211,7 +290,7 @@ public struct ConversationMessage: Codable, Identifiable, Sendable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
-        timelineID = try container.decode(UUID.self, forKey: .timelineID)
+        threadID = try container.decode(UUID.self, forKey: .threadID)
         role = try container.decode(String.self, forKey: .role)
         let text = try container.decode(String.self, forKey: .content)
         if let parts = try container.decodeIfPresent([MessageContentPart].self, forKey: .contentParts) {
@@ -238,7 +317,7 @@ public struct ConversationMessage: Codable, Identifiable, Sendable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
-        try container.encode(timelineID, forKey: .timelineID)
+        try container.encode(threadID, forKey: .threadID)
         try container.encode(role, forKey: .role)
         try container.encode(content, forKey: .content)
         if messageContent.requiresContentPartsEncoding {

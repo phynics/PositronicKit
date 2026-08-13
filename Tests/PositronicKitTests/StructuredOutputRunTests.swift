@@ -31,7 +31,7 @@ struct StructuredOutputRunTests {
         let mockPersistence = MockPersistenceService()
         let chat = PositronicKit(configuration: .init(provider: .init(languageModel: mockLLM), persistence: .init(
                 messageStore: mockPersistence,
-                timelinePersistence: mockPersistence,
+                threadPersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
                 memoryStore: mockPersistence,
                 toolPersistence: mockPersistence,
@@ -39,9 +39,9 @@ struct StructuredOutputRunTests {
                 requestOriginStore: mockPersistence
             )))
 
-        let timeline = try await chat.timelineManager.createTimeline(title: "Structured Output")
+        let thread = try await chat.threadManager.createThread(title: "Structured Output")
         let request = ChatRunRequest(
-            timelineID: timeline.id,
+            threadID: thread.id,
             message: "Extract tags",
             tools: [StructuredOutputRunTestsTool().toAnyTool()],
             systemInstructions: "Follow the structured-output instructions exactly.",
@@ -72,7 +72,7 @@ struct StructuredOutputRunTests {
         let mockPersistence = MockPersistenceService()
         let chat = PositronicKit(configuration: .init(provider: .init(languageModel: mockLLM), persistence: .init(
                 messageStore: mockPersistence,
-                timelinePersistence: mockPersistence,
+                threadPersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
                 memoryStore: mockPersistence,
                 toolPersistence: mockPersistence,
@@ -80,9 +80,9 @@ struct StructuredOutputRunTests {
                 requestOriginStore: mockPersistence
             )))
 
-        let timeline = try await chat.timelineManager.createTimeline(title: "No Structured Output")
+        let thread = try await chat.threadManager.createThread(title: "No Structured Output")
         let stream = try await chat.run(ChatRunRequest(
-            timelineID: timeline.id,
+            threadID: thread.id,
             message: "Hello"
         ))
 
@@ -97,7 +97,7 @@ struct StructuredOutputRunTests {
         let mockPersistence = MockPersistenceService()
         let chat = PositronicKit(configuration: .init(provider: .init(languageModel: mockLLM), persistence: .init(
                 messageStore: mockPersistence,
-                timelinePersistence: mockPersistence,
+                threadPersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
                 memoryStore: mockPersistence,
                 toolPersistence: mockPersistence,
@@ -105,9 +105,9 @@ struct StructuredOutputRunTests {
                 requestOriginStore: mockPersistence
             )))
 
-        let timeline = try await chat.timelineManager.createTimeline(title: "Minimal Defaults")
+        let thread = try await chat.threadManager.createThread(title: "Minimal Defaults")
         let stream = try await chat.run(ChatRunRequest(
-            timelineID: timeline.id,
+            threadID: thread.id,
             message: "Hello"
         ))
 
@@ -125,7 +125,7 @@ struct StructuredOutputRunTests {
         let mockPersistence = MockPersistenceService()
         let chat = PositronicKit(configuration: .init(provider: .init(languageModel: mockLLM), persistence: .init(
                 messageStore: mockPersistence,
-                timelinePersistence: mockPersistence,
+                threadPersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
                 memoryStore: mockPersistence,
                 toolPersistence: mockPersistence,
@@ -133,9 +133,9 @@ struct StructuredOutputRunTests {
                 requestOriginStore: mockPersistence
             )))
 
-        let timeline = try await chat.timelineManager.createTimeline(title: "No Sidecars")
+        let thread = try await chat.threadManager.createThread(title: "No Sidecars")
         let stream = try await chat.run(ChatRunRequest(
-            timelineID: timeline.id,
+            threadID: thread.id,
             message: "Hello",
             sidecars: []
         ))

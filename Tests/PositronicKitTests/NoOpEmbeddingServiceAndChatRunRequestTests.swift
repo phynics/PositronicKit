@@ -37,17 +37,29 @@ struct NoOpEmbeddingServiceTests {
 @Suite("ChatRunRequest.description")
 struct ChatRunRequestDescriptionTests {
 
-    @Test("description includes the timeline id but redacts the message")
-    func includesTimelineAndRedactsMessage() {
-        let timelineId = UUID()
+    @Test("canonical thread identifier is stored and described")
+    func canonicalThreadIdentifier() {
+        let threadID = UUID()
         let request = ChatRunRequest(
-            timelineID: timelineId,
+            threadID: threadID,
+            message: "Hello, world!"
+        )
+
+        #expect(request.threadID == threadID)
+        #expect(request.description.contains(threadID.uuidString))
+    }
+
+    @Test("description includes the thread id but redacts the message")
+    func includesThreadAndRedactsMessage() {
+        let threadID = UUID()
+        let request = ChatRunRequest(
+            threadID: threadID,
             message: "Hello, world!",
             maxTurns: 3
         )
         let desc = request.description
 
-        #expect(desc.contains(timelineId.uuidString))
+        #expect(desc.contains(threadID.uuidString))
         #expect(desc.contains("message: <redacted>"))
         #expect(desc.contains("maxTurns: 3"))
         #expect(desc.contains("tools: 0"))
@@ -56,7 +68,7 @@ struct ChatRunRequestDescriptionTests {
     @Test("description reports nil for optional fields when omitted")
     func nilOptionalsReportedAsNil() {
         let request = ChatRunRequest(
-            timelineID: UUID(),
+            threadID: UUID(),
             message: "ping"
         )
         let desc = request.description
@@ -74,7 +86,7 @@ struct ChatRunRequestDescriptionTests {
         let sendId = UUID()
         let agentId = UUID()
         let request = ChatRunRequest(
-            timelineID: UUID(),
+            threadID: UUID(),
             sendID: sendId,
             message: "hi",
             systemInstructions: "Be helpful.",
@@ -92,7 +104,7 @@ struct ChatRunRequestDescriptionTests {
     @Test("description counts tools and tool outputs")
     func countsToolsAndOutputs() {
         let request = ChatRunRequest(
-            timelineID: UUID(),
+            threadID: UUID(),
             message: "run",
             toolOutputs: [
                 ToolOutputSubmission(toolCallID: "call_1", output: "result"),

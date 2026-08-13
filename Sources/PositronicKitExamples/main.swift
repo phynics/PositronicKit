@@ -40,10 +40,13 @@ func runExamples() async throws {
     _ = PositronicKitUsageExamples.makePrototypeRuntime()
     _ = PositronicKitUsageExamples.makeConfiguredRuntime()
 
-    let oneShotRuntime = PositronicKitUsageExamples.makeOneShotRuntime()
-    let oneShot = try await oneShotRuntime.complete("Say hello in one word.")
-    let timelineDriver = try await PositronicKitUsageExamples.makeTimelineDriverExample()
-    let timelineManager = PositronicKitUsageExamples.makeTimelineManagerExample()
+    let kit = PositronicKitUsageExamples.makeOneShotRuntime()
+    let thread = try await kit.threadManager.createThread(title: "Docs agent")
+    let driver = kit.openThread(thread.id)
+    for try await event in try await driver.send("Hello") {
+        print(event)
+    }
+    let threadManager = PositronicKitUsageExamples.makeThreadManagerExample()
     let agenticRuntime = try await PositronicKitUsageExamples.makeAgenticRuntimeExample()
 
     print("# PKPrompt Example\n")
@@ -51,8 +54,7 @@ func runExamples() async throws {
     print("\nPrompt sections: \(assembled.sections.map(\.id))")
     print("\n# PositronicKit Example\n")
     print("Prototype runtime and fully configured runtime both initialized successfully.")
-    print("One-shot response: \(oneShot)")
-    print("Operation ladder examples: timeline \(timelineDriver.id), timeline manager \(timelineManager), agent \(agenticRuntime.agentInstanceID)")
+    print("Operation ladder examples: thread \(driver.id), thread manager \(threadManager), agent \(String(describing: agenticRuntime.agentInstanceID))")
     print(toolPrompt)
     print("\nStructured output schema: \(structuredOutput.name)")
     print("Structured output request: \(structuredOutputRequest)")

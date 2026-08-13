@@ -20,10 +20,10 @@ import Foundation
 
     func testConversationMessageCodable() throws {
         // Need to provide a realistic `Session` ID for foreign key in DB context
-        let timelineId = UUID()
+        let threadID = UUID()
         let msg = ConversationMessage(
             id: UUID(),
-            timelineID: timelineId,
+            threadID: threadID,
             role: .user,
             content: "Ping",
             timestamp: Date()
@@ -38,7 +38,7 @@ import Foundation
         let date = Date()
         let dbMsg = ConversationMessage(
             id: uuid,
-            timelineID: UUID(),
+            threadID: UUID(),
             role: .assistant,
             content: "Pong",
             timestamp: date

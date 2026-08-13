@@ -4,40 +4,55 @@ import PKUtilities
 @testable import PositronicKit
 import Testing
 
-/// Direct coverage for the cross-timeline observation tools (`timeline_peek`,
-/// `timeline_list`).
+/// Direct coverage for the cross-thread observation tools (`thread_peek`,
+/// `thread_list`).
 ///
-/// These tools let an agent read/list *other* timelines without attaching to them. They
+/// These tools let an agent read/list *other* threads without attaching to them. They
 /// previously had only ~11–17% coverage — exercised transitively through the full
 /// `RuntimeToolPolicyFactory` tool set, which left their parameter validation, privacy
 /// guards, and message-limit clamping unverified. These tests drive each tool directly
 /// against in-memory stores.
-@Suite("Timeline observation tools")
-struct TimelineObservationToolsTests {
+@Suite("Thread observation tools")
+struct ThreadObservationToolsTests {
 
-    // MARK: - TimelinePeekTool
+    @Test("canonical observation tools preserve timeline call names")
+    func canonicalObservationToolsPreserveCallNames() async throws {
+        let threadStore = InMemoryThreadPersistence()
+        let messageStore = InMemoryMessageStore()
+        let thread = Thread(title: "Canonical Observation")
+        try await threadStore.saveThread(thread)
 
-    @Suite("TimelinePeekTool")
+        let listTool = ThreadListTool(threadStore: threadStore)
+        let peekTool = ThreadPeekTool(messageStore: messageStore, threadStore: threadStore)
+
+        #expect(listTool.callName == "timeline_list")
+        #expect(peekTool.callName == "timeline_peek")
+        #expect((try await listTool.execute(parameters: [:])).success)
+    }
+
+    // MARK: - ThreadPeekTool
+
+    @Suite("ThreadPeekTool")
     struct PeekToolTests {
-        private func makeStores() -> (InMemoryTimelinePersistence, InMemoryMessageStore) {
-            (InMemoryTimelinePersistence(), InMemoryMessageStore())
+        private func makeStores() -> (InMemoryThreadPersistence, InMemoryMessageStore) {
+            (InMemoryThreadPersistence(), InMemoryMessageStore())
         }
 
-        @Test("Returns recent messages from a non-private timeline")
+        @Test("Returns recent messages from a non-private thread")
         func returnsRecentMessages() async throws {
-            let (timelineStore, messageStore) = makeStores()
-            let timeline = Timeline(title: "Public Chat")
-            try await timelineStore.saveTimeline(timeline)
+            let (threadStore, messageStore) = makeStores()
+            let thread = Thread(title: "Public Chat")
+            try await threadStore.saveThread(thread)
             try await messageStore.saveMessage(ConversationMessage(
-                timelineID: timeline.id, role: .user, content: "Hello"
+                threadID: thread.id, role: .user, content: "Hello"
             ))
             try await messageStore.saveMessage(ConversationMessage(
-                timelineID: timeline.id, role: .assistant, content: "Hi there"
+                threadID: thread.id, role: .assistant, content: "Hi there"
             ))
 
-            let tool = TimelinePeekTool(messageStore: messageStore, timelineStore: timelineStore)
+            let tool = ThreadPeekTool(messageStore: messageStore, threadStore: threadStore)
             let result = try await tool.execute(parameters: [
-                "timeline_id": AnyCodable(timeline.id.uuidString),
+                "timeline_id": AnyCodable(thread.id.uuidString),
             ])
 
             #expect(result.success)
@@ -48,19 +63,19 @@ struct TimelineObservationToolsTests {
 
         @Test("Respects the limit parameter, clamped to 50")
         func respectsLimitClampedTo50() async throws {
-            let (timelineStore, messageStore) = makeStores()
-            let timeline = Timeline(title: "Busy")
-            try await timelineStore.saveTimeline(timeline)
+            let (threadStore, messageStore) = makeStores()
+            let thread = Thread(title: "Busy")
+            try await threadStore.saveThread(thread)
             for i in 0..<60 {
                 try await messageStore.saveMessage(ConversationMessage(
-                    timelineID: timeline.id, role: .user, content: "msg \(i)"
+                    threadID: thread.id, role: .user, content: "msg \(i)"
                 ))
             }
 
-            let tool = TimelinePeekTool(messageStore: messageStore, timelineStore: timelineStore)
+            let tool = ThreadPeekTool(messageStore: messageStore, threadStore: threadStore)
             // Request 100, should be clamped to 50.
             let result = try await tool.execute(parameters: [
-                "timeline_id": AnyCodable(timeline.id.uuidString),
+                "timeline_id": AnyCodable(thread.id.uuidString),
                 "limit": AnyCodable(100),
             ])
 
@@ -70,16 +85,16 @@ struct TimelineObservationToolsTests {
 
         @Test("Rejects a negative limit without trapping")
         func negativeLimitFailsWithoutTrap() async throws {
-            let (timelineStore, messageStore) = makeStores()
-            let timeline = Timeline(title: "Negative Limit")
-            try await timelineStore.saveTimeline(timeline)
+            let (threadStore, messageStore) = makeStores()
+            let thread = Thread(title: "Negative Limit")
+            try await threadStore.saveThread(thread)
             try await messageStore.saveMessage(ConversationMessage(
-                timelineID: timeline.id, role: .user, content: "message"
+                threadID: thread.id, role: .user, content: "message"
             ))
 
-            let tool = TimelinePeekTool(messageStore: messageStore, timelineStore: timelineStore)
+            let tool = ThreadPeekTool(messageStore: messageStore, threadStore: threadStore)
             let result = try await tool.execute(parameters: [
-                "timeline_id": AnyCodable(timeline.id.uuidString),
+                "timeline_id": AnyCodable(thread.id.uuidString),
                 "limit": AnyCodable(-1),
             ])
 
@@ -89,44 +104,44 @@ struct TimelineObservationToolsTests {
 
         @Test("Uses a default limit of 10 when omitted")
         func defaultLimitIs10() async throws {
-            let (timelineStore, messageStore) = makeStores()
-            let timeline = Timeline(title: "Default")
-            try await timelineStore.saveTimeline(timeline)
+            let (threadStore, messageStore) = makeStores()
+            let thread = Thread(title: "Default")
+            try await threadStore.saveThread(thread)
             for i in 0..<15 {
                 try await messageStore.saveMessage(ConversationMessage(
-                    timelineID: timeline.id, role: .user, content: "msg \(i)"
+                    threadID: thread.id, role: .user, content: "msg \(i)"
                 ))
             }
 
-            let tool = TimelinePeekTool(messageStore: messageStore, timelineStore: timelineStore)
+            let tool = ThreadPeekTool(messageStore: messageStore, threadStore: threadStore)
             let result = try await tool.execute(parameters: [
-                "timeline_id": AnyCodable(timeline.id.uuidString),
+                "timeline_id": AnyCodable(thread.id.uuidString),
             ])
 
             #expect(result.success)
             #expect(result.output.contains("10 messages") == true)
         }
 
-        @Test("Refuses to peek at a private timeline")
-        func refusesPrivateTimeline() async throws {
-            let (timelineStore, messageStore) = makeStores()
-            let timeline = Timeline(title: "Secret", isPrivate: true)
-            try await timelineStore.saveTimeline(timeline)
+        @Test("Refuses to peek at a private thread")
+        func refusesPrivateThread() async throws {
+            let (threadStore, messageStore) = makeStores()
+            let thread = Thread(title: "Secret", isPrivate: true)
+            try await threadStore.saveThread(thread)
 
-            let tool = TimelinePeekTool(messageStore: messageStore, timelineStore: timelineStore)
+            let tool = ThreadPeekTool(messageStore: messageStore, threadStore: threadStore)
             let result = try await tool.execute(parameters: [
-                "timeline_id": AnyCodable(timeline.id.uuidString),
+                "timeline_id": AnyCodable(thread.id.uuidString),
             ])
 
             #expect(!result.success)
             #expect(result.error?.contains("private") == true)
         }
 
-        @Test("Fails gracefully for an unknown timeline id")
-        func unknownTimelineFails() async throws {
-            let (timelineStore, messageStore) = makeStores()
+        @Test("Fails gracefully for an unknown thread id")
+        func unknownThreadFails() async throws {
+            let (threadStore, messageStore) = makeStores()
 
-            let tool = TimelinePeekTool(messageStore: messageStore, timelineStore: timelineStore)
+            let tool = ThreadPeekTool(messageStore: messageStore, threadStore: threadStore)
             let result = try await tool.execute(parameters: [
                 "timeline_id": AnyCodable(UUID().uuidString),
             ])
@@ -137,9 +152,9 @@ struct TimelineObservationToolsTests {
 
         @Test("Fails for an invalid UUID string")
         func invalidUUIDFails() async throws {
-            let (timelineStore, messageStore) = makeStores()
+            let (threadStore, messageStore) = makeStores()
 
-            let tool = TimelinePeekTool(messageStore: messageStore, timelineStore: timelineStore)
+            let tool = ThreadPeekTool(messageStore: messageStore, threadStore: threadStore)
             let result = try await tool.execute(parameters: [
                 "timeline_id": AnyCodable("not-a-uuid"),
             ])
@@ -150,9 +165,9 @@ struct TimelineObservationToolsTests {
 
         @Test("Fails when timeline_id parameter is missing")
         func missingParameterFails() async throws {
-            let (timelineStore, messageStore) = makeStores()
+            let (threadStore, messageStore) = makeStores()
 
-            let tool = TimelinePeekTool(messageStore: messageStore, timelineStore: timelineStore)
+            let tool = ThreadPeekTool(messageStore: messageStore, threadStore: threadStore)
             let result = try await tool.execute(parameters: [:])
 
             #expect(!result.success)
@@ -160,20 +175,20 @@ struct TimelineObservationToolsTests {
 
         @Test("canExecute always returns true")
         func canExecuteIsTrue() async throws {
-            let (timelineStore, messageStore) = makeStores()
-            let tool = TimelinePeekTool(messageStore: messageStore, timelineStore: timelineStore)
+            let (threadStore, messageStore) = makeStores()
+            let tool = ThreadPeekTool(messageStore: messageStore, threadStore: threadStore)
             #expect(await tool.canExecute() == true)
         }
 
-        @Test("Returns zero messages for an empty timeline")
-        func emptyTimelineReturnsZero() async throws {
-            let (timelineStore, messageStore) = makeStores()
-            let timeline = Timeline(title: "Empty")
-            try await timelineStore.saveTimeline(timeline)
+        @Test("Returns zero messages for an empty thread")
+        func emptyThreadReturnsZero() async throws {
+            let (threadStore, messageStore) = makeStores()
+            let thread = Thread(title: "Empty")
+            try await threadStore.saveThread(thread)
 
-            let tool = TimelinePeekTool(messageStore: messageStore, timelineStore: timelineStore)
+            let tool = ThreadPeekTool(messageStore: messageStore, threadStore: threadStore)
             let result = try await tool.execute(parameters: [
-                "timeline_id": AnyCodable(timeline.id.uuidString),
+                "timeline_id": AnyCodable(thread.id.uuidString),
             ])
 
             #expect(result.success)
@@ -181,22 +196,22 @@ struct TimelineObservationToolsTests {
         }
     }
 
-    // MARK: - TimelineListTool
+    // MARK: - ThreadListTool
 
-    @Suite("TimelineListTool")
+    @Suite("ThreadListTool")
     struct ListToolTests {
-        @Test("Lists only non-private, non-archived timelines")
+        @Test("Lists only non-private, non-archived threads")
         func listsNonPrivateNonArchived() async throws {
-            let timelineStore = InMemoryTimelinePersistence()
-            let public1 = Timeline(title: "Public One")
-            let public2 = Timeline(title: "Public Two", attachedAgentInstanceID: UUID())
-            let private1 = Timeline(title: "Private", isPrivate: true)
-            let archived1 = Timeline(title: "Archived", isArchived: true)
+            let threadStore = InMemoryThreadPersistence()
+            let public1 = Thread(title: "Public One")
+            let public2 = Thread(title: "Public Two", attachedAgentInstanceID: UUID())
+            let private1 = Thread(title: "Private", isPrivate: true)
+            let archived1 = Thread(title: "Archived", isArchived: true)
             for t in [public1, public2, private1, archived1] {
-                try await timelineStore.saveTimeline(t)
+                try await threadStore.saveThread(t)
             }
 
-            let tool = TimelineListTool(timelineStore: timelineStore)
+            let tool = ThreadListTool(threadStore: threadStore)
             let result = try await tool.execute(parameters: [:])
 
             #expect(result.success)
@@ -209,36 +224,36 @@ struct TimelineObservationToolsTests {
 
         @Test("Includes the attached agent id when present")
         func includesAttachedAgentId() async throws {
-            let timelineStore = InMemoryTimelinePersistence()
+            let threadStore = InMemoryThreadPersistence()
             let agentId = UUID()
-            let timeline = Timeline(title: "With Agent", attachedAgentInstanceID: agentId)
-            try await timelineStore.saveTimeline(timeline)
+            let thread = Thread(title: "With Agent", attachedAgentInstanceID: agentId)
+            try await threadStore.saveThread(thread)
 
-            let tool = TimelineListTool(timelineStore: timelineStore)
+            let tool = ThreadListTool(threadStore: threadStore)
             let result = try await tool.execute(parameters: [:])
 
             #expect(result.success)
             #expect(result.output.contains(agentId.uuidString) == true)
         }
 
-        @Test("Returns empty list when no timelines exist")
-        func emptyWhenNoTimelines() async throws {
-            let timelineStore = InMemoryTimelinePersistence()
+        @Test("Returns empty list when no threads exist")
+        func emptyWhenNoThreads() async throws {
+            let threadStore = InMemoryThreadPersistence()
 
-            let tool = TimelineListTool(timelineStore: timelineStore)
+            let tool = ThreadListTool(threadStore: threadStore)
             let result = try await tool.execute(parameters: [:])
 
             #expect(result.success)
             #expect(result.output.contains("[]") == true)
         }
 
-        @Test("Excludes archived timelines even if non-private")
+        @Test("Excludes archived threads even if non-private")
         func excludesArchived() async throws {
-            let timelineStore = InMemoryTimelinePersistence()
-            let archived = Timeline(title: "Old", isArchived: true)
-            try await timelineStore.saveTimeline(archived)
+            let threadStore = InMemoryThreadPersistence()
+            let archived = Thread(title: "Old", isArchived: true)
+            try await threadStore.saveThread(archived)
 
-            let tool = TimelineListTool(timelineStore: timelineStore)
+            let tool = ThreadListTool(threadStore: threadStore)
             let result = try await tool.execute(parameters: [:])
 
             #expect(result.success)
@@ -247,7 +262,7 @@ struct TimelineObservationToolsTests {
 
         @Test("canExecute always returns true")
         func canExecuteIsTrue() async throws {
-            let tool = TimelineListTool(timelineStore: InMemoryTimelinePersistence())
+            let tool = ThreadListTool(threadStore: InMemoryThreadPersistence())
             #expect(await tool.canExecute() == true)
         }
     }

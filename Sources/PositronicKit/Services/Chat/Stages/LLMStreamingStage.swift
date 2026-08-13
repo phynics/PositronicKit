@@ -46,7 +46,7 @@ struct LLMStreamingStage: PipelineStage {
             logger.warning(
                 "Provider capability variance: \(warning.reason)",
                 metadata: [
-                    LogKeys.timelineID: .string(context.timelineId.uuidString),
+                    LogKeys.timelineID: .string(context.threadID.uuidString),
                     LogKeys.turnIndex: .string("\(context.turnCount)"),
                     LogKeys.provider: .string(warning.provider.rawValue),
                     "model": .string(warning.model),
@@ -107,7 +107,7 @@ struct LLMStreamingStage: PipelineStage {
                         toolCallDeltas=\(toolCallDeltaCount) error=\(ErrorKit.userFriendlyMessage(for: error))
                         """,
                         metadata: [
-                            LogKeys.timelineID: .string(context.timelineId.uuidString),
+                            LogKeys.timelineID: .string(context.threadID.uuidString),
                             LogKeys.sendID: .string(context.sendId.uuidString),
                             LogKeys.turnIndex: .string("\(context.turnCount)"),
                             LogKeys.provider: .string(provider),

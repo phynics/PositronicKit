@@ -6,7 +6,7 @@ import PKUtilities
 
 /// Advanced options for prompt assembly.
 ///
-/// Most callers should use ``PromptAssembler/assemble(_:agentInstance:timeline:extensionSections:)``
+/// Most callers should use ``PromptAssembler/assemble(_:agentInstance:thread:extensionSections:)``
 /// or ``PromptAssembler/prepare(_:)``. Use this type when you need to supply custom sections
 /// or apply compression configuration.
 ///

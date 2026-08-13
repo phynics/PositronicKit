@@ -20,7 +20,7 @@ struct DurabilityConfigurationTests {
     func inMemoryStoresAreEphemeral() {
         let config = PositronicKit.PersistenceConfiguration(
             messageStore: InMemoryMessageStore(),
-            timelinePersistence: InMemoryTimelinePersistence(),
+            threadPersistence: InMemoryThreadPersistence(),
             workspacePersistence: InMemoryWorkspacePersistence(),
             memoryStore: InMemoryMemoryStore(),
             toolPersistence: InMemoryToolPersistence(),
@@ -29,7 +29,7 @@ struct DurabilityConfigurationTests {
         )
         let report = config.validateDurability()
         #expect(report.messageStore == .ephemeral)
-        #expect(report.timelinePersistence == .ephemeral)
+        #expect(report.threadPersistence == .ephemeral)
         #expect(report.workspacePersistence == .ephemeral)
         #expect(report.memoryStore == .ephemeral)
         #expect(report.toolPersistence == .ephemeral)
@@ -45,7 +45,7 @@ struct DurabilityConfigurationTests {
 
         let config = PositronicKit.PersistenceConfiguration(
             messageStore: store,
-            timelinePersistence: store,
+            threadPersistence: store,
             workspacePersistence: store,
             memoryStore: store,
             toolPersistence: store,
@@ -64,7 +64,7 @@ struct DurabilityConfigurationTests {
 
         let config = PositronicKit.PersistenceConfiguration(
             messageStore: store,
-            timelinePersistence: store,
+            threadPersistence: store,
             workspacePersistence: store,
             memoryStore: store,
             toolPersistence: store,
@@ -73,7 +73,7 @@ struct DurabilityConfigurationTests {
         )
         let report = config.validateDurability()
         #expect(report.messageStore == .durable)
-        #expect(report.timelinePersistence == .durable)
+        #expect(report.threadPersistence == .durable)
         #expect(report.workspacePersistence == .durable)
         #expect(report.memoryStore == .durable)
         #expect(report.toolPersistence == .durable)
@@ -100,7 +100,7 @@ struct DurabilityConfigurationTests {
         durable.mockIsDurable = true
         let config = PositronicKit.PersistenceConfiguration(
             messageStore: durable,
-            timelinePersistence: durable,
+            threadPersistence: durable,
             workspacePersistence: durable,
             memoryStore: durable,
             toolPersistence: durable,
@@ -121,7 +121,7 @@ struct DurabilityConfigurationTests {
         durable.mockIsDurable = true
         let config = PositronicKit.PersistenceConfiguration(
             messageStore: durable,
-            timelinePersistence: durable,
+            threadPersistence: durable,
             workspacePersistence: durable,
             memoryStore: InMemoryMemoryStore(),
             toolPersistence: InMemoryToolPersistence(),
@@ -131,7 +131,7 @@ struct DurabilityConfigurationTests {
         let report = config.validateDurability()
         #expect(report.isMixed)
         #expect(report.messageStore == .durable)
-        #expect(report.timelinePersistence == .durable)
+        #expect(report.threadPersistence == .durable)
         #expect(report.workspacePersistence == .durable)
         #expect(report.memoryStore == .ephemeral)
         #expect(report.toolPersistence == .ephemeral)
@@ -145,7 +145,7 @@ struct DurabilityConfigurationTests {
         durable.mockIsDurable = true
         let config = PositronicKit.PersistenceConfiguration(
             messageStore: InMemoryMessageStore(),
-            timelinePersistence: durable,
+            threadPersistence: durable,
             workspacePersistence: InMemoryWorkspacePersistence(),
             memoryStore: durable,
             toolPersistence: InMemoryToolPersistence(),
@@ -167,7 +167,7 @@ struct DurabilityConfigurationTests {
         durable.mockIsDurable = true
         let config = PositronicKit.PersistenceConfiguration(
             messageStore: durable,
-            timelinePersistence: durable,
+            threadPersistence: durable,
             workspacePersistence: durable,
             memoryStore: InMemoryMemoryStore(),
             toolPersistence: InMemoryToolPersistence(),
@@ -198,7 +198,7 @@ struct DurabilityConfigurationTests {
         let report = config.validateDurability()
         #expect(report.isMixed)
         #expect(report.messageStore == .durable)
-        #expect(report.timelinePersistence == .ephemeral)
+        #expect(report.threadPersistence == .ephemeral)
         #expect(report.ephemeralStoreNames == [
             "timelinePersistence",
             "workspacePersistence",
@@ -215,7 +215,7 @@ struct DurabilityConfigurationTests {
         durable.mockIsDurable = true
         let config = PositronicKit.PersistenceConfiguration(
             messageStore: durable,
-            timelinePersistence: durable,
+            threadPersistence: durable,
             workspacePersistence: durable,
             memoryStore: InMemoryMemoryStore(),
             toolPersistence: durable,
@@ -235,7 +235,7 @@ struct DurabilityConfigurationTests {
         let store = MockPersistenceService()
         let config = PositronicKit.PersistenceConfiguration.fullyPersistent(
             messageStore: store,
-            timelinePersistence: store,
+            threadPersistence: store,
             workspacePersistence: store,
             memoryStore: store,
             toolPersistence: store,
@@ -252,7 +252,7 @@ struct DurabilityConfigurationTests {
         durable.mockIsDurable = true
         let config = PositronicKit.PersistenceConfiguration.fullyPersistent(
             messageStore: durable,
-            timelinePersistence: durable,
+            threadPersistence: durable,
             workspacePersistence: durable,
             memoryStore: durable,
             toolPersistence: durable,
@@ -272,7 +272,7 @@ struct DurabilityConfigurationTests {
         let report = config.validateDurability()
         #expect(!report.isMixed)
         #expect(report.messageStore == .ephemeral)
-        #expect(report.timelinePersistence == .ephemeral)
+        #expect(report.threadPersistence == .ephemeral)
         #expect(report.workspacePersistence == .ephemeral)
         #expect(report.memoryStore == .ephemeral)
         #expect(report.toolPersistence == .ephemeral)
@@ -290,7 +290,7 @@ struct DurabilityConfigurationTests {
         let report = config.validateDurability()
         #expect(report.isMixed)
         #expect(report.messageStore == .durable)
-        #expect(report.timelinePersistence == .ephemeral)
+        #expect(report.threadPersistence == .ephemeral)
     }
 
     @Test(".inMemory() factory still works and is all-ephemeral")
@@ -307,7 +307,7 @@ struct DurabilityConfigurationTests {
     func durabilityReportEquatable() {
         let report1 = PositronicKit.DurabilityReport(
             messageStore: .durable,
-            timelinePersistence: .ephemeral,
+            threadPersistence: .ephemeral,
             workspacePersistence: .durable,
             memoryStore: .ephemeral,
             toolPersistence: .durable,
@@ -316,7 +316,7 @@ struct DurabilityConfigurationTests {
         )
         let report2 = PositronicKit.DurabilityReport(
             messageStore: .durable,
-            timelinePersistence: .ephemeral,
+            threadPersistence: .ephemeral,
             workspacePersistence: .durable,
             memoryStore: .ephemeral,
             toolPersistence: .durable,
@@ -345,7 +345,7 @@ struct DurabilityConfigurationTests {
             provider: .init(languageModel: UnconfiguredLLMService()),
             persistence: .fullyPersistent(
                 messageStore: durable,
-                timelinePersistence: durable,
+                threadPersistence: durable,
                 workspacePersistence: durable,
                 memoryStore: durable,
                 toolPersistence: durable,
@@ -361,7 +361,7 @@ struct DurabilityConfigurationTests {
         durable.mockIsDurable = true
         let persistence = PositronicKit.PersistenceConfiguration(
             messageStore: durable,
-            timelinePersistence: durable,
+            threadPersistence: durable,
             workspacePersistence: durable,
             memoryStore: InMemoryMemoryStore(),
             toolPersistence: InMemoryToolPersistence(),

@@ -13,7 +13,7 @@ struct MockPersistenceConcurrencyTests {
                 id: fixedUUID(index + 1),
                 name: "agent-\(index)",
                 description: "concurrency fixture",
-                privateTimelineID: fixedUUID(index + 1_001)
+                privateThreadID: fixedUUID(index + 1_001)
             )
         }
 
@@ -37,7 +37,7 @@ struct MockPersistenceConcurrencyTests {
         let workspaces = (0 ..< 100).map { index in
             WorkspaceReference.fixture(
                 id: fixedUUID(index + 2_001),
-                uri: .timelineWorkspace(fixedUUID(index + 3_001)),
+                uri: .threadWorkspace(fixedUUID(index + 3_001)),
                 tools: [.known("tool-\(index)")]
             )
         }

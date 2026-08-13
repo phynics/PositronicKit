@@ -2,11 +2,44 @@ import Foundation
 import PKShared
 import PKUtilities
 import PKTestSupport
+import struct PositronicKit.Thread
 @testable import PositronicKit
 import Testing
 
 struct AgentInstanceManagerTests {
     private let mock = MockPersistenceService()
+
+    @Test("Canonical agent queries return attached threads")
+    func canonicalThreadsQuery() async throws {
+        let kit = PositronicKit()
+        let thread = try await kit.threadManager.createThread(title: "Attached")
+        let agent = try await kit.agentInstanceManager.createInstance(
+            name: "Thread Agent",
+            description: "Lists attached threads"
+        )
+        try await kit.agentInstanceManager.attach(agentID: agent.id, to: thread.id)
+
+        let attached = try await kit.agentInstanceManager.threads(attachedTo: agent.id)
+
+        #expect(attached.map(\.id).contains(thread.id))
+    }
+
+    @Test("Canonical error cases preserve legacy identity")
+    func canonicalErrorIdentity() {
+        let threadID = UUID()
+        let agentID = UUID()
+        let threadError = ThreadError.threadNotFound
+        let mismatch = AgentInstanceError.threadAgentMismatch(
+            threadID: threadID,
+            agentInstanceID: agentID,
+            attachedAgentInstanceID: nil
+        )
+
+        #expect(threadError.errorCode == 6001)
+        #expect(threadError.errorDomain == PKErrorDomain.thread)
+        #expect(mismatch.errorCode == 5009)
+        #expect(mismatch.errorDescription?.contains(threadID.uuidString) == true)
+    }
 
     @Test("Validation: Name too short")
     func nameTooShort() async throws {
@@ -18,7 +51,7 @@ struct AgentInstanceManagerTests {
             repository: repo,
             stores: .init(
                 instanceStore: mock,
-                timelineStore: mock,
+                threadStore: mock,
                 messageStore: mock,
                 workspaceStore: mock
             )
@@ -39,7 +72,7 @@ struct AgentInstanceManagerTests {
             repository: repo,
             stores: .init(
                 instanceStore: mock,
-                timelineStore: mock,
+                threadStore: mock,
                 messageStore: mock,
                 workspaceStore: mock
             )
@@ -50,7 +83,7 @@ struct AgentInstanceManagerTests {
         }
     }
 
-    @Test("Robustness: Cannot attach to private timeline")
+    @Test("Robustness: Cannot attach to private thread")
     func cannotAttachToPrivate() async throws {
         let repo = DefaultWorkspaceCatalog(
             workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
@@ -60,32 +93,32 @@ struct AgentInstanceManagerTests {
             repository: repo,
             stores: .init(
                 instanceStore: mock,
-                timelineStore: mock,
+                threadStore: mock,
                 messageStore: mock,
                 workspaceStore: mock
             )
         )
 
         let agentId = UUID()
-        let agent = AgentInstance(id: agentId, name: "Test Agent", description: "Desc", primaryWorkspaceID: UUID(), privateTimelineID: UUID())
+        let agent = AgentInstance(id: agentId, name: "Test Agent", description: "Desc", primaryWorkspaceID: UUID(), privateThreadID: UUID())
         let otherAgentId = UUID()
-        let otherAgent = AgentInstance(id: otherAgentId, name: "Other Agent", description: "Desc", primaryWorkspaceID: UUID(), privateTimelineID: UUID())
-        let privateTimeline = Timeline(id: UUID(), title: "Private", attachedAgentInstanceID: agentId, isPrivate: true)
+        let otherAgent = AgentInstance(id: otherAgentId, name: "Other Agent", description: "Desc", primaryWorkspaceID: UUID(), privateThreadID: UUID())
+        let privateThread = Thread(id: UUID(), title: "Private", attachedAgentInstanceID: agentId, isPrivate: true)
 
         try await mock.saveAgentInstance(agent)
         try await mock.saveAgentInstance(otherAgent)
-        try await mock.saveTimeline(privateTimeline)
+        try await mock.saveThread(privateThread)
 
-        // Fails: attaching different agent to private timeline
+        // Fails: attaching different agent to private thread
         await #expect(throws: AgentInstanceError.self) {
-            try await manager.attach(agentID: otherAgentId, to: privateTimeline.id)
+            try await manager.attach(agentID: otherAgentId, to: privateThread.id)
         }
 
         // Succeeds: attaching owner (idempotent)
-        try await manager.attach(agentID: agent.id, to: privateTimeline.id)
+        try await manager.attach(agentID: agent.id, to: privateThread.id)
     }
 
-    @Test("Robustness: Cannot detach agent from its own private timeline")
+    @Test("Robustness: Cannot detach agent from its own private thread")
     func cannotDetachFromOwnPrivate() async throws {
         let repo = DefaultWorkspaceCatalog(
             workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
@@ -95,25 +128,25 @@ struct AgentInstanceManagerTests {
             repository: repo,
             stores: .init(
                 instanceStore: mock,
-                timelineStore: mock,
+                threadStore: mock,
                 messageStore: mock,
                 workspaceStore: mock
             )
         )
 
         let agentId = UUID()
-        let agent = AgentInstance(id: agentId, name: "Test Agent", description: "Desc", primaryWorkspaceID: UUID(), privateTimelineID: UUID())
-        let privateTimeline = Timeline(id: agent.privateTimelineID, title: "Private", attachedAgentInstanceID: agentId, isPrivate: true)
+        let agent = AgentInstance(id: agentId, name: "Test Agent", description: "Desc", primaryWorkspaceID: UUID(), privateThreadID: UUID())
+        let privateThread = Thread(id: agent.privateThreadID, title: "Private", attachedAgentInstanceID: agentId, isPrivate: true)
 
         try await mock.saveAgentInstance(agent)
-        try await mock.saveTimeline(privateTimeline)
+        try await mock.saveThread(privateThread)
 
         await #expect(throws: AgentInstanceError.self) {
-            try await manager.detach(agentID: agentId, from: privateTimeline.id)
+            try await manager.detach(agentID: agentId, from: privateThread.id)
         }
     }
 
-    @Test("Creation: Agent is automatically attached to private timeline")
+    @Test("Creation: Agent is automatically attached to private thread")
     func createInstanceAttachesAgent() async throws {
         let repo = DefaultWorkspaceCatalog(
             workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
@@ -123,7 +156,7 @@ struct AgentInstanceManagerTests {
             repository: repo,
             stores: .init(
                 instanceStore: mock,
-                timelineStore: mock,
+                threadStore: mock,
                 messageStore: mock,
                 workspaceStore: mock
             )
@@ -131,9 +164,9 @@ struct AgentInstanceManagerTests {
 
         let instance = try await manager.createInstance(name: "New Agent", description: "Desc")
 
-        let timeline = try await mock.fetchTimeline(id: instance.privateTimelineID)
-        #expect(timeline?.attachedAgentInstanceID == instance.id)
-        #expect(timeline?.isPrivate == true)
+        let thread = try await mock.fetchThread(id: instance.privateThreadID)
+        #expect(thread?.attachedAgentInstanceID == instance.id)
+        #expect(thread?.isPrivate == true)
     }
 
     @Test("Creation rolls back partial writes", arguments: AgentCreationFailureStage.allCases)
@@ -153,7 +186,7 @@ struct AgentInstanceManagerTests {
             repository: repository,
             stores: .init(
                 instanceStore: stores,
-                timelineStore: stores,
+                threadStore: stores,
                 messageStore: stores,
                 workspaceStore: stores
             )
@@ -168,7 +201,7 @@ struct AgentInstanceManagerTests {
         #expect(thrown?.stage == failingAt)
 
         #expect(await stores.allInstances().isEmpty)
-        #expect(await stores.allTimelines().isEmpty)
+        #expect(await stores.allThreads().isEmpty)
         #expect(await stores.allMessages().isEmpty)
         #expect(await stores.allWorkspaces().isEmpty)
 
@@ -183,7 +216,7 @@ struct AgentInstanceManagerTests {
         switch failingAt {
         case .workspace:
             expectedCleanup = ["deleteWorkspace"]
-        case .timeline:
+        case .thread:
             expectedCleanup = ["deleteTimeline", "deleteWorkspace"]
         case .instance:
             expectedCleanup = ["deleteAgentInstance", "deleteTimeline", "deleteWorkspace"]
@@ -198,29 +231,31 @@ struct AgentInstanceManagerTests {
     @Test("Default in-memory stores protect attached agents")
     func defaultInMemoryStorePreventsDeletingAttachedAgentWithoutForce() async throws {
         let kit = PositronicKit()
-        let timeline = try await kit.timelineManager.createTimeline(title: "Shared Timeline")
+        let thread = try await kit.threadManager.createThread(title: "Shared Thread")
         let instance = try await kit.agentInstanceManager.createInstance(
             name: "Attached Agent",
-            description: "Agent attached to a shared timeline"
+            description: "Agent attached to a shared thread"
         )
 
-        try await kit.agentInstanceManager.attach(agentID: instance.id, to: timeline.id)
+        try await kit.agentInstanceManager.attach(agentID: instance.id, to: thread.id)
 
         let thrown = await #expect(throws: AgentInstanceError.self) {
             try await kit.agentInstanceManager.deleteInstance(id: instance.id, force: false)
         }
-        if case let .hasAttachedTimelines(count)? = thrown {
+        if case let .hasAttachedThreads(count)? = thrown {
+            #expect(count == 1)
+        } else if case let .hasAttachedTimelines(count)? = thrown {
             #expect(count == 1)
         } else {
-            Issue.record("Expected deletion to report an attached timeline")
+            Issue.record("Expected deletion to report an attached thread")
         }
         #expect(try await kit.agentInstanceManager.instance(id: instance.id) != nil)
 
         try await kit.agentInstanceManager.deleteInstance(id: instance.id, force: true)
 
-        let remainingTimelines = try await kit.timelineManager.listTimelines()
-        let remainingTimeline = try #require(remainingTimelines.first { $0.id == timeline.id })
-        #expect(remainingTimeline.attachedAgentInstanceID == nil)
+        let remainingThreads = try await kit.threadManager.listThreads()
+        let remainingThread = try #require(remainingThreads.first { $0.id == thread.id })
+        #expect(remainingThread.attachedAgentInstanceID == nil)
     }
 
     @Test("Search: Find by name or description")
@@ -233,14 +268,14 @@ struct AgentInstanceManagerTests {
             repository: repo,
             stores: .init(
                 instanceStore: mock,
-                timelineStore: mock,
+                threadStore: mock,
                 messageStore: mock,
                 workspaceStore: mock
             )
         )
 
-        let agent1 = AgentInstance(id: UUID(), name: "Researcher", description: "Finds things", primaryWorkspaceID: UUID(), privateTimelineID: UUID())
-        let agent2 = AgentInstance(id: UUID(), name: "Coder", description: "Writes Swift", primaryWorkspaceID: UUID(), privateTimelineID: UUID())
+        let agent1 = AgentInstance(id: UUID(), name: "Researcher", description: "Finds things", primaryWorkspaceID: UUID(), privateThreadID: UUID())
+        let agent2 = AgentInstance(id: UUID(), name: "Coder", description: "Writes Swift", primaryWorkspaceID: UUID(), privateThreadID: UUID())
 
         try await mock.saveAgentInstance(agent1)
         try await mock.saveAgentInstance(agent2)
@@ -257,21 +292,21 @@ struct AgentInstanceManagerTests {
         #expect(resultsEmpty.count == 2)
     }
 
-    @Test("Deletion: routes private-timeline deletion through TimelineManager when injected (PKR-3)")
-    func deleteInstanceEvictsTimelineManagerCacheAndRegistry() async throws {
-        // Use the same in-memory stores across the TimelineManager and the
-        // AgentInstanceManager so the private timeline created by the agent
-        // manager is visible to the timeline manager's store and cache.
-        let timelineStore = InMemoryTimelinePersistence()
+    @Test("Deletion: routes private-thread deletion through ThreadManager when injected (PKR-3)")
+    func deleteInstanceEvictsThreadManagerCacheAndRegistry() async throws {
+        // Use the same in-memory stores across the ThreadManager and the
+        // AgentInstanceManager so the private thread created by the agent
+        // manager is visible to the thread manager's store and cache.
+        let threadStore = InMemoryThreadPersistence()
         let messageStore = InMemoryMessageStore()
         let workspaceStore = InMemoryWorkspacePersistence()
         let instanceStore = InMemoryAgentInstanceStore()
-        let registry = TimelinePromptJournals()
+        let registry = ThreadPromptJournals()
         let workspaceRoot = getTestWorkspaceRoot().appendingPathComponent(UUID().uuidString)
 
-        let timelineManager = TimelineManager(
+        let threadManager = ThreadManager(
             stores: .init(
-                timelineStore: timelineStore,
+                threadStore: threadStore,
                 messageStore: messageStore,
                 workspaceStore: workspaceStore,
                 toolPersistence: InMemoryToolPersistence()
@@ -288,31 +323,31 @@ struct AgentInstanceManagerTests {
             repository: repo,
             stores: .init(
                 instanceStore: instanceStore,
-                timelineStore: timelineStore,
+                threadStore: threadStore,
                 messageStore: messageStore,
                 workspaceStore: workspaceStore
             ),
-            timelineManager: timelineManager
+            threadManager: threadManager
         )
 
         let instance = try await manager.createInstance(name: "Eviction Target", description: "Desc")
 
-        // Hydrate the private timeline into the TimelineManager cache and populate the registry.
-        try await timelineManager.hydrateTimeline(id: instance.privateTimelineID)
-        #expect(await timelineManager.timeline(id: instance.privateTimelineID) != nil)
+        // Hydrate the private thread into the ThreadManager cache and populate the registry.
+        try await threadManager.hydrateThread(id: instance.privateThreadID)
+        #expect(await threadManager.thread(id: instance.privateThreadID) != nil)
 
-        let history = await registry.history(for: instance.privateTimelineID)
+        let history = await registry.history(for: instance.privateThreadID)
         await history.recordAppend(messageCount: 4, estimatedTokens: 120)
         #expect(await history.appendedMessageCount == 4)
 
-        // Delete the agent — the private timeline's cache entry and registry entry
+        // Delete the agent — the private thread's cache entry and registry entry
         // should be evicted alongside the persisted row, not orphaned.
         try await manager.deleteInstance(id: instance.id, force: false)
 
-        #expect(await timelineManager.timeline(id: instance.privateTimelineID) == nil,
-               "Private timeline should be evicted from the TimelineManager cache")
+        #expect(await threadManager.thread(id: instance.privateThreadID) == nil,
+               "Private thread should be evicted from the ThreadManager cache")
 
-        let fresh = await registry.history(for: instance.privateTimelineID)
+        let fresh = await registry.history(for: instance.privateThreadID)
         #expect(await fresh.appendedMessageCount == 0,
                "Prompt-history registry entry should be evicted, not orphaned")
     }
@@ -322,7 +357,7 @@ struct AgentInstanceManagerTests {
     @Test("Audit log: attach survives a failing message-store save (PKFLAKE-005)")
     func attachSurvivesFailingAuditLog() async throws {
         let instanceStore = InMemoryAgentInstanceStore()
-        let timelineStore = InMemoryTimelinePersistence()
+        let threadStore = InMemoryThreadPersistence()
         let workspaceStore = InMemoryWorkspacePersistence()
         let messageStore = FailingMessageStore()
         let repo = DefaultWorkspaceCatalog(
@@ -333,7 +368,7 @@ struct AgentInstanceManagerTests {
             repository: repo,
             stores: .init(
                 instanceStore: instanceStore,
-                timelineStore: timelineStore,
+                threadStore: threadStore,
                 messageStore: messageStore,
                 workspaceStore: workspaceStore
             )
@@ -342,17 +377,17 @@ struct AgentInstanceManagerTests {
         let agentId = UUID()
         let agent = AgentInstance(
             id: agentId, name: "Audit Agent", description: "Desc",
-            primaryWorkspaceID: UUID(), privateTimelineID: UUID()
+            primaryWorkspaceID: UUID(), privateThreadID: UUID()
         )
-        let timeline = Timeline(id: UUID(), title: "Shared", isPrivate: false)
+        let thread = Thread(id: UUID(), title: "Shared", isPrivate: false)
         try await instanceStore.saveAgentInstance(agent)
-        try await timelineStore.saveTimeline(timeline)
+        try await threadStore.saveThread(thread)
 
         // attach must NOT throw just because the audit-log save failed.
-        try await manager.attach(agentID: agentId, to: timeline.id)
+        try await manager.attach(agentID: agentId, to: thread.id)
 
-        // The attach itself succeeded: the timeline now references the agent.
-        let updated = try await timelineStore.fetchTimeline(id: timeline.id)
+        // The attach itself succeeded: the thread now references the agent.
+        let updated = try await threadStore.fetchThread(id: thread.id)
         #expect(updated?.attachedAgentInstanceID == agentId)
 
         // The audit-log save was attempted (and failed) — observable, not swallowed.
@@ -363,7 +398,7 @@ struct AgentInstanceManagerTests {
     @Test("Audit log: detach survives a failing message-store save (PKFLAKE-005)")
     func detachSurvivesFailingAuditLog() async throws {
         let instanceStore = InMemoryAgentInstanceStore()
-        let timelineStore = InMemoryTimelinePersistence()
+        let threadStore = InMemoryThreadPersistence()
         let workspaceStore = InMemoryWorkspacePersistence()
         let messageStore = FailingMessageStore()
         let repo = DefaultWorkspaceCatalog(
@@ -374,7 +409,7 @@ struct AgentInstanceManagerTests {
             repository: repo,
             stores: .init(
                 instanceStore: instanceStore,
-                timelineStore: timelineStore,
+                threadStore: threadStore,
                 messageStore: messageStore,
                 workspaceStore: workspaceStore
             )
@@ -383,30 +418,30 @@ struct AgentInstanceManagerTests {
         let agentId = UUID()
         let agent = AgentInstance(
             id: agentId, name: "Audit Agent", description: "Desc",
-            primaryWorkspaceID: UUID(), privateTimelineID: UUID()
+            primaryWorkspaceID: UUID(), privateThreadID: UUID()
         )
-        // A non-private timeline the agent is already attached to.
-        let timeline = Timeline(
+        // A non-private thread the agent is already attached to.
+        let thread = Thread(
             id: UUID(), title: "Shared", attachedAgentInstanceID: agentId, isPrivate: false
         )
         try await instanceStore.saveAgentInstance(agent)
-        try await timelineStore.saveTimeline(timeline)
+        try await threadStore.saveThread(thread)
 
         // detach must NOT throw just because the audit-log save failed.
-        try await manager.detach(agentID: agentId, from: timeline.id)
+        try await manager.detach(agentID: agentId, from: thread.id)
 
         // The detach itself succeeded: the agent reference is cleared.
-        let updated = try await timelineStore.fetchTimeline(id: timeline.id)
+        let updated = try await threadStore.fetchThread(id: thread.id)
         #expect(updated?.attachedAgentInstanceID == nil)
 
         // The audit-log save was attempted (and failed) — observable, not swallowed.
         #expect(messageStore.attemptedMessages.count == 1)
     }
 
-    @Test("Cleanup: deleteInstance preserves the agent when private-timeline deletion fails")
-    func deleteInstanceDoesNotRemoveAgentWhenPrivateTimelineDeletionFails() async throws {
+    @Test("Cleanup: deleteInstance preserves the agent when private-thread deletion fails")
+    func deleteInstanceDoesNotRemoveAgentWhenPrivateThreadDeletionFails() async throws {
         let instanceStore = InMemoryAgentInstanceStore()
-        let timelineStore = FailingTimelinePersistence(deleteFails: true)
+        let threadStore = FailingThreadPersistence(deleteFails: true)
         let messageStore = InMemoryMessageStore()
         let workspaceStore = InMemoryWorkspacePersistence()
         let workspaceRoot = getTestWorkspaceRoot().appendingPathComponent(UUID().uuidString)
@@ -418,7 +453,7 @@ struct AgentInstanceManagerTests {
             repository: repo,
             stores: .init(
                 instanceStore: instanceStore,
-                timelineStore: timelineStore,
+                threadStore: threadStore,
                 messageStore: messageStore,
                 workspaceStore: workspaceStore
             )
@@ -432,23 +467,23 @@ struct AgentInstanceManagerTests {
         if case .deleteFailed? = thrown {
             // Preserve the original typed persistence error for callers and retry logic.
         } else {
-            Issue.record("Expected the private-timeline deletion error to be rethrown")
+            Issue.record("Expected the private-thread deletion error to be rethrown")
         }
 
         // The delete was attempted (and failed) — observable, not swallowed.
-        #expect(timelineStore.deleteAttemptCount >= 1)
+        #expect(threadStore.deleteAttemptCount >= 1)
 
         // Failed cleanup leaves all records needed for a retry intact.
         #expect(try await instanceStore.fetchAgentInstance(id: instance.id) != nil)
         let workspaceID = try #require(instance.primaryWorkspaceID)
         #expect(try await workspaceStore.fetchWorkspace(id: workspaceID, includeTools: false) != nil)
-        #expect(try await timelineStore.fetchTimeline(id: instance.privateTimelineID) != nil)
+        #expect(try await threadStore.fetchThread(id: instance.privateThreadID) != nil)
     }
 }
 
 enum AgentCreationFailureStage: String, CaseIterable, Sendable, Equatable {
     case workspace
-    case timeline
+    case thread
     case instance
     case audit
 }
@@ -460,12 +495,12 @@ private struct InjectedAgentCreationFailure: Error, Sendable {
 /// One test-only store makes each creation stage fail after its write, so rollback also covers
 /// stores that report an error after a durable write has occurred. The catalog must compensate
 /// the workspace row itself before the manager ever receives a workspace reference.
-private actor AgentCreationFaultStore: WorkspaceStore, TimelinePersistenceProtocol,
+private actor AgentCreationFaultStore: WorkspaceStore, ThreadPersistenceProtocol,
     MessageStoreProtocol, AgentInstanceStoreProtocol
 {
     private let failingAt: AgentCreationFailureStage
     private var workspaces: [UUID: WorkspaceReference] = [:]
-    private var timelines: [UUID: Timeline] = [:]
+    private var threads: [UUID: Thread] = [:]
     private var messages: [ConversationMessage] = []
     private var instances: [UUID: AgentInstance] = [:]
     private var cleanupEvents: [String] = []
@@ -494,27 +529,27 @@ private actor AgentCreationFaultStore: WorkspaceStore, TimelinePersistenceProtoc
         workspaces.removeValue(forKey: id)
     }
 
-    func saveTimeline(_ timeline: Timeline) async throws {
-        timelines[timeline.id] = timeline
-        if failingAt == .timeline {
-            throw InjectedAgentCreationFailure(stage: .timeline)
+    func saveThread(_ thread: Thread) async throws {
+        threads[thread.id] = thread
+        if failingAt == .thread {
+            throw InjectedAgentCreationFailure(stage: .thread)
         }
     }
 
-    func fetchTimeline(id: UUID) async throws -> Timeline? {
-        timelines[id]
+    func fetchThread(id: UUID) async throws -> Thread? {
+        threads[id]
     }
 
-    func fetchAllTimelines(includeArchived _: Bool) async throws -> [Timeline] {
-        Array(timelines.values)
+    func fetchAllThreads(includeArchived _: Bool) async throws -> [Thread] {
+        Array(threads.values)
     }
 
-    func deleteTimeline(id: UUID) async throws {
+    func deleteThread(id: UUID) async throws {
         cleanupEvents.append("deleteTimeline")
-        timelines.removeValue(forKey: id)
+        threads.removeValue(forKey: id)
     }
 
-    func pruneTimelines(
+    func pruneThreads(
         olderThan _: TimeInterval,
         excluding _: [UUID],
         dryRun _: Bool
@@ -529,20 +564,20 @@ private actor AgentCreationFaultStore: WorkspaceStore, TimelinePersistenceProtoc
         }
     }
 
-    func fetchMessages(for timelineId: UUID) async throws -> [ConversationMessage] {
-        messages.filter { $0.timelineID == timelineId }
+    func fetchMessages(for threadID: UUID) async throws -> [ConversationMessage] {
+        messages.filter { $0.threadID == threadID }
     }
 
-    func deleteMessages(for timelineId: UUID) async throws {
+    func deleteMessages(for threadID: UUID) async throws {
         cleanupEvents.append("deleteMessages")
-        messages.removeAll { $0.timelineID == timelineId }
+        messages.removeAll { $0.threadID == threadID }
     }
 
     func pruneMessages(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int {
         0
     }
 
-    func fetchSnapshots(for timelineId: UUID) async throws -> [TurnSnapshot] {
+    func fetchSnapshots(for threadID: UUID) async throws -> [TurnSnapshot] {
         []
     }
 
@@ -566,16 +601,16 @@ private actor AgentCreationFaultStore: WorkspaceStore, TimelinePersistenceProtoc
         instances.removeValue(forKey: id)
     }
 
-    func fetchTimelines(attachedToAgent agentInstanceId: UUID) async throws -> [Timeline] {
-        timelines.values.filter { $0.attachedAgentInstanceID == agentInstanceId }
+    func fetchThreads(attachedToAgent agentInstanceId: UUID) async throws -> [Thread] {
+        threads.values.filter { $0.attachedAgentInstanceID == agentInstanceId }
     }
 
     func allInstances() -> [AgentInstance] {
         Array(instances.values)
     }
 
-    func allTimelines() -> [Timeline] {
-        Array(timelines.values)
+    func allThreads() -> [Thread] {
+        Array(threads.values)
     }
 
     func allMessages() -> [ConversationMessage] {

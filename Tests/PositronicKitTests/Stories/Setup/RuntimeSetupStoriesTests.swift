@@ -19,7 +19,7 @@ import Testing
 
         let persistence = PositronicKit.PersistenceConfiguration(
             messageStore: mockPersistence,
-            timelinePersistence: mockPersistence,
+            threadPersistence: mockPersistence,
             workspacePersistence: mockPersistence,
             memoryStore: mockPersistence,
             toolPersistence: mockPersistence,
@@ -29,11 +29,11 @@ import Testing
 
         let chat = PositronicKit(configuration: .init(provider: .init(languageModel: UnconfiguredLLMService()), persistence: persistence, runtime: .init(workspaceCreator: MockWorkspaceCreator(), workspaceRoot: workspace.root)))
 
-        let timeline = try await chat.timelineManager.createTimeline(title: "Unconfigured")
+        let thread = try await chat.threadManager.createThread(title: "Unconfigured")
 
         do {
             _ = try await chat.run(ChatRunRequest(
-                timelineID: timeline.id,
+                threadID: thread.id,
                 message: "hello"
             ))
             Issue.record("Expected the unconfigured run to fail synchronously")

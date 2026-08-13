@@ -26,7 +26,7 @@ import PKUtilities
 ///   only the reported status changes from the `.none` case.
 ///
 /// The `sleep` closure is injected so tests can substitute an instant-timeout fake clock and
-/// exercise the timeout branch without `Task.sleep`'s real-time delay or a `TimelineManager`.
+/// exercise the timeout branch without `Task.sleep`'s real-time delay or a `ThreadManager`.
 package enum ToolTimeoutEnforcer {
     /// Default wall-clock sleep used when no fake clock is injected. Mirrors `Task.sleep(nanoseconds:)`.
     @usableFromInline

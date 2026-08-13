@@ -2,19 +2,20 @@ import Foundation
 import PKShared
 import PKUtilities
 import PositronicKit
+import struct PositronicKit.Thread
 import Synchronization
 
 /// Composite in-memory test double for the full persistence surface (memories, messages,
-/// timelines, agent templates, workspaces, tools, request origins, agent instances,
+/// threads, agent templates, workspaces, tools, request origins, agent instances,
 /// health), delegating each protocol area to its own focused mock (``MockMemoryStore``,
-/// ``MockMessageStore``, ``MockTimelinePersistence``, ``MockAgentTemplateStore``,
+/// ``MockMessageStore``, ``MockThreadPersistenceStore``, ``MockAgentTemplateStore``,
 /// ``MockWorkspacePersistence``, ``MockToolPersistence``) so a test can construct a single
 /// object instead of wiring up every store protocol separately.
 ///
 /// Configurable: `mockHealthStatus`/`mockHealthDetails`; `saveOriginMock`/`fetchOriginMock`/
 /// `fetchAllOriginsMock`/`deleteOriginMock` (closures overriding `RequestOriginStoreProtocol`
 /// behavior — unset closures make origin operations no-ops/return empty). Inspectable:
-/// `memories`, `searchResults`, `messages`, `timelines`, `agentTemplates`, `workspaces`,
+/// `memories`, `searchResults`, `messages`, `threads`, `agentTemplates`, `workspaces`,
 /// `agentInstances` all forward to the underlying focused mocks. `resetDatabase()` clears
 /// every backing store.
 ///
@@ -22,7 +23,7 @@ import Synchronization
 /// Agent insert-or-replace and each tool-workspace mirror upsert are atomic; the two backing stores
 /// are not a cross-store transaction. Callback values are snapshotted while locked, then invoked
 /// after unlocking, so no mutex crosses an `await` or caller-provided code.
-public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProtocol, TimelinePersistenceProtocol, WorkspaceStore, AgentTemplateStoreProtocol, RequestOriginStoreProtocol, ToolPersistenceProtocol, AgentInstanceStoreProtocol, HealthCheckable {
+public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProtocol, ThreadPersistenceProtocol, WorkspaceStore, AgentTemplateStoreProtocol, RequestOriginStoreProtocol, ToolPersistenceProtocol, AgentInstanceStoreProtocol, HealthCheckable {
     private struct State: Sendable {
         var mockHealthStatus: HealthStatus = .ok
         var mockHealthDetails: [String: String]? = ["mock": "true"]
@@ -36,7 +37,7 @@ public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProt
 
     private let memoriesMock = MockMemoryStore()
     private let messagesMock = MockMessageStore()
-    private let timelinesMock = MockTimelinePersistence()
+    private let threadsMock = MockThreadPersistenceStore()
     private let agentTemplatesMock = MockAgentTemplateStore()
     private let workspacesMock = MockWorkspacePersistence()
     private let toolsMock = MockToolPersistence()
@@ -164,47 +165,47 @@ public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProt
         try await messagesMock.saveMessage(message)
     }
 
-    public func fetchMessages(for timelineId: UUID) async throws -> [ConversationMessage] {
-        try await messagesMock.fetchMessages(for: timelineId)
+    public func fetchMessages(for threadID: UUID) async throws -> [ConversationMessage] {
+        try await messagesMock.fetchMessages(for: threadID)
     }
 
-    public func deleteMessages(for timelineId: UUID) async throws {
-        try await messagesMock.deleteMessages(for: timelineId)
+    public func deleteMessages(for threadID: UUID) async throws {
+        try await messagesMock.deleteMessages(for: threadID)
     }
 
     public func pruneMessages(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int {
         try await messagesMock.pruneMessages(olderThan: timeInterval, dryRun: dryRun)
     }
 
-    public func fetchSnapshots(for timelineId: UUID) async throws -> [TurnSnapshot] {
-        try await messagesMock.fetchSnapshots(for: timelineId)
+    public func fetchSnapshots(for threadID: UUID) async throws -> [TurnSnapshot] {
+        try await messagesMock.fetchSnapshots(for: threadID)
     }
 
-    // MARK: - TimelinePersistenceProtocol
+    // MARK: - ThreadPersistenceProtocol
 
-    public var timelines: [Timeline] {
-        get { timelinesMock.timelines }
-        set { timelinesMock.timelines = newValue }
+    public var threads: [Thread] {
+        get { threadsMock.threads }
+        set { threadsMock.threads = newValue }
     }
 
-    public func saveTimeline(_ timeline: Timeline) async throws {
-        try await timelinesMock.saveTimeline(timeline)
+    public func saveThread(_ thread: Thread) async throws {
+        try await threadsMock.saveThread(thread)
     }
 
-    public func fetchTimeline(id: UUID) async throws -> Timeline? {
-        try await timelinesMock.fetchTimeline(id: id)
+    public func fetchThread(id: UUID) async throws -> Thread? {
+        try await threadsMock.fetchThread(id: id)
     }
 
-    public func fetchAllTimelines(includeArchived: Bool) async throws -> [Timeline] {
-        try await timelinesMock.fetchAllTimelines(includeArchived: includeArchived)
+    public func fetchAllThreads(includeArchived: Bool) async throws -> [Thread] {
+        try await threadsMock.fetchAllThreads(includeArchived: includeArchived)
     }
 
-    public func deleteTimeline(id: UUID) async throws {
-        try await timelinesMock.deleteTimeline(id: id)
+    public func deleteThread(id: UUID) async throws {
+        try await threadsMock.deleteThread(id: id)
     }
 
-    public func pruneTimelines(olderThan timeInterval: TimeInterval, excluding excludedTimelineIds: [UUID], dryRun: Bool) async throws -> Int {
-        try await timelinesMock.pruneTimelines(olderThan: timeInterval, excluding: excludedTimelineIds, dryRun: dryRun)
+    public func pruneThreads(olderThan timeInterval: TimeInterval, excluding excludedThreadIDs: [UUID], dryRun: Bool) async throws -> Int {
+        try await threadsMock.pruneThreads(olderThan: timeInterval, excluding: excludedThreadIDs, dryRun: dryRun)
     }
 
     // MARK: - AgentTemplateStoreProtocol
@@ -346,15 +347,15 @@ public final class MockPersistenceService: MemoryStoreProtocol, MessageStoreProt
         state.withLock { $0.agentInstances.removeAll { $0.id == id } }
     }
 
-    public func fetchTimelines(attachedToAgent agentInstanceId: UUID) async throws -> [Timeline] {
-        timelines.filter { $0.attachedAgentInstanceID == agentInstanceId }
+    public func fetchThreads(attachedToAgent agentInstanceId: UUID) async throws -> [Thread] {
+        threads.filter { $0.attachedAgentInstanceID == agentInstanceId }
     }
 
     public func resetDatabase() async throws {
         memories = []
         searchResults = []
         messages = []
-        timelines = []
+        threads = []
         agentTemplates = []
         workspaces = []
         state.withLock { $0.agentInstances = [] }

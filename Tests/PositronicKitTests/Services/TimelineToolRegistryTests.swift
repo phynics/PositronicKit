@@ -4,7 +4,7 @@ import Foundation
 import PKUtilities
 import Testing
 
-final class TimelineToolRegistryTests {
+final class ThreadToolRegistryTests {
     struct MockTool: PKShared.Tool, @unchecked Sendable {
         let callName: String
         let name: String
@@ -53,7 +53,7 @@ final class TimelineToolRegistryTests {
         let systemTool1 = AnyTool(MockTool(callName: "sys1", name: "System 1"))
         let systemTool2 = AnyTool(MockTool(callName: "sys2", name: "System 2"))
 
-        let manager = TimelineToolRegistry(availableTools: [systemTool1, systemTool2])
+        let manager = ThreadToolRegistry(availableTools: [systemTool1, systemTool2])
 
         let enabled = await manager.enabledTools
         #expect(enabled.count == 2)
@@ -66,7 +66,7 @@ final class TimelineToolRegistryTests {
 
     @Test func updateAvailableToolsAutoEnablesNewTools() async {
         let systemTool1 = AnyTool(MockTool(callName: "sys1", name: "System 1"))
-        let manager = TimelineToolRegistry(availableTools: [systemTool1])
+        let manager = ThreadToolRegistry(availableTools: [systemTool1])
 
         // Add a new tool, and simulate one being removed
         let systemTool2 = AnyTool(MockTool(callName: "sys2", name: "System 2"))
@@ -80,7 +80,7 @@ final class TimelineToolRegistryTests {
 
     @Test func toggleEnableDisableTools() async {
         let systemTool1 = AnyTool(MockTool(callName: "sys1", name: "System 1"))
-        let manager = TimelineToolRegistry(availableTools: [systemTool1])
+        let manager = ThreadToolRegistry(availableTools: [systemTool1])
 
         var enabled = await manager.enabledTools
         #expect(enabled.contains("sys1"))
@@ -99,7 +99,7 @@ final class TimelineToolRegistryTests {
     }
 
     @Test func workspaceToolRegistration() async throws {
-        let manager = TimelineToolRegistry(availableTools: [])
+        let manager = ThreadToolRegistry(availableTools: [])
 
         let workspaceId = UUID()
         let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://test")), location: .runtime, originID: nil)
@@ -131,7 +131,7 @@ final class TimelineToolRegistryTests {
 
     @Test func getToolResolvesCorrectly() async throws {
         let systemTool = AnyTool(MockTool(callName: "sys1", name: "System 1"))
-        let manager = TimelineToolRegistry(availableTools: [systemTool])
+        let manager = ThreadToolRegistry(availableTools: [systemTool])
 
         let sysResult = await manager.getTool(id: "sys1")
         try #require(sysResult != nil)
@@ -161,7 +161,7 @@ final class TimelineToolRegistryTests {
     }
 
     @Test func workspaceToolsHaveOrigin() async throws {
-        let manager = TimelineToolRegistry(availableTools: [])
+        let manager = ThreadToolRegistry(availableTools: [])
         let workspaceId = UUID()
         let uri = try #require(WorkspaceURI(parsing: "pk://test-workspace-prov"))
         let workspaceRef = WorkspaceReference(id: workspaceId, uri: uri, location: .runtime, originID: nil)
@@ -182,7 +182,7 @@ final class TimelineToolRegistryTests {
     }
 
     @Test func toolProviderRegistration() async throws {
-        let manager = TimelineToolRegistry(availableTools: [])
+        let manager = ThreadToolRegistry(availableTools: [])
 
         struct TestProvider: ToolSource {
             let toolOrigin: ToolOrigin = .workspace(id: UUID(), name: "Provider")
@@ -207,7 +207,7 @@ final class TimelineToolRegistryTests {
 
     @Test func knownToolRefsResolved() async throws {
         let systemTool = AnyTool(MockTool(callName: "cat", name: "cat"))
-        let manager = TimelineToolRegistry(availableTools: [systemTool])
+        let manager = ThreadToolRegistry(availableTools: [systemTool])
 
         let workspaceId = UUID()
         let uri = try #require(WorkspaceURI(parsing: "pk://test-known-tool"))
@@ -230,7 +230,7 @@ final class TimelineToolRegistryTests {
 
     @Test func multipleWorkspacesDeclaringSameKnownToolCollapseToDeterministicOrigin() async throws {
         let systemTool = AnyTool(MockTool(callName: "cat", name: "cat"))
-        let manager = TimelineToolRegistry(availableTools: [systemTool])
+        let manager = ThreadToolRegistry(availableTools: [systemTool])
 
         // Two workspaces, named so the lexicographic ordering of their displayName is
         // "Workspace: pk://a-workspace" < "Workspace: pk://z-workspace".
@@ -272,7 +272,7 @@ final class TimelineToolRegistryTests {
         let systemTool1 = AnyTool(MockTool(callName: "sys-zeta", name: "Zeta"))
         let systemTool2 = AnyTool(MockTool(callName: "sys-alpha", name: "Alpha"))
         let systemTool3 = AnyTool(MockTool(callName: "sys-beta", name: "Beta"))
-        let manager = TimelineToolRegistry(availableTools: [systemTool1, systemTool2, systemTool3])
+        let manager = ThreadToolRegistry(availableTools: [systemTool1, systemTool2, systemTool3])
 
         struct TestProvider: ToolSource {
             let toolOrigin: ToolOrigin = .workspace(id: UUID(), name: "Provider")
@@ -324,7 +324,7 @@ final class TimelineToolRegistryTests {
     }
 
     @Test func toolsInWorkspaceReturnsOnlyThatWorkspacesCustomTools() async throws {
-        let manager = TimelineToolRegistry(availableTools: [])
+        let manager = ThreadToolRegistry(availableTools: [])
 
         let wsA = UUID()
         let wsB = UUID()
@@ -356,7 +356,7 @@ final class TimelineToolRegistryTests {
 
     @Test func toolsInWorkspaceIncludesKnownSystemToolsTaggedToIt() async throws {
         let systemTool = AnyTool(MockTool(callName: "cat", name: "cat"))
-        let manager = TimelineToolRegistry(availableTools: [systemTool])
+        let manager = ThreadToolRegistry(availableTools: [systemTool])
 
         let wsA = UUID()
         let refA = WorkspaceReference(id: wsA, uri: try #require(WorkspaceURI(parsing: "pk://ws-a")), location: .runtime, originID: nil)

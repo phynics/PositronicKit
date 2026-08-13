@@ -15,7 +15,7 @@ extension ChatEngine {
 
     /// Resolves a requested agent and validates its exclusive timeline attachment before provider
     /// readiness or turn persistence.
-    func preflightAgent(id agentId: UUID?, timelineId: UUID) async throws -> AgentPreflight {
+    func preflightAgent(id agentId: UUID?, threadID: UUID) async throws -> AgentPreflight {
         guard let agentId else {
             return AgentPreflight(instance: nil, diagnostics: [])
         }
@@ -49,19 +49,19 @@ extension ChatEngine {
                 )]
             )
         }
-        let timeline: Timeline?
+        let timeline: Thread?
         do {
-            timeline = try await dependencies.timelineManager.timelineStore.fetchTimeline(id: timelineId)
+            timeline = try await dependencies.threadManager.threadStore.fetchThread(id: threadID)
         } catch {
-            throw TimelineError.unavailable
+            throw ThreadError.unavailable
         }
 
         guard let timeline else {
-            throw TimelineError.timelineNotFound
+            throw ThreadError.threadNotFound
         }
         guard timeline.attachedAgentInstanceID == agentId else {
-            throw AgentInstanceError.timelineAgentMismatch(
-                timelineID: timelineId,
+            throw AgentInstanceError.threadAgentMismatch(
+                threadID: threadID,
                 agentInstanceID: agentId,
                 attachedAgentInstanceID: timeline.attachedAgentInstanceID
             )
@@ -83,7 +83,7 @@ extension ChatEngine {
     /// successfully). Preparation failures release the `sendId` here; stream-loop failures
     /// release it when their terminal outcome is known.
     func prepareSession(
-        timelineId: UUID,
+        threadID: UUID,
         sendId: UUID,
         messageContent: MessageContent,
         tools: [AnyTool],
@@ -147,18 +147,18 @@ extension ChatEngine {
 
         do {
             // 2. Validate timeline existence before any preparation proceeds.
-            try await dependencies.timelineManager.ensureTimelineExists(id: timelineId)
+            try await dependencies.threadManager.ensureThreadExists(id: threadID)
 
             // 3. Validate tool output submissions and reserve pending call IDs — no persistence.
             //    Already-persisted outputs are skipped (resumable batch support).
             validatedToolOutputs = try await ExternalToolOutputSubmissionGate.shared.validate(
                 toolOutputs ?? [],
-                timelineId: timelineId,
+                threadID: threadID,
                 messageStore: dependencies.messageStore
             )
 
             // 4. Load existing conversation history (before new inputs are persisted).
-            let conversationMessages = try await dependencies.messageStore.fetchMessages(for: timelineId)
+            let conversationMessages = try await dependencies.messageStore.fetchMessages(for: threadID)
             var history = conversationMessages.map { $0.toMessage() }
             let currentRemoteDepth = conversationMessages.map(\.remoteDepth).max() ?? 0
 
@@ -186,7 +186,7 @@ extension ChatEngine {
             let contextData = contextResult.data
 
             // 8. Resolve workspaces and session entities
-            let workspaceResult = try await dependencies.timelineManager.getWorkspaces(for: timelineId)
+            let workspaceResult = try await dependencies.threadManager.getWorkspaces(for: threadID)
             turnDiagnostics += workspaceResult.degradations.map {
                 TurnDiagnostic(
                     dependency: .workspace,
@@ -196,10 +196,10 @@ extension ChatEngine {
                     message: $0.message
                 )
             }
-            turnDiagnostics += await dependencies.timelineManager.consumeDegradations(for: timelineId)
+            turnDiagnostics += await dependencies.threadManager.consumeDegradations(for: threadID)
             try enforceRequired(turnDiagnostics)
-            await dependencies.timelineManager.touchTimeline(id: timelineId)
-            let timeline = await dependencies.timelineManager.timeline(id: timelineId)
+            await dependencies.threadManager.touchThread(id: threadID)
+            let timeline = await dependencies.threadManager.thread(id: threadID)
             turnDiagnostics += agentDiagnostics
 
             let requestOriginId = workspaceResult.primary?.originID
@@ -215,8 +215,8 @@ extension ChatEngine {
             }
 
             // 9. Build the initial prompt messages
-            let extensionSections = await dependencies.timelineManager.gatherExtensionSections(
-                timelineId: timelineId,
+            let extensionSections = await dependencies.threadManager.gatherExtensionSections(
+                threadID: threadID,
                 agentInstanceId: agentInstance?.id,
                 message: messageContent.text
             )
@@ -235,7 +235,7 @@ extension ChatEngine {
                 generationParameters: generationParameters
             )
 
-            let promptHistory = await dependencies.promptHistoryRegistry.history(for: timelineId)
+            let promptHistory = await dependencies.promptHistoryRegistry.history(for: threadID)
             let structuredDiff = await promptHistory.structuredDiffHint()
             let providerConfig = await dependencies.llmService.configuration.activeProviderConfiguration
             let budget = try ChatEngine.makeTokenBudget(
@@ -246,7 +246,7 @@ extension ChatEngine {
             let renderedPrompt = try await PromptAssembler.assemble(
                 promptRequest,
                 agentInstance: agentInstance,
-                timeline: timeline,
+                thread: timeline,
                 extensionSections: extensionSections,
                 options: PromptAssemblyOptions(
                     tokenBudget: budget,
@@ -267,7 +267,7 @@ extension ChatEngine {
                 update = try await promptHistory.update(prompt: renderedPrompt)
             } catch {
                 logger.error("Prompt history update failed; aborting turn before returning context", metadata: [
-                    LogKeys.timelineID: .string(timelineId.uuidString),
+                    LogKeys.timelineID: .string(threadID.uuidString),
                     LogKeys.sendID: .string(sendId.uuidString),
                     "error": .string(String(describing: error)),
                 ])
@@ -275,7 +275,7 @@ extension ChatEngine {
             }
             guard let diff = update.diff else {
                 logger.error("Prompt history update produced no diff; aborting turn", metadata: [
-                    LogKeys.timelineID: .string(timelineId.uuidString),
+                    LogKeys.timelineID: .string(threadID.uuidString),
                     LogKeys.sendID: .string(sendId.uuidString),
                     "journalState": .string("update_without_diff"),
                 ])
@@ -284,7 +284,7 @@ extension ChatEngine {
             logger.debug(
                 "Prompt journal updated: added=\(diff.added.count) removed=\(diff.removed.count) changed=\(diff.changed.count)",
                 metadata: [
-                    LogKeys.timelineID: .string(timelineId.uuidString),
+                    LogKeys.timelineID: .string(threadID.uuidString),
                     LogKeys.sendID: .string(sendId.uuidString),
                     LogKeys.turnIndex: .string("0"),
                     "addedSections": .string("\(diff.added.count)"),
@@ -324,13 +324,13 @@ extension ChatEngine {
             //     retry without inserting the same input twice.
             try await ExternalToolOutputSubmissionGate.shared.commit(
                 validatedToolOutputs,
-                timelineId: timelineId,
+                threadID: threadID,
                 messageStore: dependencies.messageStore
             )
             if hasMessage {
                 let userMsg = ConversationMessage(
                     id: sendId,
-                    timelineID: timelineId,
+                    threadID: threadID,
                     role: .user,
                     content: messageContent
                 )
@@ -369,7 +369,7 @@ extension ChatEngine {
             let modelName = providerConfig.modelName
 
             return ChatTurnContext(
-                timelineId: timelineId,
+                threadID: threadID,
                 sendId: sendId,
                 agentInstanceId: agentInstanceId,
                 modelName: modelName,
@@ -397,7 +397,7 @@ extension ChatEngine {
             await TurnIdempotencyGate.shared.release(sendId: sendId)
             // Release any tool-output reservations made during validation.
             await ExternalToolOutputSubmissionGate.shared.releaseReservations(
-                timelineId: timelineId,
+                threadID: threadID,
                 toolCallIds: validatedToolOutputs.map(\.toolCallID)
             )
             throw error

@@ -4,7 +4,7 @@ import Foundation
 import PKUtilities
 import Testing
 
-@Suite final class TimelineTests {
+@Suite final class ThreadTests {
     private func assertCodable<T: Codable>(_ value: T) throws {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
@@ -17,20 +17,20 @@ import Testing
     }
 
     @Test
-    func timelineCodable() throws {
-        let timeline = Timeline(title: "Test Session")
-        try assertCodable(timeline)
+    func threadCodable() throws {
+        let thread = Thread(title: "Test Session")
+        try assertCodable(thread)
     }
 
     @Test
-    func timelineWithWorkspacesCodable() throws {
+    func threadWithWorkspacesCodable() throws {
         let attachedId = UUID()
-        let timeline = Timeline(
+        let thread = Thread(
             title: "Project Alpha",
             attachedWorkspaceIDs: [attachedId]
         )
 
-        try assertCodable(timeline)
-        #expect(timeline.attachedWorkspaceIDs.first == attachedId)
+        try assertCodable(thread)
+        #expect(thread.attachedWorkspaceIDs.first == attachedId)
     }
 }

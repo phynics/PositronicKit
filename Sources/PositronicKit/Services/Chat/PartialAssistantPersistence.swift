@@ -22,10 +22,10 @@ import PKUtilities
 /// misrepresent the turn (the already-persisted user message remains the turn's record).
 /// A failed turn that emitted *anything* (even a single content char) is still persisted.
 struct PartialAssistantPersistence {
-    let messageStore: any MessageStoreProtocol
+    let messageStore: any ThreadMessageStoreProtocol
     let logger: Logger
 
-    init(messageStore: any MessageStoreProtocol, logger: Logger? = nil) {
+    init(messageStore: any ThreadMessageStoreProtocol, logger: Logger? = nil) {
         self.messageStore = messageStore
         self.logger = logger ?? Logger.module(named: "partial-assistant-persistence")
     }
@@ -58,11 +58,11 @@ struct PartialAssistantPersistence {
             )
             try await messageStore.saveMessage(assistantMsg)
             logger.warning(
-                "Persisted partial assistant turn for timeline \(context.timelineId) status=\(status.rawValue) contentChars=\(fullResponse.count) thinkingChars=\(fullThinking.count) toolCalls=\(hasToolCalls)"
+                "Persisted partial assistant turn for thread \(context.threadID) status=\(status.rawValue) contentChars=\(fullResponse.count) thinkingChars=\(fullThinking.count) toolCalls=\(hasToolCalls)"
             )
         } catch {
             logger.error(
-                "Failed to persist partial assistant turn for timeline \(context.timelineId) status=\(status.rawValue): \(error)"
+                "Failed to persist partial assistant turn for thread \(context.threadID) status=\(status.rawValue): \(error)"
             )
         }
     }

@@ -31,6 +31,8 @@ public enum ToolError: PKError, Sendable, Equatable {
     case toolNotFound(String)
     case workspaceNotFound(UUID)
     case requestOriginUnavailable
+    case attachedToolsDisallowedOnPrivateThread
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     case attachedToolsDisallowedOnPrivateTimeline
     case permissionDenied(String)
     case unmatchedToolOutput(String)
@@ -51,7 +53,7 @@ public enum ToolError: PKError, Sendable, Equatable {
         case .toolNotFound: return 204
         case .workspaceNotFound: return 205
         case .requestOriginUnavailable: return 206
-        case .attachedToolsDisallowedOnPrivateTimeline: return 207
+        case .attachedToolsDisallowedOnPrivateThread, .attachedToolsDisallowedOnPrivateTimeline: return 207
         case .permissionDenied: return 210
         case .unmatchedToolOutput: return 211
         case .invalidWorkspaceID: return 213
@@ -63,7 +65,7 @@ public enum ToolError: PKError, Sendable, Equatable {
     /// refusing execution, not model or provider failures.
     public var isBlocked: Bool {
         switch self {
-        case .permissionDenied, .attachedToolsDisallowedOnPrivateTimeline:
+        case .permissionDenied, .attachedToolsDisallowedOnPrivateThread, .attachedToolsDisallowedOnPrivateTimeline:
             return true
         default:
             return false
@@ -90,7 +92,7 @@ public enum ToolError: PKError, Sendable, Equatable {
             return "The target workspace for this tool could not be found."
         case .requestOriginUnavailable:
             return "The request origin associated with this tool is currently unavailable."
-        case .attachedToolsDisallowedOnPrivateTimeline:
+        case .attachedToolsDisallowedOnPrivateThread, .attachedToolsDisallowedOnPrivateTimeline:
             return "Private agent timelines do not support additional workspace tools."
         case let .permissionDenied(name):
             return "The tool '\(name)' requires permission and was not approved."
@@ -128,7 +130,7 @@ public enum ToolError: PKError, Sendable, Equatable {
             return "Verify that workspace \(id) exists and is currently attached."
         case .requestOriginUnavailable:
             return "Ensure the request origin for this workspace is reachable and registered with the runtime."
-        case .attachedToolsDisallowedOnPrivateTimeline:
+        case .attachedToolsDisallowedOnPrivateThread, .attachedToolsDisallowedOnPrivateTimeline:
             return "Only runtime-managed tools are permitted on private timelines. " +
                 "Remove additional workspace tools from the agent's configuration."
         case let .permissionDenied(name):

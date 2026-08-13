@@ -7,7 +7,7 @@ private final class ActiveSend: @unchecked Sendable {
     var generation = 0
 }
 
-/// A SwiftUI-friendly controller for a ``TimelineDriver``.
+/// A SwiftUI-friendly controller for a ``ThreadDriver``.
 ///
 /// Issuing a new `send(_:)` while one is already in flight cancels/supersedes it: the prior
 /// task is cancelled, the driver's underlying generation is cancelled, and the new send starts
@@ -15,8 +15,8 @@ private final class ActiveSend: @unchecked Sendable {
 /// provided.
 @MainActor
 @Observable
-public final class TimelineController {
-    /// The completed messages of the timeline, oldest first.
+public final class ThreadController {
+    /// The completed messages of the thread, oldest first.
     public private(set) var messages: [Message] = []
     /// Whether a send is currently streaming a response.
     public private(set) var isStreaming = false
@@ -24,17 +24,17 @@ public final class TimelineController {
     public private(set) var streamingText = ""
 
     /// The underlying driver this controller mirrors.
-    public let driver: TimelineDriver
+    public let driver: ThreadDriver
     private let activeSend = ActiveSend()
 
-    /// Creates a controller for a timeline driver, optionally seeded with prior messages.
-    public init(_ driver: TimelineDriver, messages: [Message] = []) {
+    /// Creates a controller for a thread driver, optionally seeded with prior messages.
+    public init(_ driver: ThreadDriver, messages: [Message] = []) {
         self.driver = driver
         self.messages = messages
     }
 
     /// Sends a message and mirrors its driver events into the observable state. Supersedes any
-    /// in-flight send for this controller's timeline.
+    /// in-flight send for this controller's thread.
     public func send(_ message: String) async throws {
         activeSend.generation += 1
         let generation = activeSend.generation
@@ -55,7 +55,7 @@ public final class TimelineController {
 
     private func consume(
         _ content: String,
-        from driver: TimelineDriver,
+        from driver: ThreadDriver,
         generation: Int
     ) async throws {
         guard activeSend.generation == generation else { return }

@@ -25,7 +25,7 @@ struct TurnPreparationIdempotencyTests {
     private func makeKit(
         llm: MockLLMService = MockLLMService(),
         messageStore: (any MessageStoreProtocol)? = nil,
-        timelineStore: (any TimelinePersistenceProtocol)? = nil,
+        threadStore: (any ThreadPersistenceProtocol)? = nil,
         workspaceStore: (any WorkspaceStore)? = nil,
         toolPersistence: (any ToolPersistenceProtocol)? = nil
     ) -> (PositronicKit, MockPersistenceService, MockLLMService) {
@@ -34,7 +34,7 @@ struct TurnPreparationIdempotencyTests {
             provider: .init(languageModel: llm),
             persistence: .init(
                 messageStore: messageStore ?? persistence,
-                timelinePersistence: timelineStore ?? persistence,
+                threadPersistence: threadStore ?? persistence,
                 workspacePersistence: workspaceStore ?? persistence,
                 memoryStore: persistence,
                 toolPersistence: toolPersistence ?? persistence,
@@ -45,14 +45,14 @@ struct TurnPreparationIdempotencyTests {
         return (kit, persistence, llm)
     }
 
-    private func setupTimeline(
+    private func setupThread(
         on persistence: MockPersistenceService,
-        timelineManager: TimelineManager
+        threadManager: ThreadManager
     ) async throws -> UUID {
-        let timelineId = UUID()
-        try await persistence.saveTimeline(Timeline(id: timelineId, title: "PKRR-006 Test"))
-        try await timelineManager.hydrateTimeline(id: timelineId)
-        return timelineId
+        let threadID = UUID()
+        try await persistence.saveThread(Thread(id: threadID, title: "PKRR-006 Test"))
+        try await threadManager.hydrateThread(id: threadID)
+        return threadID
     }
 
     // MARK: - AC: History validation failure leaves no new persisted input
@@ -60,10 +60,10 @@ struct TurnPreparationIdempotencyTests {
     @Test("Dangling tool call in history prevents user message persistence")
     func danglingToolCallPreventsUserMessagePersistence() async throws {
         let (kit, persistence, _) = makeKit()
-        let timelineId = try await setupTimeline(on: persistence, timelineManager: kit.timelineManager)
+        let threadID = try await setupThread(on: persistence, threadManager: kit.threadManager)
 
         try await persistence.saveMessage(ConversationMessage(
-            timelineID: timelineId,
+            threadID: threadID,
             role: .assistant,
             content: "",
             toolCalls: pendingToolCallsJSON(ids: ["dangling_call"])
@@ -71,7 +71,7 @@ struct TurnPreparationIdempotencyTests {
 
         do {
             _ = try await kit.run(ChatRunRequest(
-                timelineID: timelineId,
+                threadID: threadID,
                 message: "Follow up"
             ))
             Issue.record("Expected danglingToolCall error")
@@ -81,7 +81,7 @@ struct TurnPreparationIdempotencyTests {
             Issue.record("Expected ChatEngineError, got \(error)")
         }
 
-        let messages = try await persistence.fetchMessages(for: timelineId)
+        let messages = try await persistence.fetchMessages(for: threadID)
         let userMessages = messages.filter { $0.role == "user" }
         #expect(userMessages.isEmpty, "No user message should be persisted when history validation fails")
     }
@@ -91,12 +91,12 @@ struct TurnPreparationIdempotencyTests {
     @Test("Retrying the same sendId is rejected as duplicate")
     func retryingSameSendIdIsRejected() async throws {
         let (kit, persistence, llm) = makeKit()
-        let timelineId = try await setupTimeline(on: persistence, timelineManager: kit.timelineManager)
+        let threadID = try await setupThread(on: persistence, threadManager: kit.threadManager)
         llm.mockClient.nextResponse = "Reply"
 
         let sendId = UUID()
         let stream = try await kit.run(ChatRunRequest(
-            timelineID: timelineId,
+            threadID: threadID,
             sendID: sendId,
             message: "First turn"
         ))
@@ -104,7 +104,7 @@ struct TurnPreparationIdempotencyTests {
 
         do {
             _ = try await kit.run(ChatRunRequest(
-                timelineID: timelineId,
+                threadID: threadID,
                 sendID: sendId,
                 message: "Retry"
             ))
@@ -115,7 +115,7 @@ struct TurnPreparationIdempotencyTests {
             Issue.record("Expected ChatEngineError.duplicateSendId, got \(error)")
         }
 
-        let messages = try await persistence.fetchMessages(for: timelineId)
+        let messages = try await persistence.fetchMessages(for: threadID)
         let userMessages = messages.filter { $0.role == "user" }
         #expect(userMessages.count == 1, "Retrying the same sendId should not duplicate the user message")
         #expect(userMessages.first?.content == "First turn")
@@ -126,10 +126,10 @@ struct TurnPreparationIdempotencyTests {
     @Test("Failed turn releases sendId so retry with the same sendId succeeds")
     func failedTurnReleasesSendIdForRetry() async throws {
         let (kit, persistence, llm) = makeKit()
-        let timelineId = try await setupTimeline(on: persistence, timelineManager: kit.timelineManager)
+        let threadID = try await setupThread(on: persistence, threadManager: kit.threadManager)
 
         try await persistence.saveMessage(ConversationMessage(
-            timelineID: timelineId,
+            threadID: threadID,
             role: .assistant,
             content: "",
             toolCalls: pendingToolCallsJSON(ids: ["call_1"])
@@ -139,7 +139,7 @@ struct TurnPreparationIdempotencyTests {
 
         do {
             _ = try await kit.run(ChatRunRequest(
-                timelineID: timelineId,
+                threadID: threadID,
                 sendID: sendId,
                 message: "Follow up"
             ))
@@ -150,12 +150,12 @@ struct TurnPreparationIdempotencyTests {
             Issue.record("Expected ChatEngineError, got \(error)")
         }
 
-        let messagesAfterFirst = try await persistence.fetchMessages(for: timelineId)
+        let messagesAfterFirst = try await persistence.fetchMessages(for: threadID)
         #expect(messagesAfterFirst.filter { $0.role == "user" }.isEmpty,
                 "No user message should be persisted after a failed turn")
 
         try await persistence.saveMessage(ConversationMessage(
-            timelineID: timelineId,
+            threadID: threadID,
             role: .tool,
             content: "tool result",
             toolCallID: "call_1"
@@ -164,13 +164,13 @@ struct TurnPreparationIdempotencyTests {
         llm.mockClient.nextResponse = "Reply after fix"
 
         let stream = try await kit.run(ChatRunRequest(
-            timelineID: timelineId,
+            threadID: threadID,
             sendID: sendId,
             message: "Follow up"
         ))
         try await drain(stream)
 
-        let messagesAfterRetry = try await persistence.fetchMessages(for: timelineId)
+        let messagesAfterRetry = try await persistence.fetchMessages(for: threadID)
         let userMessages = messagesAfterRetry.filter { $0.role == "user" }
         #expect(userMessages.count == 1, "Retry with the same sendId should persist exactly one user message")
         #expect(userMessages.first?.content == "Follow up")
@@ -182,10 +182,10 @@ struct TurnPreparationIdempotencyTests {
     func toolOutputBatchIsResumableAfterPartialFailure() async throws {
         let batchStore = BatchFailingMessageStore()
         let (kit, persistence, llm) = makeKit(messageStore: batchStore)
-        let timelineId = try await setupTimeline(on: persistence, timelineManager: kit.timelineManager)
+        let threadID = try await setupThread(on: persistence, threadManager: kit.threadManager)
 
         try await batchStore.saveMessage(ConversationMessage(
-            timelineID: timelineId,
+            threadID: threadID,
             role: .assistant,
             content: "",
             toolCalls: pendingToolCallsJSON(ids: ["call_1", "call_2", "call_3"])
@@ -197,7 +197,7 @@ struct TurnPreparationIdempotencyTests {
 
         do {
             _ = try await kit.run(ChatRunRequest(
-                timelineID: timelineId,
+                threadID: threadID,
                 sendID: sendId,
                 message: "",
                 toolOutputs: [
@@ -211,7 +211,7 @@ struct TurnPreparationIdempotencyTests {
             // Expected — the batch failed partway through
         }
 
-        let messagesAfterFirst = batchStore.messages.filter { $0.timelineID == timelineId }
+        let messagesAfterFirst = batchStore.messages.filter { $0.threadID == threadID }
         let toolMessagesAfterFirst = messagesAfterFirst.filter { $0.role == "tool" }
         #expect(toolMessagesAfterFirst.count == 1, "First tool output should be persisted (partial batch)")
         #expect(toolMessagesAfterFirst.first?.toolCallID == "call_1")
@@ -220,7 +220,7 @@ struct TurnPreparationIdempotencyTests {
         llm.mockClient.nextResponse = "Done"
 
         let stream = try await kit.run(ChatRunRequest(
-            timelineID: timelineId,
+            threadID: threadID,
             sendID: sendId,
             message: "",
             toolOutputs: [
@@ -231,7 +231,7 @@ struct TurnPreparationIdempotencyTests {
         ))
         try await drain(stream)
 
-        let messagesAfterRetry = batchStore.messages.filter { $0.timelineID == timelineId }
+        let messagesAfterRetry = batchStore.messages.filter { $0.threadID == threadID }
         let toolMessagesAfterRetry = messagesAfterRetry.filter { $0.role == "tool" }
         #expect(toolMessagesAfterRetry.count == 3, "All three tool outputs should be persisted after retry (no duplication)")
 
@@ -245,10 +245,10 @@ struct TurnPreparationIdempotencyTests {
     @Test("Successful tool-output turn blocks duplicate retry with the same sendId")
     func successfulToolOutputTurnBlocksDuplicateRetry() async throws {
         let (kit, persistence, llm) = makeKit()
-        let timelineId = try await setupTimeline(on: persistence, timelineManager: kit.timelineManager)
+        let threadID = try await setupThread(on: persistence, threadManager: kit.threadManager)
 
         try await persistence.saveMessage(ConversationMessage(
-            timelineID: timelineId,
+            threadID: threadID,
             role: .assistant,
             content: "",
             toolCalls: pendingToolCallsJSON(ids: ["call_1"])
@@ -258,7 +258,7 @@ struct TurnPreparationIdempotencyTests {
 
         let sendId = UUID()
         let stream = try await kit.run(ChatRunRequest(
-            timelineID: timelineId,
+            threadID: threadID,
             sendID: sendId,
             message: "",
             toolOutputs: [ToolOutputSubmission(toolCallID: "call_1", output: "result_1")]
@@ -267,7 +267,7 @@ struct TurnPreparationIdempotencyTests {
 
         do {
             _ = try await kit.run(ChatRunRequest(
-                timelineID: timelineId,
+                threadID: threadID,
                 sendID: sendId,
                 message: "",
                 toolOutputs: [ToolOutputSubmission(toolCallID: "call_1", output: "duplicate")]
@@ -279,7 +279,7 @@ struct TurnPreparationIdempotencyTests {
             Issue.record("Expected ChatEngineError.duplicateSendId, got \(error)")
         }
 
-        let messages = try await persistence.fetchMessages(for: timelineId)
+        let messages = try await persistence.fetchMessages(for: threadID)
         let toolMessages = messages.filter { $0.role == "tool" && $0.toolCallID == "call_1" }
         #expect(toolMessages.count == 1, "Tool output should not be duplicated on retry")
     }

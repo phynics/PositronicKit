@@ -13,7 +13,7 @@ private func makePromptWorkspace(id: UUID = UUID(), path: String) -> WorkspaceRe
     )
 }
 
-private struct TimelineSection: Prompt {
+private struct ThreadSection: Prompt {
     let id: String
     let priority: Int
     let estimatedTokens: Int
@@ -49,11 +49,11 @@ private struct TimelineSection: Prompt {
     }
 }
 
-@Suite("TimelinePromptHistory")
-actor TimelinePromptHistoryTests {
-    @Test("Runtime metadata hashing stays aligned between prompt assembly and timeline history")
+@Suite("ThreadPromptHistory")
+actor ThreadPromptHistoryTests {
+    @Test("Runtime metadata hashing stays aligned between prompt assembly and thread history")
     func runtimeMetadataHashingStaysAligned() async throws {
-        let history = TimelinePromptHistory()
+        let history = ThreadPromptHistory()
         let rendered = try await PromptAssembler.assemble(LLMPromptRequest(
             userQuery: "Current question",
             contextNotes: [ContextFile(name: "note.md", content: "Context", source: "Notes")],
@@ -76,7 +76,7 @@ actor TimelinePromptHistoryTests {
 
     @Test("Duplicate journal sections fail the transition with a typed error")
     func duplicateJournalSectionsAreRecoverable() async throws {
-        let history = TimelinePromptHistory()
+        let history = ThreadPromptHistory()
         let prompt = try await PromptAssembler.assemble(LLMPromptRequest(
             userQuery: "question",
             contextNotes: [],
@@ -97,7 +97,7 @@ actor TimelinePromptHistoryTests {
         do {
             _ = try await history.record(prompt: duplicate)
             Issue.record("Duplicate journal section was accepted")
-        } catch let error as TimelinePromptHistoryError {
+        } catch let error as ThreadPromptHistoryError {
             #expect(error == .duplicateSectionIDs([rendered.sections[0].id]))
         } catch {
             Issue.record("Unexpected error: \(error)")
@@ -106,7 +106,7 @@ actor TimelinePromptHistoryTests {
 
     @Test("Journal transitions remain valid across repeated append and compact cycles")
     func journalTransitionPropertyLoop() async throws {
-        let history = TimelinePromptHistory(thresholds: .init(maxAppendedTokens: 20, maxAppendedMessages: 2))
+        let history = ThreadPromptHistory(thresholds: .init(maxAppendedTokens: 20, maxAppendedMessages: 2))
 
         for index in 0 ..< 32 {
             let section = try AnyPrompt.build {
@@ -125,10 +125,10 @@ actor TimelinePromptHistoryTests {
 
     @Test("History updates compact appended state when thresholds are exceeded")
     func historyUpdatesCompactWhenThresholdsExceeded() async throws {
-        let history = TimelinePromptHistory(thresholds: .init(maxAppendedTokens: 1, maxAppendedMessages: 1))
+        let history = ThreadPromptHistory(thresholds: .init(maxAppendedTokens: 1, maxAppendedMessages: 1))
         let prompt = try AnyPrompt.build {
-            TimelineSection(id: "system", cachePolicy: .stable, text: "System")
-            TimelineSection(id: "query", cachePolicy: .volatile, text: "Question")
+            ThreadSection(id: "system", cachePolicy: .stable, text: "System")
+            ThreadSection(id: "query", cachePolicy: .volatile, text: "Question")
         }.assemblePrompt()
 
         let initialUpdate = try! await history.update(prompt: prompt)
@@ -154,12 +154,12 @@ actor TimelinePromptHistoryTests {
 
     @Test("Layer 3 journals prompt evolution across turns")
     func layer3JournalsPromptEvolutionAcrossTurns() async throws {
-        let history = TimelinePromptHistory()
+        let history = ThreadPromptHistory()
 
         let initialPrompt = try AnyPrompt.build {
-            TimelineSection(id: "system", cachePolicy: .stable, text: "System")
-            TimelineSection(id: "context", cachePolicy: .semiStable, text: "Context v1")
-            TimelineSection(id: "query", cachePolicy: .volatile, text: "Question")
+            ThreadSection(id: "system", cachePolicy: .stable, text: "System")
+            ThreadSection(id: "context", cachePolicy: .semiStable, text: "Context v1")
+            ThreadSection(id: "query", cachePolicy: .volatile, text: "Question")
         }.assemblePrompt()
 
         let initialDiff = try! await history.record(prompt: initialPrompt)
@@ -168,9 +168,9 @@ actor TimelinePromptHistoryTests {
         #expect(initialDiff.stablePrefixCount == 0)
 
         let updatedPrompt = try AnyPrompt.build {
-            TimelineSection(id: "system", cachePolicy: .stable, text: "System")
-            TimelineSection(id: "context", cachePolicy: .semiStable, text: "Context v2")
-            TimelineSection(id: "query", cachePolicy: .volatile, text: "Question")
+            ThreadSection(id: "system", cachePolicy: .stable, text: "System")
+            ThreadSection(id: "context", cachePolicy: .semiStable, text: "Context v2")
+            ThreadSection(id: "query", cachePolicy: .volatile, text: "Question")
         }.assemblePrompt()
 
         let diff = try! await history.record(prompt: updatedPrompt)
@@ -185,12 +185,12 @@ actor TimelinePromptHistoryTests {
     @Test("PromptJournal and runtime history share semistable diff IDs while runtime also tracks cache prefix")
     func promptJournalAndRuntimeHistoryShareSemistableDiffIDs() async throws {
         var journal = PromptJournal()
-        let history = TimelinePromptHistory()
+        let history = ThreadPromptHistory()
 
         let initialPrompt = try AnyPrompt.build {
-            TimelineSection(id: "system", cachePolicy: .stable, text: "System")
-            TimelineSection(id: "context", cachePolicy: .semiStable, text: "Context v1")
-            TimelineSection(id: "query", cachePolicy: .volatile, text: "Question")
+            ThreadSection(id: "system", cachePolicy: .stable, text: "System")
+            ThreadSection(id: "context", cachePolicy: .semiStable, text: "Context v1")
+            ThreadSection(id: "query", cachePolicy: .volatile, text: "Question")
         }.assemblePrompt()
         let initialRendered = await initialPrompt.render()
 
@@ -198,9 +198,9 @@ actor TimelinePromptHistoryTests {
         _ = try! await history.record(prompt: initialPrompt)
 
         let updatedPrompt = try AnyPrompt.build {
-            TimelineSection(id: "system", cachePolicy: .stable, text: "System")
-            TimelineSection(id: "context", cachePolicy: .semiStable, text: "Context v2")
-            TimelineSection(id: "query", cachePolicy: .volatile, text: "Question")
+            ThreadSection(id: "system", cachePolicy: .stable, text: "System")
+            ThreadSection(id: "context", cachePolicy: .semiStable, text: "Context v2")
+            ThreadSection(id: "query", cachePolicy: .volatile, text: "Question")
         }.assemblePrompt()
         let updatedRendered = await updatedPrompt.render()
 
@@ -215,12 +215,12 @@ actor TimelinePromptHistoryTests {
         // sections change. The runtime journal projection must agree with PKPrompt by
         // emitting only semistable IDs; stable/volatile IDs must not leak through.
         var mixedJournal = PromptJournal()
-        let mixedHistory = TimelinePromptHistory()
+        let mixedHistory = ThreadPromptHistory()
 
         let mixedInitial = try AnyPrompt.build {
-            TimelineSection(id: "stable-a", cachePolicy: .stable, text: "Stable A")
-            TimelineSection(id: "semi-a", cachePolicy: .semiStable, text: "Semi A v1")
-            TimelineSection(id: "volatile-a", cachePolicy: .volatile, text: "Volatile A v1")
+            ThreadSection(id: "stable-a", cachePolicy: .stable, text: "Stable A")
+            ThreadSection(id: "semi-a", cachePolicy: .semiStable, text: "Semi A v1")
+            ThreadSection(id: "volatile-a", cachePolicy: .volatile, text: "Volatile A v1")
         }.assemblePrompt()
         let mixedInitialRendered = await mixedInitial.render()
 
@@ -228,10 +228,10 @@ actor TimelinePromptHistoryTests {
         _ = try! await mixedHistory.record(prompt: mixedInitial)
 
         let mixedUpdated = try AnyPrompt.build {
-            TimelineSection(id: "stable-a", cachePolicy: .stable, text: "Stable A")
-            TimelineSection(id: "semi-a", cachePolicy: .semiStable, text: "Semi A v2")
-            TimelineSection(id: "semi-b", cachePolicy: .semiStable, text: "Semi B new")
-            TimelineSection(id: "volatile-a", cachePolicy: .volatile, text: "Volatile A v2")
+            ThreadSection(id: "stable-a", cachePolicy: .stable, text: "Stable A")
+            ThreadSection(id: "semi-a", cachePolicy: .semiStable, text: "Semi A v2")
+            ThreadSection(id: "semi-b", cachePolicy: .semiStable, text: "Semi B new")
+            ThreadSection(id: "volatile-a", cachePolicy: .volatile, text: "Volatile A v2")
         }.assemblePrompt()
         let mixedUpdatedRendered = await mixedUpdated.render()
 
@@ -250,19 +250,19 @@ actor TimelinePromptHistoryTests {
 
     @Test("publicJournalDiff emits only semistable IDs when stable and volatile sections change")
     func publicJournalDiffFiltersNonSemistableChanges() async throws {
-        let history = TimelinePromptHistory()
+        let history = ThreadPromptHistory()
 
         let initialPrompt = try AnyPrompt.build {
-            TimelineSection(id: "stable-a", cachePolicy: .stable, text: "Stable A v1")
-            TimelineSection(id: "semi-a", cachePolicy: .semiStable, text: "Semi A v1")
-            TimelineSection(id: "volatile-a", cachePolicy: .volatile, text: "Volatile A v1")
+            ThreadSection(id: "stable-a", cachePolicy: .stable, text: "Stable A v1")
+            ThreadSection(id: "semi-a", cachePolicy: .semiStable, text: "Semi A v1")
+            ThreadSection(id: "volatile-a", cachePolicy: .volatile, text: "Volatile A v1")
         }.assemblePrompt()
 
         let updatedPrompt = try AnyPrompt.build {
-            TimelineSection(id: "stable-a", cachePolicy: .stable, text: "Stable A v2")
-            TimelineSection(id: "semi-a", cachePolicy: .semiStable, text: "Semi A v2")
-            TimelineSection(id: "semi-b", cachePolicy: .semiStable, text: "Semi B new")
-            TimelineSection(id: "volatile-a", cachePolicy: .volatile, text: "Volatile A v2")
+            ThreadSection(id: "stable-a", cachePolicy: .stable, text: "Stable A v2")
+            ThreadSection(id: "semi-a", cachePolicy: .semiStable, text: "Semi A v2")
+            ThreadSection(id: "semi-b", cachePolicy: .semiStable, text: "Semi B new")
+            ThreadSection(id: "volatile-a", cachePolicy: .volatile, text: "Volatile A v2")
         }.assemblePrompt()
 
         _ = try! await history.record(prompt: initialPrompt)
@@ -284,10 +284,10 @@ actor TimelinePromptHistoryTests {
     @Test("Token-only changes do not register as diffs under the unified text-only fingerprint")
     func tokenOnlyChangesDoNotRegisterAsDiff() async throws {
         var journal = PromptJournal()
-        let history = TimelinePromptHistory()
+        let history = ThreadPromptHistory()
 
         let initialPrompt = try AnyPrompt.build {
-            TimelineSection(id: "semi-token", estimatedTokens: 10, cachePolicy: .semiStable, text: "Same text")
+            ThreadSection(id: "semi-token", estimatedTokens: 10, cachePolicy: .semiStable, text: "Same text")
         }.assemblePrompt()
         let initialRendered = await initialPrompt.render()
 
@@ -296,7 +296,7 @@ actor TimelinePromptHistoryTests {
 
         // Same text, different estimatedTokens — must NOT diff under the unified text-only scheme.
         let updatedPrompt = try AnyPrompt.build {
-            TimelineSection(id: "semi-token", estimatedTokens: 999, cachePolicy: .semiStable, text: "Same text")
+            ThreadSection(id: "semi-token", estimatedTokens: 999, cachePolicy: .semiStable, text: "Same text")
         }.assemblePrompt()
         let updatedRendered = await updatedPrompt.render()
 
@@ -311,16 +311,16 @@ actor TimelinePromptHistoryTests {
 
     @Test("publicJournalDiff emits only semistable IDs when sections are removed")
     func publicJournalDiffFiltersNonSemistableRemovals() async throws {
-        let history = TimelinePromptHistory()
+        let history = ThreadPromptHistory()
 
         let initialPrompt = try AnyPrompt.build {
-            TimelineSection(id: "stable-a", cachePolicy: .stable, text: "Stable A")
-            TimelineSection(id: "semi-a", cachePolicy: .semiStable, text: "Semi A")
+            ThreadSection(id: "stable-a", cachePolicy: .stable, text: "Stable A")
+            ThreadSection(id: "semi-a", cachePolicy: .semiStable, text: "Semi A")
         }.assemblePrompt()
 
         let updatedPrompt = try AnyPrompt.build {
-            TimelineSection(id: "stable-b", cachePolicy: .stable, text: "Stable B")
-            TimelineSection(id: "semi-b", cachePolicy: .semiStable, text: "Semi B")
+            ThreadSection(id: "stable-b", cachePolicy: .stable, text: "Stable B")
+            ThreadSection(id: "semi-b", cachePolicy: .semiStable, text: "Semi B")
         }.assemblePrompt()
 
         _ = try! await history.record(prompt: initialPrompt)
@@ -339,16 +339,16 @@ actor TimelinePromptHistoryTests {
 
     @Test("Records an assembled prompt directly")
     func recordsAssembledPromptDirectly() async throws {
-        let history = TimelinePromptHistory()
+        let history = ThreadPromptHistory()
         let prompt = try AnyPrompt.build {
-            TimelineSection(id: "system", cachePolicy: .stable, text: "A")
-            TimelineSection(id: "query", cachePolicy: .volatile, text: "B")
+            ThreadSection(id: "system", cachePolicy: .stable, text: "A")
+            ThreadSection(id: "query", cachePolicy: .volatile, text: "B")
         }.assemblePrompt()
 
         let initialDiff = try! await history.record(prompt: prompt)
         let updatedPrompt = try AnyPrompt.build {
-            TimelineSection(id: "system", cachePolicy: .stable, text: "A2")
-            TimelineSection(id: "query", cachePolicy: .volatile, text: "B")
+            ThreadSection(id: "system", cachePolicy: .stable, text: "A2")
+            ThreadSection(id: "query", cachePolicy: .volatile, text: "B")
         }.assemblePrompt()
 
         let diff = try! await history.record(prompt: updatedPrompt)
@@ -360,7 +360,7 @@ actor TimelinePromptHistoryTests {
 
     @Test("Tracks appended messages directly")
     func tracksAppendedMessages() async {
-        let history = TimelinePromptHistory()
+        let history = ThreadPromptHistory()
         let messages = [
             Message(content: "Tool output", role: .tool),
             Message(content: "Assistant follow-up", role: .assistant),
@@ -375,10 +375,10 @@ actor TimelinePromptHistoryTests {
 
     @Test("Layer 3 compaction preserves or resets the journal base as requested")
     func layer3CompactionPreservesOrResetsJournalBase() async throws {
-        let history = TimelinePromptHistory(thresholds: .init(maxAppendedTokens: 1, maxAppendedMessages: 1))
+        let history = ThreadPromptHistory(thresholds: .init(maxAppendedTokens: 1, maxAppendedMessages: 1))
         let prompt = try AnyPrompt.build {
-            TimelineSection(id: "system", cachePolicy: .stable, text: "System")
-            TimelineSection(id: "query", cachePolicy: .volatile, text: "Question")
+            ThreadSection(id: "system", cachePolicy: .stable, text: "System")
+            ThreadSection(id: "query", cachePolicy: .volatile, text: "Question")
         }.assemblePrompt()
 
         _ = try! await history.record(prompt: prompt)
@@ -408,10 +408,10 @@ actor TimelinePromptHistoryTests {
 
     @Test("Exposes subtree diff node-path stats")
     func exposesSubtreeDiffStats() async throws {
-        let history = TimelinePromptHistory()
+        let history = ThreadPromptHistory()
         let sections = try AnyPrompt([
-            TimelineSection(id: "system", cachePolicy: .stable, text: "A"),
-            TimelineSection(id: "query", cachePolicy: .volatile, text: "B"),
+            ThreadSection(id: "system", cachePolicy: .stable, text: "A"),
+            ThreadSection(id: "query", cachePolicy: .volatile, text: "B"),
         ]).assemblePrompt().sections
 
         _ = try! await history.record(sections: sections, renderedContent: ["system": "A", "query": "B"])
@@ -425,7 +425,7 @@ actor TimelinePromptHistoryTests {
 
     @Test("Changing attached workspaces only invalidates the workspaces section")
     func changingWorkspacesOnlyInvalidatesWorkspaceSection() async throws {
-        let history = TimelinePromptHistory()
+        let history = ThreadPromptHistory()
 
         let requestV1 = LLMPromptRequest(
             userQuery: "Current question",
@@ -459,33 +459,33 @@ actor TimelinePromptHistoryTests {
     }
 }
 
-@Suite("TimelinePromptJournals")
-actor TimelinePromptJournalsTests {
-    @Test("history(for:) reuses the same instance for the same timeline id")
-    func historyReusesSameInstanceForSameTimelineId() async {
-        let registry = TimelinePromptJournals()
-        let timelineId = UUID()
+@Suite("ThreadPromptJournals")
+actor ThreadPromptJournalsTests {
+    @Test("history(for:) reuses the same instance for the same thread ID")
+    func historyReusesSameInstanceForSameThreadId() async {
+        let registry = ThreadPromptJournals()
+        let threadID = UUID()
 
-        let first = await registry.history(for: timelineId)
+        let first = await registry.history(for: threadID)
         await first.recordAppend(messageCount: 3, estimatedTokens: 42)
 
-        let second = await registry.history(for: timelineId)
+        let second = await registry.history(for: threadID)
 
         // Same underlying actor: state set via `first` is visible through `second`.
         #expect(await second.appendedMessageCount == 3)
         #expect(await second.appendedTokens == 42)
     }
 
-    @Test("history(for:) isolates state across different timeline ids")
-    func historyIsolatesStateAcrossDifferentTimelineIds() async {
-        let registry = TimelinePromptJournals()
-        let timelineA = UUID()
-        let timelineB = UUID()
+    @Test("history(for:) isolates state across different thread IDs")
+    func historyIsolatesStateAcrossDifferentThreadIds() async {
+        let registry = ThreadPromptJournals()
+        let threadA = UUID()
+        let threadB = UUID()
 
-        let historyA = await registry.history(for: timelineA)
+        let historyA = await registry.history(for: threadA)
         await historyA.recordAppend(messageCount: 5, estimatedTokens: 100)
 
-        let historyB = await registry.history(for: timelineB)
+        let historyB = await registry.history(for: threadB)
 
         #expect(await historyA.appendedMessageCount == 5)
         #expect(await historyB.appendedMessageCount == 0)
@@ -494,38 +494,38 @@ actor TimelinePromptJournalsTests {
 
     @Test("removeHistory(for:) followed by history(for:) yields a fresh instance")
     func removeHistoryYieldsFreshInstance() async {
-        let registry = TimelinePromptJournals()
-        let timelineId = UUID()
+        let registry = ThreadPromptJournals()
+        let threadID = UUID()
 
-        let original = await registry.history(for: timelineId)
+        let original = await registry.history(for: threadID)
         await original.recordAppend(messageCount: 7, estimatedTokens: 200)
         #expect(await original.appendedMessageCount == 7)
 
-        await registry.removeHistory(for: timelineId)
+        await registry.removeHistory(for: threadID)
 
-        let fresh = await registry.history(for: timelineId)
+        let fresh = await registry.history(for: threadID)
 
         #expect(await fresh.appendedMessageCount == 0)
         #expect(await fresh.appendedTokens == 0)
         #expect(await fresh.lastDiff == nil)
     }
 
-    @Test("Exceeding the max entry count evicts the least-recently-accessed timeline")
+    @Test("Exceeding the max entry count evicts the least-recently-accessed thread")
     func exceedingMaxEntriesEvictsLeastRecentlyAccessed() async {
         let cap = 5
-        let registry = TimelinePromptJournals(
+        let registry = ThreadPromptJournals(
             evictionPolicy: RegistryEvictionPolicy(maxEntries: cap)
         )
 
-        var timelineIds: [UUID] = []
-        var historiesById: [UUID: TimelinePromptHistory] = [:]
+        var threadIds: [UUID] = []
+        var historiesById: [UUID: ThreadPromptHistory] = [:]
         for _ in 0 ..< cap {
             let id = UUID()
-            timelineIds.append(id)
+            threadIds.append(id)
             historiesById[id] = await registry.history(for: id)
         }
 
-        // Mark the second-oldest timeline with distinguishing state via its *already-captured*
+        // Mark the second-oldest thread with distinguishing state via its *already-captured*
         // actor reference, never going back through `registry.history(for:)` for it again until
         // the final check below — `history(for:)` itself refreshes recency on every call (hit
         // or miss), so re-fetching through the registry here would accidentally un-stale it.
@@ -534,13 +534,13 @@ actor TimelinePromptJournalsTests {
         // the fresh-instance default, so the final assertion can't pass by coincidence the way a
         // bare "== 0" check against never-touched state could (trivially true both when the
         // entry was correctly evicted-and-recreated AND when eviction silently never fired).
-        let staleId = timelineIds[1]
+        let staleId = threadIds[1]
         await historiesById[staleId]?.recordAppend(messageCount: 99, estimatedTokens: 99)
 
-        // Refresh the recency of the first (oldest-by-insertion) timeline, through the registry,
+        // Refresh the recency of the first (oldest-by-insertion) thread, through the registry,
         // so it is no longer the least-recently-accessed entry (this call's own `touch()` is
         // exactly the kind of registry access `staleId` above deliberately avoided).
-        let refreshedId = timelineIds[0]
+        let refreshedId = threadIds[0]
         let refreshedHistory = await registry.history(for: refreshedId)
         await refreshedHistory.recordAppend(messageCount: 1, estimatedTokens: 1)
 
@@ -548,11 +548,11 @@ actor TimelinePromptJournalsTests {
         let newId = UUID()
         _ = await registry.history(for: newId)
 
-        // The refreshed timeline must have survived eviction with its state intact.
+        // The refreshed thread must have survived eviction with its state intact.
         let stillPresent = await registry.history(for: refreshedId)
         #expect(await stillPresent.appendedMessageCount == 1)
 
-        // The stale timeline should have been evicted: asking for it again creates a *fresh*
+        // The stale thread should have been evicted: asking for it again creates a *fresh*
         // instance (appendedMessageCount reset to 0, not the 99 marker), proving the old one
         // with its marker state was actually dropped rather than merely never having been
         // touched.

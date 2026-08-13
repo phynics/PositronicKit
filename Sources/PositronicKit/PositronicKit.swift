@@ -12,23 +12,23 @@ import PKUtilities
 /// Only `languageModel` is required. All other parameters have sensible in-memory defaults
 /// suitable for development and prototyping. For production, provide persistent stores.
 ///
-/// PositronicKit intentionally stays transport-neutral. Concepts like timelines, workspaces,
+/// PositronicKit intentionally stays transport-neutral. Concepts like threads, workspaces,
 /// agents, tool routing, and prompt assembly live here; concrete networking or multi-process hosting models are
 /// expected to be provided downstream via injected stores, workspace creators, and connection hooks.
 ///
 /// Intended extension seams for downstream applications are the facade itself plus public runtime
 /// protocols such as persistence stores, `WorkspaceFactory` / `Workspace`,
 /// `PromptSectionProviding`, and `ChatTurnPlugin`. Internal coordinators like `ChatEngine`,
-/// `TimelinePromptHistory`, and the concrete turn pipeline remain runtime implementation details
+/// `ThreadPromptHistory`, and the concrete turn pipeline remain runtime implementation details
 /// even when they are visible to tests inside this package.
 ///
 /// Example usage:
 /// - Minimal: `PositronicKit(languageModel: myModel)`
 /// - Production: use `PositronicKit(configuration:)`.
 ///
-/// The public operation ladder is progressive: tier 1 is timeline-free one-shot
-/// `complete(_:)`/`stream(_:)`; tier 2 is the stateful `TimelineDriver`; tier 3 is
-/// direct `timelineManager` access; tier 4 is the full `AgenticRuntime` tool/agent loop;
+/// The public operation ladder is progressive: tier 1 is thread-free one-shot
+/// `complete(_:)`/`stream(_:)`; tier 2 is the stateful `ThreadDriver`; tier 3 is
+/// direct `threadManager` access; tier 4 is the full `AgenticRuntime` tool/agent loop;
 /// tier 5 is the raw primitives (`toolRouter`, `languageModel`, and the prompt DSL) for a
 /// bespoke pipeline. A typical application wraps one kit in an application-owned Service
 /// class, then passes the managers or controllers it vends to the relevant subsystems.
@@ -50,18 +50,22 @@ public final class PositronicKit: Sendable {
 
     @available(*, deprecated, renamed: "languageModel")
     var llmService: any LanguageModel { languageModel }
-    private let messageStore: any MessageStoreProtocol
+    private let messageStore: any ThreadMessageStoreProtocol
 
-    /// The timeline manager built by this facade. Hosts that need direct access (e.g. to wire
-    /// their own routes) should read this instead of building a second `TimelineManager`, which
+    /// The thread manager built by this facade. Hosts that need direct access (e.g. to wire
+    /// their own routes) should read this instead of building a second `ThreadManager`, which
     /// would silently diverge from the stores the facade itself uses.
-    public let timelineManager: TimelineManager
+    public let threadManager: ThreadManager
+
+    /// Deprecated v3 spelling for ``threadManager``.
+    @available(*, deprecated, renamed: "threadManager", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public var timelineManager: ThreadManager { threadManager }
 
     /// The single agent-instance manager owned by this facade. It is wired to the same
-    /// timeline manager and persistence stores as the rest of the runtime.
+    /// thread manager and persistence stores as the rest of the runtime.
     public let agentInstanceManager: AgentInstanceManager
 
-    /// The tool router built by this facade, wired to `timelineManager` above.
+    /// The tool router built by this facade, wired to `threadManager` above.
     public let toolRouter: ToolRouter
     private let agentInstanceStore: any AgentInstanceStoreProtocol
     private let requestOriginStore: any RequestOriginStoreProtocol
@@ -72,9 +76,9 @@ public final class PositronicKit: Sendable {
     private let logger = Logger.module(named: "positronickit-facade")
     private let loggingConfiguration: LoggingConfiguration
 
-    // MARK: - Transitive dependencies (TimelineManager, TurnBriefingBuilder)
+    // MARK: - Transitive dependencies (ThreadManager, TurnBriefingBuilder)
 
-    private let timelinePersistence: any TimelinePersistenceProtocol
+    private let threadPersistence: any ThreadPersistenceProtocol
     private let workspacePersistence: any WorkspaceStore
     private let memoryStore: any MemoryStoreProtocol
     private let toolPersistence: any ToolPersistenceProtocol
@@ -82,13 +86,13 @@ public final class PositronicKit: Sendable {
 
     private let chatEngine: ChatEngine
 
-    /// Owned internally; every timeline driver vended by this instance shares it automatically.
+    /// Owned internally; every thread driver vended by this instance shares it automatically.
     /// Construct a new `PositronicKit` for a genuinely separate cross-send history.
-    private let promptHistoryRegistry: TimelinePromptJournals
+    private let promptHistoryRegistry: ThreadPromptJournals
     private let workspaceProfile: WorkspaceProfile
     private let workspaceCreator: any WorkspaceFactory
     private let sectionProviders: [any PromptSectionProviding]
-    private let runtimeToolPolicy: TimelineManager.RuntimeToolPolicy
+    private let runtimeToolPolicy: ThreadManager.RuntimeToolPolicy
     private let degradationPolicy: TurnDegradationPolicy
     private let toolApprovalPolicy: any ToolApprovalPolicy
 
@@ -123,10 +127,10 @@ public final class PositronicKit: Sendable {
 
     convenience init(
         languageModel: any LanguageModel,
-        messageStore: (any MessageStoreProtocol)? = nil,
+        messageStore: (any ThreadMessageStoreProtocol)? = nil,
         agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,
         requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
-        timelinePersistence: (any TimelinePersistenceProtocol)? = nil,
+        threadPersistence: (any ThreadPersistenceProtocol)? = nil,
         workspacePersistence: (any WorkspaceStore)? = nil,
         memoryStore: (any MemoryStoreProtocol)? = nil,
         toolPersistence: (any ToolPersistenceProtocol)? = nil,
@@ -134,7 +138,7 @@ public final class PositronicKit: Sendable {
         workspaceProfile: WorkspaceProfile = .noWorkspace,
         workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = [],
-        runtimeToolPolicy: TimelineManager.RuntimeToolPolicy = .default,
+        runtimeToolPolicy: ThreadManager.RuntimeToolPolicy = .default,
         chatTurnPlugins: [any ChatTurnPlugin] = [],
         promptObserver: (any PromptObserving)? = nil,
         diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
@@ -142,7 +146,7 @@ public final class PositronicKit: Sendable {
         generationParameters: GenerationParameters? = nil,
         toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
         loggingConfiguration: LoggingConfiguration = .default,
-        sharedRegistry: TimelinePromptJournals,
+        sharedRegistry: ThreadPromptJournals,
         additionalStages: [any PipelineStage<ChatTurnContext, ChatEvent>]
     ) {
         self.init(
@@ -151,7 +155,7 @@ public final class PositronicKit: Sendable {
                 messageStore: messageStore ?? InMemoryMessageStore(),
                 agentInstanceStore: agentInstanceStore ?? InMemoryAgentInstanceStore(),
                 requestOriginStore: requestOriginStore ?? InMemoryRequestOriginStore(),
-                timelinePersistence: timelinePersistence ?? InMemoryTimelinePersistence(),
+                threadPersistence: threadPersistence ?? InMemoryThreadPersistence(),
                 workspacePersistence: workspacePersistence ?? InMemoryWorkspacePersistence(),
                 memoryStore: memoryStore ?? InMemoryMemoryStore(),
                 toolPersistence: toolPersistence ?? InMemoryToolPersistence(),
@@ -174,7 +178,7 @@ public final class PositronicKit: Sendable {
     }
 
     /// The designated initializer. Accepts a fully-resolved ``KitDependencies`` bundle and
-    /// wires the internal coordinators (`TimelineManager`, `AgentInstanceManager`, `ToolRouter`,
+    /// wires the internal coordinators (`ThreadManager`, `AgentInstanceManager`, `ToolRouter`,
     /// `ChatEngine`) from it. Builder methods (`reconfigured`, `addingStage`, `addingPlugin`)
     /// extract the current dependencies, mutate the single field that changes, and forward
     /// here — eliminating the repeated ~25-line parameter forwarding (PKCR-009).
@@ -183,7 +187,7 @@ public final class PositronicKit: Sendable {
         messageStore = dependencies.messageStore
         agentInstanceStore = dependencies.agentInstanceStore
         requestOriginStore = dependencies.requestOriginStore
-        timelinePersistence = dependencies.timelinePersistence
+        threadPersistence = dependencies.threadPersistence
         workspacePersistence = dependencies.workspacePersistence
         memoryStore = dependencies.memoryStore
         toolPersistence = dependencies.toolPersistence
@@ -202,19 +206,19 @@ public final class PositronicKit: Sendable {
         defaultGenerationParameters = dependencies.generationParameters
 
         // The catalog root anchors agent-private workspace provisioning (a separate, opt-in
-        // path from timeline workspaces). For `.noWorkspace` there is no profile root, so fall
+        // path from thread workspaces). For `.noWorkspace` there is no profile root, so fall
         // back to a process-temporary path so the catalog still has somewhere to anchor if a
-        // host later creates agent workspaces. Timeline creation itself is unaffected: `.noWorkspace`
-        // provisions no timeline directory regardless of this value.
+        // host later creates agent workspaces. Thread creation itself is unaffected: `.noWorkspace`
+        // provisions no thread directory regardless of this value.
         let resolvedCatalogRoot = dependencies.workspaceProfile.catalogRoot
             ?? FileManager.default.temporaryDirectory
                 .appendingPathComponent("positronickit-workspaces", isDirectory: true)
-        // The facade is the only place a TimelineManager gets built: every store it wraps
+        // The facade is the only place a ThreadManager gets built: every store it wraps
         // comes from the same `persistence` surface the rest of the facade uses, so there is
-        // no seam where ChatEngine and TimelineManager can end up looking at different stores.
-        let resolvedTimelineManager = TimelineManager(
+        // no seam where ChatEngine and ThreadManager can end up looking at different stores.
+        let resolvedThreadManager = ThreadManager(
             stores: .init(
-                timelineStore: self.timelinePersistence,
+                threadStore: self.threadPersistence,
                 messageStore: self.messageStore,
                 workspaceStore: self.workspacePersistence,
                 toolPersistence: self.toolPersistence,
@@ -227,7 +231,7 @@ public final class PositronicKit: Sendable {
             embeddingService: self.embeddingService,
             promptHistoryRegistry: promptHistoryRegistry
         )
-        timelineManager = resolvedTimelineManager
+        threadManager = resolvedThreadManager
         agentInstanceManager = AgentInstanceManager(
             repository: DefaultWorkspaceCatalog(
                 workspaceRoot: resolvedCatalogRoot,
@@ -235,21 +239,21 @@ public final class PositronicKit: Sendable {
             ),
             stores: .init(
                 instanceStore: self.agentInstanceStore,
-                timelineStore: self.timelinePersistence,
+                threadStore: self.threadPersistence,
                 messageStore: self.messageStore,
                 workspaceStore: self.workspacePersistence
             ),
-            timelineManager: resolvedTimelineManager
+            threadManager: resolvedThreadManager
         )
         toolRouter = ToolRouter(
-            timelineManager: resolvedTimelineManager,
+            threadManager: resolvedThreadManager,
             messageStore: self.messageStore,
             approvalPolicy: dependencies.toolApprovalPolicy,
             loggingConfiguration: dependencies.loggingConfiguration
         )
         var engine = ChatEngine(
             dependencies: .init(
-                timelineManager: resolvedTimelineManager,
+                threadManager: resolvedThreadManager,
                 agentInstanceStore: self.agentInstanceStore,
                 requestOriginStore: self.requestOriginStore,
                 messageStore: self.messageStore,
@@ -276,7 +280,7 @@ public final class PositronicKit: Sendable {
             messageStore: messageStore,
             agentInstanceStore: agentInstanceStore,
             requestOriginStore: requestOriginStore,
-            timelinePersistence: timelinePersistence,
+            threadPersistence: threadPersistence,
             workspacePersistence: workspacePersistence,
             memoryStore: memoryStore,
             toolPersistence: toolPersistence,
@@ -302,7 +306,7 @@ public final class PositronicKit: Sendable {
     /// inspection turn indexing), stores, tools, plugins, and workspace wiring.
     ///
     /// This is the supported path for hosts that must refresh provider settings between sends
-    /// without silently resetting per-timeline prompt-history state.
+    /// without silently resetting per-thread prompt-history state.
     public func reconfigured(
         languageModel: any LanguageModel,
         generationParameters: GenerationParameters? = nil
@@ -341,23 +345,32 @@ public final class PositronicKit: Sendable {
 
     /// Vends a fresh tier-four agent runtime handle.
     public func agenticRuntime(
-        timelineID: UUID,
-        agentInstanceID: UUID
+        threadID: UUID,
+        agentInstanceID: UUID? = nil
     ) -> AgenticRuntime {
         AgenticRuntime(
             kit: self,
-            timelineID: timelineID,
+            threadID: threadID,
             agentInstanceID: agentInstanceID
         )
     }
 
-    /// Vends a fresh tier-four agent runtime handle using legacy identifier spellings.
-    @available(*, deprecated, message: "Use agenticRuntime(timelineID:agentInstanceID:).")
+    /// Vends a fresh tier-four agent runtime handle using the deprecated timeline spelling.
+    @available(*, deprecated, renamed: "agenticRuntime(threadID:agentInstanceID:)", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public func agenticRuntime(
+        timelineID: UUID,
+        agentInstanceID: UUID
+    ) -> AgenticRuntime {
+        agenticRuntime(threadID: timelineID, agentInstanceID: agentInstanceID)
+    }
+
+    /// Vends a fresh tier-four agent runtime handle using the legacy 3.x identifier spelling.
+    @available(*, deprecated, renamed: "agenticRuntime(threadID:agentInstanceID:)", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     public func agenticRuntime(
         timelineId: UUID,
         agentInstanceId: UUID
     ) -> AgenticRuntime {
-        agenticRuntime(timelineID: timelineId, agentInstanceID: agentInstanceId)
+        agenticRuntime(threadID: timelineId, agentInstanceID: agentInstanceId)
     }
 
     /// Run a chat turn and return a stream of events.
@@ -370,11 +383,11 @@ public final class PositronicKit: Sendable {
 
         let resolvedTurnBriefingBuilder = try await resolveTurnBriefingBuilder(
             explicit: nil,
-            timelineId: request.timelineID
+            threadID: request.threadID
         )
 
         return try await chatEngine.execute(
-            timelineId: request.timelineID,
+            threadID: request.threadID,
             sendId: request.sendID,
             messageContent: request.messageContent,
             tools: request.tools,
@@ -394,26 +407,26 @@ public final class PositronicKit: Sendable {
         )
     }
 
-    /// Resolves the `TurnBriefingBuilder` for a turn, hydrating the timeline from persistence
+    /// Resolves the `TurnBriefingBuilder` for a turn, hydrating the thread from persistence
     /// first if it isn't already cached in memory.
     ///
-    /// Hydration failure propagates as a typed ``TimelineError``: `.timelineNotFound` for a
+    /// Hydration failure propagates as a typed ``ThreadError``: `.threadNotFound` for a
     /// missing ID, `.unavailable` for a transient store fault. The error reaches the caller
     /// before input persistence runs (PKRR-006), so no user input is persisted under an
-    /// unestablished timeline.
+    /// unestablished thread.
     private func resolveTurnBriefingBuilder(
         explicit turnBriefingBuilder: TurnBriefingBuilder?,
-        timelineId: UUID
+        threadID: UUID
     ) async throws -> TurnBriefingBuilder? {
         if let turnBriefingBuilder {
             return turnBriefingBuilder
         }
 
-        if let existing = await timelineManager.getTurnBriefingBuilder(for: timelineId) {
+        if let existing = await threadManager.getTurnBriefingBuilder(for: threadID) {
             return existing
         }
 
-        try await timelineManager.ensureTimelineExists(id: timelineId)
-        return await timelineManager.getTurnBriefingBuilder(for: timelineId)
+        try await threadManager.ensureThreadExists(id: threadID)
+        return await threadManager.getTurnBriefingBuilder(for: threadID)
     }
 }

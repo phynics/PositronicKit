@@ -89,7 +89,7 @@ public enum READMEExamples {
     /// README "Sidecar directives" example.
     public static func readmeSidecarDirectivesExample(
         chat: PositronicKit,
-        timelineId: UUID
+        threadID: UUID
     ) async throws {
         let title = SidecarDirective(
             name: "title",
@@ -99,7 +99,7 @@ public enum READMEExamples {
         )
 
         let stream = try await chat.run(.init(
-            timelineID: timelineId,
+            threadID: threadID,
             message: "What's the deal with actors in Swift 6?",
             sidecars: [title]
         ))

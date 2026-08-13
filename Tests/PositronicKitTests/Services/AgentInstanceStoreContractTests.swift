@@ -1,5 +1,6 @@
 import Foundation
 import PKShared
+import struct PositronicKit.Thread
 @testable import PositronicKit
 import Testing
 
@@ -34,7 +35,7 @@ import Testing
             id: id,
             name: name,
             description: description,
-            privateTimelineID: UUID()
+            privateThreadID: UUID()
         )
     }
 
@@ -138,17 +139,29 @@ import Testing
         #expect(all.first?.id == keep.id)
     }
 
-    // MARK: - Fetch Timelines
+    // MARK: - Fetch Threads
 
     @Test(arguments: Conformer.allCases)
-    func fetchTimelinesReturnsEmptyForAgentWithNoneAttached(conformer: Conformer) async throws {
-        let store = conformer.make()
+    func fetchThreadsWorksThroughProtocolExistential(conformer: Conformer) async throws {
+        let store: any AgentInstanceStoreProtocol = conformer.make()
         let instance = Self.makeInstance()
 
         try await store.saveAgentInstance(instance)
 
-        let timelines = try await store.fetchTimelines(attachedToAgent: instance.id)
-        #expect(timelines.isEmpty)
+        let threads = try await store.fetchThreads(attachedToAgent: instance.id)
+        #expect(threads.isEmpty)
+    }
+
+    @Test(arguments: Conformer.allCases)
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
+    func fetchThreadsRemainsAvailableAsLegacyShim(conformer: Conformer) async throws {
+        let store: any AgentInstanceStoreProtocol = conformer.make()
+        let instance = Self.makeInstance()
+
+        try await store.saveAgentInstance(instance)
+
+        let threads = try await store.fetchThreads(attachedToAgent: instance.id)
+        #expect(threads.isEmpty)
     }
 }
 
@@ -176,7 +189,7 @@ private actor DictionaryAgentInstanceStore: AgentInstanceStoreProtocol {
         storage.removeValue(forKey: id)
     }
 
-    func fetchTimelines(attachedToAgent _: UUID) async throws -> [Timeline] {
+    func fetchThreads(attachedToAgent _: UUID) async throws -> [Thread] {
         []
     }
 }

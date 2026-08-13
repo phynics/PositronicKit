@@ -2,6 +2,7 @@ import Foundation
 import PKShared
 import PKTestSupport
 import Testing
+import struct PositronicKit.Thread
 @testable import PositronicKit
 
 @Suite("PositronicKit core API clarity")
@@ -21,7 +22,7 @@ struct CoreAPIClarityTests {
         func requestCount() -> Int { requests }
     }
 
-    private actor LegacyOnlyAgentInstanceManager: AgentInstanceManagerProtocol {
+    private actor LegacyOnlyAgentInstanceManager: TimelineAgentInstanceManagerProtocol {
         let agent: AgentInstance
         let timeline: Timeline
         private var instanceRequests = 0
@@ -57,6 +58,41 @@ struct CoreAPIClarityTests {
 
         func requestCounts() -> (instances: Int, timelines: Int, attaches: Int, detaches: Int) {
             (instanceRequests, timelineRequests, attachRequests, detachRequests)
+        }
+    }
+
+    private actor CanonicalOnlyAgentInstanceManager: AgentInstanceManagerProtocol {
+        let agent: AgentInstance
+        let thread: Thread
+        private var threadRequests = 0
+        private var attachRequests = 0
+        private var detachRequests = 0
+
+        init(agent: AgentInstance, thread: Thread) {
+            self.agent = agent
+            self.thread = thread
+        }
+
+        func createInstance(
+            from template: AgentTemplate?,
+            name: String,
+            description: String
+        ) async throws -> AgentInstance { agent }
+
+        func attach(agentID: UUID, to threadID: UUID) async throws { attachRequests += 1 }
+        func detach(agentID: UUID, from threadID: UUID) async throws { detachRequests += 1 }
+        func getInstance(id: UUID) async throws -> AgentInstance? { agent.id == id ? agent : nil }
+        func listInstances() async throws -> [AgentInstance] { [agent] }
+        func getThreads(attachedTo agentID: UUID) async throws -> [Thread] {
+            threadRequests += 1
+            return [thread]
+        }
+        func updateInstance(_ instance: AgentInstance) async throws {}
+        func searchInstances(query: String) async throws -> [AgentInstance] { [agent] }
+        func deleteInstance(id: UUID, force: Bool) async throws {}
+
+        func requestCounts() -> (threads: Int, attaches: Int, detaches: Int) {
+            (threadRequests, attachRequests, detachRequests)
         }
     }
 
@@ -100,8 +136,52 @@ struct CoreAPIClarityTests {
         }
     }
 
-    @Test("Canonical protocol queries forward once to legacy-only conformers")
-    func canonicalProtocolQueriesForwardToLegacyOnlyConformers() async throws {
+    @Test("Canonical protocol requirements dispatch through an existential")
+    func canonicalProtocolRequirementsDispatchThroughExistential() async throws {
+        let agent = AgentInstance(
+            name: "Canonical",
+            description: "Canonical-only protocol conformer",
+            privateThreadID: UUID()
+        )
+        let thread = Thread()
+        let canonicalManager = CanonicalOnlyAgentInstanceManager(agent: agent, thread: thread)
+        let manager: any AgentInstanceManagerProtocol = canonicalManager
+
+        #expect(try await manager.getThreads(attachedTo: agent.id).map(\.id) == [thread.id])
+        try await manager.attach(agentID: agent.id, to: thread.id)
+        try await manager.detach(agentID: agent.id, from: thread.id)
+
+        let counts = await canonicalManager.requestCounts()
+        #expect(counts.threads == 1)
+        #expect(counts.attaches == 1)
+        #expect(counts.detaches == 1)
+    }
+
+    @Test("Timeline protocol spellings forward one way to canonical requirements")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
+    func timelineProtocolSpellingsForwardToCanonicalRequirements() async throws {
+        let agent = AgentInstance(
+            name: "Forwarded",
+            description: "Exercises deprecated protocol forwards",
+            privateThreadID: UUID()
+        )
+        let thread = Thread()
+        let canonicalManager = CanonicalOnlyAgentInstanceManager(agent: agent, thread: thread)
+        let manager: any AgentInstanceManagerProtocol = canonicalManager
+
+        #expect(try await manager.getTimelines(attachedTo: agent.id).map(\.id) == [thread.id])
+        try await manager.attach(agentId: agent.id, to: thread.id)
+        try await manager.detach(agentId: agent.id, from: thread.id)
+
+        let counts = await canonicalManager.requestCounts()
+        #expect(counts.threads == 1)
+        #expect(counts.attaches == 1)
+        #expect(counts.detaches == 1)
+    }
+
+    @Test("Legacy protocol conformers remain injectable through the adapter")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
+    func legacyProtocolConformersRemainInjectableThroughAdapter() async throws {
         let resolver: any WorkspaceResolver = LegacyOnlyWorkspaceResolver()
         let resolved = try await resolver.workspace(id: UUID())
         #expect(resolved == nil)
@@ -118,7 +198,7 @@ struct CoreAPIClarityTests {
             agent: agent,
             timeline: timeline
         )
-        let manager: any AgentInstanceManagerProtocol = legacyManager
+        let manager: any AgentInstanceManagerProtocol = LegacyAgentInstanceManagerAdapter(legacyManager)
 
         #expect(try await manager.instance(id: agent.id) == agent)
         let timelines = try await manager.timelines(attachedTo: agent.id)
@@ -145,6 +225,36 @@ struct CoreAPIClarityTests {
         let creationCounts = await legacyCatalog.creationCounts()
         #expect(creationCounts.workspaces == 1)
         #expect(creationCounts.agentWorkspaces == 1)
+    }
+
+    @Test("Timeline agent forwards use the exact v4 diagnostic")
+    func timelineAgentForwardsUseExactDiagnostic() throws {
+        let sourceRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let managerSource = try String(
+            contentsOf: sourceRoot.appendingPathComponent(
+                "Sources/PositronicKit/Services/Agents/AgentInstanceManager.swift"
+            ),
+            encoding: .utf8
+        )
+        let protocolSource = try String(
+            contentsOf: sourceRoot.appendingPathComponent(
+                "Sources/PositronicKit/Services/Agents/AgentInstanceManagerProtocol.swift"
+            ),
+            encoding: .utf8
+        )
+        let diagnostic = "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead."
+
+        #expect(managerSource.contains("@available(*, deprecated, message: \"\(diagnostic)\")\n    public func attach(agentId:"))
+        #expect(managerSource.contains("@available(*, deprecated, message: \"\(diagnostic)\")\n    public func detach(agentId:"))
+        #expect(protocolSource.contains("func attach(agentID: UUID, to threadID: UUID) async throws"))
+        #expect(protocolSource.contains("func detach(agentID: UUID, from threadID: UUID) async throws"))
+        #expect(protocolSource.contains("func getThreads(attachedTo agentID: UUID) async throws -> [Thread]"))
+        #expect(protocolSource.contains("@available(*, deprecated, message: \"\(diagnostic)\")\n    func attach(agentId:"))
+        #expect(protocolSource.contains("@available(*, deprecated, message: \"\(diagnostic)\")\n    func detach(agentId:"))
+        #expect(protocolSource.contains("@available(*, deprecated, renamed: \"getThreads(attachedTo:)\", message: \"\(diagnostic)\")\n    func getTimelines("))
     }
 
     @Test("Default-heavy Timeline initializer resolves to the canonical overload")

@@ -26,35 +26,35 @@ public enum PositronicKitUsageExamples {
 
     // MARK: - Facade operation ladder
 
-    /// Tier 1: a timeline-free one-shot runtime.
+    /// Tier 1: a thread-free one-shot runtime.
     public static func makeOneShotRuntime() -> PositronicKit {
         PositronicKit(languageModel: UnconfiguredLLMService())
     }
 
-    /// Tier 2: a driver for a freshly created, persisted timeline.
-    public static func makeTimelineDriverExample() async throws -> TimelineDriver {
+    /// Tier 2: a driver for a freshly created, persisted thread.
+    public static func makeThreadDriverExample() async throws -> ThreadDriver {
         let kit = makeOneShotRuntime()
-        let timeline = try await kit.timelineManager.createTimeline(title: "Example Timeline")
-        return kit.openTimeline(timeline.id)
+        let thread = try await kit.threadManager.createThread(title: "Example Thread")
+        return kit.openThread(thread.id)
     }
 
-    /// Tier 3: the facade-owned timeline manager for direct timeline/workspace control.
-    public static func makeTimelineManagerExample() -> TimelineManager {
-        makeOneShotRuntime().timelineManager
+    /// Tier 3: the facade-owned thread manager for direct thread/workspace control.
+    public static func makeThreadManagerExample() -> ThreadManager {
+        makeOneShotRuntime().threadManager
     }
 
-    /// Tier 4: an agentic runtime handle over an attached timeline and agent instance.
+    /// Tier 4: an agentic runtime handle over an attached thread and agent instance.
     public static func makeAgenticRuntimeExample() async throws -> AgenticRuntime {
         let kit = makeOneShotRuntime()
-        let timeline = try await kit.timelineManager.createTimeline(title: "Agentic Example")
+        let thread = try await kit.threadManager.createThread(title: "Agentic Example")
         let agent = try await kit.agentInstanceManager.createInstance(
             from: nil,
             name: "Example Agent",
             description: "Demonstrates an attached agentic runtime."
         )
-        try await kit.agentInstanceManager.attach(agentID: agent.id, to: timeline.id)
+        try await kit.agentInstanceManager.attach(agentID: agent.id, to: thread.id)
         return kit.agenticRuntime(
-            timelineID: timeline.id,
+            threadID: thread.id,
             agentInstanceID: agent.id
         )
     }
@@ -173,7 +173,7 @@ public enum PositronicKitUsageExamples {
             provider: .init(languageModel: UnconfiguredLLMService(), embeddingService: NoOpEmbeddingService()),
             persistence: .init(
                 messageStore: InMemoryMessageStore(),
-                timelinePersistence: InMemoryTimelinePersistence(),
+                threadPersistence: InMemoryThreadPersistence(),
                 workspacePersistence: InMemoryWorkspacePersistence(),
                 memoryStore: InMemoryMemoryStore(),
                 toolPersistence: InMemoryToolPersistence(),
@@ -262,7 +262,7 @@ public enum PositronicKitUsageExamples {
     /// PKPOST-004: `ToolSource` is the canonical surface for grouping tools under a
     /// structural `ToolOrigin` (rather than passing a flat `[AnyTool]`). Conform a type,
     /// return its tools from `tools()`, and register it with a runtime's
-    /// `TimelineToolRegistry` (`registerToolProvider(_:id:)`); the `resolvedTools()` extension
+    /// `ThreadToolRegistry` (`registerToolProvider(_:id:)`); the `resolvedTools()` extension
     /// re-stamps each tool's `.global` origin with the provider's `toolOrigin` so the
     /// prompt labels tools as belonging to this workspace/terminal.
     public static func makeWorkspaceToolProviderExample(
@@ -289,7 +289,7 @@ public enum PositronicKitUsageExamples {
     }
 
     /// Tier 1 structured-output variant: a one-shot `complete(_:structuredOutput:)`
-    /// call, no timeline created or updated. The returned string is the raw JSON
+    /// call, no thread created or updated. The returned string is the raw JSON
     /// payload, decodable via `decodeStructuredOutputExample(from:)`/`StructuredOutputDecoder`.
     public static func completeStructuredOutputExample(prompt: String) async throws -> ExampleTagPayload {
         let kit = makeOneShotRuntime()
@@ -308,7 +308,7 @@ public enum PositronicKitUsageExamples {
     ///
     /// ```swift
     /// let stream = try await chat.run(.init(
-    ///     timelineID: id,
+    ///     threadID: id,
     ///     message: text,
     ///     sidecars: makeSidecarDirectives()
     /// ))

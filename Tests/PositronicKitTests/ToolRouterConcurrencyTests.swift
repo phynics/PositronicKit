@@ -6,20 +6,20 @@ import PKTestSupport
 import Testing
 
 @Suite(.serialized) struct ToolRouterConcurrencyTests {
-    private func makeSetup() async throws -> (ToolRouter, TimelineManager, MockPersistenceService) {
+    private func makeSetup() async throws -> (ToolRouter, ThreadManager, MockPersistenceService) {
         let persistence = MockPersistenceService()
         let workspace = TestWorkspace()
 
-        let manager = TimelineManager(
+        let manager = ThreadManager(
             stores: .init(
-                timelineStore: persistence,
+                threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
                 toolPersistence: persistence
             ),
             workspaceRoot: workspace.root
         )
-        let router = ToolRouter(timelineManager: manager, messageStore: persistence)
+        let router = ToolRouter(threadManager: manager, messageStore: persistence)
         return (router, manager, persistence)
     }
 
@@ -27,7 +27,7 @@ import Testing
     func concurrentExecute_unknownTool_allThrow() async throws {
         let (router, manager, _) = try await makeSetup()
 
-        let timelineId = try await manager.createTimeline().id
+        let threadID = try await manager.createThread().id
 
         let tool = ToolReference.known(id: "nonexistent")
         let concurrency = 4
@@ -36,7 +36,7 @@ import Testing
             for _ in 0 ..< concurrency {
                 group.addTask {
                     do {
-                        _ = try await router.execute(tool: tool, arguments: [:], timelineId: timelineId)
+                        _ = try await router.execute(tool: tool, arguments: [:], threadID: threadID)
                         return nil
                     } catch {
                         return error
@@ -57,18 +57,18 @@ import Testing
         }
     }
 
-    @Test("ToolRouter.execute for disconnected timeline throws toolNotFound or workspaceNotFound")
-    func execute_unknownTimeline_throws() async throws {
+    @Test("ToolRouter.execute for disconnected thread throws toolNotFound or workspaceNotFound")
+    func execute_unknownThread_throws() async throws {
         let (router, _, _) = try await makeSetup()
-        let unknownTimelineId = UUID()
+        let unknownThreadId = UUID()
         let tool = ToolReference.known(id: "some-tool")
 
         do {
-            _ = try await router.execute(tool: tool, arguments: [:], timelineId: unknownTimelineId)
+            _ = try await router.execute(tool: tool, arguments: [:], threadID: unknownThreadId)
             Issue.record("Expected error to be thrown")
         } catch {
             // Any ToolError is acceptable (toolNotFound, workspaceNotFound)
-            #expect(error is ToolError || error is TimelineError)
+            #expect(error is ToolError || error is ThreadError)
         }
     }
 }

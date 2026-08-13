@@ -54,13 +54,13 @@ struct PositronicKitErrorContractTests {
         func uniqueErrorCodes() {
             let cases: [AgentInstanceError] = [
                 .instanceNotFound(UUID()),
-                .timelineNotFound(UUID()),
+                .threadNotFound(UUID()),
                 .differentAgentAlreadyAttached(UUID()),
-                .hasAttachedTimelines(count: 3),
+                .hasAttachedThreads(count: 3),
                 .nameTooShort("ab"),
                 .descriptionEmpty,
-                .cannotAttachToPrivateTimeline(UUID()),
-                .cannotDetachFromOwnPrivateTimeline(UUID()),
+                .cannotAttachToPrivateThread(UUID()),
+                .cannotDetachFromOwnPrivateThread(UUID()),
             ]
             let codes = cases.map(\.errorCode)
             #expect(Set(codes).count == codes.count)
@@ -84,8 +84,8 @@ struct PositronicKitErrorContractTests {
         }
 
         @Test("hasAttachedTimelines surfaces the count in both descriptions")
-        func hasAttachedTimelinesCount() {
-            let error = AgentInstanceError.hasAttachedTimelines(count: 5)
+        func hasAttachedThreadsCount() {
+            let error = AgentInstanceError.hasAttachedThreads(count: 5)
             #expect(error.errorDescription?.contains("5 timeline(s)") == true)
             #expect(error.userFriendlyMessage.contains("5 timeline(s)"))
         }

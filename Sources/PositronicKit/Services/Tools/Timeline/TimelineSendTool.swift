@@ -4,12 +4,12 @@ import JSONSchemaBuilder
 import PKShared
 import PKUtilities
 
-/// Allows an agent to post a message to a timeline without attaching to it.
+/// Allows an agent to post a message to a thread without attaching to it.
 ///
 /// The message is stored as a `system` role message with the agent's ID so it is visible
 /// in the timeline history. It does NOT trigger LLM generation — messages queue naturally
 /// and are processed when an agent next attaches and handles the turn.
-public struct TimelineSendTool: PKShared.Tool, Sendable {
+public struct ThreadSendTool: PKShared.Tool, Sendable {
     public let callName = "timeline_send"
     public let name = "Timeline Send"
     public let description =
@@ -17,23 +17,23 @@ public struct TimelineSendTool: PKShared.Tool, Sendable {
         "The message is queued and will be visible to the next agent that processes that timeline."
     public let requiresPermission = true
 
-    private let messageStore: any MessageStoreProtocol
-    private let timelineStore: any TimelinePersistenceProtocol
-    private let agentInstanceId: UUID
-    /// The timeline this tool sends *from*. The current remote depth is derived from this
+    private let messageStore: any ThreadMessageStoreProtocol
+    private let threadStore: any ThreadPersistenceProtocol
+    private let agentInstanceID: UUID
+    /// The thread this tool sends *from*. The current remote depth is derived from this
     /// timeline's message history at execution time, so the recursion guard reflects how deep
     /// the cross-agent chain already is rather than a value captured when the tool was built.
-    private let sourceTimelineId: UUID
+    private let sourceThreadID: UUID
     public init(
-        messageStore: any MessageStoreProtocol,
-        timelineStore: any TimelinePersistenceProtocol,
-        agentInstanceId: UUID,
-        sourceTimelineId: UUID
+        messageStore: any ThreadMessageStoreProtocol,
+        threadStore: any ThreadPersistenceProtocol,
+        agentInstanceID: UUID,
+        sourceThreadID: UUID
     ) {
         self.messageStore = messageStore
-        self.timelineStore = timelineStore
-        self.agentInstanceId = agentInstanceId
-        self.sourceTimelineId = sourceTimelineId
+        self.threadStore = threadStore
+        self.agentInstanceID = agentInstanceID
+        self.sourceThreadID = sourceThreadID
     }
 
     public var parametersSchema: Schema {
@@ -55,23 +55,23 @@ public struct TimelineSendTool: PKShared.Tool, Sendable {
 
     public func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
         let params = ToolParameters(parameters)
-        let timelineIdStr: String
+        let threadIDString: String
         let messageContent: String
 
         do {
-            timelineIdStr = try params.require("timeline_id", as: String.self)
+            threadIDString = try params.require("timeline_id", as: String.self)
             messageContent = try params.require("message", as: String.self)
         } catch {
             return .failure(error.localizedDescription)
         }
 
-        guard let timelineId = UUID(uuidString: timelineIdStr) else {
-            return .failure("Invalid timeline_id: \(timelineIdStr)")
+        guard let threadID = UUID(uuidString: threadIDString) else {
+            return .failure("Invalid timeline_id: \(threadIDString)")
         }
 
         // Derive the current depth from the source timeline's history: the deepest hop that
         // reached this timeline. A fresh timeline has no remote messages and starts at 0.
-        let sourceMessages = (try? await messageStore.fetchMessages(for: sourceTimelineId)) ?? []
+        let sourceMessages = (try? await messageStore.fetchMessages(for: sourceThreadID)) ?? []
         let currentRemoteDepth = sourceMessages.map(\.remoteDepth).max() ?? 0
         let nextDepth = currentRemoteDepth + 1
         if nextDepth > ChatEngine.Constants.maxRemoteDepth {
@@ -82,22 +82,22 @@ public struct TimelineSendTool: PKShared.Tool, Sendable {
         }
 
         // Validate target timeline exists and is accessible
-        guard let timeline = try? await timelineStore.fetchTimeline(id: timelineId) else {
-            return .failure("Timeline not found: \(timelineIdStr)")
+        guard let thread = try? await threadStore.fetchThread(id: threadID) else {
+            return .failure("Timeline not found: \(threadIDString)")
         }
-        if timeline.isPrivate && timeline.attachedAgentInstanceID != agentInstanceId {
+        if thread.isPrivate && thread.attachedAgentInstanceID != agentInstanceID {
             return .failure("Cannot send to another agent's private timeline.")
         }
 
         let msg = ConversationMessage(
-            timelineID: timelineId,
+            threadID: threadID,
             role: .system,
-            content: "[Agent \(agentInstanceId.uuidString.prefix(8))]: \(messageContent)",
-            agentInstanceID: agentInstanceId,
+            content: "[Agent \(agentInstanceID.uuidString.prefix(8))]: \(messageContent)",
+            agentInstanceID: agentInstanceID,
             remoteDepth: nextDepth
         )
         try await messageStore.saveMessage(msg)
 
-        return .success("Message posted to timeline '\(timeline.title)'.")
+        return .success("Message posted to timeline '\(thread.title)'.")
     }
 }

@@ -3,26 +3,27 @@ import Foundation
 import PKUtilities
 import PKTestSupport
 @testable import PositronicKit
+import struct PositronicKit.Thread
 import Testing
 
-@Suite(.serialized) struct TimelineManagerConcurrencyTests {
-    private func makeTimelineManager() async throws -> TimelineManager {
+@Suite(.serialized) struct ThreadManagerConcurrencyTests {
+    private func makeThreadManager() async throws -> ThreadManager {
         let workspace = TestWorkspace()
-        return TimelineManager(workspaceRoot: workspace.root)
+        return ThreadManager(workspaceRoot: workspace.root)
     }
 
-    @Test("Concurrent createTimeline calls each produce a unique session ID")
+    @Test("Concurrent createThread calls each produce a unique thread ID")
     func concurrentCreate_uniqueIds() async throws {
-        let manager = try await makeTimelineManager()
+        let manager = try await makeThreadManager()
 
         let concurrency = 5
-        let sessions = try await withThrowingTaskGroup(of: Timeline.self, returning: [Timeline].self) { group in
+        let sessions = try await withThrowingTaskGroup(of: Thread.self, returning: [Thread].self) { group in
             for _ in 0 ..< concurrency {
                 group.addTask {
-                    try await manager.createTimeline()
+                    try await manager.createThread()
                 }
             }
-            var results: [Timeline] = []
+            var results: [Thread] = []
             for try await session in group {
                 results.append(session)
             }
@@ -34,17 +35,17 @@ import Testing
         #expect(ids.count == concurrency, "All sessions must have distinct IDs")
     }
 
-    @Test("Concurrent createTimeline calls all succeed without data corruption")
+    @Test("Concurrent createThread calls all succeed without data corruption")
     func concurrentCreate_noDataCorruption() async throws {
-        let manager = try await makeTimelineManager()
+        let manager = try await makeThreadManager()
 
-        let sessions = try await withThrowingTaskGroup(of: Timeline.self, returning: [Timeline].self) { group in
+        let sessions = try await withThrowingTaskGroup(of: Thread.self, returning: [Thread].self) { group in
             for index in 0 ..< 4 {
                 group.addTask {
-                    try await manager.createTimeline(title: "Session \(index)")
+                    try await manager.createThread(title: "Session \(index)")
                 }
             }
-            var results: [Timeline] = []
+            var results: [Thread] = []
             for try await session in group {
                 results.append(session)
             }
@@ -57,33 +58,33 @@ import Testing
         }
     }
 
-    @Test("getTimeline returns nil for unknown ID")
-    func getTimeline_unknownId_returnsNil() async throws {
-        let manager = try await makeTimelineManager()
-        let session = await manager.timeline(id: UUID())
+    @Test("thread returns nil for unknown ID")
+    func getThread_unknownId_returnsNil() async throws {
+        let manager = try await makeThreadManager()
+        let session = await manager.thread(id: UUID())
         #expect(session == nil)
     }
 
-    @Test("createTimeline then getTimeline returns the created session")
-    func createTimeline_thenGet_returnsSession() async throws {
-        let manager = try await makeTimelineManager()
-        let created = try await manager.createTimeline(title: "Test Session")
-        let fetched = await manager.timeline(id: created.id)
+    @Test("createThread then thread returns the created thread")
+    func createThread_thenGet_returnsSession() async throws {
+        let manager = try await makeThreadManager()
+        let created = try await manager.createThread(title: "Test Session")
+        let fetched = await manager.thread(id: created.id)
         #expect(fetched?.id == created.id)
     }
 
-    @Test("Concurrent getTimeline calls for different IDs return nil without conflict")
+    @Test("Concurrent thread calls for different IDs return nil without conflict")
     func concurrentGet_differentIds_allReturnNil() async throws {
-        let manager = try await makeTimelineManager()
+        let manager = try await makeThreadManager()
         let ids = (0 ..< 10).map { _ in UUID() }
 
-        let results = await withTaskGroup(of: Timeline?.self, returning: [Timeline?].self) { group in
+        let results = await withTaskGroup(of: Thread?.self, returning: [Thread?].self) { group in
             for id in ids {
                 group.addTask {
-                    await manager.timeline(id: id)
+                    await manager.thread(id: id)
                 }
             }
-            var output: [Timeline?] = []
+            var output: [Thread?] = []
             for await result in group {
                 output.append(result)
             }

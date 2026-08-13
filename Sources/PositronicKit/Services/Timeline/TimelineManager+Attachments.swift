@@ -6,29 +6,29 @@ import PKUtilities
 
 // MARK: - Workspace Attachment
 
-public extension TimelineManager {
-    func attachWorkspace(_ workspaceId: UUID, to timelineId: UUID) async throws {
-        let livenessVersion = timelineLivenessVersion(for: timelineId)
-        try requireTimelineLiveness(for: timelineId, version: livenessVersion)
-        var timeline: Timeline
+public extension ThreadManager {
+    func attachWorkspace(_ workspaceId: UUID, to threadID: UUID) async throws {
+        let livenessVersion = threadLivenessVersion(for: threadID)
+        try requireThreadLiveness(for: threadID, version: livenessVersion)
+        var timeline: Thread
 
-        if let memoryTimeline = timelines[timelineId] {
+        if let memoryTimeline = timelines[threadID] {
             timeline = memoryTimeline
         } else {
             do {
-                guard let dbTimeline = try await timelineStore.fetchTimeline(id: timelineId) else {
-                    throw TimelineError.timelineNotFound
+                guard let dbTimeline = try await threadStore.fetchThread(id: threadID) else {
+                    throw ThreadError.threadNotFound
                 }
                 timeline = dbTimeline
-                try requireTimelineLiveness(for: timelineId, version: livenessVersion)
-            } catch let error as TimelineError {
+                try requireThreadLiveness(for: threadID, version: livenessVersion)
+            } catch let error as ThreadError {
                 throw error
             } catch {
                 logger.error("""
-                attachWorkspace fetch failed — timeline: \(timelineId.uuidString.prefix(8)), \
+                attachWorkspace fetch failed — thread: \(threadID.uuidString.prefix(8)), \
                 operation: fetchTimeline, error: \(ErrorKit.userFriendlyMessage(for: error))
                 """)
-                throw TimelineError.unavailable
+                throw ThreadError.unavailable
             }
         }
 
@@ -39,41 +39,41 @@ public extension TimelineManager {
                 logger.warning("""
                 attachWorkspace: workspace not found — \
                 workspace: \(workspaceId.uuidString.prefix(8)), \
-                timeline: \(timelineId.uuidString.prefix(8)), operation: validateWorkspace
+                thread: \(threadID.uuidString.prefix(8)), operation: validateWorkspace
                 """)
-                throw TimelineError.invalidState("workspace \(workspaceId.uuidString.prefix(8)) not found")
+                throw ThreadError.invalidState("workspace \(workspaceId.uuidString.prefix(8)) not found")
             }
-        } catch let error as TimelineError {
+        } catch let error as ThreadError {
             throw error
         } catch {
             logger.error("""
             attachWorkspace: workspace validation failed — \
             workspace: \(workspaceId.uuidString.prefix(8)), \
-            timeline: \(timelineId.uuidString.prefix(8)), \
+            thread: \(threadID.uuidString.prefix(8)), \
             operation: validateWorkspace, error: \(ErrorKit.userFriendlyMessage(for: error))
             """)
-            throw TimelineError.unavailable
+            throw ThreadError.unavailable
         }
 
-        try requireTimelineLiveness(for: timelineId, version: livenessVersion)
+        try requireThreadLiveness(for: threadID, version: livenessVersion)
 
         if !timeline.attachedWorkspaceIDs.contains(workspaceId) {
             timeline.attachedWorkspaceIDs.append(workspaceId)
         }
         timeline.updatedAt = Date()
 
-        try await timelineStore.saveTimeline(timeline)
+        try await threadStore.saveThread(timeline)
         do {
-            try requireTimelineLiveness(for: timelineId, version: livenessVersion)
+            try requireThreadLiveness(for: threadID, version: livenessVersion)
         } catch {
             // A deletion may have interleaved with the save itself. Remove a stale upsert so the
-            // deleted timeline cannot be resurrected even when persistence operations reorder.
-            try? await timelineStore.deleteTimeline(id: timelineId)
+            // deleted thread cannot be resurrected even when persistence operations reorder.
+            try? await threadStore.deleteThread(id: threadID)
             throw error
         }
         if timelines[timeline.id] != nil { timelines[timeline.id] = timeline }
 
-        if let toolManager = toolManagers[timelineId] {
+        if let toolManager = toolManagers[threadID] {
             do {
                 if let resolved = try await workspaceResolver.workspace(id: workspaceId) {
                     await toolManager.registerWorkspace(resolved)
@@ -81,10 +81,10 @@ public extension TimelineManager {
             } catch {
                 logger.warning("""
                 attachWorkspace: workspace registration failed — \
-                workspace: \(workspaceId.uuidString.prefix(8)), timeline: \(timelineId.uuidString.prefix(8)), \
+                workspace: \(workspaceId.uuidString.prefix(8)), thread: \(threadID.uuidString.prefix(8)), \
                 operation: registerWorkspace, error: \(ErrorKit.userFriendlyMessage(for: error))
                 """)
-                timelineDegradations[timelineId, default: []].append(TurnDiagnostic(
+                timelineDegradations[threadID, default: []].append(TurnDiagnostic(
                     dependency: .workspace,
                     operation: "registerWorkspace",
                     entityID: "workspace:\(workspaceId.uuidString.prefix(8))",
@@ -95,60 +95,60 @@ public extension TimelineManager {
         }
     }
 
-    func detachWorkspace(_ workspaceId: UUID, from timelineId: UUID) async throws {
-        var timeline: Timeline
+    func detachWorkspace(_ workspaceId: UUID, from threadID: UUID) async throws {
+        var timeline: Thread
 
-        if let memoryTimeline = timelines[timelineId] {
+        if let memoryTimeline = timelines[threadID] {
             timeline = memoryTimeline
         } else {
             do {
-                guard let dbTimeline = try await timelineStore.fetchTimeline(id: timelineId) else {
-                    throw TimelineError.timelineNotFound
+                guard let dbTimeline = try await threadStore.fetchThread(id: threadID) else {
+                    throw ThreadError.threadNotFound
                 }
                 timeline = dbTimeline
-            } catch let error as TimelineError {
+            } catch let error as ThreadError {
                 throw error
             } catch {
                 logger.error("""
-                detachWorkspace fetch failed — timeline: \(timelineId.uuidString.prefix(8)), \
+                detachWorkspace fetch failed — thread: \(threadID.uuidString.prefix(8)), \
                 operation: fetchTimeline, error: \(ErrorKit.userFriendlyMessage(for: error))
                 """)
-                throw TimelineError.unavailable
+                throw ThreadError.unavailable
             }
         }
 
         timeline.attachedWorkspaceIDs.removeAll { $0 == workspaceId }
         timeline.updatedAt = Date()
 
-        try await timelineStore.saveTimeline(timeline)
+        try await threadStore.saveThread(timeline)
         if timelines[timeline.id] != nil { timelines[timeline.id] = timeline }
 
-        if let toolManager = toolManagers[timelineId] {
+        if let toolManager = toolManagers[threadID] {
             await toolManager.unregisterWorkspace(workspaceId)
         }
     }
 
     // MARK: - Workspace Lookup
 
-    func getWorkspaces(for timelineId: UUID) async throws -> WorkspaceQueryResult {
+    func getWorkspaces(for threadID: UUID) async throws -> WorkspaceQueryResult {
         let attachedIds: [UUID]
 
-        if let timeline = timelines[timelineId] {
+        if let timeline = timelines[threadID] {
             attachedIds = timeline.attachedWorkspaceIDs
         } else {
             do {
-                guard let timeline = try await timelineStore.fetchTimeline(id: timelineId) else {
-                    throw TimelineError.timelineNotFound
+                guard let timeline = try await threadStore.fetchThread(id: threadID) else {
+                    throw ThreadError.threadNotFound
                 }
                 attachedIds = timeline.attachedWorkspaceIDs
-            } catch let error as TimelineError {
+            } catch let error as ThreadError {
                 throw error
             } catch {
                 logger.error("""
-                getWorkspaces fetch failed — timeline: \(timelineId.uuidString.prefix(8)), \
+                getWorkspaces fetch failed — thread: \(threadID.uuidString.prefix(8)), \
                 operation: fetchTimeline, error: \(ErrorKit.userFriendlyMessage(for: error))
                 """)
-                throw TimelineError.unavailable
+                throw ThreadError.unavailable
             }
         }
 
@@ -161,7 +161,9 @@ public extension TimelineManager {
                     let normalizedWorkspace = normalizeWorkspaceStatus(workspace)
 
                     if primary == nil,
-                       normalizedWorkspace.location == .runtime || normalizedWorkspace.location == .runtimeTimeline
+                       normalizedWorkspace.location == .runtime
+                        || normalizedWorkspace.location == .runtimeThread
+                        || normalizedWorkspace.location == .runtimeTimeline
                     {
                         primary = normalizedWorkspace
                     } else {
@@ -177,7 +179,7 @@ public extension TimelineManager {
                 degradations.append(degradation)
                 logger.warning("""
                 getWorkspaces: individual workspace fetch failed — \
-                workspace: \(aid.uuidString.prefix(8)), timeline: \(timelineId.uuidString.prefix(8)), \
+                workspace: \(aid.uuidString.prefix(8)), thread: \(threadID.uuidString.prefix(8)), \
                 operation: fetchWorkspace, error: \(ErrorKit.userFriendlyMessage(for: error))
                 """)
             }
@@ -193,7 +195,7 @@ public extension TimelineManager {
 
 // MARK: - Workspace Status Normalization
 
-private extension TimelineManager {
+private extension ThreadManager {
     /// Returns `.missing` for a `.runtime` workspace whose `rootPath` no longer exists on disk;
     /// leaves other workspaces (including `.attached` and `.runtimeTimeline`) unchanged.
     func normalizeWorkspaceStatus(_ workspace: WorkspaceReference) -> WorkspaceReference {

@@ -7,7 +7,7 @@ import Testing
 
 @Suite("Introductory runtime internal stories")
 struct IntroductoryRuntimeInternalStoriesTests {
-    @Test("Runtime example creates a timeline executes a tool and returns a final reply")
+    @Test("Runtime example creates a thread executes a tool and returns a final reply")
     func runtimeToolRoundTripExample() async throws {
         let workspace = TestWorkspace()
         let mockLLM = MockLLMService()
@@ -38,7 +38,7 @@ struct IntroductoryRuntimeInternalStoriesTests {
 
         let runtime = PositronicKit(configuration: .init(provider: .init(languageModel: mockLLM), persistence: PositronicKit.PersistenceConfiguration(
                 messageStore: persistence,
-                timelinePersistence: persistence,
+                threadPersistence: persistence,
                 workspacePersistence: persistence,
                 memoryStore: persistence,
                 toolPersistence: persistence,
@@ -48,9 +48,9 @@ struct IntroductoryRuntimeInternalStoriesTests {
                 workspaceCreator: MockWorkspaceCreator(),
                 workspaceRoot: workspace.root
             )))
-        let timelineManager = runtime.timelineManager
+        let threadManager = runtime.threadManager
 
-        let timeline = try await timelineManager.createTimeline(title: "Intro Example")
+        let thread = try await threadManager.createThread(title: "Intro Example")
         let tool = IntroGreetingTool().toAnyTool()
         let workspaceId = UUID()
         let workspaceRef = WorkspaceReference(
@@ -61,13 +61,13 @@ struct IntroductoryRuntimeInternalStoriesTests {
         )
         try await persistence.saveWorkspace(workspaceRef)
         try await persistence.addToolToWorkspace(workspaceId: workspaceId, tool: tool.toolReference)
-        try await timelineManager.attachWorkspace(workspaceId, to: timeline.id)
+        try await threadManager.attachWorkspace(workspaceId, to: thread.id)
 
-        let toolManager = await timelineManager.getToolManager(for: timeline.id)
+        let toolManager = await threadManager.getToolManager(for: thread.id)
         await toolManager?.updateAvailableTools([tool])
 
         let events = try await runtime.run(ChatRunRequest(
-            timelineID: timeline.id,
+            threadID: thread.id,
             message: "Greet Taylor using the available tool.",
             tools: [tool]
         )).collect()
@@ -99,7 +99,7 @@ struct IntroductoryRuntimeInternalStoriesTests {
             return false
         }))
 
-        let messages = try await persistence.fetchMessages(for: timeline.id)
+        let messages = try await persistence.fetchMessages(for: thread.id)
         #expect(messages.contains(where: { $0.role == "assistant" }))
     }
 }

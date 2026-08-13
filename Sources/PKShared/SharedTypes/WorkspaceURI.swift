@@ -10,6 +10,9 @@ public struct WorkspaceURI: Codable, Sendable, Hashable, CustomStringConvertible
         "\(host):\(path)"
     }
 
+    /// The durable string representation of this URI.
+    public var rawValue: String { description }
+
     /// Whether this workspace is hosted by the runtime
     public var isRuntime: Bool {
         host.hasPrefix("pk-")
@@ -37,9 +40,15 @@ public struct WorkspaceURI: Codable, Sendable, Hashable, CustomStringConvertible
         WorkspaceURI(host: "pk-runtime", path: "/agents/\(agentID.uuidString)")
     }
 
-    /// Create a timeline workspace URI owned by this runtime
+    /// Create a thread workspace URI owned by this runtime.
+    public static func threadWorkspace(_ threadID: UUID) -> WorkspaceURI {
+        WorkspaceURI(host: "pk-runtime", path: "/timelines/\(threadID.uuidString)")
+    }
+
+    /// Create a timeline workspace URI using the legacy API spelling.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     public static func timelineWorkspace(_ timelineID: UUID) -> WorkspaceURI {
-        WorkspaceURI(host: "pk-runtime", path: "/timelines/\(timelineID.uuidString)")
+        threadWorkspace(timelineID)
     }
 
     /// Create a request-origin shell workspace URI.

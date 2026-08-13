@@ -28,7 +28,7 @@ public actor InMemoryAgentInstanceStore: AgentInstanceStoreProtocol {
         instances.removeAll { $0.id == id }
     }
 
-    public func fetchTimelines(attachedToAgent _: UUID) async throws -> [Timeline] {
+    public func fetchThreads(attachedToAgent _: UUID) async throws -> [Thread] {
         []
     }
 }

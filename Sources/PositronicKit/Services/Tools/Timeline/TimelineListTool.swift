@@ -4,8 +4,8 @@ import JSONSchemaBuilder
 import PKShared
 import PKUtilities
 
-/// Allows an agent to list available (non-private) timelines it can observe.
-public struct TimelineListTool: PKShared.Tool, Sendable {
+/// Allows an agent to list available (non-private) threads it can observe.
+public struct ThreadListTool: PKShared.Tool, Sendable {
     public let callName = "timeline_list"
     public let name = "Timeline List"
     public let description =
@@ -13,10 +13,10 @@ public struct TimelineListTool: PKShared.Tool, Sendable {
         "Use this to discover timelines you can peek at or send messages to."
     public let requiresPermission = false
 
-    private let timelineStore: any TimelinePersistenceProtocol
+    private let threadStore: any ThreadPersistenceProtocol
 
-    public init(timelineStore: any TimelinePersistenceProtocol) {
-        self.timelineStore = timelineStore
+    public init(threadStore: any ThreadPersistenceProtocol) {
+        self.threadStore = threadStore
     }
 
     public var parametersSchema: Schema {
@@ -28,8 +28,8 @@ public struct TimelineListTool: PKShared.Tool, Sendable {
     }
 
     public func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
-        let timelines = try await timelineStore.fetchAllTimelines(includeArchived: false)
-        let visible = timelines.filter { !$0.isPrivate }
+        let threads = try await threadStore.fetchAllThreads(includeArchived: false)
+        let visible = threads.filter { !$0.isPrivate }
 
         let entries = visible.map { timeline -> [String: String] in
             var entry: [String: String] = [

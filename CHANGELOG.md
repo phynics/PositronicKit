@@ -8,6 +8,16 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+## [3.7.0] - 2026-08-13
+
+### Deprecated
+
+- **Timeline-to-Thread API migration:** `Thread` is now the canonical terminology across the
+  runtime, persistence, agent, prompt, tool, driver, and observable APIs. The existing `Timeline`
+  types, methods, properties, identifiers, and persistence conformer surface remain available as
+  deprecated compatibility shims and will be removed in v4. Persisted keys, database schema, error
+  codes/domains, and external tool call identifiers are unchanged.
+
 ## [3.6.0] - 2026-08-11
 
 ### Added

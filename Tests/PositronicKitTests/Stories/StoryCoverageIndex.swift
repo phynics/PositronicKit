@@ -25,7 +25,7 @@
 /// - grouped persistence/runtime initialization → `PublicRuntimeStoriesTests`
 /// - tool-call execution and continuation → `PublicRuntimeStoriesTests`
 /// - externally submitted tool outputs resume a run → `PublicRuntimeStoriesTests`
-/// - timeline-managed context is used by default → `PublicRuntimeStoriesTests`
+/// - thread-managed context is used by default → `PublicRuntimeStoriesTests`
 ///
 /// Extension stories
 /// - prompt section providers inject runtime prompt content → `ExtensionStoriesTests`
@@ -40,7 +40,7 @@
 /// - README/setup/usage examples stay buildable → `ExampleUsageStoriesTests`
 ///
 /// Internal mechanism stories
-/// - direct timeline tool-registry mutation for an introductory round-trip →
+/// - direct thread tool-registry mutation for an introductory round-trip →
 ///   `IntroductoryRuntimeInternalStoriesTests`
 /// - direct custom pipeline-stage insertion → `CustomPipelineStageInternalStoriesTests`
 ///
@@ -56,10 +56,10 @@
 /// - runtime cancellation / event-stream reliability → `FacadeRunValidationTests`,
 ///   `ChatEngineTests`, `TurnBriefingBuilderCancellationTests`
 /// - prompt assembly / runtime prompt history / structured compression →
-///   `PromptAssemblyTests`, `TimelinePromptHistoryTests`,
+///   `PromptAssemblyTests`, `ThreadPromptHistoryTests`,
 ///   `StructuredCompressionIntegrationTests`
-/// - timeline/workspace persistence behavior → `WorkspaceAttachmentTests`,
-///   `TimelineManagerTests`, `TimelineArchiverTests`
+/// - thread/workspace persistence behavior → `WorkspaceAttachmentTests`,
+///   `ThreadManagerTests`, `ThreadArchiverTests`
 enum StoryCoverageIndex {
     // Documentation-only anchor for runtime story coverage.
 }

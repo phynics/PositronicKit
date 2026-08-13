@@ -4,12 +4,12 @@ The transport-neutral runtime facade for PositronicKit.
 
 ## Overview
 
-PositronicKit provides the public runtime entry point for timeline management, prompt assembly, context gathering, tool execution, and persistence. It assembles runtime dependencies internally from explicit initializer parameters so downstream applications integrate through normal Swift initializers instead of configuring a dependency container directly.
+PositronicKit provides the public runtime entry point for thread management, prompt assembly, context gathering, tool execution, and persistence. It assembles runtime dependencies internally from explicit initializer parameters so downstream applications integrate through normal Swift initializers instead of configuring a dependency container directly.
 
 ### Key Components
 
 - **PositronicKit facade**: The public entry point; `run(_ request:)` drives a chat turn end to end.
-- **TimelineManager**: Coordinates timeline lifecycle, context gathering, and workspace attachment.
+- **ThreadManager**: Coordinates thread lifecycle, context gathering, and workspace attachment.
 - **Persistence Layer**: A suite of domain-specific store protocols.
 - **Tool System**: Runtime-managed and host-attached tool routing (`ToolRouter`) over shared tool contracts.
 
@@ -28,9 +28,9 @@ check.
 its event stream:
 
 - `ChatRunRequest.maxTurns` must be at least `1`. Invalid values throw
-  `ChatRunError.invalidMaxTurns` before timeline lookup, persistence, or provider work.
-- Timeline hydration failures throw their typed `TimelineError` before input is persisted.
-- When `agentInstanceID` is supplied, the runtime resolves the agent once after timeline
+  `ChatRunError.invalidMaxTurns` before thread lookup, persistence, or provider work.
+- Thread hydration failures throw their typed `ThreadError` before input is persisted.
+- When `agentInstanceID` is supplied, the runtime resolves the agent once after thread
   resolution and before provider readiness or input persistence. The default `.failRequired`
   policy throws `AgentInstanceError.instanceNotFound` for a missing agent. With
   `.continueWithWarnings`, the turn continues without that agent and the initial
@@ -51,7 +51,7 @@ structured payload for decoding.
 
 Errors are delivered at the boundary where their work occurs:
 
-- Request validation, timeline hydration, agent preflight, provider-configuration checks,
+- Request validation, thread hydration, agent preflight, provider-configuration checks,
   sidecar validation, and other preparation failures throw from the awaited `run(_:)` call before
   it returns a stream.
 - Provider and pipeline failures that happen after `run(_:)` returns throw while the returned
@@ -62,7 +62,7 @@ Errors are delivered at the boundary where their work occurs:
   provider failures throw from the one-shot call. `stream` reports provider failures during
   iteration.
 
-Cancelling a task that consumes a facade run cancels the provider task and removes the timeline's
+Cancelling a task that consumes a facade run cancels the provider task and removes the thread's
 active-task registration. Abandoning a facade `stream` iterator also cancels its provider.
 Cancellation of `complete` and `completeResult` remains `CancellationError` rather than being
 wrapped as a foreign provider failure.

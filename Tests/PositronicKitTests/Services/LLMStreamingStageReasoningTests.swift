@@ -92,7 +92,7 @@ struct LLMStreamingStageReasoningTests {
 
     private func makeContext() -> ChatTurnContext {
         ChatTurnContext(
-            timelineId: UUID(),
+            threadID: UUID(),
             agentInstanceId: nil,
             modelName: "test-model",
             maxTurns: 5,

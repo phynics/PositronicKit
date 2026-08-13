@@ -6,7 +6,7 @@ import PKUtilities
 
 /// Pure, stateless runtime adapter over `PKPrompt` assembly.
 ///
-/// `PromptAssembler` is where the runtime turns timeline/chat/tool state into a concrete prompt
+/// `PromptAssembler` is where the runtime turns thread/chat/tool state into a concrete prompt
 /// artifact for provider submission. It is intentionally not the public prompt authoring surface;
 /// `PKPrompt` owns prompt composition and journaling APIs, while this type owns runtime-side stage
 /// ordering, token-budget policy, and compression metadata wiring.
@@ -19,20 +19,20 @@ enum PromptAssembler {
     /// - Parameters:
     ///   - request: The prompt request data.
     ///   - agentInstance: Optional agent instance for identity context.
-    ///   - timeline: Optional timeline metadata.
+    ///   - thread: Optional thread metadata.
     ///   - extensionSections: Optional additional sections from external extensions.
     /// - Returns: A fully assembled prompt artifact.
     /// - Throws: An error if pipeline execution fails.
     static func assemble(
         _ request: LLMPromptRequest,
         agentInstance: AgentInstance? = nil,
-        timeline: Timeline? = nil,
+        thread: Thread? = nil,
         extensionSections: [any Prompt] = []
     ) async throws -> RenderedPrompt {
         try await assemble(
             request,
             agentInstance: agentInstance,
-            timeline: timeline,
+            thread: thread,
             extensionSections: extensionSections,
             options: PromptAssemblyOptions()
         )
@@ -48,14 +48,14 @@ enum PromptAssembler {
     static func assemble(
         _ request: LLMPromptRequest,
         agentInstance: AgentInstance? = nil,
-        timeline: Timeline? = nil,
+        thread: Thread? = nil,
         extensionSections: [any Prompt] = [],
         options: PromptAssemblyOptions
     ) async throws -> RenderedPrompt {
         let sections = try await buildSections(
             request: request,
             agentInstance: agentInstance,
-            timeline: timeline,
+            thread: thread,
             extensionSections: extensionSections,
             customSections: options.customSections,
             logger: options.logger
@@ -96,7 +96,7 @@ enum PromptAssembler {
     private static func buildSections(
         request: LLMPromptRequest,
         agentInstance: AgentInstance?,
-        timeline: Timeline?,
+        thread: Thread?,
         extensionSections: [any Prompt],
         customSections: (@Sendable () async -> [any Prompt])?,
         logger: Logger?
@@ -116,7 +116,7 @@ enum PromptAssembler {
         })
         if let agentInstance {
             try sections.append(withLogging("AgentContext", logger: logger) {
-                AgentContext(agentInstance, timelineTitle: timeline?.title)
+                AgentContext(agentInstance, threadTitle: thread?.title)
             })
         }
         try sections.append(withLogging("ContextNotes", logger: logger) { ContextNotes(request.contextNotes) })
@@ -125,8 +125,8 @@ enum PromptAssembler {
         try sections.append(withLogging("WorkspacesContext", logger: logger) {
             WorkspacesContext(workspaces: request.workspaces, primaryWorkspace: request.primaryWorkspace, requestOriginName: request.requestOriginName)
         })
-        if let timeline {
-            try sections.append(withLogging("TimelineContext", logger: logger) { TimelineContext(timeline) })
+        if let thread {
+            try sections.append(withLogging("ThreadContext", logger: logger) { ThreadContext(thread) })
         }
         try sections.append(withLogging("ChatHistory", logger: logger) {
             ChatHistory(PromptHistoryOptimizer.optimizeForDefaultBudget(request.chatHistory))

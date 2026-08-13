@@ -68,7 +68,7 @@ final class ChatEngineStageTests {
     func persistenceStage_SavesMessage() async throws {
         // Given
         let persistence = MockPersistenceService()
-        _ = TimelineManager(workspaceRoot: URL(fileURLWithPath: "/tmp"))
+        _ = ThreadManager(workspaceRoot: URL(fileURLWithPath: "/tmp"))
         let stage = MessagePersistenceStage(messageStore: persistence, logger: logger)
 
         let context = createTestContext()
@@ -87,7 +87,7 @@ final class ChatEngineStageTests {
 
     private func createTestContext(availableTools: [AnyTool] = []) -> ChatTurnContext {
         return ChatTurnContext(
-            timelineId: UUID(),
+            threadID: UUID(),
             agentInstanceId: nil,
             modelName: "test-model",
             maxTurns: 5,

@@ -18,7 +18,7 @@ public protocol PKError: Throwable {
     /// Whether this error represents a "blocked"/approval/disallowed condition — i.e. a
     /// failure that is *not* the model's or provider's fault but the result of a deliberate
     /// permission or access gate refusing execution. Consumers classify these as a `.blocked`
-    /// timeline state rather than `.failed`. Default: `false`. Override on error cases that
+    /// thread state rather than `.failed`. Default: `false`. Override on error cases that
     /// represent blocked conditions (e.g. `ToolError.permissionDenied`,
     /// `PathError.accessDenied`, `WorkspaceError.accessDenied`).
     var isBlocked: Bool { get }
@@ -82,7 +82,8 @@ public enum PKErrorDomain {
     public static let workspace = "com.positronickit.core.workspace"
     public static let pipeline = "com.positronickit.core.pipeline"
     public static let agent = "com.positronickit.core.agent"
-    public static let timeline = "com.positronickit.core.timeline"
+    /// Stable error domain for thread persistence and runtime failures.
+    public static let thread = "com.positronickit.core.timeline"
     public static let vector = "com.positronickit.core.vector"
     public static let embedding = "com.positronickit.core.embedding"
     public static let chat = "com.positronickit.core.chat"

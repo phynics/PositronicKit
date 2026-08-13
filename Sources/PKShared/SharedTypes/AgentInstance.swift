@@ -1,6 +1,6 @@
 import Foundation
 
-/// A live agent entity with its own workspace and private timeline.
+/// A live agent entity with its own workspace and private thread.
 ///
 /// `AgentInstance` is created from an `AgentTemplate` template (which provides initial instructions),
 /// but is self-contained — it holds its own copies of configuration and does not reference
@@ -19,9 +19,9 @@ public struct AgentInstance: Codable, Sendable, Identifiable, Equatable {
     /// persistent files live. This is the agent's memory across timelines.
     public var primaryWorkspaceID: UUID?
 
-    /// The agent's private timeline (internal monologue / cross-agent inbox).
+    /// The agent's private thread (internal monologue / cross-agent inbox).
     /// Created atomically with the instance. Never nil after creation.
-    public let privateTimelineID: UUID
+    public let privateThreadID: UUID
 
     /// Updated on every chat generation turn for activity tracking.
     public var lastActiveAt: Date
@@ -37,7 +37,7 @@ public struct AgentInstance: Codable, Sendable, Identifiable, Equatable {
         name: String,
         description: String,
         primaryWorkspaceID: UUID? = nil,
-        privateTimelineID: UUID,
+        privateThreadID: UUID,
         lastActiveAt: Date = Date(),
         createdAt: Date = Date(),
         updatedAt: Date = Date(),
@@ -47,7 +47,7 @@ public struct AgentInstance: Codable, Sendable, Identifiable, Equatable {
         self.name = name
         self.description = description
         self.primaryWorkspaceID = primaryWorkspaceID
-        self.privateTimelineID = privateTimelineID
+        self.privateThreadID = privateThreadID
         self.lastActiveAt = lastActiveAt
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -55,7 +55,7 @@ public struct AgentInstance: Codable, Sendable, Identifiable, Equatable {
     }
 
     /// Creates an agent instance using the legacy identifier spellings.
-    @available(*, deprecated, message: "Use init(..., primaryWorkspaceID:privateTimelineID:...).")
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     public init(
         id: UUID = UUID(),
         name: String,
@@ -72,7 +72,33 @@ public struct AgentInstance: Codable, Sendable, Identifiable, Equatable {
             name: name,
             description: description,
             primaryWorkspaceID: primaryWorkspaceId,
-            privateTimelineID: privateTimelineId,
+            privateThreadID: privateTimelineId,
+            lastActiveAt: lastActiveAt,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            metadata: metadata
+        )
+    }
+
+    /// Creates an agent instance using the legacy identifier spelling.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public init(
+        id: UUID = UUID(),
+        name: String,
+        description: String,
+        primaryWorkspaceID: UUID? = nil,
+        privateTimelineID: UUID,
+        lastActiveAt: Date = Date(),
+        createdAt: Date = Date(),
+        updatedAt: Date = Date(),
+        metadata: [String: AnyCodable] = [:]
+    ) {
+        self.init(
+            id: id,
+            name: name,
+            description: description,
+            primaryWorkspaceID: primaryWorkspaceID,
+            privateThreadID: privateTimelineID,
             lastActiveAt: lastActiveAt,
             createdAt: createdAt,
             updatedAt: updatedAt,
@@ -88,13 +114,17 @@ public struct AgentInstance: Codable, Sendable, Identifiable, Equatable {
     }
 
     /// The private-timeline identifier using the legacy 3.x spelling.
-    @available(*, deprecated, renamed: "privateTimelineID")
-    public var privateTimelineId: UUID { privateTimelineID }
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public var privateTimelineID: UUID { privateThreadID }
+
+    /// The private-thread identifier using the legacy 3.x spelling.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public var privateTimelineId: UUID { privateThreadID }
 
     private enum CodingKeys: String, CodingKey {
         case id, name, description
         case primaryWorkspaceID = "primaryWorkspaceId"
-        case privateTimelineID = "privateTimelineId"
+        case privateThreadID = "privateTimelineId"
         case lastActiveAt, createdAt, updatedAt, metadata
     }
 }

@@ -42,11 +42,11 @@ Choose the smallest operation tier that fits the feature:
 ```swift
 let kit = PositronicKit(languageModel: myLLM)
 let answer = try await kit.complete("Summarize this note.")       // tier 1: one-shot
-let timeline = try await kit.timelineManager.createTimeline()
-let driver = kit.openTimeline(timeline.id)                        // tier 2: TimelineDriver
-let timelineManager = kit.timelineManager                          // tier 3: timelines
+let thread = try await kit.threadManager.createThread()
+let driver = kit.openThread(thread.id)                              // tier 2: ThreadDriver
+let threadManager = kit.threadManager                               // tier 3: threads
 let agent = kit.agenticRuntime(                                     // tier 4: agent loop
-    timelineID: driver.timelineID,
+    threadID: driver.threadID,
     agentInstanceID: UUID()
 )
 let tools = kit.toolRouter                                         // tier 5: raw primitives
@@ -59,9 +59,9 @@ the injected language model. It does not expose credentials or provider configur
 not a connectivity probe or a guarantee that a later request will succeed. Treat `run`, `stream`,
 or `complete` as the authoritative operation because model state can change after the check.
 
-`run(_:)` validates `ChatRunRequest.maxTurns` before timeline resolution, persistence, or provider
+`run(_:)` validates `ChatRunRequest.maxTurns` before thread resolution, persistence, or provider
 work; values below `1` throw `ChatRunError.invalidMaxTurns` directly from the awaited `run` call.
-When `agentInstanceID` is present, the runtime resolves that agent once after timeline resolution
+When `agentInstanceID` is present, the runtime resolves that agent once after thread resolution
 and before provider readiness or input persistence. The default `.failRequired` degradation policy
 throws `AgentInstanceError.instanceNotFound`; `.continueWithWarnings` proceeds without the missing
 agent and includes an agent diagnostic in the initial generation-context event. A failed preflight
@@ -84,7 +84,7 @@ let json = try await kit.complete(
 
 Errors arrive at the boundary where the work occurs:
 
-- Request and preparation failures—invalid `maxTurns`, timeline hydration, required-agent
+- Request and preparation failures—invalid `maxTurns`, thread hydration, required-agent
   preflight, provider configuration, sidecar validation, and input/history preparation—throw from
   `try await kit.run(request)` before a stream is returned.
 - Provider and pipeline failures after `run(_:)` returns arrive by throwing while the returned
@@ -95,7 +95,7 @@ Errors arrive at the boundary where the work occurs:
   failures both throw from the one-shot call. `stream` returns immediately and reports provider
   failures during iteration.
 
-Cancelling a task that consumes a facade run cancels its provider work and releases the timeline's
+Cancelling a task that consumes a facade run cancels its provider work and releases the thread's
 active-task registration. Abandoning a facade `stream` iterator likewise cancels the provider;
 cancelling `complete` or `completeResult` surfaces `CancellationError` without foreign-error
 wrapping.
@@ -155,7 +155,7 @@ let title = SidecarDirective(
 )
 
 let stream = try await chat.run(.init(
-    timelineID: timelineId,
+    threadID: threadID,
     message: "What's the deal with actors in Swift 6?",
     sidecars: [title]
 ))
@@ -333,7 +333,7 @@ The harness contracts are intentionally explicit:
   then awaited after unlocking.
 - `TestWorkspace` creates a unique directory and removes it best-effort on deinitialization. Retain
   the `TestWorkspace` object—not only its `root` URL—for the entire time the directory is needed.
-- `TestRuntime.timelineManager`, `toolRouter`, and `agentInstanceManager` are the exact
+- `TestRuntime.threadManager`, `toolRouter`, and `agentInstanceManager` are the exact
   facade-owned instances; in particular,
   `runtime.agentInstanceManager === runtime.positronicKit.agentInstanceManager`.
   `agentWorkspaceService` and `workspaceManager` remain separate compatibility helpers backed by
@@ -343,7 +343,7 @@ The harness contracts are intentionally explicit:
 
 Core modules:
 
-- **PositronicKit** — the runtime layer: chat engine, orchestration stages, tool routing, timeline and workspace management, and provider-neutral LLM orchestration.
+- **PositronicKit** — the runtime layer: chat engine, orchestration stages, tool routing, thread and workspace management, and provider-neutral LLM orchestration.
 - **PKPrompt** — the prompt layer: a SwiftUI-style `@PromptBuilder` DSL, structured compression, cache-aware assembly, and prompt journaling for stable-prefix workflows.
 - **PKShared** — the contract layer: API models, tool protocols, provider contracts, error types, structured logging, and shared utilities.
 - **PKLocalEmbeddings** — the platform-local embedding facade (`LocalEmbeddingService`). Apple uses Natural Language by default; Linux uses the host-provisioned MiniLM backend.
@@ -354,7 +354,7 @@ Provider targets ship separately so you opt in only to the integrations you want
 
 Supporting targets:
 
-- **PKObservable** — opt-in `@Observable` wrappers for UI-facing consumers; `TimelineController` mirrors `TimelineDriver` streaming state for SwiftUI clients.
+- **PKObservable** — opt-in `@Observable` wrappers for UI-facing consumers; `ThreadController` mirrors `ThreadDriver` streaming state for SwiftUI clients.
 - **PositronicKitExamples** — runnable examples that double as living documentation.
 - **PKTestSupport** — shared mocks, fixtures, and test helpers for downstream test targets.
 

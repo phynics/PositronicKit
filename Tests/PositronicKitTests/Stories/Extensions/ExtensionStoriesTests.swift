@@ -11,13 +11,13 @@ import Testing
     @Test("PromptSectionProviding injects custom prompt content into the assembled prompt")
     func promptSectionProviderInjectsPromptContent() async throws {
         let provider = AcceptancePromptSectionProvider()
-        let (chat, mockLLM, _, timelineId, _, _) = try await makeAcceptanceRuntime(
+        let (chat, mockLLM, _, threadID, _, _) = try await makeAcceptanceRuntime(
             sectionProviders: [provider]
         )
         mockLLM.mockClient.nextResponse = "Saw extension section"
 
         _ = try await chat.run(ChatRunRequest(
-            timelineID: timelineId,
+            threadID: threadID,
             message: "Use extension prompt"
         )).collect()
 
@@ -28,13 +28,13 @@ import Testing
     @Test("ChatTurnPlugin can trigger a follow-up turn with injected messages")
     func chatTurnPluginTriggersFollowUpTurn() async throws {
         let plugin = AcceptanceChatTurnPlugin()
-        let (baseChat, mockLLM, mockPersistence, timelineId, _, _) = try await makeAcceptanceRuntime()
+        let (baseChat, mockLLM, mockPersistence, threadID, _, _) = try await makeAcceptanceRuntime()
         let chat = baseChat.addingPlugin(plugin)
 
         mockLLM.mockClient.nextResponses = ["First reply", "Second reply"]
 
         let events = try await chat.run(ChatRunRequest(
-            timelineID: timelineId,
+            threadID: threadID,
             message: "Start plugin flow"
         )).collect()
 
@@ -47,7 +47,7 @@ import Testing
         let pluginInputs = await plugin.seenResponses()
         #expect(pluginInputs == ["First reply", "First replySecond reply"])
 
-        let persistedMessages = try await mockPersistence.fetchMessages(for: timelineId)
+        let persistedMessages = try await mockPersistence.fetchMessages(for: threadID)
         let assistantReplies = persistedMessages.filter { $0.role == "assistant" }.map(\.content)
         #expect(assistantReplies == ["First reply", "Second reply"])
     }
@@ -55,7 +55,7 @@ import Testing
     @Test("WorkspaceFactory can provide a custom executable workspace tool")
     func workspaceCreatingSupportsCustomWorkspaceTool() async throws {
         let creator = AcceptanceWorkspaceCreator()
-        let (chat, mockLLM, mockPersistence, timelineId, workspaceRoot, timelineManager) = try await makeAcceptanceRuntime(
+        let (chat, mockLLM, mockPersistence, threadID, workspaceRoot, threadManager) = try await makeAcceptanceRuntime(
             workspaceCreator: creator,
             includeDefaultToolWorkspace: false
         )
@@ -64,7 +64,7 @@ import Testing
         let reference = WorkspaceReference(
             id: workspaceId,
             uri: WorkspaceURI(host: "pk-runtime", path: workspaceRoot.root.path),
-            location: .runtimeTimeline,
+            location: .runtimeThread,
             rootPath: workspaceRoot.root.path
         )
         let workspaceTool = WorkspaceToolDefinition(
@@ -74,13 +74,13 @@ import Testing
         )
         try await mockPersistence.saveWorkspace(reference)
         try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .custom(workspaceTool))
-        try await timelineManager.attachWorkspace(workspaceId, to: timelineId)
+        try await threadManager.attachWorkspace(workspaceId, to: threadID)
 
         mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "call_ws", name: "workspace_echo")]]
         mockLLM.mockClient.nextResponses = ["", "Workspace tool completed"]
 
         let events = try await chat.run(ChatRunRequest(
-            timelineID: timelineId,
+            threadID: threadID,
             message: "Use the attached workspace tool"
         )).collect()
 
@@ -97,7 +97,7 @@ import Testing
 
     @Test("Custom Tool is executed through the public facade tool seam")
     func customToolExecutesThroughFacade() async throws {
-        let (chat, mockLLM, _, timelineId, _, _) = try await makeAcceptanceRuntime()
+        let (chat, mockLLM, _, threadID, _, _) = try await makeAcceptanceRuntime()
         let tool = AcceptanceRuntimeTool()
 
         mockLLM.mockClient.nextToolCalls = [[
@@ -106,7 +106,7 @@ import Testing
         mockLLM.mockClient.nextResponses = ["", "Custom tool completed"]
 
         let events = try await chat.run(ChatRunRequest(
-            timelineID: timelineId,
+            threadID: threadID,
             message: "Run the custom tool",
             tools: [tool.toAnyTool()]
         )).collect()
@@ -125,14 +125,14 @@ import Testing
         workspaceCreator: any WorkspaceFactory = MockWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = [],
         includeDefaultToolWorkspace: Bool = true
-    ) async throws -> (PositronicKit, MockLLMService, MockPersistenceService, UUID, TestWorkspace, TimelineManager) {
+    ) async throws -> (PositronicKit, MockLLMService, MockPersistenceService, UUID, TestWorkspace, ThreadManager) {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
         let workspace = TestWorkspace()
 
         let chat = PositronicKit(configuration: .init(provider: .init(languageModel: mockLLM), persistence: .init(
                 messageStore: mockPersistence,
-                timelinePersistence: mockPersistence,
+                threadPersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
                 memoryStore: mockPersistence,
                 toolPersistence: mockPersistence,
@@ -143,25 +143,25 @@ import Testing
                 sectionProviders: sectionProviders,
                 workspaceRoot: workspace.root
             )))
-        let timelineManager = chat.timelineManager
+        let threadManager = chat.threadManager
 
-        let timeline = try await timelineManager.createTimeline(title: "Extension Acceptance")
+        let thread = try await threadManager.createThread(title: "Extension Acceptance")
 
         if includeDefaultToolWorkspace {
             let workspaceId = UUID()
             let workspaceRef = WorkspaceReference(
                 id: workspaceId,
                 uri: WorkspaceURI(parsing: "pk://local")!,
-                location: .runtimeTimeline,
+                location: .runtimeThread,
                 originID: nil,
                 rootPath: workspace.root.path
             )
             try await mockPersistence.saveWorkspace(workspaceRef)
             try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("acceptance_tool"))
-            try await timelineManager.attachWorkspace(workspaceId, to: timeline.id)
+            try await threadManager.attachWorkspace(workspaceId, to: thread.id)
         }
 
-        return (chat, mockLLM, mockPersistence, timeline.id, workspace, timelineManager)
+        return (chat, mockLLM, mockPersistence, thread.id, workspace, threadManager)
     }
 }
 

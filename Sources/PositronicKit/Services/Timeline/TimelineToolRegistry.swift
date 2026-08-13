@@ -3,8 +3,8 @@ import Logging
 import PKShared
 import PKUtilities
 
-/// Timeline-specific tool settings
-public actor TimelineToolRegistry {
+/// Thread-specific tool settings
+public actor ThreadToolRegistry {
     public private(set) var enabledTools: Set<String> = []
 
     /// available tools in the system

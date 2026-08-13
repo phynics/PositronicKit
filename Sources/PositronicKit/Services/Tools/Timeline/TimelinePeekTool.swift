@@ -4,8 +4,8 @@ import JSONSchemaBuilder
 import PKShared
 import PKUtilities
 
-/// Allows an agent to read recent messages from a timeline without attaching to it.
-public struct TimelinePeekTool: PKShared.Tool, Sendable {
+/// Allows an agent to read recent messages from a thread without attaching to it.
+public struct ThreadPeekTool: PKShared.Tool, Sendable {
     public let callName = "timeline_peek"
     public let name = "Timeline Peek"
     public let description =
@@ -13,12 +13,12 @@ public struct TimelinePeekTool: PKShared.Tool, Sendable {
         "Use this to observe what is happening in a timeline without attaching to it."
     public let requiresPermission = false
 
-    private let messageStore: any MessageStoreProtocol
-    private let timelineStore: any TimelinePersistenceProtocol
+    private let messageStore: any ThreadMessageStoreProtocol
+    private let threadStore: any ThreadPersistenceProtocol
 
-    public init(messageStore: any MessageStoreProtocol, timelineStore: any TimelinePersistenceProtocol) {
+    public init(messageStore: any ThreadMessageStoreProtocol, threadStore: any ThreadPersistenceProtocol) {
         self.messageStore = messageStore
-        self.timelineStore = timelineStore
+        self.threadStore = threadStore
     }
 
     public var parametersSchema: Schema {
@@ -41,22 +41,22 @@ public struct TimelinePeekTool: PKShared.Tool, Sendable {
 
     public func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
         let params = ToolParameters(parameters)
-        let timelineIdStr: String
+        let threadIDString: String
         do {
-            timelineIdStr = try params.require("timeline_id", as: String.self)
+            threadIDString = try params.require("timeline_id", as: String.self)
         } catch {
             return .failure(error.localizedDescription)
         }
 
-        guard let timelineId = UUID(uuidString: timelineIdStr) else {
-            return .failure("Invalid timeline_id: \(timelineIdStr)")
+        guard let threadID = UUID(uuidString: threadIDString) else {
+            return .failure("Invalid timeline_id: \(threadIDString)")
         }
 
         // Validate timeline exists and is not private
-        guard let timeline = try? await timelineStore.fetchTimeline(id: timelineId) else {
-            return .failure("Timeline not found: \(timelineIdStr)")
+        guard let thread = try? await threadStore.fetchThread(id: threadID) else {
+            return .failure("Timeline not found: \(threadIDString)")
         }
-        if timeline.isPrivate {
+        if thread.isPrivate {
             return .failure("Cannot peek at private timelines.")
         }
 
@@ -65,7 +65,7 @@ public struct TimelinePeekTool: PKShared.Tool, Sendable {
             return .failure("limit must be non-negative.")
         }
         let limit = min(requestedLimit, 50)
-        let messages = try await messageStore.fetchMessages(for: timelineId)
+        let messages = try await messageStore.fetchMessages(for: threadID)
         let recent = Array(messages.suffix(limit))
 
         struct MessageSummary: Encodable {
@@ -76,6 +76,6 @@ public struct TimelinePeekTool: PKShared.Tool, Sendable {
 
         let summaries = recent.map { MessageSummary(role: $0.role, content: $0.content, timestamp: $0.timestamp) }
         let json = (try? String(data: JSONEncoder().encode(summaries), encoding: .utf8)) ?? "[]"
-        return .success("Last \(summaries.count) messages from '\(timeline.title)':\n\(json)")
+        return .success("Last \(summaries.count) messages from '\(thread.title)':\n\(json)")
     }
 }

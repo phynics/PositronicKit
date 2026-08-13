@@ -40,7 +40,7 @@ struct AgentWorkspaceServiceTests {
         )
 
         let ws = WorkspaceReference(
-            uri: .timelineWorkspace(UUID()),
+            uri: .threadWorkspace(UUID()),
             location: .runtime,
             rootPath: "/path"
         )
@@ -59,8 +59,8 @@ struct AgentWorkspaceServiceTests {
             workspacePersistence: persistence
         )
 
-        let ws1 = WorkspaceReference(uri: .timelineWorkspace(UUID()), location: .runtime)
-        let ws2 = WorkspaceReference(uri: .timelineWorkspace(UUID()), location: .runtime)
+        let ws1 = WorkspaceReference(uri: .threadWorkspace(UUID()), location: .runtime)
+        let ws2 = WorkspaceReference(uri: .threadWorkspace(UUID()), location: .runtime)
         try await persistence.saveWorkspace(ws1)
         try await persistence.saveWorkspace(ws2)
 
@@ -78,7 +78,7 @@ struct AgentWorkspaceServiceTests {
             workspacePersistence: persistence
         )
 
-        let ws = WorkspaceReference(uri: .timelineWorkspace(UUID()), location: .runtime)
+        let ws = WorkspaceReference(uri: .threadWorkspace(UUID()), location: .runtime)
         try await persistence.saveWorkspace(ws)
 
         try await repository.deleteWorkspace(id: ws.id)
@@ -104,7 +104,7 @@ struct AgentWorkspaceServiceTests {
             workspacePersistence: persistence
         )
         let ws = WorkspaceReference(
-            uri: .timelineWorkspace(UUID()),
+            uri: .threadWorkspace(UUID()),
             location: .runtime,
             rootPath: outside.path
         )
@@ -143,7 +143,7 @@ struct AgentWorkspaceServiceTests {
             workspacePersistence: persistence
         )
         let ws = WorkspaceReference(
-            uri: .timelineWorkspace(UUID()),
+            uri: .threadWorkspace(UUID()),
             location: .runtime,
             rootPath: workspaceRoot.appendingPathComponent("../outside").path
         )
@@ -181,7 +181,7 @@ struct AgentWorkspaceServiceTests {
             workspacePersistence: persistence
         )
         let ws = WorkspaceReference(
-            uri: .timelineWorkspace(UUID()),
+            uri: .threadWorkspace(UUID()),
             location: .runtime,
             rootPath: escapedPath.path
         )
@@ -208,7 +208,7 @@ struct AgentWorkspaceServiceTests {
             workspacePersistence: persistence
         )
 
-        var ws = WorkspaceReference(uri: .timelineWorkspace(UUID()), location: .runtime)
+        var ws = WorkspaceReference(uri: .threadWorkspace(UUID()), location: .runtime)
         try await persistence.saveWorkspace(ws)
 
         ws.status = .missing

@@ -61,7 +61,7 @@ private final class AsyncLatch: Sendable {
 }
 
 /// Tests for `ToolTimeoutEnforcer` (PKARCH-002 AC #2): the wall-clock timeout race can be
-/// exercised with a fake tool and an injected fake clock, without a `TimelineManager`.
+/// exercised with a fake tool and an injected fake clock, without a `ThreadManager`.
 ///
 /// PKRR-004 adds side-effect-aware terminal states: a tool that declares `.none` preserves
 /// the fast-abandon clean timeout, while `.mutating`/`.externalProcess` tools report a

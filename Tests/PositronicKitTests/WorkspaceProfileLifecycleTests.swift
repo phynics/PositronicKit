@@ -7,7 +7,7 @@ import Testing
 
 /// PKRR-029: workspace creation is an explicit profile with documented filesystem behavior.
 ///
-/// These tests first reproduce the pre-fix hidden side effects (every timeline wrote
+/// These tests first reproduce the pre-fix hidden side effects (every thread wrote
 /// `Notes/Welcome.md` + `Notes/Project.md` into a temp directory with no cleanup), then
 /// prove the new default (`.noWorkspace`) has no filesystem side effects, that
 /// `.ephemeralWorkspace` cleans up deterministically, and that seed notes are configurable.
@@ -19,11 +19,11 @@ struct WorkspaceProfileLifecycleTests {
     func hostManagedWritesDefaultNotes() async throws {
         let root = makeUniqueRoot()
         defer { try? FileManager.default.removeItem(at: root) }
-        let timelineManager = TimelineManager(workspaceProfile: .hostManaged(root: root))
+        let threadManager = ThreadManager(workspaceProfile: .hostManaged(root: root))
 
-        let timeline = try await timelineManager.createTimeline()
+        let thread = try await threadManager.createThread()
 
-        let workingDir = try #require(timeline.workingDirectory)
+        let workingDir = try #require(thread.workingDirectory)
         let notesDir = URL(fileURLWithPath: workingDir).appendingPathComponent("Notes")
         let welcome = try String(
             contentsOf: notesDir.appendingPathComponent("Welcome.md"),
@@ -35,22 +35,22 @@ struct WorkspaceProfileLifecycleTests {
         )
         #expect(welcome.contains("Welcome"))
         #expect(project.contains("Active Objective"))
-        #expect(!timeline.attachedWorkspaceIDs.isEmpty)
+        #expect(!thread.attachedWorkspaceIDs.isEmpty)
     }
 
     @Test(".hostManaged does NOT remove the directory on permanent deletion (host owns retention)")
     func hostManagedLeavesDirectoryOnDelete() async throws {
         let root = makeUniqueRoot()
         defer { try? FileManager.default.removeItem(at: root) }
-        let timelineManager = TimelineManager(workspaceProfile: .hostManaged(root: root))
+        let threadManager = ThreadManager(workspaceProfile: .hostManaged(root: root))
 
-        let timeline = try await timelineManager.createTimeline()
-        let dir = URL(fileURLWithPath: try #require(timeline.workingDirectory))
+        let thread = try await threadManager.createThread()
+        let dir = URL(fileURLWithPath: try #require(thread.workingDirectory))
         #expect(FileManager.default.fileExists(atPath: dir.path))
 
         // Permanent deletion removes the persisted records but leaves the directory: the host
         // owns retention. This is the pre-PKRR-029 leak, now scoped to .hostManaged only.
-        let result = await timelineManager.deleteTimelinePermanently(id: timeline.id)
+        let result = await threadManager.deleteThreadPermanently(id: thread.id)
         #expect(result.isComplete)
         #expect(FileManager.default.fileExists(atPath: dir.path))
     }
@@ -59,22 +59,22 @@ struct WorkspaceProfileLifecycleTests {
 
     @Test(".noWorkspace (default) creates no directory, writes no notes, and leaves workingDirectory nil")
     func noWorkspaceDefaultHasNoSideEffects() async throws {
-        let timelineManager = TimelineManager(workspaceProfile: .noWorkspace)
+        let threadManager = ThreadManager(workspaceProfile: .noWorkspace)
 
-        let timeline = try await timelineManager.createTimeline()
+        let thread = try await threadManager.createThread()
 
-        #expect(timeline.workingDirectory == nil)
-        #expect(timeline.attachedWorkspaceIDs.isEmpty)
+        #expect(thread.workingDirectory == nil)
+        #expect(thread.attachedWorkspaceIDs.isEmpty)
     }
 
     @Test("A minimal PositronicKit facade (no workspaceRoot) has no filesystem side effects")
     func minimalFacadeHasNoFilesystemSideEffects() async throws {
         let kit = PositronicKit(languageModel: UnconfiguredLLMService())
 
-        let timeline = try await kit.timelineManager.createTimeline()
+        let thread = try await kit.threadManager.createThread()
 
-        #expect(timeline.workingDirectory == nil)
-        #expect(timeline.attachedWorkspaceIDs.isEmpty)
+        #expect(thread.workingDirectory == nil)
+        #expect(thread.attachedWorkspaceIDs.isEmpty)
     }
 
     @Test("RuntimeConfiguration.default resolves to .noWorkspace")
@@ -106,12 +106,12 @@ struct WorkspaceProfileLifecycleTests {
     func ephemeralCreatesDirectoryAndNotes() async throws {
         let root = makeUniqueRoot()
         defer { try? FileManager.default.removeItem(at: root) }
-        let timelineManager = TimelineManager(
+        let threadManager = ThreadManager(
             workspaceProfile: .ephemeralWorkspace(root: root)
         )
 
-        let timeline = try await timelineManager.createTimeline()
-        let dir = URL(fileURLWithPath: try #require(timeline.workingDirectory))
+        let thread = try await threadManager.createThread()
+        let dir = URL(fileURLWithPath: try #require(thread.workingDirectory))
 
         #expect(FileManager.default.fileExists(atPath: dir.path))
         let notesDir = dir.appendingPathComponent("Notes")
@@ -122,15 +122,15 @@ struct WorkspaceProfileLifecycleTests {
     func ephemeralCleansUpOnPermanentDelete() async throws {
         let root = makeUniqueRoot()
         defer { try? FileManager.default.removeItem(at: root) }
-        let timelineManager = TimelineManager(
+        let threadManager = ThreadManager(
             workspaceProfile: .ephemeralWorkspace(root: root)
         )
 
-        let timeline = try await timelineManager.createTimeline()
-        let dir = URL(fileURLWithPath: try #require(timeline.workingDirectory))
+        let thread = try await threadManager.createThread()
+        let dir = URL(fileURLWithPath: try #require(thread.workingDirectory))
         #expect(FileManager.default.fileExists(atPath: dir.path))
 
-        let result = await timelineManager.deleteTimelinePermanently(id: timeline.id)
+        let result = await threadManager.deleteThreadPermanently(id: thread.id)
         #expect(result.isComplete)
 
         // The scratch directory is gone — no leftover temp data.
@@ -141,40 +141,40 @@ struct WorkspaceProfileLifecycleTests {
     func ephemeralCleansUpOnEviction() async throws {
         let root = makeUniqueRoot()
         defer { try? FileManager.default.removeItem(at: root) }
-        let timelineManager = TimelineManager(
+        let threadManager = ThreadManager(
             workspaceProfile: .ephemeralWorkspace(root: root)
         )
 
-        let timeline = try await timelineManager.createTimeline()
-        let dir = URL(fileURLWithPath: try #require(timeline.workingDirectory))
+        let thread = try await threadManager.createThread()
+        let dir = URL(fileURLWithPath: try #require(thread.workingDirectory))
         #expect(FileManager.default.fileExists(atPath: dir.path))
 
-        await timelineManager.evictTimelineFromMemory(id: timeline.id)
+        await threadManager.evictThreadFromMemory(id: thread.id)
 
         // Eviction ends the ephemeral workspace's life: the scratch directory is removed.
         #expect(!FileManager.default.fileExists(atPath: dir.path))
-        #expect(await timelineManager.timeline(id: timeline.id) == nil)
+        #expect(await threadManager.thread(id: thread.id) == nil)
     }
 
-    @Test(".ephemeralWorkspace cleans a non-cached timeline's directory on permanent deletion")
+    @Test(".ephemeralWorkspace cleans a non-cached thread's directory on permanent deletion")
     func ephemeralCleansNonCachedOnPermanentDelete() async throws {
         let root = makeUniqueRoot()
         defer { try? FileManager.default.removeItem(at: root) }
-        let timelineManager = TimelineManager(
+        let threadManager = ThreadManager(
             workspaceProfile: .ephemeralWorkspace(root: root)
         )
 
-        let timeline = try await timelineManager.createTimeline()
-        let dir = URL(fileURLWithPath: try #require(timeline.workingDirectory))
+        let thread = try await threadManager.createThread()
+        let dir = URL(fileURLWithPath: try #require(thread.workingDirectory))
 
-        // Evict from memory first, so deleteTimelinePermanently must fetch from persistence.
-        await timelineManager.evictTimelineFromMemory(id: timeline.id)
+        // Evict from memory first, so deleteThreadPermanently must fetch from persistence.
+        await threadManager.evictThreadFromMemory(id: thread.id)
         #expect(!FileManager.default.fileExists(atPath: dir.path))
 
         // Re-create the directory to simulate the cached-eviction having already cleaned it;
         // then delete permanently and confirm the non-cached path also cleans up.
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let result = await timelineManager.deleteTimelinePermanently(id: timeline.id)
+        let result = await threadManager.deleteThreadPermanently(id: thread.id)
         #expect(result.isComplete)
         #expect(!FileManager.default.fileExists(atPath: dir.path))
     }
@@ -185,12 +185,12 @@ struct WorkspaceProfileLifecycleTests {
     func ephemeralNoSeedNotes() async throws {
         let root = makeUniqueRoot()
         defer { try? FileManager.default.removeItem(at: root) }
-        let timelineManager = TimelineManager(
+        let threadManager = ThreadManager(
             workspaceProfile: .ephemeralWorkspace(root: root, seedNotes: .none)
         )
 
-        let timeline = try await timelineManager.createTimeline()
-        let notesDir = URL(fileURLWithPath: try #require(timeline.workingDirectory))
+        let thread = try await threadManager.createThread()
+        let notesDir = URL(fileURLWithPath: try #require(thread.workingDirectory))
             .appendingPathComponent("Notes")
 
         #expect(!FileManager.default.fileExists(atPath: notesDir.path))
@@ -203,12 +203,12 @@ struct WorkspaceProfileLifecycleTests {
         let custom = WorkspaceSeedNotes(
             WorkspaceSeedNote(filename: "README.md", content: "custom workspace intro")
         )
-        let timelineManager = TimelineManager(
+        let threadManager = ThreadManager(
             workspaceProfile: .hostManaged(root: root, seedNotes: custom)
         )
 
-        let timeline = try await timelineManager.createTimeline()
-        let notesDir = URL(fileURLWithPath: try #require(timeline.workingDirectory))
+        let thread = try await threadManager.createThread()
+        let notesDir = URL(fileURLWithPath: try #require(thread.workingDirectory))
             .appendingPathComponent("Notes")
 
         let readme = try String(

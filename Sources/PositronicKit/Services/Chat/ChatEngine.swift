@@ -105,10 +105,10 @@ struct ChatEngine {
         /// bounded value through `Dependencies` when they need to override it.
         static let defaultStreamTimeout: TimeInterval = 60
 
-        let timelineManager: TimelineManager
+        let threadManager: ThreadManager
         let agentInstanceStore: any AgentInstanceStoreProtocol
         let requestOriginStore: any RequestOriginStoreProtocol
-        let messageStore: any MessageStoreProtocol
+        let messageStore: any ThreadMessageStoreProtocol
         /// Streaming chat seam: the runtime turn loop, `LLMStreamingStage`, and the
         /// `isConfigured`/`configuration` precondition checks depend only on this.
         let llmService: any LLMStreamClient
@@ -122,14 +122,14 @@ struct ChatEngine {
         let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
         let loggingConfiguration: LoggingConfiguration
         let degradationPolicy: TurnDegradationPolicy
-        let promptHistoryRegistry: TimelinePromptJournals
+        let promptHistoryRegistry: ThreadPromptJournals
         let streamTimeout: TimeInterval
 
         init(
-            timelineManager: TimelineManager,
+            threadManager: ThreadManager,
             agentInstanceStore: any AgentInstanceStoreProtocol,
             requestOriginStore: any RequestOriginStoreProtocol,
-            messageStore: any MessageStoreProtocol,
+            messageStore: any ThreadMessageStoreProtocol,
             llmService: any LLMStreamClient & LLMUtilityClient,
             toolRouter: ToolRouter,
             chatTurnPlugins: [any ChatTurnPlugin],
@@ -137,10 +137,10 @@ struct ChatEngine {
             diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
             loggingConfiguration: LoggingConfiguration = .default,
             degradationPolicy: TurnDegradationPolicy = .failRequired,
-            promptHistoryRegistry: TimelinePromptJournals? = nil,
+            promptHistoryRegistry: ThreadPromptJournals? = nil,
             streamTimeout: TimeInterval = Self.defaultStreamTimeout
         ) {
-            self.timelineManager = timelineManager
+            self.threadManager = threadManager
             self.agentInstanceStore = agentInstanceStore
             self.requestOriginStore = requestOriginStore
             self.messageStore = messageStore
@@ -152,8 +152,42 @@ struct ChatEngine {
             self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
             self.loggingConfiguration = loggingConfiguration
             self.degradationPolicy = degradationPolicy
-            self.promptHistoryRegistry = promptHistoryRegistry ?? TimelinePromptJournals()
+            self.promptHistoryRegistry = promptHistoryRegistry ?? ThreadPromptJournals()
             self.streamTimeout = streamTimeout
+        }
+
+        /// Deprecated v3 dependency label retained for in-module compatibility.
+        @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+        init(
+            timelineManager: ThreadManager,
+            agentInstanceStore: any AgentInstanceStoreProtocol,
+            requestOriginStore: any RequestOriginStoreProtocol,
+            messageStore: any ThreadMessageStoreProtocol,
+            llmService: any LLMStreamClient & LLMUtilityClient,
+            toolRouter: ToolRouter,
+            chatTurnPlugins: [any ChatTurnPlugin],
+            promptObserver: (any PromptObserving)? = nil,
+            diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
+            loggingConfiguration: LoggingConfiguration = .default,
+            degradationPolicy: TurnDegradationPolicy = .failRequired,
+            promptHistoryRegistry: ThreadPromptJournals? = nil,
+            streamTimeout: TimeInterval = Self.defaultStreamTimeout
+        ) {
+            self.init(
+                threadManager: timelineManager,
+                agentInstanceStore: agentInstanceStore,
+                requestOriginStore: requestOriginStore,
+                messageStore: messageStore,
+                llmService: llmService,
+                toolRouter: toolRouter,
+                chatTurnPlugins: chatTurnPlugins,
+                promptObserver: promptObserver,
+                diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
+                loggingConfiguration: loggingConfiguration,
+                degradationPolicy: degradationPolicy,
+                promptHistoryRegistry: promptHistoryRegistry,
+                streamTimeout: streamTimeout
+            )
         }
     }
 
@@ -209,7 +243,7 @@ struct ChatEngine {
 
     /// Execute a chat turn and return a stream of deltas.
     /// - Parameters:
-    ///   - timelineId: The unique identifier for the chat session.
+    ///   - threadID: The unique identifier for the chat session.
     ///   - message: The user's input message.
     ///   - tools: Pre-resolved tools available for this turn.
     ///   - toolOutputs: Optional list of tool outputs submitted from a previous externally executed turn.
@@ -219,7 +253,7 @@ struct ChatEngine {
     ///   - maxTurns: Maximum number of LLM turns before stopping. Defaults to 5.
     /// - Returns: An asynchronous stream of chat events.
     func execute(
-        timelineId: UUID,
+        threadID: UUID,
         sendId: UUID? = nil,
         message: String,
         tools: [AnyTool],
@@ -237,7 +271,7 @@ struct ChatEngine {
         assemblyLogger: Logger? = nil
     ) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         try await execute(
-            timelineId: timelineId,
+            threadID: threadID,
             sendId: sendId,
             messageContent: MessageContent(message),
             tools: tools,
@@ -257,7 +291,7 @@ struct ChatEngine {
     }
 
     func execute(
-        timelineId: UUID,
+        threadID: UUID,
         sendId: UUID? = nil,
         messageContent: MessageContent,
         tools: [AnyTool],
@@ -276,10 +310,10 @@ struct ChatEngine {
         responseModalities: Set<ResponseModality> = [.text],
         audioOutput: AudioOutputOptions? = nil
     ) async throws -> AsyncThrowingStream<ChatEvent, Error> {
-        let sid = timelineId.uuidString.prefix(8).lowercased()
-        logger.info("Starting chat stream for timeline \(sid)")
+        let sid = threadID.uuidString.prefix(8).lowercased()
+        logger.info("Starting chat stream for thread \(sid)")
 
-        let agentPreflight = try await preflightAgent(id: agentInstanceId, timelineId: timelineId)
+        let agentPreflight = try await preflightAgent(id: agentInstanceId, threadID: threadID)
         guard await dependencies.llmService.isConfigured else { throw ChatEngineError.llmServiceNotConfigured }
         guard structuredOutput == nil || sidecars.isEmpty else {
             throw SidecarError.conflictsWithExplicitStructuredOutput
@@ -287,7 +321,7 @@ struct ChatEngine {
         try SidecarSchemaComposer.validate(sidecars)
 
         let context = try await prepareSession(
-            timelineId: timelineId,
+            threadID: threadID,
             sendId: sendId ?? UUID(),
             messageContent: messageContent,
             tools: tools,
@@ -314,10 +348,94 @@ struct ChatEngine {
 
         let task = Task {
             await runChatLoop(continuation: continuation, context: context)
-            await dependencies.timelineManager.removeTask(sendID: sendID, for: timelineId)
+            await dependencies.threadManager.removeTask(sendID: sendID, for: threadID)
         }
-        await dependencies.timelineManager.registerTask(task, sendID: sendID, for: timelineId)
+        await dependencies.threadManager.registerTask(task, sendID: sendID, for: threadID)
         continuation.onTermination = { @Sendable _ in task.cancel() }
         return stream
+    }
+
+    /// Deprecated v3 execution spelling retained for existing in-module callers.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    func execute(
+        timelineId: UUID,
+        sendId: UUID? = nil,
+        message: String,
+        tools: [AnyTool],
+        toolOutputs: [ToolOutputSubmission]? = nil,
+        turnBriefingBuilder: TurnBriefingBuilder? = nil,
+        systemInstructions: String? = nil,
+        agentInstanceId: UUID? = nil,
+        maxTurns: Int = Constants.defaultMaxTurns,
+        generationParameters: GenerationParameters? = nil,
+        structuredOutput: StructuredOutputRequest? = nil,
+        sidecars: [SidecarDirective] = [],
+        sidecarCommitPolicy: SidecarCommitPolicy = .everyRoundTrip,
+        includeSidecarMechanismPreamble: Bool = false,
+        contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
+        assemblyLogger: Logger? = nil
+    ) async throws -> AsyncThrowingStream<ChatEvent, Error> {
+        try await execute(
+            threadID: timelineId,
+            sendId: sendId,
+            message: message,
+            tools: tools,
+            toolOutputs: toolOutputs,
+            turnBriefingBuilder: turnBriefingBuilder,
+            systemInstructions: systemInstructions,
+            agentInstanceId: agentInstanceId,
+            maxTurns: maxTurns,
+            generationParameters: generationParameters,
+            structuredOutput: structuredOutput,
+            sidecars: sidecars,
+            sidecarCommitPolicy: sidecarCommitPolicy,
+            includeSidecarMechanismPreamble: includeSidecarMechanismPreamble,
+            contextPipeline: contextPipeline,
+            assemblyLogger: assemblyLogger
+        )
+    }
+
+    /// Deprecated v3 execution spelling retained for existing in-module callers.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    func execute(
+        timelineId: UUID,
+        sendId: UUID? = nil,
+        messageContent: MessageContent,
+        tools: [AnyTool],
+        toolOutputs: [ToolOutputSubmission]? = nil,
+        turnBriefingBuilder: TurnBriefingBuilder? = nil,
+        systemInstructions: String? = nil,
+        agentInstanceId: UUID? = nil,
+        maxTurns: Int = Constants.defaultMaxTurns,
+        generationParameters: GenerationParameters? = nil,
+        structuredOutput: StructuredOutputRequest? = nil,
+        sidecars: [SidecarDirective] = [],
+        sidecarCommitPolicy: SidecarCommitPolicy = .everyRoundTrip,
+        includeSidecarMechanismPreamble: Bool = false,
+        contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
+        assemblyLogger: Logger? = nil,
+        responseModalities: Set<ResponseModality> = [.text],
+        audioOutput: AudioOutputOptions? = nil
+    ) async throws -> AsyncThrowingStream<ChatEvent, Error> {
+        try await execute(
+            threadID: timelineId,
+            sendId: sendId,
+            messageContent: messageContent,
+            tools: tools,
+            toolOutputs: toolOutputs,
+            turnBriefingBuilder: turnBriefingBuilder,
+            systemInstructions: systemInstructions,
+            agentInstanceId: agentInstanceId,
+            maxTurns: maxTurns,
+            generationParameters: generationParameters,
+            structuredOutput: structuredOutput,
+            sidecars: sidecars,
+            sidecarCommitPolicy: sidecarCommitPolicy,
+            includeSidecarMechanismPreamble: includeSidecarMechanismPreamble,
+            contextPipeline: contextPipeline,
+            assemblyLogger: assemblyLogger,
+            responseModalities: responseModalities,
+            audioOutput: audioOutput
+        )
     }
 }

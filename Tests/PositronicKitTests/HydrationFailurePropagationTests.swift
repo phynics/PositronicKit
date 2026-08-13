@@ -5,24 +5,24 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-/// PKRR-005: hydration failure during `run(_:)` must propagate as a typed `TimelineError`
-/// before any user input is persisted. A brand-new, never-persisted timeline throws
-/// `TimelineError.timelineNotFound`; a transient store fault throws `TimelineError.unavailable`.
+/// PKRR-005: hydration failure during `run(_:)` must propagate as a typed `ThreadError`
+/// before any user input is persisted. A brand-new, never-persisted thread throws
+/// `ThreadError.threadNotFound`; a transient store fault throws `ThreadError.unavailable`.
 /// Neither is swallowed — the turn does not proceed unhydrated.
 struct HydrationFailurePropagationTests {
-    @Test("run(_:) throws timelineNotFound for a never-created timeline ID (PKRR-005)")
-    func runThrowsForMissingTimeline() async throws {
+    @Test("run(_:) throws threadNotFound for a never-created thread ID (PKRR-005)")
+    func runThrowsForMissingThread() async throws {
         let mockLLM = MockLLMService()
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: mockLLM),
             persistence: .inMemory()
         ))
 
-        let unresolvedTimelineId = UUID()
+        let unresolvedThreadId = UUID()
 
-        await #expect(throws: TimelineError.timelineNotFound) {
+        await #expect(throws: ThreadError.threadNotFound) {
             _ = try await kit.run(ChatRunRequest(
-                timelineID: unresolvedTimelineId,
+                threadID: unresolvedThreadId,
                 message: "should not reach the engine"
             ))
         }
@@ -30,27 +30,27 @@ struct HydrationFailurePropagationTests {
         #expect(mockLLM.chatCaptureHistory.isEmpty)
     }
 
-    @Test("run(_:) throws unavailable when the timeline store fails (PKRR-005)")
+    @Test("run(_:) throws unavailable when the thread store fails (PKRR-005)")
     func runThrowsUnavailableForStoreFailure() async throws {
-        let failingTimelinePersistence = FailingTimelinePersistence(fetchFails: true)
+        let failingThreadPersistence = FailingThreadPersistence(fetchFails: true)
         let mockLLM = MockLLMService()
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: mockLLM),
-            persistence: .init(timelinePersistence: failingTimelinePersistence)
+            persistence: .init(threadPersistence: failingThreadPersistence)
         ))
 
-        let unresolvedTimelineId = UUID()
+        let unresolvedThreadId = UUID()
 
-        await #expect(throws: TimelineError.unavailable) {
+        await #expect(throws: ThreadError.unavailable) {
             _ = try await kit.run(ChatRunRequest(
-                timelineID: unresolvedTimelineId,
+                threadID: unresolvedThreadId,
                 message: "should not reach the engine"
             ))
         }
 
         // The hydration attempt must actually have hit the store, proving
         // `resolveTurnBriefingBuilder` didn't short-circuit before reaching it.
-        #expect(failingTimelinePersistence.fetchAttemptCount >= 1)
+        #expect(failingThreadPersistence.fetchAttemptCount >= 1)
     }
 
     @Test("run returns a stream before a provider failure surfaces with typed identity")
@@ -64,10 +64,10 @@ struct HydrationFailurePropagationTests {
             provider: .init(languageModel: mockLLM),
             persistence: .inMemory()
         ))
-        let timeline = try await kit.timelineManager.createTimeline()
+        let thread = try await kit.threadManager.createThread()
 
         let stream = try await kit.run(ChatRunRequest(
-            timelineID: timeline.id,
+            threadID: thread.id,
             message: "fail during provider streaming"
         ))
 

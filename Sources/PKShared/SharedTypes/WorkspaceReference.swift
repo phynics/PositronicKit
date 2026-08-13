@@ -23,35 +23,60 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
     /// Filesystem root for the workspace
     public var rootPath: String? // Filesystem root for the workspace
     public var trustLevel: WorkspaceTrustLevel
-    /// The id of the timeline that last modified this workspace, if any.
-    public var lastModifiedBy: UUID? // Timeline ID that last modified
+    /// The id of the thread that last modified this workspace, if any.
+    public var lastModifiedBy: UUID? // Thread ID that last modified
     public var status: WorkspaceStatus
     /// Optional extra text injected into the prompt context when this workspace is active.
     public var contextInjection: String?
     public let createdAt: Date
 
     /// Where a workspace lives relative to the runtime.
-    public enum WorkspaceLocation: String, Codable, Sendable {
+    public enum WorkspaceLocation: RawRepresentable, Codable, Sendable, Equatable {
         /// A workspace owned directly by the runtime, not tied to a specific timeline.
         case runtime
-        /// A workspace specific to a timeline in this runtime
-        case runtimeTimeline // A workspace specific to a timeline in this runtime
+        /// A workspace specific to a thread in this runtime.
+        case runtimeThread
+        /// A workspace specific to a timeline in this runtime.
+        @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+        case runtimeTimeline
         /// A workspace attached from outside the runtime (e.g. an existing filesystem location).
         case attached
+
+        public typealias RawValue = String
+
+        public var rawValue: String {
+            switch self {
+            case .runtime: "runtime"
+            case .runtimeThread, .runtimeTimeline: "runtimeTimeline"
+            case .attached: "attached"
+            }
+        }
+
+        public init?(rawValue: String) {
+            switch rawValue {
+            case "runtime": self = .runtime
+            case "runtimeTimeline": self = .runtimeTimeline
+            case "runtimeThread": self = .runtimeThread
+            case "attached": self = .attached
+            default: return nil
+            }
+        }
 
         public init(from decoder: any Decoder) throws {
             let container = try decoder.singleValueContainer()
             let rawValue = try container.decode(String.self)
-            switch rawValue {
-            case "runtime": self = .runtime
-            case "runtimeTimeline": self = .runtimeTimeline
-            case "attached": self = .attached
-            default:
+            guard let location = Self(rawValue: rawValue) else {
                 throw DecodingError.dataCorruptedError(
                     in: container,
                     debugDescription: "Unknown WorkspaceLocation: \(rawValue)"
                 )
             }
+            self = location
+        }
+
+        public func encode(to encoder: any Encoder) throws {
+            var container = encoder.singleValueContainer()
+            try container.encode(rawValue)
         }
     }
 
@@ -143,26 +168,35 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         )
     }
 
-    /// Creates a primary workspace for a timeline.
+    /// Creates a primary workspace for a thread.
     public static func makePrimary(
-        forTimeline timelineID: UUID,
+        forThread threadID: UUID,
         rootPath: String
     ) -> WorkspaceReference {
         WorkspaceReference(
-            uri: .timelineWorkspace(timelineID),
+            uri: .threadWorkspace(threadID),
             location: .runtime,
             rootPath: rootPath,
             trustLevel: .full
         )
     }
 
-    /// Creates a primary workspace for a timeline.
-    @available(*, deprecated, renamed: "makePrimary(forTimeline:rootPath:)")
+    /// Creates a primary workspace for a timeline using the legacy API spelling.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public static func makePrimary(
+        forTimeline timelineID: UUID,
+        rootPath: String
+    ) -> WorkspaceReference {
+        makePrimary(forThread: timelineID, rootPath: rootPath)
+    }
+
+    /// Creates a primary workspace for a timeline using the legacy API spelling.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     public static func primaryForTimeline(
         _ timelineId: UUID,
         rootPath: String
     ) -> WorkspaceReference {
-        makePrimary(forTimeline: timelineId, rootPath: rootPath)
+        makePrimary(forThread: timelineId, rootPath: rootPath)
     }
 }
 

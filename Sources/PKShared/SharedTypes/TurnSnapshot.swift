@@ -63,7 +63,7 @@ public struct AudioOutputSnapshot: Codable, Sendable, Equatable {
 /// Persisted as JSON on each assistant message for audit and replay.
 public struct TurnSnapshot: Codable, Sendable, Equatable {
     public let timestamp: Date
-    public let timelineID: UUID
+    public let threadID: UUID
     public let agentInstanceID: UUID?
     public let modelName: String
     public let turnCount: Int
@@ -95,7 +95,7 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
 
     public init(
         timestamp: Date = Date(),
-        timelineID: UUID,
+        threadID: UUID,
         agentInstanceID: UUID? = nil,
         modelName: String,
         turnCount: Int,
@@ -116,7 +116,7 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
         cachedTokens: Int? = nil
     ) {
         self.timestamp = timestamp
-        self.timelineID = timelineID
+        self.threadID = threadID
         self.agentInstanceID = agentInstanceID
         self.modelName = modelName
         self.turnCount = turnCount
@@ -139,7 +139,7 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
 
     /// Creates a turn snapshot using the legacy identifier spellings.
     @_disfavoredOverload
-    @available(*, deprecated, message: "Use init(..., timelineID:agentInstanceID:...availableToolIDs:...).")
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     public init(
         timestamp: Date = Date(),
         timelineId: UUID,
@@ -164,7 +164,7 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
     ) {
         self.init(
             timestamp: timestamp,
-            timelineID: timelineId,
+            threadID: timelineId,
             agentInstanceID: agentInstanceId,
             modelName: modelName,
             turnCount: turnCount,
@@ -186,9 +186,62 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
         )
     }
 
+    /// Creates a turn snapshot using the legacy identifier spelling.
+    @_disfavoredOverload
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public init(
+        timestamp: Date = Date(),
+        timelineID: UUID,
+        agentInstanceID: UUID? = nil,
+        modelName: String,
+        turnCount: Int,
+        maxTurns: Int,
+        systemInstructions: String? = nil,
+        contextSnapshot: TurnContextSnapshot? = nil,
+        availableToolIDs: [String] = [],
+        fullResponse: String = "",
+        fullThinking: String = "",
+        audioOutput: AudioOutputSnapshot? = nil,
+        toolCalls: [ToolCallRecord] = [],
+        toolResults: [ToolResultRecord] = [],
+        turnDuration: TimeInterval = 0,
+        tokensPerSecond: Double? = nil,
+        promptTokens: Int? = nil,
+        completionTokens: Int? = nil,
+        totalTokens: Int? = nil,
+        cachedTokens: Int? = nil
+    ) {
+        self.init(
+            timestamp: timestamp,
+            threadID: timelineID,
+            agentInstanceID: agentInstanceID,
+            modelName: modelName,
+            turnCount: turnCount,
+            maxTurns: maxTurns,
+            systemInstructions: systemInstructions,
+            contextSnapshot: contextSnapshot,
+            availableToolIDs: availableToolIDs,
+            fullResponse: fullResponse,
+            fullThinking: fullThinking,
+            audioOutput: audioOutput,
+            toolCalls: toolCalls,
+            toolResults: toolResults,
+            turnDuration: turnDuration,
+            tokensPerSecond: tokensPerSecond,
+            promptTokens: promptTokens,
+            completionTokens: completionTokens,
+            totalTokens: totalTokens,
+            cachedTokens: cachedTokens
+        )
+    }
+
     /// The timeline identifier using the legacy 3.x spelling.
-    @available(*, deprecated, renamed: "timelineID")
-    public var timelineId: UUID { timelineID }
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public var timelineID: UUID { threadID }
+
+    /// The thread identifier using the legacy 3.x spelling.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public var timelineId: UUID { threadID }
 
     /// The agent-instance identifier using the legacy 3.x spelling.
     @available(*, deprecated, renamed: "agentInstanceID")
@@ -200,7 +253,7 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case timestamp
-        case timelineID = "timelineId"
+        case threadID = "timelineId"
         case agentInstanceID = "agentInstanceId"
         case modelName, turnCount, maxTurns, systemInstructions, contextSnapshot
         case availableToolIDs = "availableToolIds"

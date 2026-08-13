@@ -117,7 +117,7 @@ actor TurnOutputs {
 /// Mutable stage outputs are stored in `outputs`, a shared actor reference.
 struct ChatTurnContext {
     // Session-level configuration (constant across turns)
-    let timelineId: UUID
+    let threadID: UUID
     let sendId: UUID
     let agentInstanceId: UUID?
     let modelName: String
@@ -136,7 +136,7 @@ struct ChatTurnContext {
 
     /// Shared actor tracking prompt snapshots and append chain growth across turns.
     /// Created once per `prepareSession()` call and threaded through all turns in the loop.
-    let promptHistory: TimelinePromptHistory?
+    let promptHistory: ThreadPromptHistory?
     let renderedPrompt: RenderedPrompt?
     let promptHistoryUpdate: PromptHistoryUpdate?
 
@@ -148,7 +148,7 @@ struct ChatTurnContext {
     let outputs: TurnOutputs
 
     init(
-        timelineId: UUID,
+        threadID: UUID,
         sendId: UUID = UUID(),
         agentInstanceId: UUID?,
         modelName: String,
@@ -162,7 +162,7 @@ struct ChatTurnContext {
         sidecars: [SidecarDirective] = [],
         sidecarCommitPolicy: SidecarCommitPolicy = .everyRoundTrip,
         diagnostics: [TurnDiagnostic] = [],
-        promptHistory: TimelinePromptHistory? = nil,
+        promptHistory: ThreadPromptHistory? = nil,
         renderedPrompt: RenderedPrompt? = nil,
         promptHistoryUpdate: PromptHistoryUpdate? = nil,
         currentMessages: [LLMMessage],
@@ -171,7 +171,7 @@ struct ChatTurnContext {
         audioOutput: AudioOutputOptions? = nil,
         outputs: TurnOutputs = TurnOutputs()
     ) {
-        self.timelineId = timelineId
+        self.threadID = threadID
         self.sendId = sendId
         self.agentInstanceId = agentInstanceId
         self.modelName = modelName
@@ -195,6 +195,62 @@ struct ChatTurnContext {
         self.outputs = outputs
     }
 
+    /// Deprecated v3 initializer retained for internal source compatibility.
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    init(
+        timelineId: UUID,
+        sendId: UUID = UUID(),
+        agentInstanceId: UUID?,
+        modelName: String,
+        maxTurns: Int,
+        systemInstructions: String?,
+        availableTools: [AnyTool],
+        contextData: ContextData,
+        remoteDepth: Int,
+        generationParameters: GenerationParameters? = nil,
+        structuredOutput: StructuredOutputRequest? = nil,
+        sidecars: [SidecarDirective] = [],
+        sidecarCommitPolicy: SidecarCommitPolicy = .everyRoundTrip,
+        diagnostics: [TurnDiagnostic] = [],
+        promptHistory: ThreadPromptHistory? = nil,
+        renderedPrompt: RenderedPrompt? = nil,
+        promptHistoryUpdate: PromptHistoryUpdate? = nil,
+        currentMessages: [LLMMessage],
+        turnCount: Int,
+        responseModalities: Set<ResponseModality> = [.text],
+        audioOutput: AudioOutputOptions? = nil,
+        outputs: TurnOutputs = TurnOutputs()
+    ) {
+        self.init(
+            threadID: timelineId,
+            sendId: sendId,
+            agentInstanceId: agentInstanceId,
+            modelName: modelName,
+            maxTurns: maxTurns,
+            systemInstructions: systemInstructions,
+            availableTools: availableTools,
+            contextData: contextData,
+            remoteDepth: remoteDepth,
+            generationParameters: generationParameters,
+            structuredOutput: structuredOutput,
+            sidecars: sidecars,
+            sidecarCommitPolicy: sidecarCommitPolicy,
+            diagnostics: diagnostics,
+            promptHistory: promptHistory,
+            renderedPrompt: renderedPrompt,
+            promptHistoryUpdate: promptHistoryUpdate,
+            currentMessages: currentMessages,
+            turnCount: turnCount,
+            responseModalities: responseModalities,
+            audioOutput: audioOutput,
+            outputs: outputs
+        )
+    }
+
+    /// Deprecated v3 property retained for internal source compatibility.
+    @available(*, deprecated, renamed: "threadID", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    var timelineId: UUID { threadID }
+
     /// Tool parameters derived from availableTools.
     var toolParams: [LLMToolDefinition] {
         availableTools.map { $0.toLLMToolDefinition() }
@@ -208,7 +264,7 @@ struct ChatTurnContext {
         promptHistoryUpdate: PromptHistoryUpdate? = nil
     ) -> ChatTurnContext {
         ChatTurnContext(
-            timelineId: timelineId,
+            threadID: threadID,
             sendId: sendId,
             agentInstanceId: agentInstanceId,
             modelName: modelName,

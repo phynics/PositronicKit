@@ -3,12 +3,13 @@ import Foundation
 import PKUtilities
 import PKTestSupport
 @testable import PositronicKit
+import struct PositronicKit.Thread
 import Testing
 
 private actor ArchiveFaultInjectingPersistence:
-    TimelinePersistenceProtocol, MemoryStoreProtocol, MessageStoreProtocol
+    ThreadPersistenceProtocol, MemoryStoreProtocol, MessageStoreProtocol
 {
-    private var timelines: [Timeline] = []
+    private var threads: [Thread] = []
     private var messages: [ConversationMessage] = []
     private var failMessageSave = false
 
@@ -16,8 +17,8 @@ private actor ArchiveFaultInjectingPersistence:
         failMessageSave = value
     }
 
-    func savedTimelines() -> [Timeline] {
-        timelines
+    func savedThreads() -> [Thread] {
+        threads
     }
 
     func saveMemory(_ memory: Memory, policy _: MemorySavePolicy) async throws -> UUID {
@@ -60,12 +61,12 @@ private actor ArchiveFaultInjectingPersistence:
         messages.append(message)
     }
 
-    func fetchMessages(for timelineId: UUID) async throws -> [ConversationMessage] {
-        messages.filter { $0.timelineID == timelineId }
+    func fetchMessages(for threadID: UUID) async throws -> [ConversationMessage] {
+        messages.filter { $0.threadID == threadID }
     }
 
-    func deleteMessages(for timelineId: UUID) async throws {
-        messages.removeAll { $0.timelineID == timelineId }
+    func deleteMessages(for threadID: UUID) async throws {
+        messages.removeAll { $0.threadID == threadID }
     }
 
     func pruneMessages(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int { 0 }
@@ -74,27 +75,27 @@ private actor ArchiveFaultInjectingPersistence:
         []
     }
 
-    func saveTimeline(_ timeline: Timeline) async throws {
-        if let index = timelines.firstIndex(where: { $0.id == timeline.id }) {
-            timelines[index] = timeline
+    func saveThread(_ thread: Thread) async throws {
+        if let index = threads.firstIndex(where: { $0.id == thread.id }) {
+            threads[index] = thread
         } else {
-            timelines.append(timeline)
+            threads.append(thread)
         }
     }
 
-    func fetchTimeline(id: UUID) async throws -> Timeline? {
-        timelines.first { $0.id == id }
+    func fetchThread(id: UUID) async throws -> Thread? {
+        threads.first { $0.id == id }
     }
 
-    func fetchAllTimelines(includeArchived: Bool) async throws -> [Timeline] {
-        includeArchived ? timelines : timelines.filter { !$0.isArchived }
+    func fetchAllThreads(includeArchived: Bool) async throws -> [Thread] {
+        includeArchived ? threads : threads.filter { !$0.isArchived }
     }
 
-    func deleteTimeline(id: UUID) async throws {
-        timelines.removeAll { $0.id == id }
+    func deleteThread(id: UUID) async throws {
+        threads.removeAll { $0.id == id }
     }
 
-    func pruneTimelines(
+    func pruneThreads(
         olderThan _: TimeInterval,
         excluding _: [UUID],
         dryRun _: Bool
@@ -105,10 +106,10 @@ private actor ArchiveFaultInjectingPersistence:
 
 @Suite(.serialized)
 @MainActor
-struct TimelineArchiverTests {
+struct ThreadArchiverTests {
     let persistence: MockPersistenceService
     let mockLLM: MockLLMService
-    let archiver: TimelineArchiver
+    let archiver: ThreadArchiver
     let mockEmbeddingService: MockEmbeddingService
 
     init() async throws {
@@ -116,7 +117,7 @@ struct TimelineArchiverTests {
         mockLLM = MockLLMService()
         mockEmbeddingService = MockEmbeddingService()
 
-        archiver = TimelineArchiver(persistence: persistence, llmService: mockLLM, embeddingService: mockEmbeddingService)
+        archiver = ThreadArchiver(persistence: persistence, llmService: mockLLM, embeddingService: mockEmbeddingService)
     }
 
     @Test
@@ -129,10 +130,10 @@ struct TimelineArchiverTests {
         ]
 
         // When
-        let timelineId = try await archiver.archive(messages: messages, timelineId: .none)
+        let threadID = try await archiver.archive(messages: messages, threadID: .none)
 
         // Then
-        let session = try await persistence.fetchTimeline(id: timelineId)
+        let session = try await persistence.fetchThread(id: threadID)
         #expect(session?.title == "A Great Conversation")
         #expect(session?.isArchived == true)
         #expect(mockLLM.generatedTitleInputs.count == 1)
@@ -147,10 +148,10 @@ struct TimelineArchiverTests {
         ]
 
         // When
-        let timelineId = try await archiver.archive(messages: messages, timelineId: .none)
+        let threadID = try await archiver.archive(messages: messages, threadID: .none)
 
         // Then
-        let session = try await persistence.fetchTimeline(id: timelineId)
+        let session = try await persistence.fetchThread(id: threadID)
         #expect(session?.title == "Archived Conversation")
     }
 
@@ -166,7 +167,7 @@ struct TimelineArchiverTests {
         ]
 
         // When
-        _ = try await archiver.archive(messages: messages, timelineId: .none)
+        _ = try await archiver.archive(messages: messages, threadID: .none)
 
         // Then
         let memories = try await persistence.fetchAllMemories()
@@ -186,7 +187,7 @@ struct TimelineArchiverTests {
         ]
 
         // When
-        _ = try await archiver.archive(messages: messages, timelineId: .none)
+        _ = try await archiver.archive(messages: messages, threadID: .none)
 
         // Then
         let memories = try await persistence.fetchAllMemories()
@@ -202,22 +203,22 @@ struct TimelineArchiverTests {
         ]
 
         // When
-        let timelineId = try await archiver.archive(messages: messages, timelineId: .none)
+        let threadID = try await archiver.archive(messages: messages, threadID: .none)
 
         // Then
-        let storedMessages = try await persistence.fetchMessages(for: timelineId)
+        let storedMessages = try await persistence.fetchMessages(for: threadID)
         #expect(storedMessages.count == 2)
         #expect(storedMessages[0].content == "Message 1")
         #expect(storedMessages[1].content == "Message 2")
-        #expect(storedMessages[0].timelineID == timelineId)
-        #expect(storedMessages[1].timelineID == timelineId)
+        #expect(storedMessages[0].threadID == threadID)
+        #expect(storedMessages[1].threadID == threadID)
     }
 
     @Test
     func archive_updatesExistingSession() async throws {
         // Given
-        let existingSession = Timeline(title: "Old Title")
-        try await persistence.saveTimeline(existingSession)
+        let existingSession = Thread(title: "Old Title")
+        try await persistence.saveThread(existingSession)
 
         mockLLM.nextGeneratedTitle = "New Title"
         let messages = [
@@ -225,20 +226,20 @@ struct TimelineArchiverTests {
         ]
 
         // When
-        let timelineId = try await archiver.archive(messages: messages, timelineId: existingSession.id)
+        let threadID = try await archiver.archive(messages: messages, threadID: existingSession.id)
 
         // Then
-        #expect(timelineId == existingSession.id)
-        let updatedSession = try await persistence.fetchTimeline(id: existingSession.id)
+        #expect(threadID == existingSession.id)
+        let updatedSession = try await persistence.fetchThread(id: existingSession.id)
         #expect(updatedSession?.title == "New Title")
         #expect(updatedSession?.isArchived == true)
     }
 
     @Test
-    func archiveRollsBackTimelineStateWhenMessageSaveFails() async throws {
+    func archiveRollsBackThreadStateWhenMessageSaveFails() async throws {
         let createPersistence = ArchiveFaultInjectingPersistence()
         await createPersistence.setMessageSaveFailure(true)
-        let createArchiver = TimelineArchiver(
+        let createArchiver = ThreadArchiver(
             persistence: createPersistence,
             llmService: MockLLMService(),
             embeddingService: MockEmbeddingService()
@@ -248,7 +249,7 @@ struct TimelineArchiverTests {
         do {
             _ = try await createArchiver.archive(
                 messages: [Message(content: "archive failure", role: .assistant)],
-                timelineId: nil,
+                threadID: nil,
                 vacuumPolicy: .skip
             )
         } catch FailingStoreError.saveFailed {
@@ -258,11 +259,11 @@ struct TimelineArchiverTests {
         }
 
         #expect(createDidThrowExpectedError)
-        let createdTimelines = await createPersistence.savedTimelines()
-        #expect(createdTimelines.isEmpty)
+        let createdThreads = await createPersistence.savedThreads()
+        #expect(createdThreads.isEmpty)
 
         let updatePersistence = ArchiveFaultInjectingPersistence()
-        let originalTimeline = Timeline(
+        let originalThread = Thread(
             id: UUID(),
             title: "Original title",
             createdAt: Date(timeIntervalSince1970: 100),
@@ -273,9 +274,9 @@ struct TimelineArchiverTests {
             attachedAgentInstanceID: UUID(),
             isPrivate: true
         )
-        try await updatePersistence.saveTimeline(originalTimeline)
+        try await updatePersistence.saveThread(originalThread)
         await updatePersistence.setMessageSaveFailure(true)
-        let updateArchiver = TimelineArchiver(
+        let updateArchiver = ThreadArchiver(
             persistence: updatePersistence,
             llmService: MockLLMService(),
             embeddingService: MockEmbeddingService()
@@ -285,7 +286,7 @@ struct TimelineArchiverTests {
         do {
             _ = try await updateArchiver.archive(
                 messages: [Message(content: "archive failure", role: .assistant)],
-                timelineId: originalTimeline.id,
+                threadID: originalThread.id,
                 vacuumPolicy: .skip
             )
         } catch FailingStoreError.saveFailed {
@@ -295,28 +296,28 @@ struct TimelineArchiverTests {
         }
 
         #expect(updateDidThrowExpectedError)
-        let restoredTimeline = try #require(await updatePersistence.fetchTimeline(id: originalTimeline.id))
-        #expect(restoredTimeline.id == originalTimeline.id)
-        #expect(restoredTimeline.title == originalTimeline.title)
-        #expect(restoredTimeline.createdAt == originalTimeline.createdAt)
-        #expect(restoredTimeline.updatedAt == originalTimeline.updatedAt)
-        #expect(restoredTimeline.isArchived == originalTimeline.isArchived)
-        #expect(restoredTimeline.workingDirectory == originalTimeline.workingDirectory)
-        #expect(restoredTimeline.attachedWorkspaceIDs == originalTimeline.attachedWorkspaceIDs)
-        #expect(restoredTimeline.attachedAgentInstanceID == originalTimeline.attachedAgentInstanceID)
-        #expect(restoredTimeline.isPrivate == originalTimeline.isPrivate)
+        let restoredThread = try #require(await updatePersistence.fetchThread(id: originalThread.id))
+        #expect(restoredThread.id == originalThread.id)
+        #expect(restoredThread.title == originalThread.title)
+        #expect(restoredThread.createdAt == originalThread.createdAt)
+        #expect(restoredThread.updatedAt == originalThread.updatedAt)
+        #expect(restoredThread.isArchived == originalThread.isArchived)
+        #expect(restoredThread.workingDirectory == originalThread.workingDirectory)
+        #expect(restoredThread.attachedWorkspaceIDs == originalThread.attachedWorkspaceIDs)
+        #expect(restoredThread.attachedAgentInstanceID == originalThread.attachedAgentInstanceID)
+        #expect(restoredThread.isPrivate == originalThread.isPrivate)
     }
 
     @Test
     func archive_handlesEmptyMessages() async throws {
         // When
-        let timelineId = try await archiver.archive(messages: [], timelineId: .none)
+        let threadID = try await archiver.archive(messages: [], threadID: .none)
 
         // Then
-        let session = try await persistence.fetchTimeline(id: timelineId)
+        let session = try await persistence.fetchThread(id: threadID)
         #expect(session?.title == "Archived Conversation")
 
-        let storedMessages = try await persistence.fetchMessages(for: timelineId)
+        let storedMessages = try await persistence.fetchMessages(for: threadID)
         #expect(storedMessages.isEmpty)
     }
 }

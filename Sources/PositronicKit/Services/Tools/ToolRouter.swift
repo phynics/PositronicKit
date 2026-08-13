@@ -71,21 +71,21 @@ public actor ToolRouter {
     private let logger: Logger
     private let loggingConfiguration: LoggingConfiguration
 
-    private let timelineManager: TimelineManager
-    private let messageStore: any MessageStoreProtocol
+    private let threadManager: ThreadManager
+    private let messageStore: any ThreadMessageStoreProtocol
     private let toolExecutionTimeout: TimeInterval
     private let approvalPolicy: any ToolApprovalPolicy
     private let sleep: @Sendable (UInt64) async throws -> Void
 
     public init(
-        timelineManager: TimelineManager,
-        messageStore: any MessageStoreProtocol,
+        threadManager: ThreadManager,
+        messageStore: any ThreadMessageStoreProtocol,
         toolExecutionTimeout: TimeInterval = 60,
         approvalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
         sleep: (@Sendable (UInt64) async throws -> Void)? = nil
         , loggingConfiguration: LoggingConfiguration = .default
     ) {
-        self.timelineManager = timelineManager
+        self.threadManager = threadManager
         self.messageStore = messageStore
         self.toolExecutionTimeout = toolExecutionTimeout
         self.approvalPolicy = approvalPolicy
@@ -193,7 +193,7 @@ public actor ToolRouter {
                 }
                 let outcome = try await execute(
                     tool: toolRef, arguments: arguments,
-                    timelineId: timelineId, availableTools: availableTools
+                    threadID: timelineId, availableTools: availableTools
                 )
                 let projection = try await projectOutcome(
                     outcome,
@@ -253,14 +253,14 @@ public actor ToolRouter {
     public func execute(
         tool: ToolReference,
         arguments: [String: AnyCodable],
-        timelineId: UUID,
+        threadID: UUID,
         availableTools: [AnyTool]? = nil
     ) async throws -> ToolExecutionOutcome {
         let toolName = loggingConfiguration.redactionPolicy.sanitizeStructured(tool.displayName)
-        let sid = timelineId.uuidString.prefix(8).lowercased()
+        let sid = threadID.uuidString.prefix(8).lowercased()
 
-        logger.info("Routing \(toolName) in timeline \(sid)", metadata: [
-            LogKeys.timelineID: .string(timelineId.uuidString),
+        logger.info("Routing \(toolName) in thread \(sid)", metadata: [
+            LogKeys.timelineID: .string(threadID.uuidString),
             LogKeys.toolName: .string(tool.displayName),
         ])
 
@@ -280,7 +280,7 @@ public actor ToolRouter {
             let output = try await executeLocally(
                 tool: tool,
                 arguments: forwardedArguments,
-                timelineId: timelineId,
+                timelineId: threadID,
                 dynamicTools: dynamicTools
             )
             return .completed(output)
@@ -290,25 +290,25 @@ public actor ToolRouter {
         // timeline's workspaces, or when the timeline has no workspaces at all.
         guard let workspaceId = try await resolveWorkspace(
             for: tool,
-            in: timelineId,
+            in: threadID,
             arguments: arguments
         ) else {
             throw ToolError.toolNotFound(tool.displayName)
         }
 
-        guard let workspace = try await timelineManager.getWorkspace(workspaceId) else {
+        guard let workspace = try await threadManager.getWorkspace(workspaceId) else {
             throw ToolError.workspaceNotFound(workspaceId)
         }
 
         switch try outcomeForWorkspace(
             location: workspace.location,
-            timelineIsPrivate: await timelineManager.timeline(id: timelineId)?.isPrivate ?? false
+            timelineIsPrivate: await threadManager.thread(id: threadID)?.isPrivate ?? false
         ) {
         case .executeLocally:
             let output = try await executeLocally(
                 tool: tool,
                 arguments: forwardedArguments,
-                timelineId: timelineId,
+                timelineId: threadID,
                 dynamicTools: availableTools
             )
             return .completed(output)
@@ -339,11 +339,11 @@ public actor ToolRouter {
         timelineIsPrivate: Bool
     ) throws -> WorkspaceExecutionDisposition {
         switch location {
-        case .runtime, .runtimeTimeline:
+        case .runtime, .runtimeThread, .runtimeTimeline:
             return .executeLocally
         case .attached:
             guard !timelineIsPrivate else {
-                throw ToolError.attachedToolsDisallowedOnPrivateTimeline
+                throw ToolError.attachedToolsDisallowedOnPrivateThread
             }
             return .deferExternally
         }
@@ -357,7 +357,7 @@ public actor ToolRouter {
     ///    value throws `ToolError.invalidWorkspaceID`; a valid UUID that is not attached throws
     ///    `ToolError.workspaceNotFound` (PKRR-015 fail-closed — presence signals explicit
     ///    intent, so a malformed value is an error, not a hint to auto-route).
-    /// 2. Otherwise, defer to `TimelineManager.findWorkspaceForTool(_:in:)` over the candidate
+    /// 2. Otherwise, defer to `ThreadManager.findWorkspaceForTool(_:in:)` over the candidate
     ///    list (primary first, then attached in declared order).
     /// 3. Returns `nil` if the timeline has no workspaces, or if no candidate workspace
     ///    registers the tool. `execute` interprets `nil` as `toolNotFound`.
@@ -368,8 +368,8 @@ public actor ToolRouter {
     ) async throws -> UUID? {
         let wsList: WorkspaceQueryResult
         do {
-            wsList = try await timelineManager.getWorkspaces(for: timelineId)
-        } catch TimelineError.timelineNotFound {
+            wsList = try await threadManager.getWorkspaces(for: timelineId)
+        } catch ThreadError.threadNotFound {
             return nil
         }
 
@@ -394,7 +394,7 @@ public actor ToolRouter {
             return explicitId
         }
 
-        return try await timelineManager.findWorkspaceForTool(tool, in: candidates)
+        return try await threadManager.findWorkspaceForTool(tool, in: candidates)
     }
 
     // MARK: - Local Execution
@@ -410,7 +410,7 @@ public actor ToolRouter {
         let toolName = loggingConfiguration.redactionPolicy.sanitizeStructured(tool.displayName)
         logger.info("Executing locally: \(toolName)")
 
-        guard let toolManager = await timelineManager.getToolManager(for: timelineId) else {
+        guard let toolManager = await threadManager.getToolManager(for: timelineId) else {
             throw ToolError.toolNotFound(tool.displayName)
         }
 
@@ -496,7 +496,7 @@ public actor ToolRouter {
         case let .completed(output):
             logger.info("Tool \(toolDisplayName) succeeded")
             let message = ConversationMessage(
-                timelineID: timelineId, role: .tool, content: output, toolCallID: call.callId
+                threadID: timelineId, role: .tool, content: output, toolCallID: call.callId
             )
             do {
                 try await messageStore.saveMessage(message)
@@ -546,7 +546,7 @@ public actor ToolRouter {
             errorOutput += "\nHow to fix: \(remediation)"
         }
         let message = ConversationMessage(
-            timelineID: timelineId, role: .tool, content: errorOutput, toolCallID: call.callId
+            threadID: timelineId, role: .tool, content: errorOutput, toolCallID: call.callId
         )
         do {
             try await messageStore.saveMessage(message)

@@ -164,7 +164,7 @@ struct InMemoryStoresContractTests {
             let store = InMemoryToolPersistence()
             let wsId = UUID()
             await store.replaceWorkspaces([
-                makeWorkspace(id: wsId, location: .runtimeTimeline)
+                makeWorkspace(id: wsId, location: .runtimeThread)
             ])
             try await store.addToolToWorkspace(workspaceId: wsId, tool: .known("t"))
 
@@ -180,7 +180,7 @@ struct InMemoryStoresContractTests {
             let wsId = UUID()
             let uri = WorkspaceURI(host: "localhost", path: "/projects/extra")
             await store.replaceWorkspaces([
-                makeWorkspace(id: wsId, location: .runtimeTimeline, uri: uri)
+                makeWorkspace(id: wsId, location: .runtimeThread, uri: uri)
             ])
             try await store.addToolToWorkspace(workspaceId: wsId, tool: .known("t"))
 
@@ -339,40 +339,40 @@ struct InMemoryStoresContractTests {
 
     @Suite("InMemoryMessageStore")
     struct MessageStoreTests {
-        @Test("saveMessage and fetchMessages round-trip per timeline")
-        func saveAndFetchPerTimeline() async throws {
+        @Test("saveMessage and fetchMessages round-trip per thread")
+        func saveAndFetchPerThread() async throws {
             let store = InMemoryMessageStore()
-            let timelineA = UUID(), timelineB = UUID()
+            let threadA = UUID(), threadB = UUID()
 
-            try await store.saveMessage(ConversationMessage(timelineID: timelineA, role: .user, content: "A1"))
-            try await store.saveMessage(ConversationMessage(timelineID: timelineA, role: .assistant, content: "A2"))
-            try await store.saveMessage(ConversationMessage(timelineID: timelineB, role: .user, content: "B1"))
+            try await store.saveMessage(ConversationMessage(threadID: threadA, role: .user, content: "A1"))
+            try await store.saveMessage(ConversationMessage(threadID: threadA, role: .assistant, content: "A2"))
+            try await store.saveMessage(ConversationMessage(threadID: threadB, role: .user, content: "B1"))
 
-            let aMessages = try await store.fetchMessages(for: timelineA)
-            let bMessages = try await store.fetchMessages(for: timelineB)
+            let aMessages = try await store.fetchMessages(for: threadA)
+            let bMessages = try await store.fetchMessages(for: threadB)
             #expect(aMessages.count == 2)
             #expect(bMessages.count == 1)
         }
 
-        @Test("deleteMessages removes only the targeted timeline's messages")
-        func deleteTargetsSingleTimeline() async throws {
+        @Test("deleteMessages removes only the targeted thread's messages")
+        func deleteTargetsSingleThread() async throws {
             let store = InMemoryMessageStore()
-            let timelineA = UUID(), timelineB = UUID()
-            try await store.saveMessage(ConversationMessage(timelineID: timelineA, role: .user, content: "A"))
-            try await store.saveMessage(ConversationMessage(timelineID: timelineB, role: .user, content: "B"))
+            let threadA = UUID(), threadB = UUID()
+            try await store.saveMessage(ConversationMessage(threadID: threadA, role: .user, content: "A"))
+            try await store.saveMessage(ConversationMessage(threadID: threadB, role: .user, content: "B"))
 
-            try await store.deleteMessages(for: timelineA)
+            try await store.deleteMessages(for: threadA)
 
-            #expect(try await store.fetchMessages(for: timelineA).isEmpty)
-            #expect(try await store.fetchMessages(for: timelineB).count == 1)
+            #expect(try await store.fetchMessages(for: threadA).isEmpty)
+            #expect(try await store.fetchMessages(for: threadB).count == 1)
         }
 
         @Test("fetchSnapshots decodes assistant messages with snapshot data")
         func fetchSnapshotsDecodesAssistantSnapshots() async throws {
             let store = InMemoryMessageStore()
-            let timeline = UUID()
+            let thread = UUID()
             let snapshot = TurnSnapshot(
-                timelineID: timeline,
+                threadID: thread,
                 modelName: "test-model",
                 turnCount: 1,
                 maxTurns: 5,
@@ -380,14 +380,14 @@ struct InMemoryStoresContractTests {
             )
             let data = try SerializationUtils.jsonEncoder.encode(snapshot)
             try await store.saveMessage(ConversationMessage(
-                timelineID: timeline, role: .assistant, content: "Pong", snapshotData: data
+                threadID: thread, role: .assistant, content: "Pong", snapshotData: data
             ))
             // A user message without snapshot data should be skipped.
             try await store.saveMessage(ConversationMessage(
-                timelineID: timeline, role: .user, content: "Ping"
+                threadID: thread, role: .user, content: "Ping"
             ))
 
-            let snapshots = try await store.fetchSnapshots(for: timeline)
+            let snapshots = try await store.fetchSnapshots(for: thread)
             #expect(snapshots.count == 1)
             #expect(snapshots.first?.fullResponse == "Pong")
         }
@@ -395,27 +395,27 @@ struct InMemoryStoresContractTests {
         @Test("fetchSnapshots skips assistant messages with missing or invalid snapshot data")
         func fetchSnapshotsSkipsInvalidData() async throws {
             let store = InMemoryMessageStore()
-            let timeline = UUID()
+            let thread = UUID()
             try await store.saveMessage(ConversationMessage(
-                timelineID: timeline, role: .assistant, content: "no snapshot"
+                threadID: thread, role: .assistant, content: "no snapshot"
             ))
             try await store.saveMessage(ConversationMessage(
-                timelineID: timeline, role: .assistant, content: "bad snapshot",
+                threadID: thread, role: .assistant, content: "bad snapshot",
                 snapshotData: Data("not json".utf8)
             ))
 
-            let snapshots = try await store.fetchSnapshots(for: timeline)
+            let snapshots = try await store.fetchSnapshots(for: thread)
             #expect(snapshots.isEmpty)
         }
 
         @Test("pruneMessages is a no-op returning zero")
         func pruneIsNoOp() async throws {
             let store = InMemoryMessageStore()
-            let timeline = UUID()
-            try await store.saveMessage(ConversationMessage(timelineID: timeline, role: .user, content: "x"))
+            let thread = UUID()
+            try await store.saveMessage(ConversationMessage(threadID: thread, role: .user, content: "x"))
 
             #expect(try await store.pruneMessages(olderThan: 1000, dryRun: false) == 0)
-            #expect(try await store.fetchMessages(for: timeline).count == 1)
+            #expect(try await store.fetchMessages(for: thread).count == 1)
         }
     }
 

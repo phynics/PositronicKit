@@ -16,21 +16,21 @@ import Testing
 /// `runOneTurn` is exercised end to end.
 @Suite(.serialized) @MainActor
 struct ChatEngineFailurePersistenceTests {
-    private let timelineId = UUID()
+    private let threadID = UUID()
 
     /// Mirrors `ChatEngineTests.withChatEngineDependencies` but is kept local so this suite is
-    /// self-contained. Seeds a hydrated timeline the engine can run a turn against.
+    /// self-contained. Seeds a hydrated thread the engine can run a turn against.
     private func withChatEngineDependencies<T>(
         streamTimeout: TimeInterval = 60,
-        promptHistoryRegistry: TimelinePromptJournals? = nil,
+        promptHistoryRegistry: ThreadPromptJournals? = nil,
         _ test: @Sendable (ChatEngine, MockLLMService, MockPersistenceService) async throws -> T
     ) async throws -> T {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
-        let registry = promptHistoryRegistry ?? TimelinePromptJournals()
-        let timelineManager = TimelineManager(
+        let registry = promptHistoryRegistry ?? ThreadPromptJournals()
+        let threadManager = ThreadManager(
             stores: .init(
-                timelineStore: mockPersistence,
+                threadStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
                 toolPersistence: mockPersistence
@@ -39,12 +39,12 @@ struct ChatEngineFailurePersistenceTests {
             workspaceCreator: MockWorkspaceCreator()
         )
         let toolRouter = ToolRouter(
-            timelineManager: timelineManager,
+            threadManager: threadManager,
             messageStore: mockPersistence
         )
         let engine = ChatEngine(
             dependencies: .init(
-                timelineManager: timelineManager,
+                threadManager: threadManager,
                 agentInstanceStore: mockPersistence,
                 requestOriginStore: mockPersistence,
                 messageStore: mockPersistence,
@@ -56,22 +56,22 @@ struct ChatEngineFailurePersistenceTests {
             )
         )
 
-        let session = Timeline(id: timelineId, title: "STAB-1 Session")
-        try await mockPersistence.saveTimeline(session)
+        let session = Thread(id: threadID, title: "STAB-1 Session")
+        try await mockPersistence.saveThread(session)
 
         let wsId = UUID()
         let workspaceRef = WorkspaceReference(
             id: wsId,
             uri: WorkspaceURI(parsing: "pk://local")!,
-            location: .runtimeTimeline,
+            location: .runtimeThread,
             originID: nil,
             rootPath: "/tmp"
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
-        try await timelineManager.attachWorkspace(wsId, to: timelineId)
+        try await threadManager.attachWorkspace(wsId, to: threadID)
         try await mockPersistence.addToolToWorkspace(workspaceId: wsId, tool: .known("mock_tool"))
 
-        try await timelineManager.hydrateTimeline(id: timelineId)
+        try await threadManager.hydrateThread(id: threadID)
 
         return try await test(engine, mockLLM, mockPersistence)
     }
@@ -85,9 +85,9 @@ struct ChatEngineFailurePersistenceTests {
         let backing = MockPersistenceService()
         let messageStore = BatchFailingMessageStore()
         messageStore.failAfterSaveCount = 2
-        let timelineManager = TimelineManager(
+        let threadManager = ThreadManager(
             stores: .init(
-                timelineStore: backing,
+                threadStore: backing,
                 messageStore: messageStore,
                 workspaceStore: backing,
                 toolPersistence: backing
@@ -96,12 +96,12 @@ struct ChatEngineFailurePersistenceTests {
             workspaceCreator: MockWorkspaceCreator()
         )
         let toolRouter = ToolRouter(
-            timelineManager: timelineManager,
+            threadManager: threadManager,
             messageStore: messageStore
         )
         let engine = ChatEngine(
             dependencies: .init(
-                timelineManager: timelineManager,
+                threadManager: threadManager,
                 agentInstanceStore: backing,
                 requestOriginStore: backing,
                 messageStore: messageStore,
@@ -112,21 +112,21 @@ struct ChatEngineFailurePersistenceTests {
             )
         )
 
-        let session = Timeline(id: timelineId, title: "Tool persistence failure")
-        try await backing.saveTimeline(session)
+        let session = Thread(id: threadID, title: "Tool persistence failure")
+        try await backing.saveThread(session)
         let wsId = UUID()
         let workspaceRef = WorkspaceReference(
             id: wsId,
             uri: WorkspaceURI(parsing: "pk://local")!,
-            location: .runtimeTimeline,
+            location: .runtimeThread,
             originID: nil,
             rootPath: "/tmp"
         )
         try await backing.saveWorkspace(workspaceRef)
-        try await timelineManager.attachWorkspace(wsId, to: timelineId)
+        try await threadManager.attachWorkspace(wsId, to: threadID)
         try await backing.addToolToWorkspace(workspaceId: wsId, tool: .known(PersistenceTestTool.toolID))
-        try await timelineManager.hydrateTimeline(id: timelineId)
-        if let toolManager = await timelineManager.getToolManager(for: timelineId) {
+        try await threadManager.hydrateThread(id: threadID)
+        if let toolManager = await threadManager.getToolManager(for: threadID) {
             await toolManager.updateAvailableTools([PersistenceTestTool().toAnyTool()])
         }
 
@@ -158,7 +158,7 @@ struct ChatEngineFailurePersistenceTests {
             }
 
             let stream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 message: "stream then fail",
                 tools: []
             )
@@ -169,7 +169,7 @@ struct ChatEngineFailurePersistenceTests {
                 _ = try await collect(stream)
             }
 
-            let messages = try await mockPersistence.fetchMessages(for: timelineId)
+            let messages = try await mockPersistence.fetchMessages(for: threadID)
 
             // The user message (persisted during prepareSession) must remain.
             let userMessages = messages.filter { $0.role == "user" }
@@ -196,7 +196,7 @@ struct ChatEngineFailurePersistenceTests {
             ]]
 
             let failedStream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 sendId: sendID,
                 message: "run the retryable tool",
                 tools: [tool.toAnyTool()]
@@ -217,7 +217,7 @@ struct ChatEngineFailurePersistenceTests {
             }))
             #expect(mockLLM.chatCaptureHistory.count == 1)
 
-            let pendingMessages = try await messageStore.fetchMessages(for: timelineId)
+            let pendingMessages = try await messageStore.fetchMessages(for: threadID)
             #expect(pendingMessages.filter { $0.role == "assistant" }.count == 1)
             #expect(pendingMessages.filter { $0.role == "tool" }.isEmpty)
             let pendingAssistant = try #require(pendingMessages.first { $0.role == "assistant" })
@@ -229,7 +229,7 @@ struct ChatEngineFailurePersistenceTests {
             mockLLM.mockClient.nextToolCalls = []
             mockLLM.mockClient.nextResponse = "Recovered after retry"
             let retryStream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 sendId: sendID,
                 message: "",
                 tools: [tool.toAnyTool()],
@@ -245,7 +245,7 @@ struct ChatEngineFailurePersistenceTests {
                 return false
             }))
             #expect(mockLLM.chatCaptureHistory.count == 2)
-            let recoveredMessages = try await messageStore.fetchMessages(for: timelineId)
+            let recoveredMessages = try await messageStore.fetchMessages(for: threadID)
             #expect(recoveredMessages.filter { $0.role == "tool" && $0.toolCallID == "persist_retry_call" }.count == 1)
             #expect(recoveredMessages.filter { $0.role == "assistant" }.count == 2)
         }
@@ -268,7 +268,7 @@ struct ChatEngineFailurePersistenceTests {
             }
 
             let failedStream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 sendId: sendID,
                 message: "start external work",
                 tools: []
@@ -282,7 +282,7 @@ struct ChatEngineFailurePersistenceTests {
             mockLLM.stubbedStream = nil
             mockLLM.mockClient.nextResponse = "retry succeeded"
             let retryStream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 sendId: sendID,
                 message: "",
                 tools: [],
@@ -296,7 +296,7 @@ struct ChatEngineFailurePersistenceTests {
             }))
             #expect(mockLLM.chatCaptureHistory.count == 2, "Retry must reach the provider")
 
-            let messages = try await mockPersistence.fetchMessages(for: timelineId)
+            let messages = try await mockPersistence.fetchMessages(for: threadID)
             #expect(messages.filter { $0.role == "user" }.count == 1)
             #expect(messages.filter { $0.role == "tool" && $0.toolCallID == "retry_call" }.count == 1)
         }
@@ -304,25 +304,25 @@ struct ChatEngineFailurePersistenceTests {
 
     @Test("A fail-once prompt-history update retries inputs idempotently")
     func promptHistoryFailureRetryIsInputIdempotent() async throws {
-        let registry = TimelinePromptJournals()
+        let registry = ThreadPromptJournals()
         try await withChatEngineDependencies(promptHistoryRegistry: registry) { engine, mockLLM, mockPersistence in
             let sendID = UUID()
             let toolCallID = "history_retry_call"
             let toolCalls = [ToolCall(id: toolCallID, name: "external_tool", arguments: [:])]
             let toolCallsData = try SerializationUtils.jsonEncoder.encode(toolCalls)
             try await mockPersistence.saveMessage(ConversationMessage(
-                timelineID: timelineId,
+                threadID: threadID,
                 role: .assistant,
                 content: "",
                 toolCalls: String(decoding: toolCallsData, as: UTF8.self)
             ))
 
-            let history = await registry.history(for: timelineId)
+            let history = await registry.history(for: threadID)
             await history.failNextUpdate(with: .duplicateSectionIDs(["fail-once"]))
 
             do {
                 _ = try await engine.execute(
-                    timelineId: timelineId,
+                    threadID: threadID,
                     sendId: sendID,
                     message: "retry after history failure",
                     tools: [],
@@ -339,13 +339,13 @@ struct ChatEngineFailurePersistenceTests {
                 Issue.record("Expected ChatEngineError.promptHistoryInconsistent, got \(error)")
             }
 
-            let messagesAfterFailure = try await mockPersistence.fetchMessages(for: timelineId)
+            let messagesAfterFailure = try await mockPersistence.fetchMessages(for: threadID)
             #expect(messagesAfterFailure.filter { $0.role == "user" }.isEmpty)
             #expect(messagesAfterFailure.filter { $0.role == "tool" }.isEmpty)
 
             mockLLM.mockClient.nextResponse = "Recovered reply"
             let retryStream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 sendId: sendID,
                 message: "retry after history failure",
                 tools: [],
@@ -353,7 +353,7 @@ struct ChatEngineFailurePersistenceTests {
             )
             _ = try await collect(retryStream)
 
-            let messagesAfterRetry = try await mockPersistence.fetchMessages(for: timelineId)
+            let messagesAfterRetry = try await mockPersistence.fetchMessages(for: threadID)
             let userMessages = messagesAfterRetry.filter { $0.role == "user" }
             #expect(userMessages.count == 1)
             #expect(userMessages.first?.id == sendID)
@@ -377,7 +377,7 @@ struct ChatEngineFailurePersistenceTests {
             }
 
             let stream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 message: "stream then cancel",
                 tools: []
             )
@@ -387,7 +387,7 @@ struct ChatEngineFailurePersistenceTests {
                 _ = try await collect(stream)
             }
 
-            let messages = try await mockPersistence.fetchMessages(for: timelineId)
+            let messages = try await mockPersistence.fetchMessages(for: threadID)
 
             let userMessages = messages.filter { $0.role == "user" }
             #expect(userMessages.count == 1)
@@ -414,7 +414,7 @@ struct ChatEngineFailurePersistenceTests {
             }
 
             let cancelledStream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 sendId: sendID,
                 message: "start cancellable work",
                 tools: []
@@ -426,7 +426,7 @@ struct ChatEngineFailurePersistenceTests {
             mockLLM.stubbedStream = nil
             mockLLM.mockClient.nextResponse = "retry after cancellation"
             let retryStream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 sendId: sendID,
                 message: "",
                 tools: [],
@@ -435,7 +435,7 @@ struct ChatEngineFailurePersistenceTests {
             _ = try await collect(retryStream)
 
             #expect(mockLLM.chatCaptureHistory.count == 2, "Cancellation retry must reach the provider")
-            let messages = try await mockPersistence.fetchMessages(for: timelineId)
+            let messages = try await mockPersistence.fetchMessages(for: threadID)
             #expect(messages.filter { $0.role == "user" }.count == 1)
             #expect(messages.filter { $0.role == "tool" && $0.toolCallID == "cancel_retry_call" }.count == 1)
         }
@@ -449,7 +449,7 @@ struct ChatEngineFailurePersistenceTests {
             mockLLM.mockClient.nextResponse = "Clean complete reply"
 
             let stream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 message: "succeed cleanly",
                 tools: []
             )
@@ -462,7 +462,7 @@ struct ChatEngineFailurePersistenceTests {
                 return false
             }))
 
-            let messages = try await mockPersistence.fetchMessages(for: timelineId)
+            let messages = try await mockPersistence.fetchMessages(for: threadID)
 
             let userMessages = messages.filter { $0.role == "user" }
             #expect(userMessages.count == 1)
@@ -484,7 +484,7 @@ struct ChatEngineFailurePersistenceTests {
             mockLLM.mockClient.nextResponse = "Complete before extension failure"
 
             let stream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 message: "extension stage fails",
                 tools: []
             )
@@ -493,7 +493,7 @@ struct ChatEngineFailurePersistenceTests {
                 _ = try await collect(stream)
             }
 
-            let assistantMessages = try await mockPersistence.fetchMessages(for: timelineId)
+            let assistantMessages = try await mockPersistence.fetchMessages(for: threadID)
                 .filter { $0.role == "assistant" }
             #expect(assistantMessages.count == 1)
             #expect(assistantMessages[0].content == "Complete before extension failure")
@@ -516,7 +516,7 @@ struct ChatEngineFailurePersistenceTests {
             }
 
             let stream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 message: "fail immediately",
                 tools: []
             )
@@ -525,7 +525,7 @@ struct ChatEngineFailurePersistenceTests {
                 _ = try await collect(stream)
             }
 
-            let messages = try await mockPersistence.fetchMessages(for: timelineId)
+            let messages = try await mockPersistence.fetchMessages(for: threadID)
             // Only the user message; no empty assistant row.
             #expect(messages.count == 1)
             #expect(messages[0].role == "user")
@@ -549,7 +549,7 @@ struct ChatEngineFailurePersistenceTests {
             }
 
             let stream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 message: "foreign drop",
                 tools: []
             )
@@ -583,7 +583,7 @@ struct ChatEngineFailurePersistenceTests {
             }
 
             let stream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 message: "cancel stream",
                 tools: []
             )
