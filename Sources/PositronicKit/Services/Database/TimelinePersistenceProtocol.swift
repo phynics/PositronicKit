@@ -1,23 +1,23 @@
 import PKShared
 import PKUtilities
 
-// Protocol for managing conversation timeline lifecycle and metadata.
+// Protocol for managing conversation thread lifecycle and metadata.
 
 import Foundation
 
-public protocol TimelinePersistenceProtocol: DurabilityAware {
-    func saveTimeline(_ timeline: Timeline) async throws
-    func fetchTimeline(id: UUID) async throws -> Timeline?
-    func fetchAllTimelines(includeArchived: Bool) async throws -> [Timeline]
-    func deleteTimeline(id: UUID) async throws
-    /// Deletes (or previews deleting) timelines older than `timeInterval`, skipping any timeline
-    /// whose id appears in `excludedTimelineIds`.
+public protocol ThreadPersistenceProtocol: DurabilityAware {
+    func saveThread(_ thread: Thread) async throws
+    func fetchThread(id: UUID) async throws -> Thread?
+    func fetchAllThreads(includeArchived: Bool) async throws -> [Thread]
+    func deleteThread(id: UUID) async throws
+    /// Deletes (or previews deleting) threads older than `timeInterval`, skipping any thread
+    /// whose id appears in `excludedThreadIDs`.
     ///
     /// - Parameters:
     ///   - timeInterval: Timelines older than this age (relative to now) are eligible for
     ///     pruning.
-    ///   - excludedTimelineIds: Timelines that must never be pruned regardless of age (e.g. the
-    ///     active timeline).
+    ///   - excludedThreadIDs: Threads that must never be pruned regardless of age (e.g. the
+    ///     active thread).
     ///   - dryRun: When `true`, no rows are deleted; the store only computes and returns how many
     ///     rows *would* be deleted. When `false`, matching rows are actually deleted.
     /// - Returns: The count of rows deleted (`dryRun == false`) or that would be deleted
@@ -26,9 +26,9 @@ public protocol TimelinePersistenceProtocol: DurabilityAware {
     ///   `dryRun: false` call, provided the underlying data hasn't changed in between.
     /// - Note: Conformers must not mutate persisted state when `dryRun == true`. Side effects that
     ///   don't affect persisted rows (e.g. logging the preview) are permitted in dry-run mode.
-    func pruneTimelines(
+    func pruneThreads(
         olderThan timeInterval: TimeInterval,
-        excluding excludedTimelineIds: [UUID],
+        excluding excludedThreadIDs: [UUID],
         dryRun: Bool
     ) async throws -> Int
 }

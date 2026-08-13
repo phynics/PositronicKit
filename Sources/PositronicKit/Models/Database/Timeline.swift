@@ -2,8 +2,8 @@ import Foundation
 import PKShared
 import PKUtilities
 
-/// A conversation timeline with messages
-public struct Timeline: Identifiable, Sendable {
+/// A durable conversation thread with messages.
+public struct Thread: Identifiable, Sendable {
     public var id: UUID
     public var title: String
     public var createdAt: Date
@@ -12,12 +12,12 @@ public struct Timeline: Identifiable, Sendable {
     public var workingDirectory: String?
     public var attachedWorkspaceIDs: [UUID]
 
-    /// The agent instance currently attached to this timeline (holds the generation lock).
-    /// Multiple timelines can reference the same agent. Each timeline can have at most one agent.
+    /// The agent instance currently attached to this thread (holds the generation lock).
+    /// Multiple threads can reference the same agent. Each thread can have at most one agent.
     public var attachedAgentInstanceID: UUID?
 
-    /// True for agent private timelines (internal monologue / cross-agent inbox).
-    /// Private timelines are excluded from general listing.
+    /// True for an agent-private thread (internal monologue / cross-agent inbox).
+    /// Private threads are excluded from general listing.
     public var isPrivate: Bool
 
     public init(
@@ -42,9 +42,9 @@ public struct Timeline: Identifiable, Sendable {
         self.isPrivate = isPrivate
     }
 
-    /// Creates a timeline using the legacy identifier spellings.
+    /// Creates a thread using the legacy identifier spellings.
     @_disfavoredOverload
-    @available(*, deprecated, message: "Use init(..., attachedWorkspaceIDs:attachedAgentInstanceID:...).")
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     public init(
         id: UUID = UUID(),
         title: String = "New Conversation",
@@ -70,14 +70,14 @@ public struct Timeline: Identifiable, Sendable {
     }
 
     /// Attached workspace identifiers using the legacy 3.x spelling.
-    @available(*, deprecated, renamed: "attachedWorkspaceIDs")
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     public var attachedWorkspaceIds: [UUID] {
         get { attachedWorkspaceIDs }
         set { attachedWorkspaceIDs = newValue }
     }
 
     /// The attached agent-instance identifier using the legacy 3.x spelling.
-    @available(*, deprecated, renamed: "attachedAgentInstanceID")
+    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     public var attachedAgentInstanceId: UUID? {
         get { attachedAgentInstanceID }
         set { attachedAgentInstanceID = newValue }
@@ -86,7 +86,7 @@ public struct Timeline: Identifiable, Sendable {
 
 // MARK: - Codable
 
-extension Timeline: Codable {
+extension Thread: Codable {
     enum CodingKeys: String, CodingKey {
         case id, title, createdAt, updatedAt, isArchived, workingDirectory
         case attachedWorkspaceIDs = "attachedWorkspaceIds"

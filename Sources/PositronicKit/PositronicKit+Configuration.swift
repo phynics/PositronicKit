@@ -71,6 +71,9 @@ public extension PositronicKit {
     /// when all seven stores must be explicitly provided for full durability.
     struct PersistenceConfiguration: Sendable {
         public let messageStore: any MessageStoreProtocol
+        public let threadPersistence: any ThreadPersistenceProtocol
+        /// The v3 persistence spelling retained for source compatibility.
+        @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
         public let timelinePersistence: any TimelinePersistenceProtocol
         public let workspacePersistence: any WorkspaceStore
         public let memoryStore: any MemoryStoreProtocol
@@ -89,6 +92,49 @@ public extension PositronicKit {
         ) {
             self.messageStore = messageStore ?? InMemoryMessageStore()
             self.timelinePersistence = timelinePersistence ?? InMemoryTimelinePersistence()
+            self.threadPersistence = LegacyTimelinePersistenceAdapter(self.timelinePersistence)
+            self.workspacePersistence = workspacePersistence ?? InMemoryWorkspacePersistence()
+            self.memoryStore = memoryStore ?? InMemoryMemoryStore()
+            self.toolPersistence = toolPersistence ?? InMemoryToolPersistence()
+            self.agentInstanceStore = agentInstanceStore ?? InMemoryAgentInstanceStore()
+            self.requestOriginStore = requestOriginStore ?? InMemoryRequestOriginStore()
+        }
+
+        /// Creates a persistence configuration from the canonical thread store.
+        public init(
+            messageStore: (any MessageStoreProtocol)? = nil,
+            threadPersistence: any ThreadPersistenceProtocol,
+            workspacePersistence: (any WorkspaceStore)? = nil,
+            memoryStore: (any MemoryStoreProtocol)? = nil,
+            toolPersistence: (any ToolPersistenceProtocol)? = nil,
+            agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,
+            requestOriginStore: (any RequestOriginStoreProtocol)? = nil
+        ) {
+            self.messageStore = messageStore ?? InMemoryMessageStore()
+            self.threadPersistence = threadPersistence
+            self.timelinePersistence = ThreadPersistenceCompatibilityAdapter(threadPersistence)
+            self.workspacePersistence = workspacePersistence ?? InMemoryWorkspacePersistence()
+            self.memoryStore = memoryStore ?? InMemoryMemoryStore()
+            self.toolPersistence = toolPersistence ?? InMemoryToolPersistence()
+            self.agentInstanceStore = agentInstanceStore ?? InMemoryAgentInstanceStore()
+            self.requestOriginStore = requestOriginStore ?? InMemoryRequestOriginStore()
+        }
+
+        /// Creates a canonical configuration while accepting an existing v3 timeline store.
+        @_disfavoredOverload
+        @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+        public init(
+            messageStore: (any MessageStoreProtocol)? = nil,
+            threadPersistence: any TimelinePersistenceProtocol,
+            workspacePersistence: (any WorkspaceStore)? = nil,
+            memoryStore: (any MemoryStoreProtocol)? = nil,
+            toolPersistence: (any ToolPersistenceProtocol)? = nil,
+            agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,
+            requestOriginStore: (any RequestOriginStoreProtocol)? = nil
+        ) {
+            self.messageStore = messageStore ?? InMemoryMessageStore()
+            self.threadPersistence = LegacyTimelinePersistenceAdapter(threadPersistence)
+            self.timelinePersistence = threadPersistence
             self.workspacePersistence = workspacePersistence ?? InMemoryWorkspacePersistence()
             self.memoryStore = memoryStore ?? InMemoryMemoryStore()
             self.toolPersistence = toolPersistence ?? InMemoryToolPersistence()
@@ -116,6 +162,27 @@ public extension PositronicKit {
             PersistenceConfiguration(
                 messageStore: messageStore,
                 timelinePersistence: timelinePersistence,
+                workspacePersistence: workspacePersistence,
+                memoryStore: memoryStore,
+                toolPersistence: toolPersistence,
+                agentInstanceStore: agentInstanceStore,
+                requestOriginStore: requestOriginStore
+            )
+        }
+
+        /// Requires all seven stores explicitly, using the canonical thread persistence seam.
+        public static func fullyPersistent(
+            messageStore: any MessageStoreProtocol,
+            threadPersistence: any ThreadPersistenceProtocol,
+            workspacePersistence: any WorkspaceStore,
+            memoryStore: any MemoryStoreProtocol,
+            toolPersistence: any ToolPersistenceProtocol,
+            agentInstanceStore: any AgentInstanceStoreProtocol,
+            requestOriginStore: any RequestOriginStoreProtocol
+        ) -> PersistenceConfiguration {
+            PersistenceConfiguration(
+                messageStore: messageStore,
+                threadPersistence: threadPersistence,
                 workspacePersistence: workspacePersistence,
                 memoryStore: memoryStore,
                 toolPersistence: toolPersistence,

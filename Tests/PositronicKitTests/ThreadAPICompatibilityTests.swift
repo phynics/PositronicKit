@@ -1,6 +1,7 @@
 import Foundation
 import PKShared
 import PKTestSupport
+import struct PositronicKit.Thread
 import PositronicKit
 import Testing
 
