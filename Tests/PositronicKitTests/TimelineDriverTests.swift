@@ -4,7 +4,7 @@ import Testing
 @testable import PositronicKit
 
 @Suite("ThreadDriver")
-struct TimelineDriverTests {
+struct ThreadDriverTests {
     @Test("opening a thread returns a fresh handle with stable thread identity")
     func openingReturnsThreadHandleWithStableIdentity() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
@@ -26,9 +26,9 @@ struct TimelineDriverTests {
             .appendingPathComponent(UUID().uuidString))
         let kit = runtime.positronicKit
 
-        let created = try await kit.timelineManager.createTimeline(title: "Cursor")
-        let first = kit.openTimeline(created.id)
-        let second = kit.openTimeline(created.id)
+        let created = try await kit.threadManager.createThread(title: "Cursor")
+        let first = kit.openThread(created.id)
+        let second = kit.openThread(created.id)
 
         #expect(first.id == created.id)
         #expect(second.id == created.id)
@@ -36,34 +36,34 @@ struct TimelineDriverTests {
     }
 
     @Test("opening does not persist a timeline")
-    func openingDoesNotPersistATimeline() async throws {
+    func openingDoesNotPersistAThread() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString))
         let kit = runtime.positronicKit
         let id = UUID()
 
-        _ = kit.openTimeline(id)
+        _ = kit.openThread(id)
 
-        #expect(try await runtime.persistence.fetchTimeline(id: id) == nil)
+        #expect(try await runtime.persistence.fetchThread(id: id) == nil)
     }
 
     @Test("opening performs no persistence I/O even against a store that would fail if touched")
     func openingPerformsNoPersistenceIOAgainstFailingStore() async throws {
-        // `FailingTimelinePersistence` throws on every fetch/save/delete call. If
-        // `openTimeline(_:)` performed any persistence lookup or write, constructing the
+        // `FailingThreadPersistence` throws on every fetch/save/delete call. If
+        // `openThread(_:)` performed any persistence lookup or write, constructing the
         // driver below would throw. It must not: opening is pure value construction.
-        let failingTimelineStore = FailingTimelinePersistence(
+        let failingThreadStore = FailingThreadPersistence(
             fetchFails: true,
             saveFails: true,
             deleteFails: true
         )
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: UnconfiguredLLMService()),
-            persistence: .init(timelinePersistence: failingTimelineStore)
+            persistence: .init(threadPersistence: failingThreadStore)
         ))
 
         let id = UUID()
-        let driver = kit.openTimeline(id)
+        let driver = kit.openThread(id)
         #expect(driver.id == id)
     }
 
@@ -73,8 +73,8 @@ struct TimelineDriverTests {
             .appendingPathComponent(UUID().uuidString))
         runtime.llm.mockClient.nextResponse = "reply"
         let kit = runtime.positronicKit
-        let timeline = try await kit.timelineManager.createTimeline(title: "Driver")
-        let driver = kit.openTimeline(timeline.id)
+        let thread = try await kit.threadManager.createThread(title: "Driver")
+        let driver = kit.openThread(thread.id)
 
         let events = try await driver.send("hello").collect()
 

@@ -11,9 +11,9 @@ struct TurnDegradationPolicyTests {
     func requiredContextFailureAbortsBeforeGeneration() async throws {
         let persistence = MockPersistenceService()
         let model = MockLLMService()
-        let timelineManager = TimelineManager(
+        let threadManager = ThreadManager(
             stores: .init(
-                timelineStore: persistence,
+                threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
                 toolPersistence: persistence
@@ -21,26 +21,26 @@ struct TurnDegradationPolicyTests {
             workspaceRoot: URL(fileURLWithPath: "/tmp/pkrr-022"),
             workspaceCreator: MockWorkspaceCreator()
         )
-        let timeline = Timeline(title: "degradation")
-        try await persistence.saveTimeline(timeline)
-        try await timelineManager.hydrateTimeline(id: timeline.id)
-        let builder = try #require(await timelineManager.getTurnBriefingBuilder(for: timeline.id))
+        let thread = Thread(title: "degradation")
+        try await persistence.saveThread(thread)
+        try await threadManager.hydrateThread(id: thread.id)
+        let builder = try #require(await threadManager.getTurnBriefingBuilder(for: thread.id))
         let failingPipeline = Pipeline<ContextPipelineContext, ContextGatheringEvent>(stages: [ThrowingContextStage()])
         let engine = ChatEngine(
             dependencies: .init(
-                timelineManager: timelineManager,
+                threadManager: threadManager,
                 agentInstanceStore: persistence,
                 requestOriginStore: persistence,
                 messageStore: persistence,
                 llmService: model,
-                toolRouter: ToolRouter(timelineManager: timelineManager, messageStore: persistence),
+                toolRouter: ToolRouter(threadManager: threadManager, messageStore: persistence),
                 chatTurnPlugins: []
             )
         )
 
         do {
             _ = try await engine.execute(
-                timelineId: timeline.id,
+                threadID: thread.id,
                 message: "needs context",
                 tools: [],
                 turnBriefingBuilder: builder,
@@ -59,9 +59,9 @@ struct TurnDegradationPolicyTests {
     func optionalContextFailureEmitsDiagnostic() async throws {
         let persistence = MockPersistenceService()
         let model = MockLLMService()
-        let timelineManager = TimelineManager(
+        let threadManager = ThreadManager(
             stores: .init(
-                timelineStore: persistence,
+                threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
                 toolPersistence: persistence
@@ -69,26 +69,26 @@ struct TurnDegradationPolicyTests {
             workspaceRoot: URL(fileURLWithPath: "/tmp/pkrr-022"),
             workspaceCreator: MockWorkspaceCreator()
         )
-        let timeline = Timeline(title: "degradation")
-        try await persistence.saveTimeline(timeline)
-        try await timelineManager.hydrateTimeline(id: timeline.id)
-        let builder = try #require(await timelineManager.getTurnBriefingBuilder(for: timeline.id))
+        let thread = Thread(title: "degradation")
+        try await persistence.saveThread(thread)
+        try await threadManager.hydrateThread(id: thread.id)
+        let builder = try #require(await threadManager.getTurnBriefingBuilder(for: thread.id))
         model.mockClient.nextResponse = "continued"
         let engine = ChatEngine(
             dependencies: .init(
-                timelineManager: timelineManager,
+                threadManager: threadManager,
                 agentInstanceStore: persistence,
                 requestOriginStore: persistence,
                 messageStore: persistence,
                 llmService: model,
-                toolRouter: ToolRouter(timelineManager: timelineManager, messageStore: persistence),
+                toolRouter: ToolRouter(threadManager: threadManager, messageStore: persistence),
                 chatTurnPlugins: [],
                 degradationPolicy: .continueWithWarnings
             )
         )
 
         let stream = try await engine.execute(
-            timelineId: timeline.id,
+            threadID: thread.id,
             message: "optional context",
             tools: [],
             turnBriefingBuilder: builder,

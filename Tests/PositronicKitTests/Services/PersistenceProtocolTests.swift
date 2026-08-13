@@ -1,5 +1,6 @@
 import Foundation
 @testable import PositronicKit
+import struct PositronicKit.Thread
 @testable import PKShared
 import PKUtilities
 import Testing
@@ -14,7 +15,7 @@ struct PersistenceProtocolTests {
         // Verify it conforms to all required domains
         let _: MemoryStoreProtocol = mock
         let _: MessageStoreProtocol = mock
-        let _: TimelinePersistenceProtocol = mock
+        let _: ThreadPersistenceProtocol = mock
         let _: AgentTemplateStoreProtocol = mock
         let _: WorkspaceStore = mock
         let _: ToolPersistenceProtocol = mock
@@ -25,7 +26,7 @@ struct PersistenceProtocolTests {
 final class MockPersistenceStore:
     MemoryStoreProtocol,
     MessageStoreProtocol,
-    TimelinePersistenceProtocol,
+    ThreadPersistenceProtocol,
     AgentTemplateStoreProtocol,
     WorkspaceStore,
     ToolPersistenceProtocol,
@@ -86,18 +87,18 @@ final class MockPersistenceStore:
         []
     }
 
-    // TimelinePersistenceProtocol
-    func saveTimeline(_: Timeline) async throws {}
-    func fetchTimeline(id _: UUID) async throws -> Timeline? {
+    // ThreadPersistenceProtocol
+    func saveThread(_: Thread) async throws {}
+    func fetchThread(id _: UUID) async throws -> Thread? {
         nil
     }
 
-    func fetchAllTimelines(includeArchived _: Bool) async throws -> [Timeline] {
+    func fetchAllThreads(includeArchived _: Bool) async throws -> [Thread] {
         []
     }
 
-    func deleteTimeline(id _: UUID) async throws {}
-    func pruneTimelines(olderThan _: TimeInterval, excluding _: [UUID], dryRun _: Bool) async throws -> Int {
+    func deleteThread(id _: UUID) async throws {}
+    func pruneThreads(olderThan _: TimeInterval, excluding _: [UUID], dryRun _: Bool) async throws -> Int {
         0
     }
 

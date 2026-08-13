@@ -98,7 +98,7 @@ struct SidecarStreamingStageTests {
 
     private func makeContext(sidecars: [SidecarDirective]) -> ChatTurnContext {
         ChatTurnContext(
-            timelineId: UUID(),
+            threadID: UUID(),
             agentInstanceId: nil,
             modelName: "test-model",
             maxTurns: 5,

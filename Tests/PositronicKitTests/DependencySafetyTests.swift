@@ -12,22 +12,22 @@ struct DependencySafetyTests {
         let workspaceRoot = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let runtime = TestRuntime(workspaceRoot: workspaceRoot)
 
-        // A timeline created via the runtime's timeline manager is visible through the shared persistence.
-        let timeline = try await runtime.timelineManager.createTimeline(title: "Shared")
-        let persistedTimeline = try await runtime.persistence.fetchTimeline(id: timeline.id)
-        #expect(persistedTimeline?.id == timeline.id)
+        // A thread created via the runtime's thread manager is visible through the shared persistence.
+        let thread = try await runtime.threadManager.createThread(title: "Shared")
+        let persistedThread = try await runtime.persistence.fetchThread(id: thread.id)
+        #expect(persistedThread?.id == thread.id)
 
         // A workspace saved directly into persistence resolves through the agent workspace service,
         // proving that service is backed by the same store.
-        let workspace = WorkspaceReference(uri: .timelineWorkspace(UUID()), location: .runtime)
+        let workspace = WorkspaceReference(uri: .threadWorkspace(UUID()), location: .runtime)
         try await runtime.persistence.saveWorkspace(workspace)
         let resolved = try await runtime.agentWorkspaceService.getWorkspace(id: workspace.id)
         #expect(resolved?.id == workspace.id)
 
-        // positronicKit must reuse the runtime's own TimelineManager rather than fabricating a
+        // positronicKit must reuse the runtime's own ThreadManager rather than fabricating a
         // disconnected one.
         let core = runtime.positronicKit
-        #expect(core.timelineManager === runtime.timelineManager)
+        #expect(core.threadManager === runtime.threadManager)
     }
 
     @Test("Deprecated TestRuntime facade builder forwards the stored facade")
@@ -41,11 +41,11 @@ struct DependencySafetyTests {
     }
 
     @Test("PositronicKit facade's TimelineManager shares the memoryStore passed via persistence")
-    func facadeTimelineManagerSharesMemoryStore() async {
+    func facadeThreadManagerSharesMemoryStore() async {
         let mockPersistence = MockPersistenceService()
         let chat = PositronicKit(configuration: .init(provider: .init(languageModel: MockLLMService()), persistence: .init(
                 messageStore: mockPersistence,
-                timelinePersistence: mockPersistence,
+                threadPersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
                 memoryStore: mockPersistence,
                 toolPersistence: mockPersistence,
@@ -53,7 +53,7 @@ struct DependencySafetyTests {
                 requestOriginStore: mockPersistence
             )))
 
-        #expect(await chat.timelineManager.memoryStore as? MockPersistenceService === mockPersistence)
+        #expect(await chat.threadManager.memoryStore as? MockPersistenceService === mockPersistence)
     }
 
     @Test("AgentInstanceManager correctly resolves overridden agentWorkspaceService")
@@ -68,7 +68,7 @@ struct DependencySafetyTests {
             repository: customRepo,
             stores: .init(
                 instanceStore: persistence,
-                timelineStore: persistence,
+                threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence
             )

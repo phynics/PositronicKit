@@ -311,7 +311,7 @@ struct ChatEngine {
         audioOutput: AudioOutputOptions? = nil
     ) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         let sid = threadID.uuidString.prefix(8).lowercased()
-        logger.info("Starting chat stream for timeline \(sid)")
+        logger.info("Starting chat stream for thread \(sid)")
 
         let agentPreflight = try await preflightAgent(id: agentInstanceId, threadID: threadID)
         guard await dependencies.llmService.isConfigured else { throw ChatEngineError.llmServiceNotConfigured }

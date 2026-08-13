@@ -21,18 +21,18 @@ import Testing
 /// deprecated definition/docs-only cases.
 @Suite(.serialized) @MainActor
 struct ChatEngineTerminalEventTests {
-    private let timelineId = UUID()
+    private let threadID = UUID()
 
-    /// Standard dependencies with a `.runtimeTimeline` workspace (tools execute locally).
+    /// Standard dependencies with a `.runtimeThread` workspace (tools execute locally).
     private func withChatEngineDependencies<T>(
         plugins: [any ChatTurnPlugin] = [],
         _ test: @Sendable (ChatEngine, MockLLMService, MockPersistenceService) async throws -> T
     ) async throws -> T {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
-        let timelineManager = TimelineManager(
+        let threadManager = ThreadManager(
             stores: .init(
-                timelineStore: mockPersistence,
+                threadStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
                 toolPersistence: mockPersistence
@@ -41,12 +41,12 @@ struct ChatEngineTerminalEventTests {
             workspaceCreator: MockWorkspaceCreator()
         )
         let toolRouter = ToolRouter(
-            timelineManager: timelineManager,
+            threadManager: threadManager,
             messageStore: mockPersistence
         )
         let engine = ChatEngine(
             dependencies: .init(
-                timelineManager: timelineManager,
+                threadManager: threadManager,
                 agentInstanceStore: mockPersistence,
                 requestOriginStore: mockPersistence,
                 messageStore: mockPersistence,
@@ -57,29 +57,29 @@ struct ChatEngineTerminalEventTests {
             )
         )
 
-        let session = Timeline(id: timelineId, title: "PKRR-011 Session")
-        try await mockPersistence.saveTimeline(session)
+        let session = Thread(id: threadID, title: "PKRR-011 Session")
+        try await mockPersistence.saveThread(session)
 
         let wsId = UUID()
         let workspaceRef = WorkspaceReference(
             id: wsId,
             uri: WorkspaceURI(parsing: "pk://local")!,
-            location: .runtimeTimeline,
+            location: .runtimeThread,
             originID: nil,
             rootPath: "/tmp"
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
-        try await timelineManager.attachWorkspace(wsId, to: timelineId)
+        try await threadManager.attachWorkspace(wsId, to: threadID)
         try await mockPersistence.addToolToWorkspace(workspaceId: wsId, tool: .known("mock_tool"))
 
-        try await timelineManager.hydrateTimeline(id: timelineId)
+        try await threadManager.hydrateThread(id: threadID)
 
-        if let toolManager = await timelineManager.getToolManager(for: timelineId) {
+        if let toolManager = await threadManager.getToolManager(for: threadID) {
             var tools = await toolManager.getAvailableTools()
             tools.append(MockTool().toAnyTool())
             await toolManager.updateAvailableTools(tools)
 
-            if let ws = try? await timelineManager.workspaceResolver.workspace(id: wsId) {
+            if let ws = try? await threadManager.workspaceResolver.workspace(id: wsId) {
                 await toolManager.registerWorkspace(ws)
             }
         }
@@ -96,9 +96,9 @@ struct ChatEngineTerminalEventTests {
     ) async throws -> T {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
-        let timelineManager = TimelineManager(
+        let threadManager = ThreadManager(
             stores: .init(
-                timelineStore: mockPersistence,
+                threadStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
                 toolPersistence: mockPersistence
@@ -107,12 +107,12 @@ struct ChatEngineTerminalEventTests {
             workspaceCreator: MockWorkspaceCreator()
         )
         let toolRouter = ToolRouter(
-            timelineManager: timelineManager,
+            threadManager: threadManager,
             messageStore: mockPersistence
         )
         let engine = ChatEngine(
             dependencies: .init(
-                timelineManager: timelineManager,
+                threadManager: threadManager,
                 agentInstanceStore: mockPersistence,
                 requestOriginStore: mockPersistence,
                 messageStore: mockPersistence,
@@ -123,9 +123,9 @@ struct ChatEngineTerminalEventTests {
             )
         )
 
-        // Non-private timeline (default) so attached tools defer rather than throw.
-        let session = Timeline(id: timelineId, title: "PKRR-011 Deferred Session")
-        try await mockPersistence.saveTimeline(session)
+        // Non-private thread (default) so attached tools defer rather than throw.
+        let session = Thread(id: threadID, title: "PKRR-011 Deferred Session")
+        try await mockPersistence.saveThread(session)
 
         let wsId = UUID()
         let workspaceRef = WorkspaceReference(
@@ -136,17 +136,17 @@ struct ChatEngineTerminalEventTests {
             rootPath: "/tmp"
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
-        try await timelineManager.attachWorkspace(wsId, to: timelineId)
+        try await threadManager.attachWorkspace(wsId, to: threadID)
         try await mockPersistence.addToolToWorkspace(workspaceId: wsId, tool: .known("mock_tool"))
 
-        try await timelineManager.hydrateTimeline(id: timelineId)
+        try await threadManager.hydrateThread(id: threadID)
 
-        if let toolManager = await timelineManager.getToolManager(for: timelineId) {
+        if let toolManager = await threadManager.getToolManager(for: threadID) {
             var tools = await toolManager.getAvailableTools()
             tools.append(MockTool().toAnyTool())
             await toolManager.updateAvailableTools(tools)
 
-            if let ws = try? await timelineManager.workspaceResolver.workspace(id: wsId) {
+            if let ws = try? await threadManager.workspaceResolver.workspace(id: wsId) {
                 await toolManager.registerWorkspace(ws)
             }
         }
@@ -175,7 +175,7 @@ struct ChatEngineTerminalEventTests {
             mockLLM.mockClient.nextResponses = ["", ""]
 
             let stream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 message: "Infinite tools",
                 tools: [mockTool.toAnyTool()],
                 maxTurns: 2
@@ -216,7 +216,7 @@ struct ChatEngineTerminalEventTests {
             mockLLM.mockClient.nextResponses = ["Pausing for external tool"]
 
             let stream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 message: "Run attached tool",
                 tools: []
             )
@@ -253,7 +253,7 @@ struct ChatEngineTerminalEventTests {
             mockLLM.mockClient.nextResponse = "All done"
 
             let stream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 message: "Hi",
                 tools: []
             )
@@ -297,7 +297,7 @@ struct ChatEngineTerminalEventTests {
             }
 
             let stream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 message: "stream then cancel",
                 tools: []
             )
@@ -333,7 +333,7 @@ struct ChatEngineTerminalEventTests {
             mockLLM.mockClient.nextResponse = "Done"
 
             let stream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 message: "Hi",
                 tools: []
             )
@@ -367,7 +367,7 @@ struct ChatEngineTerminalEventTests {
             mockLLM.mockClient.nextResponses = ["", ""]
 
             let stream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 message: "Infinite tools",
                 tools: [mockTool.toAnyTool()],
                 maxTurns: 2
@@ -409,7 +409,7 @@ private struct MockTool: PKShared.Tool, @unchecked Sendable {
     func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
         if shouldWait { try? await Task.sleep(nanoseconds: 100_000_000) }
         if !result.success && result.error == "client_tools_disallowed_on_private_timeline" {
-            throw ToolError.attachedToolsDisallowedOnPrivateTimeline
+            throw ToolError.attachedToolsDisallowedOnPrivateThread
         }
         return result
     }

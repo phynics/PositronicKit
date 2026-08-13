@@ -18,7 +18,7 @@ public protocol PKError: Throwable {
     /// Whether this error represents a "blocked"/approval/disallowed condition — i.e. a
     /// failure that is *not* the model's or provider's fault but the result of a deliberate
     /// permission or access gate refusing execution. Consumers classify these as a `.blocked`
-    /// timeline state rather than `.failed`. Default: `false`. Override on error cases that
+    /// thread state rather than `.failed`. Default: `false`. Override on error cases that
     /// represent blocked conditions (e.g. `ToolError.permissionDenied`,
     /// `PathError.accessDenied`, `WorkspaceError.accessDenied`).
     var isBlocked: Bool { get }

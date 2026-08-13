@@ -15,7 +15,7 @@ import Testing
 /// current PKShared filesystem tool, since a regression here would silently grant tool access.
 ///
 /// This file mirrors the fixtures already established in `ToolRouterTests.swift` (`RecordingGate`,
-/// `setupRouter`, `setupTimelineManager`) rather than importing them, because those helpers are
+/// `setupRouter`, `setupThreadManager`) rather than importing them, because those helpers are
 /// `private` to that file's `ToolRouterTests` class and there is no shared PKTestSupport extension
 /// point for them yet; duplicating the minimal set here keeps this suite self-contained without
 /// widening the visibility of another file's test-only internals.
@@ -35,43 +35,43 @@ final class ToolApprovalPolicyFilesystemToolsTests {
         }
     }
 
-    private func setupTimelineManager() async throws -> (TimelineManager, MockPersistenceService) {
+    private func setupThreadManager() async throws -> (ThreadManager, MockPersistenceService) {
         let mockPersistence = MockPersistenceService()
         let workspace = TestWorkspace()
-        let timelineManager = TimelineManager(
+        let threadManager = ThreadManager(
             stores: .init(
-                timelineStore: mockPersistence,
+                threadStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
                 toolPersistence: mockPersistence
             ),
             workspaceRoot: workspace.root
         )
-        return (timelineManager, mockPersistence)
+        return (threadManager, mockPersistence)
     }
 
-    /// Builds a timeline with a single registered tool and returns the router under test.
+    /// Builds a thread with a single registered tool and returns the router under test.
     /// When `approvalPolicy` is nil, `ToolRouter`'s own default gate is used (currently
     /// `DenyAllToolApprovalPolicy`), to pin the default-deny posture explicitly.
     private func setupRouter(
         with tool: any PKShared.Tool,
         approvalPolicy: (any ToolApprovalPolicy)? = nil
     ) async throws -> (ToolRouter, UUID) {
-        let (timelineManager, mockPersistence) = try await setupTimelineManager()
+        let (threadManager, mockPersistence) = try await setupThreadManager()
         let toolRouter = if let approvalPolicy {
             ToolRouter(
-                timelineManager: timelineManager,
+                threadManager: threadManager,
                 messageStore: mockPersistence,
                 approvalPolicy: approvalPolicy
             )
         } else {
             ToolRouter(
-                timelineManager: timelineManager,
+                threadManager: threadManager,
                 messageStore: mockPersistence
             )
         }
 
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
         let workspaceId = UUID()
         let workspaceRef = try WorkspaceReference(
             id: workspaceId,
@@ -80,10 +80,10 @@ final class ToolApprovalPolicyFilesystemToolsTests {
             originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
-        try await timelineManager.attachWorkspace(workspaceId, to: session.id)
+        try await threadManager.attachWorkspace(workspaceId, to: session.id)
         try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known(tool.callName))
 
-        let toolManager = await timelineManager.getToolManager(for: session.id)
+        let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
         await toolManager?.updateAvailableTools([tool.toAnyTool()])
 
@@ -115,10 +115,10 @@ final class ToolApprovalPolicyFilesystemToolsTests {
     func permissionedFilesystemToolBlockedWhenDenied(toolId: String) async throws {
         let tool = try #require(Self.permissionedFilesystemTools.first { $0.callName == toolId })
         let gate = RecordingGate(decision: .deny)
-        let (router, timelineId) = try await setupRouter(with: tool, approvalPolicy: gate)
+        let (router, threadID) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         do {
-            _ = try await router.execute(tool: .known(tool.callName), arguments: [:], timelineId: timelineId)
+            _ = try await router.execute(tool: .known(tool.callName), arguments: [:], threadID: threadID)
             Issue.record("Expected permissionDenied to be thrown for \(tool.callName)")
         } catch ToolError.permissionDenied(tool.name) {
             // expected
@@ -140,12 +140,12 @@ final class ToolApprovalPolicyFilesystemToolsTests {
 
         let tool = ReadFileTool(currentDirectory: tempDir.path)
         let gate = RecordingGate(decision: .approve)
-        let (router, timelineId) = try await setupRouter(with: tool, approvalPolicy: gate)
+        let (router, threadID) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         let result = try await router.execute(
             tool: .known(tool.callName),
             arguments: ["path": AnyCodable("hello.txt")],
-            timelineId: timelineId
+            threadID: threadID
         )
 
         guard case let .completed(output) = result else {
@@ -162,13 +162,13 @@ final class ToolApprovalPolicyFilesystemToolsTests {
         #expect(tool.requiresPermission == false)
 
         let gate = RecordingGate(decision: .deny)
-        let (router, timelineId) = try await setupRouter(with: tool, approvalPolicy: gate)
+        let (router, threadID) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         do {
             _ = try await router.execute(
                 tool: .known(tool.callName),
                 arguments: ["path": AnyCodable(NSTemporaryDirectory())],
-                timelineId: timelineId
+                threadID: threadID
             )
         } catch ToolError.permissionDenied {
             Issue.record("ChangeDirectoryTool must never be blocked by the approval gate")
@@ -183,10 +183,10 @@ final class ToolApprovalPolicyFilesystemToolsTests {
     @Test("Absent an explicit gate, ToolRouter's default gate denies a permissioned filesystem tool")
     func defaultGateDeniesPermissionedToolByDefault() async throws {
         let tool = ReadFileTool(currentDirectory: NSTemporaryDirectory())
-        let (router, timelineId) = try await setupRouter(with: tool, approvalPolicy: nil)
+        let (router, threadID) = try await setupRouter(with: tool, approvalPolicy: nil)
 
         do {
-            _ = try await router.execute(tool: .known(tool.callName), arguments: [:], timelineId: timelineId)
+            _ = try await router.execute(tool: .known(tool.callName), arguments: [:], threadID: threadID)
             Issue.record("Expected permissionDenied to be thrown under the default gate")
         } catch ToolError.permissionDenied(tool.name) {
             // expected — confirms ToolRouter's default approvalPolicy is DenyAllToolApprovalPolicy

@@ -119,7 +119,7 @@ final class ToolRouterTests {
 
         func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
             if !result.success, result.error == "client_tools_disallowed_on_private_timeline" {
-                throw ToolError.attachedToolsDisallowedOnPrivateTimeline
+                throw ToolError.attachedToolsDisallowedOnPrivateThread
             }
             return result
         }
@@ -165,20 +165,20 @@ final class ToolRouterTests {
         }
     }
 
-    /// Builds a timeline with a single registered tool and returns the router under test.
+    /// Builds a thread with a single registered tool and returns the router under test.
     private func setupRouter(
         with tool: any PKShared.Tool,
         approvalPolicy: any ToolApprovalPolicy,
         disabledToolIDs: Set<String> = []
     ) async throws -> (ToolRouter, UUID, MockPersistenceService) {
-        let (timelineManager, mockPersistence) = try await setupTimelineManager()
+        let (threadManager, mockPersistence) = try await setupThreadManager()
         let toolRouter = ToolRouter(
-            timelineManager: timelineManager,
+            threadManager: threadManager,
             messageStore: mockPersistence,
             approvalPolicy: approvalPolicy
         )
 
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
         let workspaceId = UUID()
         let workspaceRef = try WorkspaceReference(
             id: workspaceId,
@@ -187,15 +187,15 @@ final class ToolRouterTests {
             originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
-        try await timelineManager.attachWorkspace(workspaceId, to: session.id)
+        try await threadManager.attachWorkspace(workspaceId, to: session.id)
         try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known(tool.callName))
 
-        let toolManager = await timelineManager.getToolManager(for: session.id)
+        let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
         await toolManager?.updateAvailableTools([tool.toAnyTool()])
 
         for toolID in disabledToolIDs {
-            _ = await timelineManager.disableTool(id: toolID, for: session.id)
+            _ = await threadManager.disableTool(id: toolID, for: session.id)
         }
 
         return (toolRouter, session.id, mockPersistence)
@@ -205,13 +205,13 @@ final class ToolRouterTests {
     func permissionedToolBlockedWhenDenied() async throws {
         let tool = PermissionedTool(id: "needs_permission")
         let gate = RecordingGate(decision: .deny)
-        let (router, timelineId, _) = try await setupRouter(with: tool, approvalPolicy: gate)
+        let (router, threadID, _) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         do {
             _ = try await router.execute(
                 tool: .known("needs_permission"),
                 arguments: [:],
-                timelineId: timelineId
+                threadID: threadID
             )
             Issue.record("Expected permissionDenied to be thrown")
         } catch ToolError.permissionDenied("needs_permission") {
@@ -228,12 +228,12 @@ final class ToolRouterTests {
     func permissionedToolRunsWhenApproved() async throws {
         let tool = PermissionedTool(id: "needs_permission")
         let gate = RecordingGate(decision: .approve)
-        let (router, timelineId, _) = try await setupRouter(with: tool, approvalPolicy: gate)
+        let (router, threadID, _) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         let result = try await router.execute(
             tool: .known("needs_permission"),
             arguments: [:],
-            timelineId: timelineId
+            threadID: threadID
         )
 
         guard case let .completed(output) = result else {
@@ -249,7 +249,7 @@ final class ToolRouterTests {
     func textFallbackToolCallBlockedWhenDenied() async throws {
         let tool = PermissionedTool(id: "needs_permission")
         let gate = RecordingGate(decision: .deny)
-        let (router, timelineId, _) = try await setupRouter(with: tool, approvalPolicy: gate)
+        let (router, threadID, _) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         // A fallback-parsed call arrives as a ParsedToolCall through handlePendingToolCalls, the same
         // entry point the text-fallback path feeds. A denied permissioned tool must be projected as a
@@ -257,7 +257,7 @@ final class ToolRouterTests {
         let call = ParsedToolCall(callId: "call-fallback", name: "needs_permission", argumentsJSON: "{}")
         let result = try await captureProjectedToolEventsResult { continuation in
             try await router.handlePendingToolCalls(
-                timelineId: timelineId,
+                timelineId: threadID,
                 calls: [call],
                 availableTools: [],
                 continuation: continuation
@@ -273,7 +273,7 @@ final class ToolRouterTests {
     func disabledToolIsRejectedAtExecutionSink() async throws {
         let tool = PermissionedTool(id: "disabled_tool")
         let gate = RecordingGate(decision: .approve)
-        let (router, timelineId, persistence) = try await setupRouter(
+        let (router, threadID, persistence) = try await setupRouter(
             with: tool,
             approvalPolicy: gate,
             disabledToolIDs: ["disabled_tool"]
@@ -282,7 +282,7 @@ final class ToolRouterTests {
         let call = ParsedToolCall(callId: "call-disabled", name: "disabled_tool", argumentsJSON: "{}")
         let events = try await captureProjectedToolEvents { continuation in
             let result = try await router.handlePendingToolCalls(
-                timelineId: timelineId,
+                timelineId: threadID,
                 calls: [call],
                 availableTools: [],
                 continuation: continuation
@@ -322,7 +322,7 @@ final class ToolRouterTests {
         let registeredTool = PermissionedTool(id: "collision")
         let dynamicTool = PermissionedTool(id: "collision")
         let gate = RecordingGate(decision: .approve)
-        let (router, timelineId, _) = try await setupRouter(
+        let (router, threadID, _) = try await setupRouter(
             with: registeredTool,
             approvalPolicy: gate,
             disabledToolIDs: ["collision"]
@@ -332,7 +332,7 @@ final class ToolRouterTests {
             _ = try await router.execute(
                 tool: .known("collision"),
                 arguments: [:],
-                timelineId: timelineId,
+                threadID: threadID,
                 availableTools: [dynamicTool.toAnyTool()]
             )
             Issue.record("Expected toolNotFound for a disabled call name")
@@ -352,12 +352,12 @@ final class ToolRouterTests {
         let tool = MockTool(callName: "free_tool", name: "free_tool", result: .success("free output"))
         // A deny-all gate must not affect non-permissioned tools.
         let gate = RecordingGate(decision: .deny)
-        let (router, timelineId, _) = try await setupRouter(with: tool, approvalPolicy: gate)
+        let (router, threadID, _) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         let result = try await router.execute(
             tool: .known("free_tool"),
             arguments: [:],
-            timelineId: timelineId
+            threadID: threadID
         )
 
         guard case let .completed(output) = result else {
@@ -406,38 +406,38 @@ final class ToolRouterTests {
         }
     }
 
-    private func setupTimelineManager() async throws -> (TimelineManager, MockPersistenceService) {
+    private func setupThreadManager() async throws -> (ThreadManager, MockPersistenceService) {
         let mockPersistence = MockPersistenceService()
         let workspace = TestWorkspace()
-        let timelineManager = TimelineManager(
+        let threadManager = ThreadManager(
             stores: .init(
-                timelineStore: mockPersistence,
+                threadStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
                 toolPersistence: mockPersistence
             ),
             workspaceRoot: workspace.root
         )
-        return (timelineManager, mockPersistence)
+        return (threadManager, mockPersistence)
     }
 
     @Test
 
     func executeLocally() async throws {
-        let (timelineManager, mockPersistence) = try await setupTimelineManager()
-        let toolRouter = ToolRouter(timelineManager: timelineManager, messageStore: mockPersistence)
+        let (threadManager, mockPersistence) = try await setupThreadManager()
+        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
 
         // Setup session and local workspace
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
         let workspaceId = UUID()
         let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://local")), location: .runtime, originID: nil)
 
         // Mock persistence expects WorkspaceReference
         try await mockPersistence.saveWorkspace(workspaceRef)
-        try await timelineManager.attachWorkspace(workspaceId, to: session.id)
+        try await threadManager.attachWorkspace(workspaceId, to: session.id)
 
         // Setup internal tools by extracting the ToolManager
-        let toolManager = await timelineManager.getToolManager(for: session.id)
+        let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
 
         let toolId = "local_tool"
@@ -451,7 +451,7 @@ final class ToolRouterTests {
         let toolRef = ToolReference.known(toolId)
         let arguments: [String: AnyCodable] = ["param": AnyCodable("value")]
 
-        let result = try await toolRouter.execute(tool: toolRef, arguments: arguments, timelineId: session.id)
+        let result = try await toolRouter.execute(tool: toolRef, arguments: arguments, threadID: session.id)
         guard case let .completed(output) = result else {
             Issue.record("Expected .completed outcome")
             return
@@ -462,16 +462,16 @@ final class ToolRouterTests {
     @Test
 
     func attachedWorkspaceToolDefersExternalExecution() async throws {
-        let (timelineManager, mockPersistence) = try await setupTimelineManager()
-        let toolRouter = ToolRouter(timelineManager: timelineManager, messageStore: mockPersistence)
+        let (threadManager, mockPersistence) = try await setupThreadManager()
+        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
 
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
         let workspaceId = UUID()
 
         // Setup attached workspace
         let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://remote")), location: .attached, originID: UUID())
         try await mockPersistence.saveWorkspace(workspaceRef)
-        try await timelineManager.attachWorkspace(workspaceId, to: session.id)
+        try await threadManager.attachWorkspace(workspaceId, to: session.id)
 
         let toolId = "attached_tool"
         try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known(toolId))
@@ -480,7 +480,7 @@ final class ToolRouterTests {
         let arguments: [String: AnyCodable] = [:]
 
         do {
-            let result = try await toolRouter.execute(tool: toolRef, arguments: arguments, timelineId: session.id)
+            let result = try await toolRouter.execute(tool: toolRef, arguments: arguments, threadID: session.id)
             guard case .deferredExternally = result else {
                 Issue.record("Expected .deferredExternally")
                 return
@@ -493,16 +493,16 @@ final class ToolRouterTests {
     @Test
 
     func attachedWorkspaceToolWithoutOriginStillDefers() async throws {
-        let (timelineManager, mockPersistence) = try await setupTimelineManager()
-        let toolRouter = ToolRouter(timelineManager: timelineManager, messageStore: mockPersistence)
+        let (threadManager, mockPersistence) = try await setupThreadManager()
+        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
 
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
         let workspaceId = UUID()
 
         // Setup attached workspace missing an originId
         let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://remote")), location: .attached, originID: nil)
         try await mockPersistence.saveWorkspace(workspaceRef)
-        try await timelineManager.attachWorkspace(workspaceId, to: session.id)
+        try await threadManager.attachWorkspace(workspaceId, to: session.id)
 
         let toolId = "attached_tool"
         try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known(toolId))
@@ -511,7 +511,7 @@ final class ToolRouterTests {
         let arguments: [String: AnyCodable] = [:]
 
         do {
-            let result = try await toolRouter.execute(tool: toolRef, arguments: arguments, timelineId: session.id)
+            let result = try await toolRouter.execute(tool: toolRef, arguments: arguments, threadID: session.id)
             guard case .deferredExternally = result else {
                 Issue.record("Expected .deferredExternally")
                 return
@@ -523,18 +523,18 @@ final class ToolRouterTests {
 
     @Test("A dynamic per-turn tool (passed via availableTools) executes locally even when the timeline has no attached workspace at all (YAK-19)")
     func dynamicToolExecutesWithoutAnyWorkspace() async throws {
-        let (timelineManager, mockPersistence) = try await setupTimelineManager()
-        let toolRouter = ToolRouter(timelineManager: timelineManager, messageStore: mockPersistence)
+        let (threadManager, mockPersistence) = try await setupThreadManager()
+        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
 
-        // A freshly created timeline still gets its own runtime workspace from `createTimeline`,
+        // A freshly created thread still gets its own runtime workspace from `createThread`,
         // so to reproduce "no workspace at all" we must detach it — mirroring a conversation that
         // never had a folder attached and exercises only workspace-independent demo tools like
         // `calculator`/`current_datetime`.
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
         for attachedId in session.attachedWorkspaceIDs {
-            try await timelineManager.detachWorkspace(attachedId, from: session.id)
+            try await threadManager.detachWorkspace(attachedId, from: session.id)
         }
-        let workspaces = try await timelineManager.getWorkspaces(for: session.id)
+        let workspaces = try await threadManager.getWorkspaces(for: session.id)
         #expect(workspaces.primary == nil)
         #expect(workspaces.attached.isEmpty == true)
 
@@ -546,7 +546,7 @@ final class ToolRouterTests {
         let result = try await toolRouter.execute(
             tool: toolRef,
             arguments: arguments,
-            timelineId: session.id,
+            threadID: session.id,
             availableTools: [dynamicTool.toAnyTool()]
         )
 
@@ -560,15 +560,15 @@ final class ToolRouterTests {
     @Test
 
     func executeToolNotFound() async throws {
-        let (timelineManager, mockPersistence) = try await setupTimelineManager()
-        let toolRouter = ToolRouter(timelineManager: timelineManager, messageStore: mockPersistence)
+        let (threadManager, mockPersistence) = try await setupThreadManager()
+        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
 
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
         let toolRef = ToolReference.known("unknown")
         let arguments: [String: AnyCodable] = [:]
 
         do {
-            _ = try await toolRouter.execute(tool: toolRef, arguments: arguments, timelineId: session.id)
+            _ = try await toolRouter.execute(tool: toolRef, arguments: arguments, threadID: session.id)
             Issue.record("Should have thrown toolNotFound")
         } catch ToolError.toolNotFound {
             // Expected
@@ -581,7 +581,7 @@ final class ToolRouterTests {
     func explicitInvalidWorkspaceIDFailsClosed() async throws {
         let tool = MockTool(callName: "test_tool", name: "test_tool", result: .success("success"))
         let gate = RecordingGate(decision: .deny)
-        let (router, timelineId, _) = try await setupRouter(with: tool, approvalPolicy: gate)
+        let (router, threadID, _) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         let invalidWorkspaceId = UUID()
         let arguments: [String: AnyCodable] = ["workspaceID": AnyCodable(invalidWorkspaceId.uuidString)]
@@ -590,7 +590,7 @@ final class ToolRouterTests {
             _ = try await router.execute(
                 tool: .known("test_tool"),
                 arguments: arguments,
-                timelineId: timelineId
+                threadID: threadID
             )
             Issue.record("Expected workspaceNotFound to be thrown")
         } catch let ToolError.workspaceNotFound(thrownId) {
@@ -604,9 +604,9 @@ final class ToolRouterTests {
     func unattachedExplicitWorkspaceIDFailsClosed() async throws {
         let tool = MockTool(callName: "test_tool", name: "test_tool", result: .success("success"))
         let gate = RecordingGate(decision: .deny)
-        let (router, timelineId, _) = try await setupRouter(with: tool, approvalPolicy: gate)
+        let (router, threadID, _) = try await setupRouter(with: tool, approvalPolicy: gate)
 
-        // Create a valid UUID that is definitely not attached to this timeline
+        // Create a valid UUID that is definitely not attached to this thread
         let unattachedWorkspaceId = UUID()
         let arguments: [String: AnyCodable] = ["workspaceID": AnyCodable(unattachedWorkspaceId.uuidString)]
 
@@ -614,7 +614,7 @@ final class ToolRouterTests {
             _ = try await router.execute(
                 tool: .known("test_tool"),
                 arguments: arguments,
-                timelineId: timelineId
+                threadID: threadID
             )
             Issue.record("Expected workspaceNotFound to be thrown for unattached workspace")
         } catch let ToolError.workspaceNotFound(thrownId) {
@@ -628,7 +628,7 @@ final class ToolRouterTests {
     func omittedWorkspaceIDUsesDefaultResolution() async throws {
         let tool = MockTool(callName: "test_tool", name: "test_tool", result: .success("default workspace success"))
         let gate = RecordingGate(decision: .deny)
-        let (router, timelineId, _) = try await setupRouter(with: tool, approvalPolicy: gate)
+        let (router, threadID, _) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         // No workspaceID in arguments — should proceed with normal default resolution
         let arguments: [String: AnyCodable] = [:]
@@ -636,7 +636,7 @@ final class ToolRouterTests {
         let result = try await router.execute(
             tool: .known("test_tool"),
             arguments: arguments,
-            timelineId: timelineId
+            threadID: threadID
         )
 
         guard case let .completed(output) = result else {
@@ -648,14 +648,14 @@ final class ToolRouterTests {
 
     @Test("Local tool execution timeout is projected as a tool error")
     func localToolExecutionTimeoutIsProjectedAsToolError() async throws {
-        let (timelineManager, mockPersistence) = try await setupTimelineManager()
+        let (threadManager, mockPersistence) = try await setupThreadManager()
         let toolRouter = ToolRouter(
-            timelineManager: timelineManager,
+            threadManager: threadManager,
             messageStore: mockPersistence,
             toolExecutionTimeout: 0.01
         )
 
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
         let workspaceId = UUID()
         let workspaceRef = try WorkspaceReference(
             id: workspaceId,
@@ -664,10 +664,10 @@ final class ToolRouterTests {
             originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
-        try await timelineManager.attachWorkspace(workspaceId, to: session.id)
+        try await threadManager.attachWorkspace(workspaceId, to: session.id)
         try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("never_finishes"))
 
-        let toolManager = await timelineManager.getToolManager(for: session.id)
+        let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
         await toolManager?.updateAvailableTools([NeverFinishingTool().toAnyTool()])
 
@@ -700,19 +700,19 @@ final class ToolRouterTests {
 
     @Test("Timeout wins even for tools that ignore cancellation")
     func timeoutBoundsUncooperativeTool() async throws {
-        let (timelineManager, mockPersistence) = try await setupTimelineManager()
+        let (threadManager, mockPersistence) = try await setupThreadManager()
         let started = AsyncLatch()
         let release = AsyncLatch()
         defer { release.open() }
 
         let toolRouter = ToolRouter(
-            timelineManager: timelineManager,
+            threadManager: threadManager,
             messageStore: mockPersistence,
             toolExecutionTimeout: 60,
             sleep: { _ in await started.wait() }
         )
 
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
         let workspaceId = UUID()
         let workspaceRef = try WorkspaceReference(
             id: workspaceId,
@@ -721,10 +721,10 @@ final class ToolRouterTests {
             originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
-        try await timelineManager.attachWorkspace(workspaceId, to: session.id)
+        try await threadManager.attachWorkspace(workspaceId, to: session.id)
         try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("uncooperative"))
 
-        let toolManager = await timelineManager.getToolManager(for: session.id)
+        let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
         await toolManager?.updateAvailableTools([
             UncooperativeTool(started: started, release: release).toAnyTool(),
@@ -748,27 +748,27 @@ final class ToolRouterTests {
 // MARK: - Recasted workspace-resolution edge-case tests (formerly ToolRoutingDecision isolation tests)
 
 struct ToolRouterWorkspaceResolutionTests {
-    private func setupTimelineManager() async throws -> (TimelineManager, MockPersistenceService) {
+    private func setupThreadManager() async throws -> (ThreadManager, MockPersistenceService) {
         let mockPersistence = MockPersistenceService()
         let workspace = TestWorkspace()
-        let timelineManager = TimelineManager(
+        let threadManager = ThreadManager(
             stores: .init(
-                timelineStore: mockPersistence,
+                threadStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
                 toolPersistence: mockPersistence
             ),
             workspaceRoot: workspace.root
         )
-        return (timelineManager, mockPersistence)
+        return (threadManager, mockPersistence)
     }
 
     @Test("Malformed workspaceID string (not a UUID) fails closed with invalidWorkspaceID (PKRR-015)")
     func malformedWorkspaceIDFailsClosed() async throws {
-        let (timelineManager, mockPersistence) = try await setupTimelineManager()
-        let toolRouter = ToolRouter(timelineManager: timelineManager, messageStore: mockPersistence)
+        let (threadManager, mockPersistence) = try await setupThreadManager()
+        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
 
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
         let workspaceId = UUID()
         let workspaceRef = try WorkspaceReference(
             id: workspaceId,
@@ -777,10 +777,10 @@ struct ToolRouterWorkspaceResolutionTests {
             originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
-        try await timelineManager.attachWorkspace(workspaceId, to: session.id)
+        try await threadManager.attachWorkspace(workspaceId, to: session.id)
         try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("cat"))
 
-        let toolManager = await timelineManager.getToolManager(for: session.id)
+        let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
         let mockTool = MockTool(callName: "cat", name: "cat", result: .success("meow"))
         await toolManager?.updateAvailableTools([mockTool.toAnyTool()])
@@ -791,7 +791,7 @@ struct ToolRouterWorkspaceResolutionTests {
             _ = try await toolRouter.execute(
                 tool: .known("cat"),
                 arguments: arguments,
-                timelineId: session.id
+                threadID: session.id
             )
             Issue.record("Expected invalidWorkspaceID to be thrown")
         } catch let ToolError.invalidWorkspaceID(value) {
@@ -803,10 +803,10 @@ struct ToolRouterWorkspaceResolutionTests {
 
     @Test("Empty-string workspaceID fails closed with invalidWorkspaceID (PKRR-015)")
     func emptyWorkspaceIDFailsClosed() async throws {
-        let (timelineManager, mockPersistence) = try await setupTimelineManager()
-        let toolRouter = ToolRouter(timelineManager: timelineManager, messageStore: mockPersistence)
+        let (threadManager, mockPersistence) = try await setupThreadManager()
+        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
 
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
         let workspaceId = UUID()
         let workspaceRef = try WorkspaceReference(
             id: workspaceId,
@@ -815,10 +815,10 @@ struct ToolRouterWorkspaceResolutionTests {
             originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
-        try await timelineManager.attachWorkspace(workspaceId, to: session.id)
+        try await threadManager.attachWorkspace(workspaceId, to: session.id)
         try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("cat"))
 
-        let toolManager = await timelineManager.getToolManager(for: session.id)
+        let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
         let mockTool = MockTool(callName: "cat", name: "cat", result: .success("meow"))
         await toolManager?.updateAvailableTools([mockTool.toAnyTool()])
@@ -829,7 +829,7 @@ struct ToolRouterWorkspaceResolutionTests {
             _ = try await toolRouter.execute(
                 tool: .known("cat"),
                 arguments: arguments,
-                timelineId: session.id
+                threadID: session.id
             )
             Issue.record("Expected invalidWorkspaceID to be thrown")
         } catch ToolError.invalidWorkspaceID {
@@ -841,10 +841,10 @@ struct ToolRouterWorkspaceResolutionTests {
 
     @Test("Non-string workspaceID (number) fails closed with invalidWorkspaceID (PKRR-015)")
     func nonStringWorkspaceIDFailsClosed() async throws {
-        let (timelineManager, mockPersistence) = try await setupTimelineManager()
-        let toolRouter = ToolRouter(timelineManager: timelineManager, messageStore: mockPersistence)
+        let (threadManager, mockPersistence) = try await setupThreadManager()
+        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
 
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
         let workspaceId = UUID()
         let workspaceRef = try WorkspaceReference(
             id: workspaceId,
@@ -853,10 +853,10 @@ struct ToolRouterWorkspaceResolutionTests {
             originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
-        try await timelineManager.attachWorkspace(workspaceId, to: session.id)
+        try await threadManager.attachWorkspace(workspaceId, to: session.id)
         try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("cat"))
 
-        let toolManager = await timelineManager.getToolManager(for: session.id)
+        let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
         let mockTool = MockTool(callName: "cat", name: "cat", result: .success("meow"))
         await toolManager?.updateAvailableTools([mockTool.toAnyTool()])
@@ -867,7 +867,7 @@ struct ToolRouterWorkspaceResolutionTests {
             _ = try await toolRouter.execute(
                 tool: .known("cat"),
                 arguments: arguments,
-                timelineId: session.id
+                threadID: session.id
             )
             Issue.record("Expected invalidWorkspaceID to be thrown")
         } catch ToolError.invalidWorkspaceID {
@@ -879,10 +879,10 @@ struct ToolRouterWorkspaceResolutionTests {
 
     @Test("Workspace lookup searches primary then attached in order")
     func workspaceLookupOrderPrimaryFirst() async throws {
-        let (timelineManager, mockPersistence) = try await setupTimelineManager()
-        let toolRouter = ToolRouter(timelineManager: timelineManager, messageStore: mockPersistence)
+        let (threadManager, mockPersistence) = try await setupThreadManager()
+        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
 
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
 
         // Attach an additional workspace (attached location) alongside the primary runtime workspace.
         let attachedWorkspaceId = UUID()
@@ -893,17 +893,17 @@ struct ToolRouterWorkspaceResolutionTests {
             originID: UUID()
         )
         try await mockPersistence.saveWorkspace(attachedWorkspaceRef)
-        try await timelineManager.attachWorkspace(attachedWorkspaceId, to: session.id)
+        try await threadManager.attachWorkspace(attachedWorkspaceId, to: session.id)
 
         // Register the tool in BOTH the primary workspace and the attached workspace.
-        // The primary workspace is the runtime workspace created by `createTimeline`.
-        let workspaces = try await timelineManager.getWorkspaces(for: session.id)
+        // The primary workspace is the runtime workspace created by `createThread`.
+        let workspaces = try await threadManager.getWorkspaces(for: session.id)
         let primaryId = try #require(workspaces.primary?.id)
         let toolId = "shared_tool"
         try await mockPersistence.addToolToWorkspace(workspaceId: primaryId, tool: .known(toolId))
         try await mockPersistence.addToolToWorkspace(workspaceId: attachedWorkspaceId, tool: .known(toolId))
 
-        let toolManager = await timelineManager.getToolManager(for: session.id)
+        let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
         let mockTool = MockTool(callName: toolId, name: toolId, result: .success("primary success"))
         await toolManager?.updateAvailableTools([mockTool.toAnyTool()])
@@ -911,7 +911,7 @@ struct ToolRouterWorkspaceResolutionTests {
         let result = try await toolRouter.execute(
             tool: .known(toolId),
             arguments: [:],
-            timelineId: session.id
+            threadID: session.id
         )
 
         // Primary (runtime) workspace should win → local execution → .completed.
@@ -923,10 +923,10 @@ struct ToolRouterWorkspaceResolutionTests {
 
     @Test("Explicit valid workspaceID overrides default lookup")
     func explicitValidWorkspaceIDOverridesDefault() async throws {
-        let (timelineManager, mockPersistence) = try await setupTimelineManager()
-        let toolRouter = ToolRouter(timelineManager: timelineManager, messageStore: mockPersistence)
+        let (threadManager, mockPersistence) = try await setupThreadManager()
+        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
 
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
 
         // Attach an additional workspace (attached location).
         let attachedWorkspaceId = UUID()
@@ -937,15 +937,15 @@ struct ToolRouterWorkspaceResolutionTests {
             originID: UUID()
         )
         try await mockPersistence.saveWorkspace(attachedWorkspaceRef)
-        try await timelineManager.attachWorkspace(attachedWorkspaceId, to: session.id)
+        try await threadManager.attachWorkspace(attachedWorkspaceId, to: session.id)
 
         // Register the tool in the primary workspace only — default lookup would find it there.
-        let workspaces = try await timelineManager.getWorkspaces(for: session.id)
+        let workspaces = try await threadManager.getWorkspaces(for: session.id)
         let primaryId = try #require(workspaces.primary?.id)
         let toolId = "tool_a"
         try await mockPersistence.addToolToWorkspace(workspaceId: primaryId, tool: .known(toolId))
 
-        let toolManager = await timelineManager.getToolManager(for: session.id)
+        let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
         let mockTool = MockTool(callName: toolId, name: toolId, result: .success("ok"))
         await toolManager?.updateAvailableTools([mockTool.toAnyTool()])
@@ -956,7 +956,7 @@ struct ToolRouterWorkspaceResolutionTests {
         let result = try await toolRouter.execute(
             tool: .known(toolId),
             arguments: arguments,
-            timelineId: session.id
+            threadID: session.id
         )
 
         // Explicit workspaceID points to the attached workspace → defer externally.
@@ -968,15 +968,15 @@ struct ToolRouterWorkspaceResolutionTests {
 
     @Test("No workspaces at all resolves to toolNotFound")
     func noWorkspacesAtAllResolvesToToolNotFound() async throws {
-        let (timelineManager, mockPersistence) = try await setupTimelineManager()
-        let toolRouter = ToolRouter(timelineManager: timelineManager, messageStore: mockPersistence)
+        let (threadManager, mockPersistence) = try await setupThreadManager()
+        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
 
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
         // Detach all workspaces to simulate "no workspaces at all."
         for attachedId in session.attachedWorkspaceIDs {
-            try await timelineManager.detachWorkspace(attachedId, from: session.id)
+            try await threadManager.detachWorkspace(attachedId, from: session.id)
         }
-        let workspaces = try await timelineManager.getWorkspaces(for: session.id)
+        let workspaces = try await threadManager.getWorkspaces(for: session.id)
         #expect(workspaces.primary == nil)
         #expect(workspaces.attached.isEmpty == true)
 
@@ -984,7 +984,7 @@ struct ToolRouterWorkspaceResolutionTests {
             _ = try await toolRouter.execute(
                 tool: .known("any_tool"),
                 arguments: [:],
-                timelineId: session.id
+                threadID: session.id
             )
             Issue.record("Expected toolNotFound")
         } catch ToolError.toolNotFound {
@@ -1011,7 +1011,7 @@ struct ToolRouterWorkspaceResolutionTests {
 
         func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
             if !result.success, result.error == "client_tools_disallowed_on_private_timeline" {
-                throw ToolError.attachedToolsDisallowedOnPrivateTimeline
+                throw ToolError.attachedToolsDisallowedOnPrivateThread
             }
             return result
         }
@@ -1045,19 +1045,19 @@ struct ToolRouterWorkspaceResolutionTests {
 // MARK: - Recasted tool-turn projection tests (formerly ToolTurnProjector isolation tests)
 
 struct ToolTurnProjectionTests {
-    private func setupTimelineManager() async throws -> (TimelineManager, MockPersistenceService) {
+    private func setupThreadManager() async throws -> (ThreadManager, MockPersistenceService) {
         let mockPersistence = MockPersistenceService()
         let workspace = TestWorkspace()
-        let timelineManager = TimelineManager(
+        let threadManager = ThreadManager(
             stores: .init(
-                timelineStore: mockPersistence,
+                threadStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
                 toolPersistence: mockPersistence
             ),
             workspaceRoot: workspace.root
         )
-        return (timelineManager, mockPersistence)
+        return (threadManager, mockPersistence)
     }
 
     private struct MockTool: PKShared.Tool, @unchecked Sendable {
@@ -1103,10 +1103,10 @@ struct ToolTurnProjectionTests {
 
     @Test("Completed outcomes persist tool messages and emit success events")
     func completedOutcomeProjection() async throws {
-        let (timelineManager, mockPersistence) = try await setupTimelineManager()
-        let toolRouter = ToolRouter(timelineManager: timelineManager, messageStore: mockPersistence)
+        let (threadManager, mockPersistence) = try await setupThreadManager()
+        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
 
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
         let workspaceId = UUID()
         let workspaceRef = try WorkspaceReference(
             id: workspaceId,
@@ -1115,10 +1115,10 @@ struct ToolTurnProjectionTests {
             originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
-        try await timelineManager.attachWorkspace(workspaceId, to: session.id)
+        try await threadManager.attachWorkspace(workspaceId, to: session.id)
         try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("tool"))
 
-        let toolManager = await timelineManager.getToolManager(for: session.id)
+        let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
         await toolManager?.updateAvailableTools([MockTool(callName: "tool", name: "tool", result: .success("done")).toAnyTool()])
 
@@ -1153,10 +1153,10 @@ struct ToolTurnProjectionTests {
 
     @Test("Error projection persists error output and emits failed events")
     func errorProjection() async throws {
-        let (timelineManager, mockPersistence) = try await setupTimelineManager()
-        let toolRouter = ToolRouter(timelineManager: timelineManager, messageStore: mockPersistence)
+        let (threadManager, mockPersistence) = try await setupThreadManager()
+        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
 
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
         let workspaceId = UUID()
         let workspaceRef = try WorkspaceReference(
             id: workspaceId,
@@ -1165,10 +1165,10 @@ struct ToolTurnProjectionTests {
             originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
-        try await timelineManager.attachWorkspace(workspaceId, to: session.id)
+        try await threadManager.attachWorkspace(workspaceId, to: session.id)
         try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("tool"))
 
-        let toolManager = await timelineManager.getToolManager(for: session.id)
+        let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
         await toolManager?.updateAvailableTools([FailingTool(id: "tool", error: ToolError.executionFailed("boom")).toAnyTool()])
 
@@ -1203,10 +1203,10 @@ struct ToolTurnProjectionTests {
 
     @Test("Error projection appends the error's remediation as model-facing recovery guidance")
     func errorProjectionSurfacesRemediation() async throws {
-        let (timelineManager, mockPersistence) = try await setupTimelineManager()
-        let toolRouter = ToolRouter(timelineManager: timelineManager, messageStore: mockPersistence)
+        let (threadManager, mockPersistence) = try await setupThreadManager()
+        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
 
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
         let workspaceId = UUID()
         let workspaceRef = try WorkspaceReference(
             id: workspaceId,
@@ -1215,10 +1215,10 @@ struct ToolTurnProjectionTests {
             originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
-        try await timelineManager.attachWorkspace(workspaceId, to: session.id)
+        try await threadManager.attachWorkspace(workspaceId, to: session.id)
         try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("cat"))
 
-        let toolManager = await timelineManager.getToolManager(for: session.id)
+        let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
         let error = ToolError.invalidArgument("count", expected: "Int", got: "4.7")
         await toolManager?.updateAvailableTools([FailingTool(id: "cat", error: error).toAnyTool()])
@@ -1246,19 +1246,19 @@ struct ToolTurnProjectionTests {
 // MARK: - Tool durability ordering tests (PKRR-016)
 
 struct ToolDurabilityOrderingTests {
-    private func setupTimelineManager() async throws -> (TimelineManager, MockPersistenceService) {
+    private func setupThreadManager() async throws -> (ThreadManager, MockPersistenceService) {
         let mockPersistence = MockPersistenceService()
         let workspace = TestWorkspace()
-        let timelineManager = TimelineManager(
+        let threadManager = ThreadManager(
             stores: .init(
-                timelineStore: mockPersistence,
+                threadStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
                 toolPersistence: mockPersistence
             ),
             workspaceRoot: workspace.root
         )
-        return (timelineManager, mockPersistence)
+        return (threadManager, mockPersistence)
     }
 
     private struct MockTool: PKShared.Tool, @unchecked Sendable {
@@ -1298,19 +1298,19 @@ struct ToolDurabilityOrderingTests {
         }
     }
 
-    /// Sets up a timeline with a single registered tool and returns the router (backed by a
-    /// `FailingMessageStore`) plus the timeline ID and the store for assertions.
+    /// Sets up a thread with a single registered tool and returns the router (backed by a
+    /// `FailingMessageStore`) plus the thread ID and the store for assertions.
     private func setupRouterWithFailingStore(
         tool: any PKShared.Tool
     ) async throws -> (ToolRouter, FailingMessageStore, UUID) {
-        let (timelineManager, mockPersistence) = try await setupTimelineManager()
+        let (threadManager, mockPersistence) = try await setupThreadManager()
         let failingStore = FailingMessageStore()
         let toolRouter = ToolRouter(
-            timelineManager: timelineManager,
+            threadManager: threadManager,
             messageStore: failingStore
         )
 
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
         let workspaceId = UUID()
         let workspaceRef = try WorkspaceReference(
             id: workspaceId,
@@ -1319,10 +1319,10 @@ struct ToolDurabilityOrderingTests {
             originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
-        try await timelineManager.attachWorkspace(workspaceId, to: session.id)
+        try await threadManager.attachWorkspace(workspaceId, to: session.id)
         try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known(tool.callName))
 
-        let toolManager = await timelineManager.getToolManager(for: session.id)
+        let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
         await toolManager?.updateAvailableTools([tool.toAnyTool()])
 
@@ -1332,13 +1332,13 @@ struct ToolDurabilityOrderingTests {
     @Test("A successful tool with a failing store never emits terminal success (PKRR-016)")
     func successfulToolFailingStoreDoesNotEmitSuccess() async throws {
         let tool = MockTool(callName: "tool", name: "tool", result: .success("done"))
-        let (router, failingStore, timelineId) = try await setupRouterWithFailingStore(tool: tool)
+        let (router, failingStore, threadID) = try await setupRouterWithFailingStore(tool: tool)
 
         let call = ParsedToolCall(callId: "call-1", name: "tool", argumentsJSON: "{}")
 
         let events = try await captureProjectedToolEvents { continuation in
             let result = try await router.handlePendingToolCalls(
-                timelineId: timelineId,
+                timelineId: threadID,
                 calls: [call],
                 availableTools: [],
                 continuation: continuation
@@ -1379,13 +1379,13 @@ struct ToolDurabilityOrderingTests {
     @Test("A failed tool with a failing store never emits terminal failure (PKRR-016)")
     func failedToolFailingStoreDoesNotEmitFailed() async throws {
         let tool = FailingTool(id: "tool", error: ToolError.executionFailed("boom"))
-        let (router, failingStore, timelineId) = try await setupRouterWithFailingStore(tool: tool)
+        let (router, failingStore, threadID) = try await setupRouterWithFailingStore(tool: tool)
 
         let call = ParsedToolCall(callId: "call-2", name: "tool", argumentsJSON: "{}")
 
         let events = try await captureProjectedToolEvents { continuation in
             let result = try await router.handlePendingToolCalls(
-                timelineId: timelineId,
+                timelineId: threadID,
                 calls: [call],
                 availableTools: [],
                 continuation: continuation
@@ -1424,13 +1424,13 @@ struct ToolDurabilityOrderingTests {
 
     @Test("A successful tool with a working store emits terminal success and no persistenceFailed (PKRR-016)")
     func successfulToolWorkingStoreEmitsSuccess() async throws {
-        let (timelineManager, mockPersistence) = try await setupTimelineManager()
+        let (threadManager, mockPersistence) = try await setupThreadManager()
         let toolRouter = ToolRouter(
-            timelineManager: timelineManager,
+            threadManager: threadManager,
             messageStore: mockPersistence
         )
 
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
         let workspaceId = UUID()
         let workspaceRef = try WorkspaceReference(
             id: workspaceId,
@@ -1439,10 +1439,10 @@ struct ToolDurabilityOrderingTests {
             originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
-        try await timelineManager.attachWorkspace(workspaceId, to: session.id)
+        try await threadManager.attachWorkspace(workspaceId, to: session.id)
         try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("tool"))
 
-        let toolManager = await timelineManager.getToolManager(for: session.id)
+        let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
         await toolManager?.updateAvailableTools([
             MockTool(callName: "tool", name: "tool", result: .success("done")).toAnyTool()
@@ -1486,15 +1486,15 @@ struct ToolDurabilityOrderingTests {
 
     @Test("Batch with one succeeding and one failing store: first emits success, second emits persistenceFailed (PKRR-016)")
     func batchMixedPersistenceResults() async throws {
-        let (timelineManager, mockPersistence) = try await setupTimelineManager()
+        let (threadManager, mockPersistence) = try await setupThreadManager()
         let batchStore = BatchFailingMessageStore()
         batchStore.failAfterSaveCount = 1
         let toolRouter = ToolRouter(
-            timelineManager: timelineManager,
+            threadManager: threadManager,
             messageStore: batchStore
         )
 
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
         let workspaceId = UUID()
         let workspaceRef = try WorkspaceReference(
             id: workspaceId,
@@ -1503,10 +1503,10 @@ struct ToolDurabilityOrderingTests {
             originID: nil
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
-        try await timelineManager.attachWorkspace(workspaceId, to: session.id)
+        try await threadManager.attachWorkspace(workspaceId, to: session.id)
         try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("tool"))
 
-        let toolManager = await timelineManager.getToolManager(for: session.id)
+        let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
         await toolManager?.updateAvailableTools([
             MockTool(callName: "tool", name: "tool", result: .success("ok")).toAnyTool()
@@ -1611,7 +1611,7 @@ struct ToolErrorModelTests {
             ToolError.toolNotFound("t").errorCode,
             ToolError.workspaceNotFound(UUID()).errorCode,
             ToolError.requestOriginUnavailable.errorCode,
-            ToolError.attachedToolsDisallowedOnPrivateTimeline.errorCode,
+            ToolError.attachedToolsDisallowedOnPrivateThread.errorCode,
             ToolError.permissionDenied("t").errorCode,
             ToolError.unmatchedToolOutput("call_1").errorCode,
             ToolError.invalidWorkspaceID("bad").errorCode,
@@ -1631,7 +1631,7 @@ struct ToolErrorModelTests {
             .toolNotFound("unknown"),
             .workspaceNotFound(UUID()),
             .requestOriginUnavailable,
-            .attachedToolsDisallowedOnPrivateTimeline,
+            .attachedToolsDisallowedOnPrivateThread,
             .permissionDenied("tool"),
             .unmatchedToolOutput("call_1"),
             .invalidWorkspaceID("not-a-uuid"),
@@ -1653,7 +1653,7 @@ struct ToolErrorModelTests {
             .toolNotFound("unknown"),
             .workspaceNotFound(UUID()),
             .requestOriginUnavailable,
-            .attachedToolsDisallowedOnPrivateTimeline,
+            .attachedToolsDisallowedOnPrivateThread,
             .permissionDenied("tool"),
             .unmatchedToolOutput("call_1"),
             .invalidWorkspaceID("not-a-uuid"),

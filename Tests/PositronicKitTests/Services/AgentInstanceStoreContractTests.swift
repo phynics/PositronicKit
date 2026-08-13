@@ -35,7 +35,7 @@ import Testing
             id: id,
             name: name,
             description: description,
-            privateTimelineID: UUID()
+            privateThreadID: UUID()
         )
     }
 
@@ -154,14 +154,14 @@ import Testing
 
     @Test(arguments: Conformer.allCases)
     @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
-    func fetchTimelinesRemainsAvailableAsLegacyShim(conformer: Conformer) async throws {
+    func fetchThreadsRemainsAvailableAsLegacyShim(conformer: Conformer) async throws {
         let store: any AgentInstanceStoreProtocol = conformer.make()
         let instance = Self.makeInstance()
 
         try await store.saveAgentInstance(instance)
 
-        let timelines = try await store.fetchTimelines(attachedToAgent: instance.id)
-        #expect(timelines.isEmpty)
+        let threads = try await store.fetchThreads(attachedToAgent: instance.id)
+        #expect(threads.isEmpty)
     }
 }
 

@@ -156,10 +156,10 @@
 
 <span class="c">// Choose the smallest operation tier that fits the feature:</span>
 <span class="k">let</span> answer = <span class="k">try await</span> kit.complete(<span class="s">"Summarize this note."</span>)  <span class="c">// tier 1: one-shot</span>
-<span class="k">let</span> timeline = <span class="k">try await</span> kit.timelineManager.createTimeline()
-<span class="k">let</span> driver = kit.openTimeline(timeline.id)               <span class="c">// tier 2: TimelineDriver</span>
+<span class="k">let</span> thread = <span class="k">try await</span> kit.threadManager.createThread()
+<span class="k">let</span> driver = kit.openThread(thread.id)                         <span class="c">// tier 2: ThreadDriver</span>
 <span class="k">let</span> agent = kit.agenticRuntime(                               <span class="c">// tier 4: agent loop</span>
-    timelineID: driver.timelineID,
+    threadID: driver.threadID,
     agentInstanceID: <span class="k">UUID</span>()
 )</code></pre>
   </div>
@@ -169,24 +169,24 @@
   <div class="wrap">
     <h2><span class="tick">//</span> Tool Use</h2>
     <p style="color:var(--muted); margin-bottom:1rem">Hand a <code>Tool</code> conformance to the agent per turn — no workspace required:</p>
-    <pre><code><span class="k">let</span> agent = kit.agenticRuntime(timelineId: driver.timelineID, agentInstanceId: <span class="k">UUID</span>())
+    <pre><code><span class="k">let</span> agent = kit.agenticRuntime(threadID: driver.threadID, agentInstanceID: <span class="k">UUID</span>())
 <span class="k">let</span> stream = <span class="k">try await</span> agent.run(message: <span class="s">"Greet Ada."</span>, tools: [<span class="k">GreetTool</span>()])
 
 <span class="k">for try await</span> event <span class="k">in</span> stream {
     <span class="k">if case let</span> .delta(.toolExecution(id, status)) = event { print(<span class="s">"tool \(id): \(status)"</span>) }
     <span class="k">if let</span> text = event.textContent { print(text, terminator: <span class="s">""</span>) }
 }</code></pre>
-    <p style="color:var(--muted); margin:1.4rem 0 1rem">Or give the runtime a workspace root — every timeline gets its own filesystem workspace, and the built-in file tools (read, write, list) install automatically:</p>
+    <p style="color:var(--muted); margin:1.4rem 0 1rem">Or give the runtime a workspace root — every thread gets its own filesystem workspace, and the built-in file tools (read, write, list) install automatically:</p>
     <pre><code><span class="k">let</span> kit = <span class="k">PositronicKit</span>(configuration: .init(
     provider: .init(llmService: myLLM),
     persistence: .inMemory(),
-    runtime: .init(workspaceRoot: workspaceRoot)  <span class="c">// filesystem tools installed per timeline</span>
+    runtime: .init(workspaceRoot: workspaceRoot)  <span class="c">// filesystem tools installed per thread</span>
 ))
 
-<span class="k">let</span> timeline = <span class="k">try await</span> kit.timelineManager.createTimeline(title: <span class="s">"Docs agent"</span>)
+<span class="k">let</span> thread = <span class="k">try await</span> kit.threadManager.createThread(title: <span class="s">"Docs agent"</span>)
 
 <span class="k">let</span> stream = <span class="k">try await</span> kit.run(.init(
-    timelineId: timeline.id,
+    threadID: thread.id,
     message: <span class="s">"Read notes.md from the workspace and summarize it."</span>
 ))</code></pre>
   </div>

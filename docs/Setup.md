@@ -50,7 +50,7 @@ let chat = PositronicKit(
     llmService: MyLLMServiceLive(),
     persistence: .init(
         messageStore: MyMessageStoreLive(),
-        timelinePersistence: MyTimelineStoreLive(),
+        threadPersistence: MyThreadStoreLive(),
         workspacePersistence: MyWorkspaceStoreLive(),
         memoryStore: MyMemoryStoreLive(),
         toolPersistence: MyToolStoreLive(),
@@ -65,16 +65,16 @@ let chat = PositronicKit(
 )
 ```
 
-The grouped `persistence:` + `runtime:` path is the supported production setup (the old flat per-store initializer was removed by PKFAC-002). `RuntimeConfiguration` groups the non-store runtime knobs — `workspaceCreator`, `sectionProviders`, `runtimeToolPolicy`, `workspaceRoot`, `chatTurnPlugins`, `promptInspector`, `toolApprovalGate` — not pre-built `TimelineManager`/`ToolRouter` instances; the facade is the only place those get constructed, so they can never end up wrapping different stores. Read them back afterward via `chat.timelineManager` / `chat.toolRouter` if you need direct access.
+The grouped `persistence:` + `runtime:` path is the supported production setup (the old flat per-store initializer was removed by PKFAC-002). `RuntimeConfiguration` groups the non-store runtime knobs — `workspaceCreator`, `sectionProviders`, `runtimeToolPolicy`, `workspaceRoot`, `chatTurnPlugins`, `promptInspector`, `toolApprovalGate` — not pre-built `ThreadManager`/`ToolRouter` instances; the facade is the only place those get constructed, so they can never end up wrapping different stores. Read them back afterward via `chat.threadManager` / `chat.toolRouter` if you need direct access.
 
 Tests and host code can inject doubles directly through the facade initializers; lower-level wiring should remain inside the components you own.
 
 ### Default Tool Installation
 
-`TimelineManager` applies a configurable default tool policy:
+`ThreadManager` applies a configurable default tool policy:
 
 - filesystem tools are installed automatically by the default policy
-- timeline observation tools are installed automatically by the default policy
+- thread observation tools are installed automatically by the default policy
 - `timeline_send` is installed only when an attached agent identity is present
 
 Use `RuntimeToolPolicy` to disable any category or start with no runtime tools.

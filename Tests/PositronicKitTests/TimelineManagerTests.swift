@@ -11,43 +11,43 @@ struct ThreadManagerTests {
     @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
     func legacyManagerParameterLabels() async throws {
         let manager = ThreadManager(workspaceProfile: .noWorkspace)
-        let timeline = try await manager.createTimeline(title: "Legacy labels")
+        let thread = try await manager.createThread(title: "Legacy labels")
 
         _ = await manager.gatherExtensionSections(
-            timelineId: timeline.id,
+            threadID: thread.id,
             agentInstanceId: nil,
             message: "Hello"
         )
-        _ = try await manager.getHistory(for: timeline.id)
-        _ = await manager.enabledTools(for: timeline.id)
-        _ = await manager.enableTool(id: "missing", for: timeline.id)
-        _ = await manager.disableTool(id: "missing", for: timeline.id)
-        #expect(try await manager.getToolSource(toolId: "missing", for: timeline.id) == nil)
+        _ = try await manager.getHistory(for: thread.id)
+        _ = await manager.enabledTools(for: thread.id)
+        _ = await manager.enableTool(id: "missing", for: thread.id)
+        _ = await manager.disableTool(id: "missing", for: thread.id)
+        #expect(try await manager.getToolSource(toolId: "missing", for: thread.id) == nil)
 
         let task = Task<Void, Never> {}
         let sendID = UUID()
-        await manager.registerTask(task, sendID: sendID, for: timeline.id)
-        _ = await manager.cancelGeneration(sendID: sendID, for: timeline.id)
-        await manager.cancelGeneration(for: timeline.id)
-        await manager.removeTask(sendID: sendID, for: timeline.id)
-        await manager.cancelActiveTaskAndAwait(for: timeline.id)
+        await manager.registerTask(task, sendID: sendID, for: thread.id)
+        _ = await manager.cancelGeneration(sendID: sendID, for: thread.id)
+        await manager.cancelGeneration(for: thread.id)
+        await manager.removeTask(sendID: sendID, for: thread.id)
+        await manager.cancelActiveTaskAndAwait(for: thread.id)
     }
 
     @Test("v3 attachment parameter labels remain source compatible")
     @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
     func legacyAttachmentParameterLabels() async throws {
         let manager = ThreadManager(workspaceProfile: .noWorkspace)
-        let timeline = try await manager.createTimeline(title: "Legacy attachments")
+        let thread = try await manager.createThread(title: "Legacy attachments")
         let workspace = WorkspaceReference(
             uri: WorkspaceURI(parsing: "workspace://legacy-labels")!,
             location: .attached
         )
         try await manager.importWorkspace(workspace)
 
-        try await manager.attachWorkspace(workspace.id, to: timeline.id)
-        #expect(try await manager.getWorkspaces(for: timeline.id).attached.map(\.id) == [workspace.id])
-        try await manager.detachWorkspace(workspace.id, from: timeline.id)
-        #expect(try await manager.getWorkspaces(for: timeline.id).attached.isEmpty)
+        try await manager.attachWorkspace(workspace.id, to: thread.id)
+        #expect(try await manager.getWorkspaces(for: thread.id).attached.map(\.id) == [workspace.id])
+        try await manager.detachWorkspace(workspace.id, from: thread.id)
+        #expect(try await manager.getWorkspaces(for: thread.id).attached.isEmpty)
     }
 
     @Test("canonical thread manager owns lifecycle and policy surface")
@@ -102,9 +102,9 @@ struct ThreadManagerTests {
     @Test("importWorkspace persists into the store the manager validates against")
     func importWorkspacePersistsIntoBackingStore() async throws {
         let store = InMemoryWorkspacePersistence()
-        let manager = TimelineManager(
+        let manager = ThreadManager(
             stores: .init(
-                timelineStore: InMemoryTimelinePersistence(),
+                threadStore: InMemoryThreadPersistence(),
                 messageStore: InMemoryMessageStore(),
                 workspaceStore: store,
                 toolPersistence: InMemoryToolPersistence()
@@ -125,55 +125,55 @@ struct ThreadManagerTests {
     @Test("Test Session Creation and Turn Briefing Builder Access")
     func sessionCreation() async throws {
         let workspace = TestWorkspace()
-        let timelineManager = TimelineManager(workspaceRoot: workspace.root)
+        let threadManager = ThreadManager(workspaceRoot: workspace.root)
 
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
 
         #expect(session.id != UUID(), "Session should have an ID")
 
-        let retrievedSession = await timelineManager.timeline(id: session.id)
+        let retrievedSession = await threadManager.thread(id: session.id)
         #expect(retrievedSession != nil, "Should be able to retrieve created session")
         #expect(retrievedSession?.id == session.id)
 
         // Verify TurnBriefingBuilder is created and has access to workspace
-        let turnBriefingBuilder = await timelineManager.getTurnBriefingBuilder(for: session.id)
+        let turnBriefingBuilder = await threadManager.getTurnBriefingBuilder(for: session.id)
         #expect(turnBriefingBuilder != nil, "TurnBriefingBuilder should be created for session")
     }
 
     @Test("Test Stale Session Cleanup")
     func cleanup() async throws {
         let workspace = TestWorkspace()
-        let timelineManager = TimelineManager(workspaceRoot: workspace.root)
+        let threadManager = ThreadManager(workspaceRoot: workspace.root)
 
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
 
-        await timelineManager.cleanupStaleTimelines(maxAge: 0)
+        await threadManager.cleanupStaleThreads(maxAge: 0)
 
-        let retrieved = await timelineManager.timeline(id: session.id)
+        let retrieved = await threadManager.thread(id: session.id)
         #expect(retrieved == nil, "Session should be cleaned up")
     }
 
     @Test("evictTimelineFromMemory(id:) evicts the prompt-history registry entry, not just the cache")
-    func deleteTimelineEvictsPromptHistory() async throws {
+    func deleteThreadEvictsPromptHistory() async throws {
         let workspace = TestWorkspace()
-        let registry = TimelinePromptJournals()
-        let timelineManager = TimelineManager(
+        let registry = ThreadPromptJournals()
+        let threadManager = ThreadManager(
             workspaceRoot: workspace.root,
             promptHistoryRegistry: registry
         )
 
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
 
         // Populate the registry with distinguishing state.
         let history = await registry.history(for: session.id)
         await history.recordAppend(messageCount: 3, estimatedTokens: 90)
         #expect(await history.appendedMessageCount == 3)
 
-        // evictTimelineFromMemory is the runtime-eviction seam: cache + registry.
-        await timelineManager.evictTimelineFromMemory(id: session.id)
+        // evictThreadFromMemory is the runtime-eviction seam: cache + registry.
+        await threadManager.evictThreadFromMemory(id: session.id)
 
         // Cache evicted.
-        #expect(await timelineManager.timeline(id: session.id) == nil)
+        #expect(await threadManager.thread(id: session.id) == nil)
 
         // Registry evicted — re-fetch yields a fresh instance with reset state.
         let fresh = await registry.history(for: session.id)
@@ -185,21 +185,21 @@ struct ThreadManagerTests {
     @Test("cleanupStaleTimelines(maxAge:) also drops the prompt-history registry entry")
     func cleanupStaleEvictsPromptHistory() async throws {
         let workspace = TestWorkspace()
-        let registry = TimelinePromptJournals()
-        let timelineManager = TimelineManager(
+        let registry = ThreadPromptJournals()
+        let threadManager = ThreadManager(
             workspaceRoot: workspace.root,
             promptHistoryRegistry: registry
         )
 
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
 
         let history = await registry.history(for: session.id)
         await history.recordAppend(messageCount: 5, estimatedTokens: 150)
         #expect(await history.appendedMessageCount == 5)
 
-        await timelineManager.cleanupStaleTimelines(maxAge: 0)
+        await threadManager.cleanupStaleThreads(maxAge: 0)
 
-        #expect(await timelineManager.timeline(id: session.id) == nil)
+        #expect(await threadManager.thread(id: session.id) == nil)
 
         let fresh = await registry.history(for: session.id)
         #expect(await fresh.appendedMessageCount == 0)
@@ -207,22 +207,22 @@ struct ThreadManagerTests {
     }
 
     @Test("evictTimelineFromMemory(id:) with no injected registry still evicts the cache")
-    func deleteTimelineWithoutRegistry() async throws {
+    func deleteThreadWithoutRegistry() async throws {
         let workspace = TestWorkspace()
-        let timelineManager = TimelineManager(workspaceRoot: workspace.root)
+        let threadManager = ThreadManager(workspaceRoot: workspace.root)
 
-        let session = try await timelineManager.createTimeline()
+        let session = try await threadManager.createThread()
 
-        await timelineManager.evictTimelineFromMemory(id: session.id)
+        await threadManager.evictThreadFromMemory(id: session.id)
 
-        #expect(await timelineManager.timeline(id: session.id) == nil)
+        #expect(await threadManager.thread(id: session.id) == nil)
     }
 
     @Test("Test Task Registration and Cancellation")
     func taskCancellation() async {
         let workspaceRoot = getTestWorkspaceRoot().appendingPathComponent(UUID().uuidString)
-        let timelineManager = TimelineManager(workspaceRoot: workspaceRoot)
-        let timelineId = UUID()
+        let threadManager = ThreadManager(workspaceRoot: workspaceRoot)
+        let threadID = UUID()
 
         let isCancelled = Mutex(false)
 
@@ -233,10 +233,10 @@ struct ThreadManagerTests {
             isCancelled.withLock { $0 = true }
         }
 
-        await timelineManager.registerTask(task, sendID: UUID(), for: timelineId)
+        await threadManager.registerTask(task, sendID: UUID(), for: threadID)
 
         // Verify it's in the registry (using internal access if possible, or just through behavior)
-        await timelineManager.cancelGeneration(for: timelineId)
+        await threadManager.cancelGeneration(for: threadID)
 
         // Poll until the task observes cancellation, with a generous CI-safe deadline
         // (guards only against a genuine hang, not normal scheduling variance).
@@ -253,9 +253,9 @@ struct ThreadManagerTests {
     func hydrateShortCircuit() async throws {
         let persistence = MockPersistenceService()
         let workspace = TestWorkspace()
-        let timelineManager = TimelineManager(
+        let threadManager = ThreadManager(
             stores: .init(
-                timelineStore: persistence,
+                threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
                 toolPersistence: persistence
@@ -263,22 +263,22 @@ struct ThreadManagerTests {
             workspaceRoot: workspace.root
         )
 
-        let timeline = try await timelineManager.createTimeline()
-        try await persistence.deleteTimeline(id: timeline.id)
+        let thread = try await threadManager.createThread()
+        try await persistence.deleteThread(id: thread.id)
 
-        try await timelineManager.hydrateTimeline(id: timeline.id)
-        #expect(await timelineManager.timeline(id: timeline.id) != nil)
+        try await threadManager.hydrateThread(id: thread.id)
+        #expect(await threadManager.thread(id: thread.id) != nil)
     }
 
     @Test("hydrateTimeline throws timelineNotFound when persistence has no timeline")
     func hydrateMissing() async throws {
         let workspace = TestWorkspace()
-        let timelineManager = TimelineManager(workspaceRoot: workspace.root)
+        let threadManager = ThreadManager(workspaceRoot: workspace.root)
 
         do {
-            try await timelineManager.hydrateTimeline(id: UUID())
+            try await threadManager.hydrateThread(id: UUID())
             Issue.record("Expected timelineNotFound")
-        } catch TimelineError.timelineNotFound {
+        } catch ThreadError.threadNotFound {
             // ok
         }
     }
@@ -287,9 +287,9 @@ struct ThreadManagerTests {
     func updateTitle() async throws {
         let persistence = MockPersistenceService()
         let workspace = TestWorkspace()
-        let timelineManager = TimelineManager(
+        let threadManager = ThreadManager(
             stores: .init(
-                timelineStore: persistence,
+                threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
                 toolPersistence: persistence
@@ -297,25 +297,25 @@ struct ThreadManagerTests {
             workspaceRoot: workspace.root
         )
 
-        let timeline = try await timelineManager.createTimeline()
+        let thread = try await threadManager.createThread()
 
-        try await timelineManager.updateTimelineTitle(id: timeline.id, title: "renamed")
+        try await threadManager.updateThreadTitle(thread.id, title: "renamed")
 
-        let cached = try #require(await timelineManager.timeline(id: timeline.id))
+        let cached = try #require(await threadManager.thread(id: thread.id))
         #expect(cached.title == "renamed")
-        let persisted = try #require(await persistence.fetchTimeline(id: timeline.id))
+        let persisted = try #require(await persistence.fetchThread(id: thread.id))
         #expect(persisted.title == "renamed")
     }
 
     @Test("updateTimelineTitle for a missing timeline throws timelineNotFound")
     func updateTitleMissing() async throws {
         let workspace = TestWorkspace()
-        let timelineManager = TimelineManager(workspaceRoot: workspace.root)
+        let threadManager = ThreadManager(workspaceRoot: workspace.root)
 
         do {
-            try await timelineManager.updateTimelineTitle(id: UUID(), title: "x")
-            Issue.record("Expected timelineNotFound")
-        } catch TimelineError.timelineNotFound {
+            try await threadManager.updateThreadTitle(UUID(), title: "x")
+            Issue.record("Expected threadNotFound")
+        } catch ThreadError.threadNotFound {
             // ok
         }
     }
@@ -324,9 +324,9 @@ struct ThreadManagerTests {
     func cleanupStaleDoesNotPersistDelete() async throws {
         let persistence = MockPersistenceService()
         let workspace = TestWorkspace()
-        let timelineManager = TimelineManager(
+        let threadManager = ThreadManager(
             stores: .init(
-                timelineStore: persistence,
+                threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
                 toolPersistence: persistence
@@ -334,23 +334,23 @@ struct ThreadManagerTests {
             workspaceRoot: workspace.root
         )
 
-        let timeline = try await timelineManager.createTimeline()
+        let thread = try await threadManager.createThread()
 
-        await timelineManager.cleanupStaleTimelines(maxAge: 0)
+        await threadManager.cleanupStaleThreads(maxAge: 0)
 
-        #expect(await timelineManager.timeline(id: timeline.id) == nil)
-        let persisted = try #require(await persistence.fetchTimeline(id: timeline.id))
-        #expect(persisted.id == timeline.id)
+        #expect(await threadManager.thread(id: thread.id) == nil)
+        let persisted = try #require(await persistence.fetchThread(id: thread.id))
+        #expect(persisted.id == thread.id)
     }
 
     @Test("createTimeline creates Notes/Welcome.md and Notes/Project.md in the working directory")
-    func createTimelineWritesDefaultNotes() async throws {
+    func createThreadWritesDefaultNotes() async throws {
         let workspace = TestWorkspace()
-        let timelineManager = TimelineManager(workspaceRoot: workspace.root)
+        let threadManager = ThreadManager(workspaceRoot: workspace.root)
 
-        let timeline = try await timelineManager.createTimeline()
+        let thread = try await threadManager.createThread()
 
-        let workingDir = try #require(timeline.workingDirectory)
+        let workingDir = try #require(thread.workingDirectory)
         let notesDir = URL(fileURLWithPath: workingDir).appendingPathComponent("Notes")
         let welcome = try String(
             contentsOf: notesDir.appendingPathComponent("Welcome.md"),
@@ -367,5 +367,5 @@ struct ThreadManagerTests {
     // Note: the four `createToolManager` policy tests previously here were migrated to
     // `RuntimeToolPolicyFactoryTests` (under `Tests/PositronicKitTests/Services/`), which
     // exercises the extracted `RuntimeToolPolicyFactory` directly with in-memory stores —
-    // satisfying PKARCH-003 AC #4 without needing a `TimelineManager` instance.
+    // satisfying PKARCH-003 AC #4 without needing a `ThreadManager` instance.
 }

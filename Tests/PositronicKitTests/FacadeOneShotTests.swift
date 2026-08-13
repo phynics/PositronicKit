@@ -16,7 +16,7 @@ struct FacadeOneShotTests {
         llm.stubbedStream = Self.stream(contents: ["hel", "lo"])
         let persistence = PositronicKit.PersistenceConfiguration(
             messageStore: InMemoryMessageStore(),
-            timelinePersistence: InMemoryTimelinePersistence(),
+            threadPersistence: InMemoryThreadPersistence(),
             workspacePersistence: InMemoryWorkspacePersistence(),
             memoryStore: InMemoryMemoryStore(),
             toolPersistence: InMemoryToolPersistence(),
@@ -32,7 +32,7 @@ struct FacadeOneShotTests {
 
         #expect(result == "hello")
         #expect(try await persistence.messageStore.fetchMessages(for: UUID()).isEmpty)
-        #expect(try await persistence.timelinePersistence.fetchAllTimelines(includeArchived: true).isEmpty)
+        #expect(try await persistence.threadPersistence.fetchAllThreads(includeArchived: true).isEmpty)
         #expect(try await persistence.workspacePersistence.fetchAllWorkspaces().isEmpty)
         #expect(try await persistence.toolPersistence.fetchTools(forWorkspaces: []).isEmpty)
         #expect(try await persistence.agentInstanceStore.fetchAllAgentInstances().isEmpty)
@@ -44,12 +44,12 @@ struct FacadeOneShotTests {
         let llm = MockLLMService()
         llm.stubbedStream = Self.stream(contents: ["one", "two"])
         let messageStore = InMemoryMessageStore()
-        let timelinePersistence = InMemoryTimelinePersistence()
+        let threadPersistence = InMemoryThreadPersistence()
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: llm),
             persistence: .init(
                 messageStore: messageStore,
-                timelinePersistence: timelinePersistence
+                threadPersistence: threadPersistence
             )
         ))
 
@@ -57,7 +57,7 @@ struct FacadeOneShotTests {
 
         #expect(events.compactMap { $0.choices.first?.delta.content } == ["one", "two"])
         #expect(try await messageStore.fetchMessages(for: UUID()).isEmpty)
-        #expect(try await timelinePersistence.fetchAllTimelines(includeArchived: true).isEmpty)
+        #expect(try await threadPersistence.fetchAllThreads(includeArchived: true).isEmpty)
     }
 
     @Test("abandoning one-shot iteration cancels the provider exactly once")
@@ -105,7 +105,7 @@ struct FacadeOneShotTests {
             provider: .init(languageModel: llm),
             persistence: .init(
                 messageStore: InMemoryMessageStore(),
-                timelinePersistence: InMemoryTimelinePersistence()
+                threadPersistence: InMemoryThreadPersistence()
             )
         ))
         let parameters = GenerationParameters(temperature: 0.2, maxTokens: 12)
@@ -128,7 +128,7 @@ struct FacadeOneShotTests {
             provider: .init(languageModel: llm),
             persistence: .init(
                 messageStore: InMemoryMessageStore(),
-                timelinePersistence: InMemoryTimelinePersistence()
+                threadPersistence: InMemoryThreadPersistence()
             )
         ))
 
@@ -153,7 +153,7 @@ struct FacadeOneShotTests {
             provider: .init(languageModel: llm),
             persistence: .init(
                 messageStore: InMemoryMessageStore(),
-                timelinePersistence: InMemoryTimelinePersistence()
+                threadPersistence: InMemoryThreadPersistence()
             )
         ))
         let task = Task {
@@ -209,7 +209,7 @@ struct FacadeOneShotTests {
             provider: .init(languageModel: llm),
             persistence: PositronicKit.PersistenceConfiguration(
                 messageStore: InMemoryMessageStore(),
-                timelinePersistence: InMemoryTimelinePersistence(),
+                threadPersistence: InMemoryThreadPersistence(),
                 workspacePersistence: InMemoryWorkspacePersistence(),
                 memoryStore: InMemoryMemoryStore(),
                 toolPersistence: InMemoryToolPersistence(),
@@ -334,7 +334,7 @@ struct FacadeOneShotTests {
             provider: .init(languageModel: llm),
             persistence: PositronicKit.PersistenceConfiguration(
                 messageStore: InMemoryMessageStore(),
-                timelinePersistence: InMemoryTimelinePersistence(),
+                threadPersistence: InMemoryThreadPersistence(),
                 workspacePersistence: InMemoryWorkspacePersistence(),
                 memoryStore: InMemoryMemoryStore(),
                 toolPersistence: InMemoryToolPersistence(),
@@ -364,7 +364,7 @@ struct FacadeOneShotTests {
             provider: .init(languageModel: llm),
             persistence: PositronicKit.PersistenceConfiguration(
                 messageStore: InMemoryMessageStore(),
-                timelinePersistence: InMemoryTimelinePersistence(),
+                threadPersistence: InMemoryThreadPersistence(),
                 workspacePersistence: InMemoryWorkspacePersistence(),
                 memoryStore: InMemoryMemoryStore(),
                 toolPersistence: InMemoryToolPersistence(),
@@ -392,7 +392,7 @@ struct FacadeOneShotTests {
             provider: .init(languageModel: llm),
             persistence: PositronicKit.PersistenceConfiguration(
                 messageStore: InMemoryMessageStore(),
-                timelinePersistence: InMemoryTimelinePersistence()
+                threadPersistence: InMemoryThreadPersistence()
             )
         ))
 
@@ -425,7 +425,7 @@ struct FacadeOneShotTests {
             provider: .init(languageModel: languageModel),
             persistence: .init(
                 messageStore: InMemoryMessageStore(),
-                timelinePersistence: InMemoryTimelinePersistence()
+                threadPersistence: InMemoryThreadPersistence()
             ),
             generationParameters: generationParameters
         ))

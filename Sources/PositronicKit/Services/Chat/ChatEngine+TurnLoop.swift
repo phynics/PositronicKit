@@ -232,7 +232,7 @@ private extension ChatEngine {
     ) async -> LoopContinuation {
         let sid = context.threadID.uuidString.prefix(8).lowercased()
         let turnLabel = "\(context.turnCount)"
-        logger.info("Starting turn \(turnLabel) for timeline \(sid)")
+        logger.info("Starting turn \(turnLabel) for thread \(sid)")
 
         do {
             try Task.checkCancellation()

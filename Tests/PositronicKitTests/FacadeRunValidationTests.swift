@@ -25,13 +25,13 @@ struct FacadeRunValidationTests {
 
         await expectMissingAgent(agentID) {
             _ = try await harness.kit.run(ChatRunRequest(
-                timelineID: harness.timelineID,
+                threadID: harness.threadID,
                 message: "must not persist",
                 agentInstanceID: agentID,
             ))
         }
 
-        #expect(try await harness.persistence.fetchMessages(for: harness.timelineID).isEmpty)
+        #expect(try await harness.persistence.fetchMessages(for: harness.threadID).isEmpty)
         #expect(harness.languageModel.chatCaptureHistory.isEmpty)
         #expect(await harness.agentStore.fetchCount == 1)
     }
@@ -44,13 +44,13 @@ struct FacadeRunValidationTests {
 
         await expectMissingAgent(agentID) {
             _ = try await harness.kit.run(ChatRunRequest(
-                timelineID: harness.timelineID,
+                threadID: harness.threadID,
                 message: "agent validation wins",
                 agentInstanceID: agentID,
             ))
         }
 
-        #expect(try await harness.persistence.fetchMessages(for: harness.timelineID).isEmpty)
+        #expect(try await harness.persistence.fetchMessages(for: harness.threadID).isEmpty)
         #expect(harness.languageModel.chatCaptureHistory.isEmpty)
         #expect(await harness.agentStore.fetchCount == 1)
     }
@@ -62,7 +62,7 @@ struct FacadeRunValidationTests {
         harness.languageModel.mockClient.nextResponse = "continued"
 
         let stream = try await harness.kit.run(ChatRunRequest(
-            timelineID: harness.timelineID,
+            threadID: harness.threadID,
             message: "continue without agent",
             agentInstanceID: agentID,
         ))
@@ -83,7 +83,7 @@ struct FacadeRunValidationTests {
 
         #expect(await harness.agentStore.fetchCount == 1)
         #expect(harness.languageModel.chatCaptureHistory.count == 1)
-        let messages = try await harness.persistence.fetchMessages(for: harness.timelineID)
+        let messages = try await harness.persistence.fetchMessages(for: harness.threadID)
         #expect(messages.map(\.role) == ["user", "assistant"])
     }
 
@@ -93,14 +93,14 @@ struct FacadeRunValidationTests {
         let agent = AgentInstance(
             name: "Preflight Agent",
             description: description,
-            privateTimelineID: UUID(),
+            privateThreadID: UUID(),
         )
         let harness = try await makeAgentHarness(policy: .failRequired, agent: agent)
-        try await harness.kit.agentInstanceManager.attach(agentID: agent.id, to: harness.timelineID)
+        try await harness.kit.agentInstanceManager.attach(agentID: agent.id, to: harness.threadID)
         harness.languageModel.mockClient.nextResponse = "resolved"
 
         let stream = try await harness.kit.run(ChatRunRequest(
-            timelineID: harness.timelineID,
+            threadID: harness.threadID,
             message: "use the resolved agent",
             agentInstanceID: agent.id,
         ))
@@ -120,13 +120,13 @@ struct FacadeRunValidationTests {
         let agent = AgentInstance(
             name: "Retry Agent",
             description: "available on retry",
-            privateTimelineID: UUID(),
+            privateThreadID: UUID(),
         )
         let sendID = UUID()
 
         await expectMissingAgent(agent.id) {
             _ = try await harness.kit.run(ChatRunRequest(
-                timelineID: harness.timelineID,
+                threadID: harness.threadID,
                 sendID: sendID,
                 message: "retryable input",
                 agentInstanceID: agent.id,
@@ -134,10 +134,10 @@ struct FacadeRunValidationTests {
         }
 
         try await harness.agentStore.saveAgentInstance(agent)
-        try await harness.kit.agentInstanceManager.attach(agentID: agent.id, to: harness.timelineID)
+        try await harness.kit.agentInstanceManager.attach(agentID: agent.id, to: harness.threadID)
         harness.languageModel.mockClient.nextResponse = "retried"
         let stream = try await harness.kit.run(ChatRunRequest(
-            timelineID: harness.timelineID,
+            threadID: harness.threadID,
             sendID: sendID,
             message: "retryable input",
             agentInstanceID: agent.id,
@@ -162,9 +162,9 @@ struct FacadeRunValidationTests {
             provider: .init(languageModel: languageModel),
             persistence: .inMemory(),
         ))
-        let timeline = try await kit.timelineManager.createTimeline()
+        let thread = try await kit.threadManager.createThread()
         let stream = try await kit.run(ChatRunRequest(
-            timelineID: timeline.id,
+            threadID: thread.id,
             message: "cancel this run",
         ))
         let consumer = Task {
@@ -181,8 +181,8 @@ struct FacadeRunValidationTests {
         }
 
         await probe.waitUntilStarted()
-        #expect(await kit.timelineManager.hasActiveTask(for: timeline.id))
-        let activeTaskSnapshot = await kit.timelineManager.activeTaskCompletion(for: timeline.id)
+        #expect(await kit.threadManager.hasActiveTask(for: thread.id))
+        let activeTaskSnapshot = await kit.threadManager.activeTaskCompletion(for: thread.id)
         let activeTask = try #require(activeTaskSnapshot)
         #expect(probe.terminationCount == 0)
 
@@ -192,30 +192,30 @@ struct FacadeRunValidationTests {
         _ = await activeTask.value
 
         #expect(probe.terminationCount == 1)
-        #expect(await kit.timelineManager.hasActiveTask(for: timeline.id) == false)
+        #expect(await kit.threadManager.hasActiveTask(for: thread.id) == false)
     }
 
     private func assertInvalidMaxTurns(_ maxTurns: Int) async throws {
         let languageModel = MockLLMService()
         let messageStore = FailingMessageStore()
-        let timelineStore = FailingTimelinePersistence(fetchFails: true)
+        let threadStore = FailingThreadPersistence(fetchFails: true)
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: languageModel),
             persistence: .init(
                 messageStore: messageStore,
-                timelinePersistence: timelineStore,
+                threadPersistence: threadStore,
             ),
         ))
 
         await #expect(throws: ChatRunError.invalidMaxTurns(maxTurns)) {
             _ = try await kit.run(ChatRunRequest(
-                timelineID: UUID(),
+                threadID: UUID(),
                 message: "must not reach I/O",
                 maxTurns: maxTurns,
             ))
         }
 
-        #expect(timelineStore.fetchAttemptCount == 0)
+        #expect(threadStore.fetchAttemptCount == 0)
         #expect(messageStore.attemptedMessages.isEmpty)
         #expect(languageModel.chatRequestHistory.isEmpty)
         #expect(languageModel.chatCaptureHistory.isEmpty)
@@ -233,7 +233,7 @@ struct FacadeRunValidationTests {
             provider: .init(languageModel: languageModel),
             persistence: .init(
                 messageStore: persistence,
-                timelinePersistence: persistence,
+                threadPersistence: persistence,
                 workspacePersistence: persistence,
                 memoryStore: persistence,
                 toolPersistence: persistence,
@@ -242,13 +242,13 @@ struct FacadeRunValidationTests {
             ),
             runtime: .init(degradationPolicy: policy),
         ))
-        let timeline = try await kit.timelineManager.createTimeline()
+        let thread = try await kit.threadManager.createThread()
         return AgentHarness(
             kit: kit,
             languageModel: languageModel,
             persistence: persistence,
             agentStore: agentStore,
-            timelineID: timeline.id,
+            threadID: thread.id,
         )
     }
 
@@ -272,7 +272,7 @@ private struct AgentHarness {
     let languageModel: MockLLMService
     let persistence: MockPersistenceService
     let agentStore: CountingAgentInstanceStore
-    let timelineID: UUID
+    let threadID: UUID
 }
 
 private actor CountingAgentInstanceStore: AgentInstanceStoreProtocol {

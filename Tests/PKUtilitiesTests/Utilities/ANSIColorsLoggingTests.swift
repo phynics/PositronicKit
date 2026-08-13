@@ -84,7 +84,7 @@ struct ANSIColorsLoggingTests {
         // Simulates the pre-PKRR-013 log construction that PKRR-024 regression-tests against:
         // a colored tool name (with a presentation glyph) embedded directly in the message.
         let coloredTool = ANSIColors.colorize("🛠️ calc", color: ANSIColors.brightCyan)
-        logger.info("Routing \(coloredTool) in timeline abc12345")
+        logger.info("Routing \(coloredTool) in thread abc12345")
 
         let entries = sink.all()
         #expect(entries.count == 1)

@@ -23,14 +23,14 @@ struct PromptObservingTests {
         let secondLLM = MockLLMService()
 
         private(set) var baseKit: PositronicKit!
-        private(set) var timelineId: UUID!
+        private(set) var threadID: UUID!
 
         init() async throws {
             baseKit = PositronicKit(configuration: .init(
                 provider: .init(languageModel: firstLLM),
                 persistence: .init(
                     messageStore: persistence,
-                    timelinePersistence: persistence,
+                    threadPersistence: persistence,
                     workspacePersistence: persistence,
                     memoryStore: persistence,
                     toolPersistence: persistence,
@@ -39,8 +39,8 @@ struct PromptObservingTests {
                 ),
                 runtime: .init(promptObserver: inspector)
             ))
-            let timeline = try await baseKit.timelineManager.createTimeline(title: "Reconfiguration")
-            timelineId = timeline.id
+            let thread = try await baseKit.threadManager.createThread(title: "Reconfiguration")
+            threadID = thread.id
         }
 
         func run(
@@ -48,7 +48,7 @@ struct PromptObservingTests {
             message: String
         ) async throws {
             let stream = try await kit.run(ChatRunRequest(
-                timelineID: timelineId,
+                threadID: threadID,
                 message: message
             ))
             for try await _ in stream {}
@@ -56,15 +56,15 @@ struct PromptObservingTests {
     }
 
     private final class ChatEngineTestHarness {
-        let timelineId = UUID()
+        let threadID = UUID()
         let llm = MockLLMService()
         let persistence = MockPersistenceService()
         let engine: ChatEngine
 
         init(inspector: (any PromptObserving)? = nil) async throws {
-            let timelineManager = TimelineManager(
+            let threadManager = ThreadManager(
                 stores: .init(
-                    timelineStore: persistence,
+                    threadStore: persistence,
                     messageStore: persistence,
                     workspaceStore: persistence,
                     toolPersistence: persistence
@@ -73,12 +73,12 @@ struct PromptObservingTests {
                 workspaceCreator: MockWorkspaceCreator()
             )
             let toolRouter = ToolRouter(
-                timelineManager: timelineManager,
+                threadManager: threadManager,
                 messageStore: persistence
             )
             engine = ChatEngine(
                 dependencies: .init(
-                    timelineManager: timelineManager,
+                    threadManager: threadManager,
                     agentInstanceStore: persistence,
                     requestOriginStore: persistence,
                     messageStore: persistence,
@@ -89,29 +89,29 @@ struct PromptObservingTests {
                 )
             )
 
-            let session = Timeline(id: timelineId, title: "Test Session")
-            try await persistence.saveTimeline(session)
+            let session = Thread(id: threadID, title: "Test Session")
+            try await persistence.saveThread(session)
 
             let workspaceId = UUID()
             let workspaceRef = WorkspaceReference(
                 id: workspaceId,
                 uri: WorkspaceURI(parsing: "pk://local")!,
-                location: .runtimeTimeline,
+                location: .runtimeThread,
                 originID: nil,
                 rootPath: "/tmp"
             )
             try await persistence.saveWorkspace(workspaceRef)
-            try await timelineManager.attachWorkspace(workspaceId, to: timelineId)
+            try await threadManager.attachWorkspace(workspaceId, to: threadID)
             try await persistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("mock_tool"))
 
-            try await timelineManager.hydrateTimeline(id: timelineId)
+            try await threadManager.hydrateThread(id: threadID)
 
-            if let toolManager = await timelineManager.getToolManager(for: timelineId) {
+            if let toolManager = await threadManager.getToolManager(for: threadID) {
                 var tools = await toolManager.getAvailableTools()
                 tools.append(MockTool().toAnyTool())
                 await toolManager.updateAvailableTools(tools)
 
-                if let workspace = try? await timelineManager.workspaceResolver.workspace(id: workspaceId) {
+                if let workspace = try? await threadManager.workspaceResolver.workspace(id: workspaceId) {
                     await toolManager.registerWorkspace(workspace)
                 }
             }
@@ -123,7 +123,7 @@ struct PromptObservingTests {
             maxTurns: Int = ChatEngine.Constants.defaultMaxTurns
         ) async throws -> [ChatEvent] {
             let stream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 message: message,
                 tools: tools,
                 maxTurns: maxTurns
@@ -154,7 +154,7 @@ struct PromptObservingTests {
         func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
             if shouldWait { try? await Task.sleep(nanoseconds: 100_000_000) }
             if !result.success, result.error == "client_tools_disallowed_on_private_timeline" {
-                throw ToolError.attachedToolsDisallowedOnPrivateTimeline
+                throw ToolError.attachedToolsDisallowedOnPrivateThread
             }
             return result
         }
@@ -170,7 +170,7 @@ struct PromptObservingTests {
 
         let value = try #require(await recorder.values.first)
         let modelName = await harness.llm.configuration.activeProviderConfiguration.modelName
-        #expect(value.threadID == harness.timelineId)
+        #expect(value.threadID == harness.threadID)
         #expect(value.turnIndex == 0)
         #expect(value.model == modelName)
         #expect(value.sentMessages == value.rendered.buildMessages())
@@ -292,7 +292,7 @@ struct PromptObservingTests {
             provider: .init(languageModel: harness.secondLLM),
             persistence: .init(
                 messageStore: harness.persistence,
-                timelinePersistence: harness.persistence,
+                threadPersistence: harness.persistence,
                 workspacePersistence: harness.persistence,
                 memoryStore: harness.persistence,
                 toolPersistence: harness.persistence,

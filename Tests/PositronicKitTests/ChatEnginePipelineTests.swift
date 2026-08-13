@@ -40,7 +40,7 @@ private func makeContext(
     }
 
     return ChatTurnContext(
-        timelineId: UUID(),
+        threadID: UUID(),
         agentInstanceId: nil,
         modelName: "test-model",
         maxTurns: 5,
@@ -372,7 +372,7 @@ final class ToolCallExtractionStageBehavior {
         #expect(accumulators.isEmpty)
     }
 
-    /// YAK-42: emitted records must carry the *raw* timelineId as `timelineID`
+    /// YAK-42: emitted records must carry the *raw* threadID as `threadID`
     /// so PositronicKit logs correlate with Yakamoz (YAK-40) logs in Console.app.
     /// Also asserts YAK-37 redaction: no raw tool arguments / secrets leak into metadata.
     @Test
@@ -383,13 +383,13 @@ final class ToolCallExtractionStageBehavior {
         }
         let stage = ToolCallExtractionStage(logger: logger)
 
-        let timelineId = UUID()
+        let threadID = UUID()
         let outputs = TurnOutputs()
         let secretArg = #"{"api_key": "sk-super-secret-payload"}"#
         await outputs.setToolCallAccumulator(index: 0, id: "call-123", name: "lookup", args: secretArg)
 
         let context = ChatTurnContext(
-            timelineId: timelineId,
+            threadID: threadID,
             agentInstanceId: nil,
             modelName: "test-model",
             maxTurns: 5,
@@ -407,10 +407,10 @@ final class ToolCallExtractionStageBehavior {
         let records = recorder.snapshot()
         #expect(!records.isEmpty)
 
-        // timelineID must be present and equal to the RAW uuid string (not hashed).
-        let timelineIDs = records.compactMap { $0["timelineID"] }
-        #expect(!timelineIDs.isEmpty)
-        #expect(timelineIDs.allSatisfy { $0 == timelineId.uuidString })
+        // threadID must be present and equal to the RAW uuid string (not hashed).
+        let threadIDs = records.compactMap { $0["timelineID"] }
+        #expect(!threadIDs.isEmpty)
+        #expect(threadIDs.allSatisfy { $0 == threadID.uuidString })
 
         // turnIndex must reflect the turn count.
         let turnIndexes = records.compactMap { $0["turnIndex"] }

@@ -15,7 +15,7 @@ import Testing
 /// is exercised end to end.
 @Suite(.serialized) @MainActor
 struct ChatEngineTerminalInvariantTests {
-    private let timelineId = UUID()
+    private let threadID = UUID()
 
     /// Mirrors `ChatEngineFailurePersistenceTests.withChatEngineDependencies` but is kept local
     /// and adds a `plugins` parameter so post-terminal plugin activity is observable.
@@ -25,9 +25,9 @@ struct ChatEngineTerminalInvariantTests {
     ) async throws -> T {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
-        let timelineManager = TimelineManager(
+        let threadManager = ThreadManager(
             stores: .init(
-                timelineStore: mockPersistence,
+                threadStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
                 toolPersistence: mockPersistence
@@ -36,12 +36,12 @@ struct ChatEngineTerminalInvariantTests {
             workspaceCreator: MockWorkspaceCreator()
         )
         let toolRouter = ToolRouter(
-            timelineManager: timelineManager,
+            threadManager: threadManager,
             messageStore: mockPersistence
         )
         let engine = ChatEngine(
             dependencies: .init(
-                timelineManager: timelineManager,
+                threadManager: threadManager,
                 agentInstanceStore: mockPersistence,
                 requestOriginStore: mockPersistence,
                 messageStore: mockPersistence,
@@ -52,22 +52,22 @@ struct ChatEngineTerminalInvariantTests {
             )
         )
 
-        let session = Timeline(id: timelineId, title: "PKRR-003 Session")
-        try await mockPersistence.saveTimeline(session)
+        let session = Thread(id: threadID, title: "PKRR-003 Session")
+        try await mockPersistence.saveThread(session)
 
         let wsId = UUID()
         let workspaceRef = WorkspaceReference(
             id: wsId,
             uri: WorkspaceURI(parsing: "pk://local")!,
-            location: .runtimeTimeline,
+            location: .runtimeThread,
             originID: nil,
             rootPath: "/tmp"
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
-        try await timelineManager.attachWorkspace(wsId, to: timelineId)
+        try await threadManager.attachWorkspace(wsId, to: threadID)
         try await mockPersistence.addToolToWorkspace(workspaceId: wsId, tool: .known("mock_tool"))
 
-        try await timelineManager.hydrateTimeline(id: timelineId)
+        try await threadManager.hydrateThread(id: threadID)
 
         return try await test(engine, mockLLM, mockPersistence)
     }
@@ -103,7 +103,7 @@ struct ChatEngineTerminalInvariantTests {
             }
 
             let stream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 message: "stream then fail",
                 tools: []
             )
@@ -131,7 +131,7 @@ struct ChatEngineTerminalInvariantTests {
             }
 
             let stream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 message: "stream then cancel",
                 tools: []
             )
@@ -158,7 +158,7 @@ struct ChatEngineTerminalInvariantTests {
             engine.additionalStages = [FailingStage(error: FailingStageError(message: "stage failure"))]
 
             let stream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 message: "succeed LLM then fail stage",
                 tools: []
             )
@@ -189,7 +189,7 @@ struct ChatEngineTerminalInvariantTests {
             )
 
             let stream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 message: "fail then attempt follow-up",
                 tools: []
             )
@@ -209,7 +209,7 @@ struct ChatEngineTerminalInvariantTests {
             #expect(mockLLM.mockClient.streamCallCount == 1, "No second LLM turn after terminal delivery")
 
             // No plugin-injected user message is persisted.
-            let messages = try await mockPersistence.fetchMessages(for: timelineId)
+            let messages = try await mockPersistence.fetchMessages(for: threadID)
             #expect(!messages.contains(where: { $0.role == "user" && $0.content == "follow up" }),
                     "Plugin-injected message must not be persisted after terminal delivery")
         }
@@ -224,7 +224,7 @@ struct ChatEngineTerminalInvariantTests {
             mockLLM.mockClient.nextResponse = "All good"
 
             let stream = try await engine.execute(
-                timelineId: timelineId,
+                threadID: threadID,
                 message: "succeed",
                 tools: []
             )

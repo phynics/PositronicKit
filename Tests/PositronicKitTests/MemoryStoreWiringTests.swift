@@ -64,7 +64,7 @@ struct MemoryStoreWiringTests {
         #expect(context.memories.isEmpty)
     }
 
-    @Test("PositronicKit wires the injected memory store into timeline context gathering")
+    @Test("PositronicKit wires the injected memory store into thread context gathering")
     func facadeWiresMemoryStoreIntoRAG() async throws {
         let workspace = TestWorkspace()
         let memoryStore = MockMemoryStore()
@@ -74,7 +74,7 @@ struct MemoryStoreWiringTests {
 
         let persistence = PositronicKit.PersistenceConfiguration(
             messageStore: InMemoryMessageStore(),
-            timelinePersistence: InMemoryTimelinePersistence(),
+            threadPersistence: InMemoryThreadPersistence(),
             workspacePersistence: InMemoryWorkspacePersistence(),
             memoryStore: memoryStore,
             toolPersistence: InMemoryToolPersistence(),
@@ -83,8 +83,8 @@ struct MemoryStoreWiringTests {
         )
         let core = PositronicKit(configuration: .init(provider: .init(languageModel: UnconfiguredLLMService(), embeddingService: embedding), persistence: persistence, runtime: .init(workspaceRoot: workspace.root)))
 
-        let timeline = try await core.timelineManager.createTimeline()
-        let turnBriefingBuilder = try #require(await core.timelineManager.getTurnBriefingBuilder(for: timeline.id))
+        let thread = try await core.threadManager.createThread()
+        let turnBriefingBuilder = try #require(await core.threadManager.getTurnBriefingBuilder(for: thread.id))
         let events = try await turnBriefingBuilder.gatherContext(for: "what are my preferences?").collect()
 
         let context = try #require(completeContext(from: events))

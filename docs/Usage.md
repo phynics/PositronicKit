@@ -4,7 +4,7 @@ This guide provides step-by-step examples for integrating `PositronicKit` and ma
 
 ## 1. Managing Agent Instances
 
-`AgentInstance` represents a live agent with its own workspace and private timeline. You manage these instances using the `AgentInstanceManager`.
+`AgentInstance` represents a live agent with its own workspace and private thread. You manage these instances using the `AgentInstanceManager`.
 
 ### Creating an Instance
 
@@ -26,13 +26,13 @@ let instance = try await manager.createInstance(
 print("Created agent with ID: \(instance.id)")
 ```
 
-### Attaching an Agent to a Timeline
+### Attaching an Agent to a Thread
 
-To use an agent in a specific chat timeline, you must "attach" it. This grants the agent exclusive access to that timeline.
+To use an agent in a specific chat thread, you must "attach" it. This grants the agent exclusive access to that thread.
 
 ```swift
-let timelineId = UUID() // Your existing timeline ID
-try await manager.attach(agentId: instance.id, to: timelineId)
+let threadID = UUID() // Your existing thread ID
+try await manager.attach(agentId: instance.id, to: threadID)
 ```
 
 ## 2. Initialization and Execution
@@ -106,7 +106,7 @@ let chat = PositronicKit(configuration: .init(
     ),
     persistence: .init(
         messageStore: myMessageStore,
-        timelinePersistence: myTimelinePersistence,
+        threadPersistence: myThreadPersistence,
         workspacePersistence: myWorkspacePersistence,
         memoryStore: myMemoryStore,
         toolPersistence: myToolPersistence,
@@ -130,7 +130,7 @@ import PKShared
 
 // `chat` is the PositronicKit instance from the initialization example above.
 let stream = try await chat.run(ChatRunRequest(
-    timelineID: timelineId,
+    threadID: threadID,
     message: "What are the latest trends in Swift concurrency?",
     agentInstanceID: instance.id // The agent we created earlier
 ))
@@ -215,7 +215,7 @@ LoggingSystem.bootstrap { label in
 
 let logger = Logger(label: "com.example.prompt-assembly")
 let events = try await chat.run(ChatRunRequest(
-    timelineID: timelineId,
+    threadID: threadID,
     message: "…",
     promptAssemblyLogger: logger
 ))
@@ -231,7 +231,7 @@ let toolOutputs = [
 ]
 
 let stream = try await chat.run(ChatRunRequest(
-    timelineID: timelineId,
+    threadID: threadID,
     message: "", // Empty message as we're continuing from a tool call
     tools: tools,
     toolOutputs: toolOutputs,
@@ -266,7 +266,7 @@ retained for `Codable` backward compatibility but are never emitted in productio
 the cases above instead.
 
 ### Agent Persistence
-Agents are persistent. Their workspace (`primaryWorkspaceId`) contains their long-term memory, while their private timeline (`privateTimelineId`) stores their internal monologue and history.
+Agents are persistent. Their workspace (`primaryWorkspaceId`) contains their long-term memory, while their private thread (`privateTimelineId`) stores their internal monologue and history.
 
 ## 4. Local Embeddings
 

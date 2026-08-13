@@ -2,6 +2,7 @@ import Foundation
 import PKShared
 import PKUtilities
 import PositronicKit
+import struct PositronicKit.Thread
 import Synchronization
 
 /// Error thrown by the failing persistence mocks to simulate store failures in
@@ -30,21 +31,21 @@ public final class FailingMessageStore: MessageStoreProtocol, @unchecked Sendabl
         throw FailingStoreError.saveFailed
     }
 
-    public func fetchMessages(for timelineId: UUID) async throws -> [ConversationMessage] { [] }
+    public func fetchMessages(for threadID: UUID) async throws -> [ConversationMessage] { [] }
 
-    public func deleteMessages(for timelineId: UUID) async throws {}
+    public func deleteMessages(for threadID: UUID) async throws {}
 
     public func pruneMessages(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int { 0 }
 
-    public func fetchSnapshots(for timelineId: UUID) async throws -> [TurnSnapshot] { [] }
+    public func fetchSnapshots(for threadID: UUID) async throws -> [TurnSnapshot] { [] }
 }
 
-/// A `TimelinePersistenceProtocol` mock that can be configured to throw on
-/// `fetchTimeline`, `saveTimeline`, and/or `deleteTimeline`, delegating all other
+/// A `ThreadPersistenceProtocol` mock that can be configured to throw on
+/// `fetchThread`, `saveThread`, and/or `deleteThread`, delegating all other
 /// operations to an in-memory backing store. Use it to drive failure-path coverage
-/// for hydration (`fetchTimeline`) and private-timeline cleanup (`deleteTimeline`).
-public final class FailingTimelinePersistence: TimelinePersistenceProtocol, @unchecked Sendable {
-    private let backing = MockTimelinePersistence()
+/// for hydration (`fetchThread`) and private-thread cleanup (`deleteThread`).
+public final class FailingThreadPersistence: ThreadPersistenceProtocol, @unchecked Sendable {
+    private let backing = MockThreadPersistenceStore()
     private let fetchFails: Bool
     private let saveFails: Bool
     private let deleteFails: Bool
@@ -61,41 +62,41 @@ public final class FailingTimelinePersistence: TimelinePersistenceProtocol, @unc
         self.deleteFails = deleteFails
     }
 
-    /// Number of times `fetchTimeline` was invoked.
+    /// Number of times `fetchThread` was invoked.
     public var fetchAttemptCount: Int { fetchAttemptState.withLock { $0 } }
 
-    /// Number of times `deleteTimeline` was invoked.
+    /// Number of times `deleteThread` was invoked.
     public var deleteAttemptCount: Int { deleteAttemptState.withLock { $0 } }
 
-    public func saveTimeline(_ timeline: Timeline) async throws {
+    public func saveThread(_ thread: Thread) async throws {
         if saveFails { throw FailingStoreError.saveFailed }
-        try await backing.saveTimeline(timeline)
+        try await backing.saveThread(thread)
     }
 
-    public func fetchTimeline(id: UUID) async throws -> Timeline? {
+    public func fetchThread(id: UUID) async throws -> Thread? {
         fetchAttemptState.withLock { $0 += 1 }
         if fetchFails { throw FailingStoreError.fetchFailed }
-        return try await backing.fetchTimeline(id: id)
+        return try await backing.fetchThread(id: id)
     }
 
-    public func fetchAllTimelines(includeArchived: Bool) async throws -> [Timeline] {
-        try await backing.fetchAllTimelines(includeArchived: includeArchived)
+    public func fetchAllThreads(includeArchived: Bool) async throws -> [Thread] {
+        try await backing.fetchAllThreads(includeArchived: includeArchived)
     }
 
-    public func deleteTimeline(id: UUID) async throws {
+    public func deleteThread(id: UUID) async throws {
         deleteAttemptState.withLock { $0 += 1 }
         if deleteFails { throw FailingStoreError.deleteFailed }
-        try await backing.deleteTimeline(id: id)
+        try await backing.deleteThread(id: id)
     }
 
-    public func pruneTimelines(
+    public func pruneThreads(
         olderThan timeInterval: TimeInterval,
-        excluding excludedTimelineIds: [UUID],
+        excluding excludedThreadIDs: [UUID],
         dryRun: Bool
     ) async throws -> Int {
-        try await backing.pruneTimelines(
+        try await backing.pruneThreads(
             olderThan: timeInterval,
-            excluding: excludedTimelineIds,
+            excluding: excludedThreadIDs,
             dryRun: dryRun
         )
     }
@@ -104,7 +105,7 @@ public final class FailingTimelinePersistence: TimelinePersistenceProtocol, @unc
 /// A `WorkspaceStore` mock that can be configured to throw on `fetchWorkspace` and/or
 /// `saveWorkspace`, delegating all other operations to an in-memory backing store. Use it
 /// to drive failure-path coverage for workspace resolution in `getWorkspaces`,
-/// `setupTimelineComponents`, and lifecycle rollback in `createTimeline`/`attachWorkspace`.
+/// `setupThreadComponents`, and lifecycle rollback in `createThread`/`attachWorkspace`.
 public final class FailingWorkspaceStore: WorkspaceStore, @unchecked Sendable {
     private let backing = MockWorkspacePersistence()
     private let fetchFailsState = Mutex<Bool>(false)
@@ -194,17 +195,17 @@ public final class BatchFailingMessageStore: MessageStoreProtocol {
         try await backing.saveMessage(message)
     }
 
-    public func fetchMessages(for timelineId: UUID) async throws -> [ConversationMessage] {
-        try await backing.fetchMessages(for: timelineId)
+    public func fetchMessages(for threadID: UUID) async throws -> [ConversationMessage] {
+        try await backing.fetchMessages(for: threadID)
     }
 
-    public func deleteMessages(for timelineId: UUID) async throws {
-        try await backing.deleteMessages(for: timelineId)
+    public func deleteMessages(for threadID: UUID) async throws {
+        try await backing.deleteMessages(for: threadID)
     }
 
     public func pruneMessages(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int { 0 }
 
-    public func fetchSnapshots(for timelineId: UUID) async throws -> [TurnSnapshot] { [] }
+    public func fetchSnapshots(for threadID: UUID) async throws -> [TurnSnapshot] { [] }
 }
 
 /// A `ToolPersistenceProtocol` mock that can be configured to throw on
@@ -255,3 +256,7 @@ public final class FailingToolPersistence: ToolPersistenceProtocol, @unchecked S
         )
     }
 }
+
+/// Deprecated fixture spelling retained for tests that exercise the v3 persistence protocol.
+@available(*, deprecated, renamed: "FailingThreadPersistence", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+public typealias FailingTimelinePersistence = FailingThreadPersistence

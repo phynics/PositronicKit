@@ -19,7 +19,7 @@ import PKUtilities
 /// Intended extension seams for downstream applications are the facade itself plus public runtime
 /// protocols such as persistence stores, `WorkspaceFactory` / `Workspace`,
 /// `PromptSectionProviding`, and `ChatTurnPlugin`. Internal coordinators like `ChatEngine`,
-/// `TimelinePromptHistory`, and the concrete turn pipeline remain runtime implementation details
+/// `ThreadPromptHistory`, and the concrete turn pipeline remain runtime implementation details
 /// even when they are visible to tests inside this package.
 ///
 /// Example usage:
@@ -86,7 +86,7 @@ public final class PositronicKit: Sendable {
 
     private let chatEngine: ChatEngine
 
-    /// Owned internally; every timeline driver vended by this instance shares it automatically.
+    /// Owned internally; every thread driver vended by this instance shares it automatically.
     /// Construct a new `PositronicKit` for a genuinely separate cross-send history.
     private let promptHistoryRegistry: ThreadPromptJournals
     private let workspaceProfile: WorkspaceProfile
@@ -208,7 +208,7 @@ public final class PositronicKit: Sendable {
         // The catalog root anchors agent-private workspace provisioning (a separate, opt-in
         // path from thread workspaces). For `.noWorkspace` there is no profile root, so fall
         // back to a process-temporary path so the catalog still has somewhere to anchor if a
-        // host later creates agent workspaces. Timeline creation itself is unaffected: `.noWorkspace`
+        // host later creates agent workspaces. Thread creation itself is unaffected: `.noWorkspace`
         // provisions no thread directory regardless of this value.
         let resolvedCatalogRoot = dependencies.workspaceProfile.catalogRoot
             ?? FileManager.default.temporaryDirectory
@@ -306,7 +306,7 @@ public final class PositronicKit: Sendable {
     /// inspection turn indexing), stores, tools, plugins, and workspace wiring.
     ///
     /// This is the supported path for hosts that must refresh provider settings between sends
-    /// without silently resetting per-timeline prompt-history state.
+    /// without silently resetting per-thread prompt-history state.
     public func reconfigured(
         languageModel: any LanguageModel,
         generationParameters: GenerationParameters? = nil
@@ -410,10 +410,10 @@ public final class PositronicKit: Sendable {
     /// Resolves the `TurnBriefingBuilder` for a turn, hydrating the thread from persistence
     /// first if it isn't already cached in memory.
     ///
-    /// Hydration failure propagates as a typed ``TimelineError``: `.timelineNotFound` for a
+    /// Hydration failure propagates as a typed ``ThreadError``: `.threadNotFound` for a
     /// missing ID, `.unavailable` for a transient store fault. The error reaches the caller
     /// before input persistence runs (PKRR-006), so no user input is persisted under an
-    /// unestablished timeline.
+    /// unestablished thread.
     private func resolveTurnBriefingBuilder(
         explicit turnBriefingBuilder: TurnBriefingBuilder?,
         threadID: UUID

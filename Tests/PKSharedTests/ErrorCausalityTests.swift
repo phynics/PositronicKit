@@ -73,7 +73,7 @@ import ErrorKit
 
     @Test("Attached tools disallowed retains isBlocked through pipeline wrapping")
     func attachedToolsDisallowedRetainsBlocked() {
-        let toolError = ToolError.attachedToolsDisallowedOnPrivateTimeline
+        let toolError = ToolError.attachedToolsDisallowedOnPrivateThread
         let wrapped = PipelineError.stageFailed(id: "ToolRouterStage", underlyingError: toolError)
 
         let identity = ChatEvent.ErrorIdentity.extracting(from: wrapped)

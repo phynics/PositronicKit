@@ -93,11 +93,11 @@ struct PromptSnapshotBuilderTests {
     @Test("buildFollowUpSnapshot threads promptHistory updates across turns")
     func buildFollowUpSnapshotUpdatesPromptHistory() async throws {
         let base = makeBase()
-        let promptHistory = await TimelinePromptJournals().history(for: UUID())
+        let promptHistory = await ThreadPromptJournals().history(for: UUID())
         _ = try! await promptHistory.update(prompt: base)
 
         let context = ChatTurnContext(
-            timelineId: UUID(),
+            threadID: UUID(),
             agentInstanceId: nil,
             modelName: "test-model",
             maxTurns: 5,
@@ -130,7 +130,7 @@ struct PromptSnapshotBuilderTests {
     @Test("History compaction replaces generated audio with its transcript for the provider")
     func compactionProjectsGeneratedAudioToTranscript() async throws {
         let base = makeBase()
-        let promptHistory = TimelinePromptHistory(thresholds: PromptJournalCompactionThresholds(
+        let promptHistory = ThreadPromptHistory(thresholds: PromptJournalCompactionThresholds(
             maxAppendedTokens: 1,
             maxAppendedMessages: 1
         ))
@@ -152,7 +152,7 @@ struct PromptSnapshotBuilderTests {
             .audio(audio),
         ]))]
         let context = ChatTurnContext(
-            timelineId: UUID(),
+            threadID: UUID(),
             agentInstanceId: nil,
             modelName: "test-model",
             maxTurns: 5,

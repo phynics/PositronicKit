@@ -50,7 +50,7 @@ private struct CapturingLogHandler: LogHandler {
 struct PublicRuntimeStoriesTests {
     @Test("agentic runtime delegates to the facade-owned manager and tool loop")
     func agenticRuntimeRunsAnAgentTurn() async throws {
-        let (kit, mockLLM, _, timelineId, _) = try await makeAcceptanceRuntime()
+        let (kit, mockLLM, _, threadID, _) = try await makeAcceptanceRuntime()
         let agent = try await kit.agentInstanceManager.createInstance(
             from: nil,
             name: "Acceptance Agent",
@@ -58,18 +58,18 @@ struct PublicRuntimeStoriesTests {
         )
         let agentId = agent.id
         let runtime = kit.agenticRuntime(
-            timelineID: timelineId,
+            threadID: threadID,
             agentInstanceID: agentId
         )
         let secondRuntime = kit.agenticRuntime(
-            timelineID: timelineId,
+            threadID: threadID,
             agentInstanceID: agentId
         )
 
         #expect(runtime.agentInstanceManager === kit.agentInstanceManager)
         #expect(runtime !== secondRuntime)
 
-        try await kit.agentInstanceManager.attach(agentID: agentId, to: timelineId)
+        try await kit.agentInstanceManager.attach(agentID: agentId, to: threadID)
 
         let mockTool = AcceptanceMockTool()
         mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "agent_call", name: "mock_tool")]]
@@ -98,7 +98,7 @@ struct PublicRuntimeStoriesTests {
 
     @Test("agentic runtime rejects an unattached agent before side effects")
     func agenticRuntimeRejectsUnattachedAgent() async throws {
-        let (kit, mockLLM, mockPersistence, timelineId, _) = try await makeAcceptanceRuntime()
+        let (kit, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime()
         let agent = try await kit.agentInstanceManager.createInstance(
             from: nil,
             name: "Unattached Agent",
@@ -107,18 +107,18 @@ struct PublicRuntimeStoriesTests {
 
         await #expect(throws: AgentInstanceError.self) {
             _ = try await kit.agenticRuntime(
-                timelineID: timelineId,
+                threadID: threadID,
                 agentInstanceID: agent.id
             ).run(message: "Should fail")
         }
 
-        #expect(try await mockPersistence.fetchMessages(for: timelineId).isEmpty)
+        #expect(try await mockPersistence.fetchMessages(for: threadID).isEmpty)
         #expect(mockLLM.chatRequestHistory.isEmpty)
     }
 
     @Test("agentic runtime rejects a different attached agent before side effects")
     func agenticRuntimeRejectsDifferentAttachedAgent() async throws {
-        let (kit, mockLLM, mockPersistence, timelineId, _) = try await makeAcceptanceRuntime()
+        let (kit, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime()
         let attachedAgent = try await kit.agentInstanceManager.createInstance(
             from: nil,
             name: "Attached Agent",
@@ -129,21 +129,21 @@ struct PublicRuntimeStoriesTests {
             name: "Requested Agent",
             description: "Must not run another agent's timeline."
         )
-        try await kit.agentInstanceManager.attach(agentID: attachedAgent.id, to: timelineId)
+        try await kit.agentInstanceManager.attach(agentID: attachedAgent.id, to: threadID)
 
         await #expect(throws: AgentInstanceError.self) {
             _ = try await kit.agenticRuntime(
-                timelineID: timelineId,
+                threadID: threadID,
                 agentInstanceID: requestedAgent.id
             ).run(message: "Should fail")
         }
 
-        #expect(try await mockPersistence.fetchMessages(for: timelineId).isEmpty)
+        #expect(try await mockPersistence.fetchMessages(for: threadID).isEmpty)
         #expect(mockLLM.chatRequestHistory.isEmpty)
     }
 
     @Test("agentic runtime can run on an agent's private timeline")
-    func agenticRuntimeRunsOnPrivateTimeline() async throws {
+    func agenticRuntimeRunsOnPrivateThread() async throws {
         let (kit, mockLLM, mockPersistence, _, _) = try await makeAcceptanceRuntime()
         let agent = try await kit.agentInstanceManager.createInstance(
             from: nil,
@@ -153,7 +153,7 @@ struct PublicRuntimeStoriesTests {
         mockLLM.mockClient.nextResponse = "Private response"
 
         let events = try await kit.agenticRuntime(
-            timelineID: agent.privateTimelineID,
+            threadID: agent.privateThreadID,
             agentInstanceID: agent.id
         ).run(message: "Think privately").collect()
 
@@ -163,12 +163,12 @@ struct PublicRuntimeStoriesTests {
             }
             return false
         }))
-        #expect(try await mockPersistence.fetchMessages(for: agent.privateTimelineID).last?.content == "Private response")
+        #expect(try await mockPersistence.fetchMessages(for: agent.privateThreadID).last?.content == "Private response")
     }
 
     @Test("promptAssemblyLogger surfaces prompt-assembly diagnostics through the facade")
     func promptAssemblyLoggerEmitsDiagnostics() async throws {
-        let (chat, mockLLM, _, timelineId, _) = try await makeAcceptanceRuntime()
+        let (chat, mockLLM, _, threadID, _) = try await makeAcceptanceRuntime()
         mockLLM.mockClient.nextResponse = "ok"
 
         let sink = CapturingLogSink()
@@ -177,7 +177,7 @@ struct PublicRuntimeStoriesTests {
         }
 
         _ = try await chat.run(ChatRunRequest(
-            timelineID: timelineId,
+            threadID: threadID,
             message: "Diagnose assembly",
             promptAssemblyLogger: logger
         )).collect()
@@ -188,11 +188,11 @@ struct PublicRuntimeStoriesTests {
 
     @Test
     func directFacadeInitializationSupportsOneTurnChat() async throws {
-        let (chat, mockLLM, mockPersistence, timelineId, _) = try await makeAcceptanceRuntime()
+        let (chat, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime()
         mockLLM.mockClient.nextResponse = "Hello, Morty!"
 
         let events = try await chat.run(ChatRunRequest(
-            timelineID: timelineId,
+            threadID: threadID,
             message: "Hello, Morty!"
         )).collect()
 
@@ -203,18 +203,18 @@ struct PublicRuntimeStoriesTests {
             return false
         }))
 
-        let messages = try await mockPersistence.fetchMessages(for: timelineId)
+        let messages = try await mockPersistence.fetchMessages(for: threadID)
         #expect(messages.map(\.role) == ["user", "assistant"])
         #expect(messages.last?.content == "Hello, Morty!")
     }
 
     @Test
     func groupedPersistenceFacadeInitializationSupportsOneTurnChat() async throws {
-        let (chat, mockLLM, mockPersistence, timelineId, _) = try await makeAcceptanceRuntime(useGroupedPersistence: true)
+        let (chat, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime(useGroupedPersistence: true)
         mockLLM.mockClient.nextResponse = "Grouped persistence reply"
 
         let events = try await chat.run(ChatRunRequest(
-            timelineID: timelineId,
+            threadID: threadID,
             message: "Use grouped persistence"
         )).collect()
 
@@ -225,18 +225,18 @@ struct PublicRuntimeStoriesTests {
             return false
         }))
 
-        let messages = try await mockPersistence.fetchMessages(for: timelineId)
+        let messages = try await mockPersistence.fetchMessages(for: threadID)
         #expect(messages.count == 2)
         #expect(messages.last?.content == "Grouped persistence reply")
     }
 
     @Test
     func groupedRuntimeFacadeInitializationSupportsOneTurnChat() async throws {
-        let (chat, mockLLM, mockPersistence, timelineId, _) = try await makeAcceptanceRuntime(useGroupedPersistence: true, useGroupedRuntime: true)
+        let (chat, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime(useGroupedPersistence: true, useGroupedRuntime: true)
         mockLLM.mockClient.nextResponse = "Grouped runtime reply"
 
         let events = try await chat.run(ChatRunRequest(
-            timelineID: timelineId,
+            threadID: threadID,
             message: "Use grouped runtime"
         )).collect()
 
@@ -247,20 +247,20 @@ struct PublicRuntimeStoriesTests {
             return false
         }))
 
-        let messages = try await mockPersistence.fetchMessages(for: timelineId)
+        let messages = try await mockPersistence.fetchMessages(for: threadID)
         #expect(messages.last?.content == "Grouped runtime reply")
     }
 
     @Test
     func facadeToolCallTurnExecutesAndResumes() async throws {
-        let (chat, mockLLM, _, timelineId, _) = try await makeAcceptanceRuntime()
+        let (chat, mockLLM, _, threadID, _) = try await makeAcceptanceRuntime()
         let mockTool = AcceptanceMockTool()
 
         mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "call_1", name: "mock_tool")]]
         mockLLM.mockClient.nextResponses = ["", "Tool result processed"]
 
         let events = try await chat.run(ChatRunRequest(
-            timelineID: timelineId,
+            threadID: threadID,
             message: "Run the tool",
             tools: [mockTool.toAnyTool()]
         )).collect()
@@ -289,9 +289,9 @@ struct PublicRuntimeStoriesTests {
 
     @Test
     func facadeToolOutputContinuationFlowPersistsSubmittedOutputs() async throws {
-        let (chat, mockLLM, mockPersistence, timelineId, _) = try await makeAcceptanceRuntime()
+        let (chat, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime()
         try await mockPersistence.saveMessage(ConversationMessage(
-            timelineID: timelineId,
+            threadID: threadID,
             role: .assistant,
             content: "",
             toolCalls: try pendingToolCallsJSON(ids: ["call_1"])
@@ -299,7 +299,7 @@ struct PublicRuntimeStoriesTests {
         mockLLM.mockClient.nextResponse = "Continuation complete"
 
         let events = try await chat.run(ChatRunRequest(
-            timelineID: timelineId,
+            threadID: threadID,
             message: "Continue",
             toolOutputs: [ToolOutputSubmission(toolCallID: "call_1", output: "Tool result")]
         )).collect()
@@ -311,7 +311,7 @@ struct PublicRuntimeStoriesTests {
             return false
         }))
 
-        let messages = try await mockPersistence.fetchMessages(for: timelineId)
+        let messages = try await mockPersistence.fetchMessages(for: threadID)
         #expect(messages.map(\.role) == ["assistant", "tool", "user", "assistant"])
         #expect(messages.dropFirst().first?.toolCallID == "call_1")
         #expect(messages.dropFirst().first?.content == "Tool result")
@@ -319,30 +319,30 @@ struct PublicRuntimeStoriesTests {
 
     @Test
     func facadeRejectsForgedToolOutputWithoutPendingCall() async throws {
-        let (chat, _, mockPersistence, timelineId, _) = try await makeAcceptanceRuntime()
+        let (chat, _, mockPersistence, threadID, _) = try await makeAcceptanceRuntime()
 
         await #expect(throws: ToolError.self) {
             _ = try await chat.run(ChatRunRequest(
-                timelineID: timelineId,
+                threadID: threadID,
                 message: "Continue",
                 toolOutputs: [ToolOutputSubmission(toolCallID: "forged_call", output: "forged output")]
             ))
         }
 
-        let messages = try await mockPersistence.fetchMessages(for: timelineId)
+        let messages = try await mockPersistence.fetchMessages(for: threadID)
         #expect(messages.isEmpty)
     }
 
     @Test
     func facadePluginFollowUpWorksWithoutDirectDependencyContainerSetup() async throws {
         let plugin = FacadeFollowUpPlugin()
-        let (baseChat, mockLLM, mockPersistence, timelineId, _) = try await makeAcceptanceRuntime(useGroupedPersistence: true)
+        let (baseChat, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime(useGroupedPersistence: true)
         let chat = baseChat.addingPlugin(plugin)
 
         mockLLM.mockClient.nextResponses = ["First reply", "Second reply"]
 
         let events = try await chat.run(ChatRunRequest(
-            timelineID: timelineId,
+            threadID: threadID,
             message: "Start plugin flow"
         )).collect()
 
@@ -352,12 +352,12 @@ struct PublicRuntimeStoriesTests {
         }
         #expect(assistantReplies == ["First reply", "Second reply"])
 
-        let persisted = try await mockPersistence.fetchMessages(for: timelineId)
+        let persisted = try await mockPersistence.fetchMessages(for: threadID)
         #expect(persisted.filter { $0.role == "assistant" }.map(\.content) == ["First reply", "Second reply"])
     }
 
     @Test
-    func runUsesTimelineTurnBriefingBuilderByDefault() async throws {
+    func runUsesThreadTurnBriefingBuilderByDefault() async throws {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
         let workspace = TestWorkspace()
@@ -368,7 +368,7 @@ struct PublicRuntimeStoriesTests {
             provider: .init(languageModel: mockLLM),
             persistence: .init(
                 messageStore: mockPersistence,
-                timelinePersistence: mockPersistence,
+                threadPersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
                 memoryStore: mockPersistence,
                 toolPersistence: mockPersistence,
@@ -380,10 +380,10 @@ struct PublicRuntimeStoriesTests {
                 workspaceRoot: workspace.root
             )
         ))
-        let timeline = try await chat.timelineManager.createTimeline(title: "Context Enabled")
+        let thread = try await chat.threadManager.createThread(title: "Context Enabled")
 
         let events = try await chat.run(ChatRunRequest(
-            timelineID: timeline.id,
+            threadID: thread.id,
             message: "Use default context manager"
         )).collect()
 
@@ -416,7 +416,7 @@ struct PublicRuntimeStoriesTests {
         if useGroupedPersistence {
             let persistence = PositronicKit.PersistenceConfiguration(
                 messageStore: mockPersistence,
-                timelinePersistence: mockPersistence,
+                threadPersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
                 memoryStore: mockPersistence,
                 toolPersistence: mockPersistence,
@@ -445,7 +445,7 @@ struct PublicRuntimeStoriesTests {
                 provider: .init(languageModel: mockLLM),
                 persistence: .init(
                     messageStore: mockPersistence,
-                    timelinePersistence: mockPersistence,
+                    threadPersistence: mockPersistence,
                     workspacePersistence: mockPersistence,
                     memoryStore: mockPersistence,
                     toolPersistence: mockPersistence,
@@ -456,22 +456,22 @@ struct PublicRuntimeStoriesTests {
             ))
         }
 
-        let timelineManager = chat.timelineManager
-        let timeline = try await timelineManager.createTimeline(title: "Acceptance")
+        let threadManager = chat.threadManager
+        let thread = try await threadManager.createThread(title: "Acceptance")
 
         let workspaceId = UUID()
         let workspaceRef = WorkspaceReference(
             id: workspaceId,
             uri: WorkspaceURI(parsing: "pk://local")!,
-            location: .runtimeTimeline,
+            location: .runtimeThread,
             originID: nil,
             rootPath: workspace.root.path
         )
         try await mockPersistence.saveWorkspace(workspaceRef)
-        try await timelineManager.attachWorkspace(workspaceId, to: timeline.id)
+        try await threadManager.attachWorkspace(workspaceId, to: thread.id)
         try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("mock_tool"))
 
-        return (chat, mockLLM, mockPersistence, timeline.id, workspace)
+        return (chat, mockLLM, mockPersistence, thread.id, workspace)
     }
 
     private func pendingToolCallsJSON(ids: [String]) throws -> String {
@@ -514,12 +514,12 @@ private struct AcceptanceMockTool: PKShared.Tool, @unchecked Sendable {
 extension PublicRuntimeStoriesTests {
     @Test("Tool with malformed JSON arguments emits error to LLM")
     func toolWithMalformedArguments() async throws {
-        let (chat, mockLLM, mockPersistence, timelineId, _) = try await makeAcceptanceRuntime()
+        let (chat, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime()
         mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "call_1", name: "mock_tool", arguments: "not valid json")]]
         mockLLM.mockClient.nextResponse = "Recovered after tool error"
 
         let events = try await chat.run(ChatRunRequest(
-            timelineID: timelineId,
+            threadID: threadID,
             message: "Call tool"
         )).collect()
 
@@ -532,7 +532,7 @@ extension PublicRuntimeStoriesTests {
         #expect(toolEvent != nil)
 
         // Tool error should be persisted as a tool message
-        let messages = try await mockPersistence.fetchMessages(for: timelineId)
+        let messages = try await mockPersistence.fetchMessages(for: threadID)
         let toolMessage = messages.first(where: { $0.role == "tool" })
         #expect(toolMessage != nil)
         #expect(toolMessage?.content.contains("Error") == true)
@@ -540,14 +540,14 @@ extension PublicRuntimeStoriesTests {
 
     @Test("Tool execution failure returns error to LLM for recovery")
     func toolExecutionFailure() async throws {
-        let (chat, mockLLM, mockPersistence, timelineId, _) = try await makeAcceptanceRuntime()
+        let (chat, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime()
         // Mock tool returns success by default - we'll simulate failure via the mock client
         // by having the tool call produce an error response
         mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "call_1", name: "nonexistent_tool", arguments: "{}")]]
         mockLLM.mockClient.nextResponse = "Recovered after tool error"
 
         let events = try await chat.run(ChatRunRequest(
-            timelineID: timelineId,
+            threadID: threadID,
             message: "Call nonexistent tool"
         )).collect()
 
@@ -561,7 +561,7 @@ extension PublicRuntimeStoriesTests {
         #expect(toolErrorEvent != nil)
 
         // Error message should be persisted
-        let persistedMessages = try await mockPersistence.fetchMessages(for: timelineId)
+        let persistedMessages = try await mockPersistence.fetchMessages(for: threadID)
         let toolMessage = persistedMessages.first(where: { $0.role == "tool" })
         #expect(toolMessage?.content.contains("Error") == true)
     }

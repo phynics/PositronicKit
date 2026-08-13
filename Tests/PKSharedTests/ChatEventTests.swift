@@ -246,7 +246,7 @@ import ErrorKit
         // is covered in PositronicKitTests since WorkspaceError lives in PositronicKit.
         let blockedErrors: [Error] = [
             ToolError.permissionDenied("rm"),
-            ToolError.attachedToolsDisallowedOnPrivateTimeline,
+            ToolError.attachedToolsDisallowedOnPrivateThread,
             PathSanitizer.PathError.accessDenied("/etc/passwd"),
         ]
         for error in blockedErrors {

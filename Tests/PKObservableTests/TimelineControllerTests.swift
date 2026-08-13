@@ -3,18 +3,18 @@ import PKObservable
 import PKTestSupport
 import Testing
 
-@Suite("Timeline controller")
+@Suite("Thread controller")
 @MainActor
-struct TimelineControllerTests {
+struct ThreadControllerTests {
     @Test("mirrors streamed text and completed messages")
     func mirrorsStreamedTextAndCompletedMessages() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString))
         runtime.llm.mockClient.nextChunks = [["Hello, ", "world!"]]
         let kit = runtime.positronicKit
-        let timeline = try await kit.timelineManager.createTimeline(title: "Controller")
-        let driver = kit.openTimeline(timeline.id)
-        let controller = TimelineController(driver)
+        let thread = try await kit.threadManager.createThread(title: "Controller")
+        let driver = kit.openThread(thread.id)
+        let controller = ThreadController(driver)
 
         try await controller.send("Hi")
 
@@ -29,10 +29,10 @@ struct TimelineControllerTests {
             .appendingPathComponent(UUID().uuidString))
         runtime.llm.mockClient.nextResponses = ["reply"]
         let kit = runtime.positronicKit
-        let timeline = try await kit.timelineManager.createTimeline(title: "Controller")
-        let driver = kit.openTimeline(timeline.id)
-        var controller: TimelineController? = TimelineController(driver)
-        weak var releasedController: TimelineController? = nil
+        let thread = try await kit.threadManager.createThread(title: "Controller")
+        let driver = kit.openThread(thread.id)
+        var controller: ThreadController? = ThreadController(driver)
+        weak var releasedController: ThreadController? = nil
         releasedController = controller
 
         try await controller!.send("Hi")
@@ -49,9 +49,9 @@ struct TimelineControllerTests {
         runtime.llm.mockClient.neverFinishingStreamCallIndices = [1]
         runtime.llm.mockClient.nextResponses = ["second reply"]
         let kit = runtime.positronicKit
-        let timeline = try await kit.timelineManager.createTimeline(title: "Controller")
-        let driver = kit.openTimeline(timeline.id)
-        let controller = TimelineController(driver)
+        let thread = try await kit.threadManager.createThread(title: "Controller")
+        let driver = kit.openThread(thread.id)
+        let controller = ThreadController(driver)
 
         let first = Task { try await controller.send("first") }
         // `isStreaming` flips inside `consume` *before* `driver.send` reaches the LLM,
@@ -82,9 +82,9 @@ struct TimelineControllerTests {
         runtime.llm.mockClient.neverFinishingStreamCallIndices = [1, 2]
         runtime.llm.mockClient.nextResponses = ["replacement reply"]
         let kit = runtime.positronicKit
-        let timeline = try await kit.timelineManager.createTimeline(title: "Controller")
-        let driver = kit.openTimeline(timeline.id)
-        let controller = TimelineController(driver)
+        let thread = try await kit.threadManager.createThread(title: "Controller")
+        let driver = kit.openThread(thread.id)
+        let controller = ThreadController(driver)
 
         let first = Task { try await controller.send("first") }
         while controller.isStreaming == false {

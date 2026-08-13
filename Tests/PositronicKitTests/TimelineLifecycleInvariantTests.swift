@@ -5,20 +5,20 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-/// PKRR-005 lifecycle invariants: `openTimeline` opens an existing timeline only. Sending
+/// PKRR-005 lifecycle invariants: `openThread` opens an existing thread only. Sending
 /// to a missing ID throws before any user input is persisted. Store failure is
 /// distinguishable from not-found.
 @Suite("Timeline lifecycle invariants (PKRR-005)")
-struct TimelineLifecycleInvariantTests {
+struct ThreadLifecycleInvariantTests {
     @Test("Sending to a never-created timeline throws timelineNotFound before persisting")
-    func sendToMissingTimelineThrowsBeforePersisting() async throws {
+    func sendToMissingThreadThrowsBeforePersisting() async throws {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: mockLLM),
             persistence: .init(
                 messageStore: mockPersistence,
-                timelinePersistence: mockPersistence,
+                threadPersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
                 memoryStore: mockPersistence,
                 toolPersistence: mockPersistence,
@@ -29,9 +29,9 @@ struct TimelineLifecycleInvariantTests {
 
         let missingId = UUID()
 
-        await #expect(throws: TimelineError.timelineNotFound) {
+        await #expect(throws: ThreadError.threadNotFound) {
             _ = try await kit.run(ChatRunRequest(
-                timelineID: missingId,
+                threadID: missingId,
                 message: "should not be persisted"
             ))
         }
@@ -42,14 +42,14 @@ struct TimelineLifecycleInvariantTests {
 
     @Test("Store failure during hydration throws unavailable and no message is persisted")
     func storeFailureThrowsUnavailableBeforePersisting() async throws {
-        let failingStore = FailingTimelinePersistence(fetchFails: true)
+        let failingStore = FailingThreadPersistence(fetchFails: true)
         let mockLLM = MockLLMService()
         let mockMessages = MockPersistenceService()
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: mockLLM),
             persistence: .init(
                 messageStore: mockMessages,
-                timelinePersistence: failingStore,
+                threadPersistence: failingStore,
                 workspacePersistence: mockMessages,
                 memoryStore: mockMessages,
                 toolPersistence: mockMessages,
@@ -60,9 +60,9 @@ struct TimelineLifecycleInvariantTests {
 
         let unresolvedId = UUID()
 
-        await #expect(throws: TimelineError.unavailable) {
+        await #expect(throws: ThreadError.unavailable) {
             _ = try await kit.run(ChatRunRequest(
-                timelineID: unresolvedId,
+                threadID: unresolvedId,
                 message: "should not be persisted"
             ))
         }
@@ -72,28 +72,28 @@ struct TimelineLifecycleInvariantTests {
     }
 
     @Test("TimelineDriver.send to a missing timeline throws timelineNotFound")
-    func driverSendToMissingTimelineThrows() async throws {
+    func driverSendToMissingThreadThrows() async throws {
         let mockLLM = MockLLMService()
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: mockLLM),
             persistence: .inMemory()
         ))
 
-        let driver = kit.openTimeline(UUID())
+        let driver = kit.openThread(UUID())
 
-        await #expect(throws: TimelineError.timelineNotFound) {
+        await #expect(throws: ThreadError.threadNotFound) {
             _ = try await driver.send("hello").collect()
         }
     }
 
     @Test("A created timeline accepts sends normally")
-    func createdTimelineAcceptsSends() async throws {
+    func createdThreadAcceptsSends() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString))
         runtime.llm.mockClient.nextResponse = "reply"
         let kit = runtime.positronicKit
-        let timeline = try await kit.timelineManager.createTimeline(title: "Lifecycle Invariant")
-        let driver = kit.openTimeline(timeline.id)
+        let thread = try await kit.threadManager.createThread(title: "Lifecycle Invariant")
+        let driver = kit.openThread(thread.id)
 
         let events = try await driver.send("hello").collect()
 
@@ -104,29 +104,29 @@ struct TimelineLifecycleInvariantTests {
             return false
         }))
 
-        let messages = try await runtime.persistence.fetchMessages(for: timeline.id).map(\.content)
+        let messages = try await runtime.persistence.fetchMessages(for: thread.id).map(\.content)
         #expect(messages == ["hello", "reply"])
     }
 
     @Test("ensureTimelineExists is a no-op for an already-hydrated timeline")
-    func ensureTimelineExistsNoOpForHydrated() async throws {
+    func ensureThreadExistsNoOpForHydrated() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString))
         let kit = runtime.positronicKit
-        let timeline = try await kit.timelineManager.createTimeline(title: "Hydrated")
+        let thread = try await kit.threadManager.createThread(title: "Hydrated")
 
-        // Should not throw — the timeline is already in cache from createTimeline.
-        try await kit.timelineManager.ensureTimelineExists(id: timeline.id)
+        // Should not throw — the thread is already in cache from createThread.
+        try await kit.threadManager.ensureThreadExists(id: thread.id)
     }
 
     @Test("ensureTimelineExists throws timelineNotFound for an unknown ID")
-    func ensureTimelineExistsThrowsForUnknown() async throws {
+    func ensureThreadExistsThrowsForUnknown() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString))
         let kit = runtime.positronicKit
 
-        await #expect(throws: TimelineError.timelineNotFound) {
-            try await kit.timelineManager.ensureTimelineExists(id: UUID())
+        await #expect(throws: ThreadError.threadNotFound) {
+            try await kit.threadManager.ensureThreadExists(id: UUID())
         }
     }
 }

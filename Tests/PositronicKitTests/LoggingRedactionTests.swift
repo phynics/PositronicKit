@@ -11,7 +11,7 @@ struct LoggingRedactionTests {
     @Test("ChatRunRequest description does not include the user message")
     func requestDescriptionDoesNotLeakMessage() {
         let secret = "user-secret-prompt-7f3c"
-        let request = ChatRunRequest(timelineID: UUID(), message: secret)
+        let request = ChatRunRequest(threadID: UUID(), message: secret)
 
         #expect(!request.description.contains(secret))
         #expect(request.description.contains("message: <redacted>"))
@@ -48,15 +48,15 @@ struct LoggingRedactionTests {
         })
 
         // Build a minimal ToolRouter directly so we can inject the capturing logger config
-        // without going through the PositronicKit facade. The timeline is never created in the
+        // without going through the PositronicKit facade. The thread is never created in the
         // store, so `execute` logs "Routing ..." then throws `toolNotFound` — the log record is
         // captured before the throw, which is all this regression test inspects.
         let persistence = MockPersistenceService()
         let workspaceRoot = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("pkrr-024-\(UUID().uuidString)")
-        let timelineManager = TimelineManager(
+        let threadManager = ThreadManager(
             stores: .init(
-                timelineStore: persistence,
+                threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
                 toolPersistence: persistence,
@@ -65,16 +65,16 @@ struct LoggingRedactionTests {
             workspaceRoot: workspaceRoot
         )
         let router = ToolRouter(
-            timelineManager: timelineManager,
+            threadManager: threadManager,
             messageStore: persistence,
             loggingConfiguration: configuration
         )
 
-        let timelineId = UUID()
+        let threadID = UUID()
         _ = try? await router.execute(
             tool: .known(id: "calculator"),
             arguments: [:],
-            timelineId: timelineId
+            threadID: threadID
         )
 
         let entries = sink.all()
@@ -86,7 +86,7 @@ struct LoggingRedactionTests {
 
         // Identity travels in structured metadata, not embedded in the colored message string.
         #expect(routing.metadata[LogKeys.toolName]?.description == "calculator")
-        #expect(routing.metadata[LogKeys.timelineID]?.description == timelineId.uuidString)
+        #expect(routing.metadata[LogKeys.timelineID]?.description == threadID.uuidString)
     }
 
     // MARK: - Capture harness

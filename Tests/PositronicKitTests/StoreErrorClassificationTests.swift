@@ -6,22 +6,22 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-/// PKRR-008: Store outages and corruption must surface as typed `TimelineError`s, not
-/// collapse into `timelineNotFound` or silent `nil`/empty results. These tests prove
+/// PKRR-008: Store outages and corruption must surface as typed `ThreadError`s, not
+/// collapse into `threadNotFound` or silent `nil`/empty results. These tests prove
 /// the fix by driving each error site with a failing store mock and asserting the
 /// typed error (or degradation) that surfaces.
 @Suite("Store error classification (PKRR-008)")
 struct StoreErrorClassificationTests {
 
-    // MARK: - updateTimelineTitle: store outage must not surface as timelineNotFound
+    // MARK: - updateThreadTitle: store outage must not surface as threadNotFound
 
-    @Test("updateTimelineTitle throws unavailable when the store fails, not timelineNotFound")
+    @Test("updateThreadTitle throws unavailable when the store fails, not threadNotFound")
     func updateTitleStoreFailureThrowsUnavailable() async throws {
-        let failingStore = FailingTimelinePersistence(fetchFails: true)
+        let failingStore = FailingThreadPersistence(fetchFails: true)
         let workspace = TestWorkspace()
-        let manager = TimelineManager(
+        let manager = ThreadManager(
             stores: .init(
-                timelineStore: failingStore,
+                threadStore: failingStore,
                 messageStore: MockPersistenceService(),
                 workspaceStore: MockPersistenceService(),
                 toolPersistence: MockPersistenceService()
@@ -32,12 +32,12 @@ struct StoreErrorClassificationTests {
         let id = UUID()
 
         do {
-            try await manager.updateTimelineTitle(id: id, title: "new title")
-            Issue.record("Expected TimelineError.unavailable, but no error was thrown")
-        } catch TimelineError.unavailable {
+            try await manager.updateThreadTitle(id, title: "new title")
+            Issue.record("Expected ThreadError.unavailable, but no error was thrown")
+        } catch ThreadError.unavailable {
             // Correct — store outage is distinguished from not-found.
-        } catch TimelineError.timelineNotFound {
-            Issue.record("Store outage was collapsed into timelineNotFound (the bug)")
+        } catch ThreadError.threadNotFound {
+            Issue.record("Store outage was collapsed into threadNotFound (the bug)")
         } catch {
             Issue.record("Unexpected error: \(error)")
         }
@@ -45,30 +45,30 @@ struct StoreErrorClassificationTests {
         #expect(failingStore.fetchAttemptCount >= 1, "The store must have been queried")
     }
 
-    @Test("updateTimelineTitle throws timelineNotFound when the timeline genuinely does not exist")
+    @Test("updateThreadTitle throws threadNotFound when the thread genuinely does not exist")
     func updateTitleMissingThrowsNotFound() async throws {
         let workspace = TestWorkspace()
-        let manager = TimelineManager(workspaceRoot: workspace.root)
+        let manager = ThreadManager(workspaceRoot: workspace.root)
 
         do {
-            try await manager.updateTimelineTitle(id: UUID(), title: "x")
-            Issue.record("Expected timelineNotFound")
-        } catch TimelineError.timelineNotFound {
+            try await manager.updateThreadTitle(UUID(), title: "x")
+            Issue.record("Expected threadNotFound")
+        } catch ThreadError.threadNotFound {
             // Correct — a genuine not-found is still a not-found.
         } catch {
             Issue.record("Unexpected error: \(error)")
         }
     }
 
-    // MARK: - attachWorkspace: store outage must not surface as timelineNotFound
+    // MARK: - attachWorkspace: store outage must not surface as threadNotFound
 
     @Test("attachWorkspace throws unavailable when the store fails, not timelineNotFound")
     func attachWorkspaceStoreFailureThrowsUnavailable() async throws {
-        let failingStore = FailingTimelinePersistence(fetchFails: true)
+        let failingStore = FailingThreadPersistence(fetchFails: true)
         let workspace = TestWorkspace()
-        let manager = TimelineManager(
+        let manager = ThreadManager(
             stores: .init(
-                timelineStore: failingStore,
+                threadStore: failingStore,
                 messageStore: MockPersistenceService(),
                 workspaceStore: MockPersistenceService(),
                 toolPersistence: MockPersistenceService()
@@ -81,11 +81,11 @@ struct StoreErrorClassificationTests {
 
         do {
             try await manager.attachWorkspace(workspaceId, to: id)
-            Issue.record("Expected TimelineError.unavailable")
-        } catch TimelineError.unavailable {
+            Issue.record("Expected ThreadError.unavailable")
+        } catch ThreadError.unavailable {
             // Correct.
-        } catch TimelineError.timelineNotFound {
-            Issue.record("Store outage was collapsed into timelineNotFound (the bug)")
+        } catch ThreadError.threadNotFound {
+            Issue.record("Store outage was collapsed into threadNotFound (the bug)")
         } catch {
             Issue.record("Unexpected error: \(error)")
         }
@@ -93,15 +93,15 @@ struct StoreErrorClassificationTests {
         #expect(failingStore.fetchAttemptCount >= 1)
     }
 
-    // MARK: - detachWorkspace: store outage must not surface as timelineNotFound
+    // MARK: - detachWorkspace: store outage must not surface as threadNotFound
 
     @Test("detachWorkspace throws unavailable when the store fails, not timelineNotFound")
     func detachWorkspaceStoreFailureThrowsUnavailable() async throws {
-        let failingStore = FailingTimelinePersistence(fetchFails: true)
+        let failingStore = FailingThreadPersistence(fetchFails: true)
         let workspace = TestWorkspace()
-        let manager = TimelineManager(
+        let manager = ThreadManager(
             stores: .init(
-                timelineStore: failingStore,
+                threadStore: failingStore,
                 messageStore: MockPersistenceService(),
                 workspaceStore: MockPersistenceService(),
                 toolPersistence: MockPersistenceService()
@@ -114,11 +114,11 @@ struct StoreErrorClassificationTests {
 
         do {
             try await manager.detachWorkspace(workspaceId, from: id)
-            Issue.record("Expected TimelineError.unavailable")
-        } catch TimelineError.unavailable {
+            Issue.record("Expected ThreadError.unavailable")
+        } catch ThreadError.unavailable {
             // Correct.
-        } catch TimelineError.timelineNotFound {
-            Issue.record("Store outage was collapsed into timelineNotFound (the bug)")
+        } catch ThreadError.threadNotFound {
+            Issue.record("Store outage was collapsed into threadNotFound (the bug)")
         } catch {
             Issue.record("Unexpected error: \(error)")
         }
@@ -130,11 +130,11 @@ struct StoreErrorClassificationTests {
 
     @Test("getWorkspaces throws unavailable when the store fails, not nil")
     func getWorkspacesStoreFailureThrowsUnavailable() async throws {
-        let failingStore = FailingTimelinePersistence(fetchFails: true)
+        let failingStore = FailingThreadPersistence(fetchFails: true)
         let workspace = TestWorkspace()
-        let manager = TimelineManager(
+        let manager = ThreadManager(
             stores: .init(
-                timelineStore: failingStore,
+                threadStore: failingStore,
                 messageStore: MockPersistenceService(),
                 workspaceStore: MockPersistenceService(),
                 toolPersistence: MockPersistenceService()
@@ -147,9 +147,9 @@ struct StoreErrorClassificationTests {
         do {
             _ = try await manager.getWorkspaces(for: id)
             Issue.record("Expected TimelineError.unavailable")
-        } catch TimelineError.unavailable {
+        } catch ThreadError.unavailable {
             // Correct — store outage throws rather than returning nil.
-        } catch TimelineError.timelineNotFound {
+        } catch ThreadError.threadNotFound {
             Issue.record("Store outage was collapsed into timelineNotFound (the bug)")
         } catch {
             Issue.record("Unexpected error: \(error)")
@@ -161,12 +161,12 @@ struct StoreErrorClassificationTests {
     @Test("getWorkspaces throws timelineNotFound when the timeline genuinely does not exist")
     func getWorkspacesMissingThrowsNotFound() async throws {
         let workspace = TestWorkspace()
-        let manager = TimelineManager(workspaceRoot: workspace.root)
+        let manager = ThreadManager(workspaceRoot: workspace.root)
 
         do {
             _ = try await manager.getWorkspaces(for: UUID())
             Issue.record("Expected timelineNotFound")
-        } catch TimelineError.timelineNotFound {
+        } catch ThreadError.threadNotFound {
             // Correct.
         } catch {
             Issue.record("Unexpected error: \(error)")
@@ -180,9 +180,9 @@ struct StoreErrorClassificationTests {
         let persistence = MockPersistenceService()
         let failingWorkspaceStore = FailingWorkspaceStore(fetchFails: false)
         let workspace = TestWorkspace()
-        let manager = TimelineManager(
+        let manager = ThreadManager(
             stores: .init(
-                timelineStore: persistence,
+                threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: failingWorkspaceStore,
                 toolPersistence: persistence
@@ -190,17 +190,17 @@ struct StoreErrorClassificationTests {
             workspaceRoot: workspace.root
         )
 
-        let timeline = try await manager.createTimeline()
+        let thread = try await manager.createThread()
         let attachedWS = WorkspaceReference(
             uri: WorkspaceURI(host: "user-mac", path: "/projects/app"),
             location: .attached
         )
         try await failingWorkspaceStore.saveWorkspace(attachedWS)
-        try await manager.attachWorkspace(attachedWS.id, to: timeline.id)
+        try await manager.attachWorkspace(attachedWS.id, to: thread.id)
 
         failingWorkspaceStore.fetchFails = true
 
-        let result = try await manager.getWorkspaces(for: timeline.id)
+        let result = try await manager.getWorkspaces(for: thread.id)
 
         #expect(!result.attached.contains { $0.id == attachedWS.id },
                "The failing workspace should not appear in the result")
@@ -218,9 +218,9 @@ struct StoreErrorClassificationTests {
         let failingToolPersistence = FailingToolPersistence(fetchSourceFails: true)
         let persistence = MockPersistenceService()
         let workspace = TestWorkspace()
-        let manager = TimelineManager(
+        let manager = ThreadManager(
             stores: .init(
-                timelineStore: persistence,
+                threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
                 toolPersistence: failingToolPersistence
@@ -228,12 +228,12 @@ struct StoreErrorClassificationTests {
             workspaceRoot: workspace.root
         )
 
-        let timeline = try await manager.createTimeline()
+        let thread = try await manager.createThread()
 
         do {
-            _ = try await manager.getToolSource(toolId: "some_tool", for: timeline.id)
+            _ = try await manager.getToolSource(toolId: "some_tool", for: thread.id)
             Issue.record("Expected TimelineError.unavailable")
-        } catch TimelineError.unavailable {
+        } catch ThreadError.unavailable {
             // Correct — store outage throws rather than returning nil.
         } catch {
             Issue.record("Unexpected error: \(error)")
@@ -246,9 +246,9 @@ struct StoreErrorClassificationTests {
     func getToolSourceUnknownReturnsNil() async throws {
         let persistence = MockPersistenceService()
         let workspace = TestWorkspace()
-        let manager = TimelineManager(
+        let manager = ThreadManager(
             stores: .init(
-                timelineStore: persistence,
+                threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
                 toolPersistence: persistence
@@ -256,22 +256,22 @@ struct StoreErrorClassificationTests {
             workspaceRoot: workspace.root
         )
 
-        let timeline = try await manager.createTimeline()
+        let thread = try await manager.createThread()
 
-        let source = try await manager.getToolSource(toolId: "nonexistent_tool", for: timeline.id)
+        let source = try await manager.getToolSource(toolId: "nonexistent_tool", for: thread.id)
         #expect(source == nil, "A genuinely unknown tool should return nil, not throw")
     }
 
-    // MARK: - setupTimelineComponents: workspace resolution failure is survivable
+    // MARK: - setupThreadComponents: workspace resolution failure is survivable
 
     @Test("createTimeline succeeds even when workspace resolver fails for attached workspaces")
-    func createTimelineSurvivesWorkspaceResolverFailure() async throws {
+    func createThreadSurvivesWorkspaceResolverFailure() async throws {
         let persistence = MockPersistenceService()
         let failingWorkspaceStore = FailingWorkspaceStore(fetchFails: true)
         let workspace = TestWorkspace()
-        let manager = TimelineManager(
+        let manager = ThreadManager(
             stores: .init(
-                timelineStore: persistence,
+                threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: failingWorkspaceStore,
                 toolPersistence: persistence
@@ -279,23 +279,23 @@ struct StoreErrorClassificationTests {
             workspaceRoot: workspace.root
         )
 
-        // createTimeline should succeed even if workspace resolution fails internally —
-        // the timeline itself is created and persisted.
-        let timeline = try await manager.createTimeline(title: "Resilient Timeline")
+        // createThread should succeed even if workspace resolution fails internally —
+        // the thread itself is created and persisted.
+        let thread = try await manager.createThread(title: "Resilient Timeline")
 
-        #expect(timeline.title == "Resilient Timeline")
-        #expect(await manager.timeline(id: timeline.id) != nil,
+        #expect(thread.title == "Resilient Timeline")
+        #expect(await manager.thread(id: thread.id) != nil,
                "Timeline should be in memory even if workspace resolution degraded")
     }
 
-    // MARK: - TimelineError taxonomy contract
+    // MARK: - ThreadError taxonomy contract
 
     @Suite("TimelineError taxonomy")
-    struct TimelineErrorTaxonomyTests {
+    struct ThreadErrorTaxonomyTests {
         @Test("Every case maps to a unique non-zero error code in the timeline domain")
         func uniqueErrorCodes() {
-            let cases: [TimelineError] = [
-                .timelineNotFound,
+            let cases: [ThreadError] = [
+                .threadNotFound,
                 .unavailable,
                 .corrupt("desc"),
                 .permissionDenied,
@@ -305,54 +305,54 @@ struct StoreErrorClassificationTests {
             #expect(Set(codes).count == codes.count, "Error codes must be unique")
             #expect(codes.allSatisfy { $0 != 0 }, "Error codes must be non-zero")
             #expect(codes == [6001, 6002, 6003, 6004, 6005])
-            #expect(cases.allSatisfy { $0.errorDomain == PKErrorDomain.timeline })
+            #expect(cases.allSatisfy { $0.errorDomain == PKErrorDomain.thread })
         }
 
         @Test("corrupt includes context in userFriendlyMessage")
         func corruptMessage() {
-            let error = TimelineError.corrupt("timeline:\(UUID())")
+            let error = ThreadError.corrupt("timeline:\(UUID())")
             #expect(error.userFriendlyMessage.contains("corrupted"))
         }
 
         @Test("permissionDenied message references permission")
         func permissionDeniedMessage() {
-            let error = TimelineError.permissionDenied
+            let error = ThreadError.permissionDenied
             #expect(error.userFriendlyMessage.contains("Permission"))
         }
 
         @Test("invalidState message references invalid state")
         func invalidStateMessage() {
-            let error = TimelineError.invalidState("timeline not hydrated")
+            let error = ThreadError.invalidState("timeline not hydrated")
             #expect(error.userFriendlyMessage.contains("invalid state"))
         }
 
         @Test("unavailable has remediation guidance")
         func unavailableRemediation() {
-            #expect(TimelineError.unavailable.remediation != nil)
-            #expect(TimelineError.unavailable.remediation?.contains("retry") == true)
+            #expect(ThreadError.unavailable.remediation != nil)
+            #expect(ThreadError.unavailable.remediation?.contains("retry") == true)
         }
 
         @Test("corrupt has remediation guidance")
         func corruptRemediation() {
-            #expect(TimelineError.corrupt("x").remediation != nil)
+            #expect(ThreadError.corrupt("x").remediation != nil)
         }
 
         @Test("permissionDenied has remediation guidance")
         func permissionDeniedRemediation() {
-            #expect(TimelineError.permissionDenied.remediation != nil)
+            #expect(ThreadError.permissionDenied.remediation != nil)
         }
 
         @Test("timelineNotFound and invalidState have no remediation")
         func noRemediationForNotFoundAndInvalidState() {
-            #expect(TimelineError.timelineNotFound.remediation == nil)
-            #expect(TimelineError.invalidState("x").remediation == nil)
+            #expect(ThreadError.threadNotFound.remediation == nil)
+            #expect(ThreadError.invalidState("x").remediation == nil)
         }
 
         @Test("errorDescription includes domain and code for traceability")
         func errorDescriptionFormat() {
-            let error = TimelineError.unavailable
+            let error = ThreadError.unavailable
             #expect(error.errorDescription?.contains("6002") == true)
-            #expect(error.errorDescription?.contains(PKErrorDomain.timeline) == true)
+            #expect(error.errorDescription?.contains(PKErrorDomain.thread) == true)
         }
     }
 
@@ -377,14 +377,14 @@ struct StoreErrorClassificationTests {
 
         @Test("init extracts error identity from PKError-conforming errors")
         func initExtractsPKErrorIdentity() {
-            let error = TimelineError.unavailable
+            let error = ThreadError.unavailable
             let degradation = StoreDegradation(
                 operation: "test",
                 entityID: "timeline:abc",
                 error: error
             )
 
-            #expect(degradation.errorIdentity?.domain == PKErrorDomain.timeline)
+            #expect(degradation.errorIdentity?.domain == PKErrorDomain.thread)
             #expect(degradation.errorIdentity?.code == 6002)
         }
     }

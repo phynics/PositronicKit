@@ -306,7 +306,7 @@ public struct AgentContext: Prompt {
             lines.append("Description: \(agent.description)")
         }
         if let threadTitle {
-            lines.append("Currently operating on timeline: \"\(threadTitle)\"")
+            lines.append("Currently operating on thread: \"\(threadTitle)\"")
         }
         lines.append("Your private workspace contains your persistent memory (`Notes/` directory).")
         return lines.joined(separator: "\n")
@@ -330,7 +330,7 @@ public struct ThreadContext: Prompt {
     public var body: some Prompt {
         TextPrompt(
             """
-            ## Current Timeline
+            ## Current Thread
             - ID: `\(thread.id.uuidString)`
             - Title: \(thread.title)
             """,

@@ -46,7 +46,7 @@ struct ToolCallRegressionTests {
         let persistence = MockPersistenceService()
         let stage = MessagePersistenceStage(messageStore: persistence, logger: logger)
         let context = ChatTurnContext(
-            timelineId: UUID(),
+            threadID: UUID(),
             agentInstanceId: nil,
             modelName: "test-model",
             maxTurns: 1,
@@ -164,7 +164,7 @@ struct ToolCallRegressionTests {
     @Test("Legacy XML tool-call markers in assistant text do not produce tool accumulators")
     func legacyXMLMarkersProduceNoToolCalls() async throws {
         let context = ChatTurnContext(
-            timelineId: UUID(),
+            threadID: UUID(),
             agentInstanceId: nil,
             modelName: "test-model",
             maxTurns: 1,
@@ -192,7 +192,7 @@ struct ToolCallRegressionTests {
     @Test("Pipe-delimited tool-call markers in assistant text do not produce tool accumulators")
     func pipeMarkersProduceNoToolCalls() async throws {
         let context = ChatTurnContext(
-            timelineId: UUID(),
+            threadID: UUID(),
             agentInstanceId: nil,
             modelName: "test-model",
             maxTurns: 1,
@@ -220,7 +220,7 @@ struct ToolCallRegressionTests {
     @Test("Fenced JSON in assistant text does not produce tool accumulators")
     func fencedJSONProducesNoToolCalls() async throws {
         let context = ChatTurnContext(
-            timelineId: UUID(),
+            threadID: UUID(),
             agentInstanceId: nil,
             modelName: "test-model",
             maxTurns: 1,

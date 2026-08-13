@@ -30,7 +30,7 @@ PositronicKit uses a dual-structure approach to state management during a pipeli
 
 ### ChatTurnContext (Immutable Snapshot)
 The `ChatTurnContext` is a thread-safe, immutable struct that represents the state of a chat turn at a specific point in time. It contains:
-- Session-level configuration (Timeline ID, Model name, Max turns).
+- Session-level configuration (Thread ID, Model name, Max turns).
 - Turn-specific data (Current messages, Available tools).
 - A reference to the mutable `TurnOutputs`.
 
@@ -46,7 +46,7 @@ PositronicKit is the orchestration layer. It manages the full lifecycle of an ag
 ### Two Ways In: Facade (Primary) vs. Direct Seams (Advanced)
 
 - **The `PositronicKit` facade is the primary entry point.** Construct it, call `run(...)`, and consume the streamed `ChatEvent`s. It wires the runtime internally; most consumers never touch the underlying coordinators.
-- **Advanced hosts may compose the public runtime seams directly.** When you own a server or a custom composition root, construct and hold `TimelineManager`, `ToolRouter`, and the persistence/workspace protocols yourself, or inject them into the facade via the grouped `runtime:` / `persistence:` initializers. This is a supported tier — not a private API — but you opt into more wiring in exchange for more control.
+- **Advanced hosts may compose the public runtime seams directly.** When you own a server or a custom composition root, construct and hold `ThreadManager`, `ToolRouter`, and the persistence/workspace protocols yourself, or inject them into the facade via the grouped `runtime:` / `persistence:` initializers. This is a supported tier — not a private API — but you opt into more wiring in exchange for more control.
 
 Prefer the facade unless you specifically need a seam it doesn't surface. The chat-loop internals (`ChatEngine`, the turn pipeline, prompt-assembly internals) remain implementation details either way.
 
@@ -103,7 +103,7 @@ instead of paying a separate round-trip per auxiliary task. Full design:
 
 PositronicKit is deliberately transport-neutral: no networking, RPC, multi-process hosting, or bundled provider SDKs in the core target. The key boundaries are:
 
-- **Persistence protocols** for timelines, messages, workspaces, tools, agents, and request origins.
+- **Persistence protocols** for threads, messages, workspaces, tools, agents, and request origins.
 - **`WorkspaceFactory` and `Workspace`** for downstream-owned workspace resolution and execution behavior. `DefaultWorkspaceCatalog` is the bundled local provisioning implementation, not a required universal workspace model.
 - **`PromptSectionProviding`** and **`ChatTurnPlugin`** for app-specific orchestration and context hooks.
 - **Provider contracts in `PKShared`** for downstream-owned LLM adapters and tool/message projections.
@@ -117,7 +117,7 @@ These public API surfaces are the **v1 compatibility contract**: they only chang
 | **Tool contracts** | `Tool`, `AnyTool`, `ToolResult`, `ToolParameters`, `ToolError` | PKShared | Define and execute tools |
 | **Orchestration hooks** | `ChatTurnPlugin`, `CompletedTurn` | PositronicKit | Post-turn processing |
 | **Prompt customization** | `PromptSectionProviding`, `PromptBuildContext` | PositronicKit | Inject custom prompt sections |
-| **Persistence** | `MessageStoreProtocol`, `TimelinePersistenceProtocol`, `WorkspaceStore`, `MemoryStoreProtocol`, `ToolPersistenceProtocol`, `AgentInstanceStoreProtocol`, `AgentTemplateStoreProtocol`, `RequestOriginStoreProtocol` | PositronicKit | Custom storage backends |
+| **Persistence** | `MessageStoreProtocol`, `ThreadPersistenceProtocol`, `WorkspaceStore`, `MemoryStoreProtocol`, `ToolPersistenceProtocol`, `AgentInstanceStoreProtocol`, `AgentTemplateStoreProtocol`, `RequestOriginStoreProtocol` | PositronicKit | Custom storage backends |
 | **Key-value store** | `KeyValueStoreProtocol` | PositronicKit | Generic key-value persistence |
 | **Vector search** | `VectorStoreProtocol`, `VectorStoreError` | PositronicKit | Custom vector search backends |
 | **Health check** | `HealthCheckable` | PositronicKit | Service health reporting |
@@ -129,7 +129,7 @@ These public API surfaces are the **v1 compatibility contract**: they only chang
 | **Events** | `ChatEvent`, `ToolExecutionStatus`, `Message` | PKShared | Stream event types |
 | **Sidecar directives** | `SidecarDirective`, `SidecarDelta`, `SidecarResult` (PKShared), `SidecarError` (PositronicKit) | PKShared / PositronicKit | Piggy-backed auxiliary generations riding a turn's response — see [Sidecar Directives](docs/SidecarDirectives.md) |
 | **Pipeline** | `PipelineStage`, `PipelineError` | PKShared | Custom pipeline stages (advanced) |
-| **Runtime coordinators (advanced)** | `TimelineManager`, `ToolRouter`, `ToolExecutionOutcome`, `RuntimeToolPolicy` | PositronicKit | Direct runtime seams for hosts with their own composition root |
+| **Runtime coordinators (advanced)** | `ThreadManager`, `ToolRouter`, `ToolExecutionOutcome`, `RuntimeToolPolicy` | PositronicKit | Direct runtime seams for hosts with their own composition root |
 
 `InMemory*` stores (and `PositronicKit.PersistenceConfiguration.inMemory()`) are **public prototyping/test helpers**, not extension points — convenient for prototypes and tests, but not a stability contract.
 
