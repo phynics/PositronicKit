@@ -33,7 +33,7 @@ public final class AgenticRuntime: Sendable {
     convenience init(
         kit: PositronicKit,
         timelineID: UUID,
-        agentInstanceID: UUID?
+        agentInstanceID: UUID
     ) {
         self.init(kit: kit, threadID: timelineID, agentInstanceID: agentInstanceID)
     }
@@ -47,8 +47,15 @@ public final class AgenticRuntime: Sendable {
     public var timelineId: UUID { threadID }
 
     /// The agent-instance identifier using the legacy 3.x spelling.
-    @available(*, deprecated, renamed: "agentInstanceID")
-    public var agentInstanceId: UUID? { agentInstanceID }
+    @available(*, deprecated, renamed: "agentInstanceID", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
+    public var agentInstanceId: UUID {
+        guard let agentInstanceID else {
+            preconditionFailure(
+                "agentInstanceId is unavailable when AgenticRuntime was created without an agent instance."
+            )
+        }
+        return agentInstanceID
+    }
 
     /// Runs one agent turn through the facade's existing tool loop.
     ///

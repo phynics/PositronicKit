@@ -15,13 +15,35 @@ struct ThreadAPICompatibilityTests {
 
         let thread = try await kit.threadManager.createThread(title: "Canonical")
         let driver: ThreadDriver = kit.openThread(thread.id)
-        let runtime = kit.agenticRuntime(threadID: thread.id, agentInstanceID: nil)
+        let agentRuntime = kit.agenticRuntime(threadID: thread.id, agentInstanceID: nil)
         let request = ChatRunRequest(threadID: thread.id, message: "hello")
 
         #expect(thread.title == "Canonical")
         #expect(driver.threadID == thread.id)
-        #expect(runtime.threadID == thread.id)
+        #expect(agentRuntime.threadID == thread.id)
         #expect(request.threadID == thread.id)
+    }
+
+    @Test("legacy agent runtime function references preserve required UUID signatures")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
+    func legacyAgentRuntimeFunctionReferencesPreserveSignatures() {
+        let kit = PositronicKit(languageModel: UnconfiguredLLMService())
+        let timelineID = UUID()
+        let agentInstanceID = UUID()
+        let upper: (UUID, UUID) -> AgenticRuntime = kit.agenticRuntime(
+            timelineID:agentInstanceID:
+        )
+        let lower: (UUID, UUID) -> AgenticRuntime = kit.agenticRuntime(
+            timelineId:agentInstanceId:
+        )
+
+        let upperRuntime = upper(timelineID, agentInstanceID)
+        let lowerRuntime = lower(timelineID, agentInstanceID)
+        let upperLegacyID: UUID = upperRuntime.agentInstanceId
+        let lowerLegacyID: UUID = lowerRuntime.agentInstanceId
+
+        #expect(upperLegacyID == agentInstanceID)
+        #expect(lowerLegacyID == agentInstanceID)
     }
 
     @Test("the canonical persistence configuration consumes a legacy timeline store")

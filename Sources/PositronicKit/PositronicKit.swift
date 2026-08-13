@@ -359,7 +359,7 @@ public final class PositronicKit: Sendable {
     @available(*, deprecated, renamed: "agenticRuntime(threadID:agentInstanceID:)", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     public func agenticRuntime(
         timelineID: UUID,
-        agentInstanceID: UUID? = nil
+        agentInstanceID: UUID
     ) -> AgenticRuntime {
         agenticRuntime(threadID: timelineID, agentInstanceID: agentInstanceID)
     }
@@ -368,7 +368,7 @@ public final class PositronicKit: Sendable {
     @available(*, deprecated, renamed: "agenticRuntime(threadID:agentInstanceID:)", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     public func agenticRuntime(
         timelineId: UUID,
-        agentInstanceId: UUID? = nil
+        agentInstanceId: UUID
     ) -> AgenticRuntime {
         agenticRuntime(threadID: timelineId, agentInstanceID: agentInstanceId)
     }

@@ -271,11 +271,11 @@ public struct ChatRunRequest: Sendable, CustomStringConvertible {
     public var timelineId: UUID { threadID }
 
     /// The send identifier using the legacy 3.x spelling.
-    @available(*, deprecated, renamed: "sendID")
+    @available(*, deprecated, renamed: "sendID", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     public var sendId: UUID? { sendID }
 
     /// The agent-instance identifier using the legacy 3.x spelling.
-    @available(*, deprecated, renamed: "agentInstanceID")
+    @available(*, deprecated, renamed: "agentInstanceID", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
     public var agentInstanceId: UUID? { agentInstanceID }
 
     public var description: String {
