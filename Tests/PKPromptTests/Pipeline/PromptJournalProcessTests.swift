@@ -59,16 +59,34 @@ struct PromptJournalProcessTests {
     /// build-directory lock because the parent `swift test` is still active.
     private func fixtureExecutableURL() throws -> URL {
         let fileManager = FileManager.default
-        var directory = URL(fileURLWithPath: CommandLine.arguments[0])
+
+        // The fixture lands beside the test bundle (`.build/.../debug`), so walk up
+        // from the test binary. Newer SwiftPM toolchains launch test bundles through
+        // `swiftpm-testing-helper`, which repoints `argv[0]` at the toolchain — so also
+        // anchor on the test bundle itself before giving up.
+        var candidates: [URL] = []
+
+        var argvDirectory = URL(fileURLWithPath: CommandLine.arguments[0])
             .standardizedFileURL
             .deletingLastPathComponent()
-
         for _ in 0 ..< 6 {
-            let candidate = directory.appendingPathComponent("PKPromptJournalProcessFixture")
+            candidates.append(argvDirectory.appendingPathComponent("PKPromptJournalProcessFixture"))
+            argvDirectory.deleteLastPathComponent()
+        }
+
+        var bundleDirectory = Bundle(for: FixtureBundleMarker.self)
+            .bundleURL
+            .standardizedFileURL
+            .deletingLastPathComponent()
+        for _ in 0 ..< 6 {
+            candidates.append(bundleDirectory.appendingPathComponent("PKPromptJournalProcessFixture"))
+            bundleDirectory.deleteLastPathComponent()
+        }
+
+        for candidate in candidates {
             if fileManager.isExecutableFile(atPath: candidate.path) {
                 return candidate
             }
-            directory.deleteLastPathComponent()
         }
 
         throw FixtureProcessError(
@@ -76,6 +94,8 @@ struct PromptJournalProcessTests {
             message: "Could not locate the built PKPromptJournalProcessFixture executable."
         )
     }
+
+    private final class FixtureBundleMarker {}
 
     private var packageRoot: URL {
         URL(fileURLWithPath: #filePath)

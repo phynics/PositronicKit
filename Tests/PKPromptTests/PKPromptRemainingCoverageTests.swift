@@ -1229,3 +1229,324 @@ extension PKPromptRemainingCoverageTests {
         #expect(diff.stableNodePaths == [["root", "b"]])
     }
 }
+
+// MARK: - Error surface, multimodal hashing, and allocator branch coverage
+
+extension PKPromptRemainingCoverageTests {
+
+    private func makeEstimatedSection(
+        id: String = UUID().uuidString,
+        tokens: Int,
+        role: PromptSectionRole = .context,
+        priority: Int = 50,
+        compression: CompressionStrategy = .keep
+    ) -> PromptSection {
+        PromptSection(
+            id: id, role: role, priority: priority, estimatedTokens: tokens,
+            compression: compression, type: .text, cachePolicy: .volatile,
+            path: ["root", id], render: { _ in .text("x") }
+        )
+    }
+
+    @Test("PromptCompressionError exposes typed fields for every case")
+    func promptCompressionErrorAccessors() {
+        let cases: [(PromptCompressionError, Int)] = [
+            (.duplicateSectionIDs(["a", "b"]), 1201),
+            (.duplicatePlannedNodeIDs(["n"]), 1202),
+            (.budgetUnsatisfied(availableTokens: 10, estimatedTokens: 40), 1203),
+            (.mandatorySectionOverflow(sectionID: "s", estimatedTokens: 40, availableTokens: 10), 1204),
+        ]
+        for (error, code) in cases {
+            #expect(error.errorDomain == PKErrorDomain.prompt)
+            #expect(error.errorCode == code)
+            #expect(!error.userFriendlyMessage.isEmpty)
+            #expect(error.remediation != nil)
+        }
+        #expect(TokenBudgetError.nonPositiveContextWindow(0).errorCode == 1101)
+    }
+
+    @Test("PromptJournalValidationError exposes typed fields for both cases")
+    func promptJournalValidationErrorAccessors() {
+        let cases: [(PromptJournal.ValidationError, Int)] = [
+            (.duplicateStableSectionIDs(["a"]), 1301),
+            (.duplicateSemiStableSectionIDs(["b"]), 1302),
+        ]
+        for (error, code) in cases {
+            #expect(error.errorDomain == PKErrorDomain.prompt)
+            #expect(error.errorCode == code)
+            #expect(!error.userFriendlyMessage.isEmpty)
+            #expect(error.remediation != nil)
+        }
+    }
+
+    @Test("TokenBudgetError messages and remediation for reserve failures")
+    func tokenBudgetErrorReserveAccessors() {
+        let negative = TokenBudgetError.negativeOutputReserve(-5)
+        #expect(negative.userFriendlyMessage.contains("-5"))
+        #expect(negative.remediation != nil)
+        #expect(negative.errorCode == 1102)
+
+        let exceeds = TokenBudgetError.outputReserveExceedsContextWindow(contextWindow: 10, reserve: 10)
+        #expect(exceeds.userFriendlyMessage.contains("10"))
+        #expect(exceeds.remediation != nil)
+        #expect(exceeds.errorCode == 1103)
+    }
+
+    @Test("sectionContentHash folds multimodal text, image, and audio parts")
+    func sectionContentHashMultimodal() {
+        let text = MessageContent(parts: [.text("hello")])
+        let image = MessageContent(parts: [
+            .image(ImageContent(data: Data([0x01]), mediaType: "image/png", detail: .high, estimatedTokens: 2048)),
+        ])
+        let audio = MessageContent(parts: [
+            .audio(AudioContent(
+                data: Data([0x02]),
+                format: .wav,
+                transcript: "hi",
+                estimatedTokens: 512,
+                continuation: AudioContinuationReference(
+                    provider: .openAI,
+                    id: "ref-1",
+                    expiresAt: Date(timeIntervalSince1970: 1_700_000_000)
+                )
+            )),
+        ])
+
+        let textHash = sectionContentHash(.multimodal(text))
+        let imageHash = sectionContentHash(.multimodal(image))
+        let audioHash = sectionContentHash(.multimodal(audio))
+
+        #expect(textHash == sectionContentHash(.multimodal(text)))
+        #expect(imageHash == sectionContentHash(.multimodal(image)))
+        #expect(audioHash == sectionContentHash(.multimodal(audio)))
+        #expect(textHash != imageHash)
+        #expect(textHash != audioHash)
+        #expect(imageHash != audioHash)
+
+        // PKDEEP2-003(b): detail/media ordering is content-bearing, token estimates are not.
+        let detailChange = sectionContentHash(.multimodal(MessageContent(parts: [
+            .image(ImageContent(data: Data([0x01]), mediaType: "image/png", detail: .low)),
+        ])))
+        #expect(imageHash != detailChange)
+
+        let transcriptChange = sectionContentHash(.multimodal(MessageContent(parts: [
+            .audio(AudioContent(data: Data([0x02]), format: .wav, transcript: "bye")),
+        ])))
+        #expect(audioHash != transcriptChange)
+    }
+
+    @Test("UserPrompt supports the MessageContent initializer and custom traits")
+    func userPromptMessageContentInit() {
+        let prompt = UserPrompt(
+            MessageContent(parts: [.text("hello")]),
+            id: "custom-query", priority: 3, estimatedTokens: 99
+        )
+        #expect(prompt.id == "custom-query")
+        #expect(prompt.priority == 3)
+        #expect(prompt.estimatedTokens == 99)
+        #expect(prompt.text == "hello")
+        #expect(prompt.resolveSections().first?.estimatedTokens == 99)
+    }
+
+    @Test("UserPrompt string initializer lowers with content-preserving sections")
+    func userPromptStringInit() async throws {
+        let prompt = UserPrompt("question")
+        #expect(prompt.text == "question")
+        #expect(prompt.content.isTextOnly)
+        let section = try #require(prompt.resolveSections().first)
+        let content = await section.renderedContent()
+        #expect(content?.text == "question")
+    }
+
+    @Test("ImagePrompt and AudioPrompt lower through UserPrompt")
+    func imageAndAudioPromptBodies() async {
+        let imagePrompt = ImagePrompt(ImageContent(data: Data([1]), mediaType: "image/png"), id: "img-1")
+        #expect(imagePrompt.id == "img-1")
+        let imageContent = await imagePrompt.resolveSections().first?.renderedContent()
+        #expect(imageContent?.multimodal != nil)
+
+        let audioPrompt = AudioPrompt(AudioContent(data: Data([2]), format: .mp3), id: "aud-1")
+        #expect(audioPrompt.id == "aud-1")
+        let audioContent = await audioPrompt.resolveSections().first?.renderedContent()
+        #expect(audioContent?.multimodal != nil)
+    }
+
+    @Test("PromptSection.Content.multimodal accessor exposes the ordered payload")
+    func sectionContentMultimodalAccessor() {
+        let multimodal = PromptSection.Content.multimodal(MessageContent(parts: [.text("x")]))
+        #expect(multimodal.multimodal != nil)
+        #expect(multimodal.multimodal?.text == "x")
+        #expect(PromptSection.Content.text("t").multimodal == nil)
+        #expect(PromptSection.Content.messages([Message(content: "m", role: .user)]).multimodal == nil)
+    }
+
+    @Test("TokenBudget with a negative available budget surfaces a zero-estimate error")
+    func tokenBudgetNegativeAvailable() async {
+        let budget = TokenBudget(maxTokens: 10, reserveForResponse: 30)
+        await #expect(throws: PromptCompressionError.budgetUnsatisfied(availableTokens: -20, estimatedTokens: 0)) {
+            try await budget.result(forResolvedSections: [PromptSectionHelper.makeTextSection(content: .text("x"), role: .context)])
+        }
+    }
+
+    @Test("TokenBudget allocator fails a keep section that cannot fit the remaining budget")
+    func tokenBudgetAllocatorKeepOverflow() async {
+        let trunk = makeEstimatedSection(id: "trunk", tokens: 80, priority: 100, compression: .truncate(keeping: .head))
+        let keep = makeEstimatedSection(id: "keep", tokens: 50, priority: 50, compression: .keep)
+        let budget = TokenBudget(maxTokens: 100, reserveForResponse: 0)
+        await #expect(throws: PromptCompressionError.mandatorySectionOverflow(
+            sectionID: keep.id, estimatedTokens: keep.estimatedTokens, availableTokens: 20
+        )) {
+            try await budget.result(forResolvedSections: [trunk, keep])
+        }
+    }
+
+    @Test("TokenBudget drops summarize sections once the allocator budget is exhausted")
+    func tokenBudgetDropsSummarizeWithoutBudget() async {
+        let trunk = makeEstimatedSection(id: "trunk", tokens: 100, priority: 100, compression: .truncate(keeping: .head))
+        let summary = makeEstimatedSection(id: "summary", tokens: 50, priority: 50, compression: .summarize)
+        let budget = TokenBudget(maxTokens: 100, reserveForResponse: 0)
+        let result = try! await budget.result(forResolvedSections: [trunk, summary])
+        #expect(result.sections.map(\.id) == [trunk.id])
+        #expect(result.report?.nodeReports.contains { if case .drop = $0.action { return true }; return false } == true)
+    }
+
+    @Test("Executor and planner reject duplicate identifiers with typed errors")
+    func executorAndPlannerRejectDuplicates() async throws {
+        let section = PromptSectionHelper.makeTextSection(content: .text("x"), role: .context)
+        let emptyPlan = StructuredCompressionPlan(availableTokens: 100, totalEstimatedTokens: 10, nodeActions: [])
+        await #expect(throws: PromptCompressionError.duplicateSectionIDs([section.id])) {
+            try await StructuredCompressionExecutor().execute(plan: emptyPlan, sections: [section, section], compressor: nil)
+        }
+
+        let action = PlannedNodeAction(nodeID: "n", path: ["root"], nodeHash: 1, strategy: .keep, estimatedTokens: 5, action: .keep)
+        let dupPlan = StructuredCompressionPlan(availableTokens: 100, totalEstimatedTokens: 10, nodeActions: [action, action])
+        await #expect(throws: PromptCompressionError.duplicatePlannedNodeIDs(["n"])) {
+            try await StructuredCompressionExecutor().execute(plan: dupPlan, sections: [section], compressor: nil)
+        }
+
+        let node = StructuredCompressionNode(
+            id: "n", path: ["root"], nodeHash: 1, priority: 50,
+            cachePolicy: .stable, strategy: .keep, estimatedTokens: 5
+        )
+        let planner = StructuredCompressionPlanner()
+        #expect(throws: PromptCompressionError.duplicateSectionIDs(["n"])) {
+            try planner.plan(nodes: [node, node], availableTokens: 100, diff: nil)
+        }
+    }
+
+    @Test("TokenBudget deprecated resolved-section overloads delegate to the canonical API")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
+    func tokenBudgetDeprecatedSectionOverloads() async throws {
+        let budget = TokenBudget(maxTokens: 10000, reserveForResponse: 0)
+        let section = PromptSectionHelper.makeTextSection(content: .text("hi"), role: .context)
+
+        let viaResult = try await budget.result(for: [section])
+        #expect(viaResult.sections.count == 1)
+
+        let applied = try await budget.apply(to: [section])
+        #expect(applied.count == 1)
+
+        let withReport = try await budget.applyWithReport(to: [section])
+        #expect(withReport.sections.count == 1)
+        #expect(withReport.report == nil)
+
+        let viaBudget = try await budget.budget(to: [section])
+        #expect(viaBudget.sections.count == 1)
+    }
+
+    @Test("TokenBudget deprecated prompt-existential result overload delegates to the canonical API")
+    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
+    func tokenBudgetDeprecatedPromptExistentialResult() async throws {
+        let budget = TokenBudget(maxTokens: 10000, reserveForResponse: 0)
+        let prompts: [any Prompt] = [TextPrompt("hi", id: "p1")]
+        let result = try await budget.result(for: prompts)
+        #expect(result.sections.map(\.id) == ["p1"])
+        #expect(result.report == nil)
+    }
+
+    @Test("MultimodalPromptPrimitive renderContent returns the text projection")
+    func multimodalPrimitiveRenderContent() async {
+        let primitive = MultimodalPromptPrimitive(
+            id: "m",
+            content: MessageContent(parts: [.text("projected")])
+        )
+        let rendered = await primitive.renderContent()
+        #expect(rendered == "projected")
+    }
+
+    @Test("AssembledPrompt renders multimodal sections via the text projection")
+    func assembledPromptRendersMultimodal() async throws {
+        let content = MessageContent(parts: [
+            .text("multimodal text"),
+            .image(ImageContent(data: Data([1]), mediaType: "image/png")),
+        ])
+        let section = PromptSection(
+            id: UUID().uuidString, role: .context, priority: 50,
+            estimatedTokens: 10, compression: .keep, type: .text,
+            cachePolicy: .volatile, path: ["root", "s"],
+            render: { _ in .multimodal(content) }
+        )
+        let rendered = try await AssembledPrompt(sections: [section]).render()
+        #expect(rendered.string.contains("multimodal text"))
+    }
+
+    @Test("EmptyMutable buildMessages includes volatile multimodal user query content")
+    func buildMessagesMultimodalUserQuery() async {
+        let content = MessageContent(parts: [
+            .text("Look at this"),
+            .image(ImageContent(data: Data([1]), mediaType: "image/png")),
+        ])
+        let section = JournaledPromptSection(
+            section: RenderedPrompt.Section(
+                id: "query", role: .userQuery, priority: 90, estimatedTokens: 10,
+                compression: .keep, type: .text, cachePolicy: .volatile,
+                path: ["root", "query"], parentID: nil, content: .multimodal(content)
+            ),
+            layer: .volatile, sourcePath: ["root", "query"], journalPath: ["root", "query"]
+        )
+        let plan = PromptJournalPlan(
+            baseSections: [], overlaySections: [], volatileSections: [section],
+            requiresHardReset: false, diff: PromptJournalDiff(), emissionMode: .snapshot
+        )
+        let messages = plan.buildMessages()
+        #expect(messages.contains { $0.role == .user && $0.content.contains("Look at this") })
+    }
+
+    @Test("Snapshot journal text falls back to the multimodal text projection")
+    func snapshotMultimodalJournalText() async {
+        let content = MessageContent(parts: [
+            .text("tagged content"),
+            .audio(AudioContent(data: Data([2]), format: .mp3)),
+        ])
+        let section = JournaledPromptSection(
+            section: RenderedPrompt.Section(
+                id: "mm", role: .context, priority: 50, estimatedTokens: 10,
+                compression: .keep, type: .text, cachePolicy: .stable,
+                path: ["root", "mm"], parentID: nil, content: .multimodal(content)
+            ),
+            layer: .base, sourcePath: ["root", "mm"], journalPath: ["root", "mm"]
+        )
+        let plan = PromptJournalPlan(
+            baseSections: [section], overlaySections: [], volatileSections: [],
+            requiresHardReset: false, diff: PromptJournalDiff(), emissionMode: .snapshot
+        )
+        let messages = plan.buildMessages()
+        #expect(messages.contains { $0.content.contains("tagged content") })
+    }
+
+    @Test("PromptPrimitive renderedContent preserves non-empty multimodal content")
+    func primitiveMultimodalRenderedContent() async {
+        struct MultimodalPrimitive: PromptPrimitive {
+            let id = "mm-prim"
+            let priority = 1
+            let estimatedTokens = 10
+            var content: PromptPrimitiveContent {
+                .multimodal(MessageContent(parts: [.text("preserved")]))
+            }
+            func renderContent() async -> String? { "preserved" }
+        }
+        let section = MultimodalPrimitive().makeSection()
+        let rendered = await section.renderedContent()
+        #expect(rendered?.multimodal?.text == "preserved")
+    }
+}
