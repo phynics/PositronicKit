@@ -31,6 +31,10 @@ AGENT_LOCK_FILE ?= $(CURDIR)/.build/positronickit-agent-gate.lock
 PODMAN ?= $(shell command -v podman 2>/dev/null)
 FILTER ?=
 TRAITS ?=
+# Keep the repository's build and test gates strict without embedding unsafe
+# compiler flags in Package.swift, which would affect downstream consumers.
+SWIFT_BUILD_FLAGS ?= -Xswiftc -warnings-as-errors
+export SWIFT_BUILD_FLAGS
 
 # Library-product discovery is intentionally NOT done at parse time. It used to
 # run `swift package describe` for almost every target, so `make help` (and
@@ -42,7 +46,7 @@ TRAITS ?=
 # Build a single library product by name, e.g. `make verify-product-PKShared`.
 verify-product-%:
 	@echo "Building $*..."
-	@swift build --target "$*"
+	@swift build $(SWIFT_BUILD_FLAGS) --target "$*"
 
 # Default target
 help:
@@ -84,7 +88,7 @@ help:
 
 build:
 	@echo "Building PositronicKit..."
-	@swift build
+	@swift build $(SWIFT_BUILD_FLAGS)
 
 clean:
 	@echo "Cleaning build artifacts..."
@@ -95,16 +99,16 @@ clean:
 
 test:
 	@echo "Running tests..."
-	@swift test
+	@swift test $(SWIFT_BUILD_FLAGS)
 
 test-parallel:
 	@echo "Running tests in parallel..."
-	@swift test --parallel --num-workers 2
+	@swift test $(SWIFT_BUILD_FLAGS) --parallel --num-workers 2
 
 harden:
 	@echo "Running hardening gate..."
-	@swift build
-	@swift test --parallel --num-workers 2
+	@swift build $(SWIFT_BUILD_FLAGS)
+	@swift test $(SWIFT_BUILD_FLAGS) --parallel --num-workers 2
 
 validate-docs:
 	@bash Scripts/validate-docs.sh
@@ -116,7 +120,7 @@ verify-doc-snippets:
 audit-default-linkage:
 	@echo "Auditing default Apple build for native MiniLM linkage..."
 	@mkdir -p .build
-	@swift build --product PKLocalEmbeddings --verbose > .build/default-build.log 2>&1
+	@swift build $(SWIFT_BUILD_FLAGS) --product PKLocalEmbeddings --verbose > .build/default-build.log 2>&1
 	@! grep -E "libpkfastembed|-lpkfastembed|PKFastEmbed\.build|PKMiniLMTraitBackend\.build" .build/default-build.log
 
 verify-pin:
@@ -139,11 +143,11 @@ verify-linux-suites:
 	@PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
 		LIBRARY_PATH="$(PKFASTEMBED_PREFIX)/lib$${LIBRARY_PATH:+:$$LIBRARY_PATH}" \
 		PK_MINILM_MODEL_DIR="$(MINILM_MODEL_CACHE_DIR)" \
-		swift test
+		swift test $(SWIFT_BUILD_FLAGS)
 	@PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
 		LIBRARY_PATH="$(PKFASTEMBED_PREFIX)/lib$${LIBRARY_PATH:+:$$LIBRARY_PATH}" \
 		PK_MINILM_MODEL_DIR="$(MINILM_MODEL_CACHE_DIR)" \
-		swift test --traits MiniLMEmbeddings
+		swift test $(SWIFT_BUILD_FLAGS) --traits MiniLMEmbeddings
 
 verify-linux-base: bootstrap-minilm
 	@PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
@@ -171,14 +175,14 @@ verify-linux-filter: bootstrap-minilm
 		exit 2; \
 	fi
 	@if [ -n "$(LINUX_TEST_TRAITS)" ]; then \
-		swift test --scratch-path /scratch --jobs 1 --traits "$(LINUX_TEST_TRAITS)" --filter "$(LINUX_TEST_FILTER)"; \
+		swift test $(SWIFT_BUILD_FLAGS) --scratch-path /scratch --jobs 1 --traits "$(LINUX_TEST_TRAITS)" --filter "$(LINUX_TEST_FILTER)"; \
 	else \
-		swift test --scratch-path /scratch --jobs 1 --filter "$(LINUX_TEST_FILTER)"; \
+		swift test $(SWIFT_BUILD_FLAGS) --scratch-path /scratch --jobs 1 --filter "$(LINUX_TEST_FILTER)"; \
 	fi
 
 verify-linux-scratch: bootstrap-minilm
-	@swift test --scratch-path /scratch --jobs 1
-	@swift test --scratch-path /scratch --jobs 1 --traits MiniLMEmbeddings
+	@swift test $(SWIFT_BUILD_FLAGS) --scratch-path /scratch --jobs 1
+	@swift test $(SWIFT_BUILD_FLAGS) --scratch-path /scratch --jobs 1 --traits MiniLMEmbeddings
 
 verify-linux-asan:
 	@echo "Running PKFastEmbed tests under AddressSanitizer for $(PKFASTEMBED_ASAN_TARGET)..."
@@ -200,18 +204,18 @@ verify-products:
 	fi; \
 	for product in $$products; do \
 		echo "Building $$product..."; \
-		swift build --target "$$product"; \
+		swift build $(SWIFT_BUILD_FLAGS) --target "$$product"; \
 	done
 
 verify-examples:
 	@echo "Building PositronicKitExamples..."
-	@swift build --product PositronicKitExamples
+	@swift build $(SWIFT_BUILD_FLAGS) --product PositronicKitExamples
 
 verify-pktestsupport:
 	@echo "Building PKTestSupport in release configuration..."
-	@swift build -c release --target PKTestSupport
+	@swift build $(SWIFT_BUILD_FLAGS) -c release --target PKTestSupport
 	@echo "Compiling an ordinary-import PKTestSupport consumer..."
-	@swift build -c release --target PKTestSupportConsumer
+	@swift build $(SWIFT_BUILD_FLAGS) -c release --target PKTestSupportConsumer
 
 verify-tests: test
 
@@ -229,17 +233,17 @@ build-minilm: bootstrap-minilm
 	@echo "Building MiniLM trait product..."
 	@PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
 		LIBRARY_PATH="$(PKFASTEMBED_PREFIX)/lib$${LIBRARY_PATH:+:$$LIBRARY_PATH}" \
-		swift build --traits MiniLMEmbeddings
+		swift build $(SWIFT_BUILD_FLAGS) --traits MiniLMEmbeddings
 
 verify-minilm: bootstrap-minilm
 	@PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
 		LIBRARY_PATH="$(PKFASTEMBED_PREFIX)/lib$${LIBRARY_PATH:+:$$LIBRARY_PATH}" \
 		PK_MINILM_MODEL_DIR="$(MINILM_MODEL_CACHE_DIR)" \
-		swift test --traits MiniLMEmbeddings --filter MiniLMEmbeddingContractTests
+		swift test $(SWIFT_BUILD_FLAGS) --traits MiniLMEmbeddings --filter MiniLMEmbeddingContractTests
 	@PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
 		LIBRARY_PATH="$(PKFASTEMBED_PREFIX)/lib$${LIBRARY_PATH:+:$$LIBRARY_PATH}" \
 		PK_MINILM_MODEL_DIR="$(MINILM_MODEL_CACHE_DIR)" \
-		swift test --traits MiniLMEmbeddings --filter PKFastEmbedTests
+		swift test $(SWIFT_BUILD_FLAGS) --traits MiniLMEmbeddings --filter PKFastEmbedTests
 
 # Linux testing intentionally has no native or Docker fallback. The shared
 # runner performs the deeper access check and prints the sandbox-escalation

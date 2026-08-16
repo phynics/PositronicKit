@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-swift test --filter 'RuntimeSetupStoriesTests|ExampleUsageStoriesTests|IntroductoryStoriesTests|PublicRuntimeStoriesTests'
+swift test ${SWIFT_BUILD_FLAGS:--Xswiftc -warnings-as-errors} --filter 'RuntimeSetupStoriesTests|ExampleUsageStoriesTests|IntroductoryStoriesTests|PublicRuntimeStoriesTests'
 bash "$ROOT/Scripts/validate-docc.sh"
 
 # Documentation authority contracts.
