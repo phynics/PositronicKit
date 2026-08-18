@@ -10,31 +10,12 @@ public extension PositronicKit {
         public let languageModel: any LanguageModel
         public let embeddingService: (any EmbeddingServiceProtocol)?
 
-        @available(*, deprecated, renamed: "languageModel")
-        public var llmService: any LanguageModel { languageModel }
-
         public init(
             languageModel: any LanguageModel,
             embeddingService: (any EmbeddingServiceProtocol)? = nil
         ) {
             self.languageModel = languageModel
             self.embeddingService = embeddingService
-        }
-
-        @available(*, deprecated, renamed: "init(languageModel:embeddingService:)")
-        public init(
-            llmService: any LanguageModel,
-            embeddingService: (any EmbeddingServiceProtocol)? = nil
-        ) {
-            self.init(languageModel: llmService, embeddingService: embeddingService)
-        }
-
-        @available(*, deprecated, renamed: "init(languageModel:embeddingService:)")
-        public init(
-            llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient,
-            embeddingService: (any EmbeddingServiceProtocol)? = nil
-        ) {
-            self.init(languageModel: AnyLanguageModel(base: llmService), embeddingService: embeddingService)
         }
     }
 
@@ -67,7 +48,7 @@ public extension PositronicKit {
     ///
     /// Use ``validateDurability()`` to detect mixed-durability configurations (some stores
     /// durable, others in-memory) that can lose data on restart. Use
-    /// ``fullyPersistent(messageStore:timelinePersistence:workspacePersistence:memoryStore:toolPersistence:agentInstanceStore:requestOriginStore:)``
+    /// ``fullyPersistent(messageStore:threadPersistence:workspacePersistence:memoryStore:toolPersistence:agentInstanceStore:requestOriginStore:)``
     /// when all seven stores must be explicitly provided for full durability.
     struct PersistenceConfiguration: Sendable {
         public let messageStore: any ThreadMessageStoreProtocol
@@ -178,8 +159,6 @@ public extension PositronicKit {
     struct DurabilityReport: Sendable, Equatable {
         public let messageStore: StoreDurability
         public let threadPersistence: StoreDurability
-        @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-        public var timelinePersistence: StoreDurability { threadPersistence }
         public let workspacePersistence: StoreDurability
         public let memoryStore: StoreDurability
         public let toolPersistence: StoreDurability
@@ -204,27 +183,6 @@ public extension PositronicKit {
             self.requestOriginStore = requestOriginStore
         }
 
-        @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-        public init(
-            messageStore: StoreDurability,
-            timelinePersistence: StoreDurability,
-            workspacePersistence: StoreDurability,
-            memoryStore: StoreDurability,
-            toolPersistence: StoreDurability,
-            agentInstanceStore: StoreDurability,
-            requestOriginStore: StoreDurability
-        ) {
-            self.init(
-                messageStore: messageStore,
-                threadPersistence: timelinePersistence,
-                workspacePersistence: workspacePersistence,
-                memoryStore: memoryStore,
-                toolPersistence: toolPersistence,
-                agentInstanceStore: agentInstanceStore,
-                requestOriginStore: requestOriginStore
-            )
-        }
-
         public var isMixed: Bool {
             let all: [StoreDurability] = [
                 messageStore, threadPersistence, workspacePersistence,
@@ -237,7 +195,7 @@ public extension PositronicKit {
         public var ephemeralStoreNames: [String] {
             var names: [String] = []
             if messageStore == .ephemeral { names.append("messageStore") }
-            if threadPersistence == .ephemeral { names.append("timelinePersistence") }
+            if threadPersistence == .ephemeral { names.append("threadPersistence") }
             if workspacePersistence == .ephemeral { names.append("workspacePersistence") }
             if memoryStore == .ephemeral { names.append("memoryStore") }
             if toolPersistence == .ephemeral { names.append("toolPersistence") }

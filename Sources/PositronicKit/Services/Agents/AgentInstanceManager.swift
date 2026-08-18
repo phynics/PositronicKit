@@ -248,7 +248,6 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
         try await instanceStore.fetchAgentInstance(id: id)
     }
 
-    @available(*, deprecated, renamed: "instance(id:)")
     public func getInstance(id: UUID) async throws -> AgentInstance? {
         try await instance(id: id)
     }

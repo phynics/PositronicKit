@@ -144,24 +144,6 @@ public actor LLMService: LanguageModel, HealthCheckable {
         configuredFastClient
     }
 
-    /// Returns the configured primary client.
-    @available(*, deprecated, renamed: "client()")
-    public func getClient() -> (any LLMClientProtocol)? {
-        client()
-    }
-
-    /// Returns the configured utility client.
-    @available(*, deprecated, renamed: "utilityClient()")
-    public func getUtilityClient() -> (any LLMClientProtocol)? {
-        utilityClient()
-    }
-
-    /// Returns the configured fast client.
-    @available(*, deprecated, renamed: "fastClient()")
-    public func getFastClient() -> (any LLMClientProtocol)? {
-        fastClient()
-    }
-
     public func setClients(
         main: (any LLMClientProtocol)?, utility: (any LLMClientProtocol)?,
         fast: (any LLMClientProtocol)?
