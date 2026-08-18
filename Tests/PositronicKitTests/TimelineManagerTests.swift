@@ -7,15 +7,14 @@ import Synchronization
 import Testing
 
 struct ThreadManagerTests {
-    @Test("v3 manager parameter labels remain source compatible")
-    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
-    func legacyManagerParameterLabels() async throws {
+    @Test("manager parameter labels remain source compatible")
+    func managerParameterLabels() async throws {
         let manager = ThreadManager(workspaceProfile: .noWorkspace)
         let thread = try await manager.createThread(title: "Legacy labels")
 
         _ = await manager.gatherExtensionSections(
             threadID: thread.id,
-            agentInstanceId: nil,
+            agentInstanceID: nil,
             message: "Hello"
         )
         _ = try await manager.getHistory(for: thread.id)
@@ -33,9 +32,8 @@ struct ThreadManagerTests {
         await manager.cancelActiveTaskAndAwait(for: thread.id)
     }
 
-    @Test("v3 attachment parameter labels remain source compatible")
-    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
-    func legacyAttachmentParameterLabels() async throws {
+    @Test("attachment parameter labels remain source compatible")
+    func attachmentParameterLabels() async throws {
         let manager = ThreadManager(workspaceProfile: .noWorkspace)
         let thread = try await manager.createThread(title: "Legacy attachments")
         let workspace = WorkspaceReference(

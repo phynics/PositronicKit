@@ -217,7 +217,7 @@ extension ChatEngine {
             // 9. Build the initial prompt messages
             let extensionSections = await dependencies.threadManager.gatherExtensionSections(
                 threadID: threadID,
-                agentInstanceId: agentInstance?.id,
+                agentInstanceID: agentInstance?.id,
                 message: messageContent.text
             )
 

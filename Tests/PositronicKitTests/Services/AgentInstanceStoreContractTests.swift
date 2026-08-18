@@ -153,8 +153,7 @@ import Testing
     }
 
     @Test(arguments: Conformer.allCases)
-    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
-    func fetchThreadsRemainsAvailableAsLegacyShim(conformer: Conformer) async throws {
+    func fetchThreadsRemainsAvailable(conformer: Conformer) async throws {
         let store: any AgentInstanceStoreProtocol = conformer.make()
         let instance = Self.makeInstance()
 
