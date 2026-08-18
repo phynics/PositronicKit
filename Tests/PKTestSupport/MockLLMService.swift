@@ -507,6 +507,10 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
         set { state.withLock { $0.mockClient = newValue } }
     }
 
+    public func structuredOutputAdapter(for modelTier: ModelTier) async -> any StructuredOutputAdapter {
+        mockClient.structuredOutputAdapter
+    }
+
     /// Overrides the stream returned by `chatStream`. The request is still captured first.
     public var stubbedStream: AsyncThrowingStream<LLMStreamChunk, Error>? {
         get { state.withLock { $0.stubbedStream } }

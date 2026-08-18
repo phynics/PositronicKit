@@ -545,7 +545,7 @@ struct LLMServiceTests {
         let noClientService = LLMService(configuration: validConfig)
         let noClientDetails = await noClientService.getHealthDetails()
         #expect(noClientDetails?["provider"] == "OpenRouter")
-        #expect(noClientDetails?["readiness"] == "no client resolved for provider OpenRouter; no client factory registered")
+        #expect(noClientDetails?["readiness"] == "no client resolved for provider OpenRouter; no client factory supplied")
         #expect(await noClientService.isConfigured == true)
         #expect(await noClientService.isReady == false)
 
