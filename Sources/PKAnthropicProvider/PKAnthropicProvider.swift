@@ -4,11 +4,13 @@ import PKShared
 public enum PKAnthropicProvider {
     /// Creates an Anthropic client and registers its structured-output adapter globally.
     public static func makeClientAndRegisterStructuredOutputAdapter(
-        configuration: LLMConfiguration
+        configuration: LLMConfiguration,
+        modelName: String? = nil
     ) -> AnthropicClient {
         StructuredOutputAdapterRegistry.register(DefaultStructuredOutputAdapter(), for: .anthropic)
 
-        let providerConfig = configuration.activeProviderConfiguration
+        var providerConfig = configuration.activeProviderConfiguration
+        if let modelName { providerConfig.modelName = modelName }
         let url = URL(string: providerConfig.endpoint)
         return AnthropicClient(
             apiKey: providerConfig.apiKey,
@@ -21,9 +23,17 @@ public enum PKAnthropicProvider {
         )
     }
 
+    /// Creates an Anthropic client for a configured model tier.
+    public static func makeClient(
+        for configuration: LLMConfiguration,
+        modelName: String? = nil
+    ) -> AnthropicClient {
+        makeClientAndRegisterStructuredOutputAdapter(configuration: configuration, modelName: modelName)
+    }
+
     /// Creates an Anthropic client and registers its structured-output adapter globally.
     @available(*, deprecated, renamed: "makeClientAndRegisterStructuredOutputAdapter(configuration:)")
     public static func makeClient(configuration: LLMConfiguration) -> AnthropicClient {
-        makeClientAndRegisterStructuredOutputAdapter(configuration: configuration)
+        makeClient(for: configuration)
     }
 }

@@ -521,6 +521,27 @@ struct LLMServiceTests {
         #expect(response == "ok")
     }
 
+    @Test("Preconstructed model-tier clients are retained")
+    func preconstructedModelTierClientsAreRetained() async {
+        let configuration = LLMConfiguration.fixture(
+            endpoint: "https://test.api.com",
+            modelName: "primary-model",
+            apiKey: "test-key"
+        )
+        let primary = MockLLMClient()
+        let utility = MockLLMClient()
+        let fast = MockLLMClient()
+        let service = LLMService(
+            configuration: configuration,
+            clients: LLMClientSet(primary: primary, utility: utility, fast: fast)
+        )
+
+        #expect(await service.client() != nil)
+        #expect(await service.utilityClient() != nil)
+        #expect(await service.fastClient() != nil)
+        #expect(await service.isReady)
+    }
+
     @Test("Health details explain invalid configuration versus missing client factory (PKRR-018)")
     func healthDetailsDistinguishInvalidConfigFromMissingClient() async {
         // Invalid configuration: readiness reports invalid configuration.

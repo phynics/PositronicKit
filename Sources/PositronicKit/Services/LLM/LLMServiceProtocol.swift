@@ -68,6 +68,32 @@ public enum ModelTier: Sendable, Equatable {
     case fast
 }
 
+/// The clients available for the configured model tiers.
+public struct LLMClientSet: Sendable {
+    /// The client used for ordinary chat requests.
+    public let primary: (any LLMClientProtocol)?
+    /// The client used for lightweight utility requests.
+    public let utility: (any LLMClientProtocol)?
+    /// The client used for latency-sensitive requests.
+    public let fast: (any LLMClientProtocol)?
+
+    /// Creates a set of clients for the available model tiers.
+    ///
+    /// - Parameters:
+    ///   - primary: The ordinary chat client.
+    ///   - utility: An optional lightweight utility client.
+    ///   - fast: An optional latency-sensitive client.
+    public init(
+        primary: (any LLMClientProtocol)?,
+        utility: (any LLMClientProtocol)? = nil,
+        fast: (any LLMClientProtocol)? = nil
+    ) {
+        self.primary = primary
+        self.utility = utility
+        self.fast = fast
+    }
+}
+
 /// The result of a high-level LLM chat stream request.
 public struct LLMStreamResult: Sendable {
     public let stream: AsyncThrowingStream<LLMStreamChunk, Error>

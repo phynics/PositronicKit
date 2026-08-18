@@ -159,6 +159,13 @@ public actor LLMService: LanguageModel, HealthCheckable {
         configuredFastClient = fast
     }
 
+    /// Replaces the clients used for the configured model tiers.
+    public func setClients(_ clients: LLMClientSet) {
+        primaryClient = clients.primary
+        configuredUtilityClient = clients.utility
+        configuredFastClient = clients.fast
+    }
+
     // MARK: - Initialization
 
     /// Initializes with a direct configuration using in-memory storage.
@@ -187,6 +194,28 @@ public actor LLMService: LanguageModel, HealthCheckable {
             configuredFastClient = nil
         }
         self.clientFactory = clientFactory
+    }
+
+    /// Initializes an LLM service with preconstructed model-tier clients.
+    ///
+    /// - Parameters:
+    ///   - configuration: The provider and model configuration exposed by the service.
+    ///   - clients: The clients used for the primary, utility, and fast model tiers.
+    ///   - embeddingService: The embedding service used for context operations.
+    public init(
+        configuration: LLMConfiguration,
+        clients: LLMClientSet,
+        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService()
+    ) {
+        logger = Logger.module(named: "llm")
+        self.embeddingService = embeddingService
+        storage = InMemoryConfigurationService(config: configuration)
+        self.configuration = configuration
+        isConfigured = configuration.isValid
+        primaryClient = clients.primary
+        configuredUtilityClient = clients.utility
+        configuredFastClient = clients.fast
+        clientFactory = nil
     }
 
     public init(

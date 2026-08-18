@@ -8,6 +8,14 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Added
+
+- **Named model-tier client construction:** `LLMClientSet` and the
+  `LLMService(configuration:clients:)` initializer let downstream hosts construct and inject
+  primary, utility, and fast clients without relying on an unlabeled tuple closure.
+- **Tier-aware provider factories:** provider convenience factories accept an optional
+  `modelName` override through `makeClient(for:modelName:)`.
+
 ## [3.7.0] - 2026-08-13
 
 ### Deprecated
