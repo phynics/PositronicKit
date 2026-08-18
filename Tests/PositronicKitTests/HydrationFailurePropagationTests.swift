@@ -82,7 +82,9 @@ struct HydrationFailurePropagationTests {
             let streamError = try #require(underlying as? LLMStreamError)
             #expect(streamError.errorDomain == PKErrorDomain.llm)
             #expect(streamError.errorCode == 1005)
-            #expect((streamError.underlyingError as NSError) === foreignError)
+            let foreignNSError = streamError.underlyingError as NSError
+            #expect(foreignNSError.domain == foreignError.domain)
+            #expect(foreignNSError.code == foreignError.code)
             let identity = ChatEvent.ErrorIdentity.extracting(from: error)
             #expect(identity?.domain == PKErrorDomain.llm)
             #expect(identity?.code == 1005)

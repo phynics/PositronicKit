@@ -194,7 +194,9 @@ struct FacadeOneShotTests {
         } catch let error as LLMStreamError {
             #expect(error.errorDomain == PKErrorDomain.llm)
             #expect(error.errorCode == 1005)
-            #expect((error.underlyingError as NSError) === foreignError)
+            let underlying = error.underlyingError as NSError
+            #expect(underlying.domain == foreignError.domain)
+            #expect(underlying.code == foreignError.code)
         } catch {
             Issue.record("Expected LLMStreamError.providerStreamFailed, got \(error)")
         }

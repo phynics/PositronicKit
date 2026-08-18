@@ -186,10 +186,22 @@ public final class TestHTTPServer: @unchecked Sendable {
                 accumulated.append(data)
             }
 
-            if let requestString = String(data: accumulated, encoding: .utf8),
-               requestString.contains("\r\n\r\n")
+            let delimiter = Data([0x0D, 0x0A, 0x0D, 0x0A])
+            if let delimiterRange = accumulated.range(of: delimiter),
+               let headerString = String(data: accumulated[..<delimiterRange.lowerBound], encoding: .utf8)
             {
-                let request = Self.parseRequest(accumulated)
+                let contentLength = headerString
+                    .components(separatedBy: "\r\n")
+                    .first { $0.lowercased().hasPrefix("content-length:") }
+                    .flatMap { Int($0.split(separator: ":", maxSplits: 1).last?.trimmingCharacters(in: .whitespaces) ?? "") } ?? 0
+                let bodyLength = accumulated.distance(from: delimiterRange.upperBound, to: accumulated.endIndex)
+                guard bodyLength >= contentLength else {
+                    self.receive(on: connection, buffer: accumulated)
+                    return
+                }
+
+                let requestEnd = delimiterRange.upperBound + contentLength
+                let request = Self.parseRequest(Data(accumulated[..<requestEnd]))
                 let response = self.responseProvider(request)
                 self.sendResponse(on: connection, response: response)
                 return

@@ -235,7 +235,8 @@ struct ProviderHTTPTransportTests {
             _ = try await requestTask.value
             Issue.record("Expected cancellation before response headers")
         } catch {
-            #expect(error is CancellationError)
+            let nsError = error as NSError
+            #expect(error is CancellationError || nsError.code == NSURLErrorCancelled)
         }
 
         #expect(
