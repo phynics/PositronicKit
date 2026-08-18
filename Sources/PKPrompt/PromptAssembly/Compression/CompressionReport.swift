@@ -9,9 +9,6 @@ import Foundation
 public struct CompressionNodeReport: Sendable, Equatable, Codable {
     /// Stable identifier of the source section/node.
     public let nodeID: String
-    /// Stable identifier of the source section/node.
-    @available(*, deprecated, renamed: "nodeID")
-    public var nodeId: String { nodeID }
     /// Stable path to the section in the composed prompt tree.
     public let path: [String]
     /// The compression action that was applied to this node.
@@ -50,28 +47,6 @@ public struct CompressionNodeReport: Sendable, Equatable, Codable {
         self.afterTokens = afterTokens
         self.cacheHit = cacheHit
         self.fallbackReason = fallbackReason
-    }
-
-    /// Creates a report using the legacy node identifier spelling.
-    @available(*, deprecated, message: "Use init(nodeID:path:action:beforeTokens:afterTokens:cacheHit:fallbackReason:).")
-    public init(
-        nodeId: String,
-        path: [String],
-        action: CompressionAction,
-        beforeTokens: Int,
-        afterTokens: Int,
-        cacheHit: Bool,
-        fallbackReason: String?
-    ) {
-        self.init(
-            nodeID: nodeId,
-            path: path,
-            action: action,
-            beforeTokens: beforeTokens,
-            afterTokens: afterTokens,
-            cacheHit: cacheHit,
-            fallbackReason: fallbackReason
-        )
     }
 
     private enum CodingKeys: String, CodingKey {

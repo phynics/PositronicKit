@@ -68,9 +68,6 @@ public struct StructuredCompressionNode: Sendable, Equatable {
 public struct PlannedNodeAction: Sendable, Equatable {
     /// The ID of the node this decision applies to.
     public let nodeID: String
-    /// The ID of the node this decision applies to.
-    @available(*, deprecated, renamed: "nodeID")
-    public var nodeId: String { nodeID }
     /// The node's structural path within the prompt tree.
     public let path: [String]
     /// Content fingerprint of the node at plan time.
@@ -97,26 +94,6 @@ public struct PlannedNodeAction: Sendable, Equatable {
         self.strategy = strategy
         self.estimatedTokens = estimatedTokens
         self.action = action
-    }
-
-    /// Creates a planned action using the legacy node identifier spelling.
-    @available(*, deprecated, message: "Use init(nodeID:path:nodeHash:strategy:estimatedTokens:action:).")
-    public init(
-        nodeId: String,
-        path: [String],
-        nodeHash: UInt64,
-        strategy: CompressionStrategy,
-        estimatedTokens: Int,
-        action: CompressionAction
-    ) {
-        self.init(
-            nodeID: nodeId,
-            path: path,
-            nodeHash: nodeHash,
-            strategy: strategy,
-            estimatedTokens: estimatedTokens,
-            action: action
-        )
     }
 }
 
