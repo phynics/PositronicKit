@@ -4,12 +4,12 @@ import PKUtilities
 import PositronicKit
 import Synchronization
 
-/// In-memory `MessageStoreProtocol` test double backed by a mutex-guarded array.
+/// In-memory `ThreadMessageStoreProtocol` test double backed by a mutex-guarded array.
 ///
 /// Inspectable: `messages` reads/writes the backing store directly, so tests can seed
 /// fixtures or assert on saved state. `fetchSnapshots(for:)` decodes `TurnSnapshot` from
 /// each assistant message's `snapshotData`, mirroring the real persistence layer's format.
-public final class MockMessageStore: MessageStoreProtocol, @unchecked Sendable {
+public final class MockMessageStore: ThreadMessageStoreProtocol, @unchecked Sendable {
     private let messagesState = Mutex<[ConversationMessage]>([])
 
     public var messages: [ConversationMessage] {

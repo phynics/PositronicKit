@@ -29,33 +29,6 @@ public actor ThreadArchiver {
         self.embeddingService = embeddingService
     }
 
-    /// Deprecated v3 initializer. Legacy timeline persistence is adapted at the boundary.
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public init(
-        persistence: any TimelinePersistenceProtocol & MemoryStoreProtocol & ThreadMessageStoreProtocol,
-        llmService: any LLMUtilityClient,
-        embeddingService: any EmbeddingServiceProtocol
-    ) {
-        self.init(
-            persistence: LegacyThreadArchiverPersistence(persistence),
-            llmService: llmService,
-            embeddingService: embeddingService
-        )
-    }
-
-    /// Deprecated v3 initializer. Legacy message persistence is adapted at the boundary.
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public init(
-        persistence: any ThreadPersistenceProtocol & MemoryStoreProtocol & MessageStoreProtocol,
-        llmService: any LLMUtilityClient,
-        embeddingService: any EmbeddingServiceProtocol
-    ) {
-        self.init(
-            persistence: LegacyThreadMessageArchiverPersistence(persistence),
-            llmService: llmService,
-            embeddingService: embeddingService
-        )
-    }
 
     /// Archive a conversation and index its messages as semantic memories
     @discardableResult

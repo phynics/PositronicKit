@@ -36,9 +36,6 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         case runtime
         /// A workspace specific to a thread in this runtime.
         case runtimeThread
-        /// A workspace specific to a timeline in this runtime.
-        @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-        case runtimeTimeline
         /// A workspace attached from outside the runtime (e.g. an existing filesystem location).
         case attached
 
@@ -47,7 +44,7 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         public var rawValue: String {
             switch self {
             case .runtime: "runtime"
-            case .runtimeThread, .runtimeTimeline: "runtimeTimeline"
+            case .runtimeThread: "runtimeTimeline"
             case .attached: "attached"
             }
         }
@@ -55,8 +52,7 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         public init?(rawValue: String) {
             switch rawValue {
             case "runtime": self = .runtime
-            case "runtimeTimeline": self = .runtimeTimeline
-            case "runtimeThread": self = .runtimeThread
+            case "runtimeTimeline", "runtimeThread": self = .runtimeThread
             case "attached": self = .attached
             default: return nil
             }
@@ -116,41 +112,6 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         self.createdAt = createdAt
     }
 
-    /// Creates a workspace reference using the legacy identifier spelling.
-    @_disfavoredOverload
-    @available(*, deprecated, message: "Use init(..., originID:...).")
-    public init(
-        id: UUID = UUID(),
-        uri: WorkspaceURI,
-        location: WorkspaceLocation,
-        originId: UUID? = nil,
-        tools: [ToolReference] = [],
-        rootPath: String? = nil,
-        trustLevel: WorkspaceTrustLevel = .full,
-        lastModifiedBy: UUID? = nil,
-        status: WorkspaceStatus = .active,
-        contextInjection: String? = nil,
-        createdAt: Date = Date()
-    ) {
-        self.init(
-            id: id,
-            uri: uri,
-            location: location,
-            originID: originId,
-            tools: tools,
-            rootPath: rootPath,
-            trustLevel: trustLevel,
-            lastModifiedBy: lastModifiedBy,
-            status: status,
-            contextInjection: contextInjection,
-            createdAt: createdAt
-        )
-    }
-
-    /// The request-origin identifier using the legacy 3.x spelling.
-    @available(*, deprecated, renamed: "originID")
-    public var originId: UUID? { originID }
-
     /// Returns a copy of this workspace with the given tools, preserving all other fields.
     public func withTools(_ newTools: [ToolReference]) -> WorkspaceReference {
         WorkspaceReference(
@@ -181,23 +142,6 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         )
     }
 
-    /// Creates a primary workspace for a timeline using the legacy API spelling.
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public static func makePrimary(
-        forTimeline timelineID: UUID,
-        rootPath: String
-    ) -> WorkspaceReference {
-        makePrimary(forThread: timelineID, rootPath: rootPath)
-    }
-
-    /// Creates a primary workspace for a timeline using the legacy API spelling.
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public static func primaryForTimeline(
-        _ timelineId: UUID,
-        rootPath: String
-    ) -> WorkspaceReference {
-        makePrimary(forThread: timelineId, rootPath: rootPath)
-    }
 }
 
 private extension WorkspaceReference {

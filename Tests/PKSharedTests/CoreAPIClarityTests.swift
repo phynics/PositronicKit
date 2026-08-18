@@ -10,7 +10,7 @@ struct CoreAPIClarityTests {
     func defaultHeavySharedInitializersResolveToCanonicalOverload() {
         let message = Message(content: "hello", role: .user)
         let workspace = WorkspaceReference(
-            uri: .timelineWorkspace(UUID()),
+            uri: .threadWorkspace(UUID()),
             location: .runtime
         )
 
@@ -42,50 +42,6 @@ struct CoreAPIClarityTests {
         #expect(object["parentID"] == nil)
     }
 
-    @Test("Message legacy initializer forwards to canonical identifiers")
-    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
-    func messageLegacyInitializerForwardsToCanonicalIdentifiers() {
-        let parentID = UUID()
-        let message = Message(
-            content: "result",
-            role: .tool,
-            toolCallId: "call-legacy",
-            parentId: parentID
-        )
-
-        #expect(message.toolCallID == "call-legacy")
-        #expect(message.parentID == parentID)
-    }
-
-    @Test("Canonical factories return the same values as compatibility factories")
-    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
-    func canonicalFactoriesMatchCompatibilityFactories() {
-        #expect(
-            ProviderConfiguration.makeDefault(for: .openAI)
-                == ProviderConfiguration.defaultFor(.openAI)
-        )
-
-        let timelineID = UUID()
-        let rootPath = "/tmp/pkapi-001"
-        let canonical = WorkspaceReference.makePrimary(
-            forTimeline: timelineID,
-            rootPath: rootPath
-        )
-        let legacy = WorkspaceReference.primaryForTimeline(timelineID, rootPath: rootPath)
-        #expect(canonical.uri == legacy.uri)
-        #expect(canonical.rootPath == legacy.rootPath)
-    }
-
-    @Test("Canonical logging metadata preserves structured error fields")
-    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
-    func canonicalLoggingMetadataMatchesCompatibilityFactory() {
-        let error = CocoaError(.fileNoSuchFile)
-        let canonical = LoggingMetadata.makeMetadata(for: error, correlationID: "turn-1")
-        let legacy = LoggingMetadata.forError(error, correlationID: "turn-1")
-
-        #expect(canonical == legacy)
-    }
-
     @Test("Canonical shared-model identifiers preserve all legacy JSON keys")
     func canonicalSharedModelIdentifiersPreserveLegacyJSONKeys() throws {
         let timelineID = UUID()
@@ -98,15 +54,15 @@ struct CoreAPIClarityTests {
             name: "Agent",
             description: "Test",
             primaryWorkspaceID: workspaceID,
-            privateTimelineID: timelineID
+            privateThreadID: timelineID
         )
         let workspace = WorkspaceReference(
-            uri: .timelineWorkspace(timelineID),
+            uri: .threadWorkspace(timelineID),
             location: .runtime,
             originID: agentInstanceID
         )
         let snapshot = TurnSnapshot(
-            timelineID: timelineID,
+            threadID: timelineID,
             agentInstanceID: agentInstanceID,
             modelName: "test",
             turnCount: 1,

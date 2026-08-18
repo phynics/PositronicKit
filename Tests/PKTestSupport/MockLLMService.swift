@@ -46,7 +46,7 @@ public struct MockLLMSendMessageCapture: Sendable {
 /// `chatCaptureHistory` and `sendMessageCaptureHistory` retain complete request records,
 /// including calls that later fail; the legacy `last…` fields and `messageHistory` remain
 /// available. No mutex is held while a stream sleeps, yields, or waits for cancellation.
-public final class MockLLMClient: LLMClientProtocol {
+public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
     private struct State {
         var nextResponse = ""
         var nextResponses: [String] = []

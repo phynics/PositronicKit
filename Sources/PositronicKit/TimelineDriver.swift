@@ -25,20 +25,6 @@ public struct ThreadDriver: Identifiable, Sendable {
         self.kit = kit
     }
 
-    /// Deprecated v3 initializer retained for in-module source compatibility.
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    init(timelineID: UUID, kit: PositronicKit) {
-        self.init(threadID: timelineID, kit: kit)
-    }
-
-    /// Deprecated v3 spelling for the thread identifier.
-    @available(*, deprecated, renamed: "threadID", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public var timelineID: UUID { threadID }
-
-    /// Deprecated lower-camel v3 spelling for the thread identifier.
-    @available(*, deprecated, renamed: "threadID", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public var timelineId: UUID { threadID }
-
     /// Sends a message through the facade's normal chat-engine execution path.
     public func send(_ message: String) async throws -> AsyncThrowingStream<ChatEvent, Error> {
         try await kit.run(ChatRunRequest(threadID: threadID, message: message))
@@ -62,9 +48,4 @@ public extension PositronicKit {
         ThreadDriver(threadID: threadID, kit: self)
     }
 
-    /// Deprecated v3 spelling for ``openThread(_:)``.
-    @available(*, deprecated, renamed: "openThread(_:)", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    func openTimeline(_ timelineID: UUID) -> ThreadDriver {
-        openThread(timelineID)
-    }
 }

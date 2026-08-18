@@ -26,11 +26,6 @@ import PositronicKit
             core.threadManager
         }
 
-        @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-        public var timelineManager: ThreadManager {
-            core.threadManager
-        }
-
         public var threadPersistence: any ThreadPersistenceProtocol {
             persistence
         }
@@ -99,8 +94,4 @@ import PositronicKit
         }
 
         /// Returns the `PositronicKit` facade wired to this runtime.
-        @available(*, deprecated, renamed: "positronicKit")
-        public func buildCore() -> PositronicKit {
-            positronicKit
-        }
     }

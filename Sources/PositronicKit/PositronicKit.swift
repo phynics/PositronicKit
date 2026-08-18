@@ -48,8 +48,6 @@ public final class PositronicKit: Sendable {
         get async { await languageModel.isConfigured }
     }
 
-    @available(*, deprecated, renamed: "languageModel")
-    var llmService: any LanguageModel { languageModel }
     private let messageStore: any ThreadMessageStoreProtocol
 
     /// The thread manager built by this facade. Hosts that need direct access (e.g. to wire
@@ -57,9 +55,6 @@ public final class PositronicKit: Sendable {
     /// would silently diverge from the stores the facade itself uses.
     public let threadManager: ThreadManager
 
-    /// Deprecated v3 spelling for ``threadManager``.
-    @available(*, deprecated, renamed: "threadManager", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public var timelineManager: ThreadManager { threadManager }
 
     /// The single agent-instance manager owned by this facade. It is wired to the same
     /// thread manager and persistence stores as the rest of the runtime.
@@ -108,21 +103,6 @@ public final class PositronicKit: Sendable {
                 persistence: .inMemory()
             )
         )
-    }
-
-    @available(*, deprecated, renamed: "init(languageModel:)")
-    public convenience init(
-        llmService: any LanguageModel
-    ) {
-        self.init(languageModel: llmService)
-    }
-
-    @available(*, deprecated, renamed: "init(languageModel:generationParameters:)")
-    public func reconfigured(
-        llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient,
-        generationParameters: GenerationParameters? = nil
-    ) -> PositronicKit {
-        reconfigured(languageModel: AnyLanguageModel(base: llmService), generationParameters: generationParameters)
     }
 
     convenience init(
@@ -353,24 +333,6 @@ public final class PositronicKit: Sendable {
             threadID: threadID,
             agentInstanceID: agentInstanceID
         )
-    }
-
-    /// Vends a fresh tier-four agent runtime handle using the deprecated timeline spelling.
-    @available(*, deprecated, renamed: "agenticRuntime(threadID:agentInstanceID:)", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public func agenticRuntime(
-        timelineID: UUID,
-        agentInstanceID: UUID
-    ) -> AgenticRuntime {
-        agenticRuntime(threadID: timelineID, agentInstanceID: agentInstanceID)
-    }
-
-    /// Vends a fresh tier-four agent runtime handle using the legacy 3.x identifier spelling.
-    @available(*, deprecated, renamed: "agenticRuntime(threadID:agentInstanceID:)", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public func agenticRuntime(
-        timelineId: UUID,
-        agentInstanceId: UUID
-    ) -> AgenticRuntime {
-        agenticRuntime(threadID: timelineId, agentInstanceID: agentInstanceId)
     }
 
     /// Run a chat turn and return a stream of events.

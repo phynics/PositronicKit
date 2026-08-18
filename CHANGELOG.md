@@ -8,6 +8,12 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Breaking
+
+- **v4 deprecated API removal:** removed the released v3 Timeline compatibility modules and
+  legacy persistence contracts. Canonical Thread APIs remain unchanged; historical Codable keys,
+  database fields, and wire identifiers remain supported at serialization boundaries.
+
 ### Added
 
 - **Compile-time provider factory contract:** added `LLMProviderFactory` so concrete provider

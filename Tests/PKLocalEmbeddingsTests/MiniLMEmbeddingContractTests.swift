@@ -18,33 +18,6 @@ struct MiniLMEmbeddingContractTests {
         return try LocalEmbeddingService(miniLMModelDirectory: modelDirectory, inputBudget: inputBudget)
     }
 
-    #if os(Linux)
-    @Test("Canonical and deprecated initializers have equivalent semantics")
-    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
-    func testCanonicalAndDeprecatedMiniLMInitializersHaveEquivalentSemantics() async throws {
-        let modelDirectory = try MiniLMTestSupport.requireModelDirectory()
-        let inputBudget = EmbeddingInputBudget(
-            maxTextCount: 3,
-            maxBytesPerText: 64,
-            maxTotalBytes: 128
-        )
-        let canonical = try LocalEmbeddingService(
-            miniLMModelDirectory: modelDirectory,
-            inputBudget: inputBudget
-        )
-        let deprecated = try LocalEmbeddingService(
-            modelDirectory: modelDirectory,
-            inputBudget: inputBudget
-        )
-
-        #expect(canonical.backendIdentifier == deprecated.backendIdentifier)
-        #expect(canonical.inputBudget == deprecated.inputBudget)
-        let canonicalEmbedding = try await canonical.generateEmbedding(for: "Equivalent initializer semantics.")
-        let deprecatedEmbedding = try await deprecated.generateEmbedding(for: "Equivalent initializer semantics.")
-        #expect(canonicalEmbedding == deprecatedEmbedding)
-    }
-    #endif
-
     @Test("Constructs a normalized 384-element vector")
     func testConstructsAndEmbedsNormalized384Vector() async throws {
         let service = try makeService()

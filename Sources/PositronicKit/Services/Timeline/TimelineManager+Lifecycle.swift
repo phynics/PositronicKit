@@ -327,7 +327,6 @@ public extension ThreadManager {
                 }
 
                 let isTimelineOwned = workspace.location == .runtimeThread
-                    || workspace.location == .runtimeTimeline
                     || (workspace.location == .runtime
                         && workspace.uri == .threadWorkspace(id))
                 if isTimelineOwned, !timelineOwnedWorkspaceIds.contains(workspaceId) {

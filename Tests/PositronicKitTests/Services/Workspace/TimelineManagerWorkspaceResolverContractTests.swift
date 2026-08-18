@@ -16,7 +16,7 @@ struct ThreadManagerWorkspaceResolverContractTests {
 
         var activeWorkspaceCount: Int { opened.count }
 
-        func getWorkspace(id: UUID) async throws -> (any Workspace)? {
+        func workspace(id: UUID) async throws -> (any Workspace)? {
             opened.insert(id)
             return CustomFixedWorkspace(id: id)
         }

@@ -24,7 +24,7 @@ struct TurnPreparationIdempotencyTests {
 
     private func makeKit(
         llm: MockLLMService = MockLLMService(),
-        messageStore: (any MessageStoreProtocol)? = nil,
+        messageStore: (any ThreadMessageStoreProtocol)? = nil,
         threadStore: (any ThreadPersistenceProtocol)? = nil,
         workspaceStore: (any WorkspaceStore)? = nil,
         toolPersistence: (any ToolPersistenceProtocol)? = nil

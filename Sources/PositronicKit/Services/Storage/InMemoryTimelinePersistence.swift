@@ -3,7 +3,7 @@ import PKShared
 import PKUtilities
 
 /// Thread-safe in-memory thread persistence for prototyping and development.
-public actor InMemoryThreadPersistence: ThreadPersistenceProtocol, TimelinePersistenceProtocol {
+public actor InMemoryThreadPersistence: ThreadPersistenceProtocol {
     private var threads: [Thread] = []
 
     public init() {}
@@ -44,42 +44,4 @@ public actor InMemoryThreadPersistence: ThreadPersistenceProtocol, TimelinePersi
         self.threads = threads
     }
 
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    package func allTimelines() -> [Thread] {
-        threads
-    }
-
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    package func replaceTimelines(_ timelines: [Thread]) {
-        threads = timelines
-    }
-
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public func saveTimeline(_ timeline: Thread) async throws {
-        try await saveThread(timeline)
-    }
-
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public func fetchTimeline(id: UUID) async throws -> Thread? {
-        try await fetchThread(id: id)
-    }
-
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public func fetchAllTimelines(includeArchived: Bool) async throws -> [Thread] {
-        try await fetchAllThreads(includeArchived: includeArchived)
-    }
-
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public func deleteTimeline(id: UUID) async throws {
-        try await deleteThread(id: id)
-    }
-
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public func pruneTimelines(
-        olderThan timeInterval: TimeInterval,
-        excluding excludedTimelineIds: [UUID],
-        dryRun: Bool
-    ) async throws -> Int {
-        try await pruneThreads(olderThan: timeInterval, excluding: excludedTimelineIds, dryRun: dryRun)
-    }
 }

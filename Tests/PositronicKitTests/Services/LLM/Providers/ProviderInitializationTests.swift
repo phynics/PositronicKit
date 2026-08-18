@@ -168,7 +168,7 @@ struct ProviderInitializationTests {
         #expect(json.contains("gpt-4o-mini"))
     }
 
-    @Test("OpenAI factory constructs a client and registers its adapter")
+    @Test("OpenAI factory constructs a client with its adapter")
     func openAIFactoryConstructsClient() {
         let client = PKOpenAIProvider.makeClient(configuration: .fixture(apiKey: "test", activeProvider: .openAI))
         #expect(type(of: client) == OpenAIClient.self)
@@ -252,7 +252,7 @@ struct ProviderInitializationTests {
         #expect(request.url?.port == nil)
     }
 
-    @Test("Anthropic factory constructs a client and registers its adapter")
+    @Test("Anthropic factory constructs a client with its adapter")
     func anthropicFactoryConstructsClient() {
         let client = PKAnthropicProvider.makeClient(configuration: .fixture(apiKey: "test", activeProvider: .anthropic))
         #expect(type(of: client) == AnthropicClient.self)
@@ -320,7 +320,7 @@ struct ProviderInitializationTests {
         #expect(config.activeProviderConfiguration.endpoint == "http://localhost:11434")
     }
 
-    @Test("Ollama factory constructs a client and registers its adapter")
+    @Test("Ollama factory constructs a client with its adapter")
     func ollamaFactoryConstructsClient() {
         let client = PKOllamaProvider.makeClient(configuration: .fixture(activeProvider: .ollama))
         #expect(type(of: client) == OllamaClient.self)
@@ -418,13 +418,13 @@ struct ProviderInitializationTests {
         #expect(withoutRequest.value(forHTTPHeaderField: "X-Title") == nil)
     }
 
-    @Test("OpenRouter factory constructs a client and registers its adapter")
+    @Test("OpenRouter factory constructs a client with its adapter")
     func openRouterFactoryConstructsClient() {
         let client = PKOpenRouterProvider.makeClient(configuration: .fixture(activeProvider: .openRouter))
         #expect(type(of: client) == OpenRouterClient.self)
     }
 
-    @Test("OpenRouter provider construction registers native structured output")
+    @Test("OpenRouter provider construction uses native structured output")
     func openRouterRegistersNativeStructuredOutput() {
         _ = PKOpenRouterProvider.makeClient(
             configuration: .fixture(activeProvider: .openRouter)
@@ -432,7 +432,7 @@ struct ProviderInitializationTests {
 
     }
 
-    @Test("OpenAI provider construction registers native structured output")
+    @Test("OpenAI provider construction uses native structured output")
     func openAIRegistersNativeStructuredOutput() {
         _ = PKOpenAIProvider.makeClient(
             configuration: .fixture(activeProvider: .openAI)
@@ -440,7 +440,7 @@ struct ProviderInitializationTests {
 
     }
 
-    @Test("OpenAI-compatible provider construction registers compatible structured output")
+    @Test("OpenAI-compatible provider construction uses compatible structured output")
     func openAICompatibleRegistersStructuredOutput() {
         _ = PKOpenAIProvider.makeClient(
             configuration: .fixture(activeProvider: .openAICompatible)
@@ -448,7 +448,7 @@ struct ProviderInitializationTests {
 
     }
 
-    @Test("Anthropic provider construction registers Anthropic structured output")
+    @Test("Anthropic provider construction uses Anthropic structured output")
     func anthropicRegistersStructuredOutput() {
         _ = PKAnthropicProvider.makeClient(
             configuration: .fixture(activeProvider: .anthropic)
@@ -456,7 +456,7 @@ struct ProviderInitializationTests {
 
     }
 
-    @Test("Ollama provider construction registers Ollama structured output")
+    @Test("Ollama provider construction uses Ollama structured output")
     func ollamaRegistersStructuredOutput() {
         _ = PKOllamaProvider.makeClient(
             configuration: .fixture(activeProvider: .ollama)

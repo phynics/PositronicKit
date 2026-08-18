@@ -7,7 +7,7 @@ import struct PositronicKit.Thread
 import Testing
 
 private actor ArchiveFaultInjectingPersistence:
-    ThreadPersistenceProtocol, MemoryStoreProtocol, MessageStoreProtocol
+    ThreadPersistenceProtocol, MemoryStoreProtocol, ThreadMessageStoreProtocol
 {
     private var threads: [Thread] = []
     private var messages: [ConversationMessage] = []

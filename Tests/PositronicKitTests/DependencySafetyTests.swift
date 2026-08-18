@@ -37,7 +37,7 @@ struct DependencySafetyTests {
             workspaceRoot: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         )
 
-        #expect(runtime.buildCore() === runtime.positronicKit)
+        #expect(runtime.positronicKit === runtime.positronicKit)
     }
 
     @Test("PositronicKit facade's ThreadManager shares the memoryStore passed via persistence")

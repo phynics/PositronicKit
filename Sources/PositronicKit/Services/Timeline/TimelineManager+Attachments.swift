@@ -163,7 +163,6 @@ public extension ThreadManager {
                     if primary == nil,
                        normalizedWorkspace.location == .runtime
                         || normalizedWorkspace.location == .runtimeThread
-                        || normalizedWorkspace.location == .runtimeTimeline
                     {
                         primary = normalizedWorkspace
                     } else {

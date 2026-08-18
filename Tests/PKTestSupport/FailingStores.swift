@@ -13,10 +13,10 @@ public enum FailingStoreError: Error, Sendable {
     case deleteFailed
 }
 
-/// A `MessageStoreProtocol` mock that throws on `saveMessage` while recording each
+/// A `ThreadMessageStoreProtocol` mock that throws on `saveMessage` while recording each
 /// attempted message, so failure-path tests can assert the save was both attempted
 /// and non-fatal to the caller (e.g. an audit-log save that the caller must survive).
-public final class FailingMessageStore: MessageStoreProtocol, @unchecked Sendable {
+public final class FailingMessageStore: ThreadMessageStoreProtocol, @unchecked Sendable {
     private let attemptedState = Mutex<[ConversationMessage]>([])
 
     /// Messages handed to `saveMessage` before it threw, in arrival order.
@@ -151,14 +151,14 @@ public final class FailingWorkspaceStore: WorkspaceStore, @unchecked Sendable {
     }
 }
 
-/// A `MessageStoreProtocol` mock backed by `MockMessageStore` that can be configured to
+/// A `ThreadMessageStoreProtocol` mock backed by `MockMessageStore` that can be configured to
 /// fail after a configurable number of successful `saveMessage` calls. Use it to drive
 /// partial-batch / resumable-persistence tests (PKRR-006): set `failAfterSaveCount` to `N`
 /// and the `(N+1)`-th save throws `FailingStoreError.saveFailed`. Set it back to `nil` to
 /// stop failing so a retry can complete the batch. The call count and threshold are evaluated in
 /// one mutex transaction, so exactly a configured nonnegative `N` concurrently admitted calls
 /// reach the backing store.
-public final class BatchFailingMessageStore: MessageStoreProtocol {
+public final class BatchFailingMessageStore: ThreadMessageStoreProtocol {
     private struct SaveState: Sendable {
         var failAfterSaveCount: Int?
         var saveCallCount = 0
@@ -258,5 +258,3 @@ public final class FailingToolPersistence: ToolPersistenceProtocol, @unchecked S
 }
 
 /// Deprecated fixture spelling retained for tests that exercise the v3 persistence protocol.
-@available(*, deprecated, renamed: "FailingThreadPersistence", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-public typealias FailingTimelinePersistence = FailingThreadPersistence

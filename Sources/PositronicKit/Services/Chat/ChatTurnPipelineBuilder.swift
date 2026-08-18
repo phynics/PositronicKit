@@ -32,22 +32,4 @@ enum ChatTurnPipelineBuilder {
         return pipeline
     }
 
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    static func makePipeline(
-        llmService: any LLMStreamClient,
-        messageStore: any MessageStoreProtocol,
-        streamTimeout: TimeInterval,
-        diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
-        loggingConfiguration: LoggingConfiguration = .default,
-        additionalStages: [any PipelineStage<ChatTurnContext, ChatEvent>] = []
-    ) -> Pipeline<ChatTurnContext, ChatEvent> {
-        makePipeline(
-            llmService: llmService,
-            messageStore: LegacyMessageStoreAdapter(messageStore),
-            streamTimeout: streamTimeout,
-            diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
-            loggingConfiguration: loggingConfiguration,
-            additionalStages: additionalStages
-        )
-    }
 }

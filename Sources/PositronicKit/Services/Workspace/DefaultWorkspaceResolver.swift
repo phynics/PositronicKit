@@ -49,12 +49,6 @@ public actor DefaultWorkspaceResolver: WorkspaceResolver {
         return workspace
     }
 
-    /// Retrieves an active workspace using the legacy query spelling.
-    @available(*, deprecated, renamed: "workspace(id:)")
-    public func getWorkspace(id: UUID) async throws -> (any Workspace)? {
-        try await workspace(id: id)
-    }
-
     /// Closes and removes a workspace from the active cache.
     public func closeWorkspace(id: UUID) async {
         activeWorkspaces.removeValue(forKey: id)
