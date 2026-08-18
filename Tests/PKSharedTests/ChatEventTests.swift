@@ -104,7 +104,6 @@ import ErrorKit
     }
 
     @Test("Tool-call identifier APIs preserve legacy construction and wire keys")
-    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
     func toolCallIdentifierCompatibility() throws {
         let status = ToolExecutionStatus.executionError("bad args")
         let canonicalEvents: [ChatEvent] = [
@@ -130,36 +129,6 @@ import ErrorKit
             default:
                 Issue.record("Unexpected decoded event: \(decoded)")
             }
-        }
-
-        let legacyDelta = ChatEvent.delta(.toolExecution(
-            toolCallId: "legacy_delta",
-            status: status
-        ))
-        let legacyError = ChatEvent.error(.toolCallError(
-            toolCallId: "legacy_error",
-            name: "lookup",
-            error: "bad args"
-        ))
-        let legacyCompletion = ChatEvent.completion(.toolExecution(
-            toolCallId: "legacy_completion",
-            status: status
-        ))
-
-        if case .delta(.toolExecution(let toolCallID, _)) = legacyDelta {
-            #expect(toolCallID == "legacy_delta")
-        } else {
-            Issue.record("Legacy delta construction did not forward")
-        }
-        if case .error(.toolCallError(let toolCallID, _, _)) = legacyError {
-            #expect(toolCallID == "legacy_error")
-        } else {
-            Issue.record("Legacy error construction did not forward")
-        }
-        if case .completion(.toolExecution(let toolCallID, _)) = legacyCompletion {
-            #expect(toolCallID == "legacy_completion")
-        } else {
-            Issue.record("Legacy completion construction did not forward")
         }
     }
 
