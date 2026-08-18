@@ -250,7 +250,6 @@ struct StructuredOutputSyntheticToolStreamTests {
             clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
         )
         try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .anthropic))
-        await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         let result = try await service.sendStructured(
             "Extract tags",
@@ -283,7 +282,6 @@ struct StructuredOutputSyntheticToolStreamTests {
             clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
         )
         try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .anthropic))
-        await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         let result = try await service.sendStructured(
             "Extract tags",

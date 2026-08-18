@@ -40,7 +40,6 @@ struct StructuredOutputServiceTests {
             clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
         )
         try await service.updateConfiguration(.fixture(activeProvider: .ollama))
-        await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         let schema = StructuredOutputFixtures.tagSchemaDefinition()
 
@@ -79,7 +78,6 @@ struct StructuredOutputServiceTests {
                 clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
             )
             try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: provider))
-            await service.setClients(main: mockClient, utility: nil, fast: nil)
 
             let result = try await service.sendStructured(
                 "Extract tags",
@@ -108,7 +106,6 @@ struct StructuredOutputServiceTests {
             clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
         )
         try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .anthropic))
-        await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         let schema = StructuredOutputFixtures.tagSchemaDefinition()
 
@@ -141,7 +138,6 @@ struct StructuredOutputServiceTests {
             clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
         )
         try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .openAICompatible))
-        await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         let schema = StructuredOutputFixtures.tagSchemaDefinition()
 
@@ -188,7 +184,6 @@ struct StructuredOutputServiceTests {
             clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
         )
         try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .anthropic))
-        await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         let stream = await service.chatStream(
             messages: [LLMMessage(role: .user, content: "Extract tags")],

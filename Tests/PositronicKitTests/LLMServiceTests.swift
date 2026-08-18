@@ -662,7 +662,6 @@ struct LLMServiceTests {
             ]
         )
         try await service.updateConfiguration(config)
-        await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         _ = try await service.sendMessage("Hello")
         #expect(mockClient.lastParameters?.temperature == 0.8)

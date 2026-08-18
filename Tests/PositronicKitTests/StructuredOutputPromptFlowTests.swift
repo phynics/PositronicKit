@@ -54,7 +54,6 @@ struct StructuredOutputPromptFlowTests {
             clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
         )
         try await service.updateConfiguration(.fixture(activeProvider: .ollama))
-        await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         let request = LLMChatRequest(
             userQuery: "Extract tags",
@@ -108,7 +107,6 @@ struct StructuredOutputPromptFlowTests {
             clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
         )
         try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .anthropic))
-        await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         let request = LLMChatRequest(
             userQuery: "Extract tags",
@@ -148,7 +146,6 @@ struct StructuredOutputPromptFlowTests {
             clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
         )
         try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .openAICompatible))
-        await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         let request = LLMChatRequest(
             userQuery: "Extract tags",
