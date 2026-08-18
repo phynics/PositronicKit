@@ -244,8 +244,6 @@ struct AgentInstanceManagerTests {
         }
         if case let .hasAttachedThreads(count)? = thrown {
             #expect(count == 1)
-        } else if case let .hasAttachedTimelines(count)? = thrown {
-            #expect(count == 1)
         } else {
             Issue.record("Expected deletion to report an attached thread")
         }
