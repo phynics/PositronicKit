@@ -496,7 +496,7 @@ struct LLMServiceTests {
 
         #expect(await service.isConfigured, "isConfigured reflects configuration validity only")
         #expect(await service.isReady == false, "isReady is false when no primary client is resolved")
-        #expect(await service.client() == nil, "No client factory was registered")
+        #expect(await service.primaryClient() == nil, "No client factory was registered")
     }
 
     @Test("isReady is true and guarantees a primary send can start when a client is resolved (PKRR-018)")

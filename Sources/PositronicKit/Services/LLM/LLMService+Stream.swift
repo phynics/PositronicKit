@@ -72,9 +72,9 @@ public extension LLMService {
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
         await awaitPreparation()
         let selectedClient: (any LLMClientProtocol)? = switch modelTier {
-        case .fast: fastClient() ?? client()
-        case .utility: utilityClient() ?? client()
-        case .primary: client()
+        case .fast: fastClient() ?? primaryClient()
+        case .utility: utilityClient() ?? primaryClient()
+        case .primary: primaryClient()
         }
         guard let selectedClient else {
             return AsyncThrowingStream { $0.finish(throwing: LLMServiceError.notConfigured) }
@@ -104,11 +104,11 @@ public extension LLMService {
         let selectedClient: (any LLMClientProtocol)?
         switch modelTier {
         case .fast:
-            selectedClient = fastClient() ?? client()
+            selectedClient = fastClient() ?? primaryClient()
         case .utility:
-            selectedClient = utilityClient() ?? client()
+            selectedClient = utilityClient() ?? primaryClient()
         case .primary:
-            selectedClient = client()
+            selectedClient = primaryClient()
         }
 
         guard let client = selectedClient else {

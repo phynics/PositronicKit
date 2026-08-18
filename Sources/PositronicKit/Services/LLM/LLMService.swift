@@ -40,7 +40,7 @@ public actor LLMService: LanguageModel, HealthCheckable {
     /// a request. Preflight callers that need to know a send will not fail with a missing
     /// client should check this instead of ``isConfigured``.
     public var isReady: Bool {
-        configuration.isValid && primaryClient != nil
+        configuration.isValid && configuredPrimaryClient != nil
     }
 
     // MARK: - HealthCheckable
@@ -53,7 +53,7 @@ public actor LLMService: LanguageModel, HealthCheckable {
         ]
         if !configuration.isValid {
             details["readiness"] = "invalid configuration"
-        } else if primaryClient == nil {
+        } else if configuredPrimaryClient == nil {
             details["readiness"] = "no client resolved for provider \(configuration.activeProvider.rawValue); no client factory supplied"
         } else {
             details["readiness"] = "ready"
@@ -67,7 +67,7 @@ public actor LLMService: LanguageModel, HealthCheckable {
         guard isConfigured else { return .degraded }
 
         // Configured but no client instantiated → degraded (configuration may be incomplete)
-        guard let client = primaryClient else { return .degraded }
+        guard let client = configuredPrimaryClient else { return .degraded }
 
         // Proactive connectivity check: if the provider supports model listing,
         // try it; on failure report degraded rather than silently claiming ok.
@@ -83,7 +83,7 @@ public actor LLMService: LanguageModel, HealthCheckable {
     /// Service for generating text embeddings
     public let embeddingService: any EmbeddingServiceProtocol
 
-    private var primaryClient: (any LLMClientProtocol)?
+    private var configuredPrimaryClient: (any LLMClientProtocol)?
     private var configuredUtilityClient: (any LLMClientProtocol)?
     private var configuredFastClient: (any LLMClientProtocol)?
 
@@ -121,13 +121,13 @@ public actor LLMService: LanguageModel, HealthCheckable {
     ///
     /// This is the client used for `.primary` model-tier requests. It is never
     /// substituted by another tier.
-    public func client() -> (any LLMClientProtocol)? {
-        primaryClient
+    public func primaryClient() -> (any LLMClientProtocol)? {
+        configuredPrimaryClient
     }
 
     /// The configured utility-model client, or `nil` when none is configured.
     ///
-    /// Utility-tier requests fall back to ``client()`` when this is `nil`. Read this
+    /// Utility-tier requests fall back to ``primaryClient()`` when this is `nil`. Read this
     /// accessor only when you need the exact configured utility client; prefer
     /// ``sendMessage(_:responseFormat:generationParameters:modelTier:)`` for tiered work.
     public func utilityClient() -> (any LLMClientProtocol)? {
@@ -136,7 +136,7 @@ public actor LLMService: LanguageModel, HealthCheckable {
 
     /// The configured fast-model client, or `nil` when none is configured.
     ///
-    /// Fast-tier requests fall back to ``client()`` when this is `nil`. Read this
+    /// Fast-tier requests fall back to ``primaryClient()`` when this is `nil`. Read this
     /// accessor only when you need the exact configured fast client; prefer
     /// ``chatStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:)``
     /// for tiered streaming work.
@@ -148,9 +148,9 @@ public actor LLMService: LanguageModel, HealthCheckable {
         for modelTier: ModelTier
     ) async -> any StructuredOutputAdapter {
         let selectedClient: (any LLMClientProtocol)? = switch modelTier {
-        case .fast: fastClient() ?? client()
-        case .utility: utilityClient() ?? client()
-        case .primary: client()
+        case .fast: fastClient() ?? primaryClient()
+        case .utility: utilityClient() ?? primaryClient()
+        case .primary: primaryClient()
         }
         guard let selectedClient else { return DefaultStructuredOutputAdapter() }
         return await selectedClient.structuredOutputAdapter
@@ -160,7 +160,7 @@ public actor LLMService: LanguageModel, HealthCheckable {
         main: (any LLMClientProtocol)?, utility: (any LLMClientProtocol)?,
         fast: (any LLMClientProtocol)?
     ) {
-        primaryClient = main
+        configuredPrimaryClient = main
         configuredUtilityClient = utility
         configuredFastClient = fast
     }
@@ -184,11 +184,11 @@ public actor LLMService: LanguageModel, HealthCheckable {
         if configuration.isValid {
             let clients = clientFactory?(configuration)
                 ?? (main: nil, utility: nil, fast: nil)
-            primaryClient = clients.main
+            configuredPrimaryClient = clients.main
             configuredUtilityClient = clients.utility
             configuredFastClient = clients.fast
         } else {
-            primaryClient = nil
+            configuredPrimaryClient = nil
             configuredUtilityClient = nil
             configuredFastClient = nil
         }
@@ -209,7 +209,7 @@ public actor LLMService: LanguageModel, HealthCheckable {
         logger = Logger.module(named: "llm")
         self.embeddingService = embeddingService
         self.storage = storage
-        primaryClient = client
+        configuredPrimaryClient = client
         configuredUtilityClient = utilityClient
         configuredFastClient = fastClient
         self.clientFactory = clientFactory
@@ -240,7 +240,7 @@ public actor LLMService: LanguageModel, HealthCheckable {
         self.logger = logger
         self.embeddingService = embeddingService
         self.storage = storage
-        primaryClient = client
+        configuredPrimaryClient = client
         configuredUtilityClient = utilityClient
         configuredFastClient = fastClient
         self.clientFactory = clientFactory
@@ -326,7 +326,7 @@ public actor LLMService: LanguageModel, HealthCheckable {
 
     public func fetchAvailableModels() async throws -> [String]? {
         await preparationTaskBox.task?.value
-        guard let client = primaryClient else {
+        guard let client = configuredPrimaryClient else {
             return nil
         }
         return try await client.fetchAvailableModels()
@@ -344,9 +344,9 @@ public actor LLMService: LanguageModel, HealthCheckable {
     ) async throws -> String {
         await preparationTaskBox.task?.value
         let selectedClient: (any LLMClientProtocol)? = switch modelTier {
-        case .primary: primaryClient
-        case .utility: configuredUtilityClient ?? primaryClient
-        case .fast: configuredFastClient ?? primaryClient
+        case .primary: configuredPrimaryClient
+        case .utility: configuredUtilityClient ?? configuredPrimaryClient
+        case .fast: configuredFastClient ?? configuredPrimaryClient
         }
 
         guard let client = selectedClient else {
