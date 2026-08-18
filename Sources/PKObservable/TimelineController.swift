@@ -2,11 +2,6 @@ import Observation
 import PKShared
 import PositronicKit
 
-private final class ActiveSend: @unchecked Sendable {
-    var task: Task<Void, Error>?
-    var generation = 0
-}
-
 /// A SwiftUI-friendly controller for a ``ThreadDriver``.
 ///
 /// Issuing a new `send(_:)` while one is already in flight cancels/supersedes it: the prior
@@ -25,7 +20,8 @@ public final class ThreadController {
 
     /// The underlying driver this controller mirrors.
     public let driver: ThreadDriver
-    private let activeSend = ActiveSend()
+    private var activeSendTask: Task<Void, Error>?
+    private var activeSendGeneration = 0
 
     /// Creates a controller for a thread driver, optionally seeded with prior messages.
     public init(_ driver: ThreadDriver, messages: [Message] = []) {
@@ -36,20 +32,20 @@ public final class ThreadController {
     /// Sends a message and mirrors its driver events into the observable state. Supersedes any
     /// in-flight send for this controller's thread.
     public func send(_ message: String) async throws {
-        activeSend.generation += 1
-        let generation = activeSend.generation
+        activeSendGeneration += 1
+        let generation = activeSendGeneration
 
-        if activeSend.task != nil {
-            activeSend.task?.cancel()
+        if activeSendTask != nil {
+            activeSendTask?.cancel()
             await driver.cancel()
         }
-        guard activeSend.generation == generation else {
+        guard activeSendGeneration == generation else {
             throw CancellationError()
         }
         let task = Task { [driver] in
             try await self.consume(message, from: driver, generation: generation)
         }
-        activeSend.task = task
+        activeSendTask = task
         try await task.value
     }
 
@@ -58,21 +54,21 @@ public final class ThreadController {
         from driver: ThreadDriver,
         generation: Int
     ) async throws {
-        guard activeSend.generation == generation else { return }
+        guard activeSendGeneration == generation else { return }
         messages.append(Message(content: content, role: .user))
         streamingText = ""
         isStreaming = true
         defer {
-            if activeSend.generation == generation {
+            if activeSendGeneration == generation {
                 isStreaming = false
-                activeSend.task = nil
+                activeSendTask = nil
             }
         }
 
         let stream = try await driver.send(content)
         for try await event in stream {
             try Task.checkCancellation()
-            guard activeSend.generation == generation else { return }
+            guard activeSendGeneration == generation else { return }
             if let text = event.textContent {
                 streamingText += text
             }
@@ -83,7 +79,7 @@ public final class ThreadController {
         }
     }
 
-    deinit {
-        activeSend.task?.cancel()
+    isolated deinit {
+        activeSendTask?.cancel()
     }
 }
