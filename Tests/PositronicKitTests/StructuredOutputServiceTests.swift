@@ -16,7 +16,10 @@ struct StructuredOutputServiceTests {
     func decodesTypedStructuredOutput() async throws {
         let mockClient = MockLLMClient(structuredOutputAdapter: NativeJSONSchemaStructuredOutputAdapter())
         mockClient.nextResponse = "{" + #""tags":["swift","tests"]"# + "}"
-        let service = LLMService(storage: MockConfigurationService(), client: mockClient)
+        let service = LLMService(
+            configuration: .fixture(apiKey: "test-key"),
+            clients: .init(primary: mockClient)
+        )
 
         let result = try await service.sendStructured(
             "Extract tags",
@@ -69,7 +72,7 @@ struct StructuredOutputServiceTests {
             mockClient.nextResponse = "{" + #""tags":["swift"]"# + "}"
 
             let service = LLMService(storage: MockConfigurationService(), client: mockClient)
-            try await service.updateConfiguration(.fixture(activeProvider: provider))
+            try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: provider))
             await service.setClients(main: mockClient, utility: nil, fast: nil)
 
             let result = try await service.sendStructured(
@@ -95,7 +98,7 @@ struct StructuredOutputServiceTests {
         mockClient.nextToolCalls = [[MockToolCall(id: "structured-call", name: "emit_structured_response", arguments: "{" + #""tags":["swift"]"# + "}")]]
 
         let service = LLMService(storage: MockConfigurationService(), client: mockClient)
-        try await service.updateConfiguration(.fixture(activeProvider: .anthropic))
+        try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .anthropic))
         await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         let schema = StructuredOutputFixtures.tagSchemaDefinition()
@@ -125,7 +128,7 @@ struct StructuredOutputServiceTests {
         mockClient.nextResponse = "{" + #""tags":["swift"]"# + "}"
 
         let service = LLMService(storage: MockConfigurationService(), client: mockClient)
-        try await service.updateConfiguration(.fixture(activeProvider: .openAICompatible))
+        try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .openAICompatible))
         await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         let schema = StructuredOutputFixtures.tagSchemaDefinition()
@@ -169,7 +172,7 @@ struct StructuredOutputServiceTests {
         ]]
 
         let service = LLMService(storage: MockConfigurationService(), client: mockClient)
-        try await service.updateConfiguration(.fixture(activeProvider: .anthropic))
+        try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .anthropic))
         await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         let stream = await service.chatStream(
@@ -191,7 +194,10 @@ struct StructuredOutputServiceTests {
         let mockClient = MockLLMClient()
         mockClient.shouldThrowError = true
 
-        let service = LLMService(storage: MockConfigurationService(), client: mockClient)
+        let service = LLMService(
+            configuration: .fixture(apiKey: "test-key"),
+            clients: .init(primary: mockClient)
+        )
 
         await #expect(throws: LLMStreamError.self) {
             _ = try await service.sendStructured(

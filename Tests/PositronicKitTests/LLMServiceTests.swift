@@ -70,12 +70,14 @@ private actor DelayedConfigurationService: ConfigurationServiceProtocol {
     private var loadContinuation: CheckedContinuation<LLMConfiguration, Never>?
     private var loadStartedContinuation: CheckedContinuation<Void, Never>?
     private(set) var loadStarted = false
+    private(set) var loadCount = 0
 
     init(config: LLMConfiguration) {
         self.config = config
     }
 
     func load() async -> LLMConfiguration {
+        loadCount += 1
         loadStarted = true
         loadStartedContinuation?.resume()
         loadStartedContinuation = nil
@@ -308,7 +310,10 @@ struct LLMServiceTests {
         let mockClient = MockLLMClient()
         mockClient.nextResponse = #"{"title":"SwiftUI Basics"}"#
 
-        let service = LLMService(storage: MockConfigurationService(), client: mockClient) // Inject mock transport directly for focused testing.
+        let service = LLMService(
+            configuration: .fixture(apiKey: "test-key"),
+            clients: .init(primary: mockClient)
+        )
 
         let messages = [
             Message(content: "How do I use SwiftUI?", role: .user),
@@ -336,7 +341,10 @@ struct LLMServiceTests {
     @Test("Utility generations use schema-backed structured output")
     func utilityGenerationsUseSchemaBackedStructuredOutput() async throws {
         let mockClient = MockLLMClient()
-        let service = LLMService(storage: MockConfigurationService(), client: mockClient)
+        let service = LLMService(
+            configuration: .fixture(apiKey: "test-key"),
+            clients: .init(primary: mockClient)
+        )
 
         mockClient.nextResponse = #"{"tags":["Swift","Tests"]}"#
         let tags = try await service.generateTags(for: "Swift tests are great")
@@ -409,8 +417,8 @@ struct LLMServiceTests {
         mockClient.errorToThrow = TestUtilityError.failure
 
         let service = LLMService(
-            storage: MockConfigurationService(),
-            client: mockClient,
+            configuration: .fixture(apiKey: "test-key"),
+            clients: .init(primary: mockClient),
             logger: logger
         )
 
@@ -473,7 +481,10 @@ struct LLMServiceTests {
     @Test("Health check is ok when configured client responds")
     func healthCheckOkWhenClientReachable() async {
         let mockClient = MockLLMClient()
-        let service = LLMService(storage: MockConfigurationService(), client: mockClient)
+        let service = LLMService(
+            configuration: .fixture(apiKey: "test-key"),
+            clients: .init(primary: mockClient)
+        )
         let status = await service.checkHealth()
         #expect(status == .ok)
     }
@@ -620,7 +631,10 @@ struct LLMServiceTests {
         let mockClient = MockLLMClient()
         mockClient.nextResponse = "Response"
 
-        let service = LLMService(storage: MockConfigurationService(), client: mockClient)
+        let service = LLMService(
+            configuration: .fixture(apiKey: "key"),
+            clients: .init(primary: mockClient)
+        )
 
         // Case 1: Custom parameters passed
         let customParams = GenerationParameters(temperature: 0.5, maxTokens: 100)
@@ -654,7 +668,7 @@ struct LLMServiceTests {
     }
 
     @Test("Preparation task is assigned synchronously during init")
-    func preparationTaskAssignedDuringInit() {
+    func preparationTaskAssignedDuringInit() async {
         let config = LLMConfiguration.fixture(
             endpoint: "https://test.example.com",
             modelName: "test-model",
@@ -663,7 +677,7 @@ struct LLMServiceTests {
         let storage = DelayedConfigurationService(config: config)
         let service = LLMService(storage: storage)
 
-        #expect(service.hasPreparationTask)
+        #expect(await service.hasPreparationTask)
     }
 
     @Test("First public call awaits delayed configuration load")
@@ -698,7 +712,8 @@ struct LLMServiceTests {
             (main: mockClient as any LLMClientProtocol, utility: nil, fast: nil)
         }
 
-        await storage.waitUntilLoadStarts()
+        // The first public call starts preparation, so the stream task must be created
+        // before we wait for the (delayed) configuration load to begin.
         let streamTask = Task {
             await service.chatStream(
                 messages: [LLMMessage(role: .user, content: "Hi")],
@@ -710,11 +725,238 @@ struct LLMServiceTests {
             )
         }
 
+        await storage.waitUntilLoadStarts()
+        #expect(await storage.loadStarted)
         await Task.yield()
         #expect(mockClient.streamCallCount == 0)
 
         await storage.release()
         _ = await streamTask.value
         #expect(mockClient.streamCallCount == 1)
+    }
+
+    // MARK: - LLM runtime state decomposition regressions
+
+    @Test("Storage-backed service with an injected Ollama client loads and exposes the Ollama configuration")
+    func storageBackedInjectedClientLoadsOllamaConfiguration() async throws {
+        let config = LLMConfiguration.fixture(modelName: "llama3", activeProvider: .ollama)
+        let storage = MockConfigurationService()
+        try await storage.save(config)
+
+        let service = LLMService(storage: storage, client: MockLLMClient())
+        // Force the first-call preparation to complete so the loaded configuration is applied.
+        _ = try await service.exportConfiguration()
+
+        #expect(await service.configuration.activeProvider == .ollama)
+        #expect(await service.configuration.activeProviderConfiguration.modelName == "llama3")
+        #expect(await service.isConfigured)
+        #expect(await service.primaryClient() != nil)
+    }
+
+    @Test("Anthropic metadata and generation defaults come from the loaded configuration")
+    func anthropicConfigurationMetadataIsExposed() async throws {
+        let config = LLMConfiguration.fixture(
+            modelName: "claude-3-5-sonnet",
+            apiKey: "sk-ant-test",
+            activeProvider: .anthropic,
+            temperature: 0.7,
+            maxTokens: 512
+        )
+        let storage = MockConfigurationService()
+        try await storage.save(config)
+
+        let service = LLMService(storage: storage, client: MockLLMClient())
+        _ = try await service.exportConfiguration()
+
+        let loaded = await service.configuration
+        #expect(loaded.activeProvider == .anthropic)
+        #expect(loaded.activeProviderConfiguration.modelName == "claude-3-5-sonnet")
+        #expect(loaded.activeProviderConfiguration.apiKey == "sk-ant-test")
+        #expect(loaded.activeProviderConfiguration.generationParameters.temperature == 0.7)
+        #expect(loaded.activeProviderConfiguration.generationParameters.maxTokens == 512)
+    }
+
+    @Test("Invalid loaded configuration clears all previous clients")
+    func invalidLoadedConfigurationClearsClients() async throws {
+        let storage = MockConfigurationService()
+        try await storage.save(.fixture(apiKey: "test-key"))
+        let mockClient = MockLLMClient()
+
+        let service = LLMService(storage: storage, client: mockClient)
+        _ = try await service.exportConfiguration()
+        #expect(await service.primaryClient() != nil)
+
+        try await storage.save(.openAI) // invalid: empty model/api key
+        await service.loadConfiguration()
+
+        #expect(await service.isConfigured == false)
+        #expect(await service.primaryClient() == nil)
+        #expect(await service.utilityClient() == nil)
+        #expect(await service.fastClient() == nil)
+    }
+
+    @Test("Invalid restored backup clears all previous clients")
+    func invalidRestoredBackupClearsClients() async throws {
+        let storage = MockConfigurationService()
+        try await storage.save(.fixture(apiKey: "test-key"))
+        await storage.setBackupConfig(.fixture(apiKey: "test-key"))
+        let mockClient = MockLLMClient()
+
+        let service = LLMService(storage: storage, client: mockClient)
+        _ = try await service.exportConfiguration()
+        #expect(await service.primaryClient() != nil)
+
+        await storage.setBackupConfig(.openAI) // invalid
+        try await service.restoreFromBackup()
+
+        #expect(await service.isConfigured == false)
+        #expect(await service.primaryClient() == nil)
+    }
+
+    @Test("Valid configuration without a primary client yields clientNotResolved from send and every stream overload")
+    func missingClientProducesClientNotResolvedEverywhere() async {
+        let service = LLMService(configuration: .fixture(apiKey: "test-key"))
+
+        let sendError = await #expect(throws: LLMServiceError.self) {
+            _ = try await service.sendMessage("Hi")
+        }
+        #expect(sendError == .clientNotResolved(provider: "OpenAI"))
+
+        await #expect(throws: LLMServiceError.self) {
+            let stream = await service.chatStream(
+                messages: [LLMMessage(role: .user, content: "Hi")],
+                tools: nil, toolChoice: nil, responseFormat: nil,
+                generationParameters: nil, modelTier: .primary
+            )
+            _ = try await stream.collect()
+        }
+
+        await #expect(throws: LLMServiceError.self) {
+            let stream = await service.chatStream(
+                messages: [LLMMessage(role: .user, content: "Hi")],
+                tools: nil, toolChoice: nil, responseFormat: nil,
+                generationParameters: nil, modelTier: .primary,
+                responseModalities: [], audioOutput: nil
+            )
+            _ = try await stream.collect()
+        }
+    }
+
+    @Test("Invalid configuration yields notConfigured from send and every stream overload")
+    func invalidConfigurationProducesNotConfiguredEverywhere() async {
+        let invalid = LLMConfiguration.fixture(modelName: "", apiKey: "")
+        let service = LLMService(configuration: invalid, clients: .init(primary: MockLLMClient()))
+
+        let sendError = await #expect(throws: LLMServiceError.self) {
+            _ = try await service.sendMessage("Hi")
+        }
+        #expect(sendError == .notConfigured)
+
+        await #expect(throws: LLMServiceError.self) {
+            let stream = await service.chatStream(
+                messages: [LLMMessage(role: .user, content: "Hi")],
+                tools: nil, toolChoice: nil, responseFormat: nil,
+                generationParameters: nil, modelTier: .primary
+            )
+            _ = try await stream.collect()
+        }
+
+        await #expect(throws: LLMServiceError.self) {
+            let stream = await service.chatStream(
+                messages: [LLMMessage(role: .user, content: "Hi")],
+                tools: nil, toolChoice: nil, responseFormat: nil,
+                generationParameters: nil, modelTier: .primary,
+                responseModalities: [], audioOutput: nil
+            )
+            _ = try await stream.collect()
+        }
+    }
+
+    @Test("isConfigured, isReady, and health status agree across readiness states")
+    func readinessProjectionsAgree() async {
+        let invalid = LLMService(configuration: .init(activeProvider: .openAI, providers: [:]))
+        #expect(await invalid.isConfigured == false)
+        #expect(await invalid.isReady == false)
+        #expect(await invalid.checkHealth() == .degraded)
+
+        let noClient = LLMService(configuration: .fixture(apiKey: "test-key"))
+        #expect(await noClient.isConfigured)
+        #expect(await noClient.isReady == false)
+        #expect(await noClient.checkHealth() == .degraded)
+
+        let ready = LLMService(
+            configuration: .fixture(apiKey: "test-key"),
+            clients: .init(primary: MockLLMClient())
+        )
+        #expect(await ready.isConfigured)
+        #expect(await ready.isReady)
+        #expect(await ready.checkHealth() == .ok)
+    }
+
+    @Test("Utility and fast tiers use their configured clients and fall back to primary")
+    func tierRoutingUsesConfiguredClientsAndFallsBack() async throws {
+        let primary = MockLLMClient()
+        let utility = MockLLMClient()
+        let fast = MockLLMClient()
+        let service = LLMService(
+            configuration: .fixture(apiKey: "test-key"),
+            clients: .init(primary: primary, utility: utility, fast: fast)
+        )
+
+        _ = try await service.sendMessage("p", responseFormat: nil, generationParameters: nil, modelTier: .primary)
+        _ = try await service.sendMessage("u", responseFormat: nil, generationParameters: nil, modelTier: .utility)
+        _ = try await service.sendMessage("f", responseFormat: nil, generationParameters: nil, modelTier: .fast)
+        #expect(primary.sendMessageCaptureHistory.map(\.content) == ["p"])
+        #expect(utility.sendMessageCaptureHistory.map(\.content) == ["u"])
+        #expect(fast.sendMessageCaptureHistory.map(\.content) == ["f"])
+
+        // Fallback: utility/fast tiers without a dedicated client route to primary.
+        let fallback = MockLLMClient()
+        let fallbackService = LLMService(
+            configuration: .fixture(apiKey: "test-key"),
+            clients: .init(primary: fallback)
+        )
+        _ = try await fallbackService.sendMessage("u2", responseFormat: nil, generationParameters: nil, modelTier: .utility)
+        _ = try await fallbackService.sendMessage("f2", responseFormat: nil, generationParameters: nil, modelTier: .fast)
+        #expect(fallback.sendMessageCaptureHistory.map(\.content) == ["u2", "f2"])
+    }
+
+    @Test("Concurrent first operations perform one migration/load sequence")
+    func concurrentFirstOperationsPerformSingleLoad() async throws {
+        let config = LLMConfiguration.fixture(apiKey: "test-key")
+        let storage = DelayedConfigurationService(config: config)
+        let service = LLMService(storage: storage)
+
+        let first = Task { try await service.exportConfiguration() }
+        let second = Task { try await service.exportConfiguration() }
+
+        await storage.waitUntilLoadStarts()
+        #expect(await storage.loadStarted)
+
+        await storage.release()
+        _ = try await first.value
+        _ = try await second.value
+
+        #expect(await storage.loadCount == 1)
+    }
+
+    @Test("A configuration change atomically replaces configuration and clients")
+    func configurationChangeReplacesSnapshotAtomically() async throws {
+        let primary = MockLLMClient()
+        let service = LLMService(
+            configuration: .fixture(apiKey: "test-key"),
+            clients: .init(primary: primary)
+        )
+
+        try await service.updateConfiguration(.fixture(modelName: "qwen", activeProvider: .ollama))
+
+        #expect(await service.configuration.activeProvider == .ollama)
+        #expect(await service.configuration.activeProviderConfiguration.modelName == "qwen")
+        #expect(await service.primaryClient() != nil)
+
+        // An invalid update clears clients in the same operation.
+        try await service.updateConfiguration(LLMConfiguration(activeProvider: .openAI, providers: [:]))
+        #expect(await service.isConfigured == false)
+        #expect(await service.primaryClient() == nil)
     }
 }

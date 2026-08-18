@@ -11,7 +11,10 @@ struct StructuredOutputPromptFlowTests {
     func chatStreamWithContextPreservesPromptContext() async throws {
         let mockClient = MockLLMClient(structuredOutputAdapter: PromptAugmentedJSONSchemaAdapter())
         mockClient.nextChunks = [["{\"tags\":[\"swift\"]}"]]
-        let service = LLMService(storage: MockConfigurationService(), client: mockClient)
+        let service = LLMService(
+            configuration: .fixture(apiKey: "test-key"),
+            clients: .init(primary: mockClient)
+        )
 
         let request = LLMChatRequest(
             userQuery: "Extract tags",
@@ -98,7 +101,7 @@ struct StructuredOutputPromptFlowTests {
         ]]
 
         let service = LLMService(storage: MockConfigurationService(), client: mockClient)
-        try await service.updateConfiguration(.fixture(activeProvider: .anthropic))
+        try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .anthropic))
         await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         let request = LLMChatRequest(
@@ -135,7 +138,7 @@ struct StructuredOutputPromptFlowTests {
         mockClient.nextChunks = [["{\"tags\":[\"swift\"]}"]]
 
         let service = LLMService(storage: MockConfigurationService(), client: mockClient)
-        try await service.updateConfiguration(.fixture(activeProvider: .openAICompatible))
+        try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .openAICompatible))
         await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         let request = LLMChatRequest(

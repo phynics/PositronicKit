@@ -1,38 +1,29 @@
 import Foundation
 import Logging
-import Observation
 import PKShared
 import PKUtilities
 
-/// Set-once box for the one-shot preparation task. It is created before `LLMService` escapes
-/// `self` in its initializers, then populated with the actual task once `self` is fully
-/// initialized. `set(_:)` traps if called more than once — the box exists to work around the
-/// actor-init ordering restriction (a `Task` capturing `self` cannot be assigned directly to a
-/// stored property that is itself being initialized), not to be a general-purpose mutable cell.
-/// That single-write contract is what makes reading `task` from actor-isolated `await` sites
-/// safe without further synchronization; enforcing it here (rather than only documenting it)
-/// means a future second write path fails loudly instead of silently racing.
-private final class PreparationTaskBox: @unchecked Sendable {
-    private(set) var task: Task<Void, Never>?
-
-    init() {}
-
-    func set(_ task: Task<Void, Never>) {
-        precondition(self.task == nil, "PreparationTaskBox.set(_:) called more than once")
-        self.task = task
-    }
-}
-
-/// Service for managing LLM interactions with configuration support
+/// Service for managing LLM interactions with configuration support.
+///
+/// Owns exactly one actor-isolated ``LLMRuntimeSnapshot`` (configuration + client set).
+/// Every configuration transition replaces the snapshot wholesale through ``apply(_:)``,
+/// and every dispatch path resolves clients through the single ``resolve(tier:)`` operation,
+/// so the service never runs with stale clients, conflicting readiness, or duplicated tier
+/// fallback rules.
 public actor LLMService: LanguageModel, HealthCheckable {
-    public private(set) var configuration: LLMConfiguration = .openAI
+    /// The current configuration. Read-only projection of the runtime snapshot.
+    public var configuration: LLMConfiguration {
+        snapshot.configuration
+    }
 
     /// Reports whether the LLM configuration is **valid** (all required fields present for
     /// the active provider). This reflects configuration completeness only — it does **not**
     /// guarantee a primary client is resolved and a send can start. A valid configuration with
-    /// no registered client factory yields `isConfigured == true` but ``isReady`` == `false`.
+    /// no registered client resolver yields `isConfigured == true` but ``isReady`` == `false`.
     /// Use ``isReady`` for operational readiness checks before dispatching a request.
-    public private(set) var isConfigured: Bool = false
+    public var isConfigured: Bool {
+        snapshot.configuration.isValid
+    }
 
     /// Operational readiness: `true` only when the configuration is valid **and** a primary
     /// client is resolved, guaranteeing a primary send can start. Unlike ``isConfigured``
@@ -40,79 +31,133 @@ public actor LLMService: LanguageModel, HealthCheckable {
     /// a request. Preflight callers that need to know a send will not fail with a missing
     /// client should check this instead of ``isConfigured``.
     public var isReady: Bool {
-        configuration.isValid && configuredPrimaryClient != nil
+        snapshot.readiness == .ready
     }
 
     // MARK: - HealthCheckable
 
     public func getHealthDetails() async -> [String: String]? {
-        await preparationTaskBox.task?.value
+        await prepareIfNeeded()
         var details: [String: String] = [
-            "model": configuration.activeProviderConfiguration.modelName,
-            "provider": configuration.activeProvider.rawValue,
+            "model": snapshot.configuration.activeProviderConfiguration.modelName,
+            "provider": snapshot.configuration.activeProvider.rawValue,
         ]
-        if !configuration.isValid {
+        switch snapshot.readiness {
+        case .invalidConfiguration:
             details["readiness"] = "invalid configuration"
-        } else if configuredPrimaryClient == nil {
-            details["readiness"] = "no client resolved for provider \(configuration.activeProvider.rawValue); no client factory supplied"
-        } else {
+        case let .clientUnavailable(provider):
+            details["readiness"] = "no client resolved for provider \(provider.rawValue); no client factory supplied"
+        case .ready:
             details["readiness"] = "ready"
         }
         return details
     }
 
     public func checkHealth() async -> HealthStatus {
-        await preparationTaskBox.task?.value
-        // Not configured at all → degraded
-        guard isConfigured else { return .degraded }
-
-        // Configured but no client instantiated → degraded (configuration may be incomplete)
-        guard let client = configuredPrimaryClient else { return .degraded }
-
-        // Proactive connectivity check: if the provider supports model listing,
-        // try it; on failure report degraded rather than silently claiming ok.
-        do {
-            _ = try await client.fetchAvailableModels()
-            return .ok
-        } catch {
-            logger.warning("LLM health check connectivity warning: \(error)")
+        await prepareIfNeeded()
+        switch snapshot.readiness {
+        case .invalidConfiguration, .clientUnavailable:
             return .degraded
+        case .ready:
+            guard let client = snapshot.clients.primary else { return .degraded }
+            // Proactive connectivity check: if the provider supports model listing,
+            // try it; on failure report degraded rather than silently claiming ok.
+            do {
+                _ = try await client.fetchAvailableModels()
+                return .ok
+            } catch {
+                logger.warning("LLM health check connectivity warning: \(error)")
+                return .degraded
+            }
         }
     }
 
-    /// Service for generating text embeddings
-    public let embeddingService: any EmbeddingServiceProtocol
+    // MARK: - Runtime State
 
-    private var configuredPrimaryClient: (any LLMClientProtocol)?
-    private var configuredUtilityClient: (any LLMClientProtocol)?
-    private var configuredFastClient: (any LLMClientProtocol)?
-
-    private let storage: any ConfigurationServiceProtocol
-
-/// Optional factory hook that builds provider clients from an `LLMConfiguration`.
-    /// Called by `updateClient(with:)` when a configuration change requires new clients.
-    /// Hosts compose their factory from each provider's
-    /// `makeClient(configuration:)`,
-    /// keyed on `config.activeProvider`. Falls back to a `(nil, nil, nil)` triple if
-    /// none is supplied, matching the behavior for callers that do not need dynamic swapping.
-    var clientFactory: (@Sendable (LLMConfiguration) -> (
-        main: (any LLMClientProtocol)?, utility: (any LLMClientProtocol)?,
-        fast: (any LLMClientProtocol)?
-    ))?
+    private var snapshot: LLMRuntimeSnapshot
+    private let configurationRepository: LLMConfigurationRepository
+    private let clientResolver: any LLMClientResolving
 
     nonisolated let logger: Logger
 
-    /// Holds the one-shot migration/configuration-load task so it can be assigned directly in
-    /// `init` without escaping `self` before all stored properties are initialized.
-    private nonisolated let preparationTaskBox = PreparationTaskBox()
-
-    /// Internal test hook so regressions can assert the preparation task is assigned synchronously in init.
-    nonisolated var hasPreparationTask: Bool {
-        preparationTaskBox.task != nil
+    private enum PreparationState {
+        case pending
+        case loading(Task<LLMConfiguration, Never>)
+        case ready
     }
 
-    func awaitPreparation() async {
-        await preparationTaskBox.task?.value
+    private var preparationState: PreparationState
+
+    /// Internal test hook: whether a configuration load is pending or in flight.
+    var hasPreparationTask: Bool {
+        switch preparationState {
+        case .pending, .loading:
+            return true
+        case .ready:
+            return false
+        }
+    }
+
+    /// Applies a configuration through the resolver, clearing clients when it is invalid.
+    ///
+    /// This is the only path that transitions runtime state; no load, import, restore,
+    /// update, or clear operation assigns configuration and clients separately.
+    private func apply(_ configuration: LLMConfiguration) {
+        let clients = configuration.isValid
+            ? clientResolver.clients(for: configuration)
+            : .empty
+        snapshot = LLMRuntimeSnapshot(configuration: configuration, clients: clients)
+    }
+
+    private func apply(_ configuration: LLMConfiguration, clients: LLMClientSet) {
+        snapshot = LLMRuntimeSnapshot(configuration: configuration, clients: clients)
+    }
+
+    /// Coalesces the one-shot migration/load task inside the actor, capturing only the
+    /// repository — never `self`.
+    func prepareIfNeeded() async {
+        let task: Task<LLMConfiguration, Never>
+
+        switch preparationState {
+        case .ready:
+            return
+        case let .loading(existing):
+            task = existing
+        case .pending:
+            let repository = configurationRepository
+            task = Task {
+                await repository.migrateAndLoad()
+            }
+            preparationState = .loading(task)
+        }
+
+        let configuration = await task.value
+
+        // A second re-entrant caller may already have applied it.
+        guard case .ready = preparationState else {
+            apply(configuration)
+            preparationState = .ready
+            return
+        }
+    }
+
+    /// Resolves the client and generation defaults for a model tier.
+    ///
+    /// The single implementation of tier selection, fallback, and missing-client error
+    /// mapping. Used by send, both stream overloads, structured-output adapters, model
+    /// listing, and health checks.
+    func resolve(tier: ModelTier) throws -> ResolvedLLMClient {
+        let snapshot = self.snapshot
+        guard snapshot.configuration.isValid else {
+            throw LLMServiceError.notConfigured
+        }
+        guard let client = snapshot.clients.client(for: tier) else {
+            throw LLMServiceError.clientNotResolved(provider: snapshot.configuration.activeProvider.rawValue)
+        }
+        return ResolvedLLMClient(
+            client: client,
+            generationParameters: snapshot.configuration.activeProviderConfiguration.generationParameters
+        )
     }
 
     // MARK: - Client Accessors
@@ -122,7 +167,7 @@ public actor LLMService: LanguageModel, HealthCheckable {
     /// This is the client used for `.primary` model-tier requests. It is never
     /// substituted by another tier.
     public func primaryClient() -> (any LLMClientProtocol)? {
-        configuredPrimaryClient
+        snapshot.clients.primary
     }
 
     /// The configured utility-model client, or `nil` when none is configured.
@@ -131,7 +176,7 @@ public actor LLMService: LanguageModel, HealthCheckable {
     /// accessor only when you need the exact configured utility client; prefer
     /// ``sendMessage(_:responseFormat:generationParameters:modelTier:)`` for tiered work.
     public func utilityClient() -> (any LLMClientProtocol)? {
-        configuredUtilityClient
+        snapshot.clients.utility
     }
 
     /// The configured fast-model client, or `nil` when none is configured.
@@ -141,63 +186,110 @@ public actor LLMService: LanguageModel, HealthCheckable {
     /// ``chatStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:)``
     /// for tiered streaming work.
     public func fastClient() -> (any LLMClientProtocol)? {
-        configuredFastClient
+        snapshot.clients.fast
     }
 
     public func structuredOutputAdapter(
         for modelTier: ModelTier
     ) async -> any StructuredOutputAdapter {
-        let selectedClient: (any LLMClientProtocol)? = switch modelTier {
-        case .fast: fastClient() ?? primaryClient()
-        case .utility: utilityClient() ?? primaryClient()
-        case .primary: primaryClient()
+        await prepareIfNeeded()
+        guard let client = snapshot.clients.client(for: modelTier) else {
+            return DefaultStructuredOutputAdapter()
         }
-        guard let selectedClient else { return DefaultStructuredOutputAdapter() }
-        return await selectedClient.structuredOutputAdapter
+        return await client.structuredOutputAdapter
     }
 
+    /// Replaces the client set while keeping the current configuration.
+    ///
+    /// Legacy compatibility seam; prefer constructing with ``init(configuration:clients:)``
+    /// or ``init(storage:clientResolver:)`` so configuration and clients stay consistent.
     public func setClients(
         main: (any LLMClientProtocol)?, utility: (any LLMClientProtocol)?,
         fast: (any LLMClientProtocol)?
     ) {
-        configuredPrimaryClient = main
-        configuredUtilityClient = utility
-        configuredFastClient = fast
+        apply(
+            snapshot.configuration,
+            clients: LLMClientSet(primary: main, utility: utility, fast: fast)
+        )
     }
 
     // MARK: - Initialization
 
-    /// Initializes with a direct configuration using in-memory storage.
+    /// Designated: explicit configuration plus the client set to dispatch through.
+    ///
+    /// The service is immediately ready — no storage load is performed. Clients are kept
+    /// regardless of later `updateConfiguration(_:)` calls; hosts that need clients to track
+    /// configuration changes should use ``init(storage:clientResolver:)`` instead.
     public init(
         configuration: LLMConfiguration,
-        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
+        clients: LLMClientSet,
+        logger: Logger = Logger.module(named: "llm")
+    ) {
+        self.init(
+            configuration: configuration,
+            clientResolver: FixedClientsResolver(clients: clients),
+            logger: logger
+        )
+    }
+
+    /// Designated: load the configuration from storage, resolving clients through a resolver.
+    ///
+    /// The first public operation waits for migration + load; the resolved configuration
+    /// (not the initializer arguments) becomes authoritative.
+    public init(
+        storage: any ConfigurationServiceProtocol,
+        clientResolver: any LLMClientResolving,
+        logger: Logger = Logger.module(named: "llm")
+    ) {
+        self.logger = logger
+        configurationRepository = LLMConfigurationRepository(storage: storage)
+        self.clientResolver = clientResolver
+        snapshot = LLMRuntimeSnapshot(configuration: .openAI, clients: .empty)
+        preparationState = .pending
+    }
+
+    /// Internal designated init: explicit configuration plus a client resolver.
+    init(
+        configuration: LLMConfiguration,
+        clientResolver: any LLMClientResolving,
+        logger: Logger
+    ) {
+        self.logger = logger
+        configurationRepository = LLMConfigurationRepository(
+            storage: InMemoryConfigurationService(config: configuration)
+        )
+        self.clientResolver = clientResolver
+        snapshot = LLMRuntimeSnapshot(
+            configuration: configuration,
+            clients: configuration.isValid ? clientResolver.clients(for: configuration) : .empty
+        )
+        preparationState = .ready
+    }
+
+    // MARK: - Legacy compatibility initializers
+
+    /// Legacy: direct configuration with an optional client factory. Forwarding shim for
+    /// ``init(configuration:clients:)``.
+    public init(
+        configuration: LLMConfiguration,
+        embeddingService _: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
         clientFactory: (@Sendable (LLMConfiguration) -> (
             main: (any LLMClientProtocol)?, utility: (any LLMClientProtocol)?,
             fast: (any LLMClientProtocol)?
         ))? = nil
     ) {
-        logger = Logger.module(named: "llm")
-        self.embeddingService = embeddingService
-        storage = InMemoryConfigurationService(config: configuration)
-        self.configuration = configuration
-        isConfigured = configuration.isValid
-        if configuration.isValid {
-            let clients = clientFactory?(configuration)
-                ?? (main: nil, utility: nil, fast: nil)
-            configuredPrimaryClient = clients.main
-            configuredUtilityClient = clients.utility
-            configuredFastClient = clients.fast
-        } else {
-            configuredPrimaryClient = nil
-            configuredUtilityClient = nil
-            configuredFastClient = nil
-        }
-        self.clientFactory = clientFactory
+        self.init(
+            configuration: configuration,
+            clientResolver: ClosureClientResolver(factory: clientFactory),
+            logger: Logger.module(named: "llm")
+        )
     }
 
+    /// Legacy: storage-backed initialization with directly injected clients or a factory.
+    /// Forwarding shim for ``init(storage:clientResolver:)``.
     public init(
         storage: any ConfigurationServiceProtocol,
-        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
+        embeddingService _: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
         client: (any LLMClientProtocol)? = nil,
         utilityClient: (any LLMClientProtocol)? = nil,
         fastClient: (any LLMClientProtocol)? = nil,
@@ -206,28 +298,21 @@ public actor LLMService: LanguageModel, HealthCheckable {
             fast: (any LLMClientProtocol)?
         ))? = nil
     ) {
-        logger = Logger.module(named: "llm")
-        self.embeddingService = embeddingService
-        self.storage = storage
-        configuredPrimaryClient = client
-        configuredUtilityClient = utilityClient
-        configuredFastClient = fastClient
-        self.clientFactory = clientFactory
-        isConfigured = client != nil
-
-        let needsLoad = client == nil
-        preparationTaskBox.set(Task { [weak self, needsLoad] in
-            guard let self else { return }
-            await self.storage.migrateIfNeeded()
-            if needsLoad {
-                await self.loadConfiguration()
-            }
-        })
+        let resolver: any LLMClientResolving
+        if let client {
+            resolver = FixedClientsResolver(
+                clients: LLMClientSet(primary: client, utility: utilityClient, fast: fastClient)
+            )
+        } else {
+            resolver = ClosureClientResolver(factory: clientFactory)
+        }
+        self.init(storage: storage, clientResolver: resolver)
     }
 
+    /// Internal variant of the legacy storage initializer with an injected logger.
     init(
         storage: any ConfigurationServiceProtocol,
-        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
+        embeddingService _: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
         client: (any LLMClientProtocol)? = nil,
         utilityClient: (any LLMClientProtocol)? = nil,
         fastClient: (any LLMClientProtocol)? = nil,
@@ -237,99 +322,76 @@ public actor LLMService: LanguageModel, HealthCheckable {
         ))? = nil,
         logger: Logger
     ) {
-        self.logger = logger
-        self.embeddingService = embeddingService
-        self.storage = storage
-        configuredPrimaryClient = client
-        configuredUtilityClient = utilityClient
-        configuredFastClient = fastClient
-        self.clientFactory = clientFactory
-        isConfigured = client != nil
-
-        let needsLoad = client == nil
-        preparationTaskBox.set(Task { [weak self, needsLoad] in
-            guard let self else { return }
-            await self.storage.migrateIfNeeded()
-            if needsLoad {
-                await self.loadConfiguration()
-            }
-        })
+        let resolver: any LLMClientResolving
+        if let client {
+            resolver = FixedClientsResolver(
+                clients: LLMClientSet(primary: client, utility: utilityClient, fast: fastClient)
+            )
+        } else {
+            resolver = ClosureClientResolver(factory: clientFactory)
+        }
+        self.init(storage: storage, clientResolver: resolver, logger: logger)
     }
 
-    // MARK: - Public API
+    // MARK: - Configuration Lifecycle
 
     public func loadConfiguration() async {
-        let config = await storage.load()
-        configuration = config
-        isConfigured = config.isValid
-
-        if config.isValid {
-            let providerConfig = config.activeProviderConfiguration
-            let modelInfo = "Main: \(providerConfig.modelName), Utility: \(providerConfig.utilityModel), Fast: \(providerConfig.fastModel)"
-            logger.info("Loaded configuration. \(modelInfo)")
-            updateClient(with: config)
-        } else {
-            logger.notice("LLM service not yet configured")
-        }
+        await prepareIfNeeded()
+        let config = await configurationRepository.load()
+        apply(config)
+        logLoaded(config)
     }
 
     public func restoreFromBackup() async throws {
-        await preparationTaskBox.task?.value
-        if let restored = try await storage.restoreFromBackup() {
+        await prepareIfNeeded()
+        if let restored = try await configurationRepository.restoreFromBackup() {
             logger.info("Restored configuration from backup")
-            configuration = restored
-            isConfigured = restored.isValid
-
-            if restored.isValid {
-                updateClient(with: restored)
-            }
+            apply(restored)
         }
     }
 
     public func exportConfiguration() async throws -> Data {
-        await preparationTaskBox.task?.value
-        return try await storage.exportConfiguration()
+        await prepareIfNeeded()
+        return try await configurationRepository.exportConfiguration()
     }
 
     public func importConfiguration(from data: Data) async throws {
-        await preparationTaskBox.task?.value
+        await prepareIfNeeded()
         logger.info("Importing configuration")
-        try await storage.importConfiguration(from: data)
-        await loadConfiguration()
+        try await configurationRepository.importConfiguration(from: data)
+        let config = await configurationRepository.load()
+        apply(config)
+        logLoaded(config)
     }
 
     public func updateConfiguration(_ config: LLMConfiguration) async throws {
-        await preparationTaskBox.task?.value
+        await prepareIfNeeded()
         let providerConfig = config.activeProviderConfiguration
         logger.info(
             "Updating configuration to models: \(providerConfig.modelName) / \(providerConfig.utilityModel) / \(providerConfig.fastModel)"
         )
-        try await storage.save(config)
-        configuration = config
-        isConfigured = config.isValid
-
-        if config.isValid {
-            updateClient(with: config)
-        } else {
-            setClients(main: nil, utility: nil, fast: nil)
-        }
+        try await configurationRepository.save(config)
+        apply(config)
     }
 
     public func clearConfiguration() async {
-        await preparationTaskBox.task?.value
+        await prepareIfNeeded()
         logger.warning("Clearing configuration")
-        await storage.clear()
-        configuration = .openAI
-        isConfigured = false
-        setClients(main: nil, utility: nil, fast: nil)
+        await configurationRepository.clear()
+        apply(.openAI)
     }
 
+    // MARK: - Dispatch
+
     public func fetchAvailableModels() async throws -> [String]? {
-        await preparationTaskBox.task?.value
-        guard let client = configuredPrimaryClient else {
+        await prepareIfNeeded()
+        let resolved: ResolvedLLMClient
+        do {
+            resolved = try resolve(tier: .primary)
+        } catch {
             return nil
         }
-        return try await client.fetchAvailableModels()
+        return try await resolved.client.fetchAvailableModels()
     }
 
     public func sendMessage(_ content: String) async throws -> String {
@@ -342,26 +404,28 @@ public actor LLMService: LanguageModel, HealthCheckable {
         generationParameters: GenerationParameters?,
         modelTier: ModelTier = .primary
     ) async throws -> String {
-        await preparationTaskBox.task?.value
-        let selectedClient: (any LLMClientProtocol)? = switch modelTier {
-        case .primary: configuredPrimaryClient
-        case .utility: configuredUtilityClient ?? configuredPrimaryClient
-        case .fast: configuredFastClient ?? configuredPrimaryClient
-        }
-
-        guard let client = selectedClient else {
-            throw configuration.isValid
-                ? LLMServiceError.clientNotResolved(provider: configuration.activeProvider.rawValue)
-                : LLMServiceError.notConfigured
-        }
+        await prepareIfNeeded()
+        let resolved = try resolve(tier: modelTier)
 
         // Use provided parameters or default from configuration
-        let params = generationParameters ?? configuration.activeProviderConfiguration.generationParameters
+        let params = generationParameters ?? resolved.generationParameters
 
-        return try await client.sendMessage(
+        return try await resolved.client.sendMessage(
             content,
             responseFormat: responseFormat,
             generationParameters: params
         )
+    }
+
+    // MARK: - Helpers
+
+    private func logLoaded(_ configuration: LLMConfiguration) {
+        if configuration.isValid {
+            let providerConfig = configuration.activeProviderConfiguration
+            let modelInfo = "Main: \(providerConfig.modelName), Utility: \(providerConfig.utilityModel), Fast: \(providerConfig.fastModel)"
+            logger.info("Loaded configuration. \(modelInfo)")
+        } else {
+            logger.notice("LLM service not yet configured")
+        }
     }
 }

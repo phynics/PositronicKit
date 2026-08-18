@@ -123,7 +123,7 @@ struct ThreadArchiverTests {
     @Test
     func archive_generatesTitleFromSharedUtility() async throws {
         // Given
-        mockLLM.nextGeneratedTitle = "A Great Conversation"
+        mockLLM.mockClient.nextResponse = #"{"title":"A Great Conversation"}"#
         let messages = [
             Message(content: "Hello, I want to talk about Swift programming.", role: .user),
             Message(content: "Let's compare that with SwiftUI data flow.", role: .assistant),
@@ -136,8 +136,6 @@ struct ThreadArchiverTests {
         let session = try await persistence.fetchThread(id: threadID)
         #expect(session?.title == "A Great Conversation")
         #expect(session?.isArchived == true)
-        #expect(mockLLM.generatedTitleInputs.count == 1)
-        #expect(mockLLM.generatedTitleInputs.first == messages)
     }
 
     @Test
@@ -158,7 +156,7 @@ struct ThreadArchiverTests {
     @Test
     func archive_indexesLongMessagesAsMemories() async throws {
         // Given
-        mockLLM.nextGeneratedTitle = "Swift Title"
+        mockLLM.mockClient.nextResponse = #"{"title":"Swift Title"}"#
         mockEmbeddingService.mockEmbedding = [0.1, 0.2, 0.3]
 
         let longMessage = "This is a very long message that should be indexed as a memory because it is longer than 20 characters."
@@ -220,7 +218,7 @@ struct ThreadArchiverTests {
         let existingSession = Thread(title: "Old Title")
         try await persistence.saveThread(existingSession)
 
-        mockLLM.nextGeneratedTitle = "New Title"
+        mockLLM.mockClient.nextResponse = #"{"title":"New Title"}"#
         let messages = [
             Message(content: "New user message", role: .user),
         ]
@@ -233,6 +231,23 @@ struct ThreadArchiverTests {
         let updatedSession = try await persistence.fetchThread(id: existingSession.id)
         #expect(updatedSession?.title == "New Title")
         #expect(updatedSession?.isArchived == true)
+    }
+
+    @Test
+    func archive_fallsBackToFirstUserMessageWhenTitleGenerationFails() async throws {
+        // Given — strict title generation fails, so the archiver's own fallback applies.
+        mockLLM.mockClient.shouldThrowError = true
+        let firstUserMessage = "This is the first user message that should become the title."
+        let messages = [
+            Message(content: firstUserMessage, role: .user),
+        ]
+
+        // When
+        let threadID = try await archiver.archive(messages: messages, threadID: .none)
+
+        // Then
+        let session = try await persistence.fetchThread(id: threadID)
+        #expect(session?.title == String(firstUserMessage.prefix(40)))
     }
 
     @Test

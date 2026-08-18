@@ -1,41 +1,50 @@
 import ErrorKit
 import Foundation
+import Logging
 import struct JSONSchema.Schema
 import JSONSchemaBuilder
-import Logging
 import PKShared
 import PKUtilities
 
-public extension LLMUtilityClient where Self: LLMStreamClient {
-    /// Generate tags/keywords for a given text using the LLM
-    func generateTags(for text: String) async throws -> [String] {
-        await runUtilityGeneration(
-            UtilityGenerationDirective.tags(text: text),
-            logger: utilityGenerationLogger
-        )
+/// Strict utility-generation operations.
+///
+/// Failures propagate to the caller so policy stays at the boundary that owns it (for
+/// example, `ThreadArchiver`'s title fallback). The compatibility surface
+/// ``BestEffortLLMUtilities`` re-introduces the old log-and-return-default behavior for
+/// `LLMUtilityClient` protocol conformance.
+struct LLMUtilityGenerator {
+    private let streamClient: any LLMStreamClient
+
+    init(streamClient: any LLMStreamClient) {
+        self.streamClient = streamClient
     }
 
-    /// Generate a concise title for a conversation
+    /// Generates tags/keywords for the given text, throwing on failure.
+    func generateTags(for text: String) async throws -> [String] {
+        let directive = UtilityGenerationDirective.tags(text: text)
+        let payload = try await send(directive)
+        return directive.map(payload)
+    }
+
+    /// Generates a concise conversation title, throwing on failure.
+    ///
+    /// An empty message list is not a provider failure: it maps to the documented
+    /// `"New Conversation"` default without invoking the model.
     func generateTitle(for messages: [Message]) async throws -> String {
         guard !messages.isEmpty else {
             return "New Conversation"
         }
-
         let transcript = messages.map { "[\($0.role.rawValue.uppercased())] \($0.content)" }.joined(
             separator: "\n\n"
         )
-
-        return await runUtilityGeneration(
-            UtilityGenerationDirective.title(transcript: transcript),
-            logger: utilityGenerationLogger
-        )
+        let directive = UtilityGenerationDirective.title(transcript: transcript)
+        let payload = try await send(directive)
+        return directive.map(payload)
     }
 
-    /// Evaluate which recalled memories were actually helpful in the conversation
-    /// - Parameters:
-    ///   - transcript: The conversation text
-    ///   - recalledMemories: The memories that were injected as context
-    /// - Returns: A dictionary mapping memory ID strings to a helpfulness score (-1.0 to 1.0)
+    /// Evaluates which recalled memories were actually helpful, throwing on failure.
+    ///
+    /// An empty memory list maps to `[:]` without invoking the model.
     func evaluateRecallPerformance(
         transcript: String,
         recalledMemories: [Memory]
@@ -43,52 +52,70 @@ public extension LLMUtilityClient where Self: LLMStreamClient {
         guard !recalledMemories.isEmpty else {
             return [:]
         }
+        let directive = UtilityGenerationDirective.recallPerformance(
+            transcript: transcript,
+            recalledMemories: recalledMemories
+        )
+        let payload = try await send(directive)
+        return directive.map(payload)
+    }
 
-        return await runUtilityGeneration(
-            UtilityGenerationDirective.recallPerformance(
-                transcript: transcript,
-                recalledMemories: recalledMemories
-            ),
-            logger: utilityGenerationLogger
+    private func send<Payload: Decodable & Sendable, Output: Sendable>(
+        _ directive: UtilityGenerationDirective<Payload, Output>
+    ) async throws -> Payload {
+        try await streamClient.sendStructured(
+            directive.prompt,
+            structuredOutput: directive.structuredOutput,
+            as: directive.payloadType,
+            generationParameters: nil,
+            modelTier: .utility
         )
     }
 }
 
-private extension LLMUtilityClient where Self: LLMStreamClient {
-    var utilityGenerationLogger: Logger {
-        if let provider = self as? any UtilityGenerationLoggerProviding {
-            return provider.utilityGenerationLogger
-        }
-        return Logger.module(named: "llm")
+/// Best-effort utility operations that log failures and return documented defaults.
+///
+/// Backs the `LLMUtilityClient` compatibility surface during the current major version.
+struct BestEffortLLMUtilities {
+    private let streamClient: any LLMStreamClient
+    private let logger: Logger
+
+    init(streamClient: any LLMStreamClient, logger: Logger) {
+        self.streamClient = streamClient
+        self.logger = logger
     }
 
-    func runUtilityGeneration<Payload: Decodable & Sendable, Output: Sendable>(
-        _ directive: UtilityGenerationDirective<Payload, Output>,
-        logger: Logger
-    ) async -> Output {
+    func generateTags(for text: String) async -> [String] {
         do {
-            let payload = try await sendStructured(
-                directive.prompt,
-                structuredOutput: directive.structuredOutput,
-                as: directive.payloadType,
-                generationParameters: nil,
-                modelTier: .utility
-            )
-            return directive.map(payload)
+            return try await LLMUtilityGenerator(streamClient: streamClient).generateTags(for: text)
         } catch {
-            logger.error("Failed to \(directive.logLabel): \(ErrorKit.userFriendlyMessage(for: error))")
-            return directive.defaultValue
+            logger.error("Failed to generate tags: \(ErrorKit.userFriendlyMessage(for: error))")
+            return []
         }
     }
-}
 
-private protocol UtilityGenerationLoggerProviding {
-    var utilityGenerationLogger: Logger { get }
-}
+    func generateTitle(for messages: [Message]) async -> String {
+        do {
+            return try await LLMUtilityGenerator(streamClient: streamClient).generateTitle(for: messages)
+        } catch {
+            logger.error("Failed to generate title: \(ErrorKit.userFriendlyMessage(for: error))")
+            return "New Conversation"
+        }
+    }
 
-extension LLMService: UtilityGenerationLoggerProviding {
-    nonisolated var utilityGenerationLogger: Logger {
-        logger
+    func evaluateRecallPerformance(
+        transcript: String,
+        recalledMemories: [Memory]
+    ) async -> [String: Double] {
+        do {
+            return try await LLMUtilityGenerator(streamClient: streamClient).evaluateRecallPerformance(
+                transcript: transcript,
+                recalledMemories: recalledMemories
+            )
+        } catch {
+            logger.error("Failed to evaluate recall: \(ErrorKit.userFriendlyMessage(for: error))")
+            return [:]
+        }
     }
 }
 

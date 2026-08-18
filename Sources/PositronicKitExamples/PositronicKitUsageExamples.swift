@@ -74,10 +74,8 @@ public enum PositronicKitUsageExamples {
         let config = LLMConfiguration(activeProvider: .openAI, providers: [.openAI: openAIConfig])
         let client = PKOpenAIProvider.makeClient(configuration: config)
         let model = LLMService(
-            storage: InMemoryConfigurationService(config: config),
-            client: client,
-            utilityClient: client,
-            fastClient: client
+            configuration: config,
+            clients: .init(primary: client, utility: client, fast: client)
         )
         return PositronicKit(languageModel: model)
     }
@@ -88,10 +86,8 @@ public enum PositronicKitUsageExamples {
         let config = LLMConfiguration(activeProvider: .ollama, providers: [.ollama: ollamaConfig])
         let client = PKOllamaProvider.makeClient(configuration: config)
         let languageModel = LLMService(
-            storage: InMemoryConfigurationService(config: config),
-            client: client,
-            utilityClient: client,
-            fastClient: client
+            configuration: config,
+            clients: .init(primary: client, utility: client, fast: client)
         )
         return PositronicKit(languageModel: languageModel)
     }
@@ -116,10 +112,8 @@ public enum PositronicKitUsageExamples {
         let configuration = LLMConfiguration(activeProvider: .openAI, providers: [.openAI: openAIConfig])
         let client = PKOpenAIProvider.makeClient(configuration: configuration)
         let languageModel = LLMService(
-            storage: InMemoryConfigurationService(config: configuration),
-            client: client,
-            utilityClient: client,
-            fastClient: client
+            configuration: configuration,
+            clients: .init(primary: client, utility: client, fast: client)
         )
         return PositronicKit(configuration: .init(
             provider: .init(languageModel: languageModel),
@@ -135,10 +129,8 @@ public enum PositronicKitUsageExamples {
         let configuration = LLMConfiguration(activeProvider: .anthropic, providers: [.anthropic: anthropicConfig])
         let client = PKAnthropicProvider.makeClient(configuration: configuration)
         let languageModel = LLMService(
-            storage: InMemoryConfigurationService(config: configuration),
-            client: client,
-            utilityClient: client,
-            fastClient: client
+            configuration: configuration,
+            clients: .init(primary: client, utility: client, fast: client)
         )
         return PositronicKit(languageModel: languageModel)
     }
@@ -154,10 +146,8 @@ public enum PositronicKitUsageExamples {
     public static func makeFoundationModelsRuntime(tools: [AnyTool] = []) -> PositronicKit {
         let client = FoundationModelsClient(tools: tools.map { $0.toAnyTool() })
         let languageModel = LLMService(
-            storage: InMemoryConfigurationService(config: .default),
-            client: client,
-            utilityClient: client,
-            fastClient: client
+            configuration: .default,
+            clients: .init(primary: client, utility: client, fast: client)
         )
         return PositronicKit(languageModel: languageModel)
     }

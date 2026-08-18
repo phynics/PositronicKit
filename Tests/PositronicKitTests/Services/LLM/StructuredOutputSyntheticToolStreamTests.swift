@@ -246,7 +246,7 @@ struct StructuredOutputSyntheticToolStreamTests {
 
         mockClient.structuredOutputAdapter = DefaultStructuredOutputAdapter()
         let service = LLMService(storage: MockConfigurationService(), client: mockClient)
-        try await service.updateConfiguration(.fixture(activeProvider: .anthropic))
+        try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .anthropic))
         await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         let result = try await service.sendStructured(
@@ -276,7 +276,7 @@ struct StructuredOutputSyntheticToolStreamTests {
 
         mockClient.structuredOutputAdapter = DefaultStructuredOutputAdapter()
         let service = LLMService(storage: MockConfigurationService(), client: mockClient)
-        try await service.updateConfiguration(.fixture(activeProvider: .anthropic))
+        try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .anthropic))
         await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         let result = try await service.sendStructured(

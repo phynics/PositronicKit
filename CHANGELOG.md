@@ -25,6 +25,23 @@ for tagged releases beginning with `1.0.0`.
 - Provider factories now use `makeClient(configuration:)` as their canonical name. Structured-output
   behavior is carried by each client instead of a process-global adapter registry.
 
+### Fixed
+
+- **LLM runtime state consistency:** `LLMService` now owns one atomic runtime snapshot
+  (configuration + client set). Storage-backed initialization always loads configuration, even
+  when clients are injected; invalid loaded/imported/restored/updated/cleared configurations clear
+  all clients; and send, both stream overloads, structured-output adapters, model listing, and
+  health checks share a single tier-resolution and readiness implementation. Explicit
+  `LLMService(configuration:clients:)` and `LLMService(storage:clientResolver:)` construction paths
+  are the new canonical initializers; legacy initializers remain as forwarding shims.
+- **Preparation no longer escapes the actor:** `PreparationTaskBox` and its `@unchecked Sendable`
+  conformance were removed in favor of an actor-owned coalesced bootstrap task.
+- **Utility failure policy is explicit:** strict `LLMUtilityGenerator` operations throw; the
+  `LLMUtilityClient` compatibility surface retains best-effort log-and-default behavior.
+  `ThreadArchiver` now uses strict title generation so its first-user-message fallback works.
+- Removed `LLMService.embeddingService` (redundant ownership) and `LLMService.parseEndpoint`
+  (no production caller; silently fell back to an unrelated provider endpoint).
+
 ## [3.7.0] - 2026-08-13
 
 ### Deprecated
