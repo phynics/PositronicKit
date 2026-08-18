@@ -241,10 +241,9 @@ struct StructuredOutputSyntheticToolStreamTests {
             let tags: [String]
         }
 
-        let mockClient = MockLLMClient()
+        let mockClient = MockLLMClient(structuredOutputAdapter: DefaultStructuredOutputAdapter())
         mockClient.nextToolCalls = [[MockToolCall(id: "structured-call", name: syntheticToolName, arguments: #"{"tags":["swift"]}"#)]]
 
-        mockClient.structuredOutputAdapter = DefaultStructuredOutputAdapter()
         let service = LLMService(
             storage: MockConfigurationService(),
             clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
@@ -266,7 +265,7 @@ struct StructuredOutputSyntheticToolStreamTests {
             let tags: [String]
         }
 
-        let mockClient = MockLLMClient()
+        let mockClient = MockLLMClient(structuredOutputAdapter: DefaultStructuredOutputAdapter())
         mockClient.nextRawStreamChunks = [[
             ChatStreamResultFactory.toolCallChunk(calls: [
                 MockToolCall(id: "structured-call", name: syntheticToolName, arguments: "{" + #""tags":["#)
@@ -276,7 +275,6 @@ struct StructuredOutputSyntheticToolStreamTests {
             ]),
         ]]
 
-        mockClient.structuredOutputAdapter = DefaultStructuredOutputAdapter()
         let service = LLMService(
             storage: MockConfigurationService(),
             clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))

@@ -49,7 +49,7 @@ private struct CapturingLogHandler: LogHandler {
     }
 }
 
-private enum TestUtilityError: Error, PKError {
+private enum TestUtilityError: Error, PKError, Sendable {
     case failure
 
     var errorDomain: String {

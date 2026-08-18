@@ -46,8 +46,8 @@ public struct MockLLMSendMessageCapture: Sendable {
 /// `chatCaptureHistory` and `sendMessageCaptureHistory` retain complete request records,
 /// including calls that later fail; the legacy `last…` fields and `messageHistory` remain
 /// available. No mutex is held while a stream sleeps, yields, or waits for cancellation.
-public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
-    private struct State {
+public final class MockLLMClient: LLMClientProtocol, Sendable {
+    private struct State: Sendable {
         var nextResponse = ""
         var nextResponses: [String] = []
         var lastMessages: [LLMMessage] = []
@@ -57,7 +57,7 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
         var lastResponseFormat: LLMResponseFormat?
         var lastParameters: GenerationParameters?
         var shouldThrowError = false
-        var errorToThrow: any Error = NSError(
+        var errorToThrow: any Error & Sendable = NSError(
             domain: "MockError",
             code: 1,
             userInfo: [NSLocalizedDescriptionKey: "Simulated failure"]
@@ -88,7 +88,7 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
     public let clock: any Clock<Duration>
 
     /// Adapter used when tests exercise structured-output preparation through this mock.
-    public var structuredOutputAdapter: any StructuredOutputAdapter
+    public let structuredOutputAdapter: any StructuredOutputAdapter
 
     public var nextResponse: String {
         get { state.withLock { $0.nextResponse } }
@@ -137,7 +137,7 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
         set { state.withLock { $0.shouldThrowError = newValue } }
     }
 
-    public var errorToThrow: Error {
+    public var errorToThrow: any Error & Sendable {
         get { state.withLock { $0.errorToThrow } }
         set { state.withLock { $0.errorToThrow = newValue } }
     }
