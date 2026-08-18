@@ -694,12 +694,12 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
         )
     }
 
-    public func generateTags(for _: String) async throws -> [String] {
+    public func bestEffortTags(for _: String) async -> [String] {
         let tags = state.withLock { $0.nextTags }
         return tags.map { $0.lowercased() }
     }
 
-    public func generateTitle(for messages: [Message]) async throws -> String {
+    public func bestEffortTitle(for messages: [Message]) async -> String {
         let scriptedTitle = state.withLock { state in
             state.generatedTitleInputs.append(messages)
             return state.nextGeneratedTitle
@@ -708,12 +708,6 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: "\"", with: "")
         return title.isEmpty ? "New Conversation" : title
-    }
-
-    public func evaluateRecallPerformance(transcript _: String, recalledMemories _: [Memory]) async throws
-        -> [String: Double]
-    {
-        return [:]
     }
 
     public func fetchAvailableModels() async throws -> [String]? {

@@ -145,7 +145,7 @@ public actor ThreadArchiver {
             // being indexed as a memory. Title generation is the strict operation whose
             // failure this actor owns (see `resolveTitle(from:)`).
             let tags = await BestEffortLLMUtilities(streamClient: llmService, logger: logger)
-                .generateTags(for: msg.content)
+                .bestEffortTags(for: msg.content)
             let embedding = try await embeddingService.generateEmbedding(for: msg.content)
 
             let memory = Memory(

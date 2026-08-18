@@ -157,7 +157,7 @@ struct MockLLMServiceContractTests {
         try await withThrowingTaskGroup(of: Void.self) { group in
             for content in expected {
                 group.addTask {
-                    _ = try await service.generateTitle(for: [.fixture(content: content)])
+                    _ = await service.bestEffortTitle(for: [.fixture(content: content)])
                 }
             }
             try await group.waitForAll()

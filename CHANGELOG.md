@@ -13,6 +13,14 @@ for tagged releases beginning with `1.0.0`.
 - **v4 deprecated API removal:** removed the released v3 Timeline compatibility modules and
   legacy persistence contracts. Canonical Thread APIs remain unchanged; historical Codable keys,
   database fields, and wire identifiers remain supported at serialization boundaries.
+- **LLM service surface narrowed:** removed the `LLMService` client getters (`primaryClient()`,
+  `utilityClient()`, `fastClient()`) and `setClients(main:utility:fast:)`, the `AnyLanguageModel`
+  forwarding type, and `evaluateRecallPerformance` from `LLMUtilityClient`/`LLMUtilityGenerator`.
+  The facade seam no longer requires configuration administration: `PositronicKit.languageModel`
+  is now `any LLMStreamClient & LLMUtilityClient` instead of `any LanguageModel`.
+- **Utility policy is explicit in names:** `LLMUtilityClient.generateTags`/`generateTitle` are now
+  `bestEffortTags(for:)` / `bestEffortTitle(for:)` and are non-throwing. Strict, throwing operations
+  live on the public `LLMUtilityGenerator`.
 
 ### Added
 

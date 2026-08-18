@@ -7,11 +7,11 @@ public extension PositronicKit {
     /// Groups provider-facing services used by the runtime.
     /// Embeddings stay with the LLM service because both are provider integrations.
     struct ProviderConfiguration: Sendable {
-        public let languageModel: any LanguageModel
+        public let languageModel: any LLMStreamClient & LLMUtilityClient
         public let embeddingService: (any EmbeddingServiceProtocol)?
 
         public init(
-            languageModel: any LanguageModel,
+            languageModel: any LLMStreamClient & LLMUtilityClient,
             embeddingService: (any EmbeddingServiceProtocol)? = nil
         ) {
             self.languageModel = languageModel

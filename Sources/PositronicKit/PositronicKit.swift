@@ -38,7 +38,7 @@ import PKUtilities
 public final class PositronicKit: Sendable {
     // MARK: - Direct ChatEngine dependencies
 
-    let languageModel: any LanguageModel
+    let languageModel: any LLMStreamClient & LLMUtilityClient
 
     /// Whether the injected language model currently has usable provider configuration.
     ///
@@ -95,7 +95,7 @@ public final class PositronicKit: Sendable {
 
     /// Creates a provider-agnostic facade with in-memory persistence and default runtime policy.
     public convenience init(
-        languageModel: any LanguageModel = UnconfiguredLLMService()
+        languageModel: any LLMStreamClient & LLMUtilityClient = UnconfiguredLLMService()
     ) {
         self.init(
             configuration: .init(
@@ -106,7 +106,7 @@ public final class PositronicKit: Sendable {
     }
 
     convenience init(
-        languageModel: any LanguageModel,
+        languageModel: any LLMStreamClient & LLMUtilityClient,
         messageStore: (any ThreadMessageStoreProtocol)? = nil,
         agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,
         requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
@@ -288,7 +288,7 @@ public final class PositronicKit: Sendable {
     /// This is the supported path for hosts that must refresh provider settings between sends
     /// without silently resetting per-thread prompt-history state.
     public func reconfigured(
-        languageModel: any LanguageModel,
+        languageModel: any LLMStreamClient & LLMUtilityClient,
         generationParameters: GenerationParameters? = nil
     ) -> PositronicKit {
         var deps = dependencies

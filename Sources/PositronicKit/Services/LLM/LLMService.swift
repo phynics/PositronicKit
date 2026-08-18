@@ -160,35 +160,6 @@ public actor LLMService: LanguageModel, HealthCheckable {
         )
     }
 
-    // MARK: - Client Accessors
-
-    /// The primary (default) model client, or `nil` when none is configured.
-    ///
-    /// This is the client used for `.primary` model-tier requests. It is never
-    /// substituted by another tier.
-    public func primaryClient() -> (any LLMClientProtocol)? {
-        snapshot.clients.primary
-    }
-
-    /// The configured utility-model client, or `nil` when none is configured.
-    ///
-    /// Utility-tier requests fall back to ``primaryClient()`` when this is `nil`. Read this
-    /// accessor only when you need the exact configured utility client; prefer
-    /// ``sendMessage(_:responseFormat:generationParameters:modelTier:)`` for tiered work.
-    public func utilityClient() -> (any LLMClientProtocol)? {
-        snapshot.clients.utility
-    }
-
-    /// The configured fast-model client, or `nil` when none is configured.
-    ///
-    /// Fast-tier requests fall back to ``primaryClient()`` when this is `nil`. Read this
-    /// accessor only when you need the exact configured fast client; prefer
-    /// ``chatStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:)``
-    /// for tiered streaming work.
-    public func fastClient() -> (any LLMClientProtocol)? {
-        snapshot.clients.fast
-    }
-
     public func structuredOutputAdapter(
         for modelTier: ModelTier
     ) async -> any StructuredOutputAdapter {
@@ -197,20 +168,6 @@ public actor LLMService: LanguageModel, HealthCheckable {
             return DefaultStructuredOutputAdapter()
         }
         return await client.structuredOutputAdapter
-    }
-
-    /// Replaces the client set while keeping the current configuration.
-    ///
-    /// Legacy compatibility seam; prefer constructing with ``init(configuration:clients:)``
-    /// or ``init(storage:clientResolver:)`` so configuration and clients stay consistent.
-    public func setClients(
-        main: (any LLMClientProtocol)?, utility: (any LLMClientProtocol)?,
-        fast: (any LLMClientProtocol)?
-    ) {
-        apply(
-            snapshot.configuration,
-            clients: LLMClientSet(primary: main, utility: utility, fast: fast)
-        )
     }
 
     // MARK: - Initialization

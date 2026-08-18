@@ -487,7 +487,7 @@ private extension ChatEngine {
             let stream = await turnBriefingBuilder.gatherContext(
                 for: message.isEmpty ? (history.last?.content ?? "") : message,
                 history: history,
-                tagGenerator: { [utilityClient = dependencies.utilityClient] query in try await utilityClient.generateTags(for: query) },
+                tagGenerator: { [utilityClient = dependencies.utilityClient] query in await utilityClient.bestEffortTags(for: query) },
                 overridePipeline: pipeline
             )
 

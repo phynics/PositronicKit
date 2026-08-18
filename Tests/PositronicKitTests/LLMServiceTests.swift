@@ -320,10 +320,10 @@ struct LLMServiceTests {
             Message(content: "You use it by declaring views.", role: .assistant),
         ]
 
-        let title = try await service.generateTitle(for: messages)
+        let title = await service.bestEffortTitle(for: messages)
         #expect(title == "SwiftUI Basics")
         guard case let .jsonSchema(schema) = mockClient.lastResponseFormat else {
-            Issue.record("Expected generateTitle to use a JSON schema response format")
+            Issue.record("Expected bestEffortTitle to use a JSON schema response format")
             return
         }
         #expect(schema.name == "llm_title")
@@ -347,11 +347,11 @@ struct LLMServiceTests {
         )
 
         mockClient.nextResponse = #"{"tags":["Swift","Tests"]}"#
-        let tags = try await service.generateTags(for: "Swift tests are great")
+        let tags = await service.bestEffortTags(for: "Swift tests are great")
         #expect(tags == ["swift", "tests"])
 
         guard case let .jsonSchema(tagSchema) = mockClient.lastResponseFormat else {
-            Issue.record("Expected generateTags to use a JSON schema response format")
+            Issue.record("Expected bestEffortTags to use a JSON schema response format")
             return
         }
         #expect(tagSchema.name == "llm_tags")
@@ -359,50 +359,18 @@ struct LLMServiceTests {
         #expect(tagSchemaText.contains("\"tags\""))
 
         mockClient.nextResponse = #"{"title":"Condensed Title"}"#
-        let title = try await service.generateTitle(for: [
+        let title = await service.bestEffortTitle(for: [
             Message(content: "Summarize this discussion", role: .user),
         ])
         #expect(title == "Condensed Title")
 
         guard case let .jsonSchema(titleSchema) = mockClient.lastResponseFormat else {
-            Issue.record("Expected generateTitle to use a JSON schema response format")
+            Issue.record("Expected bestEffortTitle to use a JSON schema response format")
             return
         }
         #expect(titleSchema.name == "llm_title")
         let titleSchemaText = try String(decoding: JSONEncoder().encode(titleSchema.schema), as: UTF8.self)
         #expect(titleSchemaText.contains("\"title\""))
-
-        let firstMemory = try Memory(
-            id: #require(UUID(uuidString: "00000000-0000-0000-0000-000000000001")),
-            title: "First memory",
-            content: "Useful detail"
-        )
-        let secondMemory = try Memory(
-            id: #require(UUID(uuidString: "00000000-0000-0000-0000-000000000002")),
-            title: "Second memory",
-            content: "Off-topic detail"
-        )
-
-        mockClient.nextResponse = #"{"00000000-0000-0000-0000-000000000001":0.5,"00000000-0000-0000-0000-000000000002":-1.0}"#
-        let scores = try await service.evaluateRecallPerformance(
-            transcript: "Transcript text",
-            recalledMemories: [firstMemory, secondMemory]
-        )
-
-        #expect(scores == [
-            "00000000-0000-0000-0000-000000000001": 0.5,
-            "00000000-0000-0000-0000-000000000002": -1.0,
-        ])
-
-        guard case let .jsonSchema(recallSchema) = mockClient.lastResponseFormat else {
-            Issue.record("Expected evaluateRecallPerformance to use a JSON schema response format")
-            return
-        }
-        #expect(recallSchema.name == "recall_performance")
-        let recallSchemaText = try String(decoding: JSONEncoder().encode(recallSchema.schema), as: UTF8.self)
-        #expect(recallSchemaText.contains("\"additionalProperties\""))
-        #expect(recallSchemaText.contains("\"minimum\":-1"))
-        #expect(recallSchemaText.contains("\"maximum\":1"))
     }
 
     @Test("Utility generations return defaults and log friendly failure messages")
@@ -422,27 +390,18 @@ struct LLMServiceTests {
             logger: logger
         )
 
-        let tags = try await service.generateTags(for: "Tag this text")
+        let tags = await service.bestEffortTags(for: "Tag this text")
         #expect(tags.isEmpty)
 
-        let title = try await service.generateTitle(for: [
+        let title = await service.bestEffortTitle(for: [
             Message(content: "A conversation", role: .user),
         ])
         #expect(title == "New Conversation")
-
-        let recall = try await service.evaluateRecallPerformance(
-            transcript: "Transcript text",
-            recalledMemories: [
-                Memory(title: "Memory", content: "Content"),
-            ]
-        )
-        #expect(recall.isEmpty)
 
         let messages = sink.all()
         #expect(messages.contains(where: { $0.contains("Friendly utility failure") }))
         #expect(messages.contains(where: { $0.contains("Failed to generate tags") }))
         #expect(messages.contains(where: { $0.contains("Failed to generate title") }))
-        #expect(messages.contains(where: { $0.contains("Failed to evaluate recall") }))
     }
 
     @Test("Health details report typed provider identity, not endpoint substrings")
@@ -507,7 +466,7 @@ struct LLMServiceTests {
 
         #expect(await service.isConfigured, "isConfigured reflects configuration validity only")
         #expect(await service.isReady == false, "isReady is false when no primary client is resolved")
-        #expect(await service.primaryClient() == nil, "No client factory was registered")
+        #expect(await service.isReady == false, "No primary client is resolved")
     }
 
     @Test("isReady is true and guarantees a primary send can start when a client is resolved (PKRR-018)")
@@ -755,7 +714,7 @@ struct LLMServiceTests {
         #expect(await service.configuration.activeProvider == .ollama)
         #expect(await service.configuration.activeProviderConfiguration.modelName == "llama3")
         #expect(await service.isConfigured)
-        #expect(await service.primaryClient() != nil)
+        #expect(await service.isReady)
     }
 
     @Test("Anthropic metadata and generation defaults come from the loaded configuration")
@@ -795,15 +754,13 @@ struct LLMServiceTests {
             clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
         )
         _ = try await service.exportConfiguration()
-        #expect(await service.primaryClient() != nil)
+        #expect(await service.isReady)
 
         try await storage.save(.openAI) // invalid: empty model/api key
         await service.loadConfiguration()
 
         #expect(await service.isConfigured == false)
-        #expect(await service.primaryClient() == nil)
-        #expect(await service.utilityClient() == nil)
-        #expect(await service.fastClient() == nil)
+        #expect(await service.isReady == false)
     }
 
     @Test("Invalid restored backup clears all previous clients")
@@ -818,13 +775,13 @@ struct LLMServiceTests {
             clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
         )
         _ = try await service.exportConfiguration()
-        #expect(await service.primaryClient() != nil)
+        #expect(await service.isReady)
 
         await storage.setBackupConfig(.openAI) // invalid
         try await service.restoreFromBackup()
 
         #expect(await service.isConfigured == false)
-        #expect(await service.primaryClient() == nil)
+        #expect(await service.isReady == false)
     }
 
     @Test("Valid configuration without a primary client yields clientNotResolved from send and every stream overload")
@@ -966,11 +923,11 @@ struct LLMServiceTests {
 
         #expect(await service.configuration.activeProvider == .ollama)
         #expect(await service.configuration.activeProviderConfiguration.modelName == "qwen")
-        #expect(await service.primaryClient() != nil)
+        #expect(await service.isReady)
 
         // An invalid update clears clients in the same operation.
         try await service.updateConfiguration(LLMConfiguration(activeProvider: .openAI, providers: [:]))
         #expect(await service.isConfigured == false)
-        #expect(await service.primaryClient() == nil)
+        #expect(await service.isReady == false)
     }
 }
