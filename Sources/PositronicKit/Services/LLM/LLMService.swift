@@ -117,9 +117,31 @@ public actor LLMService: LanguageModel, HealthCheckable {
 
     // MARK: - Client Accessors
 
-    /// Returns the configured primary client.
+    /// The primary (default) model client, or `nil` when none is configured.
+    ///
+    /// This is the client used for `.primary` model-tier requests. It is never
+    /// substituted by another tier.
     public func client() -> (any LLMClientProtocol)? {
         primaryClient
+    }
+
+    /// The configured utility-model client, or `nil` when none is configured.
+    ///
+    /// Utility-tier requests fall back to ``client()`` when this is `nil`. Read this
+    /// accessor only when you need the exact configured utility client; prefer
+    /// ``sendMessage(_:responseFormat:generationParameters:modelTier:)`` for tiered work.
+    public func utilityClient() -> (any LLMClientProtocol)? {
+        configuredUtilityClient
+    }
+
+    /// The configured fast-model client, or `nil` when none is configured.
+    ///
+    /// Fast-tier requests fall back to ``client()`` when this is `nil`. Read this
+    /// accessor only when you need the exact configured fast client; prefer
+    /// ``chatStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:)``
+    /// for tiered streaming work.
+    public func fastClient() -> (any LLMClientProtocol)? {
+        configuredFastClient
     }
 
     public func structuredOutputAdapter(
@@ -132,16 +154,6 @@ public actor LLMService: LanguageModel, HealthCheckable {
         }
         guard let selectedClient else { return DefaultStructuredOutputAdapter() }
         return await selectedClient.structuredOutputAdapter
-    }
-
-    /// Returns the configured utility client.
-    public func utilityClient() -> (any LLMClientProtocol)? {
-        configuredUtilityClient
-    }
-
-    /// Returns the configured fast client.
-    public func fastClient() -> (any LLMClientProtocol)? {
-        configuredFastClient
     }
 
     public func setClients(
@@ -321,21 +333,20 @@ public actor LLMService: LanguageModel, HealthCheckable {
     }
 
     public func sendMessage(_ content: String) async throws -> String {
-        try await sendMessage(content, responseFormat: nil, generationParameters: nil, useUtilityModel: false)
+        try await sendMessage(content, responseFormat: nil, generationParameters: nil)
     }
 
     public func sendMessage(
         _ content: String,
         responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?,
-        useUtilityModel: Bool
+        modelTier: ModelTier = .primary
     ) async throws -> String {
         await preparationTaskBox.task?.value
-        let selectedClient: (any LLMClientProtocol)?
-        if useUtilityModel {
-            selectedClient = configuredUtilityClient ?? primaryClient
-        } else {
-            selectedClient = primaryClient
+        let selectedClient: (any LLMClientProtocol)? = switch modelTier {
+        case .primary: primaryClient
+        case .utility: configuredUtilityClient ?? primaryClient
+        case .fast: configuredFastClient ?? primaryClient
         }
 
         guard let client = selectedClient else {

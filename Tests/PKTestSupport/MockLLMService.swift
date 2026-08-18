@@ -24,7 +24,7 @@ public struct MockLLMSendMessageCapture: Sendable {
     public let content: String
     public let responseFormat: LLMResponseFormat?
     public let generationParameters: GenerationParameters?
-    public let useUtilityModel: Bool
+    public let modelTier: ModelTier
 }
 
 /// In-memory `LLMClientProtocol` test double.
@@ -383,7 +383,7 @@ public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
                 content: content,
                 responseFormat: responseFormat,
                 generationParameters: generationParameters,
-                useUtilityModel: false
+                modelTier: .primary
             )
             state.lastMessages = [LLMMessage(role: .user, content: content)]
             state.lastTools = nil
@@ -592,7 +592,7 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
                 content: content,
                 responseFormat: nil,
                 generationParameters: nil,
-                useUtilityModel: false
+                modelTier: .primary
             )
             state.lastSendMessageCapture = capture
             state.sendMessageCaptureHistory.append(capture)
@@ -604,14 +604,14 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
         _ content: String,
         responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?,
-        useUtilityModel: Bool
+        modelTier: ModelTier = .primary
     ) async throws -> String {
         state.withLock { state in
             let capture = MockLLMSendMessageCapture(
                 content: content,
                 responseFormat: responseFormat,
                 generationParameters: generationParameters,
-                useUtilityModel: useUtilityModel
+                modelTier: modelTier
             )
             state.lastSendMessageCapture = capture
             state.sendMessageCaptureHistory.append(capture)

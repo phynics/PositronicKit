@@ -624,7 +624,7 @@ struct LLMServiceTests {
 
         // Case 1: Custom parameters passed
         let customParams = GenerationParameters(temperature: 0.5, maxTokens: 100)
-        _ = try await service.sendMessage("Hello", responseFormat: nil, generationParameters: customParams, useUtilityModel: false)
+        _ = try await service.sendMessage("Hello", responseFormat: nil, generationParameters: customParams)
 
         #expect(mockClient.lastParameters?.temperature == 0.5)
         #expect(mockClient.lastParameters?.maxTokens == 100)

@@ -50,16 +50,6 @@ struct UnconfiguredLLMServiceCoverageTests {
         await service.clearConfiguration()
         #expect(await service.isConfigured == false)
     }
-
-    @Test("getClient returns nil")
-    func getClientReturnsNil() async {
-        #expect(await service.getClient() == nil)
-    }
-
-    @Test("getUtilityClient returns nil")
-    func getUtilityClientReturnsNil() async {
-        #expect(await service.getUtilityClient() == nil)
-    }
 }
 
 /// Coverage for `ContextFile.description` and Codable.

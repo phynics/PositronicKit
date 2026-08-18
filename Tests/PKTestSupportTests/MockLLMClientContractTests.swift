@@ -100,7 +100,7 @@ struct MockLLMClientContractTests {
         #expect(client.lastSendMessageCapture?.content == "hello")
         #expect(client.lastSendMessageCapture?.responseFormat == .jsonObject)
         #expect(client.lastSendMessageCapture?.generationParameters == parameters)
-        #expect(client.lastSendMessageCapture?.useUtilityModel == false)
+        #expect(client.lastSendMessageCapture?.modelTier == .primary)
 
         client.shouldThrowError = true
         do {

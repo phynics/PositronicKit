@@ -196,8 +196,8 @@ struct AnyLanguageModel: LanguageModel {
     func exportConfiguration() async throws -> Data { try await base.exportConfiguration() }
     func importConfiguration(from data: Data) async throws { try await base.importConfiguration(from: data) }
     func sendMessage(_ content: String) async throws -> String { try await base.sendMessage(content) }
-    func sendMessage(_ content: String, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, useUtilityModel: Bool) async throws -> String {
-        try await base.sendMessage(content, responseFormat: responseFormat, generationParameters: generationParameters, useUtilityModel: useUtilityModel)
+    func sendMessage(_ content: String, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier = .primary) async throws -> String {
+        try await base.sendMessage(content, responseFormat: responseFormat, generationParameters: generationParameters, modelTier: modelTier)
     }
     func generateTags(for text: String) async throws -> [String] { try await base.generateTags(for: text) }
     func generateTitle(for messages: [Message]) async throws -> String { try await base.generateTitle(for: messages) }
@@ -271,7 +271,7 @@ public protocol LLMUtilityClient: Sendable {
         _ content: String,
         responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?,
-        useUtilityModel: Bool
+        modelTier: ModelTier
     ) async throws -> String
 
     func generateTags(for text: String) async throws -> [String]
@@ -279,6 +279,23 @@ public protocol LLMUtilityClient: Sendable {
     func evaluateRecallPerformance(transcript: String, recalledMemories: [Memory]) async throws
         -> [String: Double]
     func fetchAvailableModels() async throws -> [String]?
+}
+
+public extension LLMUtilityClient {
+    /// Sends a one-shot message using the given model tier, defaulting to the primary model.
+    func sendMessage(
+        _ content: String,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        modelTier: ModelTier = .primary
+    ) async throws -> String {
+        try await sendMessage(
+            content,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            modelTier: modelTier
+        )
+    }
 }
 
 public extension LLMStreamClient {
