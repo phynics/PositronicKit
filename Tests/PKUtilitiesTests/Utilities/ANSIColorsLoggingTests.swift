@@ -2,6 +2,7 @@ import Foundation
 import Logging
 @testable import PKShared
 import PKUtilities
+import Synchronization
 import Testing
 
 /// Regression coverage for PKRR-024: ANSI escape sequences and presentation emoji must never
@@ -14,20 +15,19 @@ struct ANSIColorsLoggingTests {
 
     // MARK: - Capture harness
 
-    private final class CapturingLogSink: @unchecked Sendable {
-        private let lock = NSLock()
-        private var entries: [(level: Logger.Level, message: String, metadata: Logger.Metadata)] = []
+    private final class CapturingLogSink: Sendable {
+        private struct State: Sendable {
+            var entries: [(level: Logger.Level, message: String, metadata: Logger.Metadata)] = []
+        }
+
+        private let state = Mutex(State())
 
         func append(level: Logger.Level, message: String, metadata: Logger.Metadata) {
-            lock.lock()
-            defer { lock.unlock() }
-            entries.append((level, message, metadata))
+            state.withLock { $0.entries.append((level, message, metadata)) }
         }
 
         func all() -> [(level: Logger.Level, message: String, metadata: Logger.Metadata)] {
-            lock.lock()
-            defer { lock.unlock() }
-            return entries
+            state.withLock { $0.entries }
         }
     }
 

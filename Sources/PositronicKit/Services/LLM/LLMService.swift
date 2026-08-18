@@ -88,16 +88,6 @@ public actor LLMService: LanguageModel, HealthCheckable {
 
     private var preparationState: PreparationState
 
-    /// Internal test hook: whether a configuration load is pending or in flight.
-    var hasPreparationTask: Bool {
-        switch preparationState {
-        case .pending, .loading:
-            return true
-        case .ready:
-            return false
-        }
-    }
-
     /// Applies a configuration through the resolver, clearing clients when it is invalid.
     ///
     /// This is the only path that transitions runtime state; no load, import, restore,

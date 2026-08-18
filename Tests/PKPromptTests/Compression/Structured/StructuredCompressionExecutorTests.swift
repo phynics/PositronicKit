@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 import Testing
 @testable import PKPrompt
 
@@ -89,20 +90,15 @@ struct StructuredCompressionExecutorTests {
     }
 }
 
-private final class LockedCounter: @unchecked Sendable {
-    private let lock = NSLock()
-    private var count = 0
+private final class LockedCounter: Sendable {
+    private let count = Mutex<Int>(0)
 
     func increment() {
-        lock.lock()
-        defer { lock.unlock() }
-        count += 1
+        count.withLock { $0 += 1 }
     }
 
     var value: Int {
-        lock.lock()
-        defer { lock.unlock() }
-        return count
+        count.withLock { $0 }
     }
 }
 

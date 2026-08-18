@@ -4,6 +4,7 @@ import PKShared
 import PKUtilities
 import PKTestSupport
 @testable import PositronicKit
+import Synchronization
 import Testing
 
 // MARK: - Helpers
@@ -432,20 +433,15 @@ final class ToolCallExtractionStageBehavior {
 
 // MARK: - Metadata recording LogHandler (YAK-42)
 
-private final class MetadataRecorder: @unchecked Sendable {
-    private let lock = NSLock()
-    private var records: [[String: String]] = []
+private final class MetadataRecorder: Sendable {
+    private let records = Mutex<[[String: String]]>([])
 
     func append(_ metadata: [String: String]) {
-        lock.lock()
-        defer { lock.unlock() }
-        records.append(metadata)
+        records.withLock { $0.append(metadata) }
     }
 
     func snapshot() -> [[String: String]] {
-        lock.lock()
-        defer { lock.unlock() }
-        return records
+        records.withLock { $0 }
     }
 }
 

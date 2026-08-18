@@ -5,6 +5,7 @@ import PKTestSupport
 import PKUtilities
 import PositronicKit
 import struct PositronicKit.PromptBuildContext
+import Synchronization
 import Testing
 
 @Suite("Extension stories") struct ExtensionStoriesTests {
@@ -220,21 +221,16 @@ private actor AcceptanceWorkspace: Workspace {
     }
 }
 
-private final class AcceptanceWorkspaceCreator: WorkspaceFactory, @unchecked Sendable {
-    private let lock = NSLock()
-    private var created: [UUID] = []
+private final class AcceptanceWorkspaceCreator: WorkspaceFactory, Sendable {
+    private let created = Mutex<[UUID]>([])
 
     func create(from reference: WorkspaceReference) throws -> any Workspace {
-        lock.lock()
-        created.append(reference.id)
-        lock.unlock()
+        created.withLock { $0.append(reference.id) }
         return AcceptanceWorkspace(reference: reference)
     }
 
     func createdWorkspaceIDs() -> [UUID] {
-        lock.lock()
-        defer { lock.unlock() }
-        return created
+        created.withLock { $0 }
     }
 }
 

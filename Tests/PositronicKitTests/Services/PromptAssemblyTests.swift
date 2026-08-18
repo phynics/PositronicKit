@@ -4,22 +4,18 @@ import PKPrompt
 import PKShared
 import PKUtilities
 @testable import PositronicKit
+import Synchronization
 import Testing
 
-private final class PromptAssemblyLogSink: @unchecked Sendable {
-    private let lock = NSLock()
-    private var entries: [(Logger.Level, String)] = []
+private final class PromptAssemblyLogSink: Sendable {
+    private let entries = Mutex<[(Logger.Level, String)]>([])
 
     func append(_ level: Logger.Level, _ message: String) {
-        lock.lock()
-        defer { lock.unlock() }
-        entries.append((level, message))
+        entries.withLock { $0.append((level, message)) }
     }
 
     func messages() -> [String] {
-        lock.lock()
-        defer { lock.unlock() }
-        return entries.map(\.1)
+        entries.withLock { $0.map(\.1) }
     }
 }
 

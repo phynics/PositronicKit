@@ -3,22 +3,22 @@ import Logging
 @testable import PKOpenRouterProvider
 import PKShared
 import PKUtilities
+import Synchronization
 import Testing
 
-private final class CapturingLogSink: @unchecked Sendable {
-    private let lock = NSLock()
-    private var messages: [String] = []
+private final class CapturingLogSink: Sendable {
+    private struct State: Sendable {
+        var messages: [String] = []
+    }
+
+    private let state = Mutex(State())
 
     func append(_ message: String) {
-        lock.lock()
-        defer { lock.unlock() }
-        messages.append(message)
+        state.withLock { $0.messages.append(message) }
     }
 
     func all() -> [String] {
-        lock.lock()
-        defer { lock.unlock() }
-        return messages
+        state.withLock { $0.messages }
     }
 }
 
