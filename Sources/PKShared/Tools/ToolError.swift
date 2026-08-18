@@ -16,7 +16,7 @@ import Foundation
 ///   wall-clock timeout; the tool may still be executing out-of-band and retrying may duplicate
 ///   side effects (PKRR-004).
 /// - **requestOriginUnavailable**: The workspace's request origin is not reachable.
-/// - **attachedToolsDisallowedOnPrivateTimeline**: Private timelines reject externally hosted tools.
+/// - **attachedToolsDisallowedOnPrivateThread**: Private threads reject externally hosted tools.
 /// - **permissionDenied**: A permissioned tool was not approved by the runtime approval gate.
 /// - **unmatchedToolOutput**: An externally submitted tool output does not match a pending call.
 /// - **invalidWorkspaceID**: The `workspaceID` argument was present but not a valid UUID string
@@ -32,8 +32,6 @@ public enum ToolError: PKError, Sendable, Equatable {
     case workspaceNotFound(UUID)
     case requestOriginUnavailable
     case attachedToolsDisallowedOnPrivateThread
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    case attachedToolsDisallowedOnPrivateTimeline
     case permissionDenied(String)
     case unmatchedToolOutput(String)
     case invalidWorkspaceID(String)
@@ -53,19 +51,19 @@ public enum ToolError: PKError, Sendable, Equatable {
         case .toolNotFound: return 204
         case .workspaceNotFound: return 205
         case .requestOriginUnavailable: return 206
-        case .attachedToolsDisallowedOnPrivateThread, .attachedToolsDisallowedOnPrivateTimeline: return 207
+        case .attachedToolsDisallowedOnPrivateThread: return 207
         case .permissionDenied: return 210
         case .unmatchedToolOutput: return 211
         case .invalidWorkspaceID: return 213
         }
     }
 
-    /// `permissionDenied` and `attachedToolsDisallowedOnPrivateTimeline` represent
+    /// `permissionDenied` and `attachedToolsDisallowedOnPrivateThread` represent
     /// blocked/approval/disallowed conditions — deliberate permission or access gates
     /// refusing execution, not model or provider failures.
     public var isBlocked: Bool {
         switch self {
-        case .permissionDenied, .attachedToolsDisallowedOnPrivateThread, .attachedToolsDisallowedOnPrivateTimeline:
+        case .permissionDenied, .attachedToolsDisallowedOnPrivateThread:
             return true
         default:
             return false
@@ -92,8 +90,8 @@ public enum ToolError: PKError, Sendable, Equatable {
             return "The target workspace for this tool could not be found."
         case .requestOriginUnavailable:
             return "The request origin associated with this tool is currently unavailable."
-        case .attachedToolsDisallowedOnPrivateThread, .attachedToolsDisallowedOnPrivateTimeline:
-            return "Private agent timelines do not support additional workspace tools."
+        case .attachedToolsDisallowedOnPrivateThread:
+            return "Private agent threads do not support additional workspace tools."
         case let .permissionDenied(name):
             return "The tool '\(name)' requires permission and was not approved."
         case let .unmatchedToolOutput(toolCallId):
@@ -130,8 +128,8 @@ public enum ToolError: PKError, Sendable, Equatable {
             return "Verify that workspace \(id) exists and is currently attached."
         case .requestOriginUnavailable:
             return "Ensure the request origin for this workspace is reachable and registered with the runtime."
-        case .attachedToolsDisallowedOnPrivateThread, .attachedToolsDisallowedOnPrivateTimeline:
-            return "Only runtime-managed tools are permitted on private timelines. " +
+        case .attachedToolsDisallowedOnPrivateThread:
+            return "Only runtime-managed tools are permitted on private threads. " +
                 "Remove additional workspace tools from the agent's configuration."
         case let .permissionDenied(name):
             return "Approve the '\(name)' tool when prompted, or inject an approval gate that " +

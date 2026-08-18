@@ -83,11 +83,11 @@ struct PositronicKitErrorContractTests {
             #expect(!error.userFriendlyMessage.contains(id.uuidString))
         }
 
-        @Test("hasAttachedTimelines surfaces the count in both descriptions")
+        @Test("hasAttachedThreads surfaces the count in both descriptions")
         func hasAttachedThreadsCount() {
             let error = AgentInstanceError.hasAttachedThreads(count: 5)
-            #expect(error.errorDescription?.contains("5 timeline(s)") == true)
-            #expect(error.userFriendlyMessage.contains("5 timeline(s)"))
+            #expect(error.errorDescription?.contains("5 thread(s)") == true)
+            #expect(error.userFriendlyMessage.contains("5 thread(s)"))
         }
 
         @Test("nameTooShort includes the offending name in the technical description")

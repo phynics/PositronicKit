@@ -70,7 +70,7 @@ public struct UnconfiguredLLMService: LanguageModel {
         _: String,
         responseFormat _: LLMResponseFormat?,
         generationParameters _: GenerationParameters?,
-        useUtilityModel _: Bool
+        modelTier _: ModelTier = .primary
     ) async throws -> String {
         throw error
     }
@@ -88,14 +88,6 @@ public struct UnconfiguredLLMService: LanguageModel {
         modelTier _: ModelTier
     ) async -> AsyncThrowingStream<LLMStreamChunk, any Error> {
         failingStream()
-    }
-
-    public func getClient() async -> (any LLMClientProtocol)? {
-        nil
-    }
-
-    public func getUtilityClient() async -> (any LLMClientProtocol)? {
-        nil
     }
 
     public func fetchAvailableModels() async throws -> [String]? {

@@ -244,9 +244,12 @@ struct StructuredOutputSyntheticToolStreamTests {
         let mockClient = MockLLMClient()
         mockClient.nextToolCalls = [[MockToolCall(id: "structured-call", name: syntheticToolName, arguments: #"{"tags":["swift"]}"#)]]
 
-        let service = LLMService(storage: MockConfigurationService(), client: mockClient)
-        try await service.updateConfiguration(.fixture(activeProvider: .anthropic))
-        await service.setClients(main: mockClient, utility: nil, fast: nil)
+        mockClient.structuredOutputAdapter = DefaultStructuredOutputAdapter()
+        let service = LLMService(
+            storage: MockConfigurationService(),
+            clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
+        )
+        try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .anthropic))
 
         let result = try await service.sendStructured(
             "Extract tags",
@@ -273,9 +276,12 @@ struct StructuredOutputSyntheticToolStreamTests {
             ]),
         ]]
 
-        let service = LLMService(storage: MockConfigurationService(), client: mockClient)
-        try await service.updateConfiguration(.fixture(activeProvider: .anthropic))
-        await service.setClients(main: mockClient, utility: nil, fast: nil)
+        mockClient.structuredOutputAdapter = DefaultStructuredOutputAdapter()
+        let service = LLMService(
+            storage: MockConfigurationService(),
+            clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
+        )
+        try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .anthropic))
 
         let result = try await service.sendStructured(
             "Extract tags",

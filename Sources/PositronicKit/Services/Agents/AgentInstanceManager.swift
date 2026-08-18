@@ -31,28 +31,6 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
             self.workspaceStore = workspaceStore
         }
 
-        /// Deprecated v3 store spelling. The legacy persistence protocol is adapted at the
-        /// boundary so the manager remains thread-first internally.
-        @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-        public init(
-            instanceStore: any AgentInstanceStoreProtocol,
-            timelineStore: any TimelinePersistenceProtocol,
-            messageStore: any ThreadMessageStoreProtocol,
-            workspaceStore: any WorkspaceStore
-        ) {
-            self.init(
-                instanceStore: instanceStore,
-                threadStore: LegacyTimelinePersistenceAdapter(timelineStore),
-                messageStore: messageStore,
-                workspaceStore: workspaceStore
-            )
-        }
-
-        /// Deprecated v3 store member.
-        @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-        public var timelineStore: any TimelinePersistenceProtocol {
-            ThreadPersistenceCompatibilityAdapter(threadStore)
-        }
     }
 
     private let instanceStore: any AgentInstanceStoreProtocol
@@ -78,15 +56,6 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
         self.messageStore = stores.messageStore
         self.workspaceStore = stores.workspaceStore
         self.threadManager = threadManager
-    }
-
-    @available(*, deprecated, renamed: "init(repository:stores:threadManager:)", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public init(
-        repository: any WorkspaceCatalog,
-        stores: Stores,
-        timelineManager: TimelineManager?
-    ) {
-        self.init(repository: repository, stores: stores, threadManager: timelineManager)
     }
 
     public init(repository: any WorkspaceCatalog) {
@@ -237,13 +206,6 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
         logger.info("Agent '\(agent.name)' attached to thread '\(thread.title)'")
     }
 
-    /// Attaches an agent instance using the legacy identifier spellings.
-    @_disfavoredOverload
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public func attach(agentId: UUID, to timelineId: UUID) async throws {
-        try await attach(agentID: agentId, to: timelineId)
-    }
-
     /// Detaches an agent instance from a thread.
     /// No-op if the agent is not attached to that thread.
     public func detach(agentID: UUID, from threadID: UUID) async throws {
@@ -280,20 +242,12 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
         }
     }
 
-    /// Detaches an agent instance using the legacy identifier spellings.
-    @_disfavoredOverload
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public func detach(agentId: UUID, from timelineId: UUID) async throws {
-        try await detach(agentID: agentId, from: timelineId)
-    }
-
     // MARK: - Queries
 
     public func instance(id: UUID) async throws -> AgentInstance? {
         try await instanceStore.fetchAgentInstance(id: id)
     }
 
-    @available(*, deprecated, renamed: "instance(id:)")
     public func getInstance(id: UUID) async throws -> AgentInstance? {
         try await instance(id: id)
     }
@@ -306,15 +260,6 @@ public actor AgentInstanceManager: AgentInstanceManagerProtocol {
         try await fetchAttachedThreads(for: agentID)
     }
 
-    @available(*, deprecated, renamed: "threads(attachedTo:)", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public func timelines(attachedTo agentID: UUID) async throws -> [Timeline] {
-        try await threads(attachedTo: agentID)
-    }
-
-    @available(*, deprecated, renamed: "threads(attachedTo:)", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public func getTimelines(attachedTo agentId: UUID) async throws -> [Timeline] {
-        try await threads(attachedTo: agentId)
-    }
 
     public func getThreads(attachedTo agentID: UUID) async throws -> [Thread] {
         try await threads(attachedTo: agentID)

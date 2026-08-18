@@ -15,10 +15,6 @@ public enum ToolReference: Codable, Sendable, Hashable {
         }
     }
 
-    /// The tool identifier using the legacy 3.x spelling.
-    @available(*, deprecated, renamed: "toolID")
-    public var toolId: String { toolID }
-
     /// The tool name for display
     public var displayName: String {
         switch self {

@@ -38,28 +38,6 @@ public struct TurnDiagnostic: Codable, Sendable, Equatable {
         self.message = message
     }
 
-    /// Creates a diagnostic using the legacy identifier spelling.
-    @available(*, deprecated, message: "Use init(dependency:operation:entityID:errorIdentity:message:).")
-    public init(
-        dependency: TurnDependency,
-        operation: String,
-        entityId: String,
-        errorIdentity: ChatEvent.ErrorIdentity?,
-        message: String
-    ) {
-        self.init(
-            dependency: dependency,
-            operation: operation,
-            entityID: entityId,
-            errorIdentity: errorIdentity,
-            message: message
-        )
-    }
-
-    /// The entity identifier using the legacy 3.x spelling.
-    @available(*, deprecated, renamed: "entityID")
-    public var entityId: String { entityID }
-
     private enum CodingKeys: String, CodingKey {
         case dependency, operation
         case entityID = "entityId"

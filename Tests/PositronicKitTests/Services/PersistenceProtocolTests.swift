@@ -14,7 +14,7 @@ struct PersistenceProtocolTests {
 
         // Verify it conforms to all required domains
         let _: MemoryStoreProtocol = mock
-        let _: MessageStoreProtocol = mock
+        let _: ThreadMessageStoreProtocol = mock
         let _: ThreadPersistenceProtocol = mock
         let _: AgentTemplateStoreProtocol = mock
         let _: WorkspaceStore = mock
@@ -25,7 +25,7 @@ struct PersistenceProtocolTests {
 /// Minimal mock to verify protocol definitions exist
 final class MockPersistenceStore:
     MemoryStoreProtocol,
-    MessageStoreProtocol,
+    ThreadMessageStoreProtocol,
     ThreadPersistenceProtocol,
     AgentTemplateStoreProtocol,
     WorkspaceStore,

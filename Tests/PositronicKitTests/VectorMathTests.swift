@@ -84,15 +84,14 @@ struct VectorMathTests {
         #expect(abs(portable - dispatched) < 0.000_000_1)
     }
 
-    @Test("Labeled cosine similarity preserves the positional API result")
-    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
-    func labeledCosineSimilarityMatchesCompatibilityOverload() {
+    @Test("Labeled cosine similarity matches the backend result")
+    func labeledCosineSimilarityMatchesBackend() {
         let vectorA = [1.0, 2.0, 3.0]
         let vectorB = [3.0, 2.0, 1.0]
 
         #expect(
             VectorMath.cosineSimilarity(between: vectorA, and: vectorB)
-                == VectorMath.cosineSimilarity(vectorA, vectorB)
+                == PortableVectorMath.cosineSimilarity(vectorA, vectorB)
         )
     }
 

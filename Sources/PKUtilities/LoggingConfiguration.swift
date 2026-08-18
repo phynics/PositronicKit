@@ -73,9 +73,4 @@ public enum LoggingMetadata {
         ]
     }
 
-    /// Creates structured logging metadata for an error and its correlation identifier.
-    @available(*, deprecated, renamed: "makeMetadata(for:correlationID:)")
-    public static func forError(_ error: Error, correlationID: String) -> Logger.Metadata {
-        makeMetadata(for: error, correlationID: correlationID)
-    }
 }

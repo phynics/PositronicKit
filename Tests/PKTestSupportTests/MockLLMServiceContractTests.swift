@@ -139,14 +139,14 @@ struct MockLLMServiceContractTests {
             "configured",
             responseFormat: .jsonObject,
             generationParameters: parameters,
-            useUtilityModel: true
+            modelTier: .utility
         )
 
         #expect(service.sendMessageCaptureHistory.count == 2)
         #expect(service.lastSendMessageCapture?.content == "configured")
         #expect(service.lastSendMessageCapture?.responseFormat == .jsonObject)
         #expect(service.lastSendMessageCapture?.generationParameters == parameters)
-        #expect(service.lastSendMessageCapture?.useUtilityModel == true)
+        #expect(service.lastSendMessageCapture?.modelTier == .utility)
     }
 
     @Test("concurrent title generation loses no captures")
@@ -157,7 +157,7 @@ struct MockLLMServiceContractTests {
         try await withThrowingTaskGroup(of: Void.self) { group in
             for content in expected {
                 group.addTask {
-                    _ = try await service.generateTitle(for: [.fixture(content: content)])
+                    _ = await service.bestEffortTitle(for: [.fixture(content: content)])
                 }
             }
             try await group.waitForAll()

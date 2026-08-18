@@ -28,35 +28,6 @@ public final class AgenticRuntime: Sendable {
         agentInstanceManager = kit.agentInstanceManager
     }
 
-    /// Deprecated v3 initializer retained for source compatibility.
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    convenience init(
-        kit: PositronicKit,
-        timelineID: UUID,
-        agentInstanceID: UUID
-    ) {
-        self.init(kit: kit, threadID: timelineID, agentInstanceID: agentInstanceID)
-    }
-
-    /// Deprecated v3 spelling for the thread identifier.
-    @available(*, deprecated, renamed: "threadID", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public var timelineID: UUID { threadID }
-
-    /// Deprecated v3 spelling for the thread identifier.
-    @available(*, deprecated, renamed: "threadID", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public var timelineId: UUID { threadID }
-
-    /// The agent-instance identifier using the legacy 3.x spelling.
-    @available(*, deprecated, renamed: "agentInstanceID", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public var agentInstanceId: UUID {
-        guard let agentInstanceID else {
-            preconditionFailure(
-                "agentInstanceId is unavailable when AgenticRuntime was created without an agent instance."
-            )
-        }
-        return agentInstanceID
-    }
-
     /// Runs one agent turn through the facade's existing tool loop.
     ///
     /// The agent must already be attached to `threadID`; this handle does not establish the

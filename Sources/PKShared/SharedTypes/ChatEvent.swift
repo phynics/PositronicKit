@@ -148,16 +148,6 @@ public enum ChatEvent: Sendable, Codable {
         /// Sidecar directive field update (piggy-backed structured output)
         case sidecar(delta: SidecarDelta)
 
-        /// Compatibility constructor using the legacy tool-call identifier spelling.
-        @_disfavoredOverload
-        @available(*, deprecated, message: "Use toolExecution(toolCallID:status:).")
-        public static func toolExecution(
-            toolCallId: String,
-            status: ToolExecutionStatus
-        ) -> DeltaEvent {
-            .toolExecution(toolCallID: toolCallId, status: status)
-        }
-
         private enum CodingKeys: String, CodingKey {
             case reasoning, generation, audio, toolCall, toolExecution, sidecar
         }
@@ -277,7 +267,6 @@ public enum ChatEvent: Sendable, Codable {
         ///   terminal completion via `.completion(.generationCompleted)` instead. Retained
         ///   only for backward compatibility of `Codable` round-tripping; new consumers
         ///   should switch on `.completion(.generationCompleted)` (PKRR-011).
-        @available(*, deprecated, message: "Never emitted in production. Use .completion(.generationCompleted) for terminal completion metadata.")
         case generationCompleted(message: Message, metadata: APIResponseMetadata)
     }
 
@@ -295,17 +284,6 @@ public enum ChatEvent: Sendable, Codable {
         case error(message: String, identity: ErrorIdentity?)
         /// Generation was explicitly cancelled
         case generationCancelled
-
-        /// Compatibility constructor using the legacy tool-call identifier spelling.
-        @_disfavoredOverload
-        @available(*, deprecated, message: "Use toolCallError(toolCallID:name:error:).")
-        public static func toolCallError(
-            toolCallId: String,
-            name: String,
-            error: String
-        ) -> ErrorEvent {
-            .toolCallError(toolCallID: toolCallId, name: name, error: error)
-        }
 
         private enum CodingKeys: String, CodingKey {
             case toolCallError, error, generationCancelled
@@ -412,16 +390,6 @@ public enum ChatEvent: Sendable, Codable {
         ///   `.maxTurnsReached`, `.deferredForExternalTool`) or by throwing. Retained only for
         ///   backward compatibility of `Codable` round-tripping (PKRR-011).
         case streamCompleted
-
-        /// Compatibility constructor using the legacy tool-call identifier spelling.
-        @_disfavoredOverload
-        @available(*, deprecated, message: "Use toolExecution(toolCallID:status:).")
-        public static func toolExecution(
-            toolCallId: String,
-            status: ToolExecutionStatus
-        ) -> CompletionEvent {
-            .toolExecution(toolCallID: toolCallId, status: status)
-        }
 
         private enum CodingKeys: String, CodingKey {
             case generationCompleted, completedEmpty, toolExecution
@@ -590,13 +558,6 @@ public extension ChatEvent {
         .delta(.toolExecution(toolCallID: toolCallID, status: status))
     }
 
-    /// Compatibility factory using the legacy tool-call identifier spelling.
-    @_disfavoredOverload
-    @available(*, deprecated, message: "Use toolProgress(toolCallID:status:).")
-    static func toolProgress(toolCallId: String, status: ToolExecutionStatus) -> ChatEvent {
-        toolProgress(toolCallID: toolCallId, status: status)
-    }
-
     static func sidecar(_ delta: SidecarDelta) -> ChatEvent {
         .delta(.sidecar(delta: delta))
     }
@@ -609,13 +570,6 @@ public extension ChatEvent {
     /// Error shortcuts
     static func toolCallError(toolCallID: String, name: String, error: String) -> ChatEvent {
         .error(.toolCallError(toolCallID: toolCallID, name: name, error: error))
-    }
-
-    /// Compatibility factory using the legacy tool-call identifier spelling.
-    @_disfavoredOverload
-    @available(*, deprecated, message: "Use toolCallError(toolCallID:name:error:).")
-    static func toolCallError(toolCallId: String, name: String, error: String) -> ChatEvent {
-        toolCallError(toolCallID: toolCallId, name: name, error: error)
     }
 
     static func error(_ err: Error) -> ChatEvent {
@@ -644,13 +598,6 @@ public extension ChatEvent {
 
     static func toolCompleted(toolCallID: String, status: ToolExecutionStatus) -> ChatEvent {
         .completion(.toolExecution(toolCallID: toolCallID, status: status))
-    }
-
-    /// Compatibility factory using the legacy tool-call identifier spelling.
-    @_disfavoredOverload
-    @available(*, deprecated, message: "Use toolCompleted(toolCallID:status:).")
-    static func toolCompleted(toolCallId: String, status: ToolExecutionStatus) -> ChatEvent {
-        toolCompleted(toolCallID: toolCallId, status: status)
     }
 
     static func streamCompleted() -> ChatEvent {

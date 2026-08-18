@@ -201,43 +201,14 @@ public struct LLMPromptRequest: Sendable {
 /// Hosts inject one provider-selected value at their composition root.
 public protocol LanguageModel: LLMStreamClient, LLMConfigStore, LLMUtilityClient {}
 
-struct AnyLanguageModel: LanguageModel {
-    let base: any LLMStreamClient & LLMConfigStore & LLMUtilityClient
-
-    var isConfigured: Bool { get async { await base.isConfigured } }
-    var configuration: LLMConfiguration { get async { await base.configuration } }
-    func chatStreamWithContext(_ request: LLMChatRequest) async throws -> LLMStreamResult {
-        try await base.chatStreamWithContext(request)
-    }
-    func chatStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
-        await base.chatStream(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, modelTier: modelTier)
-    }
-    func chatStream(messages: [LLMMessage], tools: [LLMToolDefinition]?, toolChoice: LLMToolChoice?, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, modelTier: ModelTier, responseModalities: Set<ResponseModality>, audioOutput: AudioOutputOptions?) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
-        await base.chatStream(messages: messages, tools: tools, toolChoice: toolChoice, responseFormat: responseFormat, generationParameters: generationParameters, modelTier: modelTier, responseModalities: responseModalities, audioOutput: audioOutput)
-    }
-    func loadConfiguration() async { await base.loadConfiguration() }
-    func updateConfiguration(_ config: LLMConfiguration) async throws { try await base.updateConfiguration(config) }
-    func clearConfiguration() async { await base.clearConfiguration() }
-    func restoreFromBackup() async throws { try await base.restoreFromBackup() }
-    func exportConfiguration() async throws -> Data { try await base.exportConfiguration() }
-    func importConfiguration(from data: Data) async throws { try await base.importConfiguration(from: data) }
-    func sendMessage(_ content: String) async throws -> String { try await base.sendMessage(content) }
-    func sendMessage(_ content: String, responseFormat: LLMResponseFormat?, generationParameters: GenerationParameters?, useUtilityModel: Bool) async throws -> String {
-        try await base.sendMessage(content, responseFormat: responseFormat, generationParameters: generationParameters, useUtilityModel: useUtilityModel)
-    }
-    func generateTags(for text: String) async throws -> [String] { try await base.generateTags(for: text) }
-    func generateTitle(for messages: [Message]) async throws -> String { try await base.generateTitle(for: messages) }
-    func evaluateRecallPerformance(transcript: String, recalledMemories: [Memory]) async throws -> [String: Double] {
-        try await base.evaluateRecallPerformance(transcript: transcript, recalledMemories: recalledMemories)
-    }
-    func fetchAvailableModels() async throws -> [String]? { try await base.fetchAvailableModels() }
-}
-
 /// Streaming chat seam: a consumer that drives LLM generation by streaming chat
 /// completions. This is the narrowest seam the runtime turn loop needs.
 public protocol LLMStreamClient: Sendable {
     var isConfigured: Bool { get async }
     var configuration: LLMConfiguration { get async }
+
+    /// Returns the structured-output preparation behavior for the selected model tier.
+    func structuredOutputAdapter(for modelTier: ModelTier) async -> any StructuredOutputAdapter
 
     func chatStreamWithContext(_ request: LLMChatRequest) async throws -> LLMStreamResult
 
@@ -285,26 +256,53 @@ public protocol LLMConfigStore: Sendable {
     func importConfiguration(from data: Data) async throws
 }
 
-/// Utility LLM task seam: one-shot message sends, tag/title generation, recall
-/// evaluation, and model listing. These are non-streaming helper tasks that some hosts
-/// drive independently of the chat turn loop.
+/// Utility LLM task seam: one-shot message sends, best-effort tag/title generation, and
+/// model listing. These are non-streaming helper tasks that some hosts drive independently
+/// of the chat turn loop.
+///
+/// `bestEffortTags(for:)` and `bestEffortTitle(for:)` are explicitly best-effort: they never
+/// throw, log failures, and return documented defaults. Hosts that own their own fallback
+/// policy should use the strict ``LLMUtilityGenerator`` instead.
 public protocol LLMUtilityClient: Sendable {
     func sendMessage(_ content: String) async throws -> String
     func sendMessage(
         _ content: String,
         responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?,
-        useUtilityModel: Bool
+        modelTier: ModelTier
     ) async throws -> String
 
-    func generateTags(for text: String) async throws -> [String]
-    func generateTitle(for messages: [Message]) async throws -> String
-    func evaluateRecallPerformance(transcript: String, recalledMemories: [Memory]) async throws
-        -> [String: Double]
+    /// Generates tags/keywords for the given text, returning an empty array on failure.
+    func bestEffortTags(for text: String) async -> [String]
+
+    /// Generates a concise conversation title, returning `"New Conversation"` on failure.
+    func bestEffortTitle(for messages: [Message]) async -> String
+
     func fetchAvailableModels() async throws -> [String]?
 }
 
+public extension LLMUtilityClient {
+    /// Sends a one-shot message using the given model tier, defaulting to the primary model.
+    func sendMessage(
+        _ content: String,
+        responseFormat: LLMResponseFormat?,
+        generationParameters: GenerationParameters?,
+        modelTier: ModelTier = .primary
+    ) async throws -> String {
+        try await sendMessage(
+            content,
+            responseFormat: responseFormat,
+            generationParameters: generationParameters,
+            modelTier: modelTier
+        )
+    }
+}
+
 public extension LLMStreamClient {
+    func structuredOutputAdapter(for modelTier: ModelTier) async -> any StructuredOutputAdapter {
+        DefaultStructuredOutputAdapter()
+    }
+
     func chatStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,

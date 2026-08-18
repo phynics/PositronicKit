@@ -79,25 +79,30 @@ Tests and host code can inject doubles directly through the facade initializers;
 
 Use `RuntimeToolPolicy` to disable any category or start with no runtime tools.
 
-### Provider Registration
+### Provider Factories
 
-Concrete providers register factories against the shared provider registry. Import the provider module you want and register it before constructing an `LLMService` from configuration.
-
-- Registration is required when you use `LLMService(configuration: ...)` directly.
-- Repeated registration is safe; provider modules overwrite the same registry slot.
-- The provider module owns registration for its provider family. In particular, `PKOpenAIProvider.register()` registers both `.openAI` and `.openAICompatible` factories.
+Provider modules expose compile-time factories conforming to `LLMProviderFactory`. There is no
+provider registry or runtime discovery; import and select the concrete provider your application
+uses, then pass the resulting client to `LLMService`. Structured-output behavior is carried by the
+client; no provider or adapter registration is needed.
 
 ```swift
 import PositronicKit
+import PKShared
 import PKOpenAIProvider
 
-PKOpenAIProvider.register()
+var providerConfig = ProviderConfiguration.makeDefault(for: .openAI)
+providerConfig.apiKey = ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? ""
+let configuration = LLMConfiguration(
+    activeProvider: .openAI,
+    providers: [.openAI: providerConfig]
+)
 
 let core = PositronicKit(
-    llmService: LLMService(configuration: .init(
-        apiKey: ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? "",
-        provider: .openAI
-    ))
+    languageModel: LLMService(
+        storage: InMemoryConfigurationService(config: configuration),
+        client: PKOpenAIProvider.makeClient(configuration: configuration)
+    )
 )
 ```
 

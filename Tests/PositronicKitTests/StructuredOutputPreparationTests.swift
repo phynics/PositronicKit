@@ -13,24 +13,11 @@ import PKTestSupport
 @testable import PKOpenRouterProvider
 @testable import PositronicKit
 import OpenAI
-import Synchronization
 import Testing
 
 @Suite("Structured output preparation order")
 @MainActor
 struct StructuredOutputPreparationTests {
-    private static let registeredAdapters: Void = {
-        StructuredOutputAdapterRegistry.register(NativeJSONSchemaStructuredOutputAdapter(), for: .openAI)
-        StructuredOutputAdapterRegistry.register(NativeJSONSchemaStructuredOutputAdapter(), for: .openRouter)
-        StructuredOutputAdapterRegistry.register(PromptAugmentedJSONSchemaAdapter(), for: .ollama)
-        StructuredOutputAdapterRegistry.register(DefaultStructuredOutputAdapter(), for: .anthropic)
-        StructuredOutputAdapterRegistry.register(PromptAugmentedJSONSchemaAdapter(), for: .openAICompatible)
-    }()
-
-    init() {
-        Self.registeredAdapters
-    }
-
     @Test("Unified preparation matches provider behavior across output modes")
     func unifiedPreparationMatchesProviderBehavior() throws {
         let baseMessages = [LLMMessage(role: .user, content: "Extract tags")]
@@ -42,7 +29,7 @@ struct StructuredOutputPreparationTests {
                 let prepared = StructuredOutputExecution.prepareRequest(
                     messages: baseMessages,
                     tools: [baseTool],
-                    provider: provider,
+                    adapter: Self.adapter(for: provider),
                     output: output
                 )
 
@@ -276,6 +263,17 @@ struct StructuredOutputPreparationTests {
         let request = try #require(await transport.recordedRequests().first)
         let body = try #require(request.httpBody.map { String(decoding: $0, as: UTF8.self) })
         assertRootKeyOrder(body, source: "Synthetic tool")
+    }
+
+    private static func adapter(for provider: LLMProvider) -> any StructuredOutputAdapter {
+        switch provider {
+        case .openAI, .openRouter:
+            NativeJSONSchemaStructuredOutputAdapter()
+        case .ollama, .openAICompatible:
+            PromptAugmentedJSONSchemaAdapter()
+        case .anthropic:
+            DefaultStructuredOutputAdapter()
+        }
     }
 }
 

@@ -244,8 +244,6 @@ struct AgentInstanceManagerTests {
         }
         if case let .hasAttachedThreads(count)? = thrown {
             #expect(count == 1)
-        } else if case let .hasAttachedTimelines(count)? = thrown {
-            #expect(count == 1)
         } else {
             Issue.record("Expected deletion to report an attached thread")
         }
@@ -496,7 +494,7 @@ private struct InjectedAgentCreationFailure: Error, Sendable {
 /// stores that report an error after a durable write has occurred. The catalog must compensate
 /// the workspace row itself before the manager ever receives a workspace reference.
 private actor AgentCreationFaultStore: WorkspaceStore, ThreadPersistenceProtocol,
-    MessageStoreProtocol, AgentInstanceStoreProtocol
+    ThreadMessageStoreProtocol, AgentInstanceStoreProtocol
 {
     private let failingAt: AgentCreationFailureStage
     private var workspaces: [UUID: WorkspaceReference] = [:]

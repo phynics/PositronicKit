@@ -31,30 +31,6 @@ public struct StructuredCompressionNodeMetric: Codable, Sendable, Equatable {
         self.cacheHit = cacheHit
     }
 
-    /// Creates a node metric using the legacy identifier spelling.
-    @available(*, deprecated, message: "Use init(nodeID:path:action:beforeTokens:afterTokens:cacheHit:).")
-    public init(
-        nodeId: String,
-        path: [String],
-        action: String,
-        beforeTokens: Int,
-        afterTokens: Int,
-        cacheHit: Bool
-    ) {
-        self.init(
-            nodeID: nodeId,
-            path: path,
-            action: action,
-            beforeTokens: beforeTokens,
-            afterTokens: afterTokens,
-            cacheHit: cacheHit
-        )
-    }
-
-    /// The node identifier using the legacy 3.x spelling.
-    @available(*, deprecated, renamed: "nodeID")
-    public var nodeId: String { nodeID }
-
     private enum CodingKeys: String, CodingKey {
         case nodeID = "nodeId"
         case path, action, beforeTokens, afterTokens, cacheHit

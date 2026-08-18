@@ -18,13 +18,13 @@ public extension LLMStreamClient {
             generationParameters: request.generationParameters
         )
         let result = try await PromptAssembler.prepare(promptRequest)
-        let provider = await configuration.activeProvider
+        let adapter = await structuredOutputAdapter(for: request.modelTier)
         let toolParams = request.tools.isEmpty ? nil : request.tools.map { $0.toLLMToolDefinition() }
         let preparedOutput = request.structuredOutput.map {
             StructuredOutputExecution.prepareRequest(
                 messages: result.messages,
                 tools: toolParams,
-                provider: provider,
+                adapter: adapter,
                 output: $0
             )
         }
@@ -70,17 +70,17 @@ public extension LLMService {
         responseModalities: Set<ResponseModality>,
         audioOutput: AudioOutputOptions?
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
-        await awaitPreparation()
-        let selectedClient: (any LLMClientProtocol)? = switch modelTier {
-        case .fast: fastClient() ?? client()
-        case .utility: utilityClient() ?? client()
-        case .primary: client()
+        await prepareIfNeeded()
+        let resolved: ResolvedLLMClient
+        do {
+            resolved = try resolve(tier: modelTier)
+        } catch {
+            return AsyncThrowingStream { continuation in
+                continuation.finish(throwing: error)
+            }
         }
-        guard let selectedClient else {
-            return AsyncThrowingStream { $0.finish(throwing: LLMServiceError.notConfigured) }
-        }
-        let parameters = generationParameters ?? configuration.activeProviderConfiguration.generationParameters
-        return await selectedClient.chatStream(
+        let parameters = generationParameters ?? resolved.generationParameters
+        return await resolved.client.chatStream(
             messages: messages,
             tools: tools,
             toolChoice: toolChoice,
@@ -100,30 +100,20 @@ public extension LLMService {
         generationParameters: GenerationParameters?,
         modelTier: ModelTier
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
-        await awaitPreparation()
-        let selectedClient: (any LLMClientProtocol)?
-        switch modelTier {
-        case .fast:
-            selectedClient = fastClient() ?? client()
-        case .utility:
-            selectedClient = utilityClient() ?? client()
-        case .primary:
-            selectedClient = client()
-        }
-
-        guard let client = selectedClient else {
-            let error: LLMServiceError = configuration.isValid
-                ? .clientNotResolved(provider: configuration.activeProvider.rawValue)
-                : .notConfigured
+        await prepareIfNeeded()
+        let resolved: ResolvedLLMClient
+        do {
+            resolved = try resolve(tier: modelTier)
+        } catch {
             return AsyncThrowingStream { continuation in
                 continuation.finish(throwing: error)
             }
         }
 
         // Use provided parameters or default from configuration
-        let params = generationParameters ?? configuration.activeProviderConfiguration.generationParameters
+        let params = generationParameters ?? resolved.generationParameters
 
-        return await client.chatStream(
+        return await resolved.client.chatStream(
             messages: messages,
             tools: tools,
             toolChoice: toolChoice,

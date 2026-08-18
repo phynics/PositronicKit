@@ -23,6 +23,11 @@ public actor MockConfigurationService: ConfigurationServiceProtocol {
         self.config = config
     }
 
+    /// Test helper: replaces the stored configuration (avoids cross-actor property writes).
+    public func setBackupConfig(_ config: LLMConfiguration?) {
+        backupConfig = config
+    }
+
     public func clear() async {
         config = .openAI
     }

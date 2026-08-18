@@ -8,13 +8,13 @@ public protocol WorkspaceCatalog: Sendable {
     func createWorkspace(
         uri: WorkspaceURI,
         location: WorkspaceReference.WorkspaceLocation,
-        originId: UUID?,
+        originID: UUID?,
         rootPath: String?
     ) async throws -> WorkspaceReference
 
     /// Creates a new agent workspace and seeds it with template files.
     func createAgentWorkspace(
-        instanceId: UUID,
+        instanceID: UUID,
         template: AgentTemplate?
     ) async throws -> WorkspaceReference
 
@@ -42,7 +42,7 @@ public extension WorkspaceCatalog {
         try await createWorkspace(
             uri: uri,
             location: location,
-            originId: originID,
+            originID: originID,
             rootPath: rootPath
         )
     }
@@ -53,37 +53,7 @@ public extension WorkspaceCatalog {
         template: AgentTemplate? = nil
     ) async throws -> WorkspaceReference {
         try await createAgentWorkspace(
-            instanceId: instanceID,
-            template: template
-        )
-    }
-
-    /// Compatibility overload for callers using the legacy identifier spelling.
-    @_disfavoredOverload
-    @available(*, deprecated, message: "Use createWorkspace(uri:location:originID:rootPath:).")
-    func createWorkspace(
-        uri: WorkspaceURI,
-        location: WorkspaceReference.WorkspaceLocation,
-        originId: UUID? = nil,
-        rootPath: String? = nil
-    ) async throws -> WorkspaceReference {
-        try await createWorkspace(
-            uri: uri,
-            location: location,
-            originId: originId,
-            rootPath: rootPath
-        )
-    }
-
-    /// Compatibility overload for callers using the legacy identifier spelling.
-    @_disfavoredOverload
-    @available(*, deprecated, message: "Use createAgentWorkspace(instanceID:template:).")
-    func createAgentWorkspace(
-        instanceId: UUID,
-        template: AgentTemplate? = nil
-    ) async throws -> WorkspaceReference {
-        try await createAgentWorkspace(
-            instanceId: instanceId,
+            instanceID: instanceID,
             template: template
         )
     }

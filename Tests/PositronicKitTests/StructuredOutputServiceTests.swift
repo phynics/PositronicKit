@@ -8,27 +8,18 @@ import Testing
 @Suite("Structured Output Service Tests")
 @MainActor
 struct StructuredOutputServiceTests {
-    private static let registeredAdapters: Void = {
-        StructuredOutputAdapterRegistry.register(NativeJSONSchemaStructuredOutputAdapter(), for: .openAI)
-        StructuredOutputAdapterRegistry.register(NativeJSONSchemaStructuredOutputAdapter(), for: .openRouter)
-        StructuredOutputAdapterRegistry.register(PromptAugmentedJSONSchemaAdapter(), for: .ollama)
-        StructuredOutputAdapterRegistry.register(DefaultStructuredOutputAdapter(), for: .anthropic)
-        StructuredOutputAdapterRegistry.register(PromptAugmentedJSONSchemaAdapter(), for: .openAICompatible)
-    }()
-
-    init() {
-        Self.registeredAdapters
-    }
-
     private struct TagPayload: Decodable, Equatable {
         let tags: [String]
     }
 
     @Test("Decodes typed structured output from native JSON mode")
     func decodesTypedStructuredOutput() async throws {
-        let mockClient = MockLLMClient()
+        let mockClient = MockLLMClient(structuredOutputAdapter: NativeJSONSchemaStructuredOutputAdapter())
         mockClient.nextResponse = "{" + #""tags":["swift","tests"]"# + "}"
-        let service = LLMService(storage: MockConfigurationService(), client: mockClient)
+        let service = LLMService(
+            configuration: .fixture(apiKey: "test-key"),
+            clients: .init(primary: mockClient)
+        )
 
         let result = try await service.sendStructured(
             "Extract tags",
@@ -41,12 +32,14 @@ struct StructuredOutputServiceTests {
 
     @Test("Uses schema format and prompt grounding for Ollama structured schema requests")
     func usesSchemaFormatAndPromptGroundingForOllamaSchemaRequests() async throws {
-        let mockClient = MockLLMClient()
+        let mockClient = MockLLMClient(structuredOutputAdapter: PromptAugmentedJSONSchemaAdapter())
         mockClient.nextResponse = "{" + #""tags":["swift"]"# + "}"
 
-        let service = LLMService(storage: MockConfigurationService(), client: mockClient)
+        let service = LLMService(
+            storage: MockConfigurationService(),
+            clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
+        )
         try await service.updateConfiguration(.fixture(activeProvider: .ollama))
-        await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         let schema = StructuredOutputFixtures.tagSchemaDefinition()
 
@@ -77,12 +70,14 @@ struct StructuredOutputServiceTests {
     @Test("Uses native JSON schema response format for OpenAI and OpenRouter")
     func usesNativeJSONSchemaResponseFormatForNativeProviders() async throws {
         for provider in [LLMProvider.openAI, .openRouter] {
-            let mockClient = MockLLMClient()
+            let mockClient = MockLLMClient(structuredOutputAdapter: NativeJSONSchemaStructuredOutputAdapter())
             mockClient.nextResponse = "{" + #""tags":["swift"]"# + "}"
 
-            let service = LLMService(storage: MockConfigurationService(), client: mockClient)
-            try await service.updateConfiguration(.fixture(activeProvider: provider))
-            await service.setClients(main: mockClient, utility: nil, fast: nil)
+            let service = LLMService(
+                storage: MockConfigurationService(),
+                clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
+            )
+            try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: provider))
 
             let result = try await service.sendStructured(
                 "Extract tags",
@@ -103,12 +98,14 @@ struct StructuredOutputServiceTests {
 
     @Test("Uses tool shim fallback for Anthropic low-level streaming")
     func usesToolShimFallbackForAnthropicStreaming() async throws {
-        let mockClient = MockLLMClient()
+        let mockClient = MockLLMClient(structuredOutputAdapter: DefaultStructuredOutputAdapter())
         mockClient.nextToolCalls = [[MockToolCall(id: "structured-call", name: "emit_structured_response", arguments: "{" + #""tags":["swift"]"# + "}")]]
 
-        let service = LLMService(storage: MockConfigurationService(), client: mockClient)
-        try await service.updateConfiguration(.fixture(activeProvider: .anthropic))
-        await service.setClients(main: mockClient, utility: nil, fast: nil)
+        let service = LLMService(
+            storage: MockConfigurationService(),
+            clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
+        )
+        try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .anthropic))
 
         let schema = StructuredOutputFixtures.tagSchemaDefinition()
 
@@ -133,12 +130,14 @@ struct StructuredOutputServiceTests {
 
     @Test("Uses native JSON schema response format with prompt augmentation for OpenAI-compatible")
     func usesNativeJSONSchemaForOpenAICompatible() async throws {
-        let mockClient = MockLLMClient()
+        let mockClient = MockLLMClient(structuredOutputAdapter: PromptAugmentedJSONSchemaAdapter())
         mockClient.nextResponse = "{" + #""tags":["swift"]"# + "}"
 
-        let service = LLMService(storage: MockConfigurationService(), client: mockClient)
-        try await service.updateConfiguration(.fixture(activeProvider: .openAICompatible))
-        await service.setClients(main: mockClient, utility: nil, fast: nil)
+        let service = LLMService(
+            storage: MockConfigurationService(),
+            clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
+        )
+        try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .openAICompatible))
 
         let schema = StructuredOutputFixtures.tagSchemaDefinition()
 
@@ -170,7 +169,7 @@ struct StructuredOutputServiceTests {
 
     @Test("Rewrites fragmented Anthropic structured tool output")
     func rewritesFragmentedAnthropicStructuredToolOutput() async throws {
-        let mockClient = MockLLMClient()
+        let mockClient = MockLLMClient(structuredOutputAdapter: DefaultStructuredOutputAdapter())
         mockClient.nextRawStreamChunks = [[
             ChatStreamResultFactory.toolCallChunk(calls: [
                 MockToolCall(id: "structured-call", name: "emit_structured_response", arguments: #"{"tags":[""#),
@@ -180,9 +179,11 @@ struct StructuredOutputServiceTests {
             ]),
         ]]
 
-        let service = LLMService(storage: MockConfigurationService(), client: mockClient)
-        try await service.updateConfiguration(.fixture(activeProvider: .anthropic))
-        await service.setClients(main: mockClient, utility: nil, fast: nil)
+        let service = LLMService(
+            storage: MockConfigurationService(),
+            clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
+        )
+        try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .anthropic))
 
         let stream = await service.chatStream(
             messages: [LLMMessage(role: .user, content: "Extract tags")],
@@ -203,7 +204,10 @@ struct StructuredOutputServiceTests {
         let mockClient = MockLLMClient()
         mockClient.shouldThrowError = true
 
-        let service = LLMService(storage: MockConfigurationService(), client: mockClient)
+        let service = LLMService(
+            configuration: .fixture(apiKey: "test-key"),
+            clients: .init(primary: mockClient)
+        )
 
         await #expect(throws: LLMStreamError.self) {
             _ = try await service.sendStructured(

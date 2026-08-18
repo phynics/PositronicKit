@@ -49,11 +49,10 @@ public extension LLMStreamClient {
         generationParameters: GenerationParameters? = nil,
         modelTier: ModelTier = .primary
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
-        let provider = await configuration.activeProvider
         let prepared = StructuredOutputExecution.prepareRequest(
             messages: messages,
             tools: tools,
-            provider: provider,
+            adapter: await structuredOutputAdapter(for: modelTier),
             output: structuredOutput
         )
 
@@ -82,11 +81,10 @@ public extension LLMStreamClient {
         responseModalities: Set<ResponseModality>,
         audioOutput: AudioOutputOptions?
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
-        let provider = await configuration.activeProvider
         let prepared = StructuredOutputExecution.prepareRequest(
             messages: messages,
             tools: tools,
-            provider: provider,
+            adapter: await structuredOutputAdapter(for: modelTier),
             output: structuredOutput
         )
         let stream = await chatStream(
@@ -128,11 +126,9 @@ enum StructuredOutputExecution {
     static func prepareRequest(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,
-        provider: LLMProvider,
+        adapter: any StructuredOutputAdapter,
         output: StructuredOutputRequest
     ) -> PreparedStructuredOutputRequest {
-        let adapter = StructuredOutputAdapterRegistry.adapter(for: provider)
-            ?? DefaultStructuredOutputAdapter()
         return adapter.prepareRequest(messages: messages, tools: tools, output: output)
     }
 

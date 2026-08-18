@@ -24,12 +24,6 @@ public enum VectorMath {
         #endif
     }
 
-    /// Calculates cosine similarity between two vectors.
-    @available(*, deprecated, renamed: "cosineSimilarity(between:and:)")
-    public static func cosineSimilarity(_ firstVector: [Double], _ secondVector: [Double]) -> Double {
-        cosineSimilarity(between: firstVector, and: secondVector)
-    }
-
     /// Normalize a vector to unit length.
     /// - Parameter vector: Vector to normalize
     /// - Returns: A normalized finite vector. Empty and zero vectors are returned unchanged;

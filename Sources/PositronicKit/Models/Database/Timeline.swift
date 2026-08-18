@@ -42,46 +42,6 @@ public struct Thread: Identifiable, Sendable {
         self.isPrivate = isPrivate
     }
 
-    /// Creates a thread using the legacy identifier spellings.
-    @_disfavoredOverload
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public init(
-        id: UUID = UUID(),
-        title: String = "New Conversation",
-        createdAt: Date = Date(),
-        updatedAt: Date = Date(),
-        isArchived: Bool = false,
-        workingDirectory: String? = nil,
-        attachedWorkspaceIds: [UUID] = [],
-        attachedAgentInstanceId: UUID? = nil,
-        isPrivate: Bool = false
-    ) {
-        self.init(
-            id: id,
-            title: title,
-            createdAt: createdAt,
-            updatedAt: updatedAt,
-            isArchived: isArchived,
-            workingDirectory: workingDirectory,
-            attachedWorkspaceIDs: attachedWorkspaceIds,
-            attachedAgentInstanceID: attachedAgentInstanceId,
-            isPrivate: isPrivate
-        )
-    }
-
-    /// Attached workspace identifiers using the legacy 3.x spelling.
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public var attachedWorkspaceIds: [UUID] {
-        get { attachedWorkspaceIDs }
-        set { attachedWorkspaceIDs = newValue }
-    }
-
-    /// The attached agent-instance identifier using the legacy 3.x spelling.
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public var attachedAgentInstanceId: UUID? {
-        get { attachedAgentInstanceID }
-        set { attachedAgentInstanceID = newValue }
-    }
 }
 
 // MARK: - Codable

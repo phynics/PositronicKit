@@ -24,7 +24,7 @@ public struct MockLLMSendMessageCapture: Sendable {
     public let content: String
     public let responseFormat: LLMResponseFormat?
     public let generationParameters: GenerationParameters?
-    public let useUtilityModel: Bool
+    public let modelTier: ModelTier
 }
 
 /// In-memory `LLMClientProtocol` test double.
@@ -46,7 +46,7 @@ public struct MockLLMSendMessageCapture: Sendable {
 /// `chatCaptureHistory` and `sendMessageCaptureHistory` retain complete request records,
 /// including calls that later fail; the legacy `last…` fields and `messageHistory` remain
 /// available. No mutex is held while a stream sleeps, yields, or waits for cancellation.
-public final class MockLLMClient: LLMClientProtocol {
+public final class MockLLMClient: LLMClientProtocol, @unchecked Sendable {
     private struct State {
         var nextResponse = ""
         var nextResponses: [String] = []
@@ -86,6 +86,9 @@ public final class MockLLMClient: LLMClientProtocol {
     /// Clock used before each finite raw or text chunk when `nextStreamWait` is set.
     /// Inject `ImmediateClock` for instant execution, or use the default `ContinuousClock`.
     public let clock: any Clock<Duration>
+
+    /// Adapter used when tests exercise structured-output preparation through this mock.
+    public var structuredOutputAdapter: any StructuredOutputAdapter
 
     public var nextResponse: String {
         get { state.withLock { $0.nextResponse } }
@@ -195,8 +198,12 @@ public final class MockLLMClient: LLMClientProtocol {
         state.withLock { $0.sendMessageCaptureHistory }
     }
 
-    public init(clock: any Clock<Duration> = ContinuousClock()) {
+    public init(
+        clock: any Clock<Duration> = ContinuousClock(),
+        structuredOutputAdapter: any StructuredOutputAdapter = NativeJSONSchemaStructuredOutputAdapter()
+    ) {
         self.clock = clock
+        self.structuredOutputAdapter = structuredOutputAdapter
     }
 
     public func chatStream(
@@ -376,7 +383,7 @@ public final class MockLLMClient: LLMClientProtocol {
                 content: content,
                 responseFormat: responseFormat,
                 generationParameters: generationParameters,
-                useUtilityModel: false
+                modelTier: .primary
             )
             state.lastMessages = [LLMMessage(role: .user, content: content)]
             state.lastTools = nil
@@ -500,6 +507,10 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
         set { state.withLock { $0.mockClient = newValue } }
     }
 
+    public func structuredOutputAdapter(for modelTier: ModelTier) async -> any StructuredOutputAdapter {
+        mockClient.structuredOutputAdapter
+    }
+
     /// Overrides the stream returned by `chatStream`. The request is still captured first.
     public var stubbedStream: AsyncThrowingStream<LLMStreamChunk, Error>? {
         get { state.withLock { $0.stubbedStream } }
@@ -581,7 +592,7 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
                 content: content,
                 responseFormat: nil,
                 generationParameters: nil,
-                useUtilityModel: false
+                modelTier: .primary
             )
             state.lastSendMessageCapture = capture
             state.sendMessageCaptureHistory.append(capture)
@@ -593,14 +604,14 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
         _ content: String,
         responseFormat: LLMResponseFormat?,
         generationParameters: GenerationParameters?,
-        useUtilityModel: Bool
+        modelTier: ModelTier = .primary
     ) async throws -> String {
         state.withLock { state in
             let capture = MockLLMSendMessageCapture(
                 content: content,
                 responseFormat: responseFormat,
                 generationParameters: generationParameters,
-                useUtilityModel: useUtilityModel
+                modelTier: modelTier
             )
             state.lastSendMessageCapture = capture
             state.sendMessageCaptureHistory.append(capture)
@@ -683,12 +694,12 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
         )
     }
 
-    public func generateTags(for _: String) async throws -> [String] {
+    public func bestEffortTags(for _: String) async -> [String] {
         let tags = state.withLock { $0.nextTags }
         return tags.map { $0.lowercased() }
     }
 
-    public func generateTitle(for messages: [Message]) async throws -> String {
+    public func bestEffortTitle(for messages: [Message]) async -> String {
         let scriptedTitle = state.withLock { state in
             state.generatedTitleInputs.append(messages)
             return state.nextGeneratedTitle
@@ -697,12 +708,6 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: "\"", with: "")
         return title.isEmpty ? "New Conversation" : title
-    }
-
-    public func evaluateRecallPerformance(transcript _: String, recalledMemories _: [Memory]) async throws
-        -> [String: Double]
-    {
-        return [:]
     }
 
     public func fetchAvailableModels() async throws -> [String]? {

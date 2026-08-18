@@ -10,16 +10,6 @@ public struct TurnIdentity: Sendable, Hashable, Equatable, Codable {
         self.roundTrip = roundTrip
     }
 
-    /// Creates a turn identity using the legacy identifier spelling.
-    @available(*, deprecated, message: "Use init(sendID:roundTrip:).")
-    public init(sendId: UUID, roundTrip: Int) {
-        self.init(sendID: sendId, roundTrip: roundTrip)
-    }
-
-    /// The send identifier using the legacy 3.x spelling.
-    @available(*, deprecated, renamed: "sendID")
-    public var sendId: UUID { sendID }
-
     private enum CodingKeys: String, CodingKey {
         case sendID = "sendId"
         case roundTrip

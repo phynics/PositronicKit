@@ -9,9 +9,12 @@ import PKUtilities
 struct StructuredOutputPromptFlowTests {
     @Test("chatStreamWithContext preserves prompt context with json object output")
     func chatStreamWithContextPreservesPromptContext() async throws {
-        let mockClient = MockLLMClient()
+        let mockClient = MockLLMClient(structuredOutputAdapter: PromptAugmentedJSONSchemaAdapter())
         mockClient.nextChunks = [["{\"tags\":[\"swift\"]}"]]
-        let service = LLMService(storage: MockConfigurationService(), client: mockClient)
+        let service = LLMService(
+            configuration: .fixture(apiKey: "test-key"),
+            clients: .init(primary: mockClient)
+        )
 
         let request = LLMChatRequest(
             userQuery: "Extract tags",
@@ -44,11 +47,13 @@ struct StructuredOutputPromptFlowTests {
 
     @Test("chatStreamWithContext includes fallback schema instructions in raw prompt")
     func chatStreamWithContextIncludesFallbackSchemaInstructions() async throws {
-        let mockClient = MockLLMClient()
+        let mockClient = MockLLMClient(structuredOutputAdapter: PromptAugmentedJSONSchemaAdapter())
         mockClient.nextChunks = [["{\"tags\":[\"swift\"]}"]]
-        let service = LLMService(storage: MockConfigurationService(), client: mockClient)
+        let service = LLMService(
+            storage: MockConfigurationService(),
+            clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
+        )
         try await service.updateConfiguration(.fixture(activeProvider: .ollama))
-        await service.setClients(main: mockClient, utility: nil, fast: nil)
 
         let request = LLMChatRequest(
             userQuery: "Extract tags",
@@ -86,7 +91,7 @@ struct StructuredOutputPromptFlowTests {
 
     @Test("chatStreamWithContext preserves Anthropic schema constraints and rewrites synthetic tool output")
     func chatStreamWithContextPreservesAnthropicSchemaConstraints() async throws {
-        let mockClient = MockLLMClient()
+        let mockClient = MockLLMClient(structuredOutputAdapter: DefaultStructuredOutputAdapter())
         mockClient.nextRawStreamChunks = [[
             ChatStreamResultFactory.toolCallChunk(calls: [
                 MockToolCall(
@@ -97,9 +102,11 @@ struct StructuredOutputPromptFlowTests {
             ])
         ]]
 
-        let service = LLMService(storage: MockConfigurationService(), client: mockClient)
-        try await service.updateConfiguration(.fixture(activeProvider: .anthropic))
-        await service.setClients(main: mockClient, utility: nil, fast: nil)
+        let service = LLMService(
+            storage: MockConfigurationService(),
+            clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
+        )
+        try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .anthropic))
 
         let request = LLMChatRequest(
             userQuery: "Extract tags",
@@ -131,12 +138,14 @@ struct StructuredOutputPromptFlowTests {
 
     @Test("chatStreamWithContext preserves OpenAI-compatible schema constraints with native response format")
     func chatStreamWithContextPreservesOpenAICompatibleSchemaConstraints() async throws {
-        let mockClient = MockLLMClient()
+        let mockClient = MockLLMClient(structuredOutputAdapter: PromptAugmentedJSONSchemaAdapter())
         mockClient.nextChunks = [["{\"tags\":[\"swift\"]}"]]
 
-        let service = LLMService(storage: MockConfigurationService(), client: mockClient)
-        try await service.updateConfiguration(.fixture(activeProvider: .openAICompatible))
-        await service.setClients(main: mockClient, utility: nil, fast: nil)
+        let service = LLMService(
+            storage: MockConfigurationService(),
+            clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
+        )
+        try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .openAICompatible))
 
         let request = LLMChatRequest(
             userQuery: "Extract tags",

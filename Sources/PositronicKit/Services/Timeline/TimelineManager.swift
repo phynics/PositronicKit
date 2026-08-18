@@ -178,12 +178,12 @@ public actor ThreadManager {
     /// Gathers additional prompt sections from all registered `PromptSectionProviding` instances.
     public func gatherExtensionSections(
         threadID: UUID,
-        agentInstanceId: UUID?,
+        agentInstanceID: UUID?,
         message: String
     ) async -> [any Prompt] {
         let buildContext = PromptBuildContext(
             threadID: threadID,
-            agentInstanceID: agentInstanceId,
+            agentInstanceID: agentInstanceID,
             message: message
         )
         var sections: [any Prompt] = []

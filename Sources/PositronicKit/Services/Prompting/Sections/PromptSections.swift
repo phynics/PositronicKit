@@ -280,14 +280,6 @@ public struct AgentContext: Prompt {
         self.threadTitle = threadTitle
     }
 
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public init(_ agent: AgentInstance, timelineTitle: String?) {
-        self.init(agent, threadTitle: timelineTitle)
-    }
-
-    @available(*, deprecated, renamed: "threadTitle", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public var timelineTitle: String? { threadTitle }
-
     public var body: some Prompt {
         SystemPrompt(
             text,
@@ -317,15 +309,9 @@ public struct ThreadContext: Prompt {
     public let thread: Thread
     public var threadTitle: String { thread.title }
 
-    @available(*, deprecated, renamed: "threadTitle", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public var timelineTitle: String { threadTitle }
-
     public init(_ thread: Thread) {
         self.thread = thread
     }
-
-    @available(*, deprecated, renamed: "thread", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public var timeline: Thread { thread }
 
     public var body: some Prompt {
         TextPrompt(

@@ -27,15 +27,6 @@ public struct ToolResultRecord: Codable, Sendable, Equatable {
         self.turn = turn
     }
 
-    /// Creates a tool-result record using the legacy identifier spelling.
-    @available(*, deprecated, message: "Use init(toolCallID:name:output:turn:).")
-    public init(toolCallId: String, name: String, output: String, turn: Int) {
-        self.init(toolCallID: toolCallId, name: name, output: output, turn: turn)
-    }
-
-    /// The tool-call identifier using the legacy 3.x spelling.
-    @available(*, deprecated, renamed: "toolCallID")
-    public var toolCallId: String { toolCallID }
 
     private enum CodingKeys: String, CodingKey {
         case toolCallID = "toolCallId"
@@ -137,119 +128,6 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
         self.cachedTokens = cachedTokens
     }
 
-    /// Creates a turn snapshot using the legacy identifier spellings.
-    @_disfavoredOverload
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public init(
-        timestamp: Date = Date(),
-        timelineId: UUID,
-        agentInstanceId: UUID? = nil,
-        modelName: String,
-        turnCount: Int,
-        maxTurns: Int,
-        systemInstructions: String? = nil,
-        contextSnapshot: TurnContextSnapshot? = nil,
-        availableToolIds: [String] = [],
-        fullResponse: String = "",
-        fullThinking: String = "",
-        audioOutput: AudioOutputSnapshot? = nil,
-        toolCalls: [ToolCallRecord] = [],
-        toolResults: [ToolResultRecord] = [],
-        turnDuration: TimeInterval = 0,
-        tokensPerSecond: Double? = nil,
-        promptTokens: Int? = nil,
-        completionTokens: Int? = nil,
-        totalTokens: Int? = nil,
-        cachedTokens: Int? = nil
-    ) {
-        self.init(
-            timestamp: timestamp,
-            threadID: timelineId,
-            agentInstanceID: agentInstanceId,
-            modelName: modelName,
-            turnCount: turnCount,
-            maxTurns: maxTurns,
-            systemInstructions: systemInstructions,
-            contextSnapshot: contextSnapshot,
-            availableToolIDs: availableToolIds,
-            fullResponse: fullResponse,
-            fullThinking: fullThinking,
-            audioOutput: audioOutput,
-            toolCalls: toolCalls,
-            toolResults: toolResults,
-            turnDuration: turnDuration,
-            tokensPerSecond: tokensPerSecond,
-            promptTokens: promptTokens,
-            completionTokens: completionTokens,
-            totalTokens: totalTokens,
-            cachedTokens: cachedTokens
-        )
-    }
-
-    /// Creates a turn snapshot using the legacy identifier spelling.
-    @_disfavoredOverload
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public init(
-        timestamp: Date = Date(),
-        timelineID: UUID,
-        agentInstanceID: UUID? = nil,
-        modelName: String,
-        turnCount: Int,
-        maxTurns: Int,
-        systemInstructions: String? = nil,
-        contextSnapshot: TurnContextSnapshot? = nil,
-        availableToolIDs: [String] = [],
-        fullResponse: String = "",
-        fullThinking: String = "",
-        audioOutput: AudioOutputSnapshot? = nil,
-        toolCalls: [ToolCallRecord] = [],
-        toolResults: [ToolResultRecord] = [],
-        turnDuration: TimeInterval = 0,
-        tokensPerSecond: Double? = nil,
-        promptTokens: Int? = nil,
-        completionTokens: Int? = nil,
-        totalTokens: Int? = nil,
-        cachedTokens: Int? = nil
-    ) {
-        self.init(
-            timestamp: timestamp,
-            threadID: timelineID,
-            agentInstanceID: agentInstanceID,
-            modelName: modelName,
-            turnCount: turnCount,
-            maxTurns: maxTurns,
-            systemInstructions: systemInstructions,
-            contextSnapshot: contextSnapshot,
-            availableToolIDs: availableToolIDs,
-            fullResponse: fullResponse,
-            fullThinking: fullThinking,
-            audioOutput: audioOutput,
-            toolCalls: toolCalls,
-            toolResults: toolResults,
-            turnDuration: turnDuration,
-            tokensPerSecond: tokensPerSecond,
-            promptTokens: promptTokens,
-            completionTokens: completionTokens,
-            totalTokens: totalTokens,
-            cachedTokens: cachedTokens
-        )
-    }
-
-    /// The timeline identifier using the legacy 3.x spelling.
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public var timelineID: UUID { threadID }
-
-    /// The thread identifier using the legacy 3.x spelling.
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public var timelineId: UUID { threadID }
-
-    /// The agent-instance identifier using the legacy 3.x spelling.
-    @available(*, deprecated, renamed: "agentInstanceID")
-    public var agentInstanceId: UUID? { agentInstanceID }
-
-    /// Available tool identifiers using the legacy 3.x spelling.
-    @available(*, deprecated, renamed: "availableToolIDs")
-    public var availableToolIds: [String] { availableToolIDs }
 
     private enum CodingKeys: String, CodingKey {
         case timestamp

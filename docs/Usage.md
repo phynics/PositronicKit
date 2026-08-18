@@ -56,7 +56,7 @@ import PKOpenAIProvider
 var openAIConfig = ProviderConfiguration.makeDefault(for: .openAI)
 openAIConfig.apiKey = "sk-..."
 let configuration = LLMConfiguration(activeProvider: .openAI, providers: [.openAI: openAIConfig])
-let client = PKOpenAIProvider.makeClientAndRegisterStructuredOutputAdapter(configuration: configuration)
+let client = PKOpenAIProvider.makeClient(configuration: configuration)
 let languageModel = LLMService(
     storage: InMemoryConfigurationService(config: configuration),
     client: client,
@@ -76,7 +76,7 @@ import PKOllamaProvider
 var ollamaConfig = ProviderConfiguration.makeDefault(for: .ollama)
 ollamaConfig.modelName = "llama3"
 let configuration = LLMConfiguration(activeProvider: .ollama, providers: [.ollama: ollamaConfig])
-let client = PKOllamaProvider.makeClientAndRegisterStructuredOutputAdapter(configuration: configuration)
+let client = PKOllamaProvider.makeClient(configuration: configuration)
 let languageModel = LLMService(
     storage: InMemoryConfigurationService(config: configuration),
     client: client,

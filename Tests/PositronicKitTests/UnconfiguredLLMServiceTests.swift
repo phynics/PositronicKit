@@ -48,7 +48,7 @@ struct UnconfiguredLLMServiceTests {
                 "hello",
                 responseFormat: .jsonObject,
                 generationParameters: nil,
-                useUtilityModel: true
+                modelTier: .utility
             )
         }
         await #expect(throws: LLMServiceError.notConfigured) {

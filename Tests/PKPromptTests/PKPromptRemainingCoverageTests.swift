@@ -1434,36 +1434,6 @@ extension PKPromptRemainingCoverageTests {
         }
     }
 
-    @Test("TokenBudget deprecated resolved-section overloads delegate to the canonical API")
-    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
-    func tokenBudgetDeprecatedSectionOverloads() async throws {
-        let budget = TokenBudget(maxTokens: 10000, reserveForResponse: 0)
-        let section = PromptSectionHelper.makeTextSection(content: .text("hi"), role: .context)
-
-        let viaResult = try await budget.result(for: [section])
-        #expect(viaResult.sections.count == 1)
-
-        let applied = try await budget.apply(to: [section])
-        #expect(applied.count == 1)
-
-        let withReport = try await budget.applyWithReport(to: [section])
-        #expect(withReport.sections.count == 1)
-        #expect(withReport.report == nil)
-
-        let viaBudget = try await budget.budget(to: [section])
-        #expect(viaBudget.sections.count == 1)
-    }
-
-    @Test("TokenBudget deprecated prompt-existential result overload delegates to the canonical API")
-    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
-    func tokenBudgetDeprecatedPromptExistentialResult() async throws {
-        let budget = TokenBudget(maxTokens: 10000, reserveForResponse: 0)
-        let prompts: [any Prompt] = [TextPrompt("hi", id: "p1")]
-        let result = try await budget.result(for: prompts)
-        #expect(result.sections.map(\.id) == ["p1"])
-        #expect(result.report == nil)
-    }
-
     @Test("MultimodalPromptPrimitive renderContent returns the text projection")
     func multimodalPrimitiveRenderContent() async {
         let primitive = MultimodalPromptPrimitive(

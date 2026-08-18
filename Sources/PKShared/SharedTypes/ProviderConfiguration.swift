@@ -173,9 +173,4 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
         }
     }
 
-    /// Creates the default configuration for a provider.
-    @available(*, deprecated, renamed: "makeDefault(for:)")
-    public static func defaultFor(_ provider: LLMProvider) -> ProviderConfiguration {
-        makeDefault(for: provider)
-    }
 }

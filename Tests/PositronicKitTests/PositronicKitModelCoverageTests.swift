@@ -8,7 +8,7 @@ import Testing
 ///
 /// The throwing methods are already covered by `UnconfiguredLLMServiceTests`; these tests
 /// cover the no-op / non-throwing paths: `isConfigured`, `configuration`, `getHealthDetails`,
-/// `checkHealth`, `loadConfiguration`, `clearConfiguration`, `getClient`, `getUtilityClient`.
+/// `checkHealth`, `loadConfiguration`, `clearConfiguration`.
 @Suite("UnconfiguredLLMService non-throwing methods")
 struct UnconfiguredLLMServiceCoverageTests {
     private let service = UnconfiguredLLMService()
@@ -49,16 +49,6 @@ struct UnconfiguredLLMServiceCoverageTests {
     func clearConfigurationIsNoOp() async {
         await service.clearConfiguration()
         #expect(await service.isConfigured == false)
-    }
-
-    @Test("getClient returns nil")
-    func getClientReturnsNil() async {
-        #expect(await service.getClient() == nil)
-    }
-
-    @Test("getUtilityClient returns nil")
-    func getUtilityClientReturnsNil() async {
-        #expect(await service.getUtilityClient() == nil)
     }
 }
 

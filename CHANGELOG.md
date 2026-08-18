@@ -8,13 +8,49 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Breaking
+
+- **v4 deprecated API removal:** removed the released v3 Timeline compatibility modules and
+  legacy persistence contracts. Canonical Thread APIs remain unchanged; historical Codable keys,
+  database fields, and wire identifiers remain supported at serialization boundaries.
+- **LLM service surface narrowed:** removed the `LLMService` client getters (`primaryClient()`,
+  `utilityClient()`, `fastClient()`) and `setClients(main:utility:fast:)`, the `AnyLanguageModel`
+  forwarding type, and `evaluateRecallPerformance` from `LLMUtilityClient`/`LLMUtilityGenerator`.
+  The facade seam no longer requires configuration administration: `PositronicKit.languageModel`
+  is now `any LLMStreamClient & LLMUtilityClient` instead of `any LanguageModel`.
+- **Utility policy is explicit in names:** `LLMUtilityClient.generateTags`/`generateTitle` are now
+  `bestEffortTags(for:)` / `bestEffortTitle(for:)` and are non-throwing. Strict, throwing operations
+  live on the public `LLMUtilityGenerator`.
+
 ### Added
 
-- **Named model-tier client construction:** `LLMClientSet` and the
-  `LLMService(configuration:clients:)` initializer let downstream hosts construct and inject
-  primary, utility, and fast clients without relying on an unlabeled tuple closure.
-- **Tier-aware provider factories:** provider convenience factories accept an optional
-  `modelName` override through `makeClient(for:modelName:)`.
+- **Compile-time provider factory contract:** added `LLMProviderFactory` so concrete provider
+  modules share a typed `makeClient(configuration:)` API without introducing provider discovery
+  or a runtime factory registry.
+
+### Changed
+
+- Provider factories now use `makeClient(configuration:)` as their canonical name. Structured-output
+  behavior is carried by each client instead of a process-global adapter registry.
+
+### Fixed
+
+- **LLM runtime state consistency:** `LLMService` now owns one atomic runtime snapshot
+  (configuration + client set). Storage-backed initialization always loads configuration, even
+  when clients are injected; invalid loaded/imported/restored/updated/cleared configurations clear
+  all clients; and send, both stream overloads, structured-output adapters, model listing, and
+  health checks share a single tier-resolution and readiness implementation. Explicit
+  `LLMService(configuration:clients:)` and `LLMService(storage:clientResolver:)` construction paths
+  are the canonical initializers; the legacy `embeddingService`/`clientFactory`/injected-client
+  initializers were removed. `LLMClientSet` and `LLMClientResolving` (`FixedClientsResolver`) provide
+  the tiered client-set and resolution contracts.
+- **Preparation no longer escapes the actor:** `PreparationTaskBox` and its `@unchecked Sendable`
+  conformance were removed in favor of an actor-owned coalesced bootstrap task.
+- **Utility failure policy is explicit:** strict `LLMUtilityGenerator` operations throw; the
+  `LLMUtilityClient` compatibility surface retains best-effort log-and-default behavior.
+  `ThreadArchiver` now uses strict title generation so its first-user-message fallback works.
+- Removed `LLMService.embeddingService` (redundant ownership) and `LLMService.parseEndpoint`
+  (no production caller; silently fell back to an unrelated provider endpoint).
 
 ## [3.7.0] - 2026-08-13
 

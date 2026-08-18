@@ -184,7 +184,7 @@ struct DurabilityConfigurationTests {
         #expect(warning.contains("may reference entities that will be missing after restart"))
         // Durable stores should NOT appear in the ephemeral list
         #expect(!warning.contains("messageStore"))
-        #expect(!warning.contains("timelinePersistence"))
+        #expect(!warning.contains("threadPersistence"))
         #expect(!warning.contains("workspacePersistence"))
     }
 
@@ -200,7 +200,7 @@ struct DurabilityConfigurationTests {
         #expect(report.messageStore == .durable)
         #expect(report.threadPersistence == .ephemeral)
         #expect(report.ephemeralStoreNames == [
-            "timelinePersistence",
+            "threadPersistence",
             "workspacePersistence",
             "memoryStore",
             "toolPersistence",

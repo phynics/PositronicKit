@@ -158,8 +158,4 @@ public extension WorkspaceProfile {
         case .ephemeralWorkspace, .hostManaged: true
         }
     }
-
-    /// Deprecated timeline spelling retained for source compatibility.
-    @available(*, deprecated, renamed: "provisionsThreadWorkspace", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    var provisionsTimelineWorkspace: Bool { provisionsThreadWorkspace }
 }

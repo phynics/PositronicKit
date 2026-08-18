@@ -64,23 +64,6 @@ public actor DefaultWorkspaceCatalog: WorkspaceCatalog {
         }
     }
 
-    /// Creates a workspace using the legacy identifier spelling.
-    @_disfavoredOverload
-    @available(*, deprecated, message: "Use createWorkspace(uri:location:originID:rootPath:).")
-    public func createWorkspace(
-        uri: WorkspaceURI,
-        location: WorkspaceReference.WorkspaceLocation,
-        originId: UUID? = nil,
-        rootPath: String? = nil
-    ) async throws -> WorkspaceReference {
-        try await createWorkspace(
-            uri: uri,
-            location: location,
-            originID: originId,
-            rootPath: rootPath
-        )
-    }
-
     /// Creates a new agent workspace and seeds it with template files.
     public func createAgentWorkspace(
         instanceID: UUID,
@@ -145,16 +128,6 @@ public actor DefaultWorkspaceCatalog: WorkspaceCatalog {
             }
             throw originalError
         }
-    }
-
-    /// Creates an agent workspace using the legacy identifier spelling.
-    @_disfavoredOverload
-    @available(*, deprecated, message: "Use createAgentWorkspace(instanceID:template:).")
-    public func createAgentWorkspace(
-        instanceId: UUID,
-        template: AgentTemplate? = nil
-    ) async throws -> WorkspaceReference {
-        try await createAgentWorkspace(instanceID: instanceId, template: template)
     }
 
     /// Fetches a workspace by its unique identifier.

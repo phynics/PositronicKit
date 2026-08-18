@@ -80,7 +80,7 @@ struct OpenRouterEndpointTests {
             var configuration = LLMConfiguration.openRouter
             configuration.providers[.openRouter]?.endpoint = configuredEndpoint
 
-            let client = PKOpenRouterProvider.makeClientAndRegisterStructuredOutputAdapter(
+            let client = PKOpenRouterProvider.makeClient(
                 configuration: configuration
             )
 

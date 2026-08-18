@@ -27,15 +27,6 @@ public struct ForEach<Data: Sendable, Content: Prompt & Sendable>: Prompt {
         self.content = content
     }
 
-    /// Creates a prompt loop using the legacy `data` label.
-    @available(*, deprecated, message: "Use init(_:content:).")
-    public init(
-        data: [Data],
-        @PromptBuilder content: @Sendable @escaping (_ element: Data) -> Content
-    ) {
-        self.init(data, content: content)
-    }
-
     public var body: EmptyPrompt { EmptyPrompt() }
 
     public func makePromptNode() -> PromptNode? {

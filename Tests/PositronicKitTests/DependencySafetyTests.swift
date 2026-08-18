@@ -30,16 +30,6 @@ struct DependencySafetyTests {
         #expect(core.threadManager === runtime.threadManager)
     }
 
-    @Test("Deprecated TestRuntime facade builder forwards the stored facade")
-    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
-    func deprecatedBuildCoreForwardsStoredFacade() {
-        let runtime = TestRuntime(
-            workspaceRoot: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        )
-
-        #expect(runtime.buildCore() === runtime.positronicKit)
-    }
-
     @Test("PositronicKit facade's ThreadManager shares the memoryStore passed via persistence")
     func facadeThreadManagerSharesMemoryStore() async {
         let mockPersistence = MockPersistenceService()

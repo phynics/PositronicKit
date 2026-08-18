@@ -7,34 +7,15 @@ public extension PositronicKit {
     /// Groups provider-facing services used by the runtime.
     /// Embeddings stay with the LLM service because both are provider integrations.
     struct ProviderConfiguration: Sendable {
-        public let languageModel: any LanguageModel
+        public let languageModel: any LLMStreamClient & LLMUtilityClient
         public let embeddingService: (any EmbeddingServiceProtocol)?
 
-        @available(*, deprecated, renamed: "languageModel")
-        public var llmService: any LanguageModel { languageModel }
-
         public init(
-            languageModel: any LanguageModel,
+            languageModel: any LLMStreamClient & LLMUtilityClient,
             embeddingService: (any EmbeddingServiceProtocol)? = nil
         ) {
             self.languageModel = languageModel
             self.embeddingService = embeddingService
-        }
-
-        @available(*, deprecated, renamed: "init(languageModel:embeddingService:)")
-        public init(
-            llmService: any LanguageModel,
-            embeddingService: (any EmbeddingServiceProtocol)? = nil
-        ) {
-            self.init(languageModel: llmService, embeddingService: embeddingService)
-        }
-
-        @available(*, deprecated, renamed: "init(languageModel:embeddingService:)")
-        public init(
-            llmService: any LLMStreamClient & LLMConfigStore & LLMUtilityClient,
-            embeddingService: (any EmbeddingServiceProtocol)? = nil
-        ) {
-            self.init(languageModel: AnyLanguageModel(base: llmService), embeddingService: embeddingService)
         }
     }
 
@@ -67,24 +48,20 @@ public extension PositronicKit {
     ///
     /// Use ``validateDurability()`` to detect mixed-durability configurations (some stores
     /// durable, others in-memory) that can lose data on restart. Use
-    /// ``fullyPersistent(messageStore:timelinePersistence:workspacePersistence:memoryStore:toolPersistence:agentInstanceStore:requestOriginStore:)``
+    /// ``fullyPersistent(messageStore:threadPersistence:workspacePersistence:memoryStore:toolPersistence:agentInstanceStore:requestOriginStore:)``
     /// when all seven stores must be explicitly provided for full durability.
     struct PersistenceConfiguration: Sendable {
         public let messageStore: any ThreadMessageStoreProtocol
         public let threadPersistence: any ThreadPersistenceProtocol
-        /// The v3 persistence spelling retained for source compatibility.
-        @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-        public let timelinePersistence: any TimelinePersistenceProtocol
         public let workspacePersistence: any WorkspaceStore
         public let memoryStore: any MemoryStoreProtocol
         public let toolPersistence: any ToolPersistenceProtocol
         public let agentInstanceStore: any AgentInstanceStoreProtocol
         public let requestOriginStore: any RequestOriginStoreProtocol
 
-        @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
         public init(
             messageStore: (any ThreadMessageStoreProtocol)? = nil,
-            timelinePersistence: (any TimelinePersistenceProtocol)? = nil,
+            threadPersistence: (any ThreadPersistenceProtocol)? = nil,
             workspacePersistence: (any WorkspaceStore)? = nil,
             memoryStore: (any MemoryStoreProtocol)? = nil,
             toolPersistence: (any ToolPersistenceProtocol)? = nil,
@@ -92,36 +69,12 @@ public extension PositronicKit {
             requestOriginStore: (any RequestOriginStoreProtocol)? = nil
         ) {
             self.messageStore = messageStore ?? InMemoryMessageStore()
-            self.timelinePersistence = timelinePersistence ?? InMemoryTimelinePersistence()
-            self.threadPersistence = LegacyTimelinePersistenceAdapter(self.timelinePersistence)
+            self.threadPersistence = threadPersistence ?? InMemoryThreadPersistence()
             self.workspacePersistence = workspacePersistence ?? InMemoryWorkspacePersistence()
             self.memoryStore = memoryStore ?? InMemoryMemoryStore()
             self.toolPersistence = toolPersistence ?? InMemoryToolPersistence()
             self.agentInstanceStore = agentInstanceStore ?? InMemoryAgentInstanceStore()
             self.requestOriginStore = requestOriginStore ?? InMemoryRequestOriginStore()
-        }
-
-        /// Creates a canonical configuration while accepting an existing v3 message store.
-        @_disfavoredOverload
-        @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-        public init(
-            messageStore: (any MessageStoreProtocol)? = nil,
-            timelinePersistence: (any TimelinePersistenceProtocol)? = nil,
-            workspacePersistence: (any WorkspaceStore)? = nil,
-            memoryStore: (any MemoryStoreProtocol)? = nil,
-            toolPersistence: (any ToolPersistenceProtocol)? = nil,
-            agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,
-            requestOriginStore: (any RequestOriginStoreProtocol)? = nil
-        ) {
-            self.init(
-                messageStore: messageStore.map(LegacyMessageStoreAdapter.init),
-                timelinePersistence: timelinePersistence,
-                workspacePersistence: workspacePersistence,
-                memoryStore: memoryStore,
-                toolPersistence: toolPersistence,
-                agentInstanceStore: agentInstanceStore,
-                requestOriginStore: requestOriginStore
-            )
         }
 
         /// Creates a persistence configuration from the canonical thread store.
@@ -136,52 +89,6 @@ public extension PositronicKit {
         ) {
             self.messageStore = messageStore ?? InMemoryMessageStore()
             self.threadPersistence = threadPersistence
-            self.timelinePersistence = ThreadPersistenceCompatibilityAdapter(threadPersistence)
-            self.workspacePersistence = workspacePersistence ?? InMemoryWorkspacePersistence()
-            self.memoryStore = memoryStore ?? InMemoryMemoryStore()
-            self.toolPersistence = toolPersistence ?? InMemoryToolPersistence()
-            self.agentInstanceStore = agentInstanceStore ?? InMemoryAgentInstanceStore()
-            self.requestOriginStore = requestOriginStore ?? InMemoryRequestOriginStore()
-        }
-
-        /// Creates a canonical configuration while accepting an existing v3 message store.
-        @_disfavoredOverload
-        @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-        public init(
-            messageStore: (any MessageStoreProtocol)? = nil,
-            threadPersistence: any ThreadPersistenceProtocol,
-            workspacePersistence: (any WorkspaceStore)? = nil,
-            memoryStore: (any MemoryStoreProtocol)? = nil,
-            toolPersistence: (any ToolPersistenceProtocol)? = nil,
-            agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,
-            requestOriginStore: (any RequestOriginStoreProtocol)? = nil
-        ) {
-            self.init(
-                messageStore: messageStore.map(LegacyMessageStoreAdapter.init),
-                threadPersistence: threadPersistence,
-                workspacePersistence: workspacePersistence,
-                memoryStore: memoryStore,
-                toolPersistence: toolPersistence,
-                agentInstanceStore: agentInstanceStore,
-                requestOriginStore: requestOriginStore
-            )
-        }
-
-        /// Creates a canonical configuration while accepting an existing v3 timeline store.
-        @_disfavoredOverload
-        @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-        public init(
-            messageStore: (any ThreadMessageStoreProtocol)? = nil,
-            threadPersistence: any TimelinePersistenceProtocol,
-            workspacePersistence: (any WorkspaceStore)? = nil,
-            memoryStore: (any MemoryStoreProtocol)? = nil,
-            toolPersistence: (any ToolPersistenceProtocol)? = nil,
-            agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,
-            requestOriginStore: (any RequestOriginStoreProtocol)? = nil
-        ) {
-            self.messageStore = messageStore ?? InMemoryMessageStore()
-            self.threadPersistence = LegacyTimelinePersistenceAdapter(threadPersistence)
-            self.timelinePersistence = threadPersistence
             self.workspacePersistence = workspacePersistence ?? InMemoryWorkspacePersistence()
             self.memoryStore = memoryStore ?? InMemoryMemoryStore()
             self.toolPersistence = toolPersistence ?? InMemoryToolPersistence()
@@ -197,74 +104,6 @@ public extension PositronicKit {
         /// Requires all seven stores explicitly — the "full durability" entry point for
         /// production hosts (Monad, Shuttle). Unlike the optional-store init, no store can
         /// silently default to in-memory.
-        @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-        public static func fullyPersistent(
-            messageStore: any ThreadMessageStoreProtocol,
-            timelinePersistence: any TimelinePersistenceProtocol,
-            workspacePersistence: any WorkspaceStore,
-            memoryStore: any MemoryStoreProtocol,
-            toolPersistence: any ToolPersistenceProtocol,
-            agentInstanceStore: any AgentInstanceStoreProtocol,
-            requestOriginStore: any RequestOriginStoreProtocol
-        ) -> PersistenceConfiguration {
-            PersistenceConfiguration(
-                messageStore: messageStore,
-                timelinePersistence: timelinePersistence,
-                workspacePersistence: workspacePersistence,
-                memoryStore: memoryStore,
-                toolPersistence: toolPersistence,
-                agentInstanceStore: agentInstanceStore,
-                requestOriginStore: requestOriginStore
-            )
-        }
-
-        /// Requires all seven stores explicitly while accepting an existing v3 message store.
-        @_disfavoredOverload
-        @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-        public static func fullyPersistent(
-            messageStore: any MessageStoreProtocol,
-            timelinePersistence: any TimelinePersistenceProtocol,
-            workspacePersistence: any WorkspaceStore,
-            memoryStore: any MemoryStoreProtocol,
-            toolPersistence: any ToolPersistenceProtocol,
-            agentInstanceStore: any AgentInstanceStoreProtocol,
-            requestOriginStore: any RequestOriginStoreProtocol
-        ) -> PersistenceConfiguration {
-            PersistenceConfiguration(
-                messageStore: LegacyMessageStoreAdapter(messageStore),
-                timelinePersistence: timelinePersistence,
-                workspacePersistence: workspacePersistence,
-                memoryStore: memoryStore,
-                toolPersistence: toolPersistence,
-                agentInstanceStore: agentInstanceStore,
-                requestOriginStore: requestOriginStore
-            )
-        }
-
-        /// Requires all seven stores explicitly while accepting an existing v3 message store.
-        @_disfavoredOverload
-        @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-        public static func fullyPersistent(
-            messageStore: any MessageStoreProtocol,
-            threadPersistence: any ThreadPersistenceProtocol,
-            workspacePersistence: any WorkspaceStore,
-            memoryStore: any MemoryStoreProtocol,
-            toolPersistence: any ToolPersistenceProtocol,
-            agentInstanceStore: any AgentInstanceStoreProtocol,
-            requestOriginStore: any RequestOriginStoreProtocol
-        ) -> PersistenceConfiguration {
-            PersistenceConfiguration(
-                messageStore: LegacyMessageStoreAdapter(messageStore),
-                threadPersistence: threadPersistence,
-                workspacePersistence: workspacePersistence,
-                memoryStore: memoryStore,
-                toolPersistence: toolPersistence,
-                agentInstanceStore: agentInstanceStore,
-                requestOriginStore: requestOriginStore
-            )
-        }
-
-        /// Requires all seven stores explicitly, using the canonical thread persistence seam.
         public static func fullyPersistent(
             messageStore: any ThreadMessageStoreProtocol,
             threadPersistence: any ThreadPersistenceProtocol,
@@ -320,8 +159,6 @@ public extension PositronicKit {
     struct DurabilityReport: Sendable, Equatable {
         public let messageStore: StoreDurability
         public let threadPersistence: StoreDurability
-        @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-        public var timelinePersistence: StoreDurability { threadPersistence }
         public let workspacePersistence: StoreDurability
         public let memoryStore: StoreDurability
         public let toolPersistence: StoreDurability
@@ -346,27 +183,6 @@ public extension PositronicKit {
             self.requestOriginStore = requestOriginStore
         }
 
-        @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-        public init(
-            messageStore: StoreDurability,
-            timelinePersistence: StoreDurability,
-            workspacePersistence: StoreDurability,
-            memoryStore: StoreDurability,
-            toolPersistence: StoreDurability,
-            agentInstanceStore: StoreDurability,
-            requestOriginStore: StoreDurability
-        ) {
-            self.init(
-                messageStore: messageStore,
-                threadPersistence: timelinePersistence,
-                workspacePersistence: workspacePersistence,
-                memoryStore: memoryStore,
-                toolPersistence: toolPersistence,
-                agentInstanceStore: agentInstanceStore,
-                requestOriginStore: requestOriginStore
-            )
-        }
-
         public var isMixed: Bool {
             let all: [StoreDurability] = [
                 messageStore, threadPersistence, workspacePersistence,
@@ -379,7 +195,7 @@ public extension PositronicKit {
         public var ephemeralStoreNames: [String] {
             var names: [String] = []
             if messageStore == .ephemeral { names.append("messageStore") }
-            if threadPersistence == .ephemeral { names.append("timelinePersistence") }
+            if threadPersistence == .ephemeral { names.append("threadPersistence") }
             if workspacePersistence == .ephemeral { names.append("workspacePersistence") }
             if memoryStore == .ephemeral { names.append("memoryStore") }
             if toolPersistence == .ephemeral { names.append("toolPersistence") }

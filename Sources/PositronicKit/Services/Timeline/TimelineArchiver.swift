@@ -15,13 +15,13 @@ public enum MemoryVacuumPolicy: Sendable {
 /// Service to archive conversations and index them for semantic recall
 public actor ThreadArchiver {
     private let persistence: any ThreadPersistenceProtocol & MemoryStoreProtocol & ThreadMessageStoreProtocol
-    private let llmService: any LLMUtilityClient
+    private let llmService: any LLMStreamClient
     private let embeddingService: any EmbeddingServiceProtocol
     private let logger = Logger.module(named: "timeline-archiver")
 
     public init(
         persistence: any ThreadPersistenceProtocol & MemoryStoreProtocol & ThreadMessageStoreProtocol,
-        llmService: any LLMUtilityClient,
+        llmService: any LLMStreamClient,
         embeddingService: any EmbeddingServiceProtocol
     ) {
         self.persistence = persistence
@@ -29,33 +29,6 @@ public actor ThreadArchiver {
         self.embeddingService = embeddingService
     }
 
-    /// Deprecated v3 initializer. Legacy timeline persistence is adapted at the boundary.
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public init(
-        persistence: any TimelinePersistenceProtocol & MemoryStoreProtocol & ThreadMessageStoreProtocol,
-        llmService: any LLMUtilityClient,
-        embeddingService: any EmbeddingServiceProtocol
-    ) {
-        self.init(
-            persistence: LegacyThreadArchiverPersistence(persistence),
-            llmService: llmService,
-            embeddingService: embeddingService
-        )
-    }
-
-    /// Deprecated v3 initializer. Legacy message persistence is adapted at the boundary.
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public init(
-        persistence: any ThreadPersistenceProtocol & MemoryStoreProtocol & MessageStoreProtocol,
-        llmService: any LLMUtilityClient,
-        embeddingService: any EmbeddingServiceProtocol
-    ) {
-        self.init(
-            persistence: LegacyThreadMessageArchiverPersistence(persistence),
-            llmService: llmService,
-            embeddingService: embeddingService
-        )
-    }
 
     /// Archive a conversation and index its messages as semantic memories
     @discardableResult
@@ -85,17 +58,6 @@ public actor ThreadArchiver {
         return archiveState.archivedTimeline.id
     }
 
-    /// Deprecated v3 parameter label.
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    @discardableResult
-    public func archive(
-        messages: [Message],
-        timelineId: UUID?,
-        vacuumPolicy: MemoryVacuumPolicy = .run(threshold: 0.95)
-    ) async throws -> UUID {
-        try await archive(messages: messages, threadID: timelineId, vacuumPolicy: vacuumPolicy)
-    }
-
     // MARK: - Helpers
 
     private func resolveTitle(from messages: [Message]) async -> String {
@@ -103,7 +65,10 @@ public actor ThreadArchiver {
             return "Archived Conversation"
         }
         do {
-            let title = try await llmService.generateTitle(for: messages)
+            // Strict generation so this actor's own fallback policy is exercised: the
+            // best-effort compatibility surface swallows failures and returns a generic
+            // title, which would bypass the first-user-message fallback below.
+            let title = try await LLMUtilityGenerator(streamClient: llmService).generateTitle(for: messages)
             let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmedTitle.isEmpty {
                 return trimmedTitle
@@ -176,7 +141,11 @@ public actor ThreadArchiver {
 
     private func indexMessageAsMemory(_ msg: Message, title: String) async {
         do {
-            let tags = try await llmService.generateTags(for: msg.content)
+            // Tags stay best-effort: a tagging failure must not prevent the message from
+            // being indexed as a memory. Title generation is the strict operation whose
+            // failure this actor owns (see `resolveTitle(from:)`).
+            let tags = await BestEffortLLMUtilities(streamClient: llmService, logger: logger)
+                .bestEffortTags(for: msg.content)
             let embedding = try await embeddingService.generateEmbedding(for: msg.content)
 
             let memory = Memory(

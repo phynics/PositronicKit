@@ -45,12 +45,6 @@ public struct WorkspaceURI: Codable, Sendable, Hashable, CustomStringConvertible
         WorkspaceURI(host: "pk-runtime", path: "/timelines/\(threadID.uuidString)")
     }
 
-    /// Create a timeline workspace URI using the legacy API spelling.
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    public static func timelineWorkspace(_ timelineID: UUID) -> WorkspaceURI {
-        threadWorkspace(timelineID)
-    }
-
     /// Create a request-origin shell workspace URI.
     public static func requestOriginShell(hostname: String) -> WorkspaceURI {
         WorkspaceURI(host: hostname, path: "~")

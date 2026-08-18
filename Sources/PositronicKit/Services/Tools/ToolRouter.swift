@@ -339,7 +339,7 @@ public actor ToolRouter {
         timelineIsPrivate: Bool
     ) throws -> WorkspaceExecutionDisposition {
         switch location {
-        case .runtime, .runtimeThread, .runtimeTimeline:
+        case .runtime, .runtimeThread:
             return .executeLocally
         case .attached:
             guard !timelineIsPrivate else {
