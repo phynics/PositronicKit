@@ -58,17 +58,6 @@ public actor ThreadArchiver {
         return archiveState.archivedTimeline.id
     }
 
-    /// Deprecated v3 parameter label.
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    @discardableResult
-    public func archive(
-        messages: [Message],
-        timelineId: UUID?,
-        vacuumPolicy: MemoryVacuumPolicy = .run(threshold: 0.95)
-    ) async throws -> UUID {
-        try await archive(messages: messages, threadID: timelineId, vacuumPolicy: vacuumPolicy)
-    }
-
     // MARK: - Helpers
 
     private func resolveTitle(from messages: [Message]) async -> String {

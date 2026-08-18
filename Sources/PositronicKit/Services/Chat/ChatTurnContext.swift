@@ -195,62 +195,6 @@ struct ChatTurnContext {
         self.outputs = outputs
     }
 
-    /// Deprecated v3 initializer retained for internal source compatibility.
-    @available(*, deprecated, message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    init(
-        timelineId: UUID,
-        sendId: UUID = UUID(),
-        agentInstanceId: UUID?,
-        modelName: String,
-        maxTurns: Int,
-        systemInstructions: String?,
-        availableTools: [AnyTool],
-        contextData: ContextData,
-        remoteDepth: Int,
-        generationParameters: GenerationParameters? = nil,
-        structuredOutput: StructuredOutputRequest? = nil,
-        sidecars: [SidecarDirective] = [],
-        sidecarCommitPolicy: SidecarCommitPolicy = .everyRoundTrip,
-        diagnostics: [TurnDiagnostic] = [],
-        promptHistory: ThreadPromptHistory? = nil,
-        renderedPrompt: RenderedPrompt? = nil,
-        promptHistoryUpdate: PromptHistoryUpdate? = nil,
-        currentMessages: [LLMMessage],
-        turnCount: Int,
-        responseModalities: Set<ResponseModality> = [.text],
-        audioOutput: AudioOutputOptions? = nil,
-        outputs: TurnOutputs = TurnOutputs()
-    ) {
-        self.init(
-            threadID: timelineId,
-            sendId: sendId,
-            agentInstanceId: agentInstanceId,
-            modelName: modelName,
-            maxTurns: maxTurns,
-            systemInstructions: systemInstructions,
-            availableTools: availableTools,
-            contextData: contextData,
-            remoteDepth: remoteDepth,
-            generationParameters: generationParameters,
-            structuredOutput: structuredOutput,
-            sidecars: sidecars,
-            sidecarCommitPolicy: sidecarCommitPolicy,
-            diagnostics: diagnostics,
-            promptHistory: promptHistory,
-            renderedPrompt: renderedPrompt,
-            promptHistoryUpdate: promptHistoryUpdate,
-            currentMessages: currentMessages,
-            turnCount: turnCount,
-            responseModalities: responseModalities,
-            audioOutput: audioOutput,
-            outputs: outputs
-        )
-    }
-
-    /// Deprecated v3 property retained for internal source compatibility.
-    @available(*, deprecated, renamed: "threadID", message: "Timeline APIs are deprecated and will be removed in v4. Use the corresponding Thread API instead.")
-    var timelineId: UUID { threadID }
-
     /// Tool parameters derived from availableTools.
     var toolParams: [LLMToolDefinition] {
         availableTools.map { $0.toLLMToolDefinition() }
