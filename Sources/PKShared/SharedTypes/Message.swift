@@ -169,52 +169,6 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
         self.status = status
     }
 
-    /// Creates a message using the legacy identifier spellings.
-    @_disfavoredOverload
-    @available(*, deprecated, message: "Use init(..., toolCallID:parentID:...).")
-    public init(
-        id: UUID = UUID(),
-        timestamp: Date = Date(),
-        content: String,
-        role: MessageRole,
-        reasoning: String? = nil,
-        toolCalls: [ToolCall]? = nil,
-        toolCallId: String? = nil,
-        parentId: UUID? = nil,
-        recalledMemories: [Memory]? = nil,
-        isSummary: Bool = false,
-        summaryType: SummaryType? = nil,
-        status: MessageStatus? = nil
-    ) {
-        self.init(
-            id: id,
-            timestamp: timestamp,
-            content: content,
-            role: role,
-            reasoning: reasoning,
-            toolCalls: toolCalls,
-            toolCallID: toolCallId,
-            parentID: parentId,
-            recalledMemories: recalledMemories,
-            isSummary: isSummary,
-            summaryType: summaryType,
-            status: status
-        )
-    }
-
-    /// The tool-call identifier using the legacy 3.x spelling.
-    @available(*, deprecated, renamed: "toolCallID")
-    public var toolCallId: String? {
-        get { toolCallID }
-        set { toolCallID = newValue }
-    }
-
-    /// The parent-message identifier using the legacy 3.x spelling.
-    @available(*, deprecated, renamed: "parentID")
-    public var parentId: UUID? {
-        get { parentID }
-        set { parentID = newValue }
-    }
 
     /// Content cleaned for UI display (removes <tool_call> tags)
     public var displayContent: String {
