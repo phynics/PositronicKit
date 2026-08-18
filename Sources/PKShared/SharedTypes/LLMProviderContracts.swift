@@ -402,6 +402,9 @@ public struct EndpointComponents: Sendable, Equatable {
 /// A concrete provider SDK adapter (OpenAI, Anthropic, Ollama, OpenRouter, ...) that
 /// speaks the provider-neutral `LLMMessage`/`LLMStreamChunk` contract.
 public protocol LLMClientProtocol: Sendable {
+    /// The structured-output preparation behavior supported by this client.
+    var structuredOutputAdapter: any StructuredOutputAdapter { get async }
+
     /// Streams a chat completion for the given messages/tools/parameters.
     func chatStream(
         messages: [LLMMessage],
@@ -435,6 +438,10 @@ public protocol LLMClientProtocol: Sendable {
 }
 
 public extension LLMClientProtocol {
+    var structuredOutputAdapter: any StructuredOutputAdapter {
+        DefaultStructuredOutputAdapter()
+    }
+
     func chatStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,

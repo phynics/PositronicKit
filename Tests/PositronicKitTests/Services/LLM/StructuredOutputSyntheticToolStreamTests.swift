@@ -244,6 +244,7 @@ struct StructuredOutputSyntheticToolStreamTests {
         let mockClient = MockLLMClient()
         mockClient.nextToolCalls = [[MockToolCall(id: "structured-call", name: syntheticToolName, arguments: #"{"tags":["swift"]}"#)]]
 
+        mockClient.structuredOutputAdapter = DefaultStructuredOutputAdapter()
         let service = LLMService(storage: MockConfigurationService(), client: mockClient)
         try await service.updateConfiguration(.fixture(activeProvider: .anthropic))
         await service.setClients(main: mockClient, utility: nil, fast: nil)
@@ -273,6 +274,7 @@ struct StructuredOutputSyntheticToolStreamTests {
             ]),
         ]]
 
+        mockClient.structuredOutputAdapter = DefaultStructuredOutputAdapter()
         let service = LLMService(storage: MockConfigurationService(), client: mockClient)
         try await service.updateConfiguration(.fixture(activeProvider: .anthropic))
         await service.setClients(main: mockClient, utility: nil, fast: nil)

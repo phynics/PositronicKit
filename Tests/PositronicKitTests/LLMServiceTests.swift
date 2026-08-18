@@ -125,7 +125,6 @@ struct LLMServiceTests {
     private let llmService: LLMService
 
     init() {
-        StructuredOutputAdapterRegistry.register(NativeJSONSchemaStructuredOutputAdapter(), for: .openAI)
         llmService = LLMService(storage: MockConfigurationService())
     }
 

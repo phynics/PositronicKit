@@ -1,20 +1,11 @@
 import Foundation
 import PKShared
 
-public enum PKOpenRouterProvider {
-    /// Creates an OpenRouter client and registers its structured-output adapter globally.
-    public static func makeClientAndRegisterStructuredOutputAdapter(
+public enum PKOpenRouterProvider: LLMProviderFactory {
+    /// Creates an OpenRouter client with its structured-output adapter.
+    public static func makeClient(
         configuration: LLMConfiguration
     ) -> OpenRouterClient {
-        // OpenRouter supports native JSON Schema response formats. Registering
-        // this at the provider boundary prevents structured-output callers from
-        // silently falling back to a synthetic forced tool call, which some
-        // routed models (including `openrouter/free`) may not support.
-        StructuredOutputAdapterRegistry.register(
-            NativeJSONSchemaStructuredOutputAdapter(),
-            for: .openRouter
-        )
-
         let providerConfig = configuration.activeProviderConfiguration
         let baseURL = OpenRouterClient.validatedBaseURL(from: providerConfig.endpoint)
         return OpenRouterClient(
@@ -28,11 +19,5 @@ public enum PKOpenRouterProvider {
                 applicationTitle: configuration.providers[.openRouter]?.applicationTitle
             )
         )
-    }
-
-    /// Creates an OpenRouter client and registers its structured-output adapter globally.
-    @available(*, deprecated, renamed: "makeClientAndRegisterStructuredOutputAdapter(configuration:)")
-    public static func makeClient(configuration: LLMConfiguration) -> OpenRouterClient {
-        makeClientAndRegisterStructuredOutputAdapter(configuration: configuration)
     }
 }

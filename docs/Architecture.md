@@ -122,8 +122,8 @@ These public API surfaces are the **v1 compatibility contract**: they only chang
 | **Vector search** | `VectorStoreProtocol`, `VectorStoreError` | PositronicKit | Custom vector search backends |
 | **Health check** | `HealthCheckable` | PositronicKit | Service health reporting |
 | **LLM providers** | `LLMStreamClient`, `LLMConfigStore`, `LLMUtilityClient` (narrow seams); `LLMChatRequest`, `LLMStreamResult`, `LLMStreamChunk`, etc. | PKShared | Provider adapter contracts |
-| **Structured output** | `StructuredOutputAdapter`, `PreparedStructuredOutputRequest`, `StructuredOutputAdapterRegistry`, `DefaultStructuredOutputAdapter` | PKShared | Per-provider structured-output preparation; register a custom adapter to override the built-in behavior for an `LLMProvider` |
-| **Provider registration** | `PKOpenAIProvider.register()`, `PKOpenRouterProvider.register()`, `PKOllamaProvider.register()`, `PKAnthropicProvider.register()` | Provider modules | Provider factory registration |
+| **Structured output** | `StructuredOutputAdapter`, `PreparedStructuredOutputRequest`, `DefaultStructuredOutputAdapter` | PKShared | Per-client structured-output preparation without global registration |
+| **Provider factories** | `LLMProviderFactory`, `PKOpenAIProvider.makeClient(configuration:)`, `PKOpenRouterProvider.makeClient(configuration:)`, `PKOllamaProvider.makeClient(configuration:)`, `PKAnthropicProvider.makeClient(configuration:)` | PKShared / provider modules | Compile-time provider client construction; no runtime provider registry |
 | **Workspace** | `Workspace`, `WorkspaceFactory`, `ToolReference`, `WorkspaceToolDefinition` | PositronicKit / PKShared | Custom workspace backends |
 | **Configuration** | `LLMConfiguration`, `GenerationParameters`, `LLMProvider` | PKShared | LLM configuration |
 | **Events** | `ChatEvent`, `ToolExecutionStatus`, `Message` | PKShared | Stream event types |

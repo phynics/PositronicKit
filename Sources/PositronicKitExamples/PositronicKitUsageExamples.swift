@@ -72,7 +72,7 @@ public enum PositronicKitUsageExamples {
         openAIConfig.modelName = "gpt-4o"
         openAIConfig.apiKey = apiKey
         let config = LLMConfiguration(activeProvider: .openAI, providers: [.openAI: openAIConfig])
-        let client = PKOpenAIProvider.makeClientAndRegisterStructuredOutputAdapter(configuration: config)
+        let client = PKOpenAIProvider.makeClient(configuration: config)
         let model = LLMService(
             storage: InMemoryConfigurationService(config: config),
             client: client,
@@ -86,7 +86,7 @@ public enum PositronicKitUsageExamples {
         var ollamaConfig = ProviderConfiguration.makeDefault(for: .ollama)
         ollamaConfig.modelName = model
         let config = LLMConfiguration(activeProvider: .ollama, providers: [.ollama: ollamaConfig])
-        let client = PKOllamaProvider.makeClientAndRegisterStructuredOutputAdapter(configuration: config)
+        let client = PKOllamaProvider.makeClient(configuration: config)
         let languageModel = LLMService(
             storage: InMemoryConfigurationService(config: config),
             client: client,
@@ -114,7 +114,7 @@ public enum PositronicKitUsageExamples {
         var openAIConfig = ProviderConfiguration.makeDefault(for: .openAI)
         openAIConfig.apiKey = apiKey
         let configuration = LLMConfiguration(activeProvider: .openAI, providers: [.openAI: openAIConfig])
-        let client = PKOpenAIProvider.makeClientAndRegisterStructuredOutputAdapter(configuration: configuration)
+        let client = PKOpenAIProvider.makeClient(configuration: configuration)
         let languageModel = LLMService(
             storage: InMemoryConfigurationService(config: configuration),
             client: client,
@@ -133,7 +133,7 @@ public enum PositronicKitUsageExamples {
         var anthropicConfig = ProviderConfiguration.makeDefault(for: .anthropic)
         anthropicConfig.apiKey = apiKey
         let configuration = LLMConfiguration(activeProvider: .anthropic, providers: [.anthropic: anthropicConfig])
-        let client = PKAnthropicProvider.makeClientAndRegisterStructuredOutputAdapter(configuration: configuration)
+        let client = PKAnthropicProvider.makeClient(configuration: configuration)
         let languageModel = LLMService(
             storage: InMemoryConfigurationService(config: configuration),
             client: client,

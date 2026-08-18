@@ -1,12 +1,10 @@
 import PKShared
 
-public enum PKOllamaProvider {
-    /// Creates an Ollama client and registers its structured-output adapter globally.
-    public static func makeClientAndRegisterStructuredOutputAdapter(
+public enum PKOllamaProvider: LLMProviderFactory {
+    /// Creates an Ollama client with its structured-output adapter.
+    public static func makeClient(
         configuration: LLMConfiguration
     ) -> OllamaClient {
-        StructuredOutputAdapterRegistry.register(PromptAugmentedJSONSchemaAdapter(), for: .ollama)
-
         let providerConfig = configuration.activeProviderConfiguration
         return OllamaClient(
             endpoint: providerConfig.endpoint,
@@ -14,11 +12,5 @@ public enum PKOllamaProvider {
             timeoutInterval: providerConfig.timeoutInterval,
             maxRetries: providerConfig.maxRetries
         )
-    }
-
-    /// Creates an Ollama client and registers its structured-output adapter globally.
-    @available(*, deprecated, renamed: "makeClientAndRegisterStructuredOutputAdapter(configuration:)")
-    public static func makeClient(configuration: LLMConfiguration) -> OllamaClient {
-        makeClientAndRegisterStructuredOutputAdapter(configuration: configuration)
     }
 }

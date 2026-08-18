@@ -87,6 +87,9 @@ public final class MockLLMClient: LLMClientProtocol {
     /// Inject `ImmediateClock` for instant execution, or use the default `ContinuousClock`.
     public let clock: any Clock<Duration>
 
+    /// Adapter used when tests exercise structured-output preparation through this mock.
+    public var structuredOutputAdapter: any StructuredOutputAdapter
+
     public var nextResponse: String {
         get { state.withLock { $0.nextResponse } }
         set { state.withLock { $0.nextResponse = newValue } }
@@ -195,8 +198,12 @@ public final class MockLLMClient: LLMClientProtocol {
         state.withLock { $0.sendMessageCaptureHistory }
     }
 
-    public init(clock: any Clock<Duration> = ContinuousClock()) {
+    public init(
+        clock: any Clock<Duration> = ContinuousClock(),
+        structuredOutputAdapter: any StructuredOutputAdapter = NativeJSONSchemaStructuredOutputAdapter()
+    ) {
         self.clock = clock
+        self.structuredOutputAdapter = structuredOutputAdapter
     }
 
     public func chatStream(

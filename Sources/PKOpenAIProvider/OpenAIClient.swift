@@ -9,6 +9,7 @@ import PKUtilities
 import Synchronization
 
 public actor OpenAIClient: LLMClientProtocol {
+    public let structuredOutputAdapter: any StructuredOutputAdapter
     private let client: OpenAI
     private let modelName: String
     private let maxRetries: Int
@@ -21,7 +22,8 @@ public actor OpenAIClient: LLMClientProtocol {
         port: Int = 443,
         scheme: String = "https",
         timeoutInterval: TimeInterval = 60.0,
-        maxRetries: Int = 3
+        maxRetries: Int = 3,
+        structuredOutputAdapter: any StructuredOutputAdapter = NativeJSONSchemaStructuredOutputAdapter()
     ) {
         self.init(
             apiKey: apiKey,
@@ -32,7 +34,8 @@ public actor OpenAIClient: LLMClientProtocol {
             timeoutInterval: timeoutInterval,
             maxRetries: maxRetries,
             session: URLSession.shared,
-            middlewares: []
+            middlewares: [],
+            structuredOutputAdapter: structuredOutputAdapter
         )
     }
 
@@ -45,7 +48,8 @@ public actor OpenAIClient: LLMClientProtocol {
         timeoutInterval: TimeInterval = 60.0,
         maxRetries: Int = 3,
         session: URLSession,
-        middlewares: [OpenAIMiddleware]
+        middlewares: [OpenAIMiddleware],
+        structuredOutputAdapter: any StructuredOutputAdapter = NativeJSONSchemaStructuredOutputAdapter()
     ) {
         let configuration = OpenAI.Configuration(
             token: apiKey,
@@ -55,6 +59,7 @@ public actor OpenAIClient: LLMClientProtocol {
             timeoutInterval: timeoutInterval
         )
         client = OpenAI(configuration: configuration, session: session, middlewares: middlewares)
+        self.structuredOutputAdapter = structuredOutputAdapter
         self.modelName = modelName
         self.maxRetries = maxRetries
     }

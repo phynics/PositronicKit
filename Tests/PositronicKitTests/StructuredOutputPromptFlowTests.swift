@@ -9,7 +9,7 @@ import PKUtilities
 struct StructuredOutputPromptFlowTests {
     @Test("chatStreamWithContext preserves prompt context with json object output")
     func chatStreamWithContextPreservesPromptContext() async throws {
-        let mockClient = MockLLMClient()
+        let mockClient = MockLLMClient(structuredOutputAdapter: PromptAugmentedJSONSchemaAdapter())
         mockClient.nextChunks = [["{\"tags\":[\"swift\"]}"]]
         let service = LLMService(storage: MockConfigurationService(), client: mockClient)
 
@@ -44,7 +44,7 @@ struct StructuredOutputPromptFlowTests {
 
     @Test("chatStreamWithContext includes fallback schema instructions in raw prompt")
     func chatStreamWithContextIncludesFallbackSchemaInstructions() async throws {
-        let mockClient = MockLLMClient()
+        let mockClient = MockLLMClient(structuredOutputAdapter: DefaultStructuredOutputAdapter())
         mockClient.nextChunks = [["{\"tags\":[\"swift\"]}"]]
         let service = LLMService(storage: MockConfigurationService(), client: mockClient)
         try await service.updateConfiguration(.fixture(activeProvider: .ollama))
@@ -86,7 +86,7 @@ struct StructuredOutputPromptFlowTests {
 
     @Test("chatStreamWithContext preserves Anthropic schema constraints and rewrites synthetic tool output")
     func chatStreamWithContextPreservesAnthropicSchemaConstraints() async throws {
-        let mockClient = MockLLMClient()
+        let mockClient = MockLLMClient(structuredOutputAdapter: PromptAugmentedJSONSchemaAdapter())
         mockClient.nextRawStreamChunks = [[
             ChatStreamResultFactory.toolCallChunk(calls: [
                 MockToolCall(

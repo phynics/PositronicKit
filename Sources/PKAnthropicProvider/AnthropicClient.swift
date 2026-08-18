@@ -17,6 +17,7 @@ import PKUtilities
 /// without it and a warning is logged; callers needing schema-constrained output should use
 /// tool calling (a forced tool with the desired `input_schema`) instead.
 public actor AnthropicClient: LLMClientProtocol {
+    public let structuredOutputAdapter: any StructuredOutputAdapter = DefaultStructuredOutputAdapter()
     /// The Messages API requires `max_tokens`; used when `GenerationParameters.maxTokens` is nil.
     public static let defaultMaxTokens = 4096
     static let apiVersion = "2023-06-01"

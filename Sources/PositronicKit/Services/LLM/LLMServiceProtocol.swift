@@ -213,6 +213,9 @@ public protocol LLMStreamClient: Sendable {
     var isConfigured: Bool { get async }
     var configuration: LLMConfiguration { get async }
 
+    /// Returns the structured-output preparation behavior for the selected model tier.
+    func structuredOutputAdapter(for modelTier: ModelTier) async -> any StructuredOutputAdapter
+
     func chatStreamWithContext(_ request: LLMChatRequest) async throws -> LLMStreamResult
 
     /// Stream chat response from a prepared list of messages (low-level).
@@ -279,6 +282,10 @@ public protocol LLMUtilityClient: Sendable {
 }
 
 public extension LLMStreamClient {
+    func structuredOutputAdapter(for modelTier: ModelTier) async -> any StructuredOutputAdapter {
+        DefaultStructuredOutputAdapter()
+    }
+
     func chatStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,

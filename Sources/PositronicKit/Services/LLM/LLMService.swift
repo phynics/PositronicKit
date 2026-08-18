@@ -54,7 +54,7 @@ public actor LLMService: LanguageModel, HealthCheckable {
         if !configuration.isValid {
             details["readiness"] = "invalid configuration"
         } else if primaryClient == nil {
-            details["readiness"] = "no client resolved for provider \(configuration.activeProvider.rawValue); no client factory registered"
+            details["readiness"] = "no client resolved for provider \(configuration.activeProvider.rawValue); no client factory supplied"
         } else {
             details["readiness"] = "ready"
         }
@@ -92,7 +92,7 @@ public actor LLMService: LanguageModel, HealthCheckable {
 /// Optional factory hook that builds provider clients from an `LLMConfiguration`.
     /// Called by `updateClient(with:)` when a configuration change requires new clients.
     /// Hosts compose their factory from each provider's
-    /// `makeClientAndRegisterStructuredOutputAdapter(configuration:)`,
+    /// `makeClient(configuration:)`,
     /// keyed on `config.activeProvider`. Falls back to a `(nil, nil, nil)` triple if
     /// none is supplied, matching the behavior for callers that do not need dynamic swapping.
     var clientFactory: (@Sendable (LLMConfiguration) -> (
@@ -120,6 +120,18 @@ public actor LLMService: LanguageModel, HealthCheckable {
     /// Returns the configured primary client.
     public func client() -> (any LLMClientProtocol)? {
         primaryClient
+    }
+
+    public func structuredOutputAdapter(
+        for modelTier: ModelTier
+    ) async -> any StructuredOutputAdapter {
+        let selectedClient: (any LLMClientProtocol)? = switch modelTier {
+        case .fast: fastClient() ?? client()
+        case .utility: utilityClient() ?? client()
+        case .primary: client()
+        }
+        guard let selectedClient else { return DefaultStructuredOutputAdapter() }
+        return await selectedClient.structuredOutputAdapter
     }
 
     /// Returns the configured utility client.

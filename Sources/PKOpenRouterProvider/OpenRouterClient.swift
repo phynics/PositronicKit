@@ -9,6 +9,7 @@ import PKUtilities
 import Synchronization
 
 public actor OpenRouterClient: LLMClientProtocol {
+    public let structuredOutputAdapter: any StructuredOutputAdapter = NativeJSONSchemaStructuredOutputAdapter()
     public struct Attribution: Sendable, Equatable {
         public let applicationURL: String?
         public let applicationTitle: String?

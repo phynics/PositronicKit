@@ -15,6 +15,7 @@ struct OllamaTagsResponse: Codable {
 }
 
 public actor OllamaClient: LLMClientProtocol {
+    public let structuredOutputAdapter: any StructuredOutputAdapter = PromptAugmentedJSONSchemaAdapter()
     private let endpoint: OllamaEndpoint
     private let modelName: String
     private let maxRetries: Int

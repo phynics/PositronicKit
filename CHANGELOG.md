@@ -8,6 +8,17 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Added
+
+- **Compile-time provider factory contract:** added `LLMProviderFactory` so concrete provider
+  modules share a typed `makeClient(configuration:)` API without introducing provider discovery
+  or a runtime factory registry.
+
+### Changed
+
+- Provider factories now use `makeClient(configuration:)` as their canonical name. Structured-output
+  behavior is carried by each client instead of a process-global adapter registry.
+
 ## [3.7.0] - 2026-08-13
 
 ### Deprecated

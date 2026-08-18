@@ -161,18 +161,4 @@ struct StructuredOutputAdapterTests {
         #expect(jsonSchemaPrepared.responseFormat == nil)
     }
 
-    @Test("Registry returns the registered adapter per provider")
-    func registryLookup() {
-        StructuredOutputAdapterRegistry.register(NativeJSONSchemaStructuredOutputAdapter(), for: .openAI)
-        StructuredOutputAdapterRegistry.register(NativeJSONSchemaStructuredOutputAdapter(), for: .openRouter)
-        StructuredOutputAdapterRegistry.register(PromptAugmentedJSONSchemaAdapter(), for: .ollama)
-        StructuredOutputAdapterRegistry.register(DefaultStructuredOutputAdapter(), for: .anthropic)
-        StructuredOutputAdapterRegistry.register(PromptAugmentedJSONSchemaAdapter(), for: .openAICompatible)
-
-        #expect(StructuredOutputAdapterRegistry.adapter(for: .openAI) is NativeJSONSchemaStructuredOutputAdapter)
-        #expect(StructuredOutputAdapterRegistry.adapter(for: .openRouter) is NativeJSONSchemaStructuredOutputAdapter)
-        #expect(StructuredOutputAdapterRegistry.adapter(for: .ollama) is PromptAugmentedJSONSchemaAdapter)
-        #expect(StructuredOutputAdapterRegistry.adapter(for: .anthropic) is DefaultStructuredOutputAdapter)
-        #expect(StructuredOutputAdapterRegistry.adapter(for: .openAICompatible) is PromptAugmentedJSONSchemaAdapter)
-    }
 }

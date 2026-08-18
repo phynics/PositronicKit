@@ -1,6 +1,5 @@
 import Foundation
 import struct JSONSchema.Schema
-import Synchronization
 
 /// The result of preparing a structured-output request for a specific provider.
 ///
@@ -43,9 +42,8 @@ public struct PreparedStructuredOutputRequest: Sendable {
 /// Provider-specific preparation of structured-output requests.
 ///
 /// Concrete implementations live in dedicated provider targets (`PKOpenAIProvider`,
-/// `PKOllamaProvider`, etc.) and are registered via `StructuredOutputAdapterRegistry`.
-/// This keeps provider knowledge out of the core runtime while still allowing hosts to
-/// plug in custom behavior for arbitrary providers.
+/// `PKOllamaProvider`, etc.) and are supplied by the client that uses them. This keeps
+/// provider knowledge out of the core runtime without global mutable registration.
 public protocol StructuredOutputAdapter: Sendable {
     /// Transforms a neutral structured-output request into the provider-specific shape.
     func prepareRequest(
@@ -65,25 +63,6 @@ public extension StructuredOutputAdapter {
             toolChoice: nil,
             responseFormat: .jsonObject
         )
-    }
-}
-
-/// Registry mapping `LLMProvider` values to their structured-output adapters.
-///
-/// Provider modules register their adapter in their public `register()` entry point.
-/// The core runtime looks up the adapter for the configured provider and falls back
-/// to `DefaultStructuredOutputAdapter` when none is registered.
-public enum StructuredOutputAdapterRegistry {
-    private static let adapters = Mutex<[LLMProvider: any StructuredOutputAdapter]>([:])
-
-    /// Registers or replaces the structured-output adapter for `provider`.
-    public static func register(_ adapter: any StructuredOutputAdapter, for provider: LLMProvider) {
-        adapters.withLock { $0[provider] = adapter }
-    }
-
-    /// Returns the registered adapter for `provider`, if any has been registered.
-    public static func adapter(for provider: LLMProvider) -> (any StructuredOutputAdapter)? {
-        adapters.withLock { $0[provider] }
     }
 }
 
@@ -117,7 +96,7 @@ public struct NativeJSONSchemaStructuredOutputAdapter: StructuredOutputAdapter {
     }
 }
 
-/// Conservative fallback for providers with no registered adapter.
+/// Conservative fallback for clients with no specialized adapter.
 ///
 /// - `.jsonObject` is forwarded with a native JSON-object response format.
 /// - `.jsonSchema` is converted to a forced synthetic tool call, which is the most

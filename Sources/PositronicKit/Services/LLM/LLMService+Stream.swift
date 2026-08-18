@@ -18,13 +18,13 @@ public extension LLMStreamClient {
             generationParameters: request.generationParameters
         )
         let result = try await PromptAssembler.prepare(promptRequest)
-        let provider = await configuration.activeProvider
+        let adapter = await structuredOutputAdapter(for: request.modelTier)
         let toolParams = request.tools.isEmpty ? nil : request.tools.map { $0.toLLMToolDefinition() }
         let preparedOutput = request.structuredOutput.map {
             StructuredOutputExecution.prepareRequest(
                 messages: result.messages,
                 tools: toolParams,
-                provider: provider,
+                adapter: adapter,
                 output: $0
             )
         }
