@@ -352,6 +352,7 @@ struct FacadeOneShotTests {
     func completeStructuredOutputAssemblesSyntheticToolCallPayload() async throws {
         let llm = MockLLMService()
         try await llm.updateConfiguration(.fixture(activeProvider: .anthropic))
+        llm.mockClient.structuredOutputAdapter = DefaultStructuredOutputAdapter()
         llm.mockClient.nextRawStreamChunks = [[
             ChatStreamResultFactory.toolCallChunk(calls: [
                 MockToolCall(id: "structured-call", name: "emit_structured_response", arguments: "{" + #""tags":["#)
