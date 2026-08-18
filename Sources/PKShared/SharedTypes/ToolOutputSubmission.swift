@@ -13,16 +13,6 @@ public struct ToolOutputSubmission: Codable, Sendable {
         self.output = output
     }
 
-    /// Creates a submission using the legacy identifier spelling.
-    @available(*, deprecated, message: "Use init(toolCallID:output:).")
-    public init(toolCallId: String, output: String) {
-        self.init(toolCallID: toolCallId, output: output)
-    }
-
-    /// The tool-call identifier using the legacy 3.x spelling.
-    @available(*, deprecated, renamed: "toolCallID")
-    public var toolCallId: String { toolCallID }
-
     private enum CodingKeys: String, CodingKey {
         case toolCallID = "toolCallId"
         case output

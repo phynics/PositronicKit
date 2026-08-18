@@ -131,16 +131,6 @@ struct PKPromptAPIFluencyTests {
 
 @Suite("PKPrompt compatibility shims")
 struct PKPromptCompatibilityShimTests {
-    @Test("Legacy ForEach initializer forwards to the canonical element initializer")
-    @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
-    func legacyForEachForwarding() {
-        let prompt = ForEach(data: ["one", "two"]) { element in
-            TextPrompt(element, id: element)
-        }
-
-        #expect(prompt.makePromptNode() != nil)
-    }
-
     @Test("Legacy token-budget methods project the canonical result")
     @available(*, deprecated, message: "Intentional legacy API compatibility coverage.")
     func legacyTokenBudgetForwarding() async throws {
