@@ -93,7 +93,7 @@ import Testing
             apiKey: "",
             activeProvider: .openAI
         )
-        let service = LLMService(configuration: config)
+        let service = LLMService(configuration: config, clients: .empty)
         let isConfigured = await service.isConfigured
         #expect(!isConfigured)
     }

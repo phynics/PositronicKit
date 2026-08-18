@@ -127,7 +127,7 @@ struct LLMServiceTests {
     private let llmService: LLMService
 
     init() {
-        llmService = LLMService(storage: MockConfigurationService())
+        llmService = LLMService(storage: MockConfigurationService(), clientResolver: FixedClientsResolver.empty)
     }
 
     @Test("Test updating LLM configuration")
@@ -297,7 +297,7 @@ struct LLMServiceTests {
 
     @Test("Test LLMService error when not configured")
     func unconfiguredServiceError() async throws {
-        let service = LLMService(storage: MockConfigurationService())
+        let service = LLMService(storage: MockConfigurationService(), clientResolver: FixedClientsResolver.empty)
         // No configuration provided
 
         await #expect(throws: LLMServiceError.notConfigured) {
@@ -453,7 +453,7 @@ struct LLMServiceTests {
             apiKey: "test-key",
             activeProvider: .openRouter
         )
-        let service = LLMService(configuration: openRouterConfig)
+        let service = LLMService(configuration: openRouterConfig, clients: .empty)
 
         let details = await service.getHealthDetails()
         #expect(details?["provider"] == "OpenRouter")
@@ -462,7 +462,7 @@ struct LLMServiceTests {
 
     @Test("Health check is degraded when not configured")
     func healthStatusDegradedWhenNotConfigured() async {
-        let service = LLMService(storage: MockConfigurationService())
+        let service = LLMService(storage: MockConfigurationService(), clientResolver: FixedClientsResolver.empty)
         let status = await service.checkHealth()
         #expect(status == .degraded)
     }
@@ -473,7 +473,7 @@ struct LLMServiceTests {
         // but if the registry has no factory for that provider, the client is nil.
         // Use a storage-backed init with no client to exercise this path.
         let mockStorage = MockConfigurationService()
-        let service = LLMService(storage: mockStorage, client: nil, utilityClient: nil, fastClient: nil)
+        let service = LLMService(storage: mockStorage, clientResolver: FixedClientsResolver.empty)
         let status = await service.checkHealth()
         #expect(status == .degraded)
     }
@@ -503,7 +503,7 @@ struct LLMServiceTests {
             apiKey: "test-key",
             activeProvider: .openAI
         )
-        let service = LLMService(configuration: config)
+        let service = LLMService(configuration: config, clients: .empty)
 
         #expect(await service.isConfigured, "isConfigured reflects configuration validity only")
         #expect(await service.isReady == false, "isReady is false when no primary client is resolved")
@@ -519,9 +519,10 @@ struct LLMServiceTests {
             modelName: "test-model",
             apiKey: "test-key"
         )
-        let service = LLMService(configuration: config) { _ in
-            (main: mockClient as any LLMClientProtocol, utility: nil, fast: nil)
-        }
+        let service = LLMService(
+            configuration: config,
+            clients: .init(primary: mockClient)
+        )
 
         #expect(await service.isReady, "isReady is true when configuration is valid and a primary client is resolved")
         #expect(await service.isConfigured, "isConfigured is also true here")
@@ -540,7 +541,7 @@ struct LLMServiceTests {
             apiKey: "",
             activeProvider: .openAI
         )
-        let invalidService = LLMService(configuration: invalidConfig)
+        let invalidService = LLMService(configuration: invalidConfig, clients: .empty)
         let invalidDetails = await invalidService.getHealthDetails()
         #expect(invalidDetails?["readiness"] == "invalid configuration")
         #expect(await invalidService.isConfigured == false)
@@ -553,7 +554,7 @@ struct LLMServiceTests {
             apiKey: "test-key",
             activeProvider: .openRouter
         )
-        let noClientService = LLMService(configuration: validConfig)
+        let noClientService = LLMService(configuration: validConfig, clients: .empty)
         let noClientDetails = await noClientService.getHealthDetails()
         #expect(noClientDetails?["provider"] == "OpenRouter")
         #expect(noClientDetails?["readiness"] == "no client resolved for provider OpenRouter; no client factory supplied")
@@ -562,9 +563,10 @@ struct LLMServiceTests {
 
         // Valid configuration with a client: readiness reports ready.
         let readyClient = MockLLMClient()
-        let readyService = LLMService(configuration: validConfig) { _ in
-            (main: readyClient as any LLMClientProtocol, utility: nil, fast: nil)
-        }
+        let readyService = LLMService(
+            configuration: validConfig,
+            clients: .init(primary: readyClient)
+        )
         let readyDetails = await readyService.getHealthDetails()
         #expect(readyDetails?["readiness"] == "ready")
         #expect(await readyService.isReady == true)
@@ -578,7 +580,7 @@ struct LLMServiceTests {
             apiKey: "test-key",
             activeProvider: .openAI
         )
-        let service = LLMService(configuration: config)
+        let service = LLMService(configuration: config, clients: .empty)
 
         // Config is valid but no client factory → the more specific clientNotResolved error,
         // not the generic notConfigured.
@@ -596,7 +598,7 @@ struct LLMServiceTests {
             apiKey: "test-key",
             activeProvider: .openAI
         )
-        let service = LLMService(configuration: config)
+        let service = LLMService(configuration: config, clients: .empty)
 
         let stream = await service.chatStream(
             messages: [LLMMessage(role: .user, content: "Hi")],
@@ -619,7 +621,7 @@ struct LLMServiceTests {
     @Test("sendMessage still throws notConfigured when configuration is invalid (PKRR-018)")
     func sendMessageThrowsNotConfiguredWhenConfigInvalid() async {
         // Storage-backed service with default (invalid) config and no client.
-        let service = LLMService(storage: MockConfigurationService())
+        let service = LLMService(storage: MockConfigurationService(), clientResolver: FixedClientsResolver.empty)
         let thrown = await #expect(throws: LLMServiceError.self) {
             _ = try await service.sendMessage("Hello")
         }
@@ -675,7 +677,7 @@ struct LLMServiceTests {
             apiKey: "test-key"
         )
         let storage = DelayedConfigurationService(config: config)
-        let service = LLMService(storage: storage)
+        let service = LLMService(storage: storage, clientResolver: FixedClientsResolver.empty)
 
         #expect(await service.hasPreparationTask)
     }
@@ -688,7 +690,7 @@ struct LLMServiceTests {
             apiKey: "test-key"
         )
         let storage = DelayedConfigurationService(config: config)
-        let service = LLMService(storage: storage)
+        let service = LLMService(storage: storage, clientResolver: FixedClientsResolver.empty)
 
         let exportTask = Task { try await service.exportConfiguration() }
 
@@ -708,9 +710,10 @@ struct LLMServiceTests {
         )
         let storage = DelayedConfigurationService(config: config)
         let mockClient = MockLLMClient()
-        let service = LLMService(storage: storage) { _ in
-            (main: mockClient as any LLMClientProtocol, utility: nil, fast: nil)
-        }
+        let service = LLMService(
+            storage: storage,
+            clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
+        )
 
         // The first public call starts preparation, so the stream task must be created
         // before we wait for the (delayed) configuration load to begin.
@@ -743,7 +746,10 @@ struct LLMServiceTests {
         let storage = MockConfigurationService()
         try await storage.save(config)
 
-        let service = LLMService(storage: storage, client: MockLLMClient())
+        let service = LLMService(
+            storage: storage,
+            clientResolver: FixedClientsResolver(clients: .init(primary: MockLLMClient()))
+        )
         // Force the first-call preparation to complete so the loaded configuration is applied.
         _ = try await service.exportConfiguration()
 
@@ -765,7 +771,10 @@ struct LLMServiceTests {
         let storage = MockConfigurationService()
         try await storage.save(config)
 
-        let service = LLMService(storage: storage, client: MockLLMClient())
+        let service = LLMService(
+            storage: storage,
+            clientResolver: FixedClientsResolver(clients: .init(primary: MockLLMClient()))
+        )
         _ = try await service.exportConfiguration()
 
         let loaded = await service.configuration
@@ -782,7 +791,10 @@ struct LLMServiceTests {
         try await storage.save(.fixture(apiKey: "test-key"))
         let mockClient = MockLLMClient()
 
-        let service = LLMService(storage: storage, client: mockClient)
+        let service = LLMService(
+            storage: storage,
+            clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
+        )
         _ = try await service.exportConfiguration()
         #expect(await service.primaryClient() != nil)
 
@@ -802,7 +814,10 @@ struct LLMServiceTests {
         await storage.setBackupConfig(.fixture(apiKey: "test-key"))
         let mockClient = MockLLMClient()
 
-        let service = LLMService(storage: storage, client: mockClient)
+        let service = LLMService(
+            storage: storage,
+            clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
+        )
         _ = try await service.exportConfiguration()
         #expect(await service.primaryClient() != nil)
 
@@ -815,7 +830,7 @@ struct LLMServiceTests {
 
     @Test("Valid configuration without a primary client yields clientNotResolved from send and every stream overload")
     func missingClientProducesClientNotResolvedEverywhere() async {
-        let service = LLMService(configuration: .fixture(apiKey: "test-key"))
+        let service = LLMService(configuration: .fixture(apiKey: "test-key"), clients: .empty)
 
         let sendError = await #expect(throws: LLMServiceError.self) {
             _ = try await service.sendMessage("Hi")
@@ -874,12 +889,12 @@ struct LLMServiceTests {
 
     @Test("isConfigured, isReady, and health status agree across readiness states")
     func readinessProjectionsAgree() async {
-        let invalid = LLMService(configuration: .init(activeProvider: .openAI, providers: [:]))
+        let invalid = LLMService(configuration: .init(activeProvider: .openAI, providers: [:]), clients: .empty)
         #expect(await invalid.isConfigured == false)
         #expect(await invalid.isReady == false)
         #expect(await invalid.checkHealth() == .degraded)
 
-        let noClient = LLMService(configuration: .fixture(apiKey: "test-key"))
+        let noClient = LLMService(configuration: .fixture(apiKey: "test-key"), clients: .empty)
         #expect(await noClient.isConfigured)
         #expect(await noClient.isReady == false)
         #expect(await noClient.checkHealth() == .degraded)
@@ -925,7 +940,7 @@ struct LLMServiceTests {
     func concurrentFirstOperationsPerformSingleLoad() async throws {
         let config = LLMConfiguration.fixture(apiKey: "test-key")
         let storage = DelayedConfigurationService(config: config)
-        let service = LLMService(storage: storage)
+        let service = LLMService(storage: storage, clientResolver: FixedClientsResolver.empty)
 
         let first = Task { try await service.exportConfiguration() }
         let second = Task { try await service.exportConfiguration() }

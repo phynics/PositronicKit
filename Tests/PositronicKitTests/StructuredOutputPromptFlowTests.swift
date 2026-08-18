@@ -49,7 +49,10 @@ struct StructuredOutputPromptFlowTests {
     func chatStreamWithContextIncludesFallbackSchemaInstructions() async throws {
         let mockClient = MockLLMClient(structuredOutputAdapter: PromptAugmentedJSONSchemaAdapter())
         mockClient.nextChunks = [["{\"tags\":[\"swift\"]}"]]
-        let service = LLMService(storage: MockConfigurationService(), client: mockClient)
+        let service = LLMService(
+            storage: MockConfigurationService(),
+            clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
+        )
         try await service.updateConfiguration(.fixture(activeProvider: .ollama))
         await service.setClients(main: mockClient, utility: nil, fast: nil)
 
@@ -100,7 +103,10 @@ struct StructuredOutputPromptFlowTests {
             ])
         ]]
 
-        let service = LLMService(storage: MockConfigurationService(), client: mockClient)
+        let service = LLMService(
+            storage: MockConfigurationService(),
+            clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
+        )
         try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .anthropic))
         await service.setClients(main: mockClient, utility: nil, fast: nil)
 
@@ -137,7 +143,10 @@ struct StructuredOutputPromptFlowTests {
         let mockClient = MockLLMClient(structuredOutputAdapter: PromptAugmentedJSONSchemaAdapter())
         mockClient.nextChunks = [["{\"tags\":[\"swift\"]}"]]
 
-        let service = LLMService(storage: MockConfigurationService(), client: mockClient)
+        let service = LLMService(
+            storage: MockConfigurationService(),
+            clientResolver: FixedClientsResolver(clients: .init(primary: mockClient))
+        )
         try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .openAICompatible))
         await service.setClients(main: mockClient, utility: nil, fast: nil)
 

@@ -33,7 +33,9 @@ for tagged releases beginning with `1.0.0`.
   all clients; and send, both stream overloads, structured-output adapters, model listing, and
   health checks share a single tier-resolution and readiness implementation. Explicit
   `LLMService(configuration:clients:)` and `LLMService(storage:clientResolver:)` construction paths
-  are the new canonical initializers; legacy initializers remain as forwarding shims.
+  are the canonical initializers; the legacy `embeddingService`/`clientFactory`/injected-client
+  initializers were removed. `LLMClientSet` and `LLMClientResolving` (`FixedClientsResolver`) provide
+  the tiered client-set and resolution contracts.
 - **Preparation no longer escapes the actor:** `PreparationTaskBox` and its `@unchecked Sendable`
   conformance were removed in favor of an actor-owned coalesced bootstrap task.
 - **Utility failure policy is explicit:** strict `LLMUtilityGenerator` operations throw; the
