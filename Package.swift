@@ -1,5 +1,17 @@
-// swift-tools-version: 6.1
+// swift-tools-version: 6.2
 import PackageDescription
+
+// Enforce the concurrency gate required by the reference-box elimination handoff.
+// In the Swift 6 language mode (default for this tools version) complete strict
+// concurrency checking is already on; Approachable Concurrency (SE-0461 + SE-0470)
+// adds the two behaviors that mode does not already imply: nonisolated async
+// functions run on the caller's actor, and global-actor-isolated types get
+// actor-scoped protocol conformances. Applied to every source, test, example, and
+// fixture target so the gate cannot be bypassed.
+let approachableConcurrency: [SwiftSetting] = [
+    .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+    .enableUpcomingFeature("InferIsolatedConformances"),
+]
 
 #if os(Linux)
 let pkFastEmbedDependency: Target.Dependency = .target(
@@ -71,12 +83,14 @@ let package = Package(
                 .product(name: "PartialJSON", package: "PartialJSON"),
                 .product(name: "Crypto", package: "swift-crypto"),
             ],
-            path: "Sources/PKShared"
+            path: "Sources/PKShared",
+            swiftSettings: approachableConcurrency
         ),
         .target(
             name: "PKPrompt",
             dependencies: ["PKShared", "PKUtilities"],
-            path: "Sources/PKPrompt"
+            path: "Sources/PKPrompt",
+            swiftSettings: approachableConcurrency
         ),
         .target(
             name: "PKUtilities",
@@ -86,7 +100,8 @@ let package = Package(
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "Crypto", package: "swift-crypto"),
             ],
-            path: "Sources/PKUtilities"
+            path: "Sources/PKUtilities",
+            swiftSettings: approachableConcurrency
         ),
         .target(
             name: "PositronicKit",
@@ -101,12 +116,14 @@ let package = Package(
                 .product(name: "PartialJSON", package: "PartialJSON"),
             ],
             path: "Sources/PositronicKit",
-            exclude: ["PositronicKit.docc"]
+            exclude: ["PositronicKit.docc"],
+            swiftSettings: approachableConcurrency
         ),
         .target(
             name: "PKObservable",
             dependencies: ["PositronicKit"],
-            path: "Sources/PKObservable"
+            path: "Sources/PKObservable",
+            swiftSettings: approachableConcurrency
         ),
         .target(
             name: "PKLocalEmbeddings",
@@ -116,13 +133,15 @@ let package = Package(
                 .product(name: "Crypto", package: "swift-crypto"),
                 pkFastEmbedDependency,
             ],
-            path: "Sources/PKLocalEmbeddings"
+            path: "Sources/PKLocalEmbeddings",
+            swiftSettings: approachableConcurrency
         ),
         cpkFastEmbedTarget,
         .target(
             name: "PKFastEmbed",
             dependencies: ["CPKFastEmbed", "PKShared", "PKUtilities", "PositronicKit"],
-            path: "Sources/PKFastEmbed"
+            path: "Sources/PKFastEmbed",
+            swiftSettings: approachableConcurrency
         ),
         .target(
             name: "PKOpenAIProvider",
@@ -132,7 +151,8 @@ let package = Package(
                 .product(name: "OpenAI", package: "OpenAI"),
                 .product(name: "Logging", package: "swift-log"),
             ],
-            path: "Sources/PKOpenAIProvider"
+            path: "Sources/PKOpenAIProvider",
+            swiftSettings: approachableConcurrency
         ),
         .target(
             name: "PKOpenRouterProvider",
@@ -141,7 +161,8 @@ let package = Package(
                 "PKUtilities",
                 .product(name: "Logging", package: "swift-log"),
             ],
-            path: "Sources/PKOpenRouterProvider"
+            path: "Sources/PKOpenRouterProvider",
+            swiftSettings: approachableConcurrency
         ),
         .target(
             name: "PKOllamaProvider",
@@ -150,7 +171,8 @@ let package = Package(
                 "PKUtilities",
                 .product(name: "Logging", package: "swift-log"),
             ],
-            path: "Sources/PKOllamaProvider"
+            path: "Sources/PKOllamaProvider",
+            swiftSettings: approachableConcurrency
         ),
         .target(
             name: "PKAnthropicProvider",
@@ -159,7 +181,8 @@ let package = Package(
                 "PKUtilities",
                 .product(name: "Logging", package: "swift-log"),
             ],
-            path: "Sources/PKAnthropicProvider"
+            path: "Sources/PKAnthropicProvider",
+            swiftSettings: approachableConcurrency
         ),
         .target(
             name: "PKFoundationModelsProvider",
@@ -168,7 +191,8 @@ let package = Package(
                 "PKUtilities",
                 .product(name: "Logging", package: "swift-log"),
             ],
-            path: "Sources/PKFoundationModelsProvider"
+            path: "Sources/PKFoundationModelsProvider",
+            swiftSettings: approachableConcurrency
         ),
         .executableTarget(
             name: "PositronicKitExamples",
@@ -185,12 +209,14 @@ let package = Package(
                 "PKUtilities",
                 .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
             ],
-            path: "Sources/PositronicKitExamples"
+            path: "Sources/PositronicKitExamples",
+            swiftSettings: approachableConcurrency
         ),
         .executableTarget(
             name: "PKPromptJournalProcessFixture",
             dependencies: ["PKPrompt"],
-            path: "Tests/PKPromptJournalProcessFixture"
+            path: "Tests/PKPromptJournalProcessFixture",
+            swiftSettings: approachableConcurrency
         ),
         .target(
             name: "PKTestSupport",
@@ -201,12 +227,14 @@ let package = Package(
                 "PKPrompt",
                 .product(name: "JSONSchema", package: "swift-json-schema"),
             ],
-            path: "Tests/PKTestSupport"
+            path: "Tests/PKTestSupport",
+            swiftSettings: approachableConcurrency
         ),
         .executableTarget(
             name: "PKTestSupportConsumer",
             dependencies: ["PKTestSupport", "PKShared", "PositronicKit"],
-            path: "Tests/PKTestSupportConsumer"
+            path: "Tests/PKTestSupportConsumer",
+            swiftSettings: approachableConcurrency
         ),
         .testTarget(
             name: "PositronicKitTests",
@@ -228,12 +256,14 @@ let package = Package(
                 "PKTestSupport",
                 .product(name: "OpenAI", package: "OpenAI"),
             ],
-            path: "Tests/PositronicKitTests"
+            path: "Tests/PositronicKitTests",
+            swiftSettings: approachableConcurrency
         ),
         .testTarget(
             name: "PKObservableTests",
             dependencies: ["PKObservable", "PKTestSupport"],
-            path: "Tests/PKObservableTests"
+            path: "Tests/PKObservableTests",
+            swiftSettings: approachableConcurrency
         ),
         .testTarget(
             name: "PKLocalEmbeddingsTests",
@@ -245,19 +275,22 @@ let package = Package(
                 "PKTestSupport",
             ],
             path: "Tests/PKLocalEmbeddingsTests",
-            resources: [.copy("Fixtures")]
+            resources: [.copy("Fixtures")],
+            swiftSettings: approachableConcurrency
         ),
         .testTarget(
             name: "PKFastEmbedTests",
             dependencies: [
                 .target(name: "PKFastEmbed", condition: .when(traits: ["MiniLMEmbeddings"])),
             ],
-            path: "Tests/PKFastEmbedTests"
+            path: "Tests/PKFastEmbedTests",
+            swiftSettings: approachableConcurrency
         ),
         .testTarget(
             name: "PKPromptTests",
             dependencies: ["PKPrompt", "PKShared", "PKUtilities", "PKTestSupport"],
-            path: "Tests/PKPromptTests"
+            path: "Tests/PKPromptTests",
+            swiftSettings: approachableConcurrency
         ),
         .testTarget(
             name: "PKSharedTests",
@@ -268,12 +301,14 @@ let package = Package(
                 .product(name: "JSONSchema", package: "swift-json-schema"),
                 .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
             ],
-            path: "Tests/PKSharedTests"
+            path: "Tests/PKSharedTests",
+            swiftSettings: approachableConcurrency
         ),
         .testTarget(
             name: "PKUtilitiesTests",
             dependencies: ["PKUtilities", "PKShared", "PKTestSupport"],
-            path: "Tests/PKUtilitiesTests"
+            path: "Tests/PKUtilitiesTests",
+            swiftSettings: approachableConcurrency
         ),
         .testTarget(
             name: "PKOpenAIProviderTests",
@@ -286,7 +321,8 @@ let package = Package(
                 .product(name: "OpenAI", package: "OpenAI"),
                 .product(name: "Logging", package: "swift-log"),
             ],
-            path: "Tests/PKOpenAIProviderTests"
+            path: "Tests/PKOpenAIProviderTests",
+            swiftSettings: approachableConcurrency
         ),
         .testTarget(
             name: "PKOpenRouterProviderTests",
@@ -297,7 +333,8 @@ let package = Package(
                 "PKTestSupport",
                 .product(name: "Logging", package: "swift-log"),
             ],
-            path: "Tests/PKOpenRouterProviderTests"
+            path: "Tests/PKOpenRouterProviderTests",
+            swiftSettings: approachableConcurrency
         ),
         .testTarget(
             name: "PKOllamaProviderTests",
@@ -309,7 +346,8 @@ let package = Package(
                 .product(name: "JSONSchema", package: "swift-json-schema"),
                 .product(name: "Logging", package: "swift-log"),
             ],
-            path: "Tests/PKOllamaProviderTests"
+            path: "Tests/PKOllamaProviderTests",
+            swiftSettings: approachableConcurrency
         ),
         .testTarget(
             name: "PKAnthropicProviderTests",
@@ -321,7 +359,8 @@ let package = Package(
                 "PositronicKit",
                 .product(name: "Logging", package: "swift-log"),
             ],
-            path: "Tests/PKAnthropicProviderTests"
+            path: "Tests/PKAnthropicProviderTests",
+            swiftSettings: approachableConcurrency
         ),
         .testTarget(
             name: "PKFoundationModelsProviderTests",
@@ -333,7 +372,8 @@ let package = Package(
                 "PositronicKit",
                 .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
             ],
-            path: "Tests/PKFoundationModelsProviderTests"
+            path: "Tests/PKFoundationModelsProviderTests",
+            swiftSettings: approachableConcurrency
         ),
         .testTarget(
             name: "PKTestSupportTests",
@@ -342,7 +382,8 @@ let package = Package(
                 "PKShared",
                 "PKUtilities",
             ],
-            path: "Tests/PKTestSupportTests"
+            path: "Tests/PKTestSupportTests",
+            swiftSettings: approachableConcurrency
         ),
     ]
 )
