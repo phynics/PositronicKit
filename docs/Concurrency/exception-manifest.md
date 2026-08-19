@@ -17,8 +17,8 @@ to regenerate annotations (it skips lines that already carry one).
 
 ## Production boundaries (retained)
 
-These are the only `@unchecked Sendable` conformances in `Sources/`. Both are
-external-framework boundaries that actor or mutex isolation cannot express, with a
+The only `@unchecked Sendable` conformance left in `Sources/` is a single
+external-framework boundary that actor or mutex isolation cannot express, with a
 documented invariant and focused test coverage.
 
 ### `MiniLMEmbedder` — `Sources/PKFastEmbed/PKFastEmbed.swift`
@@ -33,18 +33,12 @@ documented invariant and focused test coverage.
 - **Why not actor/mutex:** the wrapper is storage-immutable; isolation would add
   dispatch without removing the native boundary.
 
-### `StreamingLineDelegate` — `Sources/PKUtilities/ProviderHTTPTransport.swift`
-
-- **External type:** `URLSessionDataDelegate` (Foundation), driven on a serial delegate queue.
-- **Why it is safe:** the delegate queue serializes callbacks; the internal `NSLock`
-  additionally guards the one-shot `CheckedContinuation` claim between cancellation
-  and response delivery so it resumes exactly once.
-- **Concurrent operations:** delegate callbacks (serial queue) vs the async caller's
-  `awaitResponse()`/cancellation.
-- **Teardown owner:** the owning `URLSession`.
-- **Why not actor/mutex:** `URLSessionDataDelegate` is a synchronous Objective-C
-  protocol; an actor boundary is impossible. This file is `#if`-gated Linux-only and
-  its NSLock/continuation replacement is deferred until Linux validation is available.
+The Linux streaming bridge (`StreamingLineCoordinator` in
+`Sources/PKUtilities/ProviderHTTPTransport.swift`, compiled only on non-Apple
+platforms) is not an exception: it owns the `@unchecked`-free
+`Mutex<StreamingLineState>` lifecycle state machine described under "Banned
+outright" below, and its two stored continuations carry the sanctioned inline
+annotations for exactly that reason.
 
 ## Test-support boundaries (retained)
 
@@ -68,7 +62,7 @@ doubles are not actorized solely to satisfy `Sendable`).
 ## Banned outright
 
 - New type names ending in `Box`, `Cell`, or `Holder` in `Sources/`.
-- Manual `NSLock` wrappers outside `ProviderHTTPTransport.swift`.
+- Manual `NSLock` wrappers.
 - Stored `CheckedContinuation`/`UnsafeContinuation`/stream continuations outside an
   explicit lifecycle state machine.
 - Stored `Task` properties outside the actor or `@MainActor` owner of the task's
