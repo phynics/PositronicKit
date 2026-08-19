@@ -46,7 +46,7 @@ import PKUtilities
     ///     }
     /// }
     /// ```
-    public final class TestWorkspace: @unchecked Sendable {
+    public final class TestWorkspace: @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         public let root: URL
 
         public init() {

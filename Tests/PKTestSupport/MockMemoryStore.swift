@@ -12,7 +12,7 @@ import Synchronization
 /// search isn't performed). Text/tag-based search overloads filter `memories` directly.
 /// Vacuum/prune operations are no-ops that report zero affected rows. Each read/modify/write
 /// operation is one mutex transaction, so concurrent saves and updates do not lose unrelated data.
-public final class MockMemoryStore: MemoryStoreProtocol, @unchecked Sendable {
+public final class MockMemoryStore: MemoryStoreProtocol, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     private struct State: Sendable {
         var memories: [Memory] = []
         var searchResults: [(memory: Memory, similarity: Double)] = []

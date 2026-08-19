@@ -1,0 +1,55 @@
+# Concurrency guardrail enforcement (see docs/Concurrency/exception-manifest.md).
+#
+# Only the reviewed custom rules below run — no default rules. Each rule flags a
+# concurrency anti-pattern the reference-box elimination work banned. Rules are
+# GLOBAL: any occurrence that has not been individually reviewed and annotated
+# with an inline `// swiftlint:disable:this` comment fails the gate
+# (`swiftlint lint --strict`). The annotation on each site's own line carries the
+# reviewer's justification; the manifest is the source of truth.
+
+only_rules:
+  - concurrency_unchecked_sendable
+  - concurrency_manual_nslock
+  - concurrency_stored_continuation
+  - concurrency_stored_task
+  - concurrency_reference_box_naming
+
+excluded:
+  - .build
+  - DerivedData
+  - .git
+
+custom_rules:
+  # @unchecked Sendable survives only where a reviewed external-framework
+  # boundary or test double justifies it (site-annotated; see manifest).
+  concurrency_unchecked_sendable:
+    regex: '@unchecked[[:space:]]+Sendable'
+    message: 'Un-annotated @unchecked Sendable conformance. Every exception needs an inline annotation; the source of truth is docs/Concurrency/exception-manifest.md.'
+    severity: error
+
+  # Manual NSLock lock-boxes are banned in favor of Synchronization.Mutex<State>.
+  concurrency_manual_nslock:
+    regex: '\bNSLock\(\)'
+    message: 'Manual NSLock box. Use Synchronization.Mutex<State> (see exception manifest).'
+    severity: error
+
+  # Stored continuation properties are banned outside an explicit lifecycle state
+  # machine owned by an actor or mutex.
+  concurrency_stored_continuation:
+    regex: '\b(var|let)[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]*:[[:space:]]*(CheckedContinuation|UnsafeContinuation|Async(Throwing)?Stream[[:space:]]*<[^>]*>[[:space:]]*\.Continuation)'
+    message: 'Stored continuation. Use an explicit lifecycle state machine owned by an actor or mutex (see exception manifest).'
+    severity: error
+
+  # Stored Task properties are banned outside the actor/@MainActor owner of the
+  # task's cancellation.
+  concurrency_stored_task:
+    regex: '\b(var|let)[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]*:[[:space:]]*Task<'
+    message: 'Stored Task outside its owning actor/service (see exception manifest).'
+    severity: error
+
+  # Generic reference-box type names are banned; ownership must be explicit
+  # rather than hidden behind a Box/Cell/Holder cell.
+  concurrency_reference_box_naming:
+    regex: '\b(class|actor|struct|enum)[[:space:]]+[A-Za-z_]*(Box|Cell|Holder)'
+    message: 'Generic reference-box type name. Choose explicit ownership instead (see exception manifest).'
+    severity: error

@@ -6,7 +6,7 @@ import PKUtilities
 /// Best-effort `LLMUtilityClient` compatibility surface.
 ///
 /// These methods intentionally never throw: failures are logged and mapped to documented
-/// defaults via ``BestEffortLLMUtilities``. Callers that own fallback policy (such as
+/// defaults via `BestEffortLLMUtilities`. Callers that own fallback policy (such as
 /// `ThreadArchiver`) should use the strict ``LLMUtilityGenerator`` directly instead.
 public extension LLMUtilityClient where Self: LLMStreamClient {
     /// Generate tags/keywords for the given text.

@@ -11,7 +11,7 @@ import Synchronization
 import Testing
 @testable import PKOpenAIProvider
 
-private final class CapturingMiddleware: OpenAIMiddleware, @unchecked Sendable {
+private final class CapturingMiddleware: OpenAIMiddleware, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     private let requests = Mutex<[URLRequest]>([])
 
     func intercept(request: URLRequest) -> URLRequest {

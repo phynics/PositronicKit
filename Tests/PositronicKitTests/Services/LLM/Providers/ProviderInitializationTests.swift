@@ -54,7 +54,7 @@ private actor RequestRecordingTransport: ProviderHTTPTransport {
 /// Records the URLRequest OpenAI's SDK sends over the wire, without performing real network
 /// I/O. `intercept(request:)` fires synchronously before the request is dispatched, so it lets
 /// us inspect host/scheme/port/model/timeout/apiKey without needing a valid mocked response.
-private final class RecordingOpenAIMiddleware: OpenAIMiddleware, @unchecked Sendable {
+private final class RecordingOpenAIMiddleware: OpenAIMiddleware, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     private let storage = Mutex<[URLRequest]>([])
 
     var recordedRequests: [URLRequest] {

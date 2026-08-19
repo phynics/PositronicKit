@@ -6,7 +6,7 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-private struct StructuredOutputRunTestsTool: Tool, @unchecked Sendable {
+private struct StructuredOutputRunTestsTool: Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     let callName = "structured_output_run_tests_tool"
     let name = "Structured Output Run Tests Tool"
     let description = "Test tool used to verify ChatRunRequest forwards resolved tools."

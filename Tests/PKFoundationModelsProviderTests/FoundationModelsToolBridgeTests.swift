@@ -11,7 +11,7 @@ import Testing
     /// Fixture tool mirroring the shape PositronicKit's built-in tools declare: a flat object of
     /// primitive-typed properties (`ToolParameterSchema.object { ... }`), described via
     /// `parametersSchema` — no framework dependency of its own.
-    private struct FixtureWeatherTool: PKShared.Tool, @unchecked Sendable {
+    private struct FixtureWeatherTool: PKShared.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName = "lookup_weather"
         let name = "Lookup Weather"
         let description = "Look up the current weather for a city"
@@ -42,7 +42,7 @@ import Testing
         }
     }
 
-    private struct FixtureFailingTool: PKShared.Tool, @unchecked Sendable {
+    private struct FixtureFailingTool: PKShared.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName = "always_fails"
         let name = "Always Fails"
         let description = "A tool that always fails"

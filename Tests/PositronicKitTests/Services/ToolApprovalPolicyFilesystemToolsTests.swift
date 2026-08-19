@@ -21,7 +21,7 @@ import Testing
 /// widening the visibility of another file's test-only internals.
 final class ToolApprovalPolicyFilesystemToolsTests {
     /// Records every gate consultation so a test can assert whether the gate was reached at all.
-    final class RecordingGate: ToolApprovalPolicy, @unchecked Sendable {
+    final class RecordingGate: ToolApprovalPolicy, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let decision: ToolApprovalDecision
         private(set) var consultedToolIds: [String] = []
 

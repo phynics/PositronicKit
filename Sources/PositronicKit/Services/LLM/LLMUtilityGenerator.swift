@@ -9,7 +9,7 @@ import PKUtilities
 ///
 /// Failures propagate to the caller so policy stays at the boundary that owns it (for
 /// example, `ThreadArchiver`'s title fallback). The compatibility surface
-/// ``BestEffortLLMUtilities`` re-introduces the log-and-return-default behavior for
+/// `BestEffortLLMUtilities` re-introduces the log-and-return-default behavior for
 /// `LLMUtilityClient` conformance (`bestEffortTags(for:)` / `bestEffortTitle(for:)`).
 public struct LLMUtilityGenerator {
     private let streamClient: any LLMStreamClient

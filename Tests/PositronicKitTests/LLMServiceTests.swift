@@ -69,8 +69,8 @@ private enum TestUtilityError: Error, PKError, Sendable {
 /// first public call awaits the preparation task.
 private actor DelayedConfigurationService: ConfigurationServiceProtocol {
     var config: LLMConfiguration
-    private var loadContinuation: CheckedContinuation<LLMConfiguration, Never>?
-    private var loadStartedContinuation: CheckedContinuation<Void, Never>?
+    private var loadContinuation: CheckedContinuation<LLMConfiguration, Never>? // swiftlint:disable:this concurrency_stored_continuation -- Mutex/actor lifecycle state machine (see docs/Concurrency/exception-manifest.md)
+    private var loadStartedContinuation: CheckedContinuation<Void, Never>? // swiftlint:disable:this concurrency_stored_continuation -- Mutex/actor lifecycle state machine (see docs/Concurrency/exception-manifest.md)
     private(set) var loadStarted = false
     private(set) var loadCount = 0
 

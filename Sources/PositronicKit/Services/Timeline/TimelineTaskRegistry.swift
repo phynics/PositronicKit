@@ -6,12 +6,12 @@ import Foundation
 /// `(threadID, sendID)`. Terminal paths remove the entry only when the sendID still matches
 /// the active one, so a stale send cannot evict or cancel a newer send.
 /// ``ThreadDriver/cancel()`` cancels whatever task is currently active for the thread;
-/// eviction/deletion cancels and awaits bounded cleanup via ``cancelAndAwait(for:)``.
+/// eviction/deletion cancels and awaits bounded cleanup via `cancelAndAwait(for:)`.
 public actor ThreadTaskRegistry {
     public init() {}
     struct ActiveSend: Sendable {
         let sendID: UUID
-        let task: Task<Void, Never>
+        let task: Task<Void, Never> // swiftlint:disable:this concurrency_stored_task -- owned by actor/@MainActor (see docs/Concurrency/exception-manifest.md)
     }
 
     private var active: [UUID: ActiveSend] = [:]

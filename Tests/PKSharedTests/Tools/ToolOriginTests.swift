@@ -4,7 +4,7 @@ import struct JSONSchema.Schema
 import Testing
 
 struct ToolOriginTests {
-    struct LabelTool: PKShared.Tool, @unchecked Sendable {
+    struct LabelTool: PKShared.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName = "label_tool"
         let name = "Label Tool"
         let description = "A tool for testing origin labels"

@@ -53,6 +53,17 @@ jobs:
           restore-keys: |
             cargo-${{ runner.os }}-
 
+      - name: Install SwiftLint
+        run: |
+          curl -fsSL -o /tmp/swiftlint_linux.zip \
+            https://github.com/realm/SwiftLint/releases/download/0.63.2/swiftlint_linux_amd64.zip
+          unzip -o /tmp/swiftlint_linux.zip -d /tmp/swiftlint-bin
+          echo "/tmp/swiftlint-bin" >> "$GITHUB_PATH"
+
+      - name: Concurrency guardrail scan
+        run: |
+          swiftlint lint --strict
+
       - name: Verify agent/CI Linux contract
         run: |
           mkdir -p .build

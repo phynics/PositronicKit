@@ -47,8 +47,8 @@ private actor AttachmentThreadPersistence: ThreadPersistenceProtocol {
 private actor BlockingWorkspaceStore: WorkspaceStore {
     private var workspaces: [UUID: WorkspaceReference] = [:]
     private var validationStarted = false
-    private var validationStartedContinuation: CheckedContinuation<Void, Never>?
-    private var validationContinuation: CheckedContinuation<WorkspaceReference?, Never>?
+    private var validationStartedContinuation: CheckedContinuation<Void, Never>? // swiftlint:disable:this concurrency_stored_continuation -- Mutex/actor lifecycle state machine (see docs/Concurrency/exception-manifest.md)
+    private var validationContinuation: CheckedContinuation<WorkspaceReference?, Never>? // swiftlint:disable:this concurrency_stored_continuation -- Mutex/actor lifecycle state machine (see docs/Concurrency/exception-manifest.md)
     private var validationWorkspaceID: UUID?
 
     func saveWorkspace(_ workspace: WorkspaceReference) async throws {

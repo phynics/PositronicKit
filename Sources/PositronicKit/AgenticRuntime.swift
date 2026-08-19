@@ -31,7 +31,8 @@ public final class AgenticRuntime: Sendable {
     /// Runs one agent turn through the facade's existing tool loop.
     ///
     /// The agent must already be attached to `threadID`; this handle does not establish the
-    /// attachment. An invalid relationship throws ``AgentInstanceError/threadAgentMismatch``
+    /// attachment. An invalid relationship throws
+    /// ``AgentInstanceError/threadAgentMismatch(threadID:agentInstanceID:attachedAgentInstanceID:)``
     /// before the turn is persisted or dispatched to the provider.
     public func run(
         message: String,

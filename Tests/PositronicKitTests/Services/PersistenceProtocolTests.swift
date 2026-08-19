@@ -30,7 +30,7 @@ final class MockPersistenceStore:
     AgentTemplateStoreProtocol,
     WorkspaceStore,
     ToolPersistenceProtocol,
-    @unchecked Sendable
+    @unchecked Sendable // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
 {
     /// MemoryStoreProtocol
     func saveMemory(_: Memory, policy _: MemorySavePolicy) async throws -> UUID {

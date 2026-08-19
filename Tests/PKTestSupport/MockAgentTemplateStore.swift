@@ -10,7 +10,7 @@ import Synchronization
 /// tests can seed fixtures or assert on saved state without going through the protocol
 /// methods. `fetchAgentTemplate(key:)` treats `"default"` as an alias for the first stored
 /// template, otherwise resolves the key as a UUID string.
-public final class MockAgentTemplateStore: AgentTemplateStoreProtocol, @unchecked Sendable {
+public final class MockAgentTemplateStore: AgentTemplateStoreProtocol, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     private let templatesState = Mutex<[AgentTemplate]>([])
 
     public var agentTemplates: [AgentTemplate] {

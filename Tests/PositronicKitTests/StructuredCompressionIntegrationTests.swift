@@ -98,7 +98,7 @@ struct StructuredCompressionIntegrationTests {
 
     @Test("Default node metadata hash changes when section content changes")
     func nodeMetadataTracksContentChanges() async throws {
-        actor ContentBox {
+        actor ContentBox { // swiftlint:disable:this concurrency_reference_box_naming -- actor-based test double (see docs/Concurrency/exception-manifest.md)
             private var value: String
             init(_ value: String) { self.value = value }
             func set(_ value: String) { self.value = value }

@@ -1,5 +1,5 @@
 .PHONY: help build clean test test-parallel harden doctor validate-docs verify-doc-snippets \
-	audit-default-linkage verify-pin verify verify-macos-default \
+	audit-default-linkage verify-pin verify verify-concurrency-scan verify-macos-default \
 	verify-linux verify-linux-agent verify-linux-base verify-linux-current verify-linux-filter \
 	verify-linux-scratch verify-linux-suites \
 	verify-linux-asan \
@@ -63,6 +63,7 @@ help:
 	@echo "  make test-parallel         Run tests in parallel"
 	@echo "  make harden                Run build and parallel hardening test gate"
 	@echo "  make verify                Run pin, docs, linkage, products, examples, and test gates (macOS)"
+	@echo "  make verify-concurrency-scan Run the concurrency inline-annotation scan"
 	@echo "  make verify-macos-default  Run the default macOS gate"
 	@echo "  make verify-macos-minilm   Run the MiniLM macOS gate"
 	@echo "  make verify-linux          Run the current Linux gate"
@@ -127,6 +128,15 @@ verify-pin:
 	@echo "Checking MiniLM artifact pin consistency..."
 	@bash Scripts/check-model-pin.sh
 
+# Enforce the concurrency exception manifest: fail on any un-annotated
+# @unchecked Sendable, NSLock, stored continuation/task, or Box-named holder.
+# Global custom rules live in .swiftlint.yml; every reviewed occurrence must
+# carry an inline // swiftlint:disable:this annotation matching
+# docs/Concurrency/exception-manifest.md.
+verify-concurrency-scan:
+	@echo "Running concurrency guardrail scan..."
+	@swiftlint lint --strict
+
 # Preflight: report every prerequisite the Makefile gates depend on (Swift,
 # Rust, C/C++ toolchain, pkg-config, OpenSSL, curl, shasum, container runtime,
 # MiniLM model assets, host platform) with actionable hints for anything missing.
@@ -136,7 +146,7 @@ doctor:
 
 verify-macos-default: verify
 
-verify: verify-pin validate-docs verify-doc-snippets audit-default-linkage verify-products verify-examples verify-pktestsupport verify-tests
+verify: verify-pin verify-concurrency-scan validate-docs verify-doc-snippets audit-default-linkage verify-products verify-examples verify-pktestsupport verify-tests
 
 verify-linux-suites:
 	@echo "Running comprehensive Linux test suite..."

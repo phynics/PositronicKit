@@ -20,7 +20,7 @@ public final class ThreadController {
 
     /// The underlying driver this controller mirrors.
     public let driver: ThreadDriver
-    private var activeSendTask: Task<Void, Error>?
+    private var activeSendTask: Task<Void, Error>? // swiftlint:disable:this concurrency_stored_task -- owned by actor/@MainActor (see docs/Concurrency/exception-manifest.md)
     private var activeSendGeneration = 0
 
     /// Creates a controller for a thread driver, optionally seeded with prior messages.

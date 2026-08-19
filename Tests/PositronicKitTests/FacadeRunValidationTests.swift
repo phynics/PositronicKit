@@ -340,7 +340,7 @@ private final class RunTerminationProbe: Sendable {
 private final class RunTestSignal: Sendable {
     private struct State {
         var isSignaled = false
-        var waiter: CheckedContinuation<Void, Never>?
+        var waiter: CheckedContinuation<Void, Never>? // swiftlint:disable:this concurrency_stored_continuation -- Mutex/actor lifecycle state machine (see docs/Concurrency/exception-manifest.md)
     }
 
     private let state = Mutex(State())

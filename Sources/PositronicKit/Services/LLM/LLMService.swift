@@ -5,11 +5,11 @@ import PKUtilities
 
 /// Service for managing LLM interactions with configuration support.
 ///
-/// Owns exactly one actor-isolated ``LLMRuntimeSnapshot`` (configuration + client set).
-/// Every configuration transition replaces the snapshot wholesale through ``apply(_:)``,
-/// and every dispatch path resolves clients through the single ``resolve(tier:)`` operation,
-/// so the service never runs with stale clients, conflicting readiness, or duplicated tier
-/// fallback rules.
+/// Owns exactly one actor-isolated runtime snapshot (configuration + client set).
+/// Every configuration transition replaces the snapshot wholesale through the
+/// internal `apply(_:)`, and every dispatch path resolves clients through the single
+/// `resolve(tier:)` operation, so the service never runs with stale clients,
+/// conflicting readiness, or duplicated tier fallback rules.
 public actor LLMService: LanguageModel, HealthCheckable {
     /// The current configuration. Read-only projection of the runtime snapshot.
     public var configuration: LLMConfiguration {
@@ -106,7 +106,7 @@ public actor LLMService: LanguageModel, HealthCheckable {
     /// Coalesces the one-shot migration/load task inside the actor, capturing only the
     /// repository — never `self`.
     func prepareIfNeeded() async {
-        let task: Task<LLMConfiguration, Never>
+        let task: Task<LLMConfiguration, Never> // swiftlint:disable:this concurrency_stored_task -- actor method-local coalesced task (see docs/Concurrency/exception-manifest.md)
 
         switch preparationState {
         case .ready:
@@ -166,7 +166,7 @@ public actor LLMService: LanguageModel, HealthCheckable {
     ///
     /// The service is immediately ready — no storage load is performed. Clients are kept
     /// regardless of later `updateConfiguration(_:)` calls; hosts that need clients to track
-    /// configuration changes should use ``init(storage:clientResolver:)`` instead.
+    /// configuration changes should use ``init(storage:clientResolver:logger:)`` instead.
     public init(
         configuration: LLMConfiguration,
         clients: LLMClientSet,

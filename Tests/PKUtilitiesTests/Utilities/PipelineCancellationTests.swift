@@ -4,7 +4,7 @@ import PKUtilities
 import Testing
 
 struct PipelineCancellationTests {
-    final class TestContext: @unchecked Sendable {}
+    final class TestContext: @unchecked Sendable {} // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
 
     struct EmittingStage: PipelineStage {
         typealias Event = String

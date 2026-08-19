@@ -114,10 +114,10 @@ package struct URLSessionProviderHTTPTransport: ProviderHTTPTransport {
 /// Thread safety: all delegate callbacks are dispatched on the session's
 /// serial `delegateQueue`. The `lock` protects shared state (buffer,
 /// continuations) against concurrent access from the async caller.
-private final class StreamingLineDelegate: NSObject, URLSessionDataDelegate, @unchecked Sendable {
-    private let lock = NSLock()
-    private var lineContinuation: AsyncThrowingStream<String, Error>.Continuation?
-    private var responseContinuation: CheckedContinuation<URLResponse, Error>?
+private final class StreamingLineDelegate: NSObject, URLSessionDataDelegate, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- URLSession delegate serialization boundary (see docs/Concurrency/exception-manifest.md)
+    private let lock = NSLock() // swiftlint:disable:this concurrency_manual_nslock -- URLSession delegate serialization boundary (see docs/Concurrency/exception-manifest.md)
+    private var lineContinuation: AsyncThrowingStream<String, Error>.Continuation? // swiftlint:disable:this concurrency_stored_continuation -- URLSession delegate serialization boundary (see docs/Concurrency/exception-manifest.md)
+    private var responseContinuation: CheckedContinuation<URLResponse, Error>? // swiftlint:disable:this concurrency_stored_continuation -- URLSession delegate serialization boundary (see docs/Concurrency/exception-manifest.md)
     private var capturedResponse: URLResponse?
     private var buffer = Data()
     private var didFinish = false

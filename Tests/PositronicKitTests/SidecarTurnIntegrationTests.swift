@@ -144,7 +144,7 @@ struct SidecarTurnIntegrationTests {
 
     @Test("Sidecar instruction block survives a tool-call turn and reaches every request")
     func multiTurnSidecarInstructionPersists() async throws {
-        struct MockTool: PKShared.Tool, @unchecked Sendable {
+        struct MockTool: PKShared.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
             let callName = "mock_tool"
             let name = "mock_tool"
             let description = "A mock tool for testing"
@@ -191,7 +191,7 @@ struct SidecarTurnIntegrationTests {
 
     @Test("Terminal policy suppresses the tool round and identifies the final round")
     func terminalPolicyCommitsOnlyFinalRound() async throws {
-        struct MockTool: PKShared.Tool, @unchecked Sendable {
+        struct MockTool: PKShared.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
             let callName = "mock_tool"
             let name = "mock_tool"
             let description = "A mock tool for testing"

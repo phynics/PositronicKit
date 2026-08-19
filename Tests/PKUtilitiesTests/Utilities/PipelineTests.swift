@@ -5,7 +5,7 @@ import PKUtilities
 import Testing
 
 final class PipelineTests {
-    final class TestContext: @unchecked Sendable {
+    final class TestContext: @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         var values: [String] = []
     }
 
@@ -248,7 +248,7 @@ final class PipelineTests {
     @Test
     func pipelineLogHandlerReceivesThreeParameters() async throws {
         // Verify that LogHandler receives level, message, and metadata
-        class LogCapture: @unchecked Sendable {
+        class LogCapture: @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
             var calls: [(level: PipelineLogLevel, message: String, metadata: [String: String])] = []
         }
 
@@ -292,7 +292,7 @@ final class PipelineTests {
     @Test
     func pipelineErrorLogsAreEmitted() async throws {
         // Verify error logs are emitted when a stage fails
-        class ErrorCapture: @unchecked Sendable {
+        class ErrorCapture: @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
             var errorLogs: [String] = []
         }
 

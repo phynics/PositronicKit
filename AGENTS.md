@@ -163,6 +163,16 @@ make verify-linux-asan
 ## Conventions
 
 - Swift 6 concurrency: `Sendable`, actor isolation, no shared mutable state.
+- Guardrail: do not introduce a generic reference box to satisfy a `Sendable`
+  diagnostic or to mutate state from an asynchronous closure. Choose an owner:
+  actor isolation for asynchronous state, `Synchronization.Mutex<State>` for
+  synchronous state, `AsyncStream` for repeated signals, and structured task
+  ownership for child work. Any `@unchecked Sendable`, `NSLock`, stored
+  continuation/task, or `Box`-named holder must be documented in
+  `docs/Concurrency/exception-manifest.md` and annotated inline at the site with
+  `// swiftlint:disable:this <rule> -- <reason>`; the five rules in `.swiftlint.yml`
+  are global and `make verify-concurrency-scan` (`swiftlint lint --strict`)
+  fails on any un-annotated occurrence.
 - Composition over inheritance. Narrow protocols. Explicit `throws`.
 - Structured logging via `PKShared`.
 - Errors: `PKError` (via `ErrorKit`) with `PKErrorDomain`, stable `errorCode`, `userFriendlyMessage` (+ `remediation` where applicable). Surface nested errors with `ErrorKit.userFriendlyMessage(for:)`; keep `localizedDescription` for low-level diagnostics.

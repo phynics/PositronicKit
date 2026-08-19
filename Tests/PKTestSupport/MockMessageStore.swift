@@ -9,7 +9,7 @@ import Synchronization
 /// Inspectable: `messages` reads/writes the backing store directly, so tests can seed
 /// fixtures or assert on saved state. `fetchSnapshots(for:)` decodes `TurnSnapshot` from
 /// each assistant message's `snapshotData`, mirroring the real persistence layer's format.
-public final class MockMessageStore: ThreadMessageStoreProtocol, @unchecked Sendable {
+public final class MockMessageStore: ThreadMessageStoreProtocol, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     private let messagesState = Mutex<[ConversationMessage]>([])
 
     public var messages: [ConversationMessage] {

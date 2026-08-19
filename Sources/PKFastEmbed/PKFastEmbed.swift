@@ -35,6 +35,7 @@ public enum PKFastEmbedError: Error, Equatable, Sendable {
 
 /// In-process MiniLM embedding bridge backed by the C ABI in `CPKFastEmbed`.
 ///
+// swiftlint:disable:next concurrency_unchecked_sendable -- comment/documentation reference (see docs/Concurrency/exception-manifest.md)
 /// `@unchecked Sendable` is justified by the thread-safety contract of the native
 /// handle (see `native/pkfastembed/src/lib.rs`):
 ///
@@ -59,7 +60,7 @@ public enum PKFastEmbedError: Error, Equatable, Sendable {
 /// run — is guaranteed to have no embedding in flight. Direct use in
 /// `Tests/PKFastEmbedTests` is single-threaded. `Sendable` is required because
 /// `PKMiniLMPlatformBackend` (an actor, hence `Sendable`) stores this type as a `let`.
-public final class MiniLMEmbedder: @unchecked Sendable {
+public final class MiniLMEmbedder: @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- native C ABI boundary (see docs/Concurrency/exception-manifest.md)
     package struct NativeAPI {
         var abiVersion: @Sendable () -> UInt32
         var modelCreate: @Sendable (

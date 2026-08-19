@@ -16,7 +16,7 @@ public enum FailingStoreError: Error, Sendable {
 /// A `ThreadMessageStoreProtocol` mock that throws on `saveMessage` while recording each
 /// attempted message, so failure-path tests can assert the save was both attempted
 /// and non-fatal to the caller (e.g. an audit-log save that the caller must survive).
-public final class FailingMessageStore: ThreadMessageStoreProtocol, @unchecked Sendable {
+public final class FailingMessageStore: ThreadMessageStoreProtocol, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     private let attemptedState = Mutex<[ConversationMessage]>([])
 
     /// Messages handed to `saveMessage` before it threw, in arrival order.
@@ -44,7 +44,7 @@ public final class FailingMessageStore: ThreadMessageStoreProtocol, @unchecked S
 /// `fetchThread`, `saveThread`, and/or `deleteThread`, delegating all other
 /// operations to an in-memory backing store. Use it to drive failure-path coverage
 /// for hydration (`fetchThread`) and private-thread cleanup (`deleteThread`).
-public final class FailingThreadPersistence: ThreadPersistenceProtocol, @unchecked Sendable {
+public final class FailingThreadPersistence: ThreadPersistenceProtocol, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     private let backing = MockThreadPersistenceStore()
     private let fetchFails: Bool
     private let saveFails: Bool
@@ -106,7 +106,7 @@ public final class FailingThreadPersistence: ThreadPersistenceProtocol, @uncheck
 /// `saveWorkspace`, delegating all other operations to an in-memory backing store. Use it
 /// to drive failure-path coverage for workspace resolution in `getWorkspaces`,
 /// `setupThreadComponents`, and lifecycle rollback in `createThread`/`attachWorkspace`.
-public final class FailingWorkspaceStore: WorkspaceStore, @unchecked Sendable {
+public final class FailingWorkspaceStore: WorkspaceStore, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     private let backing = MockWorkspacePersistence()
     private let fetchFailsState = Mutex<Bool>(false)
     private let saveFails: Bool
@@ -211,7 +211,7 @@ public final class BatchFailingMessageStore: ThreadMessageStoreProtocol {
 /// A `ToolPersistenceProtocol` mock that can be configured to throw on
 /// `fetchToolSource`, delegating all other operations to an in-memory backing store.
 /// Use it to drive failure-path coverage for `getToolSource`.
-public final class FailingToolPersistence: ToolPersistenceProtocol, @unchecked Sendable {
+public final class FailingToolPersistence: ToolPersistenceProtocol, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     private let backing = MockToolPersistence()
     private let fetchSourceFails: Bool
     private let fetchSourceAttemptState = Mutex<Int>(0)

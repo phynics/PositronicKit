@@ -131,7 +131,7 @@
         }
     }
 
-    private final class BatchHarness: @unchecked Sendable {
+    private final class BatchHarness: @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let handle = OpaquePointer(bitPattern: 0x1)!
         let dimensions: Int
 

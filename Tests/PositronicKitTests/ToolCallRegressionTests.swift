@@ -5,7 +5,7 @@ import Testing
 @testable import PKShared
 import PKUtilities
 import PKTestSupport
-struct MockComplexTool: Tool, @unchecked Sendable {
+struct MockComplexTool: Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     let callName = "complex_tool"
     let name = "Complex Tool"
     let description = "A mock tool that accepts complex argument types"

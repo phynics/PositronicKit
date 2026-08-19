@@ -243,7 +243,7 @@ public actor ThreadManager {
 
 public extension ThreadManager {
     /// Pure lookup: retrieves a timeline by its ID without mutating `updatedAt`.
-    /// Callers that want to record activity should call ``touchTimeline(id:)`` explicitly.
+    /// Callers that want to record activity should call ``touchThread(id:)`` explicitly.
     func thread(id: UUID) -> Thread? {
         timelines[id]
     }

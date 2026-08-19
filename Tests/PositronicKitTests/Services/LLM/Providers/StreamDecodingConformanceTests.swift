@@ -134,7 +134,7 @@ private struct LocalResponse: Sendable {
     var body: Data = Data()
 }
 
-private final class LocalHTTPServer: @unchecked Sendable {
+private final class LocalHTTPServer: @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     private let listener: NWListener
     private let queue = DispatchQueue(label: "StreamDecodingConformanceTests.LocalHTTPServer")
     private let response: LocalResponse

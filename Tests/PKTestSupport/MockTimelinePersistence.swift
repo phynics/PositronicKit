@@ -10,7 +10,7 @@ import Synchronization
 /// Inspectable: `threads` reads/writes the backing store directly. `fetchAllThreads`
 /// filters out archived threads unless `includeArchived` is `true`. `pruneThreads`
 /// is a no-op that always reports zero pruned rows.
-public final class MockThreadPersistenceStore: ThreadPersistenceProtocol, @unchecked Sendable {
+public final class MockThreadPersistenceStore: ThreadPersistenceProtocol, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     private let threadsState = Mutex<[Thread]>([])
 
     public var threads: [Thread] {

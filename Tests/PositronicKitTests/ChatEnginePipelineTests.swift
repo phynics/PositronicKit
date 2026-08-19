@@ -11,7 +11,7 @@ import Testing
 
 private let testLogger = Logger(label: "test.pipeline")
 
-private struct StubTool: PKShared.Tool, @unchecked Sendable {
+private struct StubTool: PKShared.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     let callName: String
     let name: String
     let description = "Stub"

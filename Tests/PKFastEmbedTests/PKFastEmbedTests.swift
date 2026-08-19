@@ -466,7 +466,7 @@
         static let maxTotalBytes = 262_144
     }
 
-    private final class NativeAPIHarness: @unchecked Sendable {
+    private final class NativeAPIHarness: @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let handle = OpaquePointer(bitPattern: 0x1)!
         let dimensions: Int
 
@@ -586,7 +586,7 @@
         }
     }
 
-    private final class ConcurrencyHarness: @unchecked Sendable {
+    private final class ConcurrencyHarness: @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let handle = OpaquePointer(bitPattern: 0x1)!
         let dimensions: Int
 

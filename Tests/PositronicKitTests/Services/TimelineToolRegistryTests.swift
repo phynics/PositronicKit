@@ -5,7 +5,7 @@ import PKUtilities
 import Testing
 
 final class ThreadToolRegistryTests {
-    struct MockTool: PKShared.Tool, @unchecked Sendable {
+    struct MockTool: PKShared.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName: String
         let name: String
         let description = "A mock tool for testing"
@@ -21,7 +21,7 @@ final class ThreadToolRegistryTests {
         }
     }
 
-    struct MockWorkspace: Workspace, @unchecked Sendable {
+    struct MockWorkspace: Workspace, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let id: UUID
         let reference: WorkspaceReference
         let toolsToReturn: [ToolReference]

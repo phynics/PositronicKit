@@ -137,7 +137,7 @@ struct PromptObservingTests {
         }
     }
 
-    struct MockTool: PKShared.Tool, @unchecked Sendable {
+    struct MockTool: PKShared.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName = "mock_tool"
         let name = "mock_tool"
         let description = "A mock tool for testing"

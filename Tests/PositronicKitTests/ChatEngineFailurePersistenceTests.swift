@@ -623,7 +623,7 @@ private struct ThrowingExtensionStage: PipelineStage {
     }
 }
 
-private struct PersistenceTestTool: PKShared.Tool, @unchecked Sendable {
+private struct PersistenceTestTool: PKShared.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     static let toolID = "retryable_tool"
 
     let callName = Self.toolID

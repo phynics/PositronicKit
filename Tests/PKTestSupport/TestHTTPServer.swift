@@ -16,7 +16,7 @@ import Synchronization
 /// defer { server.stop() }
 /// // Point your client at "http://127.0.0.1:\(server.port)"
 /// ```
-public final class TestHTTPServer: @unchecked Sendable {
+public final class TestHTTPServer: @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     private let listener: NWListener
     private let queue = DispatchQueue(label: "TestHTTPServer")
     private let responseProvider: @Sendable (Request) -> Response
@@ -311,7 +311,7 @@ import Synchronization
 ///
 /// This POSIX implementation provides the same API as the Network-backed server used
 /// on Apple platforms, while keeping Linux provider tests on a real loopback transport.
-public final class TestHTTPServer: @unchecked Sendable {
+public final class TestHTTPServer: @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     private struct State: Sendable {
         var isStopped = false
         var activeConnections: Set<Int32> = []

@@ -14,7 +14,7 @@ import Synchronization
 /// Call-capture: `lastInput` (the most recently admitted single-text embedding request).
 /// Each operation snapshots its result configuration once; concurrent batch generation does not
 /// recursively mutate `lastInput` from child tasks.
-public final class MockEmbeddingService: EmbeddingServiceProtocol, @unchecked Sendable {
+public final class MockEmbeddingService: EmbeddingServiceProtocol, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     private struct State: Sendable {
         var mockEmbedding: [Float] = [0.1, 0.2, 0.3]
         var lastInput: String?
