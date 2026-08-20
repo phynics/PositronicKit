@@ -2,24 +2,12 @@
 
 PositronicKit is built on a modular, asynchronous processing architecture designed for scalability, thread safety, and clear separation of concerns.
 
-## 1. The Pipeline Pattern
+## 1. Internal Pipeline Execution
 
-The core processing logic in PositronicKit follows a generic **Pipeline** pattern. This allows for complex workflows (like a chat turn) to be broken down into discrete, reusable stages.
+The runtime uses a package-internal **Pipeline** implementation to sequence turn, prompt, and
+context stages. It is not a consumer-facing product or extension point.
 
-### PipelineStage Protocol
-A stage is any type that conforms to the `PipelineStage` protocol:
-```swift
-public protocol PipelineStage<Context, Event>: Sendable {
-    associatedtype Context: Sendable
-    associatedtype Event: Sendable
-
-    var id: String { get }
-    func process(_ context: Context) async throws -> AsyncThrowingStream<Event, Error>
-}
-```
-
-### Pipeline Execution
-The `Pipeline` class orchestrates the execution of these stages:
+The internal pipeline provides:
 1. **Sequential Execution**: Primary stages are executed one after another.
 2. **Stream Merging**: The pipeline merges the `AsyncThrowingStream` from each stage into a single continuous stream for the caller.
 3. **Cleanup Stages**: Stages registered via `.cleanup()` are guaranteed to run even if a primary stage fails, ensuring system integrity (e.g., closing database connections or logging final state).

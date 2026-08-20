@@ -23,7 +23,7 @@ find_matches() {
 
 # PKContracts is the leaf context. It may import Foundation and external packages,
 # but it must never import another project module.
-if matches="$(find_matches '^(@_exported[[:space:]]+)?import[[:space:]]+PK[A-Z]' Sources/PKContracts || true)"; then
+if matches="$(find_matches '^(@_exported[[:space:]]+)?import[[:space:]]+(PK[A-Z]|PositronicKit)([[:space:]]|$)' Sources/PKContracts || true)"; then
     if [[ -n "$matches" ]]; then
         report_failure "PKContracts imports another project module:\n$matches"
     fi

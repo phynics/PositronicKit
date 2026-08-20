@@ -13,14 +13,14 @@ import PKContracts
 ///
 /// Use this type wherever a `TimeInterval` timeout would previously have been
 /// converted to nanoseconds without validation (PKRR-030).
-public struct Timeout: Sendable, Equatable {
+package struct Timeout: Sendable, Equatable {
     /// The timeout in seconds. Guaranteed finite and non-negative.
-    public let seconds: TimeInterval
+    package let seconds: TimeInterval
 
     /// Constructs a validated timeout.
     /// - Parameter seconds: The timeout duration in seconds. Must be finite and non-negative.
     /// - Throws: `TimeoutValidationError` if `seconds` is negative, NaN, or infinite.
-    public init(seconds: TimeInterval) throws {
+    package init(seconds: TimeInterval) throws {
         guard seconds.isFinite else {
             throw TimeoutValidationError.nonFinite(seconds)
         }
@@ -31,14 +31,14 @@ public struct Timeout: Sendable, Equatable {
     }
 
     /// Nanosecond representation, clamped to `UInt64.max` to avoid overflow traps.
-    public var nanoseconds: UInt64 {
+    package var nanoseconds: UInt64 {
         Timeout.nanoseconds(for: seconds)
     }
 
     /// Overflow-safe nanosecond conversion for a raw delay, clamping to `UInt64.max`.
     /// Negative or non-finite values produce `0` rather than trapping; callers needing
     /// strict validation should use ``init(seconds:)`` instead.
-    public static func nanoseconds(for delay: TimeInterval) -> UInt64 {
+    package static func nanoseconds(for delay: TimeInterval) -> UInt64 {
         guard delay.isFinite, delay >= 0 else { return 0 }
         let maxSecondsBeforeOverflow = TimeInterval(UInt64.max) / 1_000_000_000
         if delay >= maxSecondsBeforeOverflow { return UInt64.max }
@@ -47,22 +47,22 @@ public struct Timeout: Sendable, Equatable {
 }
 
 /// Validation errors for ``Timeout`` construction (PKRR-030).
-public enum TimeoutValidationError: PKError, Sendable, Equatable {
+package enum TimeoutValidationError: PKError, Sendable, Equatable {
     /// The timeout was NaN or infinite.
     case nonFinite(TimeInterval)
     /// The timeout was negative.
     case negative(TimeInterval)
 
-    public var errorDomain: String { PKErrorDomain.utilities }
+    package var errorDomain: String { PKErrorDomain.utilities }
 
-    public var errorCode: Int {
+    package var errorCode: Int {
         switch self {
         case .nonFinite: return 5101
         case .negative: return 5102
         }
     }
 
-    public var userFriendlyMessage: String {
+    package var userFriendlyMessage: String {
         switch self {
         case let .nonFinite(value):
             return "Timeout value \(value) is not a finite number."
@@ -71,7 +71,7 @@ public enum TimeoutValidationError: PKError, Sendable, Equatable {
         }
     }
 
-    public var remediation: String? {
+    package var remediation: String? {
         "Provide a finite, non-negative timeout value (in seconds)."
     }
 }

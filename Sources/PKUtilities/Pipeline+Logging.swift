@@ -1,6 +1,6 @@
 import Logging
 
-public extension Pipeline {
+package extension Pipeline {
     /// Sets a `swift-log` Logger on the pipeline and returns a new pipeline instance.
     /// - Parameter logger: The logger to use.
     /// - Returns: A new pipeline instance that logs via the provided Logger.

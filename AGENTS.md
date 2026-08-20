@@ -22,10 +22,11 @@ planning notes.
 
 ## v4 non-goals
 
-This governance work records the target vocabulary and accepted trade-offs; it does not claim that
-the v4 runtime, `PKContracts` product, or new public API is implemented. It also does not rewrite
-the current user guide, add compatibility aliases or migrators, change provider/network/hosting
-behavior, or create a replacement archive; those boundaries remain with their owning issues.
+This guide records the target vocabulary and accepted trade-offs; it does not claim that the full v4
+runtime or broader new public API is implemented. Issue #63 establishes the `PKContracts` product
+and its dependency boundary; later issues own the remaining runtime convergence. This guide also
+does not add compatibility aliases or migrators, change provider/network/hosting behavior, or create
+a replacement archive; those boundaries remain with their owning issues.
 
 ## Repository map
 

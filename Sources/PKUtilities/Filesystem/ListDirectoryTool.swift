@@ -4,13 +4,13 @@ import struct JSONSchema.Schema
 import JSONSchemaBuilder
 
 /// Tool to list files in a directory
-public struct ListDirectoryTool: Tool, Sendable {
-    public let callName = "ls"
-    public let name = "List Directory"
-    public let description = "List files and directories at a specific path"
-    public let requiresPermission = true
+package struct ListDirectoryTool: Tool, Sendable {
+    package let callName = "ls"
+    package let name = "List Directory"
+    package let description = "List files and directories at a specific path"
+    package let requiresPermission = true
 
-    public var usageExample: String? {
+    package var usageExample: String? {
         """
         <tool_call>
         {\"name\": \"ls\", \"arguments\": {\"path\": \"/Users/username/Projects\"}}
@@ -21,7 +21,7 @@ public struct ListDirectoryTool: Tool, Sendable {
     private let currentDirectory: String
     private let jailRoot: String
 
-    public init(
+    package init(
         currentDirectory: String = FileManager.default.currentDirectoryPath,
         jailRoot: String? = nil
     ) {
@@ -29,11 +29,11 @@ public struct ListDirectoryTool: Tool, Sendable {
         self.jailRoot = jailRoot ?? currentDirectory
     }
 
-    public func canExecute() async -> Bool {
+    package func canExecute() async -> Bool {
         return true
     }
 
-    public var parametersSchema: Schema {
+    package var parametersSchema: Schema {
         ToolParameterSchema.object {
             JSONProperty(key: "path") {
                 JSONString().description("The path to the directory (defaults to current directory if omitted)")
@@ -41,7 +41,7 @@ public struct ListDirectoryTool: Tool, Sendable {
         }.schemaDefinition
     }
 
-    public func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
+    package func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
         let params = ToolParameters(parameters)
         let pathString = params.optional("path", as: String.self) ?? "."
 

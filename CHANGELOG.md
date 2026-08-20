@@ -21,6 +21,10 @@ for tagged releases beginning with `1.0.0`.
 - **Utility policy is explicit in names:** `LLMUtilityClient.generateTags`/`generateTitle` are now
   `bestEffortTags(for:)` / `bestEffortTitle(for:)` and are non-throwing. Strict, throwing operations
   live on the public `LLMUtilityGenerator`.
+- **Runtime-neutral contract boundary:** renamed the released `PKShared` module to `PKContracts`,
+  moved embedding contracts into it, removed runtime imports from provider and embedding targets,
+  and removed `PKUtilities` from the public product list. This is a v4 hard cut with no aliases or
+  compatibility product.
 
 ### Added
 
@@ -770,7 +774,7 @@ Stable release of the 3.1.0 line. Includes all changes from `3.1.0-beta.1` and `
 ### Added
 
 - **iOS platform support**: added `.iOS(.v18)` to the package manifest. Core targets
-  (`PositronicKit`, `PKPrompt`, `PKContracts`) and `PKAnthropicProvider` build for iOS. Native
+  (`PositronicKit`, `PKPrompt`, `PKShared`) and `PKAnthropicProvider` build for iOS. Native
   MiniLM bridge (`PKFastEmbed`) remains macOS/Linux only via the `MiniLMEmbeddings` trait.
 - **`PromptJournal` hydration state**: added the public `PromptJournal.State` Codable/Sendable
   snapshot plus `state` and `init(state:)` APIs for replaying journal observations with identical
@@ -829,7 +833,7 @@ Stable release of the v3 vocabulary-and-composition batch. Includes all changes 
 | `TimelineManager.getTimeline(id:)` | `timeline(id:)` / `touchTimeline(id:)` | Use `timeline(id:)` for a pure lookup; `touchTimeline(id:)` to preserve the old update-on-read behavior. |
 | `TimelineManager.getToolManager(for:)` / `workspaceResolver` | no longer public | Use `enabledTools(for:)`, `enableTool(id:for:)`, `disableTool(id:for:)`. |
 | `LLMConfiguration` flat init + 18 write-through proxies | `LLMConfiguration(activeProvider:providers:)` | Read the active provider via `activeProviderConfiguration`; mutate `providers[activeProvider]`. |
-| `PKUtilities` filesystem tools, `ANSIColors`, `PathSanitizer`, `RetryPolicy`, `TokenEstimator`, `LogKeys`, `ProviderHTTPTransport` | package-internal utility layer | These helpers are no longer a consumer-facing product. |
+| `PKShared` filesystem tools, `ANSIColors`, `PathSanitizer`, `RetryPolicy`, `TokenEstimator`, `LogKeys`, `ProviderHTTPTransport` | `PKUtilities` | Add a `PKUtilities` product dependency and import. |
 | `Message.think` | `Message.reasoning` | Unified reasoning/thinking vocabulary. |
 | `LLMStreamDelta.thinking` | `LLMStreamDelta.reasoning` | |
 | `ChatEvent.delta(event:)` | `ChatEvent.delta(DeltaEvent)` | Wrapper cases flattened to match `Result` naming conventions. |
@@ -844,12 +848,12 @@ Stable release of the v3 vocabulary-and-composition batch. Includes all changes 
 | `ToolOutputParser` | removed | Models must emit provider-native structured tool calls. |
 | `PipelineBuilder` / `Collection.assertUniqueIDs()` / `CollectionUniqueIDError` | removed | Assemble pipelines imperatively; use `duplicateIDs(idKeyPath:)` instead. |
 | `PKOpenAIEmbeddingService` | removed | Use `LocalEmbeddingService` / `NoOpEmbeddingService`. |
-| `PKContracts.MessageParser` | removed | `Message.parseResponse(_:)` / `Message.displayContent` now inline the implementations. |
-| `OpenAIStructuredOutputAdapter` / `OpenRouterStructuredOutputAdapter` | `PKContracts.NativeJSONSchemaStructuredOutputAdapter` | Shared adapter registered by each provider. |
+| `PKShared.MessageParser` | removed | `Message.parseResponse(_:)` / `Message.displayContent` now inline the implementations. |
+| `OpenAIStructuredOutputAdapter` / `OpenRouterStructuredOutputAdapter` | `PKShared.NativeJSONSchemaStructuredOutputAdapter` | Shared adapter registered by each provider. |
 | `AnyTool.init(_:provenance: String?)` | `AnyTool.init(_:provenance: ToolProvenance)` / `AnyTool(_:origin: ToolOrigin)` | String-provenance bridge was already deprecated and is now removed. |
 | `PositronicKit.PromptBuildContext` aliases | removed | Use `PromptBuildContext` directly. |
 | `AgenticRuntime.workspaceId` / `PositronicKit.agenticRuntime(...workspaceId:)` | removed | Dead passthrough; workspace routing is resolved from timeline attachments. |
-| `PKContracts.ToolConfiguration` / `PositronicKit.WorkspaceToolError` / `PositronicKit.InMemoryKeyValueStore` | removed | Dead public types with zero consumers. |
+| `PKShared.ToolConfiguration` / `PositronicKit.WorkspaceToolError` / `PositronicKit.InMemoryKeyValueStore` | removed | Dead public types with zero consumers. |
 
 ## [3.0.0-beta.1] - 2026-07-13
 
@@ -894,20 +898,20 @@ the remaining consumer-migration and final-release work.
   `TurnBriefingBuilder`, `TimelinePromptHistoryRegistry` → `TimelinePromptJournals` (now
   package-internal), `PromptInspecting` → `PromptObserving` (`promptInspector` →
   `promptObserver`). Added a `TurnBriefing` typealias for `ContextData`.
-- **`PKUtilities` split from `PKContracts` (PKV3-009)**: new public `PKUtilities` library product
-  (depends only on `PKContracts`; `PKContracts` does not import it). Cross-cutting observability
+- **`PKUtilities` split from `PKShared` (PKV3-009)**: new public `PKUtilities` library product
+  (depends only on `PKShared`; `PKShared` does not import it). Cross-cutting observability
   (`RetryPolicy`, `ProviderHTTPFailure`/`ProviderHTTPTransport`, `LogKeys`, `LogRedaction`,
   `Logger+Extensions`), async/pipeline helpers (`Pipeline`, `Pipeline+Logging`,
   `CancellableAsyncThrowingStream`, `Collection+UniqueIDs`), `StableHash`, `TokenEstimator`,
   `PathSanitizer`, `LimitedErrorBodyCollector`, `ANSIColors`, and the concrete filesystem tools
   (`ReadFileTool`, `FindFileTool`, `ListDirectoryTool`, `SearchFileContentTool`,
-  `SearchFilesTool`, `ChangeDirectoryTool`) moved from `PKContracts`/`PositronicKit` into
-  `PKUtilities`. Consumers that referenced these types from `PKContracts` or `PositronicKit` must
+  `SearchFilesTool`, `ChangeDirectoryTool`) moved from `PKShared`/`PositronicKit` into
+  `PKUtilities`. Consumers that referenced these types from `PKShared` or `PositronicKit` must
   add a `PKUtilities` dependency and update imports.
 - **Provider targets are leaf modules (PKV3-011)**: `LanguageModel` and narrow capability
-  protocols relocated to `PKContracts`. Every provider target (`PKOpenAIProvider`,
+  protocols relocated to `PKShared`. Every provider target (`PKOpenAIProvider`,
   `PKOpenRouterProvider`, `PKOllamaProvider`, `PKAnthropicProvider`,
-  `PKFoundationModelsProvider`) now depends only on `PKContracts`/`PKUtilities` plus its vendor
+  `PKFoundationModelsProvider`) now depends only on `PKShared`/`PKUtilities` plus its vendor
   SDK — zero `import PositronicKit`. `PositronicKit`-side provider-convenience extensions
   removed; hosts construct/inject concrete clients directly (e.g.
   `PKOpenAIProvider.makeClient(configuration:)`).
@@ -1208,7 +1212,7 @@ the remaining consumer-migration and final-release work.
   through the existing facade chat path. Cursors expose stable `Identifiable` timeline identity
   and scoped `TimelineManager` access.
 
-- `PKUtilities.LogKeys`: a caseless namespace of canonical `Logger.Metadata` key constants
+- `PKShared.LogKeys`: a caseless namespace of canonical `Logger.Metadata` key constants
   (`timelineID`, `sendID`, `turnIndex`, `toolName`, `provider`, `stage`, `errorCode`) for the
   chat turn loop. Structured-log sites across prompt assembly, LLM stream lifecycle, loop
   continuation decisions, and tool routing now use these keys (replacing the legacy
@@ -1235,7 +1239,7 @@ the remaining consumer-migration and final-release work.
   surfaced is fixed by PKTEST-3).
 
 - Structured-output adapter seam (PKARCH-005): new `StructuredOutputAdapter` protocol and
-  `PreparedStructuredOutputRequest` in `PKContracts`, plus `StructuredOutputAdapterRegistry` and a
+  `PreparedStructuredOutputRequest` in `PKShared`, plus `StructuredOutputAdapterRegistry` and a
   `DefaultStructuredOutputAdapter` fallback. Each built-in provider target now owns its own
   adapter implementation (`OpenAIStructuredOutputAdapter`, `OpenRouterStructuredOutputAdapter`,
   `OllamaStructuredOutputAdapter`, `AnthropicStructuredOutputAdapter`, and
@@ -1245,7 +1249,7 @@ the remaining consumer-migration and final-release work.
   structured-output logic in dedicated provider targets while allowing hosts to register custom
   adapters for arbitrary providers.
 - Workspace-scoped tool grouping (PKPOST-004): new `ToolProviding` protocol and structural
-  `ToolProvenance` enum in `PKContracts` (`global`, `workspace(id:name:)`, `terminal(id:name:)`,
+  `ToolProvenance` enum in `PKShared` (`global`, `workspace(id:name:)`, `terminal(id:name:)`,
   `named(String)`). `AnyTool.provenance` is now `ToolProvenance` with a one-release deprecated
   string-init bridge. `TimelineToolManager` gains `registerToolProvider(_:id:)` /
   `unregisterToolProvider(_:)` so the runtime assembles turn tools from global tools plus
@@ -1333,7 +1337,7 @@ the remaining consumer-migration and final-release work.
   `PKOpenRouterProvider.OpenRouterStructuredOutputAdapter` were logic-identical
   copy-paste (OpenRouter mirrors OpenAI's native `json_object`/`json_schema`
   response-format support). Both are replaced by a single shared
-  `PKContracts.NativeJSONSchemaStructuredOutputAdapter`, which each provider now
+  `PKShared.NativeJSONSchemaStructuredOutputAdapter`, which each provider now
   registers directly with `StructuredOutputAdapterRegistry`.
 
 - Internal refactor (PKCLEAN-001): split `Sources/PKOpenRouterProvider/OpenRouterClient.swift` into
@@ -1474,20 +1478,20 @@ the remaining consumer-migration and final-release work.
   released consumer is affected.
 - **Breaking:** removed three dead public types found in the pre-release audit, each with zero
   references across PositronicKit sources/tests and all three consumers (Monad, Shuttle, Yakamoz):
-  `PKContracts.ToolConfiguration` (per-session tool enable/disable record that nothing persisted or
+  `PKShared.ToolConfiguration` (per-session tool enable/disable record that nothing persisted or
   read), `PositronicKit.WorkspaceToolError` (single-case error enum never thrown), and
   `PositronicKit.InMemoryKeyValueStore` (in-memory `KeyValueStoreProtocol` conformance nothing
   constructed — the protocol itself is kept; Monad's `DatabaseKeyValueStore` conforms to it).
 - **Breaking:** removed `PositronicKit.sidecarsIfEnabled(_:when:)`. Consumers can inline the equivalent ternary (`isEnabled ? sidecars : []`) at the call site. Yakamoz's `YakamozRuntime.makeChatViewModel` is updated accordingly.
 - **Breaking:** removed the unused `PositronicKit.PromptBuildContext` facade typealias and its intermediate `PositronicKitPromptBuildContext` alias. The canonical type remains `PromptBuildContext` in `PromptSectionProviding.swift`; conformers and callers should use that name directly.
 - **Breaking:** removed `PKOpenAIProvider.OpenAIEmbeddingService`, an abandoned experiment with zero references across PositronicKit, Monad, Shuttle, or Yakamoz. Production embedding paths use `LocalEmbeddingService`/`NoOpEmbeddingService`; this was public in the 1.x line, so flag for the release captain when cutting the next minor/major.
-- **Breaking:** removed `PipelineBuilder` (unused `@resultBuilder`; pipelines are assembled imperatively via `Pipeline.add()`) and its `Pipeline.init(stages:)` convenience initializer overload.
+- **Breaking:** removed `PKShared.PipelineBuilder` (unused `@resultBuilder`; pipelines are assembled imperatively via `Pipeline.add()`) and its `Pipeline.init(stages:)` convenience initializer overload.
 - **Breaking:** removed the throwing `Collection.assertUniqueIDs()` overloads and `PKPrompt.CollectionUniqueIDError` (never used outside their own tests). `Collection.duplicateIDs(idKeyPath:)` is now `public` (previously internal) and remains the supported non-throwing check.
 - **Breaking:** removed `Collection.duplicatePromptSectionIDs()` and `Collection.duplicateRenderedPromptSectionIDs()` typed wrappers; call `duplicateIDs(idKeyPath: \.id)` directly instead.
 - (PKCLEAN-008) **Breaking:** removed `PKOpenAIProvider.OpenAIStructuredOutputAdapter` and
   `PKOpenRouterProvider.OpenRouterStructuredOutputAdapter` (superseded by
-  `PKContracts.NativeJSONSchemaStructuredOutputAdapter`, see Changed above).
-- (PKCLEAN-008) **Breaking:** removed the public `PKContracts.MessageParser` type. Its two
+  `PKShared.NativeJSONSchemaStructuredOutputAdapter`, see Changed above).
+- (PKCLEAN-008) **Breaking:** removed the public `PKShared.MessageParser` type. Its two
   methods were only ever reached through the pass-through wrappers
   `Message.parseResponse(_:)` / `Message.displayContent`; the implementations are now
   inlined directly into those `Message` members with unchanged behavior.
@@ -1575,7 +1579,7 @@ the remaining consumer-migration and final-release work.
   `PositronicKit` facade plus injectable persistence, workspace, provider, and tool seams.
 - Prompt composition in `PKPrompt`, including the `@PromptBuilder` DSL, prompt assembly,
   compression, render projection, and `PromptJournal` for stable-prefix journaling workflows.
-- Shared contracts in `PKContracts`, including LLM/provider request and stream types, tool
+- Shared contracts in `PKShared`, including LLM/provider request and stream types, tool
   contracts, structured-output helpers, logging utilities, and common error surfaces.
 - `PKLocalEmbeddings` for platform-local embeddings:
   Apple Natural Language by default on Apple platforms and the host-provisioned MiniLM bridge on
@@ -1603,7 +1607,7 @@ the remaining consumer-migration and final-release work.
 
 | Product | Apple Platforms | Linux | Notes |
 |---------|-----------------|-------|-------|
-| `PositronicKit`, `PKPrompt`, `PKContracts` | Supported | Supported | Core portable modules. |
+| `PositronicKit`, `PKPrompt`, `PKShared` | Supported | Supported | Core portable modules. |
 | `PKLocalEmbeddings` | Supported | Supported | Apple defaults to Natural Language; Linux uses MiniLM; Apple MiniLM is trait-gated. |
 | `PKOpenAIProvider`, `PKOpenRouterProvider`, `PKOllamaProvider` | Supported | Supported | Optional concrete provider adapters. |
 | `PKTestSupport`, `PositronicKitExamples` | Supported | Supported | Verified through the package graph and example builds. |
@@ -1613,8 +1617,8 @@ the remaining consumer-migration and final-release work.
 - `PositronicKit`: runtime orchestration, chat lifecycle, timeline/workspace management, tool
   routing, runtime extension points.
 - `PKPrompt`: prompt DSL, assembly, rendering, compression, journaling.
-- `PKContracts`: API models, tool and provider contracts, structured-output helpers, and
-  diagnostic errors.
+- `PKShared`: API models, tool and provider contracts, structured-output utilities, shared
+  logging and errors.
 - `PKLocalEmbeddings`: local embedding facade over Apple Natural Language or MiniLM.
 - `PKOpenAIProvider`, `PKOpenRouterProvider`, `PKOllamaProvider`: optional concrete provider
   adapters and registration helpers.
@@ -1644,7 +1648,7 @@ the remaining consumer-migration and final-release work.
 
 - Replace any `PositronicKitCore` references with `PositronicKit`.
 - Replace the removed `EmbeddingService` protocol with `EmbeddingServiceProtocol`.
-- Replace `PositronicKit.TokenEstimator` imports with `PKUtilities.TokenEstimator`.
+- Replace `PositronicKit.TokenEstimator` imports with `PKShared.TokenEstimator`.
 - Replace `WorkspaceTool` storage-wrapper usage with `ToolReference` and
   `WorkspaceToolDefinition`.
 
