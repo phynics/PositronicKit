@@ -1,7 +1,6 @@
 import CPKFastEmbed
 import Foundation
-import PKShared
-import PKUtilities
+import PKContracts
 
 /// Failures surfaced by the in-process MiniLM native bridge.
 ///

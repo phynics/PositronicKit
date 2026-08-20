@@ -1,6 +1,6 @@
 import Foundation
 import Logging
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Runtime policy for deciding whether a completed turn should trigger a follow-up LLM turn.

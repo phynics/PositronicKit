@@ -1,9 +1,9 @@
 import Foundation
 import struct JSONSchema.Schema
-import PKShared
+import PKContracts
 import PKUtilities
 
-public extension PKShared.Tool {
+public extension PKContracts.Tool {
     func toLLMToolDefinition() -> LLMToolDefinition {
         // parametersSchema is now the typed `Schema` (matching LLMToolDefinition.parameters),
         // so it flows through directly with no encode/decode round-trip.

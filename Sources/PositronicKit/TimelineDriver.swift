@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 
 /// A lightweight, stable handle for sending to and cancelling work on exactly one durable
 /// ``Thread``.

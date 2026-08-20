@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Builds the concrete per-turn runtime pipeline used by `ChatEngine`.

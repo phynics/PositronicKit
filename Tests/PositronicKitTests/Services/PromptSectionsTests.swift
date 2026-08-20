@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 import PKUtilities
 @testable import PositronicKit
 import struct PositronicKit.Thread

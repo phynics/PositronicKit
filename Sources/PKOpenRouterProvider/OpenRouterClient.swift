@@ -4,7 +4,7 @@ import Foundation
 #endif
 import struct JSONSchema.Schema
 import Logging
-import PKShared
+import PKContracts
 import PKUtilities
 import Synchronization
 

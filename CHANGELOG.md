@@ -21,6 +21,10 @@ for tagged releases beginning with `1.0.0`.
 - **Utility policy is explicit in names:** `LLMUtilityClient.generateTags`/`generateTitle` are now
   `bestEffortTags(for:)` / `bestEffortTitle(for:)` and are non-throwing. Strict, throwing operations
   live on the public `LLMUtilityGenerator`.
+- **Runtime-neutral contract boundary:** renamed the released `PKShared` module to `PKContracts`,
+  moved embedding contracts into it, removed runtime imports from provider and embedding targets,
+  and removed `PKUtilities` from the public product list. This is a v4 hard cut with no aliases or
+  compatibility product.
 
 ### Added
 
@@ -323,7 +327,7 @@ for tagged releases beginning with `1.0.0`.
   content is truncated before encoding. Existing `turnSnapshotData` remains additive-compatible.
 
 - **Causal error chain traversal for `ErrorIdentity` (PKRR-014)**: A new
-  `CausalError` protocol in `PKShared` enables `ChatEvent.ErrorIdentity.extracting(from:)`
+  `CausalError` protocol in `PKContracts` enables `ChatEvent.ErrorIdentity.extracting(from:)`
   to traverse wrapper errors (e.g. `PipelineError.stageFailed`,
   `.cleanupFailed`, `.compoundFailure`) and extract the root `PKError`'s domain/code/
   `isBlocked` instead of collapsing to the generic pipeline code 4001. `PipelineError`
@@ -487,7 +491,7 @@ for tagged releases beginning with `1.0.0`.
   `FailingMessageStore` for comprehensive store-failure test coverage.
 
 - **`ToolSideEffects` enum + `Tool.sideEffects` property (PKRR-004)**: a new public enum on
-  `PKShared` (`ToolSideEffects.none` / `.mutating` / `.externalProcess`) declares the
+  `PKContracts` (`ToolSideEffects.none` / `.mutating` / `.externalProcess`) declares the
   side-effect class of a tool. The `Tool` protocol gains a `var sideEffects: ToolSideEffects
   { get }` requirement with a default implementation returning `.mutating` — the conservative
   assumption for tools that do not declare themselves side-effect-free. `AnyTool` forwards the
@@ -510,7 +514,7 @@ for tagged releases beginning with `1.0.0`.
   trapping on `Int` conversion.
 
 - **`ProviderConfiguration.contextWindowTokens` (PKRR-001)**: a new public property on
-  `PKShared.ProviderConfiguration` declaring the model's full context-window size in tokens.
+  `PKContracts.ProviderConfiguration` declaring the model's full context-window size in tokens.
   Per-provider defaults are populated by ``defaultFor(_:)`` (e.g. 128_000 for OpenAI,
   200_000 for Anthropic, 8_192 for Ollama/OpenAI-compatible). Hosts override it to steer
   prompt budgeting per model. Codable round-trips and decoding of older configs that omit

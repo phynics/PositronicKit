@@ -3,7 +3,7 @@ import Foundation
     import FoundationNetworking
 #endif
 @testable import PKOpenRouterProvider
-import PKShared
+import PKContracts
 import PKUtilities
 import Testing
 

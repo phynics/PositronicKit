@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 
 /// Errors raised when a rendered prompt cannot be safely journaled.
 public enum PromptJournalValidationError: PKError, Sendable, Equatable {

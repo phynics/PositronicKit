@@ -2,7 +2,7 @@ import Foundation
 #if canImport(FoundationNetworking)
     import FoundationNetworking
 #endif
-import PKShared
+import PKContracts
 
 package enum HTTPHelpers {
     /// Casts a `URLResponse` to `HTTPURLResponse`, throwing a `networkError` if the cast fails.

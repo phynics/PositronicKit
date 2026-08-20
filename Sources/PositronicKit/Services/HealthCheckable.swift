@@ -1,4 +1,4 @@
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Protocol for services that can report their health status.

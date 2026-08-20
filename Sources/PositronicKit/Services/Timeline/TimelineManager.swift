@@ -2,7 +2,7 @@ import ErrorKit
 import Foundation
 import Logging
 import PKPrompt
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Manages conversation timelines, their associated context, and tool execution environments.

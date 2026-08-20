@@ -1,16 +1,16 @@
-import PKShared
+import PKContracts
 import Foundation
 import struct JSONSchema.Schema
 import JSONSchemaBuilder
 
 /// Tool to find files matching a pattern
-public struct FindFileTool: Tool, Sendable {
-    public let callName = "find"
-    public let name = "Find File"
-    public let description = "Find files matching a pattern in a directory recursively"
-    public let requiresPermission = true
+package struct FindFileTool: Tool, Sendable {
+    package let callName = "find"
+    package let name = "Find File"
+    package let description = "Find files matching a pattern in a directory recursively"
+    package let requiresPermission = true
 
-    public var usageExample: String? {
+    package var usageExample: String? {
         """
         <tool_call>
         {\"name\": \"find\", \"arguments\": {\"path\": \".\", \"pattern\": \"Podfile\"}}
@@ -21,7 +21,7 @@ public struct FindFileTool: Tool, Sendable {
     private let currentDirectory: String
     private let jailRoot: String
 
-    public init(
+    package init(
         currentDirectory: String = FileManager.default.currentDirectoryPath,
         jailRoot: String? = nil
     ) {
@@ -29,11 +29,11 @@ public struct FindFileTool: Tool, Sendable {
         self.jailRoot = jailRoot ?? currentDirectory
     }
 
-    public func canExecute() async -> Bool {
+    package func canExecute() async -> Bool {
         return true
     }
 
-    public var parametersSchema: Schema {
+    package var parametersSchema: Schema {
         ToolParameterSchema.object {
             JSONProperty(key: "path") {
                 JSONString().description("The root directory to start searching (default: .)")
@@ -45,7 +45,7 @@ public struct FindFileTool: Tool, Sendable {
         }.schemaDefinition
     }
 
-    public func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
+    package func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
         let params = ToolParameters(parameters)
         let pattern: String
         switch FilesystemToolSupport.requiredString("pattern", from: params, usageExample: usageExample) {

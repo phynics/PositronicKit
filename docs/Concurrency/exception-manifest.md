@@ -43,13 +43,13 @@ annotations for exactly that reason.
 ## Test-support boundaries (retained)
 
 `@unchecked Sendable` in `Tests/` is allowed only for synchronous test doubles and
-`Tool`/`PKShared.Tool` protocol mocks, each site annotated inline (see the
+`Tool`/`PKContracts.Tool` protocol mocks, each site annotated inline (see the
 annotation reasons around `concurrency_unchecked_sendable` matches). Categories:
 
 - **`PKTestSupport` mocks/stores** (`MockMessageStore`, `FailingStores`,
   `TestHTTPServer`, …): synchronous test doubles protected by
   `Synchronization.Mutex<State>` or immutable `let` captures.
-- **`Tool`/`PKShared.Tool` protocol mocks** (`MockTool`, `StubTool`, `FailingTool`,
+- **`Tool`/`PKContracts.Tool` protocol mocks** (`MockTool`, `StubTool`, `FailingTool`,
   fixture tools in story tests): the tooling protocols are not `Sendable`-refined;
   the conformance is compiler-forced and stateless or capture-only.
 - **Middleware/harness doubles** (`CapturingMiddleware`, `RecordingGate`,

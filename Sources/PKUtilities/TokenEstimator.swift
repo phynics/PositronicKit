@@ -5,13 +5,13 @@ import Foundation
 /// The estimator is intentionally lightweight and deterministic. It follows a
 /// tokenx-style segmented heuristic rather than a flat character-count rule so
 /// punctuation, numeric runs, and CJK text are treated more realistically.
-public enum TokenEstimator {
+package enum TokenEstimator {
     private static let defaultCharsPerToken = 6.0
     private static let shortTokenThreshold = 3
     private static let punctuationScalars = CharacterSet(charactersIn: #".,!?;(){}[]<>:/\|@#$%^&*+=`~_-"#)
     private static let compactLatinScalars = CharacterSet(charactersIn: "äöüßÄÖÜẞéèêëàâîïôûùüÿçœæáíóúñąćęłńóśźżěščřžýůúďťň")
 
-    public static func estimate(text: String) -> Int {
+    package static func estimate(text: String) -> Int {
         guard !text.isEmpty else { return 0 }
 
         var tokenCount = 0
@@ -21,7 +21,7 @@ public enum TokenEstimator {
         return tokenCount
     }
 
-    public static func estimate(parts: [String]) -> Int {
+    package static func estimate(parts: [String]) -> Int {
         estimate(text: parts.joined(separator: " "))
     }
 

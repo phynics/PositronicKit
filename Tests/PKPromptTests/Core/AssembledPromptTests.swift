@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 @testable import PKPrompt
-import PKShared
+import PKContracts
 import PKUtilities
 
 private struct DummyPromptSection: PromptPrimitive {

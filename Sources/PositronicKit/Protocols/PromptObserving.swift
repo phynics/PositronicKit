@@ -1,6 +1,6 @@
 import Foundation
 import PKPrompt
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Compose-time observability hook: invoked once per round-trip *before* the LLM runs,

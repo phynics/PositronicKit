@@ -1,16 +1,16 @@
-import PKShared
+import PKContracts
 import Foundation
 import struct JSONSchema.Schema
 import JSONSchemaBuilder
 
 /// Tool to change the current working directory of the session
-public struct ChangeDirectoryTool: Tool, Sendable {
-    public let callName = "change_directory"
-    public let name = "Change Directory"
-    public let description = "Change the current working directory for relative file operations."
-    public let requiresPermission = false
+package struct ChangeDirectoryTool: Tool, Sendable {
+    package let callName = "change_directory"
+    package let name = "Change Directory"
+    package let description = "Change the current working directory for relative file operations."
+    package let requiresPermission = false
 
-    public var usageExample: String? {
+    package var usageExample: String? {
         """
         <tool_call>
         {"name": "change_directory", "arguments": {"path": "Sources/PositronicKit"}}
@@ -21,16 +21,16 @@ public struct ChangeDirectoryTool: Tool, Sendable {
     private let onChange: @Sendable (String) async -> Void
     private let root: String
 
-    public init(currentPath: String, root: String? = nil, onChange: @escaping @Sendable (String) async -> Void) {
+    package init(currentPath: String, root: String? = nil, onChange: @escaping @Sendable (String) async -> Void) {
         self.root = root ?? currentPath
         self.onChange = onChange
     }
 
-    public func canExecute() async -> Bool {
+    package func canExecute() async -> Bool {
         return true
     }
 
-    public var parametersSchema: Schema {
+    package var parametersSchema: Schema {
         ToolParameterSchema.object {
             JSONProperty(key: "path") {
                 JSONString().description("The path to change to. Can be relative or absolute.")
@@ -39,7 +39,7 @@ public struct ChangeDirectoryTool: Tool, Sendable {
         }.schemaDefinition
     }
 
-    public func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
+    package func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
         let params = ToolParameters(parameters)
         let path: String
         do {

@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 
 /// Operational readiness of an LLM service, projected from one runtime snapshot.
 ///

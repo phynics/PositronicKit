@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 
 /// Resolves an `LLMConfiguration` into the client set a service dispatches through.
 ///

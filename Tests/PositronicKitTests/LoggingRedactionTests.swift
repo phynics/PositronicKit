@@ -1,6 +1,6 @@
 import Foundation
 import Logging
-import PKShared
+import PKContracts
 import PKUtilities
 import PKTestSupport
 import Synchronization

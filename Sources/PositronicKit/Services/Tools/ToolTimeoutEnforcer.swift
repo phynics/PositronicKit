@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Wall-clock timeout enforcement for tool execution.

@@ -1,6 +1,6 @@
 import Foundation
 @testable import PKPrompt
-import PKShared
+import PKContracts
 import PKUtilities
 import Testing
 

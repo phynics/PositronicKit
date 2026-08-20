@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 
 /// The resolved model-tier clients a service dispatches through.
 ///

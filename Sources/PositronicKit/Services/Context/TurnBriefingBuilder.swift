@@ -2,7 +2,7 @@ import ErrorKit
 import Foundation
 import Logging
 import PKPrompt
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Builds the turn briefing — the selected memory/workspace material for one chat turn.

@@ -1,18 +1,18 @@
 import Foundation
-@testable import PKShared
+@testable import PKContracts
 import PKUtilities
 import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-/// Enforcement of `ToolApprovalPolicy` does NOT live in `PKShared` — `ToolApprovalPolicy.swift` there
+/// Enforcement of `ToolApprovalPolicy` does NOT live in `PKContracts` — `ToolApprovalPolicy.swift` there
 /// only defines the protocol and the two default gate implementations (`DenyAllToolApprovalPolicy`,
 /// `AllowAllToolApprovalPolicy`). The actual gate consultation and denial happens at the runtime
 /// execution sink in `PositronicKit`'s `Sources/PositronicKit/Services/Tools/ToolRouter.swift`
 /// (in the private local-execution path): a tool whose `requiresPermission` is `true` is blocked
 /// from running unless `approvalPolicy.requestApproval(tool:arguments:)` returns `.approve`; denial
 /// throws `ToolError.permissionDenied(<tool.name>)`. This suite pins that enforcement across every
-/// current PKShared filesystem tool, since a regression here would silently grant tool access.
+/// current PKContracts filesystem tool, since a regression here would silently grant tool access.
 ///
 /// This file mirrors the fixtures already established in `ToolRouterTests.swift` (`RecordingGate`,
 /// `setupRouter`, `setupThreadManager`) rather than importing them, because those helpers are
@@ -54,7 +54,7 @@ final class ToolApprovalPolicyFilesystemToolsTests {
     /// When `approvalPolicy` is nil, `ToolRouter`'s own default gate is used (currently
     /// `DenyAllToolApprovalPolicy`), to pin the default-deny posture explicitly.
     private func setupRouter(
-        with tool: any PKShared.Tool,
+        with tool: any PKContracts.Tool,
         approvalPolicy: (any ToolApprovalPolicy)? = nil
     ) async throws -> (ToolRouter, UUID) {
         let (threadManager, mockPersistence) = try await setupThreadManager()
@@ -94,7 +94,7 @@ final class ToolApprovalPolicyFilesystemToolsTests {
     /// parameterized tests off each tool's own `requiresPermission` flag (rather than only trusting
     /// this list) means a future contributor who flips a tool's flag without updating this array
     /// still gets caught by the accompanying `allListedToolsActuallyRequirePermission` guard below.
-    private static let permissionedFilesystemTools: [any PKShared.Tool] = [
+    private static let permissionedFilesystemTools: [any PKContracts.Tool] = [
         ReadFileTool(currentDirectory: NSTemporaryDirectory()),
         ListDirectoryTool(currentDirectory: NSTemporaryDirectory()),
         FindFileTool(currentDirectory: NSTemporaryDirectory()),

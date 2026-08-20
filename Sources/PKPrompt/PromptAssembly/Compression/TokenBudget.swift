@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Errors raised when a ``TokenBudget`` is constructed with invalid capacities.

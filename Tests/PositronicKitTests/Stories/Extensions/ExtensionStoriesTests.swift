@@ -1,6 +1,6 @@
 import Foundation
 import PKPrompt
-import PKShared
+import PKContracts
 import PKTestSupport
 import PKUtilities
 import PositronicKit
@@ -234,7 +234,7 @@ private final class AcceptanceWorkspaceCreator: WorkspaceFactory, Sendable {
     }
 }
 
-private struct AcceptanceRuntimeTool: PKShared.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+private struct AcceptanceRuntimeTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     let callName = "acceptance_tool"
     let name = "acceptance_tool"
     let description = "Custom runtime tool for extension-point acceptance testing"

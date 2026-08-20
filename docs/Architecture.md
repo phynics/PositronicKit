@@ -2,24 +2,12 @@
 
 PositronicKit is built on a modular, asynchronous processing architecture designed for scalability, thread safety, and clear separation of concerns.
 
-## 1. The Pipeline Pattern
+## 1. Internal Pipeline Execution
 
-The core processing logic in PositronicKit follows a generic **Pipeline** pattern. This allows for complex workflows (like a chat turn) to be broken down into discrete, reusable stages.
+The runtime uses a package-internal **Pipeline** implementation to sequence turn, prompt, and
+context stages. It is not a consumer-facing product or extension point.
 
-### PipelineStage Protocol
-A stage is any type that conforms to the `PipelineStage` protocol:
-```swift
-public protocol PipelineStage<Context, Event>: Sendable {
-    associatedtype Context: Sendable
-    associatedtype Event: Sendable
-
-    var id: String { get }
-    func process(_ context: Context) async throws -> AsyncThrowingStream<Event, Error>
-}
-```
-
-### Pipeline Execution
-The `Pipeline` class orchestrates the execution of these stages:
+The internal pipeline provides:
 1. **Sequential Execution**: Primary stages are executed one after another.
 2. **Stream Merging**: The pipeline merges the `AsyncThrowingStream` from each stage into a single continuous stream for the caller.
 3. **Cleanup Stages**: Stages registered via `.cleanup()` are guaranteed to run even if a primary stage fails, ensuring system integrity (e.g., closing database connections or logging final state).
@@ -106,7 +94,7 @@ PositronicKit is deliberately transport-neutral: no networking, RPC, multi-proce
 - **Persistence protocols** for threads, messages, workspaces, tools, agents, and request origins.
 - **`WorkspaceFactory` and `Workspace`** for downstream-owned workspace resolution and execution behavior. `DefaultWorkspaceCatalog` is the bundled local provisioning implementation, not a required universal workspace model.
 - **`PromptSectionProviding`** and **`ChatTurnPlugin`** for app-specific orchestration and context hooks.
-- **Provider contracts in `PKShared`** for downstream-owned LLM adapters and tool/message projections.
+- **Provider contracts in `PKContracts`** for downstream-owned LLM adapters and tool/message projections.
 
 ### v1 Extension Point Registry
 
@@ -114,21 +102,21 @@ These public API surfaces are the **v1 compatibility contract**: they only chang
 
 | Category | Protocol / Type | Module | Purpose |
 |----------|----------------|--------|---------|
-| **Tool contracts** | `Tool`, `AnyTool`, `ToolResult`, `ToolParameters`, `ToolError` | PKShared | Define and execute tools |
+| **Tool contracts** | `Tool`, `AnyTool`, `ToolResult`, `ToolParameters`, `ToolError` | PKContracts | Define and execute tools |
 | **Orchestration hooks** | `ChatTurnPlugin`, `CompletedTurn` | PositronicKit | Post-turn processing |
 | **Prompt customization** | `PromptSectionProviding`, `PromptBuildContext` | PositronicKit | Inject custom prompt sections |
 | **Persistence** | `MessageStoreProtocol`, `ThreadPersistenceProtocol`, `WorkspaceStore`, `MemoryStoreProtocol`, `ToolPersistenceProtocol`, `AgentInstanceStoreProtocol`, `AgentTemplateStoreProtocol`, `RequestOriginStoreProtocol` | PositronicKit | Custom storage backends |
 | **Key-value store** | `KeyValueStoreProtocol` | PositronicKit | Generic key-value persistence |
 | **Vector search** | `VectorStoreProtocol`, `VectorStoreError` | PositronicKit | Custom vector search backends |
 | **Health check** | `HealthCheckable` | PositronicKit | Service health reporting |
-| **LLM providers** | `LLMStreamClient`, `LLMConfigStore`, `LLMUtilityClient` (narrow seams); `LLMChatRequest`, `LLMStreamResult`, `LLMStreamChunk`, etc. | PKShared | Provider adapter contracts |
-| **Structured output** | `StructuredOutputAdapter`, `PreparedStructuredOutputRequest`, `DefaultStructuredOutputAdapter` | PKShared | Per-client structured-output preparation without global registration |
-| **Provider factories** | `LLMProviderFactory`, `PKOpenAIProvider.makeClient(configuration:)`, `PKOpenRouterProvider.makeClient(configuration:)`, `PKOllamaProvider.makeClient(configuration:)`, `PKAnthropicProvider.makeClient(configuration:)` | PKShared / provider modules | Compile-time provider client construction; no runtime provider registry |
-| **Workspace** | `Workspace`, `WorkspaceFactory`, `ToolReference`, `WorkspaceToolDefinition` | PositronicKit / PKShared | Custom workspace backends |
-| **Configuration** | `LLMConfiguration`, `GenerationParameters`, `LLMProvider` | PKShared | LLM configuration |
-| **Events** | `ChatEvent`, `ToolExecutionStatus`, `Message` | PKShared | Stream event types |
-| **Sidecar directives** | `SidecarDirective`, `SidecarDelta`, `SidecarResult` (PKShared), `SidecarError` (PositronicKit) | PKShared / PositronicKit | Piggy-backed auxiliary generations riding a turn's response — see [Sidecar Directives](docs/SidecarDirectives.md) |
-| **Pipeline** | `PipelineStage`, `PipelineError` | PKShared | Custom pipeline stages (advanced) |
+| **LLM providers** | `LLMStreamClient`, `LLMConfigStore`, `LLMUtilityClient` (narrow seams); `LLMChatRequest`, `LLMStreamResult`, `LLMStreamChunk`, etc. | PKContracts | Provider adapter contracts |
+| **Structured output** | `StructuredOutputAdapter`, `PreparedStructuredOutputRequest`, `DefaultStructuredOutputAdapter` | PKContracts | Per-client structured-output preparation without global registration |
+| **Provider factories** | `LLMProviderFactory`, `PKOpenAIProvider.makeClient(configuration:)`, `PKOpenRouterProvider.makeClient(configuration:)`, `PKOllamaProvider.makeClient(configuration:)`, `PKAnthropicProvider.makeClient(configuration:)` | PKContracts / provider modules | Compile-time provider client construction; no runtime provider registry |
+| **Workspace** | `Workspace`, `WorkspaceFactory`, `ToolReference`, `WorkspaceToolDefinition` | PositronicKit / PKContracts | Custom workspace backends |
+| **Configuration** | `LLMConfiguration`, `GenerationParameters`, `LLMProvider` | PKContracts | LLM configuration |
+| **Events** | `ChatEvent`, `ToolExecutionStatus`, `Message` | PKContracts | Stream event types |
+| **Sidecar directives** | `SidecarDirective`, `SidecarDelta`, `SidecarResult` (PKContracts), `SidecarError` (PositronicKit) | PKContracts / PositronicKit | Piggy-backed auxiliary generations riding a turn's response — see [Sidecar Directives](docs/SidecarDirectives.md) |
+| **Pipeline** | `PipelineStage`, `PipelineError` | package-internal utility layer | Runtime implementation detail; not a public product |
 | **Runtime coordinators (advanced)** | `ThreadManager`, `ToolRouter`, `ToolExecutionOutcome`, `RuntimeToolPolicy` | PositronicKit | Direct runtime seams for hosts with their own composition root |
 
 `InMemory*` stores (and `PositronicKit.PersistenceConfiguration.inMemory()`) are **public prototyping/test helpers**, not extension points — convenient for prototypes and tests, but not a stability contract.

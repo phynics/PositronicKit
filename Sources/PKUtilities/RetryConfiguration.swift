@@ -1,6 +1,6 @@
 import ErrorKit
 import Foundation
-import PKShared
+import PKContracts
 
 /// A validated retry policy configuration with finite ranges, attempt/elapsed budgets,
 /// and deterministic jitter injection for tests.
@@ -14,43 +14,43 @@ import PKShared
 /// server-advertised `Retry-After` hints (via `maxRetryAfter`), and enforces a total
 /// wall-clock elapsed budget (`maxTotalElapsedTime`) so a hostile or buggy server
 /// cannot keep the caller retrying indefinitely.
-public struct RetryConfiguration: Sendable {
+package struct RetryConfiguration: Sendable {
     /// Maximum number of retry attempts.
-    public let maxRetries: Int
+    package let maxRetries: Int
 
     /// Base delay in seconds for exponential backoff (`baseDelay * 2^(attempt-1)`).
-    public let baseDelay: TimeInterval
+    package let baseDelay: TimeInterval
 
     /// Maximum delay applied to any single computed backoff, capping exponential growth.
-    public let maxDelay: TimeInterval
+    package let maxDelay: TimeInterval
 
     /// Maximum total elapsed wall-clock time across all retries (total budget).
-    public let maxTotalElapsedTime: TimeInterval
+    package let maxTotalElapsedTime: TimeInterval
 
     /// Maximum server-advertised `Retry-After` to honor, capping hostile hints.
-    public let maxRetryAfter: TimeInterval
+    package let maxRetryAfter: TimeInterval
 
     /// Jitter strategy applied to computed backoff delays.
-    public let jitter: JitterStrategy
+    package let jitter: JitterStrategy
 
     // MARK: Hard caps
 
     /// Absolute upper bound on `maxRetries` accepted at construction.
-    public static let maxRetriesHardCap = 10
+    package static let maxRetriesHardCap = 10
 
     /// Absolute upper bound on `baseDelay` accepted at construction (seconds).
-    public static let baseDelayMax: TimeInterval = 60
+    package static let baseDelayMax: TimeInterval = 60
 
     // MARK: Defaults
 
     /// Default cap for computed backoff delays (5 minutes).
-    public static let defaultMaxDelay: TimeInterval = 300
+    package static let defaultMaxDelay: TimeInterval = 300
 
     /// Default cap for server `Retry-After` hints (5 minutes).
-    public static let defaultMaxRetryAfter: TimeInterval = 300
+    package static let defaultMaxRetryAfter: TimeInterval = 300
 
     /// Default total elapsed-time budget across all retries (10 minutes).
-    public static let defaultMaxTotalElapsedTime: TimeInterval = 600
+    package static let defaultMaxTotalElapsedTime: TimeInterval = 600
 
     // MARK: Init
 
@@ -67,7 +67,7 @@ public struct RetryConfiguration: Sendable {
     ///   - jitter: Jitter strategy applied to backoff delays. Defaults to 0–10% random jitter.
     /// - Throws: `RetryConfigurationError` if any value is negative, NaN, infinite, or
     ///   exceeds its hard cap.
-    public init(
+    package init(
         maxRetries: Int = 3,
         baseDelay: TimeInterval = 1.0,
         maxDelay: TimeInterval = RetryConfiguration.defaultMaxDelay,
@@ -99,7 +99,7 @@ public struct RetryConfiguration: Sendable {
 
     /// Default configuration matching pre-PKRR-030 `RetryPolicy.retry` behavior,
     /// with safe caps applied. Equivalent to `maxRetries: 3, baseDelay: 1.0`.
-    public static let `default`: RetryConfiguration = {
+    package static let `default`: RetryConfiguration = {
         do {
             return try RetryConfiguration()
         } catch {
@@ -124,7 +124,7 @@ extension RetryConfiguration: Equatable {
     /// (a closure) is excluded from equality because closures cannot be compared; two
     /// configs with the same numeric fields but different jitter are functionally
     /// equivalent for comparison purposes.
-    public static func == (lhs: RetryConfiguration, rhs: RetryConfiguration) -> Bool {
+    package static func == (lhs: RetryConfiguration, rhs: RetryConfiguration) -> Bool {
         lhs.maxRetries == rhs.maxRetries
             && lhs.baseDelay == rhs.baseDelay
             && lhs.maxDelay == rhs.maxDelay
@@ -138,19 +138,19 @@ extension RetryConfiguration: Equatable {
 /// Encapsulated as a struct with a `@Sendable` closure so tests can inject a
 /// deterministic jitter (e.g. `.none` or a fixed value) without touching
 /// `Double.random`. Production code uses `.randomPercent(upTo:)`.
-public struct JitterStrategy: Sendable {
-    public let apply: @Sendable (TimeInterval) -> TimeInterval
+package struct JitterStrategy: Sendable {
+    package let apply: @Sendable (TimeInterval) -> TimeInterval
 
-    public init(apply: @escaping @Sendable (TimeInterval) -> TimeInterval) {
+    package init(apply: @escaping @Sendable (TimeInterval) -> TimeInterval) {
         self.apply = apply
     }
 
     /// No jitter — returns the delay unchanged. Deterministic; use in tests.
-    public static let none = JitterStrategy { delay in delay }
+    package static let none = JitterStrategy { delay in delay }
 
     /// Random jitter in `[0, delay * fraction]` added to the delay.
     /// Defaults to 10% (`fraction = 0.1`), matching pre-PKRR-030 behavior.
-    public static func randomPercent(upTo fraction: Double = 0.1) -> JitterStrategy {
+    package static func randomPercent(upTo fraction: Double = 0.1) -> JitterStrategy {
         JitterStrategy { delay in
             delay + Double.random(in: 0.0 ... (delay * fraction))
         }
@@ -158,7 +158,7 @@ public struct JitterStrategy: Sendable {
 }
 
 /// Validation errors for `RetryConfiguration` construction (PKRR-030).
-public enum RetryConfigurationError: PKError, Sendable, Equatable {
+package enum RetryConfigurationError: PKError, Sendable, Equatable {
     /// `maxRetries` was negative.
     case negativeMaxRetries(Int)
     /// `maxRetries` exceeded the hard cap.
@@ -170,9 +170,9 @@ public enum RetryConfigurationError: PKError, Sendable, Equatable {
     /// `baseDelay` exceeded the absolute maximum.
     case baseDelayExceedsMax(TimeInterval, max: TimeInterval)
 
-    public var errorDomain: String { PKErrorDomain.utilities }
+    package var errorDomain: String { PKErrorDomain.utilities }
 
-    public var errorCode: Int {
+    package var errorCode: Int {
         switch self {
         case .negativeMaxRetries: return 5001
         case .maxRetriesExceedsHardCap: return 5002
@@ -182,7 +182,7 @@ public enum RetryConfigurationError: PKError, Sendable, Equatable {
         }
     }
 
-    public var userFriendlyMessage: String {
+    package var userFriendlyMessage: String {
         switch self {
         case let .negativeMaxRetries(value):
             return "maxRetries \(value) is negative; it must be zero or positive."
@@ -197,7 +197,7 @@ public enum RetryConfigurationError: PKError, Sendable, Equatable {
         }
     }
 
-    public var remediation: String? {
+    package var remediation: String? {
         "Provide finite, non-negative values within the documented hard caps for each retry field."
     }
 }

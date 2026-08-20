@@ -1,7 +1,7 @@
 import Foundation
 import Logging
 import PKPrompt
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// The public facade for PositronicKit's agent runtime subsystem.

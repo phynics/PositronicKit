@@ -1,4 +1,4 @@
-import PKShared
+import PKContracts
 
 /// Errors produced while validating a facade chat-run request.
 public enum ChatRunError: PKError, Sendable, Equatable {

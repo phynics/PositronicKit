@@ -1,4 +1,4 @@
-import PKShared
+import PKContracts
 import PKUtilities
 
 // Protocol for managing virtual document workspaces.

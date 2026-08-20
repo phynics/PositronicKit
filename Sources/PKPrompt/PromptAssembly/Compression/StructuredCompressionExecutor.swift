@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Executes a structured compression plan against a set of prompt sections.

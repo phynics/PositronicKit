@@ -1,8 +1,8 @@
 import Foundation
 import Logging
-import PKShared
+import PKContracts
 
-public enum RetryPolicy {
+package enum RetryPolicy {
     /// Executes an async operation with retry logic.
     ///
     /// This overload accepts raw `maxRetries` and `baseDelay` values for backward
@@ -19,7 +19,7 @@ public enum RetryPolicy {
     ///     (default: always true for known transient errors)
     ///   - loggingConfiguration: Logging configuration.
     ///   - operation: The async operation to execute.
-    public static func retry<T>(
+    package static func retry<T>(
         maxRetries: Int = 3,
         baseDelay: TimeInterval = 1.0,
         shouldRetry: @escaping @Sendable (Error) -> Bool = RetryPolicy.isTransient,
@@ -51,7 +51,7 @@ public enum RetryPolicy {
     ///     (default: always true for known transient errors).
     ///   - loggingConfiguration: Logging configuration.
     ///   - operation: The async operation to execute.
-    public static func retry<T>(
+    package static func retry<T>(
         configuration: RetryConfiguration,
         shouldRetry: @escaping @Sendable (Error) -> Bool = RetryPolicy.isTransient,
         loggingConfiguration: LoggingConfiguration = .default,
@@ -174,7 +174,7 @@ public enum RetryPolicy {
     }
 
     /// Default logic to determine if an error is transient
-    public static func isTransient(error: Error) -> Bool {
+    package static func isTransient(error: Error) -> Bool {
         if error is CancellationError || Task.isCancelled {
             return false
         }

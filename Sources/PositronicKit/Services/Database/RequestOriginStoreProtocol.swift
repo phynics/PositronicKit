@@ -11,7 +11,7 @@
 /// The protocol contract is exercised in `RequestOriginStoreContractTests` against both
 /// in-package conformers.
 
-import PKShared
+import PKContracts
 import PKUtilities
 import Foundation
 

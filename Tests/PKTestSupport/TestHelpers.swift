@@ -1,6 +1,6 @@
 import Foundation
 import PositronicKit
-import PKShared
+import PKContracts
 import PKUtilities
 
     public extension AsyncStream {

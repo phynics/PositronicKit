@@ -46,8 +46,7 @@ let package = Package(
         .library(name: "PositronicKit", targets: ["PositronicKit"]),
         .library(name: "PKObservable", targets: ["PKObservable"]),
         .library(name: "PKPrompt", targets: ["PKPrompt"]),
-        .library(name: "PKShared", targets: ["PKShared"]),
-        .library(name: "PKUtilities", targets: ["PKUtilities"]),
+        .library(name: "PKContracts", targets: ["PKContracts"]),
         .library(name: "PKLocalEmbeddings", targets: ["PKLocalEmbeddings"]),
         .library(name: "PKOpenAIProvider", targets: ["PKOpenAIProvider"]),
         .library(name: "PKOpenRouterProvider", targets: ["PKOpenRouterProvider"]),
@@ -74,7 +73,7 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "PKShared",
+            name: "PKContracts",
             dependencies: [
                 .product(name: "ErrorKit", package: "ErrorKit"),
                 .product(name: "Logging", package: "swift-log"),
@@ -83,12 +82,13 @@ let package = Package(
                 .product(name: "PartialJSON", package: "PartialJSON"),
                 .product(name: "Crypto", package: "swift-crypto"),
             ],
-            path: "Sources/PKShared",
+            path: "Sources/PKContracts",
+            exclude: ["CONTEXT.md"],
             swiftSettings: approachableConcurrency
         ),
         .target(
             name: "PKPrompt",
-            dependencies: ["PKShared", "PKUtilities"],
+            dependencies: ["PKContracts", "PKUtilities"],
             path: "Sources/PKPrompt",
             exclude: ["CONTEXT.md"],
             swiftSettings: approachableConcurrency
@@ -96,7 +96,7 @@ let package = Package(
         .target(
             name: "PKUtilities",
             dependencies: [
-                "PKShared",
+                "PKContracts",
                 .product(name: "ErrorKit", package: "ErrorKit"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "Crypto", package: "swift-crypto"),
@@ -107,7 +107,7 @@ let package = Package(
         .target(
             name: "PositronicKit",
             dependencies: [
-                "PKShared",
+                "PKContracts",
                 "PKPrompt",
                 "PKUtilities",
                 .product(name: "Logging", package: "swift-log"),
@@ -129,8 +129,7 @@ let package = Package(
         .target(
             name: "PKLocalEmbeddings",
             dependencies: [
-                "PositronicKit",
-                "PKShared",
+                "PKContracts",
                 .product(name: "Crypto", package: "swift-crypto"),
                 pkFastEmbedDependency,
             ],
@@ -140,14 +139,14 @@ let package = Package(
         cpkFastEmbedTarget,
         .target(
             name: "PKFastEmbed",
-            dependencies: ["CPKFastEmbed", "PKShared", "PKUtilities", "PositronicKit"],
+            dependencies: ["CPKFastEmbed", "PKContracts"],
             path: "Sources/PKFastEmbed",
             swiftSettings: approachableConcurrency
         ),
         .target(
             name: "PKOpenAIProvider",
             dependencies: [
-                "PKShared",
+                "PKContracts",
                 "PKUtilities",
                 .product(name: "OpenAI", package: "OpenAI"),
                 .product(name: "Logging", package: "swift-log"),
@@ -158,7 +157,7 @@ let package = Package(
         .target(
             name: "PKOpenRouterProvider",
             dependencies: [
-                "PKShared",
+                "PKContracts",
                 "PKUtilities",
                 .product(name: "Logging", package: "swift-log"),
             ],
@@ -168,7 +167,7 @@ let package = Package(
         .target(
             name: "PKOllamaProvider",
             dependencies: [
-                "PKShared",
+                "PKContracts",
                 "PKUtilities",
                 .product(name: "Logging", package: "swift-log"),
             ],
@@ -178,7 +177,7 @@ let package = Package(
         .target(
             name: "PKAnthropicProvider",
             dependencies: [
-                "PKShared",
+                "PKContracts",
                 "PKUtilities",
                 .product(name: "Logging", package: "swift-log"),
             ],
@@ -188,7 +187,7 @@ let package = Package(
         .target(
             name: "PKFoundationModelsProvider",
             dependencies: [
-                "PKShared",
+                "PKContracts",
                 "PKUtilities",
                 .product(name: "Logging", package: "swift-log"),
             ],
@@ -206,7 +205,7 @@ let package = Package(
                 "PKAnthropicProvider",
                 "PKFoundationModelsProvider",
                 "PKPrompt",
-                "PKShared",
+                "PKContracts",
                 "PKUtilities",
                 .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
             ],
@@ -219,11 +218,29 @@ let package = Package(
             path: "Tests/PKPromptJournalProcessFixture",
             swiftSettings: approachableConcurrency
         ),
+        .executableTarget(
+            name: "PublicProductConsumer",
+            dependencies: [
+                "PositronicKit",
+                "PKObservable",
+                "PKPrompt",
+                "PKContracts",
+                "PKLocalEmbeddings",
+                "PKOpenAIProvider",
+                "PKOpenRouterProvider",
+                "PKOllamaProvider",
+                "PKAnthropicProvider",
+                "PKFoundationModelsProvider",
+                "PKTestSupport",
+            ],
+            path: "Tests/PublicProductConsumer",
+            swiftSettings: approachableConcurrency
+        ),
         .target(
             name: "PKTestSupport",
             dependencies: [
                 "PositronicKit",
-                "PKShared",
+                "PKContracts",
                 "PKUtilities",
                 "PKPrompt",
                 .product(name: "JSONSchema", package: "swift-json-schema"),
@@ -233,7 +250,7 @@ let package = Package(
         ),
         .executableTarget(
             name: "PKTestSupportConsumer",
-            dependencies: ["PKTestSupport", "PKShared", "PositronicKit"],
+            dependencies: ["PKTestSupport", "PKContracts", "PositronicKit"],
             path: "Tests/PKTestSupportConsumer",
             swiftSettings: approachableConcurrency
         ),
@@ -252,7 +269,7 @@ let package = Package(
                 // behaviorally correct, not just compiling. Removing this dependency
                 // would drop that coverage rather than relocate it.
                 "PositronicKitExamples",
-                "PKShared",
+                "PKContracts",
                 "PKUtilities",
                 "PKTestSupport",
                 .product(name: "OpenAI", package: "OpenAI"),
@@ -271,7 +288,7 @@ let package = Package(
             dependencies: [
                 "PKLocalEmbeddings",
                 "PositronicKit",
-                "PKShared",
+                "PKContracts",
                 "PKUtilities",
                 "PKTestSupport",
             ],
@@ -289,25 +306,25 @@ let package = Package(
         ),
         .testTarget(
             name: "PKPromptTests",
-            dependencies: ["PKPrompt", "PKShared", "PKUtilities", "PKTestSupport"],
+            dependencies: ["PKPrompt", "PKContracts", "PKUtilities", "PKTestSupport"],
             path: "Tests/PKPromptTests",
             swiftSettings: approachableConcurrency
         ),
         .testTarget(
-            name: "PKSharedTests",
+            name: "PKContractsTests",
             dependencies: [
-                "PKShared",
+                "PKContracts",
                 "PKUtilities",
                 "PKTestSupport",
                 .product(name: "JSONSchema", package: "swift-json-schema"),
                 .product(name: "JSONSchemaBuilder", package: "swift-json-schema"),
             ],
-            path: "Tests/PKSharedTests",
+            path: "Tests/PKContractsTests",
             swiftSettings: approachableConcurrency
         ),
         .testTarget(
             name: "PKUtilitiesTests",
-            dependencies: ["PKUtilities", "PKShared", "PKTestSupport"],
+            dependencies: ["PKUtilities", "PKContracts", "PKTestSupport"],
             path: "Tests/PKUtilitiesTests",
             swiftSettings: approachableConcurrency
         ),
@@ -315,7 +332,7 @@ let package = Package(
             name: "PKOpenAIProviderTests",
             dependencies: [
                 "PKOpenAIProvider",
-                "PKShared",
+                "PKContracts",
                 "PKUtilities",
                 "PKTestSupport",
                 "PositronicKit",
@@ -329,7 +346,7 @@ let package = Package(
             name: "PKOpenRouterProviderTests",
             dependencies: [
                 "PKOpenRouterProvider",
-                "PKShared",
+                "PKContracts",
                 "PKUtilities",
                 "PKTestSupport",
                 .product(name: "Logging", package: "swift-log"),
@@ -341,7 +358,7 @@ let package = Package(
             name: "PKOllamaProviderTests",
             dependencies: [
                 "PKOllamaProvider",
-                "PKShared",
+                "PKContracts",
                 "PKUtilities",
                 "PKTestSupport",
                 .product(name: "JSONSchema", package: "swift-json-schema"),
@@ -354,7 +371,7 @@ let package = Package(
             name: "PKAnthropicProviderTests",
             dependencies: [
                 "PKAnthropicProvider",
-                "PKShared",
+                "PKContracts",
                 "PKUtilities",
                 "PKTestSupport",
                 "PositronicKit",
@@ -367,7 +384,7 @@ let package = Package(
             name: "PKFoundationModelsProviderTests",
             dependencies: [
                 "PKFoundationModelsProvider",
-                "PKShared",
+                "PKContracts",
                 "PKUtilities",
                 "PKTestSupport",
                 "PositronicKit",
@@ -380,7 +397,7 @@ let package = Package(
             name: "PKTestSupportTests",
             dependencies: [
                 "PKTestSupport",
-                "PKShared",
+                "PKContracts",
                 "PKUtilities",
             ],
             path: "Tests/PKTestSupportTests",

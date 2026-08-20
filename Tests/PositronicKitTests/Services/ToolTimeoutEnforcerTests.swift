@@ -1,5 +1,5 @@
 import Foundation
-@testable import PKShared
+@testable import PKContracts
 import PKUtilities
 @testable import PositronicKit
 import Synchronization
@@ -72,7 +72,7 @@ private final class AsyncLatch: Sendable {
 /// external-process paths are covered by dedicated fixtures and tests further down.
 @Suite("ToolTimeoutEnforcer")
 struct ToolTimeoutEnforcerTests {
-    private struct EchoTool: PKShared.Tool {
+    private struct EchoTool: PKContracts.Tool {
         let callName = "echo"
         let name = "echo"
         let description = "echo back the input"
@@ -94,7 +94,7 @@ struct ToolTimeoutEnforcerTests {
         }
     }
 
-    private struct NeverFinishingTool: PKShared.Tool {
+    private struct NeverFinishingTool: PKContracts.Tool {
         let callName = "never"
         let name = "never"
         let description = "never returns unless cancelled"
@@ -112,7 +112,7 @@ struct ToolTimeoutEnforcerTests {
         }
     }
 
-    private struct ControlledUncooperativeTool: PKShared.Tool, Sendable {
+    private struct ControlledUncooperativeTool: PKContracts.Tool, Sendable {
         let callName = "controlled_uncooperative"
         let name = "controlled_uncooperative"
         let description = "suspends asynchronously and ignores cancellation"
@@ -136,7 +136,7 @@ struct ToolTimeoutEnforcerTests {
     /// A never-finishing tool that mutates in-process state (declares `.mutating`).
     /// Models the PKRR-004 bug condition: after timeout the tool may still complete its
     /// writes, so the enforcer must report `timedOutButMayStillBeRunning`.
-    private struct MutatingNeverFinishingTool: PKShared.Tool {
+    private struct MutatingNeverFinishingTool: PKContracts.Tool {
         let callName = "mutating_never"
         let name = "mutating_never"
         let description = "mutates state and never returns unless cancelled"
@@ -157,7 +157,7 @@ struct ToolTimeoutEnforcerTests {
     /// A never-finishing tool that drives an external process/remote service (declares
     /// `.externalProcess`). Termination requires an out-of-band kill path the runtime
     /// does not own, so the enforcer must report `timedOutButMayStillBeRunning`.
-    private struct ExternalProcessNeverFinishingTool: PKShared.Tool {
+    private struct ExternalProcessNeverFinishingTool: PKContracts.Tool {
         let callName = "external_never"
         let name = "external_never"
         let description = "drives an external process and never returns unless cancelled"
@@ -189,7 +189,7 @@ struct ToolTimeoutEnforcerTests {
 
     @Test("Tool that throws surfaces the wrapped error")
     func toolError() async throws {
-        struct FailingTool: PKShared.Tool {
+        struct FailingTool: PKContracts.Tool {
             let callName = "fail"
             let name = "fail"
             let description = "always fails"
@@ -398,7 +398,7 @@ struct ToolTimeoutEnforcerTests {
     func defaultSideEffectsToolReportsMayStillBeRunning() async throws {
         // AC: the protocol default is `.mutating`. A tool that does not declare `sideEffects`
         // must get `timedOutButMayStillBeRunning` on timeout — the conservative assumption.
-        struct UndeclaredNeverFinishingTool: PKShared.Tool {
+        struct UndeclaredNeverFinishingTool: PKContracts.Tool {
             let callName = "undeclared_never"
             let name = "undeclared_never"
             let description = "never returns; does not declare sideEffects"

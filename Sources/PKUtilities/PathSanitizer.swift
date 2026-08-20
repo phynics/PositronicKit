@@ -1,17 +1,17 @@
-import PKShared
+import PKContracts
 import Foundation
 import ErrorKit
 
 /// Utility to safely resolve paths within a jail directory
-public enum PathSanitizer {
+package enum PathSanitizer {
     /// Errors related to path sanitization
-    public enum PathError: PKError {
+    package enum PathError: PKError {
         case accessDenied(String)
         case invalidPath(String)
 
-        public var errorDomain: String { PKErrorDomain.filesystem }
+        package var errorDomain: String { PKErrorDomain.filesystem }
 
-        public var errorCode: Int {
+        package var errorCode: Int {
             switch self {
             case .accessDenied: return 101
             case .invalidPath: return 102
@@ -20,14 +20,14 @@ public enum PathSanitizer {
 
         /// `accessDenied` represents a blocked/disallowed condition — the path is
         /// outside the allowed directory, so execution is refused by an access gate.
-        public var isBlocked: Bool {
+        package var isBlocked: Bool {
             switch self {
             case .accessDenied: return true
             case .invalidPath: return false
             }
         }
 
-        public var userFriendlyMessage: String {
+        package var userFriendlyMessage: String {
             switch self {
             case .accessDenied:
                 return "Access denied. The requested path is outside the allowed directory."
@@ -44,7 +44,7 @@ public enum PathSanitizer {
     ///   - jailRoot: The absolute path to the jail root
     /// - Returns: A standardized URL within the jail root
     /// - Throws: PathError if the resolved path is outside the jail root
-    public static func safelyResolve(
+    package static func safelyResolve(
         path pathString: String,
         within currentDirectory: String,
         jailRoot: String
@@ -74,7 +74,7 @@ public enum PathSanitizer {
     }
 
     /// Legacy alias for safelyResolve(path:within:jailRoot:) where currentDirectory == jailRoot
-    public static func safelyResolve(path pathString: String, within root: String) throws -> URL {
+    package static func safelyResolve(path pathString: String, within root: String) throws -> URL {
         return try safelyResolve(path: pathString, within: root, jailRoot: root)
     }
 

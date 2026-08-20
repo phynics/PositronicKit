@@ -83,4 +83,4 @@ wrapped as a foreign provider failure.
 
 ### Runtime Surfaces
 
-Use the module articles above for architecture and persistence guidance. Shared tool contracts and message models live in `PKShared`, while prompt construction APIs live in `PKPrompt`.
+Use the module articles above for architecture and persistence guidance. Shared tool contracts and message models live in `PKContracts`, while prompt construction APIs live in `PKPrompt`.

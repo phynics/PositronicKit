@@ -1,7 +1,7 @@
 import ErrorKit
 import Foundation
 import Logging
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Manages the persistence and provisioning of agent private workspaces.

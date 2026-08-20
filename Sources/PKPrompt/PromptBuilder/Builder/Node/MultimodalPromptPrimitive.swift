@@ -1,4 +1,4 @@
-import PKShared
+import PKContracts
 
 package struct MultimodalPromptPrimitive: PromptPrimitive {
     package let id: String

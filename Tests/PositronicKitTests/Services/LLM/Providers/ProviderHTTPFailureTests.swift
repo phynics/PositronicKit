@@ -3,7 +3,7 @@ import Foundation
     import FoundationNetworking
 #endif
 import OpenAI
-import PKShared
+import PKContracts
 import PKUtilities
 @testable import PKOllamaProvider
 @testable import PKOpenAIProvider

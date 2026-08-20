@@ -1,7 +1,7 @@
 import Foundation
 import Logging
 import OpenAI
-@testable import PKShared
+@testable import PKContracts
 import PKUtilities
 import PKTestSupport
 @testable import PositronicKit
@@ -605,7 +605,7 @@ struct ChatEngineFailurePersistenceTests {
     @Test("WorkspaceError.accessDenied is classified as blocked (PKAPI-004)")
     func workspaceErrorAccessDeniedIsBlocked() {
         // WorkspaceError lives in PositronicKit, so its blocked classification is
-        // tested here rather than in PKSharedTests/ChatEventTests.
+        // tested here rather than in PKContractsTests/ChatEventTests.
         let identity = ChatEvent.ErrorIdentity.extracting(from: WorkspaceError.accessDenied)
         #expect(identity?.domain == PKErrorDomain.workspace)
         #expect(identity?.code == 3002)
@@ -623,7 +623,7 @@ private struct ThrowingExtensionStage: PipelineStage {
     }
 }
 
-private struct PersistenceTestTool: PKShared.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+private struct PersistenceTestTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     static let toolID = "retryable_tool"
 
     let callName = Self.toolID

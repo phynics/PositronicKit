@@ -1,6 +1,6 @@
 import Foundation
 import struct JSONSchema.Schema
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Wraps a tool from a workspace to conform to the Tool protocol

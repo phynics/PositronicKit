@@ -1,4 +1,4 @@
-import PKShared
+import PKContracts
 
 public enum PKOllamaProvider: LLMProviderFactory {
     /// Creates an Ollama client with its structured-output adapter.

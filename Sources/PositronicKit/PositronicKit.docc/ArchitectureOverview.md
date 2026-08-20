@@ -4,7 +4,7 @@ Deep dive into the current PositronicKit runtime design.
 
 ## Modularity
 
-PositronicKit keeps transport-neutral runtime orchestration in `PositronicKit`, shared contracts in `PKShared`, and prompt composition/rendering in `PKPrompt`.
+PositronicKit keeps transport-neutral runtime orchestration in `PositronicKit`, shared contracts in `PKContracts`, and prompt composition/rendering in `PKPrompt`.
 
 ## Facade-Backed Wiring
 

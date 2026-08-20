@@ -1,6 +1,6 @@
 import Foundation
 import Logging
-import PKShared
+import PKContracts
 import PKUtilities
 
 #if canImport(FoundationModels)

@@ -1,6 +1,6 @@
 import Foundation
 import PKPrompt
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Events emitted during the context gathering process

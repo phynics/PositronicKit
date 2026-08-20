@@ -3,7 +3,7 @@ import Foundation
 import FoundationNetworking
 #endif
 import OpenAI
-import PKShared
+import PKContracts
 import PKTestSupport
 import PKUtilities
 import PositronicKit

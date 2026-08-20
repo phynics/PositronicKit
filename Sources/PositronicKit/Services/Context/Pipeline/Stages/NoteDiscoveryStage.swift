@@ -1,7 +1,7 @@
 import Foundation
 import Logging
 import PKPrompt
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Pipeline stage responsible for discovering relevant filesystem notes in the workspace.

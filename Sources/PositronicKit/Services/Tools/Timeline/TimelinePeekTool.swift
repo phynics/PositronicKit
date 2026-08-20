@@ -1,11 +1,11 @@
 import Foundation
 import struct JSONSchema.Schema
 import JSONSchemaBuilder
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Allows an agent to read recent messages from a thread without attaching to it.
-public struct ThreadPeekTool: PKShared.Tool, Sendable {
+public struct ThreadPeekTool: PKContracts.Tool, Sendable {
     public let callName = "timeline_peek"
     public let name = "Timeline Peek"
     public let description =

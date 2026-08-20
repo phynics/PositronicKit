@@ -8,7 +8,7 @@ import Network
 @testable import PKOllamaProvider
 @testable import PKOpenAIProvider
 @testable import PKOpenRouterProvider
-import PKShared
+import PKContracts
 import PKUtilities
 import PositronicKit
 import Synchronization

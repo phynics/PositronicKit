@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 import Synchronization
 
 /// Gates retry decisions to prevent retrying after content has been yielded to the consumer.
@@ -14,13 +14,13 @@ import Synchronization
 ///   has been yielded yet.
 /// - `markYieldedIfNeeded(_:)` flips the gate the first time a chunk carries non-empty
 ///   `content`, non-empty `reasoning`, or any (non-`nil`) `toolCalls` delta.
-public final class DuplicateContentRetryGate: Sendable {
+package final class DuplicateContentRetryGate: Sendable {
     private let hasYielded = Mutex(false)
 
-    public init() {}
+    package init() {}
 
     /// Returns `true` if the error is transient AND no content has been yielded yet.
-    public func shouldRetry(error: Error) -> Bool {
+    package func shouldRetry(error: Error) -> Bool {
         hasYielded.withLock { yielded in
             !yielded && RetryPolicy.isTransient(error: error)
         }
@@ -29,7 +29,7 @@ public final class DuplicateContentRetryGate: Sendable {
     /// Marks the gate as yielded if the chunk carries non-empty content/reasoning or any
     /// tool-call delta. Once yielded, subsequent calls are no-ops and `shouldRetry` will
     /// always return `false`.
-    public func markYieldedIfNeeded(_ chunk: LLMStreamChunk) {
+    package func markYieldedIfNeeded(_ chunk: LLMStreamChunk) {
         hasYielded.withLock { yielded in
             if yielded { return }
             guard let delta = chunk.choices.first?.delta else { return }

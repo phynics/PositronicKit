@@ -1,5 +1,5 @@
 import Foundation
-@testable import PKShared
+@testable import PKContracts
 @testable import PKUtilities
 import PKUtilities
 import Testing

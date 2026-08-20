@@ -1,14 +1,14 @@
-import PKShared
+import PKContracts
 import ErrorKit
 import Foundation
 
 /// Log levels for pipeline diagnostics.
-public enum PipelineLogLevel: Sendable {
+package enum PipelineLogLevel: Sendable {
     case trace, debug, info, notice, warning, error, critical
 }
 
 /// Protocol defining a single stage in a pipeline.
-public protocol PipelineStage<Context, Event>: Sendable {
+package protocol PipelineStage<Context, Event>: Sendable {
     associatedtype Context: Sendable
     associatedtype Event: Sendable
 
@@ -23,7 +23,7 @@ public protocol PipelineStage<Context, Event>: Sendable {
     func process(_ context: Context) async throws -> AsyncThrowingStream<Event, Error>
 }
 
-public extension PipelineStage {
+package extension PipelineStage {
     /// Default implementation returns the type name.
     var id: String {
         String(describing: Self.self)
@@ -31,14 +31,14 @@ public extension PipelineStage {
 }
 
 /// A generic, asynchronous pipeline that executes a series of stages.
-public final class Pipeline<Context: Sendable, Event: Sendable>: Sendable {
-    public typealias LogHandler = @Sendable (PipelineLogLevel, String, [String: String]) -> Void
+package final class Pipeline<Context: Sendable, Event: Sendable>: Sendable {
+    package typealias LogHandler = @Sendable (PipelineLogLevel, String, [String: String]) -> Void
 
     private let stages: [any PipelineStage<Context, Event>]
     private let cleanupStages: [any PipelineStage<Context, Event>]
     private let logHandler: LogHandler?
 
-    public init(
+    package init(
         stages: [any PipelineStage<Context, Event>] = [],
         cleanupStages: [any PipelineStage<Context, Event>] = [],
         logHandler: LogHandler? = nil
@@ -51,7 +51,7 @@ public final class Pipeline<Context: Sendable, Event: Sendable>: Sendable {
     /// Adds a stage to the pipeline and returns a new pipeline instance.
     /// - Parameter stage: The stage to add.
     /// - Returns: A new pipeline instance with the added stage.
-    public func add(_ stage: any PipelineStage<Context, Event>) -> Pipeline<Context, Event> {
+    package func add(_ stage: any PipelineStage<Context, Event>) -> Pipeline<Context, Event> {
         Pipeline(stages: stages + [stage], cleanupStages: cleanupStages, logHandler: logHandler)
     }
 
@@ -59,14 +59,14 @@ public final class Pipeline<Context: Sendable, Event: Sendable>: Sendable {
     /// Cleanup stages are executed even if a primary stage fails.
     /// - Parameter stage: The cleanup stage to add.
     /// - Returns: A new pipeline instance with the added cleanup stage.
-    public func cleanup(_ stage: any PipelineStage<Context, Event>) -> Pipeline<Context, Event> {
+    package func cleanup(_ stage: any PipelineStage<Context, Event>) -> Pipeline<Context, Event> {
         Pipeline(stages: stages, cleanupStages: cleanupStages + [stage], logHandler: logHandler)
     }
 
     /// Sets the log handler for the pipeline and returns a new pipeline instance.
     /// - Parameter handler: The log handler closure.
     /// - Returns: A new pipeline instance with the log handler set.
-    public func withLogHandler(_ handler: @escaping LogHandler) -> Pipeline<Context, Event> {
+    package func withLogHandler(_ handler: @escaping LogHandler) -> Pipeline<Context, Event> {
         Pipeline(stages: stages, cleanupStages: cleanupStages, logHandler: handler)
     }
 
@@ -74,7 +74,7 @@ public final class Pipeline<Context: Sendable, Event: Sendable>: Sendable {
     /// - Parameters:
     ///   - context: The context to process.
     /// - Returns: A merged stream of all events from all stages.
-    public func execute(_ context: Context) -> AsyncThrowingStream<Event, Error> {
+    package func execute(_ context: Context) -> AsyncThrowingStream<Event, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 let executionError = await runPrimaryStages(context: context, continuation: continuation)
@@ -177,14 +177,14 @@ public final class Pipeline<Context: Sendable, Event: Sendable>: Sendable {
 }
 
 /// Errors that can occur during pipeline execution.
-public enum PipelineError: Error, Sendable {
+package enum PipelineError: Error, Sendable {
     case stageFailed(id: String, underlyingError: Error)
     case cleanupFailed(id: String, underlyingError: Error)
     case compoundFailure(primary: Error, cleanupFailures: [Error])
 }
 
 extension PipelineError: CausalError {
-    public var underlyingCauses: [Error] {
+    package var underlyingCauses: [Error] {
         switch self {
         case let .stageFailed(_, underlyingError):
             return [underlyingError]
@@ -195,15 +195,15 @@ extension PipelineError: CausalError {
         }
     }
 
-    public var usesOwnIdentityAsFallback: Bool { false }
+    package var usesOwnIdentityAsFallback: Bool { false }
 }
 
 extension PipelineError: PKError {
-    public var errorDomain: String {
+    package var errorDomain: String {
         PKErrorDomain.pipeline
     }
 
-    public var errorCode: Int {
+    package var errorCode: Int {
         switch self {
         case .stageFailed: return 4001
         case .cleanupFailed: return 4002
@@ -211,7 +211,7 @@ extension PipelineError: PKError {
         }
     }
 
-    public var userFriendlyMessage: String {
+    package var userFriendlyMessage: String {
         switch self {
         case let .stageFailed(id, underlyingError):
             return "Pipeline stage '\(id)' failed: \(ErrorKit.userFriendlyMessage(for: underlyingError))"

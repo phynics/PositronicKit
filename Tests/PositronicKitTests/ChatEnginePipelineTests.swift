@@ -1,6 +1,6 @@
 import Foundation
 import Logging
-import PKShared
+import PKContracts
 import PKUtilities
 import PKTestSupport
 @testable import PositronicKit
@@ -11,7 +11,7 @@ import Testing
 
 private let testLogger = Logger(label: "test.pipeline")
 
-private struct StubTool: PKShared.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+private struct StubTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     let callName: String
     let name: String
     let description = "Stub"

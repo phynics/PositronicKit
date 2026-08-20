@@ -1,7 +1,5 @@
 import Foundation
-import PKShared
-import PKUtilities
-import PositronicKit
+import PKContracts
 
 /// Shared platform backend actor wrapping `MiniLMEmbedder`, consumed by `PKLocalEmbeddings`
 /// on both Linux (`os(Linux)`) and Apple platforms (behind the `MiniLMEmbeddings` trait).

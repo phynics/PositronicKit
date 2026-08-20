@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 
 /// The chat-history section in the ``PromptBuilder`` DSL, rendering prior conversation
 /// `Message`s. Defaults to `role: .chatHistory`, `priority: 70`, and `cachePolicy: .volatile`.

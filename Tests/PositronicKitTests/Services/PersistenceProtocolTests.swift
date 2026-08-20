@@ -1,7 +1,7 @@
 import Foundation
 @testable import PositronicKit
 import struct PositronicKit.Thread
-@testable import PKShared
+@testable import PKContracts
 import PKUtilities
 import Testing
 

@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 
 
 extension PromptSection {

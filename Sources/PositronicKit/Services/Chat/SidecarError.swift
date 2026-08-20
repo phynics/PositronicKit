@@ -1,5 +1,5 @@
 import ErrorKit
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Validation errors for sidecar directive composition.

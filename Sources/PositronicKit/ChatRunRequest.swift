@@ -1,6 +1,6 @@
 import Foundation
 import Logging
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Controls when parsed sidecar results become committed completion events.

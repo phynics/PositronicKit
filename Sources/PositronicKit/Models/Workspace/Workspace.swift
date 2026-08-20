@@ -1,6 +1,6 @@
 import ErrorKit
 import Foundation
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Defines the host-owned execution and storage boundary for a workspace.

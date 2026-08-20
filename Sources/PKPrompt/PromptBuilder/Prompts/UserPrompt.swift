@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 
 /// The current user query section in the ``PromptBuilder`` DSL.
 ///

@@ -1,7 +1,7 @@
 import Foundation
 import JSONSchemaBuilder
 import PKPrompt
-import PKShared
+import PKContracts
 import PKUtilities
 import PositronicKit
 

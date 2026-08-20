@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 
 public enum PKOpenRouterProvider: LLMProviderFactory {
     /// Creates an OpenRouter client with its structured-output adapter.

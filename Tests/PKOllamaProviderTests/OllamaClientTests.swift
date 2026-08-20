@@ -5,7 +5,7 @@ import Foundation
 import struct JSONSchema.Schema
 import Logging
 @testable import PKOllamaProvider
-import PKShared
+import PKContracts
 import PKUtilities
 import Synchronization
 import Testing

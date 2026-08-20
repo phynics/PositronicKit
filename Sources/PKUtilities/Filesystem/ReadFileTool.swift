@@ -1,16 +1,16 @@
-import PKShared
+import PKContracts
 import Foundation
 import struct JSONSchema.Schema
 import JSONSchemaBuilder
 
 /// Tool to read file content (cat)
-public struct ReadFileTool: Tool, Sendable {
-    public let callName = "cat"
-    public let name = "Read File"
-    public let description = "Read the content of a file"
-    public let requiresPermission = true
+package struct ReadFileTool: Tool, Sendable {
+    package let callName = "cat"
+    package let name = "Read File"
+    package let description = "Read the content of a file"
+    package let requiresPermission = true
 
-    public var usageExample: String? {
+    package var usageExample: String? {
         """
         <tool_call>
         {"name": "cat", "arguments": {"path": "Sources/main.swift"}}
@@ -21,7 +21,7 @@ public struct ReadFileTool: Tool, Sendable {
     private let currentDirectory: String
     private let jailRoot: String
 
-    public init(
+    package init(
         currentDirectory: String = FileManager.default.currentDirectoryPath,
         jailRoot: String? = nil
     ) {
@@ -29,11 +29,11 @@ public struct ReadFileTool: Tool, Sendable {
         self.jailRoot = jailRoot ?? currentDirectory
     }
 
-    public func canExecute() async -> Bool {
+    package func canExecute() async -> Bool {
         return true
     }
 
-    public var parametersSchema: Schema {
+    package var parametersSchema: Schema {
         ToolParameterSchema.object {
             JSONProperty(key: "path") {
                 JSONString().description("The path to the file to read")
@@ -42,7 +42,7 @@ public struct ReadFileTool: Tool, Sendable {
         }.schemaDefinition
     }
 
-    public func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
+    package func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
         let params = ToolParameters(parameters)
         let pathString: String
         switch FilesystemToolSupport.requiredString("path", from: params, usageExample: usageExample) {

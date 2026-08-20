@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 
 /// A validated, ordered prompt artifact built from concrete prompt sections.
 ///

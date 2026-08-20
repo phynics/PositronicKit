@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 @testable import PKPrompt
-@testable import PKShared
+@testable import PKContracts
 import PKUtilities
 
 @Suite("HistoryPromptPrimitive")

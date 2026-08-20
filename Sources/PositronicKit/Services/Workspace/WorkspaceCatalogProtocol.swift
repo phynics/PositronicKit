@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Protocol for managing the persistence and provisioning of agent private workspaces.

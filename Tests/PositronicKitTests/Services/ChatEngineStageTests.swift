@@ -1,7 +1,7 @@
 import Foundation
 import Logging
 import OpenAI
-import PKShared
+import PKContracts
 import PKUtilities
 import PKTestSupport
 @testable import PositronicKit
@@ -10,7 +10,7 @@ import Testing
 final class ChatEngineStageTests {
     private let logger = Logger(label: "test")
 
-    struct StubTool: PKShared.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+    struct StubTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName = "stub_tool"
         let name = "stub_tool"
         let description = "Stub for testing"

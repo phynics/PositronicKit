@@ -1,16 +1,16 @@
-import PKShared
+import PKContracts
 import Foundation
 import struct JSONSchema.Schema
 import JSONSchemaBuilder
 
 /// Tool to search text content in files (grep-like)
-public struct SearchFileContentTool: Tool, Sendable {
-    public let callName = "grep"
-    public let name = "Search File Content"
-    public let description = "Search for text content within files in a directory"
-    public let requiresPermission = true
+package struct SearchFileContentTool: Tool, Sendable {
+    package let callName = "grep"
+    package let name = "Search File Content"
+    package let description = "Search for text content within files in a directory"
+    package let requiresPermission = true
 
-    public var usageExample: String? {
+    package var usageExample: String? {
         """
         <tool_call>
         {\"name\": \"grep\", \"arguments\": {\"path\": \"Sources\", \"pattern\": \"struct User\", \"recursive\": true}}
@@ -22,7 +22,7 @@ public struct SearchFileContentTool: Tool, Sendable {
     private let jailRoot: String
     private let limits: FilesystemSearchLimits
 
-    public init(
+    package init(
         currentDirectory: String = FileManager.default.currentDirectoryPath,
         jailRoot: String? = nil
     ) {
@@ -41,11 +41,11 @@ public struct SearchFileContentTool: Tool, Sendable {
         self.limits = limits
     }
 
-    public func canExecute() async -> Bool {
+    package func canExecute() async -> Bool {
         return true
     }
 
-    public var parametersSchema: Schema {
+    package var parametersSchema: Schema {
         ToolParameterSchema.object {
             JSONProperty(key: "path") {
                 JSONString().description("The directory or file to search (default: .)")
@@ -60,7 +60,7 @@ public struct SearchFileContentTool: Tool, Sendable {
         }.schemaDefinition
     }
 
-    public func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
+    package func execute(parameters: [String: AnyCodable]) async throws -> ToolResult {
         let params = ToolParameters(parameters)
         let pattern: String
         switch FilesystemToolSupport.requiredString("pattern", from: params, usageExample: usageExample) {

@@ -1,7 +1,7 @@
 // swiftlint:disable file_length
 import Foundation
 import PKTestSupport
-@testable import PKShared
+@testable import PKContracts
 import PKUtilities
 @testable import PositronicKit
 import Synchronization

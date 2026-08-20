@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Protocol for managing the lifecycle of agent instances through canonical Thread APIs.

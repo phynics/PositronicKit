@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 
 /// Errors raised when compression input or its execution plan is inconsistent.
 public enum PromptCompressionError: PKError, Sendable, Equatable {

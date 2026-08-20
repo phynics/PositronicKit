@@ -1,7 +1,7 @@
 import Foundation
 import Logging
 @testable import PKOpenRouterProvider
-import PKShared
+import PKContracts
 import PKUtilities
 import Synchronization
 import Testing

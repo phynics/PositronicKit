@@ -2,7 +2,7 @@ import ErrorKit
 import Foundation
 import Logging
 import PKPrompt
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Errors thrown by `ChatEngine` during setup and execution.
