@@ -302,29 +302,6 @@ struct PublicRuntimeStoriesTests {
     }
 
     @Test
-    func facadePluginFollowUpWorksWithoutDirectDependencyContainerSetup() async throws {
-        let plugin = FacadeFollowUpPlugin()
-        let (baseChat, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime(useGroupedPersistence: true)
-        let chat = baseChat.addingPlugin(plugin)
-
-        mockLLM.mockClient.nextResponses = ["First reply", "Second reply"]
-
-        let events = try await chat.threads.open(threadID).run(TurnRequest(
-            threadID: threadID,
-            message: "Start plugin flow"
-        )).collect()
-
-        let assistantReplies = events.compactMap { event -> String? in
-            guard case let .completion(.generationCompleted(message, _)) = event else { return nil }
-            return message.content
-        }
-        #expect(assistantReplies == ["First reply", "Second reply"])
-
-        let persisted = try await mockPersistence.fetchMessages(for: threadID)
-        #expect(persisted.filter { $0.role == "assistant" }.map(\.content) == ["First reply", "Second reply"])
-    }
-
-    @Test
     func runUsesThreadTurnBriefingBuilderByDefault() async throws {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
@@ -445,18 +422,6 @@ struct PublicRuntimeStoriesTests {
         let calls = ids.map { ToolCall(id: $0, name: "external_tool", arguments: [:]) }
         let data = try SerializationUtils.jsonEncoder.encode(calls)
         return String(decoding: data, as: UTF8.self)
-    }
-}
-
-private actor FacadeFollowUpPlugin: TurnPlugin {
-    private var hasInjectedFollowUp = false
-
-    func afterTurn(_ turn: CompletedTurn) async throws -> [LLMMessage] {
-        guard !hasInjectedFollowUp, turn.fullResponse == "First reply" else {
-            return []
-        }
-        hasInjectedFollowUp = true
-        return [LLMMessage(role: .user, content: "Plugin follow-up")]
     }
 }
 

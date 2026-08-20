@@ -98,18 +98,6 @@ private struct MarkerStage: PipelineStage {
     }
 }
 
-private actor AggregatingPlugin: TurnPlugin {
-    private let suffix: String
-
-    init(suffix: String) {
-        self.suffix = suffix
-    }
-
-    func afterTurn(_ turn: CompletedTurn) async throws -> [LLMMessage] {
-        [LLMMessage(role: .user, content: "\(turn.fullResponse)-\(suffix)")]
-    }
-}
-
 // MARK: - MessagePersistenceStage Tests
 
 final class MessagePersistenceStageBehavior {
@@ -283,45 +271,6 @@ final class TurnPipelineBuilderTests {
 
         #expect(await tracker.didRun)
         #expect(persistence.messages.last?.content == "pipeline")
-    }
-}
-
-// MARK: - TurnFollowUpPolicy Tests
-
-final class TurnFollowUpPolicyTests {
-    @Test
-    func pluginMessagesAggregateAcrossPlugins() async throws {
-        let context = await makeContext()
-        let messages = try await TurnFollowUpPolicy.pluginMessages(
-            for: context,
-            modelRoundIndex: 2,
-            accumulatedOutput: "reply",
-            plugins: [AggregatingPlugin(suffix: "one"), AggregatingPlugin(suffix: "two")],
-            logger: testLogger
-        )
-
-        #expect(messages.map(\.content) == ["reply-one", "reply-two"])
-    }
-
-    @Test
-    func followUpContinuationRequiresMessagesAndRemainingTurns() {
-        #expect(TurnFollowUpPolicy.shouldContinueWithPluginMessages(
-            [LLMMessage(role: .user, content: "next")],
-            modelRoundIndex: 1,
-            maxModelRounds: 2
-        ))
-
-        #expect(!TurnFollowUpPolicy.shouldContinueWithPluginMessages(
-            [],
-            modelRoundIndex: 1,
-            maxModelRounds: 2
-        ))
-
-        #expect(!TurnFollowUpPolicy.shouldContinueWithPluginMessages(
-            [LLMMessage(role: .user, content: "next")],
-            modelRoundIndex: 2,
-            maxModelRounds: 2
-        ))
     }
 }
 

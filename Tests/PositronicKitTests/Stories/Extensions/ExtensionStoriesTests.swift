@@ -1,58 +1,12 @@
 import Foundation
-import PKPrompt
 import PKContracts
 import PKTestSupport
 import PKUtilities
 import PositronicKit
-import struct PositronicKit.PromptBuildContext
 import Synchronization
 import Testing
 
 @Suite("Extension stories") struct ExtensionStoriesTests {
-    @Test("PromptSectionProviding injects custom prompt content into the assembled prompt")
-    func promptSectionProviderInjectsPromptContent() async throws {
-        let provider = AcceptancePromptSectionProvider()
-        let (chat, mockLLM, _, threadID, _, _) = try await makeAcceptanceRuntime(
-            sectionProviders: [provider]
-        )
-        mockLLM.mockClient.nextResponse = "Saw extension section"
-
-        _ = try await chat.threads.open(threadID).run(TurnRequest(
-            threadID: threadID,
-            message: "Use extension prompt"
-        )).collect()
-
-        let promptText = mockLLM.mockClient.lastMessages.map(\.content).joined(separator: "\n")
-        #expect(promptText.contains("EXTENSION_MARKER: provider injected context"))
-    }
-
-    @Test("TurnPlugin can trigger a follow-up turn with injected messages")
-    func turnPluginTriggersFollowUpTurn() async throws {
-        let plugin = AcceptanceTurnPlugin()
-        let (baseChat, mockLLM, mockPersistence, threadID, _, _) = try await makeAcceptanceRuntime()
-        let chat = baseChat.addingPlugin(plugin)
-
-        mockLLM.mockClient.nextResponses = ["First reply", "Second reply"]
-
-        let events = try await chat.threads.open(threadID).run(TurnRequest(
-            threadID: threadID,
-            message: "Start plugin flow"
-        )).collect()
-
-        let completedMessages = events.compactMap { event -> String? in
-            guard case let .completion(.generationCompleted(message, _)) = event else { return nil }
-            return message.content
-        }
-        #expect(completedMessages == ["First reply", "Second reply"])
-
-        let pluginInputs = await plugin.seenResponses()
-        #expect(pluginInputs == ["First reply", "First replySecond reply"])
-
-        let persistedMessages = try await mockPersistence.fetchMessages(for: threadID)
-        let assistantReplies = persistedMessages.filter { $0.role == "assistant" }.map(\.content)
-        #expect(assistantReplies == ["First reply", "Second reply"])
-    }
-
     @Test("WorkspaceFactory can provide a custom executable workspace tool")
     func workspaceCreatingSupportsCustomWorkspaceTool() async throws {
         let creator = AcceptanceWorkspaceCreator()
@@ -124,7 +78,6 @@ import Testing
 
     private func makeAcceptanceRuntime(
         workspaceCreator: any WorkspaceFactory = MockWorkspaceCreator(),
-        sectionProviders: [any PromptSectionProviding] = [],
         includeDefaultToolWorkspace: Bool = true
     ) async throws -> (PositronicKit, MockLLMService, MockPersistenceService, UUID, TestWorkspace, ThreadCapability) {
         let mockLLM = MockLLMService()
@@ -141,7 +94,6 @@ import Testing
                 requestOriginStore: mockPersistence
             ), runtime: .init(
                 workspaceCreator: workspaceCreator,
-                sectionProviders: sectionProviders,
                 workspaceRoot: workspace.root
             )))
         let threads = chat.threads
@@ -162,28 +114,6 @@ import Testing
         }
 
         return (chat, mockLLM, mockPersistence, thread.id, workspace, threads)
-    }
-}
-
-private struct AcceptancePromptSectionProvider: PromptSectionProviding {
-    func sections(for context: PromptBuildContext) async -> [any Prompt] {
-        [TextPrompt("EXTENSION_MARKER: provider injected context for \(context.message)", id: "extension-marker")]
-    }
-}
-
-private actor AcceptanceTurnPlugin: TurnPlugin {
-    private var recordedResponses: [String] = []
-
-    func afterTurn(_ turn: CompletedTurn) async throws -> [LLMMessage] {
-        recordedResponses.append(turn.fullResponse)
-        if recordedResponses.count == 1 {
-            return [LLMMessage(role: .user, content: "Plugin follow-up")]
-        }
-        return []
-    }
-
-    func seenResponses() -> [String] {
-        recordedResponses
     }
 }
 

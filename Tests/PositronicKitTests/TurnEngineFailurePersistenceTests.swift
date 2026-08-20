@@ -50,7 +50,6 @@ struct TurnEngineFailurePersistenceTests {
                 messageStore: mockPersistence,
                 llmService: mockLLM,
                 toolRouter: toolRouter,
-                turnPlugins: [],
                 promptHistoryRegistry: registry,
                 streamTimeout: streamTimeout
             )
@@ -107,7 +106,6 @@ struct TurnEngineFailurePersistenceTests {
                 messageStore: messageStore,
                 llmService: mockLLM,
                 toolRouter: toolRouter,
-                turnPlugins: [],
                 streamTimeout: 60
             )
         )

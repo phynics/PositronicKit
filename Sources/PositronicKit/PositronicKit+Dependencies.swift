@@ -7,7 +7,7 @@ import PKUtilities
 /// `TurnEngine`).
 ///
 /// Used internally to eliminate the ~25-line parameter forwarding repeated by the builder
-/// methods (`reconfigured`, `addingStage`, `addingPlugin`): each builder extracts the current
+/// methods (`reconfigured`, `addingStage`): each builder extracts the current
 /// dependencies via ``PositronicKit/dependencies``, mutates the single field that changes, and
 /// forwards the struct to the designated initializer
 /// ``PositronicKit/init(dependencies:)``.
@@ -27,12 +27,9 @@ internal struct KitDependencies: Sendable {
     var embeddingService: any EmbeddingServiceProtocol
     var workspaceProfile: WorkspaceProfile
     var workspaceCreator: any WorkspaceFactory
-    var sectionProviders: [any PromptSectionProviding]
-    var agentContextSource: (any AgentContextSource)?
+    var customization: RuntimeCustomization
     var agentAuthorityCoordinator: AgentAuthorityCoordinator?
     var runtimeToolPolicy: RuntimeToolPolicy
-    var turnPlugins: [any TurnPlugin]
-    var promptObserver: (any PromptObserving)?
     var diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
     var degradationPolicy: TurnDegradationPolicy
     var generationParameters: GenerationParameters?

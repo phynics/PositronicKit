@@ -65,7 +65,9 @@ task registries, and the turn pipeline are facade implementation details.
 
 Managed Turns capture typed Agent continuity at admission through `AgentContextSource`. The
 bundled filesystem source reads the Agent primary Workspace's `Notes/` files; inject a source in
-`RuntimeConfiguration` for database-backed, remote, or deliberately memory-free Agents. Use
+`RuntimeConfiguration.customization` for database-backed, remote, or deliberately memory-free
+Agents. The same customization value can supply bounded `TurnContextSource` notes and
+best-effort `AgentActivitySink`/post-terminal `TurnOutcomeSink` integrations. Use
 `kit.agents.retire` to drain an identity and `kit.agents.purge` only after retirement.
 
 ### Facade readiness, validation, and error delivery

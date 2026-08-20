@@ -6,9 +6,8 @@ import PKUtilities
 
 /// Advanced options for prompt assembly.
 ///
-/// Most callers should use ``PromptAssembler/assemble(_:agent:thread:extensionSections:)``
-/// or ``PromptAssembler/prepare(_:)``. Use this type when you need to supply custom sections
-/// or apply compression configuration.
+/// Runtime-owned assembly options used by the turn pipeline and focused tests. Consumer prompt
+/// ownership belongs on the direct Turn request surface.
 ///
 /// When `tokenBudget` is set, `PromptAssembler` first attempts structured compression using
 /// resolved section metadata and `structuredExecutor`. If the structured result is still over

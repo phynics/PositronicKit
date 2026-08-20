@@ -18,7 +18,7 @@ import PKUtilities
 ///
 /// Intended extension seams for downstream applications are the facade itself plus public runtime
 /// protocols such as persistence stores, `WorkspaceFactory` / `Workspace`,
-/// `PromptSectionProviding`, and `TurnPlugin`. Internal coordinators like `TurnEngine`,
+/// ``RuntimeCustomization`` and the persistence/workspace protocols. Internal coordinators like `TurnEngine`,
 /// `ThreadPromptHistory`, and the concrete turn pipeline remain runtime implementation details
 /// even when they are visible to tests inside this package.
 ///
@@ -68,11 +68,9 @@ public final class PositronicKit: Sendable {
     public var model: ModelInferenceCapability { ModelInferenceCapability(kit: self) }
     let workspaceCatalog: any WorkspaceCatalog
     private let agentStore: any AgentStoreProtocol
-    private let agentContextSource: any AgentContextSource
     private let agentAuthorityCoordinator: AgentAuthorityCoordinator
     private let requestOriginStore: any RequestOriginStoreProtocol
-    private let turnPlugins: [any TurnPlugin]
-    private let promptObserver: (any PromptObserving)?
+    private let customization: RuntimeCustomization
     private let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
     let defaultGenerationParameters: GenerationParameters?
     private let logger = Logger.module(named: "positronickit-facade")
@@ -93,7 +91,6 @@ public final class PositronicKit: Sendable {
     private let promptHistoryRegistry: ThreadPromptJournals
     private let workspaceProfile: WorkspaceProfile
     private let workspaceCreator: any WorkspaceFactory
-    private let sectionProviders: [any PromptSectionProviding]
     private let runtimeToolPolicy: RuntimeToolPolicy
     private let degradationPolicy: TurnDegradationPolicy
     private let toolApprovalPolicy: any ToolApprovalPolicy
@@ -126,11 +123,8 @@ public final class PositronicKit: Sendable {
         embeddingService: (any EmbeddingServiceProtocol)? = nil,
         workspaceProfile: WorkspaceProfile = .noWorkspace,
         workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
-        sectionProviders: [any PromptSectionProviding] = [],
-        agentContextSource: (any AgentContextSource)? = nil,
+        customization: RuntimeCustomization = .default,
         runtimeToolPolicy: RuntimeToolPolicy = .default,
-        turnPlugins: [any TurnPlugin] = [],
-        promptObserver: (any PromptObserving)? = nil,
         diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
         degradationPolicy: TurnDegradationPolicy = .failRequired,
         generationParameters: GenerationParameters? = nil,
@@ -161,12 +155,9 @@ public final class PositronicKit: Sendable {
                 embeddingService: embeddingService ?? NoOpEmbeddingService(),
                 workspaceProfile: workspaceProfile,
                 workspaceCreator: workspaceCreator,
-                sectionProviders: sectionProviders,
-                agentContextSource: agentContextSource,
+                customization: customization,
                 agentAuthorityCoordinator: nil,
                 runtimeToolPolicy: runtimeToolPolicy,
-                turnPlugins: turnPlugins,
-                promptObserver: promptObserver,
                 diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
                 degradationPolicy: degradationPolicy,
                 generationParameters: generationParameters,
@@ -180,7 +171,7 @@ public final class PositronicKit: Sendable {
 
     /// The designated initializer. Accepts a fully-resolved ``KitDependencies`` bundle and
     /// wires the internal coordinators (`ThreadManager`, `AgentManager`, `ToolRouter`,
-    /// `TurnEngine`) from it. Builder methods (`reconfigured`, `addingStage`, `addingPlugin`)
+    /// `TurnEngine`) from it. The provider reconfiguration builder
     /// extract the current dependencies, mutate the single field that changes, and forward
     /// here — eliminating the repeated ~25-line parameter forwarding (PKCR-009).
     init(dependencies: KitDependencies) {
@@ -189,9 +180,7 @@ public final class PositronicKit: Sendable {
         runtimeRepository = dependencies.runtimeRepository
         workspaceBindingRepository = dependencies.workspaceBindingRepository
         agentStore = dependencies.agentStore
-        agentContextSource = dependencies.agentContextSource ?? DefaultAgentContextSource(
-            workspaceStore: dependencies.workspacePersistence
-        )
+        customization = dependencies.customization
         agentAuthorityCoordinator = dependencies.agentAuthorityCoordinator ?? AgentAuthorityCoordinator()
         requestOriginStore = dependencies.requestOriginStore
         threadPersistence = dependencies.threadPersistence
@@ -199,14 +188,11 @@ public final class PositronicKit: Sendable {
         memoryStore = dependencies.memoryStore
         toolPersistence = dependencies.toolPersistence
         embeddingService = dependencies.embeddingService
-        turnPlugins = dependencies.turnPlugins
-        promptObserver = dependencies.promptObserver
         diagnosticSnapshotConfiguration = dependencies.diagnosticSnapshotConfiguration
         degradationPolicy = dependencies.degradationPolicy
         promptHistoryRegistry = dependencies.sharedRegistry
         workspaceProfile = dependencies.workspaceProfile
         workspaceCreator = dependencies.workspaceCreator
-        sectionProviders = dependencies.sectionProviders
         runtimeToolPolicy = dependencies.runtimeToolPolicy
         toolApprovalPolicy = dependencies.toolApprovalPolicy
         loggingConfiguration = dependencies.loggingConfiguration
@@ -235,7 +221,6 @@ public final class PositronicKit: Sendable {
             ),
             workspaceProfile: dependencies.workspaceProfile,
             workspaceCreator: dependencies.workspaceCreator,
-            sectionProviders: dependencies.sectionProviders,
             runtimeToolPolicy: dependencies.runtimeToolPolicy,
             embeddingService: self.embeddingService,
             promptHistoryRegistry: promptHistoryRegistry
@@ -273,7 +258,9 @@ public final class PositronicKit: Sendable {
             dependencies: .init(
                 threadManager: resolvedThreadManager,
                 agentStore: self.agentStore,
-                agentContextSource: self.agentContextSource,
+                agentContextSource: self.customization.agentContextSource ?? DefaultAgentContextSource(
+                    workspaceStore: dependencies.workspacePersistence
+                ),
                 requestOriginStore: self.requestOriginStore,
                 messageStore: self.messageStore,
                 runtimeRepository: self.runtimeRepository,
@@ -281,8 +268,9 @@ public final class PositronicKit: Sendable {
                 agentAuthorityCoordinator: self.agentAuthorityCoordinator,
                 llmService: self.languageModel,
                 toolRouter: toolRouter,
-                turnPlugins: self.turnPlugins,
-                promptObserver: self.promptObserver,
+                turnContextSource: self.customization.turnContextSource,
+                agentActivitySink: self.customization.agentActivitySink,
+                turnOutcomeSink: self.customization.turnOutcomeSink,
                 diagnosticSnapshotConfiguration: dependencies.diagnosticSnapshotConfiguration,
                 loggingConfiguration: dependencies.loggingConfiguration,
                 degradationPolicy: dependencies.degradationPolicy,
@@ -311,12 +299,9 @@ public final class PositronicKit: Sendable {
             embeddingService: embeddingService,
             workspaceProfile: workspaceProfile,
             workspaceCreator: workspaceCreator,
-            sectionProviders: sectionProviders,
-            agentContextSource: agentContextSource,
+            customization: customization,
             agentAuthorityCoordinator: agentAuthorityCoordinator,
             runtimeToolPolicy: runtimeToolPolicy,
-            turnPlugins: turnPlugins,
-            promptObserver: promptObserver,
             diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
             degradationPolicy: degradationPolicy,
             generationParameters: defaultGenerationParameters,
@@ -349,21 +334,11 @@ public final class PositronicKit: Sendable {
     /// - Parameter stage: The custom pipeline stage to add.
     /// - Returns: A new instance with the stage added.
     ///
-    /// This remains package-internal on purpose: the documented downstream extension surface is the
-    /// facade plus higher-level hooks such as `TurnPlugin` and `PromptSectionProviding`, not
-    /// the concrete runtime pipeline topology.
+    /// This remains package-internal and is reserved for runtime-owned verification stages; it is
+    /// not a consumer customization surface.
     func addingStage(_ stage: any PipelineStage<TurnContext, TurnEvent>) -> PositronicKit {
         var deps = dependencies
         deps.additionalStages += [stage]
-        return PositronicKit(dependencies: deps)
-    }
-
-    /// Adds a turn plugin that runs after each LLM turn.
-    /// - Parameter plugin: The plugin to add.
-    /// - Returns: A new instance with the plugin added.
-    public func addingPlugin(_ plugin: any TurnPlugin) -> PositronicKit {
-        var deps = dependencies
-        deps.turnPlugins += [plugin]
         return PositronicKit(dependencies: deps)
     }
 
