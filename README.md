@@ -110,6 +110,9 @@ Detailed documentation has been split into focused guides:
 - **[Setup Guide](docs/Setup.md)**: Configuration, logging, required services, and choosing your entry point.
 - **[Usage Guide](docs/Usage.md)**: Managing agents, pipelines, and local embeddings.
 - **[Architecture](docs/Architecture.md)**: Core concepts, state management, and the v1 extension point registry.
+- **[Development](docs/Development.md)**: Contributor platform setup, Linux/Podman gates, and MiniLM bridge workflows.
+- **[Context map](CONTEXT-MAP.md)**: Canonical v4 vocabulary and ownership boundaries.
+- **[Architecture decisions](docs/adr/)**: Accepted v4 decisions and their trade-offs.
 - **[Prompt Composition](docs/PKPromptComposition.md)**: Authoring models, caching, and prompt journaling.
 - **[Sidecar Directives](docs/SidecarDirectives.md)**: Requesting auxiliary generations piggy-backed on the same LLM request.
 
@@ -400,8 +403,8 @@ The shared runner verifies Podman access, builds the pinned image, applies the r
 rootless identity and native-linker environment, serializes shared build state, and logs
 the gate under `.build/agent-logs/`. The checkout is bind-mounted at `/workspace`, so host
 edits are visible immediately and reusable artifacts stay under the gitignored `.build/`
-directory. See [`AGENTS.md`](AGENTS.md#linux-development-setup) for focused-test and
-concurrency details.
+directory. See [`docs/Development.md`](docs/Development.md) for focused-test and concurrency
+details.
 
 ## Companion App
 
