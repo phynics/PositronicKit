@@ -16,6 +16,7 @@ import PKUtilities
 internal struct KitDependencies: Sendable {
     var languageModel: any LLMStreamClient & LLMUtilityClient
     var messageStore: any ThreadMessageStoreProtocol
+    var runtimeRepository: (any ThreadRuntimeRepository)?
     var agentStore: any AgentStoreProtocol
     var requestOriginStore: any RequestOriginStoreProtocol
     var threadPersistence: any ThreadPersistenceProtocol

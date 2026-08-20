@@ -52,6 +52,16 @@ _Avoid_: send ID, message ID
 An optional caller-owned idempotency key whose fingerprint identifies request intent.
 _Avoid_: execution ID, message ID
 
+**Turn Outcome**:
+The terminal truth for a Turn: completed, failed, cancelled, or interrupted, with any durable
+diagnostic or terminal handle associated with that result.
+_Avoid_: stream finished, best-effort completion
+
+**Thread Runtime Repository**:
+The single transactional owner of Thread metadata, append-only history, Turn admission, tool
+intent/results, terminal outcomes, and stale-Turn recovery.
+_Avoid_: persistence coordinator, prompt journal
+
 ## History and continuity
 
 **Thread Message**:
@@ -67,3 +77,13 @@ _Avoid_: summary message
 PKPrompt’s cache and emission state for an assembled prompt. It observes semantic history but does
 not create or own Thread summaries.
 _Avoid_: runtime history, summary store
+
+**Tool Intent**:
+A durable declaration of a tool call associated with a Turn and Model Round, recorded before the
+corresponding tool execution begins.
+_Avoid_: tool request event, callable Agent
+
+**Tool Result**:
+A durable outcome for a previously recorded Tool Intent, available to later Model Rounds without
+re-executing the tool.
+_Avoid_: tool replay, transient tool output

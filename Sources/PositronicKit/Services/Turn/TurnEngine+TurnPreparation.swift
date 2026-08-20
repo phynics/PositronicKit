@@ -8,6 +8,11 @@ import PKUtilities
 // MARK: - Turn Preparation
 
 extension TurnEngine {
+    enum PreparedSession {
+        case ready(TurnContext)
+        case existing(TurnAdmission)
+    }
+
     struct AgentPreflight: Sendable {
         let instance: Agent?
         let diagnostics: [TurnDiagnostic]
@@ -104,7 +109,7 @@ extension TurnEngine {
         assemblyLogger: Logger? = nil,
         responseModalities: Set<ResponseModality> = [.text],
         audioOutput: AudioOutputOptions? = nil
-    ) async throws -> TurnContext {
+    ) async throws -> PreparedSession {
         // Sidecar directives steer generation only through prompt text (SDC-7). The per-turn
         // directive list is volatile (consumer-scheduled, changes turn-to-turn), so it rides
         // with the user query — the LAST prompt section — keeping the system prefix byte-stable
@@ -137,18 +142,53 @@ extension TurnEngine {
             provider: initialConfiguration.activeProvider
         )
 
-        // 1. Idempotency — mark the requestId as in-progress. A duplicate requestId is rejected
-        //    before any validation or persistence runs.
-        guard await TurnIdempotencyGate.shared.checkAndMark(requestId: requestId) else {
-            throw TurnEngineError.duplicateRequestID(requestId)
-        }
-
         // Track validated tool outputs so the catch block can release reservations.
         var validatedToolOutputs: [ToolOutputSubmission] = []
+        var repositoryAdmitted = false
 
         do {
             // 2. Validate thread existence before any preparation proceeds.
             try await dependencies.threadManager.ensureThreadExists(id: threadID)
+
+            // The cohesive repository owns the durable admission barrier when supplied. The
+            // legacy process-local gate remains only for configurations that have not opted into
+            // the v4 repository yet.
+            if let runtimeRepository = dependencies.runtimeRepository {
+                let fingerprint = Self.callerIntentFingerprint(
+                    messageContent: messageContent,
+                    tools: tools,
+                    toolOutputs: toolOutputs,
+                    systemInstructions: systemInstructions,
+                    agentId: agentId,
+                    maxModelRounds: maxModelRounds,
+                    generationParameters: generationParameters,
+                    structuredOutput: structuredOutput,
+                    sidecars: sidecars,
+                    sidecarCommitPolicy: sidecarCommitPolicy,
+                    includeSidecarMechanismPreamble: includeSidecarMechanismPreamble,
+                    responseModalities: responseModalities,
+                    audioOutput: audioOutput
+                )
+                let admission = try await runtimeRepository.admitTurn(
+                    threadID: threadID,
+                    requestID: requestId,
+                    callerIntentFingerprint: fingerprint,
+                    turnID: turnID,
+                    now: Date()
+                )
+                switch admission.disposition {
+                case .admitted:
+                    repositoryAdmitted = true
+                case .joined, .replayed:
+                    // The repository owns the existing execution. Return its durable record to
+                    // the caller rather than starting a second provider/tool side effect.
+                    return .existing(admission)
+                }
+            } else {
+                guard await TurnIdempotencyGate.shared.checkAndMark(requestId: requestId) else {
+                    throw TurnEngineError.duplicateRequestID(requestId)
+                }
+            }
 
             // 3. Validate tool output submissions and reserve pending call IDs — no persistence.
             //    Already-persisted outputs are skipped (resumable batch support).
@@ -369,7 +409,7 @@ extension TurnEngine {
 
             let modelName = providerConfig.modelName
 
-            return TurnContext(
+            return .ready(TurnContext(
                 threadID: threadID,
                 turnID: turnID,
                 requestId: requestId,
@@ -393,10 +433,18 @@ extension TurnEngine {
                 responseModalities: responseModalities,
                 audioOutput: audioOutput,
                 outputs: TurnOutputs()
-            )
+            ))
         } catch {
-            // Release the idempotency marker so the caller can retry with the same requestId.
-            await TurnIdempotencyGate.shared.release(requestId: requestId)
+            if let runtimeRepository = dependencies.runtimeRepository, repositoryAdmitted {
+                _ = try? await runtimeRepository.failTurn(
+                    turnID: turnID,
+                    message: "Turn preparation failed before execution.",
+                    now: Date()
+                )
+            } else {
+                // Release the idempotency marker so the caller can retry with the same requestId.
+                await TurnIdempotencyGate.shared.release(requestId: requestId)
+            }
             // Release any tool-output reservations made during validation.
             await ExternalToolOutputSubmissionGate.shared.releaseReservations(
                 threadID: threadID,
@@ -404,6 +452,58 @@ extension TurnEngine {
             )
             throw error
         }
+    }
+
+    private static func callerIntentFingerprint(
+        messageContent: MessageContent,
+        tools: [AnyTool],
+        toolOutputs: [ToolOutputSubmission]?,
+        systemInstructions: String?,
+        agentId: UUID?,
+        maxModelRounds: Int,
+        generationParameters: GenerationParameters?,
+        structuredOutput: StructuredOutputRequest?,
+        sidecars: [SidecarDirective],
+        sidecarCommitPolicy: SidecarCommitPolicy,
+        includeSidecarMechanismPreamble: Bool,
+        responseModalities: Set<ResponseModality>,
+        audioOutput: AudioOutputOptions?
+    ) -> String {
+        let toolIntent = tools.map { tool in
+            [
+                tool.callName,
+                tool.name,
+                tool.description,
+                tool.usageExample ?? "",
+                String(tool.requiresPermission),
+                String(describing: tool.sideEffects),
+                canonicalFingerprint(tool.toolReference),
+                canonicalFingerprint(tool.origin),
+                canonicalFingerprint(tool.parametersSchema),
+            ].joined(separator: "\u{1E}")
+        }.joined(separator: "\u{1F}")
+        return [
+            canonicalFingerprint(messageContent),
+            toolIntent,
+            canonicalFingerprint(toolOutputs),
+            systemInstructions ?? "",
+            agentId?.uuidString ?? "",
+            "\(maxModelRounds)",
+            canonicalFingerprint(generationParameters),
+            canonicalFingerprint(structuredOutput),
+            canonicalFingerprint(sidecars),
+            canonicalFingerprint(sidecarCommitPolicy),
+            String(includeSidecarMechanismPreamble),
+            canonicalFingerprint(responseModalities.map(\.rawValue).sorted()),
+            canonicalFingerprint(audioOutput),
+        ].joined(separator: "\u{1F}")
+    }
+
+    private static func canonicalFingerprint<T: Encodable>(_ value: T) -> String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        guard let data = try? encoder.encode(value) else { return String(describing: value) }
+        return data.base64EncodedString()
     }
 
     func validateMultimodalRequest(

@@ -49,6 +49,8 @@ public final class PositronicKit: Sendable {
     }
 
     private let messageStore: any ThreadMessageStoreProtocol
+    /// Optional cohesive durable owner for Thread history and Turn lifecycle.
+    public let runtimeRepository: (any ThreadRuntimeRepository)?
 
     /// The thread manager built by this facade. Hosts that need direct access (e.g. to wire
     /// their own routes) should read this instead of building a second `ThreadManager`, which
@@ -108,6 +110,7 @@ public final class PositronicKit: Sendable {
     convenience init(
         languageModel: any LLMStreamClient & LLMUtilityClient,
         messageStore: (any ThreadMessageStoreProtocol)? = nil,
+        runtimeRepository: (any ThreadRuntimeRepository)? = nil,
         agentStore: (any AgentStoreProtocol)? = nil,
         requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
         threadPersistence: (any ThreadPersistenceProtocol)? = nil,
@@ -129,13 +132,16 @@ public final class PositronicKit: Sendable {
         sharedRegistry: ThreadPromptJournals,
         additionalStages: [any PipelineStage<TurnContext, TurnEvent>]
     ) {
+        let resolvedRepository = runtimeRepository
+            ?? (messageStore == nil && threadPersistence == nil ? InMemoryThreadRuntimeRepository() : nil)
         self.init(
             dependencies: KitDependencies(
                 languageModel: languageModel,
-                messageStore: messageStore ?? InMemoryMessageStore(),
+                messageStore: resolvedRepository ?? messageStore ?? InMemoryMessageStore(),
+                runtimeRepository: resolvedRepository,
                 agentStore: agentStore ?? InMemoryAgentStore(),
                 requestOriginStore: requestOriginStore ?? InMemoryRequestOriginStore(),
-                threadPersistence: threadPersistence ?? InMemoryThreadPersistence(),
+                threadPersistence: resolvedRepository ?? threadPersistence ?? InMemoryThreadPersistence(),
                 workspacePersistence: workspacePersistence ?? InMemoryWorkspacePersistence(),
                 memoryStore: memoryStore ?? InMemoryMemoryStore(),
                 toolPersistence: toolPersistence ?? InMemoryToolPersistence(),
@@ -165,6 +171,7 @@ public final class PositronicKit: Sendable {
     init(dependencies: KitDependencies) {
         languageModel = dependencies.languageModel
         messageStore = dependencies.messageStore
+        runtimeRepository = dependencies.runtimeRepository
         agentStore = dependencies.agentStore
         requestOriginStore = dependencies.requestOriginStore
         threadPersistence = dependencies.threadPersistence
@@ -228,6 +235,7 @@ public final class PositronicKit: Sendable {
         toolRouter = ToolRouter(
             threadManager: resolvedThreadManager,
             messageStore: self.messageStore,
+            runtimeRepository: self.runtimeRepository,
             approvalPolicy: dependencies.toolApprovalPolicy,
             loggingConfiguration: dependencies.loggingConfiguration
         )
@@ -237,6 +245,7 @@ public final class PositronicKit: Sendable {
                 agentStore: self.agentStore,
                 requestOriginStore: self.requestOriginStore,
                 messageStore: self.messageStore,
+                runtimeRepository: self.runtimeRepository,
                 llmService: self.languageModel,
                 toolRouter: toolRouter,
                 turnPlugins: self.turnPlugins,
@@ -258,6 +267,7 @@ public final class PositronicKit: Sendable {
         KitDependencies(
             languageModel: languageModel,
             messageStore: messageStore,
+            runtimeRepository: runtimeRepository,
             agentStore: agentStore,
             requestOriginStore: requestOriginStore,
             threadPersistence: threadPersistence,

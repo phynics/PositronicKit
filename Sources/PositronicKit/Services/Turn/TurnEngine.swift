@@ -109,6 +109,7 @@ struct TurnEngine {
         let agentStore: any AgentStoreProtocol
         let requestOriginStore: any RequestOriginStoreProtocol
         let messageStore: any ThreadMessageStoreProtocol
+        let runtimeRepository: (any ThreadRuntimeRepository)?
         /// Streaming chat seam: the runtime turn loop, `LLMStreamingStage`, and the
         /// `isConfigured`/`configuration` precondition checks depend only on this.
         let llmService: any LLMStreamClient
@@ -130,6 +131,7 @@ struct TurnEngine {
             agentStore: any AgentStoreProtocol,
             requestOriginStore: any RequestOriginStoreProtocol,
             messageStore: any ThreadMessageStoreProtocol,
+            runtimeRepository: (any ThreadRuntimeRepository)? = nil,
             llmService: any LLMStreamClient & LLMUtilityClient,
             toolRouter: ToolRouter,
             turnPlugins: [any TurnPlugin],
@@ -144,6 +146,7 @@ struct TurnEngine {
             self.agentStore = agentStore
             self.requestOriginStore = requestOriginStore
             self.messageStore = messageStore
+            self.runtimeRepository = runtimeRepository
             self.llmService = llmService
             self.utilityClient = llmService
             self.toolRouter = toolRouter
@@ -286,7 +289,7 @@ struct TurnEngine {
         }
         try SidecarSchemaComposer.validate(sidecars)
 
-        let context = try await prepareSession(
+        let prepared = try await prepareSession(
             threadID: threadID,
             turnID: UUID(),
             requestId: requestId ?? UUID(),
@@ -310,6 +313,13 @@ struct TurnEngine {
             audioOutput: audioOutput
         )
 
+        if case let .existing(admission) = prepared {
+            return try await replayExistingTurn(admission)
+        }
+        guard case let .ready(context) = prepared else {
+            throw TurnEngineError.promptHistoryInconsistent("Invalid turn preparation result.")
+        }
+
         let (stream, continuation) = AsyncThrowingStream<TurnEvent, Error>.makeStream()
         let turnID = context.turnID
 
@@ -318,6 +328,52 @@ struct TurnEngine {
             await dependencies.threadManager.removeTask(turnID: turnID, for: threadID)
         }
         await dependencies.threadManager.registerTask(task, turnID: turnID, for: threadID)
+        continuation.onTermination = { @Sendable _ in task.cancel() }
+        return stream
+    }
+
+    private func replayExistingTurn(_ admission: TurnAdmission) async throws -> AsyncThrowingStream<TurnEvent, Error> {
+        guard let repository = dependencies.runtimeRepository else {
+            throw TurnEngineError.promptHistoryInconsistent("Turn replay requires a runtime repository.")
+        }
+        let (stream, continuation) = AsyncThrowingStream<TurnEvent, Error>.makeStream()
+        let task = Task {
+            do {
+                var record = admission.turn
+                while !record.isTerminal {
+                    try Task.checkCancellation()
+                    try await Task.sleep(nanoseconds: 50_000_000)
+                    guard let refreshed = try await repository.fetchTurn(id: record.identity.turnID) else {
+                        throw TurnEngineError.promptHistoryInconsistent("Admitted Turn disappeared during replay.")
+                    }
+                    record = refreshed
+                }
+                let messages = try await repository.fetchMessages(for: record.threadID)
+                if let messageID = record.terminalMessageID,
+                   let assistant = messages.first(where: { $0.id == messageID })
+                {
+                    continuation.yield(.generation(assistant.content))
+                    if case .completed = record.outcome {
+                        continuation.yield(.generationCompleted(message: assistant.toMessage(), metadata: APIResponseMetadata()))
+                    }
+                } else if case .completed = record.outcome {
+                    continuation.yield(.completedEmpty(finishReason: nil))
+                }
+                switch record.outcome {
+                case let .failed(message):
+                    continuation.yield(.error(message))
+                case .cancelled:
+                    continuation.yield(.generationCancelled())
+                case let .interrupted(reason):
+                    continuation.yield(.error(reason))
+                case .completed, .none:
+                    break
+                }
+                continuation.finish()
+            } catch {
+                continuation.finish(throwing: error)
+            }
+        }
         continuation.onTermination = { @Sendable _ in task.cancel() }
         return stream
     }
