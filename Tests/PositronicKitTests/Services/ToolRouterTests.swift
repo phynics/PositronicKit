@@ -54,10 +54,10 @@ private final class AsyncLatch: Sendable {
 }
 
 private func captureProjectedToolEvents(
-    _ body: @Sendable @escaping (AsyncThrowingStream<ChatEvent, Error>.Continuation) async throws -> Void
-) async throws -> [ChatEvent] {
-    var events: [ChatEvent] = []
-    let stream = AsyncThrowingStream<ChatEvent, Error> { continuation in
+    _ body: @Sendable @escaping (AsyncThrowingStream<TurnEvent, Error>.Continuation) async throws -> Void
+) async throws -> [TurnEvent] {
+    var events: [TurnEvent] = []
+    let stream = AsyncThrowingStream<TurnEvent, Error> { continuation in
         Task {
             do {
                 try await body(continuation)
@@ -84,10 +84,10 @@ private actor ResultHolder<R: Sendable> { // swiftlint:disable:this concurrency_
 }
 
 private func captureProjectedToolEventsResult<R: Sendable>(
-    _ body: @Sendable @escaping (AsyncThrowingStream<ChatEvent, Error>.Continuation) async throws -> R
+    _ body: @Sendable @escaping (AsyncThrowingStream<TurnEvent, Error>.Continuation) async throws -> R
 ) async throws -> R {
     let holder = ResultHolder<R>()
-    let stream = AsyncThrowingStream<ChatEvent, Error> { continuation in
+    let stream = AsyncThrowingStream<TurnEvent, Error> { continuation in
         Task {
             do {
                 let value = try await body(continuation)
@@ -118,7 +118,7 @@ final class ToolRouterTests {
         }
 
         func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
-            if !result.success, result.error == "client_tools_disallowed_on_private_timeline" {
+            if !result.success, result.error == "client_tools_disallowed_on_private_thread" {
                 throw ToolError.attachedToolsDisallowedOnPrivateThread
             }
             return result
@@ -257,7 +257,7 @@ final class ToolRouterTests {
         let call = ParsedToolCall(callId: "call-fallback", name: "needs_permission", argumentsJSON: "{}")
         let result = try await captureProjectedToolEventsResult { continuation in
             try await router.handlePendingToolCalls(
-                timelineId: threadID,
+                threadId: threadID,
                 calls: [call],
                 availableTools: [],
                 continuation: continuation
@@ -282,7 +282,7 @@ final class ToolRouterTests {
         let call = ParsedToolCall(callId: "call-disabled", name: "disabled_tool", argumentsJSON: "{}")
         let events = try await captureProjectedToolEvents { continuation in
             let result = try await router.handlePendingToolCalls(
-                timelineId: threadID,
+                threadId: threadID,
                 calls: [call],
                 availableTools: [],
                 continuation: continuation
@@ -527,7 +527,7 @@ final class ToolRouterTests {
         let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
 
         // A freshly created thread still gets its own runtime workspace from `createThread`,
-        // so to reproduce "no workspace at all" we must detach it — mirroring a conversation that
+        // so to reproduce "no workspace at all" we must detach it — mirroring a thread that
         // never had a folder attached and exercises only workspace-independent demo tools like
         // `calculator`/`current_datetime`.
         let session = try await threadManager.createThread()
@@ -674,7 +674,7 @@ final class ToolRouterTests {
         let call = ParsedToolCall(callId: "call-timeout", name: "never_finishes", argumentsJSON: "{}")
         let events = try await captureProjectedToolEvents { continuation in
             let result = try await toolRouter.handlePendingToolCalls(
-                timelineId: session.id,
+                threadId: session.id,
                 calls: [call],
                 availableTools: [],
                 continuation: continuation
@@ -734,7 +734,7 @@ final class ToolRouterTests {
 
         let result = try await captureProjectedToolEventsResult { continuation in
             try await toolRouter.handlePendingToolCalls(
-                timelineId: session.id,
+                threadId: session.id,
                 calls: [call],
                 availableTools: [],
                 continuation: continuation
@@ -1010,7 +1010,7 @@ struct ToolRouterWorkspaceResolutionTests {
         }
 
         func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
-            if !result.success, result.error == "client_tools_disallowed_on_private_timeline" {
+            if !result.success, result.error == "client_tools_disallowed_on_private_thread" {
                 throw ToolError.attachedToolsDisallowedOnPrivateThread
             }
             return result
@@ -1126,7 +1126,7 @@ struct ToolTurnProjectionTests {
 
         let events = try await captureProjectedToolEvents { continuation in
             let result = try await toolRouter.handlePendingToolCalls(
-                timelineId: session.id,
+                threadId: session.id,
                 calls: [call],
                 availableTools: [],
                 continuation: continuation
@@ -1176,7 +1176,7 @@ struct ToolTurnProjectionTests {
 
         let events = try await captureProjectedToolEvents { continuation in
             let result = try await toolRouter.handlePendingToolCalls(
-                timelineId: session.id,
+                threadId: session.id,
                 calls: [call],
                 availableTools: [],
                 continuation: continuation
@@ -1227,7 +1227,7 @@ struct ToolTurnProjectionTests {
 
         _ = try await captureProjectedToolEvents { continuation in
             let result = try await toolRouter.handlePendingToolCalls(
-                timelineId: session.id,
+                threadId: session.id,
                 calls: [call],
                 availableTools: [],
                 continuation: continuation
@@ -1338,7 +1338,7 @@ struct ToolDurabilityOrderingTests {
 
         let events = try await captureProjectedToolEvents { continuation in
             let result = try await router.handlePendingToolCalls(
-                timelineId: threadID,
+                threadId: threadID,
                 calls: [call],
                 availableTools: [],
                 continuation: continuation
@@ -1385,7 +1385,7 @@ struct ToolDurabilityOrderingTests {
 
         let events = try await captureProjectedToolEvents { continuation in
             let result = try await router.handlePendingToolCalls(
-                timelineId: threadID,
+                threadId: threadID,
                 calls: [call],
                 availableTools: [],
                 continuation: continuation
@@ -1452,7 +1452,7 @@ struct ToolDurabilityOrderingTests {
 
         let events = try await captureProjectedToolEvents { continuation in
             _ = try await toolRouter.handlePendingToolCalls(
-                timelineId: session.id,
+                threadId: session.id,
                 calls: [call],
                 availableTools: [],
                 continuation: continuation
@@ -1517,7 +1517,7 @@ struct ToolDurabilityOrderingTests {
 
         let events = try await captureProjectedToolEvents { continuation in
             let result = try await toolRouter.handlePendingToolCalls(
-                timelineId: session.id,
+                threadId: session.id,
                 calls: [call1, call2],
                 availableTools: [],
                 continuation: continuation

@@ -90,18 +90,18 @@ struct LLMStreamingStageReasoningTests {
 
     // MARK: - Helpers
 
-    private func makeContext() -> ChatTurnContext {
-        ChatTurnContext(
+    private func makeContext() -> TurnContext {
+        TurnContext(
             threadID: UUID(),
-            agentInstanceId: nil,
+            agentId: nil,
             modelName: "test-model",
-            maxTurns: 5,
+            maxModelRounds: 5,
             systemInstructions: nil,
             availableTools: [],
             contextData: ContextData(),
             remoteDepth: 0,
             currentMessages: [LLMMessage(role: .user, content: "hi")],
-            turnCount: 1,
+            modelRoundIndex: 1,
             outputs: TurnOutputs()
         )
     }

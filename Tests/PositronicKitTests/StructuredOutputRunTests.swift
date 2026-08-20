@@ -9,7 +9,7 @@ import Testing
 private struct StructuredOutputRunTestsTool: Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     let callName = "structured_output_run_tests_tool"
     let name = "Structured Output Run Tests Tool"
-    let description = "Test tool used to verify ChatRunRequest forwards resolved tools."
+    let description = "Test tool used to verify TurnRequest forwards resolved tools."
     let requiresPermission = false
     let parametersSchema = makeEmptyObjectSchema()
 
@@ -35,12 +35,12 @@ struct StructuredOutputRunTests {
                 workspacePersistence: mockPersistence,
                 memoryStore: mockPersistence,
                 toolPersistence: mockPersistence,
-                agentInstanceStore: mockPersistence,
+                agentStore: mockPersistence,
                 requestOriginStore: mockPersistence
             )))
 
         let thread = try await chat.threadManager.createThread(title: "Structured Output")
-        let request = ChatRunRequest(
+        let request = TurnRequest(
             threadID: thread.id,
             message: "Extract tags",
             tools: [StructuredOutputRunTestsTool().toAnyTool()],
@@ -76,12 +76,12 @@ struct StructuredOutputRunTests {
                 workspacePersistence: mockPersistence,
                 memoryStore: mockPersistence,
                 toolPersistence: mockPersistence,
-                agentInstanceStore: mockPersistence,
+                agentStore: mockPersistence,
                 requestOriginStore: mockPersistence
             )))
 
         let thread = try await chat.threadManager.createThread(title: "No Structured Output")
-        let stream = try await chat.run(ChatRunRequest(
+        let stream = try await chat.run(TurnRequest(
             threadID: thread.id,
             message: "Hello"
         ))
@@ -91,8 +91,8 @@ struct StructuredOutputRunTests {
         #expect(mockLLM.mockClient.lastResponseFormat == nil)
     }
 
-    @Test("A minimal ChatRunRequest preserves the legacy defaults")
-    func minimalChatRunRequestPreservesLegacyDefaults() async throws {
+    @Test("A minimal TurnRequest preserves the legacy defaults")
+    func minimalTurnRequestPreservesLegacyDefaults() async throws {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
         let chat = PositronicKit(configuration: .init(provider: .init(languageModel: mockLLM), persistence: .init(
@@ -101,12 +101,12 @@ struct StructuredOutputRunTests {
                 workspacePersistence: mockPersistence,
                 memoryStore: mockPersistence,
                 toolPersistence: mockPersistence,
-                agentInstanceStore: mockPersistence,
+                agentStore: mockPersistence,
                 requestOriginStore: mockPersistence
             )))
 
         let thread = try await chat.threadManager.createThread(title: "Minimal Defaults")
-        let stream = try await chat.run(ChatRunRequest(
+        let stream = try await chat.run(TurnRequest(
             threadID: thread.id,
             message: "Hello"
         ))
@@ -129,12 +129,12 @@ struct StructuredOutputRunTests {
                 workspacePersistence: mockPersistence,
                 memoryStore: mockPersistence,
                 toolPersistence: mockPersistence,
-                agentInstanceStore: mockPersistence,
+                agentStore: mockPersistence,
                 requestOriginStore: mockPersistence
             )))
 
         let thread = try await chat.threadManager.createThread(title: "No Sidecars")
-        let stream = try await chat.run(ChatRunRequest(
+        let stream = try await chat.run(TurnRequest(
             threadID: thread.id,
             message: "Hello",
             sidecars: []

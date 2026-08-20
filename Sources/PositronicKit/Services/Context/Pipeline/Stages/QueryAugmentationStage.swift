@@ -4,7 +4,7 @@ import PKPrompt
 import PKContracts
 import PKUtilities
 
-/// Pipeline stage responsible for augmenting the search query with recent conversation history.
+/// Pipeline stage responsible for augmenting the search query with recent thread history.
 struct QueryAugmentationStage: PipelineStage {
     private let logger = Logger.module(named: "query-augmentation")
 
@@ -29,10 +29,10 @@ struct QueryAugmentationStage: PipelineStage {
         }
     }
 
-    /// Combines recent conversation history with the current query to provide more context for search.
+    /// Combines recent thread history with the current query to provide more context for search.
     /// - Parameters:
     ///   - query: The original user input query.
-    ///   - history: Recent messages in the conversation.
+    ///   - history: Recent messages in the thread.
     /// - Returns: A string combining history and the query.
     private func buildAugmentedContext(query: String, history: [Message]) -> String {
         guard !history.isEmpty else { return query }

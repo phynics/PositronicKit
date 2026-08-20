@@ -39,8 +39,8 @@ private func makeRuntimeWS(
     )
 }
 
-private func makeAgent(name: String = "TestAgent", description: String = "") -> AgentInstance {
-    AgentInstance(name: name, description: description, privateThreadID: UUID())
+private func makeAgent(name: String = "TestAgent", description: String = "") -> Agent {
+    Agent(name: name, description: description, privateThreadID: UUID())
 }
 
 // MARK: - WorkspacesContext Tests
@@ -356,7 +356,7 @@ struct ThreadContextTests {
     func defaultTitle() async throws {
         let thread = Thread()
         let output = try await ThreadContext(thread).renderToString() ?? ""
-        #expect(output.contains("New Conversation"))
+        #expect(output.contains("New Thread"))
     }
 
     @Test("contains Current Thread header")

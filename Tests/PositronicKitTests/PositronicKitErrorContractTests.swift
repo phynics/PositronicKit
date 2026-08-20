@@ -14,45 +14,45 @@ import Testing
 /// error identity undetectable.
 @Suite("PositronicKit error contracts")
 struct PositronicKitErrorContractTests {
-    // MARK: - ChatRunError
+    // MARK: - TurnError
 
-    @Suite("ChatRunError")
-    struct ChatRunErrorTests {
-        @Test("invalidMaxTurns has a stable public error identity")
+    @Suite("TurnError")
+    struct TurnErrorTests {
+        @Test("invalidMaxModelRounds has a stable public error identity")
         func stableErrorIdentity() {
-            let error = ChatRunError.invalidMaxTurns(0)
+            let error = TurnError.invalidMaxModelRounds(0)
 
             #expect(error.errorDomain == PKErrorDomain.chat)
             #expect(error.errorCode == 9008)
         }
 
-        @Test("invalidMaxTurns explains the invalid value and recovery")
+        @Test("invalidMaxModelRounds explains the invalid value and recovery")
         func messageAndRemediation() {
-            let error = ChatRunError.invalidMaxTurns(-2)
+            let error = TurnError.invalidMaxModelRounds(-2)
 
-            #expect(error.userFriendlyMessage == "maxTurns must be at least 1; received -2.")
-            #expect(error.remediation == "Pass a maxTurns value greater than or equal to 1.")
+            #expect(error.userFriendlyMessage == "maxModelRounds must be at least 1; received -2.")
+            #expect(error.remediation == "Pass a maxModelRounds value greater than or equal to 1.")
         }
 
-        @Test("invalidMaxTurns supports equality and checked sendability")
+        @Test("invalidMaxModelRounds supports equality and checked sendability")
         func equalityAndSendability() {
-            let error = ChatRunError.invalidMaxTurns(0)
+            let error = TurnError.invalidMaxModelRounds(0)
 
-            #expect(error == .invalidMaxTurns(0))
-            #expect(error != .invalidMaxTurns(-1))
+            #expect(error == .invalidMaxModelRounds(0))
+            #expect(error != .invalidMaxModelRounds(-1))
             requireSendable(error)
         }
 
         private func requireSendable<T: Sendable>(_: T) {}
     }
 
-    // MARK: - AgentInstanceError
+    // MARK: - AgentError
 
-    @Suite("AgentInstanceError")
-    struct AgentInstanceErrorTests {
+    @Suite("AgentError")
+    struct AgentErrorTests {
         @Test("Every case maps to a unique non-zero error code in the agent domain")
         func uniqueErrorCodes() {
-            let cases: [AgentInstanceError] = [
+            let cases: [AgentError] = [
                 .instanceNotFound(UUID()),
                 .threadNotFound(UUID()),
                 .differentAgentAlreadyAttached(UUID()),
@@ -70,7 +70,7 @@ struct PositronicKitErrorContractTests {
 
         @Test("errorDescription provides a technical description with the offending value")
         func errorDescriptionFormat() {
-            let error = AgentInstanceError.nameTooShort("ab")
+            let error = AgentError.nameTooShort("ab")
             #expect(error.errorDescription?.contains("ab") == true)
             #expect(error.errorDescription?.contains("too short") == true)
         }
@@ -78,33 +78,33 @@ struct PositronicKitErrorContractTests {
         @Test("userFriendlyMessage truncates UUIDs to a prefix for readability")
         func userFriendlyMessageTruncatesUUID() {
             let id = UUID()
-            let error = AgentInstanceError.instanceNotFound(id)
+            let error = AgentError.instanceNotFound(id)
             #expect(error.userFriendlyMessage.contains(id.uuidString.prefix(8)))
             #expect(!error.userFriendlyMessage.contains(id.uuidString))
         }
 
         @Test("hasAttachedThreads surfaces the count in both descriptions")
         func hasAttachedThreadsCount() {
-            let error = AgentInstanceError.hasAttachedThreads(count: 5)
+            let error = AgentError.hasAttachedThreads(count: 5)
             #expect(error.errorDescription?.contains("5 thread(s)") == true)
             #expect(error.userFriendlyMessage.contains("5 thread(s)"))
         }
 
         @Test("nameTooShort includes the offending name in the technical description")
         func nameTooShortIncludesName() {
-            let error = AgentInstanceError.nameTooShort("x")
+            let error = AgentError.nameTooShort("x")
             #expect(error.errorDescription?.contains("'x'") == true)
         }
 
         @Test("remediation defaults to nil (no recovery guidance)")
         func remediationIsNil() {
-            #expect(AgentInstanceError.descriptionEmpty.remediation == nil)
-            #expect(AgentInstanceError.instanceNotFound(UUID()).remediation == nil)
+            #expect(AgentError.descriptionEmpty.remediation == nil)
+            #expect(AgentError.instanceNotFound(UUID()).remediation == nil)
         }
 
         @Test("isBlocked defaults to false (not a permission gate)")
         func isBlockedIsFalse() {
-            #expect(AgentInstanceError.instanceNotFound(UUID()).isBlocked == false)
+            #expect(AgentError.instanceNotFound(UUID()).isBlocked == false)
         }
     }
 

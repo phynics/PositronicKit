@@ -102,7 +102,7 @@ public struct LLMPromptRequest: Sendable {
     public var userQuery: String { userContent.text }
     /// Per-turn instruction text rendered with the user query (final prompt section),
     /// NOT with system instructions, so the system prefix stays provider-cache-stable.
-    /// Used by `ChatEngine` to inject the sidecar directive instruction block.
+    /// Used by `TurnEngine` to inject the sidecar directive instruction block.
     public let turnInstructions: String?
     public let contextNotes: [ContextFile]
     public let memories: [Memory]
@@ -249,7 +249,7 @@ public protocol LLMUtilityClient: Sendable {
     /// Generates tags/keywords for the given text, returning an empty array on failure.
     func bestEffortTags(for text: String) async -> [String]
 
-    /// Generates a concise conversation title, returning `"New Conversation"` on failure.
+    /// Generates a concise thread title, returning `"New Thread"` on failure.
     func bestEffortTitle(for messages: [Message]) async -> String
 
     func fetchAvailableModels() async throws -> [String]?

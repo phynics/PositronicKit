@@ -11,42 +11,42 @@ public final class AgenticRuntime: Sendable {
     /// The thread this runtime handle runs turns against.
     public let threadID: UUID
     /// The agent instance whose identity and workspace bindings each turn runs under.
-    public let agentInstanceID: UUID?
+    public let agentID: UUID?
     /// The facade-owned agent-instance manager, shared by every handle the facade vends.
-    public let agentInstanceManager: AgentInstanceManager
+    public let agentManager: AgentManager
 
     private let kit: PositronicKit
 
     init(
         kit: PositronicKit,
         threadID: UUID,
-        agentInstanceID: UUID?
+        agentID: UUID?
     ) {
         self.kit = kit
         self.threadID = threadID
-        self.agentInstanceID = agentInstanceID
-        agentInstanceManager = kit.agentInstanceManager
+        self.agentID = agentID
+        agentManager = kit.agentManager
     }
 
     /// Runs one agent turn through the facade's existing tool loop.
     ///
     /// The agent must already be attached to `threadID`; this handle does not establish the
     /// attachment. An invalid relationship throws
-    /// ``AgentInstanceError/threadAgentMismatch(threadID:agentInstanceID:attachedAgentInstanceID:)``
+    /// ``AgentError/threadAgentMismatch(threadID:agentID:attachedAgentID:)``
     /// before the turn is persisted or dispatched to the provider.
     public func run(
         message: String,
         tools: [any Tool] = [],
-        maxTurns: Int = 5,
+        maxModelRounds: Int = 5,
         systemInstructions: String? = nil
-    ) async throws -> AsyncThrowingStream<ChatEvent, Error> {
-        try await kit.run(ChatRunRequest(
+    ) async throws -> AsyncThrowingStream<TurnEvent, Error> {
+        try await kit.run(TurnRequest(
             threadID: threadID,
             message: message,
             tools: tools,
             systemInstructions: systemInstructions,
-            agentInstanceID: agentInstanceID,
-            maxTurns: maxTurns
+            agentID: agentID,
+            maxModelRounds: maxModelRounds
         ))
     }
 }

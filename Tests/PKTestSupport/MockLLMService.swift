@@ -707,7 +707,7 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
         let title = scriptedTitle
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: "\"", with: "")
-        return title.isEmpty ? "New Conversation" : title
+        return title.isEmpty ? "New Thread" : title
     }
 
     public func fetchAvailableModels() async throws -> [String]? {

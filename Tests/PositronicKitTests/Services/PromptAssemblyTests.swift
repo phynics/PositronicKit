@@ -167,11 +167,11 @@ struct PromptAssemblyTests {
         #expect(messages.count >= 1)
     }
 
-    @Test("RenderedPrompt builds provider-neutral conversation messages")
-    func renderedPromptBuildsConversationMessages() async throws {
+    @Test("RenderedPrompt builds provider-neutral thread messages")
+    func renderedPromptBuildsThreadMessages() async throws {
         let rendered = try await PromptAssembler.assemble(makeRequest(userQuery: "final artifact"))
 
-        let messages = rendered.buildConversationMessages()
+        let messages = rendered.buildThreadMessages()
 
         #expect(messages.count >= 1)
         #expect(messages.last?.role == .user)
@@ -236,7 +236,7 @@ struct PromptAssemblyTests {
         )
 
         let llmMessages = rendered.buildMessages()
-        let uiMessages = rendered.buildConversationMessages()
+        let uiMessages = rendered.buildThreadMessages()
 
         #expect(llmMessages.count == 5)
         #expect(uiMessages.count == 5)

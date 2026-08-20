@@ -272,10 +272,10 @@ public struct WorkspacesContext: Prompt {
 }
 
 public struct AgentContext: Prompt {
-    public let agent: AgentInstance
+    public let agent: Agent
     public let threadTitle: String?
 
-    public init(_ agent: AgentInstance, threadTitle: String? = nil) {
+    public init(_ agent: Agent, threadTitle: String? = nil) {
         self.agent = agent
         self.threadTitle = threadTitle
     }
@@ -320,7 +320,7 @@ public struct ThreadContext: Prompt {
             - ID: `\(thread.id.uuidString)`
             - Title: \(thread.title)
             """,
-            id: "timeline_context",
+            id: "thread_context",
             priority: 72,
             cachePolicy: .semiStable,
             estimatedTokens: TokenEstimator.estimate(text: thread.title) + 20

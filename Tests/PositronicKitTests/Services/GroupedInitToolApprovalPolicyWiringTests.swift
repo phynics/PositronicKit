@@ -71,7 +71,7 @@ struct GroupedInitToolApprovalPolicyWiringTests {
             workspacePersistence: mockPersistence,
             memoryStore: mockPersistence,
             toolPersistence: mockPersistence,
-            agentInstanceStore: mockPersistence,
+            agentStore: mockPersistence,
             requestOriginStore: mockPersistence
         )
         let chat = PositronicKit(configuration: .init(
@@ -103,7 +103,7 @@ struct GroupedInitToolApprovalPolicyWiringTests {
             workspacePersistence: mockPersistence,
             memoryStore: mockPersistence,
             toolPersistence: mockPersistence,
-            agentInstanceStore: mockPersistence,
+            agentStore: mockPersistence,
             requestOriginStore: mockPersistence
         )
         let chat = PositronicKit(configuration: .init(

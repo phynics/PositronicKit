@@ -8,7 +8,7 @@ import Foundation
 /// - **schemaMismatch**: Arguments decoded but violated the tool's parameter schema.
 /// - **missingArgument**: A required parameter was absent from the arguments dictionary.
 /// - **invalidArgument**: A parameter had the wrong type (e.g. string where int was expected).
-/// - **toolNotFound**: The requested tool is not registered in any of the timeline's workspaces.
+/// - **toolNotFound**: The requested tool is not registered in any of the thread's workspaces.
 /// - **workspaceNotFound**: The target workspace for the tool could not be resolved.
 /// - **executionFailed**: The tool implementation threw during execution, or a side-effect-free
 ///   tool was abandoned cleanly after a wall-clock timeout.
@@ -138,7 +138,7 @@ public enum ToolError: PKError, Sendable, Equatable {
             return "Submit tool outputs only for tool calls that the runtime previously deferred and has not consumed."
         case .invalidWorkspaceID:
             return "Provide a valid UUID string for 'workspaceID' that matches one of the workspaces " +
-                "attached to the current timeline, or omit it to use automatic workspace routing."
+                "attached to the current thread, or omit it to use automatic workspace routing."
         }
     }
 

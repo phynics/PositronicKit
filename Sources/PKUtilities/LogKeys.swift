@@ -3,11 +3,11 @@ import Foundation
 
 /// Canonical PositronicKit loop-metadata vocabulary for `Logger.Metadata` keys.
 ///
-/// All structured-log sites across the chat turn loop — prompt assembly, LLM stream
+/// All structured-log sites across the turn loop — prompt assembly, LLM stream
 /// lifecycle, loop continuation decisions, and tool routing — MUST use these keys
 /// (via `LogKeys.<key>`) rather than ad-hoc string literals or synonyms such as the
-/// legacy `conversationID`. Keeping the vocabulary canonical lets downstream consumers
-/// correlate log lines by `timelineID` / `sendID` / `turnIndex` without regex, and keeps
+/// legacy vocabulary. Keeping the vocabulary canonical lets downstream consumers
+/// correlate log lines by `threadID` / `turnID` / `requestID` / `modelRoundIndex` without regex, and keeps
 /// per-tool / per-provider attribution consistent across stages.
 ///
 /// The set mirrors the existing logger scheme (`"chat-engine"` / `"tool-router"` /
@@ -15,16 +15,18 @@ import Foundation
 /// (PKLOG-001/002/003). New loop components adopt these keys rather than introducing
 /// synonyms.
 package enum LogKeys {
-    /// Raw timeline UUID string (not hashed) — correlates end-to-end with Yakamoz logs
-    /// (YAK-40), which log the raw `timelineId`. A UUID is an id, not a payload.
-    package static let timelineID = "timelineID"
+    /// Raw thread UUID string (not hashed) — correlates end-to-end with Yakamoz logs
+    /// (YAK-40), which log the raw `threadId`. A UUID is an id, not a payload.
+    package static let threadID = "threadID"
 
-    /// Per-send UUID — disambiguates rounds within a timeline across multiple user sends
-    /// (a `turnIndex` of 0 collides across sends without this).
-    package static let sendID = "sendID"
+    /// Turn UUID — identifies one user turn independently from its request/idempotency UUID.
+    package static let turnID = "turnID"
 
-    /// Turn index within the current send (the `turnCount` on `ChatTurnContext`).
-    package static let turnIndex = "turnIndex"
+    /// Request/idempotency UUID — disambiguates retries and rounds within a thread.
+    package static let requestID = "requestID"
+
+    /// Model round index within the current turn (the `modelRoundIndex` on `TurnContext`).
+    package static let modelRoundIndex = "modelRoundIndex"
 
     /// Display name of the tool being routed/executed.
     package static let toolName = "toolName"

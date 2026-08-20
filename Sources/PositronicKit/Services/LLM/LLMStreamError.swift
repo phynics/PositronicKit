@@ -9,7 +9,7 @@ import PKUtilities
 /// `localizedDescription`.
 ///
 /// This is the loop's single wrapping seam for *unannotated* provider failures: errors
-/// that already conform to `PKError` (e.g. `ChatEngineError.streamTimedOut`,
+/// that already conform to `PKError` (e.g. `TurnEngineError.streamTimedOut`,
 /// `LLMServiceError`, `ToolError`) and `CancellationError` pass through
 /// `wrapForeignError(_:)` unchanged, preserving their existing identity. Only fully
 /// foreign errors (e.g. `URLError`, `NSError`, `DecodingError` thrown by a provider

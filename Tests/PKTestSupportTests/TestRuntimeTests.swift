@@ -11,6 +11,6 @@ struct TestRuntimeTests {
                 .appendingPathComponent("test-runtime-agent-manager")
         )
 
-        #expect(runtime.agentInstanceManager === runtime.positronicKit.agentInstanceManager)
+        #expect(runtime.agentManager === runtime.positronicKit.agentManager)
     }
 }

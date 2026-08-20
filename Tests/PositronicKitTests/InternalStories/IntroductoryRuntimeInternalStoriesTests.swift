@@ -42,7 +42,7 @@ struct IntroductoryRuntimeInternalStoriesTests {
                 workspacePersistence: persistence,
                 memoryStore: persistence,
                 toolPersistence: persistence,
-                agentInstanceStore: persistence,
+                agentStore: persistence,
                 requestOriginStore: persistence
             ), runtime: .init(
                 workspaceCreator: MockWorkspaceCreator(),
@@ -66,7 +66,7 @@ struct IntroductoryRuntimeInternalStoriesTests {
         let toolManager = await threadManager.getToolManager(for: thread.id)
         await toolManager?.updateAvailableTools([tool])
 
-        let events = try await runtime.run(ChatRunRequest(
+        let events = try await runtime.run(TurnRequest(
             threadID: thread.id,
             message: "Greet Taylor using the available tool.",
             tools: [tool]

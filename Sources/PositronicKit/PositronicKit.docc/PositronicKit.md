@@ -27,15 +27,15 @@ check.
 ``PositronicKit/run(_:)`` performs all synchronous request and preparation work before returning
 its event stream:
 
-- `ChatRunRequest.maxTurns` must be at least `1`. Invalid values throw
-  `ChatRunError.invalidMaxTurns` before thread lookup, persistence, or provider work.
+- `TurnRequest.maxModelRounds` must be at least `1`. Invalid values throw
+  `TurnError.invalidMaxModelRounds` before thread lookup, persistence, or provider work.
 - Thread hydration failures throw their typed `ThreadError` before input is persisted.
-- When `agentInstanceID` is supplied, the runtime resolves the agent once after thread
+- When `agentID` is supplied, the runtime resolves the agent once after thread
   resolution and before provider readiness or input persistence. The default `.failRequired`
-  policy throws `AgentInstanceError.instanceNotFound` for a missing agent. With
+  policy throws `AgentError.instanceNotFound` for a missing agent. With
   `.continueWithWarnings`, the turn continues without that agent and the initial
   generation-context event carries an agent diagnostic.
-- A failed required-agent preflight does not consume `sendID`; callers may retry the same send
+- A failed required-agent preflight does not consume `requestID`; callers may retry the same send
   after repairing the missing dependency.
 
 ### One-Shot Parameters And Timeouts
@@ -55,7 +55,7 @@ Errors are delivered at the boundary where their work occurs:
   sidecar validation, and other preparation failures throw from the awaited `run(_:)` call before
   it returns a stream.
 - Provider and pipeline failures that happen after `run(_:)` returns throw while the returned
-  stream is iterated. Use `ChatEvent.ErrorIdentity.extracting(from:)` to classify nested causal
+  stream is iterated. Use `TurnEvent.ErrorIdentity.extracting(from:)` to classify nested causal
   failures without matching message text. Foreign provider failures retain their original cause
   and expose the stable LLM domain/code identity (`PKErrorDomain.llm`, `1005`).
 - `complete` and `completeResult` consume provider streams internally, so both preparation and
@@ -71,7 +71,7 @@ wrapped as a foreign provider failure.
 
 - Runtime diagnostics use `swift-log`.
 - Hosts own logging bootstrap and log-level configuration.
-- Prompt assembly diagnostics are enabled per turn with `PositronicKit.run(_:)` via `ChatRunRequest.promptAssemblyLogger`.
+- Prompt assembly diagnostics are enabled per turn with `PositronicKit.run(_:)` via `TurnRequest.promptAssemblyLogger`.
 - Package-defined errors conform to `PKError` and surface user-facing messages through `ErrorKit`.
 
 ## Topics

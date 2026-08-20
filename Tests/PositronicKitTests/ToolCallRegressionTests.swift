@@ -45,17 +45,17 @@ struct ToolCallRegressionTests {
     func testAccumulatesComplexNativeToolCallDeltas() async throws {
         let persistence = MockPersistenceService()
         let stage = MessagePersistenceStage(messageStore: persistence, logger: logger)
-        let context = ChatTurnContext(
+        let context = TurnContext(
             threadID: UUID(),
-            agentInstanceId: nil,
+            agentId: nil,
             modelName: "test-model",
-            maxTurns: 1,
+            maxModelRounds: 1,
             systemInstructions: nil,
             availableTools: [],
             contextData: ContextData(),
             remoteDepth: 0,
             currentMessages: [],
-            turnCount: 1,
+            modelRoundIndex: 1,
             outputs: TurnOutputs()
         )
 
@@ -163,17 +163,17 @@ struct ToolCallRegressionTests {
 
     @Test("Legacy XML tool-call markers in assistant text do not produce tool accumulators")
     func legacyXMLMarkersProduceNoToolCalls() async throws {
-        let context = ChatTurnContext(
+        let context = TurnContext(
             threadID: UUID(),
-            agentInstanceId: nil,
+            agentId: nil,
             modelName: "test-model",
-            maxTurns: 1,
+            maxModelRounds: 1,
             systemInstructions: nil,
             availableTools: [MockComplexTool().toAnyTool()],
             contextData: ContextData(),
             remoteDepth: 0,
             currentMessages: [],
-            turnCount: 1,
+            modelRoundIndex: 1,
             outputs: TurnOutputs()
         )
 
@@ -191,17 +191,17 @@ struct ToolCallRegressionTests {
 
     @Test("Pipe-delimited tool-call markers in assistant text do not produce tool accumulators")
     func pipeMarkersProduceNoToolCalls() async throws {
-        let context = ChatTurnContext(
+        let context = TurnContext(
             threadID: UUID(),
-            agentInstanceId: nil,
+            agentId: nil,
             modelName: "test-model",
-            maxTurns: 1,
+            maxModelRounds: 1,
             systemInstructions: nil,
             availableTools: [MockComplexTool().toAnyTool()],
             contextData: ContextData(),
             remoteDepth: 0,
             currentMessages: [],
-            turnCount: 1,
+            modelRoundIndex: 1,
             outputs: TurnOutputs()
         )
 
@@ -219,17 +219,17 @@ struct ToolCallRegressionTests {
 
     @Test("Fenced JSON in assistant text does not produce tool accumulators")
     func fencedJSONProducesNoToolCalls() async throws {
-        let context = ChatTurnContext(
+        let context = TurnContext(
             threadID: UUID(),
-            agentInstanceId: nil,
+            agentId: nil,
             modelName: "test-model",
-            maxTurns: 1,
+            maxModelRounds: 1,
             systemInstructions: nil,
             availableTools: [MockComplexTool().toAnyTool()],
             contextData: ContextData(),
             remoteDepth: 0,
             currentMessages: [],
-            turnCount: 1,
+            modelRoundIndex: 1,
             outputs: TurnOutputs()
         )
 

@@ -5,7 +5,7 @@ public struct ToolCall: Identifiable, Equatable, Codable, Sendable, Hashable {
     /// The provider's tool-call id (e.g. OpenAI's `call_…`). Kept as the original String —
     /// these are arbitrary provider strings, not UUIDs. Coercing them to UUID lost the id and,
     /// because the lossy fallback regenerated a random UUID on every history reload, broke the
-    /// assistant↔tool-result pairing on a conversation's next turn (YAK-26).
+    /// assistant↔tool-result pairing on a thread's next turn (YAK-26).
     public let id: String
     public let name: String
     public let arguments: [String: AnyCodable]

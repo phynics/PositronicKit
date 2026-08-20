@@ -18,7 +18,7 @@ let chat = PositronicKit(llmService: myLLM)
 
 ## Data Flow
 
-1. **User Query**: Received via `ChatEngine`.
+1. **User Query**: Received via `TurnEngine`.
 2. **Context Gathering**: `TurnBriefingBuilder` retrieves relevant memories and filesystem notes.
 3. **Prompt Construction**: `PKPrompt` DSL builds a provider-specific prompt.
 4. **Execution**: `LLMService` communicates with the AI provider.

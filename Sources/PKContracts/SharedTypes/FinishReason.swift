@@ -15,7 +15,7 @@ import Foundation
 /// signal onto this enum first, then derive the final `String` they assign to the existing
 /// public `String?` fields via ``wireValue``. This keeps those fields' *type* and existing
 /// wire *values* unchanged (no breaking change for downstream consumers that compare against
-/// bare strings, e.g. Yakamoz's `ChatEventReducer`), while giving every adapter one shared
+/// bare strings, e.g. Yakamoz's `TurnEventReducer`), while giving every adapter one shared
 /// vocabulary to map onto and giving Ollama a way to faithfully represent truncation.
 public enum FinishReason: Sendable, Equatable {
     /// The model reached a natural stopping point (e.g. an end-of-turn token).

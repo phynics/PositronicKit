@@ -48,13 +48,13 @@
 /// - structured output across providers → `StructuredOutputServiceTests`
 /// - tool-call recovery from provider streaming edge cases →
 ///   `OpenAIToolCallRecoveryTests`, `OpenRouterToolCallRecoveryTests`,
-///   `ToolCallRegressionTests`, `ChatEngineTests`
+///   `ToolCallRegressionTests`, `TurnEngineTests`
 /// - facade turn-limit and required-agent preflight validation →
 ///   `FacadeRunValidationTests`
 /// - facade one-shot parameters, structured output, timeout, and cancellation →
 ///   `FacadeOneShotTests`
 /// - runtime cancellation / event-stream reliability → `FacadeRunValidationTests`,
-///   `ChatEngineTests`, `TurnBriefingBuilderCancellationTests`
+///   `TurnEngineTests`, `TurnBriefingBuilderCancellationTests`
 /// - prompt assembly / runtime prompt history / structured compression →
 ///   `PromptAssemblyTests`, `ThreadPromptHistoryTests`,
 ///   `StructuredCompressionIntegrationTests`

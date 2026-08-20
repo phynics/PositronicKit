@@ -4,15 +4,15 @@ import PKUtilities
 
 /// Thread-safe in-memory message store for prototyping and development.
 public actor InMemoryMessageStore: ThreadMessageStoreProtocol {
-    private var messages: [ConversationMessage] = []
+    private var messages: [ThreadMessage] = []
 
     public init() {}
 
-    public func saveMessage(_ message: ConversationMessage) async throws {
+    public func saveMessage(_ message: ThreadMessage) async throws {
         messages.append(message)
     }
 
-    public func fetchMessages(for threadID: UUID) async throws -> [ConversationMessage] {
+    public func fetchMessages(for threadID: UUID) async throws -> [ThreadMessage] {
         messages.filter { $0.threadID == threadID }
     }
 
@@ -33,11 +33,11 @@ public actor InMemoryMessageStore: ThreadMessageStoreProtocol {
             }
     }
 
-    package func allMessages() -> [ConversationMessage] {
+    package func allMessages() -> [ThreadMessage] {
         messages
     }
 
-    package func replaceMessages(_ messages: [ConversationMessage]) {
+    package func replaceMessages(_ messages: [ThreadMessage]) {
         self.messages = messages
     }
 }

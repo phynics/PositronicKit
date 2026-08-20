@@ -17,9 +17,9 @@ public extension LLMUtilityClient where Self: LLMStreamClient {
             .bestEffortTags(for: text)
     }
 
-    /// Generate a concise title for a conversation.
+    /// Generate a concise title for a thread.
     ///
-    /// Best-effort: on failure, logs and returns `"New Conversation"`.
+    /// Best-effort: on failure, logs and returns `"New Thread"`.
     func bestEffortTitle(for messages: [Message]) async -> String {
         await BestEffortLLMUtilities(streamClient: self, logger: utilityGenerationLogger)
             .bestEffortTitle(for: messages)

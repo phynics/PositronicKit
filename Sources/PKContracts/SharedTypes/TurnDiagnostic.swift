@@ -21,14 +21,14 @@ public struct TurnDiagnostic: Codable, Sendable, Equatable {
     public let dependency: TurnDependency
     public let operation: String
     public let entityID: String
-    public let errorIdentity: ChatEvent.ErrorIdentity?
+    public let errorIdentity: TurnEvent.ErrorIdentity?
     public let message: String
 
     public init(
         dependency: TurnDependency,
         operation: String,
         entityID: String,
-        errorIdentity: ChatEvent.ErrorIdentity?,
+        errorIdentity: TurnEvent.ErrorIdentity?,
         message: String
     ) {
         self.dependency = dependency

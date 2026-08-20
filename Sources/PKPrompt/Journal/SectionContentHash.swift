@@ -2,7 +2,7 @@ import Foundation
 import PKUtilities
 
 /// Text-only content fingerprint shared by `SectionSignature` (PKPrompt journal differ) and
-/// `PromptSectionEntry.contentHash` (runtime timeline history).
+/// `PromptSectionEntry.contentHash` (runtime thread history).
 ///
 /// Per PKDEEP2-003 decision (b): the fingerprint answers "did this section change in a way the
 /// provider will notice?" The provider only ever sees rendered text/messages — never our

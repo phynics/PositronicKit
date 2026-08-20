@@ -1,0 +1,414 @@
+import Foundation
+import Logging
+import PKPrompt
+import PKContracts
+import PKUtilities
+
+/// Typed outcome of a single turn, driving the outer loop's continuation decision.
+///
+/// Only `.completed` may run `TurnFollowUpPolicy` — the terminal outcomes (`.failed`,
+/// `.cancelled`) skip plugin follow-up, snapshot building, message appending, and further LLM
+/// turns, so no runtime activity occurs after the stream has been finished with an error or
+/// cancellation (PKRR-003).
+private enum LoopContinuation {
+    /// The turn completed normally (no pending tool calls). Eligible for plugin follow-up.
+    case completed
+    /// A tool result or internal thought needs the LLM to process it in the next turn.
+    case continueWith([LLMMessage])
+    /// The turn failed. `runOneTurn` already persisted the partial turn and finished the
+    /// continuation with the error; the outer loop must not run any post-terminal activity.
+    case failed
+    /// The turn was cancelled. `runOneTurn` already persisted the partial turn, surfaced
+    /// `.generationCancelled()`, and finished the continuation; the outer loop must not run
+    /// any post-terminal activity.
+    case cancelled
+    /// A tool result could not be persisted. The router already emitted `.persistenceFailed`,
+    /// while the durable assistant row remains pending for a retry; no provider follow-up is safe.
+    case persistenceFailed
+    /// At least one tool call was deferred for external (host-side) execution. Terminal: the
+    /// outer loop emits `.deferredForExternalTool()` and finishes the stream without running
+    /// plugin follow-up or starting another LLM turn (PKRR-011).
+    case deferredExternally
+}
+
+// MARK: - Turn Loop
+
+extension TurnEngine {
+    /// The heart of the agentic loop. Orchestrates multiple turns until the agent finishes
+    /// or reaches the max turn limit.
+    func runTurnLoop(
+        continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation,
+        context: TurnContext
+    ) async {
+        let snapshotBuilder = PromptSnapshotBuilder()
+        let partialPersistence = PartialAssistantPersistence(
+            messageStore: dependencies.messageStore
+        )
+
+        // 1. Emit initial RAG context for frontend observability
+        continuation.yield(.generationContext(GenerationMetadata(
+            memories: context.contextData.memories.map { $0.memory.id },
+            files: context.contextData.notes.map { $0.name },
+            diagnostics: context.diagnostics
+        )))
+
+        var loopMessages = context.currentMessages
+        var loopRenderedPrompt = context.renderedPrompt
+        var loopPromptHistoryUpdate = context.promptHistoryUpdate
+        var modelRoundIndex = 0
+        var priorOutput = ""
+
+        // 2. Main reasoning loop (ReAct loop)
+        while modelRoundIndex < context.maxModelRounds {
+            modelRoundIndex += 1
+            let turnContext = context.forTurn(
+                modelRoundIndex: modelRoundIndex,
+                messages: loopMessages,
+                renderedPrompt: loopRenderedPrompt,
+                promptHistoryUpdate: loopPromptHistoryUpdate
+            )
+
+            // Execute one turn (LLM call + automatic runtime tool routing)
+            let signal = await runOneTurn(
+                continuation: continuation,
+                context: turnContext,
+                partialPersistence: partialPersistence
+            )
+
+            // Accumulate thinking and response manually from the current turn
+            let currentThinking = await turnContext.outputs.fullThinking
+            let currentResponse = await turnContext.outputs.fullResponse
+            priorOutput += currentThinking
+            priorOutput += currentResponse
+
+            switch signal {
+            case .completed:
+                // Turn finished without further internal actions required. Only a completed
+                // turn may run plugin follow-up policy — terminal outcomes skip it (PKRR-003).
+                do {
+                    let pluginMessages = try await TurnFollowUpPolicy.pluginMessages(
+                        for: context,
+                        modelRoundIndex: modelRoundIndex,
+                        accumulatedOutput: priorOutput,
+                        plugins: dependencies.turnPlugins,
+                        logger: logger
+                    )
+
+                    // If plugins added context, resume the loop for a follow-up turn.
+                    if TurnFollowUpPolicy.shouldContinueWithPluginMessages(
+                        pluginMessages,
+                        modelRoundIndex: modelRoundIndex,
+                        maxModelRounds: context.maxModelRounds
+                    ) {
+                        loopMessages += pluginMessages
+                        let snapshot = try await snapshotBuilder.buildFollowUpSnapshot(
+                            from: turnContext,
+                            appendedMessages: pluginMessages,
+                            nextTurnIndex: modelRoundIndex
+                        )
+                        loopRenderedPrompt = snapshot.renderedPrompt
+                        loopPromptHistoryUpdate = snapshot.promptHistoryUpdate
+                    } else {
+                        // A plugin requested another logical round, but the send budget is
+                        // exhausted. This is max-turn termination, not a normal terminal round.
+                        if !pluginMessages.isEmpty && modelRoundIndex >= context.maxModelRounds {
+                            await releaseTurnReservation(for: context)
+                            continuation.yield(.maxModelRoundsReached())
+                            continuation.finish()
+                            return
+                        }
+                        await emitTerminalSidecarCompletionIfNeeded(
+                            context: turnContext,
+                            continuation: continuation
+                        )
+                        continuation.finish()
+                        return
+                    }
+                } catch {
+                    // A follow-up failure is a non-successful terminal outcome. Release before
+                    // finishing so a retry cannot race the stream's terminal delivery.
+                    await releaseTurnReservation(for: context)
+                    continuation.finish(throwing: wrapForeignError(error))
+                    return
+                }
+
+            case let .continueWith(newMessages):
+                // A tool result or internal thought needs the LLM to process it in the next turn
+                loopMessages += newMessages
+                // Track appended messages for compaction awareness
+                if let history = context.promptHistory {
+                    let responseText = await turnContext.outputs.fullResponse + turnContext.outputs.fullThinking
+                    _ = await history.append(
+                        messageCount: newMessages.count,
+                        estimatedTokens: TokenEstimator.estimate(text: responseText)
+                    )
+                }
+                let snapshot: (renderedPrompt: RenderedPrompt?, promptHistoryUpdate: PromptHistoryUpdate?)
+                do {
+                    snapshot = try await snapshotBuilder.buildFollowUpSnapshot(
+                        from: turnContext,
+                        appendedMessages: newMessages,
+                        nextTurnIndex: modelRoundIndex
+                    )
+                } catch {
+                    // Snapshot failures terminate the send after preparation, so the caller may
+                    // retry with the same send ID.
+                    await releaseTurnReservation(for: context)
+                    continuation.finish(throwing: wrapForeignError(error))
+                    return
+                }
+                loopRenderedPrompt = snapshot.renderedPrompt
+                loopPromptHistoryUpdate = snapshot.promptHistoryUpdate
+
+            case .cancelled:
+                // Terminal: the stream was cancelled mid-flight. `runOneTurn` already
+                // persisted the partial turn, surfaced `.generationCancelled()`, and finished
+                // the continuation. No plugin follow-up, snapshot, message append, or further
+                // LLM turn is permitted after terminal delivery (PKRR-003).
+                return
+
+            case .failed:
+                // Terminal: the stream failed. `runOneTurn` already persisted the partial
+                // turn and finished the continuation with the error. No plugin follow-up,
+                // snapshot, message append, or further LLM turn is permitted after terminal
+                // delivery (PKRR-003).
+                return
+
+            case .deferredExternally:
+                // Terminal: at least one tool call was deferred for external execution. The
+                // stream pauses for host-side tool execution — emit a distinct terminal event
+                // so consumers can distinguish deferred external tool work from normal
+                // completion, then finish without plugin follow-up or another LLM turn
+                // (PKRR-011).
+                continuation.yield(.deferredForExternalTool())
+                continuation.finish()
+                return
+
+            case .persistenceFailed:
+                // Terminal but recoverable: the router emitted `.persistenceFailed` and left the
+                // assistant's pending tool call in durable history. Release the send reservation
+                // so the caller can retry with the existing pending-call submission semantics.
+                await releaseTurnReservation(for: context)
+                continuation.finish()
+                return
+            }
+        }
+
+        logger.warning("Max model rounds (\(context.maxModelRounds)) reached for thread \(context.threadID)", metadata: [
+            LogKeys.threadID: .string(context.threadID.uuidString),
+            LogKeys.turnID: .string(context.turnID.uuidString),
+            LogKeys.requestID: .string(context.requestId.uuidString),
+            LogKeys.modelRoundIndex: .string("\(modelRoundIndex)"),
+        ])
+        // Terminal: the loop exhausted its max-model-round budget while tool calls were still pending.
+        // Emit a distinct terminal event so consumers can distinguish max-turn exhaustion from
+        // normal completion instead of the stream silently finishing as if it succeeded
+        // (PKRR-011).
+        await releaseTurnReservation(for: context)
+        continuation.yield(.maxModelRoundsReached())
+        continuation.finish()
+    }
+
+    func emitTerminalSidecarCompletionIfNeeded(
+        context: TurnContext,
+        continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
+    ) async {
+        guard context.sidecarCommitPolicy == .terminalModelRound else { return }
+        let results = await context.outputs.sidecarResults
+        guard !results.isEmpty else { return }
+        continuation.yield(.sidecarsCompleted(SidecarCompletion(
+            identity: TurnIdentity(turnID: context.turnID, requestID: context.requestId, modelRoundIndex: max(context.modelRoundIndex - 1, 0)),
+            results: results
+        )))
+    }
+}
+
+// MARK: - Turn Execution
+
+private extension TurnEngine {
+    func runOneTurn(
+        continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation,
+        context: TurnContext,
+        partialPersistence: PartialAssistantPersistence
+    ) async -> LoopContinuation {
+        let sid = context.threadID.uuidString.prefix(8).lowercased()
+        let turnLabel = "\(context.modelRoundIndex)"
+        logger.info("Starting turn \(turnLabel) for thread \(sid)")
+
+        do {
+            try Task.checkCancellation()
+            logger.trace("Turn \(turnLabel): starting pipeline for \(sid)")
+            await publishPromptInspectionIfNeeded(context: context)
+            try await processTurn(context: context, continuation: continuation)
+            logger.trace("Turn \(turnLabel): pipeline complete for \(sid)")
+            return try await handleToolCallsAfterTurn(context: context, continuation: continuation)
+        } catch is CancellationError {
+            // STAB-1: the stream was cancelled mid-flight. `MessagePersistenceStage` only runs on
+            // success, so persist whatever partial assistant text/thinking (and any accumulated
+            // tool calls) the user already watched stream in, tagged `.cancelled`. The cancel
+            // event is still surfaced below — the UI needs it (STAB-5 handles retry separately).
+            await partialPersistence.persistPartialAssistantIfNeeded(context: context, status: .cancelled)
+            await releaseTurnReservation(for: context)
+            continuation.yield(.generationCancelled())
+            continuation.finish()
+            return .cancelled
+        } catch {
+            logger.error("Error in chat loop turn \(context.modelRoundIndex): \(error)", metadata: [
+                LogKeys.threadID: .string(context.threadID.uuidString),
+                LogKeys.turnID: .string(context.turnID.uuidString),
+                LogKeys.requestID: .string(context.requestId.uuidString),
+                LogKeys.modelRoundIndex: .string("\(context.modelRoundIndex)"),
+            ])
+            // STAB-1: same data-loss fix for the failure path (network drop, provider 4xx/5xx,
+            // idle timeout). A stage-thrown `CancellationError` is wrapped by `Pipeline` as
+            // `PipelineError.stageFailed` and lands here — unwrap it so a mid-stream
+            // cancellation is still tagged `.cancelled` rather than `.partial`. The error event
+            // is still surfaced to the UI (re-thrown below); STAB-5 handles retry separately.
+            let isCancellation = Self.isCancellationOrigin(error)
+            let status: Message.MessageStatus = isCancellation ? .cancelled : .partial
+            await partialPersistence.persistPartialAssistantIfNeeded(context: context, status: status)
+            await releaseTurnReservation(for: context)
+            continuation.finish(throwing: error)
+            // Terminal outcome: a wrapped cancellation is still a cancellation for loop-control
+            // purposes, so the outer loop skips plugin follow-up either way (PKRR-003).
+            return isCancellation ? .cancelled : .failed
+        }
+    }
+
+    /// Returns `true` if `error` represents cancellation, unwrapping `PipelineError` stage
+    /// wrappers (a stage-thrown `CancellationError` is wrapped as
+    /// `PipelineError.stageFailed(id, CancellationError())` before reaching `runOneTurn`).
+    static func isCancellationOrigin(_ error: Error) -> Bool {
+        if error is CancellationError {
+            return true
+        }
+        if case let PipelineError.stageFailed(_, underlying) = error, underlying is CancellationError {
+            return true
+        }
+        if case let PipelineError.cleanupFailed(_, underlying) = error, underlying is CancellationError {
+            return true
+        }
+        return false
+    }
+
+    /// Delegates tool call handling to the ToolRouter and maps the result to a loop decision.
+    func handleToolCallsAfterTurn(
+        context: TurnContext,
+        continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
+    ) async throws -> LoopContinuation {
+        let result = try await dependencies.toolRouter.processToolCalls(
+            outputs: context.outputs,
+            threadId: context.threadID,
+            availableTools: context.availableTools,
+            continuation: continuation
+        )
+
+        // Record whether the turn produced tool calls and how much assistant text it emitted:
+        // an empty turn with no tool calls points upstream at the model / provider adapter
+        // rather than the tool router.
+        let contentChars = await context.outputs.fullResponse.count
+        let turnMeta: Logger.Metadata = [
+            LogKeys.threadID: .string(context.threadID.uuidString),
+            LogKeys.turnID: .string(context.turnID.uuidString),
+            LogKeys.requestID: .string(context.requestId.uuidString),
+            LogKeys.modelRoundIndex: .string("\(context.modelRoundIndex)"),
+        ]
+        switch result {
+        case .noToolCalls:
+            logger.debug("Turn \(context.modelRoundIndex): no tool calls; assistant content chars=\(contentChars)", metadata: turnMeta)
+        case .deferredExternally:
+            logger.debug("Turn \(context.modelRoundIndex): tool calls deferred for external execution", metadata: turnMeta)
+        case .persistenceFailed:
+            logger.debug("Turn \(context.modelRoundIndex): tool result persistence failed; stopping before follow-up", metadata: turnMeta)
+        case let .continueWith(messages):
+            logger.debug("Turn \(context.modelRoundIndex): \(messages.count) tool-result message(s) to feed back; assistant content chars=\(contentChars)", metadata: turnMeta)
+        }
+
+        switch result {
+        case .noToolCalls:
+            return .completed
+        case .deferredExternally:
+            return .deferredExternally
+        case .persistenceFailed:
+            return .persistenceFailed
+        case let .continueWith(messages):
+            return .continueWith(messages)
+        }
+    }
+
+    func processTurn(
+        context: TurnContext,
+        continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
+    ) async throws {
+        let pipeline = TurnPipelineBuilder.makePipeline(
+            llmService: dependencies.llmService,
+            messageStore: dependencies.messageStore,
+            streamTimeout: dependencies.streamTimeout,
+            diagnosticSnapshotConfiguration: dependencies.diagnosticSnapshotConfiguration,
+            loggingConfiguration: dependencies.loggingConfiguration,
+            additionalStages: additionalStages
+        )
+        let stream = pipeline.execute(context)
+        for try await event in stream {
+            continuation.yield(event)
+        }
+    }
+
+    /// Preparation owns the reservation until the stream loop reaches a terminal outcome. Only
+    /// unsuccessful outcomes call this helper; successful and externally deferred sends remain
+    /// reserved by `TurnIdempotencyGate`.
+    func releaseTurnReservation(for context: TurnContext) async {
+        await TurnIdempotencyGate.shared.release(requestId: context.requestId)
+    }
+
+    func publishPromptInspectionIfNeeded(context: TurnContext) async {
+        // Audit trail: log which precondition failed so an operator asking "why didn't my
+        // inspector fire?" gets a reason instead of silence (PKLOG-001).
+        let baseMeta: Logger.Metadata = [
+            LogKeys.threadID: .string(context.threadID.uuidString),
+            LogKeys.turnID: .string(context.turnID.uuidString),
+            LogKeys.requestID: .string(context.requestId.uuidString),
+            LogKeys.modelRoundIndex: .string("\(context.modelRoundIndex)"),
+        ]
+        guard let inspector = dependencies.promptObserver else {
+            logger.debug("Turn inspection skipped: no turn inspector registered", metadata: baseMeta)
+            return
+        }
+        guard let renderedPrompt = context.renderedPrompt else {
+            logger.debug("Turn inspection skipped: no rendered prompt available", metadata: baseMeta)
+            return
+        }
+        guard let update = context.promptHistoryUpdate else {
+            logger.debug("Turn inspection skipped: no prompt history update", metadata: baseMeta)
+            return
+        }
+        guard let diff = update.diff else {
+            logger.debug("Turn inspection skipped: prompt diff unavailable", metadata: baseMeta)
+            return
+        }
+
+        // `context.modelRoundIndex` resets to 0 at the start of every `execute()` call (every user
+        // send), so it cannot identify a persisted inspection row uniquely across a whole
+        // thread — a second send's first round-trip would collide with the first send's
+        // row (`ThreadPromptHistory.nextInspectionTurnIndex` fixes this; see YAK-16).
+        let modelRoundIndex = await context.promptHistory?.nextInspectionTurnIndex() ?? (context.modelRoundIndex - 1)
+
+        let turnIdentity = TurnIdentity(turnID: context.turnID, requestID: context.requestId, modelRoundIndex: max(context.modelRoundIndex - 1, 0))
+
+        await inspector.didComposePrompt(PromptInspection(
+            identity: turnIdentity,
+            threadID: context.threadID,
+            agentID: context.agentId,
+            modelRoundIndex: modelRoundIndex,
+            model: context.modelName,
+            rendered: renderedPrompt,
+            sentMessages: context.currentMessages,
+            journal: TurnJournalSnapshot(
+                overlay: diff.publicJournalDiff,
+                stablePrefixCount: diff.stablePrefixCount,
+                didCompact: update.didCompact
+            ),
+            estimatedTokens: renderedPrompt.estimatedTokens
+        ))
+    }
+}

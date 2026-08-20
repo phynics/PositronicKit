@@ -13,7 +13,7 @@ enum PromptHistoryOptimizer {
         optimize(messages, availableTokens: maxHistoryTokens - historyTokenBuffer)
     }
 
-    /// Truncates conversation history to fit within a specified token budget.
+    /// Truncates thread history to fit within a specified token budget.
     /// Keeps the most recent messages and inserts a truncation notice if needed.
     public static func optimize(
         _ messages: [Message],

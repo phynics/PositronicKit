@@ -159,7 +159,7 @@ struct FoundationModelsClientTests {
         let client = FoundationModelsClient(makeSession: { _, _ in fake })
 
         let stream = await client.chatStream(
-            messages: [LLMMessage(role: .user, content: "very long conversation")],
+            messages: [LLMMessage(role: .user, content: "very long thread")],
             tools: nil,
             toolChoice: nil,
             responseFormat: nil,

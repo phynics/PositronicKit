@@ -25,13 +25,13 @@ public struct LLMUtilityGenerator {
         return directive.map(payload)
     }
 
-    /// Generates a concise conversation title, throwing on failure.
+    /// Generates a concise thread title, throwing on failure.
     ///
     /// An empty message list is not a provider failure: it maps to the documented
-    /// `"New Conversation"` default without invoking the model.
+    /// `"New Thread"` default without invoking the model.
     public func generateTitle(for messages: [Message]) async throws -> String {
         guard !messages.isEmpty else {
-            return "New Conversation"
+            return "New Thread"
         }
         let transcript = messages.map { "[\($0.role.rawValue.uppercased())] \($0.content)" }.joined(
             separator: "\n\n"
@@ -80,7 +80,7 @@ struct BestEffortLLMUtilities {
             return try await LLMUtilityGenerator(streamClient: streamClient).generateTitle(for: messages)
         } catch {
             logger.error("Failed to generate title: \(ErrorKit.userFriendlyMessage(for: error))")
-            return "New Conversation"
+            return "New Thread"
         }
     }
 }
@@ -122,7 +122,7 @@ private extension UtilityGenerationDirective where Payload == LLMTitleResponse, 
         Self(
             logLabel: "generate title",
             prompt: """
-            Based on the following conversation transcript, generate a concise, descriptive title (maximum 6 words).
+            Based on the following thread transcript, generate a concise, descriptive title (maximum 6 words).
             Return ONLY a JSON object with a key "title" containing the title text, with no surrounding quotes or additional formatting.
 
             TRANSCRIPT:
@@ -130,16 +130,16 @@ private extension UtilityGenerationDirective where Payload == LLMTitleResponse, 
             """,
             structuredOutput: .jsonSchema(StructuredOutputSchema(
                 name: "llm_title",
-                description: "A concise conversation title.",
+                description: "A concise thread title.",
                 schema: LLMTitleResponse.schema.definition()
             )),
             payloadType: LLMTitleResponse.self,
-            defaultValue: "New Conversation",
+            defaultValue: "New Thread",
             map: { payload in
                 let title = payload.title
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                     .replacingOccurrences(of: "\"", with: "")
-                return title.isEmpty ? "New Conversation" : title
+                return title.isEmpty ? "New Thread" : title
             }
         )
     }

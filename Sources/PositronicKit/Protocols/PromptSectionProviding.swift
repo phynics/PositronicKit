@@ -6,12 +6,12 @@ import PKPrompt
 /// Context available when building a prompt, for dynamic section content.
 public struct PromptBuildContext: Sendable {
     public let threadID: UUID
-    public let agentInstanceID: UUID?
+    public let agentID: UUID?
     public let message: String
 
-    public init(threadID: UUID, agentInstanceID: UUID?, message: String) {
+    public init(threadID: UUID, agentID: UUID?, message: String) {
         self.threadID = threadID
-        self.agentInstanceID = agentInstanceID
+        self.agentID = agentID
         self.message = message
     }
 }

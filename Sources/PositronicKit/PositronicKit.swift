@@ -18,7 +18,7 @@ import PKUtilities
 ///
 /// Intended extension seams for downstream applications are the facade itself plus public runtime
 /// protocols such as persistence stores, `WorkspaceFactory` / `Workspace`,
-/// `PromptSectionProviding`, and `ChatTurnPlugin`. Internal coordinators like `ChatEngine`,
+/// `PromptSectionProviding`, and `TurnPlugin`. Internal coordinators like `TurnEngine`,
 /// `ThreadPromptHistory`, and the concrete turn pipeline remain runtime implementation details
 /// even when they are visible to tests inside this package.
 ///
@@ -36,7 +36,7 @@ import PKUtilities
 /// Construct once and hold for the app's lifetime. `PositronicKit` is a reference type;
 /// constructing a new instance starts a new, independent cross-send history.
 public final class PositronicKit: Sendable {
-    // MARK: - Direct ChatEngine dependencies
+    // MARK: - Direct TurnEngine dependencies
 
     let languageModel: any LLMStreamClient & LLMUtilityClient
 
@@ -58,13 +58,13 @@ public final class PositronicKit: Sendable {
 
     /// The single agent-instance manager owned by this facade. It is wired to the same
     /// thread manager and persistence stores as the rest of the runtime.
-    public let agentInstanceManager: AgentInstanceManager
+    public let agentManager: AgentManager
 
     /// The tool router built by this facade, wired to `threadManager` above.
     public let toolRouter: ToolRouter
-    private let agentInstanceStore: any AgentInstanceStoreProtocol
+    private let agentStore: any AgentStoreProtocol
     private let requestOriginStore: any RequestOriginStoreProtocol
-    private let chatTurnPlugins: [any ChatTurnPlugin]
+    private let turnPlugins: [any TurnPlugin]
     private let promptObserver: (any PromptObserving)?
     private let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
     let defaultGenerationParameters: GenerationParameters?
@@ -79,7 +79,7 @@ public final class PositronicKit: Sendable {
     private let toolPersistence: any ToolPersistenceProtocol
     private let embeddingService: any EmbeddingServiceProtocol
 
-    private let chatEngine: ChatEngine
+    private let turnEngine: TurnEngine
 
     /// Owned internally; every thread driver vended by this instance shares it automatically.
     /// Construct a new `PositronicKit` for a genuinely separate cross-send history.
@@ -108,7 +108,7 @@ public final class PositronicKit: Sendable {
     convenience init(
         languageModel: any LLMStreamClient & LLMUtilityClient,
         messageStore: (any ThreadMessageStoreProtocol)? = nil,
-        agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,
+        agentStore: (any AgentStoreProtocol)? = nil,
         requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
         threadPersistence: (any ThreadPersistenceProtocol)? = nil,
         workspacePersistence: (any WorkspaceStore)? = nil,
@@ -119,7 +119,7 @@ public final class PositronicKit: Sendable {
         workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: ThreadManager.RuntimeToolPolicy = .default,
-        chatTurnPlugins: [any ChatTurnPlugin] = [],
+        turnPlugins: [any TurnPlugin] = [],
         promptObserver: (any PromptObserving)? = nil,
         diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
         degradationPolicy: TurnDegradationPolicy = .failRequired,
@@ -127,13 +127,13 @@ public final class PositronicKit: Sendable {
         toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
         loggingConfiguration: LoggingConfiguration = .default,
         sharedRegistry: ThreadPromptJournals,
-        additionalStages: [any PipelineStage<ChatTurnContext, ChatEvent>]
+        additionalStages: [any PipelineStage<TurnContext, TurnEvent>]
     ) {
         self.init(
             dependencies: KitDependencies(
                 languageModel: languageModel,
                 messageStore: messageStore ?? InMemoryMessageStore(),
-                agentInstanceStore: agentInstanceStore ?? InMemoryAgentInstanceStore(),
+                agentStore: agentStore ?? InMemoryAgentStore(),
                 requestOriginStore: requestOriginStore ?? InMemoryRequestOriginStore(),
                 threadPersistence: threadPersistence ?? InMemoryThreadPersistence(),
                 workspacePersistence: workspacePersistence ?? InMemoryWorkspacePersistence(),
@@ -144,7 +144,7 @@ public final class PositronicKit: Sendable {
                 workspaceCreator: workspaceCreator,
                 sectionProviders: sectionProviders,
                 runtimeToolPolicy: runtimeToolPolicy,
-                chatTurnPlugins: chatTurnPlugins,
+                turnPlugins: turnPlugins,
                 promptObserver: promptObserver,
                 diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
                 degradationPolicy: degradationPolicy,
@@ -158,21 +158,21 @@ public final class PositronicKit: Sendable {
     }
 
     /// The designated initializer. Accepts a fully-resolved ``KitDependencies`` bundle and
-    /// wires the internal coordinators (`ThreadManager`, `AgentInstanceManager`, `ToolRouter`,
-    /// `ChatEngine`) from it. Builder methods (`reconfigured`, `addingStage`, `addingPlugin`)
+    /// wires the internal coordinators (`ThreadManager`, `AgentManager`, `ToolRouter`,
+    /// `TurnEngine`) from it. Builder methods (`reconfigured`, `addingStage`, `addingPlugin`)
     /// extract the current dependencies, mutate the single field that changes, and forward
     /// here — eliminating the repeated ~25-line parameter forwarding (PKCR-009).
     init(dependencies: KitDependencies) {
         languageModel = dependencies.languageModel
         messageStore = dependencies.messageStore
-        agentInstanceStore = dependencies.agentInstanceStore
+        agentStore = dependencies.agentStore
         requestOriginStore = dependencies.requestOriginStore
         threadPersistence = dependencies.threadPersistence
         workspacePersistence = dependencies.workspacePersistence
         memoryStore = dependencies.memoryStore
         toolPersistence = dependencies.toolPersistence
         embeddingService = dependencies.embeddingService
-        chatTurnPlugins = dependencies.chatTurnPlugins
+        turnPlugins = dependencies.turnPlugins
         promptObserver = dependencies.promptObserver
         diagnosticSnapshotConfiguration = dependencies.diagnosticSnapshotConfiguration
         degradationPolicy = dependencies.degradationPolicy
@@ -195,7 +195,7 @@ public final class PositronicKit: Sendable {
                 .appendingPathComponent("positronickit-workspaces", isDirectory: true)
         // The facade is the only place a ThreadManager gets built: every store it wraps
         // comes from the same `persistence` surface the rest of the facade uses, so there is
-        // no seam where ChatEngine and ThreadManager can end up looking at different stores.
+        // no seam where TurnEngine and ThreadManager can end up looking at different stores.
         let resolvedThreadManager = ThreadManager(
             stores: .init(
                 threadStore: self.threadPersistence,
@@ -212,13 +212,13 @@ public final class PositronicKit: Sendable {
             promptHistoryRegistry: promptHistoryRegistry
         )
         threadManager = resolvedThreadManager
-        agentInstanceManager = AgentInstanceManager(
+        agentManager = AgentManager(
             repository: DefaultWorkspaceCatalog(
                 workspaceRoot: resolvedCatalogRoot,
                 workspacePersistence: self.workspacePersistence
             ),
             stores: .init(
-                instanceStore: self.agentInstanceStore,
+                instanceStore: self.agentStore,
                 threadStore: self.threadPersistence,
                 messageStore: self.messageStore,
                 workspaceStore: self.workspacePersistence
@@ -231,15 +231,15 @@ public final class PositronicKit: Sendable {
             approvalPolicy: dependencies.toolApprovalPolicy,
             loggingConfiguration: dependencies.loggingConfiguration
         )
-        var engine = ChatEngine(
+        var engine = TurnEngine(
             dependencies: .init(
                 threadManager: resolvedThreadManager,
-                agentInstanceStore: self.agentInstanceStore,
+                agentStore: self.agentStore,
                 requestOriginStore: self.requestOriginStore,
                 messageStore: self.messageStore,
                 llmService: self.languageModel,
                 toolRouter: toolRouter,
-                chatTurnPlugins: self.chatTurnPlugins,
+                turnPlugins: self.turnPlugins,
                 promptObserver: self.promptObserver,
                 diagnosticSnapshotConfiguration: dependencies.diagnosticSnapshotConfiguration,
                 loggingConfiguration: dependencies.loggingConfiguration,
@@ -248,7 +248,7 @@ public final class PositronicKit: Sendable {
             )
         )
         engine.additionalStages = dependencies.additionalStages
-        chatEngine = engine
+        turnEngine = engine
     }
 
     /// Snapshots the facade's current resolved dependencies into a ``KitDependencies`` value
@@ -258,7 +258,7 @@ public final class PositronicKit: Sendable {
         KitDependencies(
             languageModel: languageModel,
             messageStore: messageStore,
-            agentInstanceStore: agentInstanceStore,
+            agentStore: agentStore,
             requestOriginStore: requestOriginStore,
             threadPersistence: threadPersistence,
             workspacePersistence: workspacePersistence,
@@ -269,7 +269,7 @@ public final class PositronicKit: Sendable {
             workspaceCreator: workspaceCreator,
             sectionProviders: sectionProviders,
             runtimeToolPolicy: runtimeToolPolicy,
-            chatTurnPlugins: chatTurnPlugins,
+            turnPlugins: turnPlugins,
             promptObserver: promptObserver,
             diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
             degradationPolicy: degradationPolicy,
@@ -277,7 +277,7 @@ public final class PositronicKit: Sendable {
             toolApprovalPolicy: toolApprovalPolicy,
             loggingConfiguration: loggingConfiguration,
             sharedRegistry: promptHistoryRegistry,
-            additionalStages: chatEngine.additionalStages
+            additionalStages: turnEngine.additionalStages
         )
     }
 
@@ -304,9 +304,9 @@ public final class PositronicKit: Sendable {
     /// - Returns: A new instance with the stage added.
     ///
     /// This remains package-internal on purpose: the documented downstream extension surface is the
-    /// facade plus higher-level hooks such as `ChatTurnPlugin` and `PromptSectionProviding`, not
+    /// facade plus higher-level hooks such as `TurnPlugin` and `PromptSectionProviding`, not
     /// the concrete runtime pipeline topology.
-    func addingStage(_ stage: any PipelineStage<ChatTurnContext, ChatEvent>) -> PositronicKit {
+    func addingStage(_ stage: any PipelineStage<TurnContext, TurnEvent>) -> PositronicKit {
         var deps = dependencies
         deps.additionalStages += [stage]
         return PositronicKit(dependencies: deps)
@@ -315,9 +315,9 @@ public final class PositronicKit: Sendable {
     /// Adds a chat turn plugin that runs after each LLM turn.
     /// - Parameter plugin: The plugin to add.
     /// - Returns: A new instance with the plugin added.
-    public func addingPlugin(_ plugin: any ChatTurnPlugin) -> PositronicKit {
+    public func addingPlugin(_ plugin: any TurnPlugin) -> PositronicKit {
         var deps = dependencies
-        deps.chatTurnPlugins += [plugin]
+        deps.turnPlugins += [plugin]
         return PositronicKit(dependencies: deps)
     }
 
@@ -326,21 +326,21 @@ public final class PositronicKit: Sendable {
     /// Vends a fresh tier-four agent runtime handle.
     public func agenticRuntime(
         threadID: UUID,
-        agentInstanceID: UUID? = nil
+        agentID: UUID? = nil
     ) -> AgenticRuntime {
         AgenticRuntime(
             kit: self,
             threadID: threadID,
-            agentInstanceID: agentInstanceID
+            agentID: agentID
         )
     }
 
     /// Run a chat turn and return a stream of events.
     /// - Parameter request: The full turn configuration.
     /// - Returns: An asynchronous stream of chat events.
-    public func run(_ request: ChatRunRequest) async throws -> AsyncThrowingStream<ChatEvent, Error> {
-        guard request.maxTurns >= 1 else {
-            throw ChatRunError.invalidMaxTurns(request.maxTurns)
+    public func run(_ request: TurnRequest) async throws -> AsyncThrowingStream<TurnEvent, Error> {
+        guard request.maxModelRounds >= 1 else {
+            throw TurnError.invalidMaxModelRounds(request.maxModelRounds)
         }
 
         let resolvedTurnBriefingBuilder = try await resolveTurnBriefingBuilder(
@@ -348,16 +348,16 @@ public final class PositronicKit: Sendable {
             threadID: request.threadID
         )
 
-        return try await chatEngine.execute(
+        return try await turnEngine.execute(
             threadID: request.threadID,
-            sendId: request.sendID,
+            requestId: request.requestID,
             messageContent: request.messageContent,
             tools: request.tools,
             toolOutputs: request.toolOutputs,
             turnBriefingBuilder: resolvedTurnBriefingBuilder,
             systemInstructions: request.systemInstructions,
-            agentInstanceId: request.agentInstanceID,
-            maxTurns: request.maxTurns,
+            agentId: request.agentID,
+            maxModelRounds: request.maxModelRounds,
             generationParameters: request.generationParameters ?? defaultGenerationParameters,
             structuredOutput: request.structuredOutput,
             sidecars: request.sidecars,

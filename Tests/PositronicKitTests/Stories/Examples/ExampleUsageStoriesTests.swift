@@ -67,16 +67,16 @@ struct ExampleUsageStoriesTests {
         let declinable = PositronicKitUsageExamples.makeDeclinableTitleDirective()
         let tone = PositronicKitUsageExamples.makeToneDirective()
         let turnOne = PositronicKitUsageExamples.makeCadencedSidecarDirectives(
-            turnIndex: 1,
-            hasConversationTitle: false
+            modelRoundIndex: 1,
+            hasThreadTitle: false
         )
         let turnThree = PositronicKitUsageExamples.makeCadencedSidecarDirectives(
-            turnIndex: 3,
-            hasConversationTitle: true
+            modelRoundIndex: 3,
+            hasThreadTitle: true
         )
         let turnFive = PositronicKitUsageExamples.makeCadencedSidecarDirectives(
-            turnIndex: 5,
-            hasConversationTitle: true
+            modelRoundIndex: 5,
+            hasThreadTitle: true
         )
         let oneShotRequest = PositronicKitUsageExamples.makeOneShotTitleStructuredOutputRequest()
         let oneShotValue = try PositronicKitUsageExamples.decodeOneShotTitlePayload(

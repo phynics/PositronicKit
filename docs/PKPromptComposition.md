@@ -76,7 +76,7 @@ Use `PromptJournal` when your application needs a prompt-facing abstraction, for
 In that role, `PromptJournal` is the recommended public abstraction.
 
 `PromptJournal` now has built-in append-pressure thresholds (`PromptJournalCompactionThresholds`).
-After you accept a turn and append its assistant/tool messages to conversation history, record
+After you accept a turn and append its assistant/tool messages to thread history, record
 that pressure with `recordAppend(messages:)` (or `recordAppend(messageCount:estimatedTokens:)`).
 When the thresholds are exceeded, the next `observe(_:)` auto-promotes the latest accepted prompt
 into a new committed base before diffing again. This gives standalone prompt consumers the same

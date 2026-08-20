@@ -24,8 +24,8 @@ func runExamples() async throws {
     )
     let sidecarDirectives = PositronicKitUsageExamples.makeSidecarDirectives()
     let cadenceDirectives = PositronicKitUsageExamples.makeCadencedSidecarDirectives(
-        turnIndex: 5,
-        hasConversationTitle: true
+        modelRoundIndex: 5,
+        hasThreadTitle: true
     )
     let oneShotTitleRequest = PositronicKitUsageExamples.makeOneShotTitleStructuredOutputRequest()
     let oneShotTitle = try PositronicKitUsageExamples.decodeOneShotTitlePayload(
@@ -54,7 +54,7 @@ func runExamples() async throws {
     print("\nPrompt sections: \(assembled.sections.map(\.id))")
     print("\n# PositronicKit Example\n")
     print("Prototype runtime and fully configured runtime both initialized successfully.")
-    print("Operation ladder examples: thread \(driver.id), thread manager \(threadManager), agent \(String(describing: agenticRuntime.agentInstanceID))")
+    print("Operation ladder examples: thread \(driver.id), thread manager \(threadManager), agent \(String(describing: agenticRuntime.agentID))")
     print(toolPrompt)
     print("\nStructured output schema: \(structuredOutput.name)")
     print("Structured output request: \(structuredOutputRequest)")

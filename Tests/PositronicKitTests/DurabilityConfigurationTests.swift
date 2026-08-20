@@ -24,7 +24,7 @@ struct DurabilityConfigurationTests {
             workspacePersistence: InMemoryWorkspacePersistence(),
             memoryStore: InMemoryMemoryStore(),
             toolPersistence: InMemoryToolPersistence(),
-            agentInstanceStore: InMemoryAgentInstanceStore(),
+            agentStore: InMemoryAgentStore(),
             requestOriginStore: InMemoryRequestOriginStore()
         )
         let report = config.validateDurability()
@@ -33,7 +33,7 @@ struct DurabilityConfigurationTests {
         #expect(report.workspacePersistence == .ephemeral)
         #expect(report.memoryStore == .ephemeral)
         #expect(report.toolPersistence == .ephemeral)
-        #expect(report.agentInstanceStore == .ephemeral)
+        #expect(report.agentStore == .ephemeral)
         #expect(report.requestOriginStore == .ephemeral)
     }
 
@@ -49,7 +49,7 @@ struct DurabilityConfigurationTests {
             workspacePersistence: store,
             memoryStore: store,
             toolPersistence: store,
-            agentInstanceStore: store,
+            agentStore: store,
             requestOriginStore: store
         )
         let report = config.validateDurability()
@@ -68,7 +68,7 @@ struct DurabilityConfigurationTests {
             workspacePersistence: store,
             memoryStore: store,
             toolPersistence: store,
-            agentInstanceStore: store,
+            agentStore: store,
             requestOriginStore: store
         )
         let report = config.validateDurability()
@@ -77,7 +77,7 @@ struct DurabilityConfigurationTests {
         #expect(report.workspacePersistence == .durable)
         #expect(report.memoryStore == .durable)
         #expect(report.toolPersistence == .durable)
-        #expect(report.agentInstanceStore == .durable)
+        #expect(report.agentStore == .durable)
         #expect(report.requestOriginStore == .durable)
     }
 
@@ -104,7 +104,7 @@ struct DurabilityConfigurationTests {
             workspacePersistence: durable,
             memoryStore: durable,
             toolPersistence: durable,
-            agentInstanceStore: durable,
+            agentStore: durable,
             requestOriginStore: durable
         )
         let report = config.validateDurability()
@@ -125,7 +125,7 @@ struct DurabilityConfigurationTests {
             workspacePersistence: durable,
             memoryStore: InMemoryMemoryStore(),
             toolPersistence: InMemoryToolPersistence(),
-            agentInstanceStore: InMemoryAgentInstanceStore(),
+            agentStore: InMemoryAgentStore(),
             requestOriginStore: InMemoryRequestOriginStore()
         )
         let report = config.validateDurability()
@@ -135,7 +135,7 @@ struct DurabilityConfigurationTests {
         #expect(report.workspacePersistence == .durable)
         #expect(report.memoryStore == .ephemeral)
         #expect(report.toolPersistence == .ephemeral)
-        #expect(report.agentInstanceStore == .ephemeral)
+        #expect(report.agentStore == .ephemeral)
         #expect(report.requestOriginStore == .ephemeral)
     }
 
@@ -149,7 +149,7 @@ struct DurabilityConfigurationTests {
             workspacePersistence: InMemoryWorkspacePersistence(),
             memoryStore: durable,
             toolPersistence: InMemoryToolPersistence(),
-            agentInstanceStore: durable,
+            agentStore: durable,
             requestOriginStore: InMemoryRequestOriginStore()
         )
         let report = config.validateDurability()
@@ -171,14 +171,14 @@ struct DurabilityConfigurationTests {
             workspacePersistence: durable,
             memoryStore: InMemoryMemoryStore(),
             toolPersistence: InMemoryToolPersistence(),
-            agentInstanceStore: InMemoryAgentInstanceStore(),
+            agentStore: InMemoryAgentStore(),
             requestOriginStore: InMemoryRequestOriginStore()
         )
         let warning = try #require(config.validateDurability().mixedDurabilityWarning)
         #expect(warning.contains("Mixed durability"))
         #expect(warning.contains("memoryStore"))
         #expect(warning.contains("toolPersistence"))
-        #expect(warning.contains("agentInstanceStore"))
+        #expect(warning.contains("agentStore"))
         #expect(warning.contains("requestOriginStore"))
         #expect(warning.contains("will not survive restart"))
         #expect(warning.contains("may reference entities that will be missing after restart"))
@@ -204,7 +204,7 @@ struct DurabilityConfigurationTests {
             "workspacePersistence",
             "memoryStore",
             "toolPersistence",
-            "agentInstanceStore",
+            "agentStore",
             "requestOriginStore",
         ])
     }
@@ -219,7 +219,7 @@ struct DurabilityConfigurationTests {
             workspacePersistence: durable,
             memoryStore: InMemoryMemoryStore(),
             toolPersistence: durable,
-            agentInstanceStore: durable,
+            agentStore: durable,
             requestOriginStore: durable
         )
         let report = config.validateDurability()
@@ -239,7 +239,7 @@ struct DurabilityConfigurationTests {
             workspacePersistence: store,
             memoryStore: store,
             toolPersistence: store,
-            agentInstanceStore: store,
+            agentStore: store,
             requestOriginStore: store
         )
         let report = config.validateDurability()
@@ -256,7 +256,7 @@ struct DurabilityConfigurationTests {
             workspacePersistence: durable,
             memoryStore: durable,
             toolPersistence: durable,
-            agentInstanceStore: durable,
+            agentStore: durable,
             requestOriginStore: durable
         )
         let report = config.validateDurability()
@@ -276,7 +276,7 @@ struct DurabilityConfigurationTests {
         #expect(report.workspacePersistence == .ephemeral)
         #expect(report.memoryStore == .ephemeral)
         #expect(report.toolPersistence == .ephemeral)
-        #expect(report.agentInstanceStore == .ephemeral)
+        #expect(report.agentStore == .ephemeral)
         #expect(report.requestOriginStore == .ephemeral)
     }
 
@@ -311,7 +311,7 @@ struct DurabilityConfigurationTests {
             workspacePersistence: .durable,
             memoryStore: .ephemeral,
             toolPersistence: .durable,
-            agentInstanceStore: .ephemeral,
+            agentStore: .ephemeral,
             requestOriginStore: .durable
         )
         let report2 = PositronicKit.DurabilityReport(
@@ -320,7 +320,7 @@ struct DurabilityConfigurationTests {
             workspacePersistence: .durable,
             memoryStore: .ephemeral,
             toolPersistence: .durable,
-            agentInstanceStore: .ephemeral,
+            agentStore: .ephemeral,
             requestOriginStore: .durable
         )
         #expect(report1 == report2)
@@ -349,7 +349,7 @@ struct DurabilityConfigurationTests {
                 workspacePersistence: durable,
                 memoryStore: durable,
                 toolPersistence: durable,
-                agentInstanceStore: durable,
+                agentStore: durable,
                 requestOriginStore: durable
             )
         ))
@@ -365,7 +365,7 @@ struct DurabilityConfigurationTests {
             workspacePersistence: durable,
             memoryStore: InMemoryMemoryStore(),
             toolPersistence: InMemoryToolPersistence(),
-            agentInstanceStore: InMemoryAgentInstanceStore(),
+            agentStore: InMemoryAgentStore(),
             requestOriginStore: InMemoryRequestOriginStore()
         )
         _ = PositronicKit(configuration: .init(

@@ -96,11 +96,11 @@ struct PromptSnapshotBuilderTests {
         let promptHistory = await ThreadPromptJournals().history(for: UUID())
         _ = try! await promptHistory.update(prompt: base)
 
-        let context = ChatTurnContext(
+        let context = TurnContext(
             threadID: UUID(),
-            agentInstanceId: nil,
+            agentId: nil,
             modelName: "test-model",
-            maxTurns: 5,
+            maxModelRounds: 5,
             systemInstructions: nil,
             availableTools: [],
             contextData: ContextData(),
@@ -109,7 +109,7 @@ struct PromptSnapshotBuilderTests {
             renderedPrompt: base,
             promptHistoryUpdate: try! await promptHistory.update(prompt: base),
             currentMessages: [],
-            turnCount: 1,
+            modelRoundIndex: 1,
             outputs: TurnOutputs()
         )
 
@@ -151,11 +151,11 @@ struct PromptSnapshotBuilderTests {
             .text("spoken reply"),
             .audio(audio),
         ]))]
-        let context = ChatTurnContext(
+        let context = TurnContext(
             threadID: UUID(),
-            agentInstanceId: nil,
+            agentId: nil,
             modelName: "test-model",
-            maxTurns: 5,
+            maxModelRounds: 5,
             systemInstructions: nil,
             availableTools: [],
             contextData: ContextData(),
@@ -164,7 +164,7 @@ struct PromptSnapshotBuilderTests {
             renderedPrompt: base,
             promptHistoryUpdate: nil,
             currentMessages: [],
-            turnCount: 1,
+            modelRoundIndex: 1,
             outputs: TurnOutputs()
         )
 

@@ -23,7 +23,7 @@ import Testing
             workspacePersistence: mockPersistence,
             memoryStore: mockPersistence,
             toolPersistence: mockPersistence,
-            agentInstanceStore: mockPersistence,
+            agentStore: mockPersistence,
             requestOriginStore: mockPersistence
         )
 
@@ -32,13 +32,13 @@ import Testing
         let thread = try await chat.threadManager.createThread(title: "Unconfigured")
 
         do {
-            _ = try await chat.run(ChatRunRequest(
+            _ = try await chat.run(TurnRequest(
                 threadID: thread.id,
                 message: "hello"
             ))
             Issue.record("Expected the unconfigured run to fail synchronously")
         } catch {
-            let identity = ChatEvent.ErrorIdentity.extracting(from: error)
+            let identity = TurnEvent.ErrorIdentity.extracting(from: error)
             #expect(identity?.domain == PKErrorDomain.chat)
             #expect(identity?.code == 9001)
         }

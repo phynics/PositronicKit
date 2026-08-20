@@ -42,7 +42,7 @@ actor TurnBriefingBuilder {
     /// Gather all relevant context for a given user query
     /// - Parameters:
     ///   - query: The user's input text
-    ///   - history: Recent conversation history to provide context for the search
+    ///   - history: Recent thread history to provide context for the search
     ///   - limit: Maximum number of memories to retrieve
     ///   - tagGenerator: A function to generate tags from the query (e.g. via LLM)
     ///   - overridePipeline: An optional pipeline to use instead of the default one

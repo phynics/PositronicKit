@@ -1,10 +1,10 @@
 # PositronicKit Usage Guide
 
-This guide provides step-by-step examples for integrating `PositronicKit` and managing `AgentInstance` within your application.
+This guide provides step-by-step examples for integrating `PositronicKit` and managing `Agent` within your application.
 
 ## 1. Managing Agent Instances
 
-`AgentInstance` represents a live agent with its own workspace and private thread. You manage these instances using the `AgentInstanceManager`.
+`Agent` represents a live agent with its own workspace and private thread. You manage these instances using the `AgentManager`.
 
 ### Creating an Instance
 
@@ -14,7 +14,7 @@ To create a new agent instance, use the `createInstance` method. You can optiona
 import PositronicKit
 import PKContracts
 
-let manager = AgentInstanceManager(repository: myWorkspaceRepository)
+let manager = AgentManager(repository: myWorkspaceRepository)
 
 // Create a new agent instance
 let instance = try await manager.createInstance(
@@ -110,7 +110,7 @@ let chat = PositronicKit(configuration: .init(
         workspacePersistence: myWorkspacePersistence,
         memoryStore: myMemoryStore,
         toolPersistence: myToolPersistence,
-        agentInstanceStore: myAgentInstanceStore,
+        agentStore: myAgentStore,
         requestOriginStore: myRequestOriginStore
     ),
     runtime: .init(
@@ -121,7 +121,7 @@ let chat = PositronicKit(configuration: .init(
 
 ### Running a Chat Stream
 
-The `run` method takes a `ChatRunRequest` and returns an `AsyncThrowingStream<ChatEvent, Error>`,
+The `run` method takes a `TurnRequest` and returns an `AsyncThrowingStream<TurnEvent, Error>`,
 so you can process real-time updates as the agent reasons and responds.
 
 ```swift
@@ -129,10 +129,10 @@ import PositronicKit
 import PKContracts
 
 // `chat` is the PositronicKit instance from the initialization example above.
-let stream = try await chat.run(ChatRunRequest(
+let stream = try await chat.run(TurnRequest(
     threadID: threadID,
     message: "What are the latest trends in Swift concurrency?",
-    agentInstanceID: instance.id // The agent we created earlier
+    agentID: instance.id // The agent we created earlier
 ))
 
 for try await event in stream {
@@ -169,7 +169,7 @@ for try await event in stream {
             print("\nCompleted empty (finishReason: \(finishReason ?? "nil"))")
         case .toolExecution(let toolCallId, let status):
             print("\nTool completed [\(toolCallId)]: \(status)")
-        case .maxTurnsReached:
+        case .maxModelRoundsReached:
             print("\nMax turns reached — the agent did not produce a tool-free final response.")
         case .deferredForExternalTool:
             print("\nTool calls deferred for external execution; stream paused for host-side work.")
@@ -200,7 +200,7 @@ for try await event in stream {
 
 The runtime emits prompt-assembly diagnostics through `swift-log`. `PromptAssembler` and
 `PromptAssemblyOptions` are internal runtime types, so you don't call them directly — instead pass a
-`Logger` as `ChatRunRequest(promptAssemblyLogger:)` to enable diagnostics for that turn.
+`Logger` as `TurnRequest(promptAssemblyLogger:)` to enable diagnostics for that turn.
 
 ```swift
 import Logging
@@ -214,7 +214,7 @@ LoggingSystem.bootstrap { label in
 }
 
 let logger = Logger(label: "com.example.prompt-assembly")
-let events = try await chat.run(ChatRunRequest(
+let events = try await chat.run(TurnRequest(
     threadID: threadID,
     message: "…",
     promptAssemblyLogger: logger
@@ -230,18 +230,18 @@ let toolOutputs = [
     ToolOutputSubmission(toolCallID: "call_123", output: "File contents...")
 ]
 
-let stream = try await chat.run(ChatRunRequest(
+let stream = try await chat.run(TurnRequest(
     threadID: threadID,
     message: "", // Empty message as we're continuing from a tool call
     tools: tools,
     toolOutputs: toolOutputs,
-    agentInstanceID: instance.id
+    agentID: instance.id
 ))
 ```
 
 ## 3. Core Concepts
 
-### ChatEvent Stream
+### TurnEvent Stream
 The stream provides a rich set of events:
 - `.delta(.reasoning)` and `.delta(.generation)` for streaming text.
 - `.delta(.toolCall)` and `.delta(.toolExecution)` for tool progress.
@@ -251,8 +251,8 @@ The stream provides a rich set of events:
 - `.completion(.generationCompleted)` for the terminal event on normal completion (one per
   completed turn; the final one closes the stream).
 - `.completion(.completedEmpty)` for a successful but empty assistant response.
-- `.completion(.maxTurnsReached)` for the terminal event when the ReAct loop exhausts its
-  `maxTurns` budget while tool calls are still pending — distinct from normal completion so
+- `.completion(.maxModelRoundsReached)` for the terminal event when the ReAct loop exhausts its
+  `maxModelRounds` budget while tool calls are still pending — distinct from normal completion so
   consumers can tell exhaustion apart from success.
 - `.completion(.deferredForExternalTool)` for the terminal event when at least one tool call is
   deferred for external (host-side) execution — the stream pauses for the host to submit tool
@@ -266,7 +266,7 @@ retained for `Codable` backward compatibility but are never emitted in productio
 the cases above instead.
 
 ### Agent Persistence
-Agents are persistent. Their workspace (`primaryWorkspaceId`) contains their long-term memory, while their private thread (`privateTimelineId`) stores their internal monologue and history.
+Agents are persistent. Their workspace (`primaryWorkspaceId`) contains their long-term memory, while their private thread (`privateThreadId`) stores their internal monologue and history.
 
 ## 4. Local Embeddings
 

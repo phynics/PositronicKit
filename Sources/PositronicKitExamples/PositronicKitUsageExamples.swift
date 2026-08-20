@@ -47,15 +47,15 @@ public enum PositronicKitUsageExamples {
     public static func makeAgenticRuntimeExample() async throws -> AgenticRuntime {
         let kit = makeOneShotRuntime()
         let thread = try await kit.threadManager.createThread(title: "Agentic Example")
-        let agent = try await kit.agentInstanceManager.createInstance(
+        let agent = try await kit.agentManager.createInstance(
             from: nil,
             name: "Example Agent",
             description: "Demonstrates an attached agentic runtime."
         )
-        try await kit.agentInstanceManager.attach(agentID: agent.id, to: thread.id)
+        try await kit.agentManager.attach(agentID: agent.id, to: thread.id)
         return kit.agenticRuntime(
             threadID: thread.id,
-            agentInstanceID: agent.id
+            agentID: agent.id
         )
     }
 
@@ -167,7 +167,7 @@ public enum PositronicKitUsageExamples {
                 workspacePersistence: InMemoryWorkspacePersistence(),
                 memoryStore: InMemoryMemoryStore(),
                 toolPersistence: InMemoryToolPersistence(),
-                agentInstanceStore: InMemoryAgentInstanceStore(),
+                agentStore: InMemoryAgentStore(),
                 requestOriginStore: InMemoryRequestOriginStore()
             ),
             runtime: runtime
@@ -178,13 +178,13 @@ public enum PositronicKitUsageExamples {
         [ToolOutputSubmission(toolCallID: "call_123", output: "File contents...")]
     }
 
-    /// Consumes a `ChatEvent` stream with the canonical event switch from `docs/Usage.md`.
+    /// Consumes a `TurnEvent` stream with the canonical event switch from `docs/Usage.md`.
     /// Compiles the documented handling shape — `delta`/`meta`/`completion`/`error` branches,
-    /// the PKRR-011 terminal events (`.maxTurnsReached`, `.deferredForExternalTool`), and
-    /// `ErrorIdentity.isBlocked` classification — against the real `ChatEvent` API, so docs
+    /// the PKRR-011 terminal events (`.maxModelRoundsReached`, `.deferredForExternalTool`), and
+    /// `ErrorIdentity.isBlocked` classification — against the real `TurnEvent` API, so docs
     /// drift is caught by `make verify-examples` (a step of `make verify`).
-    public static func consumeChatEventStream(
-        _ stream: AsyncThrowingStream<ChatEvent, Error>
+    public static func consumeTurnEventStream(
+        _ stream: AsyncThrowingStream<TurnEvent, Error>
     ) async throws {
         for try await event in stream {
             switch event {
@@ -219,12 +219,12 @@ public enum PositronicKitUsageExamples {
                     print("\nCompleted empty (finishReason: \(finishReason ?? "nil"))")
                 case .toolExecution(let toolCallID, let status):
                     print("\nTool completed [\(toolCallID)]: \(status)")
-                case .maxTurnsReached:
+                case .maxModelRoundsReached:
                     print("\nMax turns reached — the agent did not produce a tool-free final response.")
                 case .deferredForExternalTool:
                     print("\nTool calls deferred for external execution; stream paused for host-side work.")
                 case .sidecarsCompleted(let completion):
-                    print("\nSidecars for round \(completion.identity.roundTrip), send \(completion.identity.sendID)")
+                    print("\nSidecars for round \(completion.identity.modelRoundIndex), send \(completion.identity.requestID)")
                     for result in completion.results {
                         print("\n[\(result.name)] \(result.outcome)")
                     }
@@ -294,7 +294,7 @@ public enum PositronicKitUsageExamples {
 
     /// Sidecar directives (piggy-backed requests): auxiliary generations riding the same
     /// request as a chat turn's response. `title` is nullable so the model can decline once
-    /// a conversation already has one. Consume via `PositronicKit.run(_:)`:
+    /// a thread already has one. Consume via `PositronicKit.run(_:)`:
     ///
     /// ```swift
     /// let stream = try await chat.run(.init(
@@ -320,7 +320,7 @@ public enum PositronicKitUsageExamples {
     public static func makeDeclinableTitleDirective() -> SidecarDirective {
         SidecarDirective(
             name: "title",
-            instruction: "A short conversation title (3-6 words). Return null if the conversation already has a good title.",
+            instruction: "A short thread title (3-6 words). Return null if the thread already has a good title.",
             schema: try! Schema(instance: #"{"type":["string","null"]}"#),
             streaming: .buffered
         )
@@ -336,17 +336,17 @@ public enum PositronicKitUsageExamples {
         )
     }
 
-    /// Cadence pattern: ask for a title until the conversation gets one, then refresh
+    /// Cadence pattern: ask for a title until the thread gets one, then refresh
     /// every `retitleEvery` turns.
     public static func makeCadencedSidecarDirectives(
-        turnIndex: Int,
-        hasConversationTitle: Bool,
+        modelRoundIndex: Int,
+        hasThreadTitle: Bool,
         retitleEvery: Int = 5
     ) -> [SidecarDirective] {
-        guard turnIndex > 0 else { return [] }
+        guard modelRoundIndex > 0 else { return [] }
 
         var directives = [makeToneDirective()]
-        let shouldRequestTitle = !hasConversationTitle || turnIndex.isMultiple(of: retitleEvery)
+        let shouldRequestTitle = !hasThreadTitle || modelRoundIndex.isMultiple(of: retitleEvery)
         if shouldRequestTitle {
             directives.insert(makeDeclinableTitleDirective(), at: 0)
         }

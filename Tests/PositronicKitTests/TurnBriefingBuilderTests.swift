@@ -99,7 +99,7 @@ struct TurnBriefingBuilderTests {
         }
 
         let stream = await turnBriefingBuilder.gatherContext(
-            for: "fresh conversation",
+            for: "fresh thread",
             tagGenerator: tagGenerator
         )
         let events = try await stream.collect()

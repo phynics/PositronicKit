@@ -13,10 +13,10 @@ import Foundation
 
     @Test
     func testWorkspaceURIParsingHost() throws {
-        let uri = WorkspaceURI(parsing: "pk-runtime:/timelines/abc")
+        let uri = WorkspaceURI(parsing: "pk-runtime:/threads/abc")
         try #require(uri != nil)
         #expect(uri?.host == "pk-runtime")
-        #expect(uri?.path == "/timelines/abc")
+        #expect(uri?.path == "/threads/abc")
         #expect(uri?.isRuntime == true)
         #expect(!(uri?.isExternal == true))
     }

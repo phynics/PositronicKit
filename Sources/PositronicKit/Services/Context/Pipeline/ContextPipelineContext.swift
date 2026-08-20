@@ -7,7 +7,7 @@ import PKUtilities
 actor ContextPipelineContext {
     /// The original user query.
     let query: String
-    /// Recent conversation history.
+    /// Recent thread history.
     let history: [Message]
     /// Maximum number of results to retrieve.
     let limit: Int

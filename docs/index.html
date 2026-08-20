@@ -160,7 +160,7 @@
 <span class="k">let</span> driver = kit.openThread(thread.id)                         <span class="c">// tier 2: ThreadDriver</span>
 <span class="k">let</span> agent = kit.agenticRuntime(                               <span class="c">// tier 4: agent loop</span>
     threadID: driver.threadID,
-    agentInstanceID: <span class="k">UUID</span>()
+    agentID: <span class="k">UUID</span>()
 )</code></pre>
   </div>
 </section>
@@ -169,7 +169,7 @@
   <div class="wrap">
     <h2><span class="tick">//</span> Tool Use</h2>
     <p style="color:var(--muted); margin-bottom:1rem">Hand a <code>Tool</code> conformance to the agent per turn — no workspace required:</p>
-    <pre><code><span class="k">let</span> agent = kit.agenticRuntime(threadID: driver.threadID, agentInstanceID: <span class="k">UUID</span>())
+    <pre><code><span class="k">let</span> agent = kit.agenticRuntime(threadID: driver.threadID, agentID: <span class="k">UUID</span>())
 <span class="k">let</span> stream = <span class="k">try await</span> agent.run(message: <span class="s">"Greet Ada."</span>, tools: [<span class="k">GreetTool</span>()])
 
 <span class="k">for try await</span> event <span class="k">in</span> stream {

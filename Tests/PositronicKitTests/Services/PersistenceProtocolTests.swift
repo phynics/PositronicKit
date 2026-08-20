@@ -73,8 +73,8 @@ final class MockPersistenceStore:
     }
 
     // MessageStoreProtocol
-    func saveMessage(_: ConversationMessage) async throws {}
-    func fetchMessages(for _: UUID) async throws -> [ConversationMessage] {
+    func saveMessage(_: ThreadMessage) async throws {}
+    func fetchMessages(for _: UUID) async throws -> [ThreadMessage] {
         []
     }
 

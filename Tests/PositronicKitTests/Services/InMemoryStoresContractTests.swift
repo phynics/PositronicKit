@@ -344,9 +344,9 @@ struct InMemoryStoresContractTests {
             let store = InMemoryMessageStore()
             let threadA = UUID(), threadB = UUID()
 
-            try await store.saveMessage(ConversationMessage(threadID: threadA, role: .user, content: "A1"))
-            try await store.saveMessage(ConversationMessage(threadID: threadA, role: .assistant, content: "A2"))
-            try await store.saveMessage(ConversationMessage(threadID: threadB, role: .user, content: "B1"))
+            try await store.saveMessage(ThreadMessage(threadID: threadA, role: .user, content: "A1"))
+            try await store.saveMessage(ThreadMessage(threadID: threadA, role: .assistant, content: "A2"))
+            try await store.saveMessage(ThreadMessage(threadID: threadB, role: .user, content: "B1"))
 
             let aMessages = try await store.fetchMessages(for: threadA)
             let bMessages = try await store.fetchMessages(for: threadB)
@@ -358,8 +358,8 @@ struct InMemoryStoresContractTests {
         func deleteTargetsSingleThread() async throws {
             let store = InMemoryMessageStore()
             let threadA = UUID(), threadB = UUID()
-            try await store.saveMessage(ConversationMessage(threadID: threadA, role: .user, content: "A"))
-            try await store.saveMessage(ConversationMessage(threadID: threadB, role: .user, content: "B"))
+            try await store.saveMessage(ThreadMessage(threadID: threadA, role: .user, content: "A"))
+            try await store.saveMessage(ThreadMessage(threadID: threadB, role: .user, content: "B"))
 
             try await store.deleteMessages(for: threadA)
 
@@ -374,16 +374,16 @@ struct InMemoryStoresContractTests {
             let snapshot = TurnSnapshot(
                 threadID: thread,
                 modelName: "test-model",
-                turnCount: 1,
-                maxTurns: 5,
+                modelRoundIndex: 1,
+                maxModelRounds: 5,
                 fullResponse: "Pong"
             )
             let data = try SerializationUtils.jsonEncoder.encode(snapshot)
-            try await store.saveMessage(ConversationMessage(
+            try await store.saveMessage(ThreadMessage(
                 threadID: thread, role: .assistant, content: "Pong", snapshotData: data
             ))
             // A user message without snapshot data should be skipped.
-            try await store.saveMessage(ConversationMessage(
+            try await store.saveMessage(ThreadMessage(
                 threadID: thread, role: .user, content: "Ping"
             ))
 
@@ -396,10 +396,10 @@ struct InMemoryStoresContractTests {
         func fetchSnapshotsSkipsInvalidData() async throws {
             let store = InMemoryMessageStore()
             let thread = UUID()
-            try await store.saveMessage(ConversationMessage(
+            try await store.saveMessage(ThreadMessage(
                 threadID: thread, role: .assistant, content: "no snapshot"
             ))
-            try await store.saveMessage(ConversationMessage(
+            try await store.saveMessage(ThreadMessage(
                 threadID: thread, role: .assistant, content: "bad snapshot",
                 snapshotData: Data("not json".utf8)
             ))
@@ -412,7 +412,7 @@ struct InMemoryStoresContractTests {
         func pruneIsNoOp() async throws {
             let store = InMemoryMessageStore()
             let thread = UUID()
-            try await store.saveMessage(ConversationMessage(threadID: thread, role: .user, content: "x"))
+            try await store.saveMessage(ThreadMessage(threadID: thread, role: .user, content: "x"))
 
             #expect(try await store.pruneMessages(olderThan: 1000, dryRun: false) == 0)
             #expect(try await store.fetchMessages(for: thread).count == 1)

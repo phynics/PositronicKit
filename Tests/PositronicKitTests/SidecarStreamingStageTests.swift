@@ -96,19 +96,19 @@ struct SidecarStreamingStageTests {
 
     // MARK: - Helpers
 
-    private func makeContext(sidecars: [SidecarDirective]) -> ChatTurnContext {
-        ChatTurnContext(
+    private func makeContext(sidecars: [SidecarDirective]) -> TurnContext {
+        TurnContext(
             threadID: UUID(),
-            agentInstanceId: nil,
+            agentId: nil,
             modelName: "test-model",
-            maxTurns: 5,
+            maxModelRounds: 5,
             systemInstructions: nil,
             availableTools: [],
             contextData: ContextData(),
             remoteDepth: 0,
             sidecars: sidecars,
             currentMessages: [LLMMessage(role: .user, content: "hi")],
-            turnCount: 1,
+            modelRoundIndex: 1,
             outputs: TurnOutputs()
         )
     }

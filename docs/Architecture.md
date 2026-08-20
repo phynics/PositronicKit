@@ -16,8 +16,8 @@ The internal pipeline provides:
 
 PositronicKit uses a dual-structure approach to state management during a pipeline execution.
 
-### ChatTurnContext (Immutable Snapshot)
-The `ChatTurnContext` is a thread-safe, immutable struct that represents the state of a chat turn at a specific point in time. It contains:
+### TurnContext (Immutable Snapshot)
+The `TurnContext` is a thread-safe, immutable struct that represents the state of a chat turn at a specific point in time. It contains:
 - Session-level configuration (Thread ID, Model name, Max turns).
 - Turn-specific data (Current messages, Available tools).
 - A reference to the mutable `TurnOutputs`.
@@ -33,14 +33,14 @@ PositronicKit is the orchestration layer. It manages the full lifecycle of an ag
 
 ### Two Ways In: Facade (Primary) vs. Direct Seams (Advanced)
 
-- **The `PositronicKit` facade is the primary entry point.** Construct it, call `run(...)`, and consume the streamed `ChatEvent`s. It wires the runtime internally; most consumers never touch the underlying coordinators.
+- **The `PositronicKit` facade is the primary entry point.** Construct it, call `run(...)`, and consume the streamed `TurnEvent`s. It wires the runtime internally; most consumers never touch the underlying coordinators.
 - **Advanced hosts may compose the public runtime seams directly.** When you own a server or a custom composition root, construct and hold `ThreadManager`, `ToolRouter`, and the persistence/workspace protocols yourself, or inject them into the facade via the grouped `runtime:` / `persistence:` initializers. This is a supported tier — not a private API — but you opt into more wiring in exchange for more control.
 
-Prefer the facade unless you specifically need a seam it doesn't surface. The chat-loop internals (`ChatEngine`, the turn pipeline, prompt-assembly internals) remain implementation details either way.
+Prefer the facade unless you specifically need a seam it doesn't surface. The chat-loop internals (`TurnEngine`, the turn pipeline, prompt-assembly internals) remain implementation details either way.
 
 ## 4. Execution Flow: The Chat Engine
 
-The `ChatEngine` is the primary orchestrator that uses the Pipeline to handle user interactions.
+The `TurnEngine` is the primary orchestrator that uses the Pipeline to handle user interactions.
 
 1. **Initialization**: Prepares the session and initial context.
 2. **ReAct Loop**: Runs a loop (`runChatLoop`) that continues as long as the agent needs to "think" or execute tools.
@@ -70,7 +70,7 @@ instead of paying a separate round-trip per auxiliary task. Full design:
   the `response` field to emit ordinary `.generation` deltas (raw JSON never reaches
   consumers), and emits directive fields as `.sidecar` deltas (buffered or incremental per
   directive) once each field completes.
-- **Events**: `ChatEvent.sidecar(delta:)` streams directive observations. Committed outcomes use
+- **Events**: `TurnEvent.sidecar(delta:)` streams directive observations. Committed outcomes use
   `SidecarCompletion`, including `TurnIdentity`; terminal policy can defer that completion until
   the logical send finishes.
 - **Error model**: a sidecar failure never fails the turn. Already-streamed response text is
@@ -79,11 +79,11 @@ instead of paying a separate round-trip per auxiliary task. Full design:
   response and all directives report failed.
 - **Persistence**: `TurnOutputs.fullResponse` accumulates only the extracted `response` text on
   sidecar turns, so `MessagePersistenceStage` persists the same shape it always has — raw JSON
-  never enters conversation history.
+  never enters thread history.
 - **No-op guarantee**: `sidecars: []` (the default) takes a completely different code path in
   `LLMStreamingStage` (no extractor is constructed) and is behaviorally identical to a turn
   without the parameter.
-- Concrete directives (title, summary, tone) and their per-conversation scheduling policy are
+- Concrete directives (title, summary, tone) and their per-thread scheduling policy are
   intentionally **not** defined here — see `workflow/Yakamoz/tickets/SID-1`/`SID-2`. This layer
   only provides the mechanism.
 
@@ -93,7 +93,7 @@ PositronicKit is deliberately transport-neutral: no networking, RPC, multi-proce
 
 - **Persistence protocols** for threads, messages, workspaces, tools, agents, and request origins.
 - **`WorkspaceFactory` and `Workspace`** for downstream-owned workspace resolution and execution behavior. `DefaultWorkspaceCatalog` is the bundled local provisioning implementation, not a required universal workspace model.
-- **`PromptSectionProviding`** and **`ChatTurnPlugin`** for app-specific orchestration and context hooks.
+- **`PromptSectionProviding`** and **`TurnPlugin`** for app-specific orchestration and context hooks.
 - **Provider contracts in `PKContracts`** for downstream-owned LLM adapters and tool/message projections.
 
 ### v1 Extension Point Registry
@@ -103,9 +103,9 @@ These public API surfaces are the **v1 compatibility contract**: they only chang
 | Category | Protocol / Type | Module | Purpose |
 |----------|----------------|--------|---------|
 | **Tool contracts** | `Tool`, `AnyTool`, `ToolResult`, `ToolParameters`, `ToolError` | PKContracts | Define and execute tools |
-| **Orchestration hooks** | `ChatTurnPlugin`, `CompletedTurn` | PositronicKit | Post-turn processing |
+| **Orchestration hooks** | `TurnPlugin`, `CompletedTurn` | PositronicKit | Post-turn processing |
 | **Prompt customization** | `PromptSectionProviding`, `PromptBuildContext` | PositronicKit | Inject custom prompt sections |
-| **Persistence** | `MessageStoreProtocol`, `ThreadPersistenceProtocol`, `WorkspaceStore`, `MemoryStoreProtocol`, `ToolPersistenceProtocol`, `AgentInstanceStoreProtocol`, `AgentTemplateStoreProtocol`, `RequestOriginStoreProtocol` | PositronicKit | Custom storage backends |
+| **Persistence** | `MessageStoreProtocol`, `ThreadPersistenceProtocol`, `WorkspaceStore`, `MemoryStoreProtocol`, `ToolPersistenceProtocol`, `AgentStoreProtocol`, `AgentTemplateStoreProtocol`, `RequestOriginStoreProtocol` | PositronicKit | Custom storage backends |
 | **Key-value store** | `KeyValueStoreProtocol` | PositronicKit | Generic key-value persistence |
 | **Vector search** | `VectorStoreProtocol`, `VectorStoreError` | PositronicKit | Custom vector search backends |
 | **Health check** | `HealthCheckable` | PositronicKit | Service health reporting |
@@ -114,11 +114,11 @@ These public API surfaces are the **v1 compatibility contract**: they only chang
 | **Provider factories** | `LLMProviderFactory`, `PKOpenAIProvider.makeClient(configuration:)`, `PKOpenRouterProvider.makeClient(configuration:)`, `PKOllamaProvider.makeClient(configuration:)`, `PKAnthropicProvider.makeClient(configuration:)` | PKContracts / provider modules | Compile-time provider client construction; no runtime provider registry |
 | **Workspace** | `Workspace`, `WorkspaceFactory`, `ToolReference`, `WorkspaceToolDefinition` | PositronicKit / PKContracts | Custom workspace backends |
 | **Configuration** | `LLMConfiguration`, `GenerationParameters`, `LLMProvider` | PKContracts | LLM configuration |
-| **Events** | `ChatEvent`, `ToolExecutionStatus`, `Message` | PKContracts | Stream event types |
+| **Events** | `TurnEvent`, `ToolExecutionStatus`, `Message` | PKContracts | Stream event types |
 | **Sidecar directives** | `SidecarDirective`, `SidecarDelta`, `SidecarResult` (PKContracts), `SidecarError` (PositronicKit) | PKContracts / PositronicKit | Piggy-backed auxiliary generations riding a turn's response — see [Sidecar Directives](docs/SidecarDirectives.md) |
 | **Pipeline** | `PipelineStage`, `PipelineError` | package-internal utility layer | Runtime implementation detail; not a public product |
 | **Runtime coordinators (advanced)** | `ThreadManager`, `ToolRouter`, `ToolExecutionOutcome`, `RuntimeToolPolicy` | PositronicKit | Direct runtime seams for hosts with their own composition root |
 
 `InMemory*` stores (and `PositronicKit.PersistenceConfiguration.inMemory()`) are **public prototyping/test helpers**, not extension points — convenient for prototypes and tests, but not a stability contract.
 
-**Internal** (not part of the v1 contract): `ChatEngine`, `ChatTurnContext`, `TurnOutputs`, `StreamedToolCall` (chat-runtime internals); `PromptAssembler`, `PromptAssemblyOptions` (prompt assembly internals); `ContextManager`, `ContextPipelineContext`, `ContextGatheringEvent` (context pipeline internals); `ParsedToolCall`, `ToolHandlingResult`, `ToolTurnResult` (tool-routing internals).
+**Internal** (not part of the v1 contract): `TurnEngine`, `TurnContext`, `TurnOutputs`, `StreamedToolCall` (chat-runtime internals); `PromptAssembler`, `PromptAssemblyOptions` (prompt assembly internals); `ContextManager`, `ContextPipelineContext`, `ContextGatheringEvent` (context pipeline internals); `ParsedToolCall`, `ToolHandlingResult`, `ToolTurnResult` (tool-routing internals).

@@ -7,20 +7,20 @@ import Testing
 @Suite("MockPersistenceService")
 struct MockPersistenceServiceTests {
     @Test("resetDatabase clears agent instances")
-    func resetDatabaseClearsAgentInstances() async throws {
+    func resetDatabaseClearsAgents() async throws {
         let persistence = MockPersistenceService()
 
-        let instance = AgentInstance(
+        let instance = Agent(
             name: "Test Agent",
             description: "A test agent",
             privateThreadID: UUID()
         )
-        try await persistence.saveAgentInstance(instance)
-        #expect(try await persistence.fetchAllAgentInstances().count == 1)
+        try await persistence.saveAgent(instance)
+        #expect(try await persistence.fetchAllAgents().count == 1)
 
         try await persistence.resetDatabase()
 
-        #expect(try await persistence.fetchAllAgentInstances().isEmpty)
+        #expect(try await persistence.fetchAllAgents().isEmpty)
     }
 
     @Test("resetDatabase clears the tool-associated workspace list, not just the primary workspace store")

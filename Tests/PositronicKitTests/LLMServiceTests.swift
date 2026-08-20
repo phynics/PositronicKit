@@ -396,9 +396,9 @@ struct LLMServiceTests {
         #expect(tags.isEmpty)
 
         let title = await service.bestEffortTitle(for: [
-            Message(content: "A conversation", role: .user),
+            Message(content: "A thread", role: .user),
         ])
-        #expect(title == "New Conversation")
+        #expect(title == "New Thread")
 
         let messages = sink.all()
         #expect(messages.contains(where: { $0.contains("Friendly utility failure") }))
