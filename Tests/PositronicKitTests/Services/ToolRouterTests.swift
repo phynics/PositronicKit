@@ -331,6 +331,53 @@ final class ToolRouterTests {
         }))
     }
 
+    @Test("Workspace call_tool success executes the selected workspace and records provenance")
+    func workspaceCallToolSuccessProvenance() async throws {
+        let tool = MockTool(callName: "read_file", result: .success("workspace output"))
+        let runtimeRepository = InMemoryThreadRuntimeRepository()
+        let (router, threadID, persistence) = try await setupRouter(
+            with: tool,
+            approvalPolicy: DenyAllToolApprovalPolicy(),
+            runtimeRepository: runtimeRepository
+        )
+        try await runtimeRepository.saveThread(Thread(id: threadID))
+        let admission = try await runtimeRepository.admitTurn(
+            threadID: threadID,
+            requestID: UUID(),
+            callerIntentFingerprint: "workspace-success"
+        )
+        let turnID = admission.turn.identity.turnID
+        let workspace = try #require(persistence.workspaces.first)
+        let catalog = WorkspaceToolCatalog(entries: [
+            .init(workspace: workspace, label: workspace.uri.description, isPrimary: false, tools: [tool.toAnyTool()]),
+        ])
+        let call = ParsedToolCall(
+            callId: "call-success",
+            name: "call_tool",
+            argumentsJSON: "{\"tool\":\"read_file\",\"at\":\"\(workspace.id.uuidString)\",\"arguments\":{}}"
+        )
+        let events = try await captureProjectedToolEvents { continuation in
+            _ = try await router.handlePendingToolCalls(
+                threadId: threadID,
+                turnID: turnID,
+                calls: [call],
+                availableTools: [catalog.callTool],
+                workspaceToolCatalog: catalog,
+                continuation: continuation
+            )
+        }
+
+        #expect(events.contains(where: {
+            guard case let .completion(.toolExecution(toolCallID: id, status: status)) = $0 else { return false }
+            guard id == "call-success", case let .success(result) = status else { return false }
+            return result.success && result.workspaceID == workspace.id && result.workspaceRouting == .explicit
+        }))
+        let results = try await runtimeRepository.fetchToolResults(turnID: turnID)
+        #expect(results.first?.succeeded == true)
+        #expect(results.first?.workspaceID == workspace.id)
+        #expect(results.first?.workspaceRouting == .explicit)
+    }
+
     @Test("Workspace call_tool failures retain route provenance in events and records")
     func workspaceCallToolFailureProvenance() async throws {
         let tool = MockTool(callName: "read_file", result: .failure("workspace failed"))

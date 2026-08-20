@@ -438,11 +438,6 @@ public protocol ThreadRuntimeRepository: ThreadPersistenceProtocol, ThreadMessag
     func fetchCorrelations(turnID: UUID) async throws -> [TurnCorrelation]
     func beginModelRound(turnID: UUID, modelRoundIndex: Int, now: Date) async throws
     func recordProviderRequest(turnID: UUID, modelRoundIndex: Int, correlation: TurnCorrelation?, now: Date) async throws
-    /// Records a tool intent before execution. A dispatcher may first write a route-neutral
-    /// intent before resolving its admission snapshot, then write the same intent once more with
-    /// resolved Workspace provenance; implementations must atomically replace that one
-    /// route-neutral record with the enriched record while continuing to reject all other
-    /// duplicate call IDs.
     func recordToolIntent(_ intent: RuntimeToolIntent) async throws
     func recordToolResult(_ result: RuntimeToolResult) async throws
     /// Atomically appends a durable tool message and records the corresponding result.

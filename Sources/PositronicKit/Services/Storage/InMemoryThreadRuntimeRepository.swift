@@ -283,22 +283,8 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
             throw ThreadRuntimeRepositoryError.invalidTransition(turnID: intent.turnID, lifecycle: turn.lifecycle)
         }
         let key = ToolKey(turnID: intent.turnID, toolCallID: intent.toolCallID)
-        if let existing = intents[key] {
-            let sameCall = existing.threadID == intent.threadID
-                && existing.name == intent.name
-                && existing.arguments == intent.arguments
-                && existing.modelRoundIndex == intent.modelRoundIndex
-            let enrichesWorkspaceRoute = existing.workspaceID == nil
-                && existing.workspaceRouting == nil
-                && intent.workspaceID != nil
-                && intent.workspaceRouting != nil
-            guard sameCall, enrichesWorkspaceRoute else {
-                throw ThreadRuntimeRepositoryError.duplicateToolIntent(turnID: intent.turnID, toolCallID: intent.toolCallID)
-            }
-            intents[key] = intent
-            turn.updatedAt = intent.createdAt
-            turns[intent.turnID] = turn
-            return
+        if intents[key] != nil {
+            throw ThreadRuntimeRepositoryError.duplicateToolIntent(turnID: intent.turnID, toolCallID: intent.toolCallID)
         }
         intents[key] = intent
         turn.lifecycle = .awaitingTool

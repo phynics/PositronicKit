@@ -212,22 +212,9 @@ actor ToolRouter {
 
             var workspaceRoute: WorkspaceToolRoute?
             var effectiveToolRef = toolRef
+            var intentRecorded = false
 
             do {
-                // The dispatcher must have a durable intent before snapshot resolution can fail.
-                // A successful resolution records the same intent again with workspace
-                // provenance; the repository treats that second write as enrichment of this
-                // preflight record.
-                if call.name == "call_tool", let runtimeRepository, let turnID {
-                    try await runtimeRepository.recordToolIntent(RuntimeToolIntent(
-                        turnID: turnID,
-                        threadID: threadId,
-                        toolCallID: call.callId,
-                        name: call.name,
-                        arguments: call.argumentsJSON,
-                        modelRoundIndex: modelRoundIndex
-                    ))
-                }
                 if call.name == "call_tool" {
                     guard let workspaceToolCatalog, !workspaceToolCatalog.isEmpty else {
                         throw ToolError.toolNotFound(call.name)
@@ -249,6 +236,7 @@ actor ToolRouter {
                         workspaceID: workspaceRoute?.workspaceID,
                         workspaceRouting: workspaceRoute?.routing
                     ))
+                    intentRecorded = true
                 }
                 guard let arguments = call.arguments else {
                     throw ToolError.malformedArguments("invalid JSON object")
@@ -286,6 +274,31 @@ actor ToolRouter {
                 }
             } catch {
                 failedCount += 1
+                // Resolution can fail before the normal intent write (for example, an
+                // ambiguous dispatcher call). Persist a route-neutral intent before projecting
+                // the model-visible error so the error itself cannot be mistaken for an
+                // undurable tool result.
+                if !intentRecorded, let runtimeRepository, let turnID {
+                    do {
+                        try await runtimeRepository.recordToolIntent(RuntimeToolIntent(
+                            turnID: turnID,
+                            threadID: threadId,
+                            toolCallID: call.callId,
+                            name: call.name,
+                            arguments: call.argumentsJSON,
+                            modelRoundIndex: modelRoundIndex
+                        ))
+                        intentRecorded = true
+                    } catch {
+                        logger.error(
+                            "Unable to persist failed tool intent",
+                            metadata: LoggingMetadata.makeMetadata(
+                                for: error,
+                                correlationID: call.callId
+                            )
+                        )
+                    }
+                }
                 if let ambiguity = error as? ToolError,
                    case .ambiguousWorkspaceTool = ambiguity,
                    let runtimeRepository,
