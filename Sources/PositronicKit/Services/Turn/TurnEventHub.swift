@@ -7,7 +7,7 @@ import PKContracts
 /// active receives future events; terminal outcome replay is served from the runtime repository.
 actor TurnEventHub {
     private struct Subscriber {
-        let continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
+        let continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation // swiftlint:disable:this concurrency_stored_continuation -- actor-owned subscriber lifecycle (see docs/Concurrency/exception-manifest.md)
     }
 
     private var subscribers: [UUID: [UUID: Subscriber]] = [:]

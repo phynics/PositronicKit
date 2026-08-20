@@ -68,6 +68,13 @@ doubles are not actorized solely to satisfy `Sendable`).
 - Stored `Task` properties outside the actor or `@MainActor` owner of the task's
   cancellation.
 
+## Actor-owned stream boundaries
+
+`TurnEventHub` stores `AsyncThrowingStream` continuations inside its actor-owned
+subscriber state. The actor is the sole owner of subscription, publication,
+termination, and cancellation cleanup, so the continuation has an explicit
+lifecycle rather than being shared through an unmanaged reference.
+
 ## Guardrail
 
 > Do not introduce a generic reference box to satisfy a `Sendable` diagnostic or to
