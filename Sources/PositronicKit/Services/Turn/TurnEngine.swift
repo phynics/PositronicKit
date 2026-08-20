@@ -126,8 +126,9 @@ struct TurnEngine {
         /// narrow; the facade and tests pass the same object for both (PKARCH-004 tension).
         let utilityClient: any LLMUtilityClient
         let toolRouter: ToolRouter
-        let turnPlugins: [any TurnPlugin]
-        let promptObserver: (any PromptObserving)?
+        let turnContextSource: (any TurnContextSource)?
+        let agentActivitySink: (any AgentActivitySink)?
+        let turnOutcomeSink: (any TurnOutcomeSink)?
         let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
         let loggingConfiguration: LoggingConfiguration
         let degradationPolicy: TurnDegradationPolicy
@@ -146,8 +147,9 @@ struct TurnEngine {
             agentAuthorityCoordinator: AgentAuthorityCoordinator? = nil,
             llmService: any LLMStreamClient & LLMUtilityClient,
             toolRouter: ToolRouter,
-            turnPlugins: [any TurnPlugin],
-            promptObserver: (any PromptObserving)? = nil,
+            turnContextSource: (any TurnContextSource)? = nil,
+            agentActivitySink: (any AgentActivitySink)? = nil,
+            turnOutcomeSink: (any TurnOutcomeSink)? = nil,
             diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
             loggingConfiguration: LoggingConfiguration = .default,
             degradationPolicy: TurnDegradationPolicy = .failRequired,
@@ -166,8 +168,9 @@ struct TurnEngine {
             self.llmService = llmService
             self.utilityClient = llmService
             self.toolRouter = toolRouter
-            self.turnPlugins = turnPlugins
-            self.promptObserver = promptObserver
+            self.turnContextSource = turnContextSource
+            self.agentActivitySink = agentActivitySink
+            self.turnOutcomeSink = turnOutcomeSink
             self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
             self.loggingConfiguration = loggingConfiguration
             self.degradationPolicy = degradationPolicy
@@ -197,6 +200,42 @@ struct TurnEngine {
     let logger = Logger.module(named: "turn-engine")
 
     var additionalStages: [any PipelineStage<TurnContext, TurnEvent>] = []
+
+    /// Persists a nonfatal customization diagnostic without changing Turn state.
+    func appendCustomizationNotice(
+        code: TurnNoticeCode,
+        turnID: UUID,
+        message: String
+    ) async {
+        await Self.persistCustomizationNotice(
+            repository: dependencies.runtimeRepository,
+            logger: logger,
+            code: code,
+            turnID: turnID,
+            message: message
+        )
+    }
+
+    static func persistCustomizationNotice(
+        repository: (any ThreadRuntimeRepository)?,
+        logger: Logger,
+        code: TurnNoticeCode,
+        turnID: UUID,
+        message: String
+    ) async {
+        guard let repository else {
+            logger.warning("Runtime customization notice: \(code.rawValue): \(message)")
+            return
+        }
+        do {
+            try await repository.appendNotice(
+                turnID: turnID,
+                notice: TurnNotice(kind: code.rawValue, message: message)
+            )
+        } catch {
+            logger.error("Unable to persist runtime customization notice: \(error)")
+        }
+    }
 
     // MARK: - Prompt Budget
 

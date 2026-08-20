@@ -10,13 +10,13 @@ import PKUtilities
 import PositronicKit
 
 public enum PositronicKitUsageExamples {
-    public actor ExamplePromptObserver: PromptObserving {
-        public private(set) var latestTokenEstimate = 0
+    public actor ExampleTurnOutcomeSink: TurnOutcomeSink {
+        public private(set) var latestOutcome: TurnOutcomeRecord?
 
         public init() {}
 
-        public func didComposePrompt(_ inspection: PromptInspection) {
-            latestTokenEstimate = inspection.estimatedTokens
+        public func record(_ outcome: TurnOutcomeRecord) {
+            latestOutcome = outcome
         }
     }
 
@@ -54,11 +54,11 @@ public enum PositronicKitUsageExamples {
         return (thread, agent)
     }
 
-    public static func makeInspectableRuntime(inspector: any PromptObserving) -> PositronicKit {
+    public static func makeInspectableRuntime(sink: any TurnOutcomeSink) -> PositronicKit {
         PositronicKit(configuration: .init(
             provider: .init(languageModel: UnconfiguredLLMService()),
             persistence: .inMemory(),
-            runtime: .init(promptObserver: inspector)
+            runtime: .init(customization: .init(turnOutcomeSink: sink))
         ))
     }
 

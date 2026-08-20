@@ -65,7 +65,12 @@ let chat = PositronicKit(
 )
 ```
 
-The grouped `persistence:` + `runtime:` path is the supported production setup (the old flat per-store initializer was removed by PKFAC-002). `RuntimeConfiguration` groups the non-store runtime knobs — `workspaceCreator`, `sectionProviders`, `runtimeToolPolicy`, `workspaceRoot`, `turnPlugins`, `promptInspector`, `toolApprovalGate` — not pre-built coordinators; the facade is the only place those get constructed, so they can never end up wrapping different stores. Consumers use `chat.threads`, `chat.agents`, `chat.workspaces`, and `chat.model`; concrete managers and the turn pipeline remain internal.
+The grouped `persistence:` + `runtime:` path is the supported production setup (the old flat per-store initializer was removed by PKFAC-002). `RuntimeConfiguration` groups workspace provisioning, tool policy, approval, diagnostics, degradation policy, and `RuntimeCustomization`; the facade is the only place those coordinators are constructed, so they cannot wrap different stores. Consumers use `chat.threads`, `chat.agents`, `chat.workspaces`, and `chat.model`; concrete managers and the turn pipeline remain internal.
+
+Use `RuntimeCustomization` for the four bounded integration roles. Managed identity continuity is
+provided by `AgentContextSource`; additive, namespaced prompt context comes from
+`TurnContextSource`; `AgentActivitySink` receives best-effort lifecycle facts; and
+`TurnOutcomeSink` receives a terminal outcome only after the runtime repository accepts it.
 
 Tests and host code can inject doubles directly through the facade initializers; lower-level wiring should remain inside the components you own.
 

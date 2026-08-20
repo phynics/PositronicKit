@@ -247,17 +247,12 @@ public extension PositronicKit {
         }
     }
 
-    /// Groups the non-store runtime knobs: workspace creation, prompt-section providers,
-    /// tool policy and approval, turn plugins, and prompt observation.
+    /// Groups the non-store runtime knobs and the four bounded customization roles.
     struct RuntimeConfiguration: Sendable {
         public let workspaceProfile: WorkspaceProfile
         public let workspaceCreator: any WorkspaceFactory
-        public let sectionProviders: [any PromptSectionProviding]
-        /// Authoritative typed Agent continuity source for managed Turns.
-        public let agentContextSource: (any AgentContextSource)?
+        public let customization: RuntimeCustomization
         public let runtimeToolPolicy: RuntimeToolPolicy
-        public let turnPlugins: [any TurnPlugin]
-        public let promptObserver: (any PromptObserving)?
         public let toolApprovalPolicy: any ToolApprovalPolicy
         public let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
         public let degradationPolicy: TurnDegradationPolicy
@@ -277,22 +272,17 @@ public extension PositronicKit {
         ///     maps to `.hostManaged(root: workspaceRoot, seedNotes: .default)`.
         ///   - workspaceCreator: Creates per-thread workspace directories when the selected
         ///     profile requires them.
-        ///   - sectionProviders: Supplies additional prompt sections for each turn.
+        ///   - customization: The bounded Agent context, Turn context, activity, and outcome roles.
         ///   - runtimeToolPolicy: Controls which tools the runtime may expose and execute.
-        ///   - turnPlugins: Plugins that participate in turn lifecycle hooks.
-        ///   - promptObserver: Optional observer for assembled prompt diagnostics.
         ///   - toolApprovalPolicy: Controls whether runtime tool calls require approval.
         ///   - diagnosticSnapshotConfiguration: Controls diagnostic response snapshots.
         ///   - degradationPolicy: Controls whether required turn degradations fail the turn.
         public init(
             workspaceProfile: WorkspaceProfile? = nil,
             workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
-            sectionProviders: [any PromptSectionProviding] = [],
-            agentContextSource: (any AgentContextSource)? = nil,
+            customization: RuntimeCustomization = .default,
             runtimeToolPolicy: RuntimeToolPolicy = .default,
             workspaceRoot: URL? = nil,
-            turnPlugins: [any TurnPlugin] = [],
-            promptObserver: (any PromptObserving)? = nil,
             toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
             diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
             degradationPolicy: TurnDegradationPolicy = .failRequired
@@ -305,17 +295,14 @@ public extension PositronicKit {
                 self.workspaceProfile = .noWorkspace
             }
             self.workspaceCreator = workspaceCreator
-            self.sectionProviders = sectionProviders
-            self.agentContextSource = agentContextSource
+            self.customization = customization
             self.runtimeToolPolicy = runtimeToolPolicy
-            self.turnPlugins = turnPlugins
-            self.promptObserver = promptObserver
             self.toolApprovalPolicy = toolApprovalPolicy
             self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
             self.degradationPolicy = degradationPolicy
         }
 
-        /// The default runtime configuration: no workspaces, no plugins, deny-all tool approval.
+        /// The default runtime configuration: no workspaces or customization, deny-all tool approval.
         public static var `default`: RuntimeConfiguration {
             RuntimeConfiguration()
         }
@@ -343,11 +330,8 @@ public extension PositronicKit {
             embeddingService: configuration.provider.embeddingService,
             workspaceProfile: configuration.runtime.workspaceProfile,
             workspaceCreator: configuration.runtime.workspaceCreator,
-            sectionProviders: configuration.runtime.sectionProviders,
-            agentContextSource: configuration.runtime.agentContextSource,
+            customization: configuration.runtime.customization,
             runtimeToolPolicy: configuration.runtime.runtimeToolPolicy,
-            turnPlugins: configuration.runtime.turnPlugins,
-            promptObserver: configuration.runtime.promptObserver,
             diagnosticSnapshotConfiguration: configuration.runtime.diagnosticSnapshotConfiguration,
             degradationPolicy: configuration.runtime.degradationPolicy,
             generationParameters: configuration.generationParameters,

@@ -1,7 +1,6 @@
 import ErrorKit
 import Foundation
 import Logging
-import PKPrompt
 import PKContracts
 import PKUtilities
 
@@ -141,7 +140,6 @@ actor ThreadManager {
     /// surface. Hosts that need custom workspace behavior inject a `WorkspaceResolver` at
     /// construction; they don't reach back through `ThreadManager` to get one.
     let workspaceResolver: any WorkspaceResolver
-    let sectionProviders: [any PromptSectionProviding]
     let runtimeToolPolicy: RuntimeToolPolicy
     /// Per-thread prompt-history/journal-diff registry. When non-nil, `evictThreadFromMemory(id:)`
     /// and `cleanupStaleThreads(maxAge:)` evict the corresponding history entry alongside the
@@ -167,7 +165,6 @@ actor ThreadManager {
         stores: Stores,
         workspaceProfile: WorkspaceProfile,
         resolver: any WorkspaceResolver,
-        sectionProviders: [any PromptSectionProviding] = [],
         runtimeToolPolicy: RuntimeToolPolicy = .default,
         embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
         promptHistoryRegistry: ThreadPromptJournals? = nil,
@@ -184,33 +181,12 @@ actor ThreadManager {
         memoryStore = stores.memoryStore
         self.embeddingService = embeddingService
         self.workspaceProfile = workspaceProfile
-        self.sectionProviders = sectionProviders
         self.runtimeToolPolicy = runtimeToolPolicy
         self.promptHistoryRegistry = promptHistoryRegistry
         self.taskRegistry = taskRegistry ?? ThreadTaskRegistry()
         self.workspaceExecutionCoordinator = workspaceExecutionCoordinator ?? WorkspaceExecutionCoordinator()
         self.threadAuthorityCoordinator = threadAuthorityCoordinator ?? ThreadAuthorityCoordinator()
         workspaceResolver = resolver
-    }
-
-    // MARK: - Prompt & Extension Support
-
-    /// Gathers additional prompt sections from all registered `PromptSectionProviding` instances.
-    public func gatherExtensionSections(
-        threadID: UUID,
-        agentID: UUID?,
-        message: String
-    ) async -> [any Prompt] {
-        let buildContext = PromptBuildContext(
-            threadID: threadID,
-            agentID: agentID,
-            message: message
-        )
-        var sections: [any Prompt] = []
-        for provider in sectionProviders {
-            sections += await provider.sections(for: buildContext)
-        }
-        return sections
     }
 
     // MARK: - Task Management

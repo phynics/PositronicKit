@@ -43,8 +43,9 @@ return a `TurnHandle` with nonthrowing events, durable outcome replay, and turn-
 cancellation.
 
 Concrete managers, task registries, tool routing, `TurnEngine`, and the turn pipeline are facade
-implementation details. Persistence, provider, workspace, prompt-section,
-and plugin protocols remain public replaceability seams where a host owns those dependencies.
+implementation details. Persistence, provider, workspace, and the four typed runtime
+customization roles remain the supported replaceability seams where a host owns those
+dependencies.
 
 ## 4. Execution Flow: The Turn Engine
 
@@ -107,7 +108,11 @@ PositronicKit is deliberately transport-neutral: no networking, RPC, multi-proce
   dispatcher. The dispatcher routes only Workspace tools; runtime/system and request-scoped tools
   remain separate. Explicit Workspace IDs are required whenever more than one authorized Workspace
   matches, and the selected ID plus explicit/implicit routing mode is retained in tool records.
-- **`PromptSectionProviding`** and **`TurnPlugin`** for app-specific orchestration and context hooks.
+- **`RuntimeCustomization`** groups the four bounded roles: `AgentContextSource` for managed
+  identity continuity, `TurnContextSource` for bounded namespaced context notes,
+  `AgentActivitySink` for best-effort lifecycle facts, and `TurnOutcomeSink` for post-terminal
+  outcome delivery. Context-source failures are required or optional; sink failures become
+  host-facing notices and cannot change the originating Turn outcome.
 - **Provider contracts in `PKContracts`** for downstream-owned LLM adapters and tool/message projections.
 
 ### v1 Extension Point Registry
@@ -117,8 +122,7 @@ These public API surfaces are the **v1 compatibility contract**: they only chang
 | Category | Protocol / Type | Module | Purpose |
 |----------|----------------|--------|---------|
 | **Tool contracts** | `Tool`, `AnyTool`, `ToolResult`, `ToolParameters`, `ToolError` | PKContracts | Define and execute tools |
-| **Orchestration hooks** | `TurnPlugin`, `CompletedTurn` | PositronicKit | Post-turn processing |
-| **Prompt customization** | `PromptSectionProviding`, `PromptBuildContext` | PositronicKit | Inject custom prompt sections |
+| **Runtime customization** | `RuntimeCustomization`, `AgentContextSource`, `TurnContextSource`, `AgentActivitySink`, `TurnOutcomeSink`, `TurnContextContribution` | PositronicKit | Bounded context, lifecycle, and terminal-outcome integration |
 | **Persistence** | `ThreadRuntimeRepository`, `MessageStoreProtocol`, `ThreadPersistenceProtocol`, `WorkspaceStore`, `WorkspaceBindingRepository`, `MemoryStoreProtocol`, `ToolPersistenceProtocol`, `AgentStoreProtocol`, `AgentTemplateStoreProtocol`, `RequestOriginStoreProtocol` | PositronicKit | Custom storage backends |
 | **Key-value store** | `KeyValueStoreProtocol` | PositronicKit | Generic key-value persistence |
 | **Vector search** | `VectorStoreProtocol`, `VectorStoreError` | PositronicKit | Custom vector search backends |

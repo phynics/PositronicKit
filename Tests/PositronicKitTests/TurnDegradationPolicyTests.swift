@@ -34,7 +34,6 @@ struct TurnDegradationPolicyTests {
                 messageStore: persistence,
                 llmService: model,
                 toolRouter: ToolRouter(threadManager: threadManager, messageStore: persistence),
-                turnPlugins: []
             )
         )
 
@@ -82,7 +81,6 @@ struct TurnDegradationPolicyTests {
                 messageStore: persistence,
                 llmService: model,
                 toolRouter: ToolRouter(threadManager: threadManager, messageStore: persistence),
-                turnPlugins: [],
                 degradationPolicy: .continueWithWarnings
             )
         )

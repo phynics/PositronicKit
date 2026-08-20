@@ -165,6 +165,7 @@ extension TurnEngine {
         var resolvedAgent = agent
         var resolvedAgentContext = agentContext
         var resolvedWorkspaceToolCatalog: WorkspaceToolCatalog?
+        var resolvedContributions: [TurnContextContribution] = []
 
         do {
             // 2. Validate thread existence before any preparation proceeds.
@@ -297,6 +298,39 @@ extension TurnEngine {
             guard !tools.contains(where: { $0.callName == "call_tool" }) else {
                 throw ToolError.reservedToolName("call_tool")
             }
+            if let turnContextSource = dependencies.turnContextSource {
+                let request = TurnContextRequest(
+                    threadID: threadID,
+                    turnID: turnID,
+                    requestID: requestId,
+                    agentID: agentId,
+                    executionKind: executionKind,
+                    message: messageContent.text,
+                    contributors: contributors
+                )
+                do {
+                    let contributions = try await turnContextSource.contributions(for: request)
+                    try validateTurnContextContributions(contributions)
+                    resolvedContributions = contributions
+                } catch {
+                    let diagnostic = diagnostic(
+                        for: .context,
+                        operation: "turnContextContributions",
+                        entityId: turnID.uuidString,
+                        error: error
+                    )
+                    let sourceRequiresContext = turnContextSource.failureRequirement == .required
+                    if sourceRequiresContext {
+                        throw TurnDegradationError.required(diagnostic, error)
+                    }
+                    await appendCustomizationNotice(
+                        code: .contextContributionFailed,
+                        turnID: turnID,
+                        message: diagnostic.message
+                    )
+                }
+            }
+
             let effectiveTools: [AnyTool]
             if let catalog = resolvedWorkspaceToolCatalog, !catalog.isEmpty {
                 effectiveTools = tools + [catalog.callTool]
@@ -338,7 +372,23 @@ extension TurnEngine {
                 pipeline: contextPipeline
             )
             var turnDiagnostics = contextResult.diagnostics
-            let contextData = contextResult.data
+            let contributionNotes = resolvedContributions.map { contribution in
+                ContextFile(
+                    name: contribution.noteName,
+                    content: contribution.value.textValue,
+                    source: contribution.source
+                )
+            }
+            let contextData = ContextData(
+                notes: contextResult.data.notes + contributionNotes,
+                memories: contextResult.data.memories,
+                generatedTags: contextResult.data.generatedTags,
+                queryVector: contextResult.data.queryVector,
+                augmentedQuery: contextResult.data.augmentedQuery,
+                semanticResults: contextResult.data.semanticResults,
+                tagResults: contextResult.data.tagResults,
+                executionTime: contextResult.data.executionTime
+            )
 
             // 8. Resolve session entities. Direct Turns deliberately do not inherit an Agent's
             // primary workspace, attached workspace context, or memory; their contributors are
@@ -382,12 +432,6 @@ extension TurnEngine {
             }
 
             // 9. Build the initial prompt messages
-            let extensionSections = await dependencies.threadManager.gatherExtensionSections(
-                threadID: threadID,
-                agentID: agent?.id,
-                message: messageContent.text
-            )
-
             let promptRequest = LLMPromptRequest(
                 userContent: messageContent,
                 turnInstructions: sidecarTurnInstructions,
@@ -415,7 +459,6 @@ extension TurnEngine {
                 agent: resolvedAgent,
                 agentContext: resolvedAgentContext,
                 thread: thread,
-                extensionSections: extensionSections,
                 options: PromptAssemblyOptions(
                     tokenBudget: budget,
                     logger: assemblyLogger,
@@ -542,6 +585,7 @@ extension TurnEngine {
                 requestId: requestId,
                 agentId: agentId,
                 agentContext: resolvedAgentContext,
+                contextContributions: resolvedContributions,
                 executionKind: executionKind,
                 contributors: contributors,
                 modelName: modelName,
@@ -878,4 +922,19 @@ private extension TurnEngine {
             throw TurnEngineError.danglingToolCall(id: pendingToolCallIds.min() ?? "<unknown>")
         }
     }
+
+    func validateTurnContextContributions(_ contributions: [TurnContextContribution]) throws {
+        var seenIDs = Set<UUID>()
+        var seenKeys = Set<String>()
+        for contribution in contributions {
+            guard seenIDs.insert(contribution.id).inserted else {
+                throw TurnContextContributionError.invalidKey(contribution.id.uuidString)
+            }
+            let key = "\(contribution.namespace).\(contribution.key)"
+            guard seenKeys.insert(key).inserted else {
+                throw TurnContextContributionError.invalidKey(key)
+            }
+        }
+    }
+
 }

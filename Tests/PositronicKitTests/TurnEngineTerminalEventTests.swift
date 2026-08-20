@@ -25,7 +25,6 @@ struct TurnEngineTerminalEventTests {
 
     /// Standard dependencies with a `.runtimeThread` workspace (tools execute locally).
     private func withTurnEngineDependencies<T>(
-        plugins: [any TurnPlugin] = [],
         _ test: @Sendable (TurnEngine, MockLLMService, MockPersistenceService) async throws -> T
     ) async throws -> T {
         let mockLLM = MockLLMService()
@@ -52,7 +51,6 @@ struct TurnEngineTerminalEventTests {
                 messageStore: mockPersistence,
                 llmService: mockLLM,
                 toolRouter: toolRouter,
-                turnPlugins: plugins,
                 streamTimeout: 60
             )
         )
@@ -118,7 +116,6 @@ struct TurnEngineTerminalEventTests {
                 messageStore: mockPersistence,
                 llmService: mockLLM,
                 toolRouter: toolRouter,
-                turnPlugins: [],
                 streamTimeout: 60
             )
         )

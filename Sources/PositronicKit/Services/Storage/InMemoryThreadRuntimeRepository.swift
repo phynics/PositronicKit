@@ -214,9 +214,6 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
 
     public func appendNotice(turnID: UUID, notice: TurnNotice) async throws {
         var turn = try mutableTurn(turnID)
-        guard !turn.isTerminal else {
-            throw ThreadRuntimeRepositoryError.invalidTransition(turnID: turnID, lifecycle: turn.lifecycle)
-        }
         turn.notices.append(notice)
         turn.updatedAt = notice.createdAt
         turns[turnID] = turn

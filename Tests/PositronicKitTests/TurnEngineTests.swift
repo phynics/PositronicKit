@@ -13,7 +13,6 @@ struct TurnEngineTests {
     /// Helper to run a test with standard dependencies
     private func withTurnEngineDependencies<T>(
         streamTimeout: TimeInterval = 60,
-        plugins: [any TurnPlugin] = [],
         attachedAgentID: UUID? = nil,
         _ test: @Sendable (TurnEngine, MockLLMService, MockPersistenceService) async throws -> T
     ) async throws -> T {
@@ -41,7 +40,6 @@ struct TurnEngineTests {
                 messageStore: mockPersistence,
                 llmService: mockLLM,
                 toolRouter: toolRouter,
-                turnPlugins: plugins,
                 streamTimeout: streamTimeout
             )
         )
@@ -1132,7 +1130,6 @@ struct TurnEngineTests {
                 messageStore: persistence,
                 llmService: mockLLM,
                 toolRouter: toolRouter,
-                turnPlugins: [],
                 streamTimeout: 60
             )
         )
@@ -1206,7 +1203,6 @@ struct TurnEngineTests {
                 messageStore: persistence,
                 llmService: reloadLLM,
                 toolRouter: toolRouter,
-                turnPlugins: [],
                 streamTimeout: 60
             )
         )
@@ -1333,7 +1329,6 @@ struct TurnEngineTests {
                 ),
                 messageStore: MockPersistenceService()
             ),
-            turnPlugins: []
         )
 
         #expect(dependencies.streamTimeout == TurnEngine.Dependencies.defaultStreamTimeout)
@@ -1441,69 +1436,4 @@ struct TurnEngineTests {
         }
     }
 
-    // MARK: - Group 12: Plugin Follow-Up & Model-Round Limits (recast from TurnLoopControllerTests, PKDEEP2-001)
-
-    @Test("Plugin follow-up resumes the loop for a second turn, then finishes")
-    func pluginFollowUpResumesLoop() async throws {
-        let plugin = InjectOncePlugin()
-        try await withTurnEngineDependencies(plugins: [plugin]) { engine, mockLLM, _ in
-            mockLLM.mockClient.nextResponses = ["turn-one", "turn-two"]
-
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Hi",
-                tools: []
-            )
-
-            let events = try await collect(stream)
-
-            // Both turns ran: the plugin injected a follow-up after turn one, resuming the loop
-            // for turn two; on turn two the plugin injected nothing, so the loop finished.
-            let deltas = generationDeltas(events)
-            #expect(deltas == ["turn-one", "turn-two"])
-            #expect(events.contains(where: {
-                if case .completion(.generationCompleted) = $0 { return true }
-                return false
-            }))
-        }
-    }
-
-    @Test("Loop stops at maxModelRounds when a plugin keeps requesting continuation")
-    func loopStopsAtMaxModelRounds() async throws {
-        let plugin = AlwaysContinuePlugin()
-        try await withTurnEngineDependencies(plugins: [plugin]) { engine, mockLLM, _ in
-            mockLLM.mockClient.nextResponses = ["turn-one", "turn-two"]
-
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Hi",
-                tools: [],
-                maxModelRounds: 2
-            )
-
-            let events = try await collect(stream)
-
-            // Two LLM turns ran (one generation delta each) before maxModelRounds cut the loop.
-            let deltas = generationDeltas(events)
-            #expect(deltas == ["turn-one", "turn-two"])
-            // No cancellation or failure surfaced: the loop finished via the model-round-limit branch.
-            #expect(!events.contains(where: { if case .error = $0 { return true }; return false }))
-        }
-    }
-}
-
-// MARK: - Test Plugins
-
-/// Injects a follow-up user message after the first turn only.
-private struct InjectOncePlugin: TurnPlugin {
-    func afterTurn(_ turn: CompletedTurn) async throws -> [LLMMessage] {
-        turn.modelRoundIndex == 1 ? [LLMMessage(role: .user, content: "continue please")] : []
-    }
-}
-
-/// Injects a follow-up user message after every turn (drives the loop to maxModelRounds).
-private struct AlwaysContinuePlugin: TurnPlugin {
-    func afterTurn(_: CompletedTurn) async throws -> [LLMMessage] {
-        [LLMMessage(role: .user, content: "keep going")]
-    }
 }

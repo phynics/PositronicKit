@@ -17,6 +17,7 @@ PositronicKit follows semver for tagged releases beginning with `1.0.0`. The cor
 
 - [Usage Guide](docs/Usage.md): current tagged-release usage, initialization and execution, tool outputs, and local embeddings.
 - [Architecture](docs/Architecture.md): capability values, context/state management, turn execution flow, and the v1 extension point registry. Concrete managers, task registries, and pipeline stages are facade implementation details.
+- [Runtime customization](docs/Usage.md#agent-persistence): the four bounded roles in `RuntimeCustomization`, including required/optional context contributions and post-terminal sink behavior.
 - [Prompt Composition](docs/PKPromptComposition.md): the `@PromptBuilder` DSL, assembly/rendering, cache policies, and `PromptJournal` stable-prefix journaling.
 - [Sidecar Directives](docs/SidecarDirectives.md): piggy-backed auxiliary generations (titles, tags, summaries) riding the same LLM request as the user-visible response.
 

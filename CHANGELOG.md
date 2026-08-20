@@ -32,6 +32,10 @@ for tagged releases beginning with `1.0.0`.
   moved embedding contracts into it, removed runtime imports from provider and embedding targets,
   and removed `PKUtilities` from the public product list. This is a v4 hard cut with no aliases or
   compatibility product.
+- **Typed runtime customization:** grouped the four supported integration roles under
+  `RuntimeCustomization`: `AgentContextSource`, bounded `TurnContextSource`, best-effort
+  `AgentActivitySink`, and post-terminal `TurnOutcomeSink`. Removed the generic plugin, prompt
+  observer, prompt-section provider, and pipeline insertion surfaces.
 
 ### Added
 
@@ -43,6 +47,8 @@ for tagged releases beginning with `1.0.0`.
   only for a single match; ambiguous calls return model-visible workspace IDs, labels, descriptions,
   schemas, and a corrected explicit call. Tool intents/results and resolved terminal workspace-tool
   events record the workspace and explicit/implicit routing mode.
+- **Bounded context and sink notices:** required context-source failures abort preparation;
+  optional failures and best-effort sink failures append normalized host-facing Turn notices.
 
 ### Changed
 

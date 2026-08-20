@@ -20,29 +20,26 @@ enum PromptAssembler {
     ///   - request: The prompt request data.
     ///   - agent: Optional agent for identity context.
     ///   - thread: Optional thread metadata.
-    ///   - extensionSections: Optional additional sections from external extensions.
     /// - Returns: A fully assembled prompt artifact.
     /// - Throws: An error if pipeline execution fails.
     static func assemble(
         _ request: LLMPromptRequest,
         agent: Agent? = nil,
         agentContext: AgentContextSnapshot? = nil,
-        thread: Thread? = nil,
-        extensionSections: [any Prompt] = []
+        thread: Thread? = nil
     ) async throws -> RenderedPrompt {
         try await assemble(
             request,
             agent: agent,
             agentContext: agentContext,
             thread: thread,
-            extensionSections: extensionSections,
             options: PromptAssemblyOptions()
         )
     }
 
     /// Assembles a prompt using explicit advanced assembly options.
     ///
-    /// Use this overload when you need custom sections or token-budgeted compression.
+    /// Use this overload when runtime-owned assembly options or token-budgeted compression are needed.
     ///
     /// When `options.tokenBudget` is present and the resolved prompt is over budget, prompt
     /// assembly first runs the structured compression pass with section metadata and then falls
@@ -52,7 +49,6 @@ enum PromptAssembler {
         agent: Agent? = nil,
         agentContext: AgentContextSnapshot? = nil,
         thread: Thread? = nil,
-        extensionSections: [any Prompt] = [],
         options: PromptAssemblyOptions
     ) async throws -> RenderedPrompt {
         let sections = try await buildSections(
@@ -60,7 +56,6 @@ enum PromptAssembler {
             agent: agent,
             agentContext: agentContext,
             thread: thread,
-            extensionSections: extensionSections,
             customSections: options.customSections,
             logger: options.logger
         )
@@ -102,7 +97,6 @@ enum PromptAssembler {
         agent: Agent?,
         agentContext: AgentContextSnapshot?,
         thread: Thread?,
-        extensionSections: [any Prompt],
         customSections: (@Sendable () async -> [any Prompt])?,
         logger: Logger?
     ) async throws -> [any Prompt] {
@@ -158,8 +152,6 @@ enum PromptAssembler {
         try sections.append(withLogging("UserQuery", logger: logger) {
             UserQuery(request.userContent, turnInstructions: request.turnInstructions)
         })
-        sections.append(contentsOf: extensionSections)
-
         let duplicateIDs = sections.flatMap { $0.resolveSections() }.duplicateIDs(idKeyPath: \.id)
         guard duplicateIDs.isEmpty else {
             throw AssembledPrompt.ValidationError.duplicateSectionIDs(duplicateIDs)

@@ -31,7 +31,7 @@ public enum TurnLifecycle: String, Codable, Hashable, Sendable {
 }
 
 /// The terminal truth recorded by the runtime repository.
-public enum TurnOutcome: Codable, Equatable, Sendable {
+public enum TurnOutcome: Codable, Equatable, Hashable, Sendable {
     case completed
     case failed(message: String)
     case cancelled(reason: String?)
@@ -432,6 +432,8 @@ public protocol ThreadRuntimeRepository: ThreadPersistenceProtocol, ThreadMessag
 
     func fetchTurn(id: UUID) async throws -> TurnRecord?
     func fetchActiveTurn(for threadID: UUID) async throws -> TurnRecord?
+    /// Appends host-facing metadata without changing the Turn outcome. Notices may be recorded
+    /// after terminal completion so best-effort customization failures remain observable.
     func appendNotice(turnID: UUID, notice: TurnNotice) async throws
     func appendCorrelation(turnID: UUID, correlation: TurnCorrelation, now: Date) async throws
     func fetchNotices(turnID: UUID) async throws -> [TurnNotice]
