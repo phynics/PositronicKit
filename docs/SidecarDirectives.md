@@ -1,17 +1,17 @@
 # Sidecar Directives (Piggy-Backed Requests)
 
-Sidecar directives let a chat turn produce auxiliary generations — a title, a summary, a tone
+Sidecar directives let a turn produce auxiliary generations — a title, a summary, a tone
 marker, a confidence score, whatever your app needs — **from the same LLM request** as the
 turn's user-visible response, instead of paying a separate round-trip per auxiliary task. The
 user sees only the streamed response; directive results arrive alongside it through
-`ChatEvent`.
+`TurnEvent`.
 
-Full design rationale: `workflow/Yakamoz/specs/2026-07-03-piggybacked-requests-design.md`.
+The durable contract is described here; downstream applications own concrete directive policy.
 Architecture summary: [Architecture.md](Architecture.md#5-sidecar-directives-piggy-backed-requests).
 
 ## Why
 
-Without sidecars, generating a conversation title or summary alongside a reply means either a
+Without sidecars, generating a thread title or summary alongside a reply means either a
 second LLM call after the turn completes (extra latency, extra cost) or hand-rolled prompt
 hacks. Sidecars solve this by asking the model for one structured JSON object per turn: a
 `response` field (streamed to the user like normal text) plus one field per directive, all
@@ -25,7 +25,7 @@ import PKContracts
 
 let title = SidecarDirective(
     name: "title",
-    instruction: "A short conversation title (3-6 words). Return null if the conversation already has a good title.",
+    instruction: "A short thread title (3-6 words). Return null if the thread already has a good title.",
     schema: JSONString().definition(),
     streaming: .buffered
 )
@@ -53,7 +53,7 @@ let tone = SidecarDirective(
 ## Running a turn with sidecars
 
 ```swift
-let stream = try await chat.run(ChatRunRequest(
+let stream = try await chat.run(TurnRequest(
     threadID: threadID,
     message: "What's the deal with actors in Swift 6?",
     sidecars: [title, tone]
@@ -90,12 +90,12 @@ turns; no extractor is constructed and no extra schema is composed.
 
 ## Commit policy
 
-Sidecars default to `SidecarCommitPolicy.everyRoundTrip`, which commits one identified
+Sidecars default to `SidecarCommitPolicy.everyModelRound`, which commits one identified
 `SidecarCompletion` per successfully parsed LLM round-trip. For curation that must represent
-the complete logical send, use `sidecarCommitPolicy: .terminalRoundTrip`. Intermediate
+the complete logical send, use `sidecarCommitPolicy: .terminalModelRound`. Intermediate
 `.delta(.sidecar)` values are streaming observations, not durable commits. Under the terminal
 policy, results are emitted only after tool and plugin follow-up work finishes normally;
-cancellation, failure, max-turn exhaustion, and external-tool deferral do not promote an
+cancellation, failure, model-round exhaustion, and external-tool deferral do not promote an
 intermediate result. Persist a completion idempotently using its `TurnIdentity`.
 
 ## Error model

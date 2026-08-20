@@ -12,7 +12,7 @@ import PositronicKit
     ///
     /// Construct one per test with a unique `workspaceRoot`, then read its fields directly or
     /// access `positronicKit` for a fully-wired facade. `threadManager`, `toolRouter`, and
-    /// `agentInstanceManager` return the exact facade-owned instances. `agentWorkspaceService`
+    /// `agentManager` return the exact facade-owned instances. `agentWorkspaceService`
     /// and `workspaceManager` remain separately exposed compatibility helpers using the supplied
     /// persistence and workspace factory.
     public struct TestRuntime: Sendable {
@@ -35,16 +35,16 @@ import PositronicKit
         }
 
         public let agentWorkspaceService: DefaultWorkspaceCatalog
-        /// The facade-owned manager; identical (`===`) to `positronicKit.agentInstanceManager`.
-        public var agentInstanceManager: AgentInstanceManager {
-            core.agentInstanceManager
+        /// The facade-owned manager; identical (`===`) to `positronicKit.agentManager`.
+        public var agentManager: AgentManager {
+            core.agentManager
         }
         public let workspaceManager: DefaultWorkspaceResolver
 
         /// Creates a fully-wired runtime. All collaborators default to values built from the
         /// supplied `persistence`, so the whole graph shares one backing store. The
         /// `PositronicKit` facade is the sole place that builds the `ThreadManager` and
-        /// `ToolRouter` and `AgentInstanceManager` it wraps; the corresponding properties simply
+        /// `ToolRouter` and `AgentManager` it wraps; the corresponding properties simply
         /// read those instances back.
         ///
         /// - Parameters:
@@ -70,7 +70,7 @@ import PositronicKit
                     workspacePersistence: persistence,
                     memoryStore: persistence,
                     toolPersistence: persistence,
-                    agentInstanceStore: persistence,
+                    agentStore: persistence,
                     requestOriginStore: persistence
                 ), runtime: .init(
                     workspaceCreator: workspaceCreator,

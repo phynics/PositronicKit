@@ -15,7 +15,7 @@ public enum ToolExecutionOutcome: Sendable {
 /// A fully parsed tool call from the LLM response, ready for routing.
 ///
 /// This is a runtime-internal routing detail (`package`-scoped): it is produced and consumed inside
-/// the chat loop and is not part of the downstream public surface.
+/// the turn loop and is not part of the downstream public surface.
 package struct ParsedToolCall {
     package let callId: String
     package let name: String
@@ -34,7 +34,7 @@ package struct ParsedToolCall {
 
 /// Result of handling all pending tool calls in a turn.
 ///
-/// Runtime-internal (`package`-scoped); returned by `handlePendingToolCalls` to the chat loop.
+/// Runtime-internal (`package`-scoped); returned by `handlePendingToolCalls` to the turn loop.
 package struct ToolHandlingResult {
     /// Whether any tool calls were deferred for external execution.
     package let hasDeferred: Bool
@@ -47,7 +47,7 @@ package struct ToolHandlingResult {
 /// Result of processing tool calls from a completed LLM turn.
 /// Includes the assistant message (with tool call definitions) and resolved tool results.
 ///
-/// Runtime-internal (`package`-scoped); consumed by the chat loop.
+/// Runtime-internal (`package`-scoped); consumed by the turn loop.
 package enum ToolTurnResult {
     /// No tool calls were produced — the turn is complete.
     case noToolCalls
@@ -66,7 +66,7 @@ package enum ToolTurnResult {
 ///
 /// The primary entry point is `handlePendingToolCalls()`, which executes runtime-managed tools
 /// immediately (persisting results to the message store) and defers externally hosted tools for
-/// async handling. `ChatEngine` calls this after each LLM turn that produces tool calls.
+/// async handling. `TurnEngine` calls this after each LLM turn that produces tool calls.
 public actor ToolRouter {
     private let logger: Logger
     private let loggingConfiguration: LoggingConfiguration
@@ -99,13 +99,13 @@ public actor ToolRouter {
     /// Processes tool calls from a completed LLM turn.
     ///
     /// Extracts streamed tool call accumulators from `TurnOutputs`, constructs the assistant
-    /// message (with tool call definitions for conversation history), executes runtime-managed tools,
-    /// and returns a decision for the chat loop.
+    /// message (with tool call definitions for thread history), executes runtime-managed tools,
+    /// and returns a decision for the turn loop.
     func processToolCalls(
         outputs: TurnOutputs,
-        timelineId: UUID,
+        threadId: UUID,
         availableTools: [AnyTool],
-        continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
+        continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
     ) async throws -> ToolTurnResult {
         let accumulators = await outputs.toolCallAccumulators
         guard !accumulators.isEmpty else { return .noToolCalls }
@@ -117,7 +117,7 @@ public actor ToolRouter {
             ParsedToolCall(callId: value.callId, name: value.name, argumentsJSON: value.args)
         }
 
-        // Build the assistant message with tool_calls for conversation history
+        // Build the assistant message with tool_calls for thread history
         let toolCallsParam = sortedCalls.map { _, value in
             LLMToolCall(id: value.callId, name: value.name, arguments: value.args)
         }
@@ -144,7 +144,7 @@ public actor ToolRouter {
 
         // Route and execute
         let result = try await handlePendingToolCalls(
-            timelineId: timelineId,
+            threadId: threadId,
             calls: parsedCalls,
             availableTools: availableTools,
             continuation: continuation
@@ -161,12 +161,12 @@ public actor ToolRouter {
     ///
     /// - Runtime-managed tools are executed immediately; results are persisted and returned.
     /// - External tools are skipped; the host executes and submits results asynchronously.
-    /// - Private timelines may not defer to externally hosted tools — an error is thrown instead.
+    /// - Private threads may not defer to externally hosted tools — an error is thrown instead.
     package func handlePendingToolCalls(
-        timelineId: UUID,
+        threadId: UUID,
         calls: [ParsedToolCall],
         availableTools: [AnyTool],
-        continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
+        continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
     ) async throws -> ToolHandlingResult {
         var hasDeferred = false
         var hasPersistenceFailure = false
@@ -193,13 +193,13 @@ public actor ToolRouter {
                 }
                 let outcome = try await execute(
                     tool: toolRef, arguments: arguments,
-                    threadID: timelineId, availableTools: availableTools
+                    threadID: threadId, availableTools: availableTools
                 )
                 let projection = try await projectOutcome(
                     outcome,
                     call: call,
                     toolRef: toolRef,
-                    timelineId: timelineId,
+                    threadId: threadId,
                     continuation: continuation
                 )
                 if projection.persistenceFailed {
@@ -217,7 +217,7 @@ public actor ToolRouter {
                     error,
                     call: call,
                     toolRef: toolRef,
-                    timelineId: timelineId,
+                    threadId: threadId,
                     continuation: continuation
                 )
                 if projection.persistenceFailed {
@@ -227,10 +227,10 @@ public actor ToolRouter {
             }
         }
 
-        // turnIndex intentionally omitted: handlePendingToolCalls receives no turn count, and
+        // modelRoundIndex intentionally omitted: handlePendingToolCalls receives no model-round index, and
         // adding a parameter just for logging exceeds this ticket's blast radius.
         let batchMeta: Logger.Metadata = [
-            LogKeys.timelineID: .string(timelineId.uuidString),
+            LogKeys.threadID: .string(threadId.uuidString),
             "total": .string("\(calls.count)"),
             "deferred": .string("\(deferredCount)"),
             "resolved": .string("\(resolvedToolParams.count)"),
@@ -260,7 +260,7 @@ public actor ToolRouter {
         let sid = threadID.uuidString.prefix(8).lowercased()
 
         logger.info("Routing \(toolName) in thread \(sid)", metadata: [
-            LogKeys.timelineID: .string(threadID.uuidString),
+            LogKeys.threadID: .string(threadID.uuidString),
             LogKeys.toolName: .string(tool.displayName),
         ])
 
@@ -271,8 +271,8 @@ public actor ToolRouter {
         // Dynamic/per-turn tools (passed directly via `availableTools`, e.g. workspace-independent
         // demo tools like `calculator`/`current_datetime`) execute locally unconditionally — they
         // were explicitly handed to this turn by the caller and need no workspace-tool mapping or
-        // even an attached workspace to resolve. Without this branch, a timeline with no attached
-        // folder workspace (the common case for a fresh conversation) would fail every tool call
+        // even an attached workspace to resolve. Without this branch, a thread with no attached
+        // folder workspace (the common case for a fresh thread) would fail every tool call
         // with `toolNotFound`, even though the correct `AnyTool` was right there in `availableTools`.
         if let dynamicTools = availableTools,
            dynamicTools.contains(where: { $0.toolReference == tool || $0.callName == tool.toolID })
@@ -280,14 +280,14 @@ public actor ToolRouter {
             let output = try await executeLocally(
                 tool: tool,
                 arguments: forwardedArguments,
-                timelineId: threadID,
+                threadId: threadID,
                 dynamicTools: dynamicTools
             )
             return .completed(output)
         }
 
         // resolveWorkspace returns nil when the tool is not registered in any of the
-        // timeline's workspaces, or when the timeline has no workspaces at all.
+        // thread's workspaces, or when the thread has no workspaces at all.
         guard let workspaceId = try await resolveWorkspace(
             for: tool,
             in: threadID,
@@ -302,13 +302,13 @@ public actor ToolRouter {
 
         switch try outcomeForWorkspace(
             location: workspace.location,
-            timelineIsPrivate: await threadManager.thread(id: threadID)?.isPrivate ?? false
+            threadIsPrivate: await threadManager.thread(id: threadID)?.isPrivate ?? false
         ) {
         case .executeLocally:
             let output = try await executeLocally(
                 tool: tool,
                 arguments: forwardedArguments,
-                timelineId: threadID,
+                threadId: threadID,
                 dynamicTools: availableTools
             )
             return .completed(output)
@@ -333,42 +333,42 @@ public actor ToolRouter {
     // MARK: - Workspace Resolution
 
     /// Decides whether a resolved workspace location implies runtime-local execution or external
-    /// deferral. Private timelines reject externally hosted tools.
+    /// deferral. Private threads reject externally hosted tools.
     private func outcomeForWorkspace(
         location: WorkspaceReference.WorkspaceLocation,
-        timelineIsPrivate: Bool
+        threadIsPrivate: Bool
     ) throws -> WorkspaceExecutionDisposition {
         switch location {
         case .runtime, .runtimeThread:
             return .executeLocally
         case .attached:
-            guard !timelineIsPrivate else {
+            guard !threadIsPrivate else {
                 throw ToolError.attachedToolsDisallowedOnPrivateThread
             }
             return .deferExternally
         }
     }
 
-    /// Resolves the workspace to execute `tool` against for a given timeline.
+    /// Resolves the workspace to execute `tool` against for a given thread.
     ///
     /// Resolution order:
     /// 1. If the caller supplied an explicit `workspaceID` argument, it must be a string that
-    ///    parses as a UUID and match one of the timeline's candidate workspace ids. A malformed
+    ///    parses as a UUID and match one of the thread's candidate workspace ids. A malformed
     ///    value throws `ToolError.invalidWorkspaceID`; a valid UUID that is not attached throws
     ///    `ToolError.workspaceNotFound` (PKRR-015 fail-closed — presence signals explicit
     ///    intent, so a malformed value is an error, not a hint to auto-route).
     /// 2. Otherwise, defer to `ThreadManager.findWorkspaceForTool(_:in:)` over the candidate
     ///    list (primary first, then attached in declared order).
-    /// 3. Returns `nil` if the timeline has no workspaces, or if no candidate workspace
+    /// 3. Returns `nil` if the thread has no workspaces, or if no candidate workspace
     ///    registers the tool. `execute` interprets `nil` as `toolNotFound`.
     private func resolveWorkspace(
         for tool: ToolReference,
-        in timelineId: UUID,
+        in threadId: UUID,
         arguments: [String: AnyCodable]
     ) async throws -> UUID? {
         let wsList: WorkspaceQueryResult
         do {
-            wsList = try await threadManager.getWorkspaces(for: timelineId)
+            wsList = try await threadManager.getWorkspaces(for: threadId)
         } catch ThreadError.threadNotFound {
             return nil
         }
@@ -404,13 +404,13 @@ public actor ToolRouter {
     private func executeLocally(
         tool: ToolReference,
         arguments: [String: AnyCodable],
-        timelineId: UUID,
+        threadId: UUID,
         dynamicTools: [AnyTool]?
     ) async throws -> String {
         let toolName = loggingConfiguration.redactionPolicy.sanitizeStructured(tool.displayName)
         logger.info("Executing locally: \(toolName)")
 
-        guard let toolManager = await threadManager.getToolManager(for: timelineId) else {
+        guard let toolManager = await threadManager.getToolManager(for: threadId) else {
             throw ToolError.toolNotFound(tool.displayName)
         }
 
@@ -459,7 +459,7 @@ public actor ToolRouter {
             return result.output
         } else {
             let errorMsg = result.error ?? "Unknown error"
-            logger.error("Failed: \(toolName)", metadata: LoggingMetadata.makeMetadata(for: ToolError.executionFailed(errorMsg), correlationID: timelineId.uuidString))
+            logger.error("Failed: \(toolName)", metadata: LoggingMetadata.makeMetadata(for: ToolError.executionFailed(errorMsg), correlationID: threadId.uuidString))
             throw ToolError.executionFailed(errorMsg)
         }
     }
@@ -470,7 +470,7 @@ public actor ToolRouter {
     private func projectAttempt(
         call: ParsedToolCall,
         toolRef: ToolReference,
-        continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
+        continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
     ) {
         continuation.yield(.toolProgress(
             toolCallID: call.callId,
@@ -488,15 +488,15 @@ public actor ToolRouter {
         _ outcome: ToolExecutionOutcome,
         call: ParsedToolCall,
         toolRef: ToolReference,
-        timelineId: UUID,
-        continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
+        threadId: UUID,
+        continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
     ) async throws -> ToolProjection {
         let toolDisplayName = loggingConfiguration.redactionPolicy.sanitizeStructured(call.name)
         switch outcome {
         case let .completed(output):
             logger.info("Tool \(toolDisplayName) succeeded")
-            let message = ConversationMessage(
-                threadID: timelineId, role: .tool, content: output, toolCallID: call.callId
+            let message = ThreadMessage(
+                threadID: threadId, role: .tool, content: output, toolCallID: call.callId
             )
             do {
                 try await messageStore.saveMessage(message)
@@ -532,8 +532,8 @@ public actor ToolRouter {
         _ error: Error,
         call: ParsedToolCall,
         toolRef: ToolReference,
-        timelineId: UUID,
-        continuation: AsyncThrowingStream<ChatEvent, Error>.Continuation
+        threadId: UUID,
+        continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
     ) async throws -> ToolProjection {
         let errorMsg = ErrorKit.userFriendlyMessage(for: error)
         logger.error("Tool execution failed", metadata: LoggingMetadata.makeMetadata(for: error, correlationID: call.callId))
@@ -545,8 +545,8 @@ public actor ToolRouter {
         if let remediation = (error as? any PKError)?.remediation, !remediation.isEmpty {
             errorOutput += "\nHow to fix: \(remediation)"
         }
-        let message = ConversationMessage(
-            threadID: timelineId, role: .tool, content: errorOutput, toolCallID: call.callId
+        let message = ThreadMessage(
+            threadID: threadId, role: .tool, content: errorOutput, toolCallID: call.callId
         )
         do {
             try await messageStore.saveMessage(message)
@@ -575,7 +575,7 @@ private struct ToolProjection {
 }
 
 private func safeErrorMessage(_ error: Error) -> String {
-    guard let identity = ChatEvent.ErrorIdentity.extracting(from: error) else {
+    guard let identity = TurnEvent.ErrorIdentity.extracting(from: error) else {
         return "The tool execution failed."
     }
     return "Tool execution failed (\(identity.domain):\(identity.code))."

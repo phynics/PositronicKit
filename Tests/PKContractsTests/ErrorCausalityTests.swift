@@ -23,7 +23,7 @@ import ErrorKit
         )
         let wrapped = PipelineError.stageFailed(id: "LLMStreamingStage", underlyingError: providerError)
 
-        let identity = ChatEvent.ErrorIdentity.extracting(from: wrapped)
+        let identity = TurnEvent.ErrorIdentity.extracting(from: wrapped)
 
         #expect(identity?.domain == PKErrorDomain.llm)
         #expect(identity?.code == 1004)
@@ -40,7 +40,7 @@ import ErrorKit
         )
         let wrapped = PipelineError.cleanupFailed(id: "PersistenceStage", underlyingError: providerError)
 
-        let identity = ChatEvent.ErrorIdentity.extracting(from: wrapped)
+        let identity = TurnEvent.ErrorIdentity.extracting(from: wrapped)
 
         #expect(identity?.domain == PKErrorDomain.llm)
         #expect(identity?.code == 1004)
@@ -51,7 +51,7 @@ import ErrorKit
         let providerError = LLMServiceError.networkError("connection reset")
         let wrapped = PipelineError.stageFailed(id: "LLMStreamingStage", underlyingError: providerError)
 
-        let identity = ChatEvent.ErrorIdentity.extracting(from: wrapped)
+        let identity = TurnEvent.ErrorIdentity.extracting(from: wrapped)
 
         #expect(identity?.domain == PKErrorDomain.llm)
         #expect(identity?.code == 1003)
@@ -64,7 +64,7 @@ import ErrorKit
         let toolError = ToolError.permissionDenied("rm")
         let wrapped = PipelineError.stageFailed(id: "ToolExecutionStage", underlyingError: toolError)
 
-        let identity = ChatEvent.ErrorIdentity.extracting(from: wrapped)
+        let identity = TurnEvent.ErrorIdentity.extracting(from: wrapped)
 
         #expect(identity?.domain == PKErrorDomain.tool)
         #expect(identity?.code == 210)
@@ -76,7 +76,7 @@ import ErrorKit
         let toolError = ToolError.attachedToolsDisallowedOnPrivateThread
         let wrapped = PipelineError.stageFailed(id: "ToolRouterStage", underlyingError: toolError)
 
-        let identity = ChatEvent.ErrorIdentity.extracting(from: wrapped)
+        let identity = TurnEvent.ErrorIdentity.extracting(from: wrapped)
 
         #expect(identity?.domain == PKErrorDomain.tool)
         #expect(identity?.code == 207)
@@ -88,7 +88,7 @@ import ErrorKit
         let pathError = PathSanitizer.PathError.accessDenied("/etc/passwd")
         let wrapped = PipelineError.stageFailed(id: "FileReadStage", underlyingError: pathError)
 
-        let identity = ChatEvent.ErrorIdentity.extracting(from: wrapped)
+        let identity = TurnEvent.ErrorIdentity.extracting(from: wrapped)
 
         #expect(identity?.domain == PKErrorDomain.filesystem)
         #expect(identity?.code == 101)
@@ -101,7 +101,7 @@ import ErrorKit
     func cancellationDoesNotCollapseToPipelineCode() {
         let wrapped = PipelineError.stageFailed(id: "LLMStreamingStage", underlyingError: CancellationError())
 
-        let identity = ChatEvent.ErrorIdentity.extracting(from: wrapped)
+        let identity = TurnEvent.ErrorIdentity.extracting(from: wrapped)
 
         #expect(identity == nil, "CancellationError should not yield pipeline code 4001; got \(String(describing: identity))")
     }
@@ -110,14 +110,14 @@ import ErrorKit
     func cancellationInCleanupDoesNotCollapse() {
         let wrapped = PipelineError.cleanupFailed(id: "CleanupStage", underlyingError: CancellationError())
 
-        let identity = ChatEvent.ErrorIdentity.extracting(from: wrapped)
+        let identity = TurnEvent.ErrorIdentity.extracting(from: wrapped)
 
         #expect(identity == nil)
     }
 
     @Test("Bare CancellationError yields nil identity")
     func bareCancellationYieldsNil() {
-        let identity = ChatEvent.ErrorIdentity.extracting(from: CancellationError())
+        let identity = TurnEvent.ErrorIdentity.extracting(from: CancellationError())
         #expect(identity == nil)
     }
 
@@ -130,7 +130,7 @@ import ErrorKit
         }
         let wrapped = PipelineError.stageFailed(id: "SomeStage", underlyingError: ForeignError())
 
-        let identity = ChatEvent.ErrorIdentity.extracting(from: wrapped)
+        let identity = TurnEvent.ErrorIdentity.extracting(from: wrapped)
 
         #expect(identity == nil, "Non-PKError should not yield pipeline code 4001; got \(String(describing: identity))")
     }
@@ -149,7 +149,7 @@ import ErrorKit
         let cleanupFailures: [Error] = [URLError(.notConnectedToInternet)]
         let compound = PipelineError.compoundFailure(primary: primary, cleanupFailures: cleanupFailures)
 
-        let identity = ChatEvent.ErrorIdentity.extracting(from: compound)
+        let identity = TurnEvent.ErrorIdentity.extracting(from: compound)
 
         #expect(identity?.domain == PKErrorDomain.llm)
         #expect(identity?.code == 1004)
@@ -161,7 +161,7 @@ import ErrorKit
         let primary = PipelineError.stageFailed(id: "ToolExecutionStage", underlyingError: toolError)
         let compound = PipelineError.compoundFailure(primary: primary, cleanupFailures: [URLError(.badURL)])
 
-        let identity = ChatEvent.ErrorIdentity.extracting(from: compound)
+        let identity = TurnEvent.ErrorIdentity.extracting(from: compound)
 
         #expect(identity?.domain == PKErrorDomain.tool)
         #expect(identity?.code == 210)
@@ -173,15 +173,15 @@ import ErrorKit
         let primary = PipelineError.stageFailed(id: "SomeStage", underlyingError: CancellationError())
         let compound = PipelineError.compoundFailure(primary: primary, cleanupFailures: [])
 
-        let identity = ChatEvent.ErrorIdentity.extracting(from: compound)
+        let identity = TurnEvent.ErrorIdentity.extracting(from: compound)
 
         #expect(identity == nil)
     }
 
-    // MARK: - ChatEvent.error factory preserves root cause identity
+    // MARK: - TurnEvent.error factory preserves root cause identity
 
-    @Test("ChatEvent.error factory preserves provider identity through pipeline wrapping")
-    func chatEventErrorFactoryPreservesProviderIdentity() {
+    @Test("TurnEvent.error factory preserves provider identity through pipeline wrapping")
+    func turnEventErrorFactoryPreservesProviderIdentity() {
         let providerError = LLMServiceError.httpError(
             provider: "OpenAI",
             statusCode: 429,
@@ -189,7 +189,7 @@ import ErrorKit
             retryAfter: nil
         )
         let wrapped = PipelineError.stageFailed(id: "LLMStreamingStage", underlyingError: providerError)
-        let event = ChatEvent.error(wrapped)
+        let event = TurnEvent.error(wrapped)
 
         if case let .error(.error(message: _, identity: identity)) = event {
             #expect(identity?.domain == PKErrorDomain.llm)
@@ -199,11 +199,11 @@ import ErrorKit
         }
     }
 
-    @Test("ChatEvent.error factory preserves blocked identity through pipeline wrapping")
-    func chatEventErrorFactoryPreservesBlockedIdentity() {
+    @Test("TurnEvent.error factory preserves blocked identity through pipeline wrapping")
+    func turnEventErrorFactoryPreservesBlockedIdentity() {
         let toolError = ToolError.permissionDenied("rm")
         let wrapped = PipelineError.stageFailed(id: "ToolExecutionStage", underlyingError: toolError)
-        let event = ChatEvent.error(wrapped)
+        let event = TurnEvent.error(wrapped)
 
         if case let .error(.error(message: _, identity: identity)) = event {
             #expect(identity?.domain == PKErrorDomain.tool)
@@ -221,7 +221,7 @@ import ErrorKit
         let error = LLMServiceError.httpError(
             provider: "OpenAI", statusCode: 500, responseBody: "server error", retryAfter: nil
         )
-        let identity = ChatEvent.ErrorIdentity.extracting(from: error)
+        let identity = TurnEvent.ErrorIdentity.extracting(from: error)
         #expect(identity?.domain == PKErrorDomain.llm)
         #expect(identity?.code == 1004)
     }
@@ -229,7 +229,7 @@ import ErrorKit
     @Test("Direct non-PKError yields nil")
     func directNonPKErrorYieldsNil() {
         struct PlainError: Error {}
-        let identity = ChatEvent.ErrorIdentity.extracting(from: PlainError())
+        let identity = TurnEvent.ErrorIdentity.extracting(from: PlainError())
         #expect(identity == nil)
     }
 
@@ -239,7 +239,7 @@ import ErrorKit
     func pipelineErrorIdentityNotUsedAsFallback() {
         let wrapped = PipelineError.stageFailed(id: "Stage", underlyingError: URLError(.timedOut))
 
-        let identity = ChatEvent.ErrorIdentity.extracting(from: wrapped)
+        let identity = TurnEvent.ErrorIdentity.extracting(from: wrapped)
 
         #expect(identity == nil, "URLError wrapped in PipelineError should yield nil, not pipeline 4001")
     }
@@ -251,7 +251,7 @@ import ErrorKit
             cleanupFailures: [URLError(.badURL)]
         )
 
-        let identity = ChatEvent.ErrorIdentity.extracting(from: compound)
+        let identity = TurnEvent.ErrorIdentity.extracting(from: compound)
 
         #expect(identity == nil)
     }

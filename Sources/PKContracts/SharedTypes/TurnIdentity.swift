@@ -1,17 +1,23 @@
 import Foundation
 
-/// Stable identity for one round-trip within a logical chat send.
+/// Stable identity for one model round within an admitted turn.
 public struct TurnIdentity: Sendable, Hashable, Equatable, Codable {
-    public let sendID: UUID
-    public let roundTrip: Int
+    /// Runtime identity of the admitted execution.
+    public let turnID: UUID
+    /// Caller-owned idempotency identity for the request that admitted the turn.
+    public let requestID: UUID
+    /// Zero-based model interaction index within the turn.
+    public let modelRoundIndex: Int
 
-    public init(sendID: UUID, roundTrip: Int) {
-        self.sendID = sendID
-        self.roundTrip = roundTrip
+    public init(turnID: UUID, requestID: UUID, modelRoundIndex: Int) {
+        self.turnID = turnID
+        self.requestID = requestID
+        self.modelRoundIndex = modelRoundIndex
     }
 
     private enum CodingKeys: String, CodingKey {
-        case sendID = "sendId"
-        case roundTrip
+        case turnID = "turnId"
+        case requestID = "requestId"
+        case modelRoundIndex
     }
 }

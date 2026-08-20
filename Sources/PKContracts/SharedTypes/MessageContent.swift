@@ -168,7 +168,7 @@ public enum ModelCapability: String, Sendable, Codable, Hashable, CaseIterable {
     case audioOutput
 }
 
-/// A response modality requested for a chat turn.
+/// A response modality requested for a turn.
 public enum ResponseModality: String, Sendable, Codable, Equatable, Hashable {
     case text
     case audio
@@ -246,7 +246,7 @@ public enum MultimodalContentError: PKError, Sendable, Equatable {
         case let .unsupportedAudioVoice(voice, provider): "\(provider.rawValue) does not support the requested audio voice '\(voice)'."
         case let .unsupportedContentLayout(provider): "\(provider.rawValue) cannot preserve the requested multimodal content order."
         case let .inconsistentAudioFormat(expected, actual): "The audio stream changed format from \(expected.rawValue) to \(actual.rawValue)."
-        case .missingAudioTranscript: "The provider completed audio output without the transcript required for conversation history."
+        case .missingAudioTranscript: "The provider completed audio output without the transcript required for thread history."
         }
     }
 }

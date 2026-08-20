@@ -78,7 +78,7 @@ struct MemoryStoreWiringTests {
             workspacePersistence: InMemoryWorkspacePersistence(),
             memoryStore: memoryStore,
             toolPersistence: InMemoryToolPersistence(),
-            agentInstanceStore: InMemoryAgentInstanceStore(),
+            agentStore: InMemoryAgentStore(),
             requestOriginStore: InMemoryRequestOriginStore()
         )
         let core = PositronicKit(configuration: .init(provider: .init(languageModel: UnconfiguredLLMService(), embeddingService: embedding), persistence: persistence, runtime: .init(workspaceRoot: workspace.root)))

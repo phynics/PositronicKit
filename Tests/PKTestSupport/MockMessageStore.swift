@@ -10,22 +10,22 @@ import Synchronization
 /// fixtures or assert on saved state. `fetchSnapshots(for:)` decodes `TurnSnapshot` from
 /// each assistant message's `snapshotData`, mirroring the real persistence layer's format.
 public final class MockMessageStore: ThreadMessageStoreProtocol, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
-    private let messagesState = Mutex<[ConversationMessage]>([])
+    private let messagesState = Mutex<[ThreadMessage]>([])
 
-    public var messages: [ConversationMessage] {
+    public var messages: [ThreadMessage] {
         get { messagesState.withLock { $0 } }
         set { messagesState.withLock { $0 = newValue } }
     }
 
     public init() {}
 
-    public func saveMessage(_ message: ConversationMessage) async throws {
+    public func saveMessage(_ message: ThreadMessage) async throws {
         messagesState.withLock {
             $0.append(message)
         }
     }
 
-    public func fetchMessages(for threadID: UUID) async throws -> [ConversationMessage] {
+    public func fetchMessages(for threadID: UUID) async throws -> [ThreadMessage] {
         messagesState.withLock {
             $0.filter { $0.threadID == threadID }
         }

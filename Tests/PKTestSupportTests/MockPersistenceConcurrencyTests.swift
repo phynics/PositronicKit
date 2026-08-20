@@ -9,7 +9,7 @@ struct MockPersistenceConcurrencyTests {
     func concurrentAgentSavesPreserveExactSet() async throws {
         let persistence = MockPersistenceService()
         let agents = (0 ..< 100).map { index in
-            AgentInstance(
+            Agent(
                 id: fixedUUID(index + 1),
                 name: "agent-\(index)",
                 description: "concurrency fixture",
@@ -20,13 +20,13 @@ struct MockPersistenceConcurrencyTests {
         try await withThrowingTaskGroup(of: Void.self) { group in
             for agent in agents {
                 group.addTask {
-                    try await persistence.saveAgentInstance(agent)
+                    try await persistence.saveAgent(agent)
                 }
             }
             try await group.waitForAll()
         }
 
-        let saved = try await persistence.fetchAllAgentInstances()
+        let saved = try await persistence.fetchAllAgents()
         #expect(saved.count == agents.count)
         #expect(Set(saved.map(\.id)) == Set(agents.map(\.id)))
     }

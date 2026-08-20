@@ -20,9 +20,9 @@ struct LLMStreamingStageReasoningTests {
     func structuredThinkingDeltasAccumulate() async throws {
         let service = MockLLMService()
         service.mockClient.nextRawStreamChunks = [[
-            ChatStreamResultFactory.thinkingChunk("reasoned "),
-            ChatStreamResultFactory.thinkingChunk("more"),
-            ChatStreamResultFactory.textChunk("the answer", finishReason: "stop"),
+            GenerationStreamResultFactory.thinkingChunk("reasoned "),
+            GenerationStreamResultFactory.thinkingChunk("more"),
+            GenerationStreamResultFactory.textChunk("the answer", finishReason: "stop"),
         ]]
 
         let context = makeContext()
@@ -52,7 +52,7 @@ struct LLMStreamingStageReasoningTests {
 
         let service = MockLLMService()
         service.mockClient.nextRawStreamChunks = [[
-            ChatStreamResultFactory.textChunk(taggedContent, finishReason: "stop"),
+            GenerationStreamResultFactory.textChunk(taggedContent, finishReason: "stop"),
         ]]
 
         let context = makeContext()
@@ -74,8 +74,8 @@ struct LLMStreamingStageReasoningTests {
         // Structured reasoning arrives on `thinking`; `content` carries plain answer text with
         // no tags — the parser path must contribute nothing to fullThinking.
         service.mockClient.nextRawStreamChunks = [[
-            ChatStreamResultFactory.thinkingChunk("only-once", content: nil),
-            ChatStreamResultFactory.textChunk("plain answer", finishReason: "stop"),
+            GenerationStreamResultFactory.thinkingChunk("only-once", content: nil),
+            GenerationStreamResultFactory.textChunk("plain answer", finishReason: "stop"),
         ]]
 
         let context = makeContext()
@@ -90,18 +90,18 @@ struct LLMStreamingStageReasoningTests {
 
     // MARK: - Helpers
 
-    private func makeContext() -> ChatTurnContext {
-        ChatTurnContext(
+    private func makeContext() -> TurnContext {
+        TurnContext(
             threadID: UUID(),
-            agentInstanceId: nil,
+            agentId: nil,
             modelName: "test-model",
-            maxTurns: 5,
+            maxModelRounds: 5,
             systemInstructions: nil,
             availableTools: [],
             contextData: ContextData(),
             remoteDepth: 0,
             currentMessages: [LLMMessage(role: .user, content: "hi")],
-            turnCount: 1,
+            modelRoundIndex: 1,
             outputs: TurnOutputs()
         )
     }

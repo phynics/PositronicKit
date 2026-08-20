@@ -109,7 +109,7 @@ public struct LLMToolCall: Sendable, Codable, Equatable {
 
 /// Provider-neutral chat message sent to/received from an `LLMClientProtocol` conformer.
 public struct LLMMessage: Sendable, Codable, Equatable {
-    /// The message's speaker role in the conversation.
+    /// The message's speaker role in the thread.
     public enum Role: String, Sendable, Codable {
         /// System-level instructions.
         case system

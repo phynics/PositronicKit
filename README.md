@@ -8,7 +8,7 @@ See [CHANGELOG.md](CHANGELOG.md) for release notes and tagged compatibility hist
 
 *   **SwiftUI-Style Declarative Prompts (`PKPrompt`):** Author complex prompts as structured trees using a familiar body-composition DSL. Enjoy automatic modifier inheritance for properties like `.priority(...)`, `.cachePolicy(...)`, and `.compression(...)`.
 *   **Smart Context Caching (Prompt Journaling):** Dynamic prompt tracking with `PromptJournal` automatically computes stable prefixes and volatile/semi-stable overlays. This minimizes LLM latency and API costs by maximizing prompt cache hit rates.
-*   **Zero-Latency Auxiliary Tasks (Sidecar Directives):** Fetch parallel metadata (e.g., conversation titles, sentiment classification, summaries) piggy-backed on the *same single LLM request* as the user-visible response. The user sees a standard streamed response, while directives stream or buffer in the background with zero extra round-trips.
+*   **Zero-Latency Auxiliary Tasks (Sidecar Directives):** Fetch parallel metadata (e.g., thread titles, sentiment classification, summaries) piggy-backed on the *same single LLM request* as the user-visible response. The user sees a standard streamed response, while directives stream or buffer in the background with zero extra round-trips.
 *   **Swift 6 Structured Concurrency & Actor Isolation:** Fully thread-safe runtime architecture leveraging Swift 6 actors and structured concurrency. Composable execution stages guarantee resource cleanup (e.g., persisting telemetry, closing resources) even on failures.
 *   **Completely Pluggable & Decoupled:** Downstream independence is a core invariant. Easily swap persistence engines, custom tool routers, and workspace resolvers. Supports Anthropic, OpenAI, Ollama, and OpenRouter out of the box with zero runtime dependencies.
 *   **First-Class Linux Support:** Built to compile and test seamlessly on both Apple platforms and Linux (via bare Swift 6 toolchain, with an optimized Rust bridge for local MiniLM embeddings).
@@ -47,7 +47,7 @@ let driver = kit.openThread(thread.id)                              // tier 2: T
 let threadManager = kit.threadManager                               // tier 3: threads
 let agent = kit.agenticRuntime(                                     // tier 4: agent loop
     threadID: driver.threadID,
-    agentInstanceID: UUID()
+    agentID: UUID()
 )
 let tools = kit.toolRouter                                         // tier 5: raw primitives
 ```
@@ -59,13 +59,13 @@ the injected language model. It does not expose credentials or provider configur
 not a connectivity probe or a guarantee that a later request will succeed. Treat `run`, `stream`,
 or `complete` as the authoritative operation because model state can change after the check.
 
-`run(_:)` validates `ChatRunRequest.maxTurns` before thread resolution, persistence, or provider
-work; values below `1` throw `ChatRunError.invalidMaxTurns` directly from the awaited `run` call.
-When `agentInstanceID` is present, the runtime resolves that agent once after thread resolution
+`run(_:)` validates `TurnRequest.maxModelRounds` before thread resolution, persistence, or provider
+work; values below `1` throw `TurnError.invalidMaxModelRounds` directly from the awaited `run` call.
+When `agentID` is present, the runtime resolves that agent once after thread resolution
 and before provider readiness or input persistence. The default `.failRequired` degradation policy
-throws `AgentInstanceError.instanceNotFound`; `.continueWithWarnings` proceeds without the missing
+throws `AgentError.agentNotFound`; `.continueWithWarnings` proceeds without the missing
 agent and includes an agent diagnostic in the initial generation-context event. A failed preflight
-does not consume `sendID`, so the same identifier can be retried after the dependency is repaired.
+does not consume `requestID`, so the same identifier can be retried after the dependency is repaired.
 
 One-shot text, result, stream, and structured-output calls all accept per-call generation
 parameters and an inactivity timeout on their configurable overloads. Per-call parameters override
@@ -84,13 +84,13 @@ let json = try await kit.complete(
 
 Errors arrive at the boundary where the work occurs:
 
-- Request and preparation failures—invalid `maxTurns`, thread hydration, required-agent
+- Request and preparation failures—invalid `maxModelRounds`, thread hydration, required-agent
   preflight, provider configuration, sidecar validation, and input/history preparation—throw from
   `try await kit.run(request)` before a stream is returned.
 - Provider and pipeline failures after `run(_:)` returns arrive by throwing while the returned
   stream is iterated. A foreign provider failure retains its original causal error and exposes the
   stable LLM identity `PKErrorDomain.llm` / `1005` through
-  `ChatEvent.ErrorIdentity.extracting(from:)`, even when nested in a pipeline error.
+  `TurnEvent.ErrorIdentity.extracting(from:)`, even when nested in a pipeline error.
 - `complete` and `completeResult` consume their stream internally, so preparation and provider
   failures both throw from the one-shot call. `stream` returns immediately and reports provider
   failures during iteration.
@@ -143,7 +143,7 @@ print(rendered.sections.map(\.id))
 
 ### Sidecar directives (piggy-backed auxiliary generations)
 
-Get a conversation title, tone marker, or summary from the same request as the user-visible response.
+Get a thread title, tone marker, or summary from the same request as the user-visible response.
 
 ```swift
 import JSONSchemaBuilder
@@ -152,7 +152,7 @@ import PositronicKit
 
 let title = SidecarDirective(
     name: "title",
-    instruction: "A short conversation title (3-6 words). Return null if the conversation already has a good title.",
+    instruction: "A short thread title (3-6 words). Return null if the thread already has a good title.",
     schema: JSONString().definition(),
     streaming: .buffered
 )
@@ -243,7 +243,7 @@ print(compactedPlan?.overlaySections.isEmpty ?? false)
 
 ### How Overlays are Represented in the LLM Context
 
-Under the hood, `PromptJournalPlan` renders these state transitions into provider-neutral conversation messages using a set of structured XML tags. This allows the LLM to cleanly track how sections evolve without having to resend unchanged stable blocks:
+Under the hood, `PromptJournalPlan` renders these state transitions into provider-neutral thread messages using a set of structured XML tags. This allows the LLM to cleanly track how sections evolve without having to resend unchanged stable blocks:
 
 *   **Snapshot Mode (`.snapshot`):** Emitted at the beginning of a session, establishing the initial state of the prompt's baseline sections:
     ```xml
@@ -251,7 +251,7 @@ Under the hood, `PromptJournalPlan` renders these state transitions into provide
     Builds the package.
     </prompt_journal_snapshot>
     ```
-*   **Delta Mode (`.delta`):** When semi-stable sections change, the journal appends only the difference messages to the conversation context:
+*   **Delta Mode (`.delta`):** When semi-stable sections change, the journal appends only the difference messages to the thread context:
     *   **Additions:** Wrapped in `<prompt_journal_add>` tags.
     *   **Modifications:** Wrapped in `<prompt_journal_replace>` tags.
     *   **Removals:** Specified as `<prompt_journal_remove id="..." />`.
@@ -294,7 +294,7 @@ func capturesDownstreamRequest() async throws {
     let llm = MockLLMService()
     llm.mockClient.nextResponse = "ok"
 
-    let stream = await llm.chatStream(
+    let stream = await llm.generationStream(
         messages: [LLMMessage(role: .user, content: "hello")],
         tools: nil,
         toolChoice: nil,
@@ -304,9 +304,9 @@ func capturesDownstreamRequest() async throws {
     )
     _ = try await stream.collect()
 
-    #expect(llm.chatCaptureHistory.count == 1)
-    #expect(llm.chatCaptureHistory.last?.messages.first?.content == "hello")
-    #expect(llm.chatCaptureHistory.last?.modelTier == .fast)
+    #expect(llm.generationCaptureHistory.count == 1)
+    #expect(llm.generationCaptureHistory.last?.messages.first?.content == "hello")
+    #expect(llm.generationCaptureHistory.last?.modelTier == .fast)
 }
 ```
 
@@ -336,9 +336,9 @@ The harness contracts are intentionally explicit:
   then awaited after unlocking.
 - `TestWorkspace` creates a unique directory and removes it best-effort on deinitialization. Retain
   the `TestWorkspace` object—not only its `root` URL—for the entire time the directory is needed.
-- `TestRuntime.threadManager`, `toolRouter`, and `agentInstanceManager` are the exact
+- `TestRuntime.threadManager`, `toolRouter`, and `agentManager` are the exact
   facade-owned instances; in particular,
-  `runtime.agentInstanceManager === runtime.positronicKit.agentInstanceManager`.
+  `runtime.agentManager === runtime.positronicKit.agentManager`.
   `agentWorkspaceService` and `workspaceManager` remain separate compatibility helpers backed by
   the runtime's supplied persistence and workspace factory.
 
@@ -346,7 +346,7 @@ The harness contracts are intentionally explicit:
 
 Core modules:
 
-- **PositronicKit** — the runtime layer: chat engine, orchestration stages, tool routing, thread and workspace management, and provider-neutral LLM orchestration.
+- **PositronicKit** — the runtime layer: turn engine, orchestration stages, tool routing, thread and workspace management, and provider-neutral LLM orchestration.
 - **PKPrompt** — the prompt layer: a SwiftUI-style `@PromptBuilder` DSL, structured compression, cache-aware assembly, and prompt journaling for stable-prefix workflows.
 - **PKContracts** — the contract layer: API models, tool protocols, provider contracts, structured-output types, and diagnostic errors.
 - **PKLocalEmbeddings** — the platform-local embedding facade (`LocalEmbeddingService`). Apple uses Natural Language by default; Linux uses the host-provisioned MiniLM backend.

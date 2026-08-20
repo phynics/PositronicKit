@@ -9,10 +9,10 @@ import Testing
 
 @Suite("Logging redaction")
 struct LoggingRedactionTests {
-    @Test("ChatRunRequest description does not include the user message")
+    @Test("TurnRequest description does not include the user message")
     func requestDescriptionDoesNotLeakMessage() {
         let secret = "user-secret-prompt-7f3c"
-        let request = ChatRunRequest(threadID: UUID(), message: secret)
+        let request = TurnRequest(threadID: UUID(), message: secret)
 
         #expect(!request.description.contains(secret))
         #expect(request.description.contains("message: <redacted>"))
@@ -87,7 +87,7 @@ struct LoggingRedactionTests {
 
         // Identity travels in structured metadata, not embedded in the colored message string.
         #expect(routing.metadata[LogKeys.toolName]?.description == "calculator")
-        #expect(routing.metadata[LogKeys.timelineID]?.description == threadID.uuidString)
+        #expect(routing.metadata[LogKeys.threadID]?.description == threadID.uuidString)
     }
 
     // MARK: - Capture harness

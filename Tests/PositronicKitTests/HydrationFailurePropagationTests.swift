@@ -21,13 +21,13 @@ struct HydrationFailurePropagationTests {
         let unresolvedThreadId = UUID()
 
         await #expect(throws: ThreadError.threadNotFound) {
-            _ = try await kit.run(ChatRunRequest(
+            _ = try await kit.run(TurnRequest(
                 threadID: unresolvedThreadId,
                 message: "should not reach the engine"
             ))
         }
 
-        #expect(mockLLM.chatCaptureHistory.isEmpty)
+        #expect(mockLLM.generationCaptureHistory.isEmpty)
     }
 
     @Test("run(_:) throws unavailable when the thread store fails (PKRR-005)")
@@ -42,7 +42,7 @@ struct HydrationFailurePropagationTests {
         let unresolvedThreadId = UUID()
 
         await #expect(throws: ThreadError.unavailable) {
-            _ = try await kit.run(ChatRunRequest(
+            _ = try await kit.run(TurnRequest(
                 threadID: unresolvedThreadId,
                 message: "should not reach the engine"
             ))
@@ -66,7 +66,7 @@ struct HydrationFailurePropagationTests {
         ))
         let thread = try await kit.threadManager.createThread()
 
-        let stream = try await kit.run(ChatRunRequest(
+        let stream = try await kit.run(TurnRequest(
             threadID: thread.id,
             message: "fail during provider streaming"
         ))
@@ -85,7 +85,7 @@ struct HydrationFailurePropagationTests {
             let foreignNSError = streamError.underlyingError as NSError
             #expect(foreignNSError.domain == foreignError.domain)
             #expect(foreignNSError.code == foreignError.code)
-            let identity = ChatEvent.ErrorIdentity.extracting(from: error)
+            let identity = TurnEvent.ErrorIdentity.extracting(from: error)
             #expect(identity?.domain == PKErrorDomain.llm)
             #expect(identity?.code == 1005)
         } catch {

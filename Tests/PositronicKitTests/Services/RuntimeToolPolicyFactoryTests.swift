@@ -36,10 +36,10 @@ struct RuntimeToolPolicyFactoryTests {
             "grep",
             "search_files",
             "cat",
-            "timeline_list",
-            "timeline_peek",
+            "thread_list",
+            "thread_peek",
         ])
-        #expect(!ids.contains("timeline_send"))
+        #expect(!ids.contains("thread_send"))
     }
 
     @Test("Thread send is installed only when an agent is attached")
@@ -47,7 +47,7 @@ struct RuntimeToolPolicyFactoryTests {
         let (threadStore, messageStore) = makeStores()
         let thread = Thread(
             workingDirectory: "/tmp/test",
-            attachedAgentInstanceID: UUID()
+            attachedAgentID: UUID()
         )
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
             for: thread,
@@ -58,13 +58,13 @@ struct RuntimeToolPolicyFactoryTests {
         )
 
         let ids = await toolIds(for: toolManager)
-        #expect(ids.contains("timeline_send"))
+        #expect(ids.contains("thread_send"))
     }
 
     @Test("Thread send is NOT installed when no agent is attached, even with the policy flag on")
     func threadSendAbsentWithoutAttachedAgent() async {
         let (threadStore, messageStore) = makeStores()
-        let thread = Thread(workingDirectory: "/tmp/test") // no attachedAgentInstanceId
+        let thread = Thread(workingDirectory: "/tmp/test") // no attachedAgentId
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
             for: thread,
             jailRoot: "/tmp/test",
@@ -74,7 +74,7 @@ struct RuntimeToolPolicyFactoryTests {
         )
 
         let ids = await toolIds(for: toolManager)
-        #expect(!ids.contains("timeline_send"))
+        #expect(!ids.contains("thread_send"))
     }
 
     @Test("Selective runtime tool policy disables chosen categories only")
@@ -82,7 +82,7 @@ struct RuntimeToolPolicyFactoryTests {
         let (threadStore, messageStore) = makeStores()
         let thread = Thread(
             workingDirectory: "/tmp/test",
-            attachedAgentInstanceID: UUID()
+            attachedAgentID: UUID()
         )
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
             for: thread,
@@ -97,7 +97,7 @@ struct RuntimeToolPolicyFactoryTests {
         )
 
         let ids = await toolIds(for: toolManager)
-        #expect(ids == ["timeline_list", "timeline_peek", "timeline_send"])
+        #expect(ids == ["thread_list", "thread_peek", "thread_send"])
     }
 
     @Test("Deny-all runtime tool policy installs no default tools")
@@ -105,7 +105,7 @@ struct RuntimeToolPolicyFactoryTests {
         let (threadStore, messageStore) = makeStores()
         let thread = Thread(
             workingDirectory: "/tmp/test",
-            attachedAgentInstanceID: UUID()
+            attachedAgentID: UUID()
         )
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
             for: thread,
@@ -124,7 +124,7 @@ struct RuntimeToolPolicyFactoryTests {
         let (threadStore, messageStore) = makeStores()
         let thread = Thread(
             workingDirectory: "/tmp/test",
-            attachedAgentInstanceID: UUID()
+            attachedAgentID: UUID()
         )
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
             for: thread,

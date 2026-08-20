@@ -34,7 +34,7 @@ struct PromptObservingTests {
                     workspacePersistence: persistence,
                     memoryStore: persistence,
                     toolPersistence: persistence,
-                    agentInstanceStore: persistence,
+                    agentStore: persistence,
                     requestOriginStore: persistence
                 ),
                 runtime: .init(promptObserver: inspector)
@@ -47,7 +47,7 @@ struct PromptObservingTests {
             kit: PositronicKit,
             message: String
         ) async throws {
-            let stream = try await kit.run(ChatRunRequest(
+            let stream = try await kit.run(TurnRequest(
                 threadID: threadID,
                 message: message
             ))
@@ -55,11 +55,11 @@ struct PromptObservingTests {
         }
     }
 
-    private final class ChatEngineTestHarness {
+    private final class TurnEngineTestHarness {
         let threadID = UUID()
         let llm = MockLLMService()
         let persistence = MockPersistenceService()
-        let engine: ChatEngine
+        let engine: TurnEngine
 
         init(inspector: (any PromptObserving)? = nil) async throws {
             let threadManager = ThreadManager(
@@ -76,15 +76,15 @@ struct PromptObservingTests {
                 threadManager: threadManager,
                 messageStore: persistence
             )
-            engine = ChatEngine(
+            engine = TurnEngine(
                 dependencies: .init(
                     threadManager: threadManager,
-                    agentInstanceStore: persistence,
+                    agentStore: persistence,
                     requestOriginStore: persistence,
                     messageStore: persistence,
                     llmService: llm,
                     toolRouter: toolRouter,
-                    chatTurnPlugins: [],
+                    turnPlugins: [],
                     promptObserver: inspector
                 )
             )
@@ -120,16 +120,16 @@ struct PromptObservingTests {
         func collect(
             message: String,
             tools: [AnyTool] = [],
-            maxTurns: Int = ChatEngine.Constants.defaultMaxTurns
-        ) async throws -> [ChatEvent] {
+            maxModelRounds: Int = TurnEngine.Constants.defaultMaxModelRounds
+        ) async throws -> [TurnEvent] {
             let stream = try await engine.execute(
                 threadID: threadID,
                 message: message,
                 tools: tools,
-                maxTurns: maxTurns
+                maxModelRounds: maxModelRounds
             )
 
-            var events: [ChatEvent] = []
+            var events: [TurnEvent] = []
             for try await event in stream {
                 events.append(event)
             }
@@ -153,7 +153,7 @@ struct PromptObservingTests {
 
         func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
             if shouldWait { try? await Task.sleep(nanoseconds: 100_000_000) }
-            if !result.success, result.error == "client_tools_disallowed_on_private_timeline" {
+            if !result.success, result.error == "client_tools_disallowed_on_private_thread" {
                 throw ToolError.attachedToolsDisallowedOnPrivateThread
             }
             return result
@@ -163,7 +163,7 @@ struct PromptObservingTests {
     @Test("Publishes the exact rendered artifact before generation")
     func publishesExactArtifact() async throws {
         let recorder = InspectionRecorder()
-        let harness = try await ChatEngineTestHarness(inspector: recorder)
+        let harness = try await TurnEngineTestHarness(inspector: recorder)
         harness.llm.mockClient.nextResponse = "Moonlight"
 
         _ = try await harness.collect(message: "What is yakamoz?")
@@ -171,7 +171,7 @@ struct PromptObservingTests {
         let value = try #require(await recorder.values.first)
         let modelName = await harness.llm.configuration.activeProviderConfiguration.modelName
         #expect(value.threadID == harness.threadID)
-        #expect(value.turnIndex == 0)
+        #expect(value.modelRoundIndex == 0)
         #expect(value.model == modelName)
         #expect(value.sentMessages == value.rendered.buildMessages())
         #expect(value.estimatedTokens == value.rendered.estimatedTokens)
@@ -184,7 +184,7 @@ struct PromptObservingTests {
     @Test("Publishes each model turn in a tool loop")
     func publishesToolLoopTurns() async throws {
         let recorder = InspectionRecorder()
-        let harness = try await ChatEngineTestHarness(inspector: recorder)
+        let harness = try await TurnEngineTestHarness(inspector: recorder)
         harness.llm.mockClient.nextToolCalls = [[MockToolCall(id: "call-1", name: "mock_tool")]]
         harness.llm.mockClient.nextResponses = ["", "Done"]
 
@@ -194,16 +194,16 @@ struct PromptObservingTests {
         )
 
         let values = await recorder.values
-        #expect(values.map { $0.turnIndex } == [0, 1])
-        #expect(values.map(\.identity.roundTrip) == [0, 1])
-        #expect(values.map(\.identity.sendID).allSatisfy { $0 == values[0].identity.sendID })
+        #expect(values.map { $0.modelRoundIndex } == [0, 1])
+        #expect(values.map(\.identity.modelRoundIndex) == [0, 1])
+        #expect(values.map(\.identity.requestID).allSatisfy { $0 == values[0].identity.requestID })
         #expect(values[1].journal.stablePrefixCount > 0)
     }
 
-    @Test("Turn identity keeps send identity stable across round trips")
+    @Test("Turn identity keeps request identity stable across model rounds")
     func turnIdentityStaysStableAcrossRoundTrips() async throws {
         let recorder = InspectionRecorder()
-        let harness = try await ChatEngineTestHarness(inspector: recorder)
+        let harness = try await TurnEngineTestHarness(inspector: recorder)
         harness.llm.mockClient.nextToolCalls = [[MockToolCall(id: "call-1", name: "mock_tool")]]
         harness.llm.mockClient.nextResponses = ["", "Done"]
 
@@ -213,10 +213,10 @@ struct PromptObservingTests {
         )
 
         let values = await recorder.values
-        let sendIds = values.map(\.identity.sendID)
-        #expect(Set(sendIds).count == 1)
-        #expect(values.map(\.identity.roundTrip) == [0, 1])
-        #expect(values.last?.identity.roundTrip == 1)
+        let requestIds = values.map(\.identity.requestID)
+        #expect(Set(requestIds).count == 1)
+        #expect(values.map(\.identity.modelRoundIndex) == [0, 1])
+        #expect(values.last?.identity.modelRoundIndex == 1)
     }
 
     /// PKR-10: `synthesizeFollowUpPrompt` used to rebuild `RenderedPrompt.string` by re-joining
@@ -229,36 +229,36 @@ struct PromptObservingTests {
     @Test("Rendered prompt string stays correct across many tool-call turns")
     func renderedPromptStringMatchesFullRejoinAcrossManyToolCallTurns() async throws {
         let recorder = InspectionRecorder()
-        let harness = try await ChatEngineTestHarness(inspector: recorder)
+        let harness = try await TurnEngineTestHarness(inspector: recorder)
 
-        let turnCount = 6
-        harness.llm.mockClient.nextToolCalls = (0 ..< (turnCount - 1)).map { index in
+        let modelRoundIndex = 6
+        harness.llm.mockClient.nextToolCalls = (0 ..< (modelRoundIndex - 1)).map { index in
             [MockToolCall(id: "call-\(index)", name: "mock_tool")]
         }
-        harness.llm.mockClient.nextResponses = Array(repeating: "", count: turnCount - 1) + ["Done"]
+        harness.llm.mockClient.nextResponses = Array(repeating: "", count: modelRoundIndex - 1) + ["Done"]
 
         _ = try await harness.collect(
             message: "Use the tool repeatedly",
             tools: [MockTool().toAnyTool()],
-            maxTurns: turnCount
+            maxModelRounds: modelRoundIndex
         )
 
         let values = await recorder.values
-        #expect(values.map(\.turnIndex) == Array(0 ..< turnCount))
+        #expect(values.map(\.modelRoundIndex) == Array(0 ..< modelRoundIndex))
 
         for inspection in values {
             let rendered = inspection.rendered
             let expectedString = rendered.sections
                 .compactMap { rendered.sectionsByID[$0.id] }
                 .joined(separator: "\n\n---\n\n")
-            #expect(rendered.string == expectedString, "turn \(inspection.turnIndex) diverged from a full section re-join")
+            #expect(rendered.string == expectedString, "turn \(inspection.modelRoundIndex) diverged from a full section re-join")
         }
 
         // The follow-up sections accumulate one per continued turn — confirms this scenario
         // actually exercises the incremental-append path (not just a single-turn no-op).
         let lastSectionIDs = try Set(#require(values.last?.rendered.sections.map(\.id)))
         let followUpSectionCount = lastSectionIDs.filter { $0.hasPrefix("runtime-follow-up-") }.count
-        #expect(followUpSectionCount == turnCount - 1)
+        #expect(followUpSectionCount == modelRoundIndex - 1)
     }
 
     @Test("Reconfigured facade preserves inspection continuity across sends")
@@ -275,9 +275,9 @@ struct PromptObservingTests {
         try await harness.run(kit: reconfigured, message: "Second send")
 
         let values = await harness.inspector.values
-        #expect(values.map(\.turnIndex) == [0, 1])
-        #expect(values.map(\.identity.roundTrip) == [0, 0])
-        #expect(Set(values.map(\.identity.sendID)).count == 2)
+        #expect(values.map(\.modelRoundIndex) == [0, 1])
+        #expect(values.map(\.identity.modelRoundIndex) == [0, 0])
+        #expect(Set(values.map(\.identity.requestID)).count == 2)
     }
 
     @Test("Fresh facade without shared state resets inspection continuity explicitly")
@@ -296,7 +296,7 @@ struct PromptObservingTests {
                 workspacePersistence: harness.persistence,
                 memoryStore: harness.persistence,
                 toolPersistence: harness.persistence,
-                agentInstanceStore: harness.persistence,
+                agentStore: harness.persistence,
                 requestOriginStore: harness.persistence
             ),
             runtime: .init(promptObserver: harness.inspector)
@@ -304,8 +304,8 @@ struct PromptObservingTests {
         try await harness.run(kit: secondKit, message: "Second send")
 
         let values = await harness.inspector.values
-        #expect(values.map(\.turnIndex) == [0, 0])
-        #expect(values.map(\.identity.roundTrip) == [0, 0])
-        #expect(Set(values.map(\.identity.sendID)).count == 2)
+        #expect(values.map(\.modelRoundIndex) == [0, 0])
+        #expect(values.map(\.identity.modelRoundIndex) == [0, 0])
+        #expect(Set(values.map(\.identity.requestID)).count == 2)
     }
 }

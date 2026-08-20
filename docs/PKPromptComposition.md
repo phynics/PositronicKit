@@ -76,7 +76,7 @@ Use `PromptJournal` when your application needs a prompt-facing abstraction, for
 In that role, `PromptJournal` is the recommended public abstraction.
 
 `PromptJournal` now has built-in append-pressure thresholds (`PromptJournalCompactionThresholds`).
-After you accept a turn and append its assistant/tool messages to conversation history, record
+After you accept a turn and append its assistant/tool messages to thread history, record
 that pressure with `recordAppend(messages:)` (or `recordAppend(messageCount:estimatedTokens:)`).
 When the thresholds are exceeded, the next `observe(_:)` auto-promotes the latest accepted prompt
 into a new committed base before diffing again. This gives standalone prompt consumers the same
@@ -95,7 +95,7 @@ If you are adopting `PositronicKit`, you usually do not need to instantiate or m
 The two systems intentionally overlap only partially:
 
 - `PromptJournal` is authoritative for prompt-facing base / overlay / volatile layering and hard-reset semantics when stable prompt content changes.
-- `ThreadPromptHistory` is authoritative for runtime cache-prefix accounting (`stablePrefixCount`) and append-pressure tracking inside the chat loop.
+- `ThreadPromptHistory` is authoritative for runtime cache-prefix accounting (`stablePrefixCount`) and append-pressure tracking inside the turn loop.
 - For semistable prompt changes, their diff IDs are kept aligned and tested together, but they are not the same abstraction.
 
 ### Canonical recommendation

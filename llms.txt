@@ -1,6 +1,6 @@
 # PositronicKit
 
-> A Swift toolkit for building AI agents: transport-neutral runtime orchestration (chat loop, timelines, tool routing), a structured prompt composition DSL, and the shared contracts that tie them together — without imposing a specific networking or hosting model.
+> A Swift toolkit for building AI agents: transport-neutral runtime orchestration (turn loop, threads, tool routing), a structured prompt composition DSL, and the shared contracts that tie them together — without imposing a specific networking or hosting model.
 
 PositronicKit follows semver for tagged releases beginning with `1.0.0`. The core modules (`PositronicKit`, `PKPrompt`, `PKContracts`) and the provider adapters are verified on Apple platforms and Linux; `PKLocalEmbeddings` is verified on Apple default, Linux, and Apple MiniLM trait paths. Add it as a Swift Package dependency and import only the modules you need — see the Quick Start below before writing any code against it.
 
@@ -16,7 +16,7 @@ PositronicKit follows semver for tagged releases beginning with `1.0.0`. The cor
 ## Core Concepts
 
 - [Usage Guide](docs/Usage.md): current tagged-release usage, initialization and execution, tool outputs, and local embeddings.
-- [Architecture](docs/Architecture.md): the pipeline pattern, context/state management, facade vs. direct-seam wiring, chat-engine execution flow, and the v1 extension point registry — treat everything not in that registry (`ChatEngine`, prompt-assembly internals, context-pipeline internals) as private, even if technically public.
+- [Architecture](docs/Architecture.md): the pipeline pattern, context/state management, facade vs. direct-seam wiring, turn-engine execution flow, and the v1 extension point registry — treat everything not in that registry (`TurnEngine`, prompt-assembly internals, context-pipeline internals) as private, even if technically public.
 - [Prompt Composition](docs/PKPromptComposition.md): the `@PromptBuilder` DSL, assembly/rendering, cache policies, and `PromptJournal` stable-prefix journaling.
 - [Sidecar Directives](docs/SidecarDirectives.md): piggy-backed auxiliary generations (titles, tags, summaries) riding the same LLM request as the user-visible response.
 

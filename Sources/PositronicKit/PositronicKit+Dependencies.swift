@@ -3,8 +3,8 @@ import PKContracts
 import PKUtilities
 
 /// Bundles the resolved stores, managers, and configuration that ``PositronicKit`` needs to
-/// construct its internal coordinators (`ThreadManager`, `AgentInstanceManager`, `ToolRouter`,
-/// `ChatEngine`).
+/// construct its internal coordinators (`ThreadManager`, `AgentManager`, `ToolRouter`,
+/// `TurnEngine`).
 ///
 /// Used internally to eliminate the ~25-line parameter forwarding repeated by the builder
 /// methods (`reconfigured`, `addingStage`, `addingPlugin`): each builder extracts the current
@@ -16,7 +16,7 @@ import PKUtilities
 internal struct KitDependencies: Sendable {
     var languageModel: any LLMStreamClient & LLMUtilityClient
     var messageStore: any ThreadMessageStoreProtocol
-    var agentInstanceStore: any AgentInstanceStoreProtocol
+    var agentStore: any AgentStoreProtocol
     var requestOriginStore: any RequestOriginStoreProtocol
     var threadPersistence: any ThreadPersistenceProtocol
     var workspacePersistence: any WorkspaceStore
@@ -27,7 +27,7 @@ internal struct KitDependencies: Sendable {
     var workspaceCreator: any WorkspaceFactory
     var sectionProviders: [any PromptSectionProviding]
     var runtimeToolPolicy: ThreadManager.RuntimeToolPolicy
-    var chatTurnPlugins: [any ChatTurnPlugin]
+    var turnPlugins: [any TurnPlugin]
     var promptObserver: (any PromptObserving)?
     var diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
     var degradationPolicy: TurnDegradationPolicy
@@ -35,5 +35,5 @@ internal struct KitDependencies: Sendable {
     var toolApprovalPolicy: any ToolApprovalPolicy
     var loggingConfiguration: LoggingConfiguration
     var sharedRegistry: ThreadPromptJournals
-    var additionalStages: [any PipelineStage<ChatTurnContext, ChatEvent>]
+    var additionalStages: [any PipelineStage<TurnContext, TurnEvent>]
 }

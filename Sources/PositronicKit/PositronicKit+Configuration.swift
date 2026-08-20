@@ -48,7 +48,7 @@ public extension PositronicKit {
     ///
     /// Use ``validateDurability()`` to detect mixed-durability configurations (some stores
     /// durable, others in-memory) that can lose data on restart. Use
-    /// ``fullyPersistent(messageStore:threadPersistence:workspacePersistence:memoryStore:toolPersistence:agentInstanceStore:requestOriginStore:)``
+    /// ``fullyPersistent(messageStore:threadPersistence:workspacePersistence:memoryStore:toolPersistence:agentStore:requestOriginStore:)``
     /// when all seven stores must be explicitly provided for full durability.
     struct PersistenceConfiguration: Sendable {
         public let messageStore: any ThreadMessageStoreProtocol
@@ -56,7 +56,7 @@ public extension PositronicKit {
         public let workspacePersistence: any WorkspaceStore
         public let memoryStore: any MemoryStoreProtocol
         public let toolPersistence: any ToolPersistenceProtocol
-        public let agentInstanceStore: any AgentInstanceStoreProtocol
+        public let agentStore: any AgentStoreProtocol
         public let requestOriginStore: any RequestOriginStoreProtocol
 
         public init(
@@ -65,7 +65,7 @@ public extension PositronicKit {
             workspacePersistence: (any WorkspaceStore)? = nil,
             memoryStore: (any MemoryStoreProtocol)? = nil,
             toolPersistence: (any ToolPersistenceProtocol)? = nil,
-            agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,
+            agentStore: (any AgentStoreProtocol)? = nil,
             requestOriginStore: (any RequestOriginStoreProtocol)? = nil
         ) {
             self.messageStore = messageStore ?? InMemoryMessageStore()
@@ -73,7 +73,7 @@ public extension PositronicKit {
             self.workspacePersistence = workspacePersistence ?? InMemoryWorkspacePersistence()
             self.memoryStore = memoryStore ?? InMemoryMemoryStore()
             self.toolPersistence = toolPersistence ?? InMemoryToolPersistence()
-            self.agentInstanceStore = agentInstanceStore ?? InMemoryAgentInstanceStore()
+            self.agentStore = agentStore ?? InMemoryAgentStore()
             self.requestOriginStore = requestOriginStore ?? InMemoryRequestOriginStore()
         }
 
@@ -84,7 +84,7 @@ public extension PositronicKit {
             workspacePersistence: (any WorkspaceStore)? = nil,
             memoryStore: (any MemoryStoreProtocol)? = nil,
             toolPersistence: (any ToolPersistenceProtocol)? = nil,
-            agentInstanceStore: (any AgentInstanceStoreProtocol)? = nil,
+            agentStore: (any AgentStoreProtocol)? = nil,
             requestOriginStore: (any RequestOriginStoreProtocol)? = nil
         ) {
             self.messageStore = messageStore ?? InMemoryMessageStore()
@@ -92,7 +92,7 @@ public extension PositronicKit {
             self.workspacePersistence = workspacePersistence ?? InMemoryWorkspacePersistence()
             self.memoryStore = memoryStore ?? InMemoryMemoryStore()
             self.toolPersistence = toolPersistence ?? InMemoryToolPersistence()
-            self.agentInstanceStore = agentInstanceStore ?? InMemoryAgentInstanceStore()
+            self.agentStore = agentStore ?? InMemoryAgentStore()
             self.requestOriginStore = requestOriginStore ?? InMemoryRequestOriginStore()
         }
 
@@ -110,7 +110,7 @@ public extension PositronicKit {
             workspacePersistence: any WorkspaceStore,
             memoryStore: any MemoryStoreProtocol,
             toolPersistence: any ToolPersistenceProtocol,
-            agentInstanceStore: any AgentInstanceStoreProtocol,
+            agentStore: any AgentStoreProtocol,
             requestOriginStore: any RequestOriginStoreProtocol
         ) -> PersistenceConfiguration {
             PersistenceConfiguration(
@@ -119,7 +119,7 @@ public extension PositronicKit {
                 workspacePersistence: workspacePersistence,
                 memoryStore: memoryStore,
                 toolPersistence: toolPersistence,
-                agentInstanceStore: agentInstanceStore,
+                agentStore: agentStore,
                 requestOriginStore: requestOriginStore
             )
         }
@@ -136,7 +136,7 @@ public extension PositronicKit {
                 workspacePersistence: workspacePersistence.isDurable ? .durable : .ephemeral,
                 memoryStore: memoryStore.isDurable ? .durable : .ephemeral,
                 toolPersistence: toolPersistence.isDurable ? .durable : .ephemeral,
-                agentInstanceStore: agentInstanceStore.isDurable ? .durable : .ephemeral,
+                agentStore: agentStore.isDurable ? .durable : .ephemeral,
                 requestOriginStore: requestOriginStore.isDurable ? .durable : .ephemeral
             )
         }
@@ -155,14 +155,14 @@ public extension PositronicKit {
     ///
     /// `isMixed` is `true` when the configuration has both `.durable` and `.ephemeral`
     /// stores — a data-consistency risk because durable stores may reference entities
-    /// (timelines, workspaces, agents) that will be missing after restart.
+    /// (threads, workspaces, agents) that will be missing after restart.
     struct DurabilityReport: Sendable, Equatable {
         public let messageStore: StoreDurability
         public let threadPersistence: StoreDurability
         public let workspacePersistence: StoreDurability
         public let memoryStore: StoreDurability
         public let toolPersistence: StoreDurability
-        public let agentInstanceStore: StoreDurability
+        public let agentStore: StoreDurability
         public let requestOriginStore: StoreDurability
 
         public init(
@@ -171,7 +171,7 @@ public extension PositronicKit {
             workspacePersistence: StoreDurability,
             memoryStore: StoreDurability,
             toolPersistence: StoreDurability,
-            agentInstanceStore: StoreDurability,
+            agentStore: StoreDurability,
             requestOriginStore: StoreDurability
         ) {
             self.messageStore = messageStore
@@ -179,14 +179,14 @@ public extension PositronicKit {
             self.workspacePersistence = workspacePersistence
             self.memoryStore = memoryStore
             self.toolPersistence = toolPersistence
-            self.agentInstanceStore = agentInstanceStore
+            self.agentStore = agentStore
             self.requestOriginStore = requestOriginStore
         }
 
         public var isMixed: Bool {
             let all: [StoreDurability] = [
                 messageStore, threadPersistence, workspacePersistence,
-                memoryStore, toolPersistence, agentInstanceStore, requestOriginStore,
+                memoryStore, toolPersistence, agentStore, requestOriginStore,
             ]
             return all.contains(.durable) && all.contains(.ephemeral)
         }
@@ -199,7 +199,7 @@ public extension PositronicKit {
             if workspacePersistence == .ephemeral { names.append("workspacePersistence") }
             if memoryStore == .ephemeral { names.append("memoryStore") }
             if toolPersistence == .ephemeral { names.append("toolPersistence") }
-            if agentInstanceStore == .ephemeral { names.append("agentInstanceStore") }
+            if agentStore == .ephemeral { names.append("agentStore") }
             if requestOriginStore == .ephemeral { names.append("requestOriginStore") }
             return names
         }
@@ -213,13 +213,13 @@ public extension PositronicKit {
     }
 
     /// Groups the non-store runtime knobs: workspace creation, prompt-section providers,
-    /// tool policy and approval, chat-turn plugins, and prompt observation.
+    /// tool policy and approval, turn plugins, and prompt observation.
     struct RuntimeConfiguration: Sendable {
         public let workspaceProfile: WorkspaceProfile
         public let workspaceCreator: any WorkspaceFactory
         public let sectionProviders: [any PromptSectionProviding]
         public let runtimeToolPolicy: ThreadManager.RuntimeToolPolicy
-        public let chatTurnPlugins: [any ChatTurnPlugin]
+        public let turnPlugins: [any TurnPlugin]
         public let promptObserver: (any PromptObserving)?
         public let toolApprovalPolicy: any ToolApprovalPolicy
         public let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
@@ -232,17 +232,17 @@ public extension PositronicKit {
         public var workspaceRoot: URL? { workspaceProfile.catalogRoot }
 
         /// - Parameters:
-        ///   - workspaceProfile: How the per-timeline filesystem workspace is provisioned.
+        ///   - workspaceProfile: How the per-thread filesystem workspace is provisioned.
         ///     Defaults to `.noWorkspace` (no filesystem side effects). Pass `.hostManaged(root:)`
         ///     to preserve the pre-PKRR-029 behavior of an explicit workspace root, or
         ///     `.ephemeralWorkspace(root:)` for a self-cleaning scratch directory.
         ///   - workspaceRoot: Legacy shorthand. When non-`nil` and `workspaceProfile` is omitted,
         ///     maps to `.hostManaged(root: workspaceRoot, seedNotes: .default)`.
-        ///   - workspaceCreator: Creates per-timeline workspace directories when the selected
+        ///   - workspaceCreator: Creates per-thread workspace directories when the selected
         ///     profile requires them.
         ///   - sectionProviders: Supplies additional prompt sections for each turn.
         ///   - runtimeToolPolicy: Controls which tools the runtime may expose and execute.
-        ///   - chatTurnPlugins: Plugins that participate in chat-turn lifecycle hooks.
+        ///   - turnPlugins: Plugins that participate in turn lifecycle hooks.
         ///   - promptObserver: Optional observer for assembled prompt diagnostics.
         ///   - toolApprovalPolicy: Controls whether runtime tool calls require approval.
         ///   - diagnosticSnapshotConfiguration: Controls diagnostic response snapshots.
@@ -253,7 +253,7 @@ public extension PositronicKit {
             sectionProviders: [any PromptSectionProviding] = [],
             runtimeToolPolicy: ThreadManager.RuntimeToolPolicy = .default,
             workspaceRoot: URL? = nil,
-            chatTurnPlugins: [any ChatTurnPlugin] = [],
+            turnPlugins: [any TurnPlugin] = [],
             promptObserver: (any PromptObserving)? = nil,
             toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
             diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
@@ -269,7 +269,7 @@ public extension PositronicKit {
             self.workspaceCreator = workspaceCreator
             self.sectionProviders = sectionProviders
             self.runtimeToolPolicy = runtimeToolPolicy
-            self.chatTurnPlugins = chatTurnPlugins
+            self.turnPlugins = turnPlugins
             self.promptObserver = promptObserver
             self.toolApprovalPolicy = toolApprovalPolicy
             self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
@@ -288,12 +288,12 @@ public extension PositronicKit {
     /// During construction the persistence configuration is checked for mixed durability
     /// (some stores durable, others in-memory). If mixed, a `.warning` is logged naming the
     /// specific ephemeral stores. The warning is non-fatal — it is the guardrail against
-    /// accidentally losing timelines, workspaces, agents, or tool state on restart.
+    /// accidentally losing threads, workspaces, agents, or tool state on restart.
     convenience init(configuration: Configuration) {
         self.init(
             languageModel: configuration.provider.languageModel,
             messageStore: configuration.persistence.messageStore,
-            agentInstanceStore: configuration.persistence.agentInstanceStore,
+            agentStore: configuration.persistence.agentStore,
             requestOriginStore: configuration.persistence.requestOriginStore,
             threadPersistence: configuration.persistence.threadPersistence,
             workspacePersistence: configuration.persistence.workspacePersistence,
@@ -304,7 +304,7 @@ public extension PositronicKit {
             workspaceCreator: configuration.runtime.workspaceCreator,
             sectionProviders: configuration.runtime.sectionProviders,
             runtimeToolPolicy: configuration.runtime.runtimeToolPolicy,
-            chatTurnPlugins: configuration.runtime.chatTurnPlugins,
+            turnPlugins: configuration.runtime.turnPlugins,
             promptObserver: configuration.runtime.promptObserver,
             diagnosticSnapshotConfiguration: configuration.runtime.diagnosticSnapshotConfiguration,
             degradationPolicy: configuration.runtime.degradationPolicy,

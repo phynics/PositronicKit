@@ -17,7 +17,7 @@ struct BatchFailingMessageStoreTests {
         store.failAfterSaveCount = 25
         let threadID = fixedUUID(1)
         let messages = (0 ..< 100).map { index in
-            ConversationMessage(
+            ThreadMessage(
                 id: fixedUUID(index + 100),
                 threadID: threadID,
                 role: .user,

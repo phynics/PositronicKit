@@ -277,7 +277,7 @@ struct WorkspaceReferenceHelperTests {
 
     @Test("WorkspaceLocation decodes all known cases")
     func locationDecodes() throws {
-        for raw in ["runtime", "runtimeTimeline", "attached"] {
+        for raw in ["runtime", "runtimeThread", "attached"] {
             let json = "\"\(raw)\""
             let loc = try JSONDecoder().decode(WorkspaceReference.WorkspaceLocation.self, from: Data(json.utf8))
             #expect(loc.rawValue == raw)
@@ -351,8 +351,8 @@ struct ToolParameterSchemaExtensionTests {
             "properties": .dictionary([:]),
         ]
         let schema = Schema(dict)
-        let roundTripped = schema.asDictionary
-        #expect(roundTripped["type"]?.asString == "object")
+        let modelRoundIndexped = schema.asDictionary
+        #expect(modelRoundIndexped["type"]?.asString == "object")
     }
 
     @Test("Schema(_:) falls back to empty object for invalid input")

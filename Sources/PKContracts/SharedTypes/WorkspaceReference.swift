@@ -32,7 +32,7 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
 
     /// Where a workspace lives relative to the runtime.
     public enum WorkspaceLocation: RawRepresentable, Codable, Sendable, Equatable {
-        /// A workspace owned directly by the runtime, not tied to a specific timeline.
+        /// A workspace owned directly by the runtime, not tied to a specific thread.
         case runtime
         /// A workspace specific to a thread in this runtime.
         case runtimeThread
@@ -44,7 +44,7 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         public var rawValue: String {
             switch self {
             case .runtime: "runtime"
-            case .runtimeThread: "runtimeTimeline"
+            case .runtimeThread: "runtimeThread"
             case .attached: "attached"
             }
         }
@@ -52,7 +52,7 @@ public struct WorkspaceReference: Codable, Sendable, Identifiable {
         public init?(rawValue: String) {
             switch rawValue {
             case "runtime": self = .runtime
-            case "runtimeTimeline", "runtimeThread": self = .runtimeThread
+            case "runtimeThread": self = .runtimeThread
             case "attached": self = .attached
             default: return nil
             }

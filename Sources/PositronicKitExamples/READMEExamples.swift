@@ -93,7 +93,7 @@ public enum READMEExamples {
     ) async throws {
         let title = SidecarDirective(
             name: "title",
-            instruction: "A short conversation title (3-6 words). Return null if the conversation already has a good title.",
+            instruction: "A short thread title (3-6 words). Return null if the thread already has a good title.",
             schema: JSONString().definition(),
             streaming: .buffered
         )

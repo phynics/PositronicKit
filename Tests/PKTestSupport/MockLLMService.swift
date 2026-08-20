@@ -8,7 +8,7 @@ import Synchronization
 ///
 /// Histories append this record before the mock returns a configured error, never-finishing
 /// stream, delegated stream, or service-level stubbed stream.
-public struct MockLLMChatCapture: Sendable {
+public struct MockLLMGenerationCapture: Sendable {
     public let messages: [LLMMessage]
     public let tools: [LLMToolDefinition]?
     public let toolChoice: LLMToolChoice?
@@ -43,7 +43,7 @@ public struct MockLLMSendMessageCapture: Sendable {
 /// mutex-admission order, which need not match task creation order under concurrency. A normal
 /// text plan consumes at most one `nextToolCalls` entry; the earlier plans do not consume it.
 ///
-/// `chatCaptureHistory` and `sendMessageCaptureHistory` retain complete request records,
+/// `generationCaptureHistory` and `sendMessageCaptureHistory` retain complete request records,
 /// including calls that later fail; the legacy `last…` fields and `messageHistory` remain
 /// available. No mutex is held while a stream sleeps, yields, or waits for cancellation.
 public final class MockLLMClient: LLMClientProtocol, Sendable {
@@ -68,8 +68,8 @@ public final class MockLLMClient: LLMClientProtocol, Sendable {
         var nextChunks: [[String]] = []
         var nextRawStreamChunks: [[LLMStreamChunk]] = []
         var nextStreamWait: TimeInterval?
-        var lastChatCapture: MockLLMChatCapture?
-        var chatCaptureHistory: [MockLLMChatCapture] = []
+        var lastGenerationCapture: MockLLMGenerationCapture?
+        var generationCaptureHistory: [MockLLMGenerationCapture] = []
         var lastSendMessageCapture: MockLLMSendMessageCapture?
         var sendMessageCaptureHistory: [MockLLMSendMessageCapture] = []
     }
@@ -105,7 +105,7 @@ public final class MockLLMClient: LLMClientProtocol, Sendable {
         set { state.withLock { $0.lastMessages = newValue } }
     }
 
-    /// Full history of messages passed to each `chatStream` call, in call order. Useful for
+    /// Full history of messages passed to each generation call, in call order. Useful for
     /// asserting on multi-turn tool-loop behavior where `lastMessages` only exposes the final call.
     public var messageHistory: [[LLMMessage]] {
         get { state.withLock { $0.messageHistory } }
@@ -179,14 +179,14 @@ public final class MockLLMClient: LLMClientProtocol, Sendable {
         set { state.withLock { $0.nextStreamWait = newValue } }
     }
 
-    public var lastChatCapture: MockLLMChatCapture? {
-        state.withLock { $0.lastChatCapture }
+    public var lastGenerationCapture: MockLLMGenerationCapture? {
+        state.withLock { $0.lastGenerationCapture }
     }
 
     /// Complete low-level chat captures in atomic admission order, including failing and
     /// never-finishing calls.
-    public var chatCaptureHistory: [MockLLMChatCapture] {
-        state.withLock { $0.chatCaptureHistory }
+    public var generationCaptureHistory: [MockLLMGenerationCapture] {
+        state.withLock { $0.generationCaptureHistory }
     }
 
     public var lastSendMessageCapture: MockLLMSendMessageCapture? {
@@ -216,7 +216,7 @@ public final class MockLLMClient: LLMClientProtocol, Sendable {
         let plan = state.withLock { state -> StreamPlan in
             state.streamCallCount += 1
             let streamCallIndex = state.streamCallCount
-            let capture = MockLLMChatCapture(
+            let capture = MockLLMGenerationCapture(
                 messages: messages,
                 tools: tools,
                 toolChoice: toolChoice,
@@ -230,8 +230,8 @@ public final class MockLLMClient: LLMClientProtocol, Sendable {
             state.lastToolChoice = toolChoice
             state.lastResponseFormat = responseFormat
             state.lastParameters = generationParameters
-            state.lastChatCapture = capture
-            state.chatCaptureHistory.append(capture)
+            state.lastGenerationCapture = capture
+            state.generationCaptureHistory.append(capture)
 
             if state.neverFinishingStreamCallIndices.contains(streamCallIndex) {
                 return .neverFinishes
@@ -339,9 +339,9 @@ public final class MockLLMClient: LLMClientProtocol, Sendable {
                         let isLast = index == ctx.responses.count - 1
                         let result: LLMStreamChunk
                         if let toolCalls = ctx.toolCalls, isLast {
-                            result = ChatStreamResultFactory.toolCallChunk(calls: toolCalls, content: chunk)
+                            result = GenerationStreamResultFactory.toolCallChunk(calls: toolCalls, content: chunk)
                         } else {
-                            result = ChatStreamResultFactory.textChunk(chunk, finishReason: isLast ? "stop" : nil)
+                            result = GenerationStreamResultFactory.textChunk(chunk, finishReason: isLast ? "stop" : nil)
                         }
                         continuation.yield(result)
                     }
@@ -411,10 +411,10 @@ public final class MockLLMClient: LLMClientProtocol, Sendable {
 /// Configurable: `mockConfig`/`mockIsConfigured` (configuration state),
 /// `mockHealthStatus`/`mockHealthDetails` (health-check responses), `nextResponse`
 /// (non-streamed reply text), `nextTags`/`nextGeneratedTitle` (tagging/title-generation
-/// stubs), `stubbedStream` (override the stream returned by `chatStream`, bypassing
+/// stubs), `stubbedStream` (override the stream returned by `generationStream`, bypassing
 /// `mockClient`).
 ///
-/// `chatCaptureHistory`, `sendMessageCaptureHistory`, `chatRequestHistory`, and
+/// `generationCaptureHistory`, `sendMessageCaptureHistory`, `generationRequestHistory`, and
 /// `modelTierHistory` capture calls before delegation or `stubbedStream` selection, so errors and
 /// stubs remain observable; `generatedTitleInputs` records every title request. The service starts
 /// configured with `.openAI`; `updateConfiguration` and successful import mark it configured,
@@ -434,12 +434,12 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
         var generatedTitleInputs: [[Message]] = []
         var mockClient = MockLLMClient()
         var stubbedStream: AsyncThrowingStream<LLMStreamChunk, Error>?
-        var lastChatRequest: LLMChatRequest?
-        var chatRequestHistory: [LLMChatRequest] = []
+        var lastGenerationRequest: LLMGenerationRequest?
+        var generationRequestHistory: [LLMGenerationRequest] = []
         var lastModelTier: ModelTier?
         var modelTierHistory: [ModelTier] = []
-        var lastChatCapture: MockLLMChatCapture?
-        var chatCaptureHistory: [MockLLMChatCapture] = []
+        var lastGenerationCapture: MockLLMGenerationCapture?
+        var generationCaptureHistory: [MockLLMGenerationCapture] = []
         var lastSendMessageCapture: MockLLMSendMessageCapture?
         var sendMessageCaptureHistory: [MockLLMSendMessageCapture] = []
     }
@@ -511,37 +511,37 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
         mockClient.structuredOutputAdapter
     }
 
-    /// Overrides the stream returned by `chatStream`. The request is still captured first.
+    /// Overrides the stream returned by `generationStream`. The request is still captured first.
     public var stubbedStream: AsyncThrowingStream<LLMStreamChunk, Error>? {
         get { state.withLock { $0.stubbedStream } }
         set { state.withLock { $0.stubbedStream = newValue } }
     }
 
-    public var lastChatRequest: LLMChatRequest? {
-        state.withLock { $0.lastChatRequest }
+    public var lastGenerationRequest: LLMGenerationRequest? {
+        state.withLock { $0.lastGenerationRequest }
     }
 
     /// Complete high-level context requests in atomic admission order.
-    public var chatRequestHistory: [LLMChatRequest] {
-        state.withLock { $0.chatRequestHistory }
+    public var generationRequestHistory: [LLMGenerationRequest] {
+        state.withLock { $0.generationRequestHistory }
     }
 
     public var lastModelTier: ModelTier? {
         state.withLock { $0.lastModelTier }
     }
 
-    /// Actual model tiers requested by low-level and high-level chat calls.
+    /// Actual model tiers requested by low-level and high-level generation calls.
     public var modelTierHistory: [ModelTier] {
         state.withLock { $0.modelTierHistory }
     }
 
-    public var lastChatCapture: MockLLMChatCapture? {
-        state.withLock { $0.lastChatCapture }
+    public var lastGenerationCapture: MockLLMGenerationCapture? {
+        state.withLock { $0.lastGenerationCapture }
     }
 
-    /// Complete service-level chat captures, including calls returning `stubbedStream`.
-    public var chatCaptureHistory: [MockLLMChatCapture] {
-        state.withLock { $0.chatCaptureHistory }
+    /// Complete service-level generation captures, including calls returning `stubbedStream`.
+    public var generationCaptureHistory: [MockLLMGenerationCapture] {
+        state.withLock { $0.generationCaptureHistory }
     }
 
     public var lastSendMessageCapture: MockLLMSendMessageCapture? {
@@ -619,12 +619,12 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
         }
     }
 
-    public func chatStreamWithContext(_ request: LLMChatRequest) async throws -> LLMStreamResult {
+    public func generationStreamWithContext(_ request: LLMGenerationRequest) async throws -> LLMStreamResult {
         state.withLock {
-            $0.lastChatRequest = request
-            $0.chatRequestHistory.append(request)
+            $0.lastGenerationRequest = request
+            $0.generationRequestHistory.append(request)
         }
-        let stream = await chatStream(
+        let stream = await generationStream(
             messages: [],
             tools: nil,
             toolChoice: nil,
@@ -635,7 +635,7 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
         return LLMStreamResult(stream: stream, rawPrompt: "mock prompt")
     }
 
-    public func chatStream(
+    public func generationStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,
         toolChoice: LLMToolChoice?,
@@ -647,7 +647,7 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
             stubbed: AsyncThrowingStream<LLMStreamChunk, Error>?,
             client: MockLLMClient
         ) in
-            let capture = MockLLMChatCapture(
+            let capture = MockLLMGenerationCapture(
                 messages: messages,
                 tools: tools,
                 toolChoice: toolChoice,
@@ -657,8 +657,8 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
             )
             state.lastModelTier = modelTier
             state.modelTierHistory.append(modelTier)
-            state.lastChatCapture = capture
-            state.chatCaptureHistory.append(capture)
+            state.lastGenerationCapture = capture
+            state.generationCaptureHistory.append(capture)
             return (state.stubbedStream, state.mockClient)
         }
 
@@ -674,7 +674,7 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
         )
     }
 
-    public func chatStream(
+    public func generationStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,
         toolChoice: LLMToolChoice?,
@@ -684,7 +684,7 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
         responseModalities _: Set<ResponseModality>,
         audioOutput _: AudioOutputOptions?
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
-        await chatStream(
+        await generationStream(
             messages: messages,
             tools: tools,
             toolChoice: toolChoice,
@@ -707,7 +707,7 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
         let title = scriptedTitle
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: "\"", with: "")
-        return title.isEmpty ? "New Conversation" : title
+        return title.isEmpty ? "New Thread" : title
     }
 
     public func fetchAvailableModels() async throws -> [String]? {

@@ -6,7 +6,7 @@ import struct PositronicKit.Thread
 import Synchronization
 
 /// Composite in-memory test double for the full persistence surface (memories, messages,
-/// threads, agent templates, workspaces, tools, request origins, agent instances,
+/// threads, agent templates, workspaces, tools, request origins, agents,
 /// health), delegating each protocol area to its own focused mock (``MockMemoryStore``,
 /// ``MockMessageStore``, ``MockThreadPersistenceStore``, ``MockAgentTemplateStore``,
 /// ``MockWorkspacePersistence``, ``MockToolPersistence``) so a test can construct a single
@@ -16,14 +16,14 @@ import Synchronization
 /// `fetchAllOriginsMock`/`deleteOriginMock` (closures overriding `RequestOriginStoreProtocol`
 /// behavior — unset closures make origin operations no-ops/return empty). Inspectable:
 /// `memories`, `searchResults`, `messages`, `threads`, `agentTemplates`, `workspaces`,
-/// `agentInstances` all forward to the underlying focused mocks. `resetDatabase()` clears
+/// `agents` all forward to the underlying focused mocks. `resetDatabase()` clears
 /// every backing store.
 ///
-/// Health, durability, request-origin callbacks, and agent instances share one mutex state.
+/// Health, durability, request-origin callbacks, and agents share one mutex state.
 /// Agent insert-or-replace and each tool-workspace mirror upsert are atomic; the two backing stores
 /// are not a cross-store transaction. Callback values are snapshotted while locked, then invoked
 /// after unlocking, so no mutex crosses an `await` or caller-provided code.
-public final class MockPersistenceService: MemoryStoreProtocol, ThreadMessageStoreProtocol, ThreadPersistenceProtocol, WorkspaceStore, AgentTemplateStoreProtocol, RequestOriginStoreProtocol, ToolPersistenceProtocol, AgentInstanceStoreProtocol, HealthCheckable {
+public final class MockPersistenceService: MemoryStoreProtocol, ThreadMessageStoreProtocol, ThreadPersistenceProtocol, WorkspaceStore, AgentTemplateStoreProtocol, RequestOriginStoreProtocol, ToolPersistenceProtocol, AgentStoreProtocol, HealthCheckable {
     private struct State: Sendable {
         var mockHealthStatus: HealthStatus = .ok
         var mockHealthDetails: [String: String]? = ["mock": "true"]
@@ -32,7 +32,7 @@ public final class MockPersistenceService: MemoryStoreProtocol, ThreadMessageSto
         var fetchOriginMock: (@Sendable (UUID) async throws -> RequestOriginIdentity?)?
         var fetchAllOriginsMock: (@Sendable () async throws -> [RequestOriginIdentity])?
         var deleteOriginMock: (@Sendable (UUID) async throws -> Bool)?
-        var agentInstances: [AgentInstance] = []
+        var agents: [Agent] = []
     }
 
     private let memoriesMock = MockMemoryStore()
@@ -156,16 +156,16 @@ public final class MockPersistenceService: MemoryStoreProtocol, ThreadMessageSto
 
     // MARK: - ThreadMessageStoreProtocol
 
-    public var messages: [ConversationMessage] {
+    public var messages: [ThreadMessage] {
         get { messagesMock.messages }
         set { messagesMock.messages = newValue }
     }
 
-    public func saveMessage(_ message: ConversationMessage) async throws {
+    public func saveMessage(_ message: ThreadMessage) async throws {
         try await messagesMock.saveMessage(message)
     }
 
-    public func fetchMessages(for threadID: UUID) async throws -> [ConversationMessage] {
+    public func fetchMessages(for threadID: UUID) async throws -> [ThreadMessage] {
         try await messagesMock.fetchMessages(for: threadID)
     }
 
@@ -318,37 +318,37 @@ public final class MockPersistenceService: MemoryStoreProtocol, ThreadMessageSto
         return false
     }
 
-    // MARK: - AgentInstanceStoreProtocol
+    // MARK: - AgentStoreProtocol
 
-    public var agentInstances: [AgentInstance] {
-        get { state.withLock { $0.agentInstances } }
-        set { state.withLock { $0.agentInstances = newValue } }
+    public var agents: [Agent] {
+        get { state.withLock { $0.agents } }
+        set { state.withLock { $0.agents = newValue } }
     }
 
-    public func saveAgentInstance(_ instance: AgentInstance) async throws {
+    public func saveAgent(_ instance: Agent) async throws {
         state.withLock {
-            if let index = $0.agentInstances.firstIndex(where: { $0.id == instance.id }) {
-                $0.agentInstances[index] = instance
+            if let index = $0.agents.firstIndex(where: { $0.id == instance.id }) {
+                $0.agents[index] = instance
             } else {
-                $0.agentInstances.append(instance)
+                $0.agents.append(instance)
             }
         }
     }
 
-    public func fetchAgentInstance(id: UUID) async throws -> AgentInstance? {
-        state.withLock { $0.agentInstances.first { $0.id == id } }
+    public func fetchAgent(id: UUID) async throws -> Agent? {
+        state.withLock { $0.agents.first { $0.id == id } }
     }
 
-    public func fetchAllAgentInstances() async throws -> [AgentInstance] {
-        state.withLock { $0.agentInstances }
+    public func fetchAllAgents() async throws -> [Agent] {
+        state.withLock { $0.agents }
     }
 
-    public func deleteAgentInstance(id: UUID) async throws {
-        state.withLock { $0.agentInstances.removeAll { $0.id == id } }
+    public func deleteAgent(id: UUID) async throws {
+        state.withLock { $0.agents.removeAll { $0.id == id } }
     }
 
-    public func fetchThreads(attachedToAgent agentInstanceId: UUID) async throws -> [Thread] {
-        threads.filter { $0.attachedAgentInstanceID == agentInstanceId }
+    public func fetchThreads(attachedToAgent agentId: UUID) async throws -> [Thread] {
+        threads.filter { $0.attachedAgentID == agentId }
     }
 
     public func resetDatabase() async throws {
@@ -358,7 +358,7 @@ public final class MockPersistenceService: MemoryStoreProtocol, ThreadMessageSto
         threads = []
         agentTemplates = []
         workspaces = []
-        state.withLock { $0.agentInstances = [] }
+        state.withLock { $0.agents = [] }
         toolsMock.workspaces = []
     }
 }

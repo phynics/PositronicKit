@@ -20,7 +20,7 @@ struct PruneDryRunTests {
     func mockMessageStoreDryRunPreservesMessages() async throws {
         let store = MockMessageStore()
         let threadID = UUID()
-        let message = ConversationMessage(
+        let message = ThreadMessage(
             threadID: threadID,
             role: .user,
             content: "hello",
@@ -38,7 +38,7 @@ struct PruneDryRunTests {
     func inMemoryMessageStoreDryRunPreservesMessages() async throws {
         let store = InMemoryMessageStore()
         let threadID = UUID()
-        let message = ConversationMessage(
+        let message = ThreadMessage(
             threadID: threadID,
             role: .user,
             content: "hello",

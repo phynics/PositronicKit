@@ -14,7 +14,7 @@ import PKUtilities
         let foreign = URLError(.timedOut)
         let streamError = LLMStreamError.providerStreamFailed(underlying: foreign)
 
-        let identity = ChatEvent.ErrorIdentity.extracting(from: streamError)
+        let identity = TurnEvent.ErrorIdentity.extracting(from: streamError)
 
         #expect(identity?.domain == PKErrorDomain.llm)
         #expect(identity?.code == 1005)
@@ -27,7 +27,7 @@ import PKUtilities
         let streamError = LLMStreamError.providerStreamFailed(underlying: foreign)
         let wrapped = PipelineError.stageFailed(id: "LLMStreamingStage", underlyingError: streamError)
 
-        let identity = ChatEvent.ErrorIdentity.extracting(from: wrapped)
+        let identity = TurnEvent.ErrorIdentity.extracting(from: wrapped)
 
         #expect(identity?.domain == PKErrorDomain.llm)
         #expect(identity?.code == 1005)
@@ -43,7 +43,7 @@ import PKUtilities
             cleanupFailures: [URLError(.cannotConnectToHost)]
         )
 
-        let identity = ChatEvent.ErrorIdentity.extracting(from: compound)
+        let identity = TurnEvent.ErrorIdentity.extracting(from: compound)
 
         #expect(identity?.domain == PKErrorDomain.llm)
         #expect(identity?.code == 1005)
@@ -54,7 +54,7 @@ import PKUtilities
         let wsError = WorkspaceError.accessDenied
         let wrapped = PipelineError.stageFailed(id: "WorkspaceStage", underlyingError: wsError)
 
-        let identity = ChatEvent.ErrorIdentity.extracting(from: wrapped)
+        let identity = TurnEvent.ErrorIdentity.extracting(from: wrapped)
 
         #expect(identity?.domain == PKErrorDomain.workspace)
         #expect(identity?.code == 3002)

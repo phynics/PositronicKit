@@ -6,8 +6,8 @@ import PKUtilities
 import Foundation
 
 public protocol ThreadMessageStoreProtocol: DurabilityAware {
-    func saveMessage(_ message: ConversationMessage) async throws
-    func fetchMessages(for threadID: UUID) async throws -> [ConversationMessage]
+    func saveMessage(_ message: ThreadMessage) async throws
+    func fetchMessages(for threadID: UUID) async throws -> [ThreadMessage]
     func deleteMessages(for threadID: UUID) async throws
     /// Deletes (or previews deleting) messages older than `timeInterval`.
     ///
@@ -32,7 +32,7 @@ public protocol ThreadMessageStoreProtocol: DurabilityAware {
 /// retries within this process; durable stores should enforce uniqueness on their message IDs.
 package extension ThreadMessageStoreProtocol {
     func saveMessageIfAbsent(
-        _ message: ConversationMessage,
+        _ message: ThreadMessage,
         idempotencyKey: UUID
     ) async throws {
         let existingMessages = try await fetchMessages(for: message.threadID)

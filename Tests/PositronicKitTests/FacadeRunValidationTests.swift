@@ -8,14 +8,14 @@ import Testing
 
 @Suite("Facade run validation")
 struct FacadeRunValidationTests {
-    @Test("maxTurns zero fails before resolver, persistence, or provider work")
-    func maxTurnsZeroFailsBeforeIO() async throws {
-        try await assertInvalidMaxTurns(0)
+    @Test("maxModelRounds zero fails before resolver, persistence, or provider work")
+    func maxModelRoundsZeroFailsBeforeIO() async throws {
+        try await assertInvalidMaxModelRounds(0)
     }
 
-    @Test("negative maxTurns fails before resolver, persistence, or provider work")
-    func negativeMaxTurnsFailsBeforeIO() async throws {
-        try await assertInvalidMaxTurns(-3)
+    @Test("negative maxModelRounds fails before resolver, persistence, or provider work")
+    func negativeMaxModelRoundsFailsBeforeIO() async throws {
+        try await assertInvalidMaxModelRounds(-3)
     }
 
     @Test("missing required agent fails before input persistence or provider execution")
@@ -24,15 +24,15 @@ struct FacadeRunValidationTests {
         let agentID = UUID()
 
         await expectMissingAgent(agentID) {
-            _ = try await harness.kit.run(ChatRunRequest(
+            _ = try await harness.kit.run(TurnRequest(
                 threadID: harness.threadID,
                 message: "must not persist",
-                agentInstanceID: agentID,
+                agentID: agentID,
             ))
         }
 
         #expect(try await harness.persistence.fetchMessages(for: harness.threadID).isEmpty)
-        #expect(harness.languageModel.chatCaptureHistory.isEmpty)
+        #expect(harness.languageModel.generationCaptureHistory.isEmpty)
         #expect(await harness.agentStore.fetchCount == 1)
     }
 
@@ -43,15 +43,15 @@ struct FacadeRunValidationTests {
         harness.languageModel.mockIsConfigured = false
 
         await expectMissingAgent(agentID) {
-            _ = try await harness.kit.run(ChatRunRequest(
+            _ = try await harness.kit.run(TurnRequest(
                 threadID: harness.threadID,
                 message: "agent validation wins",
-                agentInstanceID: agentID,
+                agentID: agentID,
             ))
         }
 
         #expect(try await harness.persistence.fetchMessages(for: harness.threadID).isEmpty)
-        #expect(harness.languageModel.chatCaptureHistory.isEmpty)
+        #expect(harness.languageModel.generationCaptureHistory.isEmpty)
         #expect(await harness.agentStore.fetchCount == 1)
     }
 
@@ -61,10 +61,10 @@ struct FacadeRunValidationTests {
         let agentID = UUID()
         harness.languageModel.mockClient.nextResponse = "continued"
 
-        let stream = try await harness.kit.run(ChatRunRequest(
+        let stream = try await harness.kit.run(TurnRequest(
             threadID: harness.threadID,
             message: "continue without agent",
-            agentInstanceID: agentID,
+            agentID: agentID,
         ))
         let events = try await stream.collect()
 
@@ -76,13 +76,13 @@ struct FacadeRunValidationTests {
         let diagnostic = try #require(metadata.diagnostics.first)
         #expect(metadata.diagnostics.count == 1)
         #expect(diagnostic.dependency == .agent)
-        #expect(diagnostic.operation == "fetchAgentInstance")
+        #expect(diagnostic.operation == "fetchAgent")
         #expect(diagnostic.entityID == agentID.uuidString)
         #expect(diagnostic.errorIdentity?.domain == PKErrorDomain.agent)
         #expect(diagnostic.errorIdentity?.code == 5001)
 
         #expect(await harness.agentStore.fetchCount == 1)
-        #expect(harness.languageModel.chatCaptureHistory.count == 1)
+        #expect(harness.languageModel.generationCaptureHistory.count == 1)
         let messages = try await harness.persistence.fetchMessages(for: harness.threadID)
         #expect(messages.map(\.role) == ["user", "assistant"])
     }
@@ -90,62 +90,62 @@ struct FacadeRunValidationTests {
     @Test("existing agent is fetched once and reused in the prompt")
     func existingAgentIsFetchedOnceAndReused() async throws {
         let description = "unique preflight agent description"
-        let agent = AgentInstance(
+        let agent = Agent(
             name: "Preflight Agent",
             description: description,
             privateThreadID: UUID(),
         )
         let harness = try await makeAgentHarness(policy: .failRequired, agent: agent)
-        try await harness.kit.agentInstanceManager.attach(agentID: agent.id, to: harness.threadID)
+        try await harness.kit.agentManager.attach(agentID: agent.id, to: harness.threadID)
         harness.languageModel.mockClient.nextResponse = "resolved"
 
-        let stream = try await harness.kit.run(ChatRunRequest(
+        let stream = try await harness.kit.run(TurnRequest(
             threadID: harness.threadID,
             message: "use the resolved agent",
-            agentInstanceID: agent.id,
+            agentID: agent.id,
         ))
         _ = try await stream.collect()
 
         #expect(await harness.agentStore.fetchCount == 2)
-        let prompt = try #require(harness.languageModel.lastChatCapture)
+        let prompt = try #require(harness.languageModel.lastGenerationCapture)
             .messages
             .map(\.content)
             .joined(separator: "\n")
         #expect(prompt.contains(description))
     }
 
-    @Test("required-agent preflight failure releases the send identifier for retry")
-    func requiredAgentFailureReleasesSendID() async throws {
+    @Test("required-agent preflight failure releases the request identifier for retry")
+    func requiredAgentFailureReleasesRequestID() async throws {
         let harness = try await makeAgentHarness(policy: .failRequired)
-        let agent = AgentInstance(
+        let agent = Agent(
             name: "Retry Agent",
             description: "available on retry",
             privateThreadID: UUID(),
         )
-        let sendID = UUID()
+        let requestID = UUID()
 
         await expectMissingAgent(agent.id) {
-            _ = try await harness.kit.run(ChatRunRequest(
+            _ = try await harness.kit.run(TurnRequest(
                 threadID: harness.threadID,
-                sendID: sendID,
+                requestID: requestID,
                 message: "retryable input",
-                agentInstanceID: agent.id,
+                agentID: agent.id,
             ))
         }
 
-        try await harness.agentStore.saveAgentInstance(agent)
-        try await harness.kit.agentInstanceManager.attach(agentID: agent.id, to: harness.threadID)
+        try await harness.agentStore.saveAgent(agent)
+        try await harness.kit.agentManager.attach(agentID: agent.id, to: harness.threadID)
         harness.languageModel.mockClient.nextResponse = "retried"
-        let stream = try await harness.kit.run(ChatRunRequest(
+        let stream = try await harness.kit.run(TurnRequest(
             threadID: harness.threadID,
-            sendID: sendID,
+            requestID: requestID,
             message: "retryable input",
-            agentInstanceID: agent.id,
+            agentID: agent.id,
         ))
         _ = try await stream.collect()
 
         #expect(await harness.agentStore.fetchCount == 3)
-        #expect(harness.languageModel.chatCaptureHistory.count == 1)
+        #expect(harness.languageModel.generationCaptureHistory.count == 1)
     }
 
     @Test("cancelling facade run iteration cancels the provider and clears its task registration")
@@ -156,14 +156,14 @@ struct FacadeRunValidationTests {
             continuation.onTermination = { @Sendable _ in
                 probe.recordTermination()
             }
-            continuation.yield(ChatStreamResultFactory.textChunk("provider-started"))
+            continuation.yield(GenerationStreamResultFactory.textChunk("provider-started"))
         }
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: languageModel),
             persistence: .inMemory(),
         ))
         let thread = try await kit.threadManager.createThread()
-        let stream = try await kit.run(ChatRunRequest(
+        let stream = try await kit.run(TurnRequest(
             threadID: thread.id,
             message: "cancel this run",
         ))
@@ -195,7 +195,7 @@ struct FacadeRunValidationTests {
         #expect(await kit.threadManager.hasActiveTask(for: thread.id) == false)
     }
 
-    private func assertInvalidMaxTurns(_ maxTurns: Int) async throws {
+    private func assertInvalidMaxModelRounds(_ maxModelRounds: Int) async throws {
         let languageModel = MockLLMService()
         let messageStore = FailingMessageStore()
         let threadStore = FailingThreadPersistence(fetchFails: true)
@@ -207,28 +207,28 @@ struct FacadeRunValidationTests {
             ),
         ))
 
-        await #expect(throws: ChatRunError.invalidMaxTurns(maxTurns)) {
-            _ = try await kit.run(ChatRunRequest(
+        await #expect(throws: TurnError.invalidMaxModelRounds(maxModelRounds)) {
+            _ = try await kit.run(TurnRequest(
                 threadID: UUID(),
                 message: "must not reach I/O",
-                maxTurns: maxTurns,
+                maxModelRounds: maxModelRounds,
             ))
         }
 
         #expect(threadStore.fetchAttemptCount == 0)
         #expect(messageStore.attemptedMessages.isEmpty)
-        #expect(languageModel.chatRequestHistory.isEmpty)
-        #expect(languageModel.chatCaptureHistory.isEmpty)
+        #expect(languageModel.generationRequestHistory.isEmpty)
+        #expect(languageModel.generationCaptureHistory.isEmpty)
         #expect(languageModel.sendMessageCaptureHistory.isEmpty)
     }
 
     private func makeAgentHarness(
         policy: TurnDegradationPolicy,
-        agent: AgentInstance? = nil,
+        agent: Agent? = nil,
     ) async throws -> AgentHarness {
         let languageModel = MockLLMService()
         let persistence = MockPersistenceService()
-        let agentStore = CountingAgentInstanceStore(agent: agent)
+        let agentStore = CountingAgentStore(agent: agent)
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: languageModel),
             persistence: .init(
@@ -237,7 +237,7 @@ struct FacadeRunValidationTests {
                 workspacePersistence: persistence,
                 memoryStore: persistence,
                 toolPersistence: persistence,
-                agentInstanceStore: agentStore,
+                agentStore: agentStore,
                 requestOriginStore: persistence,
             ),
             runtime: .init(degradationPolicy: policy),
@@ -258,11 +258,11 @@ struct FacadeRunValidationTests {
     ) async {
         do {
             try await operation()
-            Issue.record("Expected AgentInstanceError.instanceNotFound")
-        } catch let AgentInstanceError.instanceNotFound(actualID) {
+            Issue.record("Expected AgentError.agentNotFound")
+        } catch let AgentError.agentNotFound(actualID) {
             #expect(actualID == expectedID)
         } catch {
-            Issue.record("Expected AgentInstanceError.instanceNotFound, got \(error)")
+            Issue.record("Expected AgentError.agentNotFound, got \(error)")
         }
     }
 }
@@ -271,32 +271,32 @@ private struct AgentHarness {
     let kit: PositronicKit
     let languageModel: MockLLMService
     let persistence: MockPersistenceService
-    let agentStore: CountingAgentInstanceStore
+    let agentStore: CountingAgentStore
     let threadID: UUID
 }
 
-private actor CountingAgentInstanceStore: AgentInstanceStoreProtocol {
-    private var instances: [UUID: AgentInstance]
+private actor CountingAgentStore: AgentStoreProtocol {
+    private var instances: [UUID: Agent]
     private(set) var fetchCount = 0
 
-    init(agent: AgentInstance?) {
+    init(agent: Agent?) {
         instances = agent.map { [$0.id: $0] } ?? [:]
     }
 
-    func saveAgentInstance(_ instance: AgentInstance) async throws {
+    func saveAgent(_ instance: Agent) async throws {
         instances[instance.id] = instance
     }
 
-    func fetchAgentInstance(id: UUID) async throws -> AgentInstance? {
+    func fetchAgent(id: UUID) async throws -> Agent? {
         fetchCount += 1
         return instances[id]
     }
 
-    func fetchAllAgentInstances() async throws -> [AgentInstance] {
+    func fetchAllAgents() async throws -> [Agent] {
         Array(instances.values)
     }
 
-    func deleteAgentInstance(id: UUID) async throws {
+    func deleteAgent(id: UUID) async throws {
         instances.removeValue(forKey: id)
     }
 

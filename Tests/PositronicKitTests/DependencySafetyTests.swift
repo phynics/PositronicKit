@@ -39,32 +39,32 @@ struct DependencySafetyTests {
                 workspacePersistence: mockPersistence,
                 memoryStore: mockPersistence,
                 toolPersistence: mockPersistence,
-                agentInstanceStore: mockPersistence,
+                agentStore: mockPersistence,
                 requestOriginStore: mockPersistence
             )))
 
         #expect(await chat.threadManager.memoryStore as? MockPersistenceService === mockPersistence)
     }
 
-    @Test("AgentInstanceManager correctly resolves overridden agentWorkspaceService")
-    func agentInstanceManagerDependencyInjection() async throws {
+    @Test("AgentManager correctly resolves overridden agentWorkspaceService")
+    func agentManagerDependencyInjection() async throws {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let persistence = MockPersistenceService()
         let customRepo = DefaultWorkspaceCatalog(
             workspaceRoot: tempDir,
             workspacePersistence: persistence
         )
-        let manager = AgentInstanceManager(
+        let manager = AgentManager(
             repository: customRepo,
             stores: .init(
-                instanceStore: persistence,
+                agentStore: persistence,
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence
             )
         )
 
-        let instance = try await manager.createInstance(name: "Test", description: "Test")
+        let instance = try await manager.createAgent(name: "Test", description: "Test")
         if let workspaceId = instance.primaryWorkspaceID,
            let workspace = try await persistence.fetchWorkspace(id: workspaceId, includeTools: false)
         {

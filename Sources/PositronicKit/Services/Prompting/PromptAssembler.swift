@@ -18,20 +18,20 @@ enum PromptAssembler {
     /// This is the preferred entry point for most callers.
     /// - Parameters:
     ///   - request: The prompt request data.
-    ///   - agentInstance: Optional agent instance for identity context.
+    ///   - agent: Optional agent for identity context.
     ///   - thread: Optional thread metadata.
     ///   - extensionSections: Optional additional sections from external extensions.
     /// - Returns: A fully assembled prompt artifact.
     /// - Throws: An error if pipeline execution fails.
     static func assemble(
         _ request: LLMPromptRequest,
-        agentInstance: AgentInstance? = nil,
+        agent: Agent? = nil,
         thread: Thread? = nil,
         extensionSections: [any Prompt] = []
     ) async throws -> RenderedPrompt {
         try await assemble(
             request,
-            agentInstance: agentInstance,
+            agent: agent,
             thread: thread,
             extensionSections: extensionSections,
             options: PromptAssemblyOptions()
@@ -47,14 +47,14 @@ enum PromptAssembler {
     /// back to the simpler priority-based token allocator if the prompt is still over budget.
     static func assemble(
         _ request: LLMPromptRequest,
-        agentInstance: AgentInstance? = nil,
+        agent: Agent? = nil,
         thread: Thread? = nil,
         extensionSections: [any Prompt] = [],
         options: PromptAssemblyOptions
     ) async throws -> RenderedPrompt {
         let sections = try await buildSections(
             request: request,
-            agentInstance: agentInstance,
+            agent: agent,
             thread: thread,
             extensionSections: extensionSections,
             customSections: options.customSections,
@@ -95,7 +95,7 @@ enum PromptAssembler {
 
     private static func buildSections(
         request: LLMPromptRequest,
-        agentInstance: AgentInstance?,
+        agent: Agent?,
         thread: Thread?,
         extensionSections: [any Prompt],
         customSections: (@Sendable () async -> [any Prompt])?,
@@ -114,9 +114,9 @@ enum PromptAssembler {
         try sections.append(withLogging("SystemInstructions", logger: logger) {
             SystemInstructions(request.systemInstructions ?? DefaultInstructions.system())
         })
-        if let agentInstance {
+        if let agent {
             try sections.append(withLogging("AgentContext", logger: logger) {
-                AgentContext(agentInstance, threadTitle: thread?.title)
+                AgentContext(agent, threadTitle: thread?.title)
             })
         }
         try sections.append(withLogging("ContextNotes", logger: logger) { ContextNotes(request.contextNotes) })

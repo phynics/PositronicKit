@@ -17,7 +17,7 @@ import Testing
         )
         mockLLM.mockClient.nextResponse = "Saw extension section"
 
-        _ = try await chat.run(ChatRunRequest(
+        _ = try await chat.run(TurnRequest(
             threadID: threadID,
             message: "Use extension prompt"
         )).collect()
@@ -26,15 +26,15 @@ import Testing
         #expect(promptText.contains("EXTENSION_MARKER: provider injected context"))
     }
 
-    @Test("ChatTurnPlugin can trigger a follow-up turn with injected messages")
-    func chatTurnPluginTriggersFollowUpTurn() async throws {
-        let plugin = AcceptanceChatTurnPlugin()
+    @Test("TurnPlugin can trigger a follow-up turn with injected messages")
+    func turnPluginTriggersFollowUpTurn() async throws {
+        let plugin = AcceptanceTurnPlugin()
         let (baseChat, mockLLM, mockPersistence, threadID, _, _) = try await makeAcceptanceRuntime()
         let chat = baseChat.addingPlugin(plugin)
 
         mockLLM.mockClient.nextResponses = ["First reply", "Second reply"]
 
-        let events = try await chat.run(ChatRunRequest(
+        let events = try await chat.run(TurnRequest(
             threadID: threadID,
             message: "Start plugin flow"
         )).collect()
@@ -80,7 +80,7 @@ import Testing
         mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "call_ws", name: "workspace_echo")]]
         mockLLM.mockClient.nextResponses = ["", "Workspace tool completed"]
 
-        let events = try await chat.run(ChatRunRequest(
+        let events = try await chat.run(TurnRequest(
             threadID: threadID,
             message: "Use the attached workspace tool"
         )).collect()
@@ -106,7 +106,7 @@ import Testing
         ]]
         mockLLM.mockClient.nextResponses = ["", "Custom tool completed"]
 
-        let events = try await chat.run(ChatRunRequest(
+        let events = try await chat.run(TurnRequest(
             threadID: threadID,
             message: "Run the custom tool",
             tools: [tool.toAnyTool()]
@@ -137,7 +137,7 @@ import Testing
                 workspacePersistence: mockPersistence,
                 memoryStore: mockPersistence,
                 toolPersistence: mockPersistence,
-                agentInstanceStore: mockPersistence,
+                agentStore: mockPersistence,
                 requestOriginStore: mockPersistence
             ), runtime: .init(
                 workspaceCreator: workspaceCreator,
@@ -172,7 +172,7 @@ private struct AcceptancePromptSectionProvider: PromptSectionProviding {
     }
 }
 
-private actor AcceptanceChatTurnPlugin: ChatTurnPlugin {
+private actor AcceptanceTurnPlugin: TurnPlugin {
     private var recordedResponses: [String] = []
 
     func afterTurn(_ turn: CompletedTurn) async throws -> [LLMMessage] {

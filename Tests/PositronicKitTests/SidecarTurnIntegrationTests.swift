@@ -23,7 +23,7 @@ struct SidecarTurnIntegrationTests {
                 workspacePersistence: persistence,
                 memoryStore: persistence,
                 toolPersistence: persistence,
-                agentInstanceStore: persistence,
+                agentStore: persistence,
                 requestOriginStore: persistence
             )))
     }
@@ -39,13 +39,13 @@ struct SidecarTurnIntegrationTests {
         let threadID = UUID()
         try await persistence.saveThread(Thread(id: threadID, title: "Sidecar Turn"))
 
-        let stream = try await chat.run(ChatRunRequest(
+        let stream = try await chat.run(TurnRequest(
             threadID: threadID,
             message: "hello",
             sidecars: directives
         ))
 
-        var events: [ChatEvent] = []
+        var events: [TurnEvent] = []
         for try await event in stream {
             events.append(event)
         }
@@ -57,16 +57,16 @@ struct SidecarTurnIntegrationTests {
         #expect(results.contains(SidecarResult(name: "title", outcome: .value(AnyCodable("Greeting")))))
         #expect(results.contains(SidecarResult(name: "tone", outcome: .value(AnyCodable("warm")))))
         #expect(events.compactMap(\.sidecarCompletion).count == 1)
-        #expect(events.compactMap(\.sidecarCompletion).first?.identity.roundTrip == 0)
+        #expect(events.compactMap(\.sidecarCompletion).first?.identity.modelRoundIndex == 0)
 
         #expect(persistence.messages.last?.content == "Hi there")
     }
 
     @Test("Sidecar commit policy is Codable and defaults to every round-trip")
     func sidecarCommitPolicyCodableAndDefault() throws {
-        let defaultRequest = ChatRunRequest(threadID: UUID(), message: "hello")
-        #expect(defaultRequest.sidecarCommitPolicy == .everyRoundTrip)
-        for policy in [SidecarCommitPolicy.everyRoundTrip, .terminalRoundTrip] {
+        let defaultRequest = TurnRequest(threadID: UUID(), message: "hello")
+        #expect(defaultRequest.sidecarCommitPolicy == .everyModelRound)
+        for policy in [SidecarCommitPolicy.everyModelRound, .terminalModelRound] {
             let data = try JSONEncoder().encode(policy)
             #expect(try JSONDecoder().decode(SidecarCommitPolicy.self, from: data) == policy)
         }
@@ -81,7 +81,7 @@ struct SidecarTurnIntegrationTests {
         try await persistence.saveThread(Thread(id: threadID, title: "Sidecar Conflict"))
 
         await #expect(throws: SidecarError.conflictsWithExplicitStructuredOutput) {
-            _ = try await chat.run(ChatRunRequest(
+            _ = try await chat.run(TurnRequest(
                 threadID: threadID,
                 message: "hello",
                 structuredOutput: .jsonSchema(StructuredOutputFixtures.tagSchemaDefinition()),
@@ -101,7 +101,7 @@ struct SidecarTurnIntegrationTests {
         let threadID = UUID()
         try await persistence.saveThread(Thread(id: threadID, title: "Instruction Block"))
 
-        let stream = try await chat.run(ChatRunRequest(
+        let stream = try await chat.run(TurnRequest(
             threadID: threadID,
             message: "hello",
             sidecars: directives
@@ -130,7 +130,7 @@ struct SidecarTurnIntegrationTests {
         let persistenceWithout = MockPersistenceService()
         let chatWithout = makeChat(llmService: mockLLMWithout, persistence: persistenceWithout)
         try await persistenceWithout.saveThread(Thread(id: threadID, title: "Instruction Block"))
-        let streamWithout = try await chatWithout.run(ChatRunRequest(
+        let streamWithout = try await chatWithout.run(TurnRequest(
             threadID: threadID,
             message: "hello"
         ))
@@ -171,7 +171,7 @@ struct SidecarTurnIntegrationTests {
         let threadID = UUID()
         try await persistence.saveThread(Thread(id: threadID, title: "Multi-Turn Sidecar"))
 
-        let stream = try await chat.run(ChatRunRequest(
+        let stream = try await chat.run(TurnRequest(
             threadID: threadID,
             message: "hello",
             tools: [MockTool().toAnyTool()],
@@ -212,15 +212,15 @@ struct SidecarTurnIntegrationTests {
         let chat = makeChat(llmService: mockLLM, persistence: persistence)
         let threadID = UUID()
         try await persistence.saveThread(Thread(id: threadID, title: "Terminal policy"))
-        let sendId = UUID()
+        let requestId = UUID()
 
-        let stream = try await chat.run(ChatRunRequest(
+        let stream = try await chat.run(TurnRequest(
             threadID: threadID,
-            sendID: sendId,
+            requestID: requestId,
             message: "hello",
             tools: [MockTool().toAnyTool()],
             sidecars: directives,
-            sidecarCommitPolicy: .terminalRoundTrip
+            sidecarCommitPolicy: .terminalModelRound
         ))
         var completions: [SidecarCompletion] = []
         for try await event in stream {
@@ -228,7 +228,8 @@ struct SidecarTurnIntegrationTests {
         }
 
         #expect(completions.count == 1)
-        #expect(completions[0].identity == TurnIdentity(sendID: sendId, roundTrip: 1))
+        #expect(completions[0].identity.requestID == requestId)
+        #expect(completions[0].identity.modelRoundIndex == 1)
         #expect(completions[0].results.contains(SidecarResult(name: "title", outcome: .value(AnyCodable("final")))))
         #expect(persistence.messages.filter { $0.role == Message.MessageRole.assistant.rawValue }.allSatisfy { !$0.content.contains("sidecar_payload") })
     }
@@ -249,7 +250,7 @@ struct SidecarTurnIntegrationTests {
         let persistenceA = MockPersistenceService()
         let chatA = makeChat(llmService: mockLLMA, persistence: persistenceA)
         try await persistenceA.saveThread(Thread(id: sharedThreadId, title: sharedTitle))
-        let streamA = try await chatA.run(ChatRunRequest(
+        let streamA = try await chatA.run(TurnRequest(
             threadID: sharedThreadId,
             message: "hello",
             sidecars: directives
@@ -261,7 +262,7 @@ struct SidecarTurnIntegrationTests {
         let persistenceB = MockPersistenceService()
         let chatB = makeChat(llmService: mockLLMB, persistence: persistenceB)
         try await persistenceB.saveThread(Thread(id: sharedThreadId, title: sharedTitle))
-        let streamB = try await chatB.run(ChatRunRequest(
+        let streamB = try await chatB.run(TurnRequest(
             threadID: sharedThreadId,
             message: "hello",
             sidecars: directivesB
@@ -273,7 +274,7 @@ struct SidecarTurnIntegrationTests {
         let persistenceEmpty = MockPersistenceService()
         let chatEmpty = makeChat(llmService: mockLLMEmpty, persistence: persistenceEmpty)
         try await persistenceEmpty.saveThread(Thread(id: sharedThreadId, title: sharedTitle))
-        let streamEmpty = try await chatEmpty.run(ChatRunRequest(
+        let streamEmpty = try await chatEmpty.run(TurnRequest(
             threadID: sharedThreadId,
             message: "hello",
             sidecars: []
@@ -300,7 +301,7 @@ struct SidecarTurnIntegrationTests {
         let persistenceWith = MockPersistenceService()
         let chatWith = makeChat(llmService: mockLLMWith, persistence: persistenceWith)
         try await persistenceWith.saveThread(Thread(id: sharedThreadId, title: sharedTitle))
-        let streamWith = try await chatWith.run(ChatRunRequest(
+        let streamWith = try await chatWith.run(TurnRequest(
             threadID: sharedThreadId,
             message: "hello",
             sidecars: directives,
@@ -313,7 +314,7 @@ struct SidecarTurnIntegrationTests {
         let persistenceEmpty = MockPersistenceService()
         let chatEmpty = makeChat(llmService: mockLLMEmpty, persistence: persistenceEmpty)
         try await persistenceEmpty.saveThread(Thread(id: sharedThreadId, title: sharedTitle))
-        let streamEmpty = try await chatEmpty.run(ChatRunRequest(
+        let streamEmpty = try await chatEmpty.run(TurnRequest(
             threadID: sharedThreadId,
             message: "hello",
             sidecars: [],
@@ -338,7 +339,7 @@ struct SidecarTurnIntegrationTests {
         let chat = makeChat(llmService: mockLLM, persistence: persistence)
         let threadID = UUID()
         try await persistence.saveThread(Thread(id: threadID, title: "Preamble Default"))
-        let stream = try await chat.run(ChatRunRequest(
+        let stream = try await chat.run(TurnRequest(
             threadID: threadID,
             message: "hello",
             includeSidecarMechanismPreamble: true
@@ -367,7 +368,7 @@ struct SidecarTurnIntegrationTests {
         let chatWith = makeChat(llmService: mockLLMWith, persistence: persistenceWith)
         try await persistenceWith.saveThread(Thread(id: sharedThreadId, title: sharedTitle))
 
-        let streamWithout = try await chatWithout.run(ChatRunRequest(
+        let streamWithout = try await chatWithout.run(TurnRequest(
             threadID: sharedThreadId,
             message: "hi"
         ))
@@ -376,7 +377,7 @@ struct SidecarTurnIntegrationTests {
             signaturesWithout.append(Self.signature(for: event))
         }
 
-        let streamWith = try await chatWith.run(ChatRunRequest(
+        let streamWith = try await chatWith.run(TurnRequest(
             threadID: sharedThreadId,
             message: "hi",
             sidecars: []
@@ -393,7 +394,7 @@ struct SidecarTurnIntegrationTests {
 
     /// Event-type + content signature, deliberately excluding message id/timestamp/duration
     /// fields that legitimately differ between two independent turns.
-    private static func signature(for event: ChatEvent) -> String {
+    private static func signature(for event: TurnEvent) -> String {
         switch event {
         case let .meta(.generationContext(metadata)):
             return "generationContext(\(metadata.memories), \(metadata.files))"

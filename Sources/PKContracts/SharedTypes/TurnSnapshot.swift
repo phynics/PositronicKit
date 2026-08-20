@@ -47,18 +47,18 @@ public struct AudioOutputSnapshot: Codable, Sendable, Equatable {
     }
 }
 
-/// A serializable snapshot of a complete chat turn, capturing context provenance,
+/// A serializable snapshot of a complete turn, capturing context provenance,
 /// LLM inputs/outputs, tool activity, and performance metrics.
 ///
-/// Replaces the former `DebugSnapshot` with richer data derived from `ChatTurnContext`.
+/// Replaces the former `DebugSnapshot` with richer data derived from `TurnContext`.
 /// Persisted as JSON on each assistant message for audit and replay.
 public struct TurnSnapshot: Codable, Sendable, Equatable {
     public let timestamp: Date
     public let threadID: UUID
-    public let agentInstanceID: UUID?
+    public let agentID: UUID?
     public let modelName: String
-    public let turnCount: Int
-    public let maxTurns: Int
+    public let modelRoundIndex: Int
+    public let maxModelRounds: Int
     public let systemInstructions: String?
 
     /// Context sources used in this turn
@@ -87,10 +87,10 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
     public init(
         timestamp: Date = Date(),
         threadID: UUID,
-        agentInstanceID: UUID? = nil,
+        agentID: UUID? = nil,
         modelName: String,
-        turnCount: Int,
-        maxTurns: Int,
+        modelRoundIndex: Int,
+        maxModelRounds: Int,
         systemInstructions: String? = nil,
         contextSnapshot: TurnContextSnapshot? = nil,
         availableToolIDs: [String] = [],
@@ -108,10 +108,10 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
     ) {
         self.timestamp = timestamp
         self.threadID = threadID
-        self.agentInstanceID = agentInstanceID
+        self.agentID = agentID
         self.modelName = modelName
-        self.turnCount = turnCount
-        self.maxTurns = maxTurns
+        self.modelRoundIndex = modelRoundIndex
+        self.maxModelRounds = maxModelRounds
         self.systemInstructions = systemInstructions
         self.contextSnapshot = contextSnapshot
         self.availableToolIDs = availableToolIDs
@@ -131,9 +131,9 @@ public struct TurnSnapshot: Codable, Sendable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case timestamp
-        case threadID = "timelineId"
-        case agentInstanceID = "agentInstanceId"
-        case modelName, turnCount, maxTurns, systemInstructions, contextSnapshot
+        case threadID = "threadId"
+        case agentID = "agentId"
+        case modelName, modelRoundIndex, maxModelRounds, systemInstructions, contextSnapshot
         case availableToolIDs = "availableToolIds"
         case fullResponse, fullThinking, audioOutput, toolCalls, toolResults, turnDuration, tokensPerSecond
         case promptTokens, completionTokens, totalTokens, cachedTokens

@@ -54,7 +54,7 @@ let chat = PositronicKit(
         workspacePersistence: MyWorkspaceStoreLive(),
         memoryStore: MyMemoryStoreLive(),
         toolPersistence: MyToolStoreLive(),
-        agentInstanceStore: MyAgentStoreLive(),
+        agentStore: MyAgentStoreLive(),
         requestOriginStore: MyRequestOriginStoreLive()
     ),
     embeddingService: MyEmbeddingServiceLive(),
@@ -65,7 +65,7 @@ let chat = PositronicKit(
 )
 ```
 
-The grouped `persistence:` + `runtime:` path is the supported production setup (the old flat per-store initializer was removed by PKFAC-002). `RuntimeConfiguration` groups the non-store runtime knobs — `workspaceCreator`, `sectionProviders`, `runtimeToolPolicy`, `workspaceRoot`, `chatTurnPlugins`, `promptInspector`, `toolApprovalGate` — not pre-built `ThreadManager`/`ToolRouter` instances; the facade is the only place those get constructed, so they can never end up wrapping different stores. Read them back afterward via `chat.threadManager` / `chat.toolRouter` if you need direct access.
+The grouped `persistence:` + `runtime:` path is the supported production setup (the old flat per-store initializer was removed by PKFAC-002). `RuntimeConfiguration` groups the non-store runtime knobs — `workspaceCreator`, `sectionProviders`, `runtimeToolPolicy`, `workspaceRoot`, `turnPlugins`, `promptInspector`, `toolApprovalGate` — not pre-built `ThreadManager`/`ToolRouter` instances; the facade is the only place those get constructed, so they can never end up wrapping different stores. Read them back afterward via `chat.threadManager` / `chat.toolRouter` if you need direct access.
 
 Tests and host code can inject doubles directly through the facade initializers; lower-level wiring should remain inside the components you own.
 
@@ -75,7 +75,7 @@ Tests and host code can inject doubles directly through the facade initializers;
 
 - filesystem tools are installed automatically by the default policy
 - thread observation tools are installed automatically by the default policy
-- `timeline_send` is installed only when an attached agent identity is present
+- `thread_send` is installed only when an attached agent identity is present
 
 Use `RuntimeToolPolicy` to disable any category or start with no runtime tools.
 

@@ -61,34 +61,34 @@ private struct RenderedPromptProjection {
 }
 
 public extension RenderedPrompt {
-    /// Builds provider-neutral conversation messages from the canonical rendered prompt product.
-    func buildConversationMessages() -> [Message] {
+    /// Builds provider-neutral thread messages from the canonical rendered prompt product.
+    func buildThreadMessages() -> [Message] {
         let projection = RenderedPromptProjection(prompt: self)
         var messages: [Message] = []
 
-        if let systemMessage = buildSystemConversationMessage(from: projection) {
+        if let systemMessage = buildSystemThreadMessage(from: projection) {
             messages.append(systemMessage)
         }
 
-        messages.append(contentsOf: buildHistoryConversationMessages(from: projection))
+        messages.append(contentsOf: buildHistoryThreadMessages(from: projection))
 
-        if let queryMessage = buildUserQueryConversationMessage(from: projection) {
+        if let queryMessage = buildUserQueryThreadMessage(from: projection) {
             messages.append(queryMessage)
         }
 
         return messages
     }
 
-    private func buildSystemConversationMessage(from projection: RenderedPromptProjection) -> Message? {
+    private func buildSystemThreadMessage(from projection: RenderedPromptProjection) -> Message? {
         guard let systemText = projection.systemText else { return nil }
         return Message(content: systemText, role: .system)
     }
 
-    private func buildHistoryConversationMessages(from projection: RenderedPromptProjection) -> [Message] {
+    private func buildHistoryThreadMessages(from projection: RenderedPromptProjection) -> [Message] {
         projection.historyMessages
     }
 
-    private func buildUserQueryConversationMessage(from projection: RenderedPromptProjection) -> Message? {
+    private func buildUserQueryThreadMessage(from projection: RenderedPromptProjection) -> Message? {
         guard let userQueryContent = projection.userQueryContent else { return nil }
         return Message(content: userQueryContent, role: .user)
     }

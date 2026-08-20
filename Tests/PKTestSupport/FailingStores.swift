@@ -17,21 +17,21 @@ public enum FailingStoreError: Error, Sendable {
 /// attempted message, so failure-path tests can assert the save was both attempted
 /// and non-fatal to the caller (e.g. an audit-log save that the caller must survive).
 public final class FailingMessageStore: ThreadMessageStoreProtocol, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
-    private let attemptedState = Mutex<[ConversationMessage]>([])
+    private let attemptedState = Mutex<[ThreadMessage]>([])
 
     /// Messages handed to `saveMessage` before it threw, in arrival order.
-    public var attemptedMessages: [ConversationMessage] {
+    public var attemptedMessages: [ThreadMessage] {
         attemptedState.withLock { $0 }
     }
 
     public init() {}
 
-    public func saveMessage(_ message: ConversationMessage) async throws {
+    public func saveMessage(_ message: ThreadMessage) async throws {
         attemptedState.withLock { $0.append(message) }
         throw FailingStoreError.saveFailed
     }
 
-    public func fetchMessages(for threadID: UUID) async throws -> [ConversationMessage] { [] }
+    public func fetchMessages(for threadID: UUID) async throws -> [ThreadMessage] { [] }
 
     public func deleteMessages(for threadID: UUID) async throws {}
 
@@ -179,11 +179,11 @@ public final class BatchFailingMessageStore: ThreadMessageStoreProtocol {
     /// Number of `saveMessage` calls received so far.
     public var saveCallCount: Int { saveState.withLock { $0.saveCallCount } }
 
-    public var messages: [ConversationMessage] {
+    public var messages: [ThreadMessage] {
         backing.messages
     }
 
-    public func saveMessage(_ message: ConversationMessage) async throws {
+    public func saveMessage(_ message: ThreadMessage) async throws {
         let isAdmitted = saveState.withLock { state in
             state.saveCallCount += 1
             guard let limit = state.failAfterSaveCount else { return true }
@@ -195,7 +195,7 @@ public final class BatchFailingMessageStore: ThreadMessageStoreProtocol {
         try await backing.saveMessage(message)
     }
 
-    public func fetchMessages(for threadID: UUID) async throws -> [ConversationMessage] {
+    public func fetchMessages(for threadID: UUID) async throws -> [ThreadMessage] {
         try await backing.fetchMessages(for: threadID)
     }
 

@@ -3,8 +3,8 @@ import PKContracts
 import PKUtilities
 
 public extension LLMStreamClient {
-    /// Stream chat with full prompt building (includes notes, history, etc.)
-    func chatStreamWithContext(_ request: LLMChatRequest) async throws -> LLMStreamResult {
+    /// Stream a generation with full prompt building (includes notes, history, etc.)
+    func generationStreamWithContext(_ request: LLMGenerationRequest) async throws -> LLMStreamResult {
         let promptRequest = LLMPromptRequest(
             userQuery: request.userQuery,
             contextNotes: request.contextNotes,
@@ -40,7 +40,7 @@ public extension LLMStreamClient {
 
         // Delegate to the configured provider implementation for streaming.
         let resolvedTools = preparedOutput?.tools ?? toolParams
-        let stream = await chatStream(
+        let stream = await generationStream(
             messages: messages,
             tools: resolvedTools,
             toolChoice: toolChoice,
@@ -60,7 +60,7 @@ public extension LLMStreamClient {
 }
 
 public extension LLMService {
-    func chatStream(
+    func generationStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,
         toolChoice: LLMToolChoice?,
@@ -91,8 +91,8 @@ public extension LLMService {
         )
     }
 
-    /// Stream chat responses (low-level API)
-    func chatStream(
+    /// Stream generation responses (low-level API)
+    func generationStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,
         toolChoice: LLMToolChoice?,

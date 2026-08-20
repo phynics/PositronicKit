@@ -7,7 +7,7 @@ embedding implementations. It is a leaf context and does not own runtime orchest
 
 **Model Message**:
 A provider-neutral request or response message with ordered content and role semantics.
-_Avoid_: Thread Message, ConversationMessage
+_Avoid_: Thread Message, ThreadMessage
 
 **Modality**:
 A supported form of model content, such as text, image, audio, or structured data.
@@ -15,7 +15,7 @@ _Avoid_: provider-specific payload type
 
 **Model Client**:
 A replaceable capability for generation, streaming, and structured inference.
-_Avoid_: Turn engine, ChatEngine
+_Avoid_: Turn engine, TurnEngine
 
 **Generation Parameters**:
 Caller-selected model options that are part of an inference request.

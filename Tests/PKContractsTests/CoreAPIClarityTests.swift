@@ -44,35 +44,35 @@ struct CoreAPIClarityTests {
 
     @Test("Canonical shared-model identifiers preserve all legacy JSON keys")
     func canonicalSharedModelIdentifiersPreserveLegacyJSONKeys() throws {
-        let timelineID = UUID()
-        let agentInstanceID = UUID()
+        let threadID = UUID()
+        let agentID = UUID()
         let workspaceID = UUID()
 
-        let identity = TurnIdentity(sendID: UUID(), roundTrip: 2)
+        let identity = TurnIdentity(turnID: UUID(), requestID: UUID(), modelRoundIndex: 2)
         let submission = ToolOutputSubmission(toolCallID: "call-2", output: "done")
-        let agent = AgentInstance(
+        let agent = Agent(
             name: "Agent",
             description: "Test",
             primaryWorkspaceID: workspaceID,
-            privateThreadID: timelineID
+            privateThreadID: threadID
         )
         let workspace = WorkspaceReference(
-            uri: .threadWorkspace(timelineID),
+            uri: .threadWorkspace(threadID),
             location: .runtime,
-            originID: agentInstanceID
+            originID: agentID
         )
         let snapshot = TurnSnapshot(
-            threadID: timelineID,
-            agentInstanceID: agentInstanceID,
+            threadID: threadID,
+            agentID: agentID,
             modelName: "test",
-            turnCount: 1,
-            maxTurns: 2,
+            modelRoundIndex: 1,
+            maxModelRounds: 2,
             availableToolIDs: ["tool-1"]
         )
         let diagnostic = TurnDiagnostic(
             dependency: .agent,
             operation: "fetch",
-            entityID: agentInstanceID.uuidString,
+            entityID: agentID.uuidString,
             errorIdentity: nil,
             message: "missing"
         )
@@ -86,11 +86,11 @@ struct CoreAPIClarityTests {
         )
 
         let values: [(data: Data, requiredKeys: Set<String>, forbiddenKeys: Set<String>)] = [
-            (try JSONEncoder().encode(identity), ["sendId", "roundTrip"], ["sendID"]),
+            (try JSONEncoder().encode(identity), ["turnId", "requestId", "modelRoundIndex"], ["turnID", "requestID"]),
             (try JSONEncoder().encode(submission), ["toolCallId", "output"], ["toolCallID"]),
-            (try JSONEncoder().encode(agent), ["primaryWorkspaceId", "privateTimelineId"], ["primaryWorkspaceID", "privateTimelineID"]),
+            (try JSONEncoder().encode(agent), ["primaryWorkspaceId", "privateThreadId"], ["primaryWorkspaceID", "privateThreadID"]),
             (try JSONEncoder().encode(workspace), ["originId"], ["originID"]),
-            (try JSONEncoder().encode(snapshot), ["timelineId", "agentInstanceId", "availableToolIds"], ["timelineID", "agentInstanceID", "availableToolIDs"]),
+            (try JSONEncoder().encode(snapshot), ["threadId", "agentId", "availableToolIds"], ["threadID", "agentID", "availableToolIDs"]),
             (try JSONEncoder().encode(diagnostic), ["entityId"], ["entityID"]),
             (try JSONEncoder().encode(compressionMetric), ["nodeId"], ["nodeID"]),
         ]

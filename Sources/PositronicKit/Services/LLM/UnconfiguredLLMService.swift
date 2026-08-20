@@ -75,11 +75,11 @@ public struct UnconfiguredLLMService: LanguageModel {
         throw error
     }
 
-    public func chatStreamWithContext(_: LLMChatRequest) async throws -> LLMStreamResult {
+    public func generationStreamWithContext(_: LLMGenerationRequest) async throws -> LLMStreamResult {
         LLMStreamResult(stream: failingStream(), rawPrompt: "")
     }
 
-    public func chatStream(
+    public func generationStream(
         messages _: [LLMMessage],
         tools _: [LLMToolDefinition]?,
         toolChoice _: LLMToolChoice?,

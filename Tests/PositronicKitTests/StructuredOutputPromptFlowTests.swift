@@ -7,8 +7,8 @@ import PKUtilities
 @Suite("Structured Output Prompt Flow Tests")
 @MainActor
 struct StructuredOutputPromptFlowTests {
-    @Test("chatStreamWithContext preserves prompt context with json object output")
-    func chatStreamWithContextPreservesPromptContext() async throws {
+    @Test("generationStreamWithContext preserves prompt context with json object output")
+    func generationStreamWithContextPreservesPromptContext() async throws {
         let mockClient = MockLLMClient(structuredOutputAdapter: PromptAugmentedJSONSchemaAdapter())
         mockClient.nextChunks = [["{\"tags\":[\"swift\"]}"]]
         let service = LLMService(
@@ -16,7 +16,7 @@ struct StructuredOutputPromptFlowTests {
             clients: .init(primary: mockClient)
         )
 
-        let request = LLMChatRequest(
+        let request = LLMGenerationRequest(
             userQuery: "Extract tags",
             contextNotes: [ContextFile(name: "Note", content: "Prompt note", source: "note")],
             memories: [],
@@ -29,7 +29,7 @@ struct StructuredOutputPromptFlowTests {
             structuredOutput: .jsonObject
         )
 
-        let result = try await service.chatStreamWithContext(request)
+        let result = try await service.generationStreamWithContext(request)
 
         var chunks: [String] = []
         for try await event in result.stream {
@@ -45,8 +45,8 @@ struct StructuredOutputPromptFlowTests {
         #expect(result.rawPrompt.contains("Extract tags"))
     }
 
-    @Test("chatStreamWithContext includes fallback schema instructions in raw prompt")
-    func chatStreamWithContextIncludesFallbackSchemaInstructions() async throws {
+    @Test("generationStreamWithContext includes fallback schema instructions in raw prompt")
+    func generationStreamWithContextIncludesFallbackSchemaInstructions() async throws {
         let mockClient = MockLLMClient(structuredOutputAdapter: PromptAugmentedJSONSchemaAdapter())
         mockClient.nextChunks = [["{\"tags\":[\"swift\"]}"]]
         let service = LLMService(
@@ -55,7 +55,7 @@ struct StructuredOutputPromptFlowTests {
         )
         try await service.updateConfiguration(.fixture(activeProvider: .ollama))
 
-        let request = LLMChatRequest(
+        let request = LLMGenerationRequest(
             userQuery: "Extract tags",
             contextNotes: [],
             memories: [],
@@ -68,7 +68,7 @@ struct StructuredOutputPromptFlowTests {
             structuredOutput: .jsonSchema(StructuredOutputFixtures.tagSchemaDefinition())
         )
 
-        let result = try await service.chatStreamWithContext(request)
+        let result = try await service.generationStreamWithContext(request)
 
         var chunks: [String] = []
         for try await event in result.stream {
@@ -89,11 +89,11 @@ struct StructuredOutputPromptFlowTests {
         #expect(result.rawPrompt.contains("JSON Schema"))
     }
 
-    @Test("chatStreamWithContext preserves Anthropic schema constraints and rewrites synthetic tool output")
-    func chatStreamWithContextPreservesAnthropicSchemaConstraints() async throws {
+    @Test("generationStreamWithContext preserves Anthropic schema constraints and rewrites synthetic tool output")
+    func generationStreamWithContextPreservesAnthropicSchemaConstraints() async throws {
         let mockClient = MockLLMClient(structuredOutputAdapter: DefaultStructuredOutputAdapter())
         mockClient.nextRawStreamChunks = [[
-            ChatStreamResultFactory.toolCallChunk(calls: [
+            GenerationStreamResultFactory.toolCallChunk(calls: [
                 MockToolCall(
                     id: "structured-call",
                     name: "emit_structured_response",
@@ -108,7 +108,7 @@ struct StructuredOutputPromptFlowTests {
         )
         try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .anthropic))
 
-        let request = LLMChatRequest(
+        let request = LLMGenerationRequest(
             userQuery: "Extract tags",
             contextNotes: [],
             memories: [],
@@ -121,7 +121,7 @@ struct StructuredOutputPromptFlowTests {
             structuredOutput: .jsonSchema(StructuredOutputFixtures.tagSchemaDefinition())
         )
 
-        let result = try await service.chatStreamWithContext(request)
+        let result = try await service.generationStreamWithContext(request)
 
         var content = ""
         for try await event in result.stream {
@@ -136,8 +136,8 @@ struct StructuredOutputPromptFlowTests {
         #expect(result.rawPrompt.contains("System rules"))
     }
 
-    @Test("chatStreamWithContext preserves OpenAI-compatible schema constraints with native response format")
-    func chatStreamWithContextPreservesOpenAICompatibleSchemaConstraints() async throws {
+    @Test("generationStreamWithContext preserves OpenAI-compatible schema constraints with native response format")
+    func generationStreamWithContextPreservesOpenAICompatibleSchemaConstraints() async throws {
         let mockClient = MockLLMClient(structuredOutputAdapter: PromptAugmentedJSONSchemaAdapter())
         mockClient.nextChunks = [["{\"tags\":[\"swift\"]}"]]
 
@@ -147,7 +147,7 @@ struct StructuredOutputPromptFlowTests {
         )
         try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .openAICompatible))
 
-        let request = LLMChatRequest(
+        let request = LLMGenerationRequest(
             userQuery: "Extract tags",
             contextNotes: [],
             memories: [],
@@ -160,7 +160,7 @@ struct StructuredOutputPromptFlowTests {
             structuredOutput: .jsonSchema(StructuredOutputFixtures.tagSchemaDefinition())
         )
 
-        let result = try await service.chatStreamWithContext(request)
+        let result = try await service.generationStreamWithContext(request)
 
         var chunks: [String] = []
         for try await event in result.stream {

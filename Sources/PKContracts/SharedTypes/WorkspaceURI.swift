@@ -1,7 +1,7 @@
 import Foundation
 
 /// SCP-like URI for identifying workspaces
-/// Format: `host:path` (e.g., `macbook:~/dev/project`, `pk-runtime:/timelines/abc123`)
+/// Format: `host:path` (e.g., `macbook:~/dev/project`, `pk-runtime:/threads/abc123`)
 public struct WorkspaceURI: Codable, Sendable, Hashable, CustomStringConvertible {
     public let host: String
     public let path: String
@@ -42,7 +42,7 @@ public struct WorkspaceURI: Codable, Sendable, Hashable, CustomStringConvertible
 
     /// Create a thread workspace URI owned by this runtime.
     public static func threadWorkspace(_ threadID: UUID) -> WorkspaceURI {
-        WorkspaceURI(host: "pk-runtime", path: "/timelines/\(threadID.uuidString)")
+        WorkspaceURI(host: "pk-runtime", path: "/threads/\(threadID.uuidString)")
     }
 
     /// Create a request-origin shell workspace URI.

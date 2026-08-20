@@ -8,7 +8,7 @@ continuity and authorized Workspace execution.
 **Thread**:
 A durable ordered history and execution container. A Thread may be detached or attached to at most
 one Agent, and its history remains owned by the Thread.
-_Avoid_: Timeline, runtime Conversation
+_Avoid_: Timeline, runtime Timeline
 
 **Turn**:
 One caller request and all model/tool rounds until one terminal outcome.

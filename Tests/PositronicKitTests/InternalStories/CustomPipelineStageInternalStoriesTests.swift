@@ -23,7 +23,7 @@ struct CustomPipelineStageInternalStoriesTests {
         let chat = makeChat(llmService: mockLLM, persistence: mockPersistence)
             .addingStage(customStage)
 
-        let stream = try await chat.run(ChatRunRequest(
+        let stream = try await chat.run(TurnRequest(
             threadID: threadID,
             message: message
         ))
@@ -48,7 +48,7 @@ struct CustomPipelineStageInternalStoriesTests {
                 workspacePersistence: persistence,
                 memoryStore: persistence,
                 toolPersistence: persistence,
-                agentInstanceStore: persistence,
+                agentStore: persistence,
                 requestOriginStore: persistence
             )
         ))
@@ -68,7 +68,7 @@ private struct MockCustomStage: PipelineStage {
         "MockCustomStage"
     }
 
-    func process(_: ChatTurnContext) async throws -> AsyncThrowingStream<ChatEvent, Error> {
+    func process(_: TurnContext) async throws -> AsyncThrowingStream<TurnEvent, Error> {
         await tracker.setRun()
         return AsyncThrowingStream { continuation in
             continuation.finish()

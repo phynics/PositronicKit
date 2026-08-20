@@ -26,7 +26,7 @@ public struct AgentTemplate: Codable, Sendable, Identifiable, Equatable {
     /// Timestamp when the agent was last updated
     public var updatedAt: Date
 
-    /// Optional seed files to write into a new AgentInstance's workspace Notes/ directory.
+    /// Optional seed files to write into a new Agent's workspace Notes/ directory.
     /// Keys are filenames (e.g. "system.md"), values are file contents.
     /// Used only at instance creation time.
     public var workspaceFilesSeed: [String: String]?

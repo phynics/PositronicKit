@@ -27,7 +27,7 @@ import Testing
     }
 
     @Test("Round-tripping an arbitrary wire string through init and wireValue is identity-preserving")
-    func roundTripIsIdentityPreserving() {
+    func modelRoundIndexIsIdentityPreserving() {
         for raw in ["stop", "tool_calls", "length", "content_filter", "function_call", "custom_reason"] {
             #expect(FinishReason(wireValue: raw).wireValue == raw)
         }

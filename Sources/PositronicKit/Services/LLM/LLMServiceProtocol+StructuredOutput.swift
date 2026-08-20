@@ -10,7 +10,7 @@ public extension LLMStreamClient {
         idleTimeout: TimeInterval = 60,
         modelTier: ModelTier = .primary
     ) async throws -> String {
-        let stream = await chatStream(
+        let stream = await generationStream(
             messages: [LLMMessage(role: .user, content: content)],
             tools: nil,
             structuredOutput: structuredOutput,
@@ -42,7 +42,7 @@ public extension LLMStreamClient {
         return content
     }
 
-    func chatStream(
+    func generationStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]? = nil,
         structuredOutput: StructuredOutputRequest,
@@ -56,7 +56,7 @@ public extension LLMStreamClient {
             output: structuredOutput
         )
 
-        let stream = await chatStream(
+        let stream = await generationStream(
             messages: prepared.messages,
             tools: prepared.tools,
             toolChoice: prepared.toolChoice,
@@ -72,7 +72,7 @@ public extension LLMStreamClient {
         return StructuredOutputExecution.rewriteSyntheticToolStream(stream, syntheticToolName: syntheticToolName)
     }
 
-    func chatStream(
+    func generationStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]? = nil,
         structuredOutput: StructuredOutputRequest,
@@ -87,7 +87,7 @@ public extension LLMStreamClient {
             adapter: await structuredOutputAdapter(for: modelTier),
             output: structuredOutput
         )
-        let stream = await chatStream(
+        let stream = await generationStream(
             messages: prepared.messages,
             tools: prepared.tools,
             toolChoice: prepared.toolChoice,

@@ -26,15 +26,15 @@ struct TurnDegradationPolicyTests {
         try await threadManager.hydrateThread(id: thread.id)
         let builder = try #require(await threadManager.getTurnBriefingBuilder(for: thread.id))
         let failingPipeline = Pipeline<ContextPipelineContext, ContextGatheringEvent>(stages: [ThrowingContextStage()])
-        let engine = ChatEngine(
+        let engine = TurnEngine(
             dependencies: .init(
                 threadManager: threadManager,
-                agentInstanceStore: persistence,
+                agentStore: persistence,
                 requestOriginStore: persistence,
                 messageStore: persistence,
                 llmService: model,
                 toolRouter: ToolRouter(threadManager: threadManager, messageStore: persistence),
-                chatTurnPlugins: []
+                turnPlugins: []
             )
         )
 
@@ -49,7 +49,7 @@ struct TurnDegradationPolicyTests {
             Issue.record("Expected required context failure")
         } catch let error as TurnDegradationError {
             #expect(error.diagnostic.dependency == .context)
-            #expect(ChatEvent.ErrorIdentity.extracting(from: error)?.code == 9010)
+            #expect(TurnEvent.ErrorIdentity.extracting(from: error)?.code == 9010)
         }
 
         #expect(model.mockClient.streamCallCount == 0)
@@ -74,15 +74,15 @@ struct TurnDegradationPolicyTests {
         try await threadManager.hydrateThread(id: thread.id)
         let builder = try #require(await threadManager.getTurnBriefingBuilder(for: thread.id))
         model.mockClient.nextResponse = "continued"
-        let engine = ChatEngine(
+        let engine = TurnEngine(
             dependencies: .init(
                 threadManager: threadManager,
-                agentInstanceStore: persistence,
+                agentStore: persistence,
                 requestOriginStore: persistence,
                 messageStore: persistence,
                 llmService: model,
                 toolRouter: ToolRouter(threadManager: threadManager, messageStore: persistence),
-                chatTurnPlugins: [],
+                turnPlugins: [],
                 degradationPolicy: .continueWithWarnings
             )
         )

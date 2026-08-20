@@ -122,7 +122,7 @@ public extension PositronicKit {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
-                    let stream = await languageModel.chatStream(
+                    let stream = await languageModel.generationStream(
                         messages: [LLMMessage(role: .user, content: prompt)],
                         tools: nil,
                         toolChoice: nil,

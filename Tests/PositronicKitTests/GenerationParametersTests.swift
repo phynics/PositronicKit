@@ -19,14 +19,14 @@ struct GenerationParametersTests {
                 workspacePersistence: mockPersistence,
                 memoryStore: mockPersistence,
                 toolPersistence: mockPersistence,
-                agentInstanceStore: mockPersistence,
+                agentStore: mockPersistence,
                 requestOriginStore: mockPersistence
             ), generationParameters: defaultParams))
 
         let thread = try await chat.threadManager.createThread(title: "Default Params")
 
-        // 2. Run a chat turn without per-run parameters
-        let stream = try await chat.run(ChatRunRequest(
+        // 2. Run a turn without per-run parameters
+        let stream = try await chat.run(TurnRequest(
             threadID: thread.id,
             message: "Test message"
         ))
@@ -53,15 +53,15 @@ struct GenerationParametersTests {
                 workspacePersistence: mockPersistence,
                 memoryStore: mockPersistence,
                 toolPersistence: mockPersistence,
-                agentInstanceStore: mockPersistence,
+                agentStore: mockPersistence,
                 requestOriginStore: mockPersistence
             ), generationParameters: defaultParams))
 
         let thread = try await chat.threadManager.createThread(title: "Override Params")
 
-        // 2. Run a chat turn WITH per-run parameters that override the defaults
+        // 2. Run a turn WITH per-run parameters that override the defaults
         let overrideParams = GenerationParameters(temperature: 0.2, maxTokens: 500, topP: 0.9)
-        let stream = try await chat.run(ChatRunRequest(
+        let stream = try await chat.run(TurnRequest(
             threadID: thread.id,
             message: "Test message",
             generationParameters: overrideParams
@@ -86,8 +86,8 @@ struct GenerationParametersTests {
 
         let thread = try await chat.threadManager.createThread(title: "Nil Params")
 
-        // 2. Run a chat turn without per-run parameters
-        let stream = try await chat.run(ChatRunRequest(
+        // 2. Run a turn without per-run parameters
+        let stream = try await chat.run(TurnRequest(
             threadID: thread.id,
             message: "Test message"
         ))

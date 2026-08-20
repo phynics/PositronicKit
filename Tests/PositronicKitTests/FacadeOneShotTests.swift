@@ -20,7 +20,7 @@ struct FacadeOneShotTests {
             workspacePersistence: InMemoryWorkspacePersistence(),
             memoryStore: InMemoryMemoryStore(),
             toolPersistence: InMemoryToolPersistence(),
-            agentInstanceStore: InMemoryAgentInstanceStore(),
+            agentStore: InMemoryAgentStore(),
             requestOriginStore: InMemoryRequestOriginStore()
         )
         let kit = PositronicKit(configuration: .init(
@@ -35,7 +35,7 @@ struct FacadeOneShotTests {
         #expect(try await persistence.threadPersistence.fetchAllThreads(includeArchived: true).isEmpty)
         #expect(try await persistence.workspacePersistence.fetchAllWorkspaces().isEmpty)
         #expect(try await persistence.toolPersistence.fetchTools(forWorkspaces: []).isEmpty)
-        #expect(try await persistence.agentInstanceStore.fetchAllAgentInstances().isEmpty)
+        #expect(try await persistence.agentStore.fetchAllAgents().isEmpty)
         #expect(try await persistence.requestOriginStore.fetchAllOrigins().isEmpty)
     }
 
@@ -135,7 +135,7 @@ struct FacadeOneShotTests {
         do {
             _ = try await kit.completeResult("hi", idleTimeout: 0.01)
             Issue.record("Expected the stalled one-shot stream to time out")
-        } catch let error as ChatEngineError {
+        } catch let error as TurnEngineError {
             guard case let .streamTimedOut(timeout) = error else {
                 Issue.record("Expected stream timeout, got \(error)")
                 return
@@ -215,7 +215,7 @@ struct FacadeOneShotTests {
                 workspacePersistence: InMemoryWorkspacePersistence(),
                 memoryStore: InMemoryMemoryStore(),
                 toolPersistence: InMemoryToolPersistence(),
-                agentInstanceStore: InMemoryAgentInstanceStore(),
+                agentStore: InMemoryAgentStore(),
                 requestOriginStore: InMemoryRequestOriginStore()
             )
         ))
@@ -267,7 +267,7 @@ struct FacadeOneShotTests {
                 idleTimeout: 0.01
             )
             Issue.record("Expected the stalled structured stream to time out")
-        } catch let error as ChatEngineError {
+        } catch let error as TurnEngineError {
             guard case let .streamTimedOut(timeout) = error else {
                 Issue.record("Expected stream timeout, got \(error)")
                 return
@@ -340,7 +340,7 @@ struct FacadeOneShotTests {
                 workspacePersistence: InMemoryWorkspacePersistence(),
                 memoryStore: InMemoryMemoryStore(),
                 toolPersistence: InMemoryToolPersistence(),
-                agentInstanceStore: InMemoryAgentInstanceStore(),
+                agentStore: InMemoryAgentStore(),
                 requestOriginStore: InMemoryRequestOriginStore()
             )
         ))
@@ -356,10 +356,10 @@ struct FacadeOneShotTests {
         try await llm.updateConfiguration(.fixture(activeProvider: .anthropic))
         llm.mockClient = MockLLMClient(structuredOutputAdapter: DefaultStructuredOutputAdapter())
         llm.mockClient.nextRawStreamChunks = [[
-            ChatStreamResultFactory.toolCallChunk(calls: [
+            GenerationStreamResultFactory.toolCallChunk(calls: [
                 MockToolCall(id: "structured-call", name: "emit_structured_response", arguments: "{" + #""tags":["#)
             ]),
-            ChatStreamResultFactory.toolCallChunk(calls: [
+            GenerationStreamResultFactory.toolCallChunk(calls: [
                 MockToolCall(id: "structured-call", name: "emit_structured_response", arguments: #""swift"]}"#)
             ]),
         ]]
@@ -371,7 +371,7 @@ struct FacadeOneShotTests {
                 workspacePersistence: InMemoryWorkspacePersistence(),
                 memoryStore: InMemoryMemoryStore(),
                 toolPersistence: InMemoryToolPersistence(),
-                agentInstanceStore: InMemoryAgentInstanceStore(),
+                agentStore: InMemoryAgentStore(),
                 requestOriginStore: InMemoryRequestOriginStore()
             )
         ))
@@ -444,7 +444,7 @@ struct FacadeOneShotTests {
             }
             probe.markStarted()
             if let initialContent {
-                continuation.yield(ChatStreamResultFactory.textChunk(initialContent))
+                continuation.yield(GenerationStreamResultFactory.textChunk(initialContent))
             }
         }
     }

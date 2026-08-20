@@ -281,9 +281,9 @@ struct StoreErrorClassificationTests {
 
         // createThread should succeed even if workspace resolution fails internally —
         // the thread itself is created and persisted.
-        let thread = try await manager.createThread(title: "Resilient Timeline")
+        let thread = try await manager.createThread(title: "Resilient Thread")
 
-        #expect(thread.title == "Resilient Timeline")
+        #expect(thread.title == "Resilient Thread")
         #expect(await manager.thread(id: thread.id) != nil,
                "Thread should be in memory even if workspace resolution degraded")
     }
@@ -310,7 +310,7 @@ struct StoreErrorClassificationTests {
 
         @Test("corrupt includes context in userFriendlyMessage")
         func corruptMessage() {
-            let error = ThreadError.corrupt("timeline:\(UUID())")
+            let error = ThreadError.corrupt("thread:\(UUID())")
             #expect(error.userFriendlyMessage.contains("corrupted"))
         }
 
@@ -322,7 +322,7 @@ struct StoreErrorClassificationTests {
 
         @Test("invalidState message references invalid state")
         func invalidStateMessage() {
-            let error = ThreadError.invalidState("timeline not hydrated")
+            let error = ThreadError.invalidState("thread not hydrated")
             #expect(error.userFriendlyMessage.contains("invalid state"))
         }
 
@@ -380,7 +380,7 @@ struct StoreErrorClassificationTests {
             let error = ThreadError.unavailable
             let degradation = StoreDegradation(
                 operation: "test",
-                entityID: "timeline:abc",
+                entityID: "thread:abc",
                 error: error
             )
 

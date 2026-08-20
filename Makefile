@@ -3,7 +3,7 @@
 	verify-linux verify-linux-agent verify-linux-base verify-linux-current verify-linux-filter \
 	verify-linux-scratch verify-linux-suites \
 	verify-linux-asan \
-	verify-agent-harness verify-products verify-examples verify-tests verify-pktestsupport verify-public-consumers verify-dependency-direction verify-macos-minilm \
+	verify-agent-harness verify-products verify-examples verify-tests verify-pktestsupport verify-public-consumers verify-dependency-direction verify-v4-vocabulary verify-macos-minilm \
 	bootstrap-minilm build-minilm verify-minilm \
 	agent-verify agent-test linux-image linux-build linux-test linux-test-scratch \
 	linux-test-filter require-podman
@@ -76,6 +76,7 @@ help:
 	@echo "  make verify-pktestsupport  Build PKTestSupport and an ordinary-import consumer in release mode"
 	@echo "  make verify-public-consumers  Compile ordinary imports for every public library product"
 	@echo "  make verify-dependency-direction  Check the v4 target dependency boundaries"
+	@echo "  make verify-v4-vocabulary  Check the v4 Thread/Turn/Agent vocabulary"
 	@echo "  make verify-agent-harness Run agent test-entrypoint regression tests"
 	@echo "  make verify-pin            Check the pinned MiniLM artifact hashes are consistent"
 	@echo "  make build-minilm          Prepare assets/native bridge and build the MiniLM trait product"
@@ -148,7 +149,7 @@ doctor:
 
 verify-macos-default: verify
 
-verify: verify-pin verify-concurrency-scan verify-dependency-direction validate-docs verify-doc-snippets audit-default-linkage verify-products verify-examples verify-pktestsupport verify-public-consumers verify-tests
+verify: verify-pin verify-concurrency-scan verify-dependency-direction verify-v4-vocabulary validate-docs verify-doc-snippets audit-default-linkage verify-products verify-examples verify-pktestsupport verify-public-consumers verify-tests
 
 verify-linux-suites:
 	@echo "Running comprehensive Linux test suite..."
@@ -179,7 +180,7 @@ verify-linux-agent: bootstrap-minilm
 	@PKG_CONFIG_PATH="$(PKFASTEMBED_PREFIX)/lib/pkgconfig" \
 		LIBRARY_PATH="$(PKFASTEMBED_PREFIX)/lib$${LIBRARY_PATH:+:$$LIBRARY_PATH}" \
 		PK_MINILM_MODEL_DIR="$(MINILM_MODEL_CACHE_DIR)" \
-		$(MAKE) verify-agent-harness verify-dependency-direction verify-products verify-examples verify-pktestsupport verify-public-consumers verify-linux-suites
+		$(MAKE) verify-agent-harness verify-dependency-direction verify-v4-vocabulary verify-products verify-examples verify-pktestsupport verify-public-consumers verify-linux-suites
 
 verify-linux-filter: bootstrap-minilm
 	@if [ -z "$(LINUX_TEST_FILTER)" ]; then \
@@ -235,6 +236,9 @@ verify-public-consumers:
 
 verify-dependency-direction:
 	@bash Scripts/check-dependency-direction.sh
+
+verify-v4-vocabulary:
+	@bash Scripts/check-v4-vocabulary.sh
 
 verify-tests: test
 

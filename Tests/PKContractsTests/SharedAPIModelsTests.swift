@@ -4,8 +4,8 @@ import Testing
 
 final class SharedAPIModelsTests {
     @Test
-    func chatEventCodable() throws {
-        let event = ChatEvent.generation("Pong")
+    func turnEventCodable() throws {
+        let event = TurnEvent.generation("Pong")
         let data = try JSONEncoder().encode(event)
         #expect(data.count > 0)
     }
