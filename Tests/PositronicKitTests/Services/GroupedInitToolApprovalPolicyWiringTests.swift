@@ -1,5 +1,5 @@
 import Foundation
-@testable import PKShared
+@testable import PKContracts
 import PKUtilities
 import PKTestSupport
 @testable import PositronicKit
@@ -19,7 +19,7 @@ import Testing
 struct GroupedInitToolApprovalPolicyWiringTests {
     /// A permissioned tool that records whether its body ever ran, so a test can assert that an
     /// un-approved call is blocked *before* execution rather than merely failing afterwards.
-    final class PermissionedTool: PKShared.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+    final class PermissionedTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName: String
         let name: String
         let description = "A permissioned mock tool"

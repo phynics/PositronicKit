@@ -2,7 +2,7 @@ import Foundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
-import PKShared
+import PKContracts
 
 package enum ProviderHTTPFailure {
     package static func makeError(

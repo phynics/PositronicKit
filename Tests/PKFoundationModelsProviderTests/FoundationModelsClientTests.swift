@@ -1,7 +1,7 @@
 import Foundation
 import Synchronization
 @testable import PKFoundationModelsProvider
-import PKShared
+import PKContracts
 import PKUtilities
 import PKTestSupport
 import PositronicKit

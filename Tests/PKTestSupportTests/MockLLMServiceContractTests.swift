@@ -1,5 +1,5 @@
 import struct JSONSchema.Schema
-import PKShared
+import PKContracts
 import PKTestSupport
 import PositronicKit
 import Testing

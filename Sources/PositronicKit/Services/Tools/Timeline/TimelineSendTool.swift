@@ -1,7 +1,7 @@
 import Foundation
 import struct JSONSchema.Schema
 import JSONSchemaBuilder
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Allows an agent to post a message to a thread without attaching to it.
@@ -9,7 +9,7 @@ import PKUtilities
 /// The message is stored as a `system` role message with the agent's ID so it is visible
 /// in the timeline history. It does NOT trigger LLM generation — messages queue naturally
 /// and are processed when an agent next attaches and handles the turn.
-public struct ThreadSendTool: PKShared.Tool, Sendable {
+public struct ThreadSendTool: PKContracts.Tool, Sendable {
     public let callName = "timeline_send"
     public let name = "Timeline Send"
     public let description =

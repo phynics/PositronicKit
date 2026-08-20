@@ -1,7 +1,7 @@
 import Foundation
 import Synchronization
 import Testing
-@testable import PKShared
+@testable import PKContracts
 @testable import PKUtilities
 
 /// Regression tests for PKRR-030: `RetryPolicy.retry` must reject invalid numeric

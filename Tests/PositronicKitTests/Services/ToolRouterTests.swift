@@ -1,6 +1,6 @@
 import Foundation
 import Logging
-@testable import PKShared
+@testable import PKContracts
 import PKUtilities
 import PKTestSupport
 @testable import PositronicKit
@@ -104,7 +104,7 @@ private func captureProjectedToolEventsResult<R: Sendable>(
 }
 
 final class ToolRouterTests {
-    struct MockTool: PKShared.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+    struct MockTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName: String
         let name: String
         let description = "A mock tool for testing"
@@ -127,7 +127,7 @@ final class ToolRouterTests {
 
     /// A permissioned tool that records whether its body ever ran, so a test can assert that an
     /// un-approved call is blocked *before* execution rather than merely failing afterwards.
-    final class PermissionedTool: PKShared.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+    final class PermissionedTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName: String
         let name: String
         let description = "A permissioned mock tool"
@@ -167,7 +167,7 @@ final class ToolRouterTests {
 
     /// Builds a thread with a single registered tool and returns the router under test.
     private func setupRouter(
-        with tool: any PKShared.Tool,
+        with tool: any PKContracts.Tool,
         approvalPolicy: any ToolApprovalPolicy,
         disabledToolIDs: Set<String> = []
     ) async throws -> (ToolRouter, UUID, MockPersistenceService) {
@@ -368,7 +368,7 @@ final class ToolRouterTests {
         #expect(gate.consultedToolIds.isEmpty)
     }
 
-    struct NeverFinishingTool: PKShared.Tool {
+    struct NeverFinishingTool: PKContracts.Tool {
         let callName = "never_finishes"
         let name = "never_finishes"
         let description = "A tool that never finishes unless cancelled"
@@ -386,7 +386,7 @@ final class ToolRouterTests {
     }
 
     /// A tool that suspends asynchronously and ignores cooperative cancellation until released.
-    private struct UncooperativeTool: PKShared.Tool {
+    private struct UncooperativeTool: PKContracts.Tool {
         let callName = "uncooperative"
         let name = "uncooperative"
         let description = "A tool that suspends and ignores cancellation"
@@ -996,7 +996,7 @@ struct ToolRouterWorkspaceResolutionTests {
 
     // MARK: - MockTool (shared with ToolRouterTests)
 
-    struct MockTool: PKShared.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+    struct MockTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName: String
         let name: String
         let description = "A mock tool for testing"
@@ -1018,7 +1018,7 @@ struct ToolRouterWorkspaceResolutionTests {
     }
 
     /// A tool that throws a specific `ToolError` so remediation guidance can be asserted.
-    struct FailingTool: PKShared.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+    struct FailingTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName: String
         let name: String
         let description = "A tool that always fails"
@@ -1060,7 +1060,7 @@ struct ToolTurnProjectionTests {
         return (threadManager, mockPersistence)
     }
 
-    private struct MockTool: PKShared.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+    private struct MockTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName: String
         let name: String
         let description = "A mock tool for testing"
@@ -1078,7 +1078,7 @@ struct ToolTurnProjectionTests {
         }
     }
 
-    private struct FailingTool: PKShared.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+    private struct FailingTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName: String
         let name: String
         let description = "A tool that always fails"
@@ -1261,7 +1261,7 @@ struct ToolDurabilityOrderingTests {
         return (threadManager, mockPersistence)
     }
 
-    private struct MockTool: PKShared.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+    private struct MockTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName: String
         let name: String
         let description = "A mock tool for testing"
@@ -1277,7 +1277,7 @@ struct ToolDurabilityOrderingTests {
         }
     }
 
-    private struct FailingTool: PKShared.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+    private struct FailingTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName: String
         let name: String
         let description = "A tool that always fails"
@@ -1301,7 +1301,7 @@ struct ToolDurabilityOrderingTests {
     /// Sets up a thread with a single registered tool and returns the router (backed by a
     /// `FailingMessageStore`) plus the thread ID and the store for assertions.
     private func setupRouterWithFailingStore(
-        tool: any PKShared.Tool
+        tool: any PKContracts.Tool
     ) async throws -> (ToolRouter, FailingMessageStore, UUID) {
         let (threadManager, mockPersistence) = try await setupThreadManager()
         let failingStore = FailingMessageStore()

@@ -4,7 +4,7 @@ import Foundation
 #endif
 import Logging
 import OpenAI
-import PKShared
+import PKContracts
 import PKUtilities
 import Synchronization
 

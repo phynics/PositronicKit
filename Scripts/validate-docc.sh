@@ -80,7 +80,7 @@ extract_symbol_graph() {
     -module-cache-path "$MODULE_CACHE_DIR"
 }
 
-extract_symbol_graph PKShared
+extract_symbol_graph PKContracts
 extract_symbol_graph PKPrompt
 extract_symbol_graph PositronicKit
 
@@ -92,8 +92,8 @@ mkdir -p "$CWD_SAFE"
 (
   cd "$CWD_SAFE"
   "$DOCC_BIN" convert \
-    --additional-symbol-graph-dir "$SYMBOLS_DIR/PKShared" \
-    --output-dir "$OUTPUT_DIR/PKShared.doccarchive" \
+    --additional-symbol-graph-dir "$SYMBOLS_DIR/PKContracts" \
+    --output-dir "$OUTPUT_DIR/PKContracts.doccarchive" \
     --enable-experimental-external-link-support
   "$DOCC_BIN" convert \
     --additional-symbol-graph-dir "$SYMBOLS_DIR/PKPrompt" \
@@ -105,7 +105,7 @@ mkdir -p "$CWD_SAFE"
 cd "$ROOT"
 "$DOCC_BIN" convert "$ROOT/Sources/PositronicKit/PositronicKit.docc" \
   --additional-symbol-graph-dir "$SYMBOLS_DIR/PositronicKit" \
-  --dependency "$OUTPUT_DIR/PKShared.doccarchive" \
+  --dependency "$OUTPUT_DIR/PKContracts.doccarchive" \
   --dependency "$OUTPUT_DIR/PKPrompt.doccarchive" \
   --output-dir "$OUTPUT_DIR/PositronicKit.doccarchive" \
   --warnings-as-errors \

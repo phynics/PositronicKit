@@ -2,7 +2,7 @@ import Foundation
 import Testing
 
 @testable import PositronicKit
-@testable import PKShared
+@testable import PKContracts
 import PKUtilities
 @Suite struct StreamingParserStressTests {
 

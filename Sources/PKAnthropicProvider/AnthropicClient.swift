@@ -3,7 +3,7 @@ import Foundation
     import FoundationNetworking
 #endif
 import Logging
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Native Anthropic Messages API client (`POST /v1/messages`).

@@ -2,7 +2,7 @@ import Foundation
 import Logging
 import Testing
 @testable import PositronicKit
-@testable import PKShared
+@testable import PKContracts
 import PKUtilities
 import PKTestSupport
 struct MockComplexTool: Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)

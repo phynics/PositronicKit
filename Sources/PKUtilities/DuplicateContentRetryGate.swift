@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 import Synchronization
 
 /// Gates retry decisions to prevent retrying after content has been yielded to the consumer.

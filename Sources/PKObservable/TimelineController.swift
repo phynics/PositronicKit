@@ -1,5 +1,5 @@
 import Observation
-import PKShared
+import PKContracts
 import PositronicKit
 
 /// A SwiftUI-friendly controller for a ``ThreadDriver``.

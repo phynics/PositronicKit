@@ -2,7 +2,7 @@ import ErrorKit
 import Foundation
 import Logging
 import PKPrompt
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Pipeline stage responsible for retrieving relevant semantic memories and tags.

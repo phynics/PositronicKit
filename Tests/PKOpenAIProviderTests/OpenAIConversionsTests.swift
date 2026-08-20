@@ -2,7 +2,7 @@ import Foundation
 import struct JSONSchema.Schema
 import OpenAI
 @testable import PKOpenAIProvider
-import PKShared
+import PKContracts
 import PKUtilities
 import PositronicKit
 import Testing

@@ -1,6 +1,6 @@
 import Foundation
 import struct JSONSchema.Schema
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Pure composition of a combined structured-output request + instruction block

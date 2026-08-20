@@ -2,7 +2,7 @@ import ErrorKit
 import Foundation
 import Logging
 import JSONSchemaBuilder
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Strict utility-generation operations.

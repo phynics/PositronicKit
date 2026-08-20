@@ -1,5 +1,5 @@
 import Foundation
-@testable import PKShared
+@testable import PKContracts
 import PKTestSupport
 import PKUtilities
 @testable import PositronicKit

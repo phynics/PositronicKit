@@ -1,6 +1,6 @@
 import Foundation
 import PKPrompt
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Shared context state during the gathering pipeline

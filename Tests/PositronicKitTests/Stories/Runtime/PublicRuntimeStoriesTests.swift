@@ -1,6 +1,6 @@
 import Foundation
 import Logging
-import PKShared
+import PKContracts
 import PKTestSupport
 import PKUtilities
 import PositronicKit
@@ -493,7 +493,7 @@ private actor FacadeFollowUpPlugin: ChatTurnPlugin {
     }
 }
 
-private struct AcceptanceMockTool: PKShared.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+private struct AcceptanceMockTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     let callName = "mock_tool"
     let name = "mock_tool"
     let description = "Facade acceptance test tool"

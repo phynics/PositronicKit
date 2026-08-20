@@ -1,11 +1,11 @@
 import Foundation
 import struct JSONSchema.Schema
 import JSONSchemaBuilder
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Allows an agent to list available (non-private) threads it can observe.
-public struct ThreadListTool: PKShared.Tool, Sendable {
+public struct ThreadListTool: PKContracts.Tool, Sendable {
     public let callName = "timeline_list"
     public let name = "Timeline List"
     public let description =

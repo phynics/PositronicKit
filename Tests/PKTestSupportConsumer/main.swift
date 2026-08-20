@@ -1,5 +1,5 @@
 import PKTestSupport
-import PKShared
+import PKContracts
 import PositronicKit
 
 let workspace = TestWorkspace()

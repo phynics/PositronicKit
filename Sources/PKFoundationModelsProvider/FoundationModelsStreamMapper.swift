@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Maps `FoundationModelsSessionEvent`s onto the transport-neutral `LLMStreamChunk` contract

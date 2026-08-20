@@ -1,6 +1,6 @@
 import ErrorKit
 import Foundation
-import PKShared
+import PKContracts
 
 /// A validated wall-clock timeout duration with overflow-safe nanosecond conversion.
 ///

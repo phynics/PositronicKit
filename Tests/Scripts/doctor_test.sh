@@ -133,10 +133,13 @@ run_linux_case() {
 run_missing_swift_case
 run_case 'rejects Swift 5.10.1' \
   'Swift version 5.10.1 (swift-5.10.1-RELEASE)' \
-  1 'Swift 6.1+'
-run_case 'accepts Swift 6.1' \
+  1 'Swift 6.2+'
+run_case 'rejects Swift 6.1' \
   'Swift version 6.1 (swift-6.1-RELEASE)' \
-  0 'Swift: Swift version 6.1'
+  1 'Swift 6.2+'
+run_case 'accepts Swift 6.2' \
+  'Swift version 6.2 (swift-6.2-RELEASE)' \
+  0 'Swift: Swift version 6.2'
 run_case 'accepts newer Swift' \
   'Swift version 6.3.3 (swift-6.3.3-RELEASE)' \
   0 'SwiftPM and Foundation available'
@@ -146,8 +149,8 @@ run_case 'rejects Swift without SwiftPM' \
 run_case 'rejects Swift without Foundation' \
   'Swift version 6.3.3 (swift-6.3.3-RELEASE)' \
   1 'cannot import Foundation' 1 0
-run_case 'rejects empty output' '' 1 'Swift 6.1+'
-run_case 'rejects malformed output' 'not a Swift version' 1 'Swift 6.1+'
+run_case 'rejects empty output' '' 1 'Swift 6.2+'
+run_case 'rejects malformed output' 'not a Swift version' 1 'Swift 6.2+'
 run_linux_case 'Linux ignores host Swift and accepts usable Podman' \
   "$fake_podman" 1 0 'host Swift is ignored'
 run_linux_case 'Linux requires Podman' '' 0 1 'no native or Docker fallback'

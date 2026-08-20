@@ -1,7 +1,5 @@
 import Foundation
-import PKShared
-import PKUtilities
-import PositronicKit
+import PKContracts
 
 #if os(Linux) || MiniLMEmbeddings
 import PKFastEmbed

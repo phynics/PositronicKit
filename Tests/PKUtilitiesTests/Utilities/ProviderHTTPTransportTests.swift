@@ -4,7 +4,7 @@ import Foundation
 import FoundationNetworking
 #endif
 import PKTestSupport
-@testable import PKShared
+@testable import PKContracts
 @testable import PKUtilities
 import Testing
 

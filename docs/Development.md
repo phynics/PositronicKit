@@ -50,3 +50,14 @@ Use `make agent-test FILTER='…'` for a focused Linux test. Use `make verify-li
 PKFastEmbed bridge only; it requires a nightly Rust toolchain with `rust-src` and defaults to the
 `x86_64-unknown-linux-gnu` target. The full platform matrix is documented by `make help` and the
 release guide; keep the Make targets as the single source of truth.
+
+## Package boundaries and consumer stories
+
+`PKContracts` is the leaf module for provider-neutral messages, model clients, tools, structured
+output, embeddings, and diagnostics. Providers and embedding implementations depend on it without
+importing `PositronicKit`; `PKUtilities` is package-internal and is not a public product. Run
+`make verify-dependency-direction` to check these rules.
+
+`Tests/PublicProductConsumer` is an ordinary-import compile story for every public library product.
+The `verify-public-consumers` target builds it without `@testable` access, and the canonical
+`verify`/`agent-verify` gates run it alongside the product builds.

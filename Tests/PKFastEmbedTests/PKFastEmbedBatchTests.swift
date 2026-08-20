@@ -2,7 +2,7 @@
     import CPKFastEmbed
     import Foundation
     @testable import PKFastEmbed
-    import PKShared
+    import PKContracts
     import Testing
 
     @Suite("PKFastEmbed batch acceptance")

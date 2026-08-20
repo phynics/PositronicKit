@@ -1,14 +1,14 @@
 import Foundation
 import struct JSONSchema.Schema
 import JSONSchemaBuilder
-import PKShared
+import PKContracts
 import PKUtilities
 import Testing
 @testable import PositronicKit
 
 @Suite("LLM tool conversion")
 struct OpenAIToolConversionTests {
-    struct ComplexMockTool: PKShared.Tool {
+    struct ComplexMockTool: PKContracts.Tool {
         let callName = "complex_tool"
         let name = "Complex Tool"
         let description = "A tool with nested parameters"
@@ -35,7 +35,7 @@ struct OpenAIToolConversionTests {
         }
     }
 
-    @Test("converts PKShared tool definitions into neutral LLM tool definitions")
+    @Test("converts PKContracts tool definitions into neutral LLM tool definitions")
     func convertsToolToLLMToolDefinition() {
         let tool = ComplexMockTool()
         let param = tool.toLLMToolDefinition()

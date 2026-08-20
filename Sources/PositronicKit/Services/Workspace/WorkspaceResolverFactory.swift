@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 
 /// Composes the bundled default `WorkspaceResolver` stack (local `DefaultWorkspaceCatalog` +
 /// an injected `WorkspaceFactory`) so that neither `ThreadManager` nor the top-level

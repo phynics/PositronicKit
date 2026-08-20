@@ -1,5 +1,5 @@
 import Testing
-@testable import PKShared
+@testable import PKContracts
 import PKUtilities
 
 @Suite("StableHash")

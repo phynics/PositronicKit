@@ -30,7 +30,7 @@ Import the modules you need:
 ```swift
 import PositronicKit    // runtime orchestration
 import PKPrompt         // prompt composition
-import PKShared         // shared contracts
+import PKContracts         // shared contracts
 import PKLocalEmbeddings // optional local embeddings facade
 import PKOpenAIProvider  // optional concrete provider
 ```
@@ -147,7 +147,7 @@ Get a conversation title, tone marker, or summary from the same request as the u
 
 ```swift
 import JSONSchemaBuilder
-import PKShared
+import PKContracts
 import PositronicKit
 
 let title = SidecarDirective(
@@ -279,12 +279,12 @@ with `@testable`—to use its mocks, fixtures, stream factories, and `TestRuntim
 > containing that changelog entry is tagged. Use a local-path override only while developing a
 > coordinated unreleased change, as described in [Releasing](docs/Releasing.md#downstream-cadence).
 
-This example compiles in an ordinary downstream test target with `PKShared`, `PositronicKit`, and
+This example compiles in an ordinary downstream test target with `PKContracts`, `PositronicKit`, and
 `PKTestSupport` product dependencies. It uses the single-response fallback deliberately; scripted
 queues are covered separately below.
 
 ```swift
-import PKShared
+import PKContracts
 import PKTestSupport
 import PositronicKit
 import Testing
@@ -348,7 +348,7 @@ Core modules:
 
 - **PositronicKit** — the runtime layer: chat engine, orchestration stages, tool routing, thread and workspace management, and provider-neutral LLM orchestration.
 - **PKPrompt** — the prompt layer: a SwiftUI-style `@PromptBuilder` DSL, structured compression, cache-aware assembly, and prompt journaling for stable-prefix workflows.
-- **PKShared** — the contract layer: API models, tool protocols, provider contracts, error types, structured logging, and shared utilities.
+- **PKContracts** — the contract layer: API models, tool protocols, provider contracts, structured-output types, and diagnostic errors.
 - **PKLocalEmbeddings** — the platform-local embedding facade (`LocalEmbeddingService`). Apple uses Natural Language by default; Linux uses the host-provisioned MiniLM backend.
 
 Provider targets ship separately so you opt in only to the integrations you want:

@@ -1,4 +1,5 @@
 import Foundation
+import PKContracts
 
 /// Returns empty embeddings. Suitable when embedding-based search is not needed.
 public struct NoOpEmbeddingService: EmbeddingServiceProtocol, Sendable {

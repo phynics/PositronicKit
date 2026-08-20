@@ -1,6 +1,6 @@
 import Crypto
 import Foundation
-import PositronicKit
+import PKContracts
 
 package enum MiniLMModelAssets {
     package static let revision = "5f1b8cd78bc4fb444dd171e59b18f3a3af89a079"

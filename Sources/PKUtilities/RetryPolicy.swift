@@ -1,6 +1,6 @@
 import Foundation
 import Logging
-import PKShared
+import PKContracts
 
 public enum RetryPolicy {
     /// Executes an async operation with retry logic.

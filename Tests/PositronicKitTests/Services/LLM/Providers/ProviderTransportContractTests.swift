@@ -5,7 +5,7 @@ import Foundation
 import struct JSONSchema.Schema
 @testable import PKOllamaProvider
 @testable import PKOpenRouterProvider
-import PKShared
+import PKContracts
 import PKUtilities
 import PKTestSupport
 @testable import PositronicKit

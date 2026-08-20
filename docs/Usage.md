@@ -12,7 +12,7 @@ To create a new agent instance, use the `createInstance` method. You can optiona
 
 ```swift
 import PositronicKit
-import PKShared
+import PKContracts
 
 let manager = AgentInstanceManager(repository: myWorkspaceRepository)
 
@@ -49,7 +49,7 @@ wrap it in an `LLMService`, then hand it to `PositronicKit`.
 
 ```swift
 import PositronicKit
-import PKShared
+import PKContracts
 import PKOpenAIProvider
 
 // OpenAI: configure the provider, build its client, and wrap it as a LanguageModel.
@@ -70,7 +70,7 @@ For Ollama, use `PKOllamaProvider` and `ProviderConfiguration.makeDefault(for: .
 
 ```swift
 import PositronicKit
-import PKShared
+import PKContracts
 import PKOllamaProvider
 
 var ollamaConfig = ProviderConfiguration.makeDefault(for: .ollama)
@@ -97,7 +97,7 @@ defaults to in-memory, so provide only the durable stores your host needs.
 
 ```swift
 import PositronicKit
-import PKShared
+import PKContracts
 
 let chat = PositronicKit(configuration: .init(
     provider: .init(
@@ -126,7 +126,7 @@ so you can process real-time updates as the agent reasons and responds.
 
 ```swift
 import PositronicKit
-import PKShared
+import PKContracts
 
 // `chat` is the PositronicKit instance from the initialization example above.
 let stream = try await chat.run(ChatRunRequest(

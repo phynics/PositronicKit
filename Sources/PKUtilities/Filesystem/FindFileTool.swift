@@ -1,4 +1,4 @@
-import PKShared
+import PKContracts
 import Foundation
 import struct JSONSchema.Schema
 import JSONSchemaBuilder

@@ -1,6 +1,6 @@
 import Foundation
 import struct JSONSchema.Schema
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Reusable JSON Schema fixtures for tests exercising structured-output request/response handling.

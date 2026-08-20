@@ -6,7 +6,7 @@ import FoundationNetworking
 import Network
 #endif
 import JSONSchemaBuilder
-import PKShared
+import PKContracts
 import PKUtilities
 import PKTestSupport
 @testable import PKOllamaProvider

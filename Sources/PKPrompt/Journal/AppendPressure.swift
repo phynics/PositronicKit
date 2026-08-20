@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Shared append-pressure accounting consumed by both `PromptJournal` (PKPrompt) and

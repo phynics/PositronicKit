@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Transport-neutral events synthesized while streaming a `LanguageModelSession` response

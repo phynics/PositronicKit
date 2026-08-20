@@ -5,7 +5,7 @@ import PKAnthropicProvider
 import PKFoundationModelsProvider
 import PKOllamaProvider
 import PKOpenAIProvider
-import PKShared
+import PKContracts
 import PKUtilities
 import PositronicKit
 

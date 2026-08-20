@@ -1,7 +1,7 @@
 import PKTestSupport
 import Testing
 @testable import PositronicKit
-@testable import PKShared
+@testable import PKContracts
 import PKUtilities
 
 @Suite("Structured Output Prompt Flow Tests")

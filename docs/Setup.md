@@ -14,7 +14,7 @@ Pick the smallest surface that matches your need:
 | On-device Apple Intelligence models (no key, no network) | Add `PKFoundationModelsProvider` — `PositronicKit(foundationModelsTools:)`; requires macOS 26+/Apple Silicon with Apple Intelligence enabled, surfaces unavailability as a typed `PKError` |
 | Local embedding service | Add `PKLocalEmbeddings` |
 | Host-owned filesystem/execution/attachment behavior | `PositronicKit` + your own `WorkspaceFactory` / `Workspace` |
-| Typed JSON / schema-first integrations | `PKShared` structured output types, optionally with the runtime later |
+| Typed JSON / schema-first integrations | `PKContracts` structured output types, optionally with the runtime later |
 
 ## 2. Facade Configuration
 
@@ -44,7 +44,7 @@ When you have a real persistence layer, prefer the grouped persistence initializ
 
 ```swift
 import PositronicKit
-import PKShared
+import PKContracts
 
 let chat = PositronicKit(
     llmService: MyLLMServiceLive(),
@@ -88,7 +88,7 @@ client; no provider or adapter registration is needed.
 
 ```swift
 import PositronicKit
-import PKShared
+import PKContracts
 import PKOpenAIProvider
 
 var providerConfig = ProviderConfiguration.makeDefault(for: .openAI)
@@ -133,9 +133,9 @@ LoggingSystem.bootstrap { label in
 let core = PositronicKit(openAIKey: ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? "")
 ```
 
-Long-lived runtime services log through `Logger.module(...)` in `PKShared`; prompt-assembly diagnostics are opt-in per turn via `promptAssemblyLogger` (see above).
+Long-lived runtime services log through `Logger.module(...)` in the package-internal utility layer; prompt-assembly diagnostics are opt-in per turn via `promptAssemblyLogger` (see above).
 
-For package-defined errors, PositronicKit uses `ErrorKit` through `PKShared.PKError`:
+For package-defined errors, PositronicKit uses `ErrorKit` through `PKContracts.PKError`:
 
 - Package error types conform to `PKError`, with stable `PKErrorDomain` and `errorCode` values.
 - `userFriendlyMessage` is the preferred surfaced message; when propagating nested failures, prefer `ErrorKit.userFriendlyMessage(for:)` over raw `localizedDescription`.

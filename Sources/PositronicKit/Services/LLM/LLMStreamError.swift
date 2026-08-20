@@ -1,6 +1,6 @@
 import ErrorKit
 import Foundation
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Wraps a foreign provider transport error that reached the turn loop without a

@@ -1,7 +1,7 @@
 import Foundation
 import OpenAI
 @testable import PKOpenAIProvider
-import PKShared
+import PKContracts
 import PKUtilities
 import Testing
 

@@ -1,7 +1,7 @@
 import Foundation
 import Logging
 import PartialJSON
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Incremental extractor turning raw structured-output JSON deltas into routed

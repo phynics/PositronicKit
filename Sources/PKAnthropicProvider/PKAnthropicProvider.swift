@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 
 public enum PKAnthropicProvider: LLMProviderFactory {
     /// Creates an Anthropic client with its structured-output adapter.

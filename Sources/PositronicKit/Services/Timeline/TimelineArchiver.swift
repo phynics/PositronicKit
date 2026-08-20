@@ -1,7 +1,7 @@
 import ErrorKit
 import Foundation
 import Logging
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Policy for vacuuming memories during archival

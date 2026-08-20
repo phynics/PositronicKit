@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 
 public enum PKOpenAIProvider: LLMProviderFactory {
     /// Creates an OpenAI or OpenAI-compatible client with its structured-output adapter.

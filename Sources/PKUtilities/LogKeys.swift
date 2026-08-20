@@ -1,4 +1,4 @@
-import PKShared
+import PKContracts
 import Foundation
 
 /// Canonical PositronicKit loop-metadata vocabulary for `Logger.Metadata` keys.

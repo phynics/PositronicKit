@@ -1,11 +1,11 @@
 import Foundation
 @testable import PositronicKit
-@testable import PKShared
+@testable import PKContracts
 import PKUtilities
 import Testing
 
 final class ThreadToolRegistryTests {
-    struct MockTool: PKShared.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+    struct MockTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let callName: String
         let name: String
         let description = "A mock tool for testing"

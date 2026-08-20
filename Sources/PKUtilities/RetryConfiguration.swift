@@ -1,6 +1,6 @@
 import ErrorKit
 import Foundation
-import PKShared
+import PKContracts
 
 /// A validated retry policy configuration with finite ranges, attempt/elapsed budgets,
 /// and deterministic jitter injection for tests.

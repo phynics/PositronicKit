@@ -4,7 +4,7 @@ import Logging
     import FoundationNetworking
 #endif
 @testable import PKAnthropicProvider
-import PKShared
+import PKContracts
 import PKUtilities
 import PKTestSupport
 import PositronicKit

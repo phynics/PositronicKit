@@ -5,7 +5,7 @@
 //  Created by Atakan Dulker on 18.04.26.
 //
 
-import PKShared
+import PKContracts
 import PKUtilities
 
 // MARK: - Supporting Types

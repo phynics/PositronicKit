@@ -2,7 +2,7 @@ import Foundation
 import struct JSONSchema.Schema
 import Logging
 import OpenAI
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Retained for source compatibility with the previous conversion logging hook. Invalid tool

@@ -7,7 +7,7 @@ import OpenAI
 @testable import PKOllamaProvider
 @testable import PKOpenAIProvider
 @testable import PKOpenRouterProvider
-import PKShared
+import PKContracts
 import PKTestSupport
 import PKUtilities
 @testable import PositronicKit

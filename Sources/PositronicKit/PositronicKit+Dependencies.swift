@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Bundles the resolved stores, managers, and configuration that ``PositronicKit`` needs to

@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Builds a `ThreadToolRegistry` for a session from a `RuntimeToolPolicy` and the timeline's

@@ -1,6 +1,6 @@
 import Foundation
 import Logging
-import PKShared
+import PKContracts
 
 /// Controls logger construction and the amount of user-controlled data allowed in logs.
 /// Payloads are disabled by default; hosts must explicitly opt in for diagnostics.

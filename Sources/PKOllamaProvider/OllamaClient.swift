@@ -3,7 +3,7 @@ import Foundation
     import FoundationNetworking
 #endif
 import Logging
-import PKShared
+import PKContracts
 import PKUtilities
 
 struct OllamaTagsResponse: Codable {

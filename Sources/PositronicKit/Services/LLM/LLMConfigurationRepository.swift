@@ -1,5 +1,5 @@
 import Foundation
-import PKShared
+import PKContracts
 
 /// Value-type wrapper around the persistence boundary for an LLM service's configuration.
 ///

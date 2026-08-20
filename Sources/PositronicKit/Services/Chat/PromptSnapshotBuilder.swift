@@ -1,7 +1,7 @@
 import Foundation
 import Logging
 import PKPrompt
-import PKShared
+import PKContracts
 import PKUtilities
 
 /// Owns follow-up prompt synthesis for the ReAct loop: building an incremental follow-up

@@ -1,6 +1,6 @@
 import Foundation
 import JSONSchemaBuilder
-import PKShared
+import PKContracts
 import Testing
 
 @Suite("Structured output adapters")
