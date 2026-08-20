@@ -92,6 +92,8 @@ instead of paying a separate round-trip per auxiliary task. See
 PositronicKit is deliberately transport-neutral: no networking, RPC, multi-process hosting, or bundled provider SDKs in the core target. The key boundaries are:
 
 - **Persistence protocols** for threads, messages, workspaces, tools, agents, and request origins.
+- **ThreadRuntimeRepository** for atomic Turn admission, append-only history, tool intent/result
+  barriers, terminal outcomes, and stale-Turn recovery. PromptJournal remains outside this boundary.
 - **`WorkspaceFactory` and `Workspace`** for downstream-owned workspace resolution and execution behavior. `DefaultWorkspaceCatalog` is the bundled local provisioning implementation, not a required universal workspace model.
 - **`PromptSectionProviding`** and **`TurnPlugin`** for app-specific orchestration and context hooks.
 - **Provider contracts in `PKContracts`** for downstream-owned LLM adapters and tool/message projections.
@@ -105,7 +107,7 @@ These public API surfaces are the **v1 compatibility contract**: they only chang
 | **Tool contracts** | `Tool`, `AnyTool`, `ToolResult`, `ToolParameters`, `ToolError` | PKContracts | Define and execute tools |
 | **Orchestration hooks** | `TurnPlugin`, `CompletedTurn` | PositronicKit | Post-turn processing |
 | **Prompt customization** | `PromptSectionProviding`, `PromptBuildContext` | PositronicKit | Inject custom prompt sections |
-| **Persistence** | `MessageStoreProtocol`, `ThreadPersistenceProtocol`, `WorkspaceStore`, `MemoryStoreProtocol`, `ToolPersistenceProtocol`, `AgentStoreProtocol`, `AgentTemplateStoreProtocol`, `RequestOriginStoreProtocol` | PositronicKit | Custom storage backends |
+| **Persistence** | `ThreadRuntimeRepository`, `MessageStoreProtocol`, `ThreadPersistenceProtocol`, `WorkspaceStore`, `MemoryStoreProtocol`, `ToolPersistenceProtocol`, `AgentStoreProtocol`, `AgentTemplateStoreProtocol`, `RequestOriginStoreProtocol` | PositronicKit | Custom storage backends |
 | **Key-value store** | `KeyValueStoreProtocol` | PositronicKit | Generic key-value persistence |
 | **Vector search** | `VectorStoreProtocol`, `VectorStoreError` | PositronicKit | Custom vector search backends |
 | **Health check** | `HealthCheckable` | PositronicKit | Service health reporting |

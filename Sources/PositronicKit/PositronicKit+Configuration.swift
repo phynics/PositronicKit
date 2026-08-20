@@ -44,13 +44,18 @@ public extension PositronicKit {
 
     /// Groups the persistence stores the runtime writes to. Every store is optional;
     /// omitted stores default to their in-memory implementation, so partial persistence
-    /// setups (e.g. only a real message store) work without boilerplate.
+    /// setups (e.g. only a real message store) work without boilerplate. Supplying a runtime
+    /// repository makes one cohesive owner the Thread and message store used by Turn admission
+    /// and tool ordering.
     ///
     /// Use ``validateDurability()`` to detect mixed-durability configurations (some stores
     /// durable, others in-memory) that can lose data on restart. Use
     /// ``fullyPersistent(messageStore:threadPersistence:workspacePersistence:memoryStore:toolPersistence:agentStore:requestOriginStore:)``
     /// when all seven stores must be explicitly provided for full durability.
     struct PersistenceConfiguration: Sendable {
+        /// Optional cohesive owner for Thread history and Turn transitions. When supplied
+        /// without explicit low-level stores, it is used for both thread and message access.
+        public let runtimeRepository: (any ThreadRuntimeRepository)?
         public let messageStore: any ThreadMessageStoreProtocol
         public let threadPersistence: any ThreadPersistenceProtocol
         public let workspacePersistence: any WorkspaceStore
@@ -59,6 +64,8 @@ public extension PositronicKit {
         public let agentStore: any AgentStoreProtocol
         public let requestOriginStore: any RequestOriginStoreProtocol
 
+        /// Legacy compatibility path: independent Thread/message stores do not provide v4
+        /// atomic Turn semantics. Supply `runtimeRepository` for the supported v4 configuration.
         public init(
             messageStore: (any ThreadMessageStoreProtocol)? = nil,
             threadPersistence: (any ThreadPersistenceProtocol)? = nil,
@@ -66,10 +73,14 @@ public extension PositronicKit {
             memoryStore: (any MemoryStoreProtocol)? = nil,
             toolPersistence: (any ToolPersistenceProtocol)? = nil,
             agentStore: (any AgentStoreProtocol)? = nil,
-            requestOriginStore: (any RequestOriginStoreProtocol)? = nil
+            requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
+            runtimeRepository: (any ThreadRuntimeRepository)? = nil
         ) {
-            self.messageStore = messageStore ?? InMemoryMessageStore()
-            self.threadPersistence = threadPersistence ?? InMemoryThreadPersistence()
+            let resolvedRepository = runtimeRepository
+                ?? (messageStore == nil && threadPersistence == nil ? InMemoryThreadRuntimeRepository() : nil)
+            self.runtimeRepository = resolvedRepository
+            self.messageStore = resolvedRepository ?? messageStore ?? InMemoryMessageStore()
+            self.threadPersistence = resolvedRepository ?? threadPersistence ?? InMemoryThreadPersistence()
             self.workspacePersistence = workspacePersistence ?? InMemoryWorkspacePersistence()
             self.memoryStore = memoryStore ?? InMemoryMemoryStore()
             self.toolPersistence = toolPersistence ?? InMemoryToolPersistence()
@@ -78,6 +89,8 @@ public extension PositronicKit {
         }
 
         /// Creates a persistence configuration from the canonical thread store.
+        /// Legacy compatibility path: independent Thread/message stores do not provide v4
+        /// atomic Turn semantics. Supply `runtimeRepository` for the supported v4 configuration.
         public init(
             messageStore: (any ThreadMessageStoreProtocol)? = nil,
             threadPersistence: any ThreadPersistenceProtocol,
@@ -85,10 +98,12 @@ public extension PositronicKit {
             memoryStore: (any MemoryStoreProtocol)? = nil,
             toolPersistence: (any ToolPersistenceProtocol)? = nil,
             agentStore: (any AgentStoreProtocol)? = nil,
-            requestOriginStore: (any RequestOriginStoreProtocol)? = nil
+            requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
+            runtimeRepository: (any ThreadRuntimeRepository)? = nil
         ) {
-            self.messageStore = messageStore ?? InMemoryMessageStore()
-            self.threadPersistence = threadPersistence
+            self.runtimeRepository = runtimeRepository
+            self.messageStore = runtimeRepository ?? messageStore ?? InMemoryMessageStore()
+            self.threadPersistence = runtimeRepository ?? threadPersistence
             self.workspacePersistence = workspacePersistence ?? InMemoryWorkspacePersistence()
             self.memoryStore = memoryStore ?? InMemoryMemoryStore()
             self.toolPersistence = toolPersistence ?? InMemoryToolPersistence()
@@ -98,12 +113,14 @@ public extension PositronicKit {
 
         /// A fully in-memory persistence configuration, suitable for prototyping and tests.
         public static func inMemory() -> PersistenceConfiguration {
-            PersistenceConfiguration(threadPersistence: InMemoryThreadPersistence())
+            PersistenceConfiguration(runtimeRepository: InMemoryThreadRuntimeRepository())
         }
 
         /// Requires all seven stores explicitly — the "full durability" entry point for
         /// production hosts (Monad, Shuttle). Unlike the optional-store init, no store can
         /// silently default to in-memory.
+        /// Legacy compatibility path: independent stores cannot provide atomic v4 Turn
+        /// transitions. Supply a `ThreadRuntimeRepository` instead.
         public static func fullyPersistent(
             messageStore: any ThreadMessageStoreProtocol,
             threadPersistence: any ThreadPersistenceProtocol,
@@ -111,7 +128,8 @@ public extension PositronicKit {
             memoryStore: any MemoryStoreProtocol,
             toolPersistence: any ToolPersistenceProtocol,
             agentStore: any AgentStoreProtocol,
-            requestOriginStore: any RequestOriginStoreProtocol
+            requestOriginStore: any RequestOriginStoreProtocol,
+            runtimeRepository: (any ThreadRuntimeRepository)? = nil
         ) -> PersistenceConfiguration {
             PersistenceConfiguration(
                 messageStore: messageStore,
@@ -120,7 +138,8 @@ public extension PositronicKit {
                 memoryStore: memoryStore,
                 toolPersistence: toolPersistence,
                 agentStore: agentStore,
-                requestOriginStore: requestOriginStore
+                requestOriginStore: requestOriginStore,
+                runtimeRepository: runtimeRepository
             )
         }
 
@@ -140,6 +159,7 @@ public extension PositronicKit {
                 requestOriginStore: requestOriginStore.isDurable ? .durable : .ephemeral
             )
         }
+
     }
 
     /// Whether a persistence store survives process restart.
@@ -293,6 +313,7 @@ public extension PositronicKit {
         self.init(
             languageModel: configuration.provider.languageModel,
             messageStore: configuration.persistence.messageStore,
+            runtimeRepository: configuration.persistence.runtimeRepository,
             agentStore: configuration.persistence.agentStore,
             requestOriginStore: configuration.persistence.requestOriginStore,
             threadPersistence: configuration.persistence.threadPersistence,

@@ -73,6 +73,7 @@ public actor ToolRouter {
 
     private let threadManager: ThreadManager
     private let messageStore: any ThreadMessageStoreProtocol
+    private let runtimeRepository: (any ThreadRuntimeRepository)?
     private let toolExecutionTimeout: TimeInterval
     private let approvalPolicy: any ToolApprovalPolicy
     private let sleep: @Sendable (UInt64) async throws -> Void
@@ -80,6 +81,7 @@ public actor ToolRouter {
     public init(
         threadManager: ThreadManager,
         messageStore: any ThreadMessageStoreProtocol,
+        runtimeRepository: (any ThreadRuntimeRepository)? = nil,
         toolExecutionTimeout: TimeInterval = 60,
         approvalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
         sleep: (@Sendable (UInt64) async throws -> Void)? = nil
@@ -87,6 +89,7 @@ public actor ToolRouter {
     ) {
         self.threadManager = threadManager
         self.messageStore = messageStore
+        self.runtimeRepository = runtimeRepository
         self.toolExecutionTimeout = toolExecutionTimeout
         self.approvalPolicy = approvalPolicy
         self.sleep = sleep ?? ToolTimeoutEnforcer.defaultSleep
@@ -104,6 +107,8 @@ public actor ToolRouter {
     func processToolCalls(
         outputs: TurnOutputs,
         threadId: UUID,
+        turnID: UUID? = nil,
+        modelRoundIndex: Int = 0,
         availableTools: [AnyTool],
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
     ) async throws -> ToolTurnResult {
@@ -145,6 +150,8 @@ public actor ToolRouter {
         // Route and execute
         let result = try await handlePendingToolCalls(
             threadId: threadId,
+            turnID: turnID,
+            modelRoundIndex: modelRoundIndex,
             calls: parsedCalls,
             availableTools: availableTools,
             continuation: continuation
@@ -164,6 +171,8 @@ public actor ToolRouter {
     /// - Private threads may not defer to externally hosted tools — an error is thrown instead.
     package func handlePendingToolCalls(
         threadId: UUID,
+        turnID: UUID? = nil,
+        modelRoundIndex: Int = 0,
         calls: [ParsedToolCall],
         availableTools: [AnyTool],
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
@@ -188,6 +197,16 @@ public actor ToolRouter {
             )
 
             do {
+                if let runtimeRepository, let turnID {
+                    try await runtimeRepository.recordToolIntent(RuntimeToolIntent(
+                        turnID: turnID,
+                        threadID: threadId,
+                        toolCallID: call.callId,
+                        name: call.name,
+                        arguments: call.argumentsJSON,
+                        modelRoundIndex: modelRoundIndex
+                    ))
+                }
                 guard let arguments = call.arguments else {
                     throw ToolError.malformedArguments("invalid JSON object")
                 }
@@ -200,6 +219,7 @@ public actor ToolRouter {
                     call: call,
                     toolRef: toolRef,
                     threadId: threadId,
+                    turnID: turnID,
                     continuation: continuation
                 )
                 if projection.persistenceFailed {
@@ -218,6 +238,7 @@ public actor ToolRouter {
                     call: call,
                     toolRef: toolRef,
                     threadId: threadId,
+                    turnID: turnID,
                     continuation: continuation
                 )
                 if projection.persistenceFailed {
@@ -489,6 +510,7 @@ public actor ToolRouter {
         call: ParsedToolCall,
         toolRef: ToolReference,
         threadId: UUID,
+        turnID: UUID?,
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
     ) async throws -> ToolProjection {
         let toolDisplayName = loggingConfiguration.redactionPolicy.sanitizeStructured(call.name)
@@ -499,7 +521,16 @@ public actor ToolRouter {
                 threadID: threadId, role: .tool, content: output, toolCallID: call.callId
             )
             do {
-                try await messageStore.saveMessage(message)
+                if let runtimeRepository, let turnID {
+                    try await runtimeRepository.recordToolResult(RuntimeToolResult(
+                        turnID: turnID,
+                        threadID: threadId,
+                        toolCallID: call.callId,
+                        output: output
+                    ), message: message)
+                } else {
+                    try await messageStore.saveMessage(message)
+                }
                 continuation.yield(.toolCompleted(
                     toolCallID: call.callId, status: .success(ToolResult.success(output))
                 ))
@@ -533,6 +564,7 @@ public actor ToolRouter {
         call: ParsedToolCall,
         toolRef: ToolReference,
         threadId: UUID,
+        turnID: UUID?,
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
     ) async throws -> ToolProjection {
         let errorMsg = ErrorKit.userFriendlyMessage(for: error)
@@ -549,7 +581,18 @@ public actor ToolRouter {
             threadID: threadId, role: .tool, content: errorOutput, toolCallID: call.callId
         )
         do {
-            try await messageStore.saveMessage(message)
+            if let runtimeRepository, let turnID {
+                try await runtimeRepository.recordToolResult(RuntimeToolResult(
+                    turnID: turnID,
+                    threadID: threadId,
+                    toolCallID: call.callId,
+                    output: errorOutput,
+                    succeeded: false,
+                    errorMessage: errorMsg
+                ), message: message)
+            } else {
+                try await messageStore.saveMessage(message)
+            }
             continuation.yield(.toolCompleted(
                 toolCallID: call.callId,
                  status: .failed(reference: toolRef, error: safeErrorMessage(error))

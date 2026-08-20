@@ -112,6 +112,11 @@ extension TurnEngine {
                         // A plugin requested another logical round, but the send budget is
                         // exhausted. This is model-round-limit termination, not a normal terminal round.
                         if !pluginMessages.isEmpty && modelRoundIndex >= context.maxModelRounds {
+                            if let persistenceError = await finishRepositoryTurn(context: context, outcome: .failed(message: "model-round-limit")) {
+                                await releaseTurnReservation(for: context)
+                                continuation.finish(throwing: persistenceError)
+                                return
+                            }
                             await releaseTurnReservation(for: context)
                             continuation.yield(.maxModelRoundsReached())
                             continuation.finish()
@@ -121,14 +126,20 @@ extension TurnEngine {
                             context: turnContext,
                             continuation: continuation
                         )
+                        if let persistenceError = await finishRepositoryTurn(context: context, outcome: .completed) {
+                            await releaseTurnReservation(for: context)
+                            continuation.finish(throwing: persistenceError)
+                            return
+                        }
                         continuation.finish()
                         return
                     }
                 } catch {
                     // A follow-up failure is a non-successful terminal outcome. Release before
                     // finishing so a retry cannot race the stream's terminal delivery.
+                    let persistenceError = await finishRepositoryTurn(context: context, outcome: .failed(message: String(describing: error)))
                     await releaseTurnReservation(for: context)
-                    continuation.finish(throwing: wrapForeignError(error))
+                    continuation.finish(throwing: persistenceError ?? wrapForeignError(error))
                     return
                 }
 
@@ -153,8 +164,9 @@ extension TurnEngine {
                 } catch {
                     // Snapshot failures terminate the send after preparation, so the caller may
                     // retry with the same request ID.
+                    let persistenceError = await finishRepositoryTurn(context: context, outcome: .failed(message: String(describing: error)))
                     await releaseTurnReservation(for: context)
-                    continuation.finish(throwing: wrapForeignError(error))
+                    continuation.finish(throwing: persistenceError ?? wrapForeignError(error))
                     return
                 }
                 loopRenderedPrompt = snapshot.renderedPrompt
@@ -180,6 +192,13 @@ extension TurnEngine {
                 // so consumers can distinguish deferred external tool work from normal
                 // completion, then finish without plugin follow-up or another LLM turn
                 // (PKRR-011).
+                if let persistenceError = await finishRepositoryTurn(
+                    context: context,
+                    outcome: .interrupted(reason: "External tool execution deferred.")
+                ) {
+                    continuation.finish(throwing: persistenceError)
+                    return
+                }
                 continuation.yield(.deferredForExternalTool())
                 continuation.finish()
                 return
@@ -188,6 +207,11 @@ extension TurnEngine {
                 // Terminal but recoverable: the router emitted `.persistenceFailed` and left the
                 // assistant's pending tool call in durable history. Release the turn reservation
                 // so the caller can retry with the existing pending-call submission semantics.
+                if let persistenceError = await finishRepositoryTurn(context: context, outcome: .failed(message: "Tool result persistence failed.")) {
+                    await releaseTurnReservation(for: context)
+                    continuation.finish(throwing: persistenceError)
+                    return
+                }
                 await releaseTurnReservation(for: context)
                 continuation.finish()
                 return
@@ -204,6 +228,11 @@ extension TurnEngine {
         // Emit a distinct terminal event so consumers can distinguish model-round exhaustion from
         // normal completion instead of the stream silently finishing as if it succeeded
         // (PKRR-011).
+        if let persistenceError = await finishRepositoryTurn(context: context, outcome: .failed(message: "model-round-limit")) {
+            await releaseTurnReservation(for: context)
+            continuation.finish(throwing: persistenceError)
+            return
+        }
         await releaseTurnReservation(for: context)
         continuation.yield(.maxModelRoundsReached())
         continuation.finish()
@@ -237,6 +266,19 @@ private extension TurnEngine {
 
         do {
             try Task.checkCancellation()
+            if let runtimeRepository = dependencies.runtimeRepository {
+                try await runtimeRepository.beginModelRound(
+                    turnID: context.turnID,
+                    modelRoundIndex: context.modelRoundIndex,
+                    now: Date()
+                )
+                try await runtimeRepository.recordProviderRequest(
+                    turnID: context.turnID,
+                    modelRoundIndex: context.modelRoundIndex,
+                    correlation: TurnCorrelation(kind: "model-round", value: "\(context.modelRoundIndex)"),
+                    now: Date()
+                )
+            }
             logger.trace("Turn \(turnLabel): starting pipeline for \(sid)")
             await publishPromptInspectionIfNeeded(context: context)
             try await processTurn(context: context, continuation: continuation)
@@ -248,6 +290,11 @@ private extension TurnEngine {
             // tool calls) the user already watched stream in, tagged `.cancelled`. The cancel
             // event is still surfaced below — the UI needs it (STAB-5 handles retry separately).
             await partialPersistence.persistPartialAssistantIfNeeded(context: context, status: .cancelled)
+            if let persistenceError = await finishRepositoryTurn(context: context, outcome: .cancelled(reason: "Turn task cancelled.")) {
+                await releaseTurnReservation(for: context)
+                continuation.finish(throwing: persistenceError)
+                return .failed
+            }
             await releaseTurnReservation(for: context)
             continuation.yield(.generationCancelled())
             continuation.finish()
@@ -267,11 +314,44 @@ private extension TurnEngine {
             let isCancellation = Self.isCancellationOrigin(error)
             let status: Message.MessageStatus = isCancellation ? .cancelled : .partial
             await partialPersistence.persistPartialAssistantIfNeeded(context: context, status: status)
+            let persistenceError = await finishRepositoryTurn(
+                context: context,
+                outcome: isCancellation
+                    ? .cancelled(reason: "Turn task cancelled.")
+                    : .failed(message: String(describing: error))
+            )
             await releaseTurnReservation(for: context)
-            continuation.finish(throwing: error)
+            continuation.finish(throwing: persistenceError ?? error)
             // Terminal outcome: a wrapped cancellation is still a cancellation for loop-control
             // purposes, so the outer loop skips plugin follow-up either way (PKRR-003).
             return isCancellation ? .cancelled : .failed
+        }
+    }
+
+    func finishRepositoryTurn(context: TurnContext, outcome: TurnOutcome) async -> Error? {
+        guard let runtimeRepository = dependencies.runtimeRepository else { return nil }
+        do {
+            let finalMessage: ThreadMessage?
+            if case .completed = outcome {
+                let messages = try await runtimeRepository.fetchMessages(for: context.threadID)
+                let userIndex = messages.firstIndex(where: { $0.id == context.requestId })
+                finalMessage = userIndex.flatMap { index in
+                    messages.dropFirst(index + 1).last(where: { $0.role == Message.MessageRole.assistant.rawValue })
+                }
+            } else {
+                finalMessage = nil
+            }
+            _ = try await runtimeRepository.completeTurn(
+                turnID: context.turnID,
+                outcome: outcome,
+                finalMessage: finalMessage,
+                terminalHandle: TurnTerminalHandle(turnID: context.turnID),
+                now: Date()
+            )
+            return nil
+        } catch {
+            logger.error("Unable to durably record terminal Turn outcome: \(error)")
+            return error
         }
     }
 
@@ -299,6 +379,8 @@ private extension TurnEngine {
         let result = try await dependencies.toolRouter.processToolCalls(
             outputs: context.outputs,
             threadId: context.threadID,
+            turnID: context.turnID,
+            modelRoundIndex: context.modelRoundIndex,
             availableTools: context.availableTools,
             continuation: continuation
         )
