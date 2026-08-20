@@ -212,7 +212,22 @@ actor ToolRouter {
 
             var workspaceRoute: WorkspaceToolRoute?
             var effectiveToolRef = toolRef
+
             do {
+                // The dispatcher must have a durable intent before snapshot resolution can fail.
+                // A successful resolution records the same intent again with workspace
+                // provenance; the repository treats that second write as enrichment of this
+                // preflight record.
+                if call.name == "call_tool", let runtimeRepository, let turnID {
+                    try await runtimeRepository.recordToolIntent(RuntimeToolIntent(
+                        turnID: turnID,
+                        threadID: threadId,
+                        toolCallID: call.callId,
+                        name: call.name,
+                        arguments: call.argumentsJSON,
+                        modelRoundIndex: modelRoundIndex
+                    ))
+                }
                 if call.name == "call_tool" {
                     guard let workspaceToolCatalog, !workspaceToolCatalog.isEmpty else {
                         throw ToolError.toolNotFound(call.name)

@@ -287,14 +287,6 @@ final class ToolRouterTests {
             callerIntentFingerprint: "workspace-ambiguity"
         )
         let turnID = admission.turn.identity.turnID
-        try await runtimeRepository.recordToolIntent(RuntimeToolIntent(
-            turnID: turnID,
-            threadID: threadID,
-            toolCallID: "call-ambiguous",
-            name: "call_tool",
-            arguments: "{\"tool\":\"read_file\",\"arguments\":{}}",
-            modelRoundIndex: 0
-        ))
         let first = try #require(persistence.workspaces.first)
         let second = WorkspaceReference(
             id: UUID(),
