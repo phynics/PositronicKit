@@ -19,7 +19,7 @@ public enum ToolExecutionStatus: Sendable, Codable {
     case persistenceFailed(reference: ToolReference, error: String)
 }
 
-/// Events emitted by TurnEngine during a chat turn.
+/// Events emitted by TurnEngine during a turn.
 ///
 /// Events are categorized into four groups:
 /// - `delta`: Incremental streaming events (text, reasoning, tool calls, tool progress)
@@ -372,7 +372,7 @@ public enum TurnEvent: Sendable, Codable {
         /// The ReAct loop exhausted its `maxModelRounds` budget while tool calls were still pending,
         /// so the agent never produced a tool-free final response. Terminal: emitted exactly
         /// once before the stream closes, in place of `.generationCompleted`, so consumers can
-        /// distinguish max-turn exhaustion from normal completion (PKRR-011).
+        /// distinguish model-round exhaustion from normal completion (PKRR-011).
         case maxModelRoundsReached
         /// The turn ended because at least one tool call was deferred for external (host-side)
         /// execution. Terminal: emitted exactly once before the stream closes, in place of

@@ -8,7 +8,7 @@ PositronicKit provides the public runtime entry point for thread management, pro
 
 ### Key Components
 
-- **PositronicKit facade**: The public entry point; `run(_ request:)` drives a chat turn end to end.
+- **PositronicKit facade**: The public entry point; `run(_ request:)` drives a turn end to end.
 - **ThreadManager**: Coordinates thread lifecycle, context gathering, and workspace attachment.
 - **Persistence Layer**: A suite of domain-specific store protocols.
 - **Tool System**: Runtime-managed and host-attached tool routing (`ToolRouter`) over shared tool contracts.
@@ -32,7 +32,7 @@ its event stream:
 - Thread hydration failures throw their typed `ThreadError` before input is persisted.
 - When `agentID` is supplied, the runtime resolves the agent once after thread
   resolution and before provider readiness or input persistence. The default `.failRequired`
-  policy throws `AgentError.instanceNotFound` for a missing agent. With
+  policy throws `AgentError.agentNotFound` for a missing agent. With
   `.continueWithWarnings`, the turn continues without that agent and the initial
   generation-context event carries an agent diagnostic.
 - A failed required-agent preflight does not consume `requestID`; callers may retry the same send

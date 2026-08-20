@@ -13,7 +13,7 @@ struct AgentManagerTests {
     func canonicalThreadsQuery() async throws {
         let kit = PositronicKit()
         let thread = try await kit.threadManager.createThread(title: "Attached")
-        let agent = try await kit.agentManager.createInstance(
+        let agent = try await kit.agentManager.createAgent(
             name: "Thread Agent",
             description: "Lists attached threads"
         )
@@ -50,7 +50,7 @@ struct AgentManagerTests {
         let manager = AgentManager(
             repository: repo,
             stores: .init(
-                instanceStore: mock,
+                agentStore: mock,
                 threadStore: mock,
                 messageStore: mock,
                 workspaceStore: mock
@@ -58,7 +58,7 @@ struct AgentManagerTests {
         )
 
         await #expect(throws: AgentError.self) {
-            _ = try await manager.createInstance(name: "Ab", description: "Valid desc")
+            _ = try await manager.createAgent(name: "Ab", description: "Valid desc")
         }
     }
 
@@ -71,7 +71,7 @@ struct AgentManagerTests {
         let manager = AgentManager(
             repository: repo,
             stores: .init(
-                instanceStore: mock,
+                agentStore: mock,
                 threadStore: mock,
                 messageStore: mock,
                 workspaceStore: mock
@@ -79,7 +79,7 @@ struct AgentManagerTests {
         )
 
         await #expect(throws: AgentError.self) {
-            _ = try await manager.createInstance(name: "Valid Name", description: "  ")
+            _ = try await manager.createAgent(name: "Valid Name", description: "  ")
         }
     }
 
@@ -92,7 +92,7 @@ struct AgentManagerTests {
         let manager = AgentManager(
             repository: repo,
             stores: .init(
-                instanceStore: mock,
+                agentStore: mock,
                 threadStore: mock,
                 messageStore: mock,
                 workspaceStore: mock
@@ -127,7 +127,7 @@ struct AgentManagerTests {
         let manager = AgentManager(
             repository: repo,
             stores: .init(
-                instanceStore: mock,
+                agentStore: mock,
                 threadStore: mock,
                 messageStore: mock,
                 workspaceStore: mock
@@ -147,7 +147,7 @@ struct AgentManagerTests {
     }
 
     @Test("Creation: Agent is automatically attached to private thread")
-    func createInstanceAttachesAgent() async throws {
+    func createAgentAttachesAgent() async throws {
         let repo = DefaultWorkspaceCatalog(
             workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
             workspacePersistence: mock
@@ -155,14 +155,14 @@ struct AgentManagerTests {
         let manager = AgentManager(
             repository: repo,
             stores: .init(
-                instanceStore: mock,
+                agentStore: mock,
                 threadStore: mock,
                 messageStore: mock,
                 workspaceStore: mock
             )
         )
 
-        let instance = try await manager.createInstance(name: "New Agent", description: "Desc")
+        let instance = try await manager.createAgent(name: "New Agent", description: "Desc")
 
         let thread = try await mock.fetchThread(id: instance.privateThreadID)
         #expect(thread?.attachedAgentID == instance.id)
@@ -170,7 +170,7 @@ struct AgentManagerTests {
     }
 
     @Test("Creation rolls back partial writes", arguments: AgentCreationFailureStage.allCases)
-    func createInstanceRollsBackPartialWrites(
+    func createAgentRollsBackPartialWrites(
         failingAt: AgentCreationFailureStage
     ) async throws {
         let workspaceRoot = FileManager.default.temporaryDirectory
@@ -185,7 +185,7 @@ struct AgentManagerTests {
         let manager = AgentManager(
             repository: repository,
             stores: .init(
-                instanceStore: stores,
+                agentStore: stores,
                 threadStore: stores,
                 messageStore: stores,
                 workspaceStore: stores
@@ -193,7 +193,7 @@ struct AgentManagerTests {
         )
 
         let thrown = await #expect(throws: InjectedAgentCreationFailure.self) {
-            _ = try await manager.createInstance(
+            _ = try await manager.createAgent(
                 name: "Rollback Agent",
                 description: "Failure injection"
             )
@@ -232,7 +232,7 @@ struct AgentManagerTests {
     func defaultInMemoryStorePreventsDeletingAttachedAgentWithoutForce() async throws {
         let kit = PositronicKit()
         let thread = try await kit.threadManager.createThread(title: "Shared Thread")
-        let instance = try await kit.agentManager.createInstance(
+        let instance = try await kit.agentManager.createAgent(
             name: "Attached Agent",
             description: "Agent attached to a shared thread"
         )
@@ -240,16 +240,16 @@ struct AgentManagerTests {
         try await kit.agentManager.attach(agentID: instance.id, to: thread.id)
 
         let thrown = await #expect(throws: AgentError.self) {
-            try await kit.agentManager.deleteInstance(id: instance.id, force: false)
+            try await kit.agentManager.deleteAgent(id: instance.id, force: false)
         }
         if case let .hasAttachedThreads(count)? = thrown {
             #expect(count == 1)
         } else {
             Issue.record("Expected deletion to report an attached thread")
         }
-        #expect(try await kit.agentManager.instance(id: instance.id) != nil)
+        #expect(try await kit.agentManager.agent(id: instance.id) != nil)
 
-        try await kit.agentManager.deleteInstance(id: instance.id, force: true)
+        try await kit.agentManager.deleteAgent(id: instance.id, force: true)
 
         let remainingThreads = try await kit.threadManager.listThreads()
         let remainingThread = try #require(remainingThreads.first { $0.id == thread.id })
@@ -257,7 +257,7 @@ struct AgentManagerTests {
     }
 
     @Test("Search: Find by name or description")
-    func searchInstances() async throws {
+    func searchAgents() async throws {
         let repo = DefaultWorkspaceCatalog(
             workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
             workspacePersistence: mock
@@ -265,7 +265,7 @@ struct AgentManagerTests {
         let manager = AgentManager(
             repository: repo,
             stores: .init(
-                instanceStore: mock,
+                agentStore: mock,
                 threadStore: mock,
                 messageStore: mock,
                 workspaceStore: mock
@@ -278,27 +278,27 @@ struct AgentManagerTests {
         try await mock.saveAgent(agent1)
         try await mock.saveAgent(agent2)
 
-        let resultsName = try await manager.searchInstances(query: "research")
+        let resultsName = try await manager.searchAgents(query: "research")
         #expect(resultsName.count == 1)
         #expect(resultsName.first?.name == "Researcher")
 
-        let resultsDesc = try await manager.searchInstances(query: "Swift")
+        let resultsDesc = try await manager.searchAgents(query: "Swift")
         #expect(resultsDesc.count == 1)
         #expect(resultsDesc.first?.name == "Coder")
 
-        let resultsEmpty = try await manager.searchInstances(query: "")
+        let resultsEmpty = try await manager.searchAgents(query: "")
         #expect(resultsEmpty.count == 2)
     }
 
     @Test("Deletion: routes private-thread deletion through ThreadManager when injected (PKR-3)")
-    func deleteInstanceEvictsThreadManagerCacheAndRegistry() async throws {
+    func deleteAgentEvictsThreadManagerCacheAndRegistry() async throws {
         // Use the same in-memory stores across the ThreadManager and the
         // AgentManager so the private thread created by the agent
         // manager is visible to the thread manager's store and cache.
         let threadStore = InMemoryThreadPersistence()
         let messageStore = InMemoryMessageStore()
         let workspaceStore = InMemoryWorkspacePersistence()
-        let instanceStore = InMemoryAgentStore()
+        let agentStore = InMemoryAgentStore()
         let registry = ThreadPromptJournals()
         let workspaceRoot = getTestWorkspaceRoot().appendingPathComponent(UUID().uuidString)
 
@@ -320,7 +320,7 @@ struct AgentManagerTests {
         let manager = AgentManager(
             repository: repo,
             stores: .init(
-                instanceStore: instanceStore,
+                agentStore: agentStore,
                 threadStore: threadStore,
                 messageStore: messageStore,
                 workspaceStore: workspaceStore
@@ -328,7 +328,7 @@ struct AgentManagerTests {
             threadManager: threadManager
         )
 
-        let instance = try await manager.createInstance(name: "Eviction Target", description: "Desc")
+        let instance = try await manager.createAgent(name: "Eviction Target", description: "Desc")
 
         // Hydrate the private thread into the ThreadManager cache and populate the registry.
         try await threadManager.hydrateThread(id: instance.privateThreadID)
@@ -340,7 +340,7 @@ struct AgentManagerTests {
 
         // Delete the agent — the private thread's cache entry and registry entry
         // should be evicted alongside the persisted row, not orphaned.
-        try await manager.deleteInstance(id: instance.id, force: false)
+        try await manager.deleteAgent(id: instance.id, force: false)
 
         #expect(await threadManager.thread(id: instance.privateThreadID) == nil,
                "Private thread should be evicted from the ThreadManager cache")
@@ -354,7 +354,7 @@ struct AgentManagerTests {
 
     @Test("Audit log: attach survives a failing message-store save (PKFLAKE-005)")
     func attachSurvivesFailingAuditLog() async throws {
-        let instanceStore = InMemoryAgentStore()
+        let agentStore = InMemoryAgentStore()
         let threadStore = InMemoryThreadPersistence()
         let workspaceStore = InMemoryWorkspacePersistence()
         let messageStore = FailingMessageStore()
@@ -365,7 +365,7 @@ struct AgentManagerTests {
         let manager = AgentManager(
             repository: repo,
             stores: .init(
-                instanceStore: instanceStore,
+                agentStore: agentStore,
                 threadStore: threadStore,
                 messageStore: messageStore,
                 workspaceStore: workspaceStore
@@ -378,7 +378,7 @@ struct AgentManagerTests {
             primaryWorkspaceID: UUID(), privateThreadID: UUID()
         )
         let thread = Thread(id: UUID(), title: "Shared", isPrivate: false)
-        try await instanceStore.saveAgent(agent)
+        try await agentStore.saveAgent(agent)
         try await threadStore.saveThread(thread)
 
         // attach must NOT throw just because the audit-log save failed.
@@ -395,7 +395,7 @@ struct AgentManagerTests {
 
     @Test("Audit log: detach survives a failing message-store save (PKFLAKE-005)")
     func detachSurvivesFailingAuditLog() async throws {
-        let instanceStore = InMemoryAgentStore()
+        let agentStore = InMemoryAgentStore()
         let threadStore = InMemoryThreadPersistence()
         let workspaceStore = InMemoryWorkspacePersistence()
         let messageStore = FailingMessageStore()
@@ -406,7 +406,7 @@ struct AgentManagerTests {
         let manager = AgentManager(
             repository: repo,
             stores: .init(
-                instanceStore: instanceStore,
+                agentStore: agentStore,
                 threadStore: threadStore,
                 messageStore: messageStore,
                 workspaceStore: workspaceStore
@@ -422,7 +422,7 @@ struct AgentManagerTests {
         let thread = Thread(
             id: UUID(), title: "Shared", attachedAgentID: agentId, isPrivate: false
         )
-        try await instanceStore.saveAgent(agent)
+        try await agentStore.saveAgent(agent)
         try await threadStore.saveThread(thread)
 
         // detach must NOT throw just because the audit-log save failed.
@@ -436,9 +436,9 @@ struct AgentManagerTests {
         #expect(messageStore.attemptedMessages.count == 1)
     }
 
-    @Test("Cleanup: deleteInstance preserves the agent when private-thread deletion fails")
-    func deleteInstanceDoesNotRemoveAgentWhenPrivateThreadDeletionFails() async throws {
-        let instanceStore = InMemoryAgentStore()
+    @Test("Cleanup: deleteAgent preserves the agent when private-thread deletion fails")
+    func deleteAgentDoesNotRemoveAgentWhenPrivateThreadDeletionFails() async throws {
+        let agentStore = InMemoryAgentStore()
         let threadStore = FailingThreadPersistence(deleteFails: true)
         let messageStore = InMemoryMessageStore()
         let workspaceStore = InMemoryWorkspacePersistence()
@@ -450,17 +450,17 @@ struct AgentManagerTests {
         let manager = AgentManager(
             repository: repo,
             stores: .init(
-                instanceStore: instanceStore,
+                agentStore: agentStore,
                 threadStore: threadStore,
                 messageStore: messageStore,
                 workspaceStore: workspaceStore
             )
         )
 
-        let instance = try await manager.createInstance(name: "Del Target", description: "Desc")
+        let instance = try await manager.createAgent(name: "Del Target", description: "Desc")
 
         let thrown = await #expect(throws: FailingStoreError.self) {
-            try await manager.deleteInstance(id: instance.id, force: false)
+            try await manager.deleteAgent(id: instance.id, force: false)
         }
         if case .deleteFailed? = thrown {
             // Preserve the original typed persistence error for callers and retry logic.
@@ -472,7 +472,7 @@ struct AgentManagerTests {
         #expect(threadStore.deleteAttemptCount >= 1)
 
         // Failed cleanup leaves all records needed for a retry intact.
-        #expect(try await instanceStore.fetchAgent(id: instance.id) != nil)
+        #expect(try await agentStore.fetchAgent(id: instance.id) != nil)
         let workspaceID = try #require(instance.primaryWorkspaceID)
         #expect(try await workspaceStore.fetchWorkspace(id: workspaceID, includeTools: false) != nil)
         #expect(try await threadStore.fetchThread(id: instance.privateThreadID) != nil)

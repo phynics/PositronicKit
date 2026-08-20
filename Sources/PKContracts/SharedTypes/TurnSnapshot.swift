@@ -47,7 +47,7 @@ public struct AudioOutputSnapshot: Codable, Sendable, Equatable {
     }
 }
 
-/// A serializable snapshot of a complete chat turn, capturing context provenance,
+/// A serializable snapshot of a complete turn, capturing context provenance,
 /// LLM inputs/outputs, tool activity, and performance metrics.
 ///
 /// Replaces the former `DebugSnapshot` with richer data derived from `TurnContext`.

@@ -8,7 +8,7 @@ import Testing
 
 /// PKRR-002 cancellation invariants: `ThreadDriver.cancel()` must actually cancel the
 /// stream-driving task, the registry entry must be removed on every terminal path,
-/// eviction/deletion must cancel active work, and a stale send ID cannot cancel a newer send.
+/// eviction/deletion must cancel active work, and a stale request ID cannot cancel a newer turn.
 @Suite("Thread cancellation invariants (PKRR-002)", .serialized)
 struct ThreadCancellationTests {
     // MARK: - 1. cancel() stops an active stream
@@ -279,10 +279,10 @@ struct ThreadCancellationTests {
         consumeTask.cancel()
     }
 
-    // MARK: - 5. A stale send ID cannot cancel a newer send
+    // MARK: - 5. A stale request ID cannot cancel a newer turn
 
-    @Test("A stale send ID cannot cancel a newer send (PKRR-002)")
-    func staleSendIDCannotCancelNewerSend() async throws {
+    @Test("A stale request ID cannot cancel a newer turn (PKRR-002)")
+    func staleRequestIDCannotCancelNewerTurn() async throws {
         let workspaceRoot = getTestWorkspaceRoot().appendingPathComponent(UUID().uuidString)
         let threadManager = ThreadManager(workspaceRoot: workspaceRoot)
         let threadID = UUID()
@@ -321,12 +321,12 @@ struct ThreadCancellationTests {
 
         // Attempt to cancel send A (stale) — must NOT cancel send B.
         let staleCancelResult = await threadManager.cancelGeneration(turnID: turnA, for: threadID)
-        #expect(!staleCancelResult, "Stale send ID should not match the active send")
+        #expect(!staleCancelResult, "Stale request ID should not match the active turn")
 
         // Task B should NOT be cancelled.
         try await Task.sleep(for: .milliseconds(100))
         let bCancelledEarly = taskBCancelled.withLock { $0 }
-        #expect(!bCancelledEarly, "Task B should not be cancelled by a stale send ID")
+        #expect(!bCancelledEarly, "Task B should not be cancelled by a stale request ID")
 
         // Now cancel the active send B — this should work.
         await threadManager.cancelGeneration(for: threadID)

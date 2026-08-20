@@ -8,7 +8,7 @@ import PKContracts
 /// construction, and does not expose the underlying `ThreadManager`. Opening a driver via
 /// `PositronicKit.openThread(_:)` is pure value construction — persistence happens lazily,
 /// the first time `send(_:)` actually executes a turn, exactly as it always has for the
-/// underlying chat-engine turn path.
+/// underlying turn-engine path.
 public struct ThreadDriver: Identifiable, Sendable {
     /// The persisted thread this driver sends to and cancels work for.
     public let threadID: UUID
@@ -25,7 +25,7 @@ public struct ThreadDriver: Identifiable, Sendable {
         self.kit = kit
     }
 
-    /// Sends a message through the facade's normal chat-engine execution path.
+    /// Sends a message through the facade's normal turn-engine execution path.
     public func send(_ message: String) async throws -> AsyncThrowingStream<TurnEvent, Error> {
         try await kit.run(TurnRequest(threadID: threadID, message: message))
     }

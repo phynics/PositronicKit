@@ -1,6 +1,6 @@
 import Foundation
 
-/// Controls whether a chat turn's diagnostic snapshot is attached to response metadata.
+/// Controls whether a turn's diagnostic snapshot is attached to response metadata.
 public enum DiagnosticSnapshotPolicy: String, Codable, Sendable, Equatable {
     /// Do not build or attach a diagnostic snapshot.
     case off

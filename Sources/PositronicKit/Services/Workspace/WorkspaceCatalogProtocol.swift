@@ -14,7 +14,7 @@ public protocol WorkspaceCatalog: Sendable {
 
     /// Creates a new agent workspace and seeds it with template files.
     func createAgentWorkspace(
-        instanceID: UUID,
+        agentID: UUID,
         template: AgentTemplate?
     ) async throws -> WorkspaceReference
 
@@ -49,11 +49,11 @@ public extension WorkspaceCatalog {
 
     /// Creates an agent workspace using the canonical identifier spelling.
     func createAgentWorkspace(
-        instanceID: UUID,
+        agentID: UUID,
         template: AgentTemplate? = nil
     ) async throws -> WorkspaceReference {
         try await createAgentWorkspace(
-            instanceID: instanceID,
+            agentID: agentID,
             template: template
         )
     }

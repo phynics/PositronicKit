@@ -12,7 +12,7 @@ import PKUtilities
 // - `PromptJournal` is the prompt-layer API for projecting prompt evolution into base/overlay /
 //   volatile journal sections.
 // - `ThreadPromptHistory` is runtime machinery for stable-prefix reuse, append-pressure
-//   tracking, and compaction heuristics inside the chat loop.
+//   tracking, and compaction heuristics inside the turn loop.
 //
 // In other words: `PromptJournal` is a prompt-facing product surface, while this type is an
 // implementation detail of the runtime orchestration layer.

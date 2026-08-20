@@ -17,8 +17,8 @@ The internal pipeline provides:
 PositronicKit uses a dual-structure approach to state management during a pipeline execution.
 
 ### TurnContext (Immutable Snapshot)
-The `TurnContext` is a thread-safe, immutable struct that represents the state of a chat turn at a specific point in time. It contains:
-- Session-level configuration (Thread ID, Model name, Max turns).
+The `TurnContext` is a thread-safe, immutable struct that represents the state of a turn at a specific point in time. It contains:
+- Session-level configuration (Thread ID, Model name, maximum model rounds).
 - Turn-specific data (Current messages, Available tools).
 - A reference to the mutable `TurnOutputs`.
 
@@ -36,14 +36,14 @@ PositronicKit is the orchestration layer. It manages the full lifecycle of an ag
 - **The `PositronicKit` facade is the primary entry point.** Construct it, call `run(...)`, and consume the streamed `TurnEvent`s. It wires the runtime internally; most consumers never touch the underlying coordinators.
 - **Advanced hosts may compose the public runtime seams directly.** When you own a server or a custom composition root, construct and hold `ThreadManager`, `ToolRouter`, and the persistence/workspace protocols yourself, or inject them into the facade via the grouped `runtime:` / `persistence:` initializers. This is a supported tier — not a private API — but you opt into more wiring in exchange for more control.
 
-Prefer the facade unless you specifically need a seam it doesn't surface. The chat-loop internals (`TurnEngine`, the turn pipeline, prompt-assembly internals) remain implementation details either way.
+Prefer the facade unless you specifically need a seam it doesn't surface. The turn-loop internals (`TurnEngine`, the turn pipeline, prompt-assembly internals) remain implementation details either way.
 
-## 4. Execution Flow: The Chat Engine
+## 4. Execution Flow: The Turn Engine
 
 The `TurnEngine` is the primary orchestrator that uses the Pipeline to handle user interactions.
 
 1. **Initialization**: Prepares the session and initial context.
-2. **ReAct Loop**: Runs a loop (`runChatLoop`) that continues as long as the agent needs to "think" or execute tools.
+2. **ReAct Loop**: Runs a loop (`runTurnLoop`) that continues as long as the agent needs to "think" or execute tools.
 3. **Pipeline Construction**: For each turn, it builds a pipeline consisting of:
    - `LLMStreamingStage`: Streams the raw response from the LLM.
    - `ToolCallExtractionStage`: Parses the stream for potential tool calls.
@@ -53,13 +53,13 @@ The `TurnEngine` is the primary orchestrator that uses the Pipeline to handle us
 
 A turn can pass `sidecars: [SidecarDirective]` to `PositronicKit.run(...)` to request auxiliary
 generations (title, summary, tone, etc.) from the *same* LLM request as the turn's response,
-instead of paying a separate round-trip per auxiliary task. Full design:
-`workflow/Yakamoz/specs/2026-07-03-piggybacked-requests-design.md`.
+instead of paying a separate round-trip per auxiliary task. See
+[Sidecar Directives](SidecarDirectives.md) for the current contract.
 
 - **Composition** (`SidecarSchemaComposer`): combines a `response: string` field with one
   property per directive into a single structured-output request (all required, strict),
   and appends a prompt instruction block describing each directive. This reuses the existing
-  `chatStream(structuredOutput:)` path — including the synthetic-tool fallback for providers
+  `generationStream(structuredOutput:)` path — including the synthetic-tool fallback for providers
   without native JSON-schema support — so sidecars need no new provider-adapter code.
   **Note:** field declaration order does *not* control model generation order — `Schema`
   stores properties in an unordered `Dictionary` and the wire path re-serializes them
@@ -84,7 +84,7 @@ instead of paying a separate round-trip per auxiliary task. Full design:
   `LLMStreamingStage` (no extractor is constructed) and is behaviorally identical to a turn
   without the parameter.
 - Concrete directives (title, summary, tone) and their per-thread scheduling policy are
-  intentionally **not** defined here — see `workflow/Yakamoz/tickets/SID-1`/`SID-2`. This layer
+  intentionally **not** defined here; downstream applications own those policies. This layer
   only provides the mechanism.
 
 ## 6. Extension Points
@@ -109,7 +109,7 @@ These public API surfaces are the **v1 compatibility contract**: they only chang
 | **Key-value store** | `KeyValueStoreProtocol` | PositronicKit | Generic key-value persistence |
 | **Vector search** | `VectorStoreProtocol`, `VectorStoreError` | PositronicKit | Custom vector search backends |
 | **Health check** | `HealthCheckable` | PositronicKit | Service health reporting |
-| **LLM providers** | `LLMStreamClient`, `LLMConfigStore`, `LLMUtilityClient` (narrow seams); `LLMChatRequest`, `LLMStreamResult`, `LLMStreamChunk`, etc. | PKContracts | Provider adapter contracts |
+| **LLM providers** | `LLMStreamClient`, `LLMConfigStore`, `LLMUtilityClient` (narrow seams); `LLMGenerationRequest`, `LLMStreamResult`, `LLMStreamChunk`, etc. | PKContracts | Provider adapter contracts |
 | **Structured output** | `StructuredOutputAdapter`, `PreparedStructuredOutputRequest`, `DefaultStructuredOutputAdapter` | PKContracts | Per-client structured-output preparation without global registration |
 | **Provider factories** | `LLMProviderFactory`, `PKOpenAIProvider.makeClient(configuration:)`, `PKOpenRouterProvider.makeClient(configuration:)`, `PKOllamaProvider.makeClient(configuration:)`, `PKAnthropicProvider.makeClient(configuration:)` | PKContracts / provider modules | Compile-time provider client construction; no runtime provider registry |
 | **Workspace** | `Workspace`, `WorkspaceFactory`, `ToolReference`, `WorkspaceToolDefinition` | PositronicKit / PKContracts | Custom workspace backends |

@@ -149,8 +149,8 @@ struct TurnEngineFailurePersistenceTests {
             // Simulate a provider stream that emits two content chunks then drops (e.g. network
             // error / provider 5xx). The mock stream throws a non-cancellation error.
             mockLLM.stubbedStream = AsyncThrowingStream { continuation in
-                continuation.yield(ChatStreamResultFactory.textChunk("Hello partial "))
-                continuation.yield(ChatStreamResultFactory.textChunk("world"))
+                continuation.yield(GenerationStreamResultFactory.textChunk("Hello partial "))
+                continuation.yield(GenerationStreamResultFactory.textChunk("world"))
                 continuation.finish(throwing: NSError(
                     domain: "STAB1ProviderDrop", code: 503,
                     userInfo: [NSLocalizedDescriptionKey: "simulated provider 5xx"]
@@ -215,7 +215,7 @@ struct TurnEngineFailurePersistenceTests {
                 if case .completion(.generationCompleted) = $0 { return true }
                 return false
             }))
-            #expect(mockLLM.chatCaptureHistory.count == 1)
+            #expect(mockLLM.generationCaptureHistory.count == 1)
 
             let pendingMessages = try await messageStore.fetchMessages(for: threadID)
             #expect(pendingMessages.filter { $0.role == "assistant" }.count == 1)
@@ -244,19 +244,19 @@ struct TurnEngineFailurePersistenceTests {
                 if case .completion(.generationCompleted) = $0 { return true }
                 return false
             }))
-            #expect(mockLLM.chatCaptureHistory.count == 2)
+            #expect(mockLLM.generationCaptureHistory.count == 2)
             let recoveredMessages = try await messageStore.fetchMessages(for: threadID)
             #expect(recoveredMessages.filter { $0.role == "tool" && $0.toolCallID == "persist_retry_call" }.count == 1)
             #expect(recoveredMessages.filter { $0.role == "assistant" }.count == 2)
         }
     }
 
-    @Test("A post-yield failure releases its send ID for a retry without duplicating user input")
-    func postYieldFailureReleasesSendIDForRetry() async throws {
+    @Test("A post-yield failure releases its request ID for a retry without duplicating user input")
+    func postYieldFailureReleasesRequestIDForRetry() async throws {
         try await withTurnEngineDependencies { engine, mockLLM, mockPersistence in
             let requestID = UUID()
             mockLLM.stubbedStream = AsyncThrowingStream { continuation in
-                continuation.yield(ChatStreamResultFactory.toolCallChunk(
+                continuation.yield(GenerationStreamResultFactory.toolCallChunk(
                     calls: [MockToolCall(id: "retry_call", name: "external_tool")],
                     content: "partial "
                 ))
@@ -294,7 +294,7 @@ struct TurnEngineFailurePersistenceTests {
                 if case .completion(.generationCompleted) = $0 { return true }
                 return false
             }))
-            #expect(mockLLM.chatCaptureHistory.count == 2, "Retry must reach the provider")
+            #expect(mockLLM.generationCaptureHistory.count == 2, "Retry must reach the provider")
 
             let messages = try await mockPersistence.fetchMessages(for: threadID)
             #expect(messages.filter { $0.role == "user" }.count == 1)
@@ -371,8 +371,8 @@ struct TurnEngineFailurePersistenceTests {
             // `PipelineError.stageFailed` before reaching `runOneTurn`; `TurnEngine` unwraps it
             // so the partial turn is tagged `.cancelled` rather than `.partial`.
             mockLLM.stubbedStream = AsyncThrowingStream { continuation in
-                continuation.yield(ChatStreamResultFactory.textChunk("Cancelled "))
-                continuation.yield(ChatStreamResultFactory.textChunk("mid-stream"))
+                continuation.yield(GenerationStreamResultFactory.textChunk("Cancelled "))
+                continuation.yield(GenerationStreamResultFactory.textChunk("mid-stream"))
                 continuation.finish(throwing: CancellationError())
             }
 
@@ -401,12 +401,12 @@ struct TurnEngineFailurePersistenceTests {
         }
     }
 
-    @Test("A cancelled stream releases its send ID for a retry")
-    func cancelledStreamReleasesSendIDForRetry() async throws {
+    @Test("A cancelled stream releases its request ID for a retry")
+    func cancelledStreamReleasesRequestIDForRetry() async throws {
         try await withTurnEngineDependencies { engine, mockLLM, mockPersistence in
             let requestID = UUID()
             mockLLM.stubbedStream = AsyncThrowingStream { continuation in
-                continuation.yield(ChatStreamResultFactory.toolCallChunk(
+                continuation.yield(GenerationStreamResultFactory.toolCallChunk(
                     calls: [MockToolCall(id: "cancel_retry_call", name: "external_tool")],
                     content: "partial "
                 ))
@@ -434,7 +434,7 @@ struct TurnEngineFailurePersistenceTests {
             )
             _ = try await collect(retryStream)
 
-            #expect(mockLLM.chatCaptureHistory.count == 2, "Cancellation retry must reach the provider")
+            #expect(mockLLM.generationCaptureHistory.count == 2, "Cancellation retry must reach the provider")
             let messages = try await mockPersistence.fetchMessages(for: threadID)
             #expect(messages.filter { $0.role == "user" }.count == 1)
             #expect(messages.filter { $0.role == "tool" && $0.toolCallID == "cancel_retry_call" }.count == 1)
@@ -544,7 +544,7 @@ struct TurnEngineFailurePersistenceTests {
                 userInfo: [NSLocalizedDescriptionKey: "simulated provider transport failure"]
             )
             mockLLM.stubbedStream = AsyncThrowingStream { continuation in
-                continuation.yield(ChatStreamResultFactory.textChunk("partial "))
+                continuation.yield(GenerationStreamResultFactory.textChunk("partial "))
                 continuation.finish(throwing: foreignError)
             }
 
@@ -578,7 +578,7 @@ struct TurnEngineFailurePersistenceTests {
     func cancellationErrorPassesThroughUnwrapped() async throws {
         try await withTurnEngineDependencies { engine, mockLLM, _ in
             mockLLM.stubbedStream = AsyncThrowingStream { continuation in
-                continuation.yield(ChatStreamResultFactory.textChunk("cancel me "))
+                continuation.yield(GenerationStreamResultFactory.textChunk("cancel me "))
                 continuation.finish(throwing: CancellationError())
             }
 

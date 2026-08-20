@@ -49,11 +49,11 @@ private actor FakeWorkspaceRepository: WorkspaceCatalog {
     }
 
     func createAgentWorkspace(
-        instanceId: UUID,
+        agentId: UUID,
         template: AgentTemplate?
     ) async throws -> WorkspaceReference {
         let reference = WorkspaceReference(
-            uri: .agentWorkspace(instanceId),
+            uri: .agentWorkspace(agentId),
             location: .runtime
         )
         references[reference.id] = reference

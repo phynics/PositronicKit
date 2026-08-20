@@ -56,7 +56,7 @@ public final class PositronicKit: Sendable {
     public let threadManager: ThreadManager
 
 
-    /// The single agent-instance manager owned by this facade. It is wired to the same
+    /// The single agent manager owned by this facade. It is wired to the same
     /// thread manager and persistence stores as the rest of the runtime.
     public let agentManager: AgentManager
 
@@ -218,7 +218,7 @@ public final class PositronicKit: Sendable {
                 workspacePersistence: self.workspacePersistence
             ),
             stores: .init(
-                instanceStore: self.agentStore,
+                agentStore: self.agentStore,
                 threadStore: self.threadPersistence,
                 messageStore: self.messageStore,
                 workspaceStore: self.workspacePersistence
@@ -312,7 +312,7 @@ public final class PositronicKit: Sendable {
         return PositronicKit(dependencies: deps)
     }
 
-    /// Adds a chat turn plugin that runs after each LLM turn.
+    /// Adds a turn plugin that runs after each LLM turn.
     /// - Parameter plugin: The plugin to add.
     /// - Returns: A new instance with the plugin added.
     public func addingPlugin(_ plugin: any TurnPlugin) -> PositronicKit {
@@ -335,9 +335,9 @@ public final class PositronicKit: Sendable {
         )
     }
 
-    /// Run a chat turn and return a stream of events.
+    /// Run a turn and return a stream of events.
     /// - Parameter request: The full turn configuration.
-    /// - Returns: An asynchronous stream of chat events.
+    /// - Returns: An asynchronous stream of turn events.
     public func run(_ request: TurnRequest) async throws -> AsyncThrowingStream<TurnEvent, Error> {
         guard request.maxModelRounds >= 1 else {
             throw TurnError.invalidMaxModelRounds(request.maxModelRounds)

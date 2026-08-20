@@ -34,8 +34,8 @@ private enum LoopContinuation {
 // MARK: - Turn Loop
 
 extension TurnEngine {
-    /// The heart of the agentic loop. Orchestrates multiple turns until the agent finishes
-    /// or reaches the max turn limit.
+    /// The heart of the agentic loop. Orchestrates model rounds until the agent finishes
+    /// or reaches the maximum model-round limit.
     func runTurnLoop(
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation,
         context: TurnContext
@@ -110,7 +110,7 @@ extension TurnEngine {
                         loopPromptHistoryUpdate = snapshot.promptHistoryUpdate
                     } else {
                         // A plugin requested another logical round, but the send budget is
-                        // exhausted. This is max-turn termination, not a normal terminal round.
+                        // exhausted. This is model-round-limit termination, not a normal terminal round.
                         if !pluginMessages.isEmpty && modelRoundIndex >= context.maxModelRounds {
                             await releaseTurnReservation(for: context)
                             continuation.yield(.maxModelRoundsReached())
@@ -152,7 +152,7 @@ extension TurnEngine {
                     )
                 } catch {
                     // Snapshot failures terminate the send after preparation, so the caller may
-                    // retry with the same send ID.
+                    // retry with the same request ID.
                     await releaseTurnReservation(for: context)
                     continuation.finish(throwing: wrapForeignError(error))
                     return
@@ -186,7 +186,7 @@ extension TurnEngine {
 
             case .persistenceFailed:
                 // Terminal but recoverable: the router emitted `.persistenceFailed` and left the
-                // assistant's pending tool call in durable history. Release the send reservation
+                // assistant's pending tool call in durable history. Release the turn reservation
                 // so the caller can retry with the existing pending-call submission semantics.
                 await releaseTurnReservation(for: context)
                 continuation.finish()
@@ -201,7 +201,7 @@ extension TurnEngine {
             LogKeys.modelRoundIndex: .string("\(modelRoundIndex)"),
         ])
         // Terminal: the loop exhausted its max-model-round budget while tool calls were still pending.
-        // Emit a distinct terminal event so consumers can distinguish max-turn exhaustion from
+        // Emit a distinct terminal event so consumers can distinguish model-round exhaustion from
         // normal completion instead of the stream silently finishing as if it succeeded
         // (PKRR-011).
         await releaseTurnReservation(for: context)
@@ -253,7 +253,7 @@ private extension TurnEngine {
             continuation.finish()
             return .cancelled
         } catch {
-            logger.error("Error in chat loop turn \(context.modelRoundIndex): \(error)", metadata: [
+            logger.error("Error in turn loop turn \(context.modelRoundIndex): \(error)", metadata: [
                 LogKeys.threadID: .string(context.threadID.uuidString),
                 LogKeys.turnID: .string(context.turnID.uuidString),
                 LogKeys.requestID: .string(context.requestId.uuidString),

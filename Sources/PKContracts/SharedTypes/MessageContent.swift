@@ -168,7 +168,7 @@ public enum ModelCapability: String, Sendable, Codable, Hashable, CaseIterable {
     case audioOutput
 }
 
-/// A response modality requested for a chat turn.
+/// A response modality requested for a turn.
 public enum ResponseModality: String, Sendable, Codable, Equatable, Hashable {
     case text
     case audio

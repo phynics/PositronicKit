@@ -43,11 +43,11 @@ public enum PositronicKitUsageExamples {
         makeOneShotRuntime().threadManager
     }
 
-    /// Tier 4: an agentic runtime handle over an attached thread and agent instance.
+    /// Tier 4: an agentic runtime handle over an attached thread and agent.
     public static func makeAgenticRuntimeExample() async throws -> AgenticRuntime {
         let kit = makeOneShotRuntime()
         let thread = try await kit.threadManager.createThread(title: "Agentic Example")
-        let agent = try await kit.agentManager.createInstance(
+        let agent = try await kit.agentManager.createAgent(
             from: nil,
             name: "Example Agent",
             description: "Demonstrates an attached agentic runtime."
@@ -141,7 +141,7 @@ public enum PositronicKitUsageExamples {
     /// producing a response) directly, bypassing `ExternalLLMProviderRegistry`/`LLMConfiguration`
     /// entirely — see `PKFoundationModelsProvider.swift` for why that registry shape doesn't fit
     /// an on-device session. Compiles unconditionally; on hosts without the `FoundationModels`
-    /// framework (or pre-26 macOS), the resulting runtime's `chatStream` throws
+    /// framework (or pre-26 macOS), the resulting runtime's `generationStream` throws
     /// `FoundationModelsPlatformError.unsupportedPlatform` rather than crashing.
     public static func makeFoundationModelsRuntime(tools: [AnyTool] = []) -> PositronicKit {
         let client = FoundationModelsClient(tools: tools.map { $0.toAnyTool() })
@@ -220,7 +220,7 @@ public enum PositronicKitUsageExamples {
                 case .toolExecution(let toolCallID, let status):
                     print("\nTool completed [\(toolCallID)]: \(status)")
                 case .maxModelRoundsReached:
-                    print("\nMax turns reached — the agent did not produce a tool-free final response.")
+                    print("\nMaximum model rounds reached — the agent did not produce a tool-free final response.")
                 case .deferredForExternalTool:
                     print("\nTool calls deferred for external execution; stream paused for host-side work.")
                 case .sidecarsCompleted(let completion):
@@ -293,7 +293,7 @@ public enum PositronicKitUsageExamples {
     }
 
     /// Sidecar directives (piggy-backed requests): auxiliary generations riding the same
-    /// request as a chat turn's response. `title` is nullable so the model can decline once
+    /// request as a turn's response. `title` is nullable so the model can decline once
     /// a thread already has one. Consume via `PositronicKit.run(_:)`:
     ///
     /// ```swift

@@ -267,10 +267,10 @@ struct StructuredOutputSyntheticToolStreamTests {
 
         let mockClient = MockLLMClient(structuredOutputAdapter: DefaultStructuredOutputAdapter())
         mockClient.nextRawStreamChunks = [[
-            ChatStreamResultFactory.toolCallChunk(calls: [
+            GenerationStreamResultFactory.toolCallChunk(calls: [
                 MockToolCall(id: "structured-call", name: syntheticToolName, arguments: "{" + #""tags":["#)
             ]),
-            ChatStreamResultFactory.toolCallChunk(calls: [
+            GenerationStreamResultFactory.toolCallChunk(calls: [
                 MockToolCall(id: "structured-call", name: syntheticToolName, arguments: #""swift"]}"#)
             ]),
         ]]

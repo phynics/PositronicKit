@@ -89,7 +89,7 @@ struct TurnPreparationIdempotencyTests {
     // MARK: - AC: Retrying the same requestId cannot duplicate user or tool messages
 
     @Test("Retrying the same requestId is rejected as duplicate")
-    func retryingSameSendIdIsRejected() async throws {
+    func retryingSameRequestIDIsRejected() async throws {
         let (kit, persistence, llm) = makeKit()
         let threadID = try await setupThread(on: persistence, threadManager: kit.threadManager)
         llm.mockClient.nextResponse = "Reply"
@@ -124,7 +124,7 @@ struct TurnPreparationIdempotencyTests {
     // MARK: - AC: Failed turn releases requestId for retry
 
     @Test("Failed turn releases requestId so retry with the same requestId succeeds")
-    func failedTurnReleasesSendIdForRetry() async throws {
+    func failedTurnReleasesRequestIDForRetry() async throws {
         let (kit, persistence, llm) = makeKit()
         let threadID = try await setupThread(on: persistence, threadManager: kit.threadManager)
 

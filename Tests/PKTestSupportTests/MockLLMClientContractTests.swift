@@ -26,13 +26,13 @@ struct MockLLMClientContractTests {
         #expect(actual.count == expected.count)
         #expect(Set(actual) == expected)
         #expect(client.streamCallCount == expected.count)
-        #expect(client.chatCaptureHistory.count == expected.count)
+        #expect(client.generationCaptureHistory.count == expected.count)
     }
 
     @Test("script queues follow raw chunks, chunks, responses, fallback precedence")
     func scriptQueuesFollowPrecedence() async throws {
         let client = MockLLMClient()
-        client.nextRawStreamChunks = [[ChatStreamResultFactory.textChunk("raw")]]
+        client.nextRawStreamChunks = [[GenerationStreamResultFactory.textChunk("raw")]]
         client.nextChunks = [["chunk-a", "chunk-b"]]
         client.nextResponses = ["queued"]
         client.nextResponse = "fallback"
@@ -44,8 +44,8 @@ struct MockLLMClientContractTests {
         #expect(outputs == ["raw", "chunk-achunk-b", "queued", "fallback"])
     }
 
-    @Test("chat capture preserves every supplied field, including throwing calls")
-    func chatCapturePreservesEverySuppliedFieldIncludingThrowingCalls() async throws {
+    @Test("generation capture preserves every supplied field, including throwing calls")
+    func generationCapturePreservesEverySuppliedFieldIncludingThrowingCalls() async throws {
         let client = MockLLMClient()
         let messages = [LLMMessage(role: .user, content: "hello")]
         let tools = [LLMToolDefinition(name: "echo", description: "Echo input")]
@@ -59,7 +59,7 @@ struct MockLLMClientContractTests {
             generationParameters: parameters
         )
 
-        let capture = client.lastChatCapture
+        let capture = client.lastGenerationCapture
         #expect(capture?.messages == messages)
         #expect(capture?.tools?.map(\.name) == ["echo"])
         #expect(capture?.toolChoice == .function("echo"))
@@ -80,8 +80,8 @@ struct MockLLMClientContractTests {
             Issue.record("Expected the configured stream error")
         } catch {}
 
-        #expect(client.chatCaptureHistory.count == 2)
-        #expect(client.lastChatCapture?.messages.first?.content == "failing")
+        #expect(client.generationCaptureHistory.count == 2)
+        #expect(client.lastGenerationCapture?.messages.first?.content == "failing")
     }
 
     @Test("send capture preserves content, options, and throwing calls")
@@ -134,7 +134,7 @@ struct MockLLMClientContractTests {
         #expect(sent == "send-fallback")
         #expect(streamed == ["stream-one", "stream-two"])
         #expect(client.sendMessageCaptureHistory.count == 1)
-        #expect(client.chatCaptureHistory.count == 2)
+        #expect(client.generationCaptureHistory.count == 2)
     }
 
     private func streamText(from client: MockLLMClient) async throws -> String {

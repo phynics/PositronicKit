@@ -6,7 +6,7 @@ import PKUtilities
 // MARK: - Errors
 
 public enum AgentError: PKError, Sendable {
-    case instanceNotFound(UUID)
+    case agentNotFound(UUID)
     case threadNotFound(UUID)
     case threadAgentMismatch(threadID: UUID, agentID: UUID, attachedAgentID: UUID?)
     case hasAttachedThreads(count: Int)
@@ -20,7 +20,7 @@ public enum AgentError: PKError, Sendable {
 
     public var errorCode: Int {
         switch self {
-        case .instanceNotFound: return 5001
+        case .agentNotFound: return 5001
         case .threadNotFound: return 5002
         case .differentAgentAlreadyAttached: return 5003
         case .threadAgentMismatch: return 5009
@@ -34,15 +34,15 @@ public enum AgentError: PKError, Sendable {
 
     public var errorDescription: String? {
         switch self {
-        case .instanceNotFound(let id):
-            return "Agent instance not found: \(id)"
+        case .agentNotFound(let id):
+            return "Agent not found: \(id)"
         case .threadNotFound(let id):
             return "Thread not found: \(id)"
         case .differentAgentAlreadyAttached(let id):
             return "A different agent (\(id)) is already attached. Detach it first."
         case let .threadAgentMismatch(threadID, agentID, attachedAgentID):
             let attachment = attachedAgentID.map { "agent \($0) is attached" } ?? "no agent is attached"
-            return "Agent instance \(agentID) is not attached to thread \(threadID); \(attachment)."
+            return "Agent \(agentID) is not attached to thread \(threadID); \(attachment)."
         case .hasAttachedThreads(let count):
             return "Cannot delete: \(count) thread(s) still attached. Use force=true to override."
         case .nameTooShort(let name):
@@ -58,8 +58,8 @@ public enum AgentError: PKError, Sendable {
 
     public var userFriendlyMessage: String {
         switch self {
-        case .instanceNotFound(let id):
-            return "The requested agent instance \(id.uuidString.prefix(8)) could not be found."
+        case .agentNotFound(let id):
+            return "The requested agent \(id.uuidString.prefix(8)) could not be found."
         case .threadNotFound(let id):
             return "The requested thread \(id.uuidString.prefix(8)) could not be found."
         case .differentAgentAlreadyAttached(let id):

@@ -109,7 +109,7 @@ struct StructuredOutputServiceTests {
 
         let schema = StructuredOutputFixtures.tagSchemaDefinition()
 
-        let stream = await service.chatStream(
+        let stream = await service.generationStream(
             messages: [LLMMessage(role: .user, content: "Extract tags")],
             structuredOutput: .jsonSchema(schema)
         )
@@ -171,10 +171,10 @@ struct StructuredOutputServiceTests {
     func rewritesFragmentedAnthropicStructuredToolOutput() async throws {
         let mockClient = MockLLMClient(structuredOutputAdapter: DefaultStructuredOutputAdapter())
         mockClient.nextRawStreamChunks = [[
-            ChatStreamResultFactory.toolCallChunk(calls: [
+            GenerationStreamResultFactory.toolCallChunk(calls: [
                 MockToolCall(id: "structured-call", name: "emit_structured_response", arguments: #"{"tags":[""#),
             ]),
-            ChatStreamResultFactory.toolCallChunk(calls: [
+            GenerationStreamResultFactory.toolCallChunk(calls: [
                 MockToolCall(id: "structured-call", name: "emit_structured_response", arguments: #"swift"]}"#),
             ]),
         ]]
@@ -185,7 +185,7 @@ struct StructuredOutputServiceTests {
         )
         try await service.updateConfiguration(.fixture(apiKey: "test-key", activeProvider: .anthropic))
 
-        let stream = await service.chatStream(
+        let stream = await service.generationStream(
             messages: [LLMMessage(role: .user, content: "Extract tags")],
             structuredOutput: .jsonSchema(StructuredOutputFixtures.tagSchemaDefinition())
         )

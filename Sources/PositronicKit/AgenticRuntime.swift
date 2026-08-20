@@ -10,9 +10,9 @@ import PKUtilities
 public final class AgenticRuntime: Sendable {
     /// The thread this runtime handle runs turns against.
     public let threadID: UUID
-    /// The agent instance whose identity and workspace bindings each turn runs under.
+    /// The agent whose identity and workspace bindings each turn runs under.
     public let agentID: UUID?
-    /// The facade-owned agent-instance manager, shared by every handle the facade vends.
+    /// The facade-owned agent manager, shared by every handle the facade vends.
     public let agentManager: AgentManager
 
     private let kit: PositronicKit

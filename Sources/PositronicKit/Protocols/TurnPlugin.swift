@@ -4,7 +4,7 @@ import PKUtilities
 
 // MARK: - CompletedTurn
 
-/// Read-only snapshot of a completed chat turn. Plugins drive the loop by the messages
+/// Read-only snapshot of a completed turn. Plugins drive the loop by the messages
 /// they return from `afterTurn`, not by mutating this snapshot.
 public struct CompletedTurn: Sendable {
     public let threadID: UUID

@@ -95,7 +95,7 @@ If you are adopting `PositronicKit`, you usually do not need to instantiate or m
 The two systems intentionally overlap only partially:
 
 - `PromptJournal` is authoritative for prompt-facing base / overlay / volatile layering and hard-reset semantics when stable prompt content changes.
-- `ThreadPromptHistory` is authoritative for runtime cache-prefix accounting (`stablePrefixCount`) and append-pressure tracking inside the chat loop.
+- `ThreadPromptHistory` is authoritative for runtime cache-prefix accounting (`stablePrefixCount`) and append-pressure tracking inside the turn loop.
 - For semistable prompt changes, their diff IDs are kept aligned and tested together, but they are not the same abstraction.
 
 ### Canonical recommendation

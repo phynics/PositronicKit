@@ -17,7 +17,7 @@ import PositronicKit
     }
 
     /// Centralizes construction of neutral stream chunks for tests.
-    public enum ChatStreamResultFactory {
+    public enum GenerationStreamResultFactory {
         /// Build a text content chunk.
         public static func textChunk(
             _ content: String,

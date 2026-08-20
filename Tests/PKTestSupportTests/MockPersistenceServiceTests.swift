@@ -6,7 +6,7 @@ import Testing
 
 @Suite("MockPersistenceService")
 struct MockPersistenceServiceTests {
-    @Test("resetDatabase clears agent instances")
+    @Test("resetDatabase clears agents")
     func resetDatabaseClearsAgents() async throws {
         let persistence = MockPersistenceService()
 

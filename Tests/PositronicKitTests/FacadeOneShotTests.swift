@@ -356,10 +356,10 @@ struct FacadeOneShotTests {
         try await llm.updateConfiguration(.fixture(activeProvider: .anthropic))
         llm.mockClient = MockLLMClient(structuredOutputAdapter: DefaultStructuredOutputAdapter())
         llm.mockClient.nextRawStreamChunks = [[
-            ChatStreamResultFactory.toolCallChunk(calls: [
+            GenerationStreamResultFactory.toolCallChunk(calls: [
                 MockToolCall(id: "structured-call", name: "emit_structured_response", arguments: "{" + #""tags":["#)
             ]),
-            ChatStreamResultFactory.toolCallChunk(calls: [
+            GenerationStreamResultFactory.toolCallChunk(calls: [
                 MockToolCall(id: "structured-call", name: "emit_structured_response", arguments: #""swift"]}"#)
             ]),
         ]]
@@ -444,7 +444,7 @@ struct FacadeOneShotTests {
             }
             probe.markStarted()
             if let initialContent {
-                continuation.yield(ChatStreamResultFactory.textChunk(initialContent))
+                continuation.yield(GenerationStreamResultFactory.textChunk(initialContent))
             }
         }
     }

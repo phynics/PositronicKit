@@ -35,7 +35,7 @@ extension TurnEngine {
         }
 
         guard let instance else {
-            let error = AgentError.instanceNotFound(agentId)
+            let error = AgentError.agentNotFound(agentId)
             if dependencies.degradationPolicy == .failRequired {
                 throw error
             }
@@ -321,7 +321,7 @@ extension TurnEngine {
 
             // 12. Commit persistence after all fallible preparation succeeds. Tool outputs are
             //     committed first (resumable batch), then the user message. The user row uses the
-            //     send ID as its existing message identity, so a later preparation failure can
+            //     request ID as its existing message identity, so a later preparation failure can
             //     retry without inserting the same input twice.
             try await ExternalToolOutputSubmissionGate.shared.commit(
                 validatedToolOutputs,
@@ -546,7 +546,7 @@ private extension TurnEngine {
         else { return }
         throw TurnDegradationError.required(
             diagnostic,
-            NSError(domain: diagnostic.errorIdentity?.domain ?? PKErrorDomain.chat, code: diagnostic.errorIdentity?.code ?? 9010)
+            NSError(domain: diagnostic.errorIdentity?.domain ?? PKErrorDomain.turn, code: diagnostic.errorIdentity?.code ?? 9010)
         )
     }
 

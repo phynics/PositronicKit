@@ -57,7 +57,7 @@ struct MockLLMServiceContractTests {
         let workspace = WorkspaceReference.fixture(rootPath: "/tmp/workspace")
         let parameters = GenerationParameters(topP: 0.8, seed: 99)
         let tool = AnyTool(CaptureProbeTool(), origin: .named("contract-test"))
-        let request = LLMChatRequest(
+        let request = LLMGenerationRequest(
             userQuery: "question",
             contextNotes: [note],
             memories: [memory],
@@ -72,10 +72,10 @@ struct MockLLMServiceContractTests {
             modelTier: .fast
         )
 
-        let result = try await service.chatStreamWithContext(request)
+        let result = try await service.generationStreamWithContext(request)
         _ = try await result.stream.collect()
 
-        let captured = service.lastChatRequest
+        let captured = service.lastGenerationRequest
         #expect(captured?.userQuery == "question")
         #expect(captured?.contextNotes.map(\.name) == ["note"])
         #expect(captured?.memories.map(\.id) == [memory.id])
@@ -92,7 +92,7 @@ struct MockLLMServiceContractTests {
         #expect(captured?.structuredOutput == .jsonObject)
         #expect(captured?.generationParameters == parameters)
         #expect(captured?.modelTier == .fast)
-        #expect(service.chatRequestHistory.count == 1)
+        #expect(service.generationRequestHistory.count == 1)
         #expect(service.lastModelTier == .fast)
         #expect(service.modelTierHistory == [.fast])
     }
@@ -106,7 +106,7 @@ struct MockLLMServiceContractTests {
         }
         let parameters = GenerationParameters(temperature: 0.4)
 
-        let stream = await service.chatStream(
+        let stream = await service.generationStream(
             messages: [LLMMessage(role: .user, content: "stubbed")],
             tools: [LLMToolDefinition(name: "echo")],
             toolChoice: .auto,
@@ -119,13 +119,13 @@ struct MockLLMServiceContractTests {
             Issue.record("Expected the stubbed stream error")
         } catch {}
 
-        #expect(service.lastChatCapture?.messages.first?.content == "stubbed")
-        #expect(service.lastChatCapture?.tools?.map(\.name) == ["echo"])
-        #expect(service.lastChatCapture?.toolChoice == .auto)
-        #expect(service.lastChatCapture?.responseFormat == .text)
-        #expect(service.lastChatCapture?.generationParameters == parameters)
-        #expect(service.lastChatCapture?.modelTier == .utility)
-        #expect(service.chatCaptureHistory.count == 1)
+        #expect(service.lastGenerationCapture?.messages.first?.content == "stubbed")
+        #expect(service.lastGenerationCapture?.tools?.map(\.name) == ["echo"])
+        #expect(service.lastGenerationCapture?.toolChoice == .auto)
+        #expect(service.lastGenerationCapture?.responseFormat == .text)
+        #expect(service.lastGenerationCapture?.generationParameters == parameters)
+        #expect(service.lastGenerationCapture?.modelTier == .utility)
+        #expect(service.generationCaptureHistory.count == 1)
     }
 
     @Test("send calls preserve complete capture records")

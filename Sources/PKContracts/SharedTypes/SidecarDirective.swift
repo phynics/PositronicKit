@@ -7,9 +7,8 @@ import struct JSONSchema.Schema
 /// in a single request. The response field streams normally; directive results are extracted
 /// through incremental JSON parsing and emitted as `TurnEvent` cases.
 ///
-/// Per the spec (`workflow/Yakamoz/specs/2026-07-03-piggybacked-requests-design.md`),
-/// the mechanism lives here in `PositronicKit`; concrete directives (title, summary, tone)
-/// and their scheduling policy live in consumer apps (Yakamoz).
+/// The mechanism lives here in `PositronicKit`; concrete directives (title, summary, tone)
+/// and their scheduling policy live in consumer applications.
 public struct SidecarDirective: Sendable, Equatable, Codable {
     /// Determines how a directive's value is delivered to consumers.
     public enum StreamingMode: Sendable, Equatable, Codable {

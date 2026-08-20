@@ -8,7 +8,7 @@ public enum PKLogSubsystem {
 
 public extension Logger {
     /// Returns a Logger with a stable, host-independent label in the `com.positronickit` subsystem.
-    /// - Parameter name: The category name (e.g., "chat-engine", "retry-policy"). Use lowercase-dash format.
+    /// - Parameter name: The category name (e.g., "turn-engine", "retry-policy"). Use lowercase-dash format.
     /// - Returns: A Logger with label `com.positronickit.<name>`
     static func module(named name: String) -> Logger {
         Logger(label: "\(PKLogSubsystem.value).\(name)")

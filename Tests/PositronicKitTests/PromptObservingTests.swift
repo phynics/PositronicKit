@@ -200,7 +200,7 @@ struct PromptObservingTests {
         #expect(values[1].journal.stablePrefixCount > 0)
     }
 
-    @Test("Turn identity keeps send identity stable across round trips")
+    @Test("Turn identity keeps request identity stable across model rounds")
     func turnIdentityStaysStableAcrossRoundTrips() async throws {
         let recorder = InspectionRecorder()
         let harness = try await TurnEngineTestHarness(inspector: recorder)

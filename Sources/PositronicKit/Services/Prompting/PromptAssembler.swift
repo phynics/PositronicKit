@@ -18,7 +18,7 @@ enum PromptAssembler {
     /// This is the preferred entry point for most callers.
     /// - Parameters:
     ///   - request: The prompt request data.
-    ///   - agent: Optional agent instance for identity context.
+    ///   - agent: Optional agent for identity context.
     ///   - thread: Optional thread metadata.
     ///   - extensionSections: Optional additional sections from external extensions.
     /// - Returns: A fully assembled prompt artifact.

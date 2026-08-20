@@ -6,7 +6,7 @@ public enum TurnError: PKError, Sendable, Equatable {
     case invalidMaxModelRounds(Int)
 
     public var errorDomain: String {
-        PKErrorDomain.chat
+        PKErrorDomain.turn
     }
 
     public var errorCode: Int {

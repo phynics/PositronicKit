@@ -15,7 +15,7 @@ public enum ToolExecutionOutcome: Sendable {
 /// A fully parsed tool call from the LLM response, ready for routing.
 ///
 /// This is a runtime-internal routing detail (`package`-scoped): it is produced and consumed inside
-/// the chat loop and is not part of the downstream public surface.
+/// the turn loop and is not part of the downstream public surface.
 package struct ParsedToolCall {
     package let callId: String
     package let name: String
@@ -34,7 +34,7 @@ package struct ParsedToolCall {
 
 /// Result of handling all pending tool calls in a turn.
 ///
-/// Runtime-internal (`package`-scoped); returned by `handlePendingToolCalls` to the chat loop.
+/// Runtime-internal (`package`-scoped); returned by `handlePendingToolCalls` to the turn loop.
 package struct ToolHandlingResult {
     /// Whether any tool calls were deferred for external execution.
     package let hasDeferred: Bool
@@ -47,7 +47,7 @@ package struct ToolHandlingResult {
 /// Result of processing tool calls from a completed LLM turn.
 /// Includes the assistant message (with tool call definitions) and resolved tool results.
 ///
-/// Runtime-internal (`package`-scoped); consumed by the chat loop.
+/// Runtime-internal (`package`-scoped); consumed by the turn loop.
 package enum ToolTurnResult {
     /// No tool calls were produced — the turn is complete.
     case noToolCalls
@@ -100,7 +100,7 @@ public actor ToolRouter {
     ///
     /// Extracts streamed tool call accumulators from `TurnOutputs`, constructs the assistant
     /// message (with tool call definitions for thread history), executes runtime-managed tools,
-    /// and returns a decision for the chat loop.
+    /// and returns a decision for the turn loop.
     func processToolCalls(
         outputs: TurnOutputs,
         threadId: UUID,
@@ -227,7 +227,7 @@ public actor ToolRouter {
             }
         }
 
-        // modelRoundIndex intentionally omitted: handlePendingToolCalls receives no turn count, and
+        // modelRoundIndex intentionally omitted: handlePendingToolCalls receives no model-round index, and
         // adding a parameter just for logging exceeds this ticket's blast radius.
         let batchMeta: Logger.Metadata = [
             LogKeys.threadID: .string(threadId.uuidString),

@@ -57,14 +57,14 @@ struct DependencySafetyTests {
         let manager = AgentManager(
             repository: customRepo,
             stores: .init(
-                instanceStore: persistence,
+                agentStore: persistence,
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence
             )
         )
 
-        let instance = try await manager.createInstance(name: "Test", description: "Test")
+        let instance = try await manager.createAgent(name: "Test", description: "Test")
         if let workspaceId = instance.primaryWorkspaceID,
            let workspace = try await persistence.fetchWorkspace(id: workspaceId, includeTools: false)
         {

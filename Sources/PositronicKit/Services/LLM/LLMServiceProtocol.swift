@@ -5,8 +5,8 @@ import PKUtilities
 
 // MARK: - Request / Result Types
 
-/// Groups the parameters for a high-level LLM chat stream request.
-public struct LLMChatRequest: Sendable {
+/// Groups the parameters for a high-level LLM generation stream request.
+public struct LLMGenerationRequest: Sendable {
     public let userQuery: String
     public let contextNotes: [ContextFile]
     public let memories: [Memory]
@@ -52,7 +52,7 @@ public struct LLMChatRequest: Sendable {
 /// Selects which configured model tier a streaming request should target.
 ///
 /// Replaces the former `useUtilityModel`/`useFastModel` boolean pair on
-/// ``LLMStreamClient/chatStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:)``.
+/// ``LLMStreamClient/generationStream(messages:tools:toolChoice:responseFormat:generationParameters:modelTier:)``.
 /// Exactly one tier is selected per call — the previous booleans were ambiguous when both were
 /// `true` (the implementation checked `useFastModel` first, then `useUtilityModel`, then fell
 /// through to the primary client) and didn't document that precedence. `ModelTier` makes the
@@ -68,7 +68,7 @@ public enum ModelTier: Sendable, Equatable {
     case fast
 }
 
-/// The result of a high-level LLM chat stream request.
+/// The result of a high-level LLM generation stream request.
 public struct LLMStreamResult: Sendable {
     public let stream: AsyncThrowingStream<LLMStreamChunk, Error>
     public let rawPrompt: String
@@ -175,7 +175,7 @@ public struct LLMPromptRequest: Sendable {
 /// Hosts inject one provider-selected value at their composition root.
 public protocol LanguageModel: LLMStreamClient, LLMConfigStore, LLMUtilityClient {}
 
-/// Streaming chat seam: a consumer that drives LLM generation by streaming chat
+/// Streaming generation seam: a consumer that drives LLM generation by streaming
 /// completions. This is the narrowest seam the runtime turn loop needs.
 public protocol LLMStreamClient: Sendable {
     var isConfigured: Bool { get async }
@@ -184,7 +184,7 @@ public protocol LLMStreamClient: Sendable {
     /// Returns the structured-output preparation behavior for the selected model tier.
     func structuredOutputAdapter(for modelTier: ModelTier) async -> any StructuredOutputAdapter
 
-    func chatStreamWithContext(_ request: LLMChatRequest) async throws -> LLMStreamResult
+    func generationStreamWithContext(_ request: LLMGenerationRequest) async throws -> LLMStreamResult
 
     /// Stream chat response from a prepared list of messages (low-level).
     ///
@@ -197,7 +197,7 @@ public protocol LLMStreamClient: Sendable {
     ///   - modelTier: Which configured model tier to stream from (`.primary`, `.utility`,
     ///     or `.fast`). See ``ModelTier`` for the fallback rules when a tier's client isn't
     ///     configured.
-    func chatStream(
+    func generationStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,
         toolChoice: LLMToolChoice?,
@@ -206,7 +206,7 @@ public protocol LLMStreamClient: Sendable {
         modelTier: ModelTier
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error>
 
-    func chatStream(
+    func generationStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,
         toolChoice: LLMToolChoice?,
@@ -232,7 +232,7 @@ public protocol LLMConfigStore: Sendable {
 
 /// Utility LLM task seam: one-shot message sends, best-effort tag/title generation, and
 /// model listing. These are non-streaming helper tasks that some hosts drive independently
-/// of the chat turn loop.
+/// of the turn loop.
 ///
 /// `bestEffortTags(for:)` and `bestEffortTitle(for:)` are explicitly best-effort: they never
 /// throw, log failures, and return documented defaults. Hosts that own their own fallback
@@ -277,7 +277,7 @@ public extension LLMStreamClient {
         DefaultStructuredOutputAdapter()
     }
 
-    func chatStream(
+    func generationStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,
         toolChoice: LLMToolChoice?,
@@ -292,7 +292,7 @@ public extension LLMStreamClient {
                 continuation.finish(throwing: MultimodalContentError.missingCapability(.audioOutput))
             }
         }
-        return await chatStream(
+        return await generationStream(
             messages: messages,
             tools: tools,
             toolChoice: toolChoice,
@@ -303,7 +303,7 @@ public extension LLMStreamClient {
     }
 
     /// Default-args convenience for the low-level streaming entry point.
-    func chatStream(
+    func generationStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]? = nil,
         toolChoice: LLMToolChoice? = nil,
@@ -311,7 +311,7 @@ public extension LLMStreamClient {
         generationParameters: GenerationParameters? = nil,
         modelTier: ModelTier = .primary
     ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
-        await chatStream(
+        await generationStream(
             messages: messages,
             tools: tools,
             toolChoice: toolChoice,

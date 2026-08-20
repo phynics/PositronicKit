@@ -113,7 +113,7 @@ actor TurnOutputs {
     }
 }
 
-/// Immutable snapshot of a single chat turn as it moves through the pipeline.
+/// Immutable snapshot of a single turn as it moves through the pipeline.
 /// Mutable stage outputs are stored in `outputs`, a shared actor reference.
 struct TurnContext {
     // Session-level configuration (constant across turns)

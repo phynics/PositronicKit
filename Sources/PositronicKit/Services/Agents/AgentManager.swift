@@ -4,7 +4,7 @@ import Logging
 import PKContracts
 import PKUtilities
 
-/// Manages the lifecycle of agent instances: creation, attachment to threads,
+/// Manages the lifecycle of agents: creation, attachment to threads,
 /// detachment, and deletion.
 ///
 /// Attachment rules:
@@ -14,18 +14,18 @@ import PKUtilities
 /// - If `attachedAgentId` references a deleted agent, it is nulled on access.
 public actor AgentManager: AgentManagerProtocol {
     public struct Stores: Sendable {
-        public let instanceStore: any AgentStoreProtocol
+        public let agentStore: any AgentStoreProtocol
         public let threadStore: any ThreadPersistenceProtocol
         public let messageStore: any ThreadMessageStoreProtocol
         public let workspaceStore: any WorkspaceStore
 
         public init(
-            instanceStore: any AgentStoreProtocol,
+            agentStore: any AgentStoreProtocol,
             threadStore: any ThreadPersistenceProtocol,
             messageStore: any ThreadMessageStoreProtocol,
             workspaceStore: any WorkspaceStore
         ) {
-            self.instanceStore = instanceStore
+            self.agentStore = agentStore
             self.threadStore = threadStore
             self.messageStore = messageStore
             self.workspaceStore = workspaceStore
@@ -33,7 +33,7 @@ public actor AgentManager: AgentManagerProtocol {
 
     }
 
-    private let instanceStore: any AgentStoreProtocol
+    private let agentStore: any AgentStoreProtocol
     private let threadStore: any ThreadPersistenceProtocol
     private let messageStore: any ThreadMessageStoreProtocol
     private let workspaceStore: any WorkspaceStore
@@ -43,7 +43,7 @@ public actor AgentManager: AgentManagerProtocol {
     /// so the in-memory caches and prompt-history registry entry are evicted alongside persistence,
     /// not just the persisted row (PKR-3).
     private let threadManager: ThreadManager?
-    private let logger = Logger.module(named: "agent-instance-manager")
+    private let logger = Logger.module(named: "agent-manager")
 
     public init(
         repository: any WorkspaceCatalog,
@@ -51,7 +51,7 @@ public actor AgentManager: AgentManagerProtocol {
         threadManager: ThreadManager? = nil
     ) {
         self.repository = repository
-        self.instanceStore = stores.instanceStore
+        self.agentStore = stores.agentStore
         self.threadStore = stores.threadStore
         self.messageStore = stores.messageStore
         self.workspaceStore = stores.workspaceStore
@@ -62,7 +62,7 @@ public actor AgentManager: AgentManagerProtocol {
         self.init(
             repository: repository,
             stores: .init(
-                instanceStore: InMemoryAgentStore(),
+                agentStore: InMemoryAgentStore(),
                 threadStore: InMemoryThreadPersistence(),
                 messageStore: InMemoryMessageStore(),
                 workspaceStore: InMemoryWorkspacePersistence()
@@ -72,33 +72,33 @@ public actor AgentManager: AgentManagerProtocol {
 
     // MARK: - Create
 
-    /// Creates a new agent instance, its private workspace, and its private thread atomically.
+    /// Creates a new agent, its private workspace, and its private thread atomically.
     /// If a later write fails, completed (and attempted) writes are compensated in reverse order;
     /// cleanup failures are logged while the original creation error is rethrown.
     /// - Parameters:
     ///   - template: Optional `AgentTemplate` template to seed workspace files from.
-    ///   - name: Display name for the instance.
+    ///   - name: Display name for the agent.
     ///   - description: Purpose description.
     /// - Returns: The created `Agent`.
-    public func createInstance(
+    public func createAgent(
         from template: AgentTemplate?,
         name: String,
         description: String
     ) async throws -> Agent {
         try validate(name: name, description: description)
 
-        let instanceId = UUID()
+        let agentId = UUID()
         let privateThreadID = UUID()
 
         var workspace: WorkspaceReference?
         var didAttemptThreadSave = false
-        var didAttemptInstanceSave = false
+        var didAttemptAgentSave = false
         var didAttemptAuditSave = false
 
         do {
             // 1. Create workspace via repository
             let createdWorkspace = try await repository.createAgentWorkspace(
-                instanceID: instanceId,
+                agentID: agentId,
                 template: template
             )
             workspace = createdWorkspace
@@ -108,41 +108,41 @@ public actor AgentManager: AgentManagerProtocol {
                 id: privateThreadID,
                 title: "[\(name)] Private",
                 attachedWorkspaceIDs: [createdWorkspace.id],
-                attachedAgentID: instanceId,
+                attachedAgentID: agentId,
                 isPrivate: true
             )
             didAttemptThreadSave = true
             try await threadStore.saveThread(privateThread)
 
-            // 3. Persist agent instance
-            let instance = Agent(
-                id: instanceId,
+            // 3. Persist agent
+            let agent = Agent(
+                id: agentId,
                 name: name,
                 description: description,
                 primaryWorkspaceID: createdWorkspace.id,
                 privateThreadID: privateThreadID
             )
-            didAttemptInstanceSave = true
-            try await instanceStore.saveAgent(instance)
+            didAttemptAgentSave = true
+            try await agentStore.saveAgent(agent)
 
             // 4. Log creation to private thread
             let creationMsg = ThreadMessage(
                 threadID: privateThreadID,
                 role: .system,
-                content: "[CREATED] Agent instance '\(name)' (\(instanceId.uuidString)) created."
+                content: "[CREATED] Agent '\(name)' (\(agentId.uuidString)) created."
             )
             didAttemptAuditSave = true
             try await messageStore.saveMessage(creationMsg)
 
-            logger.info("Created agent instance '\(name)' (\(instanceId))")
-            return instance
+            logger.info("Created agent '\(name)' (\(agentId))")
+            return agent
         } catch {
-            await rollbackCreateInstance(
-                instanceID: instanceId,
+            await rollbackCreateAgent(
+                agentID: agentId,
                 privateThreadID: privateThreadID,
                 workspace: workspace,
                 didAttemptThreadSave: didAttemptThreadSave,
-                didAttemptInstanceSave: didAttemptInstanceSave,
+                didAttemptAgentSave: didAttemptAgentSave,
                 didAttemptAuditSave: didAttemptAuditSave,
                 originalError: error
             )
@@ -152,7 +152,7 @@ public actor AgentManager: AgentManagerProtocol {
 
     // MARK: - Attach / Detach
 
-    /// Attaches an agent instance to a thread.
+    /// Attaches an agent to a thread.
     ///
     /// - Idempotent: no-op if the same agent is already attached.
     /// - Fails if a different agent is attached (caller must detach it first).
@@ -161,8 +161,8 @@ public actor AgentManager: AgentManagerProtocol {
         guard var thread = try await threadStore.fetchThread(id: threadID) else {
             throw AgentError.threadNotFound(threadID)
         }
-        guard let agent = try await instanceStore.fetchAgent(id: agentID) else {
-            throw AgentError.instanceNotFound(agentID)
+        guard let agent = try await agentStore.fetchAgent(id: agentID) else {
+            throw AgentError.agentNotFound(agentID)
         }
 
         // Idempotent
@@ -177,7 +177,7 @@ public actor AgentManager: AgentManagerProtocol {
 
         // Check for existing attachment
         if let existingId = thread.attachedAgentID {
-            if try await instanceStore.fetchAgent(id: existingId) != nil {
+            if try await agentStore.fetchAgent(id: existingId) != nil {
                 throw AgentError.differentAgentAlreadyAttached(existingId)
             }
             // Dangling reference — clear it with a warning
@@ -206,7 +206,7 @@ public actor AgentManager: AgentManagerProtocol {
         logger.info("Agent '\(agent.name)' attached to thread '\(thread.title)'")
     }
 
-    /// Detaches an agent instance from a thread.
+    /// Detaches an agent from a thread.
     /// No-op if the agent is not attached to that thread.
     public func detach(agentID: UUID, from threadID: UUID) async throws {
         guard var thread = try await threadStore.fetchThread(id: threadID) else {
@@ -225,7 +225,7 @@ public actor AgentManager: AgentManagerProtocol {
         try await threadStore.saveThread(thread)
 
         // Log to agent's private thread if it still exists
-        if let agent = try? await instanceStore.fetchAgent(id: agentID) {
+        if let agent = try? await agentStore.fetchAgent(id: agentID) {
             let logMsg = ThreadMessage(
                 threadID: agent.privateThreadID,
                 role: .system,
@@ -244,16 +244,16 @@ public actor AgentManager: AgentManagerProtocol {
 
     // MARK: - Queries
 
-    public func instance(id: UUID) async throws -> Agent? {
-        try await instanceStore.fetchAgent(id: id)
+    public func agent(id: UUID) async throws -> Agent? {
+        try await agentStore.fetchAgent(id: id)
     }
 
-    public func getInstance(id: UUID) async throws -> Agent? {
-        try await instance(id: id)
+    public func getAgent(id: UUID) async throws -> Agent? {
+        try await agent(id: id)
     }
 
-    public func listInstances() async throws -> [Agent] {
-        try await instanceStore.fetchAllAgents()
+    public func listAgents() async throws -> [Agent] {
+        try await agentStore.fetchAllAgents()
     }
 
     public func threads(attachedTo agentID: UUID) async throws -> [Thread] {
@@ -265,15 +265,15 @@ public actor AgentManager: AgentManagerProtocol {
         try await threads(attachedTo: agentID)
     }
 
-    public func updateInstance(_ instance: Agent) async throws {
-        try validate(name: instance.name, description: instance.description)
-        var updated = instance
+    public func updateAgent(_ agent: Agent) async throws {
+        try validate(name: agent.name, description: agent.description)
+        var updated = agent
         updated.updatedAt = Date()
-        try await instanceStore.saveAgent(updated)
+        try await agentStore.saveAgent(updated)
     }
 
-    public func searchInstances(query: String) async throws -> [Agent] {
-        let all = try await listInstances()
+    public func searchAgents(query: String) async throws -> [Agent] {
+        let all = try await listAgents()
         if query.isEmpty { return all }
         let lowerQuery = query.lowercased()
         return all.filter {
@@ -285,12 +285,12 @@ public actor AgentManager: AgentManagerProtocol {
 
     // MARK: - Helpers
 
-    private func rollbackCreateInstance(
-        instanceID: UUID,
+    private func rollbackCreateAgent(
+        agentID: UUID,
         privateThreadID: UUID,
         workspace: WorkspaceReference?,
         didAttemptThreadSave: Bool,
-        didAttemptInstanceSave: Bool,
+        didAttemptAgentSave: Bool,
         didAttemptAuditSave: Bool,
         originalError: Error
     ) async {
@@ -302,7 +302,7 @@ public actor AgentManager: AgentManagerProtocol {
                 logCreateRollbackFailure(
                     operation: "deleteMessages",
                     entityID: privateThreadID,
-                    instanceID: instanceID,
+                    agentID: agentID,
                     originalError: originalError,
                     cleanupError: error
                 )
@@ -311,14 +311,14 @@ public actor AgentManager: AgentManagerProtocol {
 
         // Stores may report a failed save after the row was written; deletes are therefore
         // attempted for every save that was entered, not only for saves that returned success.
-        if didAttemptInstanceSave {
+        if didAttemptAgentSave {
             do {
-                try await instanceStore.deleteAgent(id: instanceID)
+                try await agentStore.deleteAgent(id: agentID)
             } catch {
                 logCreateRollbackFailure(
                     operation: "deleteAgent",
-                    entityID: instanceID,
-                    instanceID: instanceID,
+                    entityID: agentID,
+                    agentID: agentID,
                     originalError: originalError,
                     cleanupError: error
                 )
@@ -332,7 +332,7 @@ public actor AgentManager: AgentManagerProtocol {
                 logCreateRollbackFailure(
                     operation: "deleteThread",
                     entityID: privateThreadID,
-                    instanceID: instanceID,
+                    agentID: agentID,
                     originalError: originalError,
                     cleanupError: error
                 )
@@ -346,7 +346,7 @@ public actor AgentManager: AgentManagerProtocol {
                 logCreateRollbackFailure(
                     operation: "deleteWorkspace",
                     entityID: workspace.id,
-                    instanceID: instanceID,
+                    agentID: agentID,
                     originalError: originalError,
                     cleanupError: error
                 )
@@ -357,21 +357,21 @@ public actor AgentManager: AgentManagerProtocol {
     private func logCreateRollbackFailure(
         operation: String,
         entityID: UUID,
-        instanceID: UUID,
+        agentID: UUID,
         originalError: Error,
         cleanupError: Error
     ) {
         var metadata = LoggingMetadata.makeMetadata(
             for: cleanupError,
-            correlationID: instanceID.uuidString
+            correlationID: agentID.uuidString
         )
-        metadata[LogKeys.stage] = .string("createInstance.rollback")
+        metadata[LogKeys.stage] = .string("createAgent.rollback")
         metadata["operation"] = .string(operation)
         metadata["entityID"] = .string(entityID.uuidString)
 
         logger.error(
             """
-            createInstance rollback failed — operation: \(operation), entity: \(entityID.uuidString.prefix(8)), \
+            createAgent rollback failed — operation: \(operation), entity: \(entityID.uuidString.prefix(8)), \
             original error: \(ErrorKit.userFriendlyMessage(for: originalError)), \
             cleanup error: \(ErrorKit.userFriendlyMessage(for: cleanupError))
             """,
@@ -396,18 +396,18 @@ public actor AgentManager: AgentManagerProtocol {
 
     // MARK: - Delete
 
-    /// Deletes an agent instance and optionally force-detaches it from all threads.
+    /// Deletes an agent and optionally force-detaches it from all threads.
     /// - Parameters:
-    ///   - id: The agent instance identifier to delete.
+    ///   - id: The agent identifier to delete.
     ///   - force: If false, throws if the agent is still attached to any threads.
-    public func deleteInstance(id: UUID, force: Bool) async throws {
-        guard let instance = try await instanceStore.fetchAgent(id: id) else {
-            throw AgentError.instanceNotFound(id)
+    public func deleteAgent(id: UUID, force: Bool) async throws {
+        guard let agent = try await agentStore.fetchAgent(id: id) else {
+            throw AgentError.agentNotFound(id)
         }
 
         let allAttached = try await fetchAttachedThreads(for: id)
         // Exclude the agent's own private thread from the "still attached" check
-        let nonPrivateAttached = allAttached.filter { $0.id != instance.privateThreadID }
+        let nonPrivateAttached = allAttached.filter { $0.id != agent.privateThreadID }
 
         if !nonPrivateAttached.isEmpty, !force {
             throw AgentError.hasAttachedThreads(count: nonPrivateAttached.count)
@@ -424,21 +424,21 @@ public actor AgentManager: AgentManagerProtocol {
         // preserve the agent and its workspace so the operation can be retried without
         // leaving a persisted thread pointing at a removed agent.
         do {
-            try await threadStore.deleteThread(id: instance.privateThreadID)
+            try await threadStore.deleteThread(id: agent.privateThreadID)
         } catch {
             logger.error(
-                "Failed to delete private thread \(instance.privateThreadID) for agent \(id): \(ErrorKit.userFriendlyMessage(for: error))")
+                "Failed to delete private thread \(agent.privateThreadID) for agent \(id): \(ErrorKit.userFriendlyMessage(for: error))")
             throw error
         }
 
         // Evict the in-memory caches + prompt-history registry via the ThreadManager seam
         // when available (PKR-3), after the persisted row has been deleted successfully.
         if let threadManager {
-            await threadManager.evictThreadFromMemory(id: instance.privateThreadID)
+            await threadManager.evictThreadFromMemory(id: agent.privateThreadID)
         }
 
         // Delete primary workspace directory (high risk IO)
-        if let workspaceId = instance.primaryWorkspaceID {
+        if let workspaceId = agent.primaryWorkspaceID {
             do {
                 try await repository.deleteWorkspace(id: workspaceId, deleteDirectory: true)
             } catch {
@@ -447,7 +447,7 @@ public actor AgentManager: AgentManagerProtocol {
         }
 
         // Delete database record
-        try await instanceStore.deleteAgent(id: id)
-        logger.info("Deleted agent instance \(id)")
+        try await agentStore.deleteAgent(id: id)
+        logger.info("Deleted agent \(id)")
     }
 }

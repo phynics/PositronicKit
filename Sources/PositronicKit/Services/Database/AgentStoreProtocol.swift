@@ -2,7 +2,7 @@ import Foundation
 import PKContracts
 import PKUtilities
 
-/// Protocol for persisting and querying agent instances.
+/// Protocol for persisting and querying agents.
 ///
 /// This is a real seam — downstream consumers provide concrete adapters backed by
 /// production databases:

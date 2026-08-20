@@ -27,7 +27,7 @@ import Testing
     }
 
     @Test("TurnPlugin can trigger a follow-up turn with injected messages")
-    func chatTurnPluginTriggersFollowUpTurn() async throws {
+    func turnPluginTriggersFollowUpTurn() async throws {
         let plugin = AcceptanceTurnPlugin()
         let (baseChat, mockLLM, mockPersistence, threadID, _, _) = try await makeAcceptanceRuntime()
         let chat = baseChat.addingPlugin(plugin)

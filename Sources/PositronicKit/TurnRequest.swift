@@ -9,7 +9,7 @@ public enum SidecarCommitPolicy: Sendable, Codable, Equatable {
     case terminalModelRound
 }
 
-/// Transport-neutral configuration for a single chat turn.
+/// Transport-neutral configuration for a single turn.
 public struct TurnRequest: Sendable, CustomStringConvertible {
     public let threadID: UUID
     public let requestID: UUID?
@@ -65,7 +65,7 @@ public struct TurnRequest: Sendable, CustomStringConvertible {
         self.audioOutput = audioOutput
     }
 
-    /// Creates a chat turn with ordered multimodal user content.
+    /// Creates a turn with ordered multimodal user content.
     public init(
         threadID: UUID,
         requestID: UUID? = nil,

@@ -12,7 +12,7 @@ public enum MemoryVacuumPolicy: Sendable {
     case run(threshold: Double)
 }
 
-/// Service to archive conversations and index them for semantic recall
+/// Service to archive threads and index their messages for semantic recall.
 public actor ThreadArchiver {
     private let persistence: any ThreadPersistenceProtocol & MemoryStoreProtocol & ThreadMessageStoreProtocol
     private let llmService: any LLMStreamClient
@@ -125,7 +125,7 @@ public actor ThreadArchiver {
                 await indexMessageAsMemory(msg, title: title)
             }
 
-            let conversationMsg = ThreadMessage(
+            let threadMessage = ThreadMessage(
                 threadID: thread.id,
                 role: .init(rawValue: msg.role.rawValue) ?? .user,
                 content: msg.content,
@@ -135,7 +135,7 @@ public actor ThreadArchiver {
                 reasoning: msg.reasoning,
                 toolCalls: encodeToolCalls(msg.toolCalls)
             )
-            try await persistence.saveMessage(conversationMsg)
+            try await persistence.saveMessage(threadMessage)
         }
     }
 

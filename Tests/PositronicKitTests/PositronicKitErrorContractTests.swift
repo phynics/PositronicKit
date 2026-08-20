@@ -22,7 +22,7 @@ struct PositronicKitErrorContractTests {
         func stableErrorIdentity() {
             let error = TurnError.invalidMaxModelRounds(0)
 
-            #expect(error.errorDomain == PKErrorDomain.chat)
+            #expect(error.errorDomain == PKErrorDomain.turn)
             #expect(error.errorCode == 9008)
         }
 
@@ -53,7 +53,7 @@ struct PositronicKitErrorContractTests {
         @Test("Every case maps to a unique non-zero error code in the agent domain")
         func uniqueErrorCodes() {
             let cases: [AgentError] = [
-                .instanceNotFound(UUID()),
+                .agentNotFound(UUID()),
                 .threadNotFound(UUID()),
                 .differentAgentAlreadyAttached(UUID()),
                 .hasAttachedThreads(count: 3),
@@ -78,7 +78,7 @@ struct PositronicKitErrorContractTests {
         @Test("userFriendlyMessage truncates UUIDs to a prefix for readability")
         func userFriendlyMessageTruncatesUUID() {
             let id = UUID()
-            let error = AgentError.instanceNotFound(id)
+            let error = AgentError.agentNotFound(id)
             #expect(error.userFriendlyMessage.contains(id.uuidString.prefix(8)))
             #expect(!error.userFriendlyMessage.contains(id.uuidString))
         }
@@ -99,12 +99,12 @@ struct PositronicKitErrorContractTests {
         @Test("remediation defaults to nil (no recovery guidance)")
         func remediationIsNil() {
             #expect(AgentError.descriptionEmpty.remediation == nil)
-            #expect(AgentError.instanceNotFound(UUID()).remediation == nil)
+            #expect(AgentError.agentNotFound(UUID()).remediation == nil)
         }
 
         @Test("isBlocked defaults to false (not a permission gate)")
         func isBlockedIsFalse() {
-            #expect(AgentError.instanceNotFound(UUID()).isBlocked == false)
+            #expect(AgentError.agentNotFound(UUID()).isBlocked == false)
         }
     }
 
@@ -122,7 +122,7 @@ struct PositronicKitErrorContractTests {
             let codes = cases.map(\.errorCode)
             #expect(Set(codes).count == codes.count)
             #expect(codes == [5101, 5102, 5103])
-            #expect(cases.allSatisfy { $0.errorDomain == PKErrorDomain.chat })
+            #expect(cases.allSatisfy { $0.errorDomain == PKErrorDomain.turn })
         }
 
         @Test("duplicateDirectiveNames lists the duplicates in the message")

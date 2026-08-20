@@ -29,7 +29,7 @@
 ///
 /// Extension stories
 /// - prompt section providers inject runtime prompt content → `ExtensionStoriesTests`
-/// - chat turn plugins trigger follow-up turns → `ExtensionStoriesTests`
+/// - turn plugins trigger follow-up turns → `ExtensionStoriesTests`
 /// - custom tools execute through the public facade → `ExtensionStoriesTests`
 /// - workspace creators provide executable workspace-owned tools →
 ///   `ExtensionStoriesTests`

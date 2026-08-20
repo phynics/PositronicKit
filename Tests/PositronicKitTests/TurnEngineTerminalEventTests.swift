@@ -11,7 +11,7 @@ import Testing
 /// Every execution path through `TurnEngine.execute` must emit exactly one terminal event
 /// before the stream closes, and that terminal event must identify the path's outcome:
 /// - Normal completion → `.completion(.generationCompleted)`
-/// - Max-turn exhaustion → `.completion(.maxModelRoundsReached)` (not a silent success)
+/// - Model-round exhaustion → `.completion(.maxModelRoundsReached)` (not a silent success)
 /// - Deferred external tool → `.completion(.deferredForExternalTool)`
 /// - Cancellation → `.error(.generationCancelled)`
 /// - Failure → the stream throws
@@ -162,9 +162,9 @@ struct TurnEngineTerminalEventTests {
         return events
     }
 
-    // MARK: - Max-turn exhaustion emits a distinct terminal event
+    // MARK: - Model-round exhaustion emits a distinct terminal event
 
-    @Test("Max-turn exhaustion emits exactly one maxModelRoundsReached terminal event (PKRR-011)")
+    @Test("Model-round exhaustion emits exactly one maxModelRoundsReached terminal event (PKRR-011)")
     func maxModelRoundsExhaustionEmitsDistinctTerminal() async throws {
         try await withTurnEngineDependencies { engine, mockLLM, _ in
             let mockTool = MockTool()
@@ -187,21 +187,21 @@ struct TurnEngineTerminalEventTests {
                 if case .completion(.maxModelRoundsReached) = $0 { return true }
                 return false
             }
-            #expect(maxModelRoundsEvents.count == 1, "Max-turn exhaustion must emit exactly one .maxModelRoundsReached")
+            #expect(maxModelRoundsEvents.count == 1, "Model-round exhaustion must emit exactly one .maxModelRoundsReached")
 
             // Exhaustion is not a success — no normal completion terminal.
             let generationCompleted = events.filter {
                 if case .completion(.generationCompleted) = $0 { return true }
                 return false
             }
-            #expect(generationCompleted.isEmpty, "Max-turn exhaustion must not emit .generationCompleted")
+            #expect(generationCompleted.isEmpty, "Model-round exhaustion must not emit .generationCompleted")
 
             // Nor is it a deferred terminal.
             let deferred = events.filter {
                 if case .completion(.deferredForExternalTool) = $0 { return true }
                 return false
             }
-            #expect(deferred.isEmpty, "Max-turn exhaustion must not emit .deferredForExternalTool")
+            #expect(deferred.isEmpty, "Model-round exhaustion must not emit .deferredForExternalTool")
         }
     }
 
@@ -292,7 +292,7 @@ struct TurnEngineTerminalEventTests {
             // (the throw is that path's terminal signal); that path is covered by
             // `TurnEngineTerminalInvariantTests`.
             mockLLM.stubbedStream = AsyncThrowingStream { continuation in
-                continuation.yield(ChatStreamResultFactory.textChunk("partial "))
+                continuation.yield(GenerationStreamResultFactory.textChunk("partial "))
                 continuation.finish(throwing: CancellationError())
             }
 
@@ -356,7 +356,7 @@ struct TurnEngineTerminalEventTests {
         }
     }
 
-    @Test("Deprecated orphan cases are never emitted on the max-turn path (PKRR-011)")
+    @Test("Deprecated orphan cases are never emitted on the model-round path (PKRR-011)")
     func orphanCasesNeverEmittedOnMaxModelRounds() async throws {
         try await withTurnEngineDependencies { engine, mockLLM, _ in
             let mockTool = MockTool()

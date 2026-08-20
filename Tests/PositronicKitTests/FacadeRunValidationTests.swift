@@ -32,7 +32,7 @@ struct FacadeRunValidationTests {
         }
 
         #expect(try await harness.persistence.fetchMessages(for: harness.threadID).isEmpty)
-        #expect(harness.languageModel.chatCaptureHistory.isEmpty)
+        #expect(harness.languageModel.generationCaptureHistory.isEmpty)
         #expect(await harness.agentStore.fetchCount == 1)
     }
 
@@ -51,7 +51,7 @@ struct FacadeRunValidationTests {
         }
 
         #expect(try await harness.persistence.fetchMessages(for: harness.threadID).isEmpty)
-        #expect(harness.languageModel.chatCaptureHistory.isEmpty)
+        #expect(harness.languageModel.generationCaptureHistory.isEmpty)
         #expect(await harness.agentStore.fetchCount == 1)
     }
 
@@ -82,7 +82,7 @@ struct FacadeRunValidationTests {
         #expect(diagnostic.errorIdentity?.code == 5001)
 
         #expect(await harness.agentStore.fetchCount == 1)
-        #expect(harness.languageModel.chatCaptureHistory.count == 1)
+        #expect(harness.languageModel.generationCaptureHistory.count == 1)
         let messages = try await harness.persistence.fetchMessages(for: harness.threadID)
         #expect(messages.map(\.role) == ["user", "assistant"])
     }
@@ -107,15 +107,15 @@ struct FacadeRunValidationTests {
         _ = try await stream.collect()
 
         #expect(await harness.agentStore.fetchCount == 2)
-        let prompt = try #require(harness.languageModel.lastChatCapture)
+        let prompt = try #require(harness.languageModel.lastGenerationCapture)
             .messages
             .map(\.content)
             .joined(separator: "\n")
         #expect(prompt.contains(description))
     }
 
-    @Test("required-agent preflight failure releases the send identifier for retry")
-    func requiredAgentFailureReleasesSendID() async throws {
+    @Test("required-agent preflight failure releases the request identifier for retry")
+    func requiredAgentFailureReleasesRequestID() async throws {
         let harness = try await makeAgentHarness(policy: .failRequired)
         let agent = Agent(
             name: "Retry Agent",
@@ -145,7 +145,7 @@ struct FacadeRunValidationTests {
         _ = try await stream.collect()
 
         #expect(await harness.agentStore.fetchCount == 3)
-        #expect(harness.languageModel.chatCaptureHistory.count == 1)
+        #expect(harness.languageModel.generationCaptureHistory.count == 1)
     }
 
     @Test("cancelling facade run iteration cancels the provider and clears its task registration")
@@ -156,7 +156,7 @@ struct FacadeRunValidationTests {
             continuation.onTermination = { @Sendable _ in
                 probe.recordTermination()
             }
-            continuation.yield(ChatStreamResultFactory.textChunk("provider-started"))
+            continuation.yield(GenerationStreamResultFactory.textChunk("provider-started"))
         }
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: languageModel),
@@ -217,8 +217,8 @@ struct FacadeRunValidationTests {
 
         #expect(threadStore.fetchAttemptCount == 0)
         #expect(messageStore.attemptedMessages.isEmpty)
-        #expect(languageModel.chatRequestHistory.isEmpty)
-        #expect(languageModel.chatCaptureHistory.isEmpty)
+        #expect(languageModel.generationRequestHistory.isEmpty)
+        #expect(languageModel.generationCaptureHistory.isEmpty)
         #expect(languageModel.sendMessageCaptureHistory.isEmpty)
     }
 
@@ -258,11 +258,11 @@ struct FacadeRunValidationTests {
     ) async {
         do {
             try await operation()
-            Issue.record("Expected AgentError.instanceNotFound")
-        } catch let AgentError.instanceNotFound(actualID) {
+            Issue.record("Expected AgentError.agentNotFound")
+        } catch let AgentError.agentNotFound(actualID) {
             #expect(actualID == expectedID)
         } catch {
-            Issue.record("Expected AgentError.instanceNotFound, got \(error)")
+            Issue.record("Expected AgentError.agentNotFound, got \(error)")
         }
     }
 }

@@ -9,7 +9,7 @@ import PKUtilities
 ///
 /// - tool-call continuation is handled separately by `ToolRouter`
 /// - post-turn plugins may inject additional `LLMMessage`s
-/// - if injected messages are non-empty and the loop has remaining turns, the chat loop continues
+/// - if injected messages are non-empty and the loop has remaining turns, the turn loop continues
 /// - otherwise the loop finishes
 ///
 /// Extracting this logic keeps `TurnEngine` focused on loop orchestration while preserving the

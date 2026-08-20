@@ -6,7 +6,7 @@ import struct PositronicKit.Thread
 import Synchronization
 
 /// Composite in-memory test double for the full persistence surface (memories, messages,
-/// threads, agent templates, workspaces, tools, request origins, agent instances,
+/// threads, agent templates, workspaces, tools, request origins, agents,
 /// health), delegating each protocol area to its own focused mock (``MockMemoryStore``,
 /// ``MockMessageStore``, ``MockThreadPersistenceStore``, ``MockAgentTemplateStore``,
 /// ``MockWorkspacePersistence``, ``MockToolPersistence``) so a test can construct a single
@@ -19,7 +19,7 @@ import Synchronization
 /// `agents` all forward to the underlying focused mocks. `resetDatabase()` clears
 /// every backing store.
 ///
-/// Health, durability, request-origin callbacks, and agent instances share one mutex state.
+/// Health, durability, request-origin callbacks, and agents share one mutex state.
 /// Agent insert-or-replace and each tool-workspace mirror upsert are atomic; the two backing stores
 /// are not a cross-store transaction. Callback values are snapshotted while locked, then invoked
 /// after unlocking, so no mutex crosses an `await` or caller-provided code.

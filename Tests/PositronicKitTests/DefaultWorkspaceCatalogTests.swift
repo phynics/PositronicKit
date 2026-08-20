@@ -242,15 +242,15 @@ struct AgentWorkspaceServiceTests {
             ]
         )
 
-        let instanceId = UUID()
+        let agentId = UUID()
         _ = try await repository.createAgentWorkspace(
-            instanceID: instanceId,
+            agentID: agentId,
             template: template
         )
 
         let notesPath = tempDir
             .appendingPathComponent("agents", isDirectory: true)
-            .appendingPathComponent(instanceId.uuidString, isDirectory: true)
+            .appendingPathComponent(agentId.uuidString, isDirectory: true)
             .appendingPathComponent("Notes", isDirectory: true)
 
         // Verify safe files were created
@@ -274,7 +274,7 @@ struct AgentWorkspaceServiceTests {
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
-        let seedFailureInstanceID = UUID()
+        let seedFailureAgentID = UUID()
         let seedFailureRepository = DefaultWorkspaceCatalog(workspaceRoot: tempDir)
         let invalidTemplate = AgentTemplate(
             id: UUID(),
@@ -286,7 +286,7 @@ struct AgentWorkspaceServiceTests {
 
         do {
             _ = try await seedFailureRepository.createAgentWorkspace(
-                instanceID: seedFailureInstanceID,
+                agentID: seedFailureAgentID,
                 template: invalidTemplate
             )
             Issue.record("Expected seed provisioning to fail")
@@ -301,10 +301,10 @@ struct AgentWorkspaceServiceTests {
 
         let seedFailureWorkspaceURL = tempDir
             .appendingPathComponent("agents", isDirectory: true)
-            .appendingPathComponent(seedFailureInstanceID.uuidString, isDirectory: true)
+            .appendingPathComponent(seedFailureAgentID.uuidString, isDirectory: true)
         #expect(!FileManager.default.fileExists(atPath: seedFailureWorkspaceURL.path))
 
-        let persistenceFailureInstanceID = UUID()
+        let persistenceFailureAgentID = UUID()
         let persistenceFailureRepository = DefaultWorkspaceCatalog(
             workspaceRoot: tempDir,
             workspacePersistence: FailingWorkspaceStore(saveFails: true)
@@ -319,7 +319,7 @@ struct AgentWorkspaceServiceTests {
 
         do {
             _ = try await persistenceFailureRepository.createAgentWorkspace(
-                instanceID: persistenceFailureInstanceID,
+                agentID: persistenceFailureAgentID,
                 template: validTemplate
             )
             Issue.record("Expected persistence to fail")
@@ -334,20 +334,20 @@ struct AgentWorkspaceServiceTests {
 
         let persistenceFailureWorkspaceURL = tempDir
             .appendingPathComponent("agents", isDirectory: true)
-            .appendingPathComponent(persistenceFailureInstanceID.uuidString, isDirectory: true)
+            .appendingPathComponent(persistenceFailureAgentID.uuidString, isDirectory: true)
         #expect(!FileManager.default.fileExists(atPath: persistenceFailureWorkspaceURL.path))
 
-        let existingInstanceID = UUID()
+        let existingAgentID = UUID()
         let existingWorkspaceURL = tempDir
             .appendingPathComponent("agents", isDirectory: true)
-            .appendingPathComponent(existingInstanceID.uuidString, isDirectory: true)
+            .appendingPathComponent(existingAgentID.uuidString, isDirectory: true)
         let sentinel = existingWorkspaceURL.appendingPathComponent("sentinel.txt")
         try FileManager.default.createDirectory(at: existingWorkspaceURL, withIntermediateDirectories: true)
         try "keep".write(to: sentinel, atomically: true, encoding: .utf8)
 
         do {
             _ = try await persistenceFailureRepository.createAgentWorkspace(
-                instanceID: existingInstanceID,
+                agentID: existingAgentID,
                 template: validTemplate
             )
             Issue.record("Expected persistence to fail for the existing workspace")
@@ -381,13 +381,13 @@ struct AgentWorkspaceServiceTests {
             ]
         )
 
-        let instanceId = UUID()
+        let agentId = UUID()
 
         // Should throw because ../outside.md tries to escape Notes directory
         var didThrow = false
         do {
             _ = try await repository.createAgentWorkspace(
-                instanceID: instanceId,
+                agentID: agentId,
                 template: template
             )
         } catch {
@@ -425,13 +425,13 @@ struct AgentWorkspaceServiceTests {
             ]
         )
 
-        let instanceId = UUID()
+        let agentId = UUID()
 
         // Should throw because absolute path is not allowed
         var didThrow = false
         do {
             _ = try await repository.createAgentWorkspace(
-                instanceID: instanceId,
+                agentID: agentId,
                 template: template
             )
         } catch {
@@ -464,13 +464,13 @@ struct AgentWorkspaceServiceTests {
             ]
         )
 
-        let instanceId = UUID()
+        let agentId = UUID()
 
         // Should throw because ../../evil.md tries to escape
         var didThrow = false
         do {
             _ = try await repository.createAgentWorkspace(
-                instanceID: instanceId,
+                agentID: agentId,
                 template: template
             )
         } catch {

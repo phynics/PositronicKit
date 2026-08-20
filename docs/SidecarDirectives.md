@@ -1,12 +1,12 @@
 # Sidecar Directives (Piggy-Backed Requests)
 
-Sidecar directives let a chat turn produce auxiliary generations — a title, a summary, a tone
+Sidecar directives let a turn produce auxiliary generations — a title, a summary, a tone
 marker, a confidence score, whatever your app needs — **from the same LLM request** as the
 turn's user-visible response, instead of paying a separate round-trip per auxiliary task. The
 user sees only the streamed response; directive results arrive alongside it through
 `TurnEvent`.
 
-Full design rationale: `workflow/Yakamoz/specs/2026-07-03-piggybacked-requests-design.md`.
+The durable contract is described here; downstream applications own concrete directive policy.
 Architecture summary: [Architecture.md](Architecture.md#5-sidecar-directives-piggy-backed-requests).
 
 ## Why
@@ -95,7 +95,7 @@ Sidecars default to `SidecarCommitPolicy.everyModelRound`, which commits one ide
 the complete logical send, use `sidecarCommitPolicy: .terminalModelRound`. Intermediate
 `.delta(.sidecar)` values are streaming observations, not durable commits. Under the terminal
 policy, results are emitted only after tool and plugin follow-up work finishes normally;
-cancellation, failure, max-turn exhaustion, and external-tool deferral do not promote an
+cancellation, failure, model-round exhaustion, and external-tool deferral do not promote an
 intermediate result. Persist a completion idempotently using its `TurnIdentity`.
 
 ## Error model

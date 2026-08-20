@@ -2,13 +2,13 @@
 
 This guide provides step-by-step examples for integrating `PositronicKit` and managing `Agent` within your application.
 
-## 1. Managing Agent Instances
+## 1. Managing Agents
 
-`Agent` represents a live agent with its own workspace and private thread. You manage these instances using the `AgentManager`.
+`Agent` represents a live agent with its own workspace and private thread. You manage agents using the `AgentManager`.
 
-### Creating an Instance
+### Creating an Agent
 
-To create a new agent instance, use the `createInstance` method. You can optionally seed it from an `AgentTemplate`.
+To create a new agent, use the `createAgent` method. You can optionally seed it from an `AgentTemplate`.
 
 ```swift
 import PositronicKit
@@ -16,8 +16,8 @@ import PKContracts
 
 let manager = AgentManager(repository: myWorkspaceRepository)
 
-// Create a new agent instance
-let instance = try await manager.createInstance(
+// Create a new agent
+let agent = try await manager.createAgent(
     from: nil, // Optional AgentTemplate
     name: "Research Assistant",
     description: "An agent specialized in technical research."
@@ -119,7 +119,7 @@ let chat = PositronicKit(configuration: .init(
 ))
 ```
 
-### Running a Chat Stream
+### Running a Generation Stream
 
 The `run` method takes a `TurnRequest` and returns an `AsyncThrowingStream<TurnEvent, Error>`,
 so you can process real-time updates as the agent reasons and responds.
@@ -170,7 +170,7 @@ for try await event in stream {
         case .toolExecution(let toolCallId, let status):
             print("\nTool completed [\(toolCallId)]: \(status)")
         case .maxModelRoundsReached:
-            print("\nMax turns reached — the agent did not produce a tool-free final response.")
+            print("\nMaximum model rounds reached — the agent did not produce a tool-free final response.")
         case .deferredForExternalTool:
             print("\nTool calls deferred for external execution; stream paused for host-side work.")
         case .sidecarsCompleted(let completion):

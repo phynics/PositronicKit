@@ -882,7 +882,7 @@ struct TurnEngineTests {
             }
             #expect(successEvents.count == 2)
 
-            // Max-turn exhaustion emits a distinct terminal event (PKRR-011). Previously the
+            // Model-round exhaustion emits a distinct terminal event (PKRR-011). Previously the
             // stream finished silently with no terminal signal, making exhaustion look like a
             // success with no generationCompleted. Now it emits exactly one `.maxModelRoundsReached`.
             let maxModelRoundsEvents = events.filter {
@@ -1303,7 +1303,7 @@ struct TurnEngineTests {
         }
     }
 
-    @Test("Production chat engine wiring uses a bounded stream timeout by default")
+    @Test("Production turn engine wiring uses a bounded stream timeout by default")
     func productionTurnEngineUsesBoundedStreamTimeout() {
         let dependencies = TurnEngine.Dependencies(
             threadManager: ThreadManager(
@@ -1411,7 +1411,7 @@ struct TurnEngineTests {
         }
     }
 
-    // MARK: - Group 11: Agent Instance
+    // MARK: - Group 11: Agent
 
     @Test("agentId is recorded on the persisted assistant message")
     func agentIdSetOnMessage() async throws {
@@ -1441,7 +1441,7 @@ struct TurnEngineTests {
         }
     }
 
-    // MARK: - Group 12: Plugin Follow-Up & Max-Turns (recast from TurnLoopControllerTests, PKDEEP2-001)
+    // MARK: - Group 12: Plugin Follow-Up & Model-Round Limits (recast from TurnLoopControllerTests, PKDEEP2-001)
 
     @Test("Plugin follow-up resumes the loop for a second turn, then finishes")
     func pluginFollowUpResumesLoop() async throws {
@@ -1486,7 +1486,7 @@ struct TurnEngineTests {
             // Two LLM turns ran (one generation delta each) before maxModelRounds cut the loop.
             let deltas = generationDeltas(events)
             #expect(deltas == ["turn-one", "turn-two"])
-            // No cancellation or failure surfaced: the loop finished via the max-turns branch.
+            // No cancellation or failure surfaced: the loop finished via the model-round-limit branch.
             #expect(!events.contains(where: { if case .error = $0 { return true }; return false }))
         }
     }

@@ -9,8 +9,8 @@ import Testing
 struct UnconfiguredLLMServiceTests {
     let service = UnconfiguredLLMService()
 
-    private var request: LLMChatRequest {
-        LLMChatRequest(
+    private var request: LLMGenerationRequest {
+        LLMGenerationRequest(
             userQuery: "hello",
             chatHistory: [],
             tools: [],
@@ -56,9 +56,9 @@ struct UnconfiguredLLMServiceTests {
         }
     }
 
-    @Test("chatStream terminates immediately with notConfigured")
-    func chatStreamTerminatesImmediately() async throws {
-        let stream = await service.chatStream(
+    @Test("generationStream terminates immediately with notConfigured")
+    func generationStreamTerminatesImmediately() async throws {
+        let stream = await service.generationStream(
             messages: [],
             tools: nil,
             toolChoice: nil,
@@ -72,10 +72,10 @@ struct UnconfiguredLLMServiceTests {
         }
     }
 
-    @Test("chatStreamWithContext terminates immediately with notConfigured")
-    func chatStreamWithContextTerminatesImmediately() async throws {
+    @Test("generationStreamWithContext terminates immediately with notConfigured")
+    func generationStreamWithContextTerminatesImmediately() async throws {
         await #expect(throws: LLMServiceError.notConfigured) {
-            let result = try await service.chatStreamWithContext(request)
+            let result = try await service.generationStreamWithContext(request)
             _ = try await result.stream.collect()
         }
     }

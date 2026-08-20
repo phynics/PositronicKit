@@ -12,7 +12,7 @@ public struct Thread: Identifiable, Sendable {
     public var workingDirectory: String?
     public var attachedWorkspaceIDs: [UUID]
 
-    /// The agent instance currently attached to this thread (holds the generation lock).
+    /// The agent currently attached to this thread (holds the generation lock).
     /// Multiple threads can reference the same agent. Each thread can have at most one agent.
     public var attachedAgentID: UUID?
 

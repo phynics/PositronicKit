@@ -66,13 +66,13 @@ public actor DefaultWorkspaceCatalog: WorkspaceCatalog {
 
     /// Creates a new agent workspace and seeds it with template files.
     public func createAgentWorkspace(
-        instanceID: UUID,
+        agentID: UUID,
         template: AgentTemplate? = nil
     ) async throws -> WorkspaceReference {
         // 1. Create workspace directory
         let agentWorkspaceURL = workspaceRoot
             .appendingPathComponent("agents", isDirectory: true)
-            .appendingPathComponent(instanceID.uuidString, isDirectory: true)
+            .appendingPathComponent(agentID.uuidString, isDirectory: true)
         let notesDir = agentWorkspaceURL.appendingPathComponent("Notes", isDirectory: true)
         let didCreateAgentWorkspace = !FileManager.default.fileExists(atPath: agentWorkspaceURL.path)
         try FileManager.default.createDirectory(at: notesDir, withIntermediateDirectories: true)
@@ -108,7 +108,7 @@ public actor DefaultWorkspaceCatalog: WorkspaceCatalog {
 
             // 3. Persist and return reference
             return try await createWorkspace(
-                uri: .agentWorkspace(instanceID),
+                uri: .agentWorkspace(agentID),
                 location: .runtime,
                 originID: nil,
                 rootPath: agentWorkspaceURL.path
@@ -120,7 +120,7 @@ public actor DefaultWorkspaceCatalog: WorkspaceCatalog {
                 } catch let cleanupError {
                     logCreationCleanupFailure(
                         operation: "removeDirectory",
-                        workspaceID: instanceID,
+                        workspaceID: agentID,
                         originalError: originalError,
                         cleanupError: cleanupError
                     )

@@ -2,9 +2,9 @@ import Foundation
 import PKContracts
 import PKUtilities
 
-/// Protocol for managing the lifecycle of agent instances through canonical Thread APIs.
+/// Protocol for managing the lifecycle of agents through canonical Thread APIs.
 public protocol AgentManagerProtocol: Sendable {
-    func createInstance(
+    func createAgent(
         from template: AgentTemplate?,
         name: String,
         description: String
@@ -12,34 +12,34 @@ public protocol AgentManagerProtocol: Sendable {
 
     func attach(agentID: UUID, to threadID: UUID) async throws
     func detach(agentID: UUID, from threadID: UUID) async throws
-    func getInstance(id: UUID) async throws -> Agent?
-    func listInstances() async throws -> [Agent]
+    func getAgent(id: UUID) async throws -> Agent?
+    func listAgents() async throws -> [Agent]
     func getThreads(attachedTo agentID: UUID) async throws -> [Thread]
-    func updateInstance(_ instance: Agent) async throws
-    func searchInstances(query: String) async throws -> [Agent]
-    func deleteInstance(id: UUID, force: Bool) async throws
+    func updateAgent(_ agent: Agent) async throws
+    func searchAgents(query: String) async throws -> [Agent]
+    func deleteAgent(id: UUID, force: Bool) async throws
 }
 
 public extension AgentManagerProtocol {
-    /// Returns an agent instance by its unique identifier.
-    func instance(id: UUID) async throws -> Agent? {
-        try await getInstance(id: id)
+    /// Returns an agent by its unique identifier.
+    func agent(id: UUID) async throws -> Agent? {
+        try await getAgent(id: id)
     }
 
-    /// Returns all threads attached to a specific agent instance.
+    /// Returns all threads attached to a specific agent.
     func threads(attachedTo agentID: UUID) async throws -> [Thread] {
         try await getThreads(attachedTo: agentID)
     }
 
-    func createInstance(
+    func createAgent(
         from template: AgentTemplate? = nil,
         name: String,
         description: String
     ) async throws -> Agent {
-        try await createInstance(from: template, name: name, description: description)
+        try await createAgent(from: template, name: name, description: description)
     }
 
-    func deleteInstance(id: UUID, force: Bool = false) async throws {
-        try await deleteInstance(id: id, force: force)
+    func deleteAgent(id: UUID, force: Bool = false) async throws {
+        try await deleteAgent(id: id, force: force)
     }
 }

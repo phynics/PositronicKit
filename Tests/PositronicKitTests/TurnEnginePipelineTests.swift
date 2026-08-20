@@ -377,7 +377,7 @@ final class ToolCallExtractionStageBehavior {
     /// so PositronicKit logs correlate with Yakamoz (YAK-40) logs in Console.app.
     /// Also asserts YAK-37 redaction: no raw tool arguments / secrets leak into metadata.
     @Test
-    func emitsRawConversationIDMetadataAndRedactsSecrets() async throws {
+    func emitsRawThreadIDMetadataAndRedactsSecrets() async throws {
         let recorder = MetadataRecorder()
         let logger = Logger(label: "test.pipeline.metadata") { _ in
             RecordingLogHandler(recorder: recorder)
@@ -413,7 +413,7 @@ final class ToolCallExtractionStageBehavior {
         #expect(!threadIDs.isEmpty)
         #expect(threadIDs.allSatisfy { $0 == threadID.uuidString })
 
-        // modelRoundIndex must reflect the turn count.
+        // modelRoundIndex must reflect the model-round index.
         let modelRoundIndexes = records.compactMap { $0["modelRoundIndex"] }
         #expect(modelRoundIndexes.contains("3"))
 

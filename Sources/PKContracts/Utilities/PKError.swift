@@ -86,7 +86,7 @@ public enum PKErrorDomain {
     public static let thread = "com.positronickit.core.thread"
     public static let vector = "com.positronickit.core.vector"
     public static let embedding = "com.positronickit.core.embedding"
-    public static let chat = "com.positronickit.core.chat"
+    public static let turn = "com.positronickit.core.turn"
     public static let tool = "com.positronickit.core.tool"
     public static let persistence = "com.positronickit.core.persistence"
     public static let rpc = "com.positronickit.core.rpc"

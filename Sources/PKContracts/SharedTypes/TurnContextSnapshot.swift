@@ -1,6 +1,6 @@
 import Foundation
 
-/// A serializable representation of the context assembled for a chat turn.
+/// A serializable representation of the context assembled for a turn.
 ///
 /// Mirrors the debug-relevant fields of `TurnContext` and `ContextData`
 /// so that `/debug` and other consumers can inspect what the engine used

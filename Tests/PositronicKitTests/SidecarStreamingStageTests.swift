@@ -25,8 +25,8 @@ struct SidecarStreamingStageTests {
     func sidecarTurnRoutesResponseAndDirectives() async throws {
         let service = MockLLMService()
         service.mockClient.nextRawStreamChunks = [[
-            ChatStreamResultFactory.textChunk(#"{"response": "Hel"#),
-            ChatStreamResultFactory.textChunk(#"lo", "title": "Greeting", "tone": "warm"}"#, finishReason: "stop"),
+            GenerationStreamResultFactory.textChunk(#"{"response": "Hel"#),
+            GenerationStreamResultFactory.textChunk(#"lo", "title": "Greeting", "tone": "warm"}"#, finishReason: "stop"),
         ]]
 
         let context = makeContext(sidecars: directives)
@@ -56,8 +56,8 @@ struct SidecarStreamingStageTests {
     func noSidecarsTurnBehavesLikeToday() async throws {
         let service = MockLLMService()
         service.mockClient.nextRawStreamChunks = [[
-            ChatStreamResultFactory.textChunk("Hello ", finishReason: nil),
-            ChatStreamResultFactory.textChunk("there", finishReason: "stop"),
+            GenerationStreamResultFactory.textChunk("Hello ", finishReason: nil),
+            GenerationStreamResultFactory.textChunk("there", finishReason: "stop"),
         ]]
 
         let context = makeContext(sidecars: [])
@@ -79,8 +79,8 @@ struct SidecarStreamingStageTests {
     func thinkingDeltasUnaffectedOnSidecarTurns() async throws {
         let service = MockLLMService()
         service.mockClient.nextRawStreamChunks = [[
-            ChatStreamResultFactory.thinkingChunk("reasoning", content: nil),
-            ChatStreamResultFactory.textChunk(#"{"response": "ok", "title": "T", "tone": "flat"}"#, finishReason: "stop"),
+            GenerationStreamResultFactory.thinkingChunk("reasoning", content: nil),
+            GenerationStreamResultFactory.textChunk(#"{"response": "ok", "title": "T", "tone": "flat"}"#, finishReason: "stop"),
         ]]
 
         let context = makeContext(sidecars: directives)

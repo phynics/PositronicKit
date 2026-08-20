@@ -51,7 +51,7 @@ struct PublicRuntimeStoriesTests {
     @Test("agentic runtime delegates to the facade-owned manager and tool loop")
     func agenticRuntimeRunsAnAgentTurn() async throws {
         let (kit, mockLLM, _, threadID, _) = try await makeAcceptanceRuntime()
-        let agent = try await kit.agentManager.createInstance(
+        let agent = try await kit.agentManager.createAgent(
             from: nil,
             name: "Acceptance Agent",
             description: "Exercises the public agentic runtime."
@@ -99,7 +99,7 @@ struct PublicRuntimeStoriesTests {
     @Test("agentic runtime rejects an unattached agent before side effects")
     func agenticRuntimeRejectsUnattachedAgent() async throws {
         let (kit, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime()
-        let agent = try await kit.agentManager.createInstance(
+        let agent = try await kit.agentManager.createAgent(
             from: nil,
             name: "Unattached Agent",
             description: "Must be attached before it can run."
@@ -113,18 +113,18 @@ struct PublicRuntimeStoriesTests {
         }
 
         #expect(try await mockPersistence.fetchMessages(for: threadID).isEmpty)
-        #expect(mockLLM.chatRequestHistory.isEmpty)
+        #expect(mockLLM.generationRequestHistory.isEmpty)
     }
 
     @Test("agentic runtime rejects a different attached agent before side effects")
     func agenticRuntimeRejectsDifferentAttachedAgent() async throws {
         let (kit, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime()
-        let attachedAgent = try await kit.agentManager.createInstance(
+        let attachedAgent = try await kit.agentManager.createAgent(
             from: nil,
             name: "Attached Agent",
             description: "Owns the acceptance thread."
         )
-        let requestedAgent = try await kit.agentManager.createInstance(
+        let requestedAgent = try await kit.agentManager.createAgent(
             from: nil,
             name: "Requested Agent",
             description: "Must not run another agent's thread."
@@ -139,13 +139,13 @@ struct PublicRuntimeStoriesTests {
         }
 
         #expect(try await mockPersistence.fetchMessages(for: threadID).isEmpty)
-        #expect(mockLLM.chatRequestHistory.isEmpty)
+        #expect(mockLLM.generationRequestHistory.isEmpty)
     }
 
     @Test("agentic runtime can run on an agent's private thread")
     func agenticRuntimeRunsOnPrivateThread() async throws {
         let (kit, mockLLM, mockPersistence, _, _) = try await makeAcceptanceRuntime()
-        let agent = try await kit.agentManager.createInstance(
+        let agent = try await kit.agentManager.createAgent(
             from: nil,
             name: "Private Agent",
             description: "Exercises the agent's private thread."

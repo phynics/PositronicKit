@@ -39,7 +39,7 @@ import Testing
             Issue.record("Expected the unconfigured run to fail synchronously")
         } catch {
             let identity = TurnEvent.ErrorIdentity.extracting(from: error)
-            #expect(identity?.domain == PKErrorDomain.chat)
+            #expect(identity?.domain == PKErrorDomain.turn)
             #expect(identity?.code == 9001)
         }
     }

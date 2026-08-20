@@ -6,8 +6,7 @@ import PositronicKit
 ///
 /// Issuing a new `send(_:)` while one is already in flight cancels/supersedes it: the prior
 /// task is cancelled, the driver's underlying generation is cancelled, and the new send starts
-/// fresh — mirroring the same superseding-send behavior the former `ObservableConversation`
-/// provided.
+/// fresh — mirroring the same superseding-send behavior provided by the thread driver.
 @MainActor
 @Observable
 public final class ThreadController {

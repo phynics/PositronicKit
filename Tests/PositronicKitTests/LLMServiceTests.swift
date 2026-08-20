@@ -551,8 +551,8 @@ struct LLMServiceTests {
         #expect(thrown == .clientNotResolved(provider: "OpenAI"))
     }
 
-    @Test("chatStream finishes with clientNotResolved when configured but no client exists (PKRR-018)")
-    func chatStreamFinishesWithClientNotResolvedWhenNoClient() async {
+    @Test("generationStream finishes with clientNotResolved when configured but no client exists (PKRR-018)")
+    func generationStreamFinishesWithClientNotResolvedWhenNoClient() async {
         let config = LLMConfiguration.fixture(
             endpoint: "https://test.api.com",
             modelName: "test-model",
@@ -561,7 +561,7 @@ struct LLMServiceTests {
         )
         let service = LLMService(configuration: config, clients: .empty)
 
-        let stream = await service.chatStream(
+        let stream = await service.generationStream(
             messages: [LLMMessage(role: .user, content: "Hi")],
             tools: nil,
             toolChoice: nil,
@@ -648,8 +648,8 @@ struct LLMServiceTests {
         _ = try await exportTask.value
     }
 
-    @Test("chatStream awaits delayed configuration before selecting a factory-created client")
-    func chatStreamAwaitsDelayedConfigurationBeforeSelectingFactoryClient() async {
+    @Test("generationStream awaits delayed configuration before selecting a factory-created client")
+    func generationStreamAwaitsDelayedConfigurationBeforeSelectingFactoryClient() async {
         let config = LLMConfiguration.fixture(
             endpoint: "https://test.example.com",
             modelName: "test-model",
@@ -665,7 +665,7 @@ struct LLMServiceTests {
         // The first public call starts preparation, so the stream task must be created
         // before we wait for the (delayed) configuration load to begin.
         let streamTask = Task {
-            await service.chatStream(
+            await service.generationStream(
                 messages: [LLMMessage(role: .user, content: "Hi")],
                 tools: nil,
                 toolChoice: nil,
@@ -783,7 +783,7 @@ struct LLMServiceTests {
         #expect(sendError == .clientNotResolved(provider: "OpenAI"))
 
         await #expect(throws: LLMServiceError.self) {
-            let stream = await service.chatStream(
+            let stream = await service.generationStream(
                 messages: [LLMMessage(role: .user, content: "Hi")],
                 tools: nil, toolChoice: nil, responseFormat: nil,
                 generationParameters: nil, modelTier: .primary
@@ -792,7 +792,7 @@ struct LLMServiceTests {
         }
 
         await #expect(throws: LLMServiceError.self) {
-            let stream = await service.chatStream(
+            let stream = await service.generationStream(
                 messages: [LLMMessage(role: .user, content: "Hi")],
                 tools: nil, toolChoice: nil, responseFormat: nil,
                 generationParameters: nil, modelTier: .primary,
@@ -813,7 +813,7 @@ struct LLMServiceTests {
         #expect(sendError == .notConfigured)
 
         await #expect(throws: LLMServiceError.self) {
-            let stream = await service.chatStream(
+            let stream = await service.generationStream(
                 messages: [LLMMessage(role: .user, content: "Hi")],
                 tools: nil, toolChoice: nil, responseFormat: nil,
                 generationParameters: nil, modelTier: .primary
@@ -822,7 +822,7 @@ struct LLMServiceTests {
         }
 
         await #expect(throws: LLMServiceError.self) {
-            let stream = await service.chatStream(
+            let stream = await service.generationStream(
                 messages: [LLMMessage(role: .user, content: "Hi")],
                 tools: nil, toolChoice: nil, responseFormat: nil,
                 generationParameters: nil, modelTier: .primary,

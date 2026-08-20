@@ -4,7 +4,7 @@ import PKUtilities
 
 /// Builds the concrete per-turn runtime pipeline used by `TurnEngine`.
 ///
-/// Keeping pipeline assembly here separates stage-topology policy from the chat loop itself. The
+/// Keeping pipeline assembly here separates stage-topology policy from the turn loop itself. The
 /// `TurnEngine` still decides *when* a turn runs; this helper decides *which* stages make up the
 /// default turn pipeline and how package-internal additional stages are appended.
 enum TurnPipelineBuilder {

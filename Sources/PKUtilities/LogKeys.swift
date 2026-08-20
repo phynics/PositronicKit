@@ -10,7 +10,7 @@ import Foundation
 /// correlate log lines by `threadID` / `turnID` / `requestID` / `modelRoundIndex` without regex, and keeps
 /// per-tool / per-provider attribution consistent across stages.
 ///
-/// The set mirrors the existing logger scheme (`"chat-engine"` / `"tool-router"` /
+/// The set mirrors the existing logger scheme (`"turn-engine"` / `"tool-router"` /
 /// `"llm"` categories) and the metadata already emitted by `ToolCallExtractionStage`
 /// (PKLOG-001/002/003). New loop components adopt these keys rather than introducing
 /// synonyms.

@@ -27,7 +27,7 @@ struct HydrationFailurePropagationTests {
             ))
         }
 
-        #expect(mockLLM.chatCaptureHistory.isEmpty)
+        #expect(mockLLM.generationCaptureHistory.isEmpty)
     }
 
     @Test("run(_:) throws unavailable when the thread store fails (PKRR-005)")

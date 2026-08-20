@@ -63,7 +63,7 @@ or `complete` as the authoritative operation because model state can change afte
 work; values below `1` throw `TurnError.invalidMaxModelRounds` directly from the awaited `run` call.
 When `agentID` is present, the runtime resolves that agent once after thread resolution
 and before provider readiness or input persistence. The default `.failRequired` degradation policy
-throws `AgentError.instanceNotFound`; `.continueWithWarnings` proceeds without the missing
+throws `AgentError.agentNotFound`; `.continueWithWarnings` proceeds without the missing
 agent and includes an agent diagnostic in the initial generation-context event. A failed preflight
 does not consume `requestID`, so the same identifier can be retried after the dependency is repaired.
 
@@ -294,7 +294,7 @@ func capturesDownstreamRequest() async throws {
     let llm = MockLLMService()
     llm.mockClient.nextResponse = "ok"
 
-    let stream = await llm.chatStream(
+    let stream = await llm.generationStream(
         messages: [LLMMessage(role: .user, content: "hello")],
         tools: nil,
         toolChoice: nil,
@@ -304,9 +304,9 @@ func capturesDownstreamRequest() async throws {
     )
     _ = try await stream.collect()
 
-    #expect(llm.chatCaptureHistory.count == 1)
-    #expect(llm.chatCaptureHistory.last?.messages.first?.content == "hello")
-    #expect(llm.chatCaptureHistory.last?.modelTier == .fast)
+    #expect(llm.generationCaptureHistory.count == 1)
+    #expect(llm.generationCaptureHistory.last?.messages.first?.content == "hello")
+    #expect(llm.generationCaptureHistory.last?.modelTier == .fast)
 }
 ```
 
@@ -346,7 +346,7 @@ The harness contracts are intentionally explicit:
 
 Core modules:
 
-- **PositronicKit** — the runtime layer: chat engine, orchestration stages, tool routing, thread and workspace management, and provider-neutral LLM orchestration.
+- **PositronicKit** — the runtime layer: turn engine, orchestration stages, tool routing, thread and workspace management, and provider-neutral LLM orchestration.
 - **PKPrompt** — the prompt layer: a SwiftUI-style `@PromptBuilder` DSL, structured compression, cache-aware assembly, and prompt journaling for stable-prefix workflows.
 - **PKContracts** — the contract layer: API models, tool protocols, provider contracts, structured-output types, and diagnostic errors.
 - **PKLocalEmbeddings** — the platform-local embedding facade (`LocalEmbeddingService`). Apple uses Natural Language by default; Linux uses the host-provisioned MiniLM backend.

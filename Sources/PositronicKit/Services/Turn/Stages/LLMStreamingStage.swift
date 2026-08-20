@@ -57,7 +57,7 @@ struct LLMStreamingStage: PipelineStage {
             )
         }
         if let structuredOutput = effectiveStructuredOutput {
-            streamData = await llmService.chatStream(
+            streamData = await llmService.generationStream(
                 messages: context.currentMessages,
                 tools: context.toolParams.isEmpty ? nil : context.toolParams,
                 structuredOutput: structuredOutput,
@@ -67,7 +67,7 @@ struct LLMStreamingStage: PipelineStage {
                 audioOutput: context.audioOutput
             )
         } else {
-            streamData = await llmService.chatStream(
+            streamData = await llmService.generationStream(
                 messages: context.currentMessages,
                 tools: context.toolParams.isEmpty ? nil : context.toolParams,
                 toolChoice: nil,

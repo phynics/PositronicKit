@@ -5,7 +5,7 @@ import PKPrompt
 import PKContracts
 import PKUtilities
 
-/// Builds the turn briefing — the selected memory/workspace material for one chat turn.
+/// Builds the turn briefing — the selected memory/workspace material for one turn.
 actor TurnBriefingBuilder {
     let workspace: (any Workspace)?
     let pipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>

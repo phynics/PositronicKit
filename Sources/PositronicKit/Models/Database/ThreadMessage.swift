@@ -19,7 +19,7 @@ public struct ThreadMessage: Codable, Identifiable, Sendable {
     public var toolCalls: String
     public var toolCallID: String?
 
-    /// The agent instance that authored this message (nil for human/CLI messages).
+    /// The agent that authored this message (nil for human/CLI messages).
     /// Only set on `.assistant` role messages.
     public var agentID: UUID?
 

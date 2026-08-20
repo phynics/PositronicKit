@@ -16,7 +16,7 @@ enum TurnEngineError: PKError {
     case promptHistoryInconsistent(String)
 
     var errorDomain: String {
-        PKErrorDomain.chat
+        PKErrorDomain.turn
     }
 
     var errorCode: Int {
@@ -36,7 +36,7 @@ enum TurnEngineError: PKError {
         case .llmServiceNotConfigured:
             return "The LLM service is not configured. Please set up your API endpoint and key."
         case .missingInput:
-            return "A message or tool outputs must be provided to start a chat turn."
+            return "A message or tool outputs must be provided to start a turn."
         case let .streamTimedOut(timeout):
             return "The model stream did not finish within \(Self.timeoutDescription(timeout)). Please try again."
         case let .danglingToolCall(id):
@@ -79,7 +79,7 @@ enum TurnDegradationError: PKError {
         }
     }
 
-    var errorDomain: String { PKErrorDomain.chat }
+    var errorDomain: String { PKErrorDomain.turn }
     var errorCode: Int { 9010 }
     var userFriendlyMessage: String {
         "Required \(diagnostic.dependency.rawValue) dependency failed during turn preparation: \(diagnostic.message)"
@@ -174,7 +174,7 @@ struct TurnEngine {
 
     let dependencies: Dependencies
 
-    let logger = Logger.module(named: "chat-engine")
+    let logger = Logger.module(named: "turn-engine")
 
     var additionalStages: [any PipelineStage<TurnContext, TurnEvent>] = []
 
@@ -207,17 +207,17 @@ struct TurnEngine {
 
     // MARK: - API
 
-    /// Execute a chat turn and return a stream of deltas.
+    /// Execute a turn and return a stream of deltas.
     /// - Parameters:
-    ///   - threadID: The unique identifier for the chat session.
+    ///   - threadID: The unique identifier for the thread.
     ///   - message: The user's input message.
     ///   - tools: Pre-resolved tools available for this turn.
     ///   - toolOutputs: Optional list of tool outputs submitted from a previous externally executed turn.
     ///   - turnBriefingBuilder: Optional turn briefing builder for RAG. If nil, no context is gathered.
     ///   - systemInstructions: Optional system instructions to override the default.
-    ///   - agentId: Optional identifier for the agent instance.
+    ///   - agentId: Optional identifier for the agent.
     ///   - maxModelRounds: Maximum number of LLM turns before stopping. Defaults to 5.
-    /// - Returns: An asynchronous stream of chat events.
+    /// - Returns: An asynchronous stream of turn events.
     func execute(
         threadID: UUID,
         requestId: UUID? = nil,
@@ -277,7 +277,7 @@ struct TurnEngine {
         audioOutput: AudioOutputOptions? = nil
     ) async throws -> AsyncThrowingStream<TurnEvent, Error> {
         let sid = threadID.uuidString.prefix(8).lowercased()
-        logger.info("Starting chat stream for thread \(sid)")
+        logger.info("Starting generation stream for thread \(sid)")
 
         let agentPreflight = try await preflightAgent(id: agentId, threadID: threadID)
         guard await dependencies.llmService.isConfigured else { throw TurnEngineError.llmServiceNotConfigured }

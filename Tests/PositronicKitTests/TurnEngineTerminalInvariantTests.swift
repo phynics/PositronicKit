@@ -95,7 +95,7 @@ struct TurnEngineTerminalInvariantTests {
         let plugin = TerminalPluginRecorder()
         try await withTurnEngineDependencies(plugins: [plugin]) { engine, mockLLM, _ in
             mockLLM.stubbedStream = AsyncThrowingStream { continuation in
-                continuation.yield(ChatStreamResultFactory.textChunk("partial "))
+                continuation.yield(GenerationStreamResultFactory.textChunk("partial "))
                 continuation.finish(throwing: NSError(
                     domain: "PKRR3ProviderDrop", code: 503,
                     userInfo: [NSLocalizedDescriptionKey: "simulated provider 5xx"]
@@ -126,7 +126,7 @@ struct TurnEngineTerminalInvariantTests {
         let plugin = TerminalPluginRecorder()
         try await withTurnEngineDependencies(plugins: [plugin]) { engine, mockLLM, _ in
             mockLLM.stubbedStream = AsyncThrowingStream { continuation in
-                continuation.yield(ChatStreamResultFactory.textChunk("cancelled "))
+                continuation.yield(GenerationStreamResultFactory.textChunk("cancelled "))
                 continuation.finish(throwing: CancellationError())
             }
 
