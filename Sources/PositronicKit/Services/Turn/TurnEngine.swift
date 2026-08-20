@@ -110,6 +110,7 @@ struct TurnEngine {
         let requestOriginStore: any RequestOriginStoreProtocol
         let messageStore: any ThreadMessageStoreProtocol
         let runtimeRepository: (any ThreadRuntimeRepository)?
+        let threadAuthorityCoordinator: ThreadAuthorityCoordinator
         /// Streaming chat seam: the runtime turn loop, `LLMStreamingStage`, and the
         /// `isConfigured`/`configuration` precondition checks depend only on this.
         let llmService: any LLMStreamClient
@@ -132,6 +133,7 @@ struct TurnEngine {
             requestOriginStore: any RequestOriginStoreProtocol,
             messageStore: any ThreadMessageStoreProtocol,
             runtimeRepository: (any ThreadRuntimeRepository)? = nil,
+            threadAuthorityCoordinator: ThreadAuthorityCoordinator? = nil,
             llmService: any LLMStreamClient & LLMUtilityClient,
             toolRouter: ToolRouter,
             turnPlugins: [any TurnPlugin],
@@ -147,6 +149,7 @@ struct TurnEngine {
             self.requestOriginStore = requestOriginStore
             self.messageStore = messageStore
             self.runtimeRepository = runtimeRepository
+            self.threadAuthorityCoordinator = threadAuthorityCoordinator ?? threadManager.threadAuthorityCoordinator
             self.llmService = llmService
             self.utilityClient = llmService
             self.toolRouter = toolRouter

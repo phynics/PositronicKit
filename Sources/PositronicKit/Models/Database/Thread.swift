@@ -10,6 +10,9 @@ public struct Thread: Identifiable, Sendable {
     public var updatedAt: Date
     public var isArchived: Bool
     public var workingDirectory: String?
+    /// Compatibility projection of ordinary Workspace bindings. Binding authority lives in
+    /// ``WorkspaceBindingRepository``; callers should use ThreadManager attachment APIs rather
+    /// than mutating this array directly.
     public var attachedWorkspaceIDs: [UUID]
 
     /// The agent currently attached to this thread (holds the generation lock).

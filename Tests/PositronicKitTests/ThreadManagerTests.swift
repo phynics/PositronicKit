@@ -57,6 +57,7 @@ struct ThreadManagerTests {
                 threadStore: threadStore,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 toolPersistence: persistence
             ),
             workspaceProfile: .noWorkspace
@@ -88,10 +89,12 @@ struct ThreadManagerTests {
         #expect(policy.installThreadObservationTools == false)
         #expect(policy.installThreadSendTool == false)
 
+        let workspaceStore = InMemoryWorkspacePersistence()
         let stores = ThreadManager.Stores(
             threadStore: InMemoryThreadPersistence(),
             messageStore: InMemoryMessageStore(),
-            workspaceStore: InMemoryWorkspacePersistence(),
+            workspaceStore: workspaceStore,
+            workspaceBindingRepository: workspaceStore,
             toolPersistence: InMemoryToolPersistence()
         )
         _ = stores.threadStore
@@ -105,6 +108,7 @@ struct ThreadManagerTests {
                 threadStore: InMemoryThreadPersistence(),
                 messageStore: InMemoryMessageStore(),
                 workspaceStore: store,
+                workspaceBindingRepository: store,
                 toolPersistence: InMemoryToolPersistence()
             ),
             workspaceProfile: .noWorkspace
@@ -256,6 +260,7 @@ struct ThreadManagerTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 toolPersistence: persistence
             ),
             workspaceRoot: workspace.root
@@ -290,6 +295,7 @@ struct ThreadManagerTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 toolPersistence: persistence
             ),
             workspaceRoot: workspace.root
@@ -327,6 +333,7 @@ struct ThreadManagerTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 toolPersistence: persistence
             ),
             workspaceRoot: workspace.root

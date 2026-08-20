@@ -8,6 +8,7 @@ import PKUtilities
 
 public extension ThreadManager {
     func attachWorkspace(_ workspaceId: UUID, to threadID: UUID) async throws {
+        try await requireExecutionContextMutable(for: threadID)
         let livenessVersion = threadLivenessVersion(for: threadID)
         try requireThreadLiveness(for: threadID, version: livenessVersion)
         var thread: Thread
@@ -57,18 +58,60 @@ public extension ThreadManager {
 
         try requireThreadLiveness(for: threadID, version: livenessVersion)
 
-        if !thread.attachedWorkspaceIDs.contains(workspaceId) {
-            thread.attachedWorkspaceIDs.append(workspaceId)
+        let originalThread = thread
+        let attachmentMutation: (Thread, Bool) = try await withThreadAuthority(threadID) { [self, originalThread] in
+            var candidate = originalThread
+            let existingOwner = try await self.workspaceBindingRepository.threadID(for: workspaceId)
+            if let existingOwner, existingOwner != threadID {
+                throw WorkspaceBindingRepositoryError.workspaceAlreadyBound(
+                    workspaceID: workspaceId,
+                    threadID: existingOwner
+                )
+            }
+            try await self.requireExecutionContextMutable(for: threadID)
+            let claimed = existingOwner == nil
+            if claimed {
+                _ = try await self.workspaceBindingRepository.claim(
+                    workspaceID: workspaceId,
+                    for: threadID,
+                    now: Date()
+                )
+            }
+            do {
+                try await self.requireExecutionContextMutable(for: threadID)
+                if !candidate.attachedWorkspaceIDs.contains(workspaceId) {
+                    // Compatibility projection only. Binding authority lives in the repository.
+                    candidate.attachedWorkspaceIDs.append(workspaceId)
+                }
+                candidate.updatedAt = Date()
+                try await self.threadStore.saveThread(candidate)
+            } catch {
+                if claimed {
+                    _ = try? await self.workspaceBindingRepository.release(
+                        workspaceID: workspaceId,
+                        from: threadID,
+                        now: Date()
+                    )
+                }
+                throw error
+            }
+            return (candidate, claimed)
         }
-        thread.updatedAt = Date()
-
-        try await threadStore.saveThread(thread)
+        thread = attachmentMutation.0
+        let claimedNewBinding = attachmentMutation.1
         do {
             try requireThreadLiveness(for: threadID, version: livenessVersion)
         } catch {
             // A deletion may have interleaved with the save itself. Remove a stale upsert so the
             // deleted thread cannot be resurrected even when persistence operations reorder.
-            try? await threadStore.deleteThread(id: threadID)
+            try? await self.threadStore.deleteThread(id: threadID)
+            if claimedNewBinding {
+                _ = try? await self.workspaceBindingRepository.release(
+                    workspaceID: workspaceId,
+                    from: threadID,
+                    now: Date()
+                )
+            }
             throw error
         }
         if threads[thread.id] != nil { threads[thread.id] = thread }
@@ -96,6 +139,7 @@ public extension ThreadManager {
     }
 
     func detachWorkspace(_ workspaceId: UUID, from threadID: UUID) async throws {
+        try await requireExecutionContextMutable(for: threadID)
         var thread: Thread
 
         if let memoryThread = threads[threadID] {
@@ -117,10 +161,40 @@ public extension ThreadManager {
             }
         }
 
-        thread.attachedWorkspaceIDs.removeAll { $0 == workspaceId }
-        thread.updatedAt = Date()
-
-        try await threadStore.saveThread(thread)
+        let originalThread = thread
+        thread = try await withThreadAuthority(threadID) { [self, originalThread] in
+            var candidate = originalThread
+            let owner = try await self.workspaceBindingRepository.threadID(for: workspaceId)
+            try await self.requireExecutionContextMutable(for: threadID)
+            if owner == threadID {
+                try await self.workspaceBindingRepository.release(
+                    workspaceID: workspaceId,
+                    from: threadID,
+                    now: Date()
+                )
+            } else if let owner {
+                throw WorkspaceBindingRepositoryError.workspaceAlreadyBound(
+                    workspaceID: workspaceId,
+                    threadID: owner
+                )
+            }
+            do {
+                try await self.requireExecutionContextMutable(for: threadID)
+                candidate.attachedWorkspaceIDs.removeAll { $0 == workspaceId }
+                candidate.updatedAt = Date()
+                try await self.threadStore.saveThread(candidate)
+            } catch {
+                if owner == threadID {
+                    _ = try? await self.workspaceBindingRepository.claim(
+                        workspaceID: workspaceId,
+                        for: threadID,
+                        now: Date()
+                    )
+                }
+                throw error
+            }
+            return candidate
+        }
         if threads[thread.id] != nil { threads[thread.id] = thread }
 
         if let toolManager = toolManagers[threadID] {
@@ -134,13 +208,19 @@ public extension ThreadManager {
         let attachedIds: [UUID]
 
         if let thread = threads[threadID] {
-            attachedIds = thread.attachedWorkspaceIDs
+            attachedIds = try await repositoryWorkspaceIDs(
+                for: threadID,
+                legacyIDs: thread.attachedWorkspaceIDs
+            )
         } else {
             do {
                 guard let thread = try await threadStore.fetchThread(id: threadID) else {
                     throw ThreadError.threadNotFound
                 }
-                attachedIds = thread.attachedWorkspaceIDs
+                attachedIds = try await repositoryWorkspaceIDs(
+                    for: threadID,
+                    legacyIDs: thread.attachedWorkspaceIDs
+                )
             } catch let error as ThreadError {
                 throw error
             } catch {
@@ -189,6 +269,32 @@ public extension ThreadManager {
 
     func getWorkspace(_ id: UUID) async throws -> WorkspaceReference? {
         try await workspaceStore.fetchWorkspace(id: id, includeTools: true)
+    }
+}
+
+extension ThreadManager {
+    /// Reads repository bindings and imports legacy array projections only when needed. The
+    /// mutable array remains for wire compatibility, but it is never consulted once a binding
+    /// exists in the repository.
+    func repositoryWorkspaceIDs(for threadID: UUID, legacyIDs: [UUID]) async throws -> [UUID] {
+        var bindings = try await workspaceBindingRepository.bindings(for: threadID)
+        if bindings.isEmpty, !legacyIDs.isEmpty {
+            for workspaceID in legacyIDs {
+                do {
+                    _ = try await workspaceBindingRepository.claim(
+                        workspaceID: workspaceID,
+                        for: threadID,
+                        now: Date()
+                    )
+                } catch let error as WorkspaceBindingRepositoryError {
+                    logger.warning(
+                        "Legacy Workspace binding import skipped: \(error.description)"
+                    )
+                }
+            }
+            bindings = try await workspaceBindingRepository.bindings(for: threadID)
+        }
+        return bindings.map(\.workspaceID)
     }
 }
 

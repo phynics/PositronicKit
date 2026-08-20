@@ -7,7 +7,7 @@ import PKUtilities
 /// The actor gives tests and local hosts one serialization boundary with the same transition
 /// rules that a database-backed adapter must preserve. It is intentionally ephemeral; production
 /// adapters should implement the protocol against a durable transaction.
-public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository {
+public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, WorkspaceBindingRepository {
     private struct ToolKey: Hashable {
         let turnID: UUID
         let toolCallID: String
@@ -21,6 +21,8 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository {
     private var intents: [ToolKey: RuntimeToolIntent] = [:]
     private var results: [ToolKey: RuntimeToolResult] = [:]
     private var summaries: [UUID: [ThreadSummary]] = [:]
+    private var workspaceBindingsByWorkspace: [UUID: WorkspaceBinding] = [:]
+    private var workspaceIDsByThread: [UUID: Set<UUID>] = [:]
     private let staleAfter: TimeInterval
 
     /// - Parameter staleAfter: Age after which an active Turn is lazily interrupted during
@@ -47,6 +49,9 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository {
 
     public func deleteThread(id: UUID) async throws {
         threads.removeValue(forKey: id)
+        for workspaceID in workspaceIDsByThread.removeValue(forKey: id) ?? [] {
+            workspaceBindingsByWorkspace.removeValue(forKey: workspaceID)
+        }
         if let activeTurnID = activeTurns.removeValue(forKey: id) {
             turns[activeTurnID]?.recoveryRequired = true
             turns[activeTurnID]?.recoveryMessage = "Thread deleted while Turn was active."
@@ -451,6 +456,88 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository {
 
     public func fetchSummaries(for threadID: UUID) async throws -> [ThreadSummary] {
         summaries[threadID, default: []]
+    }
+
+    // MARK: WorkspaceBindingRepository
+
+    public func claim(
+        workspaceID: UUID,
+        for threadID: UUID,
+        now: Date = Date()
+    ) async throws -> WorkspaceBinding {
+        if let existing = workspaceBindingsByWorkspace[workspaceID] {
+            guard existing.threadID == threadID else {
+                throw WorkspaceBindingRepositoryError.workspaceAlreadyBound(
+                    workspaceID: workspaceID,
+                    threadID: existing.threadID
+                )
+            }
+            return existing
+        }
+        let binding = WorkspaceBinding(
+            workspaceID: workspaceID,
+            threadID: threadID,
+            createdAt: now,
+            updatedAt: now
+        )
+        workspaceBindingsByWorkspace[workspaceID] = binding
+        workspaceIDsByThread[threadID, default: []].insert(workspaceID)
+        return binding
+    }
+
+    public func release(
+        workspaceID: UUID,
+        from threadID: UUID,
+        now _: Date = Date()
+    ) async throws {
+        guard let existing = workspaceBindingsByWorkspace[workspaceID], existing.threadID == threadID else {
+            throw WorkspaceBindingRepositoryError.bindingNotFound(
+                workspaceID: workspaceID,
+                threadID: threadID
+            )
+        }
+        workspaceBindingsByWorkspace.removeValue(forKey: workspaceID)
+        workspaceIDsByThread[threadID]?.remove(workspaceID)
+        if workspaceIDsByThread[threadID]?.isEmpty == true {
+            workspaceIDsByThread.removeValue(forKey: threadID)
+        }
+    }
+
+    public func transfer(
+        workspaceID: UUID,
+        from sourceThreadID: UUID,
+        to destinationThreadID: UUID,
+        now: Date = Date()
+    ) async throws -> WorkspaceBinding {
+        guard let existing = workspaceBindingsByWorkspace[workspaceID], existing.threadID == sourceThreadID else {
+            throw WorkspaceBindingRepositoryError.transferSourceMismatch(
+                workspaceID: workspaceID,
+                threadID: sourceThreadID
+            )
+        }
+        let binding = WorkspaceBinding(
+            workspaceID: workspaceID,
+            threadID: destinationThreadID,
+            createdAt: existing.createdAt,
+            updatedAt: now
+        )
+        workspaceBindingsByWorkspace[workspaceID] = binding
+        workspaceIDsByThread[sourceThreadID]?.remove(workspaceID)
+        if workspaceIDsByThread[sourceThreadID]?.isEmpty == true {
+            workspaceIDsByThread.removeValue(forKey: sourceThreadID)
+        }
+        workspaceIDsByThread[destinationThreadID, default: []].insert(workspaceID)
+        return binding
+    }
+
+    public func bindings(for threadID: UUID) async throws -> [WorkspaceBinding] {
+        (workspaceIDsByThread[threadID] ?? [])
+            .compactMap { workspaceBindingsByWorkspace[$0] }
+            .sorted { $0.createdAt < $1.createdAt }
+    }
+
+    public func threadID(for workspaceID: UUID) async throws -> UUID? {
+        workspaceBindingsByWorkspace[workspaceID]?.threadID
     }
 
     // MARK: Internal transition helpers

@@ -109,6 +109,23 @@ public extension ThreadManager {
             throw ThreadError.unavailable
         }
 
+        do {
+            _ = try await workspaceBindingRepository.claim(
+                workspaceID: workspace.id,
+                for: thread.id,
+                now: Date()
+            )
+        } catch {
+            let message = "createThread: Workspace binding claim failed — thread: "
+                + "\(thread.id.uuidString.prefix(8)), workspace: "
+                + "\(workspace.id.uuidString.prefix(8)), error: "
+                + "\(ErrorKit.userFriendlyMessage(for: error))"
+            logger.error("\(message)")
+            try? await workspaceStore.deleteWorkspace(id: workspace.id)
+            try? await threadStore.deleteThread(id: thread.id)
+            throw error
+        }
+
         threads[thread.id] = thread
         await setupThreadComponents(thread: thread, workspaceURL: threadWorkspaceURL)
 
@@ -248,6 +265,25 @@ public extension ThreadManager {
     /// - Returns: A ``ThreadDeletionResult`` reporting any per-store cleanup failures.
     @discardableResult
     func deleteThreadPermanently(id: UUID) async -> ThreadDeletionResult {
+        await threadAuthorityCoordinator.withThread(id) {
+            await self.deleteThreadPermanentlyLocked(id: id)
+        }
+    }
+
+    @discardableResult
+    private func deleteThreadPermanentlyLocked(id: UUID) async -> ThreadDeletionResult {
+        do {
+            try await requireExecutionContextMutable(for: id)
+        } catch {
+            return ThreadDeletionResult(
+                threadID: id,
+                degradations: [StoreDegradation(
+                    operation: "deleteThreadPermanently.activeTurn",
+                    entityID: "thread:\(id.uuidString.prefix(8))",
+                    error: error
+                )]
+            )
+        }
         // Invalidate in-flight mutations before the first suspension. Actor reentrancy can let an
         // attachment resume after this point, so it must observe the new version before saving.
         invalidateThreadLiveness(for: id)
@@ -276,6 +312,19 @@ public extension ThreadManager {
                     error: error
                 ))
             }
+        }
+
+        do {
+            let repositoryBindings = try await workspaceBindingRepository.bindings(for: id)
+            if !repositoryBindings.isEmpty {
+                attachedWorkspaceIds = repositoryBindings.map(\.workspaceID)
+            }
+        } catch {
+            degradations.append(StoreDegradation(
+                operation: "deleteThreadPermanently.fetchWorkspaceBindings",
+                entityID: "thread:\(id.uuidString.prefix(8))",
+                error: error
+            ))
         }
 
         // Cancel + drain active work, then evict in-memory state. This is the same bounded
@@ -376,6 +425,24 @@ public extension ThreadManager {
             }
         }
 
+        for workspaceId in attachedWorkspaceIds {
+            do {
+                if try await workspaceBindingRepository.threadID(for: workspaceId) == id {
+                    try await workspaceBindingRepository.release(
+                        workspaceID: workspaceId,
+                        from: id,
+                        now: Date()
+                    )
+                }
+            } catch {
+                degradations.append(StoreDegradation(
+                    operation: "deleteThreadPermanently.releaseWorkspaceBinding",
+                    entityID: "workspace:\(workspaceId.uuidString.prefix(8))",
+                    error: error
+                ))
+            }
+        }
+
         // Delete the thread record last, so messages and workspaces are cleaned up before
         // the parent row disappears (mirrors `createThread`'s persist-first ordering).
         do {
@@ -423,8 +490,12 @@ private extension ThreadManager {
         thread: Thread,
         workspaceURL: URL
     ) async {
+        let attachedWorkspaceIDs = (try? await repositoryWorkspaceIDs(
+            for: thread.id,
+            legacyIDs: thread.attachedWorkspaceIDs
+        )) ?? thread.attachedWorkspaceIDs
         let contextWorkspace: (any Workspace)?
-        if let firstId = thread.attachedWorkspaceIDs.first {
+        if let firstId = attachedWorkspaceIDs.first {
             do {
                 contextWorkspace = try await workspaceResolver.workspace(id: firstId)
             } catch {
@@ -462,7 +533,7 @@ private extension ThreadManager {
         )
         toolManagers[thread.id] = toolManager
 
-        for attachedId in thread.attachedWorkspaceIDs {
+        for attachedId in attachedWorkspaceIDs {
             do {
                 if let workspace = try await workspaceResolver.workspace(id: attachedId) {
                     await toolManager.registerWorkspace(workspace)

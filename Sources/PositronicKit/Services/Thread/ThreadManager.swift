@@ -41,6 +41,8 @@ public actor ThreadManager {
         public let threadStore: any ThreadPersistenceProtocol
         public let messageStore: any ThreadMessageStoreProtocol
         public let workspaceStore: any WorkspaceStore
+        public let workspaceBindingRepository: any WorkspaceBindingRepository
+        public let runtimeRepository: (any ThreadRuntimeRepository)?
         public let toolPersistence: any ToolPersistenceProtocol
         public let memoryStore: any MemoryStoreProtocol
 
@@ -48,12 +50,16 @@ public actor ThreadManager {
             threadStore: any ThreadPersistenceProtocol,
             messageStore: any ThreadMessageStoreProtocol,
             workspaceStore: any WorkspaceStore,
+            workspaceBindingRepository: any WorkspaceBindingRepository,
+            runtimeRepository: (any ThreadRuntimeRepository)? = nil,
             toolPersistence: any ToolPersistenceProtocol,
             memoryStore: any MemoryStoreProtocol = InMemoryMemoryStore()
         ) {
             self.threadStore = threadStore
             self.messageStore = messageStore
             self.workspaceStore = workspaceStore
+            self.workspaceBindingRepository = workspaceBindingRepository
+            self.runtimeRepository = runtimeRepository
             self.toolPersistence = toolPersistence
             self.memoryStore = memoryStore
         }
@@ -85,12 +91,18 @@ public actor ThreadManager {
     /// former `activeTasks` dict so cancellation is send-scoped (a stale send cannot evict or
     /// cancel a newer one) and eviction/deletion can await bounded cleanup.
     let taskRegistry: ThreadTaskRegistry
+    /// Process-local FIFO lanes for ordinary Workspace execution.
+    let workspaceExecutionCoordinator: WorkspaceExecutionCoordinator
+    /// Shared per-Thread lane for Turn admission and authority mutations.
+    let threadAuthorityCoordinator: ThreadAuthorityCoordinator
 
     // MARK: - Dependencies
 
     let threadStore: any ThreadPersistenceProtocol
     let messageStore: any ThreadMessageStoreProtocol
     let workspaceStore: any WorkspaceStore
+    let workspaceBindingRepository: any WorkspaceBindingRepository
+    let runtimeRepository: (any ThreadRuntimeRepository)?
     let toolPersistence: any ToolPersistenceProtocol
     let memoryStore: any MemoryStoreProtocol
     let embeddingService: any EmbeddingServiceProtocol
@@ -157,11 +169,15 @@ public actor ThreadManager {
         runtimeToolPolicy: RuntimeToolPolicy = .default,
         embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
         promptHistoryRegistry: ThreadPromptJournals? = nil,
-        taskRegistry: ThreadTaskRegistry? = nil
+        taskRegistry: ThreadTaskRegistry? = nil,
+        workspaceExecutionCoordinator: WorkspaceExecutionCoordinator? = nil,
+        threadAuthorityCoordinator: ThreadAuthorityCoordinator? = nil
     ) {
         threadStore = stores.threadStore
         messageStore = stores.messageStore
         workspaceStore = stores.workspaceStore
+        workspaceBindingRepository = stores.workspaceBindingRepository
+        runtimeRepository = stores.runtimeRepository
         toolPersistence = stores.toolPersistence
         memoryStore = stores.memoryStore
         self.embeddingService = embeddingService
@@ -170,6 +186,8 @@ public actor ThreadManager {
         self.runtimeToolPolicy = runtimeToolPolicy
         self.promptHistoryRegistry = promptHistoryRegistry
         self.taskRegistry = taskRegistry ?? ThreadTaskRegistry()
+        self.workspaceExecutionCoordinator = workspaceExecutionCoordinator ?? WorkspaceExecutionCoordinator()
+        self.threadAuthorityCoordinator = threadAuthorityCoordinator ?? ThreadAuthorityCoordinator()
         workspaceResolver = resolver
     }
 
@@ -236,6 +254,60 @@ public actor ThreadManager {
     /// Whether a generation task is currently registered for the thread.
     func hasActiveTask(for threadID: UUID) async -> Bool {
         await taskRegistry.hasActiveTurn(for: threadID)
+    }
+
+    /// Rejects authority-changing operations while a Turn still owns this Thread's execution
+    /// context. Reads remain available. The durable repository is authoritative when present;
+    /// the task registry is retained as the legacy compatibility fallback.
+    public func requireExecutionContextMutable(for threadID: UUID) async throws {
+        if let runtimeRepository = runtimeRepository
+            ?? (workspaceBindingRepository as? any ThreadRuntimeRepository)
+        {
+            if let active = try await runtimeRepository.fetchActiveTurn(for: threadID) {
+                throw ThreadRuntimeRepositoryError.threadBusy(
+                    threadID: threadID,
+                    activeTurnID: active.identity.turnID
+                )
+            }
+        } else if await hasActiveTask(for: threadID) {
+            throw ThreadError.invalidState("Thread has an active Turn.")
+        }
+    }
+
+    /// Revalidates the durable Workspace binding immediately before tool execution.
+    public func requireWorkspaceBinding(_ workspaceID: UUID, for threadID: UUID) async throws {
+        if let owner = try await workspaceBindingRepository.threadID(for: workspaceID) {
+            guard owner == threadID else {
+                throw WorkspaceBindingRepositoryError.workspaceAlreadyBound(
+                    workspaceID: workspaceID,
+                    threadID: owner
+                )
+            }
+            return
+        }
+        // The compatibility array is hydrated only by explicit read/setup paths. It is never
+        // allowed to reclaim a released binding during the final pre-tool authority check.
+        // A missing repository row is therefore a hard denial.
+        throw WorkspaceBindingRepositoryError.bindingNotFound(
+            workspaceID: workspaceID,
+            threadID: threadID
+        )
+    }
+
+    /// Executes work under the process-local FIFO lane for an ordinary Workspace.
+    public func withWorkspaceExecution<T: Sendable>(
+        _ workspaceID: UUID,
+        operation: @escaping @Sendable () async throws -> T
+    ) async rethrows -> T {
+        try await workspaceExecutionCoordinator.withWorkspace(workspaceID, operation: operation)
+    }
+
+    /// Serializes Turn admission and Thread authority mutations under one per-Thread lane.
+    func withThreadAuthority<T: Sendable>(
+        _ threadID: UUID,
+        operation: @escaping @Sendable () async throws -> T
+    ) async rethrows -> T {
+        try await threadAuthorityCoordinator.withThread(threadID, operation: operation)
     }
 }
 
