@@ -169,13 +169,15 @@ extension TurnEngine {
                     responseModalities: responseModalities,
                     audioOutput: audioOutput
                 )
-                let admission = try await runtimeRepository.admitTurn(
-                    threadID: threadID,
-                    requestID: requestId,
-                    callerIntentFingerprint: fingerprint,
-                    turnID: turnID,
-                    now: Date()
-                )
+                let admission = try await dependencies.threadAuthorityCoordinator.withThread(threadID) {
+                    try await runtimeRepository.admitTurn(
+                        threadID: threadID,
+                        requestID: requestId,
+                        callerIntentFingerprint: fingerprint,
+                        turnID: turnID,
+                        now: Date()
+                    )
+                }
                 switch admission.disposition {
                 case .admitted:
                     repositoryAdmitted = true

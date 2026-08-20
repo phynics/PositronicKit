@@ -357,6 +357,8 @@ public enum ThreadRuntimeRepositoryError: Error, Equatable, Sendable, CustomStri
     case historyDeletionForbidden(threadID: UUID)
     case summarySourceMissing(messageID: UUID)
     case confirmationRequired
+    case runtimeRepositoryRequired(threadID: UUID)
+    case authorityCoordinatorRequired(threadID: UUID)
 
     public var description: String {
         switch self {
@@ -373,6 +375,8 @@ public enum ThreadRuntimeRepositoryError: Error, Equatable, Sendable, CustomStri
         case let .historyDeletionForbidden(threadID): return "Thread \(threadID) history is append-only and cannot be deleted."
         case let .summarySourceMissing(messageID): return "Summary source message \(messageID) is not durable."
         case .confirmationRequired: return "This administrative operation requires explicit FORCE_CLEAR confirmation."
+        case let .runtimeRepositoryRequired(threadID): return "A ThreadRuntimeRepository is required to archive Thread \(threadID)."
+        case let .authorityCoordinatorRequired(threadID): return "A ThreadAuthorityCoordinator is required to archive Thread \(threadID) safely."
         }
     }
 }

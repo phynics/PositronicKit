@@ -18,17 +18,23 @@ public actor AgentManager: AgentManagerProtocol {
         public let threadStore: any ThreadPersistenceProtocol
         public let messageStore: any ThreadMessageStoreProtocol
         public let workspaceStore: any WorkspaceStore
+        public let runtimeRepository: (any ThreadRuntimeRepository)?
+        public let threadAuthorityCoordinator: ThreadAuthorityCoordinator?
 
         public init(
             agentStore: any AgentStoreProtocol,
             threadStore: any ThreadPersistenceProtocol,
             messageStore: any ThreadMessageStoreProtocol,
-            workspaceStore: any WorkspaceStore
+            workspaceStore: any WorkspaceStore,
+            runtimeRepository: (any ThreadRuntimeRepository)? = nil,
+            threadAuthorityCoordinator: ThreadAuthorityCoordinator? = nil
         ) {
             self.agentStore = agentStore
             self.threadStore = threadStore
             self.messageStore = messageStore
             self.workspaceStore = workspaceStore
+            self.runtimeRepository = runtimeRepository
+            self.threadAuthorityCoordinator = threadAuthorityCoordinator
         }
 
     }
@@ -37,6 +43,8 @@ public actor AgentManager: AgentManagerProtocol {
     private let threadStore: any ThreadPersistenceProtocol
     private let messageStore: any ThreadMessageStoreProtocol
     private let workspaceStore: any WorkspaceStore
+    private let runtimeRepository: (any ThreadRuntimeRepository)?
+    private let threadAuthorityCoordinator: ThreadAuthorityCoordinator
 
     private let repository: any WorkspaceCatalog
     /// When non-nil, private-thread deletion routes through `ThreadManager.evictThreadFromMemory(id:)`
@@ -55,6 +63,10 @@ public actor AgentManager: AgentManagerProtocol {
         self.threadStore = stores.threadStore
         self.messageStore = stores.messageStore
         self.workspaceStore = stores.workspaceStore
+        self.runtimeRepository = stores.runtimeRepository
+        self.threadAuthorityCoordinator = stores.threadAuthorityCoordinator
+            ?? threadManager?.threadAuthorityCoordinator
+            ?? ThreadAuthorityCoordinator()
         self.threadManager = threadManager
     }
 
@@ -107,7 +119,9 @@ public actor AgentManager: AgentManagerProtocol {
             let privateThread = Thread(
                 id: privateThreadID,
                 title: "[\(name)] Private",
-                attachedWorkspaceIDs: [createdWorkspace.id],
+                // An Agent's primary workspace is owned by the Agent record, not by an
+                // ordinary Thread binding. Keep the private Thread's binding set empty.
+                attachedWorkspaceIDs: [],
                 attachedAgentID: agentId,
                 isPrivate: true
             )
@@ -158,7 +172,8 @@ public actor AgentManager: AgentManagerProtocol {
     /// - Fails if a different agent is attached (caller must detach it first).
     /// - If `attachedAgentId` references a non-existent agent, it is cleared automatically.
     public func attach(agentID: UUID, to threadID: UUID) async throws {
-        guard var thread = try await threadStore.fetchThread(id: threadID) else {
+        try await requireExecutionContextMutable(for: threadID)
+        guard let thread = try await threadStore.fetchThread(id: threadID) else {
             throw AgentError.threadNotFound(threadID)
         }
         guard let agent = try await agentStore.fetchAgent(id: agentID) else {
@@ -185,9 +200,14 @@ public actor AgentManager: AgentManagerProtocol {
                 "Clearing dangling agent reference \(existingId) on thread \(threadID)")
         }
 
-        thread.attachedAgentID = agentID
-        thread.updatedAt = Date()
-        try await threadStore.saveThread(thread)
+        let originalThread = thread
+        try await threadAuthorityCoordinator.withThread(threadID) { [self, originalThread] in
+            try await self.requireExecutionContextMutable(for: threadID)
+            var updated = originalThread
+            updated.attachedAgentID = agentID
+            updated.updatedAt = Date()
+            try await self.threadStore.saveThread(updated)
+        }
 
         // Log to agent's private thread
         let logMsg = ThreadMessage(
@@ -209,7 +229,8 @@ public actor AgentManager: AgentManagerProtocol {
     /// Detaches an agent from a thread.
     /// No-op if the agent is not attached to that thread.
     public func detach(agentID: UUID, from threadID: UUID) async throws {
-        guard var thread = try await threadStore.fetchThread(id: threadID) else {
+        try await requireExecutionContextMutable(for: threadID)
+        guard let thread = try await threadStore.fetchThread(id: threadID) else {
             throw AgentError.threadNotFound(threadID)
         }
 
@@ -220,9 +241,14 @@ public actor AgentManager: AgentManagerProtocol {
             throw AgentError.cannotDetachFromOwnPrivateThread(threadID)
         }
 
-        thread.attachedAgentID = nil
-        thread.updatedAt = Date()
-        try await threadStore.saveThread(thread)
+        let originalThread = thread
+        try await threadAuthorityCoordinator.withThread(threadID) { [self, originalThread] in
+            try await self.requireExecutionContextMutable(for: threadID)
+            var updated = originalThread
+            updated.attachedAgentID = nil
+            updated.updatedAt = Date()
+            try await self.threadStore.saveThread(updated)
+        }
 
         // Log to agent's private thread if it still exists
         if let agent = try? await agentStore.fetchAgent(id: agentID) {
@@ -394,6 +420,19 @@ public actor AgentManager: AgentManagerProtocol {
         }
     }
 
+    private func requireExecutionContextMutable(for threadID: UUID) async throws {
+        if let threadManager {
+            try await threadManager.requireExecutionContextMutable(for: threadID)
+        } else if let runtimeRepository,
+                  let activeTurn = try await runtimeRepository.fetchActiveTurn(for: threadID)
+        {
+            throw ThreadRuntimeRepositoryError.threadBusy(
+                threadID: threadID,
+                activeTurnID: activeTurn.identity.turnID
+            )
+        }
+    }
+
     // MARK: - Delete
 
     /// Deletes an agent and optionally force-detaches it from all threads.
@@ -414,10 +453,15 @@ public actor AgentManager: AgentManagerProtocol {
         }
 
         // Force-detach from non-private threads
-        for var thread in nonPrivateAttached {
-            thread.attachedAgentID = nil
-            thread.updatedAt = Date()
-            try await threadStore.saveThread(thread)
+        for thread in nonPrivateAttached {
+            let originalThread = thread
+            try await threadAuthorityCoordinator.withThread(thread.id) { [self, originalThread] in
+                try await self.requireExecutionContextMutable(for: originalThread.id)
+                var updated = originalThread
+                updated.attachedAgentID = nil
+                updated.updatedAt = Date()
+                try await self.threadStore.saveThread(updated)
+            }
         }
 
         // Delete the private thread before the workspace or agent record. If this fails,

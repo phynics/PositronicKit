@@ -288,6 +288,7 @@ public actor ToolRouter {
         // Strip workspaceID — it's a routing-only concern, not a tool parameter
         var forwardedArguments = arguments
         forwardedArguments.removeValue(forKey: "workspaceID")
+        let workspaceArguments = forwardedArguments
 
         // Dynamic/per-turn tools (passed directly via `availableTools`, e.g. workspace-independent
         // demo tools like `calculator`/`current_datetime`) execute locally unconditionally — they
@@ -326,12 +327,17 @@ public actor ToolRouter {
             threadIsPrivate: await threadManager.thread(id: threadID)?.isPrivate ?? false
         ) {
         case .executeLocally:
-            let output = try await executeLocally(
-                tool: tool,
-                arguments: forwardedArguments,
-                threadId: threadID,
-                dynamicTools: availableTools
-            )
+            let output = try await threadManager.withWorkspaceExecution(workspaceId) { [self] in
+                // The binding may have been transferred or released while the call waited for
+                // its FIFO lane. Revalidate immediately before the side effect.
+                try await threadManager.requireWorkspaceBinding(workspaceId, for: threadID)
+                return try await executeLocally(
+                    tool: tool,
+                    arguments: workspaceArguments,
+                    threadId: threadID,
+                    dynamicTools: availableTools
+                )
+            }
             return .completed(output)
 
         case .deferExternally:

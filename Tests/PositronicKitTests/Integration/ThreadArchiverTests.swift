@@ -111,13 +111,23 @@ struct ThreadArchiverTests {
     let mockLLM: MockLLMService
     let archiver: ThreadArchiver
     let mockEmbeddingService: MockEmbeddingService
+    let runtimeRepository: InMemoryThreadRuntimeRepository
+    let threadAuthorityCoordinator: ThreadAuthorityCoordinator
 
     init() async throws {
         persistence = MockPersistenceService()
         mockLLM = MockLLMService()
         mockEmbeddingService = MockEmbeddingService()
+        runtimeRepository = InMemoryThreadRuntimeRepository()
+        threadAuthorityCoordinator = ThreadAuthorityCoordinator()
 
-        archiver = ThreadArchiver(persistence: persistence, llmService: mockLLM, embeddingService: mockEmbeddingService)
+        archiver = ThreadArchiver(
+            persistence: persistence,
+            llmService: mockLLM,
+            embeddingService: mockEmbeddingService,
+            runtimeRepository: runtimeRepository,
+            threadAuthorityCoordinator: threadAuthorityCoordinator
+        )
     }
 
     @Test
@@ -257,7 +267,9 @@ struct ThreadArchiverTests {
         let createArchiver = ThreadArchiver(
             persistence: createPersistence,
             llmService: MockLLMService(),
-            embeddingService: MockEmbeddingService()
+            embeddingService: MockEmbeddingService(),
+            runtimeRepository: InMemoryThreadRuntimeRepository(),
+            threadAuthorityCoordinator: ThreadAuthorityCoordinator()
         )
 
         var createDidThrowExpectedError = false
@@ -294,7 +306,9 @@ struct ThreadArchiverTests {
         let updateArchiver = ThreadArchiver(
             persistence: updatePersistence,
             llmService: MockLLMService(),
-            embeddingService: MockEmbeddingService()
+            embeddingService: MockEmbeddingService(),
+            runtimeRepository: InMemoryThreadRuntimeRepository(),
+            threadAuthorityCoordinator: ThreadAuthorityCoordinator()
         )
 
         var updateDidThrowExpectedError = false

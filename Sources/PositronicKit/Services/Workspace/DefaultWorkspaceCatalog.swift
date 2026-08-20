@@ -12,14 +12,23 @@ import PKUtilities
 /// universal workspace model that hosts are required to adopt.
 public actor DefaultWorkspaceCatalog: WorkspaceCatalog {
     private let persistenceService: any WorkspaceStore
+    private let bindingRepository: (any WorkspaceBindingRepository)?
+    private let runtimeRepository: (any ThreadRuntimeRepository)?
+    private let threadAuthorityCoordinator: ThreadAuthorityCoordinator?
     private let workspaceRoot: URL
     private let logger = Logger.module(named: "workspace-catalog")
 
     public init(
         workspaceRoot: URL,
-        workspacePersistence: any WorkspaceStore
+        workspacePersistence: any WorkspaceStore,
+        bindingRepository: (any WorkspaceBindingRepository)? = nil,
+        runtimeRepository: (any ThreadRuntimeRepository)? = nil,
+        threadAuthorityCoordinator: ThreadAuthorityCoordinator? = nil
     ) {
         persistenceService = workspacePersistence
+        self.bindingRepository = bindingRepository ?? (workspacePersistence as? any WorkspaceBindingRepository)
+        self.runtimeRepository = runtimeRepository
+        self.threadAuthorityCoordinator = threadAuthorityCoordinator
         self.workspaceRoot = workspaceRoot
     }
 
@@ -142,6 +151,13 @@ public actor DefaultWorkspaceCatalog: WorkspaceCatalog {
 
     /// Deletes a workspace.
     public func deleteWorkspace(id: UUID, deleteDirectory: Bool) async throws {
+        try await withWorkspaceAuthority(id) { [self] in
+            try await self.deleteWorkspaceLocked(id: id, deleteDirectory: deleteDirectory)
+        }
+    }
+
+    private func deleteWorkspaceLocked(id: UUID, deleteDirectory: Bool) async throws {
+        try await requireWorkspaceMutationAllowed(id: id)
         if deleteDirectory,
            let workspace = try await getWorkspace(id: id, includeTools: false)
         {
@@ -149,14 +165,17 @@ public actor DefaultWorkspaceCatalog: WorkspaceCatalog {
                 throw WorkspaceError.accessDenied
             }
             guard let rootPath = workspace.rootPath else {
+                try await requireWorkspaceMutationAllowed(id: id)
                 try await persistenceService.deleteWorkspace(id: id)
                 return
             }
             let url = try validatedDeletionURL(for: rootPath)
+            try await requireWorkspaceMutationAllowed(id: id)
             if FileManager.default.fileExists(atPath: url.path) {
                 try FileManager.default.removeItem(at: url)
             }
         }
+        try await requireWorkspaceMutationAllowed(id: id)
         try await persistenceService.deleteWorkspace(id: id)
     }
 
@@ -203,6 +222,37 @@ public actor DefaultWorkspaceCatalog: WorkspaceCatalog {
 
     /// Updates an existing workspace.
     public func updateWorkspace(_ workspace: WorkspaceReference) async throws {
+        try await withWorkspaceAuthority(workspace.id) { [self] in
+            try await self.updateWorkspaceLocked(workspace)
+        }
+    }
+
+    private func updateWorkspaceLocked(_ workspace: WorkspaceReference) async throws {
+        try await requireWorkspaceMutationAllowed(id: workspace.id)
         try await persistenceService.saveWorkspace(workspace)
+    }
+
+    private func withWorkspaceAuthority<T: Sendable>(
+        _ workspaceID: UUID,
+        operation: @escaping @Sendable () async throws -> T
+    ) async throws -> T {
+        guard let bindingRepository,
+              let threadAuthorityCoordinator,
+              let threadID = try await bindingRepository.threadID(for: workspaceID)
+        else {
+            return try await operation()
+        }
+        return try await threadAuthorityCoordinator.withThread(threadID, operation: operation)
+    }
+
+    private func requireWorkspaceMutationAllowed(id: UUID) async throws {
+        guard let bindingRepository, let runtimeRepository,
+              let threadID = try await bindingRepository.threadID(for: id),
+              let activeTurn = try await runtimeRepository.fetchActiveTurn(for: threadID)
+        else { return }
+        throw ThreadRuntimeRepositoryError.threadBusy(
+            threadID: threadID,
+            activeTurnID: activeTurn.identity.turnID
+        )
     }
 }

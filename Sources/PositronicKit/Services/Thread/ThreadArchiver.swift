@@ -15,6 +15,8 @@ public enum MemoryVacuumPolicy: Sendable {
 /// Service to archive threads and index their messages for semantic recall.
 public actor ThreadArchiver {
     private let persistence: any ThreadPersistenceProtocol & MemoryStoreProtocol & ThreadMessageStoreProtocol
+    private let runtimeRepository: (any ThreadRuntimeRepository)?
+    private let threadAuthorityCoordinator: ThreadAuthorityCoordinator?
     private let llmService: any LLMStreamClient
     private let embeddingService: any EmbeddingServiceProtocol
     private let logger = Logger.module(named: "thread-archiver")
@@ -22,9 +24,13 @@ public actor ThreadArchiver {
     public init(
         persistence: any ThreadPersistenceProtocol & MemoryStoreProtocol & ThreadMessageStoreProtocol,
         llmService: any LLMStreamClient,
-        embeddingService: any EmbeddingServiceProtocol
+        embeddingService: any EmbeddingServiceProtocol,
+        runtimeRepository: (any ThreadRuntimeRepository)? = nil,
+        threadAuthorityCoordinator: ThreadAuthorityCoordinator? = nil
     ) {
         self.persistence = persistence
+        self.runtimeRepository = runtimeRepository
+        self.threadAuthorityCoordinator = threadAuthorityCoordinator
         self.llmService = llmService
         self.embeddingService = embeddingService
     }
@@ -37,6 +43,41 @@ public actor ThreadArchiver {
         threadID: UUID?,
         vacuumPolicy: MemoryVacuumPolicy = .run(threshold: 0.95)
     ) async throws -> UUID {
+        if let threadID {
+            guard let threadAuthorityCoordinator else {
+                throw ThreadRuntimeRepositoryError.authorityCoordinatorRequired(threadID: threadID)
+            }
+            return try await threadAuthorityCoordinator.withThread(threadID) { [self] in
+                try await self.archiveLocked(
+                    messages: messages,
+                    threadID: threadID,
+                    vacuumPolicy: vacuumPolicy
+                )
+            }
+        }
+        return try await archiveLocked(
+            messages: messages,
+            threadID: nil,
+            vacuumPolicy: vacuumPolicy
+        )
+    }
+
+    private func archiveLocked(
+        messages: [Message],
+        threadID: UUID?,
+        vacuumPolicy: MemoryVacuumPolicy
+    ) async throws -> UUID {
+        if let threadID {
+            guard let runtimeRepository else {
+                throw ThreadRuntimeRepositoryError.runtimeRepositoryRequired(threadID: threadID)
+            }
+            if let activeTurn = try await runtimeRepository.fetchActiveTurn(for: threadID) {
+                throw ThreadRuntimeRepositoryError.threadBusy(
+                    threadID: threadID,
+                    activeTurnID: activeTurn.identity.turnID
+                )
+            }
+        }
         let title = await resolveTitle(from: messages)
         let archiveState = try await resolveThread(threadID: threadID, title: title)
 

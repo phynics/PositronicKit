@@ -10,6 +10,8 @@ The persistence layer is split into focused protocols to ensure high cohesion an
 - `MessageStoreProtocol`: Chat history management.
 - `ThreadPersistenceProtocol`: Thread thread lifecycle.
 - `WorkspaceStore`: Virtual document workspace tracking.
+- `WorkspaceBindingRepository`: Atomic exclusive claims between ordinary Workspaces and Threads;
+  Agent primary Workspace ownership remains on the Agent record.
 - `RequestOriginStoreProtocol`: Request-origin identity and attached-tool metadata.
 - `ToolPersistenceProtocol`: Tool registry and routing metadata.
 - `ThreadRuntimeRepository`: Atomic Thread history and Turn lifecycle transitions.
@@ -22,6 +24,10 @@ serialization, append-only `ThreadMessage` history, tool intents/results, termin
 stale-Turn recovery. The repository's successful admission and intent/result operations are the
 durable-before-side-effect barriers: provider requests and tool execution begin only after the
 corresponding record is accepted.
+
+Workspace execution uses a process-local FIFO lane per ordinary Workspace. This prevents
+overlapping tool side effects for one Workspace while allowing different Workspaces to proceed
+concurrently; multi-process hosts provide stronger coordination in their backend.
 
 `ThreadRuntimeRepository` does not own `PromptJournal` state and does not derive semantic summaries from
 prompt history. A `ThreadSummary` is a separate projection that may reference only message IDs already

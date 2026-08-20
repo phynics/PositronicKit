@@ -107,7 +107,7 @@ These public API surfaces are the **v1 compatibility contract**: they only chang
 | **Tool contracts** | `Tool`, `AnyTool`, `ToolResult`, `ToolParameters`, `ToolError` | PKContracts | Define and execute tools |
 | **Orchestration hooks** | `TurnPlugin`, `CompletedTurn` | PositronicKit | Post-turn processing |
 | **Prompt customization** | `PromptSectionProviding`, `PromptBuildContext` | PositronicKit | Inject custom prompt sections |
-| **Persistence** | `ThreadRuntimeRepository`, `MessageStoreProtocol`, `ThreadPersistenceProtocol`, `WorkspaceStore`, `MemoryStoreProtocol`, `ToolPersistenceProtocol`, `AgentStoreProtocol`, `AgentTemplateStoreProtocol`, `RequestOriginStoreProtocol` | PositronicKit | Custom storage backends |
+| **Persistence** | `ThreadRuntimeRepository`, `MessageStoreProtocol`, `ThreadPersistenceProtocol`, `WorkspaceStore`, `WorkspaceBindingRepository`, `MemoryStoreProtocol`, `ToolPersistenceProtocol`, `AgentStoreProtocol`, `AgentTemplateStoreProtocol`, `RequestOriginStoreProtocol` | PositronicKit | Custom storage backends |
 | **Key-value store** | `KeyValueStoreProtocol` | PositronicKit | Generic key-value persistence |
 | **Vector search** | `VectorStoreProtocol`, `VectorStoreError` | PositronicKit | Custom vector search backends |
 | **Health check** | `HealthCheckable` | PositronicKit | Service health reporting |
@@ -119,7 +119,7 @@ These public API surfaces are the **v1 compatibility contract**: they only chang
 | **Events** | `TurnEvent`, `ToolExecutionStatus`, `Message` | PKContracts | Stream event types |
 | **Sidecar directives** | `SidecarDirective`, `SidecarDelta`, `SidecarResult` (PKContracts), `SidecarError` (PositronicKit) | PKContracts / PositronicKit | Piggy-backed auxiliary generations riding a turn's response — see [Sidecar Directives](docs/SidecarDirectives.md) |
 | **Pipeline** | `PipelineStage`, `PipelineError` | package-internal utility layer | Runtime implementation detail; not a public product |
-| **Runtime coordinators (advanced)** | `ThreadManager`, `ToolRouter`, `ToolExecutionOutcome`, `RuntimeToolPolicy` | PositronicKit | Direct runtime seams for hosts with their own composition root |
+| **Runtime coordinators (advanced)** | `ThreadManager`, `ToolRouter`, `WorkspaceExecutionCoordinator`, `ToolExecutionOutcome`, `RuntimeToolPolicy` | PositronicKit | Direct runtime seams for hosts with their own composition root |
 
 `InMemory*` stores (and `PositronicKit.PersistenceConfiguration.inMemory()`) are **public prototyping/test helpers**, not extension points — convenient for prototypes and tests, but not a stability contract.
 

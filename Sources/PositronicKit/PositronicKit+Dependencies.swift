@@ -17,6 +17,7 @@ internal struct KitDependencies: Sendable {
     var languageModel: any LLMStreamClient & LLMUtilityClient
     var messageStore: any ThreadMessageStoreProtocol
     var runtimeRepository: (any ThreadRuntimeRepository)?
+    var workspaceBindingRepository: any WorkspaceBindingRepository
     var agentStore: any AgentStoreProtocol
     var requestOriginStore: any RequestOriginStoreProtocol
     var threadPersistence: any ThreadPersistenceProtocol

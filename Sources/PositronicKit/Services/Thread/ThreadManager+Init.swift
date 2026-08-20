@@ -210,11 +210,13 @@ extension ThreadManager {
         promptHistoryRegistry: ThreadPromptJournals? = nil,
         taskRegistry: ThreadTaskRegistry? = nil
     ) {
+        let workspaceStore = InMemoryWorkspacePersistence()
         self.init(
             stores: .init(
                 threadStore: InMemoryThreadPersistence(),
                 messageStore: InMemoryMessageStore(),
-                workspaceStore: InMemoryWorkspacePersistence(),
+                workspaceStore: workspaceStore,
+                workspaceBindingRepository: workspaceStore,
                 toolPersistence: InMemoryToolPersistence()
             ),
             workspaceRoot: workspaceRoot,
@@ -234,11 +236,13 @@ extension ThreadManager {
         promptHistoryRegistry: ThreadPromptJournals? = nil,
         taskRegistry: ThreadTaskRegistry? = nil
     ) {
+        let workspaceStore = InMemoryWorkspacePersistence()
         self.init(
             stores: .init(
                 threadStore: InMemoryThreadPersistence(),
                 messageStore: InMemoryMessageStore(),
-                workspaceStore: InMemoryWorkspacePersistence(),
+                workspaceStore: workspaceStore,
+                workspaceBindingRepository: workspaceStore,
                 toolPersistence: InMemoryToolPersistence()
             ),
             workspaceProfile: workspaceProfile,

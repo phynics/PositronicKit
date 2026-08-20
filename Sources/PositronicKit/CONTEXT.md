@@ -29,6 +29,16 @@ A host-owned execution and storage boundary. Ordinary Workspaces bind exclusivel
 an Agent’s primary Workspace is permanently Agent-owned.
 _Avoid_: tool bag, workspace array
 
+**Workspace Binding**:
+The durable exclusive relationship between one ordinary Workspace and one Thread. A Thread may
+hold many bindings; Agent primary Workspace ownership is not a binding.
+_Avoid_: mutable Thread workspace list, shared workspace claim
+
+**Workspace Execution Lane**:
+A process-local FIFO coordinator that prevents overlapping execution for one Workspace while
+allowing independent Workspaces to execute concurrently.
+_Avoid_: distributed lock, global execution queue
+
 **Thread Execution Context**:
 The authority-bearing Agent, Workspace, catalog, and related configuration captured when a Turn is
 admitted. It remains immutable while that Turn is active.

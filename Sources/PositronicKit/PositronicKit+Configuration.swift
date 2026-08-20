@@ -59,6 +59,7 @@ public extension PositronicKit {
         public let messageStore: any ThreadMessageStoreProtocol
         public let threadPersistence: any ThreadPersistenceProtocol
         public let workspacePersistence: any WorkspaceStore
+        public let workspaceBindingRepository: any WorkspaceBindingRepository
         public let memoryStore: any MemoryStoreProtocol
         public let toolPersistence: any ToolPersistenceProtocol
         public let agentStore: any AgentStoreProtocol
@@ -74,14 +75,20 @@ public extension PositronicKit {
             toolPersistence: (any ToolPersistenceProtocol)? = nil,
             agentStore: (any AgentStoreProtocol)? = nil,
             requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
-            runtimeRepository: (any ThreadRuntimeRepository)? = nil
+            runtimeRepository: (any ThreadRuntimeRepository)? = nil,
+            workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil
         ) {
             let resolvedRepository = runtimeRepository
                 ?? (messageStore == nil && threadPersistence == nil ? InMemoryThreadRuntimeRepository() : nil)
+            let resolvedWorkspaceStore = workspacePersistence ?? InMemoryWorkspacePersistence()
             self.runtimeRepository = resolvedRepository
             self.messageStore = resolvedRepository ?? messageStore ?? InMemoryMessageStore()
             self.threadPersistence = resolvedRepository ?? threadPersistence ?? InMemoryThreadPersistence()
-            self.workspacePersistence = workspacePersistence ?? InMemoryWorkspacePersistence()
+            self.workspacePersistence = resolvedWorkspaceStore
+            self.workspaceBindingRepository = workspaceBindingRepository
+                ?? (resolvedRepository as? any WorkspaceBindingRepository)
+                ?? (resolvedWorkspaceStore as? any WorkspaceBindingRepository)
+                ?? InMemoryWorkspaceBindingRepository()
             self.memoryStore = memoryStore ?? InMemoryMemoryStore()
             self.toolPersistence = toolPersistence ?? InMemoryToolPersistence()
             self.agentStore = agentStore ?? InMemoryAgentStore()
@@ -99,12 +106,18 @@ public extension PositronicKit {
             toolPersistence: (any ToolPersistenceProtocol)? = nil,
             agentStore: (any AgentStoreProtocol)? = nil,
             requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
-            runtimeRepository: (any ThreadRuntimeRepository)? = nil
+            runtimeRepository: (any ThreadRuntimeRepository)? = nil,
+            workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil
         ) {
+            let resolvedWorkspaceStore = workspacePersistence ?? InMemoryWorkspacePersistence()
             self.runtimeRepository = runtimeRepository
             self.messageStore = runtimeRepository ?? messageStore ?? InMemoryMessageStore()
             self.threadPersistence = runtimeRepository ?? threadPersistence
-            self.workspacePersistence = workspacePersistence ?? InMemoryWorkspacePersistence()
+            self.workspacePersistence = resolvedWorkspaceStore
+            self.workspaceBindingRepository = workspaceBindingRepository
+                ?? (runtimeRepository as? any WorkspaceBindingRepository)
+                ?? (resolvedWorkspaceStore as? any WorkspaceBindingRepository)
+                ?? InMemoryWorkspaceBindingRepository()
             self.memoryStore = memoryStore ?? InMemoryMemoryStore()
             self.toolPersistence = toolPersistence ?? InMemoryToolPersistence()
             self.agentStore = agentStore ?? InMemoryAgentStore()
@@ -129,7 +142,8 @@ public extension PositronicKit {
             toolPersistence: any ToolPersistenceProtocol,
             agentStore: any AgentStoreProtocol,
             requestOriginStore: any RequestOriginStoreProtocol,
-            runtimeRepository: (any ThreadRuntimeRepository)? = nil
+            runtimeRepository: (any ThreadRuntimeRepository)? = nil,
+            workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil
         ) -> PersistenceConfiguration {
             PersistenceConfiguration(
                 messageStore: messageStore,
@@ -139,7 +153,8 @@ public extension PositronicKit {
                 toolPersistence: toolPersistence,
                 agentStore: agentStore,
                 requestOriginStore: requestOriginStore,
-                runtimeRepository: runtimeRepository
+                runtimeRepository: runtimeRepository,
+                workspaceBindingRepository: workspaceBindingRepository
             )
         }
 
@@ -314,6 +329,7 @@ public extension PositronicKit {
             languageModel: configuration.provider.languageModel,
             messageStore: configuration.persistence.messageStore,
             runtimeRepository: configuration.persistence.runtimeRepository,
+            workspaceBindingRepository: configuration.persistence.workspaceBindingRepository,
             agentStore: configuration.persistence.agentStore,
             requestOriginStore: configuration.persistence.requestOriginStore,
             threadPersistence: configuration.persistence.threadPersistence,
