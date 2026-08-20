@@ -98,7 +98,7 @@ public enum READMEExamples {
             streaming: .buffered
         )
 
-        let stream = try await chat.run(.init(
+        let stream = try await chat.threads.open(threadID).run(.init(
             threadID: threadID,
             message: "What's the deal with actors in Swift 6?",
             sidecars: [title]

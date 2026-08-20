@@ -4,7 +4,7 @@ import Foundation
 ///
 /// The lane is deliberately keyed by Thread rather than Workspace: a Turn owns its Thread's
 /// authority context, while Workspace tool execution has its own independent per-Workspace lane.
-public actor ThreadAuthorityCoordinator {
+actor ThreadAuthorityCoordinator {
     private var busy: Set<UUID> = []
     private var waiters: [UUID: [CheckedContinuation<Void, Never>]] = [:]
 

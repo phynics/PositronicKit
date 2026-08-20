@@ -6,7 +6,7 @@ import PKTestSupport
 import Synchronization
 import Testing
 
-/// PKRR-002 cancellation invariants: `ThreadDriver.cancel()` must actually cancel the
+/// PKRR-002 cancellation invariants: `ThreadHandle.cancel()` must actually cancel the
 /// stream-driving task, the registry entry must be removed on every terminal path,
 /// eviction/deletion must cancel active work, and a stale request ID cannot cancel a newer turn.
 @Suite("Thread cancellation invariants (PKRR-002)", .serialized)

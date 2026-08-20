@@ -4,8 +4,8 @@ import PKContracts
 import PKUtilities
 
 /// Thread-specific tool settings
-public actor ThreadToolRegistry {
-    public private(set) var enabledTools: Set<String> = []
+package actor ThreadToolRegistry {
+    package private(set) var enabledTools: Set<String> = []
 
     /// available tools in the system
     public private(set) var availableTools: [AnyTool]

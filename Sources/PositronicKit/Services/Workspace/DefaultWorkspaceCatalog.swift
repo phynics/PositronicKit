@@ -10,7 +10,7 @@ import PKUtilities
 /// provisioning: creating sandboxed directories and seeding them from template files.
 /// This is the default local/runtime provisioning service shipped with PositronicKit, not a
 /// universal workspace model that hosts are required to adopt.
-public actor DefaultWorkspaceCatalog: WorkspaceCatalog {
+actor DefaultWorkspaceCatalog: WorkspaceCatalog {
     private let persistenceService: any WorkspaceStore
     private let bindingRepository: (any WorkspaceBindingRepository)?
     private let runtimeRepository: (any ThreadRuntimeRepository)?

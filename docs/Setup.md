@@ -65,13 +65,13 @@ let chat = PositronicKit(
 )
 ```
 
-The grouped `persistence:` + `runtime:` path is the supported production setup (the old flat per-store initializer was removed by PKFAC-002). `RuntimeConfiguration` groups the non-store runtime knobs — `workspaceCreator`, `sectionProviders`, `runtimeToolPolicy`, `workspaceRoot`, `turnPlugins`, `promptInspector`, `toolApprovalGate` — not pre-built `ThreadManager`/`ToolRouter` instances; the facade is the only place those get constructed, so they can never end up wrapping different stores. Read them back afterward via `chat.threadManager` / `chat.toolRouter` if you need direct access.
+The grouped `persistence:` + `runtime:` path is the supported production setup (the old flat per-store initializer was removed by PKFAC-002). `RuntimeConfiguration` groups the non-store runtime knobs — `workspaceCreator`, `sectionProviders`, `runtimeToolPolicy`, `workspaceRoot`, `turnPlugins`, `promptInspector`, `toolApprovalGate` — not pre-built coordinators; the facade is the only place those get constructed, so they can never end up wrapping different stores. Consumers use `chat.threads`, `chat.agents`, `chat.workspaces`, and `chat.model`; concrete managers and the turn pipeline remain internal.
 
 Tests and host code can inject doubles directly through the facade initializers; lower-level wiring should remain inside the components you own.
 
 ### Default Tool Installation
 
-`ThreadManager` applies a configurable default tool policy:
+The facade applies a configurable default tool policy:
 
 - filesystem tools are installed automatically by the default policy
 - thread observation tools are installed automatically by the default policy

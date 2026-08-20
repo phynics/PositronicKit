@@ -17,7 +17,7 @@ import Testing
         )
         mockLLM.mockClient.nextResponse = "Saw extension section"
 
-        _ = try await chat.run(TurnRequest(
+        _ = try await chat.threads.open(threadID).run(TurnRequest(
             threadID: threadID,
             message: "Use extension prompt"
         )).collect()
@@ -34,7 +34,7 @@ import Testing
 
         mockLLM.mockClient.nextResponses = ["First reply", "Second reply"]
 
-        let events = try await chat.run(TurnRequest(
+        let events = try await chat.threads.open(threadID).run(TurnRequest(
             threadID: threadID,
             message: "Start plugin flow"
         )).collect()
@@ -56,7 +56,7 @@ import Testing
     @Test("WorkspaceFactory can provide a custom executable workspace tool")
     func workspaceCreatingSupportsCustomWorkspaceTool() async throws {
         let creator = AcceptanceWorkspaceCreator()
-        let (chat, mockLLM, mockPersistence, threadID, workspaceRoot, threadManager) = try await makeAcceptanceRuntime(
+        let (chat, mockLLM, mockPersistence, threadID, workspaceRoot, threads) = try await makeAcceptanceRuntime(
             workspaceCreator: creator,
             includeDefaultToolWorkspace: false
         )
@@ -75,12 +75,12 @@ import Testing
         )
         try await mockPersistence.saveWorkspace(reference)
         try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .custom(workspaceTool))
-        try await threadManager.attachWorkspace(workspaceId, to: threadID)
+        try await threads.attachWorkspace(workspaceId, to: threadID)
 
         mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "call_ws", name: "workspace_echo")]]
         mockLLM.mockClient.nextResponses = ["", "Workspace tool completed"]
 
-        let events = try await chat.run(TurnRequest(
+        let events = try await chat.threads.open(threadID).run(TurnRequest(
             threadID: threadID,
             message: "Use the attached workspace tool"
         )).collect()
@@ -106,7 +106,7 @@ import Testing
         ]]
         mockLLM.mockClient.nextResponses = ["", "Custom tool completed"]
 
-        let events = try await chat.run(TurnRequest(
+        let events = try await chat.threads.open(threadID).run(TurnRequest(
             threadID: threadID,
             message: "Run the custom tool",
             tools: [tool.toAnyTool()]
@@ -126,7 +126,7 @@ import Testing
         workspaceCreator: any WorkspaceFactory = MockWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = [],
         includeDefaultToolWorkspace: Bool = true
-    ) async throws -> (PositronicKit, MockLLMService, MockPersistenceService, UUID, TestWorkspace, ThreadManager) {
+    ) async throws -> (PositronicKit, MockLLMService, MockPersistenceService, UUID, TestWorkspace, ThreadCapability) {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
         let workspace = TestWorkspace()
@@ -144,9 +144,8 @@ import Testing
                 sectionProviders: sectionProviders,
                 workspaceRoot: workspace.root
             )))
-        let threadManager = chat.threadManager
-
-        let thread = try await threadManager.createThread(title: "Extension Acceptance")
+        let threads = chat.threads
+        let thread = try await threads.create(title: "Extension Acceptance")
 
         if includeDefaultToolWorkspace {
             let workspaceId = UUID()
@@ -159,10 +158,10 @@ import Testing
             )
             try await mockPersistence.saveWorkspace(workspaceRef)
             try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("acceptance_tool"))
-            try await threadManager.attachWorkspace(workspaceId, to: thread.id)
+            try await threads.attachWorkspace(workspaceId, to: thread.id)
         }
 
-        return (chat, mockLLM, mockPersistence, thread.id, workspace, threadManager)
+        return (chat, mockLLM, mockPersistence, thread.id, workspace, threads)
     }
 }
 

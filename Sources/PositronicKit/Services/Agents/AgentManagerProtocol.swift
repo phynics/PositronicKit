@@ -3,7 +3,7 @@ import PKContracts
 import PKUtilities
 
 /// Protocol for managing the lifecycle of agents through canonical Thread APIs.
-public protocol AgentManagerProtocol: Sendable {
+protocol AgentManagerProtocol: Sendable {
     func createAgent(
         from template: AgentTemplate?,
         name: String,
@@ -20,7 +20,7 @@ public protocol AgentManagerProtocol: Sendable {
     func deleteAgent(id: UUID, force: Bool) async throws
 }
 
-public extension AgentManagerProtocol {
+extension AgentManagerProtocol {
     /// Returns an agent by its unique identifier.
     func agent(id: UUID) async throws -> Agent? {
         try await getAgent(id: id)

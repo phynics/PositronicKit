@@ -26,12 +26,10 @@ import PKUtilities
 /// - Minimal: `PositronicKit(languageModel: myModel)`
 /// - Production: use `PositronicKit(configuration:)`.
 ///
-/// The public operation ladder is progressive: tier 1 is thread-free one-shot
-/// `complete(_:)`/`stream(_:)`; tier 2 is the stateful `ThreadDriver`; tier 3 is
-/// direct `threadManager` access; tier 4 is the full `AgenticRuntime` tool/agent loop;
-/// tier 5 is the raw primitives (`toolRouter`, `languageModel`, and the prompt DSL) for a
-/// bespoke pipeline. A typical application wraps one kit in an application-owned Service
-/// class, then passes the managers or controllers it vends to the relevant subsystems.
+/// The public operation surface is deliberately capability-oriented: use `model` for
+/// thread-free inference, `threads` for durable Thread handles, `agents` for agent
+/// identity and attachment, and `workspaces` for the workspace catalog. The concrete
+/// coordinators, task registries, and turn pipeline remain implementation details.
 ///
 /// Construct once and hold for the app's lifetime. `PositronicKit` is a reference type;
 /// constructing a new instance starts a new, independent cross-send history.
@@ -44,28 +42,31 @@ public final class PositronicKit: Sendable {
     ///
     /// This reads the model's live readiness without exposing provider configuration,
     /// credentials, or mutation APIs through the facade.
-    public var isLanguageModelConfigured: Bool {
+    var isLanguageModelConfigured: Bool {
         get async { await languageModel.isConfigured }
     }
 
     private let messageStore: any ThreadMessageStoreProtocol
     /// Optional cohesive durable owner for Thread history and Turn lifecycle.
-    public let runtimeRepository: (any ThreadRuntimeRepository)?
+    let runtimeRepository: (any ThreadRuntimeRepository)?
     /// Durable authority for ordinary Workspace-to-Thread bindings.
-    public let workspaceBindingRepository: any WorkspaceBindingRepository
+    let workspaceBindingRepository: any WorkspaceBindingRepository
 
-    /// The thread manager built by this facade. Hosts that need direct access (e.g. to wire
-    /// their own routes) should read this instead of building a second `ThreadManager`, which
-    /// would silently diverge from the stores the facade itself uses.
-    public let threadManager: ThreadManager
+    /// Internal coordinator shared by the capability values and turn engine.
+    let threadManager: ThreadManager
 
 
-    /// The single agent manager owned by this facade. It is wired to the same
-    /// thread manager and persistence stores as the rest of the runtime.
-    public let agentManager: AgentManager
+    /// Internal agent coordinator shared by the capability values and turn engine.
+    let agentManager: AgentManager
 
-    /// The tool router built by this facade, wired to `threadManager` above.
-    public let toolRouter: ToolRouter
+    /// Internal tool router wired to the facade-owned Thread coordinator.
+    let toolRouter: ToolRouter
+    /// Consumer-facing capability values. These keep orchestration managers behind the facade.
+    public var threads: ThreadCapability { ThreadCapability(kit: self) }
+    public var agents: AgentCapability { AgentCapability(kit: self) }
+    public var workspaces: WorkspaceCapability { WorkspaceCapability(kit: self) }
+    public var model: ModelInferenceCapability { ModelInferenceCapability(kit: self) }
+    let workspaceCatalog: any WorkspaceCatalog
     private let agentStore: any AgentStoreProtocol
     private let requestOriginStore: any RequestOriginStoreProtocol
     private let turnPlugins: [any TurnPlugin]
@@ -91,7 +92,7 @@ public final class PositronicKit: Sendable {
     private let workspaceProfile: WorkspaceProfile
     private let workspaceCreator: any WorkspaceFactory
     private let sectionProviders: [any PromptSectionProviding]
-    private let runtimeToolPolicy: ThreadManager.RuntimeToolPolicy
+    private let runtimeToolPolicy: RuntimeToolPolicy
     private let degradationPolicy: TurnDegradationPolicy
     private let toolApprovalPolicy: any ToolApprovalPolicy
 
@@ -124,7 +125,7 @@ public final class PositronicKit: Sendable {
         workspaceProfile: WorkspaceProfile = .noWorkspace,
         workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = [],
-        runtimeToolPolicy: ThreadManager.RuntimeToolPolicy = .default,
+        runtimeToolPolicy: RuntimeToolPolicy = .default,
         turnPlugins: [any TurnPlugin] = [],
         promptObserver: (any PromptObserving)? = nil,
         diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
@@ -231,14 +232,16 @@ public final class PositronicKit: Sendable {
             promptHistoryRegistry: promptHistoryRegistry
         )
         threadManager = resolvedThreadManager
+        let resolvedWorkspaceCatalog = DefaultWorkspaceCatalog(
+            workspaceRoot: resolvedCatalogRoot,
+            workspacePersistence: self.workspacePersistence,
+            bindingRepository: self.workspaceBindingRepository,
+            runtimeRepository: self.runtimeRepository,
+            threadAuthorityCoordinator: resolvedThreadManager.threadAuthorityCoordinator
+        )
+        workspaceCatalog = resolvedWorkspaceCatalog
         agentManager = AgentManager(
-            repository: DefaultWorkspaceCatalog(
-                workspaceRoot: resolvedCatalogRoot,
-                workspacePersistence: self.workspacePersistence,
-                bindingRepository: self.workspaceBindingRepository,
-                runtimeRepository: self.runtimeRepository,
-                threadAuthorityCoordinator: resolvedThreadManager.threadAuthorityCoordinator
-            ),
+            repository: resolvedWorkspaceCatalog,
             stores: .init(
                 agentStore: self.agentStore,
                 threadStore: self.threadPersistence,
@@ -351,22 +354,10 @@ public final class PositronicKit: Sendable {
 
     // MARK: - Execution
 
-    /// Vends a fresh tier-four agent runtime handle.
-    public func agenticRuntime(
-        threadID: UUID,
-        agentID: UUID? = nil
-    ) -> AgenticRuntime {
-        AgenticRuntime(
-            kit: self,
-            threadID: threadID,
-            agentID: agentID
-        )
-    }
-
     /// Run a turn and return a stream of events.
     /// - Parameter request: The full turn configuration.
     /// - Returns: An asynchronous stream of turn events.
-    public func run(_ request: TurnRequest) async throws -> AsyncThrowingStream<TurnEvent, Error> {
+    func run(_ request: TurnRequest) async throws -> AsyncThrowingStream<TurnEvent, Error> {
         guard request.maxModelRounds >= 1 else {
             throw TurnError.invalidMaxModelRounds(request.maxModelRounds)
         }

@@ -12,22 +12,19 @@ struct DependencySafetyTests {
         let workspaceRoot = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let runtime = TestRuntime(workspaceRoot: workspaceRoot)
 
-        // A thread created via the runtime's thread manager is visible through the shared persistence.
-        let thread = try await runtime.threadManager.createThread(title: "Shared")
+        // A Thread created via the capability value is visible through the shared persistence.
+        let thread = try await runtime.threads.create(title: "Shared")
         let persistedThread = try await runtime.persistence.fetchThread(id: thread.id)
         #expect(persistedThread?.id == thread.id)
 
-        // A workspace saved directly into persistence resolves through the agent workspace service,
-        // proving that service is backed by the same store.
+        // A workspace saved directly into persistence resolves through the capability value,
+        // proving that it is backed by the same store.
         let workspace = WorkspaceReference(uri: .threadWorkspace(UUID()), location: .runtime)
         try await runtime.persistence.saveWorkspace(workspace)
-        let resolved = try await runtime.agentWorkspaceService.getWorkspace(id: workspace.id)
+        let resolved = try await runtime.workspaces.get(workspace.id)
         #expect(resolved?.id == workspace.id)
 
-        // positronicKit must reuse the runtime's own ThreadManager rather than fabricating a
-        // disconnected one.
-        let core = runtime.positronicKit
-        #expect(core.threadManager === runtime.threadManager)
+        #expect(try await runtime.threads.get(thread.id)?.id == thread.id)
     }
 
     @Test("PositronicKit facade's ThreadManager shares the memoryStore passed via persistence")

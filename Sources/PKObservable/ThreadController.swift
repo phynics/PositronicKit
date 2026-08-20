@@ -2,7 +2,7 @@ import Observation
 import PKContracts
 import PositronicKit
 
-/// A SwiftUI-friendly controller for a ``ThreadDriver``.
+/// A SwiftUI-friendly controller for a ``ThreadHandle``.
 ///
 /// Issuing a new `send(_:)` while one is already in flight cancels/supersedes it: the prior
 /// task is cancelled, the driver's underlying generation is cancelled, and the new send starts
@@ -17,13 +17,13 @@ public final class ThreadController {
     /// The partial assistant text of the in-flight turn; empty between turns.
     public private(set) var streamingText = ""
 
-    /// The underlying driver this controller mirrors.
-    public let driver: ThreadDriver
+    /// The underlying handle this controller mirrors.
+    public let driver: ThreadHandle
     private var activeSendTask: Task<Void, Error>? // swiftlint:disable:this concurrency_stored_task -- owned by actor/@MainActor (see docs/Concurrency/exception-manifest.md)
     private var activeSendGeneration = 0
 
-    /// Creates a controller for a thread driver, optionally seeded with prior messages.
-    public init(_ driver: ThreadDriver, messages: [Message] = []) {
+    /// Creates a controller for a Thread handle, optionally seeded with prior messages.
+    public init(_ driver: ThreadHandle, messages: [Message] = []) {
         self.driver = driver
         self.messages = messages
     }
@@ -50,7 +50,7 @@ public final class ThreadController {
 
     private func consume(
         _ content: String,
-        from driver: ThreadDriver,
+        from driver: ThreadHandle,
         generation: Int
     ) async throws {
         guard activeSendGeneration == generation else { return }

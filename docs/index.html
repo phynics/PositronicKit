@@ -155,13 +155,14 @@
 <span class="k">let</span> kit = <span class="k">PositronicKit</span>(languageModel: myLLM)
 
 <span class="c">// Choose the smallest operation tier that fits the feature:</span>
-<span class="k">let</span> answer = <span class="k">try await</span> kit.complete(<span class="s">"Summarize this note."</span>)  <span class="c">// tier 1: one-shot</span>
-<span class="k">let</span> thread = <span class="k">try await</span> kit.threadManager.createThread()
-<span class="k">let</span> driver = kit.openThread(thread.id)                         <span class="c">// tier 2: ThreadDriver</span>
-<span class="k">let</span> agent = kit.agenticRuntime(                               <span class="c">// tier 4: agent loop</span>
-    threadID: driver.threadID,
-    agentID: <span class="k">UUID</span>()
-)</code></pre>
+<span class="k">let</span> answer = <span class="k">try await</span> kit.model.generate(<span class="s">"Summarize this note."</span>) <span class="c">// tier 1: raw model</span>
+<span class="k">let</span> thread = <span class="k">try await</span> kit.threads.create()              <span class="c">// tier 2: durable Thread</span>
+<span class="k">let</span> stream = <span class="k">try await</span> thread.send(<span class="s">"Continue the summary."</span>) <span class="c">// tier 3: ThreadHandle</span>
+<span class="k">let</span> agent = <span class="k">try await</span> kit.agents.create(             <span class="c">// tier 4: managed identity</span>
+    name: <span class="s">"Researcher"</span>, description: <span class="s">"Summarizes source material."</span>
+)
+<span class="k">try await</span> kit.agents.attach(agent.id, to: thread.id)
+<span class="k">let</span> managed = <span class="k">try await</span> thread.send(<span class="s">"Use the attached identity."</span>)</code></pre>
   </div>
 </section>
 
@@ -169,8 +170,7 @@
   <div class="wrap">
     <h2><span class="tick">//</span> Tool Use</h2>
     <p style="color:var(--muted); margin-bottom:1rem">Hand a <code>Tool</code> conformance to the agent per turn — no workspace required:</p>
-    <pre><code><span class="k">let</span> agent = kit.agenticRuntime(threadID: driver.threadID, agentID: <span class="k">UUID</span>())
-<span class="k">let</span> stream = <span class="k">try await</span> agent.run(message: <span class="s">"Greet Ada."</span>, tools: [<span class="k">GreetTool</span>()])
+<pre><code><span class="k">let</span> stream = <span class="k">try await</span> thread.send(<span class="s">"Greet Ada."</span>, tools: [<span class="k">GreetTool</span>()])
 
 <span class="k">for try await</span> event <span class="k">in</span> stream {
     <span class="k">if case let</span> .delta(.toolExecution(id, status)) = event { print(<span class="s">"tool \(id): \(status)"</span>) }
@@ -183,9 +183,9 @@
     runtime: .init(workspaceRoot: workspaceRoot)  <span class="c">// filesystem tools installed per thread</span>
 ))
 
-<span class="k">let</span> thread = <span class="k">try await</span> kit.threadManager.createThread(title: <span class="s">"Docs agent"</span>)
+<span class="k">let</span> thread = <span class="k">try await</span> kit.threads.create(title: <span class="s">"Docs agent"</span>)
 
-<span class="k">let</span> stream = <span class="k">try await</span> kit.run(.init(
+<span class="k">let</span> stream = <span class="k">try await</span> thread.run(.init(
     threadID: thread.id,
     message: <span class="s">"Read notes.md from the workspace and summarize it."</span>
 ))</code></pre>

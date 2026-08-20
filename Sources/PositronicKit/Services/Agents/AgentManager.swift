@@ -12,7 +12,7 @@ import PKUtilities
 /// - One agent can attach to multiple threads simultaneously.
 /// - `attach` is idempotent: re-attaching the same agent to the same thread is a no-op.
 /// - If `attachedAgentId` references a deleted agent, it is nulled on access.
-public actor AgentManager: AgentManagerProtocol {
+actor AgentManager: AgentManagerProtocol {
     public struct Stores: Sendable {
         public let agentStore: any AgentStoreProtocol
         public let threadStore: any ThreadPersistenceProtocol

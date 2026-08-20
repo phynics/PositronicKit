@@ -253,7 +253,7 @@ public extension PositronicKit {
         public let workspaceProfile: WorkspaceProfile
         public let workspaceCreator: any WorkspaceFactory
         public let sectionProviders: [any PromptSectionProviding]
-        public let runtimeToolPolicy: ThreadManager.RuntimeToolPolicy
+        public let runtimeToolPolicy: RuntimeToolPolicy
         public let turnPlugins: [any TurnPlugin]
         public let promptObserver: (any PromptObserving)?
         public let toolApprovalPolicy: any ToolApprovalPolicy
@@ -286,7 +286,7 @@ public extension PositronicKit {
             workspaceProfile: WorkspaceProfile? = nil,
             workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
             sectionProviders: [any PromptSectionProviding] = [],
-            runtimeToolPolicy: ThreadManager.RuntimeToolPolicy = .default,
+            runtimeToolPolicy: RuntimeToolPolicy = .default,
             workspaceRoot: URL? = nil,
             turnPlugins: [any TurnPlugin] = [],
             promptObserver: (any PromptObserving)? = nil,

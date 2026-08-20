@@ -8,7 +8,7 @@ import Testing
     @Test("PositronicKit default initialization")
     func defaultInitialization() async {
         let chat = PositronicKit()
-        let isConfigured = await chat.isLanguageModelConfigured
+        let isConfigured = await chat.model.isConfigured
         #expect(!isConfigured, "Default init should not be configured")
     }
 
