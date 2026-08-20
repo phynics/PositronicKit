@@ -204,6 +204,8 @@ public struct RuntimeToolIntent: Codable, Equatable, Hashable, Sendable {
     public let name: String
     public let arguments: String
     public let modelRoundIndex: Int
+    public let workspaceID: UUID?
+    public let workspaceRouting: WorkspaceToolRouting?
     public let createdAt: Date
 
     public init(
@@ -214,6 +216,8 @@ public struct RuntimeToolIntent: Codable, Equatable, Hashable, Sendable {
         name: String,
         arguments: String,
         modelRoundIndex: Int,
+        workspaceID: UUID? = nil,
+        workspaceRouting: WorkspaceToolRouting? = nil,
         createdAt: Date = Date()
     ) {
         self.id = id
@@ -223,6 +227,8 @@ public struct RuntimeToolIntent: Codable, Equatable, Hashable, Sendable {
         self.name = name
         self.arguments = arguments
         self.modelRoundIndex = modelRoundIndex
+        self.workspaceID = workspaceID
+        self.workspaceRouting = workspaceRouting
         self.createdAt = createdAt
     }
 }
@@ -236,6 +242,8 @@ public struct RuntimeToolResult: Codable, Equatable, Hashable, Sendable {
     public let output: String
     public let succeeded: Bool
     public let errorMessage: String?
+    public let workspaceID: UUID?
+    public let workspaceRouting: WorkspaceToolRouting?
     public let createdAt: Date
 
     public init(
@@ -246,6 +254,8 @@ public struct RuntimeToolResult: Codable, Equatable, Hashable, Sendable {
         output: String,
         succeeded: Bool = true,
         errorMessage: String? = nil,
+        workspaceID: UUID? = nil,
+        workspaceRouting: WorkspaceToolRouting? = nil,
         createdAt: Date = Date()
     ) {
         self.id = id
@@ -255,6 +265,8 @@ public struct RuntimeToolResult: Codable, Equatable, Hashable, Sendable {
         self.output = output
         self.succeeded = succeeded
         self.errorMessage = errorMessage
+        self.workspaceID = workspaceID
+        self.workspaceRouting = workspaceRouting
         self.createdAt = createdAt
     }
 }

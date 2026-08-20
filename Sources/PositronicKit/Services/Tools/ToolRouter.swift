@@ -12,6 +12,17 @@ public enum ToolExecutionOutcome: Sendable {
     case deferredExternally
 }
 
+/// The workspace selected by the admission snapshot for one `call_tool` invocation.
+struct WorkspaceToolRoute: Sendable {
+    let workspaceID: UUID
+    let tool: AnyTool
+    let explicit: Bool
+    let isPrimary: Bool
+    let location: WorkspaceReference.WorkspaceLocation
+
+    var routing: WorkspaceToolRouting { explicit ? .explicit : .implicit }
+}
+
 /// A fully parsed tool call from the LLM response, ready for routing.
 ///
 /// This is a runtime-internal routing detail (`package`-scoped): it is produced and consumed inside
@@ -110,6 +121,7 @@ actor ToolRouter {
         turnID: UUID? = nil,
         modelRoundIndex: Int = 0,
         availableTools: [AnyTool],
+        workspaceToolCatalog: WorkspaceToolCatalog? = nil,
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
     ) async throws -> ToolTurnResult {
         let accumulators = await outputs.toolCallAccumulators
@@ -154,6 +166,7 @@ actor ToolRouter {
             modelRoundIndex: modelRoundIndex,
             calls: parsedCalls,
             availableTools: availableTools,
+            workspaceToolCatalog: workspaceToolCatalog,
             continuation: continuation
         )
 
@@ -175,6 +188,7 @@ actor ToolRouter {
         modelRoundIndex: Int = 0,
         calls: [ParsedToolCall],
         availableTools: [AnyTool],
+        workspaceToolCatalog: WorkspaceToolCatalog? = nil,
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
     ) async throws -> ToolHandlingResult {
         var hasDeferred = false
@@ -196,7 +210,19 @@ actor ToolRouter {
                 continuation: continuation
             )
 
+            var workspaceRoute: WorkspaceToolRoute?
+            var effectiveToolRef = toolRef
             do {
+                if call.name == "call_tool" {
+                    guard let workspaceToolCatalog, !workspaceToolCatalog.isEmpty else {
+                        throw ToolError.toolNotFound(call.name)
+                    }
+                    workspaceRoute = try resolveWorkspaceTool(
+                        call: call,
+                        catalog: workspaceToolCatalog
+                    )
+                    effectiveToolRef = workspaceRoute?.tool.toolReference ?? toolRef
+                }
                 if let runtimeRepository, let turnID {
                     try await runtimeRepository.recordToolIntent(RuntimeToolIntent(
                         turnID: turnID,
@@ -204,20 +230,32 @@ actor ToolRouter {
                         toolCallID: call.callId,
                         name: call.name,
                         arguments: call.argumentsJSON,
-                        modelRoundIndex: modelRoundIndex
+                        modelRoundIndex: modelRoundIndex,
+                        workspaceID: workspaceRoute?.workspaceID,
+                        workspaceRouting: workspaceRoute?.routing
                     ))
                 }
                 guard let arguments = call.arguments else {
                     throw ToolError.malformedArguments("invalid JSON object")
                 }
-                let outcome = try await execute(
-                    tool: toolRef, arguments: arguments,
-                    threadID: threadId, availableTools: availableTools
-                )
+                let outcome: ToolExecutionOutcome
+                if let workspaceRoute {
+                    outcome = try await executeWorkspaceTool(
+                        route: workspaceRoute,
+                        arguments: arguments,
+                        threadID: threadId
+                    )
+                } else {
+                    outcome = try await execute(
+                        tool: toolRef, arguments: arguments,
+                        threadID: threadId, availableTools: availableTools
+                    )
+                }
                 let projection = try await projectOutcome(
                     outcome,
                     call: call,
-                    toolRef: toolRef,
+                    toolRef: effectiveToolRef,
+                    workspaceRoute: workspaceRoute,
                     threadId: threadId,
                     turnID: turnID,
                     continuation: continuation
@@ -233,10 +271,40 @@ actor ToolRouter {
                 }
             } catch {
                 failedCount += 1
+                if let ambiguity = error as? ToolError,
+                   case .ambiguousWorkspaceTool = ambiguity,
+                   let runtimeRepository,
+                   let turnID
+                {
+                    let correction = ambiguity.userFriendlyMessage
+                        + "\n"
+                        + (ambiguity.remediation ?? "")
+                    do {
+                        try await runtimeRepository.appendNotice(
+                            turnID: turnID,
+                            notice: TurnNotice(
+                                kind: "ambiguousWorkspaceTool",
+                                message: correction
+                            )
+                        )
+                    } catch {
+                        // The model-visible error remains useful even when a host repository
+                        // cannot append its audit notice; the following result projection still
+                        // preserves the ordinary persistence-failure barrier.
+                        logger.error(
+                            "Unable to append workspace ambiguity notice",
+                            metadata: LoggingMetadata.makeMetadata(
+                                for: error,
+                                correlationID: call.callId
+                            )
+                        )
+                    }
+                }
                 let projection = try await projectError(
                     error,
                     call: call,
-                    toolRef: toolRef,
+                    toolRef: effectiveToolRef,
+                    workspaceRoute: workspaceRoute,
                     threadId: threadId,
                     turnID: turnID,
                     continuation: continuation
@@ -340,6 +408,101 @@ actor ToolRouter {
             }
             return .completed(output)
 
+        case .deferExternally:
+        return .deferredExternally
+        }
+    }
+
+    /// Resolves a model-facing `call_tool` invocation exclusively against the admission snapshot.
+    private func resolveWorkspaceTool(
+        call: ParsedToolCall,
+        catalog: WorkspaceToolCatalog
+    ) throws -> WorkspaceToolRoute {
+        guard let arguments = call.arguments else {
+            throw ToolError.malformedArguments("invalid JSON object")
+        }
+        guard let requestedTool = arguments["tool"]?.asString,
+              !requestedTool.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else {
+            throw ToolError.missingArgument("tool")
+        }
+
+        let requestedWorkspace: UUID?
+        let explicit: Bool
+        if let at = arguments["at"] {
+            explicit = true
+            guard let value = at.asString,
+                  let id = UUID(uuidString: value.trimmingCharacters(in: .whitespacesAndNewlines))
+            else {
+                throw ToolError.invalidWorkspaceID(at.description)
+            }
+            requestedWorkspace = id
+        } else {
+            explicit = false
+            requestedWorkspace = nil
+        }
+
+        var matches: [(entry: WorkspaceToolCatalog.Entry, tool: AnyTool)] = []
+        for entry in catalog.entries {
+            guard requestedWorkspace == nil || requestedWorkspace == entry.workspace.id else { continue }
+            for tool in entry.tools where tool.callName == requestedTool || tool.name == requestedTool {
+                matches.append((entry, tool))
+            }
+        }
+
+        if explicit, let requestedWorkspace,
+           !catalog.entries.contains(where: { $0.workspace.id == requestedWorkspace })
+        {
+            throw ToolError.workspaceNotFound(requestedWorkspace)
+        }
+        guard !matches.isEmpty else { throw ToolError.toolNotFound(requestedTool) }
+        guard matches.count == 1 else {
+            throw ToolError.ambiguousWorkspaceTool(
+                tool: requestedTool,
+                candidates: matches.compactMap { match in
+                    match.entry.candidates.first(where: { $0.toolID == match.tool.callName })
+                }
+            )
+        }
+        return WorkspaceToolRoute(
+            workspaceID: matches[0].entry.workspace.id,
+            tool: matches[0].tool,
+            explicit: explicit,
+            isPrimary: matches[0].entry.isPrimary,
+            location: matches[0].entry.workspace.location
+        )
+    }
+
+    /// Executes a selected workspace tool while revalidating ordinary Thread bindings immediately
+    /// before the side effect. Agent primary workspaces are authorized by the captured Agent
+    /// identity and are not ordinary Thread bindings.
+    private func executeWorkspaceTool(
+        route: WorkspaceToolRoute,
+        arguments: [String: AnyCodable],
+        threadID: UUID
+    ) async throws -> ToolExecutionOutcome {
+        guard let nested = arguments["arguments"]?.asDictionary ??
+            (arguments["arguments"] == nil ? [:] : nil)
+        else {
+            throw ToolError.invalidArgument("arguments", expected: "object", got: arguments["arguments"]?.description ?? "null")
+        }
+        switch try outcomeForWorkspace(
+            location: route.location,
+            threadIsPrivate: await threadManager.thread(id: threadID)?.isPrivate ?? false
+        ) {
+        case .executeLocally:
+            let output = try await threadManager.withWorkspaceExecution(route.workspaceID) { [self] in
+                if !route.isPrimary {
+                    try await threadManager.requireWorkspaceBinding(route.workspaceID, for: threadID)
+                }
+                return try await executeLocally(
+                    tool: route.tool.toolReference,
+                    arguments: nested,
+                    threadId: threadID,
+                    dynamicTools: [route.tool]
+                )
+            }
+            return .completed(output)
         case .deferExternally:
             return .deferredExternally
         }
@@ -515,6 +678,7 @@ actor ToolRouter {
         _ outcome: ToolExecutionOutcome,
         call: ParsedToolCall,
         toolRef: ToolReference,
+        workspaceRoute: WorkspaceToolRoute?,
         threadId: UUID,
         turnID: UUID?,
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
@@ -532,19 +696,33 @@ actor ToolRouter {
                         turnID: turnID,
                         threadID: threadId,
                         toolCallID: call.callId,
-                        output: output
+                        output: output,
+                        workspaceID: workspaceRoute?.workspaceID,
+                        workspaceRouting: workspaceRoute?.routing
                     ), message: message)
                 } else {
                     try await messageStore.saveMessage(message)
                 }
                 continuation.yield(.toolCompleted(
-                    toolCallID: call.callId, status: .success(ToolResult.success(output))
+                    toolCallID: call.callId,
+                    status: .success(ToolResult.success(
+                        output,
+                        workspaceID: workspaceRoute?.workspaceID,
+                        workspaceRouting: workspaceRoute?.routing
+                    ))
                 ))
             } catch {
                 logger.error("Tool persistence failed", metadata: LoggingMetadata.makeMetadata(for: error, correlationID: call.callId))
                 continuation.yield(.toolCompleted(
                     toolCallID: call.callId,
-                    status: .persistenceFailed(reference: toolRef, error: safeErrorMessage(error))
+                    status: workspaceRoute.map {
+                        .workspacePersistenceFailed(
+                            reference: toolRef,
+                            error: safeErrorMessage(error),
+                            workspaceID: $0.workspaceID,
+                            routing: $0.routing
+                        )
+                    } ?? .persistenceFailed(reference: toolRef, error: safeErrorMessage(error))
                 ))
                 return ToolProjection(message: nil, persistenceFailed: true)
             }
@@ -569,6 +747,7 @@ actor ToolRouter {
         _ error: Error,
         call: ParsedToolCall,
         toolRef: ToolReference,
+        workspaceRoute: WorkspaceToolRoute?,
         threadId: UUID,
         turnID: UUID?,
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
@@ -594,20 +773,36 @@ actor ToolRouter {
                     toolCallID: call.callId,
                     output: errorOutput,
                     succeeded: false,
-                    errorMessage: errorMsg
+                    errorMessage: errorMsg,
+                    workspaceID: workspaceRoute?.workspaceID,
+                    workspaceRouting: workspaceRoute?.routing
                 ), message: message)
             } else {
                 try await messageStore.saveMessage(message)
             }
             continuation.yield(.toolCompleted(
                 toolCallID: call.callId,
-                 status: .failed(reference: toolRef, error: safeErrorMessage(error))
+                status: workspaceRoute.map {
+                    .workspaceFailed(
+                        reference: toolRef,
+                        error: safeErrorMessage(error),
+                        workspaceID: $0.workspaceID,
+                        routing: $0.routing
+                    )
+                } ?? .failed(reference: toolRef, error: safeErrorMessage(error))
             ))
         } catch {
             logger.error("Tool error persistence failed", metadata: LoggingMetadata.makeMetadata(for: error, correlationID: call.callId))
             continuation.yield(.toolCompleted(
                 toolCallID: call.callId,
-                status: .persistenceFailed(reference: toolRef, error: safeErrorMessage(error))
+                status: workspaceRoute.map {
+                    .workspacePersistenceFailed(
+                        reference: toolRef,
+                        error: safeErrorMessage(error),
+                        workspaceID: $0.workspaceID,
+                        routing: $0.routing
+                    )
+                } ?? .persistenceFailed(reference: toolRef, error: safeErrorMessage(error))
             ))
             return ToolProjection(message: nil, persistenceFailed: true)
         }

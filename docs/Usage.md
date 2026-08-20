@@ -282,6 +282,21 @@ the configured `AgentContextSource`, while their primary Thread (`privateThreadI
 Agent-owned history boundary. Managed Turn preparation fails closed when a required custom context
 source fails; direct Turns do not load Agent context.
 
+### Workspace tool dispatch
+
+Managed Turns expose one provider-facing workspace dispatcher, `call_tool`. The runtime captures
+the Agent primary Workspace and Thread-bound Workspaces at Turn admission, including each tool's
+label, description, and schema. A model may call `call_tool` with `tool`, optional `at` (a Workspace
+UUID), and `arguments`; `at` may be omitted only when exactly one authorized Workspace provides the
+requested tool. If more than one matches, the model receives the authorized IDs and labels, tool
+descriptions and schemas, and an explicit corrected call. Routing is evaluated against the admission
+snapshot, so Workspace attachment or catalog changes affect the next Turn only.
+
+Runtime and request-scoped tools remain separate from `call_tool`; callers cannot register a tool
+with that reserved name. Tool intent/result records and successful tool events retain the resolved
+Workspace ID and whether routing was explicit or implicit, including failed and persistence-failed
+events. Ambiguous matches also append a durable `ambiguousWorkspaceTool` TurnNotice for hosts.
+
 ## 4. Local Embeddings
 
 `PKLocalEmbeddings` keeps the local embedding facade separate from the runtime core. The MiniLM backend is fully in-process: it has no provider or daemon fallback and accepts only host-provisioned model assets.

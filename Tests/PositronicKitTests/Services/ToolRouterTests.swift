@@ -169,12 +169,14 @@ final class ToolRouterTests {
     private func setupRouter(
         with tool: any PKContracts.Tool,
         approvalPolicy: any ToolApprovalPolicy,
-        disabledToolIDs: Set<String> = []
+        disabledToolIDs: Set<String> = [],
+        runtimeRepository: (any ThreadRuntimeRepository)? = nil
     ) async throws -> (ToolRouter, UUID, MockPersistenceService) {
         let (threadManager, mockPersistence) = try await setupThreadManager()
         let toolRouter = ToolRouter(
             threadManager: threadManager,
             messageStore: mockPersistence,
+            runtimeRepository: runtimeRepository,
             approvalPolicy: approvalPolicy
         )
 
@@ -267,6 +269,121 @@ final class ToolRouterTests {
         #expect(tool.didExecute == false)
         #expect(result.hasDeferred == false)
         #expect(result.resolvedToolParams.first?.content.contains("permission") == true)
+    }
+
+    @Test("Workspace call_tool ambiguity returns a rich correction without execution")
+    func workspaceCallToolAmbiguity() async throws {
+        let tool = MockTool(callName: "read_file", result: .success("workspace output"))
+        let runtimeRepository = InMemoryThreadRuntimeRepository()
+        let (router, threadID, persistence) = try await setupRouter(
+            with: tool,
+            approvalPolicy: DenyAllToolApprovalPolicy(),
+            runtimeRepository: runtimeRepository
+        )
+        try await runtimeRepository.saveThread(Thread(id: threadID))
+        let admission = try await runtimeRepository.admitTurn(
+            threadID: threadID,
+            requestID: UUID(),
+            callerIntentFingerprint: "workspace-ambiguity"
+        )
+        let turnID = admission.turn.identity.turnID
+        try await runtimeRepository.recordToolIntent(RuntimeToolIntent(
+            turnID: turnID,
+            threadID: threadID,
+            toolCallID: "call-ambiguous",
+            name: "call_tool",
+            arguments: "{\"tool\":\"read_file\",\"arguments\":{}}",
+            modelRoundIndex: 0
+        ))
+        let first = try #require(persistence.workspaces.first)
+        let second = WorkspaceReference(
+            id: UUID(),
+            uri: WorkspaceURI(host: "pk-runtime", path: "/second"),
+            location: .runtime,
+            tools: [.known(tool.callName)]
+        )
+        try await persistence.saveWorkspace(second)
+        try await persistence.addToolToWorkspace(workspaceId: second.id, tool: .known(tool.callName))
+
+        let catalog = WorkspaceToolCatalog(entries: [
+            .init(workspace: first, label: first.uri.description, isPrimary: false, tools: [tool.toAnyTool()]),
+            .init(workspace: second, label: second.uri.description, isPrimary: false, tools: [tool.toAnyTool()]),
+        ])
+        // Ambiguity must not execute either candidate or require a live binding.
+        let ambiguousCall = ParsedToolCall(
+            callId: "call-ambiguous",
+            name: "call_tool",
+            argumentsJSON: "{\"tool\":\"read_file\",\"arguments\":{}}"
+        )
+        let result = try await captureProjectedToolEventsResult { continuation in
+            try await router.handlePendingToolCalls(
+                threadId: threadID,
+                turnID: turnID,
+                calls: [ambiguousCall],
+                availableTools: [catalog.callTool],
+                workspaceToolCatalog: catalog,
+                continuation: continuation
+            )
+        }
+
+        #expect(result.hasDeferred == false)
+        #expect(result.resolvedToolParams.first?.content.contains("call_tool") == true)
+        #expect(result.resolvedToolParams.first?.content.contains(first.id.uuidString) == true)
+        #expect(result.resolvedToolParams.first?.content.contains(second.id.uuidString) == true)
+        #expect(tool.result.output == "workspace output")
+        let notices = try await runtimeRepository.fetchNotices(turnID: turnID)
+        #expect(notices.contains(where: {
+            $0.kind == "ambiguousWorkspaceTool"
+                && ($0.message ?? "").contains(first.id.uuidString)
+                && ($0.message ?? "").contains(second.id.uuidString)
+        }))
+    }
+
+    @Test("Workspace call_tool failures retain route provenance in events and records")
+    func workspaceCallToolFailureProvenance() async throws {
+        let tool = MockTool(callName: "read_file", result: .failure("workspace failed"))
+        let runtimeRepository = InMemoryThreadRuntimeRepository()
+        let (router, threadID, persistence) = try await setupRouter(
+            with: tool,
+            approvalPolicy: DenyAllToolApprovalPolicy(),
+            runtimeRepository: runtimeRepository
+        )
+        try await runtimeRepository.saveThread(Thread(id: threadID))
+        let admission = try await runtimeRepository.admitTurn(
+            threadID: threadID,
+            requestID: UUID(),
+            callerIntentFingerprint: "workspace-failure"
+        )
+        let turnID = admission.turn.identity.turnID
+        let workspace = try #require(persistence.workspaces.first)
+        let catalog = WorkspaceToolCatalog(entries: [
+            .init(workspace: workspace, label: workspace.uri.description, isPrimary: false, tools: [tool.toAnyTool()]),
+        ])
+        let call = ParsedToolCall(
+            callId: "call-failure",
+            name: "call_tool",
+            argumentsJSON: "{\"tool\":\"read_file\",\"at\":\"\(workspace.id.uuidString)\",\"arguments\":{}}"
+        )
+        let events = try await captureProjectedToolEvents { continuation in
+            _ = try await router.handlePendingToolCalls(
+                threadId: threadID,
+                turnID: turnID,
+                calls: [call],
+                availableTools: [catalog.callTool],
+                workspaceToolCatalog: catalog,
+                continuation: continuation
+            )
+        }
+
+        #expect(events.contains(where: {
+            guard case let .completion(.toolExecution(toolCallID: id, status: status)) = $0 else { return false }
+            guard id == "call-failure" else { return false }
+            guard case let .workspaceFailed(_, _, workspaceID, routing) = status else { return false }
+            return workspaceID == workspace.id && routing == .explicit
+        }))
+        let results = try await runtimeRepository.fetchToolResults(turnID: turnID)
+        #expect(results.first?.workspaceID == workspace.id)
+        #expect(results.first?.workspaceRouting == .explicit)
     }
 
     @Test("A disabled tool is rejected at the execution sink and projected as a failure")
