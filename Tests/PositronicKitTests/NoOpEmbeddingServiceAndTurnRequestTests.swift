@@ -75,7 +75,6 @@ struct TurnRequestDescriptionTests {
 
         #expect(desc.contains("requestID: nil"))
         #expect(desc.contains("systemInstructions: nil"))
-        #expect(desc.contains("agentID: nil"))
         #expect(desc.contains("generationParameters: nil"))
         #expect(desc.contains("structuredOutput: nil"))
         #expect(desc.contains("promptAssemblyLogger: nil"))
@@ -84,13 +83,11 @@ struct TurnRequestDescriptionTests {
     @Test("description reports set values for optional fields")
     func setOptionalsReported() {
         let requestId = UUID()
-        let agentId = UUID()
         let request = TurnRequest(
             threadID: UUID(),
             requestID: requestId,
             message: "hi",
             systemInstructions: "Be helpful.",
-            agentID: agentId,
             maxModelRounds: 10
         )
         let desc = request.description

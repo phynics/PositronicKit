@@ -16,11 +16,12 @@ actor ThreadTaskRegistry {
 
     private var active: [UUID: ActiveTurn] = [:]
 
-    /// Registers the stream-driving task for a send, cancelling any previously active task
-    /// for the same thread (replacement-send behavior).
-    func register(_ task: Task<Void, Never>, turnID: UUID, for threadID: UUID) {
-        active[threadID]?.task.cancel()
+    /// Registers the stream-driving task for a Turn without replacing another active Turn.
+    @discardableResult
+    func register(_ task: Task<Void, Never>, turnID: UUID, for threadID: UUID) -> Bool {
+        guard active[threadID] == nil else { return false }
         active[threadID] = ActiveTurn(turnID: turnID, task: task)
+        return true
     }
 
     /// Cancels whatever task is currently active for the thread (used by

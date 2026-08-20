@@ -126,6 +126,8 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
         threadID: UUID,
         requestID: UUID,
         callerIntentFingerprint: String,
+        executionKind: TurnExecutionKind,
+        capturedAgentID: UUID?,
         turnID: UUID,
         now: Date
     ) async throws -> TurnAdmission {
@@ -158,6 +160,8 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
             identity: identity,
             threadID: threadID,
             callerIntent: callerIntent,
+            executionKind: executionKind,
+            capturedAgentID: capturedAgentID,
             lifecycle: .admitted,
             notices: [TurnNotice(kind: "turn-admitted", createdAt: now)],
             createdAt: now,
@@ -182,6 +186,8 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
         previousTurnID: UUID,
         requestID: UUID,
         callerIntentFingerprint: String,
+        executionKind: TurnExecutionKind,
+        capturedAgentID: UUID?,
         turnID: UUID,
         attempt: Int,
         now: Date
@@ -193,6 +199,8 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
             threadID: threadID,
             requestID: requestID,
             callerIntentFingerprint: callerIntentFingerprint,
+            executionKind: executionKind,
+            capturedAgentID: capturedAgentID,
             turnID: turnID,
             now: now
         )

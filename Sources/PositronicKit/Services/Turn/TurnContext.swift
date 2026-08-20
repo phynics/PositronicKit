@@ -121,6 +121,8 @@ struct TurnContext {
     let turnID: UUID
     let requestId: UUID
     let agentId: UUID?
+    let executionKind: TurnExecutionKind
+    let contributors: [TurnContributor]
     let modelName: String
     let maxModelRounds: Int
     let systemInstructions: String?
@@ -153,6 +155,8 @@ struct TurnContext {
         turnID: UUID = UUID(),
         requestId: UUID = UUID(),
         agentId: UUID?,
+        executionKind: TurnExecutionKind = .agentManaged,
+        contributors: [TurnContributor] = [],
         modelName: String,
         maxModelRounds: Int,
         systemInstructions: String?,
@@ -177,6 +181,8 @@ struct TurnContext {
         self.turnID = turnID
         self.requestId = requestId
         self.agentId = agentId
+        self.executionKind = executionKind
+        self.contributors = contributors
         self.modelName = modelName
         self.maxModelRounds = maxModelRounds
         self.systemInstructions = systemInstructions
@@ -215,6 +221,8 @@ struct TurnContext {
             turnID: turnID,
             requestId: requestId,
             agentId: agentId,
+            executionKind: executionKind,
+            contributors: contributors,
             modelName: modelName,
             maxModelRounds: maxModelRounds,
             systemInstructions: systemInstructions,

@@ -10,6 +10,10 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
+- **Managed/direct Turn execution:** `ThreadHandle.startTurn` now captures the attached Agent and
+  returns a durable `TurnHandle`; detached execution uses `startDirectTurn(message:context:)`
+  with an explicit prompt and contributor selection. The legacy identity-free send seams were
+  removed, and `TurnRequest` no longer carries Agent identity.
 - **v4 deprecated API removal:** removed the released v3 Timeline compatibility modules and
   legacy persistence contracts. Canonical Thread APIs remain unchanged; historical Codable keys,
   database fields, and wire identifiers remain supported at serialization boundaries.

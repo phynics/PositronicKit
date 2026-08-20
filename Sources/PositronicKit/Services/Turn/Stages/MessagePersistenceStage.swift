@@ -143,6 +143,7 @@ struct MessagePersistenceStage: PipelineStage {
             reasoning: fullThinking.isEmpty ? nil : fullThinking,
             toolCalls: toolCallsJSON,
             agentID: context.agentId,
+            executionKind: context.executionKind,
             status: status
         )
     }

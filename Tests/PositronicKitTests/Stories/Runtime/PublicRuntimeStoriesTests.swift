@@ -84,17 +84,8 @@ struct PublicRuntimeStoriesTests {
     @Test("explicit agent requests reject an unattached agent before side effects")
     func managedThreadRejectsUnattachedAgent() async throws {
         let (kit, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime()
-        let agent = try await kit.agents.create(
-            name: "Unattached Agent",
-            description: "Must be attached before it can run."
-        )
-
-        await #expect(throws: AgentError.self) {
-            _ = try await kit.threads.open(threadID).runDetached(TurnRequest(
-                threadID: threadID,
-                message: "Should fail",
-                agentID: agent.id
-            ))
+        await #expect(throws: AgentError.managedThreadRequiresAttachedAgent(threadID)) {
+            _ = try await kit.threads.open(threadID).startTurn(message: "Should fail")
         }
 
         #expect(try await mockPersistence.fetchMessages(for: threadID).isEmpty)
@@ -108,18 +99,13 @@ struct PublicRuntimeStoriesTests {
             name: "Attached Agent",
             description: "Owns the acceptance thread."
         )
-        let requestedAgent = try await kit.agents.create(
-            name: "Requested Agent",
-            description: "Must not run another agent's thread."
-        )
         try await kit.agents.attach(attachedAgent.id, to: threadID)
 
-        await #expect(throws: AgentError.self) {
-            _ = try await kit.threads.open(threadID).runDetached(TurnRequest(
-                threadID: threadID,
+        await #expect(throws: AgentError.directTurnRequiresDetachedThread(threadID)) {
+            _ = try await kit.threads.open(threadID).startDirectTurn(
                 message: "Should fail",
-                agentID: requestedAgent.id
-            ))
+                context: DirectTurnContext(systemInstructions: "", contributor: .host)
+            )
         }
 
         #expect(try await mockPersistence.fetchMessages(for: threadID).isEmpty)

@@ -123,6 +123,10 @@ public struct TurnRecord: Codable, Equatable, Sendable {
     public let identity: TurnIdentity
     public let threadID: UUID
     public let callerIntent: TurnCallerIntent
+    /// The managed or direct path captured at admission.
+    public let executionKind: TurnExecutionKind
+    /// The Agent attached to the Thread when a managed Turn was admitted.
+    public let capturedAgentID: UUID?
     public var lifecycle: TurnLifecycle
     public var currentModelRoundIndex: Int
     public var outcome: TurnOutcome?
@@ -141,6 +145,8 @@ public struct TurnRecord: Codable, Equatable, Sendable {
         identity: TurnIdentity,
         threadID: UUID,
         callerIntent: TurnCallerIntent,
+        executionKind: TurnExecutionKind = .agentManaged,
+        capturedAgentID: UUID? = nil,
         lifecycle: TurnLifecycle = .admitted,
         currentModelRoundIndex: Int? = nil,
         outcome: TurnOutcome? = nil,
@@ -157,6 +163,8 @@ public struct TurnRecord: Codable, Equatable, Sendable {
         self.identity = identity
         self.threadID = threadID
         self.callerIntent = callerIntent
+        self.executionKind = executionKind
+        self.capturedAgentID = capturedAgentID
         self.lifecycle = lifecycle
         self.currentModelRoundIndex = currentModelRoundIndex ?? identity.modelRoundIndex
         self.outcome = outcome
@@ -393,6 +401,8 @@ public protocol ThreadRuntimeRepository: ThreadPersistenceProtocol, ThreadMessag
         threadID: UUID,
         requestID: UUID,
         callerIntentFingerprint: String,
+        executionKind: TurnExecutionKind,
+        capturedAgentID: UUID?,
         turnID: UUID,
         now: Date
     ) async throws -> TurnAdmission
@@ -401,6 +411,8 @@ public protocol ThreadRuntimeRepository: ThreadPersistenceProtocol, ThreadMessag
         previousTurnID: UUID,
         requestID: UUID,
         callerIntentFingerprint: String,
+        executionKind: TurnExecutionKind,
+        capturedAgentID: UUID?,
         turnID: UUID,
         attempt: Int,
         now: Date
@@ -450,6 +462,8 @@ public extension ThreadRuntimeRepository {
             threadID: threadID,
             requestID: requestID,
             callerIntentFingerprint: callerIntentFingerprint,
+            executionKind: .agentManaged,
+            capturedAgentID: nil,
             turnID: UUID(),
             now: now
         )

@@ -97,6 +97,8 @@ extension TurnEngine {
         turnBriefingBuilder: TurnBriefingBuilder?,
         systemInstructions: String?,
         agentId: UUID?,
+        executionKind: TurnExecutionKind,
+        contributors: [TurnContributor],
         agent: Agent?,
         agentDiagnostics: [TurnDiagnostic],
         maxModelRounds: Int,
@@ -108,7 +110,8 @@ extension TurnEngine {
         contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
         assemblyLogger: Logger? = nil,
         responseModalities: Set<ResponseModality> = [.text],
-        audioOutput: AudioOutputOptions? = nil
+        audioOutput: AudioOutputOptions? = nil,
+        onAdmission: (@Sendable () async -> Void)? = nil
     ) async throws -> PreparedSession {
         // Sidecar directives steer generation only through prompt text (SDC-7). The per-turn
         // directive list is volatile (consumer-scheduled, changes turn-to-turn), so it rides
@@ -159,7 +162,8 @@ extension TurnEngine {
                     tools: tools,
                     toolOutputs: toolOutputs,
                     systemInstructions: systemInstructions,
-                    agentId: agentId,
+                    executionKind: executionKind,
+                    contributors: contributors,
                     maxModelRounds: maxModelRounds,
                     generationParameters: generationParameters,
                     structuredOutput: structuredOutput,
@@ -170,10 +174,22 @@ extension TurnEngine {
                     audioOutput: audioOutput
                 )
                 let admission = try await dependencies.threadAuthorityCoordinator.withThread(threadID) {
-                    try await runtimeRepository.admitTurn(
+                    // Revalidate the execution authority in the same per-Thread lane as
+                    // admission. The handle's initial lookup is only a convenience preflight;
+                    // an attachment can change while preparation is waiting on provider or
+                    // persistence work. Managed Turns keep the captured Agent identity, while
+                    // direct Turns remain valid only while the Thread is detached.
+                    try await validateExecutionAuthority(
+                        threadID: threadID,
+                        executionKind: executionKind,
+                        agentID: agentId
+                    )
+                    return try await runtimeRepository.admitTurn(
                         threadID: threadID,
                         requestID: requestId,
                         callerIntentFingerprint: fingerprint,
+                        executionKind: executionKind,
+                        capturedAgentID: agentId,
                         turnID: turnID,
                         now: Date()
                     )
@@ -181,14 +197,26 @@ extension TurnEngine {
                 switch admission.disposition {
                 case .admitted:
                     repositoryAdmitted = true
+                    // Publish admission before the remaining preparation work. Joiners for the
+                    // same idempotent request can now subscribe to future events instead of
+                    // falling back to terminal-only replay while prompt/workspace preparation
+                    // is still in progress.
+                    await onAdmission?()
                 case .joined, .replayed:
                     // The repository owns the existing execution. Return its durable record to
                     // the caller rather than starting a second provider/tool side effect.
                     return .existing(admission)
                 }
             } else {
-                guard await TurnIdempotencyGate.shared.checkAndMark(requestId: requestId) else {
-                    throw TurnEngineError.duplicateRequestID(requestId)
+                try await dependencies.threadAuthorityCoordinator.withThread(threadID) {
+                    try await validateExecutionAuthority(
+                        threadID: threadID,
+                        executionKind: executionKind,
+                        agentID: agentId
+                    )
+                    guard await TurnIdempotencyGate.shared.checkAndMark(requestId: requestId) else {
+                        throw TurnEngineError.duplicateRequestID(requestId)
+                    }
                 }
             }
 
@@ -228,8 +256,15 @@ extension TurnEngine {
             var turnDiagnostics = contextResult.diagnostics
             let contextData = contextResult.data
 
-            // 8. Resolve workspaces and session entities
-            let workspaceResult = try await dependencies.threadManager.getWorkspaces(for: threadID)
+            // 8. Resolve session entities. Direct Turns deliberately do not inherit an Agent's
+            // primary workspace, attached workspace context, or memory; their contributors are
+            // the explicit caller-owned selection captured on `TurnContext`.
+            let workspaceResult: WorkspaceQueryResult
+            if executionKind == .direct {
+                workspaceResult = WorkspaceQueryResult(primary: nil, attached: [])
+            } else {
+                workspaceResult = try await dependencies.threadManager.getWorkspaces(for: threadID)
+            }
             turnDiagnostics += workspaceResult.degradations.map {
                 TurnDiagnostic(
                     dependency: .workspace,
@@ -416,6 +451,8 @@ extension TurnEngine {
                 turnID: turnID,
                 requestId: requestId,
                 agentId: agentId,
+                executionKind: executionKind,
+                contributors: contributors,
                 modelName: modelName,
                 maxModelRounds: maxModelRounds,
                 systemInstructions: effectiveSystemInstructions,
@@ -443,6 +480,7 @@ extension TurnEngine {
                     message: "Turn preparation failed before execution.",
                     now: Date()
                 )
+                await dependencies.eventHub.finish(turnID: turnID, error: error)
             } else {
                 // Release the idempotency marker so the caller can retry with the same requestId.
                 await TurnIdempotencyGate.shared.release(requestId: requestId)
@@ -456,12 +494,40 @@ extension TurnEngine {
         }
     }
 
+    private func validateExecutionAuthority(
+        threadID: UUID,
+        executionKind: TurnExecutionKind,
+        agentID: UUID?
+    ) async throws {
+        guard let thread = try await dependencies.threadManager.threadStore.fetchThread(id: threadID) else {
+            throw ThreadError.threadNotFound
+        }
+        switch executionKind {
+        case .agentManaged:
+            // A nil Agent is retained for the legacy internal `run` seam. Public managed
+            // admission supplies the captured identity; when present it must still match the
+            // durable attachment immediately before admission.
+            if let agentID, thread.attachedAgentID != agentID {
+                throw AgentError.threadAgentMismatch(
+                    threadID: threadID,
+                    agentID: agentID,
+                    attachedAgentID: thread.attachedAgentID
+                )
+            }
+        case .direct:
+            guard thread.attachedAgentID == nil else {
+                throw AgentError.directTurnRequiresDetachedThread(threadID)
+            }
+        }
+    }
+
     private static func callerIntentFingerprint(
         messageContent: MessageContent,
         tools: [AnyTool],
         toolOutputs: [ToolOutputSubmission]?,
         systemInstructions: String?,
-        agentId: UUID?,
+        executionKind: TurnExecutionKind,
+        contributors: [TurnContributor],
         maxModelRounds: Int,
         generationParameters: GenerationParameters?,
         structuredOutput: StructuredOutputRequest?,
@@ -489,7 +555,8 @@ extension TurnEngine {
             toolIntent,
             canonicalFingerprint(toolOutputs),
             systemInstructions ?? "",
-            agentId?.uuidString ?? "",
+            executionKind.rawValue,
+            canonicalFingerprint(contributors),
             "\(maxModelRounds)",
             canonicalFingerprint(generationParameters),
             canonicalFingerprint(structuredOutput),

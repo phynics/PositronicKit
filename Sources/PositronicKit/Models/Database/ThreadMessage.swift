@@ -20,8 +20,11 @@ public struct ThreadMessage: Codable, Identifiable, Sendable {
     public var toolCallID: String?
 
     /// The agent that authored this message (nil for human/CLI messages).
-    /// Only set on `.assistant` role messages.
+    /// Only set on assistant role messages.
     public var agentID: UUID?
+
+    /// The managed or direct path that produced this message.
+    public var executionKind: TurnExecutionKind?
 
     /// Depth counter for cross-agent `thread_send` recursion guard. Default 0.
     public var remoteDepth: Int
@@ -46,6 +49,7 @@ public struct ThreadMessage: Codable, Identifiable, Sendable {
         toolCalls: String = "[]",
         toolCallID: String? = nil,
         agentID: UUID? = nil,
+        executionKind: TurnExecutionKind? = nil,
         remoteDepth: Int = 0,
         snapshotData: Data? = nil,
         status: Message.MessageStatus? = nil
@@ -61,6 +65,7 @@ public struct ThreadMessage: Codable, Identifiable, Sendable {
         self.toolCalls = toolCalls
         self.toolCallID = toolCallID
         self.agentID = agentID
+        self.executionKind = executionKind
         self.remoteDepth = remoteDepth
         self.snapshotData = snapshotData
         self.status = status
@@ -79,6 +84,7 @@ public struct ThreadMessage: Codable, Identifiable, Sendable {
         toolCalls: String = "[]",
         toolCallID: String? = nil,
         agentID: UUID? = nil,
+        executionKind: TurnExecutionKind? = nil,
         remoteDepth: Int = 0,
         snapshotData: Data? = nil,
         status: Message.MessageStatus? = nil
@@ -94,6 +100,7 @@ public struct ThreadMessage: Codable, Identifiable, Sendable {
         self.toolCalls = toolCalls
         self.toolCallID = toolCallID
         self.agentID = agentID
+        self.executionKind = executionKind
         self.remoteDepth = remoteDepth
         self.snapshotData = snapshotData
         self.status = status
@@ -142,6 +149,7 @@ public struct ThreadMessage: Codable, Identifiable, Sendable {
         case reasoning, toolCalls
         case toolCallID = "toolCallId"
         case agentID = "agentId"
+        case executionKind
         case remoteDepth, snapshotData, status
     }
 
@@ -167,6 +175,7 @@ public struct ThreadMessage: Codable, Identifiable, Sendable {
         toolCalls = try container.decodeIfPresent(String.self, forKey: .toolCalls) ?? "[]"
         toolCallID = try container.decodeIfPresent(String.self, forKey: .toolCallID)
         agentID = try container.decodeIfPresent(UUID.self, forKey: .agentID)
+        executionKind = try container.decodeIfPresent(TurnExecutionKind.self, forKey: .executionKind)
         remoteDepth = try container.decodeIfPresent(Int.self, forKey: .remoteDepth) ?? 0
         snapshotData = try container.decodeIfPresent(Data.self, forKey: .snapshotData)
         status = try container.decodeIfPresent(Message.MessageStatus.self, forKey: .status)
@@ -188,6 +197,7 @@ public struct ThreadMessage: Codable, Identifiable, Sendable {
         try container.encode(toolCalls, forKey: .toolCalls)
         try container.encodeIfPresent(toolCallID, forKey: .toolCallID)
         try container.encodeIfPresent(agentID, forKey: .agentID)
+        try container.encodeIfPresent(executionKind, forKey: .executionKind)
         try container.encode(remoteDepth, forKey: .remoteDepth)
         try container.encodeIfPresent(snapshotData, forKey: .snapshotData)
         try container.encodeIfPresent(status, forKey: .status)

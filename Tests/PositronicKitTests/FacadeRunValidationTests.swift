@@ -27,8 +27,7 @@ struct FacadeRunValidationTests {
             _ = try await harness.kit.run(TurnRequest(
                 threadID: harness.threadID,
                 message: "must not persist",
-                agentID: agentID,
-            ))
+            ), agentID: agentID, executionKind: .agentManaged)
         }
 
         #expect(try await harness.persistence.fetchMessages(for: harness.threadID).isEmpty)
@@ -46,8 +45,7 @@ struct FacadeRunValidationTests {
             _ = try await harness.kit.run(TurnRequest(
                 threadID: harness.threadID,
                 message: "agent validation wins",
-                agentID: agentID,
-            ))
+            ), agentID: agentID, executionKind: .agentManaged)
         }
 
         #expect(try await harness.persistence.fetchMessages(for: harness.threadID).isEmpty)
@@ -64,8 +62,7 @@ struct FacadeRunValidationTests {
         let stream = try await harness.kit.run(TurnRequest(
             threadID: harness.threadID,
             message: "continue without agent",
-            agentID: agentID,
-        ))
+        ), agentID: agentID, executionKind: .agentManaged)
         let events = try await stream.collect()
 
         let firstEvent = try #require(events.first)
@@ -102,8 +99,7 @@ struct FacadeRunValidationTests {
         let stream = try await harness.kit.run(TurnRequest(
             threadID: harness.threadID,
             message: "use the resolved agent",
-            agentID: agent.id,
-        ))
+        ), agentID: agent.id, executionKind: .agentManaged)
         _ = try await stream.collect()
 
         #expect(await harness.agentStore.fetchCount == 2)
@@ -129,8 +125,7 @@ struct FacadeRunValidationTests {
                 threadID: harness.threadID,
                 requestID: requestID,
                 message: "retryable input",
-                agentID: agent.id,
-            ))
+            ), agentID: agent.id, executionKind: .agentManaged)
         }
 
         try await harness.agentStore.saveAgent(agent)
@@ -140,8 +135,7 @@ struct FacadeRunValidationTests {
             threadID: harness.threadID,
             requestID: requestID,
             message: "retryable input",
-            agentID: agent.id,
-        ))
+        ), agentID: agent.id, executionKind: .agentManaged)
         _ = try await stream.collect()
 
         #expect(await harness.agentStore.fetchCount == 3)

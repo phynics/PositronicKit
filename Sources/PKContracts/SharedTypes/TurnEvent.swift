@@ -537,6 +537,24 @@ public enum TurnEvent: Sendable, Codable {
 // MARK: - Factory Methods (Producer Ergonomics)
 
 public extension TurnEvent {
+    /// Whether this event terminates a Turn stream.
+    var isTerminal: Bool {
+        switch self {
+        case .error:
+            return true
+        case let .completion(event):
+            switch event {
+            case .generationCompleted, .completedEmpty, .maxModelRoundsReached,
+                 .deferredForExternalTool, .streamCompleted:
+                return true
+            case .toolExecution, .sidecarsCompleted:
+                return false
+            }
+        case .delta, .meta:
+            return false
+        }
+    }
+
     /// Delta shortcuts
     static func reasoning(_ text: String) -> TurnEvent {
         .delta(.reasoning(text: text))
