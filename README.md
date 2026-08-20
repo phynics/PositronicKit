@@ -43,13 +43,18 @@ Choose the smallest operation tier that fits the feature:
 let kit = PositronicKit(languageModel: myLLM)
 let answer = try await kit.model.generate("Summarize this note.") // tier 1: raw model
 let thread = try await kit.threads.create()                        // tier 2: durable Thread
-let stream = try await thread.send("Continue the summary.")       // tier 3: Thread handle
+let turn = try await thread.startDirectTurn(                      // tier 3: explicit direct Turn
+    message: "Continue the summary.",
+    context: DirectTurnContext(systemInstructions: "", contributor: .host)
+)
+let stream = turn.events()
 let agent = try await kit.agents.create(                            // tier 4: managed identity
     name: "Researcher",
     description: "Summarizes source material."
 )
 try await kit.agents.attach(agent.id, to: thread.id)
-let managedStream = try await thread.send("Use the attached identity.")
+let managedTurn = try await thread.startTurn(message: "Use the attached identity.")
+let managedStream = managedTurn.events()
 let workspaces = try await kit.workspaces.list()                    // tier 5: workspace catalog
 ```
 
@@ -66,11 +71,12 @@ a connectivity probe or a guarantee that a later request will succeed. Treat `Th
 `kit.model.stream`, or `kit.model.generate` as authoritative because model state can change after
 the check.
 
-`ThreadHandle.run(_:)` validates `TurnRequest.maxModelRounds` before thread resolution, persistence,
-or provider work; values below `1` throw `TurnError.invalidMaxModelRounds` directly from the
-awaited call. Managed execution derives the Agent from durable Thread attachment state. Use
-`runDetached(_:)` for an explicit identity-free request. A failed preflight does not consume
-`requestID`, so the same identifier can be retried after the dependency is repaired.
+`ThreadHandle.startTurn(_:)` validates the request and captures the Agent from durable Thread
+attachment state. A detached Thread uses `startDirectTurn(message:context:)`, where the caller
+supplies the complete system prompt (including an intentional empty prompt) and contributors.
+Both return a `TurnHandle`: `events()` is a nonthrowing future-event stream, `outcome()` replays
+the durable terminal result, and `cancel()` targets exactly that Turn. Use the advanced managed
+`run(_:)` request-shaped seam for options such as sidecars.
 
 One-shot text, result, stream, and structured-output calls all accept per-call generation
 parameters and an inactivity timeout on their configurable overloads. Per-call parameters override
@@ -92,10 +98,10 @@ Errors arrive at the boundary where the work occurs:
 - Request and preparation failures—invalid `maxModelRounds`, Thread hydration, required-Agent
   preflight, provider configuration, sidecar validation, and input/history preparation—throw from
   `try await kit.threads.open(threadID).run(request)` before a stream is returned.
-- Provider and pipeline failures after `ThreadHandle.run(_:)` returns arrive by throwing while the returned
-  stream is iterated. A foreign provider failure retains its original causal error and exposes the
-  stable LLM identity `PKErrorDomain.llm` / `1005` through
-  `TurnEvent.ErrorIdentity.extracting(from:)`, even when nested in a pipeline error.
+- Provider and pipeline failures after a `TurnHandle` is admitted arrive as terminal events on
+  its nonthrowing `events()` stream. The durable `outcome()` remains authoritative for every
+  joiner; advanced `ThreadHandle.run(_:)` retains the throwing stream contract for request-shaped
+  options.
 - `kit.model.generate` and `generateStructured` consume provider streams internally, so preparation
   and provider failures both throw from the one-shot call. `kit.model.stream` returns immediately
   and reports provider failures during iteration.
@@ -162,7 +168,7 @@ let title = SidecarDirective(
     streaming: .buffered
 )
 
-let stream = try await chat.threads.open(threadID).runDetached(.init(
+let stream = try await chat.threads.open(threadID).run(.init(
     threadID: threadID,
     message: "What's the deal with actors in Swift 6?",
     sidecars: [title]

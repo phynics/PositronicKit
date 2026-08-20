@@ -42,7 +42,11 @@ func runExamples() async throws {
 
     let kit = PositronicKitUsageExamples.makeOneShotRuntime()
     let handle = try await kit.threads.create(title: "Docs agent")
-    for try await event in try await handle.send("Hello") {
+    let directTurn = try await handle.startDirectTurn(
+        message: "Hello",
+        context: DirectTurnContext(systemInstructions: "", contributor: .host)
+    )
+    for await event in directTurn.events() {
         print(event)
     }
     let threadCapability = PositronicKitUsageExamples.makeThreadCapabilityExample()

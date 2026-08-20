@@ -100,6 +100,11 @@ enum TurnDegradationError: PKError {
 /// external callers are expected to integrate through `PositronicKit` and the higher-level
 /// extension protocols rather than depending on this concrete orchestrator directly.
 struct TurnEngine {
+    struct TurnExecution: Sendable {
+        let turnID: UUID
+        let stream: AsyncThrowingStream<TurnEvent, Error>
+    }
+
     struct Dependencies {
         /// Production default for the per-stream idle watchdog. Callers must pass an explicit
         /// bounded value through `Dependencies` when they need to override it.
@@ -125,6 +130,7 @@ struct TurnEngine {
         let loggingConfiguration: LoggingConfiguration
         let degradationPolicy: TurnDegradationPolicy
         let promptHistoryRegistry: ThreadPromptJournals
+        let eventHub: TurnEventHub
         let streamTimeout: TimeInterval
 
         init(
@@ -142,6 +148,7 @@ struct TurnEngine {
             loggingConfiguration: LoggingConfiguration = .default,
             degradationPolicy: TurnDegradationPolicy = .failRequired,
             promptHistoryRegistry: ThreadPromptJournals? = nil,
+            eventHub: TurnEventHub? = nil,
             streamTimeout: TimeInterval = Self.defaultStreamTimeout
         ) {
             self.threadManager = threadManager
@@ -159,6 +166,7 @@ struct TurnEngine {
             self.loggingConfiguration = loggingConfiguration
             self.degradationPolicy = degradationPolicy
             self.promptHistoryRegistry = promptHistoryRegistry ?? ThreadPromptJournals()
+            self.eventHub = eventHub ?? TurnEventHub()
             self.streamTimeout = streamTimeout
         }
     }
@@ -227,12 +235,60 @@ struct TurnEngine {
     func execute(
         threadID: UUID,
         requestId: UUID? = nil,
+        messageContent: MessageContent,
+        tools: [AnyTool],
+        toolOutputs: [ToolOutputSubmission]? = nil,
+        turnBriefingBuilder: TurnBriefingBuilder? = nil,
+        systemInstructions: String? = nil,
+        agentId: UUID? = nil,
+        executionKind: TurnExecutionKind = .agentManaged,
+        contributors: [TurnContributor] = [],
+        maxModelRounds: Int = Constants.defaultMaxModelRounds,
+        generationParameters: GenerationParameters? = nil,
+        structuredOutput: StructuredOutputRequest? = nil,
+        sidecars: [SidecarDirective] = [],
+        sidecarCommitPolicy: SidecarCommitPolicy = .everyModelRound,
+        includeSidecarMechanismPreamble: Bool = false,
+        contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
+        assemblyLogger: Logger? = nil,
+        responseModalities: Set<ResponseModality> = [.text],
+        audioOutput: AudioOutputOptions? = nil
+    ) async throws -> AsyncThrowingStream<TurnEvent, Error> {
+        try await startExecution(
+            threadID: threadID,
+            requestId: requestId,
+            messageContent: messageContent,
+            tools: tools,
+            toolOutputs: toolOutputs,
+            turnBriefingBuilder: turnBriefingBuilder,
+            systemInstructions: systemInstructions,
+            agentId: agentId,
+            executionKind: executionKind,
+            contributors: contributors,
+            maxModelRounds: maxModelRounds,
+            generationParameters: generationParameters,
+            structuredOutput: structuredOutput,
+            sidecars: sidecars,
+            sidecarCommitPolicy: sidecarCommitPolicy,
+            includeSidecarMechanismPreamble: includeSidecarMechanismPreamble,
+            contextPipeline: contextPipeline,
+            assemblyLogger: assemblyLogger,
+            responseModalities: responseModalities,
+            audioOutput: audioOutput
+        ).stream
+    }
+
+    func execute(
+        threadID: UUID,
+        requestId: UUID? = nil,
         message: String,
         tools: [AnyTool],
         toolOutputs: [ToolOutputSubmission]? = nil,
         turnBriefingBuilder: TurnBriefingBuilder? = nil,
         systemInstructions: String? = nil,
         agentId: UUID? = nil,
+        executionKind: TurnExecutionKind = .agentManaged,
+        contributors: [TurnContributor] = [],
         maxModelRounds: Int = Constants.defaultMaxModelRounds,
         generationParameters: GenerationParameters? = nil,
         structuredOutput: StructuredOutputRequest? = nil,
@@ -251,6 +307,8 @@ struct TurnEngine {
             turnBriefingBuilder: turnBriefingBuilder,
             systemInstructions: systemInstructions,
             agentId: agentId,
+            executionKind: executionKind,
+            contributors: contributors,
             maxModelRounds: maxModelRounds,
             generationParameters: generationParameters,
             structuredOutput: structuredOutput,
@@ -262,7 +320,7 @@ struct TurnEngine {
         )
     }
 
-    func execute(
+    func startExecution(
         threadID: UUID,
         requestId: UUID? = nil,
         messageContent: MessageContent,
@@ -271,6 +329,8 @@ struct TurnEngine {
         turnBriefingBuilder: TurnBriefingBuilder? = nil,
         systemInstructions: String? = nil,
         agentId: UUID? = nil,
+        executionKind: TurnExecutionKind = .agentManaged,
+        contributors: [TurnContributor] = [],
         maxModelRounds: Int = Constants.defaultMaxModelRounds,
         generationParameters: GenerationParameters? = nil,
         structuredOutput: StructuredOutputRequest? = nil,
@@ -281,7 +341,7 @@ struct TurnEngine {
         assemblyLogger: Logger? = nil,
         responseModalities: Set<ResponseModality> = [.text],
         audioOutput: AudioOutputOptions? = nil
-    ) async throws -> AsyncThrowingStream<TurnEvent, Error> {
+    ) async throws -> TurnExecution {
         let sid = threadID.uuidString.prefix(8).lowercased()
         logger.info("Starting generation stream for thread \(sid)")
 
@@ -292,9 +352,10 @@ struct TurnEngine {
         }
         try SidecarSchemaComposer.validate(sidecars)
 
+        let turnID = UUID()
         let prepared = try await prepareSession(
             threadID: threadID,
-            turnID: UUID(),
+            turnID: turnID,
             requestId: requestId ?? UUID(),
             messageContent: messageContent,
             tools: tools,
@@ -302,6 +363,8 @@ struct TurnEngine {
             turnBriefingBuilder: turnBriefingBuilder,
             systemInstructions: systemInstructions,
             agentId: agentId,
+            executionKind: executionKind,
+            contributors: contributors,
             agent: agentPreflight.instance,
             agentDiagnostics: agentPreflight.diagnostics,
             maxModelRounds: maxModelRounds,
@@ -313,26 +376,62 @@ struct TurnEngine {
             contextPipeline: contextPipeline,
             assemblyLogger: assemblyLogger,
             responseModalities: responseModalities,
-            audioOutput: audioOutput
+            audioOutput: audioOutput,
+            onAdmission: { [eventHub = dependencies.eventHub] in
+                await eventHub.begin(turnID: turnID)
+            }
         )
 
         if case let .existing(admission) = prepared {
-            return try await replayExistingTurn(admission)
+            let stream: AsyncThrowingStream<TurnEvent, Error>
+            if await dependencies.eventHub.isActive(turnID: admission.turn.identity.turnID) {
+                stream = await dependencies.eventHub.subscribe(turnID: admission.turn.identity.turnID)
+            } else {
+                stream = try await replayExistingTurn(admission)
+            }
+            return TurnExecution(
+                turnID: admission.turn.identity.turnID,
+                stream: stream
+            )
         }
         guard case let .ready(context) = prepared else {
             throw TurnEngineError.promptHistoryInconsistent("Invalid turn preparation result.")
         }
 
-        let (stream, continuation) = AsyncThrowingStream<TurnEvent, Error>.makeStream()
-        let turnID = context.turnID
+        let (sourceStream, continuation) = AsyncThrowingStream<TurnEvent, Error>.makeStream()
+        // Legacy configurations without a runtime repository do not have a durable admission
+        // callback; begin their process-local live lane once preparation succeeds.
+        if dependencies.runtimeRepository == nil {
+            await dependencies.eventHub.begin(turnID: turnID)
+        }
+        let stream = await dependencies.eventHub.subscribe(turnID: turnID)
+
+        let bridge = Task {
+            do {
+                for try await event in sourceStream {
+                    await dependencies.eventHub.publish(event, turnID: turnID)
+                }
+                await dependencies.eventHub.finish(turnID: turnID)
+            } catch {
+                await dependencies.eventHub.finish(turnID: turnID, error: error)
+            }
+        }
 
         let task = Task {
             await runTurnLoop(continuation: continuation, context: context)
             await dependencies.threadManager.removeTask(turnID: turnID, for: threadID)
+            _ = await bridge.value
         }
-        await dependencies.threadManager.registerTask(task, turnID: turnID, for: threadID)
+        let registered = await dependencies.threadManager.registerTask(task, turnID: turnID, for: threadID)
+        if !registered {
+            task.cancel()
+            await dependencies.eventHub.finish(
+                turnID: turnID,
+                error: ThreadRuntimeRepositoryError.threadBusy(threadID: threadID, activeTurnID: turnID)
+            )
+        }
         continuation.onTermination = { @Sendable _ in task.cancel() }
-        return stream
+        return TurnExecution(turnID: turnID, stream: stream)
     }
 
     private func replayExistingTurn(_ admission: TurnAdmission) async throws -> AsyncThrowingStream<TurnEvent, Error> {

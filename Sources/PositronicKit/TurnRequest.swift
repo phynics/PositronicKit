@@ -18,7 +18,6 @@ public struct TurnRequest: Sendable, CustomStringConvertible {
     public let tools: [AnyTool]
     public let toolOutputs: [ToolOutputSubmission]?
     public let systemInstructions: String?
-    public let agentID: UUID?
     public let maxModelRounds: Int
     public let generationParameters: GenerationParameters?
     public let structuredOutput: StructuredOutputRequest?
@@ -36,7 +35,6 @@ public struct TurnRequest: Sendable, CustomStringConvertible {
         tools: [any Tool] = [],
         toolOutputs: [ToolOutputSubmission]? = nil,
         systemInstructions: String? = nil,
-        agentID: UUID? = nil,
         maxModelRounds: Int = 5,
         generationParameters: GenerationParameters? = nil,
         structuredOutput: StructuredOutputRequest? = nil,
@@ -53,7 +51,6 @@ public struct TurnRequest: Sendable, CustomStringConvertible {
         self.tools = tools.map { $0.toAnyTool() }
         self.toolOutputs = toolOutputs
         self.systemInstructions = systemInstructions
-        self.agentID = agentID
         self.maxModelRounds = maxModelRounds
         self.generationParameters = generationParameters
         self.structuredOutput = structuredOutput
@@ -73,7 +70,6 @@ public struct TurnRequest: Sendable, CustomStringConvertible {
         tools: [any Tool] = [],
         toolOutputs: [ToolOutputSubmission]? = nil,
         systemInstructions: String? = nil,
-        agentID: UUID? = nil,
         maxModelRounds: Int = 5,
         generationParameters: GenerationParameters? = nil,
         structuredOutput: StructuredOutputRequest? = nil,
@@ -90,7 +86,6 @@ public struct TurnRequest: Sendable, CustomStringConvertible {
         self.tools = tools.map { $0.toAnyTool() }
         self.toolOutputs = toolOutputs
         self.systemInstructions = systemInstructions
-        self.agentID = agentID
         self.maxModelRounds = maxModelRounds
         self.generationParameters = generationParameters
         self.structuredOutput = structuredOutput
@@ -109,6 +104,6 @@ public struct TurnRequest: Sendable, CustomStringConvertible {
         let generationParametersDescription = generationParameters.map { String(describing: $0) } ?? "nil"
         let structuredOutputDescription = structuredOutput.map { String(describing: $0) } ?? "nil"
         let promptAssemblyLoggerDescription = promptAssemblyLogger.map { $0.label } ?? "nil"
-        return "TurnRequest(threadID: \(threadID), requestID: \(requestIDDescription), message: <redacted>, mediaParts: \(messageContent.parts.count), tools: \(tools.count), toolOutputs: \(toolOutputCount), systemInstructions: \(systemInstructionsDescription), agentID: \(agentID?.uuidString ?? "nil"), maxModelRounds: \(maxModelRounds), generationParameters: \(generationParametersDescription), structuredOutput: \(structuredOutputDescription), sidecars: \(sidecars.count), sidecarCommitPolicy: \(sidecarCommitPolicy), includeSidecarMechanismPreamble: \(includeSidecarMechanismPreamble), promptAssemblyLogger: \(promptAssemblyLoggerDescription))"
+        return "TurnRequest(threadID: \(threadID), requestID: \(requestIDDescription), message: <redacted>, mediaParts: \(messageContent.parts.count), tools: \(tools.count), toolOutputs: \(toolOutputCount), systemInstructions: \(systemInstructionsDescription), maxModelRounds: \(maxModelRounds), generationParameters: \(generationParametersDescription), structuredOutput: \(structuredOutputDescription), sidecars: \(sidecars.count), sidecarCommitPolicy: \(sidecarCommitPolicy), includeSidecarMechanismPreamble: \(includeSidecarMechanismPreamble), promptAssemblyLogger: \(promptAssemblyLoggerDescription))"
     }
 }

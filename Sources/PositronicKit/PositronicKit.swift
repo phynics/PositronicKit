@@ -354,10 +354,101 @@ public final class PositronicKit: Sendable {
 
     // MARK: - Execution
 
+    func startTurnHandle(
+        _ request: TurnRequest,
+        agentID: UUID?,
+        executionKind: TurnExecutionKind,
+        contributors: [TurnContributor] = []
+    ) async throws -> TurnHandle {
+        guard request.maxModelRounds >= 1 else {
+            throw TurnError.invalidMaxModelRounds(request.maxModelRounds)
+        }
+
+        let resolvedTurnBriefingBuilder = try await resolveTurnBriefingBuilder(
+            explicit: nil,
+            threadID: request.threadID
+        )
+        let execution = try await turnEngine.startExecution(
+            threadID: request.threadID,
+            requestId: request.requestID,
+            messageContent: request.messageContent,
+            tools: request.tools,
+            toolOutputs: request.toolOutputs,
+            turnBriefingBuilder: resolvedTurnBriefingBuilder,
+            systemInstructions: request.systemInstructions,
+            agentId: agentID,
+            executionKind: executionKind,
+            contributors: contributors,
+            maxModelRounds: request.maxModelRounds,
+            generationParameters: request.generationParameters ?? defaultGenerationParameters,
+            structuredOutput: request.structuredOutput,
+            sidecars: request.sidecars,
+            sidecarCommitPolicy: request.sidecarCommitPolicy,
+            includeSidecarMechanismPreamble: request.includeSidecarMechanismPreamble,
+            assemblyLogger: request.promptAssemblyLogger,
+            responseModalities: request.responseModalities,
+            audioOutput: request.audioOutput
+        )
+        return TurnHandle(
+            id: execution.turnID,
+            threadID: request.threadID,
+            eventStream: nonThrowingEvents(from: execution.stream),
+            kit: self
+        )
+    }
+
+    private func nonThrowingEvents(
+        from source: AsyncThrowingStream<TurnEvent, Error>
+    ) -> AsyncStream<TurnEvent> {
+        AsyncStream { continuation in
+            Task {
+                var terminalDelivered = false
+                do {
+                    for try await event in source {
+                        if event.isTerminal {
+                            if terminalDelivered { continue }
+                            terminalDelivered = true
+                        }
+                        continuation.yield(event)
+                    }
+                } catch {
+                    if !terminalDelivered {
+                        continuation.yield(.error(error))
+                    }
+                }
+                continuation.finish()
+            }
+        }
+    }
+
+    func waitForTurnOutcome(id turnID: UUID) async -> TurnOutcome {
+        guard let runtimeRepository else {
+            return .failed(message: "Turn outcome is unavailable without a runtime repository.")
+        }
+        while !Task.isCancelled {
+            if let record = try? await runtimeRepository.fetchTurn(id: turnID),
+               let outcome = record.outcome
+            {
+                return outcome
+            }
+            try? await Task.sleep(nanoseconds: 25_000_000)
+        }
+        return .cancelled(reason: "Outcome wait cancelled.")
+    }
+
+    func cancelTurn(id turnID: UUID, threadID: UUID) async {
+        _ = await threadManager.cancelGeneration(turnID: turnID, for: threadID)
+    }
+
     /// Run a turn and return a stream of events.
     /// - Parameter request: The full turn configuration.
     /// - Returns: An asynchronous stream of turn events.
-    func run(_ request: TurnRequest) async throws -> AsyncThrowingStream<TurnEvent, Error> {
+    func run(
+        _ request: TurnRequest,
+        agentID: UUID? = nil,
+        executionKind: TurnExecutionKind = .agentManaged,
+        contributors: [TurnContributor] = []
+    ) async throws -> AsyncThrowingStream<TurnEvent, Error> {
         guard request.maxModelRounds >= 1 else {
             throw TurnError.invalidMaxModelRounds(request.maxModelRounds)
         }
@@ -375,7 +466,9 @@ public final class PositronicKit: Sendable {
             toolOutputs: request.toolOutputs,
             turnBriefingBuilder: resolvedTurnBriefingBuilder,
             systemInstructions: request.systemInstructions,
-            agentId: request.agentID,
+            agentId: agentID,
+            executionKind: executionKind,
+            contributors: contributors,
             maxModelRounds: request.maxModelRounds,
             generationParameters: request.generationParameters ?? defaultGenerationParameters,
             structuredOutput: request.structuredOutput,

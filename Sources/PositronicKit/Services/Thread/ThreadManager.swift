@@ -218,7 +218,8 @@ actor ThreadManager {
     /// Registers a generation task for a thread, cancelling any previous active task.
     /// The `turnID` scopes the registration so a stale turn's terminal cleanup cannot evict a
     /// newer turn's entry.
-    public func registerTask(_ task: Task<Void, Never>, turnID: UUID, for threadID: UUID) async {
+    @discardableResult
+    public func registerTask(_ task: Task<Void, Never>, turnID: UUID, for threadID: UUID) async -> Bool {
         await taskRegistry.register(task, turnID: turnID, for: threadID)
     }
 

@@ -12,8 +12,10 @@ integrate through normal Swift initializers instead of configuring a dependency 
 ### Key Components
 
 - **PositronicKit facade**: The public entry point; `model`, `threads`, `agents`, and `workspaces`
-  are the supported capability values, while `run(_ request:)` drives a turn end to end.
-- **ThreadHandle**: A stateful value for Thread-addressed sends and cancellation.
+  are the supported capability values.
+- **ThreadHandle**: A Thread-addressed value that starts managed or explicit direct Turns.
+- **TurnHandle**: A stable admitted-Turn value exposing nonthrowing events, durable outcome replay,
+  and turn-scoped cancellation.
 - **Persistence Layer**: A suite of domain-specific store protocols.
 - **Tool System**: Runtime-managed and host-attached tool routing over shared tool contracts.
 
@@ -28,19 +30,17 @@ check.
 
 ### Run Validation And Agent Preflight
 
-``PositronicKit/run(_:)`` performs all synchronous request and preparation work before returning
-its event stream:
+`ThreadHandle.startTurn(_:)` and `ThreadHandle.startDirectTurn(message:context:)` perform all
+request and preparation work before returning an admitted `TurnHandle`:
 
 - `TurnRequest.maxModelRounds` must be at least `1`. Invalid values throw
   `TurnError.invalidMaxModelRounds` before thread lookup, persistence, or provider work.
 - Thread hydration failures throw their typed `ThreadError` before input is persisted.
-- When `agentID` is supplied, the runtime resolves the agent once after thread
-  resolution and before provider readiness or input persistence. The default `.failRequired`
-  policy throws `AgentError.agentNotFound` for a missing agent. With
-  `.continueWithWarnings`, the turn continues without that agent and the initial
-  generation-context event carries an agent diagnostic.
-- A failed required-agent preflight does not consume `requestID`; callers may retry the same send
-  after repairing the missing dependency.
+- Managed execution captures the Agent attached to the Thread immediately before durable
+  admission; detached managed execution throws `AgentError.managedThreadRequiresAttachedAgent`.
+- Direct execution requires a detached Thread and an explicit `DirectTurnContext`.
+- A failed preflight does not consume `requestID`; callers may retry the same request after
+  repairing the dependency.
 
 ### One-Shot Parameters And Timeouts
 
@@ -55,13 +55,11 @@ structured payload for decoding.
 
 Errors are delivered at the boundary where their work occurs:
 
-- Request validation, thread hydration, agent preflight, provider-configuration checks,
-  sidecar validation, and other preparation failures throw from the awaited `run(_:)` call before
-  it returns a stream.
-- Provider and pipeline failures that happen after `run(_:)` returns throw while the returned
-  stream is iterated. Use `TurnEvent.ErrorIdentity.extracting(from:)` to classify nested causal
-  failures without matching message text. Foreign provider failures retain their original cause
-  and expose the stable LLM domain/code identity (`PKErrorDomain.llm`, `1005`).
+- Request validation, thread hydration, execution-authority checks, provider-configuration
+  checks, sidecar validation, and other preparation failures throw from the awaited start call
+  before it returns a `TurnHandle`.
+- After admission, `TurnHandle.events()` is nonthrowing. Provider and pipeline failures are
+  delivered as terminal error events, while `outcome()` reads the durable terminal state.
 - `complete` and `completeResult` consume provider streams internally, so both preparation and
   provider failures throw from the one-shot call. `stream` reports provider failures during
   iteration.

@@ -36,8 +36,11 @@ PositronicKit is the orchestration layer. It manages the full lifecycle of an ag
 The `PositronicKit` facade is the public composition root. Use `kit.model` for raw, Thread-free
 inference; `kit.threads` for Thread creation, lookup, and stateful `ThreadHandle` values;
 `kit.agents` for agent identity and Thread attachment; and `kit.workspaces` for the workspace
-catalog. A `ThreadHandle.send(_:)` call resolves the attached Agent and provides the managed,
-Thread-addressed execution path; `sendDetached(_:)` is the explicit identity-free alternative.
+catalog. A `ThreadHandle.startTurn(_:)` call resolves and captures the attached Agent and
+provides the managed, Thread-addressed execution path. `startDirectTurn(message:context:)` is
+the explicit identity-free alternative and is valid only while the Thread is detached. Both
+return a `TurnHandle` with nonthrowing events, durable outcome replay, and turn-scoped
+cancellation.
 
 Concrete managers, task registries, tool routing, `TurnEngine`, and the turn pipeline are facade
 implementation details. Persistence, provider, workspace, prompt-section,

@@ -123,20 +123,21 @@ let chat = PositronicKit(configuration: .init(
 
 ### Running a Generation Stream
 
-The `ThreadHandle.run` method takes a `TurnRequest` addressed to its Thread and returns an `AsyncThrowingStream<TurnEvent, Error>`,
-so you can process real-time updates as the agent reasons and responds.
+The managed `ThreadHandle.startTurn` method captures the Agent attached to its Thread and returns
+a `TurnHandle`. Its `events()` stream is nonthrowing, while `outcome()` returns the same durable
+terminal result for every joiner.
 
 ```swift
 import PositronicKit
 import PKContracts
 
 // `chat` is the PositronicKit instance from the initialization example above.
-let stream = try await chat.threads.open(threadID).run(TurnRequest(
-    threadID: threadID,
-    message: "What are the latest trends in Swift concurrency?",
-))
+let turn = try await chat.threads.open(threadID).startTurn(
+    message: "What are the latest trends in Swift concurrency?"
+)
+let stream = turn.events()
 
-for try await event in stream {
+for await event in stream {
     switch event {
     case .delta(let event):
         switch event {
