@@ -90,6 +90,7 @@ let package = Package(
             name: "PKPrompt",
             dependencies: ["PKShared", "PKUtilities"],
             path: "Sources/PKPrompt",
+            exclude: ["CONTEXT.md"],
             swiftSettings: approachableConcurrency
         ),
         .target(
@@ -116,7 +117,7 @@ let package = Package(
                 .product(name: "PartialJSON", package: "PartialJSON"),
             ],
             path: "Sources/PositronicKit",
-            exclude: ["PositronicKit.docc"],
+            exclude: ["PositronicKit.docc", "CONTEXT.md"],
             swiftSettings: approachableConcurrency
         ),
         .target(

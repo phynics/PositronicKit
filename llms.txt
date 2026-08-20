@@ -6,13 +6,16 @@ PositronicKit follows semver for tagged releases beginning with `1.0.0`. The cor
 
 ## Getting Started
 
-- [README: Quick Start](README.md#quick-start): add the package dependency, import the modules you need, and pick the smallest operation tier (one-shot `complete`/`stream`, `Conversation`, `TimelineManager`, `AgenticRuntime`, raw seams).
+- [README: Quick Start](README.md#quick-start): add the package dependency, import the modules you need, and pick the smallest operation tier for the tagged release you are consuming.
 - [Setup Guide](docs/Setup.md): choosing an entry point, facade configuration (minimal vs. production), default tool installation, provider registration, logging, and errors.
+- [Development Guide](docs/Development.md): contributor platform setup, Podman gates, focused tests, MiniLM assets, and bridge checks.
+- [Context Map](CONTEXT-MAP.md): v4 vocabulary ownership and relationships between runtime, prompting, and contracts.
+- [Architecture Decisions](docs/adr/): accepted v4 domain, dependency, durability, Workspace, and execution decisions.
 - [PositronicKitExamples](Sources/PositronicKitExamples): runnable examples that double as living documentation — read `main.swift`, `PositronicKitUsageExamples.swift`, and `PKPromptExamples.swift` before inventing your own composition pattern.
 
 ## Core Concepts
 
-- [Usage Guide](docs/Usage.md): managing agent instances, initialization and execution, running a `ChatEvent` stream, handling tool outputs, and local embeddings.
+- [Usage Guide](docs/Usage.md): current tagged-release usage, initialization and execution, tool outputs, and local embeddings.
 - [Architecture](docs/Architecture.md): the pipeline pattern, context/state management, facade vs. direct-seam wiring, chat-engine execution flow, and the v1 extension point registry — treat everything not in that registry (`ChatEngine`, prompt-assembly internals, context-pipeline internals) as private, even if technically public.
 - [Prompt Composition](docs/PKPromptComposition.md): the `@PromptBuilder` DSL, assembly/rendering, cache policies, and `PromptJournal` stable-prefix journaling.
 - [Sidecar Directives](docs/SidecarDirectives.md): piggy-backed auxiliary generations (titles, tags, summaries) riding the same LLM request as the user-visible response.
@@ -26,7 +29,7 @@ PositronicKit follows semver for tagged releases beginning with `1.0.0`. The cor
 
 - [CHANGELOG](CHANGELOG.md): breaking changes to public surfaces are called out under a `Breaking` heading — check before upgrading a pinned version.
 - [Releasing](docs/Releasing.md): the release workflow, tagging steps, and downstream upgrade cadence.
-- [AGENTS.md](AGENTS.md): repo layout, module boundaries, and build/test/verify commands. Written for coding agents contributing *to* this package, not for agents consuming it at runtime.
+- [AGENTS.md](AGENTS.md): source-of-truth hierarchy, v4 convergence constraints, contribution workflow, and build/test/verify commands. Written for coding agents contributing *to* this package, not for agents consuming it at runtime.
 
 ## Optional
 
