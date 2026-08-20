@@ -8,6 +8,11 @@ import PKUtilities
 // MARK: - Turn Preparation
 
 extension TurnEngine {
+    private struct ExecutionAuthority: Sendable {
+        let thread: Thread
+        let agent: Agent?
+    }
+
     enum PreparedSession {
         case ready(TurnContext)
         case existing(TurnAdmission)
@@ -53,6 +58,14 @@ extension TurnEngine {
                     error: error
                 )]
             )
+        }
+        switch instance.lifecycle {
+        case .active:
+            break
+        case .retiring:
+            throw AgentError.agentRetiring(agentId)
+        case .retired:
+            throw AgentError.agentRetired(agentId)
         }
         let thread: Thread?
         do {
@@ -100,6 +113,7 @@ extension TurnEngine {
         executionKind: TurnExecutionKind,
         contributors: [TurnContributor],
         agent: Agent?,
+        agentContext: AgentContextSnapshot? = nil,
         agentDiagnostics: [TurnDiagnostic],
         maxModelRounds: Int,
         generationParameters: GenerationParameters?,
@@ -148,6 +162,8 @@ extension TurnEngine {
         // Track validated tool outputs so the catch block can release reservations.
         var validatedToolOutputs: [ToolOutputSubmission] = []
         var repositoryAdmitted = false
+        var resolvedAgent = agent
+        var resolvedAgentContext = agentContext
 
         do {
             // 2. Validate thread existence before any preparation proceeds.
@@ -173,18 +189,32 @@ extension TurnEngine {
                     responseModalities: responseModalities,
                     audioOutput: audioOutput
                 )
-                let admission = try await dependencies.threadAuthorityCoordinator.withThread(threadID) {
+                let admissionResult = try await withAdmissionAuthority(threadID: threadID, agentID: agentId) { [self] in
                     // Revalidate the execution authority in the same per-Thread lane as
                     // admission. The handle's initial lookup is only a convenience preflight;
                     // an attachment can change while preparation is waiting on provider or
                     // persistence work. Managed Turns keep the captured Agent identity, while
                     // direct Turns remain valid only while the Thread is detached.
-                    try await validateExecutionAuthority(
+                    let authority = try await validateExecutionAuthority(
                         threadID: threadID,
                         executionKind: executionKind,
                         agentID: agentId
                     )
-                    return try await runtimeRepository.admitTurn(
+                    var context: AgentContextSnapshot?
+                    if let currentAgent = authority.agent {
+                        let snapshot = try await dependencies.agentContextSource.snapshot(
+                            for: currentAgent,
+                            thread: authority.thread
+                        )
+                        guard snapshot.identity.agentID == currentAgent.id else {
+                            throw AgentContextError.identityMismatch(
+                                expected: currentAgent.id,
+                                actual: snapshot.identity.agentID
+                            )
+                        }
+                        context = snapshot
+                    }
+                    let admission = try await runtimeRepository.admitTurn(
                         threadID: threadID,
                         requestID: requestId,
                         callerIntentFingerprint: fingerprint,
@@ -193,7 +223,11 @@ extension TurnEngine {
                         turnID: turnID,
                         now: Date()
                     )
+                    return (admission, authority.agent, context)
                 }
+                resolvedAgent = admissionResult.1 ?? resolvedAgent
+                resolvedAgentContext = admissionResult.2 ?? resolvedAgentContext
+                let admission = admissionResult.0
                 switch admission.disposition {
                 case .admitted:
                     repositoryAdmitted = true
@@ -208,16 +242,33 @@ extension TurnEngine {
                     return .existing(admission)
                 }
             } else {
-                try await dependencies.threadAuthorityCoordinator.withThread(threadID) {
-                    try await validateExecutionAuthority(
+                let authorityResult = try await withAdmissionAuthority(threadID: threadID, agentID: agentId) { [self] in
+                    let authority = try await validateExecutionAuthority(
                         threadID: threadID,
                         executionKind: executionKind,
                         agentID: agentId
                     )
+                    var context: AgentContextSnapshot?
+                    if let currentAgent = authority.agent {
+                        let snapshot = try await dependencies.agentContextSource.snapshot(
+                            for: currentAgent,
+                            thread: authority.thread
+                        )
+                        guard snapshot.identity.agentID == currentAgent.id else {
+                            throw AgentContextError.identityMismatch(
+                                expected: currentAgent.id,
+                                actual: snapshot.identity.agentID
+                            )
+                        }
+                        context = snapshot
+                    }
                     guard await TurnIdempotencyGate.shared.checkAndMark(requestId: requestId) else {
                         throw TurnEngineError.duplicateRequestID(requestId)
                     }
+                    return (authority.agent, context)
                 }
+                resolvedAgent = authorityResult.0 ?? resolvedAgent
+                resolvedAgentContext = authorityResult.1 ?? resolvedAgentContext
             }
 
             // 3. Validate tool output submissions and reserve pending call IDs — no persistence.
@@ -323,7 +374,8 @@ extension TurnEngine {
 
             let renderedPrompt = try await PromptAssembler.assemble(
                 promptRequest,
-                agent: agent,
+                agent: resolvedAgent,
+                agentContext: resolvedAgentContext,
                 thread: thread,
                 extensionSections: extensionSections,
                 options: PromptAssemblyOptions(
@@ -451,6 +503,7 @@ extension TurnEngine {
                 turnID: turnID,
                 requestId: requestId,
                 agentId: agentId,
+                agentContext: resolvedAgentContext,
                 executionKind: executionKind,
                 contributors: contributors,
                 modelName: modelName,
@@ -498,7 +551,7 @@ extension TurnEngine {
         threadID: UUID,
         executionKind: TurnExecutionKind,
         agentID: UUID?
-    ) async throws {
+    ) async throws -> ExecutionAuthority {
         guard let thread = try await dependencies.threadManager.threadStore.fetchThread(id: threadID) else {
             throw ThreadError.threadNotFound
         }
@@ -514,10 +567,25 @@ extension TurnEngine {
                     attachedAgentID: thread.attachedAgentID
                 )
             }
+            guard let agentID else {
+                return ExecutionAuthority(thread: thread, agent: nil)
+            }
+            guard let agent = try await dependencies.agentStore.fetchAgent(id: agentID) else {
+                throw AgentError.agentNotFound(agentID)
+            }
+            switch agent.lifecycle {
+            case .active:
+                return ExecutionAuthority(thread: thread, agent: agent)
+            case .retiring:
+                throw AgentError.agentRetiring(agentID)
+            case .retired:
+                throw AgentError.agentRetired(agentID)
+            }
         case .direct:
             guard thread.attachedAgentID == nil else {
                 throw AgentError.directTurnRequiresDetachedThread(threadID)
             }
+            return ExecutionAuthority(thread: thread, agent: nil)
         }
     }
 
@@ -646,6 +714,27 @@ extension TurnEngine {
 // MARK: - Preparation Steps
 
 private extension TurnEngine {
+    /// Serializes managed admission with Agent lifecycle/identity mutations. Direct turns have
+    /// no Agent authority and therefore only use their per-Thread lane.
+    func withAdmissionAuthority<T: Sendable>(
+        threadID: UUID,
+        agentID: UUID?,
+        operation: @escaping @Sendable () async throws -> T
+    ) async rethrows -> T {
+        if let agentID {
+            return try await dependencies.agentAuthorityCoordinator.withAgent(agentID) {
+                try await dependencies.threadAuthorityCoordinator.withThread(
+                    threadID,
+                    operation: operation
+                )
+            }
+        }
+        return try await dependencies.threadAuthorityCoordinator.withThread(
+            threadID,
+            operation: operation
+        )
+    }
+
     func fetchContext(
         turnBriefingBuilder: TurnBriefingBuilder?,
         message: String,

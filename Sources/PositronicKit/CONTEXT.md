@@ -24,6 +24,21 @@ A persistent identity and continuity entity that participates through Threads. A
 independently callable execution target.
 _Avoid_: AgentInstance, agent run
 
+**Agent Context Source**:
+The authoritative replaceable supplier of typed Agent continuity captured for a managed Turn.
+It may be filesystem-backed, database-backed, remote, hybrid, or deliberately memory-free.
+_Avoid_: global memory pipeline, prompt plugin
+
+**Agent Context Snapshot**:
+The immutable identity, instructions, continuity items, optional primary-Thread summary, and
+revision metadata captured for one managed Turn.
+_Avoid_: live Agent state, mutable prompt context
+
+**Agent Lifecycle**:
+The durable active, retiring, or retired state that controls managed Turn admission and the
+drain-to-purge lifecycle of an Agent’s primary resources.
+_Avoid_: Agent deletion as normal shutdown
+
 **Workspace**:
 A host-owned execution and storage boundary. Ordinary Workspaces bind exclusively to Threads;
 an Agent’s primary Workspace is permanently Agent-owned.

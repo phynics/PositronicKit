@@ -10,6 +10,9 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
+- **Typed Agent continuity and lifecycle:** managed Turns capture an immutable
+  `AgentContextSnapshot` from the configured `AgentContextSource`; Agent identities now expose
+  active, retiring, and retired states with explicit `retire`/`purge` capability operations.
 - **Managed/direct Turn execution:** `ThreadHandle.startTurn` now captures the attached Agent and
   returns a durable `TurnHandle`; detached execution uses `startDirectTurn(message:context:)`
   with an explicit prompt and contributor selection. The legacy identity-free send seams were

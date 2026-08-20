@@ -37,6 +37,16 @@ let threadID = thread.id
 try await kit.agents.attach(agent.id, to: threadID)
 ```
 
+Managed Turns capture one immutable `AgentContextSnapshot` at admission. The default source
+reads the Agent primary Workspace's `Notes/system.md` as instructions and other Markdown notes
+as bounded continuity; applications with database, remote, or no-memory continuity can inject an
+`AgentContextSource` through `RuntimeConfiguration`.
+
+Agent lifecycle is explicit. `kit.agents.retire(agent.id)` stops new managed Turns, waits for
+admitted Turns to finish, detaches ordinary Threads, and archives the Agent's primary Thread.
+Call `kit.agents.purge(agent.id)` only after retirement when the host's retention policy permits
+removing the Agent and its owned resources.
+
 ## 2. Initialization and Execution
 
 The snippets below mirror functions in the `PositronicKitExamples` target, which compiles
@@ -267,7 +277,10 @@ retained for `Codable` backward compatibility but are never emitted in productio
 the cases above instead.
 
 ### Agent Persistence
-Agents are persistent. Their workspace (`primaryWorkspaceId`) contains their long-term memory, while their private thread (`privateThreadId`) stores their internal monologue and history.
+Agents are persistent. Their primary Workspace (`primaryWorkspaceId`) supplies continuity through
+the configured `AgentContextSource`, while their primary Thread (`privateThreadId`) stores the
+Agent-owned history boundary. Managed Turn preparation fails closed when a required custom context
+source fails; direct Turns do not load Agent context.
 
 ## 4. Local Embeddings
 

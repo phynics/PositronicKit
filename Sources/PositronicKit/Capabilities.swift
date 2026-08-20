@@ -70,6 +70,12 @@ public struct AgentCapability: Sendable {
         try await kit.agentManager.getAgent(id: agentID)
     }
 
+    /// Updates an Agent's durable identity fields. The next admitted managed Turn observes
+    /// the change; an already-admitted Turn keeps its captured context.
+    public func update(_ agent: Agent) async throws {
+        try await kit.agentManager.updateAgent(agent)
+    }
+
     public func list() async throws -> [Agent] {
         try await kit.agentManager.listAgents()
     }
@@ -84,6 +90,17 @@ public struct AgentCapability: Sendable {
 
     public func threads(attachedTo agentID: UUID) async throws -> [Thread] {
         try await kit.agentManager.getThreads(attachedTo: agentID)
+    }
+
+    /// Begins the drain-to-retired lifecycle. Admitted Turns finish before ordinary
+    /// attachments are detached and the primary Thread is archived.
+    public func retire(_ agentID: UUID) async throws {
+        try await kit.agentManager.retireAgent(id: agentID)
+    }
+
+    /// Permanently removes a retired Agent and its owned primary resources.
+    public func purge(_ agentID: UUID) async throws {
+        try await kit.agentManager.purgeAgent(id: agentID)
     }
 }
 

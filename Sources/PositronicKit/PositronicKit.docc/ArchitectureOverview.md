@@ -24,7 +24,10 @@ let stream = try await thread.send("Summarize the attached sources.")
 ## Data Flow
 
 1. **User Query**: Received via `TurnEngine`.
-2. **Context Gathering**: `TurnBriefingBuilder` retrieves relevant memories and filesystem notes.
-3. **Prompt Construction**: `PKPrompt` DSL builds a provider-specific prompt.
-4. **Execution**: `LLMService` communicates with the AI provider.
-5. **Tool Routing**: If the AI calls a tool, the internal router executes runtime-managed tools and defers attached tools for host-side execution when needed.
+2. **Agent continuity**: Managed admission captures a typed `AgentContextSnapshot` from the
+   configured `AgentContextSource`; direct Turns skip Agent context entirely.
+3. **Context Gathering**: Thread-scoped context remains injectable and independent of Agent continuity.
+4. **Prompt Construction**: `PKPrompt` DSL builds a provider-specific prompt with reserved
+   `agent.identity`, `agent.instructions`, `agent.memory`, and `agent.primary-thread-summary` sections.
+5. **Execution**: `LLMService` communicates with the AI provider.
+6. **Tool Routing**: If the AI calls a tool, the internal router executes runtime-managed tools and defers attached tools for host-side execution when needed.

@@ -272,37 +272,134 @@ public struct WorkspacesContext: Prompt {
 }
 
 public struct AgentContext: Prompt {
-    public let agent: Agent
+    public let snapshot: AgentContextSnapshot
     public let threadTitle: String?
 
     public init(_ agent: Agent, threadTitle: String? = nil) {
-        self.agent = agent
+        self.snapshot = AgentContextSnapshot(agent: agent)
+        self.threadTitle = threadTitle
+    }
+
+    public init(_ snapshot: AgentContextSnapshot, threadTitle: String? = nil) {
+        self.snapshot = snapshot
+        self.threadTitle = threadTitle
+    }
+
+    public var body: some Prompt {
+        AgentIdentityContext(snapshot: snapshot, threadTitle: threadTitle)
+    }
+
+    /// Retained as a compact compatibility wrapper; the runtime uses the four reserved
+    /// sections below so each stable/semi-stable portion can be journaled independently.
+    private var text: String {
+        [
+            "## Your Identity",
+            "You are **\(snapshot.identity.name)**.",
+            snapshot.identity.description.isEmpty ? nil : "Description: \(snapshot.identity.description)",
+            threadTitle.map { "Currently operating on thread: \"\($0)\"" },
+        ].compactMap { $0 }.joined(separator: "\n")
+    }
+}
+
+/// Stable Agent identity section owned by the runtime.
+public struct AgentIdentityContext: Prompt {
+    public let snapshot: AgentContextSnapshot
+    public let threadTitle: String?
+
+    public init(snapshot: AgentContextSnapshot, threadTitle: String? = nil) {
+        self.snapshot = snapshot
         self.threadTitle = threadTitle
     }
 
     public var body: some Prompt {
         SystemPrompt(
             text,
-            id: "agent_context",
+            id: "agent.identity",
             priority: 95,
-            estimatedTokens: TokenEstimator.estimate(text: agent.name + agent.description) + 30
+            estimatedTokens: TokenEstimator.estimate(text: text)
         )
     }
 
     private var text: String {
-        var lines: [String] = [
-            "## Your Identity",
-            "You are **\(agent.name)**.",
-        ]
-        if !agent.description.isEmpty {
-            lines.append("Description: \(agent.description)")
+        var lines = ["## Your Identity", "You are **\(snapshot.identity.name)**."]
+        if !snapshot.identity.description.isEmpty {
+            lines.append("Description: \(snapshot.identity.description)")
         }
         if let threadTitle {
             lines.append("Currently operating on thread: \"\(threadTitle)\"")
         }
-        lines.append("Your private workspace contains your persistent memory (`Notes/` directory).")
+        lines.append("Your private workspace supplies persistent continuity (`Notes/` directory).")
         return lines.joined(separator: "\n")
     }
+}
+
+/// Stable Agent instructions section captured for the Turn.
+public struct AgentInstructionsContext: Prompt {
+    public let instructions: String
+
+    public init(_ instructions: String) {
+        self.instructions = instructions
+    }
+
+    public var body: some Prompt {
+        SystemPrompt(
+            instructions,
+            id: "agent.instructions",
+            priority: 94,
+            estimatedTokens: TokenEstimator.estimate(text: instructions)
+        )
+    }
+}
+
+/// Semi-stable Agent continuity items selected by the authoritative context source.
+public struct AgentMemoryContext: Prompt {
+    public let memories: [AgentContextMemory]
+
+    public init(_ memories: [AgentContextMemory]) {
+        self.memories = memories
+    }
+
+    public var body: some Prompt {
+        TextPrompt(
+            id: "agent.memory",
+            priority: 88,
+            compression: .summarize,
+            cachePolicy: .semiStable,
+            estimatedTokens: TokenEstimator.estimate(parts: memories.map(\.content)),
+            render: renderContent
+        )
+    }
+
+    private func renderContent() async -> String? {
+        guard !memories.isEmpty else { return nil }
+        let content = memories.map { memory in
+            if let source = memory.source {
+                return "[\(source)]\n\(memory.content)"
+            }
+            return memory.content
+        }.joined(separator: "\n\n")
+        return "## Agent Continuity\n\n\(content)"
+    }
+}
+
+/// Semi-stable optional summary of the Agent-owned primary Thread.
+public struct AgentPrimaryThreadSummaryContext: Prompt {
+    public let summary: String?
+
+    public init(_ summary: String?) {
+        self.summary = summary
+    }
+
+    public var body: some Prompt {
+        TextPrompt(
+            summary ?? "",
+            id: "agent.primary-thread-summary",
+            priority: 87,
+            cachePolicy: .semiStable,
+            estimatedTokens: TokenEstimator.estimate(text: summary ?? "")
+        )
+    }
+
 }
 
 public struct ThreadContext: Prompt {

@@ -26,12 +26,14 @@ enum PromptAssembler {
     static func assemble(
         _ request: LLMPromptRequest,
         agent: Agent? = nil,
+        agentContext: AgentContextSnapshot? = nil,
         thread: Thread? = nil,
         extensionSections: [any Prompt] = []
     ) async throws -> RenderedPrompt {
         try await assemble(
             request,
             agent: agent,
+            agentContext: agentContext,
             thread: thread,
             extensionSections: extensionSections,
             options: PromptAssemblyOptions()
@@ -48,6 +50,7 @@ enum PromptAssembler {
     static func assemble(
         _ request: LLMPromptRequest,
         agent: Agent? = nil,
+        agentContext: AgentContextSnapshot? = nil,
         thread: Thread? = nil,
         extensionSections: [any Prompt] = [],
         options: PromptAssemblyOptions
@@ -55,6 +58,7 @@ enum PromptAssembler {
         let sections = try await buildSections(
             request: request,
             agent: agent,
+            agentContext: agentContext,
             thread: thread,
             extensionSections: extensionSections,
             customSections: options.customSections,
@@ -96,6 +100,7 @@ enum PromptAssembler {
     private static func buildSections(
         request: LLMPromptRequest,
         agent: Agent?,
+        agentContext: AgentContextSnapshot?,
         thread: Thread?,
         extensionSections: [any Prompt],
         customSections: (@Sendable () async -> [any Prompt])?,
@@ -114,7 +119,26 @@ enum PromptAssembler {
         try sections.append(withLogging("SystemInstructions", logger: logger) {
             SystemInstructions(request.systemInstructions ?? DefaultInstructions.system())
         })
-        if let agent {
+        if let agentContext {
+            try sections.append(withLogging("AgentIdentity", logger: logger) {
+                AgentIdentityContext(snapshot: agentContext, threadTitle: thread?.title)
+            })
+            if !agentContext.instructions.isEmpty {
+                try sections.append(withLogging("AgentInstructions", logger: logger) {
+                    AgentInstructionsContext(agentContext.instructions)
+                })
+            }
+            if !agentContext.memories.isEmpty {
+                try sections.append(withLogging("AgentMemory", logger: logger) {
+                    AgentMemoryContext(agentContext.memories)
+                })
+            }
+            if agentContext.primaryThreadSummary != nil {
+                try sections.append(withLogging("AgentPrimaryThreadSummary", logger: logger) {
+                    AgentPrimaryThreadSummaryContext(agentContext.primaryThreadSummary)
+                })
+            }
+        } else if let agent {
             try sections.append(withLogging("AgentContext", logger: logger) {
                 AgentContext(agent, threadTitle: thread?.title)
             })

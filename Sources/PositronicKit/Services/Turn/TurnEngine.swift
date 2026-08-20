@@ -112,10 +112,12 @@ struct TurnEngine {
 
         let threadManager: ThreadManager
         let agentStore: any AgentStoreProtocol
+        let agentContextSource: any AgentContextSource
         let requestOriginStore: any RequestOriginStoreProtocol
         let messageStore: any ThreadMessageStoreProtocol
         let runtimeRepository: (any ThreadRuntimeRepository)?
         let threadAuthorityCoordinator: ThreadAuthorityCoordinator
+        let agentAuthorityCoordinator: AgentAuthorityCoordinator
         /// Streaming chat seam: the runtime turn loop, `LLMStreamingStage`, and the
         /// `isConfigured`/`configuration` precondition checks depend only on this.
         let llmService: any LLMStreamClient
@@ -136,10 +138,12 @@ struct TurnEngine {
         init(
             threadManager: ThreadManager,
             agentStore: any AgentStoreProtocol,
+            agentContextSource: (any AgentContextSource)? = nil,
             requestOriginStore: any RequestOriginStoreProtocol,
             messageStore: any ThreadMessageStoreProtocol,
             runtimeRepository: (any ThreadRuntimeRepository)? = nil,
             threadAuthorityCoordinator: ThreadAuthorityCoordinator? = nil,
+            agentAuthorityCoordinator: AgentAuthorityCoordinator? = nil,
             llmService: any LLMStreamClient & LLMUtilityClient,
             toolRouter: ToolRouter,
             turnPlugins: [any TurnPlugin],
@@ -153,10 +157,12 @@ struct TurnEngine {
         ) {
             self.threadManager = threadManager
             self.agentStore = agentStore
+            self.agentContextSource = agentContextSource ?? IdentityAgentContextSource()
             self.requestOriginStore = requestOriginStore
             self.messageStore = messageStore
             self.runtimeRepository = runtimeRepository
             self.threadAuthorityCoordinator = threadAuthorityCoordinator ?? threadManager.threadAuthorityCoordinator
+            self.agentAuthorityCoordinator = agentAuthorityCoordinator ?? AgentAuthorityCoordinator()
             self.llmService = llmService
             self.utilityClient = llmService
             self.toolRouter = toolRouter

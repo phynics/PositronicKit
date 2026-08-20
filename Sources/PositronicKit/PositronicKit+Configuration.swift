@@ -253,6 +253,8 @@ public extension PositronicKit {
         public let workspaceProfile: WorkspaceProfile
         public let workspaceCreator: any WorkspaceFactory
         public let sectionProviders: [any PromptSectionProviding]
+        /// Authoritative typed Agent continuity source for managed Turns.
+        public let agentContextSource: (any AgentContextSource)?
         public let runtimeToolPolicy: RuntimeToolPolicy
         public let turnPlugins: [any TurnPlugin]
         public let promptObserver: (any PromptObserving)?
@@ -286,6 +288,7 @@ public extension PositronicKit {
             workspaceProfile: WorkspaceProfile? = nil,
             workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
             sectionProviders: [any PromptSectionProviding] = [],
+            agentContextSource: (any AgentContextSource)? = nil,
             runtimeToolPolicy: RuntimeToolPolicy = .default,
             workspaceRoot: URL? = nil,
             turnPlugins: [any TurnPlugin] = [],
@@ -303,6 +306,7 @@ public extension PositronicKit {
             }
             self.workspaceCreator = workspaceCreator
             self.sectionProviders = sectionProviders
+            self.agentContextSource = agentContextSource
             self.runtimeToolPolicy = runtimeToolPolicy
             self.turnPlugins = turnPlugins
             self.promptObserver = promptObserver
@@ -340,6 +344,7 @@ public extension PositronicKit {
             workspaceProfile: configuration.runtime.workspaceProfile,
             workspaceCreator: configuration.runtime.workspaceCreator,
             sectionProviders: configuration.runtime.sectionProviders,
+            agentContextSource: configuration.runtime.agentContextSource,
             runtimeToolPolicy: configuration.runtime.runtimeToolPolicy,
             turnPlugins: configuration.runtime.turnPlugins,
             promptObserver: configuration.runtime.promptObserver,
