@@ -28,6 +28,8 @@ internal struct KitDependencies: Sendable {
     var workspaceProfile: WorkspaceProfile
     var workspaceCreator: any WorkspaceFactory
     var sectionProviders: [any PromptSectionProviding]
+    var agentContextSource: (any AgentContextSource)?
+    var agentAuthorityCoordinator: AgentAuthorityCoordinator?
     var runtimeToolPolicy: RuntimeToolPolicy
     var turnPlugins: [any TurnPlugin]
     var promptObserver: (any PromptObserving)?

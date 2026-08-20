@@ -68,6 +68,8 @@ public final class PositronicKit: Sendable {
     public var model: ModelInferenceCapability { ModelInferenceCapability(kit: self) }
     let workspaceCatalog: any WorkspaceCatalog
     private let agentStore: any AgentStoreProtocol
+    private let agentContextSource: any AgentContextSource
+    private let agentAuthorityCoordinator: AgentAuthorityCoordinator
     private let requestOriginStore: any RequestOriginStoreProtocol
     private let turnPlugins: [any TurnPlugin]
     private let promptObserver: (any PromptObserving)?
@@ -125,6 +127,7 @@ public final class PositronicKit: Sendable {
         workspaceProfile: WorkspaceProfile = .noWorkspace,
         workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
         sectionProviders: [any PromptSectionProviding] = [],
+        agentContextSource: (any AgentContextSource)? = nil,
         runtimeToolPolicy: RuntimeToolPolicy = .default,
         turnPlugins: [any TurnPlugin] = [],
         promptObserver: (any PromptObserving)? = nil,
@@ -159,6 +162,8 @@ public final class PositronicKit: Sendable {
                 workspaceProfile: workspaceProfile,
                 workspaceCreator: workspaceCreator,
                 sectionProviders: sectionProviders,
+                agentContextSource: agentContextSource,
+                agentAuthorityCoordinator: nil,
                 runtimeToolPolicy: runtimeToolPolicy,
                 turnPlugins: turnPlugins,
                 promptObserver: promptObserver,
@@ -184,6 +189,10 @@ public final class PositronicKit: Sendable {
         runtimeRepository = dependencies.runtimeRepository
         workspaceBindingRepository = dependencies.workspaceBindingRepository
         agentStore = dependencies.agentStore
+        agentContextSource = dependencies.agentContextSource ?? DefaultAgentContextSource(
+            workspaceStore: dependencies.workspacePersistence
+        )
+        agentAuthorityCoordinator = dependencies.agentAuthorityCoordinator ?? AgentAuthorityCoordinator()
         requestOriginStore = dependencies.requestOriginStore
         threadPersistence = dependencies.threadPersistence
         workspacePersistence = dependencies.workspacePersistence
@@ -248,7 +257,8 @@ public final class PositronicKit: Sendable {
                 messageStore: self.messageStore,
                 workspaceStore: self.workspacePersistence,
                 runtimeRepository: self.runtimeRepository,
-                threadAuthorityCoordinator: resolvedThreadManager.threadAuthorityCoordinator
+                threadAuthorityCoordinator: resolvedThreadManager.threadAuthorityCoordinator,
+                agentAuthorityCoordinator: self.agentAuthorityCoordinator
             ),
             threadManager: resolvedThreadManager
         )
@@ -263,9 +273,12 @@ public final class PositronicKit: Sendable {
             dependencies: .init(
                 threadManager: resolvedThreadManager,
                 agentStore: self.agentStore,
+                agentContextSource: self.agentContextSource,
                 requestOriginStore: self.requestOriginStore,
                 messageStore: self.messageStore,
                 runtimeRepository: self.runtimeRepository,
+                threadAuthorityCoordinator: resolvedThreadManager.threadAuthorityCoordinator,
+                agentAuthorityCoordinator: self.agentAuthorityCoordinator,
                 llmService: self.languageModel,
                 toolRouter: toolRouter,
                 turnPlugins: self.turnPlugins,
@@ -299,6 +312,8 @@ public final class PositronicKit: Sendable {
             workspaceProfile: workspaceProfile,
             workspaceCreator: workspaceCreator,
             sectionProviders: sectionProviders,
+            agentContextSource: agentContextSource,
+            agentAuthorityCoordinator: agentAuthorityCoordinator,
             runtimeToolPolicy: runtimeToolPolicy,
             turnPlugins: turnPlugins,
             promptObserver: promptObserver,

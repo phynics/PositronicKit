@@ -121,6 +121,8 @@ struct TurnContext {
     let turnID: UUID
     let requestId: UUID
     let agentId: UUID?
+    /// Immutable Agent continuity captured at admission for managed Turns.
+    let agentContext: AgentContextSnapshot?
     let executionKind: TurnExecutionKind
     let contributors: [TurnContributor]
     let modelName: String
@@ -155,6 +157,7 @@ struct TurnContext {
         turnID: UUID = UUID(),
         requestId: UUID = UUID(),
         agentId: UUID?,
+        agentContext: AgentContextSnapshot? = nil,
         executionKind: TurnExecutionKind = .agentManaged,
         contributors: [TurnContributor] = [],
         modelName: String,
@@ -181,6 +184,7 @@ struct TurnContext {
         self.turnID = turnID
         self.requestId = requestId
         self.agentId = agentId
+        self.agentContext = agentContext
         self.executionKind = executionKind
         self.contributors = contributors
         self.modelName = modelName
@@ -221,6 +225,7 @@ struct TurnContext {
             turnID: turnID,
             requestId: requestId,
             agentId: agentId,
+            agentContext: agentContext,
             executionKind: executionKind,
             contributors: contributors,
             modelName: modelName,

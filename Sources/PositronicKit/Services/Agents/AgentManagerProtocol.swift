@@ -17,6 +17,8 @@ protocol AgentManagerProtocol: Sendable {
     func getThreads(attachedTo agentID: UUID) async throws -> [Thread]
     func updateAgent(_ agent: Agent) async throws
     func searchAgents(query: String) async throws -> [Agent]
+    func retireAgent(id: UUID) async throws
+    func purgeAgent(id: UUID) async throws
     func deleteAgent(id: UUID, force: Bool) async throws
 }
 
@@ -41,5 +43,13 @@ extension AgentManagerProtocol {
 
     func deleteAgent(id: UUID, force: Bool = false) async throws {
         try await deleteAgent(id: id, force: force)
+    }
+
+    func retireAgent(id: UUID) async throws {
+        try await retireAgent(id: id)
+    }
+
+    func purgeAgent(id: UUID) async throws {
+        try await purgeAgent(id: id)
     }
 }

@@ -20,6 +20,7 @@ actor AgentManager: AgentManagerProtocol {
         public let workspaceStore: any WorkspaceStore
         public let runtimeRepository: (any ThreadRuntimeRepository)?
         public let threadAuthorityCoordinator: ThreadAuthorityCoordinator?
+        public let agentAuthorityCoordinator: AgentAuthorityCoordinator?
 
         public init(
             agentStore: any AgentStoreProtocol,
@@ -27,7 +28,8 @@ actor AgentManager: AgentManagerProtocol {
             messageStore: any ThreadMessageStoreProtocol,
             workspaceStore: any WorkspaceStore,
             runtimeRepository: (any ThreadRuntimeRepository)? = nil,
-            threadAuthorityCoordinator: ThreadAuthorityCoordinator? = nil
+            threadAuthorityCoordinator: ThreadAuthorityCoordinator? = nil,
+            agentAuthorityCoordinator: AgentAuthorityCoordinator? = nil
         ) {
             self.agentStore = agentStore
             self.threadStore = threadStore
@@ -35,6 +37,7 @@ actor AgentManager: AgentManagerProtocol {
             self.workspaceStore = workspaceStore
             self.runtimeRepository = runtimeRepository
             self.threadAuthorityCoordinator = threadAuthorityCoordinator
+            self.agentAuthorityCoordinator = agentAuthorityCoordinator
         }
 
     }
@@ -45,6 +48,7 @@ actor AgentManager: AgentManagerProtocol {
     private let workspaceStore: any WorkspaceStore
     private let runtimeRepository: (any ThreadRuntimeRepository)?
     private let threadAuthorityCoordinator: ThreadAuthorityCoordinator
+    private let agentAuthorityCoordinator: AgentAuthorityCoordinator
 
     private let repository: any WorkspaceCatalog
     /// When non-nil, private-thread deletion routes through `ThreadManager.evictThreadFromMemory(id:)`
@@ -67,6 +71,7 @@ actor AgentManager: AgentManagerProtocol {
         self.threadAuthorityCoordinator = stores.threadAuthorityCoordinator
             ?? threadManager?.threadAuthorityCoordinator
             ?? ThreadAuthorityCoordinator()
+        self.agentAuthorityCoordinator = stores.agentAuthorityCoordinator ?? AgentAuthorityCoordinator()
         self.threadManager = threadManager
     }
 
@@ -172,12 +177,26 @@ actor AgentManager: AgentManagerProtocol {
     /// - Fails if a different agent is attached (caller must detach it first).
     /// - If `attachedAgentId` references a non-existent agent, it is cleared automatically.
     public func attach(agentID: UUID, to threadID: UUID) async throws {
+        try await agentAuthorityCoordinator.withAgent(agentID) { [self] in
+            try await attachUnlocked(agentID: agentID, to: threadID)
+        }
+    }
+
+    private func attachUnlocked(agentID: UUID, to threadID: UUID) async throws {
         try await requireExecutionContextMutable(for: threadID)
         guard let thread = try await threadStore.fetchThread(id: threadID) else {
             throw AgentError.threadNotFound(threadID)
         }
         guard let agent = try await agentStore.fetchAgent(id: agentID) else {
             throw AgentError.agentNotFound(agentID)
+        }
+        switch agent.lifecycle {
+        case .active:
+            break
+        case .retiring:
+            throw AgentError.agentRetiring(agentID)
+        case .retired:
+            throw AgentError.agentRetired(agentID)
         }
 
         // Idempotent
@@ -229,6 +248,12 @@ actor AgentManager: AgentManagerProtocol {
     /// Detaches an agent from a thread.
     /// No-op if the agent is not attached to that thread.
     public func detach(agentID: UUID, from threadID: UUID) async throws {
+        try await agentAuthorityCoordinator.withAgent(agentID) { [self] in
+            try await detachUnlocked(agentID: agentID, from: threadID)
+        }
+    }
+
+    private func detachUnlocked(agentID: UUID, from threadID: UUID) async throws {
         try await requireExecutionContextMutable(for: threadID)
         guard let thread = try await threadStore.fetchThread(id: threadID) else {
             throw AgentError.threadNotFound(threadID)
@@ -293,9 +318,24 @@ actor AgentManager: AgentManagerProtocol {
 
     public func updateAgent(_ agent: Agent) async throws {
         try validate(name: agent.name, description: agent.description)
-        var updated = agent
-        updated.updatedAt = Date()
-        try await agentStore.saveAgent(updated)
+        try await agentAuthorityCoordinator.withAgent(agent.id) { [self] in
+            guard let current = try await agentStore.fetchAgent(id: agent.id) else {
+                throw AgentError.agentNotFound(agent.id)
+            }
+            switch current.lifecycle {
+            case .active:
+                break
+            case .retiring:
+                throw AgentError.agentRetiring(agent.id)
+            case .retired:
+                throw AgentError.agentRetired(agent.id)
+            }
+            var updated = current
+            updated.name = agent.name
+            updated.description = agent.description
+            updated.updatedAt = Date()
+            try await agentStore.saveAgent(updated)
+        }
     }
 
     public func searchAgents(query: String) async throws -> [Agent] {
@@ -433,6 +473,90 @@ actor AgentManager: AgentManagerProtocol {
         }
     }
 
+    // MARK: - Retirement / Purge
+
+    /// Drains an Agent without interrupting Turns already admitted against it.
+    public func retireAgent(id: UUID) async throws {
+        try await agentAuthorityCoordinator.withAgent(id) { [self] in
+            try await retireAgentUnlocked(id: id)
+        }
+    }
+
+    private func retireAgentUnlocked(id: UUID) async throws {
+        guard let agent = try await agentStore.fetchAgent(id: id) else {
+            throw AgentError.agentNotFound(id)
+        }
+        guard agent.lifecycle != .retired else { return }
+
+        var retiring = agent
+        retiring.lifecycle = .retiring
+        retiring.updatedAt = Date()
+        try await agentStore.saveAgent(retiring)
+
+        let attachedThreads = try await fetchAttachedThreads(for: id)
+            .filter { $0.id != agent.privateThreadID }
+        for thread in attachedThreads {
+            try await waitForIdle(threadID: thread.id)
+            try await detachUnlocked(agentID: id, from: thread.id)
+        }
+
+        // The private Thread is not an ordinary attachment and therefore is not included in
+        // the detachment list. Drain it explicitly before disabling its durable history.
+        try await waitForIdle(threadID: agent.privateThreadID)
+
+        var retired = retiring
+        retired.lifecycle = .retired
+        retired.updatedAt = Date()
+        try await agentStore.saveAgent(retired)
+
+        // The primary Thread is an Agent-owned continuity boundary. Retiring disables new
+        // managed activity by archiving it; its durable history remains available to purge
+        // policy and historical attribution.
+        if let primaryThread = try await threadStore.fetchThread(id: agent.privateThreadID) {
+            var disabled = primaryThread
+            disabled.isArchived = true
+            disabled.updatedAt = Date()
+            try await threadStore.saveThread(disabled)
+        }
+    }
+
+    /// Purges an Agent only after retirement has completed and no Turn remains active.
+    public func purgeAgent(id: UUID) async throws {
+        try await agentAuthorityCoordinator.withAgent(id) { [self] in
+            try await purgeAgentUnlocked(id: id)
+        }
+    }
+
+    private func purgeAgentUnlocked(id: UUID) async throws {
+        guard let agent = try await agentStore.fetchAgent(id: id) else {
+            throw AgentError.agentNotFound(id)
+        }
+        guard agent.lifecycle == .retired else {
+            throw AgentError.agentNotRetired(id)
+        }
+        if let active = try await runtimeRepository?.fetchActiveTurn(for: agent.privateThreadID) {
+            throw ThreadRuntimeRepositoryError.threadBusy(
+                threadID: agent.privateThreadID,
+                activeTurnID: active.identity.turnID
+            )
+        }
+        let attached = try await fetchAttachedThreads(for: id)
+            .filter { $0.id != agent.privateThreadID }
+        guard attached.isEmpty else {
+            throw AgentError.hasAttachedThreads(count: attached.count)
+        }
+        try await deleteAgentUnlocked(id: id, force: true)
+    }
+
+    private func waitForIdle(threadID: UUID) async throws {
+        guard let runtimeRepository else { return }
+        while let activeTurn = try await runtimeRepository.fetchActiveTurn(for: threadID) {
+            try Task.checkCancellation()
+            try await Task.sleep(nanoseconds: 25_000_000)
+            _ = activeTurn
+        }
+    }
+
     // MARK: - Delete
 
     /// Deletes an agent and optionally force-detaches it from all threads.
@@ -440,6 +564,12 @@ actor AgentManager: AgentManagerProtocol {
     ///   - id: The agent identifier to delete.
     ///   - force: If false, throws if the agent is still attached to any threads.
     public func deleteAgent(id: UUID, force: Bool) async throws {
+        try await agentAuthorityCoordinator.withAgent(id) { [self] in
+            try await deleteAgentUnlocked(id: id, force: force)
+        }
+    }
+
+    private func deleteAgentUnlocked(id: UUID, force: Bool) async throws {
         guard let agent = try await agentStore.fetchAgent(id: id) else {
             throw AgentError.agentNotFound(id)
         }

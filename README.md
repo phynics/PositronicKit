@@ -63,6 +63,11 @@ inference; `kit.threads` returns a stateful `ThreadHandle`; `kit.agents` manages
 their Thread attachments; and `kit.workspaces` owns the workspace catalog. Concrete managers,
 task registries, and the turn pipeline are facade implementation details.
 
+Managed Turns capture typed Agent continuity at admission through `AgentContextSource`. The
+bundled filesystem source reads the Agent primary Workspace's `Notes/` files; inject a source in
+`RuntimeConfiguration` for database-backed, remote, or deliberately memory-free Agents. Use
+`kit.agents.retire` to drain an identity and `kit.agents.purge` only after retirement.
+
 ### Facade readiness, validation, and error delivery
 
 `await kit.model.isConfigured` is a live, read-only configuration-readiness signal from the
