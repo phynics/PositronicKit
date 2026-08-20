@@ -382,6 +382,7 @@ private extension TurnEngine {
             turnID: context.turnID,
             modelRoundIndex: context.modelRoundIndex,
             availableTools: context.availableTools,
+            workspaceToolCatalog: context.workspaceToolCatalog,
             continuation: continuation
         )
 

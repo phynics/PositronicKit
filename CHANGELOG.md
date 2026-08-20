@@ -38,6 +38,11 @@ for tagged releases beginning with `1.0.0`.
 - **Compile-time provider factory contract:** added `LLMProviderFactory` so concrete provider
   modules share a typed `makeClient(configuration:)` API without introducing provider discovery
   or a runtime factory registry.
+- **Deterministic workspace tool dispatch:** managed Turns snapshot authorized workspace tools at
+  admission and expose the reserved `call_tool` dispatcher. Omitted workspace IDs are accepted
+  only for a single match; ambiguous calls return model-visible workspace IDs, labels, descriptions,
+  schemas, and a corrected explicit call. Tool intents/results and resolved terminal workspace-tool
+  events record the workspace and explicit/implicit routing mode.
 
 ### Changed
 

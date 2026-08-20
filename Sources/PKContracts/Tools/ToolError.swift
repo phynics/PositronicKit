@@ -21,6 +21,9 @@ import Foundation
 /// - **unmatchedToolOutput**: An externally submitted tool output does not match a pending call.
 /// - **invalidWorkspaceID**: The `workspaceID` argument was present but not a valid UUID string
 ///   (PKRR-015 fail-closed).
+/// - **ambiguousWorkspaceTool**: More than one authorized workspace exposes the requested tool
+///   and the model must choose a workspace explicitly.
+/// - **reservedToolName**: A caller attempted to replace a runtime-reserved dispatcher name.
 public enum ToolError: PKError, Sendable, Equatable {
     case missingArgument(String)
     case invalidArgument(String, expected: String, got: String)
@@ -35,6 +38,8 @@ public enum ToolError: PKError, Sendable, Equatable {
     case permissionDenied(String)
     case unmatchedToolOutput(String)
     case invalidWorkspaceID(String)
+    case ambiguousWorkspaceTool(tool: String, candidates: [WorkspaceToolCandidate])
+    case reservedToolName(String)
 
     public var errorDomain: String {
         PKErrorDomain.tool
@@ -55,6 +60,8 @@ public enum ToolError: PKError, Sendable, Equatable {
         case .permissionDenied: return 210
         case .unmatchedToolOutput: return 211
         case .invalidWorkspaceID: return 213
+        case .ambiguousWorkspaceTool: return 214
+        case .reservedToolName: return 215
         }
     }
 
@@ -98,6 +105,11 @@ public enum ToolError: PKError, Sendable, Equatable {
             return "The submitted tool output '\(toolCallId)' does not match a pending tool call."
         case let .invalidWorkspaceID(value):
             return "The 'workspaceID' argument '\(value)' is not a valid UUID string."
+        case let .ambiguousWorkspaceTool(tool, candidates):
+            let names = candidates.map { "\($0.label) (\($0.workspaceID.uuidString))" }.joined(separator: ", ")
+            return "The workspace tool '\(tool)' is ambiguous; choose one authorized workspace: \(names)."
+        case let .reservedToolName(name):
+            return "The tool name '\(name)' is reserved by the runtime and cannot be supplied by a caller."
         }
     }
 
@@ -139,6 +151,26 @@ public enum ToolError: PKError, Sendable, Equatable {
         case .invalidWorkspaceID:
             return "Provide a valid UUID string for 'workspaceID' that matches one of the workspaces " +
                 "attached to the current thread, or omit it to use automatic workspace routing."
+        case let .ambiguousWorkspaceTool(tool, candidates):
+            let details = candidates.map { candidate in
+                let primary = candidate.isPrimary ? " primary" : ""
+                let schema: String
+                if let data = try? Self.sortedJSONEncoder().encode(candidate.parametersSchema),
+                   let rendered = String(data: data, encoding: .utf8)
+                {
+                    schema = rendered
+                } else {
+                    schema = String(describing: candidate.parametersSchema)
+                }
+                return "- \(candidate.workspaceID.uuidString) [\(candidate.label)\(primary)]: \(candidate.toolName) — \(candidate.description); schema: \(schema)"
+            }.joined(separator: "\n")
+            let preferred = candidates.first(where: \.isPrimary) ?? candidates.first
+            let example = preferred.map {
+                "call_tool(tool: \"\(tool)\", at: \"\($0.workspaceID.uuidString)\", arguments: {})"
+            } ?? "call_tool(tool: \"\(tool)\", at: \"<workspace-id>\", arguments: {})"
+            return "Choose a workspace by ID and re-emit the exact corrected call: \(example)\nAuthorized matches:\n\(details)"
+        case let .reservedToolName(name):
+            return "Remove the caller-defined '\(name)' tool and use the runtime-provided dispatcher."
         }
     }
 
@@ -157,5 +189,11 @@ public enum ToolError: PKError, Sendable, Equatable {
             return "\(Int(timeout)) seconds"
         }
         return "\(timeout) seconds"
+    }
+
+    private static func sortedJSONEncoder() -> JSONEncoder {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        return encoder
     }
 }

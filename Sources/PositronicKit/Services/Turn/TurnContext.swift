@@ -129,6 +129,8 @@ struct TurnContext {
     let maxModelRounds: Int
     let systemInstructions: String?
     let availableTools: [AnyTool]
+    /// Workspace authority captured at admission; nil for detached/direct Turns.
+    let workspaceToolCatalog: WorkspaceToolCatalog?
     let contextData: ContextData
     let remoteDepth: Int
     let generationParameters: GenerationParameters?
@@ -164,6 +166,7 @@ struct TurnContext {
         maxModelRounds: Int,
         systemInstructions: String?,
         availableTools: [AnyTool],
+        workspaceToolCatalog: WorkspaceToolCatalog? = nil,
         contextData: ContextData,
         remoteDepth: Int,
         generationParameters: GenerationParameters? = nil,
@@ -191,6 +194,7 @@ struct TurnContext {
         self.maxModelRounds = maxModelRounds
         self.systemInstructions = systemInstructions
         self.availableTools = availableTools
+        self.workspaceToolCatalog = workspaceToolCatalog
         self.contextData = contextData
         self.remoteDepth = remoteDepth
         self.generationParameters = generationParameters
@@ -232,6 +236,7 @@ struct TurnContext {
             maxModelRounds: maxModelRounds,
             systemInstructions: systemInstructions,
             availableTools: availableTools,
+            workspaceToolCatalog: workspaceToolCatalog,
             contextData: contextData,
             remoteDepth: remoteDepth,
             generationParameters: generationParameters,

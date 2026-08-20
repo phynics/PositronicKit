@@ -164,6 +164,7 @@ extension TurnEngine {
         var repositoryAdmitted = false
         var resolvedAgent = agent
         var resolvedAgentContext = agentContext
+        var resolvedWorkspaceToolCatalog: WorkspaceToolCatalog?
 
         do {
             // 2. Validate thread existence before any preparation proceeds.
@@ -214,6 +215,16 @@ extension TurnEngine {
                         }
                         context = snapshot
                     }
+                    let workspaceCatalog: WorkspaceToolCatalog?
+                    if executionKind == .agentManaged {
+                        let captured = try await dependencies.threadManager.captureWorkspaceToolCatalog(
+                            for: threadID,
+                            primaryWorkspaceID: authority.agent?.primaryWorkspaceID
+                        )
+                        workspaceCatalog = captured
+                    } else {
+                        workspaceCatalog = nil
+                    }
                     let admission = try await runtimeRepository.admitTurn(
                         threadID: threadID,
                         requestID: requestId,
@@ -223,10 +234,11 @@ extension TurnEngine {
                         turnID: turnID,
                         now: Date()
                     )
-                    return (admission, authority.agent, context)
+                    return (admission, authority.agent, context, workspaceCatalog)
                 }
                 resolvedAgent = admissionResult.1 ?? resolvedAgent
                 resolvedAgentContext = admissionResult.2 ?? resolvedAgentContext
+                resolvedWorkspaceToolCatalog = admissionResult.3
                 let admission = admissionResult.0
                 switch admission.disposition {
                 case .admitted:
@@ -262,13 +274,34 @@ extension TurnEngine {
                         }
                         context = snapshot
                     }
+                    let workspaceCatalog: WorkspaceToolCatalog?
+                    if executionKind == .agentManaged {
+                        let captured = try await dependencies.threadManager.captureWorkspaceToolCatalog(
+                            for: threadID,
+                            primaryWorkspaceID: authority.agent?.primaryWorkspaceID
+                        )
+                        workspaceCatalog = captured
+                    } else {
+                        workspaceCatalog = nil
+                    }
                     guard await TurnIdempotencyGate.shared.checkAndMark(requestId: requestId) else {
                         throw TurnEngineError.duplicateRequestID(requestId)
                     }
-                    return (authority.agent, context)
+                    return (authority.agent, context, workspaceCatalog)
                 }
                 resolvedAgent = authorityResult.0 ?? resolvedAgent
                 resolvedAgentContext = authorityResult.1 ?? resolvedAgentContext
+                resolvedWorkspaceToolCatalog = authorityResult.2
+            }
+
+            guard !tools.contains(where: { $0.callName == "call_tool" }) else {
+                throw ToolError.reservedToolName("call_tool")
+            }
+            let effectiveTools: [AnyTool]
+            if let catalog = resolvedWorkspaceToolCatalog, !catalog.isEmpty {
+                effectiveTools = tools + [catalog.callTool]
+            } else {
+                effectiveTools = tools
             }
 
             // 3. Validate tool output submissions and reserve pending call IDs — no persistence.
@@ -311,7 +344,12 @@ extension TurnEngine {
             // primary workspace, attached workspace context, or memory; their contributors are
             // the explicit caller-owned selection captured on `TurnContext`.
             let workspaceResult: WorkspaceQueryResult
-            if executionKind == .direct {
+            if let catalog = resolvedWorkspaceToolCatalog {
+                workspaceResult = WorkspaceQueryResult(
+                    primary: catalog.entries.first(where: \.isPrimary)?.workspace,
+                    attached: catalog.entries.filter { !$0.isPrimary }.map(\.workspace)
+                )
+            } else if executionKind == .direct {
                 workspaceResult = WorkspaceQueryResult(primary: nil, attached: [])
             } else {
                 workspaceResult = try await dependencies.threadManager.getWorkspaces(for: threadID)
@@ -356,7 +394,7 @@ extension TurnEngine {
                 contextNotes: contextData.notes,
                 memories: contextData.memories.map { $0.memory },
                 chatHistory: history,
-                tools: tools,
+                tools: effectiveTools,
                 workspaces: workspaceResult.attached,
                 primaryWorkspace: workspaceResult.primary,
                 requestOriginName: requestOriginName,
@@ -509,7 +547,8 @@ extension TurnEngine {
                 modelName: modelName,
                 maxModelRounds: maxModelRounds,
                 systemInstructions: effectiveSystemInstructions,
-                availableTools: tools,
+                availableTools: effectiveTools,
+                workspaceToolCatalog: resolvedWorkspaceToolCatalog,
                 contextData: contextData,
                 remoteDepth: currentRemoteDepth,
                 generationParameters: generationParameters,

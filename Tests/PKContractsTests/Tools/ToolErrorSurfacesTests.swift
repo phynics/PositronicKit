@@ -91,4 +91,45 @@ final class ToolErrorSurfacesTests {
         #expect(ToolError.timeoutDescription(0.05) == "0.05 seconds")
         #expect(ToolError.timeoutDescription(1.5) == "1.5 seconds")
     }
+
+    @Test
+    func ambiguousWorkspaceToolProvidesACompleteCorrection() throws {
+        let firstID = try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000001"))
+        let secondID = try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000002"))
+        let candidates = [
+            WorkspaceToolCandidate(
+                workspaceID: firstID,
+                label: "primary",
+                toolID: "read_file",
+                toolName: "Read file",
+                description: "Reads a file",
+                parametersSchema: ["type": .string("object")],
+                isPrimary: true
+            ),
+            WorkspaceToolCandidate(
+                workspaceID: secondID,
+                label: "project",
+                toolID: "read_file",
+                toolName: "Read file",
+                description: "Reads a project file",
+                parametersSchema: ["type": .string("object")]
+            ),
+        ]
+        let error = ToolError.ambiguousWorkspaceTool(tool: "read_file", candidates: candidates)
+
+        #expect(error.errorCode == 214)
+        #expect(error.userFriendlyMessage.contains("primary"))
+        #expect((error.remediation ?? "").contains(firstID.uuidString))
+        #expect((error.remediation ?? "").contains("Read file"))
+        #expect((error.remediation ?? "").contains("schema"))
+        #expect((error.remediation ?? "").contains("call_tool(tool: \"read_file\""))
+    }
+
+    @Test
+    func reservedToolNameIsModelVisible() {
+        let error = ToolError.reservedToolName("call_tool")
+        #expect(error.errorCode == 215)
+        #expect(error.userFriendlyMessage.contains("reserved"))
+        #expect((error.remediation ?? "").contains("call_tool"))
+    }
 }

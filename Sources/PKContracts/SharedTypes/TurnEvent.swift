@@ -5,6 +5,13 @@ public enum ToolExecutionStatus: Sendable, Codable {
     case attempting(name: String, reference: ToolReference)
     case success(ToolResult)
     case failed(reference: ToolReference, error: String)
+    /// A resolved Workspace tool failed; provenance remains attached to the failure event.
+    case workspaceFailed(
+        reference: ToolReference,
+        error: String,
+        workspaceID: UUID,
+        routing: WorkspaceToolRouting
+    )
     /// Tool execution failed without a tool reference (e.g. the tool could not be
     /// resolved before execution began). Distinct from `.failed` which carries the
     /// `ToolReference` of the tool that was attempted, and from `ToolResult.failure(_:)`
@@ -17,6 +24,13 @@ public enum ToolExecutionStatus: Sendable, Codable {
     /// history — a consumer that observes `.persistenceFailed` knows the result is not
     /// durable and a retry may be needed (PKRR-016).
     case persistenceFailed(reference: ToolReference, error: String)
+    /// A resolved Workspace tool result could not be persisted; provenance remains attached.
+    case workspacePersistenceFailed(
+        reference: ToolReference,
+        error: String,
+        workspaceID: UUID,
+        routing: WorkspaceToolRouting
+    )
 }
 
 /// Events emitted by TurnEngine during a turn.

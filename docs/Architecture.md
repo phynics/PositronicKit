@@ -103,6 +103,10 @@ PositronicKit is deliberately transport-neutral: no networking, RPC, multi-proce
 - **ThreadRuntimeRepository** for atomic Turn admission, append-only history, tool intent/result
   barriers, terminal outcomes, and stale-Turn recovery. PromptJournal remains outside this boundary.
 - **`WorkspaceFactory` and `Workspace`** for downstream-owned workspace resolution and execution behavior. `DefaultWorkspaceCatalog` is the bundled local provisioning implementation, not a required universal workspace model.
+- Managed Turns snapshot Workspace tool authority at admission and expose the reserved `call_tool`
+  dispatcher. The dispatcher routes only Workspace tools; runtime/system and request-scoped tools
+  remain separate. Explicit Workspace IDs are required whenever more than one authorized Workspace
+  matches, and the selected ID plus explicit/implicit routing mode is retained in tool records.
 - **`PromptSectionProviding`** and **`TurnPlugin`** for app-specific orchestration and context hooks.
 - **Provider contracts in `PKContracts`** for downstream-owned LLM adapters and tool/message projections.
 
