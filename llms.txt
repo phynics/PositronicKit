@@ -6,7 +6,7 @@ PositronicKit follows semver for tagged releases beginning with `1.0.0`. The cor
 
 ## Getting Started
 
-- [README: Quick Start](README.md#quick-start): add the package dependency, import the modules you need, and pick the smallest operation tier for the tagged release you are consuming.
+- [README: Quick Start](README.md#quick-start): add the package dependency, import the modules you need, and use `kit.model`, `kit.threads`, `kit.agents`, and `kit.workspaces` as the supported capability entry points.
 - [Setup Guide](docs/Setup.md): choosing an entry point, facade configuration (minimal vs. production), default tool installation, provider registration, logging, and errors.
 - [Development Guide](docs/Development.md): contributor platform setup, Podman gates, focused tests, MiniLM assets, and bridge checks.
 - [Context Map](CONTEXT-MAP.md): v4 vocabulary ownership and relationships between runtime, prompting, and contracts.
@@ -16,7 +16,7 @@ PositronicKit follows semver for tagged releases beginning with `1.0.0`. The cor
 ## Core Concepts
 
 - [Usage Guide](docs/Usage.md): current tagged-release usage, initialization and execution, tool outputs, and local embeddings.
-- [Architecture](docs/Architecture.md): the pipeline pattern, context/state management, facade vs. direct-seam wiring, turn-engine execution flow, and the v1 extension point registry — treat everything not in that registry (`TurnEngine`, prompt-assembly internals, context-pipeline internals) as private, even if technically public.
+- [Architecture](docs/Architecture.md): capability values, context/state management, turn execution flow, and the v1 extension point registry. Concrete managers, task registries, and pipeline stages are facade implementation details.
 - [Prompt Composition](docs/PKPromptComposition.md): the `@PromptBuilder` DSL, assembly/rendering, cache policies, and `PromptJournal` stable-prefix journaling.
 - [Sidecar Directives](docs/SidecarDirectives.md): piggy-backed auxiliary generations (titles, tags, summaries) riding the same LLM request as the user-visible response.
 

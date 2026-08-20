@@ -67,7 +67,7 @@ package enum ToolTurnResult {
 /// The primary entry point is `handlePendingToolCalls()`, which executes runtime-managed tools
 /// immediately (persisting results to the message store) and defers externally hosted tools for
 /// async handling. `TurnEngine` calls this after each LLM turn that produces tool calls.
-public actor ToolRouter {
+actor ToolRouter {
     private let logger: Logger
     private let loggingConfiguration: LoggingConfiguration
 

@@ -5,7 +5,7 @@ import Foundation
 /// Calls for one Workspace do not overlap and retain arrival order. Different Workspaces use
 /// independent lanes and may execute concurrently. Multi-process hosts must provide stronger
 /// coordination in their persistence/execution backend; this actor only owns local ordering.
-public actor WorkspaceExecutionCoordinator {
+actor WorkspaceExecutionCoordinator {
     private var busy: Set<UUID> = []
     private var waiters: [UUID: [CheckedContinuation<Void, Never>]] = [:]
 

@@ -13,7 +13,7 @@ public enum MemoryVacuumPolicy: Sendable {
 }
 
 /// Service to archive threads and index their messages for semantic recall.
-public actor ThreadArchiver {
+actor ThreadArchiver {
     private let persistence: any ThreadPersistenceProtocol & MemoryStoreProtocol & ThreadMessageStoreProtocol
     private let runtimeRepository: (any ThreadRuntimeRepository)?
     private let threadAuthorityCoordinator: ThreadAuthorityCoordinator?

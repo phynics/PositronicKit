@@ -5,48 +5,50 @@ import PKPrompt
 import PKContracts
 import PKUtilities
 
-/// Manages thread threads, their associated context, and tool execution environments.
+/// Controls which built-in runtime tools are installed for each Thread.
 ///
-/// `ThreadManager` is the public coordinator/cache owner for threads: it holds the
-/// in-memory `threads`/`turnBriefingBuilders`/`toolManagers` caches and the
-/// `taskRegistry` (send-scoped active-task tracking), and manages lifecycle,
-/// workspace-attachment, and tool-policy behavior. Concrete workspace behavior
-/// remains behind `WorkspaceResolver` / `WorkspaceFactory` / `Workspace` so hosts can
-/// supply local or remote workspace implementations without changing core orchestration.
-public actor ThreadManager {
-    public struct RuntimeToolPolicy: Sendable, Equatable {
-        public let installFilesystemTools: Bool
-        public let installThreadObservationTools: Bool
-        public let installThreadSendTool: Bool
+/// This is a facade configuration value. The cache-owning coordinator that applies
+/// it is intentionally not part of the consumer-facing entry point.
+public struct RuntimeToolPolicyConfiguration: Sendable, Equatable {
+    public let installFilesystemTools: Bool
+    public let installThreadObservationTools: Bool
+    public let installThreadSendTool: Bool
 
-        public init(
-            installFilesystemTools: Bool = true,
-            installThreadObservationTools: Bool = true,
-            installThreadSendTool: Bool = true
-        ) {
-            self.installFilesystemTools = installFilesystemTools
-            self.installThreadObservationTools = installThreadObservationTools
-            self.installThreadSendTool = installThreadSendTool
-        }
-
-        public static let `default` = RuntimeToolPolicy()
-        public static let denyAll = RuntimeToolPolicy(
-            installFilesystemTools: false,
-            installThreadObservationTools: false,
-            installThreadSendTool: false
-        )
+    public init(
+        installFilesystemTools: Bool = true,
+        installThreadObservationTools: Bool = true,
+        installThreadSendTool: Bool = true
+    ) {
+        self.installFilesystemTools = installFilesystemTools
+        self.installThreadObservationTools = installThreadObservationTools
+        self.installThreadSendTool = installThreadSendTool
     }
 
-    public struct Stores: Sendable {
-        public let threadStore: any ThreadPersistenceProtocol
-        public let messageStore: any ThreadMessageStoreProtocol
-        public let workspaceStore: any WorkspaceStore
-        public let workspaceBindingRepository: any WorkspaceBindingRepository
-        public let runtimeRepository: (any ThreadRuntimeRepository)?
-        public let toolPersistence: any ToolPersistenceProtocol
-        public let memoryStore: any MemoryStoreProtocol
+    public static let `default` = RuntimeToolPolicyConfiguration()
+    public static let denyAll = RuntimeToolPolicyConfiguration(
+        installFilesystemTools: false,
+        installThreadObservationTools: false,
+        installThreadSendTool: false
+    )
+}
 
-        public init(
+/// Short spelling for the public facade configuration value.
+public typealias RuntimeToolPolicy = RuntimeToolPolicyConfiguration
+
+/// Internal coordinator/cache owner for Threads and their execution environments.
+actor ThreadManager {
+    typealias RuntimeToolPolicy = RuntimeToolPolicyConfiguration
+
+    struct Stores: Sendable {
+        let threadStore: any ThreadPersistenceProtocol
+        let messageStore: any ThreadMessageStoreProtocol
+        let workspaceStore: any WorkspaceStore
+        let workspaceBindingRepository: any WorkspaceBindingRepository
+        let runtimeRepository: (any ThreadRuntimeRepository)?
+        let toolPersistence: any ToolPersistenceProtocol
+        let memoryStore: any MemoryStoreProtocol
+
+        init(
             threadStore: any ThreadPersistenceProtocol,
             messageStore: any ThreadMessageStoreProtocol,
             workspaceStore: any WorkspaceStore,
@@ -313,7 +315,7 @@ public actor ThreadManager {
 
 // MARK: - Queries & Agent Support
 
-public extension ThreadManager {
+extension ThreadManager {
     /// Pure lookup: retrieves a thread by its ID without mutating `updatedAt`.
     /// Callers that want to record activity should call ``touchThread(id:)`` explicitly.
     func thread(id: UUID) -> Thread? {
@@ -342,7 +344,7 @@ public extension ThreadManager {
 
 // MARK: - Tool Management
 
-public extension ThreadManager {
+extension ThreadManager {
     func findWorkspaceForTool(_ tool: ToolReference, in workspaceIds: [UUID]) async throws
         -> UUID?
     {

@@ -75,16 +75,20 @@ final class WorkspaceBindingRepositoryTests: XCTestCase {
     }
 
     func testAgentPrimaryWorkspaceIsNotAnOrdinaryThreadBinding() async throws {
-        let kit = PositronicKit()
-        let agent = try await kit.agentManager.createAgent(
+        let bindings = InMemoryWorkspaceBindingRepository()
+        let kit = PositronicKit(configuration: .init(
+            provider: .init(languageModel: UnconfiguredLLMService()),
+            persistence: .init(workspaceBindingRepository: bindings)
+        ))
+        let agent = try await kit.agents.create(
             name: "Binding Agent",
             description: "Primary workspace ownership test"
         )
         let workspaceID = try XCTUnwrap(agent.primaryWorkspaceID)
-        let privateThread = await kit.threadManager.thread(id: agent.privateThreadID)
+        let privateThread = try await kit.threads.get(agent.privateThreadID)
 
         XCTAssertTrue(privateThread?.attachedWorkspaceIDs.isEmpty == true)
-        let owner = try await kit.workspaceBindingRepository.threadID(for: workspaceID)
+        let owner = try await bindings.threadID(for: workspaceID)
         XCTAssertNil(owner)
     }
 }

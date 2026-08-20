@@ -5,9 +5,9 @@ import Foundation
 /// Each `TurnEngine.execute(...)` turn registers its stream-driving `Task` here, keyed by
 /// `(threadID, turnID)`. Terminal paths remove the entry only when the turnID still matches
 /// the active one, so a stale turn cannot evict or cancel a newer turn.
-/// ``ThreadDriver/cancel()`` cancels whatever task is currently active for the thread;
+/// ``ThreadHandle/cancel()`` cancels whatever task is currently active for the thread;
 /// eviction/deletion cancels and awaits bounded cleanup via `cancelAndAwait(for:)`.
-public actor ThreadTaskRegistry {
+actor ThreadTaskRegistry {
     public init() {}
     struct ActiveTurn: Sendable {
         let turnID: UUID
@@ -24,7 +24,7 @@ public actor ThreadTaskRegistry {
     }
 
     /// Cancels whatever task is currently active for the thread (used by
-    /// ``ThreadDriver/cancel()``). No-op if no turn is active. The entry is removed by the
+    /// ``ThreadHandle/cancel()``). No-op if no turn is active. The entry is removed by the
     /// task's own terminal path via ``removeIfActive(turnID:for:)``.
     func cancelActive(for threadID: UUID) {
         active[threadID]?.task.cancel()

@@ -31,12 +31,17 @@ Because multiple stages might need to update the results of a turn concurrently 
 
 PositronicKit is the orchestration layer. It manages the full lifecycle of an agent interaction — from resolving state, through prompt assembly and tool execution, to persisting results.
 
-### Two Ways In: Facade (Primary) vs. Direct Seams (Advanced)
+### Capability Values: The Consumer Surface
 
-- **The `PositronicKit` facade is the primary entry point.** Construct it, call `run(...)`, and consume the streamed `TurnEvent`s. It wires the runtime internally; most consumers never touch the underlying coordinators.
-- **Advanced hosts may compose the public runtime seams directly.** When you own a server or a custom composition root, construct and hold `ThreadManager`, `ToolRouter`, and the persistence/workspace protocols yourself, or inject them into the facade via the grouped `runtime:` / `persistence:` initializers. This is a supported tier — not a private API — but you opt into more wiring in exchange for more control.
+The `PositronicKit` facade is the public composition root. Use `kit.model` for raw, Thread-free
+inference; `kit.threads` for Thread creation, lookup, and stateful `ThreadHandle` values;
+`kit.agents` for agent identity and Thread attachment; and `kit.workspaces` for the workspace
+catalog. A `ThreadHandle.send(_:)` call resolves the attached Agent and provides the managed,
+Thread-addressed execution path; `sendDetached(_:)` is the explicit identity-free alternative.
 
-Prefer the facade unless you specifically need a seam it doesn't surface. The turn-loop internals (`TurnEngine`, the turn pipeline, prompt-assembly internals) remain implementation details either way.
+Concrete managers, task registries, tool routing, `TurnEngine`, and the turn pipeline are facade
+implementation details. Persistence, provider, workspace, prompt-section,
+and plugin protocols remain public replaceability seams where a host owns those dependencies.
 
 ## 4. Execution Flow: The Turn Engine
 
@@ -51,7 +56,7 @@ The `TurnEngine` is the primary orchestrator that uses the Pipeline to handle us
 
 ## 5. Sidecar Directives (Piggy-Backed Requests)
 
-A turn can pass `sidecars: [SidecarDirective]` to `PositronicKit.run(...)` to request auxiliary
+A turn can pass `sidecars: [SidecarDirective]` to `ThreadHandle.run(...)` to request auxiliary
 generations (title, summary, tone, etc.) from the *same* LLM request as the turn's response,
 instead of paying a separate round-trip per auxiliary task. See
 [Sidecar Directives](SidecarDirectives.md) for the current contract.
@@ -119,7 +124,7 @@ These public API surfaces are the **v1 compatibility contract**: they only chang
 | **Events** | `TurnEvent`, `ToolExecutionStatus`, `Message` | PKContracts | Stream event types |
 | **Sidecar directives** | `SidecarDirective`, `SidecarDelta`, `SidecarResult` (PKContracts), `SidecarError` (PositronicKit) | PKContracts / PositronicKit | Piggy-backed auxiliary generations riding a turn's response — see [Sidecar Directives](docs/SidecarDirectives.md) |
 | **Pipeline** | `PipelineStage`, `PipelineError` | package-internal utility layer | Runtime implementation detail; not a public product |
-| **Runtime coordinators (advanced)** | `ThreadManager`, `ToolRouter`, `WorkspaceExecutionCoordinator`, `ToolExecutionOutcome`, `RuntimeToolPolicy` | PositronicKit | Direct runtime seams for hosts with their own composition root |
+| **Runtime configuration** | `RuntimeToolPolicy`, `ThreadRuntimeRepository`, `WorkspaceBindingRepository` | PositronicKit | Configure durable ownership and built-in tool installation without exposing coordinators |
 
 `InMemory*` stores (and `PositronicKit.PersistenceConfiguration.inMemory()`) are **public prototyping/test helpers**, not extension points — convenient for prototypes and tests, but not a stability contract.
 

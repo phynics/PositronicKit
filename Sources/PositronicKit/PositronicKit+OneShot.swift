@@ -25,7 +25,7 @@ public struct OneShotResult: Sendable, Equatable {
     }
 }
 
-public extension PositronicKit {
+extension PositronicKit {
     /// Generates a response for a single prompt without creating or updating a thread.
     func complete(_ prompt: String) async throws -> String {
         try await completeResult(prompt).content

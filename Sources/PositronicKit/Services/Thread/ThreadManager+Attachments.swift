@@ -6,7 +6,7 @@ import PKUtilities
 
 // MARK: - Workspace Attachment
 
-public extension ThreadManager {
+extension ThreadManager {
     func attachWorkspace(_ workspaceId: UUID, to threadID: UUID) async throws {
         try await requireExecutionContextMutable(for: threadID)
         let livenessVersion = threadLivenessVersion(for: threadID)

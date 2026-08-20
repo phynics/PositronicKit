@@ -53,7 +53,7 @@ let tone = SidecarDirective(
 ## Running a turn with sidecars
 
 ```swift
-let stream = try await chat.run(TurnRequest(
+let stream = try await chat.threads.open(threadID).runDetached(TurnRequest(
     threadID: threadID,
     message: "What's the deal with actors in Swift 6?",
     sidecars: [title, tone]

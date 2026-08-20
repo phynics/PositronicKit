@@ -22,3 +22,10 @@ _ = String(describing: PKOpenRouterProvider.self)
 _ = String(describing: PKOllamaProvider.self)
 _ = String(describing: PKAnthropicProvider.self)
 _ = String(describing: PKFoundationModelsProvider.self)
+
+let kit = PositronicKit()
+_ = kit.model
+_ = kit.threads
+_ = kit.agents
+_ = kit.workspaces
+_ = String(describing: ThreadHandle.self)

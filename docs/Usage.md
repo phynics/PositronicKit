@@ -4,26 +4,28 @@ This guide provides step-by-step examples for integrating `PositronicKit` and ma
 
 ## 1. Managing Agents
 
-`Agent` represents a live agent with its own workspace and private thread. You manage agents using the `AgentManager`.
+`Agent` represents a live agent with its own workspace and private Thread. You manage agents
+through the facade's `agents` capability.
 
 ### Creating an Agent
 
-To create a new agent, use the `createAgent` method. You can optionally seed it from an `AgentTemplate`.
+To create a new agent, use `kit.agents.create`. You can optionally seed it from an `AgentTemplate`.
 
 ```swift
 import PositronicKit
 import PKContracts
 
-let manager = AgentManager(repository: myWorkspaceRepository)
+let kit = PositronicKit(languageModel: myLLM)
 
 // Create a new agent
-let agent = try await manager.createAgent(
-    from: nil, // Optional AgentTemplate
+let agent = try await kit.agents.create(
     name: "Research Assistant",
     description: "An agent specialized in technical research."
 )
 
-print("Created agent with ID: \(instance.id)")
+let thread = try await kit.threads.create(title: "Research")
+try await kit.agents.attach(agent.id, to: thread.id)
+print("Created agent with ID: \(agent.id)")
 ```
 
 ### Attaching an Agent to a Thread
@@ -31,8 +33,8 @@ print("Created agent with ID: \(instance.id)")
 To use an agent in a specific chat thread, you must "attach" it. This grants the agent exclusive access to that thread.
 
 ```swift
-let threadID = UUID() // Your existing thread ID
-try await manager.attach(agentId: instance.id, to: threadID)
+let threadID = thread.id
+try await kit.agents.attach(agent.id, to: threadID)
 ```
 
 ## 2. Initialization and Execution
@@ -121,7 +123,7 @@ let chat = PositronicKit(configuration: .init(
 
 ### Running a Generation Stream
 
-The `run` method takes a `TurnRequest` and returns an `AsyncThrowingStream<TurnEvent, Error>`,
+The `ThreadHandle.run` method takes a `TurnRequest` addressed to its Thread and returns an `AsyncThrowingStream<TurnEvent, Error>`,
 so you can process real-time updates as the agent reasons and responds.
 
 ```swift
@@ -129,10 +131,9 @@ import PositronicKit
 import PKContracts
 
 // `chat` is the PositronicKit instance from the initialization example above.
-let stream = try await chat.run(TurnRequest(
+let stream = try await chat.threads.open(threadID).run(TurnRequest(
     threadID: threadID,
     message: "What are the latest trends in Swift concurrency?",
-    agentID: instance.id // The agent we created earlier
 ))
 
 for try await event in stream {
@@ -214,7 +215,7 @@ LoggingSystem.bootstrap { label in
 }
 
 let logger = Logger(label: "com.example.prompt-assembly")
-let events = try await chat.run(TurnRequest(
+let events = try await chat.threads.open(threadID).run(TurnRequest(
     threadID: threadID,
     message: "…",
     promptAssemblyLogger: logger
@@ -230,12 +231,11 @@ let toolOutputs = [
     ToolOutputSubmission(toolCallID: "call_123", output: "File contents...")
 ]
 
-let stream = try await chat.run(TurnRequest(
+let stream = try await chat.threads.open(threadID).run(TurnRequest(
     threadID: threadID,
     message: "", // Empty message as we're continuing from a tool call
     tools: tools,
-    toolOutputs: toolOutputs,
-    agentID: instance.id
+    toolOutputs: toolOutputs
 ))
 ```
 

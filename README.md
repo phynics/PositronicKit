@@ -41,31 +41,36 @@ Choose the smallest operation tier that fits the feature:
 
 ```swift
 let kit = PositronicKit(languageModel: myLLM)
-let answer = try await kit.complete("Summarize this note.")       // tier 1: one-shot
-let thread = try await kit.threadManager.createThread()
-let driver = kit.openThread(thread.id)                              // tier 2: ThreadDriver
-let threadManager = kit.threadManager                               // tier 3: threads
-let agent = kit.agenticRuntime(                                     // tier 4: agent loop
-    threadID: driver.threadID,
-    agentID: UUID()
+let answer = try await kit.model.generate("Summarize this note.") // tier 1: raw model
+let thread = try await kit.threads.create()                        // tier 2: durable Thread
+let stream = try await thread.send("Continue the summary.")       // tier 3: Thread handle
+let agent = try await kit.agents.create(                            // tier 4: managed identity
+    name: "Researcher",
+    description: "Summarizes source material."
 )
-let tools = kit.toolRouter                                         // tier 5: raw primitives
+try await kit.agents.attach(agent.id, to: thread.id)
+let managedStream = try await thread.send("Use the attached identity.")
+let workspaces = try await kit.workspaces.list()                    // tier 5: workspace catalog
 ```
+
+The capability values are the supported consumer entry points. `kit.model` is thread-free
+inference; `kit.threads` returns a stateful `ThreadHandle`; `kit.agents` manages identities and
+their Thread attachments; and `kit.workspaces` owns the workspace catalog. Concrete managers,
+task registries, and the turn pipeline are facade implementation details.
 
 ### Facade readiness, validation, and error delivery
 
-`await kit.isLanguageModelConfigured` is a live, read-only configuration-readiness signal from
-the injected language model. It does not expose credentials or provider configuration, and it is
-not a connectivity probe or a guarantee that a later request will succeed. Treat `run`, `stream`,
-or `complete` as the authoritative operation because model state can change after the check.
+`await kit.model.isConfigured` is a live, read-only configuration-readiness signal from the
+injected language model. It does not expose credentials or provider configuration, and it is not
+a connectivity probe or a guarantee that a later request will succeed. Treat `ThreadHandle.run`,
+`kit.model.stream`, or `kit.model.generate` as authoritative because model state can change after
+the check.
 
-`run(_:)` validates `TurnRequest.maxModelRounds` before thread resolution, persistence, or provider
-work; values below `1` throw `TurnError.invalidMaxModelRounds` directly from the awaited `run` call.
-When `agentID` is present, the runtime resolves that agent once after thread resolution
-and before provider readiness or input persistence. The default `.failRequired` degradation policy
-throws `AgentError.agentNotFound`; `.continueWithWarnings` proceeds without the missing
-agent and includes an agent diagnostic in the initial generation-context event. A failed preflight
-does not consume `requestID`, so the same identifier can be retried after the dependency is repaired.
+`ThreadHandle.run(_:)` validates `TurnRequest.maxModelRounds` before thread resolution, persistence,
+or provider work; values below `1` throw `TurnError.invalidMaxModelRounds` directly from the
+awaited call. Managed execution derives the Agent from durable Thread attachment state. Use
+`runDetached(_:)` for an explicit identity-free request. A failed preflight does not consume
+`requestID`, so the same identifier can be retried after the dependency is repaired.
 
 One-shot text, result, stream, and structured-output calls all accept per-call generation
 parameters and an inactivity timeout on their configurable overloads. Per-call parameters override
@@ -74,7 +79,7 @@ after every provider chunk. Structured one-shot output uses the same native-resp
 synthetic-tool adapter path as full runs:
 
 ```swift
-let json = try await kit.complete(
+let json = try await kit.model.generateStructured(
     "Extract the project metadata.",
     structuredOutput: request,
     generationParameters: GenerationParameters(temperature: 0),
@@ -84,24 +89,24 @@ let json = try await kit.complete(
 
 Errors arrive at the boundary where the work occurs:
 
-- Request and preparation failures—invalid `maxModelRounds`, thread hydration, required-agent
+- Request and preparation failures—invalid `maxModelRounds`, Thread hydration, required-Agent
   preflight, provider configuration, sidecar validation, and input/history preparation—throw from
-  `try await kit.run(request)` before a stream is returned.
-- Provider and pipeline failures after `run(_:)` returns arrive by throwing while the returned
+  `try await kit.threads.open(threadID).run(request)` before a stream is returned.
+- Provider and pipeline failures after `ThreadHandle.run(_:)` returns arrive by throwing while the returned
   stream is iterated. A foreign provider failure retains its original causal error and exposes the
   stable LLM identity `PKErrorDomain.llm` / `1005` through
   `TurnEvent.ErrorIdentity.extracting(from:)`, even when nested in a pipeline error.
-- `complete` and `completeResult` consume their stream internally, so preparation and provider
-  failures both throw from the one-shot call. `stream` returns immediately and reports provider
-  failures during iteration.
+- `kit.model.generate` and `generateStructured` consume provider streams internally, so preparation
+  and provider failures both throw from the one-shot call. `kit.model.stream` returns immediately
+  and reports provider failures during iteration.
 
 Cancelling a task that consumes a facade run cancels its provider work and releases the thread's
 active-task registration. Abandoning a facade `stream` iterator likewise cancels the provider;
 cancelling `complete` or `completeResult` surfaces `CancellationError` without foreign-error
 wrapping.
 
-In an application, hold `kit` in an app-owned `Service` class and pass the managers or
-controllers it vends to the subsystems that use them.
+In an application, hold `kit` in an app-owned `Service` class and pass the capability values or
+handles it vends to the subsystems that use them.
 
 ## Documentation
 
@@ -109,7 +114,7 @@ Detailed documentation has been split into focused guides:
 
 - **[Setup Guide](docs/Setup.md)**: Configuration, logging, required services, and choosing your entry point.
 - **[Usage Guide](docs/Usage.md)**: Managing agents, pipelines, and local embeddings.
-- **[Architecture](docs/Architecture.md)**: Core concepts, state management, and the v1 extension point registry.
+- **[Architecture](docs/Architecture.md)**: Capability values, core concepts, state management, and the v1 extension point registry.
 - **[Development](docs/Development.md)**: Contributor platform setup, Linux/Podman gates, and MiniLM bridge workflows.
 - **[Context map](CONTEXT-MAP.md)**: Canonical v4 vocabulary and ownership boundaries.
 - **[Architecture decisions](docs/adr/)**: Accepted v4 decisions and their trade-offs.
@@ -157,7 +162,7 @@ let title = SidecarDirective(
     streaming: .buffered
 )
 
-let stream = try await chat.run(.init(
+let stream = try await chat.threads.open(threadID).runDetached(.init(
     threadID: threadID,
     message: "What's the deal with actors in Swift 6?",
     sidecars: [title]
@@ -336,11 +341,8 @@ The harness contracts are intentionally explicit:
   then awaited after unlocking.
 - `TestWorkspace` creates a unique directory and removes it best-effort on deinitialization. Retain
   the `TestWorkspace` object—not only its `root` URL—for the entire time the directory is needed.
-- `TestRuntime.threadManager`, `toolRouter`, and `agentManager` are the exact
-  facade-owned instances; in particular,
-  `runtime.agentManager === runtime.positronicKit.agentManager`.
-  `agentWorkspaceService` and `workspaceManager` remain separate compatibility helpers backed by
-  the runtime's supplied persistence and workspace factory.
+- `TestRuntime.threads`, `agents`, and `workspaces` exercise the same facade capability values
+  used by consumers; concrete coordinators remain internal to the runtime.
 
 ## Package Layout
 
@@ -357,7 +359,7 @@ Provider targets ship separately so you opt in only to the integrations you want
 
 Supporting targets:
 
-- **PKObservable** — opt-in `@Observable` wrappers for UI-facing consumers; `ThreadController` mirrors `ThreadDriver` streaming state for SwiftUI clients.
+- **PKObservable** — opt-in `@Observable` wrappers for UI-facing consumers; `ThreadController` mirrors `ThreadHandle` streaming state for SwiftUI clients.
 - **PositronicKitExamples** — runnable examples that double as living documentation.
 - **PKTestSupport** — shared mocks, fixtures, and test helpers for downstream test targets.
 

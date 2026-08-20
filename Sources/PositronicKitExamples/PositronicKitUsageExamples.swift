@@ -31,32 +31,27 @@ public enum PositronicKitUsageExamples {
         PositronicKit(languageModel: UnconfiguredLLMService())
     }
 
-    /// Tier 2: a driver for a freshly created, persisted thread.
-    public static func makeThreadDriverExample() async throws -> ThreadDriver {
+    /// Tier 2: a handle for a freshly created, persisted Thread.
+    public static func makeThreadHandleExample() async throws -> ThreadHandle {
         let kit = makeOneShotRuntime()
-        let thread = try await kit.threadManager.createThread(title: "Example Thread")
-        return kit.openThread(thread.id)
+        return try await kit.threads.create(title: "Example Thread")
     }
 
-    /// Tier 3: the facade-owned thread manager for direct thread/workspace control.
-    public static func makeThreadManagerExample() -> ThreadManager {
-        makeOneShotRuntime().threadManager
+    /// Tier 3: the narrow Thread capability value for lifecycle and attachment operations.
+    public static func makeThreadCapabilityExample() -> ThreadCapability {
+        makeOneShotRuntime().threads
     }
 
-    /// Tier 4: an agentic runtime handle over an attached thread and agent.
-    public static func makeAgenticRuntimeExample() async throws -> AgenticRuntime {
+    /// Tier 4: a Thread handle plus an attached agent identity.
+    public static func makeManagedThreadExample() async throws -> (ThreadHandle, Agent) {
         let kit = makeOneShotRuntime()
-        let thread = try await kit.threadManager.createThread(title: "Agentic Example")
-        let agent = try await kit.agentManager.createAgent(
-            from: nil,
+        let thread = try await kit.threads.create(title: "Managed Example")
+        let agent = try await kit.agents.create(
             name: "Example Agent",
-            description: "Demonstrates an attached agentic runtime."
+            description: "Demonstrates managed Thread-addressed execution."
         )
-        try await kit.agentManager.attach(agentID: agent.id, to: thread.id)
-        return kit.agenticRuntime(
-            threadID: thread.id,
-            agentID: agent.id
-        )
+        try await kit.agents.attach(agent.id, to: thread.id)
+        return (thread, agent)
     }
 
     public static func makeInspectableRuntime(inspector: any PromptObserving) -> PositronicKit {
@@ -278,12 +273,12 @@ public enum PositronicKitUsageExamples {
         try StructuredOutputDecoder.decode(ExampleTagPayload.self, from: payload)
     }
 
-    /// Tier 1 structured-output variant: a one-shot `complete(_:structuredOutput:)`
+    /// Tier 1 structured-output variant: a one-shot `kit.model.generateStructured(...)`
     /// call, no thread created or updated. The returned string is the raw JSON
     /// payload, decodable via `decodeStructuredOutputExample(from:)`/`StructuredOutputDecoder`.
     public static func completeStructuredOutputExample(prompt: String) async throws -> ExampleTagPayload {
         let kit = makeOneShotRuntime()
-        let payload = try await kit.complete(
+        let payload = try await kit.model.generateStructured(
             prompt,
             structuredOutput: makeStructuredOutputRequest(),
             generationParameters: GenerationParameters(temperature: 0, maxTokens: 128),
@@ -294,10 +289,10 @@ public enum PositronicKitUsageExamples {
 
     /// Sidecar directives (piggy-backed requests): auxiliary generations riding the same
     /// request as a turn's response. `title` is nullable so the model can decline once
-    /// a thread already has one. Consume via `PositronicKit.run(_:)`:
+    /// a thread already has one. Consume via `ThreadHandle.run(_:)`:
     ///
     /// ```swift
-    /// let stream = try await chat.run(.init(
+    /// let stream = try await chat.threads.open(id).run(.init(
     ///     threadID: id,
     ///     message: text,
     ///     sidecars: makeSidecarDirectives()

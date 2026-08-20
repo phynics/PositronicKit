@@ -6,15 +6,12 @@ import PositronicKit
     /// Explicit test composition root for PositronicKit runtime tests.
     ///
     /// `TestRuntime` replaces the former ambient dependency-injection machinery with plain
-    /// constructor injection: every store, manager, and service is wired
-    /// from a single `MockPersistenceService` so a test can rely on one coherent, shared
-    /// persistence backing across the thread manager, tool router, and `PositronicKit`.
+    /// constructor injection: every store and service is wired from a single
+    /// `MockPersistenceService` so a test can rely on one coherent, shared persistence backing.
     ///
     /// Construct one per test with a unique `workspaceRoot`, then read its fields directly or
-    /// access `positronicKit` for a fully-wired facade. `threadManager`, `toolRouter`, and
-    /// `agentManager` return the exact facade-owned instances. `agentWorkspaceService`
-    /// and `workspaceManager` remain separately exposed compatibility helpers using the supplied
-    /// persistence and workspace factory.
+    /// access `positronicKit` for a fully-wired facade. Consumer-facing tests should use the
+    /// facade's capability values rather than concrete coordinators.
     public struct TestRuntime: Sendable {
         public let persistence: MockPersistenceService
         public let llm: MockLLMService
@@ -22,30 +19,18 @@ import PositronicKit
 
         private let core: PositronicKit
 
-        public var threadManager: ThreadManager {
-            core.threadManager
-        }
+        public var threads: ThreadCapability { core.threads }
+        public var agents: AgentCapability { core.agents }
+        public var workspaces: WorkspaceCapability { core.workspaces }
 
         public var threadPersistence: any ThreadPersistenceProtocol {
             persistence
         }
 
-        public var toolRouter: ToolRouter {
-            core.toolRouter
-        }
-
-        public let agentWorkspaceService: DefaultWorkspaceCatalog
-        /// The facade-owned manager; identical (`===`) to `positronicKit.agentManager`.
-        public var agentManager: AgentManager {
-            core.agentManager
-        }
-        public let workspaceManager: DefaultWorkspaceResolver
-
         /// Creates a fully-wired runtime. All collaborators default to values built from the
         /// supplied `persistence`, so the whole graph shares one backing store. The
-        /// `PositronicKit` facade is the sole place that builds the `ThreadManager` and
-        /// `ToolRouter` and `AgentManager` it wraps; the corresponding properties simply
-        /// read those instances back.
+        /// `PositronicKit` facade is the sole place that builds its internal coordinators;
+        /// the capability values above are the test-facing consumer surface.
         ///
         /// - Parameters:
         ///   - workspaceRoot: Unique root directory for this runtime's workspaces.
@@ -77,15 +62,6 @@ import PositronicKit
                     workspaceRoot: workspaceRoot
                 )))
 
-            let agentWorkspaceService = DefaultWorkspaceCatalog(
-                workspaceRoot: workspaceRoot,
-                workspacePersistence: persistence
-            )
-            self.agentWorkspaceService = agentWorkspaceService
-            workspaceManager = DefaultWorkspaceResolver(
-                repository: agentWorkspaceService,
-                workspaceCreator: workspaceCreator
-            )
         }
 
         /// The `PositronicKit` facade wired to this runtime's stores, managers, and services.

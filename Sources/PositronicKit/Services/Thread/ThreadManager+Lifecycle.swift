@@ -6,7 +6,7 @@ import PKUtilities
 
 // MARK: - Lifecycle
 
-public extension ThreadManager {
+extension ThreadManager {
     /// Creates a new thread thread, initializes its workspace, and saves it to persistence.
     ///
     /// The thread record is persisted **first** so that a store failure leaves no orphan

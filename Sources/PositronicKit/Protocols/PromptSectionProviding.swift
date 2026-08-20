@@ -19,7 +19,7 @@ public struct PromptBuildContext: Sendable {
 // MARK: - PromptSectionProviding
 
 /// Implement to inject `Prompt`(s) into every chat prompt for a thread.
-/// Register instances via `ThreadManager.init(sectionProviders:)`.
+/// Register instances via the facade's `RuntimeConfiguration`.
 /// Sections participate in priority sorting and token-budget decisions automatically.
 public protocol PromptSectionProviding: Sendable {
     func sections(for context: PromptBuildContext) async -> [any Prompt]

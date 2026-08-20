@@ -41,20 +41,20 @@ func runExamples() async throws {
     _ = PositronicKitUsageExamples.makeConfiguredRuntime()
 
     let kit = PositronicKitUsageExamples.makeOneShotRuntime()
-    let thread = try await kit.threadManager.createThread(title: "Docs agent")
-    let driver = kit.openThread(thread.id)
-    for try await event in try await driver.send("Hello") {
+    let handle = try await kit.threads.create(title: "Docs agent")
+    for try await event in try await handle.send("Hello") {
         print(event)
     }
-    let threadManager = PositronicKitUsageExamples.makeThreadManagerExample()
-    let agenticRuntime = try await PositronicKitUsageExamples.makeAgenticRuntimeExample()
+    let threadCapability = PositronicKitUsageExamples.makeThreadCapabilityExample()
+    let (managedThread, agent) = try await PositronicKitUsageExamples.makeManagedThreadExample()
 
     print("# PKPrompt Example\n")
     print(renderedPrompt)
     print("\nPrompt sections: \(assembled.sections.map(\.id))")
     print("\n# PositronicKit Example\n")
     print("Prototype runtime and fully configured runtime both initialized successfully.")
-    print("Operation ladder examples: thread \(driver.id), thread manager \(threadManager), agent \(String(describing: agenticRuntime.agentID))")
+    print("Capability examples: thread \(handle.id), thread capability \(threadCapability), managed agent \(agent.id)")
+    _ = managedThread
     print(toolPrompt)
     print("\nStructured output schema: \(structuredOutput.name)")
     print("Structured output request: \(structuredOutputRequest)")
@@ -65,7 +65,7 @@ func runExamples() async throws {
     for directive in sidecarDirectives {
         print("  - \(directive.name): \(directive.instruction)")
     }
-    print("  Consume via PositronicKit.run(_:) — see makeSidecarDirectives() doc comment.")
+    print("  Consume via ThreadHandle.run(_:) — see makeSidecarDirectives() doc comment.")
     print("Cadence example at turn 5 with an existing title: \(cadenceDirectives.map(\.name))")
     print("One-shot title request: \(oneShotTitleRequest)")
     print("Decoded one-shot title payload: \(oneShotTitle.title ?? "nil")")

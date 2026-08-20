@@ -8,6 +8,8 @@ import PKUtilities
 public enum AgentError: PKError, Sendable {
     case agentNotFound(UUID)
     case threadNotFound(UUID)
+    case managedThreadRequiresAttachedAgent(UUID)
+    case managedThreadAgentOverride(UUID)
     case threadAgentMismatch(threadID: UUID, agentID: UUID, attachedAgentID: UUID?)
     case hasAttachedThreads(count: Int)
     case cannotAttachToPrivateThread(UUID)
@@ -22,6 +24,8 @@ public enum AgentError: PKError, Sendable {
         switch self {
         case .agentNotFound: return 5001
         case .threadNotFound: return 5002
+        case .managedThreadRequiresAttachedAgent: return 5010
+        case .managedThreadAgentOverride: return 5011
         case .differentAgentAlreadyAttached: return 5003
         case .threadAgentMismatch: return 5009
         case .hasAttachedThreads: return 5004
@@ -38,6 +42,10 @@ public enum AgentError: PKError, Sendable {
             return "Agent not found: \(id)"
         case .threadNotFound(let id):
             return "Thread not found: \(id)"
+        case .managedThreadRequiresAttachedAgent(let id):
+            return "Thread \(id) has no attached agent for managed execution."
+        case .managedThreadAgentOverride(let id):
+            return "Thread \(id) resolves its managed Agent from durable attachment state."
         case .differentAgentAlreadyAttached(let id):
             return "A different agent (\(id)) is already attached. Detach it first."
         case let .threadAgentMismatch(threadID, agentID, attachedAgentID):
@@ -67,6 +75,10 @@ public enum AgentError: PKError, Sendable {
                 + "Please detach it before attaching a new one."
         case .threadAgentMismatch:
             return "The requested agent is not attached to this thread. Attach it before running the turn."
+        case .managedThreadRequiresAttachedAgent:
+            return "Attach an agent to this Thread before using managed execution, or call sendDetached explicitly."
+        case .managedThreadAgentOverride:
+            return "Do not supply an Agent override to managed Thread execution; attach the Agent first or use runDetached explicitly."
         case .hasAttachedThreads(let count):
             return "This agent is currently active on \(count) thread(s) and cannot be deleted."
         case .nameTooShort:

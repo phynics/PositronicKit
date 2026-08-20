@@ -55,7 +55,7 @@ This separation keeps the builder API ergonomic while preserving stable prompt s
 
 ## Runtime Integration
 
-`PKPrompt` itself stays transport-neutral and does not own a logging backend. The runtime assembles prompts through its internal `PromptAssembler`; verbose assembly diagnostics flow through `swift-log` when you pass a `Logger` to `PositronicKit.run(..., promptAssemblyLogger:)`.
+`PKPrompt` itself stays transport-neutral and does not own a logging backend. The runtime assembles prompts through its internal `PromptAssembler`; verbose assembly diagnostics flow through `swift-log` when you pass a `Logger` to `ThreadHandle.run(..., promptAssemblyLogger:)`.
 
 ## Journaling vs. Runtime Prompt History
 

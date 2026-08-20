@@ -71,7 +71,7 @@ struct ThreadLifecycleInvariantTests {
         #expect(messages.isEmpty, "No user input should be persisted when the store is unavailable")
     }
 
-    @Test("ThreadDriver.send to a missing thread throws threadNotFound")
+    @Test("ThreadHandle.send to a missing thread throws threadNotFound")
     func driverSendToMissingThreadThrows() async throws {
         let mockLLM = MockLLMService()
         let kit = PositronicKit(configuration: .init(

@@ -12,7 +12,7 @@ package enum RuntimeToolPolicyFactory {
     package static func createToolManager(
         for thread: Thread,
         jailRoot: String,
-        runtimeToolPolicy: ThreadManager.RuntimeToolPolicy,
+        runtimeToolPolicy: RuntimeToolPolicy,
         threadStore: any ThreadPersistenceProtocol,
         messageStore: any ThreadMessageStoreProtocol
     ) -> ThreadToolRegistry {
