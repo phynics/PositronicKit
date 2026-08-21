@@ -55,9 +55,9 @@ def declaration(symbol: dict) -> str:
 def inventory() -> dict:
     modules = public_modules()
     bin_path = Path(run("swift", "build", "--show-bin-path").splitlines()[-1])
-    graph_dir = bin_path.parent / "symbolgraph"
+    graph_dir = bin_path.parent.parent / "symbolgraph"
     graph_dir.mkdir(parents=True, exist_ok=True)
-    for graph in graph_dir.glob("*.symbols.json"):
+    for graph in graph_dir.rglob("*.symbols.json"):
         graph.unlink()
 
     run(
@@ -67,10 +67,39 @@ def inventory() -> dict:
         "--skip-inherited-docs",
     )
 
+    graph_paths = sorted(graph_dir.rglob("*.symbols.json"))
+    observed_graph_modules = {
+        json.loads(path.read_text())["module"]["name"]
+        for path in graph_paths
+    }
+    if platform.system() == "Darwin":
+        generated_module_maps = bin_path.parent.parent / "Intermediates.noindex" / "GeneratedModuleMaps"
+        sdk = run("xcrun", "--show-sdk-path")
+        fallback_modules = set(modules) - observed_graph_modules
+        fallback_modules.add("PKContracts")
+        for module in sorted(fallback_modules):
+            for graph in graph_dir.rglob("*.symbols.json"):
+                if json.loads(graph.read_text())["module"]["name"] == module:
+                    graph.unlink()
+            candidates = list(bin_path.parent.parent.rglob(f"{module}.swiftmodule"))
+            if not candidates:
+                continue
+            run(
+                "xcrun", "swift-symbolgraph-extract",
+                "-module-name", module,
+                "-I", str(candidates[0].parent),
+                "-I", str(generated_module_maps),
+                "-sdk", sdk,
+                "-output-dir", str(graph_dir),
+                "-minimum-access-level", "public",
+                "-skip-synthesized-members",
+                "-skip-inherited-docs",
+            )
+
     symbols: dict[str, dict] = {}
     relationships: dict[str, dict] = {}
     observed_modules: set[str] = set()
-    for graph_path in sorted(graph_dir.glob("*.symbols.json")):
+    for graph_path in sorted(graph_dir.rglob("*.symbols.json")):
         graph = json.loads(graph_path.read_text())
         module = graph["module"]["name"]
         if module not in modules:

@@ -2,7 +2,7 @@ import Observation
 import PKContracts
 import PositronicKit
 
-/// A SwiftUI-friendly controller for a ``ThreadHandle``.
+/// A SwiftUI-friendly controller for a PositronicKit thread handle.
 ///
 /// Issuing a new `send(_:)` while one is already in flight cancels/supersedes it: the prior
 /// task is cancelled, the driver's underlying generation is cancelled, and the new send starts

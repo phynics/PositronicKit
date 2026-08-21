@@ -155,7 +155,7 @@ public extension PositronicKit {
     /// This is pure handle construction: it performs no persistence I/O. The Thread
     /// must have been created beforehand via ``ThreadCapability/create(title:)``.
     /// A missing (never-persisted) thread id is an error, not a silent creation —
-    /// the first ``ThreadHandle/send(_:)`` call will throw
+    /// the first managed Turn call will throw
     /// ``ThreadError/threadNotFound`` before any message is persisted.
     func openThread(_ threadID: UUID) -> ThreadHandle {
         ThreadHandle(threadID: threadID, kit: self)

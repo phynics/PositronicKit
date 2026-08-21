@@ -96,7 +96,7 @@ public struct WorkspaceQueryResult: Sendable {
     }
 }
 
-/// The result of ``ThreadManager/deleteThreadPermanently(id:)``.
+/// The result of the internal permanent-thread deletion operation.
 ///
 /// Permanent deletion is best-effort across multiple stores (thread row, messages,
 /// workspace attachments). When every store succeeds, `isComplete` is `true` and
