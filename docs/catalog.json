@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "repository": "phynics/PositronicKit",
   "stable": {
-    "version": "3.7.0",
-    "ref": "3.7.0",
+    "version": "4.0.0",
+    "ref": "4.0.0",
     "guides": [
       {
         "title": "Overview and quick start",

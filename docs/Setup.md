@@ -1,7 +1,7 @@
 # PositronicKit Next / v4 Setup Guide
 
 This guide follows `main` and describes unreleased v4 APIs. The
-[stable `3.7.0` documentation](https://github.com/phynics/PositronicKit/blob/3.7.0/docs/Setup.md)
+[stable `4.0.0` documentation](https://github.com/phynics/PositronicKit/blob/4.0.0/docs/Setup.md)
 is immutable and remains the production default.
 
 ## 1. Choosing An Entry Point

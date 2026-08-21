@@ -1,7 +1,7 @@
 # PositronicKit Usage Guide
 
 This guide documents the unreleased Next / v4 runtime. For production, start from the
-[stable tagged README](https://github.com/phynics/PositronicKit/blob/3.7.0/README.md).
+[stable tagged README](https://github.com/phynics/PositronicKit/blob/4.0.0/README.md).
 
 ## 1. Managing Agents
 

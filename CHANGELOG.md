@@ -8,6 +8,8 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-08-21
+
 ### Breaking
 
 - **Typed Agent continuity and lifecycle:** managed Turns capture an immutable
