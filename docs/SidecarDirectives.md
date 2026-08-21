@@ -7,7 +7,7 @@ user sees only the streamed response; directive results arrive alongside it thro
 `TurnEvent`.
 
 The durable contract is described here; downstream applications own concrete directive policy.
-Architecture summary: [Architecture.md](Architecture.md#5-sidecar-directives-piggy-backed-requests).
+Architecture summary: [Turn admission and execution](Architecture.md#turn-admission-and-execution).
 
 ## Why
 

@@ -74,6 +74,8 @@ struct ThreadDriverTests {
         runtime.llm.mockClient.nextResponse = "reply"
         let kit = runtime.positronicKit
         let thread = try await kit.threadManager.createThread(title: "Driver")
+        let agent = try await kit.agents.create(name: "Driver Agent", description: "test")
+        try await kit.agents.attach(agent.id, to: thread.id)
         let driver = kit.openThread(thread.id)
 
         let events = try await driver.send("hello").collect()

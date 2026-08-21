@@ -1,8 +1,5 @@
-import Foundation
-import OpenAI
 @testable import PKOpenAIProvider
 import PKContracts
-import PKUtilities
 import Testing
 
 struct OpenAIMessageConversionValidationTests {

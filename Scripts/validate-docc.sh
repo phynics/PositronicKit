@@ -80,34 +80,54 @@ extract_symbol_graph() {
     -module-cache-path "$MODULE_CACHE_DIR"
 }
 
-extract_symbol_graph PKContracts
-extract_symbol_graph PKPrompt
-extract_symbol_graph PositronicKit
+PUBLIC_MODULES="$({
+  python3 - "$ROOT/docs/catalog.json" <<'PY'
+import json
+import sys
 
-# Build dependency archives for the supporting modules so the main convert can
-# resolve cross-module links. Each convert runs from a temporary cwd so DocC
-# never picks up a stray catalog from the checkout.
+with open(sys.argv[1], encoding="utf-8") as source:
+    catalog = json.load(source)
+for product in catalog["products"]:
+    if product["kind"] == "library" and product["docc"]:
+        print(product["module"])
+PY
+})"
+
+if [[ -z "$PUBLIC_MODULES" ]]; then
+  echo "No public DocC modules found in docs/catalog.json" >&2
+  exit 1
+fi
+
+for module_name in $PUBLIC_MODULES; do
+  extract_symbol_graph "$module_name"
+done
+
+# Convert every public library module. Already-converted archives are supplied
+# as dependencies so cross-module symbol links resolve in catalog order.
 CWD_SAFE="$OUTPUT_DIR/cwd"
 mkdir -p "$CWD_SAFE"
 (
   cd "$CWD_SAFE"
-  "$DOCC_BIN" convert \
-    --additional-symbol-graph-dir "$SYMBOLS_DIR/PKContracts" \
-    --output-dir "$OUTPUT_DIR/PKContracts.doccarchive" \
-    --enable-experimental-external-link-support
-  "$DOCC_BIN" convert \
-    --additional-symbol-graph-dir "$SYMBOLS_DIR/PKPrompt" \
-    --output-dir "$OUTPUT_DIR/PKPrompt.doccarchive" \
-    --enable-experimental-external-link-support
+  converted_modules=""
+  for module_name in $PUBLIC_MODULES; do
+    dependencies=()
+    for dependency in $converted_modules; do
+      dependencies+=(--dependency "$OUTPUT_DIR/$dependency.doccarchive")
+    done
+    catalog=()
+    if [[ "$module_name" == "PositronicKit" ]]; then
+      catalog+=("$ROOT/Sources/PositronicKit/PositronicKit.docc")
+    fi
+    "$DOCC_BIN" convert "${catalog[@]}" \
+      --additional-symbol-graph-dir "$SYMBOLS_DIR/$module_name" \
+      "${dependencies[@]}" \
+      --output-dir "$OUTPUT_DIR/$module_name.doccarchive" \
+      --warnings-as-errors \
+      --enable-experimental-external-link-support \
+      --fallback-display-name "$module_name" \
+      --fallback-bundle-identifier "com.phynics.$module_name"
+    converted_modules="$converted_modules $module_name"
+  done
 )
 
-# Main module convert (run from the checkout so diagnostics show real paths).
-cd "$ROOT"
-"$DOCC_BIN" convert "$ROOT/Sources/PositronicKit/PositronicKit.docc" \
-  --additional-symbol-graph-dir "$SYMBOLS_DIR/PositronicKit" \
-  --dependency "$OUTPUT_DIR/PKContracts.doccarchive" \
-  --dependency "$OUTPUT_DIR/PKPrompt.doccarchive" \
-  --output-dir "$OUTPUT_DIR/PositronicKit.doccarchive" \
-  --warnings-as-errors \
-  --fallback-display-name PositronicKit \
-  --fallback-bundle-identifier com.phynics.PositronicKit
+echo "DocC validation passed for: $PUBLIC_MODULES"

@@ -1,4 +1,5 @@
-import Foundation
+import struct Foundation.Date
+import struct Foundation.UUID
 import PKContracts
 import PKTestSupport
 @testable import PositronicKit
@@ -14,7 +15,7 @@ struct AgentContextLifecycleTests {
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: llm),
             persistence: .inMemory(),
-            runtime: .init(agentContextSource: source)
+            runtime: .init(customization: .init(agentContextSource: source))
         ))
         let thread = try await kit.threads.create(title: "Context")
         let agent = try await kit.agents.create(name: "Context Agent", description: "typed")
@@ -34,7 +35,7 @@ struct AgentContextLifecycleTests {
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: MockLLMService()),
             persistence: .inMemory(),
-            runtime: .init(agentContextSource: source)
+            runtime: .init(customization: .init(agentContextSource: source))
         ))
         let thread = try await kit.threads.create(title: "Context failure")
         let agent = try await kit.agents.create(name: "Failing Agent", description: "typed")
@@ -62,8 +63,11 @@ struct AgentContextLifecycleTests {
         #expect(try await kit.threads.get(thread.id)?.attachedAgentID == nil)
         #expect(try await kit.threads.get(agent.privateThreadID)?.isArchived == true)
 
-        await #expect(throws: AgentError.agentRetired(agent.id)) {
+        let retirementError = await #expect(throws: AgentError.self) {
             try await kit.agents.attach(agent.id, to: thread.id)
+        }
+        if case let .agentRetired(agentID)? = retirementError {
+            #expect(agentID == agent.id)
         }
 
         try await kit.agents.purge(agent.id)
@@ -78,7 +82,7 @@ struct AgentContextLifecycleTests {
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: llm),
             persistence: .inMemory(),
-            runtime: .init(agentContextSource: source)
+            runtime: .init(customization: .init(agentContextSource: source))
         ))
         let thread = try await kit.threads.create(title: "Gated")
         let agent = try await kit.agents.create(name: "Before", description: "initial")
@@ -121,7 +125,7 @@ struct AgentContextLifecycleTests {
         #expect(try await kit.agents.get(agent.id)?.lifecycle == .retiring)
         #expect(try await kit.threads.get(agent.privateThreadID)?.isArchived == false)
 
-        try await repository.cancelTurn(
+        _ = try await repository.cancelTurn(
             turnID: admission.turn.identity.turnID,
             reason: "test drain",
             now: Date()
@@ -136,7 +140,7 @@ struct AgentContextLifecycleTests {
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: MockLLMService()),
             persistence: .inMemory(),
-            runtime: .init(agentContextSource: source)
+            runtime: .init(customization: .init(agentContextSource: source))
         ))
         let thread = try await kit.threads.create(title: "Mismatch")
         let agent = try await kit.agents.create(name: "Mismatch Agent", description: "typed")

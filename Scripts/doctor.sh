@@ -84,7 +84,7 @@ fi
 # Native build tools are supplied by the pinned image on Linux. Reporting the
 # host copies there is actively misleading because the Linux gate never uses them.
 if [ "$host_os" = "Linux" ]; then
-  ok "Swift, Rust, C/C++, pkg-config, OpenSSL, curl, and shasum supplied by the Podman image"
+  ok "Swift, Rust, C/C++, pkg-config, OpenSSL, curl, shasum, and Python 3 supplied by the Podman image"
 else
 # --- Rust (required for PKFastEmbed / MiniLM) -------------------------------
 if command -v cargo >/dev/null 2>&1; then

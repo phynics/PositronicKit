@@ -28,7 +28,7 @@ struct CapabilityValuesTests {
         try await kit.agents.attach(agent.id, to: thread.id)
         let attachedThreads = try await kit.agents.threads(attachedTo: agent.id)
 
-        #expect(attachedThreads.map(\.id) == [thread.id])
+        #expect(Set(attachedThreads.map(\.id)) == [thread.id, agent.privateThreadID])
     }
 
     @Test("Model capability performs inference without Thread persistence")

@@ -63,6 +63,7 @@ public final class MockLLMClient: LLMClientProtocol, Sendable {
             userInfo: [NSLocalizedDescriptionKey: "Simulated failure"]
         )
         var streamCallCount = 0
+        var neverFinishingStreamStartCount = 0
         var neverFinishingStreamCallIndices: Set<Int> = []
         var nextToolCalls: [[MockToolCall]] = []
         var nextChunks: [[String]] = []
@@ -150,6 +151,11 @@ public final class MockLLMClient: LLMClientProtocol, Sendable {
     public var neverFinishingStreamCallIndices: Set<Int> {
         get { state.withLock { $0.neverFinishingStreamCallIndices } }
         set { state.withLock { $0.neverFinishingStreamCallIndices = newValue } }
+    }
+
+    /// Number of selected never-finishing plans whose producer task has begun executing.
+    public var neverFinishingStreamStartCount: Int {
+        state.withLock { $0.neverFinishingStreamStartCount }
     }
 
     /// Typed tool calls for stream simulation.
@@ -257,7 +263,19 @@ public final class MockLLMClient: LLMClientProtocol, Sendable {
 
         switch plan {
         case .neverFinishes:
-            return AsyncThrowingStream { _ in }
+            return AsyncThrowingStream { continuation in
+                let task = Task { [self] in
+                    state.withLock { $0.neverFinishingStreamStartCount += 1 }
+                    do {
+                        try await Task.sleep(for: .seconds(3_600))
+                    } catch {
+                        continuation.finish(throwing: error)
+                    }
+                }
+                continuation.onTermination = { @Sendable _ in
+                    task.cancel()
+                }
+            }
         case let .failure(error):
             return AsyncThrowingStream { continuation in
                 continuation.finish(throwing: error)

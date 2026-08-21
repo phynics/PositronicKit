@@ -248,16 +248,6 @@ public final class PositronicKit: Sendable {
             threadManager: resolvedThreadManager
         )
 
-        let primaryActivitySink: (any PrimaryThreadActivityRecording)? = dependencies.runtimeRepository.flatMap { primaryRepository in
-            guard let pairStore = primaryRepository as? any PrimaryThreadPairAppending else { return nil }
-            return PrimaryThreadActivitySink(
-                agentStore: dependencies.agentStore,
-                pairStore: pairStore,
-                runtimeRepository: primaryRepository,
-                threadAuthorityCoordinator: resolvedThreadManager.threadAuthorityCoordinator,
-                loggingConfiguration: dependencies.loggingConfiguration
-            )
-        }
         var activitySinks: [any AgentActivitySink] = []
         if let hostActivitySink = self.customization.agentActivitySink {
             activitySinks.append(hostActivitySink)
@@ -289,7 +279,6 @@ public final class PositronicKit: Sendable {
                 toolRouter: toolRouter,
                 turnContextSource: self.customization.turnContextSource,
                 agentActivitySink: resolvedActivitySink,
-                primaryThreadActivitySink: primaryActivitySink,
                 turnOutcomeSink: self.customization.turnOutcomeSink,
                 diagnosticSnapshotConfiguration: dependencies.diagnosticSnapshotConfiguration,
                 loggingConfiguration: dependencies.loggingConfiguration,
@@ -456,7 +445,7 @@ public final class PositronicKit: Sendable {
     func run(
         _ request: TurnRequest,
         agentID: UUID? = nil,
-        executionKind: TurnExecutionKind = .agentManaged,
+        executionKind: TurnExecutionKind = .direct,
         contributors: [TurnContributor] = []
     ) async throws -> AsyncThrowingStream<TurnEvent, Error> {
         guard request.maxModelRounds >= 1 else {

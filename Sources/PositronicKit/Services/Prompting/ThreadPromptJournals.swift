@@ -6,7 +6,7 @@ import PKPrompt
 /// Holds one `ThreadPromptHistory` per thread thread, so prompt-cache and
 /// journal-diff state (the stable-prefix count, changed/added/removed semi-stable IDs)
 /// accumulates across a thread's sends rather than resetting on every call.
-public actor ThreadPromptJournals {
+actor ThreadPromptJournals {
     private var historiesByThreadID: [UUID: ThreadPromptHistory] = [:]
     /// Thread ids ordered from least- to most-recently accessed. The front of the array is
     /// the next eviction candidate. Kept as a plain array (not a generic LRU abstraction) --

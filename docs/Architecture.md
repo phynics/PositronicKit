@@ -1,142 +1,125 @@
-# PositronicKit Architecture
+# PositronicKit Next / v4 Architecture
 
-PositronicKit is built on a modular, asynchronous processing architecture designed for scalability, thread safety, and clear separation of concerns.
+This guide describes the unreleased v4 architecture on `main`. The
+[stable `3.7.0` architecture](https://github.com/phynics/PositronicKit/blob/3.7.0/docs/Architecture.md)
+is immutable. Accepted rationale lives in the [architecture decisions](adr/); canonical terms live
+in the [context map](../CONTEXT-MAP.md).
 
-## 1. Internal Pipeline Execution
+## Public shape
 
-The runtime uses a package-internal **Pipeline** implementation to sequence turn, prompt, and
-context stages. It is not a consumer-facing product or extension point.
+`PositronicKit` is the composition root. Consumers keep the facade and use four shallow capability
+values:
 
-The internal pipeline provides:
-1. **Sequential Execution**: Primary stages are executed one after another.
-2. **Stream Merging**: The pipeline merges the `AsyncThrowingStream` from each stage into a single continuous stream for the caller.
-3. **Cleanup Stages**: Stages registered via `.cleanup()` are guaranteed to run even if a primary stage fails, ensuring system integrity (e.g., closing database connections or logging final state).
+| Capability | Responsibility |
+| --- | --- |
+| `kit.model` | Thread-free generation, streaming, and structured output |
+| `kit.threads` | Create and open durable Threads and obtain `ThreadHandle` values |
+| `kit.agents` | Create, update, attach, retire, and purge persistent Agents |
+| `kit.workspaces` | Create, inspect, attach, transfer, and remove Workspaces |
 
-## 2. Context & State Management
+`ThreadHandle` and `TurnHandle` carry identity and the operations valid for that identity. Concrete
+coordinators, task registries, prompt-history registries, model-round machinery, and pipeline stages
+remain implementation details. The complete product-to-guide map is generated in
+[Documentation navigation](NAVIGATION.md) from `docs/catalog.json`.
 
-PositronicKit uses a dual-structure approach to state management during a pipeline execution.
+## Domain model
 
-### TurnContext (Immutable Snapshot)
-The `TurnContext` is a thread-safe, immutable struct that represents the state of a turn at a specific point in time. It contains:
-- Session-level configuration (Thread ID, Model name, maximum model rounds).
-- Turn-specific data (Current messages, Available tools).
-- A reference to the mutable `TurnOutputs`.
+- A **Thread** is the durable, append-only history boundary.
+- A **Turn** is one admitted execution on a Thread. Its authority and context are captured at
+  admission and remain immutable until the Turn reaches a terminal outcome.
+- An **Agent** is persistent identity, instructions, and continuity. It is not independently
+  callable. Every Agent owns one primary Thread and one primary Workspace and may attach to many
+  ordinary Threads; a Thread attaches at most one Agent.
+- A **Workspace** is a runtime-addressable capability boundary. An ordinary Workspace binds
+  exclusively to one Thread. Agent primary Workspaces remain Agent-owned rather than ordinary
+  bindings.
 
-### TurnOutputs (Actor-Isolated Mutable State)
-Because multiple stages might need to update the results of a turn concurrently (e.g., a streaming stage and a background tool-call extraction stage), mutable state is isolated within the `TurnOutputs` actor.
-- **Thread Safety**: All mutations (appending thinking, updating usage metrics) are performed via `await` calls to the actor.
-- **Safe Persistence**: At the end of the pipeline, the `TurnOutputs` are used to finalize the message state and persist it to the database.
+Thread semantic history and `PromptJournal` have different jobs. Thread history records durable
+runtime facts. `PromptJournal` observes assembled prompt state so providers can reuse stable prompt
+prefixes; it never becomes semantic history.
 
-## 3. Facade-Backed Wiring
+## Turn admission and execution
 
-PositronicKit is the orchestration layer. It manages the full lifecycle of an agent interaction — from resolving state, through prompt assembly and tool execution, to persisting results.
+There are two explicit execution paths:
 
-### Capability Values: The Consumer Surface
+1. `ThreadHandle.startTurn(message:)` admits a managed Turn. The Thread must have an attached,
+   active Agent. Core resolves the Agent, captures identity and context, and records the authority
+   snapshot atomically.
+2. `ThreadHandle.startDirectTurn(message:context:)` admits a direct Turn on a detached Thread. The
+   caller supplies the complete `DirectTurnContext`, including an intentional empty system prompt
+   when appropriate.
 
-The `PositronicKit` facade is the public composition root. Use `kit.model` for raw, Thread-free
-inference; `kit.threads` for Thread creation, lookup, and stateful `ThreadHandle` values;
-`kit.agents` for agent identity and Thread attachment; and `kit.workspaces` for the workspace
-catalog. A `ThreadHandle.startTurn(_:)` call resolves and captures the attached Agent and
-provides the managed, Thread-addressed execution path. `startDirectTurn(message:context:)` is
-the explicit identity-free alternative and is valid only while the Thread is detached. Both
-return a `TurnHandle` with nonthrowing events, durable outcome replay, and turn-scoped
-cancellation.
+Both return a `TurnHandle`. `events()` is a nonthrowing future-event stream, `outcome()` joins the
+durable terminal result, and `cancel()` targets that Turn. The advanced request-shaped `run(_:)`
+seam remains available for sidecars and other per-Turn options.
 
-Concrete managers, task registries, tool routing, `TurnEngine`, and the turn pipeline are facade
-implementation details. Persistence, provider, workspace, and the four typed runtime
-customization roles remain the supported replaceability seams where a host owns those
-dependencies.
+Managed preparation fails closed when required Agent context cannot be produced. Identity or
+instruction changes affect the next admitted Turn, never an active one. Direct Turns bypass Agent
+context entirely.
 
-## 4. Execution Flow: The Turn Engine
+## Durability
 
-The `TurnEngine` is the primary orchestrator that uses the Pipeline to handle user interactions.
+`ThreadRuntimeRepository` is the atomic owner for Thread history and Turn transitions. Admission,
+tool intent and result ordering, terminal outcomes, notices, and Request-ID uniqueness cross one
+repository boundary. History is append-only; state changes are represented by new durable facts,
+not edits to earlier entries.
 
-1. **Initialization**: Prepares the session and initial context.
-2. **ReAct Loop**: Runs a loop (`runTurnLoop`) that continues as long as the agent needs to "think" or execute tools.
-3. **Pipeline Construction**: For each turn, it builds a pipeline consisting of:
-   - `LLMStreamingStage`: Streams the raw response from the LLM.
-   - `ToolCallExtractionStage`: Parses the stream for potential tool calls.
-   - `MessagePersistenceStage`: Saves the final result once the stream completes.
+`PositronicKit.PersistenceConfiguration` accepts the cohesive repository and the remaining stores.
+The in-memory configuration implements the same contracts for tests and prototypes. Production
+hosts provide durable implementations and should reject mixed durability through their deployment
+policy even though the facade reports it as a warning.
 
-## 5. Sidecar Directives (Piggy-Backed Requests)
+## Workspace authority and tool routing
 
-A turn can pass `sidecars: [SidecarDirective]` to `ThreadHandle.run(...)` to request auxiliary
-generations (title, summary, tone, etc.) from the *same* LLM request as the turn's response,
-instead of paying a separate round-trip per auxiliary task. See
-[Sidecar Directives](SidecarDirectives.md) for the current contract.
+An ordinary Workspace may be bound to only one Thread. Binding, transfer, and release are durable
+operations. Execution is serialized per Workspace inside the process, so two admitted calls cannot
+mutate the same Workspace concurrently.
 
-- **Composition** (`SidecarSchemaComposer`): combines a `response: string` field with one
-  property per directive into a single structured-output request (all required, strict),
-  and appends a prompt instruction block describing each directive. This reuses the existing
-  `generationStream(structuredOutput:)` path — including the synthetic-tool fallback for providers
-  without native JSON-schema support — so sidecars need no new provider-adapter code.
-  **Note:** field declaration order does *not* control model generation order — `Schema`
-  stores properties in an unordered `Dictionary` and the wire path re-serializes them
-  alphabetically (see ticket SDC-7). Generation order is steered only through the instruction
-  block text, not schema structure.
-- **Extraction** (`SidecarStreamExtractor`, driven from `LLMStreamingStage`): a synchronous
-  state machine that re-parses the raw JSON buffer per content delta (via PartialJSON), diffs
-  the `response` field to emit ordinary `.generation` deltas (raw JSON never reaches
-  consumers), and emits directive fields as `.sidecar` deltas (buffered or incremental per
-  directive) once each field completes.
-- **Events**: `TurnEvent.sidecar(delta:)` streams directive observations. Committed outcomes use
-  `SidecarCompletion`, including `TurnIdentity`; terminal policy can defer that completion until
-  the logical send finishes.
-- **Error model**: a sidecar failure never fails the turn. Already-streamed response text is
-  kept; incomplete directives report `.failed` in the completion event. A model that ignores
-  the schema entirely (non-JSON prose) falls back to passthrough: the whole buffer becomes the
-  response and all directives report failed.
-- **Persistence**: `TurnOutputs.fullResponse` accumulates only the extracted `response` text on
-  sidecar turns, so `MessagePersistenceStage` persists the same shape it always has — raw JSON
-  never enters thread history.
-- **No-op guarantee**: `sidecars: []` (the default) takes a completely different code path in
-  `LLMStreamingStage` (no extractor is constructed) and is behaviorally identical to a turn
-  without the parameter.
-- Concrete directives (title, summary, tone) and their per-thread scheduling policy are
-  intentionally **not** defined here; downstream applications own those policies. This layer
-  only provides the mechanism.
+Managed Turns expose one provider-facing dispatcher named `call_tool`. At admission the runtime
+captures the authorized Workspace IDs, labels, tool descriptions, and schemas. A call names a tool,
+optionally names its Workspace with `at`, and supplies `arguments`. The Workspace may be omitted
+only when exactly one captured Workspace provides that tool. Ambiguity produces a corrective result
+and a durable notice; it never selects a Workspace by iteration order.
 
-## 6. Extension Points
+Runtime tools and request-scoped tools are separate from Workspace dispatch. The reserved
+`call_tool` name cannot be registered by a consumer.
 
-PositronicKit is deliberately transport-neutral: no networking, RPC, multi-process hosting, or bundled provider SDKs in the core target. The key boundaries are:
+## Runtime customization
 
-- **Persistence protocols** for threads, messages, workspaces, tools, agents, and request origins.
-- **ThreadRuntimeRepository** for atomic Turn admission, append-only history, tool intent/result
-  barriers, terminal outcomes, and stale-Turn recovery. PromptJournal remains outside this boundary.
-- **`WorkspaceFactory` and `Workspace`** for downstream-owned workspace resolution and execution behavior. `DefaultWorkspaceCatalog` is the bundled local provisioning implementation, not a required universal workspace model.
-- Managed Turns snapshot Workspace tool authority at admission and expose the reserved `call_tool`
-  dispatcher. The dispatcher routes only Workspace tools; runtime/system and request-scoped tools
-  remain separate. Explicit Workspace IDs are required whenever more than one authorized Workspace
-  matches, and the selected ID plus explicit/implicit routing mode is retained in tool records.
-- **`RuntimeCustomization`** groups the four bounded roles: `AgentContextSource` for managed
-  identity continuity, `TurnContextSource` for bounded namespaced context notes,
-  `AgentActivitySink` for best-effort lifecycle facts, and `TurnOutcomeSink` for post-terminal
-  outcome delivery. Context-source failures are required or optional; sink failures become
-  host-facing notices and cannot change the originating Turn outcome.
-- **Provider contracts in `PKContracts`** for downstream-owned LLM adapters and tool/message projections.
+`RuntimeCustomization` contains four typed roles:
 
-### v1 Extension Point Registry
+| Role | Contract |
+| --- | --- |
+| `AgentContextSource` | Authoritative managed-Agent context; failure aborts preparation |
+| `TurnContextSource` | Optional bounded, namespaced additions for an admitted Turn |
+| `AgentActivitySink` | Best-effort Agent lifecycle projection |
+| `TurnOutcomeSink` | Post-terminal integration after the durable outcome is accepted |
 
-These public API surfaces are the **v1 compatibility contract**: they only change across a major version. Anything not listed here (or explicitly called out as internal) may change between minor releases.
+The bundled Agent context source reads bounded notes from the Agent primary Workspace. Filesystem
+or vector memory is an implementation choice, not a mandatory domain dependency. Sink failures are
+recorded for the host and do not rewrite the originating Turn outcome.
 
-| Category | Protocol / Type | Module | Purpose |
-|----------|----------------|--------|---------|
-| **Tool contracts** | `Tool`, `AnyTool`, `ToolResult`, `ToolParameters`, `ToolError` | PKContracts | Define and execute tools |
-| **Runtime customization** | `RuntimeCustomization`, `AgentContextSource`, `TurnContextSource`, `AgentActivitySink`, `TurnOutcomeSink`, `TurnContextContribution` | PositronicKit | Bounded context, lifecycle, and terminal-outcome integration |
-| **Persistence** | `ThreadRuntimeRepository`, `MessageStoreProtocol`, `ThreadPersistenceProtocol`, `WorkspaceStore`, `WorkspaceBindingRepository`, `MemoryStoreProtocol`, `ToolPersistenceProtocol`, `AgentStoreProtocol`, `AgentTemplateStoreProtocol`, `RequestOriginStoreProtocol` | PositronicKit | Custom storage backends |
-| **Key-value store** | `KeyValueStoreProtocol` | PositronicKit | Generic key-value persistence |
-| **Vector search** | `VectorStoreProtocol`, `VectorStoreError` | PositronicKit | Custom vector search backends |
-| **Health check** | `HealthCheckable` | PositronicKit | Service health reporting |
-| **LLM providers** | `LLMStreamClient`, `LLMConfigStore`, `LLMUtilityClient` (narrow seams); `LLMGenerationRequest`, `LLMStreamResult`, `LLMStreamChunk`, etc. | PKContracts | Provider adapter contracts |
-| **Structured output** | `StructuredOutputAdapter`, `PreparedStructuredOutputRequest`, `DefaultStructuredOutputAdapter` | PKContracts | Per-client structured-output preparation without global registration |
-| **Provider factories** | `LLMProviderFactory`, `PKOpenAIProvider.makeClient(configuration:)`, `PKOpenRouterProvider.makeClient(configuration:)`, `PKOllamaProvider.makeClient(configuration:)`, `PKAnthropicProvider.makeClient(configuration:)` | PKContracts / provider modules | Compile-time provider client construction; no runtime provider registry |
-| **Workspace** | `Workspace`, `WorkspaceFactory`, `ToolReference`, `WorkspaceToolDefinition` | PositronicKit / PKContracts | Custom workspace backends |
-| **Configuration** | `LLMConfiguration`, `GenerationParameters`, `LLMProvider` | PKContracts | LLM configuration |
-| **Events** | `TurnEvent`, `ToolExecutionStatus`, `Message` | PKContracts | Stream event types |
-| **Sidecar directives** | `SidecarDirective`, `SidecarDelta`, `SidecarResult` (PKContracts), `SidecarError` (PositronicKit) | PKContracts / PositronicKit | Piggy-backed auxiliary generations riding a turn's response — see [Sidecar Directives](docs/SidecarDirectives.md) |
-| **Pipeline** | `PipelineStage`, `PipelineError` | package-internal utility layer | Runtime implementation detail; not a public product |
-| **Runtime configuration** | `RuntimeToolPolicy`, `ThreadRuntimeRepository`, `WorkspaceBindingRepository` | PositronicKit | Configure durable ownership and built-in tool installation without exposing coordinators |
+## Module boundaries
 
-`InMemory*` stores (and `PositronicKit.PersistenceConfiguration.inMemory()`) are **public prototyping/test helpers**, not extension points — convenient for prototypes and tests, but not a stability contract.
+- `PKContracts` owns runtime-neutral provider, tool, structured-output, embedding, and diagnostic
+  contracts. It imports no PositronicKit project target.
+- `PKPrompt` owns prompt IR, composition, assembly, rendering, compression, and journaling.
+- `PositronicKit` owns domain state, orchestration, durability, and Workspace dispatch.
+- Provider products adapt concrete services to `PKContracts`; they do not import the runtime.
+- `PKObservable` projects runtime state outward for UI consumers.
+- `PKTestSupport` provides ordinary-import fixtures for downstream test targets.
+- `PKUtilities` supports package implementation but is not a public product.
 
-**Internal** (not part of the v1 contract): `TurnEngine`, `TurnContext`, `TurnOutputs`, `StreamedToolCall` (chat-runtime internals); `PromptAssembler`, `PromptAssemblyOptions` (prompt assembly internals); `ContextManager`, `ContextPipelineContext`, `ContextGatheringEvent` (context pipeline internals); `ParsedToolCall`, `ToolHandlingResult`, `ToolTurnResult` (tool-routing internals).
+The package manifest, public-product consumer, DocC modules, generated navigation, and CI catalog
+check must agree on this graph.
+
+## Observation and concurrency
+
+Observation is outward projection, never an alternate write path. `PKObservable.ThreadController`
+consumes public handles and events. A Workspace tool result remains semantic history only on the
+Thread whose Turn executed it; the runtime does not mirror that activity into an Agent's private
+Thread.
+
+Asynchronous mutable state belongs behind actors, synchronous snapshots behind
+`Synchronization.Mutex`, and repeated signals in `AsyncStream`. Reviewed exceptions are recorded in
+the [concurrency exception manifest](Concurrency/exception-manifest.md) and enforced by SwiftLint.

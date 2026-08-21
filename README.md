@@ -1,8 +1,18 @@
 # PositronicKit
 
-PositronicKit is a high-performance, developer-friendly Swift toolkit for building production-ready AI agents. Built from the ground up for the Swift 6 concurrency era, it provides transport-neutral runtime orchestration, a structured prompt composition DSL, and clean, pluggable contracts—without locking you into a specific networking, hosting, or provider model.
+PositronicKit is an embeddable Swift runtime for agentic application features. It combines
+transport-neutral orchestration, structured prompt composition, provider-neutral contracts, and
+injectable Workspace and persistence boundaries.
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes and tagged compatibility history, and [docs/Releasing.md](docs/Releasing.md) for the release workflow.
+
+## Choose a documentation channel
+
+- Latest stable: `3.7.0`. Use the [immutable tagged documentation](https://github.com/phynics/PositronicKit/blob/3.7.0/README.md) and the semver dependency below for production.
+- Next / v4: this `main` README and the [Next documentation landing](docs/next/) describe unreleased, breaking architecture-convergence work. Use a branch or local-path dependency only for coordinated evaluation.
+
+The [documentation landing](docs/) defaults to stable and keeps stable links separate from the
+Next channel.
 
 ## Key Strengths
 
@@ -15,22 +25,26 @@ See [CHANGELOG.md](CHANGELOG.md) for release notes and tagged compatibility hist
 
 ---
 
-## Quick Start
+## Stable package dependency
 
 Add PositronicKit as a Swift Package dependency:
 
 ```swift
-.package(url: "https://github.com/phynics/PositronicKit.git", from: "3.4.0")
+.package(url: "https://github.com/phynics/PositronicKit.git", from: "3.7.0")
 ```
 
-Public products follow semver: patch releases preserve source compatibility, minor releases add functionality compatibly, and breaking API changes require a new major version.
+Public products follow semver. Continue with the tagged README for stable API examples. The
+examples below are the Next / v4 public story and intentionally do not claim compatibility with
+3.7.0.
+
+## Next / v4 quick start
 
 Import the modules you need:
 
 ```swift
 import PositronicKit    // runtime orchestration
 import PKPrompt         // prompt composition
-import PKContracts         // shared contracts
+import PKContracts       // shared contracts
 import PKLocalEmbeddings // optional local embeddings facade
 import PKOpenAIProvider  // optional concrete provider
 ```
@@ -126,8 +140,8 @@ handles it vends to the subsystems that use them.
 Detailed documentation has been split into focused guides:
 
 - **[Setup Guide](docs/Setup.md)**: Configuration, logging, required services, and choosing your entry point.
-- **[Usage Guide](docs/Usage.md)**: Managing agents, pipelines, and local embeddings.
-- **[Architecture](docs/Architecture.md)**: Capability values, core concepts, state management, and the v1 extension point registry.
+- **[Usage Guide](docs/Usage.md)**: Managed and direct Turns, Agents, Workspaces, and local embeddings.
+- **[Architecture](docs/Architecture.md)**: v4 domain boundaries, capability values, durability, and execution authority.
 - **[Development](docs/Development.md)**: Contributor platform setup, Linux/Podman gates, and MiniLM bridge workflows.
 - **[Context map](CONTEXT-MAP.md)**: Canonical v4 vocabulary and ownership boundaries.
 - **[Architecture decisions](docs/adr/)**: Accepted v4 decisions and their trade-offs.
@@ -175,7 +189,7 @@ let title = SidecarDirective(
     streaming: .buffered
 )
 
-let stream = try await chat.threads.open(threadID).run(.init(
+let stream = try await kit.threads.open(threadID).run(.init(
     threadID: threadID,
     message: "What's the deal with actors in Swift 6?",
     sidecars: [title]
@@ -291,11 +305,9 @@ Once `journal.compact()` is called, these delta operations are merged directly b
 `PKTestSupport` is a public library product for downstream test targets. Import it normally—never
 with `@testable`—to use its mocks, fixtures, stream factories, and `TestRuntime` composition root.
 
-> Release availability: the hardened concurrency and capture-history contracts described below
-> are currently listed under [Unreleased](CHANGELOG.md#unreleased); they are not present in the
-> `3.4.0` tag used in Quick Start. Semver-pinned consumers should adopt them only after a release
-> containing that changelog entry is tagged. Use a local-path override only while developing a
-> coordinated unreleased change, as described in [Releasing](docs/Releasing.md#downstream-cadence).
+> Release availability: this section documents Next / v4. It is not part of the stable `3.7.0`
+> channel. Use a local-path override only for coordinated unreleased work, as described in
+> [Releasing](docs/Releasing.md#downstream-cadence).
 
 This example compiles in an ordinary downstream test target with `PKContracts`, `PositronicKit`, and
 `PKTestSupport` product dependencies. It uses the single-response fallback deliberately; scripted
@@ -376,7 +388,9 @@ Supporting targets:
 - **PositronicKitExamples** — runnable examples that double as living documentation.
 - **PKTestSupport** — shared mocks, fixtures, and test helpers for downstream test targets.
 
-All products are supported on Apple platforms and Linux (see [Verification](#verification) for the gates that cover each).
+All declared products are cataloged in [docs/catalog.json](docs/catalog.json). The generated
+[documentation navigation](docs/NAVIGATION.md) records the owning guide and compiled consumer gate
+for each product.
 
 ## Verification
 
@@ -390,6 +404,7 @@ make agent-test FILTER='MessageContentTests' # Focused Linux test in Podman
 make verify-linux-asan # PKFastEmbed bridge tests under Linux x86_64 AddressSanitizer (bridge-only)
 make verify-products   # Build every supported product on the current host
 make verify-minilm     # Bootstrap pinned assets/native bridge and run MiniLM tests
+make verify-documentation # Check catalog, generated navigation, links, anchors, pins, and vocabulary
 ```
 
 `make agent-verify` needs Podman on the host. The pinned image supplies Swift, Rust,

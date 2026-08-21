@@ -94,7 +94,6 @@ struct TurnRequestDescriptionTests {
 
         #expect(desc.contains(requestId.uuidString))
         #expect(desc.contains("set(11 chars)"))
-        #expect(desc.contains(agentId.uuidString))
         #expect(desc.contains("maxModelRounds: 10"))
     }
 

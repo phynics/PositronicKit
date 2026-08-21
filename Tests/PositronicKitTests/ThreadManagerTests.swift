@@ -12,11 +12,6 @@ struct ThreadManagerTests {
         let manager = ThreadManager(workspaceProfile: .noWorkspace)
         let thread = try await manager.createThread(title: "Legacy labels")
 
-        _ = await manager.gatherExtensionSections(
-            threadID: thread.id,
-            agentID: nil,
-            message: "Hello"
-        )
         _ = try await manager.getHistory(for: thread.id)
         _ = await manager.enabledTools(for: thread.id)
         _ = await manager.enableTool(id: "missing", for: thread.id)

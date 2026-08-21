@@ -21,6 +21,8 @@ struct ThreadCancellationTests {
         runtime.llm.mockClient.nextStreamWait = 0.05
         let kit = runtime.positronicKit
         let thread = try await kit.threadManager.createThread()
+        let agent = try await kit.agents.create(name: "Cancellation Agent", description: "test")
+        try await kit.agents.attach(agent.id, to: thread.id)
         let driver = kit.openThread(thread.id)
 
         let stream = try await driver.send("hello")
@@ -80,6 +82,8 @@ struct ThreadCancellationTests {
         runtime.llm.mockClient.nextStreamWait = 0.05
         let kit = runtime.positronicKit
         let thread = try await kit.threadManager.createThread()
+        let agent = try await kit.agents.create(name: "Cancellation Agent", description: "test")
+        try await kit.agents.attach(agent.id, to: thread.id)
         let driver = kit.openThread(thread.id)
 
         let stream = try await driver.send("hello")
@@ -129,6 +133,8 @@ struct ThreadCancellationTests {
         runtime.llm.mockClient.nextResponse = "reply"
         let kit = runtime.positronicKit
         let thread = try await kit.threadManager.createThread()
+        let agent = try await kit.agents.create(name: "Cancellation Agent", description: "test")
+        try await kit.agents.attach(agent.id, to: thread.id)
         let driver = kit.openThread(thread.id)
 
         // Before sending, no active task.
@@ -138,6 +144,9 @@ struct ThreadCancellationTests {
         let events = try await driver.send("hello").collect()
 
         #expect(!events.isEmpty)
+        if let activeTask = await kit.threadManager.activeTaskCompletion(for: thread.id) {
+            _ = await activeTask.value
+        }
         // After completion, the registry entry must be gone.
         let activeAfter = await kit.threadManager.hasActiveTask(for: thread.id)
         #expect(!activeAfter)
@@ -151,6 +160,8 @@ struct ThreadCancellationTests {
         runtime.llm.mockClient.nextStreamWait = 0.05
         let kit = runtime.positronicKit
         let thread = try await kit.threadManager.createThread()
+        let agent = try await kit.agents.create(name: "Cancellation Agent", description: "test")
+        try await kit.agents.attach(agent.id, to: thread.id)
         let driver = kit.openThread(thread.id)
 
         let stream = try await driver.send("hello")
@@ -201,6 +212,8 @@ struct ThreadCancellationTests {
         runtime.llm.mockClient.nextStreamWait = 0.05
         let kit = runtime.positronicKit
         let thread = try await kit.threadManager.createThread()
+        let agent = try await kit.agents.create(name: "Cancellation Agent", description: "test")
+        try await kit.agents.attach(agent.id, to: thread.id)
         let driver = kit.openThread(thread.id)
 
         let stream = try await driver.send("hello")
@@ -245,6 +258,8 @@ struct ThreadCancellationTests {
         runtime.llm.mockClient.nextStreamWait = 0.05
         let kit = runtime.positronicKit
         let thread = try await kit.threadManager.createThread()
+        let agent = try await kit.agents.create(name: "Cancellation Agent", description: "test")
+        try await kit.agents.attach(agent.id, to: thread.id)
         let driver = kit.openThread(thread.id)
 
         let stream = try await driver.send("hello")
@@ -279,10 +294,10 @@ struct ThreadCancellationTests {
         consumeTask.cancel()
     }
 
-    // MARK: - 5. A stale request ID cannot cancel a newer turn
+    // MARK: - 5. Active Turn registration and stale cleanup
 
-    @Test("A stale request ID cannot cancel a newer turn (PKRR-002)")
-    func staleRequestIDCannotCancelNewerTurn() async throws {
+    @Test("A second active Turn registration is rejected without cancelling the first (PKRR-002)")
+    func secondActiveTurnRegistrationIsRejected() async throws {
         let workspaceRoot = getTestWorkspaceRoot().appendingPathComponent(UUID().uuidString)
         let threadManager = ThreadManager(workspaceRoot: workspaceRoot)
         let threadID = UUID()
@@ -307,38 +322,25 @@ struct ThreadCancellationTests {
             taskBCancelled.withLock { $0 = true }
         }
 
-        // Register send A, then replace it with send B (replacement-send behavior).
-        await threadManager.registerTask(taskA, turnID: turnA, for: threadID)
-        await threadManager.registerTask(taskB, turnID: turnB, for: threadID)
+        let registeredA = await threadManager.registerTask(taskA, turnID: turnA, for: threadID)
+        let registeredB = await threadManager.registerTask(taskB, turnID: turnB, for: threadID)
+        #expect(registeredA)
+        #expect(!registeredB)
 
-        // Task A should have been cancelled by the replacement registration.
+        let rejectedCancelResult = await threadManager.cancelGeneration(turnID: turnB, for: threadID)
+        #expect(!rejectedCancelResult, "A rejected Turn must not gain cancellation authority")
+
+        await threadManager.cancelGeneration(for: threadID)
         let aDeadline = ContinuousClock.now + .seconds(5)
         while !taskACancelled.withLock({ $0 }), ContinuousClock.now < aDeadline {
             await Task.yield()
         }
-        let aCancelled = taskACancelled.withLock { $0 }
-        #expect(aCancelled, "Task A should be cancelled when superseded by send B")
+        #expect(taskACancelled.withLock { $0 })
+        #expect(!taskBCancelled.withLock { $0 })
 
-        // Attempt to cancel send A (stale) — must NOT cancel send B.
-        let staleCancelResult = await threadManager.cancelGeneration(turnID: turnA, for: threadID)
-        #expect(!staleCancelResult, "Stale request ID should not match the active turn")
-
-        // Task B should NOT be cancelled.
-        try await Task.sleep(for: .milliseconds(100))
-        let bCancelledEarly = taskBCancelled.withLock { $0 }
-        #expect(!bCancelledEarly, "Task B should not be cancelled by a stale request ID")
-
-        // Now cancel the active send B — this should work.
-        await threadManager.cancelGeneration(for: threadID)
-        let bDeadline = ContinuousClock.now + .seconds(5)
-        while !taskBCancelled.withLock({ $0 }), ContinuousClock.now < bDeadline {
-            await Task.yield()
-        }
-        let bCancelledFinal = taskBCancelled.withLock { $0 }
-        #expect(bCancelledFinal, "Task B should be cancelled by cancelGeneration(for:)")
-
-        // Clean up registry.
-        await threadManager.removeTask(turnID: turnB, for: threadID)
+        taskB.cancel()
+        _ = await taskB.value
+        await threadManager.removeTask(turnID: turnA, for: threadID)
     }
 
     @Test("A stale send's terminal cleanup does not evict a newer send's registry entry (PKRR-002)")
@@ -359,6 +361,9 @@ struct ThreadCancellationTests {
         }
 
         await threadManager.registerTask(taskA, turnID: turnA, for: threadID)
+        await threadManager.removeTask(turnID: turnA, for: threadID)
+        taskA.cancel()
+        _ = await taskA.value
         await threadManager.registerTask(taskB, turnID: turnB, for: threadID)
 
         // Simulate turn A's terminal cleanup (removeIfActive with stale turnID).

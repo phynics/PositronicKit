@@ -50,7 +50,7 @@ public extension PositronicKit {
     ///
     /// Use ``validateDurability()`` to detect mixed-durability configurations (some stores
     /// durable, others in-memory) that can lose data on restart. Use
-    /// ``fullyPersistent(messageStore:threadPersistence:workspacePersistence:memoryStore:toolPersistence:agentStore:requestOriginStore:)``
+    /// `fullyPersistent(messageStore:threadPersistence:workspacePersistence:memoryStore:toolPersistence:agentStore:requestOriginStore:runtimeRepository:workspaceBindingRepository:)`
     /// when all seven stores must be explicitly provided for full durability.
     struct PersistenceConfiguration: Sendable {
         /// Optional cohesive owner for Thread history and Turn transitions. When supplied

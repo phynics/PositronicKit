@@ -1,11 +1,13 @@
 # PositronicKit Usage Guide
 
-This guide provides step-by-step examples for integrating `PositronicKit` and managing `Agent` within your application.
+This guide documents the unreleased Next / v4 runtime. For production, start from the
+[stable tagged README](https://github.com/phynics/PositronicKit/blob/3.7.0/README.md).
 
 ## 1. Managing Agents
 
-`Agent` represents a live agent with its own workspace and private Thread. You manage agents
-through the facade's `agents` capability.
+`Agent` is persistent identity, instructions, and continuity. Every Agent owns one primary Thread
+and primary Workspace, can participate in many ordinary Threads, and is not independently callable.
+Each Thread attaches at most one Agent. Manage Agents through the facade's `agents` capability.
 
 ### Creating an Agent
 
@@ -30,7 +32,9 @@ print("Created agent with ID: \(agent.id)")
 
 ### Attaching an Agent to a Thread
 
-To use an agent in a specific chat thread, you must "attach" it. This grants the agent exclusive access to that thread.
+Attach an Agent when a Thread should run managed Turns under that identity. The attachment is
+exclusive from the Thread's perspective: a Thread has zero or one Agent, while an Agent may be
+attached to many Threads.
 
 ```swift
 let threadID = thread.id
@@ -75,7 +79,7 @@ let languageModel = LLMService(
     utilityClient: client,
     fastClient: client
 )
-let chat = PositronicKit(languageModel: languageModel)
+let kit = PositronicKit(languageModel: languageModel)
 ```
 
 For Ollama, use `PKOllamaProvider` and `ProviderConfiguration.makeDefault(for: .ollama)`:
@@ -95,7 +99,7 @@ let languageModel = LLMService(
     utilityClient: client,
     fastClient: client
 )
-let chat = PositronicKit(languageModel: languageModel)
+let kit = PositronicKit(languageModel: languageModel)
 ```
 
 The core facade stays provider-neutral: provider clients are built in their provider module
@@ -111,7 +115,7 @@ defaults to in-memory, so provide only the durable stores your host needs.
 import PositronicKit
 import PKContracts
 
-let chat = PositronicKit(configuration: .init(
+let kit = PositronicKit(configuration: .init(
     provider: .init(
         languageModel: myLLM,
         embeddingService: myEmbeddingService
@@ -141,8 +145,8 @@ terminal result for every joiner.
 import PositronicKit
 import PKContracts
 
-// `chat` is the PositronicKit instance from the initialization example above.
-let turn = try await chat.threads.open(threadID).startTurn(
+// `kit` is the PositronicKit instance from the initialization example above.
+let turn = try await kit.threads.open(threadID).startTurn(
     message: "What are the latest trends in Swift concurrency?"
 )
 let stream = turn.events()
@@ -226,7 +230,7 @@ LoggingSystem.bootstrap { label in
 }
 
 let logger = Logger(label: "com.example.prompt-assembly")
-let events = try await chat.threads.open(threadID).run(TurnRequest(
+let events = try await kit.threads.open(threadID).run(TurnRequest(
     threadID: threadID,
     message: "…",
     promptAssemblyLogger: logger
@@ -242,7 +246,7 @@ let toolOutputs = [
     ToolOutputSubmission(toolCallID: "call_123", output: "File contents...")
 ]
 
-let stream = try await chat.threads.open(threadID).run(TurnRequest(
+let stream = try await kit.threads.open(threadID).run(TurnRequest(
     threadID: threadID,
     message: "", // Empty message as we're continuing from a tool call
     tools: tools,
@@ -269,8 +273,9 @@ The stream provides a rich set of events:
   deferred for external (host-side) execution — the stream pauses for the host to submit tool
   outputs in a follow-up turn.
 - `.error(.toolCallError)`, `.error(.error)`, and `.error(.generationCancelled)` for failure and
-  cancellation handling. A turn failure surfaces as a thrown error on the stream (the throw is
-  that path's terminal signal); a direct cancellation emits `.generationCancelled`.
+  cancellation handling. `TurnHandle.events()` is nonthrowing; its durable `outcome()` is the
+  authoritative terminal result. The advanced request-shaped `run(_:)` seam retains a throwing
+  stream for preparation and pipeline failures.
 
 The deprecated `.meta(.generationCompleted)` and `.completion(.streamCompleted)` cases are
 retained for `Codable` backward compatibility but are never emitted in production — switch on

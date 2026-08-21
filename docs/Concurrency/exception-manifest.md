@@ -70,10 +70,6 @@ doubles are not actorized solely to satisfy `Sendable`).
 
 ## Actor-owned stream boundaries
 
-`PrimaryThreadActivitySink` stores one drain task per private Thread. The sink actor owns task
-creation, bounded polling, cancellation, and removal; the task captures the actor weakly so a
-finished or deallocated sink cannot retain an unbounded delivery loop.
-
 `TurnEventHub` stores `AsyncThrowingStream` continuations inside its actor-owned
 subscriber state. The actor is the sole owner of subscription, publication,
 termination, and cancellation cleanup, so the continuation has an explicit

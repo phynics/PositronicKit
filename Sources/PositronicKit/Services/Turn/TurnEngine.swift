@@ -128,7 +128,6 @@ struct TurnEngine {
         let toolRouter: ToolRouter
         let turnContextSource: (any TurnContextSource)?
         let agentActivitySink: (any AgentActivitySink)?
-        let primaryThreadActivitySink: (any PrimaryThreadActivityRecording)?
         let turnOutcomeSink: (any TurnOutcomeSink)?
         let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
         let loggingConfiguration: LoggingConfiguration
@@ -150,7 +149,6 @@ struct TurnEngine {
             toolRouter: ToolRouter,
             turnContextSource: (any TurnContextSource)? = nil,
             agentActivitySink: (any AgentActivitySink)? = nil,
-            primaryThreadActivitySink: (any PrimaryThreadActivityRecording)? = nil,
             turnOutcomeSink: (any TurnOutcomeSink)? = nil,
             diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
             loggingConfiguration: LoggingConfiguration = .default,
@@ -172,7 +170,6 @@ struct TurnEngine {
             self.toolRouter = toolRouter
             self.turnContextSource = turnContextSource
             self.agentActivitySink = agentActivitySink
-            self.primaryThreadActivitySink = primaryThreadActivitySink
             self.turnOutcomeSink = turnOutcomeSink
             self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
             self.loggingConfiguration = loggingConfiguration
@@ -465,7 +462,10 @@ struct TurnEngine {
             }
         }
 
+        let (startSignal, startContinuation) = AsyncStream<Bool>.makeStream()
         let task = Task {
+            var startIterator = startSignal.makeAsyncIterator()
+            guard await startIterator.next() == true else { return }
             await runTurnLoop(continuation: continuation, context: context)
             await dependencies.threadManager.removeTask(turnID: turnID, for: threadID)
             _ = await bridge.value
@@ -473,6 +473,10 @@ struct TurnEngine {
         let registered = await dependencies.threadManager.registerTask(task, turnID: turnID, for: threadID)
         if !registered {
             task.cancel()
+        }
+        startContinuation.yield(registered)
+        startContinuation.finish()
+        if !registered {
             await dependencies.eventHub.finish(
                 turnID: turnID,
                 error: ThreadRuntimeRepositoryError.threadBusy(threadID: threadID, activeTurnID: turnID)

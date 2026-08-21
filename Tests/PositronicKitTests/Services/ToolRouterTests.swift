@@ -7,14 +7,6 @@ import PKTestSupport
 import Synchronization
 import Testing
 
-private actor RecordingPrimaryActivitySink: PrimaryThreadActivityRecording {
-    private(set) var activities: [PrimaryThreadActivity] = []
-
-    func record(_ activity: PrimaryThreadActivity) async {
-        activities.append(activity)
-    }
-}
-
 /// A one-shot asynchronous latch. Waiting uses a continuation, so task cancellation does not
 /// resume a waiter; `open()` deterministically resumes every current and future waiter.
 private final class AsyncLatch: Sendable {
@@ -281,7 +273,7 @@ final class ToolRouterTests {
 
     @Test("Workspace call_tool ambiguity returns a rich correction without execution")
     func workspaceCallToolAmbiguity() async throws {
-        let tool = MockTool(callName: "read_file", result: .success("workspace output"))
+        let tool = MockTool(callName: "read_file", name: "read_file", result: .success("workspace output"))
         let runtimeRepository = InMemoryThreadRuntimeRepository()
         let (router, threadID, persistence) = try await setupRouter(
             with: tool,
@@ -295,8 +287,6 @@ final class ToolRouterTests {
             callerIntentFingerprint: "workspace-ambiguity"
         )
         let turnID = admission.turn.identity.turnID
-        let privateThreadID = UUID()
-        let agentID = UUID()
         let first = try #require(persistence.workspaces.first)
         let second = WorkspaceReference(
             id: UUID(),
@@ -311,7 +301,6 @@ final class ToolRouterTests {
             .init(workspace: first, label: first.uri.description, isPrimary: true, tools: [tool.toAnyTool()]),
             .init(workspace: second, label: second.uri.description, isPrimary: false, tools: [tool.toAnyTool()]),
         ])
-        let activitySink = RecordingPrimaryActivitySink()
         // Ambiguity must not execute either candidate or require a live binding.
         let ambiguousCall = ParsedToolCall(
             callId: "call-ambiguous",
@@ -322,13 +311,9 @@ final class ToolRouterTests {
             try await router.handlePendingToolCalls(
                 threadId: threadID,
                 turnID: turnID,
-                requestID: admission.turn.callerIntent.requestID,
-                agentID: agentID,
-                primaryThreadID: privateThreadID,
                 calls: [ambiguousCall],
                 availableTools: [catalog.callTool],
                 workspaceToolCatalog: catalog,
-                primaryActivitySink: activitySink,
                 continuation: continuation
             )
         }
@@ -338,8 +323,6 @@ final class ToolRouterTests {
         #expect(result.resolvedToolParams.first?.content.contains(first.id.uuidString) == true)
         #expect(result.resolvedToolParams.first?.content.contains(second.id.uuidString) == true)
         #expect(tool.result.output == "workspace output")
-        let projectedActivities = await activitySink.activities
-        #expect(projectedActivities.isEmpty)
         let notices = try await runtimeRepository.fetchNotices(turnID: turnID)
         #expect(notices.contains(where: {
             $0.kind == "ambiguousWorkspaceTool"
@@ -350,7 +333,7 @@ final class ToolRouterTests {
 
     @Test("Workspace call_tool success executes the selected workspace and records provenance")
     func workspaceCallToolSuccessProvenance() async throws {
-        let tool = MockTool(callName: "read_file", result: .success("workspace output"))
+        let tool = MockTool(callName: "read_file", name: "read_file", result: .success("workspace output"))
         let runtimeRepository = InMemoryThreadRuntimeRepository()
         let (router, threadID, persistence) = try await setupRouter(
             with: tool,
@@ -368,7 +351,6 @@ final class ToolRouterTests {
         let catalog = WorkspaceToolCatalog(entries: [
             .init(workspace: workspace, label: workspace.uri.description, isPrimary: true, tools: [tool.toAnyTool()]),
         ])
-        let activitySink = RecordingPrimaryActivitySink()
         let call = ParsedToolCall(
             callId: "call-success",
             name: "call_tool",
@@ -378,13 +360,9 @@ final class ToolRouterTests {
             _ = try await router.handlePendingToolCalls(
                 threadId: threadID,
                 turnID: turnID,
-                requestID: admission.turn.callerIntent.requestID,
-                agentID: UUID(),
-                primaryThreadID: UUID(),
                 calls: [call],
                 availableTools: [catalog.callTool],
                 workspaceToolCatalog: catalog,
-                primaryActivitySink: activitySink,
                 continuation: continuation
             )
         }
@@ -398,88 +376,11 @@ final class ToolRouterTests {
         #expect(results.first?.succeeded == true)
         #expect(results.first?.workspaceID == workspace.id)
         #expect(results.first?.workspaceRouting == .explicit)
-        let projectedActivities = await activitySink.activities
-        #expect(projectedActivities.count == 1)
-        if case let .succeeded(output) = projectedActivities[0].outcome {
-            #expect(output == "workspace output")
-        } else {
-            Issue.record("Expected a projected successful primary activity")
-        }
-    }
-
-    @Test("Resolved primary Workspace calls are delivered to the internal activity projector")
-    func workspaceCallToolPrimaryActivityProjection() async throws {
-        let tool = MockTool(callName: "read_file", result: .success("primary output"))
-        let runtimeRepository = InMemoryThreadRuntimeRepository()
-        let (router, threadID, persistence) = try await setupRouter(
-            with: tool,
-            approvalPolicy: DenyAllToolApprovalPolicy(),
-            runtimeRepository: runtimeRepository
-        )
-        try await runtimeRepository.saveThread(Thread(id: threadID))
-        let admission = try await runtimeRepository.admitTurn(
-            threadID: threadID,
-            requestID: UUID(),
-            callerIntentFingerprint: "primary-projection"
-        )
-        let turnID = admission.turn.identity.turnID
-        let workspace = try #require(persistence.workspaces.first)
-        let agentID = UUID()
-        let privateThreadID = UUID()
-        try await persistence.saveAgent(Agent(
-            id: agentID,
-            name: "Projection Agent",
-            description: "primary projection test",
-            primaryWorkspaceID: workspace.id,
-            privateThreadID: privateThreadID
-        ))
-        let sink = PrimaryThreadActivitySink(
-            agentStore: persistence,
-            pairStore: persistence,
-            runtimeRepository: runtimeRepository,
-            threadAuthorityCoordinator: ThreadAuthorityCoordinator(),
-            loggingConfiguration: .default
-        )
-        let catalog = WorkspaceToolCatalog(entries: [
-            .init(workspace: workspace, label: workspace.uri.description, isPrimary: true, tools: [tool.toAnyTool()]),
-        ])
-        let call = ParsedToolCall(
-            callId: "call-primary-projection",
-            name: "call_tool",
-            argumentsJSON: "{\"tool\":\"read_file\",\"at\":\"\(workspace.id.uuidString)\",\"arguments\":{}}"
-        )
-
-        _ = try await captureProjectedToolEventsResult { continuation in
-            try await router.handlePendingToolCalls(
-                threadId: threadID,
-                turnID: turnID,
-                requestID: admission.turn.callerIntent.requestID,
-                agentID: agentID,
-                primaryThreadID: privateThreadID,
-                calls: [call],
-                availableTools: [catalog.callTool],
-                workspaceToolCatalog: catalog,
-                primaryActivitySink: sink,
-                continuation: continuation
-            )
-        }
-
-        for _ in 0..<100 {
-            if try await persistence.fetchMessages(for: privateThreadID).count == 2 { break }
-            try await Task.sleep(for: .milliseconds(1))
-        }
-        let mirrored = try await persistence.fetchMessages(for: privateThreadID)
-        #expect(mirrored.count == 2)
-        #expect(mirrored[0].role == "assistant")
-        #expect(mirrored[1].role == "tool")
-        #expect(mirrored[1].content == "primary output")
-        #expect(String(data: try #require(mirrored[0].snapshotData), encoding: .utf8)?.contains(threadID.uuidString) == true)
-        #expect(String(data: try #require(mirrored[0].snapshotData), encoding: .utf8)?.contains(workspace.id.uuidString) == true)
     }
 
     @Test("Workspace call_tool failures retain route provenance in events and records")
     func workspaceCallToolFailureProvenance() async throws {
-        let tool = MockTool(callName: "read_file", result: .failure("workspace failed"))
+        let tool = MockTool(callName: "read_file", name: "read_file", result: .failure("workspace failed"))
         let runtimeRepository = InMemoryThreadRuntimeRepository()
         let (router, threadID, persistence) = try await setupRouter(
             with: tool,
@@ -497,7 +398,6 @@ final class ToolRouterTests {
         let catalog = WorkspaceToolCatalog(entries: [
             .init(workspace: workspace, label: workspace.uri.description, isPrimary: true, tools: [tool.toAnyTool()]),
         ])
-        let activitySink = RecordingPrimaryActivitySink()
         let call = ParsedToolCall(
             callId: "call-failure",
             name: "call_tool",
@@ -507,13 +407,9 @@ final class ToolRouterTests {
             _ = try await router.handlePendingToolCalls(
                 threadId: threadID,
                 turnID: turnID,
-                requestID: admission.turn.callerIntent.requestID,
-                agentID: UUID(),
-                primaryThreadID: UUID(),
                 calls: [call],
                 availableTools: [catalog.callTool],
                 workspaceToolCatalog: catalog,
-                primaryActivitySink: activitySink,
                 continuation: continuation
             )
         }
@@ -527,13 +423,6 @@ final class ToolRouterTests {
         let results = try await runtimeRepository.fetchToolResults(turnID: turnID)
         #expect(results.first?.workspaceID == workspace.id)
         #expect(results.first?.workspaceRouting == .explicit)
-        let projectedActivities = await activitySink.activities
-        #expect(projectedActivities.count == 1)
-        if case let .failed(_, error) = projectedActivities[0].outcome {
-            #expect(error.contains("workspace"))
-        } else {
-            Issue.record("Expected a projected failed primary activity")
-        }
     }
 
     @Test("A disabled tool is rejected at the execution sink and projected as a failure")

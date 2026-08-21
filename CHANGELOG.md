@@ -38,11 +38,6 @@ for tagged releases beginning with `1.0.0`.
   observer, prompt-section provider, and pipeline insertion surfaces.
 
 ### Added
-
-- **Internal primary-Thread activity evaluation:** resolved primary-Workspace tool attempts can be
-  mirrored into an Agent's private Thread through a bounded, provenance-bearing, best-effort
-  experiment. This is not a supported public history contract and remains subject to the v4 RC
-  release decision.
 - **Compile-time provider factory contract:** added `LLMProviderFactory` so concrete provider
   modules share a typed `makeClient(configuration:)` API without introducing provider discovery
   or a runtime factory registry.
@@ -56,11 +51,20 @@ for tagged releases beginning with `1.0.0`.
 
 ### Changed
 
+- The internal primary-Thread activity projection experiment was removed before the v4 API freeze.
+  Workspace tool activity remains durable only on the Thread whose Turn executed it.
+- Documentation now separates immutable stable `3.7.0` links from the unreleased Next / v4 story.
+  A single catalog generates the landing pages, navigation, and `llms.txt`; CI validates public
+  products, ordinary-import consumer symbols, DocC coverage, links, anchors, dependency pins,
+  pull-request docs impact, and retired vocabulary.
 - Provider factories now use `makeClient(configuration:)` as their canonical name. Structured-output
   behavior is carried by each client instead of a process-global adapter registry.
 
 ### Fixed
 
+- **Turn durability and authority races:** in-memory append-only retries now compare canonical
+  encodings, active-task registration cannot lose fast terminal cleanup, and Agent attachment
+  changes stay aligned with the Thread coordinator cache.
 - **LLM runtime state consistency:** `LLMService` now owns one atomic runtime snapshot
   (configuration + client set). Storage-backed initialization always loads configuration, even
   when clients are injected; invalid loaded/imported/restored/updated/cleared configurations clear

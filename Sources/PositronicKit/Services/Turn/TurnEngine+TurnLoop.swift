@@ -239,6 +239,11 @@ private extension TurnEngine {
             }
             logger.trace("Turn \(turnLabel): starting pipeline for \(sid)")
             try await processTurn(context: context, continuation: continuation)
+            // Pipeline stages expose streams backed by their own producer tasks. If this Turn is
+            // cancelled while one of those producers is finishing, the stream can close normally
+            // even though the owning Turn task is already cancelled. Recheck ownership before any
+            // success/tool-routing path can durably complete the Turn.
+            try Task.checkCancellation()
             logger.trace("Turn \(turnLabel): pipeline complete for \(sid)")
             return try await handleToolCallsAfterTurn(context: context, continuation: continuation)
         } catch is CancellationError {
@@ -370,13 +375,9 @@ private extension TurnEngine {
             outputs: context.outputs,
             threadId: context.threadID,
             turnID: context.turnID,
-            requestID: context.requestId,
-            agentID: context.agentId,
-            primaryThreadID: context.agentPrivateThreadID,
             modelRoundIndex: context.modelRoundIndex,
             availableTools: context.availableTools,
             workspaceToolCatalog: context.workspaceToolCatalog,
-            primaryActivitySink: dependencies.primaryThreadActivitySink,
             continuation: continuation
         )
 

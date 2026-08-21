@@ -220,13 +220,15 @@ actor AgentManager: AgentManagerProtocol {
         }
 
         let originalThread = thread
-        try await threadAuthorityCoordinator.withThread(threadID) { [self, originalThread] in
+        let updatedThread = try await threadAuthorityCoordinator.withThread(threadID) { [self, originalThread] in
             try await self.requireExecutionContextMutable(for: threadID)
             var updated = originalThread
             updated.attachedAgentID = agentID
             updated.updatedAt = Date()
             try await self.threadStore.saveThread(updated)
+            return updated
         }
+        await threadManager?.replaceCachedThreadIfPresent(updatedThread)
 
         // Log to agent's private thread
         let logMsg = ThreadMessage(
@@ -267,13 +269,15 @@ actor AgentManager: AgentManagerProtocol {
         }
 
         let originalThread = thread
-        try await threadAuthorityCoordinator.withThread(threadID) { [self, originalThread] in
+        let updatedThread = try await threadAuthorityCoordinator.withThread(threadID) { [self, originalThread] in
             try await self.requireExecutionContextMutable(for: threadID)
             var updated = originalThread
             updated.attachedAgentID = nil
             updated.updatedAt = Date()
             try await self.threadStore.saveThread(updated)
+            return updated
         }
+        await threadManager?.replaceCachedThreadIfPresent(updatedThread)
 
         // Log to agent's private thread if it still exists
         if let agent = try? await agentStore.fetchAgent(id: agentID) {
@@ -585,13 +589,15 @@ actor AgentManager: AgentManagerProtocol {
         // Force-detach from non-private threads
         for thread in nonPrivateAttached {
             let originalThread = thread
-            try await threadAuthorityCoordinator.withThread(thread.id) { [self, originalThread] in
+            let updatedThread = try await threadAuthorityCoordinator.withThread(thread.id) { [self, originalThread] in
                 try await self.requireExecutionContextMutable(for: originalThread.id)
                 var updated = originalThread
                 updated.attachedAgentID = nil
                 updated.updatedAt = Date()
                 try await self.threadStore.saveThread(updated)
+                return updated
             }
+            await threadManager?.replaceCachedThreadIfPresent(updatedThread)
         }
 
         // Delete the private thread before the workspace or agent record. If this fails,

@@ -5,8 +5,7 @@ enum MiniLMTestSupport {
     static func goldenVectorPrefix() throws -> [Float] {
         let data = try Data(contentsOf: Bundle.module.url(
             forResource: "minilm-golden",
-            withExtension: "json",
-            subdirectory: "Fixtures"
+            withExtension: "json"
         )!)
         return try JSONDecoder().decode([Float].self, from: data)
     }

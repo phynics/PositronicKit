@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "repository": "phynics/PositronicKit",
+  "stable": {
+    "version": "3.7.0",
+    "ref": "3.7.0",
+    "guides": [
+      {
+        "title": "Overview and quick start",
+        "path": "README.md",
+        "summary": "Stable package setup, provider configuration, examples, and verification."
+      },
+      {
+        "title": "Setup",
+        "path": "docs/Setup.md",
+        "summary": "Stable provider, persistence, customization, logging, and error setup."
+      },
+      {
+        "title": "Usage",
+        "path": "docs/Usage.md",
+        "summary": "Stable runtime, Agent lifecycle, Workspace routing, and embeddings usage."
+      },
+      {
+        "title": "Architecture",
+        "path": "docs/Architecture.md",
+        "summary": "Architecture and module boundaries shipped by the stable release."
+      },
+      {
+        "title": "Prompt composition",
+        "path": "docs/PKPromptComposition.md",
+        "summary": "Stable prompt composition, rendering, compression, and journaling APIs."
+      },
+      {
+        "title": "Sidecar directives",
+        "path": "docs/SidecarDirectives.md",
+        "summary": "Stable auxiliary structured-result behavior."
+      },
+      {
+        "title": "Changelog",
+        "path": "CHANGELOG.md",
+        "summary": "Published release history through this immutable tag."
+      }
+    ]
+  },
+  "next": {
+    "label": "Next / v4",
+    "ref": "main"
+  },
+  "guides": [
+    {
+      "title": "Overview and quick start",
+      "path": "README.md",
+      "summary": "Release selection, package setup, capability values, examples, and verification."
+    },
+    {
+      "title": "Setup",
+      "path": "docs/Setup.md",
+      "summary": "Provider-neutral configuration, persistence, customization, logging, and errors."
+    },
+    {
+      "title": "Usage",
+      "path": "docs/Usage.md",
+      "summary": "Managed and direct Turns, Agent lifecycle, Workspace routing, and local embeddings."
+    },
+    {
+      "title": "Architecture",
+      "path": "docs/Architecture.md",
+      "summary": "v4 domain boundaries, capability values, durability, and execution authority."
+    },
+    {
+      "title": "Prompt composition",
+      "path": "docs/PKPromptComposition.md",
+      "summary": "Prompt IR, assembly, rendering, compression, and PromptJournal."
+    },
+    {
+      "title": "Sidecar directives",
+      "path": "docs/SidecarDirectives.md",
+      "summary": "Auxiliary structured results carried by the same Turn."
+    },
+    {
+      "title": "Development",
+      "path": "docs/Development.md",
+      "summary": "Supported platform gates, Podman workflow, and native bridge setup."
+    },
+    {
+      "title": "Context map",
+      "path": "CONTEXT-MAP.md",
+      "summary": "Canonical Thread, Turn, Agent, Workspace, prompt, and contract vocabulary."
+    },
+    {
+      "title": "Architecture decisions",
+      "path": "docs/adr/",
+      "summary": "Accepted v4 decisions and their trade-offs."
+    },
+    {
+      "title": "Changelog",
+      "path": "CHANGELOG.md",
+      "summary": "Published release deltas and the unreleased Next change set."
+    }
+  ],
+  "products": [
+    {"name": "PKContracts", "kind": "library", "module": "PKContracts", "docs": "docs/Architecture.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "Message.self"},
+    {"name": "PKPrompt", "kind": "library", "module": "PKPrompt", "docs": "docs/PKPromptComposition.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "(any Prompt).self"},
+    {"name": "PositronicKit", "kind": "library", "module": "PositronicKit", "docs": "docs/Usage.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "PositronicKit.self"},
+    {"name": "PKObservable", "kind": "library", "module": "PKObservable", "docs": "docs/Usage.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "ThreadController.self"},
+    {"name": "PKLocalEmbeddings", "kind": "library", "module": "PKLocalEmbeddings", "docs": "docs/Usage.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "LocalEmbeddingService.self"},
+    {"name": "PKOpenAIProvider", "kind": "library", "module": "PKOpenAIProvider", "docs": "docs/ProviderCapabilityMatrix.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "PKOpenAIProvider.self"},
+    {"name": "PKOpenRouterProvider", "kind": "library", "module": "PKOpenRouterProvider", "docs": "docs/ProviderCapabilityMatrix.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "PKOpenRouterProvider.self"},
+    {"name": "PKOllamaProvider", "kind": "library", "module": "PKOllamaProvider", "docs": "docs/ProviderCapabilityMatrix.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "PKOllamaProvider.self"},
+    {"name": "PKAnthropicProvider", "kind": "library", "module": "PKAnthropicProvider", "docs": "docs/ProviderCapabilityMatrix.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "PKAnthropicProvider.self"},
+    {"name": "PKFoundationModelsProvider", "kind": "library", "module": "PKFoundationModelsProvider", "docs": "docs/ProviderCapabilityMatrix.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "PKFoundationModelsProvider.self"},
+    {"name": "PKTestSupport", "kind": "library", "module": "PKTestSupport", "docs": "README.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "TestRuntime.self"},
+    {"name": "PositronicKitExamples", "kind": "executable", "module": "PositronicKitExamples", "docs": "Sources/PositronicKitExamples", "docc": false, "consumer": "PositronicKitExamples"}
+  ]
+}

@@ -49,9 +49,10 @@ public struct ThreadHandle: Identifiable, Sendable {
         guard request.threadID == threadID else {
             throw ThreadError.threadNotFound
         }
-        guard let attachedAgentID = try await kit.threadManager.threadStore
-            .fetchThread(id: threadID)?.attachedAgentID
-        else {
+        guard let thread = try await kit.threadManager.threadStore.fetchThread(id: threadID) else {
+            throw ThreadError.threadNotFound
+        }
+        guard let attachedAgentID = thread.attachedAgentID else {
             throw AgentError.managedThreadRequiresAttachedAgent(threadID)
         }
         return try await kit.startTurnHandle(
@@ -116,9 +117,10 @@ public struct ThreadHandle: Identifiable, Sendable {
         guard request.threadID == threadID else {
             throw ThreadError.threadNotFound
         }
-        guard let attachedAgentID = try await kit.threadManager.threadStore
-            .fetchThread(id: threadID)?.attachedAgentID
-        else {
+        guard let thread = try await kit.threadManager.threadStore.fetchThread(id: threadID) else {
+            throw ThreadError.threadNotFound
+        }
+        guard let attachedAgentID = thread.attachedAgentID else {
             throw AgentError.managedThreadRequiresAttachedAgent(threadID)
         }
         let managedRequest = TurnRequest(
@@ -153,7 +155,7 @@ public extension PositronicKit {
     /// This is pure handle construction: it performs no persistence I/O. The Thread
     /// must have been created beforehand via ``ThreadCapability/create(title:)``.
     /// A missing (never-persisted) thread id is an error, not a silent creation —
-    /// the first ``ThreadHandle/send(_:)`` call will throw
+    /// the first managed Turn call will throw
     /// ``ThreadError/threadNotFound`` before any message is persisted.
     func openThread(_ threadID: UUID) -> ThreadHandle {
         ThreadHandle(threadID: threadID, kit: self)
