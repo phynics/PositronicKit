@@ -119,9 +119,13 @@ actor ToolRouter {
         outputs: TurnOutputs,
         threadId: UUID,
         turnID: UUID? = nil,
+        requestID: UUID? = nil,
+        agentID: UUID? = nil,
+        primaryThreadID: UUID? = nil,
         modelRoundIndex: Int = 0,
         availableTools: [AnyTool],
         workspaceToolCatalog: WorkspaceToolCatalog? = nil,
+        primaryActivitySink: (any PrimaryThreadActivityRecording)? = nil,
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
     ) async throws -> ToolTurnResult {
         let accumulators = await outputs.toolCallAccumulators
@@ -163,10 +167,14 @@ actor ToolRouter {
         let result = try await handlePendingToolCalls(
             threadId: threadId,
             turnID: turnID,
+            requestID: requestID,
+            agentID: agentID,
+            primaryThreadID: primaryThreadID,
             modelRoundIndex: modelRoundIndex,
             calls: parsedCalls,
             availableTools: availableTools,
             workspaceToolCatalog: workspaceToolCatalog,
+            primaryActivitySink: primaryActivitySink,
             continuation: continuation
         )
 
@@ -185,10 +193,14 @@ actor ToolRouter {
     package func handlePendingToolCalls(
         threadId: UUID,
         turnID: UUID? = nil,
+        requestID: UUID? = nil,
+        agentID: UUID? = nil,
+        primaryThreadID: UUID? = nil,
         modelRoundIndex: Int = 0,
         calls: [ParsedToolCall],
         availableTools: [AnyTool],
         workspaceToolCatalog: WorkspaceToolCatalog? = nil,
+        primaryActivitySink: (any PrimaryThreadActivityRecording)? = nil,
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
     ) async throws -> ToolHandlingResult {
         var hasDeferred = false
@@ -263,6 +275,18 @@ actor ToolRouter {
                     turnID: turnID,
                     continuation: continuation
                 )
+                await schedulePrimaryWorkspaceActivity(
+                    call: call,
+                    route: workspaceRoute,
+                    outcome: projection.activityOutcome,
+                    threadID: threadId,
+                    turnID: turnID,
+                    requestID: requestID,
+                    agentID: agentID,
+                    primaryThreadID: primaryThreadID,
+                    modelRoundIndex: modelRoundIndex,
+                    sink: primaryActivitySink
+                )
                 if projection.persistenceFailed {
                     hasPersistenceFailure = true
                 }
@@ -336,6 +360,18 @@ actor ToolRouter {
                     threadId: threadId,
                     turnID: turnID,
                     continuation: continuation
+                )
+                await schedulePrimaryWorkspaceActivity(
+                    call: call,
+                    route: workspaceRoute,
+                    outcome: projection.activityOutcome,
+                    threadID: threadId,
+                    turnID: turnID,
+                    requestID: requestID,
+                    agentID: agentID,
+                    primaryThreadID: primaryThreadID,
+                    modelRoundIndex: modelRoundIndex,
+                    sink: primaryActivitySink
                 )
                 if projection.persistenceFailed {
                     hasPersistenceFailure = true
@@ -752,16 +788,21 @@ actor ToolRouter {
                         )
                     } ?? .persistenceFailed(reference: toolRef, error: safeErrorMessage(error))
                 ))
-                return ToolProjection(message: nil, persistenceFailed: true)
+                return ToolProjection(
+                    message: nil,
+                    persistenceFailed: true,
+                    activityOutcome: .persistenceFailed(error: safeErrorMessage(error))
+                )
             }
             return ToolProjection(
                 message: LLMMessage(role: .tool, content: output, toolCallID: call.callId),
-                persistenceFailed: false
+                persistenceFailed: false,
+                activityOutcome: .succeeded(output: output)
             )
 
         case .deferredExternally:
             logger.info("Tool \(toolDisplayName) deferred for external execution")
-            return ToolProjection(message: nil, persistenceFailed: false)
+            return ToolProjection(message: nil, persistenceFailed: false, activityOutcome: nil)
         }
     }
 
@@ -832,18 +873,62 @@ actor ToolRouter {
                     )
                 } ?? .persistenceFailed(reference: toolRef, error: safeErrorMessage(error))
             ))
-            return ToolProjection(message: nil, persistenceFailed: true)
+            return ToolProjection(
+                message: nil,
+                persistenceFailed: true,
+                activityOutcome: .persistenceFailed(error: safeErrorMessage(error))
+            )
         }
         return ToolProjection(
             message: LLMMessage(role: .tool, content: errorOutput, toolCallID: call.callId),
-            persistenceFailed: false
+            persistenceFailed: false,
+            activityOutcome: .failed(output: errorOutput, error: errorMsg)
         )
+    }
+
+    private func schedulePrimaryWorkspaceActivity(
+        call: ParsedToolCall,
+        route: WorkspaceToolRoute?,
+        outcome: PrimaryThreadActivityOutcome?,
+        threadID: UUID,
+        turnID: UUID?,
+        requestID: UUID?,
+        agentID: UUID?,
+        primaryThreadID: UUID?,
+        modelRoundIndex: Int,
+        sink: (any PrimaryThreadActivityRecording)?
+    ) async {
+        guard let route, route.isPrimary,
+              let outcome,
+              let turnID,
+              let requestID,
+              let agentID,
+              let primaryThreadID,
+              let sink
+        else { return }
+
+        let activity = PrimaryThreadActivity(
+            callID: call.callId,
+            name: call.name,
+            argumentsJSON: call.argumentsJSON,
+            sourceThreadID: threadID,
+            privateThreadID: primaryThreadID,
+            turnID: turnID,
+            requestID: requestID,
+            agentID: agentID,
+            modelRoundIndex: modelRoundIndex,
+            workspaceID: route.workspaceID,
+            routing: route.routing,
+            outcome: outcome
+        )
+        await sink.record(activity)
     }
 }
 
 private struct ToolProjection {
     let message: LLMMessage?
     let persistenceFailed: Bool
+    let activityOutcome: PrimaryThreadActivityOutcome?
 }
 
 private func safeErrorMessage(_ error: Error) -> String {

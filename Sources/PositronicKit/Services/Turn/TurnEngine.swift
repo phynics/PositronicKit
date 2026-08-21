@@ -128,6 +128,7 @@ struct TurnEngine {
         let toolRouter: ToolRouter
         let turnContextSource: (any TurnContextSource)?
         let agentActivitySink: (any AgentActivitySink)?
+        let primaryThreadActivitySink: (any PrimaryThreadActivityRecording)?
         let turnOutcomeSink: (any TurnOutcomeSink)?
         let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
         let loggingConfiguration: LoggingConfiguration
@@ -149,6 +150,7 @@ struct TurnEngine {
             toolRouter: ToolRouter,
             turnContextSource: (any TurnContextSource)? = nil,
             agentActivitySink: (any AgentActivitySink)? = nil,
+            primaryThreadActivitySink: (any PrimaryThreadActivityRecording)? = nil,
             turnOutcomeSink: (any TurnOutcomeSink)? = nil,
             diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
             loggingConfiguration: LoggingConfiguration = .default,
@@ -170,6 +172,7 @@ struct TurnEngine {
             self.toolRouter = toolRouter
             self.turnContextSource = turnContextSource
             self.agentActivitySink = agentActivitySink
+            self.primaryThreadActivitySink = primaryThreadActivitySink
             self.turnOutcomeSink = turnOutcomeSink
             self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
             self.loggingConfiguration = loggingConfiguration

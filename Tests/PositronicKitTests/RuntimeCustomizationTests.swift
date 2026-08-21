@@ -137,6 +137,172 @@ struct RuntimeCustomizationTests {
         #expect(notices.contains { $0.kind == TurnNoticeCode.turnOutcomeSinkFailed.rawValue })
     }
 
+    @Test("primary activity projection queues behind private-Thread work and is idempotent")
+    func primaryActivityProjectionQueuesAndDeduplicates() async throws {
+        let repository = InMemoryThreadRuntimeRepository()
+        let agentID = UUID()
+        let privateThreadID = UUID()
+        let sourceThreadID = UUID()
+        let workspaceID = UUID()
+        try await repository.saveThread(Thread(
+            id: privateThreadID,
+            title: "Private",
+            attachedAgentID: agentID,
+            isPrivate: true
+        ))
+        try await repository.saveThread(Thread(id: sourceThreadID, title: "Source"))
+        try await repository.saveAgent(Agent(
+            id: agentID,
+            name: "Projection",
+            description: "test",
+            primaryWorkspaceID: workspaceID,
+            privateThreadID: privateThreadID
+        ))
+        let active = try await repository.admitTurn(
+            threadID: privateThreadID,
+            requestID: UUID(),
+            callerIntentFingerprint: "private-active"
+        )
+        let sink = PrimaryThreadActivitySink(
+            agentStore: repository,
+            pairStore: repository,
+            runtimeRepository: repository,
+            threadAuthorityCoordinator: ThreadAuthorityCoordinator(),
+            loggingConfiguration: .default
+        )
+        let activity = PrimaryThreadActivity(
+            callID: "primary-1",
+            name: "read_file",
+            argumentsJSON: "{\"arguments\":{}}",
+            sourceThreadID: sourceThreadID,
+            privateThreadID: privateThreadID,
+            turnID: UUID(),
+            requestID: UUID(),
+            agentID: agentID,
+            modelRoundIndex: 1,
+            workspaceID: workspaceID,
+            routing: .implicit,
+            outcome: .succeeded(output: "queued output")
+        )
+
+        await withTaskGroup(of: Void.self) { group in
+            for _ in 0..<4 {
+                group.addTask { await sink.record(activity) }
+            }
+        }
+        try await Task.sleep(for: .milliseconds(20))
+        #expect(try await repository.fetchMessages(for: privateThreadID).isEmpty)
+
+        _ = try await repository.completeTurn(
+            turnID: active.turn.identity.turnID,
+            outcome: .completed
+        )
+        for _ in 0..<100 {
+            if try await repository.fetchMessages(for: privateThreadID).count == 2 { break }
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        await sink.record(activity)
+        try await Task.sleep(for: .milliseconds(20))
+        let mirrored = try await repository.fetchMessages(for: privateThreadID)
+        #expect(mirrored.count == 2)
+        #expect(mirrored[0].role == "assistant")
+        #expect(mirrored[1].role == "tool")
+        #expect(mirrored[1].content == "queued output")
+        #expect(mirrored[1].parentID == mirrored[0].id)
+    }
+
+    @Test("primary projection suppresses self-originated activity and preserves failures")
+    func primaryActivityProjectionGuardsSourceAndFailure() async throws {
+        let repository = InMemoryThreadRuntimeRepository()
+        let agentID = UUID()
+        let privateThreadID = UUID()
+        let sourceThreadID = UUID()
+        let workspaceID = UUID()
+        try await repository.saveThread(Thread(id: privateThreadID, isPrivate: true))
+        try await repository.saveThread(Thread(id: sourceThreadID))
+        try await repository.saveAgent(Agent(
+            id: agentID,
+            name: "Projection",
+            description: "test",
+            primaryWorkspaceID: workspaceID,
+            privateThreadID: privateThreadID
+        ))
+        let sink = PrimaryThreadActivitySink(
+            agentStore: repository,
+            pairStore: repository,
+            runtimeRepository: repository,
+            threadAuthorityCoordinator: ThreadAuthorityCoordinator(),
+            loggingConfiguration: .default
+        )
+        let ownActivity = PrimaryThreadActivity(
+            callID: "self",
+            name: "read_file",
+            argumentsJSON: "{}",
+            sourceThreadID: privateThreadID,
+            privateThreadID: privateThreadID,
+            turnID: UUID(),
+            requestID: UUID(),
+            agentID: agentID,
+            modelRoundIndex: 0,
+            workspaceID: workspaceID,
+            routing: .implicit,
+            outcome: .succeeded(output: "must not mirror")
+        )
+        await sink.record(ownActivity)
+        try await Task.sleep(for: .milliseconds(20))
+        #expect(try await repository.fetchMessages(for: privateThreadID).isEmpty)
+
+        let failedActivity = PrimaryThreadActivity(
+            callID: "failed",
+            name: "read_file",
+            argumentsJSON: "{}",
+            sourceThreadID: sourceThreadID,
+            privateThreadID: privateThreadID,
+            turnID: UUID(),
+            requestID: UUID(),
+            agentID: agentID,
+            modelRoundIndex: 0,
+            workspaceID: workspaceID,
+            routing: .explicit,
+            outcome: .failed(output: "", error: "permission denied")
+        )
+        await sink.record(failedActivity)
+        for _ in 0..<100 {
+            if try await repository.fetchMessages(for: privateThreadID).count == 2 { break }
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        let messages = try await repository.fetchMessages(for: privateThreadID)
+        #expect(messages.count == 2)
+        #expect(messages[1].content == "Error: permission denied")
+    }
+
+    @Test("primary projection pair append is atomic on tool-side conflict")
+    func primaryPairAppendIsAtomic() async throws {
+        let repository = InMemoryThreadRuntimeRepository()
+        let threadID = UUID()
+        let assistantID = UUID()
+        let assistant = ThreadMessage(
+            id: assistantID,
+            threadID: threadID,
+            role: .assistant,
+            content: "",
+            toolCalls: "[]"
+        )
+        let conflictingTool = ThreadMessage(
+            id: assistantID,
+            threadID: threadID,
+            role: .tool,
+            content: "conflict",
+            parentID: assistantID,
+            toolCallID: "call"
+        )
+
+        await #expect(throws: ThreadRuntimeRepositoryError.self) {
+            try await repository.appendPrimaryThreadPair(assistant: assistant, tool: conflictingTool)
+        }
+        #expect(try await repository.fetchMessages(for: threadID).isEmpty)
+    }
+
     private func makeKit(
         model: MockLLMService,
         repository: InMemoryThreadRuntimeRepository,
