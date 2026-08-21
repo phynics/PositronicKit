@@ -1,16 +1,16 @@
 # PositronicKit documentation
 
-> Stable 3.7.0 is the default, immutable channel. Next / v4 follows main and is unreleased.
+> Stable 4.0.0 is the default, immutable channel. Next / v4 follows main and is unreleased.
 
 ## Stable
 
-- [Overview and quick start](https://github.com/phynics/PositronicKit/blob/3.7.0/README.md): Stable package setup, provider configuration, examples, and verification.
-- [Setup](https://github.com/phynics/PositronicKit/blob/3.7.0/docs/Setup.md): Stable provider, persistence, customization, logging, and error setup.
-- [Usage](https://github.com/phynics/PositronicKit/blob/3.7.0/docs/Usage.md): Stable runtime, Agent lifecycle, Workspace routing, and embeddings usage.
-- [Architecture](https://github.com/phynics/PositronicKit/blob/3.7.0/docs/Architecture.md): Architecture and module boundaries shipped by the stable release.
-- [Prompt composition](https://github.com/phynics/PositronicKit/blob/3.7.0/docs/PKPromptComposition.md): Stable prompt composition, rendering, compression, and journaling APIs.
-- [Sidecar directives](https://github.com/phynics/PositronicKit/blob/3.7.0/docs/SidecarDirectives.md): Stable auxiliary structured-result behavior.
-- [Changelog](https://github.com/phynics/PositronicKit/blob/3.7.0/CHANGELOG.md): Published release history through this immutable tag.
+- [Overview and quick start](https://github.com/phynics/PositronicKit/blob/4.0.0/README.md): Stable package setup, provider configuration, examples, and verification.
+- [Setup](https://github.com/phynics/PositronicKit/blob/4.0.0/docs/Setup.md): Stable provider, persistence, customization, logging, and error setup.
+- [Usage](https://github.com/phynics/PositronicKit/blob/4.0.0/docs/Usage.md): Stable runtime, Agent lifecycle, Workspace routing, and embeddings usage.
+- [Architecture](https://github.com/phynics/PositronicKit/blob/4.0.0/docs/Architecture.md): Architecture and module boundaries shipped by the stable release.
+- [Prompt composition](https://github.com/phynics/PositronicKit/blob/4.0.0/docs/PKPromptComposition.md): Stable prompt composition, rendering, compression, and journaling APIs.
+- [Sidecar directives](https://github.com/phynics/PositronicKit/blob/4.0.0/docs/SidecarDirectives.md): Stable auxiliary structured-result behavior.
+- [Changelog](https://github.com/phynics/PositronicKit/blob/4.0.0/CHANGELOG.md): Published release history through this immutable tag.
 
 ## Next / v4
 
