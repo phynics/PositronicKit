@@ -24,6 +24,8 @@ struct ThreadEvictionDeletionTests {
         runtime.llm.mockClient.nextStreamWait = 0.05
         let kit = runtime.positronicKit
         let thread = try await kit.threadManager.createThread()
+        let agent = try await kit.agents.create(name: "Eviction Agent", description: "test")
+        try await kit.agents.attach(agent.id, to: thread.id)
         let driver = kit.openThread(thread.id)
 
         // Seed a persisted message so we can prove eviction does not delete it.
@@ -235,14 +237,16 @@ struct ThreadEvictionDeletionTests {
         #expect(FileManager.default.fileExists(atPath: workspaceRoot.path))
     }
 
-    @Test("deleteThreadPermanently cancels active work before deleting records (PKRR-023)")
-    func permanentDeleteCancelsActiveWork() async throws {
+    @Test("deleteThreadPermanently refuses active work and succeeds after cancellation (PKRR-023)")
+    func permanentDeleteWaitsForActiveWork() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString))
         runtime.llm.mockClient.nextChunks = [Array(repeating: "b", count: 50)]
         runtime.llm.mockClient.nextStreamWait = 0.05
         let kit = runtime.positronicKit
         let thread = try await kit.threadManager.createThread()
+        let agent = try await kit.agents.create(name: "Deletion Agent", description: "test")
+        try await kit.agents.attach(agent.id, to: thread.id)
         let driver = kit.openThread(thread.id)
 
         let stream = try await driver.send("hello")
@@ -255,15 +259,22 @@ struct ThreadEvictionDeletionTests {
 
         let result = await kit.threadManager.deleteThreadPermanently(id: thread.id)
 
-        #expect(result.isComplete)
-        let terminated = streamTerminated.withLock { $0 }
-        #expect(terminated, "Active stream must terminate after permanent deletion")
-        let activeAfter = await kit.threadManager.hasActiveTask(for: thread.id)
-        #expect(!activeAfter, "No active task should survive permanent deletion")
-        #expect(await kit.threadManager.thread(id: thread.id) == nil)
-        #expect(try await runtime.persistence.fetchThread(id: thread.id) == nil)
+        #expect(!result.isComplete)
+        #expect(result.degradations.contains(where: { $0.operation == "deleteThreadPermanently.activeTurn" }))
+        #expect(!streamTerminated.withLock { $0 })
+        #expect(await kit.threadManager.hasActiveTask(for: thread.id))
+        #expect(await kit.threadManager.thread(id: thread.id) != nil)
+        #expect(try await runtime.persistence.fetchThread(id: thread.id) != nil)
 
-        consumeTask.cancel()
+        await driver.cancel()
+        _ = await consumeTask.result
+        if let activeTask = await kit.threadManager.activeTaskCompletion(for: thread.id) {
+            _ = await activeTask.value
+        }
+
+        let retry = await kit.threadManager.deleteThreadPermanently(id: thread.id)
+        #expect(retry.isComplete)
+        #expect(try await runtime.persistence.fetchThread(id: thread.id) == nil)
     }
 
     @Test("deleteThreadPermanently reports partial cleanup when a store fails (PKRR-023)")

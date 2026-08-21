@@ -63,6 +63,7 @@ struct ManagedDirectTurnExecutionTests {
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
         )
         _ = await direct.events().collect()
+        #expect(await direct.outcome() == .completed)
 
         let agent = try await kit.agents.create(name: "Mixed Agent", description: "test")
         try await kit.agents.attach(agent.id, to: thread.id)
@@ -81,8 +82,11 @@ struct ManagedDirectTurnExecutionTests {
         let kit = PositronicKit(languageModel: MockLLMService())
         let thread = try await kit.threads.create(title: "Detached")
 
-        await #expect(throws: AgentError.managedThreadRequiresAttachedAgent(thread.id)) {
+        let managedError = await #expect(throws: AgentError.self) {
             _ = try await thread.startTurn(message: "must not persist")
+        }
+        if case let .managedThreadRequiresAttachedAgent(threadID)? = managedError {
+            #expect(threadID == thread.id)
         }
 
         let repository = try #require(kit.runtimeRepository)
@@ -96,18 +100,21 @@ struct ManagedDirectTurnExecutionTests {
         let agent = try await kit.agents.create(name: "Attached Agent", description: "test")
         try await kit.agents.attach(agent.id, to: thread.id)
 
-        await #expect(throws: AgentError.directTurnRequiresDetachedThread(thread.id)) {
+        let directError = await #expect(throws: AgentError.self) {
             _ = try await thread.startDirectTurn(
                 message: "must not persist",
                 context: DirectTurnContext(systemInstructions: "", contributor: .host)
             )
+        }
+        if case let .directTurnRequiresDetachedThread(threadID)? = directError {
+            #expect(threadID == thread.id)
         }
     }
 
     @Test("a distinct request cannot replace an active Turn")
     func distinctTurnIsBusy() async throws {
         let llm = MockLLMService()
-        llm.mockClient.neverFinishingStreamCallIndices = [0]
+        llm.mockClient.neverFinishingStreamCallIndices = [1]
         let kit = PositronicKit(languageModel: llm)
         let thread = try await kit.threads.create(title: "Busy")
         let agent = try await kit.agents.create(name: "Busy Agent", description: "test")
@@ -124,7 +131,7 @@ struct ManagedDirectTurnExecutionTests {
     @Test("joiners receive future terminal events and replay the durable outcome")
     func joinedTurnReceivesFutureEvents() async throws {
         let llm = MockLLMService()
-        llm.mockClient.neverFinishingStreamCallIndices = [0]
+        llm.mockClient.neverFinishingStreamCallIndices = [1]
         let kit = PositronicKit(languageModel: llm)
         let thread = try await kit.threads.create(title: "Join")
         let agent = try await kit.agents.create(name: "Join Agent", description: "test")
@@ -133,7 +140,14 @@ struct ManagedDirectTurnExecutionTests {
         let request = TurnRequest(threadID: thread.id, requestID: requestID, message: "same")
 
         let first = try await thread.startTurn(request)
+        while llm.mockClient.neverFinishingStreamStartCount < 1 {
+            await Task.yield()
+        }
         let joined = try await thread.startTurn(request)
+        #expect(joined.id == first.id)
+        let repository = try #require(kit.runtimeRepository)
+        let admitted = try #require(try await repository.fetchTurn(id: first.id))
+        #expect(admitted.outcome == nil)
         await first.cancel()
 
         let events = await joined.events().collect()
@@ -142,6 +156,7 @@ struct ManagedDirectTurnExecutionTests {
             if case .error(.generationCancelled) = event { return true }
             return false
         })
-        #expect(await joined.outcome() == .cancelled(reason: "Turn task cancelled."))
+        let outcome = await joined.outcome()
+        #expect(outcome == .cancelled(reason: "Turn task cancelled."))
     }
 }

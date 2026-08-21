@@ -50,7 +50,7 @@ private struct CapturingLogHandler: LogHandler {
 struct PublicRuntimeStoriesTests {
     @Test("Thread handle delegates managed execution to the facade")
     func managedThreadRunsAnAgentTurn() async throws {
-        let (kit, mockLLM, _, threadID, _) = try await makeAcceptanceRuntime()
+        let (kit, mockLLM, _, threadID, _) = try await makeAcceptanceRuntime(attachAgent: false)
         let agent = try await kit.agents.create(
             name: "Acceptance Agent",
             description: "Exercises managed Thread-addressed execution."
@@ -83,9 +83,12 @@ struct PublicRuntimeStoriesTests {
 
     @Test("explicit agent requests reject an unattached agent before side effects")
     func managedThreadRejectsUnattachedAgent() async throws {
-        let (kit, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime()
-        await #expect(throws: AgentError.managedThreadRequiresAttachedAgent(threadID)) {
+        let (kit, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime(attachAgent: false)
+        let managedError = await #expect(throws: AgentError.self) {
             _ = try await kit.threads.open(threadID).startTurn(message: "Should fail")
+        }
+        if case let .managedThreadRequiresAttachedAgent(actualThreadID)? = managedError {
+            #expect(actualThreadID == threadID)
         }
 
         #expect(try await mockPersistence.fetchMessages(for: threadID).isEmpty)
@@ -94,18 +97,21 @@ struct PublicRuntimeStoriesTests {
 
     @Test("managed execution rejects a different attached agent before side effects")
     func managedThreadRejectsDifferentAttachedAgent() async throws {
-        let (kit, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime()
+        let (kit, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime(attachAgent: false)
         let attachedAgent = try await kit.agents.create(
             name: "Attached Agent",
             description: "Owns the acceptance thread."
         )
         try await kit.agents.attach(attachedAgent.id, to: threadID)
 
-        await #expect(throws: AgentError.directTurnRequiresDetachedThread(threadID)) {
+        let directError = await #expect(throws: AgentError.self) {
             _ = try await kit.threads.open(threadID).startDirectTurn(
                 message: "Should fail",
                 context: DirectTurnContext(systemInstructions: "", contributor: .host)
             )
+        }
+        if case let .directTurnRequiresDetachedThread(actualThreadID)? = directError {
+            #expect(actualThreadID == threadID)
         }
 
         #expect(try await mockPersistence.fetchMessages(for: threadID).isEmpty)
@@ -114,7 +120,7 @@ struct PublicRuntimeStoriesTests {
 
     @Test("managed execution can run on an agent's private Thread")
     func managedThreadRunsOnPrivateThread() async throws {
-        let (kit, mockLLM, mockPersistence, _, _) = try await makeAcceptanceRuntime()
+        let (kit, mockLLM, mockPersistence, _, _) = try await makeAcceptanceRuntime(attachAgent: false)
         let agent = try await kit.agents.create(
             name: "Private Agent",
             description: "Exercises the agent's private thread."
@@ -326,8 +332,10 @@ struct PublicRuntimeStoriesTests {
             )
         ))
         let thread = try await chat.threads.create(title: "Context Enabled")
+        let agent = try await chat.agents.create(name: "Context Agent", description: "test")
+        try await chat.agents.attach(agent.id, to: thread.id)
 
-        let events = try await chat.threads.open(threadID).run(TurnRequest(
+        let events = try await chat.threads.open(thread.id).run(TurnRequest(
             threadID: thread.id,
             message: "Use default context manager"
         )).collect()
@@ -351,7 +359,8 @@ struct PublicRuntimeStoriesTests {
 
     private func makeAcceptanceRuntime(
         useGroupedPersistence: Bool = false,
-        useGroupedRuntime: Bool = false
+        useGroupedRuntime: Bool = false,
+        attachAgent: Bool = true
     ) async throws -> (PositronicKit, MockLLMService, MockPersistenceService, UUID, TestWorkspace) {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
@@ -414,6 +423,10 @@ struct PublicRuntimeStoriesTests {
         try await mockPersistence.saveWorkspace(workspaceRef)
         try await chat.threads.attachWorkspace(workspaceId, to: thread.id)
         try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("mock_tool"))
+        if attachAgent {
+            let agent = try await chat.agents.create(name: "Acceptance Agent", description: "test")
+            try await chat.agents.attach(agent.id, to: thread.id)
+        }
 
         return (chat, mockLLM, mockPersistence, thread.id, workspace)
     }

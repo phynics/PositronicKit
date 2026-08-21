@@ -25,8 +25,8 @@ container-runtime permission rather than composing a different container command
 ## Linux image and prerequisites
 
 The development image supplies Swift 6.3.3, Rust stable, C/C++, `pkg-config`, OpenSSL headers,
-`curl`, and `shasum` on Ubuntu 24.04. Build or refresh it with `make linux-image`; compile in it
-with `make linux-build`.
+`curl`, `shasum`, and Python 3 for the documentation catalog gates on Ubuntu 24.04. Build or
+refresh it with `make linux-image`; compile in it with `make linux-build`.
 
 The native MiniLM bridge additionally needs Rust, a C/C++ linker, `pkg-config`, OpenSSL headers,
 and network access on first bootstrap. These are image prerequisites, not host installation steps.

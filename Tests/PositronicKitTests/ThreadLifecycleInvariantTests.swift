@@ -93,6 +93,8 @@ struct ThreadLifecycleInvariantTests {
         runtime.llm.mockClient.nextResponse = "reply"
         let kit = runtime.positronicKit
         let thread = try await kit.threadManager.createThread(title: "Lifecycle Invariant")
+        let agent = try await kit.agents.create(name: "Lifecycle Agent", description: "test")
+        try await kit.agents.attach(agent.id, to: thread.id)
         let driver = kit.openThread(thread.id)
 
         let events = try await driver.send("hello").collect()

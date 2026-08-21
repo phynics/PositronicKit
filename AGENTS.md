@@ -15,6 +15,8 @@ features.
   [phynics/PositronicKit](https://github.com/phynics/PositronicKit).
 - Published claims and release deltas: current guides, [README.md](README.md), and
   [CHANGELOG.md](CHANGELOG.md); tagged release documentation is immutable.
+- Documentation or product changes: edit [docs/catalog.json](docs/catalog.json), then run
+  `make verify-documentation`; generated navigation, landing, and `llms.txt` files are outputs.
 
 When sources disagree, describe current behavior from code/tests and resolve intended v4
 architecture through an ADR or the owning issue. Do not create local ticket archives or private

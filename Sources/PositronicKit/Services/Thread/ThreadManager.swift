@@ -51,7 +51,7 @@ actor ThreadManager {
             threadStore: any ThreadPersistenceProtocol,
             messageStore: any ThreadMessageStoreProtocol,
             workspaceStore: any WorkspaceStore,
-            workspaceBindingRepository: any WorkspaceBindingRepository,
+            workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil,
             runtimeRepository: (any ThreadRuntimeRepository)? = nil,
             toolPersistence: any ToolPersistenceProtocol,
             memoryStore: any MemoryStoreProtocol = InMemoryMemoryStore()
@@ -60,6 +60,8 @@ actor ThreadManager {
             self.messageStore = messageStore
             self.workspaceStore = workspaceStore
             self.workspaceBindingRepository = workspaceBindingRepository
+                ?? (workspaceStore as? any WorkspaceBindingRepository)
+                ?? InMemoryWorkspaceBindingRepository()
             self.runtimeRepository = runtimeRepository
             self.toolPersistence = toolPersistence
             self.memoryStore = memoryStore
@@ -305,6 +307,13 @@ extension ThreadManager {
         guard var thread = threads[id] else { return }
         thread.updatedAt = Date()
         threads[id] = thread
+    }
+
+    /// Keeps the coordinator's compatibility cache aligned after Agent attachment mutations
+    /// commit through the shared Thread store.
+    func replaceCachedThreadIfPresent(_ thread: Thread) {
+        guard threads[thread.id] != nil else { return }
+        threads[thread.id] = thread
     }
 
     /// Fetches the message history for a specific thread from persistence.

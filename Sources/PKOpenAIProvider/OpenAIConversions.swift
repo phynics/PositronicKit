@@ -1,13 +1,8 @@
 import Foundation
 import struct JSONSchema.Schema
-import Logging
 import OpenAI
 import PKContracts
 import PKUtilities
-
-/// Retained for source compatibility with the previous conversion logging hook. Invalid tool
-/// result history is now rejected with `LLMMessageValidationError` instead of logged and sent.
-public let openAIConversionLogger = Logger.module(named: "openai-message-conversion")
 
 public extension LLMToolDefinition {
     func toOpenAIToolParam() -> ChatQuery.ChatCompletionToolParam {
@@ -21,7 +16,7 @@ public extension LLMToolDefinition {
 }
 
 public extension LLMMessage {
-    func toOpenAIMessageParam(logger _: Logger = openAIConversionLogger) throws -> ChatQuery.ChatCompletionMessageParam {
+    func toOpenAIMessageParam() throws -> ChatQuery.ChatCompletionMessageParam {
         switch role {
         case .system:
             return .system(.init(content: .textContent(content), name: name))

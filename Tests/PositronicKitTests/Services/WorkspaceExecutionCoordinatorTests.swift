@@ -1,5 +1,5 @@
 import Foundation
-import PositronicKit
+@testable import PositronicKit
 import XCTest
 
 private actor ExecutionProbe {

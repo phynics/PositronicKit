@@ -108,7 +108,7 @@ public actor OpenAIClient: LLMClientProtocol {
                     return .init(format: format, voice: voice)
                 }
                 let query = ChatQuery(
-                    messages: try messages.map { try $0.toOpenAIMessageParam(logger: logger) },
+                    messages: try messages.map { try $0.toOpenAIMessageParam() },
                     model: modelName,
                     modalities: responseModalities.contains(.audio) ? [.text, .audio] : nil,
                     audioOptions: mappedAudioOptions,

@@ -17,7 +17,7 @@ import PKUtilities
 // In other words: `PromptJournal` is a prompt-facing product surface, while this type is an
 // implementation detail of the runtime orchestration layer.
 
-public actor ThreadPromptHistory {
+actor ThreadPromptHistory {
     private var baseSnapshot: PromptSnapshot?
     private var pressure: AppendPressure
     private(set) var lastDiff: PromptDiff?

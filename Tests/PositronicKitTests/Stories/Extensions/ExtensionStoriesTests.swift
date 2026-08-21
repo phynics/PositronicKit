@@ -95,7 +95,7 @@ import Testing
             ), runtime: .init(
                 workspaceCreator: workspaceCreator,
                 workspaceRoot: workspace.root
-            )))
+        )))
         let threads = chat.threads
         let thread = try await threads.create(title: "Extension Acceptance")
 
@@ -112,6 +112,8 @@ import Testing
             try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("acceptance_tool"))
             try await threads.attachWorkspace(workspaceId, to: thread.id)
         }
+        let agent = try await chat.agents.create(name: "Extension Agent", description: "test")
+        try await chat.agents.attach(agent.id, to: thread.id)
 
         return (chat, mockLLM, mockPersistence, thread.id, workspace, threads)
     }

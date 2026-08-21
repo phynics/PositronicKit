@@ -26,6 +26,7 @@ jobs:
             curl \
             perl \
             libdigest-sha-perl \
+            python3 \
             git
 
       - name: Install Rust stable
@@ -63,6 +64,10 @@ jobs:
       - name: Concurrency guardrail scan
         run: |
           swiftlint lint --strict
+
+      - name: Require documentation impact declaration
+        if: github.event_name == 'pull_request'
+        run: python3 Scripts/check-pr-docs-impact.py
 
       - name: Verify agent/CI Linux contract
         run: |

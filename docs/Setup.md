@@ -1,6 +1,8 @@
-# PositronicKit Setup Guide
+# PositronicKit Next / v4 Setup Guide
 
-This guide describes how to configure and use PositronicKit in your application.
+This guide follows `main` and describes unreleased v4 APIs. The
+[stable `3.7.0` documentation](https://github.com/phynics/PositronicKit/blob/3.7.0/docs/Setup.md)
+is immutable and remains the production default.
 
 ## 1. Choosing An Entry Point
 
@@ -21,8 +23,8 @@ Pick the smallest surface that matches your need:
 `PositronicKit` is configured through its initializers. The runtime composes its internal graph from explicit services and stores, so callers do not rely on a shared dependency container.
 
 ### Required Services
-The only required service is:
-1. `llmService`: Provides access to an LLM provider.
+The only required service is a value conforming to both `LLMStreamClient` and
+`LLMUtilityClient`, passed as `languageModel`.
 
 Everything else has in-memory defaults suitable for local development and tests.
 
@@ -33,9 +35,7 @@ Use the simplified facade initializer for prototyping or test harnesses:
 ```swift
 import PositronicKit
 
-let chat = PositronicKit(
-    llmService: MyLLMServiceLive()
-)
+let kit = PositronicKit(languageModel: myLanguageModel)
 ```
 
 ### Production Configuration
@@ -46,26 +46,30 @@ When you have a real persistence layer, prefer the grouped persistence initializ
 import PositronicKit
 import PKContracts
 
-let chat = PositronicKit(
-    llmService: MyLLMServiceLive(),
-    persistence: .init(
-        messageStore: MyMessageStoreLive(),
-        threadPersistence: MyThreadStoreLive(),
-        workspacePersistence: MyWorkspaceStoreLive(),
-        memoryStore: MyMemoryStoreLive(),
-        toolPersistence: MyToolStoreLive(),
-        agentStore: MyAgentStoreLive(),
-        requestOriginStore: MyRequestOriginStoreLive()
+let kit = PositronicKit(configuration: .init(
+    provider: .init(
+        languageModel: myLanguageModel,
+        embeddingService: myEmbeddingService
     ),
-    embeddingService: MyEmbeddingServiceLive(),
+    persistence: .init(
+        runtimeRepository: myThreadRuntimeRepository,
+        workspacePersistence: myWorkspaceStore,
+        agentStore: myAgentStore,
+        requestOriginStore: myRequestOriginStore
+    ),
     runtime: .init(
-        workspaceCreator: MyWorkspaceCreatorLive(),
-        workspaceRoot: myWorkspaceRoot
+        workspaceProfile: .hostManaged(root: myWorkspaceRoot, seedNotes: .default),
+        workspaceCreator: myWorkspaceCreator,
+        customization: myRuntimeCustomization
     )
-)
+))
 ```
 
-The grouped `persistence:` + `runtime:` path is the supported production setup (the old flat per-store initializer was removed by PKFAC-002). `RuntimeConfiguration` groups workspace provisioning, tool policy, approval, diagnostics, degradation policy, and `RuntimeCustomization`; the facade is the only place those coordinators are constructed, so they cannot wrap different stores. Consumers use `chat.threads`, `chat.agents`, `chat.workspaces`, and `chat.model`; concrete managers and the turn pipeline remain internal.
+The grouped `configuration:` path is the supported production setup. A
+`ThreadRuntimeRepository` is the atomic owner for Thread history and Turn transitions;
+`RuntimeConfiguration` groups Workspace provisioning, tool policy, diagnostics, degradation, and
+`RuntimeCustomization`. Consumers use `kit.threads`, `kit.agents`, `kit.workspaces`, and
+`kit.model`; concrete coordinators and the model-round machinery remain internal.
 
 Use `RuntimeCustomization` for the four bounded integration roles. Managed identity continuity is
 provided by `AgentContextSource`; additive, namespaced prompt context comes from

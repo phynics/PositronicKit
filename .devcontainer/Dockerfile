@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
         perl \
         libdigest-sha-perl \
+        python3 \
         git \
     && rm -rf /var/lib/apt/lists/*
 

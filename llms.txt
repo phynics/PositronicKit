@@ -1,37 +1,41 @@
-# PositronicKit
+# PositronicKit documentation
 
-> A Swift toolkit for building AI agents: transport-neutral runtime orchestration (turn loop, threads, tool routing), a structured prompt composition DSL, and the shared contracts that tie them together — without imposing a specific networking or hosting model.
+> Stable 3.7.0 is the default, immutable channel. Next / v4 follows main and is unreleased.
 
-PositronicKit follows semver for tagged releases beginning with `1.0.0`. The core modules (`PositronicKit`, `PKPrompt`, `PKContracts`) and the provider adapters are verified on Apple platforms and Linux; `PKLocalEmbeddings` is verified on Apple default, Linux, and Apple MiniLM trait paths. Add it as a Swift Package dependency and import only the modules you need — see the Quick Start below before writing any code against it.
+## Stable
 
-## Getting Started
+- [Overview and quick start](https://github.com/phynics/PositronicKit/blob/3.7.0/README.md): Stable package setup, provider configuration, examples, and verification.
+- [Setup](https://github.com/phynics/PositronicKit/blob/3.7.0/docs/Setup.md): Stable provider, persistence, customization, logging, and error setup.
+- [Usage](https://github.com/phynics/PositronicKit/blob/3.7.0/docs/Usage.md): Stable runtime, Agent lifecycle, Workspace routing, and embeddings usage.
+- [Architecture](https://github.com/phynics/PositronicKit/blob/3.7.0/docs/Architecture.md): Architecture and module boundaries shipped by the stable release.
+- [Prompt composition](https://github.com/phynics/PositronicKit/blob/3.7.0/docs/PKPromptComposition.md): Stable prompt composition, rendering, compression, and journaling APIs.
+- [Sidecar directives](https://github.com/phynics/PositronicKit/blob/3.7.0/docs/SidecarDirectives.md): Stable auxiliary structured-result behavior.
+- [Changelog](https://github.com/phynics/PositronicKit/blob/3.7.0/CHANGELOG.md): Published release history through this immutable tag.
 
-- [README: Quick Start](README.md#quick-start): add the package dependency, import the modules you need, and use `kit.model`, `kit.threads`, `kit.agents`, and `kit.workspaces` as the supported capability entry points.
-- [Setup Guide](docs/Setup.md): choosing an entry point, facade configuration (minimal vs. production), default tool installation, provider registration, logging, and errors.
-- [Development Guide](docs/Development.md): contributor platform setup, Podman gates, focused tests, MiniLM assets, and bridge checks.
-- [Context Map](CONTEXT-MAP.md): v4 vocabulary ownership and relationships between runtime, prompting, and contracts.
-- [Architecture Decisions](docs/adr/): accepted v4 domain, dependency, durability, Workspace, and execution decisions.
-- [PositronicKitExamples](Sources/PositronicKitExamples): runnable examples that double as living documentation — read `main.swift`, `PositronicKitUsageExamples.swift`, and `PKPromptExamples.swift` before inventing your own composition pattern.
+## Next / v4
 
-## Core Concepts
+- [Overview and quick start](README.md): Release selection, package setup, capability values, examples, and verification.
+- [Setup](docs/Setup.md): Provider-neutral configuration, persistence, customization, logging, and errors.
+- [Usage](docs/Usage.md): Managed and direct Turns, Agent lifecycle, Workspace routing, and local embeddings.
+- [Architecture](docs/Architecture.md): v4 domain boundaries, capability values, durability, and execution authority.
+- [Prompt composition](docs/PKPromptComposition.md): Prompt IR, assembly, rendering, compression, and PromptJournal.
+- [Sidecar directives](docs/SidecarDirectives.md): Auxiliary structured results carried by the same Turn.
+- [Development](docs/Development.md): Supported platform gates, Podman workflow, and native bridge setup.
+- [Context map](CONTEXT-MAP.md): Canonical Thread, Turn, Agent, Workspace, prompt, and contract vocabulary.
+- [Architecture decisions](docs/adr/): Accepted v4 decisions and their trade-offs.
+- [Changelog](CHANGELOG.md): Published release deltas and the unreleased Next change set.
 
-- [Usage Guide](docs/Usage.md): current tagged-release usage, initialization and execution, tool outputs, and local embeddings.
-- [Architecture](docs/Architecture.md): capability values, context/state management, turn execution flow, and the v1 extension point registry. Concrete managers, task registries, and pipeline stages are facade implementation details.
-- [Runtime customization](docs/Usage.md#agent-persistence): the four bounded roles in `RuntimeCustomization`, including required/optional context contributions and post-terminal sink behavior.
-- [Prompt Composition](docs/PKPromptComposition.md): the `@PromptBuilder` DSL, assembly/rendering, cache policies, and `PromptJournal` stable-prefix journaling.
-- [Sidecar Directives](docs/SidecarDirectives.md): piggy-backed auxiliary generations (titles, tags, summaries) riding the same LLM request as the user-visible response.
+## Public products
 
-## Providers
-
-- [Setup Guide: Provider Registration](docs/Setup.md#provider-registration): register a concrete provider (`PKOpenAIProvider`, `PKOpenRouterProvider`, `PKOllamaProvider`, `PKAnthropicProvider`, `PKFoundationModelsProvider`) before constructing an `LLMService` from configuration.
-- [Usage Guide: Local Embeddings](docs/Usage.md#4-local-embeddings): `PKLocalEmbeddings`/`LocalEmbeddingService` — Natural Language by default on Apple, MiniLM on Linux, opt-in Apple MiniLM via the `MiniLMEmbeddings` trait; re-embed when moving content across backends or platforms.
-
-## Reference
-
-- [CHANGELOG](CHANGELOG.md): breaking changes to public surfaces are called out under a `Breaking` heading — check before upgrading a pinned version.
-- [Releasing](docs/Releasing.md): the release workflow, tagging steps, and downstream upgrade cadence.
-- [AGENTS.md](AGENTS.md): source-of-truth hierarchy, v4 convergence constraints, contribution workflow, and build/test/verify commands. Written for coding agents contributing *to* this package, not for agents consuming it at runtime.
-
-## Optional
-
-- [README: Verification](README.md#verification): `make verify` / `verify-products` / `verify-minilm` / Linux gates, useful if you're vendoring or patching the package rather than just consuming its public API.
+- `PKContracts` (library): [docs/Architecture.md](docs/Architecture.md)
+- `PKPrompt` (library): [docs/PKPromptComposition.md](docs/PKPromptComposition.md)
+- `PositronicKit` (library): [docs/Usage.md](docs/Usage.md)
+- `PKObservable` (library): [docs/Usage.md](docs/Usage.md)
+- `PKLocalEmbeddings` (library): [docs/Usage.md](docs/Usage.md)
+- `PKOpenAIProvider` (library): [docs/ProviderCapabilityMatrix.md](docs/ProviderCapabilityMatrix.md)
+- `PKOpenRouterProvider` (library): [docs/ProviderCapabilityMatrix.md](docs/ProviderCapabilityMatrix.md)
+- `PKOllamaProvider` (library): [docs/ProviderCapabilityMatrix.md](docs/ProviderCapabilityMatrix.md)
+- `PKAnthropicProvider` (library): [docs/ProviderCapabilityMatrix.md](docs/ProviderCapabilityMatrix.md)
+- `PKFoundationModelsProvider` (library): [docs/ProviderCapabilityMatrix.md](docs/ProviderCapabilityMatrix.md)
+- `PKTestSupport` (library): [README.md](README.md)
+- `PositronicKitExamples` (executable): [Sources/PositronicKitExamples](Sources/PositronicKitExamples)

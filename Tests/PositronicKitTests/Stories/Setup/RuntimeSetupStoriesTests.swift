@@ -29,13 +29,13 @@ import Testing
 
         let chat = PositronicKit(configuration: .init(provider: .init(languageModel: UnconfiguredLLMService()), persistence: persistence, runtime: .init(workspaceCreator: MockWorkspaceCreator(), workspaceRoot: workspace.root)))
 
-        let thread = try await chat.threadManager.createThread(title: "Unconfigured")
+        let thread = try await chat.threads.create(title: "Unconfigured")
 
         do {
-            _ = try await chat.run(TurnRequest(
-                threadID: thread.id,
-                message: "hello"
-            ))
+            _ = try await thread.startDirectTurn(
+                message: "hello",
+                context: DirectTurnContext(systemInstructions: "", contributor: .host)
+            )
             Issue.record("Expected the unconfigured run to fail synchronously")
         } catch {
             let identity = TurnEvent.ErrorIdentity.extracting(from: error)

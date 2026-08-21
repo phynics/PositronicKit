@@ -4,13 +4,14 @@ import Testing
 
 @Suite("TestRuntime")
 struct TestRuntimeTests {
-    @Test("agent manager is the facade-owned instance")
-    func agentManagerIsFacadeOwnedInstance() {
+    @Test("Agent capability shares facade state")
+    func agentCapabilitySharesFacadeState() async throws {
         let runtime = TestRuntime(
             workspaceRoot: FileManager.default.temporaryDirectory
-                .appendingPathComponent("test-runtime-agent-manager")
+                .appendingPathComponent("test-runtime-\(UUID().uuidString)")
         )
 
-        #expect(runtime.agentManager === runtime.positronicKit.agentManager)
+        let agent = try await runtime.agents.create(name: "Shared Agent", description: "fixture")
+        #expect(try await runtime.positronicKit.agents.get(agent.id)?.id == agent.id)
     }
 }

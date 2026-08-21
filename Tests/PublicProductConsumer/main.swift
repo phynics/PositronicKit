@@ -16,12 +16,14 @@ import PositronicKit
 _ = String(describing: PositronicKit.self)
 _ = String(describing: (any Prompt).self)
 _ = String(describing: Message.self)
+_ = String(describing: ThreadController.self)
 _ = String(describing: LocalEmbeddingService.self)
 _ = String(describing: PKOpenAIProvider.self)
 _ = String(describing: PKOpenRouterProvider.self)
 _ = String(describing: PKOllamaProvider.self)
 _ = String(describing: PKAnthropicProvider.self)
 _ = String(describing: PKFoundationModelsProvider.self)
+_ = String(describing: TestRuntime.self)
 
 let kit = PositronicKit()
 _ = kit.model

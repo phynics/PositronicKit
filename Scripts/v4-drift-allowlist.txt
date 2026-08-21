@@ -1,0 +1,5 @@
+# path|line regular expression
+# Release notes are immutable history. Current source and guidance receive exact-line allowances.
+CHANGELOG.md|^- \*\*v4 deprecated API removal:\*\* removed the released v3 Timeline compatibility modules and$
+docs/adr/0001-v4-hard-domain-and-persistence-cut.md|Timeline-era
+Sources/PositronicKit/CONTEXT.md|^_Avoid_:

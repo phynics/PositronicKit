@@ -12,8 +12,9 @@ struct ThreadControllerTests {
             .appendingPathComponent(UUID().uuidString))
         runtime.llm.mockClient.nextChunks = [["Hello, ", "world!"]]
         let kit = runtime.positronicKit
-        let thread = try await kit.threadManager.createThread(title: "Controller")
-        let driver = kit.openThread(thread.id)
+        let driver = try await kit.threads.create(title: "Controller")
+        let agent = try await kit.agents.create(name: "Controller Agent", description: "test")
+        try await kit.agents.attach(agent.id, to: driver.id)
         let controller = ThreadController(driver)
 
         try await controller.send("Hi")
@@ -29,8 +30,9 @@ struct ThreadControllerTests {
             .appendingPathComponent(UUID().uuidString))
         runtime.llm.mockClient.nextResponses = ["reply"]
         let kit = runtime.positronicKit
-        let thread = try await kit.threadManager.createThread(title: "Controller")
-        let driver = kit.openThread(thread.id)
+        let driver = try await kit.threads.create(title: "Controller")
+        let agent = try await kit.agents.create(name: "Controller Agent", description: "test")
+        try await kit.agents.attach(agent.id, to: driver.id)
         var controller: ThreadController? = ThreadController(driver)
         weak var releasedController: ThreadController? = nil
         releasedController = controller
@@ -49,8 +51,9 @@ struct ThreadControllerTests {
         runtime.llm.mockClient.neverFinishingStreamCallIndices = [1]
         runtime.llm.mockClient.nextResponses = ["second reply"]
         let kit = runtime.positronicKit
-        let thread = try await kit.threadManager.createThread(title: "Controller")
-        let driver = kit.openThread(thread.id)
+        let driver = try await kit.threads.create(title: "Controller")
+        let agent = try await kit.agents.create(name: "Controller Agent", description: "test")
+        try await kit.agents.attach(agent.id, to: driver.id)
         let controller = ThreadController(driver)
 
         let first = Task { try await controller.send("first") }
@@ -82,8 +85,9 @@ struct ThreadControllerTests {
         runtime.llm.mockClient.neverFinishingStreamCallIndices = [1, 2]
         runtime.llm.mockClient.nextResponses = ["replacement reply"]
         let kit = runtime.positronicKit
-        let thread = try await kit.threadManager.createThread(title: "Controller")
-        let driver = kit.openThread(thread.id)
+        let driver = try await kit.threads.create(title: "Controller")
+        let agent = try await kit.agents.create(name: "Controller Agent", description: "test")
+        try await kit.agents.attach(agent.id, to: driver.id)
         let controller = ThreadController(driver)
 
         let first = Task { try await controller.send("first") }

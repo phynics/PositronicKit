@@ -10,9 +10,6 @@ public enum AgentLifecycleState: String, Codable, Sendable, Equatable {
     case retired
 }
 
-/// Compatibility spelling for callers that model the lifecycle as a status.
-public typealias AgentStatus = AgentLifecycleState
-
 /// A live agent entity with its own workspace and private thread.
 ///
 /// `Agent` is created from an `AgentTemplate` template (which provides initial instructions),
@@ -30,12 +27,6 @@ public struct Agent: Codable, Sendable, Identifiable, Equatable {
 
     /// Durable lifecycle state used to gate managed Turn admission.
     public var lifecycle: AgentLifecycleState
-
-    /// Status-shaped alias for integrations that use status terminology.
-    public var status: AgentLifecycleState {
-        get { lifecycle }
-        set { lifecycle = newValue }
-    }
 
     /// The agent's private workspace — where Notes/system.md, Notes/persona.md, and other
     /// persistent files live. This is the agent's memory across threads.

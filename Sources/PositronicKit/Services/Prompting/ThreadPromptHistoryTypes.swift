@@ -3,15 +3,15 @@ import PKPrompt
 import PKContracts
 import PKUtilities
 
-public enum ThreadPromptHistoryError: PKError, Sendable, Equatable {
+enum ThreadPromptHistoryError: PKError, Sendable, Equatable {
     case duplicateSectionIDs([String])
 
-    public var errorDomain: String { PKErrorDomain.prompt }
-    public var errorCode: Int { 1203 }
-    public var userFriendlyMessage: String {
+    var errorDomain: String { PKErrorDomain.prompt }
+    var errorCode: Int { 1203 }
+    var userFriendlyMessage: String {
         "Prompt history contains duplicate section identifiers: \(duplicateIDs.joined(separator: ", "))."
     }
-    public var remediation: String? { "Ensure every prompt section has a unique stable identifier." }
+    var remediation: String? { "Ensure every prompt section has a unique stable identifier." }
 
     private var duplicateIDs: [String] {
         switch self {
@@ -133,7 +133,7 @@ struct PromptHistoryUpdate {
 
 /// Caps how many per-thread `ThreadPromptHistory` instances
 /// `ThreadPromptJournals` keeps resident at once.
-public struct RegistryEvictionPolicy: Sendable {
+struct RegistryEvictionPolicy: Sendable {
     /// Maximum number of threads the registry holds before it evicts the
     /// least-recently-accessed entry to make room for a new one.
     ///
@@ -143,9 +143,9 @@ public struct RegistryEvictionPolicy: Sendable {
     /// `removeHistory(for:)` on thread deletion (the common case today -- see JRN-2).
     let maxEntries: Int
 
-    public init(maxEntries: Int = 1000) {
+    init(maxEntries: Int = 1000) {
         self.maxEntries = maxEntries
     }
 
-    public static let `default` = RegistryEvictionPolicy()
+    static let `default` = RegistryEvictionPolicy()
 }

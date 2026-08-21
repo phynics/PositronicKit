@@ -293,7 +293,7 @@ let package = Package(
                 "PKTestSupport",
             ],
             path: "Tests/PKLocalEmbeddingsTests",
-            resources: [.copy("Fixtures")],
+            resources: [.copy("Fixtures/minilm-golden.json")],
             swiftSettings: approachableConcurrency
         ),
         .testTarget(

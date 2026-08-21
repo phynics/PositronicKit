@@ -53,39 +53,27 @@ struct FacadeRunValidationTests {
         #expect(await harness.agentStore.fetchCount == 1)
     }
 
-    @Test("missing agent continues with a warning when configured")
-    func missingAgentContinuesWithWarning() async throws {
+    @Test("managed authority rejects a missing attached agent even when preparation warnings are allowed")
+    func managedAuthorityRejectsMissingAttachedAgent() async throws {
         let harness = try await makeAgentHarness(policy: .continueWithWarnings)
         let agentID = UUID()
-        harness.languageModel.mockClient.nextResponse = "continued"
-
-        let stream = try await harness.kit.run(TurnRequest(
-            threadID: harness.threadID,
-            message: "continue without agent",
-        ), agentID: agentID, executionKind: .agentManaged)
-        let events = try await stream.collect()
-
-        let firstEvent = try #require(events.first)
-        guard case let .meta(.generationContext(metadata)) = firstEvent else {
-            Issue.record("Expected initial generation-context event, got \(firstEvent)")
-            return
+        var thread = try #require(try await harness.persistence.fetchThread(id: harness.threadID))
+        thread.attachedAgentID = agentID
+        try await harness.persistence.saveThread(thread)
+        await expectMissingAgent(agentID) {
+            _ = try await harness.kit.run(TurnRequest(
+                threadID: harness.threadID,
+                message: "must not run without authority",
+            ), agentID: agentID, executionKind: .agentManaged)
         }
-        let diagnostic = try #require(metadata.diagnostics.first)
-        #expect(metadata.diagnostics.count == 1)
-        #expect(diagnostic.dependency == .agent)
-        #expect(diagnostic.operation == "fetchAgent")
-        #expect(diagnostic.entityID == agentID.uuidString)
-        #expect(diagnostic.errorIdentity?.domain == PKErrorDomain.agent)
-        #expect(diagnostic.errorIdentity?.code == 5001)
 
-        #expect(await harness.agentStore.fetchCount == 1)
-        #expect(harness.languageModel.generationCaptureHistory.count == 1)
-        let messages = try await harness.persistence.fetchMessages(for: harness.threadID)
-        #expect(messages.map(\.role) == ["user", "assistant"])
+        #expect(await harness.agentStore.fetchCount == 2)
+        #expect(harness.languageModel.generationCaptureHistory.isEmpty)
+        #expect(try await harness.persistence.fetchMessages(for: harness.threadID).isEmpty)
     }
 
-    @Test("existing agent is fetched once and reused in the prompt")
-    func existingAgentIsFetchedOnceAndReused() async throws {
+    @Test("existing agent is validated for attachment and immutable admission authority")
+    func existingAgentIsValidatedForAdmission() async throws {
         let description = "unique preflight agent description"
         let agent = Agent(
             name: "Preflight Agent",
@@ -102,7 +90,7 @@ struct FacadeRunValidationTests {
         ), agentID: agent.id, executionKind: .agentManaged)
         _ = try await stream.collect()
 
-        #expect(await harness.agentStore.fetchCount == 2)
+        #expect(await harness.agentStore.fetchCount == 3)
         let prompt = try #require(harness.languageModel.lastGenerationCapture)
             .messages
             .map(\.content)
@@ -138,7 +126,7 @@ struct FacadeRunValidationTests {
         ), agentID: agent.id, executionKind: .agentManaged)
         _ = try await stream.collect()
 
-        #expect(await harness.agentStore.fetchCount == 3)
+        #expect(await harness.agentStore.fetchCount == 4)
         #expect(harness.languageModel.generationCaptureHistory.count == 1)
     }
 
