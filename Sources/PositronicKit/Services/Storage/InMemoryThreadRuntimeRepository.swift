@@ -7,7 +7,7 @@ import PKUtilities
 /// The actor gives tests and local hosts one serialization boundary with the same transition
 /// rules that a database-backed adapter must preserve. It is intentionally ephemeral; production
 /// adapters should implement the protocol against a durable transaction.
-public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, WorkspaceBindingRepository {
+public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, WorkspaceBindingRepository, PrimaryThreadPairAppending {
     private struct ToolKey: Hashable {
         let turnID: UUID
         let toolCallID: String
@@ -89,6 +89,18 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
         }
         history.append(message)
         messages[message.threadID] = history
+    }
+
+    func appendPrimaryThreadPair(assistant: ThreadMessage, tool: ThreadMessage) async throws {
+        guard assistant.threadID == tool.threadID, tool.parentID == assistant.id else {
+            throw ThreadRuntimeRepositoryError.appendOnlyViolation(messageID: tool.id)
+        }
+        var proposed = messages[assistant.threadID, default: []]
+        try validateAppend(assistant, into: &proposed)
+        try validateAppend(tool, into: &proposed)
+        // All encoding, identity, and append-only validation has completed before this single
+        // state replacement, so a tool-side failure cannot strand the assistant half.
+        messages[assistant.threadID] = proposed
     }
 
     public func fetchMessages(for threadID: UUID) async throws -> [ThreadMessage] {
@@ -574,6 +586,20 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
         }
         history.append(message)
         messages[message.threadID] = history
+    }
+
+    private func validateAppend(_ message: ThreadMessage, into history: inout [ThreadMessage]) throws {
+        let encoder = JSONEncoder()
+        if let existing = history.first(where: { $0.id == message.id }) {
+            let existingData = try encoder.encode(existing)
+            let newData = try encoder.encode(message)
+            guard existingData == newData else {
+                throw ThreadRuntimeRepositoryError.appendOnlyViolation(messageID: message.id)
+            }
+            return
+        }
+        _ = try encoder.encode(message)
+        history.append(message)
     }
 
     private func lifecycle(for outcome: TurnOutcome) -> TurnLifecycle {

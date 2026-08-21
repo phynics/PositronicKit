@@ -370,9 +370,13 @@ private extension TurnEngine {
             outputs: context.outputs,
             threadId: context.threadID,
             turnID: context.turnID,
+            requestID: context.requestId,
+            agentID: context.agentId,
+            primaryThreadID: context.agentPrivateThreadID,
             modelRoundIndex: context.modelRoundIndex,
             availableTools: context.availableTools,
             workspaceToolCatalog: context.workspaceToolCatalog,
+            primaryActivitySink: dependencies.primaryThreadActivitySink,
             continuation: continuation
         )
 

@@ -584,6 +584,7 @@ extension TurnEngine {
                 turnID: turnID,
                 requestId: requestId,
                 agentId: agentId,
+                agentPrivateThreadID: resolvedAgent?.privateThreadID,
                 agentContext: resolvedAgentContext,
                 contextContributions: resolvedContributions,
                 executionKind: executionKind,

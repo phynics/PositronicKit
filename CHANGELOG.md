@@ -39,6 +39,10 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- **Internal primary-Thread activity evaluation:** resolved primary-Workspace tool attempts can be
+  mirrored into an Agent's private Thread through a bounded, provenance-bearing, best-effort
+  experiment. This is not a supported public history contract and remains subject to the v4 RC
+  release decision.
 - **Compile-time provider factory contract:** added `LLMProviderFactory` so concrete provider
   modules share a typed `makeClient(configuration:)` API without introducing provider discovery
   or a runtime factory registry.

@@ -247,6 +247,25 @@ public final class PositronicKit: Sendable {
             ),
             threadManager: resolvedThreadManager
         )
+
+        let primaryActivitySink: (any PrimaryThreadActivityRecording)? = dependencies.runtimeRepository.flatMap { primaryRepository in
+            guard let pairStore = primaryRepository as? any PrimaryThreadPairAppending else { return nil }
+            return PrimaryThreadActivitySink(
+                agentStore: dependencies.agentStore,
+                pairStore: pairStore,
+                runtimeRepository: primaryRepository,
+                threadAuthorityCoordinator: resolvedThreadManager.threadAuthorityCoordinator,
+                loggingConfiguration: dependencies.loggingConfiguration
+            )
+        }
+        var activitySinks: [any AgentActivitySink] = []
+        if let hostActivitySink = self.customization.agentActivitySink {
+            activitySinks.append(hostActivitySink)
+        }
+        let resolvedActivitySink: (any AgentActivitySink)? = activitySinks.isEmpty
+            ? nil
+            : AgentActivityFanout(sinks: activitySinks)
+
         toolRouter = ToolRouter(
             threadManager: resolvedThreadManager,
             messageStore: self.messageStore,
@@ -269,7 +288,8 @@ public final class PositronicKit: Sendable {
                 llmService: self.languageModel,
                 toolRouter: toolRouter,
                 turnContextSource: self.customization.turnContextSource,
-                agentActivitySink: self.customization.agentActivitySink,
+                agentActivitySink: resolvedActivitySink,
+                primaryThreadActivitySink: primaryActivitySink,
                 turnOutcomeSink: self.customization.turnOutcomeSink,
                 diagnosticSnapshotConfiguration: dependencies.diagnosticSnapshotConfiguration,
                 loggingConfiguration: dependencies.loggingConfiguration,
