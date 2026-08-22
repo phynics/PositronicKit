@@ -17,7 +17,8 @@ to regenerate annotations (it skips lines that already carry one).
 
 ## Production boundaries (retained)
 
-The only production boundaries with concurrency annotations are HTTP transport stream boundaries.
+The production boundaries with concurrency annotations are HTTP transport stream boundaries and
+the cancellation-aware authority lane described below.
 
 The Linux streaming bridge (`StreamingLineCoordinator` in
 `Sources/PKUtilities/ProviderHTTPTransport.swift`, compiled only on non-Apple
@@ -60,6 +61,15 @@ doubles are not actorized solely to satisfy `Sendable`).
 subscriber state. The actor is the sole owner of subscription, publication,
 termination, and cancellation cleanup, so the continuation has an explicit
 lifecycle rather than being shared through an unmanaged reference.
+
+## Cancellation-aware permit boundaries
+
+`AgentAuthorityCoordinator` stores keyed FIFO lane state in `Synchronization.Mutex`, and its
+`PermitWaiter` stores one checked continuation inside a separate mutex-protected lifecycle state.
+Each waiter transitions exactly once from `pending` to `granted` or `cancelled`; cancellation
+removes it from the lane and resumes its suspended task synchronously. This avoids an
+unstructured cleanup task, prevents canceled waiters from being retained behind a hung operation,
+and prevents a canceled caller from running its operation after it leaves the queue.
 
 ## Guardrail
 
