@@ -62,7 +62,6 @@ if [ "$build_only" -eq 0 ] && [ "$#" -eq 0 ]; then
 fi
 
 run_gate() {
-  local model_sha
   local podman_path
   local runtime_error
   local -a run_command
@@ -90,21 +89,10 @@ run_gate() {
     return 0
   fi
 
-  model_sha="$(awk '$2 == "model.onnx" { print $1 }' "$repo_root/native/pkfastembed/model-assets.sha256")"
-  if [ -z "$model_sha" ]; then
-    printf 'run-linux-container: could not derive the pinned MiniLM checksum\n' >&2
-    return 1
-  fi
-
   run_command=(
     "$podman_path" run --rm --userns=keep-id
     --user "$(id -u):$(id -g)"
     -e HOME=/tmp
-    -e CARGO_HOME=/workspace/.build/cargo-home
-    -e PKFASTEMBED_PREFIX=/workspace/.build/pkfastembed
-    -e PKG_CONFIG_PATH=/workspace/.build/pkfastembed/lib/pkgconfig
-    -e LIBRARY_PATH=/workspace/.build/pkfastembed/lib
-    -e "PK_MINILM_MODEL_DIR=/workspace/.build/minilm-model/$model_sha"
     -v "$repo_root:/workspace:Z"
     -w /workspace
   )

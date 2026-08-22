@@ -21,7 +21,7 @@ Next channel.
 *   **Zero-Latency Auxiliary Tasks (Sidecar Directives):** Fetch parallel metadata (e.g., thread titles, sentiment classification, summaries) piggy-backed on the *same single LLM request* as the user-visible response. The user sees a standard streamed response, while directives stream or buffer in the background with zero extra round-trips.
 *   **Swift 6 Structured Concurrency & Actor Isolation:** Fully thread-safe runtime architecture leveraging Swift 6 actors and structured concurrency. Composable execution stages guarantee resource cleanup (e.g., persisting telemetry, closing resources) even on failures.
 *   **Completely Pluggable & Decoupled:** Downstream independence is a core invariant. Easily swap persistence engines, custom tool routers, and workspace resolvers. Supports Anthropic, OpenAI, Ollama, and OpenRouter out of the box with zero runtime dependencies.
-*   **First-Class Linux Support:** Built to compile and test seamlessly on both Apple platforms and Linux (via bare Swift 6 toolchain, with an optimized Rust bridge for local MiniLM embeddings).
+*   **First-Class Linux Support:** Built to compile and test seamlessly on both Apple platforms and Linux via the pinned Swift/Podman development path.
 
 ---
 
@@ -44,7 +44,6 @@ Import the modules you need:
 import PositronicKit    // runtime orchestration
 import PKPrompt         // prompt composition
 import PKContracts       // shared contracts
-import PKLocalEmbeddings // optional local embeddings facade
 import PKOpenAIProvider  // optional concrete provider
 ```
 
@@ -139,9 +138,9 @@ handles it vends to the subsystems that use them.
 Detailed documentation has been split into focused guides:
 
 - **[Setup Guide](docs/Setup.md)**: Configuration, logging, required services, and choosing your entry point.
-- **[Usage Guide](docs/Usage.md)**: Managed and direct Turns, Agents, Workspaces, and local embeddings.
+- **[Usage Guide](docs/Usage.md)**: Managed and direct Turns, Agents, and Workspaces.
 - **[Architecture](docs/Architecture.md)**: v4 domain boundaries, capability values, durability, and execution authority.
-- **[Development](docs/Development.md)**: Contributor platform setup, Linux/Podman gates, and MiniLM bridge workflows.
+- **[Development](docs/Development.md)**: Contributor platform setup and Linux/Podman gates.
 - **[Context map](CONTEXT-MAP.md)**: Canonical v4 vocabulary and ownership boundaries.
 - **[Architecture decisions](docs/adr/)**: Accepted v4 decisions and their trade-offs.
 - **[Prompt Composition](docs/PKPromptComposition.md)**: Authoring models, caching, and prompt journaling.
@@ -359,7 +358,7 @@ The harness contracts are intentionally explicit:
   raw or text chunk. Terminating those streams cancels their producer task; cancellation is checked
   around each clock sleep. The mock never holds its mutex while sleeping, yielding, encoding,
   decoding, delegating, or invoking a callback.
-- Memory, embedding, LLM, and persistence states use mutex-protected snapshots or atomic
+- Memory, LLM, and persistence states use mutex-protected snapshots or atomic
   read/modify/write operations. `BatchFailingMessageStore` increments its count and decides
   threshold admission together, and composite request-origin callbacks are snapshotted under lock
   then awaited after unlocking.
@@ -375,8 +374,6 @@ Core modules:
 - **PositronicKit** — the runtime layer: turn engine, orchestration stages, tool routing, thread and workspace management, and provider-neutral LLM orchestration.
 - **PKPrompt** — the prompt layer: a SwiftUI-style `@PromptBuilder` DSL, structured compression, cache-aware assembly, and prompt journaling for stable-prefix workflows.
 - **PKContracts** — the contract layer: API models, tool protocols, provider contracts, structured-output types, and diagnostic errors.
-- **PKLocalEmbeddings** — the platform-local embedding facade (`LocalEmbeddingService`). Apple uses Natural Language by default; Linux uses the host-provisioned MiniLM backend.
-
 Provider targets ship separately so you opt in only to the integrations you want:
 
 - **PKOpenAIProvider**, **PKOpenRouterProvider**, **PKOllamaProvider**, **PKAnthropicProvider**, **PKFoundationModelsProvider** — concrete adapters plus convenience registration APIs. `PKAnthropicProvider` speaks the Anthropic Messages API natively (event-based SSE, `input_schema` tools, top-level `system` param); structured output uses the forced synthetic-tool path since the API has no `response_format`.
@@ -400,9 +397,7 @@ On macOS, build and test with standard SwiftPM commands (`swift build`, `swift t
 make verify            # Default build, docs, linkage audit, and tests (macOS)
 make agent-verify      # Canonical full Linux gate in Podman
 make agent-test FILTER='MessageContentTests' # Focused Linux test in Podman
-make verify-linux-asan # PKFastEmbed bridge tests under Linux x86_64 AddressSanitizer (bridge-only)
 make verify-products   # Build every supported product on the current host
-make verify-minilm     # Bootstrap pinned assets/native bridge and run MiniLM tests
 make verify-documentation # Check catalog, generated navigation, links, anchors, pins, and vocabulary
 ```
 
@@ -411,7 +406,7 @@ the C/C++ toolchain, and native dependencies. If an agent sandbox blocks Podman,
 rerun the same command with escalated container-runtime permissions; do not fall back
 to host Swift.
 
-`make verify-minilm` downloads the pinned Hugging Face model assets on first use, validates their checksums, builds the Rust bridge, and stores the native prefix and model under `.build`. Override the locations with `PKFASTEMBED_PREFIX=...` and `PK_MINILM_MODEL_DIR=...`. `make verify-linux-asan` requires nightly Rust plus `rust-src` and scopes to `native/pkfastembed` only.
+Embeddings and vector retrieval are intentionally outside the current package surface and remain a future direction.
 
 ## Linux Development
 

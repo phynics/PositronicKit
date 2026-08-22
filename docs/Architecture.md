@@ -96,12 +96,12 @@ Runtime tools and request-scoped tools are separate from Workspace dispatch. The
 | `TurnOutcomeSink` | Post-terminal integration after the durable outcome is accepted |
 
 The bundled Agent context source reads bounded notes from the Agent primary Workspace. Filesystem
-or vector memory is an implementation choice, not a mandatory domain dependency. Sink failures are
+memory is an implementation choice, not a mandatory domain dependency. Sink failures are
 recorded for the host and do not rewrite the originating Turn outcome.
 
 ## Module boundaries
 
-- `PKContracts` owns runtime-neutral provider, tool, structured-output, embedding, and diagnostic
+- `PKContracts` owns runtime-neutral provider, tool, structured-output, and diagnostic
   contracts. It imports no PositronicKit project target.
 - `PKPrompt` owns prompt IR, composition, assembly, rendering, compression, and journaling.
 - `PositronicKit` owns domain state, orchestration, durability, and Workspace dispatch.
@@ -109,6 +109,9 @@ recorded for the host and do not rewrite the originating Turn outcome.
 - `PKObservable` projects runtime state outward for UI consumers.
 - `PKTestSupport` provides ordinary-import fixtures for downstream test targets.
 - `PKUtilities` supports package implementation but is not a public product.
+
+Embedding generation and vector retrieval are intentionally outside the current package surface.
+They remain a future direction and require a separately owned contract and consumer story.
 
 The package manifest, public-product consumer, DocC modules, generated navigation, and CI catalog
 check must agree on this graph.

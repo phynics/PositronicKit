@@ -29,11 +29,10 @@ if matches="$(find_matches '^(@_exported[[:space:]]+)?import[[:space:]]+(PK[A-Z]
     fi
 fi
 
-# Provider and embedding implementations are downstream of the contracts, not of
+# Provider implementations are downstream of the contracts, not of
 # the runtime. Keep this check source-based so it catches an inward import before
 # SwiftPM happens to hide it behind a transitive dependency.
 for module in \
-    PKLocalEmbeddings PKFastEmbed \
     PKOpenAIProvider PKOpenRouterProvider PKOllamaProvider \
     PKAnthropicProvider PKFoundationModelsProvider
 do
@@ -60,7 +59,6 @@ target_block() {
 }
 
 for target in \
-    PKLocalEmbeddings PKFastEmbed \
     PKOpenAIProvider PKOpenRouterProvider PKOllamaProvider \
     PKAnthropicProvider PKFoundationModelsProvider
 do

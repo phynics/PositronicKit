@@ -117,8 +117,7 @@ import PKContracts
 
 let kit = PositronicKit(configuration: .init(
     provider: .init(
-        languageModel: myLLM,
-        embeddingService: myEmbeddingService
+        languageModel: myLLM
     ),
     persistence: .init(
         messageStore: myMessageStore,
@@ -305,26 +304,3 @@ Runtime and request-scoped tools remain separate from `call_tool`; callers canno
 with that reserved name. Tool intent/result records and successful tool events retain the resolved
 Workspace ID and whether routing was explicit or implicit, including failed and persistence-failed
 events. Ambiguous matches also append a durable `ambiguousWorkspaceTool` TurnNotice for hosts.
-
-## 4. Local Embeddings
-
-`PKLocalEmbeddings` keeps the local embedding facade separate from the runtime core. The MiniLM backend is fully in-process: it has no provider or daemon fallback and accepts only host-provisioned model assets.
-
-```swift
-import PKLocalEmbeddings
-
-// Apple default: Natural Language backend.
-let appleDefault = LocalEmbeddingService()
-
-// Linux: host-provisioned MiniLM assets in an explicit model directory.
-let linux = try LocalEmbeddingService(miniLMModelDirectory: URL(fileURLWithPath: "/path/to/model"))
-
-// Apple MiniLM: opt in with the MiniLMEmbeddings trait.
-let appleMiniLM = try LocalEmbeddingService(miniLMModelDirectory: URL(fileURLWithPath: "/path/to/model"))
-```
-
-The Apple MiniLM path is built with the `MiniLMEmbeddings` trait (`swift test --traits MiniLMEmbeddings`); default Apple builds neither build nor link PKFastEmbed. Native setup is bootstrapped with `native/pkfastembed/bootstrap.sh --prefix <path>`, then discovered through `PKG_CONFIG_PATH`.
-
-The pinned assets are `config.json`, `model.onnx`, `special_tokens_map.json`, `tokenizer.json`, `tokenizer_config.json`, and `vocab.txt` from `Qdrant/all-MiniLM-L6-v2-onnx` revision `5f1b8cd78bc4fb444dd171e59b18f3a3af89a079`. Exact checksums live in `native/pkfastembed/model-assets.sha256`; the host application owns fetching, verification, the model directory, and cache lifecycle.
-
-Natural Language and MiniLM vectors are not interchangeable and must not share an index. When moving content across backends or platforms, rebuild embeddings on the destination platform.

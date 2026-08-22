@@ -10,11 +10,11 @@ relationships between them are translation boundaries, not shared ownership.
 - [PKPrompt](Sources/PKPrompt/CONTEXT.md) — prompt composition, assembly, rendering, and
   journaling.
 - [PKContracts](Sources/PKContracts/CONTEXT.md) — provider-neutral messages, model clients,
-  tools, structured output, embeddings, and diagnostics.
+  tools, structured output, and diagnostics.
 
 ## Relationships
 
-- **PKPrompt / providers / embeddings → PKContracts**: these lower-level products consume
+- **PKPrompt / providers → PKContracts**: these lower-level products consume
   runtime-neutral contracts without owning runtime entities; PKContracts points inward to no
   PositronicKit project module.
 - **PositronicKit → PKContracts + PKPrompt**: the runtime composes model contracts and prompt

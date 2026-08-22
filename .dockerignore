@@ -3,9 +3,6 @@
 build/
 DerivedData/
 
-# Native Rust build artifacts
-native/pkfastembed/target/
-
 # Git metadata
 .git/
 .gitignore

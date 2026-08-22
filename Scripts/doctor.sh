@@ -6,16 +6,13 @@
 # Swift and native dependencies are informational there; macOS verification
 # requires a complete native Swift toolchain.
 #
-# Invoked by `make doctor`, which passes its Podman path and PKFASTEMBED_PREFIX
-# so the report reflects the Makefile's own configuration. The script itself
-# does not require Swift to run.
+# Invoked by `make doctor`, which passes its Podman path so the report reflects
+# the Makefile's own configuration. The script itself does not require Swift to run.
 set -euo pipefail
 
 podman_bin="${1:-}"
-pkfastembed_prefix="${2:-}"
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-manifest="$repo_root/native/pkfastembed/model-assets.sha256"
 
 green=$'\033[32m'; yellow=$'\033[33m'; red=$'\033[31m'; dim=$'\033[2m'; reset=$'\033[0m'
 if [ ! -t 1 ]; then green=""; yellow=""; red=""; dim=""; reset=""; fi
@@ -81,62 +78,8 @@ else
   missing_required=1
 fi
 
-# Native build tools are supplied by the pinned image on Linux. Reporting the
-# host copies there is actively misleading because the Linux gate never uses them.
 if [ "$host_os" = "Linux" ]; then
-  ok "Swift, Rust, C/C++, pkg-config, OpenSSL, curl, shasum, and Python 3 supplied by the Podman image"
-else
-# --- Rust (required for PKFastEmbed / MiniLM) -------------------------------
-if command -v cargo >/dev/null 2>&1; then
-  ok "Rust: $(cargo --version 2>/dev/null || echo unknown)"
-else
-  miss "Rust toolchain (cargo) not found on PATH"
-  hint "Only needed for PKFastEmbed/MiniLM. Install via https://rustup.rs (stable)."
-fi
-
-# --- C/C++ toolchain (required to link PKFastEmbed) -------------------------
-cc_bin=""
-for c in cc gcc clang; do
-  if command -v "$c" >/dev/null 2>&1; then cc_bin="$c"; break; fi
-done
-if [ -n "$cc_bin" ]; then
-  ok "C/C++: $cc_bin -> $("$cc_bin" --version 2>/dev/null | head -n1 || echo unknown)"
-else
-  miss "C/C++ compiler (cc/gcc/clang) not found on PATH"
-  hint "Only needed for PKFastEmbed/MiniLM. Install gcc/g++ or clang."
-fi
-
-# --- pkg-config (required for CPKFastEmbed systemLibrary) -------------------
-if command -v pkg-config >/dev/null 2>&1; then
-  ok "pkg-config: $(pkg-config --version 2>/dev/null || echo unknown)"
-else
-  miss "pkg-config not found on PATH"
-  hint "Only needed for PKFastEmbed/MiniLM. Debian/Ubuntu: pkg-config ; macOS: brew install pkg-config."
-fi
-
-# --- OpenSSL dev headers (required for fastembed native-tls) ----------------
-if command -v pkg-config >/dev/null 2>&1 && pkg-config openssl >/dev/null 2>&1; then
-  ok "OpenSSL: $(pkg-config --modversion openssl 2>/dev/null || echo present)"
-else
-  miss "OpenSSL development headers not visible to pkg-config"
-  hint "Only needed for PKFastEmbed/MiniLM. Debian/Ubuntu: libssl-dev ; Fedora: openssl-devel ; macOS: ships with the system."
-fi
-
-# --- curl (required for first model-asset download) ------------------------
-if command -v curl >/dev/null 2>&1; then
-  ok "curl: $(curl --version 2>/dev/null | head -n1 | awk '{print $1, $2}' || echo unknown)"
-else
-  miss "curl not found on PATH"
-  hint "Only needed for the first MiniLM bootstrap. Install curl."
-fi
-
-# --- shasum (required for asset checksum verification) ----------------------
-if command -v shasum >/dev/null 2>&1; then
-  ok "shasum: $(shasum --version 2>/dev/null | head -n1 || echo present)"
-else
-  miss "shasum not found on PATH"
-  hint "Only needed for MiniLM. macOS ships shasum; Linux: install perl Digest::SHA (e.g. libdigest-sha-perl)."
-fi
+  ok "Swift and Python 3 supplied by the Podman image"
 fi
 
 # --- Podman (required for every Linux build/test entrypoint) ----------------
@@ -154,31 +97,9 @@ else
   if [ "$host_os" = "Linux" ]; then missing_required=1; fi
 fi
 
-# --- MiniLM model asset pin -------------------------------------------------
-if [ -f "$manifest" ]; then
-  model_sha="$(awk '$2 == "model.onnx" { print $1 }' "$manifest" 2>/dev/null || true)"
-  if [ -n "$model_sha" ]; then
-    ok "MiniLM model.onnx pin: ${model_sha:0:16}... (native/pkfastembed/model-assets.sha256)"
-  else
-    miss "model-assets.sha256 present but has no model.onnx entry"
-    hint "The pin file is malformed; expected '<sha256> model.onnx' lines."
-  fi
-else
-  miss "native/pkfastembed/model-assets.sha256 not found"
-  hint "Ships with the repo; check your checkout / git status."
-fi
-
-# --- PKFastEmbed native prefix (built by bootstrap-minilm) -----------------
-if [ -n "$pkfastembed_prefix" ] && [ -d "$pkfastembed_prefix/lib" ]; then
-  ok "PKFastEmbed native prefix present: $pkfastembed_prefix"
-else
-  miss "PKFastEmbed native prefix not built at ${pkfastembed_prefix:-<empty>}"
-  hint "Only needed for MiniLM gates. 'make verify-minilm' bootstraps it idempotently."
-fi
-
 printf "\n"
 if [ "$missing_required" -ne 0 ]; then
   printf "%sRequired prerequisites missing — fix the items above before running the selected platform gate.%s\n" "$red" "$reset"
   exit 1
 fi
-printf "%sAll required prerequisites present. Items flagged above are optional for specific gates.%s\n" "$green" "$reset"
+printf "%sAll required prerequisites present.%s\n" "$green" "$reset"

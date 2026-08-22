@@ -6,7 +6,7 @@ Modular storage architecture for PositronicKit.
 
 The persistence layer is split into focused protocols to ensure high cohesion and low coupling:
 
-- `MemoryStoreProtocol`: Vector and semantic memory storage.
+- `MemoryStoreProtocol`: Tagged memory storage.
 - `MessageStoreProtocol`: Chat history management.
 - `ThreadPersistenceProtocol`: Thread thread lifecycle.
 - `WorkspaceStore`: Virtual document workspace tracking.

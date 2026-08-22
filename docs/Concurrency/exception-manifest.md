@@ -17,21 +17,7 @@ to regenerate annotations (it skips lines that already carry one).
 
 ## Production boundaries (retained)
 
-The only `@unchecked Sendable` conformance left in `Sources/` is a single
-external-framework boundary that actor or mutex isolation cannot express, with a
-documented invariant and focused test coverage.
-
-### `MiniLMEmbedder` — `Sources/PKFastEmbed/PKFastEmbed.swift`
-
-- **External type:** the native `CPKFastEmbed` C ABI (`pkfe_model_embed[_batch]`).
-- **Why it is safe:** embedding serializes on a Rust `Mutex<TextEmbedding>` inside
-  the native handle, all wrapper fields are `let`, and the sole production owner
-  `PKMiniLMPlatformBackend` is an actor whose allocation/deallocation guarantees no
-  embedding is in flight during `deinit` (`pkfe_model_destroy`).
-- **Concurrent operations:** concurrent `embed(_:)` calls serialize natively.
-- **Teardown owner:** the owning actor.
-- **Why not actor/mutex:** the wrapper is storage-immutable; isolation would add
-  dispatch without removing the native boundary.
+The only production boundaries with concurrency annotations are HTTP transport stream boundaries.
 
 The Linux streaming bridge (`StreamingLineCoordinator` in
 `Sources/PKUtilities/ProviderHTTPTransport.swift`, compiled only on non-Apple

@@ -1,19 +1,11 @@
 .DS_Store
 /.build
 
-# Downloaded / generated MiniLM artifacts (defaults live under /.build; kept
-# explicit so the pinned model and native bridge are never committed).
-/.build/minilm-model/
-/.build/pkfastembed/
-
 /Packages/*
-/native/pkfastembed/target/
 /*.xcodeproj
 xcuserdata/
 DerivedData/
-.swiftpm/configure/
-.swiftpm/xcode/
-.swiftpm/security/
+.swiftpm/
 .claude/
 .letta/
 .vscode/

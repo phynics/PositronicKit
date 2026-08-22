@@ -25,8 +25,6 @@ RULE_REASONS = {
 }
 
 FILE_REASONS = {
-    "Sources/PKFastEmbed/PKFastEmbed.swift":
-        "-- native C ABI boundary (see docs/Concurrency/exception-manifest.md)",
     "Sources/PKUtilities/ProviderHTTPTransport.swift":
         "-- URLSession delegate serialization boundary (see docs/Concurrency/exception-manifest.md)",
     "Sources/PositronicKit/Services/LLM/LLMService.swift":

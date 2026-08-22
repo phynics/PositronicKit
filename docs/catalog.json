@@ -60,7 +60,7 @@
     {
       "title": "Usage",
       "path": "docs/Usage.md",
-      "summary": "Managed and direct Turns, Agent lifecycle, Workspace routing, and local embeddings."
+      "summary": "Managed and direct Turns, Agent lifecycle, and Workspace routing."
     },
     {
       "title": "Architecture",
@@ -80,7 +80,7 @@
     {
       "title": "Development",
       "path": "docs/Development.md",
-      "summary": "Supported platform gates, Podman workflow, and native bridge setup."
+      "summary": "Supported platform gates, Podman workflow, and dependency checks."
     },
     {
       "title": "Context map",
@@ -103,7 +103,6 @@
     {"name": "PKPrompt", "kind": "library", "module": "PKPrompt", "docs": "docs/PKPromptComposition.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "(any Prompt).self"},
     {"name": "PositronicKit", "kind": "library", "module": "PositronicKit", "docs": "docs/Usage.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "PositronicKit.self"},
     {"name": "PKObservable", "kind": "library", "module": "PKObservable", "docs": "docs/Usage.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "ThreadController.self"},
-    {"name": "PKLocalEmbeddings", "kind": "library", "module": "PKLocalEmbeddings", "docs": "docs/Usage.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "LocalEmbeddingService.self"},
     {"name": "PKOpenAIProvider", "kind": "library", "module": "PKOpenAIProvider", "docs": "docs/ProviderCapabilityMatrix.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "PKOpenAIProvider.self"},
     {"name": "PKOpenRouterProvider", "kind": "library", "module": "PKOpenRouterProvider", "docs": "docs/ProviderCapabilityMatrix.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "PKOpenRouterProvider.self"},
     {"name": "PKOllamaProvider", "kind": "library", "module": "PKOllamaProvider", "docs": "docs/ProviderCapabilityMatrix.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "PKOllamaProvider.self"},

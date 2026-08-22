@@ -7,11 +7,11 @@ Stable [4.0.0](stable/4.0.0/) is the default immutable channel. [Next / v4](next
 | --- | --- |
 | [Overview and quick start](../README.md) | Release selection, package setup, capability values, examples, and verification. |
 | [Setup](Setup.md) | Provider-neutral configuration, persistence, customization, logging, and errors. |
-| [Usage](Usage.md) | Managed and direct Turns, Agent lifecycle, Workspace routing, and local embeddings. |
+| [Usage](Usage.md) | Managed and direct Turns, Agent lifecycle, and Workspace routing. |
 | [Architecture](Architecture.md) | v4 domain boundaries, capability values, durability, and execution authority. |
 | [Prompt composition](PKPromptComposition.md) | Prompt IR, assembly, rendering, compression, and PromptJournal. |
 | [Sidecar directives](SidecarDirectives.md) | Auxiliary structured results carried by the same Turn. |
-| [Development](Development.md) | Supported platform gates, Podman workflow, and native bridge setup. |
+| [Development](Development.md) | Supported platform gates, Podman workflow, and dependency checks. |
 | [Context map](../CONTEXT-MAP.md) | Canonical Thread, Turn, Agent, Workspace, prompt, and contract vocabulary. |
 | [Architecture decisions](adr/) | Accepted v4 decisions and their trade-offs. |
 | [Changelog](../CHANGELOG.md) | Published release deltas and the unreleased Next change set. |
@@ -24,7 +24,6 @@ Stable [4.0.0](stable/4.0.0/) is the default immutable channel. [Next / v4](next
 | `PKPrompt` | library | `PublicProductConsumer` | [docs/PKPromptComposition.md](PKPromptComposition.md) |
 | `PositronicKit` | library | `PublicProductConsumer` | [docs/Usage.md](Usage.md) |
 | `PKObservable` | library | `PublicProductConsumer` | [docs/Usage.md](Usage.md) |
-| `PKLocalEmbeddings` | library | `PublicProductConsumer` | [docs/Usage.md](Usage.md) |
 | `PKOpenAIProvider` | library | `PublicProductConsumer` | [docs/ProviderCapabilityMatrix.md](ProviderCapabilityMatrix.md) |
 | `PKOpenRouterProvider` | library | `PublicProductConsumer` | [docs/ProviderCapabilityMatrix.md](ProviderCapabilityMatrix.md) |
 | `PKOllamaProvider` | library | `PublicProductConsumer` | [docs/ProviderCapabilityMatrix.md](ProviderCapabilityMatrix.md) |

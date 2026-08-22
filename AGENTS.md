@@ -33,7 +33,7 @@ a replacement archive; those boundaries remain with their owning issues.
 ## Repository map
 
 - `Sources/PositronicKit` — runtime domain and orchestration.
-- `Sources/PKContracts` — runtime-neutral provider, tool, structured-output, embedding, and
+- `Sources/PKContracts` — runtime-neutral provider, tool, structured-output, and
   diagnostic contracts.
 - `Sources/PKPrompt` — prompt IR, composition, assembly, rendering, and journaling.
 - Provider targets — concrete provider adapters and convenience APIs.
@@ -45,14 +45,12 @@ a replacement archive; those boundaries remain with their owning issues.
 
 Use the platform gate that matches the environment:
 
-- macOS: `make verify` (or `make verify-macos-minilm` for the optional Apple MiniLM path).
+- macOS: `make verify`.
 - Linux: `make agent-verify` inside the pinned Podman environment; use
   `make agent-test FILTER='…'` for focused tests.
 - Preflight: `make doctor`.
 - Product/example checks: `make verify-products`, `make verify-examples`, and
   `make verify-pktestsupport`.
-- MiniLM assets and bridge: `make verify-minilm`.
-- Native bridge sanitizer: `make verify-linux-asan`.
 
 Linux agents use the repository-owned Podman runner. Do not invoke host Swift or invent an ad hoc
 container command; see [Development.md](docs/Development.md) for the supported environment and
@@ -71,7 +69,7 @@ execution path while the migration is in progress:
 - Execution authority is captured at Turn admission and is immutable while that Turn is active.
 - Public consumers use shallow capability values and handles; managers, registries, pipeline
   topology, and model-round machinery remain implementation details.
-- PKContracts imports no PositronicKit project target. Providers and embedding implementations do
+- PKContracts imports no PositronicKit project target. Providers and external integrations do
   not import the runtime. PKUtilities is not a public grab-bag product.
 - PromptJournal observes assembled prompt state; it is not semantic Thread history.
 
