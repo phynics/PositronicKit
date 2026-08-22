@@ -18979,35 +18979,6 @@
       "declaration": "func clients(for configuration: LLMConfiguration) -> LLMClientSet"
     },
     {
-      "precise": "s:13PositronicKit18MemoryVacuumPolicyO",
-      "module": "PositronicKit",
-      "kind": "swift.enum",
-      "path": [
-        "MemoryVacuumPolicy"
-      ],
-      "declaration": "enum MemoryVacuumPolicy"
-    },
-    {
-      "precise": "s:13PositronicKit18MemoryVacuumPolicyO3runyACSd_tcACmF",
-      "module": "PositronicKit",
-      "kind": "swift.enum.case",
-      "path": [
-        "MemoryVacuumPolicy",
-        "run(threshold:)"
-      ],
-      "declaration": "case run(threshold: Double)"
-    },
-    {
-      "precise": "s:13PositronicKit18MemoryVacuumPolicyO4skipyA2CmF",
-      "module": "PositronicKit",
-      "kind": "swift.enum.case",
-      "path": [
-        "MemoryVacuumPolicy",
-        "skip"
-      ],
-      "declaration": "case skip"
-    },
-    {
       "precise": "s:13PositronicKit18SystemInstructionsV",
       "module": "PositronicKit",
       "kind": "swift.struct",
@@ -38224,20 +38195,6 @@
     {
       "module": "PositronicKit",
       "kind": "conformsTo",
-      "source": "s:13PositronicKit18MemoryVacuumPolicyO",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit18MemoryVacuumPolicyO",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
       "source": "s:13PositronicKit18SystemInstructionsV",
       "target": "s:8PKPrompt6PromptP",
       "targetFallback": "PKPrompt.Prompt"
@@ -54145,18 +54102,6 @@
       "kind": "memberOf",
       "source": "s:13PositronicKit18InMemoryAgentStoreCACycfc",
       "target": "s:13PositronicKit18InMemoryAgentStoreC"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit18MemoryVacuumPolicyO3runyACSd_tcACmF",
-      "target": "s:13PositronicKit18MemoryVacuumPolicyO"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit18MemoryVacuumPolicyO4skipyA2CmF",
-      "target": "s:13PositronicKit18MemoryVacuumPolicyO"
     },
     {
       "module": "PositronicKit",

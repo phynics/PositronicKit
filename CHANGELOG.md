@@ -10,6 +10,8 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
+- **Dead archival API removed:** removed the unused archival implementation and its archive-only
+  policy contract; thread durability remains owned by the runtime repository.
 - **Error ownership clarified:** Agent lifecycle and attachment failures remain on `AgentError`,
   execution-admission failures move to `TurnError`, missing threads use `ThreadError`, and
   `AgentContextError` now exposes the standard `PKError` identity contract.
@@ -86,7 +88,6 @@ for tagged releases beginning with `1.0.0`.
   conformance were removed in favor of an actor-owned coalesced bootstrap task.
 - **Utility failure policy is explicit:** strict `LLMUtilityGenerator` operations throw; the
   `LLMUtilityClient` compatibility surface retains best-effort log-and-default behavior.
-  `ThreadArchiver` now uses strict title generation so its first-user-message fallback works.
 - Removed `LLMService.embeddingService` (redundant ownership) and `LLMService.parseEndpoint`
   (no production caller; silently fell back to an unrelated provider endpoint).
 

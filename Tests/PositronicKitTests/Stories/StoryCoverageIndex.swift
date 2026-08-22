@@ -59,7 +59,7 @@
 ///   `PromptAssemblyTests`, `ThreadPromptHistoryTests`,
 ///   `StructuredCompressionIntegrationTests`
 /// - thread/workspace persistence behavior → `WorkspaceAttachmentTests`,
-///   `ThreadManagerTests`, `ThreadArchiverTests`
+///   `ThreadManagerTests`
 enum StoryCoverageIndex {
     // Documentation-only anchor for runtime story coverage.
 }
