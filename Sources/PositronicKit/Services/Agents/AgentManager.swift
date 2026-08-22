@@ -125,8 +125,7 @@ actor AgentManager: AgentManagerProtocol {
                 id: privateThreadID,
                 title: "[\(name)] Private",
                 // An Agent's primary workspace is owned by the Agent record, not by an
-                // ordinary Thread binding. Keep the private Thread's binding set empty.
-                attachedWorkspaceIDs: [],
+                // ordinary Thread binding.
                 attachedAgentID: agentId,
                 isPrivate: true
             )

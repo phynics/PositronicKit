@@ -23,14 +23,15 @@ import Testing
     }
 
     @Test
-    func threadWithWorkspacesCodable() throws {
-        let attachedId = UUID()
-        let thread = Thread(
-            title: "Project Alpha",
-            attachedWorkspaceIDs: [attachedId]
+    func threadCodableOmitsWorkspaceProjection() throws {
+        let thread = Thread(title: "Project Alpha")
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let data = try encoder.encode(thread)
+        let object = try #require(
+            JSONSerialization.jsonObject(with: data) as? [String: Any]
         )
 
-        try assertCodable(thread)
-        #expect(thread.attachedWorkspaceIDs.first == attachedId)
+        #expect(object["attachedWorkspaceIds"] == nil)
     }
 }

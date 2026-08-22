@@ -172,7 +172,6 @@ struct ThreadLifecycleFaultInjectionTests {
         }
 
         let afterAttachFailure = try #require(await manager.thread(id: thread.id))
-        #expect(afterAttachFailure.attachedWorkspaceIDs == original.attachedWorkspaceIDs)
         #expect(afterAttachFailure.updatedAt == original.updatedAt)
 
         await threadStore.setSaveFails(false)
@@ -188,7 +187,6 @@ struct ThreadLifecycleFaultInjectionTests {
         }
 
         let afterDetachFailure = try #require(await manager.thread(id: thread.id))
-        #expect(afterDetachFailure.attachedWorkspaceIDs == attached.attachedWorkspaceIDs)
         #expect(afterDetachFailure.updatedAt == attached.updatedAt)
     }
 
@@ -291,7 +289,8 @@ struct ThreadLifecycleFaultInjectionTests {
 
         #expect(workspaceStore.workspaces.count == 1,
                "Exactly one workspace should be saved for a healthy thread")
-        #expect(workspaceStore.workspaces.first?.id == thread.attachedWorkspaceIDs.first)
+        let workspaces = try await manager.getWorkspaces(for: thread.id)
+        #expect(workspaces.primary?.id == workspaceStore.workspaces.first?.id)
 
         let workingDir = try #require(thread.workingDirectory)
         #expect(FileManager.default.fileExists(atPath: workingDir),
@@ -353,7 +352,6 @@ struct ThreadLifecycleFaultInjectionTests {
         )
 
         let thread = try await manager.createThread()
-        let originalAttachedIds = thread.attachedWorkspaceIDs
         let missingWorkspaceId = UUID()
 
         do {
@@ -365,11 +363,9 @@ struct ThreadLifecycleFaultInjectionTests {
             Issue.record("Unexpected error: \(error)")
         }
 
-        let persisted = try #require(await persistence.fetchThread(id: thread.id))
-        #expect(persisted.attachedWorkspaceIDs == originalAttachedIds,
-               "The thread's attached workspace IDs must not change when validation fails")
-        #expect(!persisted.attachedWorkspaceIDs.contains(missingWorkspaceId),
-               "The missing workspace ID must not be persisted")
+        let workspaces = try await manager.getWorkspaces(for: thread.id)
+        #expect(!workspaces.attached.contains { $0.id == missingWorkspaceId },
+               "The missing workspace ID must not be bound")
     }
 
     @Test("attachWorkspace throws and does not mutate the thread when the workspace store fails")
@@ -388,7 +384,6 @@ struct ThreadLifecycleFaultInjectionTests {
         )
 
         let thread = try await manager.createThread()
-        let originalAttachedIds = thread.attachedWorkspaceIDs
         let workspaceId = UUID()
 
         do {
@@ -400,9 +395,8 @@ struct ThreadLifecycleFaultInjectionTests {
             Issue.record("Unexpected error: \(error)")
         }
 
-        let persisted = try #require(await persistence.fetchThread(id: thread.id))
-        #expect(persisted.attachedWorkspaceIDs == originalAttachedIds,
-               "The thread's attached workspace IDs must not change when the store fails")
+        let workspaces = try await manager.getWorkspaces(for: thread.id)
+        #expect(workspaces.attached.isEmpty)
     }
 
     @Test("attachWorkspace persists the attachment when the workspace exists")
@@ -428,9 +422,9 @@ struct ThreadLifecycleFaultInjectionTests {
 
         try await manager.attachWorkspace(attachedWS.id, to: thread.id)
 
-        let persisted = try #require(await persistence.fetchThread(id: thread.id))
-        #expect(persisted.attachedWorkspaceIDs.contains(attachedWS.id),
-               "The workspace ID should be persisted in the thread")
+        let workspaces = try await manager.getWorkspaces(for: thread.id)
+        #expect(workspaces.attached.contains { $0.id == attachedWS.id },
+               "The workspace binding should be persisted in the repository")
     }
 
     // MARK: - attachWorkspace: already-attached workspace is re-validated
@@ -468,10 +462,9 @@ struct ThreadLifecycleFaultInjectionTests {
             Issue.record("Unexpected error: \(error)")
         }
 
-        let persisted = try #require(await persistence.fetchThread(id: thread.id))
-        let attachmentCount = persisted.attachedWorkspaceIDs.filter { $0 == attachedWS.id }.count
-        #expect(attachmentCount == 1,
-               "The deleted workspace should not be re-attached or duplicated")
+        let workspaces = try await manager.getWorkspaces(for: thread.id)
+        #expect(!workspaces.attached.contains { $0.id == attachedWS.id },
+               "The deleted workspace should not be re-attached")
     }
 
     // MARK: - createThread: retry after failure succeeds (no stale state)

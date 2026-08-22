@@ -687,8 +687,9 @@ final class ToolRouterTests {
         // never had a folder attached and exercises only workspace-independent demo tools like
         // `calculator`/`current_datetime`.
         let session = try await threadManager.createThread()
-        for attachedId in session.attachedWorkspaceIDs {
-            try await threadManager.detachWorkspace(attachedId, from: session.id)
+        let initialWorkspaces = try await threadManager.getWorkspaces(for: session.id)
+        for workspaceID in ([initialWorkspaces.primary?.id] + initialWorkspaces.attached.map(\.id)).compactMap(\.self) {
+            try await threadManager.detachWorkspace(workspaceID, from: session.id)
         }
         let workspaces = try await threadManager.getWorkspaces(for: session.id)
         #expect(workspaces.primary == nil)
@@ -1129,8 +1130,9 @@ struct ToolRouterWorkspaceResolutionTests {
 
         let session = try await threadManager.createThread()
         // Detach all workspaces to simulate "no workspaces at all."
-        for attachedId in session.attachedWorkspaceIDs {
-            try await threadManager.detachWorkspace(attachedId, from: session.id)
+        let initialWorkspaces = try await threadManager.getWorkspaces(for: session.id)
+        for workspaceID in ([initialWorkspaces.primary?.id] + initialWorkspaces.attached.map(\.id)).compactMap(\.self) {
+            try await threadManager.detachWorkspace(workspaceID, from: session.id)
         }
         let workspaces = try await threadManager.getWorkspaces(for: session.id)
         #expect(workspaces.primary == nil)

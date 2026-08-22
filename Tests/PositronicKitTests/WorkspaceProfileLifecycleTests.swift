@@ -35,7 +35,8 @@ struct WorkspaceProfileLifecycleTests {
         )
         #expect(welcome.contains("Welcome"))
         #expect(project.contains("Active Objective"))
-        #expect(!thread.attachedWorkspaceIDs.isEmpty)
+        let workspaces = try await threadManager.getWorkspaces(for: thread.id)
+        #expect(workspaces.primary != nil)
     }
 
     @Test(".hostManaged does NOT remove the directory on permanent deletion (host owns retention)")
@@ -64,7 +65,6 @@ struct WorkspaceProfileLifecycleTests {
         let thread = try await threadManager.createThread()
 
         #expect(thread.workingDirectory == nil)
-        #expect(thread.attachedWorkspaceIDs.isEmpty)
     }
 
     @Test("A minimal PositronicKit facade (no workspaceRoot) has no filesystem side effects")
@@ -74,7 +74,6 @@ struct WorkspaceProfileLifecycleTests {
         let thread = try await kit.threadManager.createThread()
 
         #expect(thread.workingDirectory == nil)
-        #expect(thread.attachedWorkspaceIDs.isEmpty)
     }
 
     @Test("RuntimeConfiguration.default resolves to .noWorkspace")

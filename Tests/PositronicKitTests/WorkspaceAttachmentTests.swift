@@ -12,6 +12,7 @@ import Testing
 private struct AttachmentFixture {
     let manager: ThreadManager
     let persistence: MockPersistenceService
+    let bindingRepository: InMemoryWorkspaceBindingRepository
     let workspaceRoot: URL
 
     /// Saved workspace references — pre-seeded into persistence before tests run.
@@ -21,6 +22,7 @@ private struct AttachmentFixture {
 
     static func make() async throws -> Self {
         let persistence = MockPersistenceService()
+        let bindingRepository = InMemoryWorkspaceBindingRepository()
         let workspaceRoot = getTestWorkspaceRoot().appendingPathComponent(UUID().uuidString)
 
         let runtimeWS = WorkspaceReference(
@@ -47,11 +49,13 @@ private struct AttachmentFixture {
                     threadStore: persistence,
                     messageStore: persistence,
                     workspaceStore: persistence,
+                    workspaceBindingRepository: bindingRepository,
                     toolPersistence: persistence
                 ),
                 workspaceRoot: workspaceRoot
             ),
             persistence: persistence,
+            bindingRepository: bindingRepository,
             workspaceRoot: workspaceRoot,
             runtimeWS: runtimeWS,
             clientWS: clientWS,
@@ -67,36 +71,11 @@ private func withFixture(
     try await body(fixture)
 }
 
-// MARK: - Thread.attachedWorkspaceIds (model)
-
-@Suite("Thread.attachedWorkspaceIDs")
-struct ThreadAttachedWorkspacesTests {
-    @Test("defaults to empty array")
-    func defaultsEmpty() {
-        let thread = Thread()
-        #expect(thread.attachedWorkspaceIDs.isEmpty)
-    }
-
-    @Test("stores single UUID")
-    func singleUUID() {
-        let id = UUID()
-        let thread = Thread(attachedWorkspaceIDs: [id])
-        #expect(thread.attachedWorkspaceIDs == [id])
-    }
-
-    @Test("stores multiple UUIDs preserving order")
-    func multipleUUIDs() {
-        let ids = [UUID(), UUID(), UUID()]
-        let thread = Thread(attachedWorkspaceIDs: ids)
-        #expect(thread.attachedWorkspaceIDs == ids)
-    }
-}
-
 // MARK: - attachWorkspace
 
 @Suite("ThreadManager.attachWorkspace")
 struct AttachWorkspaceTests {
-    @Test("attaching adds to attachedWorkspaceIds")
+    @Test("attaching creates a repository binding")
     func attach() async throws {
         try await withFixture { fix in
             let thread = try await fix.manager.createThread()
@@ -149,6 +128,7 @@ struct AttachWorkspaceTests {
                     threadStore: fix.persistence,
                     messageStore: fix.persistence,
                     workspaceStore: fix.persistence,
+                    workspaceBindingRepository: fix.bindingRepository,
                     toolPersistence: fix.persistence
                 ),
                 workspaceRoot: fix.workspaceRoot
@@ -170,13 +150,13 @@ struct AttachWorkspaceTests {
     @Test("attach to a non-cached thread still resolves from persistence")
     func attachUncachedThread() async throws {
         try await withFixture { fix in
-            let thread = Thread(attachedWorkspaceIDs: [fix.runtimeWS.id])
+            let thread = Thread()
             try await fix.persistence.saveThread(thread)
 
             try await fix.manager.attachWorkspace(fix.clientWS.id, to: thread.id)
 
-            let persisted = try #require(await fix.persistence.fetchThread(id: thread.id))
-            #expect(persisted.attachedWorkspaceIDs.contains(fix.clientWS.id))
+            let bindings = try await fix.bindingRepository.bindings(for: thread.id)
+            #expect(bindings.map(\.workspaceID).contains(fix.clientWS.id))
         }
     }
 }
@@ -303,9 +283,11 @@ struct GetWorkspacesTests {
                 location: .runtimeThread
             )
             try await fix.persistence.saveWorkspace(canonicalWorkspace)
-            var persistedThread = thread
-            persistedThread.attachedWorkspaceIDs = [canonicalWorkspace.id]
-            try await fix.persistence.saveThread(persistedThread)
+            _ = try await fix.bindingRepository.claim(
+                workspaceID: canonicalWorkspace.id,
+                for: thread.id
+            )
+            try await fix.persistence.saveThread(thread)
 
             let workspaces = try await fix.manager.getWorkspaces(for: thread.id)
 

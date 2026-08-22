@@ -263,9 +263,7 @@ actor ThreadManager {
             }
             return
         }
-        // The compatibility array is hydrated only by explicit read/setup paths. It is never
-        // allowed to reclaim a released binding during the final pre-tool authority check.
-        // A missing repository row is therefore a hard denial.
+        // A missing repository row is a hard denial.
         throw WorkspaceBindingRepositoryError.bindingNotFound(
             workspaceID: workspaceID,
             threadID: threadID
@@ -362,7 +360,7 @@ extension ThreadManager {
     }
 
     func getToolSource(toolId: String, for threadID: UUID) async throws -> String? {
-        guard let thread = threads[threadID] else { return nil }
+        guard threads[threadID] != nil else { return nil }
 
         if let toolManager = toolManagers[threadID] {
             let systemTools = await toolManager.getAvailableTools()
@@ -372,9 +370,12 @@ extension ThreadManager {
         }
 
         do {
+            let workspaceIDs = try await workspaceBindingRepository
+                .bindings(for: threadID)
+                .map(\.workspaceID)
             return try await toolPersistence.fetchToolSource(
                 toolId: toolId,
-                workspaceIds: thread.attachedWorkspaceIDs,
+                workspaceIds: workspaceIDs,
                 primaryWorkspaceId: nil
             )
         } catch {

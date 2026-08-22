@@ -79,10 +79,6 @@ extension ThreadManager {
             }
             do {
                 try await self.requireExecutionContextMutable(for: threadID)
-                if !candidate.attachedWorkspaceIDs.contains(workspaceId) {
-                    // Compatibility projection only. Binding authority lives in the repository.
-                    candidate.attachedWorkspaceIDs.append(workspaceId)
-                }
                 candidate.updatedAt = Date()
                 try await self.threadStore.saveThread(candidate)
             } catch {
@@ -180,7 +176,6 @@ extension ThreadManager {
             }
             do {
                 try await self.requireExecutionContextMutable(for: threadID)
-                candidate.attachedWorkspaceIDs.removeAll { $0 == workspaceId }
                 candidate.updatedAt = Date()
                 try await self.threadStore.saveThread(candidate)
             } catch {
@@ -205,22 +200,11 @@ extension ThreadManager {
     // MARK: - Workspace Lookup
 
     func getWorkspaces(for threadID: UUID) async throws -> WorkspaceQueryResult {
-        let attachedIds: [UUID]
-
-        if let thread = threads[threadID] {
-            attachedIds = try await repositoryWorkspaceIDs(
-                for: threadID,
-                legacyIDs: thread.attachedWorkspaceIDs
-            )
-        } else {
+        if threads[threadID] == nil {
             do {
-                guard let thread = try await threadStore.fetchThread(id: threadID) else {
+                guard try await threadStore.fetchThread(id: threadID) != nil else {
                     throw ThreadError.threadNotFound
                 }
-                attachedIds = try await repositoryWorkspaceIDs(
-                    for: threadID,
-                    legacyIDs: thread.attachedWorkspaceIDs
-                )
             } catch let error as ThreadError {
                 throw error
             } catch {
@@ -230,6 +214,19 @@ extension ThreadManager {
                 """)
                 throw ThreadError.unavailable
             }
+        }
+
+        let attachedIds: [UUID]
+        do {
+            attachedIds = try await workspaceBindingRepository
+                .bindings(for: threadID)
+                .map(\.workspaceID)
+        } catch {
+            logger.error("""
+            getWorkspaces binding lookup failed — thread: \(threadID.uuidString.prefix(8)), \
+            operation: fetchWorkspaceBindings, error: \(ErrorKit.userFriendlyMessage(for: error))
+            """)
+            throw ThreadError.unavailable
         }
 
         var primary: WorkspaceReference?
@@ -269,32 +266,6 @@ extension ThreadManager {
 
     func getWorkspace(_ id: UUID) async throws -> WorkspaceReference? {
         try await workspaceStore.fetchWorkspace(id: id, includeTools: true)
-    }
-}
-
-extension ThreadManager {
-    /// Reads repository bindings and imports legacy array projections only when needed. The
-    /// mutable array remains for wire compatibility, but it is never consulted once a binding
-    /// exists in the repository.
-    func repositoryWorkspaceIDs(for threadID: UUID, legacyIDs: [UUID]) async throws -> [UUID] {
-        var bindings = try await workspaceBindingRepository.bindings(for: threadID)
-        if bindings.isEmpty, !legacyIDs.isEmpty {
-            for workspaceID in legacyIDs {
-                do {
-                    _ = try await workspaceBindingRepository.claim(
-                        workspaceID: workspaceID,
-                        for: threadID,
-                        now: Date()
-                    )
-                } catch let error as WorkspaceBindingRepositoryError {
-                    logger.warning(
-                        "Legacy Workspace binding import skipped: \(error.description)"
-                    )
-                }
-            }
-            bindings = try await workspaceBindingRepository.bindings(for: threadID)
-        }
-        return bindings.map(\.workspaceID)
     }
 }
 

@@ -23379,16 +23379,6 @@
       "declaration": "var workingDirectory: String?"
     },
     {
-      "precise": "s:13PositronicKit6ThreadV20attachedWorkspaceIDsSay10Foundation4UUIDVGvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "Thread",
-        "attachedWorkspaceIDs"
-      ],
-      "declaration": "var attachedWorkspaceIDs: [UUID]"
-    },
-    {
       "precise": "s:13PositronicKit6ThreadV2id10Foundation4UUIDVvp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -23399,14 +23389,14 @@
       "declaration": "var id: UUID"
     },
     {
-      "precise": "s:13PositronicKit6ThreadV2id5title9createdAt07updatedG010isArchived16workingDirectory20attachedWorkspaceIDs0M7AgentID0I7PrivateAC10Foundation4UUIDV_SSAM4DateVAQSbSSSgSayAOGAOSgSbtcfc",
+      "precise": "s:13PositronicKit6ThreadV2id5title9createdAt07updatedG010isArchived16workingDirectory15attachedAgentID0I7PrivateAC10Foundation4UUIDV_SSAL4DateVAPSbSSSgANSgSbtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "Thread",
-        "init(id:title:createdAt:updatedAt:isArchived:workingDirectory:attachedWorkspaceIDs:attachedAgentID:isPrivate:)"
+        "init(id:title:createdAt:updatedAt:isArchived:workingDirectory:attachedAgentID:isPrivate:)"
       ],
-      "declaration": "init(id: UUID = UUID(), title: String = \"New Thread\", createdAt: Date = Date(), updatedAt: Date = Date(), isArchived: Bool = false, workingDirectory: String? = nil, attachedWorkspaceIDs: [UUID] = [], attachedAgentID: UUID? = nil, isPrivate: Bool = false)"
+      "declaration": "init(id: UUID = UUID(), title: String = \"New Thread\", createdAt: Date = Date(), updatedAt: Date = Date(), isArchived: Bool = false, workingDirectory: String? = nil, attachedAgentID: UUID? = nil, isPrivate: Bool = false)"
     },
     {
       "precise": "s:13PositronicKit6ThreadV4fromACs7Decoder_p_tKcfc",
@@ -56486,12 +56476,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit6ThreadV20attachedWorkspaceIDsSay10Foundation4UUIDVGvp",
-      "target": "s:13PositronicKit6ThreadV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit6ThreadV2id10Foundation4UUIDVvp",
       "target": "s:13PositronicKit6ThreadV",
       "sourceOrigin": {
@@ -56502,7 +56486,7 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit6ThreadV2id5title9createdAt07updatedG010isArchived16workingDirectory20attachedWorkspaceIDs0M7AgentID0I7PrivateAC10Foundation4UUIDV_SSAM4DateVAQSbSSSgSayAOGAOSgSbtcfc",
+      "source": "s:13PositronicKit6ThreadV2id5title9createdAt07updatedG010isArchived16workingDirectory15attachedAgentID0I7PrivateAC10Foundation4UUIDV_SSAL4DateVAPSbSSSgANSgSbtcfc",
       "target": "s:13PositronicKit6ThreadV"
     },
     {

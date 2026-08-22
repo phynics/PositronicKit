@@ -10,10 +10,6 @@ public struct Thread: Identifiable, Sendable {
     public var updatedAt: Date
     public var isArchived: Bool
     public var workingDirectory: String?
-    /// Compatibility projection of ordinary Workspace bindings. Binding authority lives in
-    /// ``WorkspaceBindingRepository``; callers should use ThreadManager attachment APIs rather
-    /// than mutating this array directly.
-    public var attachedWorkspaceIDs: [UUID]
 
     /// The agent currently attached to this thread (holds the generation lock).
     /// Multiple threads can reference the same agent. Each thread can have at most one agent.
@@ -30,7 +26,6 @@ public struct Thread: Identifiable, Sendable {
         updatedAt: Date = Date(),
         isArchived: Bool = false,
         workingDirectory: String? = nil,
-        attachedWorkspaceIDs: [UUID] = [],
         attachedAgentID: UUID? = nil,
         isPrivate: Bool = false
     ) {
@@ -40,7 +35,6 @@ public struct Thread: Identifiable, Sendable {
         self.updatedAt = updatedAt
         self.isArchived = isArchived
         self.workingDirectory = workingDirectory
-        self.attachedWorkspaceIDs = attachedWorkspaceIDs
         self.attachedAgentID = attachedAgentID
         self.isPrivate = isPrivate
     }
@@ -52,7 +46,6 @@ public struct Thread: Identifiable, Sendable {
 extension Thread: Codable {
     enum CodingKeys: String, CodingKey {
         case id, title, createdAt, updatedAt, isArchived, workingDirectory
-        case attachedWorkspaceIDs = "attachedWorkspaceIds"
         case attachedAgentID = "attachedAgentId"
         case isPrivate
     }
@@ -67,15 +60,6 @@ extension Thread: Codable {
         workingDirectory = try container.decodeIfPresent(String.self, forKey: .workingDirectory)
         attachedAgentID = try container.decodeIfPresent(UUID.self, forKey: .attachedAgentID)
         isPrivate = (try? container.decode(Bool.self, forKey: .isPrivate)) ?? false
-
-        // DB stores as JSON string; JSON contexts may provide an array — handle both
-        if let jsonString = try? container.decode(String.self, forKey: .attachedWorkspaceIDs),
-           let data = jsonString.data(using: .utf8),
-           let ids = try? JSONDecoder().decode([UUID].self, from: data) {
-            attachedWorkspaceIDs = ids
-        } else {
-            attachedWorkspaceIDs = (try? container.decode([UUID].self, forKey: .attachedWorkspaceIDs)) ?? []
-        }
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -88,15 +72,5 @@ extension Thread: Codable {
         try container.encodeIfPresent(workingDirectory, forKey: .workingDirectory)
         try container.encodeIfPresent(attachedAgentID, forKey: .attachedAgentID)
         try container.encode(isPrivate, forKey: .isPrivate)
-
-        // Encode as JSON string for DB storage
-        let jsonString: String
-        if let data = try? JSONEncoder().encode(attachedWorkspaceIDs),
-           let str = String(data: data, encoding: .utf8) {
-            jsonString = str
-        } else {
-            jsonString = "[]"
-        }
-        try container.encode(jsonString, forKey: .attachedWorkspaceIDs)
     }
 }

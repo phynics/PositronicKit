@@ -87,7 +87,7 @@ final class WorkspaceBindingRepositoryTests: XCTestCase {
         let workspaceID = try XCTUnwrap(agent.primaryWorkspaceID)
         let privateThread = try await kit.threads.get(agent.privateThreadID)
 
-        XCTAssertTrue(privateThread?.attachedWorkspaceIDs.isEmpty == true)
+        XCTAssertNotNil(privateThread)
         let owner = try await bindings.threadID(for: workspaceID)
         XCTAssertNil(owner)
     }

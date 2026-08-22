@@ -33,8 +33,7 @@ extension ThreadManager {
         guard workspaceProfile.provisionsThreadWorkspace else {
             let thread = Thread(
                 id: threadID,
-                title: title,
-                attachedWorkspaceIDs: []
+                title: title
             )
             // workingDirectory stays nil: there is no workspace to point at.
 
@@ -62,8 +61,7 @@ extension ThreadManager {
 
         var thread = Thread(
             id: threadID,
-            title: title,
-            attachedWorkspaceIDs: [workspace.id]
+            title: title
         )
         thread.workingDirectory = threadWorkspaceURL.path
 
@@ -290,19 +288,17 @@ extension ThreadManager {
 
         var degradations: [StoreDegradation] = []
 
-        // Capture attached workspace IDs (and the working directory, for ephemeral cleanup)
-        // before eviction — once the cache is dropped we can no longer read them from memory,
-        // and a store failure on fetch would otherwise strand workspace rows or leak a scratch
-        // directory.
-        var attachedWorkspaceIds: [UUID] = []
+        // Capture repository-owned workspace bindings (and the working directory, for ephemeral
+        // cleanup) before eviction — once the cache is dropped we can no longer read the thread
+        // from memory, and a store failure on fetch would otherwise strand workspace rows or leak
+        // a scratch directory.
+        var workspaceIDs: [UUID] = []
         var capturedWorkingDirectory: String?
         if let cached = threads[id] {
-            attachedWorkspaceIds = cached.attachedWorkspaceIDs
             capturedWorkingDirectory = cached.workingDirectory
         } else {
             do {
                 if let persisted = try await threadStore.fetchThread(id: id) {
-                    attachedWorkspaceIds = persisted.attachedWorkspaceIDs
                     capturedWorkingDirectory = persisted.workingDirectory
                 }
             } catch {
@@ -315,10 +311,9 @@ extension ThreadManager {
         }
 
         do {
-            let repositoryBindings = try await workspaceBindingRepository.bindings(for: id)
-            if !repositoryBindings.isEmpty {
-                attachedWorkspaceIds = repositoryBindings.map(\.workspaceID)
-            }
+            workspaceIDs = try await workspaceBindingRepository
+                .bindings(for: id)
+                .map(\.workspaceID)
         } catch {
             degradations.append(StoreDegradation(
                 operation: "deleteThreadPermanently.fetchWorkspaceBindings",
@@ -367,7 +362,7 @@ extension ThreadManager {
         // the caller, while runtime workspaces can be shared; only thread-specific runtime
         // workspaces are eligible for deletion.
         var threadOwnedWorkspaceIds: [UUID] = []
-        for workspaceId in attachedWorkspaceIds {
+        for workspaceId in workspaceIDs {
             do {
                 guard let workspace = try await workspaceStore.fetchWorkspace(
                     id: workspaceId, includeTools: false
@@ -390,27 +385,6 @@ extension ThreadManager {
             }
         }
 
-        // A thread-specific runtime workspace may still be shared by another thread. Keep it
-        // when ownership cannot be established exclusively for this deletion.
-        if !threadOwnedWorkspaceIds.isEmpty {
-            do {
-                let otherThreadWorkspaceIds = Set(
-                    try await threadStore
-                        .fetchAllThreads(includeArchived: true)
-                        .filter { $0.id != id }
-                        .flatMap(\.attachedWorkspaceIDs)
-                )
-                threadOwnedWorkspaceIds.removeAll { otherThreadWorkspaceIds.contains($0) }
-            } catch {
-                degradations.append(StoreDegradation(
-                    operation: "deleteThreadPermanently.fetchWorkspaceReferences",
-                    entityID: "thread:\(id.uuidString.prefix(8))",
-                    error: error
-                ))
-                threadOwnedWorkspaceIds.removeAll()
-            }
-        }
-
         // Delete thread-owned workspace records (best-effort, per-workspace). Caller-owned and
         // shared workspaces remain persisted, and the deleted thread row removes their links.
         for workspaceId in threadOwnedWorkspaceIds {
@@ -425,7 +399,7 @@ extension ThreadManager {
             }
         }
 
-        for workspaceId in attachedWorkspaceIds {
+        for workspaceId in workspaceIDs {
             do {
                 if try await workspaceBindingRepository.threadID(for: workspaceId) == id {
                     try await workspaceBindingRepository.release(
@@ -490,12 +464,28 @@ private extension ThreadManager {
         thread: Thread,
         workspaceURL: URL
     ) async {
-        let attachedWorkspaceIDs = (try? await repositoryWorkspaceIDs(
-            for: thread.id,
-            legacyIDs: thread.attachedWorkspaceIDs
-        )) ?? thread.attachedWorkspaceIDs
+        let workspaceIDs: [UUID]
+        do {
+            workspaceIDs = try await workspaceBindingRepository
+                .bindings(for: thread.id)
+                .map(\.workspaceID)
+        } catch {
+            logger.warning("""
+            setupThreadComponents: workspace binding lookup failed — \
+            thread: \(thread.id.uuidString.prefix(8)), \
+            operation: fetchWorkspaceBindings, error: \(ErrorKit.userFriendlyMessage(for: error))
+            """)
+            threadDegradations[thread.id, default: []].append(TurnDiagnostic(
+                dependency: .workspace,
+                operation: "fetchWorkspaceBindings",
+                entityID: "thread:\(thread.id.uuidString.prefix(8))",
+                errorIdentity: TurnEvent.ErrorIdentity.extracting(from: error),
+                message: ErrorKit.userFriendlyMessage(for: error)
+            ))
+            workspaceIDs = []
+        }
         let contextWorkspace: (any WorkspaceFileProvider)?
-        if let firstId = attachedWorkspaceIDs.first {
+        if let firstId = workspaceIDs.first {
             do {
                 if let provider = try await workspaceResolver.workspace(id: firstId) {
                     contextWorkspace = provider as? any WorkspaceFileProvider
@@ -536,7 +526,7 @@ private extension ThreadManager {
         )
         toolManagers[thread.id] = toolManager
 
-        for attachedId in attachedWorkspaceIDs {
+        for attachedId in workspaceIDs {
             do {
                 if let workspace = try await workspaceResolver.workspace(id: attachedId) {
                     await toolManager.registerWorkspace(workspace)

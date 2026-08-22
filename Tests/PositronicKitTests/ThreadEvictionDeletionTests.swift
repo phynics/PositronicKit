@@ -67,7 +67,9 @@ struct ThreadEvictionDeletionTests {
         #expect(persistedMessages.contains { $0.content == "seed" },
                 "Seeded message must survive eviction")
 
-        let workspaceId = try #require(thread.attachedWorkspaceIDs.first)
+        let workspaceId = try #require(
+            (try await kit.threadManager.getWorkspaces(for: thread.id)).primary?.id
+        )
         let persistedWorkspace = try #require(
             await runtime.persistence.fetchWorkspace(id: workspaceId, includeTools: false)
         )
@@ -144,7 +146,9 @@ struct ThreadEvictionDeletionTests {
             workspaceRoot: workspace.root
         )
         let thread = try await threadManager.createThread()
-        let workspaceId = try #require(thread.attachedWorkspaceIDs.first)
+        let workspaceId = try #require(
+            (try await threadManager.getWorkspaces(for: thread.id)).primary?.id
+        )
 
         try await persistence.saveMessage(ThreadMessage(
             threadID: thread.id, role: .user, content: "hello"
@@ -186,10 +190,9 @@ struct ThreadEvictionDeletionTests {
             uri: .threadWorkspace(thread.id),
             location: .runtimeThread
         )
-        var persistedThread = thread
-        persistedThread.attachedWorkspaceIDs = [canonicalWorkspace.id]
         try await persistence.saveWorkspace(canonicalWorkspace)
-        try await persistence.saveThread(persistedThread)
+        try await persistence.saveThread(thread)
+        try await threadManager.attachWorkspace(canonicalWorkspace.id, to: thread.id)
 
         let result = await threadManager.deleteThreadPermanently(id: thread.id)
 
@@ -292,7 +295,9 @@ struct ThreadEvictionDeletionTests {
             workspaceRoot: workspace.root
         )
         let thread = try await threadManager.createThread()
-        let workspaceId = try #require(thread.attachedWorkspaceIDs.first)
+        let workspaceId = try #require(
+            (try await threadManager.getWorkspaces(for: thread.id)).primary?.id
+        )
 
         try await backing.saveMessage(ThreadMessage(
             threadID: thread.id, role: .user, content: "hello"

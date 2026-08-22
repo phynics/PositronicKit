@@ -12,6 +12,9 @@ for tagged releases beginning with `1.0.0`.
 
 - **Dead archival API removed:** removed the unused archival implementation and its archive-only
   policy contract; thread durability remains owned by the runtime repository.
+- **Workspace binding authority is repository-only:** removed the mutable Thread-level
+  compatibility projection and legacy binding import; attachment, lookup, and lifecycle paths
+  now use `WorkspaceBindingRepository` exclusively.
 - **Error ownership clarified:** Agent lifecycle and attachment failures remain on `AgentError`,
   execution-admission failures move to `TurnError`, missing threads use `ThreadError`, and
   `AgentContextError` now exposes the standard `PKError` identity contract.
