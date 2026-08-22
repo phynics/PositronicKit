@@ -13,29 +13,6 @@ let approachableConcurrency: [SwiftSetting] = [
     .enableUpcomingFeature("InferIsolatedConformances"),
 ]
 
-#if os(Linux)
-let pkFastEmbedDependency: Target.Dependency = .target(
-    name: "PKFastEmbed",
-    condition: .when(platforms: [.linux])
-)
-let cpkFastEmbedTarget: Target = .systemLibrary(
-    name: "CPKFastEmbed",
-    path: "Sources/CPKFastEmbed",
-    pkgConfig: "pkfastembed"
-)
-#else
-let pkFastEmbedDependency: Target.Dependency = .target(
-    name: "PKFastEmbed",
-    condition: .when(traits: ["MiniLMEmbeddings"])
-)
-// Apple builds use the bridge only when the MiniLM trait is enabled. Avoid
-// probing pkg-config during ordinary builds, where no native prefix is needed.
-let cpkFastEmbedTarget: Target = .systemLibrary(
-    name: "CPKFastEmbed",
-    path: "Sources/CPKFastEmbed"
-)
-#endif
-
 let package = Package(
     name: "PositronicKit",
     platforms: [
@@ -47,7 +24,6 @@ let package = Package(
         .library(name: "PKObservable", targets: ["PKObservable"]),
         .library(name: "PKPrompt", targets: ["PKPrompt"]),
         .library(name: "PKContracts", targets: ["PKContracts"]),
-        .library(name: "PKLocalEmbeddings", targets: ["PKLocalEmbeddings"]),
         .library(name: "PKOpenAIProvider", targets: ["PKOpenAIProvider"]),
         .library(name: "PKOpenRouterProvider", targets: ["PKOpenRouterProvider"]),
         .library(name: "PKOllamaProvider", targets: ["PKOllamaProvider"]),
@@ -55,13 +31,6 @@ let package = Package(
         .library(name: "PKFoundationModelsProvider", targets: ["PKFoundationModelsProvider"]),
         .library(name: "PKTestSupport", targets: ["PKTestSupport"]),
         .executable(name: "PositronicKitExamples", targets: ["PositronicKitExamples"]),
-    ],
-    traits: [
-        .trait(
-            name: "MiniLMEmbeddings",
-            description: "Build the in-process MiniLM embedding backend on Apple platforms."
-        ),
-        .default(enabledTraits: []),
     ],
     dependencies: [
         .package(url: "https://github.com/MacPaw/OpenAI.git", exact: "0.4.8"),
@@ -127,23 +96,6 @@ let package = Package(
             swiftSettings: approachableConcurrency
         ),
         .target(
-            name: "PKLocalEmbeddings",
-            dependencies: [
-                "PKContracts",
-                .product(name: "Crypto", package: "swift-crypto"),
-                pkFastEmbedDependency,
-            ],
-            path: "Sources/PKLocalEmbeddings",
-            swiftSettings: approachableConcurrency
-        ),
-        cpkFastEmbedTarget,
-        .target(
-            name: "PKFastEmbed",
-            dependencies: ["CPKFastEmbed", "PKContracts"],
-            path: "Sources/PKFastEmbed",
-            swiftSettings: approachableConcurrency
-        ),
-        .target(
             name: "PKOpenAIProvider",
             dependencies: [
                 "PKContracts",
@@ -198,7 +150,6 @@ let package = Package(
             name: "PositronicKitExamples",
             dependencies: [
                 "PositronicKit",
-                "PKLocalEmbeddings",
                 "PKOpenAIProvider",
                 "PKOpenRouterProvider",
                 "PKOllamaProvider",
@@ -225,7 +176,6 @@ let package = Package(
                 "PKObservable",
                 "PKPrompt",
                 "PKContracts",
-                "PKLocalEmbeddings",
                 "PKOpenAIProvider",
                 "PKOpenRouterProvider",
                 "PKOllamaProvider",
@@ -258,16 +208,10 @@ let package = Package(
             name: "PositronicKitTests",
             dependencies: [
                 "PositronicKit",
-                "PKLocalEmbeddings",
                 "PKOpenAIProvider",
                 "PKOpenRouterProvider",
                 "PKOllamaProvider",
                 "PKAnthropicProvider",
-                // Kept intentionally: Tests/PositronicKitTests/Stories/Examples/*.swift
-                // exercises PKPromptExamples/PositronicKitUsageExamples directly (not a
-                // trivial compile check) so the living-documentation examples stay
-                // behaviorally correct, not just compiling. Removing this dependency
-                // would drop that coverage rather than relocate it.
                 "PositronicKitExamples",
                 "PKContracts",
                 "PKUtilities",
@@ -281,27 +225,6 @@ let package = Package(
             name: "PKObservableTests",
             dependencies: ["PKObservable", "PKTestSupport"],
             path: "Tests/PKObservableTests",
-            swiftSettings: approachableConcurrency
-        ),
-        .testTarget(
-            name: "PKLocalEmbeddingsTests",
-            dependencies: [
-                "PKLocalEmbeddings",
-                "PositronicKit",
-                "PKContracts",
-                "PKUtilities",
-                "PKTestSupport",
-            ],
-            path: "Tests/PKLocalEmbeddingsTests",
-            resources: [.copy("Fixtures/minilm-golden.json")],
-            swiftSettings: approachableConcurrency
-        ),
-        .testTarget(
-            name: "PKFastEmbedTests",
-            dependencies: [
-                .target(name: "PKFastEmbed", condition: .when(traits: ["MiniLMEmbeddings"])),
-            ],
-            path: "Tests/PKFastEmbedTests",
             swiftSettings: approachableConcurrency
         ),
         .testTarget(

@@ -1,7 +1,7 @@
 # PKContracts Context
 
-PKContracts owns the runtime-neutral vocabulary shared by model providers, prompt consumers, and
-embedding implementations. It is a leaf context and does not own runtime orchestration.
+PKContracts owns the runtime-neutral vocabulary shared by model providers and prompt consumers. It
+is a leaf context and does not own runtime orchestration.
 
 ## Model interaction
 
@@ -38,10 +38,6 @@ _Avoid_: TurnOutcome
 **Structured Output**:
 A schema-constrained model result contract independent of runtime persistence or orchestration.
 _Avoid_: Codable runtime entity
-
-**Embedding**:
-A provider-neutral vector representation contract used by an embedding implementation or consumer.
-_Avoid_: mandatory Agent memory
 
 ## Diagnostics
 
