@@ -3,12 +3,11 @@ import PKContracts
 import PKUtilities
 
 public extension LLMStreamClient {
-    /// Stream a generation with full prompt building (includes notes, history, etc.)
+    /// Stream a generation with full prompt building.
     func generationStreamWithContext(_ request: LLMGenerationRequest) async throws -> LLMStreamResult {
         let promptRequest = LLMPromptRequest(
             userQuery: request.userQuery,
-            contextNotes: request.contextNotes,
-            memories: request.memories,
+            contextContributions: request.contextContributions,
             chatHistory: request.chatHistory,
             tools: request.tools,
             workspaces: request.workspaces,

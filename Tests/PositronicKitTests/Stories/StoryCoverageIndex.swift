@@ -54,7 +54,7 @@
 /// - facade one-shot parameters, structured output, timeout, and cancellation →
 ///   `FacadeOneShotTests`
 /// - runtime cancellation / event-stream reliability → `FacadeRunValidationTests`,
-///   `TurnEngineTests`, `TurnBriefingBuilderCancellationTests`
+///   `TurnEngineTests`
 /// - prompt assembly / runtime prompt history / structured compression →
 ///   `PromptAssemblyTests`, `ThreadPromptHistoryTests`,
 ///   `StructuredCompressionIntegrationTests`

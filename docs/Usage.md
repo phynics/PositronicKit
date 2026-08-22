@@ -123,7 +123,6 @@ let kit = PositronicKit(configuration: .init(
         messageStore: myMessageStore,
         threadPersistence: myThreadPersistence,
         workspacePersistence: myWorkspacePersistence,
-        memoryStore: myMemoryStore,
         toolPersistence: myToolPersistence,
         agentStore: myAgentStore,
         requestOriginStore: myRequestOriginStore
@@ -165,12 +164,6 @@ for await event in stream {
         case .sidecar(let delta):
             // Only emitted on turns passed `sidecars:` — see docs/SidecarDirectives.md.
             print("\n[\(delta.name)] \(delta.partialText)")
-        }
-
-    case .meta(let event):
-        switch event {
-        case .generationContext(let metadata):
-            print("\nContext: \(metadata.files.count) files referenced")
         }
 
     case .completion(let event):
@@ -255,7 +248,6 @@ The stream provides a rich set of events:
 - `.delta(.toolCall)` and `.delta(.toolExecution)` for tool progress.
 - `.delta(.sidecar)` and `.completion(.sidecarsCompleted)` for piggy-backed directive results on
   turns passed `sidecars:` (see [Sidecar Directives](SidecarDirectives.md)).
-- `.meta(.generationContext)` for retrieved context metadata.
 - `.completion(.generationCompleted)` for the terminal event on normal completion (one per
   completed turn; the final one closes the stream).
 - `.completion(.completedEmpty)` for a successful but empty assistant response.

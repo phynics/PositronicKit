@@ -27,22 +27,6 @@ struct DependencySafetyTests {
         #expect(try await runtime.threads.get(thread.id)?.id == thread.id)
     }
 
-    @Test("PositronicKit facade's ThreadManager shares the memoryStore passed via persistence")
-    func facadeThreadManagerSharesMemoryStore() async {
-        let mockPersistence = MockPersistenceService()
-        let chat = PositronicKit(configuration: .init(provider: .init(languageModel: MockLLMService()), persistence: .init(
-                messageStore: mockPersistence,
-                threadPersistence: mockPersistence,
-                workspacePersistence: mockPersistence,
-                memoryStore: mockPersistence,
-                toolPersistence: mockPersistence,
-                agentStore: mockPersistence,
-                requestOriginStore: mockPersistence
-            )))
-
-        #expect(await chat.threadManager.memoryStore as? MockPersistenceService === mockPersistence)
-    }
-
     @Test("AgentManager correctly resolves overridden agentWorkspaceService")
     func agentManagerDependencyInjection() async throws {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

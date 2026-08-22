@@ -148,9 +148,6 @@ struct LLMServiceTests {
 
     @Test("Test prompt building logic and structure")
     func promptBuilding() async throws {
-        let contextFiles = [
-            ContextNote(name: "Test Note", content: "Note Content", source: "note"),
-        ]
         let history = [
             Message(content: "Previous user message", role: .user),
             Message(content: "Previous assistant message", role: .assistant),
@@ -159,8 +156,6 @@ struct LLMServiceTests {
         let prompt = try await PromptAssembler.assemble(
             LLMPromptRequest(
                 userQuery: "Current question",
-                contextNotes: contextFiles,
-                memories: [],
                 chatHistory: history,
                 tools: [],
                 workspaces: [],
@@ -173,7 +168,6 @@ struct LLMServiceTests {
         let renderedPrompt = prompt.string
 
         #expect(renderedPrompt.contains("System rules"))
-        #expect(renderedPrompt.contains("Note Content"))
         #expect(renderedPrompt.contains("Previous user message"))
         #expect(renderedPrompt.contains("Previous assistant message"))
         #expect(renderedPrompt.contains("Current question"))
@@ -239,8 +233,6 @@ struct LLMServiceTests {
         let prompt = try await PromptAssembler.assemble(
             LLMPromptRequest(
                 userQuery: "Hello",
-                contextNotes: [],
-                memories: [],
                 chatHistory: [],
                 tools: [],
                 workspaces: [],

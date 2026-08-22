@@ -37,9 +37,6 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
     /// Optional ID of the parent message in the thread forest structure.
     public var parentID: UUID?
 
-    /// Memories that were provided as context for generating this message.
-    public var recalledMemories: [Memory]?
-
     /// Whether this message represents a system summary or truncation notice.
     public var isSummary: Bool
 
@@ -92,24 +89,6 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
         case cancelled
     }
 
-    /// Stages of the memory-retrieval context-gathering pipeline, reported via progress
-    /// callbacks (e.g. `MemoryRetrievalStage`) so clients can show a live status label
-    /// while context is assembled for a turn. The raw value is the human-readable label.
-    public enum ContextGatheringProgress: String, Sendable, Codable, CaseIterable {
-        /// Rewriting/expanding the raw user query for retrieval.
-        case augmenting = "Augmenting Query"
-        /// Generating tags used to filter or bias memory search.
-        case tagging = "Generating Tags"
-        /// Searching tagged memories.
-        case searching = "Searching Memories"
-        /// Ordering the retrieved memories.
-        case ranking = "Ranking Results"
-        /// Locating relevant notes/documents outside of memory search.
-        case discoveringNotes = "Discovering Notes"
-        /// Context gathering has finished.
-        case complete = "Context Ready"
-    }
-
     public init(
         id: UUID = UUID(),
         timestamp: Date = Date(),
@@ -119,7 +98,6 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
         toolCalls: [ToolCall]? = nil,
         toolCallID: String? = nil,
         parentID: UUID? = nil,
-        recalledMemories: [Memory]? = nil,
         isSummary: Bool = false,
         summaryType: SummaryType? = nil,
         status: MessageStatus? = nil
@@ -132,7 +110,6 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
         self.toolCalls = toolCalls
         self.toolCallID = toolCallID
         self.parentID = parentID
-        self.recalledMemories = recalledMemories
         self.isSummary = isSummary
         self.summaryType = summaryType
         self.status = status
@@ -148,7 +125,6 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
         toolCalls: [ToolCall]? = nil,
         toolCallID: String? = nil,
         parentID: UUID? = nil,
-        recalledMemories: [Memory]? = nil,
         isSummary: Bool = false,
         summaryType: SummaryType? = nil,
         status: MessageStatus? = nil
@@ -161,7 +137,6 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
         self.toolCalls = toolCalls
         self.toolCallID = toolCallID
         self.parentID = parentID
-        self.recalledMemories = recalledMemories
         self.isSummary = isSummary
         self.summaryType = summaryType
         self.status = status
@@ -195,7 +170,7 @@ private extension Message {
         case id, content, contentParts, role, timestamp, reasoning, toolCalls
         case toolCallID = "toolCallId"
         case parentID = "parentId"
-        case recalledMemories, isSummary, summaryType, status
+        case isSummary, summaryType, status
     }
 }
 
@@ -219,7 +194,6 @@ public extension Message {
         toolCalls = try container.decodeIfPresent([ToolCall].self, forKey: .toolCalls)
         toolCallID = try container.decodeIfPresent(String.self, forKey: .toolCallID)
         parentID = try container.decodeIfPresent(UUID.self, forKey: .parentID)
-        recalledMemories = try container.decodeIfPresent([Memory].self, forKey: .recalledMemories)
         isSummary = try container.decodeIfPresent(Bool.self, forKey: .isSummary) ?? false
         summaryType = try container.decodeIfPresent(SummaryType.self, forKey: .summaryType)
         status = try container.decodeIfPresent(MessageStatus.self, forKey: .status)
@@ -238,7 +212,6 @@ public extension Message {
         try container.encodeIfPresent(toolCalls, forKey: .toolCalls)
         try container.encodeIfPresent(toolCallID, forKey: .toolCallID)
         try container.encodeIfPresent(parentID, forKey: .parentID)
-        try container.encodeIfPresent(recalledMemories, forKey: .recalledMemories)
         try container.encode(isSummary, forKey: .isSummary)
         try container.encodeIfPresent(summaryType, forKey: .summaryType)
         try container.encodeIfPresent(status, forKey: .status)

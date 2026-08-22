@@ -49,7 +49,6 @@ import PositronicKit
                     messageStore: persistence,
                     threadPersistence: persistence,
                     workspacePersistence: persistence,
-                    memoryStore: persistence,
                     toolPersistence: persistence,
                     agentStore: persistence,
                     requestOriginStore: persistence

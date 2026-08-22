@@ -51,16 +51,14 @@ struct MockLLMServiceContractTests {
     func contextRequestAndActualModelTierAreCapturedCompletely() async throws {
         let service = MockLLMService()
         service.mockClient.nextResponse = "ok"
-        let note = ContextNote(name: "note", content: "context", source: "test")
-        let memory = Memory.fixture(title: "memory", content: "remember")
+        let contribution = try TurnContextContribution(namespace: "host", key: "context", text: "context")
         let history = Message.fixture(content: "earlier")
         let workspace = WorkspaceReference.fixture(rootPath: "/tmp/workspace")
         let parameters = GenerationParameters(topP: 0.8, seed: 99)
         let tool = AnyTool(CaptureProbeTool(), origin: .named("contract-test"))
         let request = LLMGenerationRequest(
             userQuery: "question",
-            contextNotes: [note],
-            memories: [memory],
+            contextContributions: [contribution],
             chatHistory: [history],
             tools: [tool],
             workspaces: [workspace],
@@ -77,8 +75,7 @@ struct MockLLMServiceContractTests {
 
         let captured = service.lastGenerationRequest
         #expect(captured?.userQuery == "question")
-        #expect(captured?.contextNotes.map(\.name) == ["note"])
-        #expect(captured?.memories.map(\.id) == [memory.id])
+        #expect(captured?.contextContributions.map(\.noteName) == ["host.context"])
         #expect(captured?.chatHistory.map(\.id) == [history.id])
         #expect(captured?.tools.map(\.identity) == [tool.identity])
         #expect(captured?.tools.map(\.callName) == ["capture_probe"])

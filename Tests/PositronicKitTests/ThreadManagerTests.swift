@@ -119,7 +119,7 @@ struct ThreadManagerTests {
         #expect(try await store.fetchWorkspace(id: reference.id, includeTools: false) != nil)
     }
 
-    @Test("Test Session Creation and Turn Briefing Builder Access")
+    @Test("Test Session Creation")
     func sessionCreation() async throws {
         let workspace = TestWorkspace()
         let threadManager = ThreadManager(workspaceRoot: workspace.root)
@@ -132,9 +132,6 @@ struct ThreadManagerTests {
         #expect(retrievedSession != nil, "Should be able to retrieve created session")
         #expect(retrievedSession?.id == session.id)
 
-        // Verify TurnBriefingBuilder is created and has access to workspace
-        let turnBriefingBuilder = await threadManager.getTurnBriefingBuilder(for: session.id)
-        #expect(turnBriefingBuilder != nil, "TurnBriefingBuilder should be created for session")
     }
 
     @Test("Test Stale Session Cleanup")

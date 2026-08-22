@@ -98,7 +98,6 @@ struct LLMStreamingStageReasoningTests {
             maxModelRounds: 5,
             systemInstructions: nil,
             availableTools: [],
-            contextData: ContextData(),
             remoteDepth: 0,
             currentMessages: [LLMMessage(role: .user, content: "hi")],
             modelRoundIndex: 1,

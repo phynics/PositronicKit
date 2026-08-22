@@ -137,8 +137,11 @@ enum PromptAssembler {
                 AgentContext(agent, threadTitle: thread?.title)
             })
         }
-        try sections.append(withLogging("ContextNotes", logger: logger) { ContextNotes(request.contextNotes) })
-        try sections.append(withLogging("Memories", logger: logger) { Memories(request.memories) })
+        if !request.contextContributions.isEmpty {
+            try sections.append(withLogging("TurnContextContributions", logger: logger) {
+                TurnContextContributions(request.contextContributions)
+            })
+        }
         try sections.append(withLogging("Tools", logger: logger) { Tools(request.tools) })
         try sections.append(withLogging("WorkspacesContext", logger: logger) {
             WorkspacesContext(workspaces: request.workspaces, primaryWorkspace: request.primaryWorkspace, requestOriginName: request.requestOriginName)

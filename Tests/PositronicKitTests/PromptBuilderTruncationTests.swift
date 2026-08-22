@@ -26,27 +26,6 @@ struct PromptBuilderTruncationTests {
         #expect(constrained.messages.last?.content == "Message 10 content")
     }
 
-    @Test("Context Notes Truncation")
-    func contextNotesTruncation() async throws {
-        let longNote = String(repeating: "A long note content. ", count: 50)
-        let file = ContextNote(name: "test", content: longNote, source: "test")
-        let section = ContextNotes([file])
-        let assembled = try section.assemblePrompt()
-        let resolvedSection = assembled.sections[0]
-
-        let fullRender = try await section.renderToString()
-        #expect(fullRender != nil)
-
-        let constrainedRender = await resolvedSection.renderedContent(constrainedTo: 10)?.text
-        #expect(constrainedRender != nil)
-
-        let constrainedCount = constrainedRender?.count ?? 0
-        let fullCount = fullRender?.count ?? 0
-
-        #expect(constrainedRender?.contains("[Truncated]") == true)
-        #expect(constrainedCount < fullCount)
-    }
-
     @Test("Token Budget Application")
     func tokenBudgetApplication() async {
         let system = SystemInstructions("System instructions")

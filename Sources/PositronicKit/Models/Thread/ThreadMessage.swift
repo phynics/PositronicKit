@@ -13,7 +13,6 @@ public struct ThreadMessage: Codable, Identifiable, Sendable {
         set { messageContent = MessageContent(newValue) }
     }
     public var timestamp: Date
-    public var recalledMemories: String
     public var parentID: UUID?
     public var reasoning: String?
     public var toolCalls: String
@@ -43,7 +42,6 @@ public struct ThreadMessage: Codable, Identifiable, Sendable {
         role: Message.MessageRole,
         content: String,
         timestamp: Date = Date(),
-        recalledMemories: String = "[]",
         parentID: UUID? = nil,
         reasoning: String? = nil,
         toolCalls: String = "[]",
@@ -59,7 +57,6 @@ public struct ThreadMessage: Codable, Identifiable, Sendable {
         self.role = role.rawValue
         messageContent = MessageContent(content)
         self.timestamp = timestamp
-        self.recalledMemories = recalledMemories
         self.parentID = parentID
         self.reasoning = reasoning
         self.toolCalls = toolCalls
@@ -78,7 +75,6 @@ public struct ThreadMessage: Codable, Identifiable, Sendable {
         role: Message.MessageRole,
         content: MessageContent,
         timestamp: Date = Date(),
-        recalledMemories: String = "[]",
         parentID: UUID? = nil,
         reasoning: String? = nil,
         toolCalls: String = "[]",
@@ -94,7 +90,6 @@ public struct ThreadMessage: Codable, Identifiable, Sendable {
         self.role = role.rawValue
         messageContent = content
         self.timestamp = timestamp
-        self.recalledMemories = recalledMemories
         self.parentID = parentID
         self.reasoning = reasoning
         self.toolCalls = toolCalls
@@ -113,13 +108,6 @@ public struct ThreadMessage: Codable, Identifiable, Sendable {
 
     /// Convert to UI Message model
     public func toMessage() -> Message {
-        let memories: [Memory]
-        if let data = recalledMemories.data(using: .utf8) {
-            memories = (try? JSONDecoder().decode([Memory].self, from: data)) ?? []
-        } else {
-            memories = []
-        }
-
         let calls: [ToolCall]
         if let data = toolCalls.data(using: .utf8) {
             calls = (try? JSONDecoder().decode([ToolCall].self, from: data)) ?? []
@@ -136,7 +124,6 @@ public struct ThreadMessage: Codable, Identifiable, Sendable {
             toolCalls: calls.isEmpty ? nil : calls,
             toolCallID: toolCallID,
             parentID: parentID,
-            recalledMemories: memories.isEmpty ? nil : memories,
             status: status
         )
     }
@@ -144,7 +131,7 @@ public struct ThreadMessage: Codable, Identifiable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case id
         case threadID = "threadId"
-        case role, content, contentParts, timestamp, recalledMemories
+        case role, content, contentParts, timestamp
         case parentID = "parentId"
         case reasoning, toolCalls
         case toolCallID = "toolCallId"
@@ -169,7 +156,6 @@ public struct ThreadMessage: Codable, Identifiable, Sendable {
             messageContent = MessageContent(text)
         }
         timestamp = try container.decode(Date.self, forKey: .timestamp)
-        recalledMemories = try container.decodeIfPresent(String.self, forKey: .recalledMemories) ?? "[]"
         parentID = try container.decodeIfPresent(UUID.self, forKey: .parentID)
         reasoning = try container.decodeIfPresent(String.self, forKey: .reasoning)
         toolCalls = try container.decodeIfPresent(String.self, forKey: .toolCalls) ?? "[]"
@@ -191,7 +177,6 @@ public struct ThreadMessage: Codable, Identifiable, Sendable {
             try container.encode(messageContent.parts, forKey: .contentParts)
         }
         try container.encode(timestamp, forKey: .timestamp)
-        try container.encode(recalledMemories, forKey: .recalledMemories)
         try container.encodeIfPresent(parentID, forKey: .parentID)
         try container.encodeIfPresent(reasoning, forKey: .reasoning)
         try container.encode(toolCalls, forKey: .toolCalls)

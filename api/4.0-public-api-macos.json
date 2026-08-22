@@ -4584,65 +4584,6 @@
       "declaration": "let scheme: String"
     },
     {
-      "precise": "s:11PKContracts18GenerationMetadataV",
-      "module": "PKContracts",
-      "kind": "swift.struct",
-      "path": [
-        "GenerationMetadata"
-      ],
-      "declaration": "struct GenerationMetadata"
-    },
-    {
-      "precise": "s:11PKContracts18GenerationMetadataV11diagnosticsSayAA14TurnDiagnosticVGvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "GenerationMetadata",
-        "diagnostics"
-      ],
-      "declaration": "let diagnostics: [TurnDiagnostic]"
-    },
-    {
-      "precise": "s:11PKContracts18GenerationMetadataV4fromACs7Decoder_p_tKcfc",
-      "module": "PKContracts",
-      "kind": "swift.init",
-      "path": [
-        "GenerationMetadata",
-        "init(from:)"
-      ],
-      "declaration": "init(from decoder: any Decoder) throws"
-    },
-    {
-      "precise": "s:11PKContracts18GenerationMetadataV5filesSaySSGvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "GenerationMetadata",
-        "files"
-      ],
-      "declaration": "let files: [String]"
-    },
-    {
-      "precise": "s:11PKContracts18GenerationMetadataV8memories5files11diagnosticsACSay10Foundation4UUIDVG_SaySSGSayAA14TurnDiagnosticVGtcfc",
-      "module": "PKContracts",
-      "kind": "swift.init",
-      "path": [
-        "GenerationMetadata",
-        "init(memories:files:diagnostics:)"
-      ],
-      "declaration": "init(memories: [UUID] = [], files: [String] = [], diagnostics: [TurnDiagnostic] = [])"
-    },
-    {
-      "precise": "s:11PKContracts18GenerationMetadataV8memoriesSay10Foundation4UUIDVGvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "GenerationMetadata",
-        "memories"
-      ],
-      "declaration": "let memories: [UUID]"
-    },
-    {
       "precise": "s:11PKContracts18LLMProviderFactoryP",
       "module": "PKContracts",
       "kind": "swift.protocol",
@@ -5474,60 +5415,6 @@
       "declaration": "struct TurnContextSnapshot"
     },
     {
-      "precise": "s:11PKContracts19TurnContextSnapshotV11MemoryEntryV",
-      "module": "PKContracts",
-      "kind": "swift.struct",
-      "path": [
-        "TurnContextSnapshot",
-        "MemoryEntry"
-      ],
-      "declaration": "struct MemoryEntry"
-    },
-    {
-      "precise": "s:11PKContracts19TurnContextSnapshotV11MemoryEntryV2id10Foundation4UUIDVvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "TurnContextSnapshot",
-        "MemoryEntry",
-        "id"
-      ],
-      "declaration": "let id: UUID"
-    },
-    {
-      "precise": "s:11PKContracts19TurnContextSnapshotV11MemoryEntryV2id7contentAE10Foundation4UUIDV_SStcfc",
-      "module": "PKContracts",
-      "kind": "swift.init",
-      "path": [
-        "TurnContextSnapshot",
-        "MemoryEntry",
-        "init(id:content:)"
-      ],
-      "declaration": "init(id: UUID, content: String)"
-    },
-    {
-      "precise": "s:11PKContracts19TurnContextSnapshotV11MemoryEntryV4fromAEs7Decoder_p_tKcfc",
-      "module": "PKContracts",
-      "kind": "swift.init",
-      "path": [
-        "TurnContextSnapshot",
-        "MemoryEntry",
-        "init(from:)"
-      ],
-      "declaration": "init(from decoder: any Decoder) throws"
-    },
-    {
-      "precise": "s:11PKContracts19TurnContextSnapshotV11MemoryEntryV7contentSSvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "TurnContextSnapshot",
-        "MemoryEntry",
-        "content"
-      ],
-      "declaration": "let content: String"
-    },
-    {
       "precise": "s:11PKContracts19TurnContextSnapshotV13PromptMessageV",
       "module": "PKContracts",
       "kind": "swift.struct",
@@ -5593,44 +5480,14 @@
       "declaration": "let content: String"
     },
     {
-      "precise": "s:11PKContracts19TurnContextSnapshotV13executionTimeSdvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "TurnContextSnapshot",
-        "executionTime"
-      ],
-      "declaration": "let executionTime: TimeInterval"
-    },
-    {
-      "precise": "s:11PKContracts19TurnContextSnapshotV13generatedTagsSaySSGvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "TurnContextSnapshot",
-        "generatedTags"
-      ],
-      "declaration": "let generatedTags: [String]"
-    },
-    {
-      "precise": "s:11PKContracts19TurnContextSnapshotV14augmentedQuerySSSgvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "TurnContextSnapshot",
-        "augmentedQuery"
-      ],
-      "declaration": "let augmentedQuery: String?"
-    },
-    {
-      "precise": "s:11PKContracts19TurnContextSnapshotV14promptMessages5files8memories13generatedTags14augmentedQuery13executionTimeACSayAC13PromptMessageVG_SayAC9FileEntryVGSayAC06MemoryR0VGSaySSGSSSgSdtcfc",
+      "precise": "s:11PKContracts19TurnContextSnapshotV14promptMessagesACSayAC13PromptMessageVG_tcfc",
       "module": "PKContracts",
       "kind": "swift.init",
       "path": [
         "TurnContextSnapshot",
-        "init(promptMessages:files:memories:generatedTags:augmentedQuery:executionTime:)"
+        "init(promptMessages:)"
       ],
-      "declaration": "init(promptMessages: [TurnContextSnapshot.PromptMessage] = [], files: [TurnContextSnapshot.FileEntry] = [], memories: [TurnContextSnapshot.MemoryEntry] = [], generatedTags: [String] = [], augmentedQuery: String? = nil, executionTime: TimeInterval = 0)"
+      "declaration": "init(promptMessages: [TurnContextSnapshot.PromptMessage] = [])"
     },
     {
       "precise": "s:11PKContracts19TurnContextSnapshotV14promptMessagesSayAC13PromptMessageVGvp",
@@ -5651,80 +5508,6 @@
         "init(from:)"
       ],
       "declaration": "init(from decoder: any Decoder) throws"
-    },
-    {
-      "precise": "s:11PKContracts19TurnContextSnapshotV5filesSayAC9FileEntryVGvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "TurnContextSnapshot",
-        "files"
-      ],
-      "declaration": "let files: [TurnContextSnapshot.FileEntry]"
-    },
-    {
-      "precise": "s:11PKContracts19TurnContextSnapshotV8memoriesSayAC11MemoryEntryVGvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "TurnContextSnapshot",
-        "memories"
-      ],
-      "declaration": "let memories: [TurnContextSnapshot.MemoryEntry]"
-    },
-    {
-      "precise": "s:11PKContracts19TurnContextSnapshotV9FileEntryV",
-      "module": "PKContracts",
-      "kind": "swift.struct",
-      "path": [
-        "TurnContextSnapshot",
-        "FileEntry"
-      ],
-      "declaration": "struct FileEntry"
-    },
-    {
-      "precise": "s:11PKContracts19TurnContextSnapshotV9FileEntryV4fromAEs7Decoder_p_tKcfc",
-      "module": "PKContracts",
-      "kind": "swift.init",
-      "path": [
-        "TurnContextSnapshot",
-        "FileEntry",
-        "init(from:)"
-      ],
-      "declaration": "init(from decoder: any Decoder) throws"
-    },
-    {
-      "precise": "s:11PKContracts19TurnContextSnapshotV9FileEntryV4name6sourceAESS_SStcfc",
-      "module": "PKContracts",
-      "kind": "swift.init",
-      "path": [
-        "TurnContextSnapshot",
-        "FileEntry",
-        "init(name:source:)"
-      ],
-      "declaration": "init(name: String, source: String)"
-    },
-    {
-      "precise": "s:11PKContracts19TurnContextSnapshotV9FileEntryV4nameSSvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "TurnContextSnapshot",
-        "FileEntry",
-        "name"
-      ],
-      "declaration": "let name: String"
-    },
-    {
-      "precise": "s:11PKContracts19TurnContextSnapshotV9FileEntryV6sourceSSvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "TurnContextSnapshot",
-        "FileEntry",
-        "source"
-      ],
-      "declaration": "let source: String"
     },
     {
       "precise": "s:11PKContracts19WorkspaceTrustLevelO",
@@ -8273,155 +8056,6 @@
       "declaration": "var updatedAt: Date"
     },
     {
-      "precise": "s:11PKContracts6MemoryV",
-      "module": "PKContracts",
-      "kind": "swift.struct",
-      "path": [
-        "Memory"
-      ],
-      "declaration": "struct Memory"
-    },
-    {
-      "precise": "s:11PKContracts6MemoryV12metadataDictSDyS2SGvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "Memory",
-        "metadataDict"
-      ],
-      "declaration": "var metadataDict: [String : String] { get }"
-    },
-    {
-      "precise": "s:11PKContracts6MemoryV12promptStringSSvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "Memory",
-        "promptString"
-      ],
-      "declaration": "var promptString: String { get }"
-    },
-    {
-      "precise": "s:11PKContracts6MemoryV13PKTestSupportE7fixture2id5title7content4tags9timestampAC10Foundation4UUIDV_S2SSaySSGAK4DateVtFZ",
-      "module": "PKTestSupport",
-      "kind": "swift.type.method",
-      "path": [
-        "Memory",
-        "fixture(id:title:content:tags:timestamp:)"
-      ],
-      "declaration": "static func fixture(id: UUID = UUID(), title: String = \"Test Memory\", content: String = \"Test memory content\", tags: [String] = [\"test\"], timestamp: Date = Date()) -> Memory"
-    },
-    {
-      "precise": "s:11PKContracts6MemoryV2id10Foundation4UUIDVvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "Memory",
-        "id"
-      ],
-      "declaration": "var id: UUID"
-    },
-    {
-      "precise": "s:11PKContracts6MemoryV2id5title7content9createdAt07updatedG04tags8metadataAC10Foundation4UUIDV_S2SAK4DateVAOS2Stcfc",
-      "module": "PKContracts",
-      "kind": "swift.init",
-      "path": [
-        "Memory",
-        "init(id:title:content:createdAt:updatedAt:tags:metadata:)"
-      ],
-      "declaration": "init(id: UUID, title: String, content: String, createdAt: Date, updatedAt: Date, tags: String, metadata: String)"
-    },
-    {
-      "precise": "s:11PKContracts6MemoryV2id5title7content9createdAt07updatedG04tags8metadataAC10Foundation4UUIDV_S2SAK4DateVAOSaySSGSDyS2SGtcfc",
-      "module": "PKContracts",
-      "kind": "swift.init",
-      "path": [
-        "Memory",
-        "init(id:title:content:createdAt:updatedAt:tags:metadata:)"
-      ],
-      "declaration": "init(id: UUID = UUID(), title: String, content: String, createdAt: Date = Date(), updatedAt: Date = Date(), tags: [String] = [], metadata: [String : String] = [:])"
-    },
-    {
-      "precise": "s:11PKContracts6MemoryV4fromACs7Decoder_p_tKcfc",
-      "module": "PKContracts",
-      "kind": "swift.init",
-      "path": [
-        "Memory",
-        "init(from:)"
-      ],
-      "declaration": "init(from decoder: any Decoder) throws"
-    },
-    {
-      "precise": "s:11PKContracts6MemoryV4tagsSSvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "Memory",
-        "tags"
-      ],
-      "declaration": "var tags: String"
-    },
-    {
-      "precise": "s:11PKContracts6MemoryV5titleSSvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "Memory",
-        "title"
-      ],
-      "declaration": "var title: String"
-    },
-    {
-      "precise": "s:11PKContracts6MemoryV7contentSSvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "Memory",
-        "content"
-      ],
-      "declaration": "var content: String"
-    },
-    {
-      "precise": "s:11PKContracts6MemoryV8metadataSSvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "Memory",
-        "metadata"
-      ],
-      "declaration": "var metadata: String"
-    },
-    {
-      "precise": "s:11PKContracts6MemoryV8tagArraySaySSGvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "Memory",
-        "tagArray"
-      ],
-      "declaration": "var tagArray: [String] { get }"
-    },
-    {
-      "precise": "s:11PKContracts6MemoryV9createdAt10Foundation4DateVvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "Memory",
-        "createdAt"
-      ],
-      "declaration": "var createdAt: Date"
-    },
-    {
-      "precise": "s:11PKContracts6MemoryV9updatedAt10Foundation4DateVvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "Memory",
-        "updatedAt"
-      ],
-      "declaration": "var updatedAt: Date"
-    },
-    {
       "precise": "s:11PKContracts7AnyToolV",
       "module": "PKContracts",
       "kind": "swift.struct",
@@ -8844,103 +8478,6 @@
       "declaration": "var messageContent: MessageContent"
     },
     {
-      "precise": "s:11PKContracts7MessageV16recalledMemoriesSayAA6MemoryVGSgvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "Message",
-        "recalledMemories"
-      ],
-      "declaration": "var recalledMemories: [Memory]?"
-    },
-    {
-      "precise": "s:11PKContracts7MessageV24ContextGatheringProgressO",
-      "module": "PKContracts",
-      "kind": "swift.enum",
-      "path": [
-        "Message",
-        "ContextGatheringProgress"
-      ],
-      "declaration": "enum ContextGatheringProgress"
-    },
-    {
-      "precise": "s:11PKContracts7MessageV24ContextGatheringProgressO10augmentingyA2EmF",
-      "module": "PKContracts",
-      "kind": "swift.enum.case",
-      "path": [
-        "Message",
-        "ContextGatheringProgress",
-        "augmenting"
-      ],
-      "declaration": "case augmenting"
-    },
-    {
-      "precise": "s:11PKContracts7MessageV24ContextGatheringProgressO16discoveringNotesyA2EmF",
-      "module": "PKContracts",
-      "kind": "swift.enum.case",
-      "path": [
-        "Message",
-        "ContextGatheringProgress",
-        "discoveringNotes"
-      ],
-      "declaration": "case discoveringNotes"
-    },
-    {
-      "precise": "s:11PKContracts7MessageV24ContextGatheringProgressO7rankingyA2EmF",
-      "module": "PKContracts",
-      "kind": "swift.enum.case",
-      "path": [
-        "Message",
-        "ContextGatheringProgress",
-        "ranking"
-      ],
-      "declaration": "case ranking"
-    },
-    {
-      "precise": "s:11PKContracts7MessageV24ContextGatheringProgressO7taggingyA2EmF",
-      "module": "PKContracts",
-      "kind": "swift.enum.case",
-      "path": [
-        "Message",
-        "ContextGatheringProgress",
-        "tagging"
-      ],
-      "declaration": "case tagging"
-    },
-    {
-      "precise": "s:11PKContracts7MessageV24ContextGatheringProgressO8completeyA2EmF",
-      "module": "PKContracts",
-      "kind": "swift.enum.case",
-      "path": [
-        "Message",
-        "ContextGatheringProgress",
-        "complete"
-      ],
-      "declaration": "case complete"
-    },
-    {
-      "precise": "s:11PKContracts7MessageV24ContextGatheringProgressO8rawValueAESgSS_tcfc",
-      "module": "PKContracts",
-      "kind": "swift.init",
-      "path": [
-        "Message",
-        "ContextGatheringProgress",
-        "init(rawValue:)"
-      ],
-      "declaration": "init?(rawValue: String)"
-    },
-    {
-      "precise": "s:11PKContracts7MessageV24ContextGatheringProgressO9searchingyA2EmF",
-      "module": "PKContracts",
-      "kind": "swift.enum.case",
-      "path": [
-        "Message",
-        "ContextGatheringProgress",
-        "searching"
-      ],
-      "declaration": "case searching"
-    },
-    {
       "precise": "s:11PKContracts7MessageV2id10Foundation4UUIDVvp",
       "module": "PKContracts",
       "kind": "swift.property",
@@ -8951,24 +8488,24 @@
       "declaration": "let id: UUID"
     },
     {
-      "precise": "s:11PKContracts7MessageV2id9timestamp7content4role9reasoning9toolCalls0H6CallID06parentK016recalledMemories9isSummary11summaryType6statusAC10Foundation4UUIDV_AP4DateVAA0B7ContentVAC0B4RoleOSSSgSayAA04ToolJ0VGSgAyRSgSayAA6MemoryVGSgSbAC0pR0OSgAC0B6StatusOSgtcfc",
+      "precise": "s:11PKContracts7MessageV2id9timestamp7content4role9reasoning9toolCalls0H6CallID06parentK09isSummary11summaryType6statusAC10Foundation4UUIDV_AO4DateVAA0B7ContentVAC0B4RoleOSSSgSayAA04ToolJ0VGSgAxQSgSbAC0nP0OSgAC0B6StatusOSgtcfc",
       "module": "PKContracts",
       "kind": "swift.init",
       "path": [
         "Message",
-        "init(id:timestamp:content:role:reasoning:toolCalls:toolCallID:parentID:recalledMemories:isSummary:summaryType:status:)"
+        "init(id:timestamp:content:role:reasoning:toolCalls:toolCallID:parentID:isSummary:summaryType:status:)"
       ],
-      "declaration": "init(id: UUID = UUID(), timestamp: Date = Date(), content: MessageContent, role: Message.MessageRole, reasoning: String? = nil, toolCalls: [ToolCall]? = nil, toolCallID: String? = nil, parentID: UUID? = nil, recalledMemories: [Memory]? = nil, isSummary: Bool = false, summaryType: Message.SummaryType? = nil, status: Message.MessageStatus? = nil)"
+      "declaration": "init(id: UUID = UUID(), timestamp: Date = Date(), content: MessageContent, role: Message.MessageRole, reasoning: String? = nil, toolCalls: [ToolCall]? = nil, toolCallID: String? = nil, parentID: UUID? = nil, isSummary: Bool = false, summaryType: Message.SummaryType? = nil, status: Message.MessageStatus? = nil)"
     },
     {
-      "precise": "s:11PKContracts7MessageV2id9timestamp7content4role9reasoning9toolCalls0H6CallID06parentK016recalledMemories9isSummary11summaryType6statusAC10Foundation4UUIDV_AP4DateVSSAC0B4RoleOSSSgSayAA04ToolJ0VGSgAwRSgSayAA6MemoryVGSgSbAC0pR0OSgAC0B6StatusOSgtcfc",
+      "precise": "s:11PKContracts7MessageV2id9timestamp7content4role9reasoning9toolCalls0H6CallID06parentK09isSummary11summaryType6statusAC10Foundation4UUIDV_AO4DateVSSAC0B4RoleOSSSgSayAA04ToolJ0VGSgAvQSgSbAC0nP0OSgAC0B6StatusOSgtcfc",
       "module": "PKContracts",
       "kind": "swift.init",
       "path": [
         "Message",
-        "init(id:timestamp:content:role:reasoning:toolCalls:toolCallID:parentID:recalledMemories:isSummary:summaryType:status:)"
+        "init(id:timestamp:content:role:reasoning:toolCalls:toolCallID:parentID:isSummary:summaryType:status:)"
       ],
-      "declaration": "init(id: UUID = UUID(), timestamp: Date = Date(), content: String, role: Message.MessageRole, reasoning: String? = nil, toolCalls: [ToolCall]? = nil, toolCallID: String? = nil, parentID: UUID? = nil, recalledMemories: [Memory]? = nil, isSummary: Bool = false, summaryType: Message.SummaryType? = nil, status: Message.MessageStatus? = nil)"
+      "declaration": "init(id: UUID = UUID(), timestamp: Date = Date(), content: String, role: Message.MessageRole, reasoning: String? = nil, toolCalls: [ToolCall]? = nil, toolCallID: String? = nil, parentID: UUID? = nil, isSummary: Bool = false, summaryType: Message.SummaryType? = nil, status: Message.MessageStatus? = nil)"
     },
     {
       "precise": "s:11PKContracts7MessageV4fromACs7Decoder_p_tKcfc",
@@ -9555,38 +9092,6 @@
       "declaration": "func encode(to encoder: any Encoder) throws"
     },
     {
-      "precise": "s:11PKContracts9TurnEventO04MetaC0O",
-      "module": "PKContracts",
-      "kind": "swift.enum",
-      "path": [
-        "TurnEvent",
-        "MetaEvent"
-      ],
-      "declaration": "enum MetaEvent"
-    },
-    {
-      "precise": "s:11PKContracts9TurnEventO04MetaC0O17generationContextyAeA18GenerationMetadataV_tcAEmF",
-      "module": "PKContracts",
-      "kind": "swift.enum.case",
-      "path": [
-        "TurnEvent",
-        "MetaEvent",
-        "generationContext(metadata:)"
-      ],
-      "declaration": "case generationContext(metadata: GenerationMetadata)"
-    },
-    {
-      "precise": "s:11PKContracts9TurnEventO04MetaC0O4fromAEs7Decoder_p_tKcfc",
-      "module": "PKContracts",
-      "kind": "swift.init",
-      "path": [
-        "TurnEvent",
-        "MetaEvent",
-        "init(from:)"
-      ],
-      "declaration": "init(from decoder: any Decoder) throws"
-    },
-    {
       "precise": "s:11PKContracts9TurnEventO05DeltaC0O",
       "module": "PKContracts",
       "kind": "swift.enum",
@@ -9989,16 +9494,6 @@
       "declaration": "var reasoningContent: String? { get }"
     },
     {
-      "precise": "s:11PKContracts9TurnEventO17generationContextyAcA18GenerationMetadataVFZ",
-      "module": "PKContracts",
-      "kind": "swift.type.method",
-      "path": [
-        "TurnEvent",
-        "generationContext(_:)"
-      ],
-      "declaration": "static func generationContext(_ metadata: GenerationMetadata) -> TurnEvent"
-    },
-    {
       "precise": "s:11PKContracts9TurnEventO17sidecarCompletionAA07SidecarE0VSgvp",
       "module": "PKContracts",
       "kind": "swift.property",
@@ -10087,16 +9582,6 @@
         "init(from:)"
       ],
       "declaration": "init(from decoder: any Decoder) throws"
-    },
-    {
-      "precise": "s:11PKContracts9TurnEventO4metayA2C04MetaC0OcACmF",
-      "module": "PKContracts",
-      "kind": "swift.enum.case",
-      "path": [
-        "TurnEvent",
-        "meta(_:)"
-      ],
-      "declaration": "case meta(TurnEvent.MetaEvent)"
     },
     {
       "precise": "s:11PKContracts9TurnEventO5audioyAcA13LLMAudioDeltaVFZ",
@@ -11316,145 +10801,6 @@
       "declaration": "static func streaming(statusCode: Int = 200, headers: [String : String] = [:], chunks: [Data], delay: TimeInterval = 0.05) -> Response"
     },
     {
-      "precise": "s:13PKTestSupport15MockMemoryStoreC",
-      "module": "PKTestSupport",
-      "kind": "swift.class",
-      "path": [
-        "MockMemoryStore"
-      ],
-      "declaration": "final class MockMemoryStore"
-    },
-    {
-      "precise": "s:13PKTestSupport15MockMemoryStoreC04saveD0_6policy10Foundation4UUIDV11PKContracts0D0V_13PositronicKit0D10SavePolicyOtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockMemoryStore",
-        "saveMemory(_:policy:)"
-      ],
-      "declaration": "func saveMemory(_ memory: Memory, policy _: MemorySavePolicy) async throws -> UUID"
-    },
-    {
-      "precise": "s:13PKTestSupport15MockMemoryStoreC05fetchD02id11PKContracts0D0VSg10Foundation4UUIDV_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockMemoryStore",
-        "fetchMemory(id:)"
-      ],
-      "declaration": "func fetchMemory(id: UUID) async throws -> Memory?"
-    },
-    {
-      "precise": "s:13PKTestSupport15MockMemoryStoreC06deleteD02idy10Foundation4UUIDV_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockMemoryStore",
-        "deleteMemory(id:)"
-      ],
-      "declaration": "func deleteMemory(id: UUID) async throws"
-    },
-    {
-      "precise": "s:13PKTestSupport15MockMemoryStoreC06hasAnyD0SbyYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockMemoryStore",
-        "hasAnyMemory()"
-      ],
-      "declaration": "func hasAnyMemory() async throws -> Bool"
-    },
-    {
-      "precise": "s:13PKTestSupport15MockMemoryStoreC06updateD0yy11PKContracts0D0VYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockMemoryStore",
-        "updateMemory(_:)"
-      ],
-      "declaration": "func updateMemory(_ memory: Memory) async throws"
-    },
-    {
-      "precise": "s:13PKTestSupport15MockMemoryStoreC13pruneMemories8matching6dryRunSiSS_SbtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockMemoryStore",
-        "pruneMemories(matching:dryRun:)"
-      ],
-      "declaration": "func pruneMemories(matching _: String, dryRun _: Bool) async throws -> Int"
-    },
-    {
-      "precise": "s:13PKTestSupport15MockMemoryStoreC13pruneMemories9olderThan6dryRunSiSd_SbtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockMemoryStore",
-        "pruneMemories(olderThan:dryRun:)"
-      ],
-      "declaration": "func pruneMemories(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int"
-    },
-    {
-      "precise": "s:13PKTestSupport15MockMemoryStoreC14searchMemories14matchingAnyTagSay11PKContracts0D0VGSaySSG_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockMemoryStore",
-        "searchMemories(matchingAnyTag:)"
-      ],
-      "declaration": "func searchMemories(matchingAnyTag tags: [String]) async throws -> [Memory]"
-    },
-    {
-      "precise": "s:13PKTestSupport15MockMemoryStoreC14searchMemories5querySay11PKContracts0D0VGSS_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockMemoryStore",
-        "searchMemories(query:)"
-      ],
-      "declaration": "func searchMemories(query: String) async throws -> [Memory]"
-    },
-    {
-      "precise": "s:13PKTestSupport15MockMemoryStoreC14vacuumMemories9thresholdSiSd_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockMemoryStore",
-        "vacuumMemories(threshold:)"
-      ],
-      "declaration": "func vacuumMemories(threshold _: Double) async throws -> Int"
-    },
-    {
-      "precise": "s:13PKTestSupport15MockMemoryStoreC16fetchAllMemoriesSay11PKContracts0D0VGyYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockMemoryStore",
-        "fetchAllMemories()"
-      ],
-      "declaration": "func fetchAllMemories() async throws -> [Memory]"
-    },
-    {
-      "precise": "s:13PKTestSupport15MockMemoryStoreC8memoriesSay11PKContracts0D0VGvp",
-      "module": "PKTestSupport",
-      "kind": "swift.property",
-      "path": [
-        "MockMemoryStore",
-        "memories"
-      ],
-      "declaration": "var memories: [Memory] { get set }"
-    },
-    {
-      "precise": "s:13PKTestSupport15MockMemoryStoreCACycfc",
-      "module": "PKTestSupport",
-      "kind": "swift.init",
-      "path": [
-        "MockMemoryStore",
-        "init()"
-      ],
-      "declaration": "init()"
-    },
-    {
       "precise": "s:13PKTestSupport16MockMessageStoreC",
       "module": "PKTestSupport",
       "kind": "swift.class",
@@ -12313,16 +11659,6 @@
       "declaration": "func fetchTools(forWorkspaces workspaceIds: [UUID]) async throws -> [ToolReference]"
     },
     {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC10saveMemory_6policy10Foundation4UUIDV11PKContracts0G0V_13PositronicKit0G10SavePolicyOtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "saveMemory(_:policy:)"
-      ],
-      "declaration": "func saveMemory(_ memory: Memory, policy: MemorySavePolicy) async throws -> UUID"
-    },
-    {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC10saveOriginyy11PKContracts07RequestG8IdentityVYaKF",
       "module": "PKTestSupport",
       "kind": "swift.method",
@@ -12373,16 +11709,6 @@
       "declaration": "func deleteAgent(id: UUID) async throws"
     },
     {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC11fetchMemory2id11PKContracts0G0VSg10Foundation4UUIDV_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "fetchMemory(id:)"
-      ],
-      "declaration": "func fetchMemory(id: UUID) async throws -> Memory?"
-    },
-    {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC11fetchOrigin2id11PKContracts07RequestG8IdentityVSg10Foundation4UUIDV_tYaKF",
       "module": "PKTestSupport",
       "kind": "swift.method",
@@ -12411,16 +11737,6 @@
         "saveMessage(_:)"
       ],
       "declaration": "func saveMessage(_ message: ThreadMessage) async throws"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC12deleteMemory2idy10Foundation4UUIDV_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "deleteMemory(id:)"
-      ],
-      "declaration": "func deleteMemory(id: UUID) async throws"
     },
     {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC12deleteOrigin2idSb10Foundation4UUIDV_tYaKF",
@@ -12463,16 +11779,6 @@
       "declaration": "func pruneThreads(olderThan timeInterval: TimeInterval, excluding excludedThreadIDs: [UUID], dryRun: Bool) async throws -> Int"
     },
     {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC12updateMemoryyy11PKContracts0G0VYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "updateMemory(_:)"
-      ],
-      "declaration": "func updateMemory(_ memory: Memory) async throws"
-    },
-    {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC13fetchMessages3forSay13PositronicKit13ThreadMessageVG10Foundation4UUIDV_tYaKF",
       "module": "PKTestSupport",
       "kind": "swift.method",
@@ -12491,26 +11797,6 @@
         "mockIsDurable"
       ],
       "declaration": "var mockIsDurable: Bool { get set }"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC13pruneMemories8matching6dryRunSiSS_SbtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "pruneMemories(matching:dryRun:)"
-      ],
-      "declaration": "func pruneMemories(matching query: String, dryRun: Bool) async throws -> Int"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC13pruneMemories9olderThan6dryRunSiSd_SbtYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "pruneMemories(olderThan:dryRun:)"
-      ],
-      "declaration": "func pruneMemories(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int"
     },
     {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC13pruneMessages9olderThan6dryRunSiSd_SbtYaKF",
@@ -12593,36 +11879,6 @@
       "declaration": "func fetchWorkspace(id: UUID, includeTools: Bool = false) async throws -> WorkspaceReference?"
     },
     {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC14searchMemories14matchingAnyTagSay11PKContracts6MemoryVGSaySSG_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "searchMemories(matchingAnyTag:)"
-      ],
-      "declaration": "func searchMemories(matchingAnyTag tags: [String]) async throws -> [Memory]"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC14searchMemories5querySay11PKContracts6MemoryVGSS_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "searchMemories(query:)"
-      ],
-      "declaration": "func searchMemories(query: String) async throws -> [Memory]"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC14vacuumMemories9thresholdSiSd_tYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "vacuumMemories(threshold:)"
-      ],
-      "declaration": "func vacuumMemories(threshold: Double) async throws -> Int"
-    },
-    {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC15deleteWorkspace2idy10Foundation4UUIDV_tYaKF",
       "module": "PKTestSupport",
       "kind": "swift.method",
@@ -12671,16 +11927,6 @@
         "findWorkspaceId(forToolId:in:)"
       ],
       "declaration": "func findWorkspaceId(forToolId toolId: String, in workspaceIds: [UUID]) async throws -> UUID?"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC16fetchAllMemoriesSay11PKContracts6MemoryVGyYaKF",
-      "module": "PKTestSupport",
-      "kind": "swift.method",
-      "path": [
-        "MockPersistenceService",
-        "fetchAllMemories()"
-      ],
-      "declaration": "func fetchAllMemories() async throws -> [Memory]"
     },
     {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC16fetchOriginTools8originIdSay11PKContracts13ToolReferenceOG10Foundation4UUIDV_tYaKF",
@@ -12811,16 +12057,6 @@
         "threads"
       ],
       "declaration": "var threads: [Thread] { get set }"
-    },
-    {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC8memoriesSay11PKContracts6MemoryVGvp",
-      "module": "PKTestSupport",
-      "kind": "swift.property",
-      "path": [
-        "MockPersistenceService",
-        "memories"
-      ],
-      "declaration": "var memories: [Memory] { get set }"
     },
     {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC8messagesSay13PositronicKit13ThreadMessageVGvp",
@@ -13522,125 +12758,6 @@
         "textChunk(_:finishReason:)"
       ],
       "declaration": "static func textChunk(_ content: String, finishReason: String? = nil) -> LLMStreamChunk"
-    },
-    {
-      "precise": "s:13PositronicKit08InMemoryD5StoreC",
-      "module": "PositronicKit",
-      "kind": "swift.class",
-      "path": [
-        "InMemoryMemoryStore"
-      ],
-      "declaration": "actor InMemoryMemoryStore"
-    },
-    {
-      "precise": "s:13PositronicKit08InMemoryD5StoreC04saveD0_6policy10Foundation4UUIDV11PKContracts0D0V_AA0D10SavePolicyOtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryMemoryStore",
-        "saveMemory(_:policy:)"
-      ],
-      "declaration": "func saveMemory(_ memory: Memory, policy _: MemorySavePolicy) async throws -> UUID"
-    },
-    {
-      "precise": "s:13PositronicKit08InMemoryD5StoreC05fetchD02id11PKContracts0D0VSg10Foundation4UUIDV_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryMemoryStore",
-        "fetchMemory(id:)"
-      ],
-      "declaration": "func fetchMemory(id: UUID) async throws -> Memory?"
-    },
-    {
-      "precise": "s:13PositronicKit08InMemoryD5StoreC06deleteD02idy10Foundation4UUIDV_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryMemoryStore",
-        "deleteMemory(id:)"
-      ],
-      "declaration": "func deleteMemory(id: UUID) async throws"
-    },
-    {
-      "precise": "s:13PositronicKit08InMemoryD5StoreC06updateD0yy11PKContracts0D0VYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryMemoryStore",
-        "updateMemory(_:)"
-      ],
-      "declaration": "func updateMemory(_ memory: Memory) async throws"
-    },
-    {
-      "precise": "s:13PositronicKit08InMemoryD5StoreC13pruneMemories8matching6dryRunSiSS_SbtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryMemoryStore",
-        "pruneMemories(matching:dryRun:)"
-      ],
-      "declaration": "func pruneMemories(matching _: String, dryRun _: Bool) async throws -> Int"
-    },
-    {
-      "precise": "s:13PositronicKit08InMemoryD5StoreC13pruneMemories9olderThan6dryRunSiSd_SbtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryMemoryStore",
-        "pruneMemories(olderThan:dryRun:)"
-      ],
-      "declaration": "func pruneMemories(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int"
-    },
-    {
-      "precise": "s:13PositronicKit08InMemoryD5StoreC14searchMemories14matchingAnyTagSay11PKContracts0D0VGSaySSG_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryMemoryStore",
-        "searchMemories(matchingAnyTag:)"
-      ],
-      "declaration": "func searchMemories(matchingAnyTag tags: [String]) async throws -> [Memory]"
-    },
-    {
-      "precise": "s:13PositronicKit08InMemoryD5StoreC14searchMemories5querySay11PKContracts0D0VGSS_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryMemoryStore",
-        "searchMemories(query:)"
-      ],
-      "declaration": "func searchMemories(query: String) async throws -> [Memory]"
-    },
-    {
-      "precise": "s:13PositronicKit08InMemoryD5StoreC14vacuumMemories9thresholdSiSd_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryMemoryStore",
-        "vacuumMemories(threshold:)"
-      ],
-      "declaration": "func vacuumMemories(threshold _: Double) async throws -> Int"
-    },
-    {
-      "precise": "s:13PositronicKit08InMemoryD5StoreC16fetchAllMemoriesSay11PKContracts0D0VGyYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "InMemoryMemoryStore",
-        "fetchAllMemories()"
-      ],
-      "declaration": "func fetchAllMemories() async throws -> [Memory]"
-    },
-    {
-      "precise": "s:13PositronicKit08InMemoryD5StoreCACycfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "InMemoryMemoryStore",
-        "init()"
-      ],
-      "declaration": "init()"
     },
     {
       "precise": "s:13PositronicKit10AgentErrorO",
@@ -14387,154 +13504,6 @@
       "declaration": "init(_ messages: [Message])"
     },
     {
-      "precise": "s:13PositronicKit11ContextDataV",
-      "module": "PositronicKit",
-      "kind": "swift.struct",
-      "path": [
-        "ContextData"
-      ],
-      "declaration": "struct ContextData"
-    },
-    {
-      "precise": "s:13PositronicKit11ContextDataV13executionTimeSdvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "ContextData",
-        "executionTime"
-      ],
-      "declaration": "let executionTime: TimeInterval"
-    },
-    {
-      "precise": "s:13PositronicKit11ContextDataV13generatedTagsSaySSGvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "ContextData",
-        "generatedTags"
-      ],
-      "declaration": "let generatedTags: [String]"
-    },
-    {
-      "precise": "s:13PositronicKit11ContextDataV14augmentedQuerySSSgvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "ContextData",
-        "augmentedQuery"
-      ],
-      "declaration": "let augmentedQuery: String?"
-    },
-    {
-      "precise": "s:13PositronicKit11ContextDataV4fromACs7Decoder_p_tKcfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "ContextData",
-        "init(from:)"
-      ],
-      "declaration": "init(from decoder: any Decoder) throws"
-    },
-    {
-      "precise": "s:13PositronicKit11ContextDataV5notes8memories13generatedTags14augmentedQuery13executionTimeACSayAA0C4NoteVG_Say11PKContracts6MemoryVGSaySSGSSSgSdtcfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "ContextData",
-        "init(notes:memories:generatedTags:augmentedQuery:executionTime:)"
-      ],
-      "declaration": "init(notes: [ContextNote] = [], memories: [Memory] = [], generatedTags: [String] = [], augmentedQuery: String? = nil, executionTime: TimeInterval = 0)"
-    },
-    {
-      "precise": "s:13PositronicKit11ContextDataV5notesSayAA0C4NoteVGvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "ContextData",
-        "notes"
-      ],
-      "declaration": "let notes: [ContextNote]"
-    },
-    {
-      "precise": "s:13PositronicKit11ContextDataV8memoriesSay11PKContracts6MemoryVGvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "ContextData",
-        "memories"
-      ],
-      "declaration": "let memories: [Memory]"
-    },
-    {
-      "precise": "s:13PositronicKit11ContextNoteV",
-      "module": "PositronicKit",
-      "kind": "swift.struct",
-      "path": [
-        "ContextNote"
-      ],
-      "declaration": "struct ContextNote"
-    },
-    {
-      "precise": "s:13PositronicKit11ContextNoteV11descriptionSSvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "ContextNote",
-        "description"
-      ],
-      "declaration": "var description: String { get }"
-    },
-    {
-      "precise": "s:13PositronicKit11ContextNoteV4fromACs7Decoder_p_tKcfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "ContextNote",
-        "init(from:)"
-      ],
-      "declaration": "init(from decoder: any Decoder) throws"
-    },
-    {
-      "precise": "s:13PositronicKit11ContextNoteV4name7content6sourceACSS_S2Stcfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "ContextNote",
-        "init(name:content:source:)"
-      ],
-      "declaration": "init(name: String, content: String, source: String)"
-    },
-    {
-      "precise": "s:13PositronicKit11ContextNoteV4nameSSvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "ContextNote",
-        "name"
-      ],
-      "declaration": "let name: String"
-    },
-    {
-      "precise": "s:13PositronicKit11ContextNoteV6sourceSSvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "ContextNote",
-        "source"
-      ],
-      "declaration": "let source: String"
-    },
-    {
-      "precise": "s:13PositronicKit11ContextNoteV7contentSSvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "ContextNote",
-        "content"
-      ],
-      "declaration": "let content: String"
-    },
-    {
       "precise": "s:13PositronicKit11ThreadErrorO",
       "module": "PositronicKit",
       "kind": "swift.enum",
@@ -14961,45 +13930,6 @@
       "declaration": "init(_ snapshot: AgentContextSnapshot, threadTitle: String? = nil)"
     },
     {
-      "precise": "s:13PositronicKit12ContextNotesV",
-      "module": "PositronicKit",
-      "kind": "swift.struct",
-      "path": [
-        "ContextNotes"
-      ],
-      "declaration": "struct ContextNotes"
-    },
-    {
-      "precise": "s:13PositronicKit12ContextNotesV4bodyQrvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "ContextNotes",
-        "body"
-      ],
-      "declaration": "var body: some Prompt { get }"
-    },
-    {
-      "precise": "s:13PositronicKit12ContextNotesV5notesSayAA0C4NoteVGvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "ContextNotes",
-        "notes"
-      ],
-      "declaration": "let notes: [ContextNote]"
-    },
-    {
-      "precise": "s:13PositronicKit12ContextNotesVyACSayAA0C4NoteVGcfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "ContextNotes",
-        "init(_:)"
-      ],
-      "declaration": "init(_ notes: [ContextNote])"
-    },
-    {
       "precise": "s:13PositronicKit12LLMClientSetV",
       "module": "PositronicKit",
       "kind": "swift.struct",
@@ -15391,35 +14321,6 @@
       "declaration": "let requestID: UUID"
     },
     {
-      "precise": "s:13PositronicKit13ContextRankerV",
-      "module": "PositronicKit",
-      "kind": "swift.struct",
-      "path": [
-        "ContextRanker"
-      ],
-      "declaration": "struct ContextRanker"
-    },
-    {
-      "precise": "s:13PositronicKit13ContextRankerV12rankMemoriesySay11PKContracts6MemoryVGAHF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "ContextRanker",
-        "rankMemories(_:)"
-      ],
-      "declaration": "func rankMemories(_ memories: [Memory]) -> [Memory]"
-    },
-    {
-      "precise": "s:13PositronicKit13ContextRankerVACycfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "ContextRanker",
-        "init()"
-      ],
-      "declaration": "init()"
-    },
-    {
       "precise": "s:13PositronicKit13LanguageModelP",
       "module": "PositronicKit",
       "kind": "swift.protocol",
@@ -15626,16 +14527,6 @@
       "declaration": "var messageContent: MessageContent"
     },
     {
-      "precise": "s:13PositronicKit13ThreadMessageV16recalledMemoriesSSvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "ThreadMessage",
-        "recalledMemories"
-      ],
-      "declaration": "var recalledMemories: String"
-    },
-    {
       "precise": "s:13PositronicKit13ThreadMessageV2id10Foundation4UUIDVvp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -15646,24 +14537,24 @@
       "declaration": "var id: UUID"
     },
     {
-      "precise": "s:13PositronicKit13ThreadMessageV2id8threadID4role7content9timestamp16recalledMemories06parentG09reasoning9toolCalls0o4CallG005agentG013executionKind11remoteDepth12snapshotData6statusAC10Foundation4UUIDV_AU11PKContracts0D0V0D4RoleOAV0D7ContentVAS4DateVSSAUSgSSSgSSA4_A3_AA013TurnExecutionT0OSgSiAS0X0VSgAX0D6StatusOSgtcfc",
+      "precise": "s:13PositronicKit13ThreadMessageV2id8threadID4role7content9timestamp06parentG09reasoning9toolCalls0m4CallG005agentG013executionKind11remoteDepth12snapshotData6statusAC10Foundation4UUIDV_AT11PKContracts0D0V0D4RoleOAU0D7ContentVAR4DateVATSgSSSgSSA3_A2_AA013TurnExecutionR0OSgSiAR0V0VSgAW0D6StatusOSgtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "ThreadMessage",
-        "init(id:threadID:role:content:timestamp:recalledMemories:parentID:reasoning:toolCalls:toolCallID:agentID:executionKind:remoteDepth:snapshotData:status:)"
+        "init(id:threadID:role:content:timestamp:parentID:reasoning:toolCalls:toolCallID:agentID:executionKind:remoteDepth:snapshotData:status:)"
       ],
-      "declaration": "init(id: UUID = UUID(), threadID: UUID, role: Message.MessageRole, content: MessageContent, timestamp: Date = Date(), recalledMemories: String = \"[]\", parentID: UUID? = nil, reasoning: String? = nil, toolCalls: String = \"[]\", toolCallID: String? = nil, agentID: UUID? = nil, executionKind: TurnExecutionKind? = nil, remoteDepth: Int = 0, snapshotData: Data? = nil, status: Message.MessageStatus? = nil)"
+      "declaration": "init(id: UUID = UUID(), threadID: UUID, role: Message.MessageRole, content: MessageContent, timestamp: Date = Date(), parentID: UUID? = nil, reasoning: String? = nil, toolCalls: String = \"[]\", toolCallID: String? = nil, agentID: UUID? = nil, executionKind: TurnExecutionKind? = nil, remoteDepth: Int = 0, snapshotData: Data? = nil, status: Message.MessageStatus? = nil)"
     },
     {
-      "precise": "s:13PositronicKit13ThreadMessageV2id8threadID4role7content9timestamp16recalledMemories06parentG09reasoning9toolCalls0o4CallG005agentG013executionKind11remoteDepth12snapshotData6statusAC10Foundation4UUIDV_AU11PKContracts0D0V0D4RoleOSSAS4DateVSSAUSgSSSgSSA2_A1_AA013TurnExecutionT0OSgSiAS0X0VSgAX0D6StatusOSgtcfc",
+      "precise": "s:13PositronicKit13ThreadMessageV2id8threadID4role7content9timestamp06parentG09reasoning9toolCalls0m4CallG005agentG013executionKind11remoteDepth12snapshotData6statusAC10Foundation4UUIDV_AT11PKContracts0D0V0D4RoleOSSAR4DateVATSgSSSgSSA1_A0_AA013TurnExecutionR0OSgSiAR0V0VSgAW0D6StatusOSgtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "ThreadMessage",
-        "init(id:threadID:role:content:timestamp:recalledMemories:parentID:reasoning:toolCalls:toolCallID:agentID:executionKind:remoteDepth:snapshotData:status:)"
+        "init(id:threadID:role:content:timestamp:parentID:reasoning:toolCalls:toolCallID:agentID:executionKind:remoteDepth:snapshotData:status:)"
       ],
-      "declaration": "init(id: UUID = UUID(), threadID: UUID, role: Message.MessageRole, content: String, timestamp: Date = Date(), recalledMemories: String = \"[]\", parentID: UUID? = nil, reasoning: String? = nil, toolCalls: String = \"[]\", toolCallID: String? = nil, agentID: UUID? = nil, executionKind: TurnExecutionKind? = nil, remoteDepth: Int = 0, snapshotData: Data? = nil, status: Message.MessageStatus? = nil)"
+      "declaration": "init(id: UUID = UUID(), threadID: UUID, role: Message.MessageRole, content: String, timestamp: Date = Date(), parentID: UUID? = nil, reasoning: String? = nil, toolCalls: String = \"[]\", toolCallID: String? = nil, agentID: UUID? = nil, executionKind: TurnExecutionKind? = nil, remoteDepth: Int = 0, snapshotData: Data? = nil, status: Message.MessageStatus? = nil)"
     },
     {
       "precise": "s:13PositronicKit13ThreadMessageV4fromACs7Decoder_p_tKcfc",
@@ -17096,24 +15987,14 @@
       "declaration": "let userContent: MessageContent"
     },
     {
-      "precise": "s:13PositronicKit16LLMPromptRequestV11userContent16turnInstructions12contextNotes8memories11chatHistory5tools10workspaces16primaryWorkspace17requestOriginName06systemH020generationParametersAC11PKContracts07MessageF0V_SSSgSayAA11ContextNoteVGSayAO6MemoryVGSayAO0Y0VGSayAO7AnyToolVGSayAO0Q9ReferenceVGA4_SgA2rO010GenerationW0VSgtcfc",
+      "precise": "s:13PositronicKit16LLMPromptRequestV11userContent16turnInstructions20contextContributions11chatHistory5tools10workspaces16primaryWorkspace17requestOriginName06systemH020generationParametersAC11PKContracts07MessageF0V_SSSgSayAA23TurnContextContributionVGSayAN0X0VGSayAN7AnyToolVGSayAN0P9ReferenceVGA0_SgA2qN010GenerationV0VSgtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "LLMPromptRequest",
-        "init(userContent:turnInstructions:contextNotes:memories:chatHistory:tools:workspaces:primaryWorkspace:requestOriginName:systemInstructions:generationParameters:)"
+        "init(userContent:turnInstructions:contextContributions:chatHistory:tools:workspaces:primaryWorkspace:requestOriginName:systemInstructions:generationParameters:)"
       ],
-      "declaration": "init(userContent: MessageContent, turnInstructions: String? = nil, contextNotes: [ContextNote] = [], memories: [Memory] = [], chatHistory: [Message], tools: [AnyTool], workspaces: [WorkspaceReference], primaryWorkspace: WorkspaceReference?, requestOriginName: String?, systemInstructions: String? = nil, generationParameters: GenerationParameters? = nil)"
-    },
-    {
-      "precise": "s:13PositronicKit16LLMPromptRequestV12contextNotesSayAA11ContextNoteVGvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "LLMPromptRequest",
-        "contextNotes"
-      ],
-      "declaration": "let contextNotes: [ContextNote]"
+      "declaration": "init(userContent: MessageContent, turnInstructions: String? = nil, contextContributions: [TurnContextContribution] = [], chatHistory: [Message], tools: [AnyTool], workspaces: [WorkspaceReference], primaryWorkspace: WorkspaceReference?, requestOriginName: String?, systemInstructions: String? = nil, generationParameters: GenerationParameters? = nil)"
     },
     {
       "precise": "s:13PositronicKit16LLMPromptRequestV16primaryWorkspace11PKContracts0F9ReferenceVSgvp",
@@ -17156,6 +16037,16 @@
       "declaration": "let systemInstructions: String?"
     },
     {
+      "precise": "s:13PositronicKit16LLMPromptRequestV20contextContributionsSayAA23TurnContextContributionVGvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "LLMPromptRequest",
+        "contextContributions"
+      ],
+      "declaration": "let contextContributions: [TurnContextContribution]"
+    },
+    {
       "precise": "s:13PositronicKit16LLMPromptRequestV20generationParameters11PKContracts010GenerationF0VSgvp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -17176,24 +16067,14 @@
       "declaration": "let tools: [AnyTool]"
     },
     {
-      "precise": "s:13PositronicKit16LLMPromptRequestV8memoriesSay11PKContracts6MemoryVGvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "LLMPromptRequest",
-        "memories"
-      ],
-      "declaration": "let memories: [Memory]"
-    },
-    {
-      "precise": "s:13PositronicKit16LLMPromptRequestV9userQuery16turnInstructions12contextNotes8memories11chatHistory5tools10workspaces16primaryWorkspace17requestOriginName06systemH020generationParametersACSS_SSSgSayAA11ContextNoteVGSay11PKContracts6MemoryVGSayAS7MessageVGSayAS7AnyToolVGSayAS0Q9ReferenceVGA2_SgA2oS010GenerationW0VSgtcfc",
+      "precise": "s:13PositronicKit16LLMPromptRequestV9userQuery16turnInstructions20contextContributions11chatHistory5tools10workspaces16primaryWorkspace17requestOriginName06systemH020generationParametersACSS_SSSgSayAA23TurnContextContributionVGSay11PKContracts7MessageVGSayAR7AnyToolVGSayAR0P9ReferenceVGAZSgA2nR010GenerationV0VSgtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "LLMPromptRequest",
-        "init(userQuery:turnInstructions:contextNotes:memories:chatHistory:tools:workspaces:primaryWorkspace:requestOriginName:systemInstructions:generationParameters:)"
+        "init(userQuery:turnInstructions:contextContributions:chatHistory:tools:workspaces:primaryWorkspace:requestOriginName:systemInstructions:generationParameters:)"
       ],
-      "declaration": "init(userQuery: String, turnInstructions: String? = nil, contextNotes: [ContextNote] = [], memories: [Memory] = [], chatHistory: [Message], tools: [AnyTool], workspaces: [WorkspaceReference], primaryWorkspace: WorkspaceReference?, requestOriginName: String?, systemInstructions: String? = nil, generationParameters: GenerationParameters? = nil)"
+      "declaration": "init(userQuery: String, turnInstructions: String? = nil, contextContributions: [TurnContextContribution] = [], chatHistory: [Message], tools: [AnyTool], workspaces: [WorkspaceReference], primaryWorkspace: WorkspaceReference?, requestOriginName: String?, systemInstructions: String? = nil, generationParameters: GenerationParameters? = nil)"
     },
     {
       "precise": "s:13PositronicKit16LLMPromptRequestV9userQuerySSvp",
@@ -19310,135 +18191,6 @@
       "declaration": "func generateTitle(for messages: [Message]) async throws -> String"
     },
     {
-      "precise": "s:13PositronicKit19MemoryStoreProtocolP",
-      "module": "PositronicKit",
-      "kind": "swift.protocol",
-      "path": [
-        "MemoryStoreProtocol"
-      ],
-      "declaration": "protocol MemoryStoreProtocol : DurabilityAware"
-    },
-    {
-      "precise": "s:13PositronicKit19MemoryStoreProtocolP04saveC0_6policy10Foundation4UUIDV11PKContracts0C0V_AA0C10SavePolicyOtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "MemoryStoreProtocol",
-        "saveMemory(_:policy:)"
-      ],
-      "declaration": "func saveMemory(_ memory: Memory, policy: MemorySavePolicy) async throws -> UUID"
-    },
-    {
-      "precise": "s:13PositronicKit19MemoryStoreProtocolP05fetchC02id11PKContracts0C0VSg10Foundation4UUIDV_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "MemoryStoreProtocol",
-        "fetchMemory(id:)"
-      ],
-      "declaration": "func fetchMemory(id: UUID) async throws -> Memory?"
-    },
-    {
-      "precise": "s:13PositronicKit19MemoryStoreProtocolP06deleteC02idy10Foundation4UUIDV_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "MemoryStoreProtocol",
-        "deleteMemory(id:)"
-      ],
-      "declaration": "func deleteMemory(id: UUID) async throws"
-    },
-    {
-      "precise": "s:13PositronicKit19MemoryStoreProtocolP06hasAnyC0SbyYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "MemoryStoreProtocol",
-        "hasAnyMemory()"
-      ],
-      "declaration": "func hasAnyMemory() async throws -> Bool"
-    },
-    {
-      "precise": "s:13PositronicKit19MemoryStoreProtocolP06updateC0yy11PKContracts0C0VYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "MemoryStoreProtocol",
-        "updateMemory(_:)"
-      ],
-      "declaration": "func updateMemory(_ memory: Memory) async throws"
-    },
-    {
-      "precise": "s:13PositronicKit19MemoryStoreProtocolP13pruneMemories8matching6dryRunSiSS_SbtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "MemoryStoreProtocol",
-        "pruneMemories(matching:dryRun:)"
-      ],
-      "declaration": "func pruneMemories(matching query: String, dryRun: Bool) async throws -> Int"
-    },
-    {
-      "precise": "s:13PositronicKit19MemoryStoreProtocolP13pruneMemories9olderThan6dryRunSiSd_SbtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "MemoryStoreProtocol",
-        "pruneMemories(olderThan:dryRun:)"
-      ],
-      "declaration": "func pruneMemories(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int"
-    },
-    {
-      "precise": "s:13PositronicKit19MemoryStoreProtocolP14searchMemories14matchingAnyTagSay11PKContracts0C0VGSaySSG_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "MemoryStoreProtocol",
-        "searchMemories(matchingAnyTag:)"
-      ],
-      "declaration": "func searchMemories(matchingAnyTag tags: [String]) async throws -> [Memory]"
-    },
-    {
-      "precise": "s:13PositronicKit19MemoryStoreProtocolP14searchMemories5querySay11PKContracts0C0VGSS_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "MemoryStoreProtocol",
-        "searchMemories(query:)"
-      ],
-      "declaration": "func searchMemories(query: String) async throws -> [Memory]"
-    },
-    {
-      "precise": "s:13PositronicKit19MemoryStoreProtocolP14vacuumMemories9thresholdSiSd_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "MemoryStoreProtocol",
-        "vacuumMemories(threshold:)"
-      ],
-      "declaration": "func vacuumMemories(threshold: Double) async throws -> Int"
-    },
-    {
-      "precise": "s:13PositronicKit19MemoryStoreProtocolP16fetchAllMemoriesSay11PKContracts0C0VGyYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "MemoryStoreProtocol",
-        "fetchAllMemories()"
-      ],
-      "declaration": "func fetchAllMemories() async throws -> [Memory]"
-    },
-    {
-      "precise": "s:13PositronicKit19MemoryStoreProtocolPAAE06hasAnyC0SbyYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "MemoryStoreProtocol",
-        "hasAnyMemory()"
-      ],
-      "declaration": "func hasAnyMemory() async throws -> Bool"
-    },
-    {
       "precise": "s:13PositronicKit19SidecarCommitPolicyO",
       "module": "PositronicKit",
       "kind": "swift.enum",
@@ -19881,16 +18633,6 @@
       "declaration": "let chatHistory: [Message]"
     },
     {
-      "precise": "s:13PositronicKit20LLMGenerationRequestV12contextNotesSayAA11ContextNoteVGvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "LLMGenerationRequest",
-        "contextNotes"
-      ],
-      "declaration": "let contextNotes: [ContextNote]"
-    },
-    {
       "precise": "s:13PositronicKit20LLMGenerationRequestV16primaryWorkspace11PKContracts0F9ReferenceVSgvp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -19931,6 +18673,16 @@
       "declaration": "let systemInstructions: String?"
     },
     {
+      "precise": "s:13PositronicKit20LLMGenerationRequestV20contextContributionsSayAA23TurnContextContributionVGvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "LLMGenerationRequest",
+        "contextContributions"
+      ],
+      "declaration": "let contextContributions: [TurnContextContribution]"
+    },
+    {
       "precise": "s:13PositronicKit20LLMGenerationRequestV20generationParameters11PKContracts010GenerationF0VSgvp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -19951,16 +18703,6 @@
       "declaration": "let tools: [AnyTool]"
     },
     {
-      "precise": "s:13PositronicKit20LLMGenerationRequestV8memoriesSay11PKContracts6MemoryVGvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "LLMGenerationRequest",
-        "memories"
-      ],
-      "declaration": "let memories: [Memory]"
-    },
-    {
       "precise": "s:13PositronicKit20LLMGenerationRequestV9modelTierAA05ModelF0Ovp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -19971,14 +18713,14 @@
       "declaration": "let modelTier: ModelTier"
     },
     {
-      "precise": "s:13PositronicKit20LLMGenerationRequestV9userQuery12contextNotes8memories11chatHistory5tools10workspaces16primaryWorkspace17requestOriginName18systemInstructions16structuredOutput20generationParameters9modelTierACSS_SayAA11ContextNoteVGSay11PKContracts6MemoryVGSayAS7MessageVGSayAS7AnyToolVGSayAS0O9ReferenceVGA2_SgSSSgA5_AS010StructuredvD0OSgAS010GenerationX0VSgAA05ModelZ0Otcfc",
+      "precise": "s:13PositronicKit20LLMGenerationRequestV9userQuery20contextContributions11chatHistory5tools10workspaces16primaryWorkspace17requestOriginName18systemInstructions16structuredOutput20generationParameters9modelTierACSS_SayAA23TurnContextContributionVGSay11PKContracts7MessageVGSayAR7AnyToolVGSayAR0N9ReferenceVGAZSgSSSgA1_AR010StructureduD0OSgAR010GenerationW0VSgAA05ModelY0Otcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "LLMGenerationRequest",
-        "init(userQuery:contextNotes:memories:chatHistory:tools:workspaces:primaryWorkspace:requestOriginName:systemInstructions:structuredOutput:generationParameters:modelTier:)"
+        "init(userQuery:contextContributions:chatHistory:tools:workspaces:primaryWorkspace:requestOriginName:systemInstructions:structuredOutput:generationParameters:modelTier:)"
       ],
-      "declaration": "init(userQuery: String, contextNotes: [ContextNote] = [], memories: [Memory] = [], chatHistory: [Message], tools: [AnyTool], workspaces: [WorkspaceReference], primaryWorkspace: WorkspaceReference?, requestOriginName: String?, systemInstructions: String? = nil, structuredOutput: StructuredOutputRequest? = nil, generationParameters: GenerationParameters? = nil, modelTier: ModelTier = .primary)"
+      "declaration": "init(userQuery: String, contextContributions: [TurnContextContribution] = [], chatHistory: [Message], tools: [AnyTool], workspaces: [WorkspaceReference], primaryWorkspace: WorkspaceReference?, requestOriginName: String?, systemInstructions: String? = nil, structuredOutput: StructuredOutputRequest? = nil, generationParameters: GenerationParameters? = nil, modelTier: ModelTier = .primary)"
     },
     {
       "precise": "s:13PositronicKit20LLMGenerationRequestV9userQuerySSvp",
@@ -21410,6 +20152,45 @@
         "replayed"
       ],
       "declaration": "case replayed"
+    },
+    {
+      "precise": "s:13PositronicKit24TurnContextContributionsV",
+      "module": "PositronicKit",
+      "kind": "swift.struct",
+      "path": [
+        "TurnContextContributions"
+      ],
+      "declaration": "struct TurnContextContributions"
+    },
+    {
+      "precise": "s:13PositronicKit24TurnContextContributionsV13contributionsSayAA0cD12ContributionVGvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnContextContributions",
+        "contributions"
+      ],
+      "declaration": "let contributions: [TurnContextContribution]"
+    },
+    {
+      "precise": "s:13PositronicKit24TurnContextContributionsV4bodyQrvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnContextContributions",
+        "body"
+      ],
+      "declaration": "var body: some Prompt { get }"
+    },
+    {
+      "precise": "s:13PositronicKit24TurnContextContributionsVyACSayAA0cD12ContributionVGcfc",
+      "module": "PositronicKit",
+      "kind": "swift.init",
+      "path": [
+        "TurnContextContributions",
+        "init(_:)"
+      ],
+      "declaration": "init(_ contributions: [TurnContextContribution])"
     },
     {
       "precise": "s:13PositronicKit24WorkspaceResolverFactoryO",
@@ -23427,55 +22208,6 @@
       "declaration": "var updatedAt: Date"
     },
     {
-      "precise": "s:13PositronicKit8MemoriesV",
-      "module": "PositronicKit",
-      "kind": "swift.struct",
-      "path": [
-        "Memories"
-      ],
-      "declaration": "struct Memories"
-    },
-    {
-      "precise": "s:13PositronicKit8MemoriesV17summarizedContentSSSgvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "Memories",
-        "summarizedContent"
-      ],
-      "declaration": "let summarizedContent: String?"
-    },
-    {
-      "precise": "s:13PositronicKit8MemoriesV4bodyQrvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "Memories",
-        "body"
-      ],
-      "declaration": "var body: some Prompt { get }"
-    },
-    {
-      "precise": "s:13PositronicKit8MemoriesV8memoriesSay11PKContracts6MemoryVGvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "Memories",
-        "memories"
-      ],
-      "declaration": "let memories: [Memory]"
-    },
-    {
-      "precise": "s:13PositronicKit8MemoriesV_17summarizedContentACSay11PKContracts6MemoryVG_SSSgtcfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "Memories",
-        "init(_:summarizedContent:)"
-      ],
-      "declaration": "init(_ memories: [Memory], summarizedContent: String? = nil)"
-    },
-    {
       "precise": "s:13PositronicKit9ModelTierO",
       "module": "PositronicKit",
       "kind": "swift.enum",
@@ -23882,26 +22614,15 @@
       "declaration": "let agentStore: StoreDurability"
     },
     {
-      "precise": "s:13PositronicKitAAC16DurabilityReportV11memoryStoreAB0fC0Ovp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "PositronicKit",
-        "DurabilityReport",
-        "memoryStore"
-      ],
-      "declaration": "let memoryStore: StoreDurability"
-    },
-    {
-      "precise": "s:13PositronicKitAAC16DurabilityReportV12messageStore17threadPersistence09workspaceH006memoryF004toolH005agentF0013requestOriginF0AdB0fC0O_A6Mtcfc",
+      "precise": "s:13PositronicKitAAC16DurabilityReportV12messageStore17threadPersistence09workspaceH004toolH005agentF0013requestOriginF0AdB0fC0O_A5Ltcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "PositronicKit",
         "DurabilityReport",
-        "init(messageStore:threadPersistence:workspacePersistence:memoryStore:toolPersistence:agentStore:requestOriginStore:)"
+        "init(messageStore:threadPersistence:workspacePersistence:toolPersistence:agentStore:requestOriginStore:)"
       ],
-      "declaration": "init(messageStore: StoreDurability, threadPersistence: StoreDurability, workspacePersistence: StoreDurability, memoryStore: StoreDurability, toolPersistence: StoreDurability, agentStore: StoreDurability, requestOriginStore: StoreDurability)"
+      "declaration": "init(messageStore: StoreDurability, threadPersistence: StoreDurability, workspacePersistence: StoreDurability, toolPersistence: StoreDurability, agentStore: StoreDurability, requestOriginStore: StoreDurability)"
     },
     {
       "precise": "s:13PositronicKitAAC16DurabilityReportV12messageStoreAB0fC0Ovp",
@@ -24187,37 +22908,26 @@
       "declaration": "let agentStore: any AgentStoreProtocol"
     },
     {
-      "precise": "s:13PositronicKitAAC24PersistenceConfigurationV11memoryStoreAA06MemoryF8Protocol_pvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "PositronicKit",
-        "PersistenceConfiguration",
-        "memoryStore"
-      ],
-      "declaration": "let memoryStore: any MemoryStoreProtocol"
-    },
-    {
-      "precise": "s:13PositronicKitAAC24PersistenceConfigurationV12messageStore06threadC009workspaceC006memoryF004toolC005agentF0013requestOriginF017runtimeRepository0h7BindingO0AdA013ThreadMessageF8Protocol_pSg_AA0qcS0_pAA09WorkspaceF0_pSgAA06MemoryfS0_pSgAA04ToolcS0_pSgAA05AgentfS0_pSgAA07RequestmfS0_pSgAA0q7RuntimeO0_pSgAA0tpO0_pSgtcfc",
+      "precise": "s:13PositronicKitAAC24PersistenceConfigurationV12messageStore06threadC009workspaceC004toolC005agentF0013requestOriginF017runtimeRepository0h7BindingN0AdA013ThreadMessageF8Protocol_pSg_AA0pcR0_pAA09WorkspaceF0_pSgAA04ToolcR0_pSgAA05AgentfR0_pSgAA07RequestlfR0_pSgAA0p7RuntimeN0_pSgAA0soN0_pSgtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "PositronicKit",
         "PersistenceConfiguration",
-        "init(messageStore:threadPersistence:workspacePersistence:memoryStore:toolPersistence:agentStore:requestOriginStore:runtimeRepository:workspaceBindingRepository:)"
+        "init(messageStore:threadPersistence:workspacePersistence:toolPersistence:agentStore:requestOriginStore:runtimeRepository:workspaceBindingRepository:)"
       ],
-      "declaration": "init(messageStore: (any ThreadMessageStoreProtocol)? = nil, threadPersistence: any ThreadPersistenceProtocol, workspacePersistence: (any WorkspaceStore)? = nil, memoryStore: (any MemoryStoreProtocol)? = nil, toolPersistence: (any ToolPersistenceProtocol)? = nil, agentStore: (any AgentStoreProtocol)? = nil, requestOriginStore: (any RequestOriginStoreProtocol)? = nil, runtimeRepository: (any ThreadRuntimeRepository)? = nil, workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil)"
+      "declaration": "init(messageStore: (any ThreadMessageStoreProtocol)? = nil, threadPersistence: any ThreadPersistenceProtocol, workspacePersistence: (any WorkspaceStore)? = nil, toolPersistence: (any ToolPersistenceProtocol)? = nil, agentStore: (any AgentStoreProtocol)? = nil, requestOriginStore: (any RequestOriginStoreProtocol)? = nil, runtimeRepository: (any ThreadRuntimeRepository)? = nil, workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil)"
     },
     {
-      "precise": "s:13PositronicKitAAC24PersistenceConfigurationV12messageStore06threadC009workspaceC006memoryF004toolC005agentF0013requestOriginF017runtimeRepository0h7BindingO0AdA013ThreadMessageF8Protocol_pSg_AA0qcS0_pSgAA09WorkspaceF0_pSgAA06MemoryfS0_pSgAA04ToolcS0_pSgAA05AgentfS0_pSgAA07RequestmfS0_pSgAA0q7RuntimeO0_pSgAA0tpO0_pSgtcfc",
+      "precise": "s:13PositronicKitAAC24PersistenceConfigurationV12messageStore06threadC009workspaceC004toolC005agentF0013requestOriginF017runtimeRepository0h7BindingN0AdA013ThreadMessageF8Protocol_pSg_AA0pcR0_pSgAA09WorkspaceF0_pSgAA04ToolcR0_pSgAA05AgentfR0_pSgAA07RequestlfR0_pSgAA0p7RuntimeN0_pSgAA0soN0_pSgtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "PositronicKit",
         "PersistenceConfiguration",
-        "init(messageStore:threadPersistence:workspacePersistence:memoryStore:toolPersistence:agentStore:requestOriginStore:runtimeRepository:workspaceBindingRepository:)"
+        "init(messageStore:threadPersistence:workspacePersistence:toolPersistence:agentStore:requestOriginStore:runtimeRepository:workspaceBindingRepository:)"
       ],
-      "declaration": "init(messageStore: (any ThreadMessageStoreProtocol)? = nil, threadPersistence: (any ThreadPersistenceProtocol)? = nil, workspacePersistence: (any WorkspaceStore)? = nil, memoryStore: (any MemoryStoreProtocol)? = nil, toolPersistence: (any ToolPersistenceProtocol)? = nil, agentStore: (any AgentStoreProtocol)? = nil, requestOriginStore: (any RequestOriginStoreProtocol)? = nil, runtimeRepository: (any ThreadRuntimeRepository)? = nil, workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil)"
+      "declaration": "init(messageStore: (any ThreadMessageStoreProtocol)? = nil, threadPersistence: (any ThreadPersistenceProtocol)? = nil, workspacePersistence: (any WorkspaceStore)? = nil, toolPersistence: (any ToolPersistenceProtocol)? = nil, agentStore: (any AgentStoreProtocol)? = nil, requestOriginStore: (any RequestOriginStoreProtocol)? = nil, runtimeRepository: (any ThreadRuntimeRepository)? = nil, workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil)"
     },
     {
       "precise": "s:13PositronicKitAAC24PersistenceConfigurationV12messageStoreAA013ThreadMessageF8Protocol_pvp",
@@ -24231,15 +22941,15 @@
       "declaration": "let messageStore: any ThreadMessageStoreProtocol"
     },
     {
-      "precise": "s:13PositronicKitAAC24PersistenceConfigurationV15fullyPersistent12messageStore06threadC009workspaceC006memoryH004toolC005agentH0013requestOriginH017runtimeRepository0j7BindingQ0AdA013ThreadMessageH8Protocol_p_AA0scU0_pAA09WorkspaceH0_pAA06MemoryhU0_pAA04ToolcU0_pAA05AgenthU0_pAA07RequestohU0_pAA0s7RuntimeQ0_pSgAA0vrQ0_pSgtFZ",
+      "precise": "s:13PositronicKitAAC24PersistenceConfigurationV15fullyPersistent12messageStore06threadC009workspaceC004toolC005agentH0013requestOriginH017runtimeRepository0j7BindingP0AdA013ThreadMessageH8Protocol_p_AA0rcT0_pAA09WorkspaceH0_pAA04ToolcT0_pAA05AgenthT0_pAA07RequestnhT0_pAA0r7RuntimeP0_pSgAA0uqP0_pSgtFZ",
       "module": "PositronicKit",
       "kind": "swift.type.method",
       "path": [
         "PositronicKit",
         "PersistenceConfiguration",
-        "fullyPersistent(messageStore:threadPersistence:workspacePersistence:memoryStore:toolPersistence:agentStore:requestOriginStore:runtimeRepository:workspaceBindingRepository:)"
+        "fullyPersistent(messageStore:threadPersistence:workspacePersistence:toolPersistence:agentStore:requestOriginStore:runtimeRepository:workspaceBindingRepository:)"
       ],
-      "declaration": "static func fullyPersistent(messageStore: any ThreadMessageStoreProtocol, threadPersistence: any ThreadPersistenceProtocol, workspacePersistence: any WorkspaceStore, memoryStore: any MemoryStoreProtocol, toolPersistence: any ToolPersistenceProtocol, agentStore: any AgentStoreProtocol, requestOriginStore: any RequestOriginStoreProtocol, runtimeRepository: (any ThreadRuntimeRepository)? = nil, workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil) -> PersistenceConfiguration"
+      "declaration": "static func fullyPersistent(messageStore: any ThreadMessageStoreProtocol, threadPersistence: any ThreadPersistenceProtocol, workspacePersistence: any WorkspaceStore, toolPersistence: any ToolPersistenceProtocol, agentStore: any AgentStoreProtocol, requestOriginStore: any RequestOriginStoreProtocol, runtimeRepository: (any ThreadRuntimeRepository)? = nil, workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil) -> PersistenceConfiguration"
     },
     {
       "precise": "s:13PositronicKitAAC24PersistenceConfigurationV17runtimeRepositoryAA013ThreadRuntimeF0_pSgvp",
@@ -28769,16 +27479,6 @@
       "declaration": "func toJsonString() throws -> String"
     },
     {
-      "precise": "s:Sa11PKContractsAA6MemoryVRszlE13promptContentSSvp",
-      "module": "PKContracts",
-      "kind": "swift.property",
-      "path": [
-        "Array",
-        "promptContent"
-      ],
-      "declaration": "var promptContent: String { get }"
-    },
-    {
       "precise": "s:Sa11PKContractsAA7AnyToolVRszlE18formattedForPromptSSyYaF",
       "module": "PKContracts",
       "kind": "swift.method",
@@ -28889,15 +27589,6 @@
         "Tool"
       ],
       "declaration": "extension PKContracts.Tool"
-    },
-    {
-      "precise": "s:e:s:11PKContracts6MemoryV13PKTestSupportE7fixture2id5title7content4tags9timestampAC10Foundation4UUIDV_S2SSaySSGAK4DateVtFZ",
-      "module": "PKTestSupport",
-      "kind": "swift.extension",
-      "path": [
-        "Memory"
-      ],
-      "declaration": "extension Memory"
     },
     {
       "precise": "s:e:s:11PKContracts7MessageV13PKTestSupportE7fixture2id4role7content9timestampAC10Foundation4UUIDV_AC0B4RoleOSSAJ4DateVtFZ",
@@ -31137,34 +29828,6 @@
     {
       "module": "PKContracts",
       "kind": "conformsTo",
-      "source": "s:11PKContracts18GenerationMetadataV",
-      "target": "s:SE",
-      "targetFallback": "Swift.Encodable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts18GenerationMetadataV",
-      "target": "s:Se",
-      "targetFallback": "Swift.Decodable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts18GenerationMetadataV",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts18GenerationMetadataV",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
       "source": "s:11PKContracts18LLMProviderFactoryP",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
@@ -31557,41 +30220,6 @@
     {
       "module": "PKContracts",
       "kind": "conformsTo",
-      "source": "s:11PKContracts19TurnContextSnapshotV11MemoryEntryV",
-      "target": "s:SE",
-      "targetFallback": "Swift.Encodable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts19TurnContextSnapshotV11MemoryEntryV",
-      "target": "s:SQ",
-      "targetFallback": "Swift.Equatable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts19TurnContextSnapshotV11MemoryEntryV",
-      "target": "s:Se",
-      "targetFallback": "Swift.Decodable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts19TurnContextSnapshotV11MemoryEntryV",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts19TurnContextSnapshotV11MemoryEntryV",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
       "source": "s:11PKContracts19TurnContextSnapshotV13PromptMessageV",
       "target": "s:SE",
       "targetFallback": "Swift.Encodable"
@@ -31621,41 +30249,6 @@
       "module": "PKContracts",
       "kind": "conformsTo",
       "source": "s:11PKContracts19TurnContextSnapshotV13PromptMessageV",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts19TurnContextSnapshotV9FileEntryV",
-      "target": "s:SE",
-      "targetFallback": "Swift.Encodable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts19TurnContextSnapshotV9FileEntryV",
-      "target": "s:SQ",
-      "targetFallback": "Swift.Equatable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts19TurnContextSnapshotV9FileEntryV",
-      "target": "s:Se",
-      "targetFallback": "Swift.Decodable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts19TurnContextSnapshotV9FileEntryV",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts19TurnContextSnapshotV9FileEntryV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -32853,68 +31446,6 @@
       "source": "s:11PKContracts5AgentV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts6MemoryV",
-      "target": "s:11PKContracts17PromptFormattableP"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts6MemoryV",
-      "target": "s:SE",
-      "targetFallback": "Swift.Encodable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts6MemoryV",
-      "target": "s:SQ",
-      "targetFallback": "Swift.Equatable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts6MemoryV",
-      "target": "s:Se",
-      "targetFallback": "Swift.Decodable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts6MemoryV",
-      "target": "s:s12IdentifiableP",
-      "targetFallback": "Swift.Identifiable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts6MemoryV",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts6MemoryV",
-      "target": "s:s8CopyableP",
-      "targetFallback": "Swift.Copyable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts6MemoryV",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts6MemoryV",
-      "target": "s:s9EscapableP",
-      "targetFallback": "Swift.Escapable"
     },
     {
       "module": "PKContracts",
@@ -33141,62 +31672,6 @@
     {
       "module": "PKContracts",
       "kind": "conformsTo",
-      "source": "s:11PKContracts7MessageV24ContextGatheringProgressO",
-      "target": "s:SE",
-      "targetFallback": "Swift.Encodable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts7MessageV24ContextGatheringProgressO",
-      "target": "s:SH",
-      "targetFallback": "Swift.Hashable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts7MessageV24ContextGatheringProgressO",
-      "target": "s:SQ",
-      "targetFallback": "Swift.Equatable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts7MessageV24ContextGatheringProgressO",
-      "target": "s:SY",
-      "targetFallback": "Swift.RawRepresentable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts7MessageV24ContextGatheringProgressO",
-      "target": "s:Se",
-      "targetFallback": "Swift.Decodable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts7MessageV24ContextGatheringProgressO",
-      "target": "s:s12CaseIterableP",
-      "targetFallback": "Swift.CaseIterable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts7MessageV24ContextGatheringProgressO",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts7MessageV24ContextGatheringProgressO",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
       "source": "s:11PKContracts7PKErrorP",
       "target": "s:10Foundation14LocalizedErrorP",
       "targetFallback": "Foundation.LocalizedError"
@@ -33379,34 +31854,6 @@
       "module": "PKContracts",
       "kind": "conformsTo",
       "source": "s:11PKContracts9TurnEventO010CompletionC0O",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts9TurnEventO04MetaC0O",
-      "target": "s:SE",
-      "targetFallback": "Swift.Encodable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts9TurnEventO04MetaC0O",
-      "target": "s:Se",
-      "targetFallback": "Swift.Decodable"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts9TurnEventO04MetaC0O",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "conformsTo",
-      "source": "s:11PKContracts9TurnEventO04MetaC0O",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -35500,34 +33947,6 @@
     {
       "module": "PKTestSupport",
       "kind": "conformsTo",
-      "source": "s:13PKTestSupport15MockMemoryStoreC",
-      "target": "s:13PositronicKit15DurabilityAwareP",
-      "targetFallback": "PositronicKit.DurabilityAware"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PKTestSupport15MockMemoryStoreC",
-      "target": "s:13PositronicKit19MemoryStoreProtocolP",
-      "targetFallback": "PositronicKit.MemoryStoreProtocol"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PKTestSupport15MockMemoryStoreC",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PKTestSupport15MockMemoryStoreC",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
       "source": "s:13PKTestSupport16MockMessageStoreC",
       "target": "s:13PositronicKit15DurabilityAwareP",
       "targetFallback": "PositronicKit.DurabilityAware"
@@ -35851,13 +34270,6 @@
       "module": "PKTestSupport",
       "kind": "conformsTo",
       "source": "s:13PKTestSupport22MockPersistenceServiceC",
-      "target": "s:13PositronicKit19MemoryStoreProtocolP",
-      "targetFallback": "PositronicKit.MemoryStoreProtocol"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "conformsTo",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC",
       "target": "s:13PositronicKit23ToolPersistenceProtocolP",
       "targetFallback": "PositronicKit.ToolPersistenceProtocol"
     },
@@ -36068,39 +34480,6 @@
       "module": "PKTestSupport",
       "kind": "conformsTo",
       "source": "s:13PKTestSupport26MockThreadPersistenceStoreC",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit08InMemoryD5StoreC",
-      "target": "s:13PositronicKit15DurabilityAwareP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit08InMemoryD5StoreC",
-      "target": "s:13PositronicKit19MemoryStoreProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit08InMemoryD5StoreC",
-      "target": "s:ScA",
-      "targetFallback": "_Concurrency.Actor"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit08InMemoryD5StoreC",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit08InMemoryD5StoreC",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -36319,69 +34698,6 @@
     {
       "module": "PositronicKit",
       "kind": "conformsTo",
-      "source": "s:13PositronicKit11ContextDataV",
-      "target": "s:SE",
-      "targetFallback": "Swift.Encodable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit11ContextDataV",
-      "target": "s:Se",
-      "targetFallback": "Swift.Decodable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit11ContextDataV",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit11ContextDataV",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit11ContextNoteV",
-      "target": "s:SE",
-      "targetFallback": "Swift.Encodable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit11ContextNoteV",
-      "target": "s:Se",
-      "targetFallback": "Swift.Decodable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit11ContextNoteV",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit11ContextNoteV",
-      "target": "s:s23CustomStringConvertibleP",
-      "targetFallback": "Swift.CustomStringConvertible"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit11ContextNoteV",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
       "source": "s:13PositronicKit11ThreadErrorO",
       "target": "s:10Foundation14LocalizedErrorP",
       "targetFallback": "Foundation.LocalizedError"
@@ -36509,27 +34825,6 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit12AgentContextV",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit12ContextNotesV",
-      "target": "s:8PKPrompt6PromptP",
-      "targetFallback": "PKPrompt.Prompt"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit12ContextNotesV",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit12ContextNotesV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -36719,20 +35014,6 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit13AgentActivityV4KindO",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit13ContextRankerV",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit13ContextRankerV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -38314,26 +36595,6 @@
     {
       "module": "PositronicKit",
       "kind": "conformsTo",
-      "source": "s:13PositronicKit19MemoryStoreProtocolP",
-      "target": "s:13PositronicKit15DurabilityAwareP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit19MemoryStoreProtocolP",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit19MemoryStoreProtocolP",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
       "source": "s:13PositronicKit19SidecarCommitPolicyO",
       "target": "s:SE",
       "targetFallback": "Swift.Encodable"
@@ -38997,6 +37258,27 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit24TurnAdmissionDispositionO",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit24TurnContextContributionsV",
+      "target": "s:8PKPrompt6PromptP",
+      "targetFallback": "PKPrompt.Prompt"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit24TurnContextContributionsV",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit24TurnContextContributionsV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -39697,27 +37979,6 @@
     {
       "module": "PositronicKit",
       "kind": "conformsTo",
-      "source": "s:13PositronicKit8MemoriesV",
-      "target": "s:8PKPrompt6PromptP",
-      "targetFallback": "PKPrompt.Prompt"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit8MemoriesV",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit8MemoriesV",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
       "source": "s:13PositronicKit9ModelTierO",
       "target": "s:SH",
       "targetFallback": "Swift.Hashable"
@@ -40148,12 +38409,6 @@
       }
     },
     {
-      "module": "PositronicKit",
-      "kind": "defaultImplementationOf",
-      "source": "s:13PositronicKit19MemoryStoreProtocolPAAE06hasAnyC0SbyYaKF",
-      "target": "s:13PositronicKit19MemoryStoreProtocolP06hasAnyC0SbyYaKF"
-    },
-    {
       "module": "PKOpenAIProvider",
       "kind": "extensionTo",
       "source": "s:e:s:11PKContracts10LLMMessageV16PKOpenAIProviderE20toOpenAIMessageParam0F2AI9ChatQueryV0j17CompletionMessageH0OyKF",
@@ -40201,13 +38456,6 @@
       "source": "s:e:s:11PKContracts18WorkspaceReferenceV13PKTestSupportE7fixture2id3uri8location8originId8rootPath5tools6statusAC10Foundation4UUIDV_AA0B3URIVAC0B8LocationOAOSgSSSgSayAA04ToolC0OGAC0B6StatusOtFZ",
       "target": "s:11PKContracts18WorkspaceReferenceV",
       "targetFallback": "PKContracts.WorkspaceReference"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "extensionTo",
-      "source": "s:e:s:11PKContracts6MemoryV13PKTestSupportE7fixture2id5title7content4tags9timestampAC10Foundation4UUIDV_S2SSaySSGAK4DateVtFZ",
-      "target": "s:11PKContracts6MemoryV",
-      "targetFallback": "PKContracts.Memory"
     },
     {
       "module": "PKTestSupport",
@@ -42892,40 +41140,6 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts18GenerationMetadataV11diagnosticsSayAA14TurnDiagnosticVGvp",
-      "target": "s:11PKContracts18GenerationMetadataV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts18GenerationMetadataV4fromACs7Decoder_p_tKcfc",
-      "target": "s:11PKContracts18GenerationMetadataV",
-      "sourceOrigin": {
-        "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
-        "displayName": "Decodable.init(from:)"
-      }
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts18GenerationMetadataV5filesSaySSGvp",
-      "target": "s:11PKContracts18GenerationMetadataV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts18GenerationMetadataV8memories5files11diagnosticsACSay10Foundation4UUIDVG_SaySSGSayAA14TurnDiagnosticVGtcfc",
-      "target": "s:11PKContracts18GenerationMetadataV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts18GenerationMetadataV8memoriesSay10Foundation4UUIDVGvp",
-      "target": "s:11PKContracts18GenerationMetadataV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
       "source": "s:11PKContracts18MessageContentPartO4fromACs7Decoder_p_tKcfc",
       "target": "s:11PKContracts18MessageContentPartO",
       "sourceOrigin": {
@@ -43382,40 +41596,6 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts19TurnContextSnapshotV11MemoryEntryV",
-      "target": "s:11PKContracts19TurnContextSnapshotV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts19TurnContextSnapshotV11MemoryEntryV2id10Foundation4UUIDVvp",
-      "target": "s:11PKContracts19TurnContextSnapshotV11MemoryEntryV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts19TurnContextSnapshotV11MemoryEntryV2id7contentAE10Foundation4UUIDV_SStcfc",
-      "target": "s:11PKContracts19TurnContextSnapshotV11MemoryEntryV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts19TurnContextSnapshotV11MemoryEntryV4fromAEs7Decoder_p_tKcfc",
-      "target": "s:11PKContracts19TurnContextSnapshotV11MemoryEntryV",
-      "sourceOrigin": {
-        "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
-        "displayName": "Decodable.init(from:)"
-      }
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts19TurnContextSnapshotV11MemoryEntryV7contentSSvp",
-      "target": "s:11PKContracts19TurnContextSnapshotV11MemoryEntryV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
       "source": "s:11PKContracts19TurnContextSnapshotV13PromptMessageV",
       "target": "s:11PKContracts19TurnContextSnapshotV"
     },
@@ -43456,25 +41636,7 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts19TurnContextSnapshotV13executionTimeSdvp",
-      "target": "s:11PKContracts19TurnContextSnapshotV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts19TurnContextSnapshotV13generatedTagsSaySSGvp",
-      "target": "s:11PKContracts19TurnContextSnapshotV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts19TurnContextSnapshotV14augmentedQuerySSSgvp",
-      "target": "s:11PKContracts19TurnContextSnapshotV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts19TurnContextSnapshotV14promptMessages5files8memories13generatedTags14augmentedQuery13executionTimeACSayAC13PromptMessageVG_SayAC9FileEntryVGSayAC06MemoryR0VGSaySSGSSSgSdtcfc",
+      "source": "s:11PKContracts19TurnContextSnapshotV14promptMessagesACSayAC13PromptMessageVG_tcfc",
       "target": "s:11PKContracts19TurnContextSnapshotV"
     },
     {
@@ -43492,52 +41654,6 @@
         "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
         "displayName": "Decodable.init(from:)"
       }
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts19TurnContextSnapshotV5filesSayAC9FileEntryVGvp",
-      "target": "s:11PKContracts19TurnContextSnapshotV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts19TurnContextSnapshotV8memoriesSayAC11MemoryEntryVGvp",
-      "target": "s:11PKContracts19TurnContextSnapshotV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts19TurnContextSnapshotV9FileEntryV",
-      "target": "s:11PKContracts19TurnContextSnapshotV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts19TurnContextSnapshotV9FileEntryV4fromAEs7Decoder_p_tKcfc",
-      "target": "s:11PKContracts19TurnContextSnapshotV9FileEntryV",
-      "sourceOrigin": {
-        "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
-        "displayName": "Decodable.init(from:)"
-      }
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts19TurnContextSnapshotV9FileEntryV4name6sourceAESS_SStcfc",
-      "target": "s:11PKContracts19TurnContextSnapshotV9FileEntryV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts19TurnContextSnapshotV9FileEntryV4nameSSvp",
-      "target": "s:11PKContracts19TurnContextSnapshotV9FileEntryV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts19TurnContextSnapshotV9FileEntryV6sourceSSvp",
-      "target": "s:11PKContracts19TurnContextSnapshotV9FileEntryV"
     },
     {
       "module": "PKContracts",
@@ -44874,92 +42990,6 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts6MemoryV12metadataDictSDyS2SGvp",
-      "target": "s:11PKContracts6MemoryV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts6MemoryV12promptStringSSvp",
-      "target": "s:11PKContracts6MemoryV",
-      "sourceOrigin": {
-        "identifier": "s:11PKContracts17PromptFormattableP12promptStringSSvp",
-        "displayName": "PromptFormattable.promptString"
-      }
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts6MemoryV2id10Foundation4UUIDVvp",
-      "target": "s:11PKContracts6MemoryV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts6MemoryV2id5title7content9createdAt07updatedG04tags8metadataAC10Foundation4UUIDV_S2SAK4DateVAOS2Stcfc",
-      "target": "s:11PKContracts6MemoryV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts6MemoryV2id5title7content9createdAt07updatedG04tags8metadataAC10Foundation4UUIDV_S2SAK4DateVAOSaySSGSDyS2SGtcfc",
-      "target": "s:11PKContracts6MemoryV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts6MemoryV4fromACs7Decoder_p_tKcfc",
-      "target": "s:11PKContracts6MemoryV",
-      "sourceOrigin": {
-        "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
-        "displayName": "Decodable.init(from:)"
-      }
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts6MemoryV4tagsSSvp",
-      "target": "s:11PKContracts6MemoryV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts6MemoryV5titleSSvp",
-      "target": "s:11PKContracts6MemoryV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts6MemoryV7contentSSvp",
-      "target": "s:11PKContracts6MemoryV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts6MemoryV8metadataSSvp",
-      "target": "s:11PKContracts6MemoryV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts6MemoryV8tagArraySaySSGvp",
-      "target": "s:11PKContracts6MemoryV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts6MemoryV9createdAt10Foundation4DateVvp",
-      "target": "s:11PKContracts6MemoryV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts6MemoryV9updatedAt10Foundation4DateVvp",
-      "target": "s:11PKContracts6MemoryV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
       "source": "s:11PKContracts7AnyToolV02tobC0ACyF",
       "target": "s:11PKContracts7AnyToolV",
       "sourceOrigin": {
@@ -45248,77 +43278,19 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts7MessageV16recalledMemoriesSayAA6MemoryVGSgvp",
-      "target": "s:11PKContracts7MessageV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts7MessageV24ContextGatheringProgressO",
-      "target": "s:11PKContracts7MessageV"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts7MessageV24ContextGatheringProgressO10augmentingyA2EmF",
-      "target": "s:11PKContracts7MessageV24ContextGatheringProgressO"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts7MessageV24ContextGatheringProgressO16discoveringNotesyA2EmF",
-      "target": "s:11PKContracts7MessageV24ContextGatheringProgressO"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts7MessageV24ContextGatheringProgressO7rankingyA2EmF",
-      "target": "s:11PKContracts7MessageV24ContextGatheringProgressO"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts7MessageV24ContextGatheringProgressO7taggingyA2EmF",
-      "target": "s:11PKContracts7MessageV24ContextGatheringProgressO"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts7MessageV24ContextGatheringProgressO8completeyA2EmF",
-      "target": "s:11PKContracts7MessageV24ContextGatheringProgressO"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts7MessageV24ContextGatheringProgressO8rawValueAESgSS_tcfc",
-      "target": "s:11PKContracts7MessageV24ContextGatheringProgressO",
-      "sourceOrigin": {
-        "identifier": "s:SY8rawValuexSg03RawB0Qz_tcfc",
-        "displayName": "RawRepresentable.init(rawValue:)"
-      }
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts7MessageV24ContextGatheringProgressO9searchingyA2EmF",
-      "target": "s:11PKContracts7MessageV24ContextGatheringProgressO"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
       "source": "s:11PKContracts7MessageV2id10Foundation4UUIDVvp",
       "target": "s:11PKContracts7MessageV"
     },
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts7MessageV2id9timestamp7content4role9reasoning9toolCalls0H6CallID06parentK016recalledMemories9isSummary11summaryType6statusAC10Foundation4UUIDV_AP4DateVAA0B7ContentVAC0B4RoleOSSSgSayAA04ToolJ0VGSgAyRSgSayAA6MemoryVGSgSbAC0pR0OSgAC0B6StatusOSgtcfc",
+      "source": "s:11PKContracts7MessageV2id9timestamp7content4role9reasoning9toolCalls0H6CallID06parentK09isSummary11summaryType6statusAC10Foundation4UUIDV_AO4DateVAA0B7ContentVAC0B4RoleOSSSgSayAA04ToolJ0VGSgAxQSgSbAC0nP0OSgAC0B6StatusOSgtcfc",
       "target": "s:11PKContracts7MessageV"
     },
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts7MessageV2id9timestamp7content4role9reasoning9toolCalls0H6CallID06parentK016recalledMemories9isSummary11summaryType6statusAC10Foundation4UUIDV_AP4DateVSSAC0B4RoleOSSSgSayAA04ToolJ0VGSgAwRSgSayAA6MemoryVGSgSbAC0pR0OSgAC0B6StatusOSgtcfc",
+      "source": "s:11PKContracts7MessageV2id9timestamp7content4role9reasoning9toolCalls0H6CallID06parentK09isSummary11summaryType6statusAC10Foundation4UUIDV_AO4DateVSSAC0B4RoleOSSSgSayAA04ToolJ0VGSgAvQSgSbAC0nP0OSgAC0B6StatusOSgtcfc",
       "target": "s:11PKContracts7MessageV"
     },
     {
@@ -45656,28 +43628,6 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts9TurnEventO04MetaC0O",
-      "target": "s:11PKContracts9TurnEventO"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts9TurnEventO04MetaC0O17generationContextyAeA18GenerationMetadataV_tcAEmF",
-      "target": "s:11PKContracts9TurnEventO04MetaC0O"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts9TurnEventO04MetaC0O4fromAEs7Decoder_p_tKcfc",
-      "target": "s:11PKContracts9TurnEventO04MetaC0O",
-      "sourceOrigin": {
-        "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
-        "displayName": "Decodable.init(from:)"
-      }
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
       "source": "s:11PKContracts9TurnEventO05DeltaC0O",
       "target": "s:11PKContracts9TurnEventO"
     },
@@ -45934,12 +43884,6 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts9TurnEventO17generationContextyAcA18GenerationMetadataVFZ",
-      "target": "s:11PKContracts9TurnEventO"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
       "source": "s:11PKContracts9TurnEventO17sidecarCompletionAA07SidecarE0VSgvp",
       "target": "s:11PKContracts9TurnEventO"
     },
@@ -45994,12 +43938,6 @@
         "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
         "displayName": "Decodable.init(from:)"
       }
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts9TurnEventO4metayA2C04MetaC0OcACmF",
-      "target": "s:11PKContracts9TurnEventO"
     },
     {
       "module": "PKContracts",
@@ -46062,13 +44000,6 @@
       "source": "s:SD11PKContractsSSRszAA10AnyCodableORs_rlE12toJsonStringSSyKF",
       "target": "s:SD",
       "targetFallback": "Swift.Dictionary"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:Sa11PKContractsAA6MemoryVRszlE13promptContentSSvp",
-      "target": "s:Sa",
-      "targetFallback": "Swift.Array"
     },
     {
       "module": "PKContracts",
@@ -48651,13 +46582,6 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:11PKContracts6MemoryV13PKTestSupportE7fixture2id5title7content4tags9timestampAC10Foundation4UUIDV_S2SSaySSGAK4DateVtFZ",
-      "target": "s:e:s:11PKContracts6MemoryV13PKTestSupportE7fixture2id5title7content4tags9timestampAC10Foundation4UUIDV_S2SSaySSGAK4DateVtFZ",
-      "targetFallback": "PKContracts.Memory"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
       "source": "s:11PKContracts7MessageV13PKTestSupportE7fixture2id4role7content9timestampAC10Foundation4UUIDV_AC0B4RoleOSSAJ4DateVtFZ",
       "target": "s:e:s:11PKContracts7MessageV13PKTestSupportE7fixture2id4role7content9timestampAC10Foundation4UUIDV_AC0B4RoleOSSAJ4DateVtFZ",
       "targetFallback": "PKContracts.Message"
@@ -49357,128 +47281,6 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport15MockMemoryStoreC04saveD0_6policy10Foundation4UUIDV11PKContracts0D0V_13PositronicKit0D10SavePolicyOtYaKF",
-      "target": "s:13PKTestSupport15MockMemoryStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP04saveC0_6policy10Foundation4UUIDV11PKContracts0C0V_AA0C10SavePolicyOtYaKF",
-        "displayName": "MemoryStoreProtocol.saveMemory(_:policy:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport15MockMemoryStoreC05fetchD02id11PKContracts0D0VSg10Foundation4UUIDV_tYaKF",
-      "target": "s:13PKTestSupport15MockMemoryStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP05fetchC02id11PKContracts0C0VSg10Foundation4UUIDV_tYaKF",
-        "displayName": "MemoryStoreProtocol.fetchMemory(id:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport15MockMemoryStoreC06deleteD02idy10Foundation4UUIDV_tYaKF",
-      "target": "s:13PKTestSupport15MockMemoryStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP06deleteC02idy10Foundation4UUIDV_tYaKF",
-        "displayName": "MemoryStoreProtocol.deleteMemory(id:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport15MockMemoryStoreC06hasAnyD0SbyYaKF",
-      "target": "s:13PKTestSupport15MockMemoryStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP06hasAnyC0SbyYaKF",
-        "displayName": "MemoryStoreProtocol.hasAnyMemory()"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport15MockMemoryStoreC06updateD0yy11PKContracts0D0VYaKF",
-      "target": "s:13PKTestSupport15MockMemoryStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP06updateC0yy11PKContracts0C0VYaKF",
-        "displayName": "MemoryStoreProtocol.updateMemory(_:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport15MockMemoryStoreC13pruneMemories8matching6dryRunSiSS_SbtYaKF",
-      "target": "s:13PKTestSupport15MockMemoryStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP13pruneMemories8matching6dryRunSiSS_SbtYaKF",
-        "displayName": "MemoryStoreProtocol.pruneMemories(matching:dryRun:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport15MockMemoryStoreC13pruneMemories9olderThan6dryRunSiSd_SbtYaKF",
-      "target": "s:13PKTestSupport15MockMemoryStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP13pruneMemories9olderThan6dryRunSiSd_SbtYaKF",
-        "displayName": "MemoryStoreProtocol.pruneMemories(olderThan:dryRun:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport15MockMemoryStoreC14searchMemories14matchingAnyTagSay11PKContracts0D0VGSaySSG_tYaKF",
-      "target": "s:13PKTestSupport15MockMemoryStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP14searchMemories14matchingAnyTagSay11PKContracts0C0VGSaySSG_tYaKF",
-        "displayName": "MemoryStoreProtocol.searchMemories(matchingAnyTag:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport15MockMemoryStoreC14searchMemories5querySay11PKContracts0D0VGSS_tYaKF",
-      "target": "s:13PKTestSupport15MockMemoryStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP14searchMemories5querySay11PKContracts0C0VGSS_tYaKF",
-        "displayName": "MemoryStoreProtocol.searchMemories(query:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport15MockMemoryStoreC14vacuumMemories9thresholdSiSd_tYaKF",
-      "target": "s:13PKTestSupport15MockMemoryStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP14vacuumMemories9thresholdSiSd_tYaKF",
-        "displayName": "MemoryStoreProtocol.vacuumMemories(threshold:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport15MockMemoryStoreC16fetchAllMemoriesSay11PKContracts0D0VGyYaKF",
-      "target": "s:13PKTestSupport15MockMemoryStoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP16fetchAllMemoriesSay11PKContracts0C0VGyYaKF",
-        "displayName": "MemoryStoreProtocol.fetchAllMemories()"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport15MockMemoryStoreC8memoriesSay11PKContracts0D0VGvp",
-      "target": "s:13PKTestSupport15MockMemoryStoreC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport15MockMemoryStoreCACycfc",
-      "target": "s:13PKTestSupport15MockMemoryStoreC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
       "source": "s:13PKTestSupport16MockMessageStoreC04saveD0yy13PositronicKit06ThreadD0VYaKF",
       "target": "s:13PKTestSupport16MockMessageStoreC",
       "sourceOrigin": {
@@ -50117,16 +47919,6 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC10saveMemory_6policy10Foundation4UUIDV11PKContracts0G0V_13PositronicKit0G10SavePolicyOtYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP04saveC0_6policy10Foundation4UUIDV11PKContracts0C0V_AA0C10SavePolicyOtYaKF",
-        "displayName": "MemoryStoreProtocol.saveMemory(_:policy:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC10saveOriginyy11PKContracts07RequestG8IdentityVYaKF",
       "target": "s:13PKTestSupport22MockPersistenceServiceC",
       "sourceOrigin": {
@@ -50173,16 +47965,6 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC11fetchMemory2id11PKContracts0G0VSg10Foundation4UUIDV_tYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP05fetchC02id11PKContracts0C0VSg10Foundation4UUIDV_tYaKF",
-        "displayName": "MemoryStoreProtocol.fetchMemory(id:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC11fetchOrigin2id11PKContracts07RequestG8IdentityVSg10Foundation4UUIDV_tYaKF",
       "target": "s:13PKTestSupport22MockPersistenceServiceC",
       "sourceOrigin": {
@@ -50208,16 +47990,6 @@
       "sourceOrigin": {
         "identifier": "s:13PositronicKit26ThreadMessageStoreProtocolP04saveD0yyAA0cD0VYaKF",
         "displayName": "ThreadMessageStoreProtocol.saveMessage(_:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC12deleteMemory2idy10Foundation4UUIDV_tYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP06deleteC02idy10Foundation4UUIDV_tYaKF",
-        "displayName": "MemoryStoreProtocol.deleteMemory(id:)"
       }
     },
     {
@@ -50263,16 +48035,6 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC12updateMemoryyy11PKContracts0G0VYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP06updateC0yy11PKContracts0C0VYaKF",
-        "displayName": "MemoryStoreProtocol.updateMemory(_:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC13fetchMessages3forSay13PositronicKit13ThreadMessageVG10Foundation4UUIDV_tYaKF",
       "target": "s:13PKTestSupport22MockPersistenceServiceC",
       "sourceOrigin": {
@@ -50285,26 +48047,6 @@
       "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC13mockIsDurableSbvp",
       "target": "s:13PKTestSupport22MockPersistenceServiceC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC13pruneMemories8matching6dryRunSiSS_SbtYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP13pruneMemories8matching6dryRunSiSS_SbtYaKF",
-        "displayName": "MemoryStoreProtocol.pruneMemories(matching:dryRun:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC13pruneMemories9olderThan6dryRunSiSd_SbtYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP13pruneMemories9olderThan6dryRunSiSd_SbtYaKF",
-        "displayName": "MemoryStoreProtocol.pruneMemories(olderThan:dryRun:)"
-      }
     },
     {
       "module": "PKTestSupport",
@@ -50381,36 +48123,6 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC14searchMemories14matchingAnyTagSay11PKContracts6MemoryVGSaySSG_tYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP14searchMemories14matchingAnyTagSay11PKContracts0C0VGSaySSG_tYaKF",
-        "displayName": "MemoryStoreProtocol.searchMemories(matchingAnyTag:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC14searchMemories5querySay11PKContracts6MemoryVGSS_tYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP14searchMemories5querySay11PKContracts0C0VGSS_tYaKF",
-        "displayName": "MemoryStoreProtocol.searchMemories(query:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC14vacuumMemories9thresholdSiSd_tYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP14vacuumMemories9thresholdSiSd_tYaKF",
-        "displayName": "MemoryStoreProtocol.vacuumMemories(threshold:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC15deleteWorkspace2idy10Foundation4UUIDV_tYaKF",
       "target": "s:13PKTestSupport22MockPersistenceServiceC",
       "sourceOrigin": {
@@ -50456,16 +48168,6 @@
       "sourceOrigin": {
         "identifier": "s:13PositronicKit23ToolPersistenceProtocolP15findWorkspaceId03forcH02in10Foundation4UUIDVSgSS_SayAIGtYaKF",
         "displayName": "ToolPersistenceProtocol.findWorkspaceId(forToolId:in:)"
-      }
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC16fetchAllMemoriesSay11PKContracts6MemoryVGyYaKF",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP16fetchAllMemoriesSay11PKContracts0C0VGyYaKF",
-        "displayName": "MemoryStoreProtocol.fetchAllMemories()"
       }
     },
     {
@@ -50580,12 +48282,6 @@
       "module": "PKTestSupport",
       "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC7threadsSay13PositronicKit6ThreadVGvp",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC8memoriesSay11PKContracts6MemoryVGvp",
       "target": "s:13PKTestSupport22MockPersistenceServiceC"
     },
     {
@@ -51114,112 +48810,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit08InMemoryD5StoreC04saveD0_6policy10Foundation4UUIDV11PKContracts0D0V_AA0D10SavePolicyOtYaKF",
-      "target": "s:13PositronicKit08InMemoryD5StoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP04saveC0_6policy10Foundation4UUIDV11PKContracts0C0V_AA0C10SavePolicyOtYaKF",
-        "displayName": "MemoryStoreProtocol.saveMemory(_:policy:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit08InMemoryD5StoreC05fetchD02id11PKContracts0D0VSg10Foundation4UUIDV_tYaKF",
-      "target": "s:13PositronicKit08InMemoryD5StoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP05fetchC02id11PKContracts0C0VSg10Foundation4UUIDV_tYaKF",
-        "displayName": "MemoryStoreProtocol.fetchMemory(id:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit08InMemoryD5StoreC06deleteD02idy10Foundation4UUIDV_tYaKF",
-      "target": "s:13PositronicKit08InMemoryD5StoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP06deleteC02idy10Foundation4UUIDV_tYaKF",
-        "displayName": "MemoryStoreProtocol.deleteMemory(id:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit08InMemoryD5StoreC06updateD0yy11PKContracts0D0VYaKF",
-      "target": "s:13PositronicKit08InMemoryD5StoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP06updateC0yy11PKContracts0C0VYaKF",
-        "displayName": "MemoryStoreProtocol.updateMemory(_:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit08InMemoryD5StoreC13pruneMemories8matching6dryRunSiSS_SbtYaKF",
-      "target": "s:13PositronicKit08InMemoryD5StoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP13pruneMemories8matching6dryRunSiSS_SbtYaKF",
-        "displayName": "MemoryStoreProtocol.pruneMemories(matching:dryRun:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit08InMemoryD5StoreC13pruneMemories9olderThan6dryRunSiSd_SbtYaKF",
-      "target": "s:13PositronicKit08InMemoryD5StoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP13pruneMemories9olderThan6dryRunSiSd_SbtYaKF",
-        "displayName": "MemoryStoreProtocol.pruneMemories(olderThan:dryRun:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit08InMemoryD5StoreC14searchMemories14matchingAnyTagSay11PKContracts0D0VGSaySSG_tYaKF",
-      "target": "s:13PositronicKit08InMemoryD5StoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP14searchMemories14matchingAnyTagSay11PKContracts0C0VGSaySSG_tYaKF",
-        "displayName": "MemoryStoreProtocol.searchMemories(matchingAnyTag:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit08InMemoryD5StoreC14searchMemories5querySay11PKContracts0D0VGSS_tYaKF",
-      "target": "s:13PositronicKit08InMemoryD5StoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP14searchMemories5querySay11PKContracts0C0VGSS_tYaKF",
-        "displayName": "MemoryStoreProtocol.searchMemories(query:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit08InMemoryD5StoreC14vacuumMemories9thresholdSiSd_tYaKF",
-      "target": "s:13PositronicKit08InMemoryD5StoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP14vacuumMemories9thresholdSiSd_tYaKF",
-        "displayName": "MemoryStoreProtocol.vacuumMemories(threshold:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit08InMemoryD5StoreC16fetchAllMemoriesSay11PKContracts0D0VGyYaKF",
-      "target": "s:13PositronicKit08InMemoryD5StoreC",
-      "sourceOrigin": {
-        "identifier": "s:13PositronicKit19MemoryStoreProtocolP16fetchAllMemoriesSay11PKContracts0C0VGyYaKF",
-        "displayName": "MemoryStoreProtocol.fetchAllMemories()"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit08InMemoryD5StoreCACycfc",
-      "target": "s:13PositronicKit08InMemoryD5StoreC"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit10AgentErrorO09differentC15AlreadyAttachedyAC10Foundation4UUIDVcACmF",
       "target": "s:13PositronicKit10AgentErrorO"
     },
@@ -51730,96 +49320,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit11ContextDataV13executionTimeSdvp",
-      "target": "s:13PositronicKit11ContextDataV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11ContextDataV13generatedTagsSaySSGvp",
-      "target": "s:13PositronicKit11ContextDataV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11ContextDataV14augmentedQuerySSSgvp",
-      "target": "s:13PositronicKit11ContextDataV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11ContextDataV4fromACs7Decoder_p_tKcfc",
-      "target": "s:13PositronicKit11ContextDataV",
-      "sourceOrigin": {
-        "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
-        "displayName": "Decodable.init(from:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11ContextDataV5notes8memories13generatedTags14augmentedQuery13executionTimeACSayAA0C4NoteVG_Say11PKContracts6MemoryVGSaySSGSSSgSdtcfc",
-      "target": "s:13PositronicKit11ContextDataV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11ContextDataV5notesSayAA0C4NoteVGvp",
-      "target": "s:13PositronicKit11ContextDataV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11ContextDataV8memoriesSay11PKContracts6MemoryVGvp",
-      "target": "s:13PositronicKit11ContextDataV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11ContextNoteV11descriptionSSvp",
-      "target": "s:13PositronicKit11ContextNoteV",
-      "sourceOrigin": {
-        "identifier": "s:s23CustomStringConvertibleP11descriptionSSvp",
-        "displayName": "CustomStringConvertible.description"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11ContextNoteV4fromACs7Decoder_p_tKcfc",
-      "target": "s:13PositronicKit11ContextNoteV",
-      "sourceOrigin": {
-        "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
-        "displayName": "Decodable.init(from:)"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11ContextNoteV4name7content6sourceACSS_S2Stcfc",
-      "target": "s:13PositronicKit11ContextNoteV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11ContextNoteV4nameSSvp",
-      "target": "s:13PositronicKit11ContextNoteV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11ContextNoteV6sourceSSvp",
-      "target": "s:13PositronicKit11ContextNoteV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11ContextNoteV7contentSSvp",
-      "target": "s:13PositronicKit11ContextNoteV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit11ThreadErrorO11errorDomainSSvp",
       "target": "s:13PositronicKit11ThreadErrorO",
       "sourceOrigin": {
@@ -52086,28 +49586,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit12ContextNotesV4bodyQrvp",
-      "target": "s:13PositronicKit12ContextNotesV",
-      "sourceOrigin": {
-        "identifier": "s:8PKPrompt6PromptP4body4BodyQzvp",
-        "displayName": "Prompt.body"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit12ContextNotesV5notesSayAA0C4NoteVGvp",
-      "target": "s:13PositronicKit12ContextNotesV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit12ContextNotesVyACSayAA0C4NoteVGcfc",
-      "target": "s:13PositronicKit12ContextNotesV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit12LLMClientSetV4fast11PKContracts0C8Protocol_pSgvp",
       "target": "s:13PositronicKit12LLMClientSetV"
     },
@@ -52342,18 +49820,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit13ContextRankerV12rankMemoriesySay11PKContracts6MemoryVGAHF",
-      "target": "s:13PositronicKit13ContextRankerV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit13ContextRankerVACycfc",
-      "target": "s:13PositronicKit13ContextRankerV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit13OneShotResultV12finishReasonSSSgvp",
       "target": "s:13PositronicKit13OneShotResultV"
     },
@@ -52460,12 +49926,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit13ThreadMessageV16recalledMemoriesSSvp",
-      "target": "s:13PositronicKit13ThreadMessageV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit13ThreadMessageV2id10Foundation4UUIDVvp",
       "target": "s:13PositronicKit13ThreadMessageV",
       "sourceOrigin": {
@@ -52476,13 +49936,13 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit13ThreadMessageV2id8threadID4role7content9timestamp16recalledMemories06parentG09reasoning9toolCalls0o4CallG005agentG013executionKind11remoteDepth12snapshotData6statusAC10Foundation4UUIDV_AU11PKContracts0D0V0D4RoleOAV0D7ContentVAS4DateVSSAUSgSSSgSSA4_A3_AA013TurnExecutionT0OSgSiAS0X0VSgAX0D6StatusOSgtcfc",
+      "source": "s:13PositronicKit13ThreadMessageV2id8threadID4role7content9timestamp06parentG09reasoning9toolCalls0m4CallG005agentG013executionKind11remoteDepth12snapshotData6statusAC10Foundation4UUIDV_AT11PKContracts0D0V0D4RoleOAU0D7ContentVAR4DateVATSgSSSgSSA3_A2_AA013TurnExecutionR0OSgSiAR0V0VSgAW0D6StatusOSgtcfc",
       "target": "s:13PositronicKit13ThreadMessageV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit13ThreadMessageV2id8threadID4role7content9timestamp16recalledMemories06parentG09reasoning9toolCalls0o4CallG005agentG013executionKind11remoteDepth12snapshotData6statusAC10Foundation4UUIDV_AU11PKContracts0D0V0D4RoleOSSAS4DateVSSAUSgSSSgSSA2_A1_AA013TurnExecutionT0OSgSiAS0X0VSgAX0D6StatusOSgtcfc",
+      "source": "s:13PositronicKit13ThreadMessageV2id8threadID4role7content9timestamp06parentG09reasoning9toolCalls0m4CallG005agentG013executionKind11remoteDepth12snapshotData6statusAC10Foundation4UUIDV_AT11PKContracts0D0V0D4RoleOSSAR4DateVATSgSSSgSSA1_A0_AA013TurnExecutionR0OSgSiAR0V0VSgAW0D6StatusOSgtcfc",
       "target": "s:13PositronicKit13ThreadMessageV"
     },
     {
@@ -53224,13 +50684,7 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit16LLMPromptRequestV11userContent16turnInstructions12contextNotes8memories11chatHistory5tools10workspaces16primaryWorkspace17requestOriginName06systemH020generationParametersAC11PKContracts07MessageF0V_SSSgSayAA11ContextNoteVGSayAO6MemoryVGSayAO0Y0VGSayAO7AnyToolVGSayAO0Q9ReferenceVGA4_SgA2rO010GenerationW0VSgtcfc",
-      "target": "s:13PositronicKit16LLMPromptRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit16LLMPromptRequestV12contextNotesSayAA11ContextNoteVGvp",
+      "source": "s:13PositronicKit16LLMPromptRequestV11userContent16turnInstructions20contextContributions11chatHistory5tools10workspaces16primaryWorkspace17requestOriginName06systemH020generationParametersAC11PKContracts07MessageF0V_SSSgSayAA23TurnContextContributionVGSayAN0X0VGSayAN7AnyToolVGSayAN0P9ReferenceVGA0_SgA2qN010GenerationV0VSgtcfc",
       "target": "s:13PositronicKit16LLMPromptRequestV"
     },
     {
@@ -53260,6 +50714,12 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit16LLMPromptRequestV20contextContributionsSayAA23TurnContextContributionVGvp",
+      "target": "s:13PositronicKit16LLMPromptRequestV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit16LLMPromptRequestV20generationParameters11PKContracts010GenerationF0VSgvp",
       "target": "s:13PositronicKit16LLMPromptRequestV"
     },
@@ -53272,13 +50732,7 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit16LLMPromptRequestV8memoriesSay11PKContracts6MemoryVGvp",
-      "target": "s:13PositronicKit16LLMPromptRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit16LLMPromptRequestV9userQuery16turnInstructions12contextNotes8memories11chatHistory5tools10workspaces16primaryWorkspace17requestOriginName06systemH020generationParametersACSS_SSSgSayAA11ContextNoteVGSay11PKContracts6MemoryVGSayAS7MessageVGSayAS7AnyToolVGSayAS0Q9ReferenceVGA2_SgA2oS010GenerationW0VSgtcfc",
+      "source": "s:13PositronicKit16LLMPromptRequestV9userQuery16turnInstructions20contextContributions11chatHistory5tools10workspaces16primaryWorkspace17requestOriginName06systemH020generationParametersACSS_SSSgSayAA23TurnContextContributionVGSay11PKContracts7MessageVGSayAR7AnyToolVGSayAR0P9ReferenceVGAZSgA2nR010GenerationV0VSgtcfc",
       "target": "s:13PositronicKit16LLMPromptRequestV"
     },
     {
@@ -54508,12 +51962,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit20LLMGenerationRequestV12contextNotesSayAA11ContextNoteVGvp",
-      "target": "s:13PositronicKit20LLMGenerationRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit20LLMGenerationRequestV16primaryWorkspace11PKContracts0F9ReferenceVSgvp",
       "target": "s:13PositronicKit20LLMGenerationRequestV"
     },
@@ -54538,6 +51986,12 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit20LLMGenerationRequestV20contextContributionsSayAA23TurnContextContributionVGvp",
+      "target": "s:13PositronicKit20LLMGenerationRequestV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit20LLMGenerationRequestV20generationParameters11PKContracts010GenerationF0VSgvp",
       "target": "s:13PositronicKit20LLMGenerationRequestV"
     },
@@ -54550,19 +52004,13 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit20LLMGenerationRequestV8memoriesSay11PKContracts6MemoryVGvp",
-      "target": "s:13PositronicKit20LLMGenerationRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit20LLMGenerationRequestV9modelTierAA05ModelF0Ovp",
       "target": "s:13PositronicKit20LLMGenerationRequestV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit20LLMGenerationRequestV9userQuery12contextNotes8memories11chatHistory5tools10workspaces16primaryWorkspace17requestOriginName18systemInstructions16structuredOutput20generationParameters9modelTierACSS_SayAA11ContextNoteVGSay11PKContracts6MemoryVGSayAS7MessageVGSayAS7AnyToolVGSayAS0O9ReferenceVGA2_SgSSSgA5_AS010StructuredvD0OSgAS010GenerationX0VSgAA05ModelZ0Otcfc",
+      "source": "s:13PositronicKit20LLMGenerationRequestV9userQuery20contextContributions11chatHistory5tools10workspaces16primaryWorkspace17requestOriginName18systemInstructions16structuredOutput20generationParameters9modelTierACSS_SayAA23TurnContextContributionVGSay11PKContracts7MessageVGSayAR7AnyToolVGSayAR0N9ReferenceVGAZSgSSSgA1_AR010StructureduD0OSgAR010GenerationW0VSgAA05ModelY0Otcfc",
       "target": "s:13PositronicKit20LLMGenerationRequestV"
     },
     {
@@ -55254,6 +52702,28 @@
       "kind": "memberOf",
       "source": "s:13PositronicKit24TurnAdmissionDispositionO8replayedyA2CmF",
       "target": "s:13PositronicKit24TurnAdmissionDispositionO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit24TurnContextContributionsV13contributionsSayAA0cD12ContributionVGvp",
+      "target": "s:13PositronicKit24TurnContextContributionsV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit24TurnContextContributionsV4bodyQrvp",
+      "target": "s:13PositronicKit24TurnContextContributionsV",
+      "sourceOrigin": {
+        "identifier": "s:8PKPrompt6PromptP4body4BodyQzvp",
+        "displayName": "Prompt.body"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit24TurnContextContributionsVyACSayAA0cD12ContributionVGcfc",
+      "target": "s:13PositronicKit24TurnContextContributionsV"
     },
     {
       "module": "PositronicKit",
@@ -56486,34 +53956,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit8MemoriesV17summarizedContentSSSgvp",
-      "target": "s:13PositronicKit8MemoriesV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit8MemoriesV4bodyQrvp",
-      "target": "s:13PositronicKit8MemoriesV",
-      "sourceOrigin": {
-        "identifier": "s:8PKPrompt6PromptP4body4BodyQzvp",
-        "displayName": "Prompt.body"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit8MemoriesV8memoriesSay11PKContracts6MemoryVGvp",
-      "target": "s:13PositronicKit8MemoriesV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit8MemoriesV_17summarizedContentACSay11PKContracts6MemoryVG_SSSgtcfc",
-      "target": "s:13PositronicKit8MemoriesV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit9ModelTierO4fastyA2CmF",
       "target": "s:13PositronicKit9ModelTierO"
     },
@@ -56754,13 +54196,7 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKitAAC16DurabilityReportV11memoryStoreAB0fC0Ovp",
-      "target": "s:13PositronicKitAAC16DurabilityReportV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKitAAC16DurabilityReportV12messageStore17threadPersistence09workspaceH006memoryF004toolH005agentF0013requestOriginF0AdB0fC0O_A6Mtcfc",
+      "source": "s:13PositronicKitAAC16DurabilityReportV12messageStore17threadPersistence09workspaceH004toolH005agentF0013requestOriginF0AdB0fC0O_A5Ltcfc",
       "target": "s:13PositronicKitAAC16DurabilityReportV"
     },
     {
@@ -56922,19 +54358,13 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKitAAC24PersistenceConfigurationV11memoryStoreAA06MemoryF8Protocol_pvp",
+      "source": "s:13PositronicKitAAC24PersistenceConfigurationV12messageStore06threadC009workspaceC004toolC005agentF0013requestOriginF017runtimeRepository0h7BindingN0AdA013ThreadMessageF8Protocol_pSg_AA0pcR0_pAA09WorkspaceF0_pSgAA04ToolcR0_pSgAA05AgentfR0_pSgAA07RequestlfR0_pSgAA0p7RuntimeN0_pSgAA0soN0_pSgtcfc",
       "target": "s:13PositronicKitAAC24PersistenceConfigurationV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKitAAC24PersistenceConfigurationV12messageStore06threadC009workspaceC006memoryF004toolC005agentF0013requestOriginF017runtimeRepository0h7BindingO0AdA013ThreadMessageF8Protocol_pSg_AA0qcS0_pAA09WorkspaceF0_pSgAA06MemoryfS0_pSgAA04ToolcS0_pSgAA05AgentfS0_pSgAA07RequestmfS0_pSgAA0q7RuntimeO0_pSgAA0tpO0_pSgtcfc",
-      "target": "s:13PositronicKitAAC24PersistenceConfigurationV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKitAAC24PersistenceConfigurationV12messageStore06threadC009workspaceC006memoryF004toolC005agentF0013requestOriginF017runtimeRepository0h7BindingO0AdA013ThreadMessageF8Protocol_pSg_AA0qcS0_pSgAA09WorkspaceF0_pSgAA06MemoryfS0_pSgAA04ToolcS0_pSgAA05AgentfS0_pSgAA07RequestmfS0_pSgAA0q7RuntimeO0_pSgAA0tpO0_pSgtcfc",
+      "source": "s:13PositronicKitAAC24PersistenceConfigurationV12messageStore06threadC009workspaceC004toolC005agentF0013requestOriginF017runtimeRepository0h7BindingN0AdA013ThreadMessageF8Protocol_pSg_AA0pcR0_pSgAA09WorkspaceF0_pSgAA04ToolcR0_pSgAA05AgentfR0_pSgAA07RequestlfR0_pSgAA0p7RuntimeN0_pSgAA0soN0_pSgtcfc",
       "target": "s:13PositronicKitAAC24PersistenceConfigurationV"
     },
     {
@@ -56946,7 +54376,7 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKitAAC24PersistenceConfigurationV15fullyPersistent12messageStore06threadC009workspaceC006memoryH004toolC005agentH0013requestOriginH017runtimeRepository0j7BindingQ0AdA013ThreadMessageH8Protocol_p_AA0scU0_pAA09WorkspaceH0_pAA06MemoryhU0_pAA04ToolcU0_pAA05AgenthU0_pAA07RequestohU0_pAA0s7RuntimeQ0_pSgAA0vrQ0_pSgtFZ",
+      "source": "s:13PositronicKitAAC24PersistenceConfigurationV15fullyPersistent12messageStore06threadC009workspaceC004toolC005agentH0013requestOriginH017runtimeRepository0j7BindingP0AdA013ThreadMessageH8Protocol_p_AA0rcT0_pAA09WorkspaceH0_pAA04ToolcT0_pAA05AgenthT0_pAA07RequestnhT0_pAA0r7RuntimeP0_pSgAA0uqP0_pSgtFZ",
       "target": "s:13PositronicKitAAC24PersistenceConfigurationV"
     },
     {
@@ -57522,72 +54952,6 @@
       "kind": "requirementOf",
       "source": "s:13PositronicKit18LLMClientResolvingP7clients3forAA0C3SetV11PKContracts16LLMConfigurationV_tF",
       "target": "s:13PositronicKit18LLMClientResolvingP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit19MemoryStoreProtocolP04saveC0_6policy10Foundation4UUIDV11PKContracts0C0V_AA0C10SavePolicyOtYaKF",
-      "target": "s:13PositronicKit19MemoryStoreProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit19MemoryStoreProtocolP05fetchC02id11PKContracts0C0VSg10Foundation4UUIDV_tYaKF",
-      "target": "s:13PositronicKit19MemoryStoreProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit19MemoryStoreProtocolP06deleteC02idy10Foundation4UUIDV_tYaKF",
-      "target": "s:13PositronicKit19MemoryStoreProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit19MemoryStoreProtocolP06hasAnyC0SbyYaKF",
-      "target": "s:13PositronicKit19MemoryStoreProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit19MemoryStoreProtocolP06updateC0yy11PKContracts0C0VYaKF",
-      "target": "s:13PositronicKit19MemoryStoreProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit19MemoryStoreProtocolP13pruneMemories8matching6dryRunSiSS_SbtYaKF",
-      "target": "s:13PositronicKit19MemoryStoreProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit19MemoryStoreProtocolP13pruneMemories9olderThan6dryRunSiSd_SbtYaKF",
-      "target": "s:13PositronicKit19MemoryStoreProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit19MemoryStoreProtocolP14searchMemories14matchingAnyTagSay11PKContracts0C0VGSaySSG_tYaKF",
-      "target": "s:13PositronicKit19MemoryStoreProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit19MemoryStoreProtocolP14searchMemories5querySay11PKContracts0C0VGSS_tYaKF",
-      "target": "s:13PositronicKit19MemoryStoreProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit19MemoryStoreProtocolP14vacuumMemories9thresholdSiSd_tYaKF",
-      "target": "s:13PositronicKit19MemoryStoreProtocolP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "requirementOf",
-      "source": "s:13PositronicKit19MemoryStoreProtocolP16fetchAllMemoriesSay11PKContracts0C0VGyYaKF",
-      "target": "s:13PositronicKit19MemoryStoreProtocolP"
     },
     {
       "module": "PositronicKit",

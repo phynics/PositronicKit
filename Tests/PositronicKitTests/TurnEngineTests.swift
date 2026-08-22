@@ -104,8 +104,7 @@ struct TurnEngineTests {
 
             let events = try await collect(stream)
 
-            // Should have meta.generationContext, delta.generation, and completion.generationCompleted
-            #expect(events.contains(where: { if case .meta(.generationContext) = $0 { return true }; return false }))
+            // Should have delta.generation and completion.generationCompleted
             #expect(events.contains(where: { if case let .delta(.generation(text: text)) = $0 { return text == "Hello, world!" }; return false }))
             #expect(events.contains(where: { if case .completion(.generationCompleted) = $0 { return true }; return false }))
         }
@@ -912,38 +911,6 @@ struct TurnEngineTests {
 
             await #expect(throws: (any Error).self) {
                 for try await _ in stream {}
-            }
-        }
-    }
-
-    // MARK: - Group 6: Metadata & Context Events
-
-    @Test("Generation context event is emitted first")
-    func generationContextEventEmittedFirst() async throws {
-        try await withTurnEngineDependencies { engine, mockLLM, _ in
-            mockLLM.mockClient.nextResponse = "Hello"
-
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Hi",
-                tools: []
-            )
-
-            var firstEvent: TurnEvent?
-            for try await event in stream {
-                if firstEvent == nil {
-                    firstEvent = event
-                }
-            }
-
-            if let first = firstEvent {
-                if case .meta(.generationContext) = first {
-                    // Success
-                } else {
-                    #expect(Bool(false), "First event should be meta.generationContext, got \(first)")
-                }
-            } else {
-                #expect(Bool(false), "Stream was empty")
             }
         }
     }

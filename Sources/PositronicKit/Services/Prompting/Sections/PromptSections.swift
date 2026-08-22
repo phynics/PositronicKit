@@ -26,50 +26,6 @@ public struct SystemInstructions: Prompt {
     }
 }
 
-public struct Memories: Prompt {
-    public let memories: [Memory]
-    public let summarizedContent: String?
-
-    public init(_ memories: [Memory], summarizedContent: String? = nil) {
-        self.memories = memories
-        self.summarizedContent = summarizedContent
-    }
-
-    public var body: some Prompt {
-        TextPrompt(
-            id: "memories",
-            priority: 85,
-            compression: .summarize,
-            cachePolicy: .volatile,
-            estimatedTokens: estimatedTokens,
-            render: renderContent
-        )
-    }
-
-    private func renderContent() async -> String? {
-        if let summary = summarizedContent {
-            return """
-            === MEMORY CONTEXT (SUMMARIZED) ===
-            \(summary)
-            """
-        }
-
-        guard !memories.isEmpty else { return nil }
-        return """
-        Found \(memories.count) relevant memories:
-
-        \(memories.promptContent)
-        """
-    }
-
-    private var estimatedTokens: Int {
-        if let summary = summarizedContent {
-            return TokenEstimator.estimate(text: summary)
-        }
-        return TokenEstimator.estimate(parts: memories.map(\.content))
-    }
-}
-
 public struct Tools: Prompt {
     public let tools: [AnyTool]
 
@@ -131,42 +87,33 @@ public struct ChatHistory: Prompt {
     }
 }
 
-public struct ContextNotes: Prompt {
-    public let notes: [ContextNote]
+/// Bounded host-provided values captured for one Turn.
+public struct TurnContextContributions: Prompt {
+    public let contributions: [TurnContextContribution]
 
-    public init(_ notes: [ContextNote]) {
-        self.notes = notes
+    public init(_ contributions: [TurnContextContribution]) {
+        self.contributions = contributions
     }
 
     public var body: some Prompt {
         TextPrompt(
-            id: "context_notes",
-            priority: 90,
+            id: "turn.context-contributions",
+            priority: 89,
             compression: .truncate(keeping: .head),
             cachePolicy: .volatile,
-            estimatedTokens: TokenEstimator.estimate(parts: notes.map(\.content)),
+            estimatedTokens: TokenEstimator.estimate(parts: contributions.map { $0.value.textValue }),
             render: renderContent
         )
     }
 
     private func renderContent() async -> String? {
-        guard !notes.isEmpty else { return nil }
-
-        let notesText = notes.map { note in
-            """
-            [File: \(note.name) (\(note.source))]
-            \(note.content)
-            """
+        guard !contributions.isEmpty else { return nil }
+        let values = contributions.map { contribution in
+            "[\(contribution.namespace).\(contribution.key)]\n\(contribution.value.textValue)"
         }.joined(separator: "\n\n")
-
-        return """
-        Context files (edit or add files under `Notes/` to persist long-term information):
-
-        \(notesText)
-        """
+        return "## Turn Context\n\n\(values)"
     }
 }
-
 public struct UserQuery: Prompt {
     public let content: MessageContent
     public var query: String { content.text }

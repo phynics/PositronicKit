@@ -197,7 +197,7 @@ extension ThreadManager {
     }
 
     /// Evicts all in-memory runtime state for a thread: the cached `Thread`,
-    /// `TurnBriefingBuilder`, `ThreadToolRegistry`, thread degradations, and (when a
+    /// `ThreadToolRegistry`, thread degradations, and (when a
     /// prompt-history registry was injected) the journal-diff history entry. Does not touch
     /// persistence.
     ///
@@ -236,7 +236,6 @@ extension ThreadManager {
         }
 
         threads.removeValue(forKey: id)
-        turnBriefingBuilders.removeValue(forKey: id)
         toolManagers.removeValue(forKey: id)
         threadDegradations.removeValue(forKey: id)
         await promptHistoryRegistry?.removeHistory(for: id)
@@ -484,39 +483,6 @@ private extension ThreadManager {
             ))
             workspaceIDs = []
         }
-        let contextWorkspace: (any WorkspaceFileProvider)?
-        if let firstId = workspaceIDs.first {
-            do {
-                if let provider = try await workspaceResolver.workspace(id: firstId) {
-                    contextWorkspace = provider as? any WorkspaceFileProvider
-                } else {
-                    contextWorkspace = nil
-                }
-            } catch {
-                logger.warning("""
-                setupThreadComponents: context workspace resolution failed — \
-                workspace: \(firstId.uuidString.prefix(8)), thread: \(thread.id.uuidString.prefix(8)), \
-                operation: resolveContextWorkspace, error: \(ErrorKit.userFriendlyMessage(for: error))
-                """)
-                threadDegradations[thread.id, default: []].append(TurnDiagnostic(
-                    dependency: .workspace,
-                    operation: "resolveContextWorkspace",
-                    entityID: "workspace:\(firstId.uuidString.prefix(8))",
-                    errorIdentity: TurnEvent.ErrorIdentity.extracting(from: error),
-                    message: ErrorKit.userFriendlyMessage(for: error)
-                ))
-                contextWorkspace = nil
-            }
-        } else {
-            contextWorkspace = nil
-        }
-
-        let turnBriefingBuilder = TurnBriefingBuilder(
-            workspace: contextWorkspace,
-            memoryStore: memoryStore
-        )
-        turnBriefingBuilders[thread.id] = turnBriefingBuilder
-
         let toolManager = RuntimeToolPolicyFactory.createToolManager(
             for: thread,
             jailRoot: workspaceURL.path,

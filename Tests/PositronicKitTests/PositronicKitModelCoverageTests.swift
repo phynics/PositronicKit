@@ -52,28 +52,6 @@ struct UnconfiguredLLMServiceCoverageTests {
     }
 }
 
-/// Coverage for `ContextNote.description` and Codable.
-@Suite("ContextNote")
-struct ContextNoteCoverageTests {
-
-    @Test("description includes name and source")
-    func descriptionFormat() {
-        let file = ContextNote(name: "Welcome", content: "Hello", source: "Notes/Welcome.md")
-        #expect(file.description.contains("Welcome"))
-        #expect(file.description.contains("Notes/Welcome.md"))
-    }
-
-    @Test("ContextNote is Codable")
-    func codable() throws {
-        let file = ContextNote(name: "test", content: "body", source: "src")
-        let data = try JSONEncoder().encode(file)
-        let decoded = try JSONDecoder().decode(ContextNote.self, from: data)
-        #expect(decoded.name == "test")
-        #expect(decoded.content == "body")
-        #expect(decoded.source == "src")
-    }
-}
-
 /// Coverage for `WorkspaceToolWrapper` — the adapter that wraps a workspace-provided
 /// tool definition to conform to the `Tool` protocol.
 @Suite("WorkspaceToolWrapper")

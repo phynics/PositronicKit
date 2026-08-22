@@ -121,10 +121,6 @@ struct TurnEngine {
         /// Streaming chat seam: the runtime turn loop, `LLMStreamingStage`, and the
         /// `isConfigured`/`configuration` precondition checks depend only on this.
         let llmService: any LLMStreamClient
-        /// Utility seam used solely by `TurnEngine.fetchContext` to generate RAG tags
-        /// (`generateTags`). Kept separate from `llmService` so the streaming seam stays
-        /// narrow; the facade and tests pass the same object for both (PKARCH-004 tension).
-        let utilityClient: any LLMUtilityClient
         let toolRouter: ToolRouter
         let turnContextSource: (any TurnContextSource)?
         let agentActivitySink: (any AgentActivitySink)?
@@ -166,7 +162,6 @@ struct TurnEngine {
             self.threadAuthorityCoordinator = threadAuthorityCoordinator ?? threadManager.threadAuthorityCoordinator
             self.agentAuthorityCoordinator = agentAuthorityCoordinator ?? AgentAuthorityCoordinator()
             self.llmService = llmService
-            self.utilityClient = llmService
             self.toolRouter = toolRouter
             self.turnContextSource = turnContextSource
             self.agentActivitySink = agentActivitySink
@@ -272,7 +267,6 @@ struct TurnEngine {
     ///   - message: The user's input message.
     ///   - tools: Pre-resolved tools available for this turn.
     ///   - toolOutputs: Optional list of tool outputs submitted from a previous externally executed turn.
-    ///   - turnBriefingBuilder: Optional turn briefing builder for RAG. If nil, no context is gathered.
     ///   - systemInstructions: Optional system instructions to override the default.
     ///   - agentId: Optional identifier for the agent.
     ///   - maxModelRounds: Maximum number of LLM turns before stopping. Defaults to 5.
@@ -283,7 +277,6 @@ struct TurnEngine {
         messageContent: MessageContent,
         tools: [AnyTool],
         toolOutputs: [ToolOutputSubmission]? = nil,
-        turnBriefingBuilder: TurnBriefingBuilder? = nil,
         systemInstructions: String? = nil,
         agentId: UUID? = nil,
         executionKind: TurnExecutionKind = .agentManaged,
@@ -294,7 +287,6 @@ struct TurnEngine {
         sidecars: [SidecarDirective] = [],
         sidecarCommitPolicy: SidecarCommitPolicy = .everyModelRound,
         includeSidecarMechanismPreamble: Bool = false,
-        contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
         assemblyLogger: Logger? = nil,
         responseModalities: Set<ResponseModality> = [.text],
         audioOutput: AudioOutputOptions? = nil
@@ -305,7 +297,6 @@ struct TurnEngine {
             messageContent: messageContent,
             tools: tools,
             toolOutputs: toolOutputs,
-            turnBriefingBuilder: turnBriefingBuilder,
             systemInstructions: systemInstructions,
             agentId: agentId,
             executionKind: executionKind,
@@ -316,7 +307,6 @@ struct TurnEngine {
             sidecars: sidecars,
             sidecarCommitPolicy: sidecarCommitPolicy,
             includeSidecarMechanismPreamble: includeSidecarMechanismPreamble,
-            contextPipeline: contextPipeline,
             assemblyLogger: assemblyLogger,
             responseModalities: responseModalities,
             audioOutput: audioOutput
@@ -329,7 +319,6 @@ struct TurnEngine {
         message: String,
         tools: [AnyTool],
         toolOutputs: [ToolOutputSubmission]? = nil,
-        turnBriefingBuilder: TurnBriefingBuilder? = nil,
         systemInstructions: String? = nil,
         agentId: UUID? = nil,
         executionKind: TurnExecutionKind = .agentManaged,
@@ -340,7 +329,6 @@ struct TurnEngine {
         sidecars: [SidecarDirective] = [],
         sidecarCommitPolicy: SidecarCommitPolicy = .everyModelRound,
         includeSidecarMechanismPreamble: Bool = false,
-        contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
         assemblyLogger: Logger? = nil
     ) async throws -> AsyncThrowingStream<TurnEvent, Error> {
         try await execute(
@@ -349,7 +337,6 @@ struct TurnEngine {
             messageContent: MessageContent(message),
             tools: tools,
             toolOutputs: toolOutputs,
-            turnBriefingBuilder: turnBriefingBuilder,
             systemInstructions: systemInstructions,
             agentId: agentId,
             executionKind: executionKind,
@@ -360,7 +347,6 @@ struct TurnEngine {
             sidecars: sidecars,
             sidecarCommitPolicy: sidecarCommitPolicy,
             includeSidecarMechanismPreamble: includeSidecarMechanismPreamble,
-            contextPipeline: contextPipeline,
             assemblyLogger: assemblyLogger
         )
     }
@@ -371,7 +357,6 @@ struct TurnEngine {
         messageContent: MessageContent,
         tools: [AnyTool],
         toolOutputs: [ToolOutputSubmission]? = nil,
-        turnBriefingBuilder: TurnBriefingBuilder? = nil,
         systemInstructions: String? = nil,
         agentId: UUID? = nil,
         executionKind: TurnExecutionKind = .agentManaged,
@@ -382,7 +367,6 @@ struct TurnEngine {
         sidecars: [SidecarDirective] = [],
         sidecarCommitPolicy: SidecarCommitPolicy = .everyModelRound,
         includeSidecarMechanismPreamble: Bool = false,
-        contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
         assemblyLogger: Logger? = nil,
         responseModalities: Set<ResponseModality> = [.text],
         audioOutput: AudioOutputOptions? = nil
@@ -405,7 +389,6 @@ struct TurnEngine {
             messageContent: messageContent,
             tools: tools,
             toolOutputs: toolOutputs,
-            turnBriefingBuilder: turnBriefingBuilder,
             systemInstructions: systemInstructions,
             agentId: agentId,
             executionKind: executionKind,
@@ -418,7 +401,6 @@ struct TurnEngine {
             sidecars: sidecars,
             sidecarCommitPolicy: sidecarCommitPolicy,
             includeSidecarMechanismPreamble: includeSidecarMechanismPreamble,
-            contextPipeline: contextPipeline,
             assemblyLogger: assemblyLogger,
             responseModalities: responseModalities,
             audioOutput: audioOutput,

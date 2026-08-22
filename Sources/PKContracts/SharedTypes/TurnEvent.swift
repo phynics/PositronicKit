@@ -35,9 +35,8 @@ public enum ToolExecutionStatus: Sendable, Codable {
 
 /// Events emitted by TurnEngine during a turn.
 ///
-/// Events are categorized into four groups:
+/// Events are categorized into three groups:
 /// - `delta`: Incremental streaming events (text, reasoning, tool calls, tool progress)
-/// - `meta`: Informational metadata events (context, generation info)
 /// - `error`: Error events (tool errors, general errors)
 /// - `completion`: Terminal events signaling final results
 public enum TurnEvent: Sendable, Codable {
@@ -270,11 +269,6 @@ public enum TurnEvent: Sendable, Codable {
                 try values.encode(delta, forKey: .delta)
             }
         }
-    }
-
-    public enum MetaEvent: Sendable, Codable {
-        /// RAG context metadata — emitted once at the start of the loop
-        case generationContext(metadata: GenerationMetadata)
     }
 
     public enum ErrorEvent: Sendable, Codable {
@@ -520,7 +514,6 @@ public enum TurnEvent: Sendable, Codable {
     }
 
     case delta(DeltaEvent)
-    case meta(MetaEvent)
     case error(ErrorEvent)
     case completion(CompletionEvent)
 }
@@ -541,7 +534,7 @@ public extension TurnEvent {
             case .toolExecution, .sidecarsCompleted:
                 return false
             }
-        case .delta, .meta:
+        case .delta:
             return false
         }
     }
@@ -569,11 +562,6 @@ public extension TurnEvent {
 
     static func sidecar(_ delta: SidecarDelta) -> TurnEvent {
         .delta(.sidecar(delta: delta))
-    }
-
-    /// Meta shortcuts
-    static func generationContext(_ metadata: GenerationMetadata) -> TurnEvent {
-        .meta(.generationContext(metadata: metadata))
     }
 
     /// Error shortcuts

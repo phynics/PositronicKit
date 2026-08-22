@@ -157,7 +157,6 @@ struct PromptSnapshotBuilder {
                     toolCalls: message.toolCalls,
                     toolCallID: message.toolCallID,
                     parentID: message.parentID,
-                    recalledMemories: message.recalledMemories,
                     isSummary: message.isSummary,
                     summaryType: message.summaryType,
                     status: message.status

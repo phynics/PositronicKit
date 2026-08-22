@@ -61,7 +61,6 @@ struct LoggingRedactionTests {
                 messageStore: persistence,
                 workspaceStore: persistence,
                 toolPersistence: persistence,
-                memoryStore: persistence
             ),
             workspaceRoot: workspaceRoot
         )

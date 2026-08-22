@@ -88,11 +88,11 @@ extension TurnEngine {
         return AgentPreflight(instance: instance, diagnostics: [])
     }
 
-    /// Consolidates all pre-turn logic: saving inputs, gathering context, resolving entities,
+    /// Consolidates all pre-turn logic: saving inputs, resolving entities,
     /// and building the initial prompt.
     ///
-    /// PKRR-006: Input persistence is deferred until **after** history validation, context
-    /// gathering, workspace lookup, prompt assembly, and the initial prompt-history transition
+    /// PKRR-006: Input persistence is deferred until **after** history validation,
+    /// workspace lookup, prompt assembly, and the initial prompt-history transition
     /// all succeed. If any preparation step throws, no new user message or tool output is
     /// persisted, preventing orphan inputs on retry.
     /// The `requestId` gates the in-memory turn and is reused as the user's existing message identity
@@ -107,7 +107,6 @@ extension TurnEngine {
         messageContent: MessageContent,
         tools: [AnyTool],
         toolOutputs: [ToolOutputSubmission]?,
-        turnBriefingBuilder: TurnBriefingBuilder?,
         systemInstructions: String?,
         agentId: UUID?,
         executionKind: TurnExecutionKind,
@@ -121,7 +120,6 @@ extension TurnEngine {
         sidecars: [SidecarDirective] = [],
         sidecarCommitPolicy: SidecarCommitPolicy = .everyModelRound,
         includeSidecarMechanismPreamble: Bool = false,
-        contextPipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil,
         assemblyLogger: Logger? = nil,
         responseModalities: Set<ResponseModality> = [.text],
         audioOutput: AudioOutputOptions? = nil,
@@ -352,7 +350,7 @@ extension TurnEngine {
             let currentRemoteDepth = threadMessages.map(\.remoteDepth).max() ?? 0
 
             // 5. Build an in-memory augmented history that includes the new tool outputs and
-            //    user message, so validation, context gathering, and prompt assembly see the
+            //    user message, so validation and prompt assembly see the
             //    same history they would after persistence — without actually persisting yet.
             for output in validatedToolOutputs {
                 history.append(Message(content: output.output, role: .tool, toolCallID: output.toolCallID))
@@ -364,28 +362,9 @@ extension TurnEngine {
             // 6. Validate the augmented tool-call history.
             try validateToolHistory(history)
 
-            // 7. Load context
-            let contextResult = try await fetchContext(
-                turnBriefingBuilder: turnBriefingBuilder,
-                message: messageContent.text,
-                history: history,
-                pipeline: contextPipeline
-            )
-            var turnDiagnostics = contextResult.diagnostics
-            let contributionNotes = resolvedContributions.map { contribution in
-                ContextNote(
-                    name: contribution.noteName,
-                    content: contribution.value.textValue,
-                    source: contribution.source
-                )
-            }
-            let contextData = ContextData(
-                notes: contextResult.data.notes + contributionNotes,
-                memories: contextResult.data.memories,
-                generatedTags: contextResult.data.generatedTags,
-                augmentedQuery: contextResult.data.augmentedQuery,
-                executionTime: contextResult.data.executionTime
-            )
+            // 7. Resolve preparation diagnostics. Agent context and bounded Turn contributions
+            // were captured before this point and are rendered directly into the prompt.
+            var turnDiagnostics: [TurnDiagnostic] = []
 
             // 8. Resolve session entities. Direct Turns deliberately do not inherit an Agent's
             // primary workspace, attached workspace context, or memory; their contributors are
@@ -432,8 +411,7 @@ extension TurnEngine {
             let promptRequest = LLMPromptRequest(
                 userContent: messageContent,
                 turnInstructions: sidecarTurnInstructions,
-                contextNotes: contextData.notes,
-                memories: contextData.memories,
+                contextContributions: resolvedContributions,
                 chatHistory: history,
                 tools: effectiveTools,
                 workspaces: workspaceResult.attached,
@@ -591,7 +569,6 @@ extension TurnEngine {
                 systemInstructions: effectiveSystemInstructions,
                 availableTools: effectiveTools,
                 workspaceToolCatalog: resolvedWorkspaceToolCatalog,
-                contextData: contextData,
                 remoteDepth: currentRemoteDepth,
                 generationParameters: generationParameters,
                 structuredOutput: structuredOutput,
@@ -814,48 +791,6 @@ private extension TurnEngine {
             threadID,
             operation: operation
         )
-    }
-
-    func fetchContext(
-        turnBriefingBuilder: TurnBriefingBuilder?,
-        message: String,
-        history: [Message],
-        pipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil
-    ) async throws -> (data: ContextData, diagnostics: [TurnDiagnostic]) {
-        guard let turnBriefingBuilder else { return (ContextData(), []) }
-
-        do {
-            let stream = await turnBriefingBuilder.gatherContext(
-                for: message.isEmpty ? (history.last?.content ?? "") : message,
-                history: history,
-                tagGenerator: { [utilityClient = dependencies.utilityClient] query in await utilityClient.bestEffortTags(for: query) },
-                overridePipeline: pipeline
-            )
-
-            for try await event in stream {
-                if case let .complete(data) = event {
-                    return (data, [])
-                }
-            }
-        } catch {
-            let diagnostic = diagnostic(for: .context, operation: "gatherContext", entityId: "turn", error: error)
-            if dependencies.degradationPolicy == .failRequired {
-                throw TurnDegradationError.required(diagnostic, error)
-            }
-            logger.warning("Failed to gather context: \(error)")
-            return (ContextData(), [diagnostic])
-        }
-        let diagnostic = TurnDiagnostic(
-            dependency: .context,
-            operation: "gatherContext",
-            entityID: "turn",
-            errorIdentity: .init(domain: PKErrorDomain.context, code: 9011),
-            message: "Context gathering completed without context data."
-        )
-        if dependencies.degradationPolicy == .failRequired {
-            throw TurnDegradationError.required(diagnostic, TurnBriefingBuilderError.persistenceFailed(NSError(domain: "PositronicKit", code: 1)))
-        }
-        return (ContextData(), [diagnostic])
     }
 
     func diagnostic(for dependency: TurnDependency, operation: String, entityId: String, error: Error) -> TurnDiagnostic {

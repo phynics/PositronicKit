@@ -128,7 +128,7 @@ struct PromptAssemblyTests {
         let messages = sink.messages()
         #expect(messages.contains("Starting prompt section: SystemInstructions"))
         #expect(messages.contains(where: { $0.hasPrefix("Completed prompt section: SystemInstructions in ") }))
-        #expect(messages.contains(where: { $0.contains("prompt section(s) from 7 prompt fragment(s).") }))
+        #expect(messages.contains(where: { $0.contains("prompt section(s) from 5 prompt fragment(s).") }))
     }
 
     @Test("PromptAssembler rejects duplicate section ids")

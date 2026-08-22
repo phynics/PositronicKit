@@ -22,7 +22,6 @@ internal struct KitDependencies: Sendable {
     var requestOriginStore: any RequestOriginStoreProtocol
     var threadPersistence: any ThreadPersistenceProtocol
     var workspacePersistence: any WorkspaceStore
-    var memoryStore: any MemoryStoreProtocol
     var toolPersistence: any ToolPersistenceProtocol
     var workspaceProfile: WorkspaceProfile
     var workspaceCreator: any WorkspaceFactory

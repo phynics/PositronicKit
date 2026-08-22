@@ -307,54 +307,6 @@ struct PublicRuntimeStoriesTests {
         #expect(messages.isEmpty)
     }
 
-    @Test
-    func runUsesThreadTurnBriefingBuilderByDefault() async throws {
-        let mockLLM = MockLLMService()
-        let mockPersistence = MockPersistenceService()
-        let workspace = TestWorkspace()
-
-        mockLLM.mockClient.nextResponse = "Hello with context"
-
-        let chat = PositronicKit(configuration: .init(
-            provider: .init(languageModel: mockLLM),
-            persistence: .init(
-                messageStore: mockPersistence,
-                threadPersistence: mockPersistence,
-                workspacePersistence: mockPersistence,
-                memoryStore: mockPersistence,
-                toolPersistence: mockPersistence,
-                agentStore: mockPersistence,
-                requestOriginStore: mockPersistence
-            ),
-            runtime: .init(
-                workspaceCreator: MockWorkspaceCreator(),
-                workspaceRoot: workspace.root
-            )
-        ))
-        let thread = try await chat.threads.create(title: "Context Enabled")
-        let agent = try await chat.agents.create(name: "Context Agent", description: "test")
-        try await chat.agents.attach(agent.id, to: thread.id)
-
-        let events = try await chat.threads.open(thread.id).run(TurnRequest(
-            threadID: thread.id,
-            message: "Use default context manager"
-        )).collect()
-
-        guard let generationContext = events.first(where: {
-            if case .meta(.generationContext) = $0 { return true }
-            return false
-        }) else {
-            Issue.record("Expected generationContext event")
-            return
-        }
-
-        if case let .meta(.generationContext(metadata)) = generationContext {
-            #expect(!metadata.files.isEmpty, "Thread-managed Notes should be discovered by default")
-        } else {
-            Issue.record("First matching event was not generationContext")
-        }
-    }
-
     // MARK: - Helpers
 
     private func makeAcceptanceRuntime(
@@ -372,7 +324,6 @@ struct PublicRuntimeStoriesTests {
                 messageStore: mockPersistence,
                 threadPersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
-                memoryStore: mockPersistence,
                 toolPersistence: mockPersistence,
                 agentStore: mockPersistence,
                 requestOriginStore: mockPersistence
@@ -401,7 +352,6 @@ struct PublicRuntimeStoriesTests {
                     messageStore: mockPersistence,
                     threadPersistence: mockPersistence,
                     workspacePersistence: mockPersistence,
-                    memoryStore: mockPersistence,
                     toolPersistence: mockPersistence,
                     agentStore: mockPersistence,
                     requestOriginStore: mockPersistence

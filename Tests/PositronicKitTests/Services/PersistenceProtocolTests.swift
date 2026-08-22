@@ -13,7 +13,6 @@ struct PersistenceProtocolTests {
         let mock = MockPersistenceStore()
 
         // Verify it conforms to all required domains
-        let _: MemoryStoreProtocol = mock
         let _: ThreadMessageStoreProtocol = mock
         let _: ThreadPersistenceProtocol = mock
         let _: AgentTemplateStoreProtocol = mock
@@ -24,7 +23,6 @@ struct PersistenceProtocolTests {
 
 /// Minimal mock to verify protocol definitions exist
 final class MockPersistenceStore:
-    MemoryStoreProtocol,
     ThreadMessageStoreProtocol,
     ThreadPersistenceProtocol,
     AgentTemplateStoreProtocol,
@@ -32,41 +30,6 @@ final class MockPersistenceStore:
     ToolPersistenceProtocol,
     @unchecked Sendable // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
 {
-    /// MemoryStoreProtocol
-    func saveMemory(_: Memory, policy _: MemorySavePolicy) async throws -> UUID {
-        UUID()
-    }
-
-    func fetchMemory(id _: UUID) async throws -> Memory? {
-        nil
-    }
-
-    func fetchAllMemories() async throws -> [Memory] {
-        []
-    }
-
-    func searchMemories(query _: String) async throws -> [Memory] {
-        []
-    }
-
-    func searchMemories(matchingAnyTag _: [String]) async throws -> [Memory] {
-        []
-    }
-
-    func deleteMemory(id _: UUID) async throws {}
-    func updateMemory(_: Memory) async throws {}
-    func vacuumMemories(threshold _: Double) async throws -> Int {
-        0
-    }
-
-    func pruneMemories(matching _: String, dryRun _: Bool) async throws -> Int {
-        0
-    }
-
-    func pruneMemories(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int {
-        0
-    }
-
     // MessageStoreProtocol
     func saveMessage(_: ThreadMessage) async throws {}
     func fetchMessages(for _: UUID) async throws -> [ThreadMessage] {

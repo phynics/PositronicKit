@@ -2,42 +2,15 @@ import Foundation
 
 /// A serializable representation of the context assembled for a turn.
 ///
-/// Mirrors the debug-relevant fields of `TurnContext` and `ContextData`
-/// so that `/debug` and other consumers can inspect what the engine used
-/// without depending on internal `PositronicKit` types.
+/// Mirrors the prompt messages used for a turn without exposing internal runtime types.
 public struct TurnContextSnapshot: Sendable, Codable, Equatable {
     /// The assembled prompt messages sent to the LLM, in order.
     public let promptMessages: [PromptMessage]
 
-    /// Files retrieved and injected into the prompt.
-    public let files: [FileEntry]
-
-    /// Memories retrieved via tag search.
-    public let memories: [MemoryEntry]
-
-    /// Tags generated from the user query for retrieval.
-    public let generatedTags: [String]
-
-    /// The augmented query used for tag generation (if any).
-    public let augmentedQuery: String?
-
-    /// Time spent gathering context (seconds).
-    public let executionTime: TimeInterval
-
     public init(
-        promptMessages: [PromptMessage] = [],
-        files: [FileEntry] = [],
-        memories: [MemoryEntry] = [],
-        generatedTags: [String] = [],
-        augmentedQuery: String? = nil,
-        executionTime: TimeInterval = 0
+        promptMessages: [PromptMessage] = []
     ) {
         self.promptMessages = promptMessages
-        self.files = files
-        self.memories = memories
-        self.generatedTags = generatedTags
-        self.augmentedQuery = augmentedQuery
-        self.executionTime = executionTime
     }
 
     /// A serialized prompt message sent to the LLM.
@@ -54,24 +27,4 @@ public struct TurnContextSnapshot: Sendable, Codable, Equatable {
         }
     }
 
-    /// A context file that was included in the prompt.
-    public struct FileEntry: Sendable, Codable, Equatable {
-        public let name: String
-        public let source: String
-
-        public init(name: String, source: String) {
-            self.name = name
-            self.source = source
-        }
-    }
-
-    /// A memory retrieved for context.
-    public struct MemoryEntry: Sendable, Codable, Equatable {
-        public let id: UUID
-        public let content: String
-        public init(id: UUID, content: String) {
-            self.id = id
-            self.content = content
-        }
-    }
 }

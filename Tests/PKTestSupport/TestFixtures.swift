@@ -15,18 +15,6 @@ import PositronicKit
         }
     }
 
-    public extension Memory {
-        static func fixture(
-            id: UUID = UUID(),
-            title: String = "Test Memory",
-            content: String = "Test memory content",
-            tags: [String] = ["test"],
-            timestamp: Date = Date()
-        ) -> Memory {
-            Memory(id: id, title: title, content: content, createdAt: timestamp, updatedAt: timestamp, tags: tags)
-        }
-    }
-
     public extension WorkspaceReference {
         static func fixture(
             id: UUID = UUID(),

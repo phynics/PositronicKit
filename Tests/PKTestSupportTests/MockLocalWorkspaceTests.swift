@@ -104,7 +104,7 @@ final class MockLocalWorkspaceTests {
         try "nested".write(to: subDir.appendingPathComponent("nested.txt"), atomically: true, encoding: .utf8)
 
         // Returned paths stay root-relative (not relative to the requested `path`) because callers
-        // (e.g. NoteDiscoveryStage) feed listFiles' output straight into readFile/writeFile, which
+        // Context discovery consumers feed listFiles' output straight into readFile/writeFile, which
         // resolve paths relative to the workspace root.
         let scoped = try await workspace.listFiles(path: "sub")
         #expect(scoped == ["sub/nested.txt"])

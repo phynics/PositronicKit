@@ -44,13 +44,6 @@ extension TurnEngine {
             messageStore: dependencies.messageStore
         )
 
-        // 1. Emit initial RAG context for frontend observability
-        continuation.yield(.generationContext(GenerationMetadata(
-            memories: context.contextData.memories.map(\.id),
-            files: context.contextData.notes.map { $0.name },
-            diagnostics: context.diagnostics
-        )))
-
         var loopMessages = context.currentMessages
         var loopRenderedPrompt = context.renderedPrompt
         var loopPromptHistoryUpdate = context.promptHistoryUpdate

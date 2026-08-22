@@ -20,7 +20,6 @@ struct ThreadLifecycleInvariantTests {
                 messageStore: mockPersistence,
                 threadPersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
-                memoryStore: mockPersistence,
                 toolPersistence: mockPersistence,
                 agentStore: mockPersistence,
                 requestOriginStore: mockPersistence
@@ -51,7 +50,6 @@ struct ThreadLifecycleInvariantTests {
                 messageStore: mockMessages,
                 threadPersistence: failingStore,
                 workspacePersistence: mockMessages,
-                memoryStore: mockMessages,
                 toolPersistence: mockMessages,
                 agentStore: mockMessages,
                 requestOriginStore: mockMessages

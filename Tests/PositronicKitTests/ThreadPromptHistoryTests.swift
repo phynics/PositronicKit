@@ -56,8 +56,6 @@ actor ThreadPromptHistoryTests {
         let history = ThreadPromptHistory()
         let rendered = try await PromptAssembler.assemble(LLMPromptRequest(
             userQuery: "Current question",
-            contextNotes: [ContextNote(name: "note.md", content: "Context", source: "Notes")],
-            memories: [],
             chatHistory: [],
             tools: [],
             workspaces: [makePromptWorkspace(path: "/repo-a")],
@@ -79,8 +77,6 @@ actor ThreadPromptHistoryTests {
         let history = ThreadPromptHistory()
         let prompt = try await PromptAssembler.assemble(LLMPromptRequest(
             userQuery: "question",
-            contextNotes: [],
-            memories: [],
             chatHistory: [],
             tools: [],
             workspaces: [],

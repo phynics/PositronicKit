@@ -38,8 +38,6 @@ struct STAB8ReasoningEchoTests {
         let prompt = try await PromptAssembler.assemble(
             LLMPromptRequest(
                 userQuery: "next",
-                contextNotes: [],
-                memories: [],
                 chatHistory: history,
                 tools: [],
                 workspaces: [],
@@ -64,8 +62,6 @@ struct STAB8ReasoningEchoTests {
         let prompt = try await PromptAssembler.assemble(
             LLMPromptRequest(
                 userQuery: "next",
-                contextNotes: [],
-                memories: [],
                 chatHistory: history,
                 tools: [],
                 workspaces: [],

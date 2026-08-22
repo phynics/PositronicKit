@@ -21,7 +21,6 @@ struct SidecarTurnIntegrationTests {
                 messageStore: persistence,
                 threadPersistence: persistence,
                 workspacePersistence: persistence,
-                memoryStore: persistence,
                 toolPersistence: persistence,
                 agentStore: persistence,
                 requestOriginStore: persistence
@@ -396,8 +395,6 @@ struct SidecarTurnIntegrationTests {
     /// fields that legitimately differ between two independent turns.
     private static func signature(for event: TurnEvent) -> String {
         switch event {
-        case let .meta(.generationContext(metadata)):
-            return "generationContext(\(metadata.memories), \(metadata.files))"
         case let .delta(.generation(text)):
             return "generation(\(text))"
         case let .completion(.generationCompleted(message, _)):

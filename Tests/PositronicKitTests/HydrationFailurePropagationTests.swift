@@ -48,8 +48,7 @@ struct HydrationFailurePropagationTests {
             ))
         }
 
-        // The hydration attempt must actually have hit the store, proving
-        // `resolveTurnBriefingBuilder` didn't short-circuit before reaching it.
+        // The hydration attempt must actually have hit the store before the run was rejected.
         #expect(failingThreadPersistence.fetchAttemptCount >= 1)
     }
 

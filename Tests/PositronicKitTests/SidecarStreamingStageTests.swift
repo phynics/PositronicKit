@@ -104,7 +104,6 @@ struct SidecarStreamingStageTests {
             maxModelRounds: 5,
             systemInstructions: nil,
             availableTools: [],
-            contextData: ContextData(),
             remoteDepth: 0,
             sidecars: sidecars,
             currentMessages: [LLMMessage(role: .user, content: "hi")],

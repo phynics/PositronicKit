@@ -17,7 +17,6 @@ struct GenerationParametersTests {
                 messageStore: mockPersistence,
                 threadPersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
-                memoryStore: mockPersistence,
                 toolPersistence: mockPersistence,
                 agentStore: mockPersistence,
                 requestOriginStore: mockPersistence
@@ -51,7 +50,6 @@ struct GenerationParametersTests {
                 messageStore: mockPersistence,
                 threadPersistence: mockPersistence,
                 workspacePersistence: mockPersistence,
-                memoryStore: mockPersistence,
                 toolPersistence: mockPersistence,
                 agentStore: mockPersistence,
                 requestOriginStore: mockPersistence

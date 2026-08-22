@@ -21,31 +21,3 @@ public struct ToolCallDelta: Sendable, Codable {
         self.arguments = arguments
     }
 }
-
-/// Metadata about the context sources used to generate a chat response.
-///
-/// This provides transparency into which memories and files the engine retrieved
-/// and provided to the LLM during the context gathering phase.
-public struct GenerationMetadata: Sendable, Codable {
-    /// List of unique memory identifiers retrieved for this turn.
-    public let memories: [UUID]
-    /// List of file paths or identifiers retrieved for this turn.
-    public let files: [String]
-    /// Preparation degradations observed before generation.
-    public let diagnostics: [TurnDiagnostic]
-
-    public init(memories: [UUID] = [], files: [String] = [], diagnostics: [TurnDiagnostic] = []) {
-        self.memories = memories
-        self.files = files
-        self.diagnostics = diagnostics
-    }
-
-    private enum CodingKeys: String, CodingKey { case memories, files, diagnostics }
-
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        memories = try container.decode([UUID].self, forKey: .memories)
-        files = try container.decode([String].self, forKey: .files)
-        diagnostics = try container.decodeIfPresent([TurnDiagnostic].self, forKey: .diagnostics) ?? []
-    }
-}

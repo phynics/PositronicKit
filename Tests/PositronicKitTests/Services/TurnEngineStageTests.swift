@@ -93,7 +93,6 @@ final class TurnEngineStageTests {
             maxModelRounds: 5,
             systemInstructions: nil,
             availableTools: availableTools,
-            contextData: ContextData(),
             remoteDepth: 0,
             currentMessages: [],
             modelRoundIndex: 1,

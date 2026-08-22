@@ -200,23 +200,4 @@ struct PositronicKitErrorContractTests {
         }
     }
 
-    // MARK: - TurnBriefingBuilderError
-
-    @Suite("TurnBriefingBuilderError")
-    struct TurnBriefingBuilderErrorTests {
-        @Test("Every case maps to a unique non-zero error code in the context domain")
-        func uniqueErrorCodes() {
-            let persistence = TurnBriefingBuilderError.persistenceFailed(NSError(domain: "x", code: 2))
-            #expect(persistence.errorCode == 2002)
-            #expect(persistence.errorDomain == PKErrorDomain.context)
-        }
-
-        @Test("persistenceFailed produces a user-facing retrieval message")
-        func persistenceFailedMessage() {
-            let error = TurnBriefingBuilderError.persistenceFailed(NSError(domain: "x", code: 2))
-            #expect(error.userFriendlyMessage.contains("retrieve"))
-            #expect(error.userFriendlyMessage.contains("memories") || error.userFriendlyMessage.contains("notes"))
-        }
-    }
-
 }

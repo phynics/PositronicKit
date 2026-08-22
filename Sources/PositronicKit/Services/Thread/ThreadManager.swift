@@ -45,7 +45,6 @@ actor ThreadManager {
         let workspaceBindingRepository: any WorkspaceBindingRepository
         let runtimeRepository: (any ThreadRuntimeRepository)?
         let toolPersistence: any ToolPersistenceProtocol
-        let memoryStore: any MemoryStoreProtocol
 
         init(
             threadStore: any ThreadPersistenceProtocol,
@@ -53,8 +52,7 @@ actor ThreadManager {
             workspaceStore: any WorkspaceStore,
             workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil,
             runtimeRepository: (any ThreadRuntimeRepository)? = nil,
-            toolPersistence: any ToolPersistenceProtocol,
-            memoryStore: any MemoryStoreProtocol = InMemoryMemoryStore()
+            toolPersistence: any ToolPersistenceProtocol
         ) {
             self.threadStore = threadStore
             self.messageStore = messageStore
@@ -64,7 +62,6 @@ actor ThreadManager {
                 ?? InMemoryWorkspaceBindingRepository()
             self.runtimeRepository = runtimeRepository
             self.toolPersistence = toolPersistence
-            self.memoryStore = memoryStore
         }
     }
 
@@ -72,9 +69,6 @@ actor ThreadManager {
 
     /// In-memory cache of active threads.
     var threads: [UUID: Thread] = [:]
-
-    /// Context managers responsible for RAG and context gathering for each thread.
-    var turnBriefingBuilders: [UUID: TurnBriefingBuilder] = [:]
 
     /// Tool managers handling tool registration and availability for each thread.
     var toolManagers: [UUID: ThreadToolRegistry] = [:]
@@ -107,7 +101,6 @@ actor ThreadManager {
     let workspaceBindingRepository: any WorkspaceBindingRepository
     let runtimeRepository: (any ThreadRuntimeRepository)?
     let toolPersistence: any ToolPersistenceProtocol
-    let memoryStore: any MemoryStoreProtocol
 
     /// Persists a workspace reference into the store this manager validates,
     /// so an import followed by `attachWorkspace(_:to:)` succeeds.
@@ -178,7 +171,6 @@ actor ThreadManager {
         workspaceBindingRepository = stores.workspaceBindingRepository
         runtimeRepository = stores.runtimeRepository
         toolPersistence = stores.toolPersistence
-        memoryStore = stores.memoryStore
         self.workspaceProfile = workspaceProfile
         self.runtimeToolPolicy = runtimeToolPolicy
         self.promptHistoryRegistry = promptHistoryRegistry
@@ -418,11 +410,6 @@ extension ThreadManager {
         {
             throw ThreadError.threadNotFound
         }
-    }
-
-    /// Retrieves the turn briefing builder for a thread if it is active.
-    func getTurnBriefingBuilder(for threadID: UUID) -> TurnBriefingBuilder? {
-        return turnBriefingBuilders[threadID]
     }
 
     /// Retrieves the tool manager for a thread if it is active.

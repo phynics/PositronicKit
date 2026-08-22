@@ -47,8 +47,8 @@ public extension PositronicKit {
     ///
     /// Use ``validateDurability()`` to detect mixed-durability configurations (some stores
     /// durable, others in-memory) that can lose data on restart. Use
-    /// `fullyPersistent(messageStore:threadPersistence:workspacePersistence:memoryStore:toolPersistence:agentStore:requestOriginStore:runtimeRepository:workspaceBindingRepository:)`
-    /// when all seven stores must be explicitly provided for full durability.
+    /// `fullyPersistent(messageStore:threadPersistence:workspacePersistence:toolPersistence:agentStore:requestOriginStore:runtimeRepository:workspaceBindingRepository:)`
+    /// when all six stores must be explicitly provided for full durability.
     struct PersistenceConfiguration: Sendable {
         /// Optional cohesive owner for Thread history and Turn transitions. When supplied
         /// without explicit low-level stores, it is used for both thread and message access.
@@ -57,7 +57,6 @@ public extension PositronicKit {
         public let threadPersistence: any ThreadPersistenceProtocol
         public let workspacePersistence: any WorkspaceStore
         public let workspaceBindingRepository: any WorkspaceBindingRepository
-        public let memoryStore: any MemoryStoreProtocol
         public let toolPersistence: any ToolPersistenceProtocol
         public let agentStore: any AgentStoreProtocol
         public let requestOriginStore: any RequestOriginStoreProtocol
@@ -68,7 +67,6 @@ public extension PositronicKit {
             messageStore: (any ThreadMessageStoreProtocol)? = nil,
             threadPersistence: (any ThreadPersistenceProtocol)? = nil,
             workspacePersistence: (any WorkspaceStore)? = nil,
-            memoryStore: (any MemoryStoreProtocol)? = nil,
             toolPersistence: (any ToolPersistenceProtocol)? = nil,
             agentStore: (any AgentStoreProtocol)? = nil,
             requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
@@ -86,7 +84,6 @@ public extension PositronicKit {
                 ?? (resolvedRepository as? any WorkspaceBindingRepository)
                 ?? (resolvedWorkspaceStore as? any WorkspaceBindingRepository)
                 ?? InMemoryWorkspaceBindingRepository()
-            self.memoryStore = memoryStore ?? InMemoryMemoryStore()
             self.toolPersistence = toolPersistence ?? InMemoryToolPersistence()
             self.agentStore = agentStore ?? InMemoryAgentStore()
             self.requestOriginStore = requestOriginStore ?? InMemoryRequestOriginStore()
@@ -99,7 +96,6 @@ public extension PositronicKit {
             messageStore: (any ThreadMessageStoreProtocol)? = nil,
             threadPersistence: any ThreadPersistenceProtocol,
             workspacePersistence: (any WorkspaceStore)? = nil,
-            memoryStore: (any MemoryStoreProtocol)? = nil,
             toolPersistence: (any ToolPersistenceProtocol)? = nil,
             agentStore: (any AgentStoreProtocol)? = nil,
             requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
@@ -115,7 +111,6 @@ public extension PositronicKit {
                 ?? (runtimeRepository as? any WorkspaceBindingRepository)
                 ?? (resolvedWorkspaceStore as? any WorkspaceBindingRepository)
                 ?? InMemoryWorkspaceBindingRepository()
-            self.memoryStore = memoryStore ?? InMemoryMemoryStore()
             self.toolPersistence = toolPersistence ?? InMemoryToolPersistence()
             self.agentStore = agentStore ?? InMemoryAgentStore()
             self.requestOriginStore = requestOriginStore ?? InMemoryRequestOriginStore()
@@ -126,7 +121,7 @@ public extension PositronicKit {
             PersistenceConfiguration(runtimeRepository: InMemoryThreadRuntimeRepository())
         }
 
-        /// Requires all seven stores explicitly — the "full durability" entry point for
+        /// Requires all six stores explicitly — the "full durability" entry point for
         /// production hosts (Monad, Shuttle). Unlike the optional-store init, no store can
         /// silently default to in-memory.
         /// Legacy compatibility path: independent stores cannot provide atomic v4 Turn
@@ -135,7 +130,6 @@ public extension PositronicKit {
             messageStore: any ThreadMessageStoreProtocol,
             threadPersistence: any ThreadPersistenceProtocol,
             workspacePersistence: any WorkspaceStore,
-            memoryStore: any MemoryStoreProtocol,
             toolPersistence: any ToolPersistenceProtocol,
             agentStore: any AgentStoreProtocol,
             requestOriginStore: any RequestOriginStoreProtocol,
@@ -146,7 +140,6 @@ public extension PositronicKit {
                 messageStore: messageStore,
                 threadPersistence: threadPersistence,
                 workspacePersistence: workspacePersistence,
-                memoryStore: memoryStore,
                 toolPersistence: toolPersistence,
                 agentStore: agentStore,
                 requestOriginStore: requestOriginStore,
@@ -165,7 +158,6 @@ public extension PositronicKit {
                 messageStore: messageStore.isDurable ? .durable : .ephemeral,
                 threadPersistence: threadPersistence.isDurable ? .durable : .ephemeral,
                 workspacePersistence: workspacePersistence.isDurable ? .durable : .ephemeral,
-                memoryStore: memoryStore.isDurable ? .durable : .ephemeral,
                 toolPersistence: toolPersistence.isDurable ? .durable : .ephemeral,
                 agentStore: agentStore.isDurable ? .durable : .ephemeral,
                 requestOriginStore: requestOriginStore.isDurable ? .durable : .ephemeral
@@ -192,7 +184,6 @@ public extension PositronicKit {
         public let messageStore: StoreDurability
         public let threadPersistence: StoreDurability
         public let workspacePersistence: StoreDurability
-        public let memoryStore: StoreDurability
         public let toolPersistence: StoreDurability
         public let agentStore: StoreDurability
         public let requestOriginStore: StoreDurability
@@ -201,7 +192,6 @@ public extension PositronicKit {
             messageStore: StoreDurability,
             threadPersistence: StoreDurability,
             workspacePersistence: StoreDurability,
-            memoryStore: StoreDurability,
             toolPersistence: StoreDurability,
             agentStore: StoreDurability,
             requestOriginStore: StoreDurability
@@ -209,7 +199,6 @@ public extension PositronicKit {
             self.messageStore = messageStore
             self.threadPersistence = threadPersistence
             self.workspacePersistence = workspacePersistence
-            self.memoryStore = memoryStore
             self.toolPersistence = toolPersistence
             self.agentStore = agentStore
             self.requestOriginStore = requestOriginStore
@@ -218,7 +207,7 @@ public extension PositronicKit {
         public var isMixed: Bool {
             let all: [StoreDurability] = [
                 messageStore, threadPersistence, workspacePersistence,
-                memoryStore, toolPersistence, agentStore, requestOriginStore,
+                toolPersistence, agentStore, requestOriginStore,
             ]
             return all.contains(.durable) && all.contains(.ephemeral)
         }
@@ -229,7 +218,6 @@ public extension PositronicKit {
             if messageStore == .ephemeral { names.append("messageStore") }
             if threadPersistence == .ephemeral { names.append("threadPersistence") }
             if workspacePersistence == .ephemeral { names.append("workspacePersistence") }
-            if memoryStore == .ephemeral { names.append("memoryStore") }
             if toolPersistence == .ephemeral { names.append("toolPersistence") }
             if agentStore == .ephemeral { names.append("agentStore") }
             if requestOriginStore == .ephemeral { names.append("requestOriginStore") }
@@ -322,7 +310,6 @@ public extension PositronicKit {
             requestOriginStore: configuration.persistence.requestOriginStore,
             threadPersistence: configuration.persistence.threadPersistence,
             workspacePersistence: configuration.persistence.workspacePersistence,
-            memoryStore: configuration.persistence.memoryStore,
             toolPersistence: configuration.persistence.toolPersistence,
             workspaceProfile: configuration.runtime.workspaceProfile,
             workspaceCreator: configuration.runtime.workspaceCreator,

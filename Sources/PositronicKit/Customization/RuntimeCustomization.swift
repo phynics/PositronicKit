@@ -54,7 +54,7 @@ public enum TurnContextContributionError: Error, Equatable, Sendable, LocalizedE
 
 /// A bounded, namespaced value contributed to one Turn's prompt context.
 ///
-/// Contributions are rendered as host-owned context notes. They cannot replace the prompt tree,
+/// Contributions are rendered as bounded host-owned prompt context. They cannot replace the prompt tree,
 /// register arbitrary pipeline stages, or inject runtime tools. Namespaces beginning with a
 /// PositronicKit-reserved name are rejected so host data cannot overwrite runtime sections.
 public struct TurnContextContribution: Codable, Equatable, Hashable, Sendable, Identifiable {

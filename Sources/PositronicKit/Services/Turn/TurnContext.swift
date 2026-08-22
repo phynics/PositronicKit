@@ -133,7 +133,6 @@ struct TurnContext {
     let availableTools: [AnyTool]
     /// Workspace authority captured at admission; nil for detached/direct Turns.
     let workspaceToolCatalog: WorkspaceToolCatalog?
-    let contextData: ContextData
     let remoteDepth: Int
     let generationParameters: GenerationParameters?
     let structuredOutput: StructuredOutputRequest?
@@ -171,7 +170,6 @@ struct TurnContext {
         systemInstructions: String?,
         availableTools: [AnyTool],
         workspaceToolCatalog: WorkspaceToolCatalog? = nil,
-        contextData: ContextData,
         remoteDepth: Int,
         generationParameters: GenerationParameters? = nil,
         structuredOutput: StructuredOutputRequest? = nil,
@@ -201,7 +199,6 @@ struct TurnContext {
         self.systemInstructions = systemInstructions
         self.availableTools = availableTools
         self.workspaceToolCatalog = workspaceToolCatalog
-        self.contextData = contextData
         self.remoteDepth = remoteDepth
         self.generationParameters = generationParameters
         self.structuredOutput = structuredOutput
@@ -245,7 +242,6 @@ struct TurnContext {
             systemInstructions: systemInstructions,
             availableTools: availableTools,
             workspaceToolCatalog: workspaceToolCatalog,
-            contextData: contextData,
             remoteDepth: remoteDepth,
             generationParameters: generationParameters,
             structuredOutput: structuredOutput,

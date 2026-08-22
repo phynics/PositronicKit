@@ -36,7 +36,6 @@ struct TurnPreparationIdempotencyTests {
                 messageStore: messageStore ?? persistence,
                 threadPersistence: threadStore ?? persistence,
                 workspacePersistence: workspaceStore ?? persistence,
-                memoryStore: persistence,
                 toolPersistence: toolPersistence ?? persistence,
                 agentStore: persistence,
                 requestOriginStore: persistence

@@ -18,7 +18,6 @@ struct FacadeOneShotTests {
             messageStore: InMemoryMessageStore(),
             threadPersistence: InMemoryThreadPersistence(),
             workspacePersistence: InMemoryWorkspacePersistence(),
-            memoryStore: InMemoryMemoryStore(),
             toolPersistence: InMemoryToolPersistence(),
             agentStore: InMemoryAgentStore(),
             requestOriginStore: InMemoryRequestOriginStore()
@@ -213,7 +212,6 @@ struct FacadeOneShotTests {
                 messageStore: InMemoryMessageStore(),
                 threadPersistence: InMemoryThreadPersistence(),
                 workspacePersistence: InMemoryWorkspacePersistence(),
-                memoryStore: InMemoryMemoryStore(),
                 toolPersistence: InMemoryToolPersistence(),
                 agentStore: InMemoryAgentStore(),
                 requestOriginStore: InMemoryRequestOriginStore()
@@ -338,7 +336,6 @@ struct FacadeOneShotTests {
                 messageStore: InMemoryMessageStore(),
                 threadPersistence: InMemoryThreadPersistence(),
                 workspacePersistence: InMemoryWorkspacePersistence(),
-                memoryStore: InMemoryMemoryStore(),
                 toolPersistence: InMemoryToolPersistence(),
                 agentStore: InMemoryAgentStore(),
                 requestOriginStore: InMemoryRequestOriginStore()
@@ -369,7 +366,6 @@ struct FacadeOneShotTests {
                 messageStore: InMemoryMessageStore(),
                 threadPersistence: InMemoryThreadPersistence(),
                 workspacePersistence: InMemoryWorkspacePersistence(),
-                memoryStore: InMemoryMemoryStore(),
                 toolPersistence: InMemoryToolPersistence(),
                 agentStore: InMemoryAgentStore(),
                 requestOriginStore: InMemoryRequestOriginStore()

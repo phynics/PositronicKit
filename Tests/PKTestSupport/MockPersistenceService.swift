@@ -5,9 +5,9 @@ import PositronicKit
 import struct PositronicKit.Thread
 import Synchronization
 
-/// Composite in-memory test double for the full persistence surface (memories, messages,
+/// Composite in-memory test double for the full persistence surface (messages,
 /// threads, agent templates, workspaces, tools, request origins, agents,
-/// health), delegating each protocol area to its own focused mock (``MockMemoryStore``,
+/// health), delegating each protocol area to its own focused mock,
 /// ``MockMessageStore``, ``MockThreadPersistenceStore``, ``MockAgentTemplateStore``,
 /// ``MockWorkspacePersistence``, ``MockToolPersistence``) so a test can construct a single
 /// object instead of wiring up every store protocol separately.
@@ -15,7 +15,7 @@ import Synchronization
 /// Configurable: `mockHealthStatus`/`mockHealthDetails`; `saveOriginMock`/`fetchOriginMock`/
 /// `fetchAllOriginsMock`/`deleteOriginMock` (closures overriding `RequestOriginStoreProtocol`
 /// behavior — unset closures make origin operations no-ops/return empty). Inspectable:
-/// `memories`, `messages`, `threads`, `agentTemplates`, `workspaces`,
+/// `messages`, `threads`, `agentTemplates`, `workspaces`,
 /// `agents` all forward to the underlying focused mocks. `resetDatabase()` clears
 /// every backing store.
 ///
@@ -23,7 +23,7 @@ import Synchronization
 /// Agent insert-or-replace and each tool-workspace mirror upsert are atomic; the two backing stores
 /// are not a cross-store transaction. Callback values are snapshotted while locked, then invoked
 /// after unlocking, so no mutex crosses an `await` or caller-provided code.
-public final class MockPersistenceService: MemoryStoreProtocol, ThreadMessageStoreProtocol, ThreadPersistenceProtocol, WorkspaceStore, AgentTemplateStoreProtocol, RequestOriginStoreProtocol, ToolPersistenceProtocol, AgentStoreProtocol, HealthCheckable {
+public final class MockPersistenceService: ThreadMessageStoreProtocol, ThreadPersistenceProtocol, WorkspaceStore, AgentTemplateStoreProtocol, RequestOriginStoreProtocol, ToolPersistenceProtocol, AgentStoreProtocol, HealthCheckable {
     private struct State: Sendable {
         var mockHealthStatus: HealthStatus = .ok
         var mockHealthDetails: [String: String]? = ["mock": "true"]
@@ -35,7 +35,6 @@ public final class MockPersistenceService: MemoryStoreProtocol, ThreadMessageSto
         var agents: [Agent] = []
     }
 
-    private let memoriesMock = MockMemoryStore()
     private let messagesMock = MockMessageStore()
     private let threadsMock = MockThreadPersistenceStore()
     private let agentTemplatesMock = MockAgentTemplateStore()
@@ -92,53 +91,6 @@ public final class MockPersistenceService: MemoryStoreProtocol, ThreadMessageSto
 
     public func checkHealth() async -> HealthStatus {
         state.withLock { $0.mockHealthStatus }
-    }
-
-    // MARK: - MemoryStoreProtocol
-
-    public var memories: [Memory] {
-        get { memoriesMock.memories }
-        set { memoriesMock.memories = newValue }
-    }
-
-    public func saveMemory(_ memory: Memory, policy: MemorySavePolicy) async throws -> UUID {
-        try await memoriesMock.saveMemory(memory, policy: policy)
-    }
-
-    public func fetchMemory(id: UUID) async throws -> Memory? {
-        try await memoriesMock.fetchMemory(id: id)
-    }
-
-    public func fetchAllMemories() async throws -> [Memory] {
-        try await memoriesMock.fetchAllMemories()
-    }
-
-    public func searchMemories(query: String) async throws -> [Memory] {
-        try await memoriesMock.searchMemories(query: query)
-    }
-
-    public func searchMemories(matchingAnyTag tags: [String]) async throws -> [Memory] {
-        try await memoriesMock.searchMemories(matchingAnyTag: tags)
-    }
-
-    public func deleteMemory(id: UUID) async throws {
-        try await memoriesMock.deleteMemory(id: id)
-    }
-
-    public func updateMemory(_ memory: Memory) async throws {
-        try await memoriesMock.updateMemory(memory)
-    }
-
-    public func vacuumMemories(threshold: Double) async throws -> Int {
-        try await memoriesMock.vacuumMemories(threshold: threshold)
-    }
-
-    public func pruneMemories(matching query: String, dryRun: Bool) async throws -> Int {
-        try await memoriesMock.pruneMemories(matching: query, dryRun: dryRun)
-    }
-
-    public func pruneMemories(olderThan timeInterval: TimeInterval, dryRun: Bool) async throws -> Int {
-        try await memoriesMock.pruneMemories(olderThan: timeInterval, dryRun: dryRun)
     }
 
     // MARK: - ThreadMessageStoreProtocol
@@ -339,7 +291,6 @@ public final class MockPersistenceService: MemoryStoreProtocol, ThreadMessageSto
     }
 
     public func resetDatabase() async throws {
-        memories = []
         messages = []
         threads = []
         agentTemplates = []

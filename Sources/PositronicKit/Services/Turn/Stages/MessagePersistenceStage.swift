@@ -126,20 +126,10 @@ struct MessagePersistenceStage: PipelineStage {
             )))
         }
 
-        let recalledMemories: String
-        if hasPendingToolCalls {
-            recalledMemories = "[]"
-        } else {
-            let memories = context.contextData.memories
-            recalledMemories = (try? SerializationUtils.jsonEncoder.encode(memories))
-                .flatMap { String(bytes: $0, encoding: .utf8) } ?? "[]"
-        }
-
         return ThreadMessage(
             threadID: context.threadID,
             role: .assistant,
             content: MessageContent(parts: contentParts),
-            recalledMemories: recalledMemories,
             reasoning: fullThinking.isEmpty ? nil : fullThinking,
             toolCalls: toolCallsJSON,
             agentID: context.agentId,
@@ -202,21 +192,7 @@ struct MessagePersistenceStage: PipelineStage {
             )
         }
 
-        let contextSnapshot = TurnContextSnapshot(
-            promptMessages: promptMessages,
-            files: context.contextData.notes.map {
-                TurnContextSnapshot.FileEntry(name: $0.name, source: $0.source)
-            },
-            memories: context.contextData.memories.map {
-                TurnContextSnapshot.MemoryEntry(
-                    id: $0.id,
-                    content: $0.content
-                )
-            },
-            generatedTags: context.contextData.generatedTags,
-            augmentedQuery: context.contextData.augmentedQuery,
-            executionTime: context.contextData.executionTime
-        )
+        let contextSnapshot = TurnContextSnapshot(promptMessages: promptMessages)
 
         return TurnSnapshot(
             threadID: context.threadID,
@@ -284,14 +260,7 @@ private enum DiagnosticSnapshotEncoder {
             TurnContextSnapshot(
                 promptMessages: context.promptMessages.map {
                     .init(role: clean($0.role), content: clean($0.content), tokenCount: $0.tokenCount)
-                },
-                files: context.files.map { .init(name: clean($0.name), source: clean($0.source)) },
-                memories: context.memories.map {
-                    .init(id: $0.id, content: clean($0.content))
-                },
-                generatedTags: context.generatedTags.map(clean),
-                augmentedQuery: context.augmentedQuery.map(clean),
-                executionTime: context.executionTime
+                }
             )
         }
 

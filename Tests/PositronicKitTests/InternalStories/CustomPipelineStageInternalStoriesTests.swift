@@ -46,7 +46,6 @@ struct CustomPipelineStageInternalStoriesTests {
                 messageStore: persistence,
                 threadPersistence: persistence,
                 workspacePersistence: persistence,
-                memoryStore: persistence,
                 toolPersistence: persistence,
                 agentStore: persistence,
                 requestOriginStore: persistence

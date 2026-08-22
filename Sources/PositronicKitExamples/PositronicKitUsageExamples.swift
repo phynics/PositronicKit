@@ -160,7 +160,6 @@ public enum PositronicKitUsageExamples {
                 messageStore: InMemoryMessageStore(),
                 threadPersistence: InMemoryThreadPersistence(),
                 workspacePersistence: InMemoryWorkspacePersistence(),
-                memoryStore: InMemoryMemoryStore(),
                 toolPersistence: InMemoryToolPersistence(),
                 agentStore: InMemoryAgentStore(),
                 requestOriginStore: InMemoryRequestOriginStore()
@@ -174,7 +173,7 @@ public enum PositronicKitUsageExamples {
     }
 
     /// Consumes a `TurnEvent` stream with the canonical event switch from `docs/Usage.md`.
-    /// Compiles the documented handling shape — `delta`/`meta`/`completion`/`error` branches,
+    /// Compiles the documented handling shape — `delta`/`completion`/`error` branches,
     /// the PKRR-011 terminal events (`.maxModelRoundsReached`, `.deferredForExternalTool`), and
     /// `ErrorIdentity.isBlocked` classification — against the real `TurnEvent` API, so docs
     /// drift is caught by `make verify-examples` (a step of `make verify`).
@@ -197,11 +196,6 @@ public enum PositronicKitUsageExamples {
                     print("\nTool execution [\(toolCallID)]: \(status)")
                 case .sidecar(let delta):
                     print("\n[\(delta.name)] \(delta.partialText)")
-                }
-            case .meta(let event):
-                switch event {
-                case .generationContext(let metadata):
-                    print("\nContext: \(metadata.files.count) files referenced")
                 }
             case .completion(let event):
                 switch event {

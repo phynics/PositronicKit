@@ -18,8 +18,7 @@ struct StructuredOutputPromptFlowTests {
 
         let request = LLMGenerationRequest(
             userQuery: "Extract tags",
-            contextNotes: [ContextNote(name: "Note", content: "Prompt note", source: "note")],
-            memories: [],
+            contextContributions: [try TurnContextContribution(namespace: "test", key: "note", text: "Prompt contribution")],
             chatHistory: [Message(content: "Earlier question", role: .user)],
             tools: [],
             workspaces: [],
@@ -41,7 +40,7 @@ struct StructuredOutputPromptFlowTests {
         #expect(chunks.joined() == "{\"tags\":[\"swift\"]}")
         #expect(mockClient.lastResponseFormat == .jsonObject)
         #expect(result.rawPrompt.contains("System rules"))
-        #expect(result.rawPrompt.contains("Prompt note"))
+        #expect(result.rawPrompt.contains("Prompt contribution"))
         #expect(result.rawPrompt.contains("Extract tags"))
     }
 
@@ -57,8 +56,6 @@ struct StructuredOutputPromptFlowTests {
 
         let request = LLMGenerationRequest(
             userQuery: "Extract tags",
-            contextNotes: [],
-            memories: [],
             chatHistory: [],
             tools: [],
             workspaces: [],
@@ -110,8 +107,6 @@ struct StructuredOutputPromptFlowTests {
 
         let request = LLMGenerationRequest(
             userQuery: "Extract tags",
-            contextNotes: [],
-            memories: [],
             chatHistory: [],
             tools: [],
             workspaces: [],
@@ -149,8 +144,6 @@ struct StructuredOutputPromptFlowTests {
 
         let request = LLMGenerationRequest(
             userQuery: "Extract tags",
-            contextNotes: [],
-            memories: [],
             chatHistory: [],
             tools: [],
             workspaces: [],

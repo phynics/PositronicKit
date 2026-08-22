@@ -8,8 +8,7 @@ import PKUtilities
 /// Groups the parameters for a high-level LLM generation stream request.
 public struct LLMGenerationRequest: Sendable {
     public let userQuery: String
-    public let contextNotes: [ContextNote]
-    public let memories: [Memory]
+    public let contextContributions: [TurnContextContribution]
     public let chatHistory: [Message]
     public let tools: [AnyTool]
     public let workspaces: [WorkspaceReference]
@@ -22,8 +21,7 @@ public struct LLMGenerationRequest: Sendable {
 
     public init(
         userQuery: String,
-        contextNotes: [ContextNote] = [],
-        memories: [Memory] = [],
+        contextContributions: [TurnContextContribution] = [],
         chatHistory: [Message],
         tools: [AnyTool],
         workspaces: [WorkspaceReference],
@@ -35,8 +33,7 @@ public struct LLMGenerationRequest: Sendable {
         modelTier: ModelTier = .primary
     ) {
         self.userQuery = userQuery
-        self.contextNotes = contextNotes
-        self.memories = memories
+        self.contextContributions = contextContributions
         self.chatHistory = chatHistory
         self.tools = tools
         self.workspaces = workspaces
@@ -60,7 +57,7 @@ public struct LLMGenerationRequest: Sendable {
 public enum ModelTier: Sendable, Equatable {
     /// The primary (default) model — the main client. This is the default tier.
     case primary
-    /// The utility model — lightweight tasks (tag/title generation, recall evaluation).
+    /// The utility model — lightweight provider-side tasks such as title generation.
     /// Falls back to the primary client if no utility client is configured.
     case utility
     /// The fast model — lower-latency variant, if configured.
@@ -104,8 +101,7 @@ public struct LLMPromptRequest: Sendable {
     /// NOT with system instructions, so the system prefix stays provider-cache-stable.
     /// Used by `TurnEngine` to inject the sidecar directive instruction block.
     public let turnInstructions: String?
-    public let contextNotes: [ContextNote]
-    public let memories: [Memory]
+    public let contextContributions: [TurnContextContribution]
     public let chatHistory: [Message]
     public let tools: [AnyTool]
     public let workspaces: [WorkspaceReference]
@@ -117,8 +113,7 @@ public struct LLMPromptRequest: Sendable {
     public init(
         userQuery: String,
         turnInstructions: String? = nil,
-        contextNotes: [ContextNote] = [],
-        memories: [Memory] = [],
+        contextContributions: [TurnContextContribution] = [],
         chatHistory: [Message],
         tools: [AnyTool],
         workspaces: [WorkspaceReference],
@@ -129,8 +124,7 @@ public struct LLMPromptRequest: Sendable {
     ) {
         userContent = MessageContent(userQuery)
         self.turnInstructions = turnInstructions
-        self.contextNotes = contextNotes
-        self.memories = memories
+        self.contextContributions = contextContributions
         self.chatHistory = chatHistory
         self.tools = tools
         self.workspaces = workspaces
@@ -144,8 +138,7 @@ public struct LLMPromptRequest: Sendable {
     public init(
         userContent: MessageContent,
         turnInstructions: String? = nil,
-        contextNotes: [ContextNote] = [],
-        memories: [Memory] = [],
+        contextContributions: [TurnContextContribution] = [],
         chatHistory: [Message],
         tools: [AnyTool],
         workspaces: [WorkspaceReference],
@@ -156,8 +149,7 @@ public struct LLMPromptRequest: Sendable {
     ) {
         self.userContent = userContent
         self.turnInstructions = turnInstructions
-        self.contextNotes = contextNotes
-        self.memories = memories
+        self.contextContributions = contextContributions
         self.chatHistory = chatHistory
         self.tools = tools
         self.workspaces = workspaces

@@ -79,11 +79,10 @@ public final class PositronicKit: Sendable {
     private let logger = Logger.module(named: "positronickit-facade")
     private let loggingConfiguration: LoggingConfiguration
 
-    // MARK: - Transitive dependencies (ThreadManager, TurnBriefingBuilder)
+    // MARK: - Transitive dependencies
 
     private let threadPersistence: any ThreadPersistenceProtocol
     private let workspacePersistence: any WorkspaceStore
-    private let memoryStore: any MemoryStoreProtocol
     private let toolPersistence: any ToolPersistenceProtocol
 
     private let turnEngine: TurnEngine
@@ -120,7 +119,6 @@ public final class PositronicKit: Sendable {
         requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
         threadPersistence: (any ThreadPersistenceProtocol)? = nil,
         workspacePersistence: (any WorkspaceStore)? = nil,
-        memoryStore: (any MemoryStoreProtocol)? = nil,
         toolPersistence: (any ToolPersistenceProtocol)? = nil,
         workspaceProfile: WorkspaceProfile = .noWorkspace,
         workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
@@ -151,7 +149,6 @@ public final class PositronicKit: Sendable {
                 requestOriginStore: requestOriginStore ?? InMemoryRequestOriginStore(),
                 threadPersistence: resolvedRepository ?? threadPersistence ?? InMemoryThreadPersistence(),
                 workspacePersistence: resolvedWorkspaceStore,
-                memoryStore: memoryStore ?? InMemoryMemoryStore(),
                 toolPersistence: toolPersistence ?? InMemoryToolPersistence(),
                 workspaceProfile: workspaceProfile,
                 workspaceCreator: workspaceCreator,
@@ -185,7 +182,6 @@ public final class PositronicKit: Sendable {
         requestOriginStore = dependencies.requestOriginStore
         threadPersistence = dependencies.threadPersistence
         workspacePersistence = dependencies.workspacePersistence
-        memoryStore = dependencies.memoryStore
         toolPersistence = dependencies.toolPersistence
         diagnosticSnapshotConfiguration = dependencies.diagnosticSnapshotConfiguration
         degradationPolicy = dependencies.degradationPolicy
@@ -215,8 +211,7 @@ public final class PositronicKit: Sendable {
                 workspaceStore: self.workspacePersistence,
                 workspaceBindingRepository: self.workspaceBindingRepository,
                 runtimeRepository: self.runtimeRepository,
-                toolPersistence: self.toolPersistence,
-                memoryStore: self.memoryStore
+                toolPersistence: self.toolPersistence
             ),
             workspaceProfile: dependencies.workspaceProfile,
             workspaceCreator: dependencies.workspaceCreator,
@@ -301,7 +296,6 @@ public final class PositronicKit: Sendable {
             requestOriginStore: requestOriginStore,
             threadPersistence: threadPersistence,
             workspacePersistence: workspacePersistence,
-            memoryStore: memoryStore,
             toolPersistence: toolPersistence,
             workspaceProfile: workspaceProfile,
             workspaceCreator: workspaceCreator,
@@ -360,17 +354,12 @@ public final class PositronicKit: Sendable {
             throw TurnError.invalidMaxModelRounds(request.maxModelRounds)
         }
 
-        let resolvedTurnBriefingBuilder = try await resolveTurnBriefingBuilder(
-            explicit: nil,
-            threadID: request.threadID
-        )
         let execution = try await turnEngine.startExecution(
             threadID: request.threadID,
             requestId: request.requestID,
             messageContent: request.messageContent,
             tools: request.tools,
             toolOutputs: request.toolOutputs,
-            turnBriefingBuilder: resolvedTurnBriefingBuilder,
             systemInstructions: request.systemInstructions,
             agentId: agentID,
             executionKind: executionKind,
@@ -449,18 +438,12 @@ public final class PositronicKit: Sendable {
             throw TurnError.invalidMaxModelRounds(request.maxModelRounds)
         }
 
-        let resolvedTurnBriefingBuilder = try await resolveTurnBriefingBuilder(
-            explicit: nil,
-            threadID: request.threadID
-        )
-
         return try await turnEngine.execute(
             threadID: request.threadID,
             requestId: request.requestID,
             messageContent: request.messageContent,
             tools: request.tools,
             toolOutputs: request.toolOutputs,
-            turnBriefingBuilder: resolvedTurnBriefingBuilder,
             systemInstructions: request.systemInstructions,
             agentId: agentID,
             executionKind: executionKind,
@@ -477,26 +460,4 @@ public final class PositronicKit: Sendable {
         )
     }
 
-    /// Resolves the `TurnBriefingBuilder` for a turn, hydrating the thread from persistence
-    /// first if it isn't already cached in memory.
-    ///
-    /// Hydration failure propagates as a typed ``ThreadError``: `.threadNotFound` for a
-    /// missing ID, `.unavailable` for a transient store fault. The error reaches the caller
-    /// before input persistence runs (PKRR-006), so no user input is persisted under an
-    /// unestablished thread.
-    private func resolveTurnBriefingBuilder(
-        explicit turnBriefingBuilder: TurnBriefingBuilder?,
-        threadID: UUID
-    ) async throws -> TurnBriefingBuilder? {
-        if let turnBriefingBuilder {
-            return turnBriefingBuilder
-        }
-
-        if let existing = await threadManager.getTurnBriefingBuilder(for: threadID) {
-            return existing
-        }
-
-        try await threadManager.ensureThreadExists(id: threadID)
-        return await threadManager.getTurnBriefingBuilder(for: threadID)
-    }
 }

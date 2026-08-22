@@ -18,6 +18,8 @@ for tagged releases beginning with `1.0.0`.
 - **Terminal event contract narrowed:** removed never-emitted compatibility terminal cases and
   their unused construction and serialization paths; path-specific completion events remain
   canonical.
+- **Thread context pipeline retired:** removed the obsolete Thread-scoped retrieval, tagging, and
+  persistence path; Turns now use captured Agent context and bounded Turn contributions.
 - **Error ownership clarified:** Agent lifecycle and attachment failures remain on `AgentError`,
   execution-admission failures move to `TurnError`, missing threads use `ThreadError`, and
   `AgentContextError` now exposes the standard `PKError` identity contract.

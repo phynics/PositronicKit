@@ -217,7 +217,6 @@ struct FacadeRunValidationTests {
                 messageStore: persistence,
                 threadPersistence: persistence,
                 workspacePersistence: persistence,
-                memoryStore: persistence,
                 toolPersistence: persistence,
                 agentStore: agentStore,
                 requestOriginStore: persistence,
