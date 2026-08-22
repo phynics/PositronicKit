@@ -9489,17 +9489,6 @@
       "declaration": "case completedEmpty(finishReason: String?)"
     },
     {
-      "precise": "s:11PKContracts9TurnEventO010CompletionC0O15streamCompletedyA2EmF",
-      "module": "PKContracts",
-      "kind": "swift.enum.case",
-      "path": [
-        "TurnEvent",
-        "CompletionEvent",
-        "streamCompleted"
-      ],
-      "declaration": "case streamCompleted"
-    },
-    {
       "precise": "s:11PKContracts9TurnEventO010CompletionC0O17sidecarsCompletedyAeA07SidecarD0VcAEmF",
       "module": "PKContracts",
       "kind": "swift.enum.case",
@@ -9585,17 +9574,6 @@
         "generationContext(metadata:)"
       ],
       "declaration": "case generationContext(metadata: GenerationMetadata)"
-    },
-    {
-      "precise": "s:11PKContracts9TurnEventO04MetaC0O19generationCompletedyAeA7MessageV_AA19APIResponseMetadataVtcAEmF",
-      "module": "PKContracts",
-      "kind": "swift.enum.case",
-      "path": [
-        "TurnEvent",
-        "MetaEvent",
-        "generationCompleted(message:metadata:)"
-      ],
-      "declaration": "case generationCompleted(message: Message, metadata: APIResponseMetadata)"
     },
     {
       "precise": "s:11PKContracts9TurnEventO04MetaC0O4fromAEs7Decoder_p_tKcfc",
@@ -9989,16 +9967,6 @@
         "sidecarResults"
       ],
       "declaration": "var sidecarResults: [SidecarResult]? { get }"
-    },
-    {
-      "precise": "s:11PKContracts9TurnEventO15streamCompletedACyFZ",
-      "module": "PKContracts",
-      "kind": "swift.type.method",
-      "path": [
-        "TurnEvent",
-        "streamCompleted()"
-      ],
-      "declaration": "static func streamCompleted() -> TurnEvent"
     },
     {
       "precise": "s:11PKContracts9TurnEventO16completedMessageAA0E0V7message_AA19APIResponseMetadataV8metadatatSgvp",
@@ -45644,12 +45612,6 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
-      "source": "s:11PKContracts9TurnEventO010CompletionC0O15streamCompletedyA2EmF",
-      "target": "s:11PKContracts9TurnEventO010CompletionC0O"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
       "source": "s:11PKContracts9TurnEventO010CompletionC0O17sidecarsCompletedyAeA07SidecarD0VcAEmF",
       "target": "s:11PKContracts9TurnEventO010CompletionC0O"
     },
@@ -45701,12 +45663,6 @@
       "module": "PKContracts",
       "kind": "memberOf",
       "source": "s:11PKContracts9TurnEventO04MetaC0O17generationContextyAeA18GenerationMetadataV_tcAEmF",
-      "target": "s:11PKContracts9TurnEventO04MetaC0O"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts9TurnEventO04MetaC0O19generationCompletedyAeA7MessageV_AA19APIResponseMetadataVtcAEmF",
       "target": "s:11PKContracts9TurnEventO04MetaC0O"
     },
     {
@@ -45961,12 +45917,6 @@
       "module": "PKContracts",
       "kind": "memberOf",
       "source": "s:11PKContracts9TurnEventO14sidecarResultsSayAA13SidecarResultVGSgvp",
-      "target": "s:11PKContracts9TurnEventO"
-    },
-    {
-      "module": "PKContracts",
-      "kind": "memberOf",
-      "source": "s:11PKContracts9TurnEventO15streamCompletedACyFZ",
       "target": "s:11PKContracts9TurnEventO"
     },
     {

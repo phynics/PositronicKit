@@ -171,9 +171,6 @@ for await event in stream {
         switch event {
         case .generationContext(let metadata):
             print("\nContext: \(metadata.files.count) files referenced")
-        default:
-            // `.meta(.generationCompleted)` is deprecated and never emitted in production.
-            break
         }
 
     case .completion(let event):
@@ -193,9 +190,6 @@ for await event in stream {
             for result in completion.results {
                 print("\n[\(result.name)] \(result.outcome)")
             }
-        default:
-            // `.completion(.streamCompleted)` is deprecated and never emitted in production.
-            break
         }
 
     case .error(let event):
@@ -275,10 +269,6 @@ The stream provides a rich set of events:
   cancellation handling. `TurnHandle.events()` is nonthrowing; its durable `outcome()` is the
   authoritative terminal result. The advanced request-shaped `run(_:)` seam retains a throwing
   stream for preparation and pipeline failures.
-
-The deprecated `.meta(.generationCompleted)` and `.completion(.streamCompleted)` cases are
-retained for `Codable` backward compatibility but are never emitted in production — switch on
-the cases above instead.
 
 ### Agent Persistence
 Agents are persistent. Their primary Workspace (`primaryWorkspaceId`) supplies continuity through

@@ -202,9 +202,6 @@ public enum PositronicKitUsageExamples {
                 switch event {
                 case .generationContext(let metadata):
                     print("\nContext: \(metadata.files.count) files referenced")
-                default:
-                    // `.meta(.generationCompleted)` is deprecated and never emitted in production.
-                    break
                 }
             case .completion(let event):
                 switch event {
@@ -223,9 +220,6 @@ public enum PositronicKitUsageExamples {
                     for result in completion.results {
                         print("\n[\(result.name)] \(result.outcome)")
                     }
-                default:
-                    // `.completion(.streamCompleted)` is deprecated and never emitted in production.
-                    break
                 }
             case .error(let event):
                 switch event {

@@ -275,13 +275,6 @@ public enum TurnEvent: Sendable, Codable {
     public enum MetaEvent: Sendable, Codable {
         /// RAG context metadata — emitted once at the start of the loop
         case generationContext(metadata: GenerationMetadata)
-        /// Generation completed with metadata (informational).
-        ///
-        /// - Warning: This case is **never emitted in production**. The runtime emits the
-        ///   terminal completion via `.completion(.generationCompleted)` instead. Retained
-        ///   only for backward compatibility of `Codable` round-tripping; new consumers
-        ///   should switch on `.completion(.generationCompleted)` (PKRR-011).
-        case generationCompleted(message: Message, metadata: APIResponseMetadata)
     }
 
     public enum ErrorEvent: Sendable, Codable {
@@ -397,17 +390,9 @@ public enum TurnEvent: Sendable, Codable {
         /// All sidecar directives resolved for the turn (values, declines, failures)
         case sidecarsCompleted(SidecarCompletion)
 
-        /// The entire stream is complete (terminal event).
-        ///
-        /// - Warning: This case is **never emitted in production**. The runtime signals
-        ///   stream completion through the path-specific terminal cases (`.generationCompleted`,
-        ///   `.maxModelRoundsReached`, `.deferredForExternalTool`) or by throwing. Retained only for
-        ///   backward compatibility of `Codable` round-tripping (PKRR-011).
-        case streamCompleted
-
         private enum CodingKeys: String, CodingKey {
             case generationCompleted, completedEmpty, toolExecution
-            case maxModelRoundsReached, deferredForExternalTool, sidecarsCompleted, streamCompleted
+            case maxModelRoundsReached, deferredForExternalTool, sidecarsCompleted
         }
 
         private enum GenerationCompletedCodingKeys: String, CodingKey {
@@ -490,12 +475,6 @@ public enum TurnEvent: Sendable, Codable {
                 return
             }
 
-            if container.contains(.streamCompleted) {
-                _ = try container.decode(EmptyPayload.self, forKey: .streamCompleted)
-                self = .streamCompleted
-                return
-            }
-
             throw DecodingError.dataCorrupted(.init(
                 codingPath: decoder.codingPath,
                 debugDescription: "Unknown TurnEvent completion case"
@@ -536,8 +515,6 @@ public enum TurnEvent: Sendable, Codable {
                     forKey: .sidecarsCompleted
                 )
                 try values.encode(completion, forKey: .value)
-            case .streamCompleted:
-                try container.encode(EmptyPayload(), forKey: .streamCompleted)
             }
         }
     }
@@ -559,7 +536,7 @@ public extension TurnEvent {
         case let .completion(event):
             switch event {
             case .generationCompleted, .completedEmpty, .maxModelRoundsReached,
-                 .deferredForExternalTool, .streamCompleted:
+                 .deferredForExternalTool:
                 return true
             case .toolExecution, .sidecarsCompleted:
                 return false
@@ -630,10 +607,6 @@ public extension TurnEvent {
 
     static func toolCompleted(toolCallID: String, status: ToolExecutionStatus) -> TurnEvent {
         .completion(.toolExecution(toolCallID: toolCallID, status: status))
-    }
-
-    static func streamCompleted() -> TurnEvent {
-        .completion(.completedEmpty(finishReason: nil))
     }
 
     static func maxModelRoundsReached() -> TurnEvent {

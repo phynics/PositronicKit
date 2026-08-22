@@ -15,10 +15,6 @@ import Testing
 /// - Deferred external tool → `.completion(.deferredForExternalTool)`
 /// - Cancellation → `.error(.generationCancelled)`
 /// - Failure → the stream throws
-///
-/// Additionally, the orphan cases `.meta(.generationCompleted)` and
-/// `.completion(.streamCompleted)` must never be emitted in production — they are
-/// deprecated definition/docs-only cases.
 @Suite(.serialized) @MainActor
 struct TurnEngineTerminalEventTests {
     private let threadID = UUID()
@@ -322,69 +318,6 @@ struct TurnEngineTerminalEventTests {
         }
     }
 
-    // MARK: - Orphan cases are never emitted in production
-
-    @Test("Deprecated orphan cases are never emitted in production (PKRR-011)")
-    func orphanCasesNeverEmitted() async throws {
-        try await withTurnEngineDependencies { engine, mockLLM, _ in
-            mockLLM.mockClient.nextResponse = "Done"
-
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Hi",
-                tools: []
-            )
-
-            let events = try await collect(stream)
-
-            // .meta(.generationCompleted) is never emitted in production.
-            let metaCompletion = events.filter {
-                if case .meta(.generationCompleted) = $0 { return true }
-                return false
-            }
-            #expect(metaCompletion.isEmpty, ".meta(.generationCompleted) must never be emitted")
-
-            // .completion(.streamCompleted) is never emitted in production.
-            let streamCompleted = events.filter {
-                if case .completion(.streamCompleted) = $0 { return true }
-                return false
-            }
-            #expect(streamCompleted.isEmpty, ".completion(.streamCompleted) must never be emitted")
-        }
-    }
-
-    @Test("Deprecated orphan cases are never emitted on the model-round path (PKRR-011)")
-    func orphanCasesNeverEmittedOnMaxModelRounds() async throws {
-        try await withTurnEngineDependencies { engine, mockLLM, _ in
-            let mockTool = MockTool()
-            mockLLM.mockClient.nextToolCalls = [
-                [MockToolCall(id: "c1", name: "mock_tool")],
-                [MockToolCall(id: "c2", name: "mock_tool")],
-            ]
-            mockLLM.mockClient.nextResponses = ["", ""]
-
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Infinite tools",
-                tools: [mockTool.toAnyTool()],
-                maxModelRounds: 2
-            )
-
-            let events = try await collect(stream)
-
-            let metaCompletion = events.filter {
-                if case .meta(.generationCompleted) = $0 { return true }
-                return false
-            }
-            #expect(metaCompletion.isEmpty, ".meta(.generationCompleted) must never be emitted")
-
-            let streamCompleted = events.filter {
-                if case .completion(.streamCompleted) = $0 { return true }
-                return false
-            }
-            #expect(streamCompleted.isEmpty, ".completion(.streamCompleted) must never be emitted")
-        }
-    }
 }
 
 // MARK: - Test Tools
