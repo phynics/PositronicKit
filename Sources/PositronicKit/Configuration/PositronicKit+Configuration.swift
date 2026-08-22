@@ -5,17 +5,14 @@ import PKUtilities
 
 public extension PositronicKit {
     /// Groups provider-facing services used by the runtime.
-    /// Embeddings stay with the LLM service because both are provider integrations.
+    /// Provider configuration for the language model used by the runtime.
     struct ProviderConfiguration: Sendable {
         public let languageModel: any LLMStreamClient & LLMUtilityClient
-        public let embeddingService: (any EmbeddingServiceProtocol)?
 
         public init(
-            languageModel: any LLMStreamClient & LLMUtilityClient,
-            embeddingService: (any EmbeddingServiceProtocol)? = nil
+            languageModel: any LLMStreamClient & LLMUtilityClient
         ) {
             self.languageModel = languageModel
-            self.embeddingService = embeddingService
         }
     }
 
@@ -327,7 +324,6 @@ public extension PositronicKit {
             workspacePersistence: configuration.persistence.workspacePersistence,
             memoryStore: configuration.persistence.memoryStore,
             toolPersistence: configuration.persistence.toolPersistence,
-            embeddingService: configuration.provider.embeddingService,
             workspaceProfile: configuration.runtime.workspaceProfile,
             workspaceCreator: configuration.runtime.workspaceCreator,
             customization: configuration.runtime.customization,

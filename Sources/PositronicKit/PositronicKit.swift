@@ -61,11 +61,13 @@ public final class PositronicKit: Sendable {
 
     /// Internal tool router wired to the facade-owned Thread coordinator.
     let toolRouter: ToolRouter
+
     /// Consumer-facing capability values. These keep orchestration managers behind the facade.
     public var threads: ThreadCapability { ThreadCapability(kit: self) }
     public var agents: AgentCapability { AgentCapability(kit: self) }
     public var workspaces: WorkspaceCapability { WorkspaceCapability(kit: self) }
     public var model: ModelInferenceCapability { ModelInferenceCapability(kit: self) }
+
     let workspaceCatalog: any WorkspaceCatalog
     private let agentStore: any AgentStoreProtocol
     private let agentAuthorityCoordinator: AgentAuthorityCoordinator
@@ -73,6 +75,7 @@ public final class PositronicKit: Sendable {
     private let customization: RuntimeCustomization
     private let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
     let defaultGenerationParameters: GenerationParameters?
+
     private let logger = Logger.module(named: "positronickit-facade")
     private let loggingConfiguration: LoggingConfiguration
 
@@ -82,7 +85,6 @@ public final class PositronicKit: Sendable {
     private let workspacePersistence: any WorkspaceStore
     private let memoryStore: any MemoryStoreProtocol
     private let toolPersistence: any ToolPersistenceProtocol
-    private let embeddingService: any EmbeddingServiceProtocol
 
     private let turnEngine: TurnEngine
 
@@ -120,7 +122,6 @@ public final class PositronicKit: Sendable {
         workspacePersistence: (any WorkspaceStore)? = nil,
         memoryStore: (any MemoryStoreProtocol)? = nil,
         toolPersistence: (any ToolPersistenceProtocol)? = nil,
-        embeddingService: (any EmbeddingServiceProtocol)? = nil,
         workspaceProfile: WorkspaceProfile = .noWorkspace,
         workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
         customization: RuntimeCustomization = .default,
@@ -152,7 +153,6 @@ public final class PositronicKit: Sendable {
                 workspacePersistence: resolvedWorkspaceStore,
                 memoryStore: memoryStore ?? InMemoryMemoryStore(),
                 toolPersistence: toolPersistence ?? InMemoryToolPersistence(),
-                embeddingService: embeddingService ?? NoOpEmbeddingService(),
                 workspaceProfile: workspaceProfile,
                 workspaceCreator: workspaceCreator,
                 customization: customization,
@@ -187,7 +187,6 @@ public final class PositronicKit: Sendable {
         workspacePersistence = dependencies.workspacePersistence
         memoryStore = dependencies.memoryStore
         toolPersistence = dependencies.toolPersistence
-        embeddingService = dependencies.embeddingService
         diagnosticSnapshotConfiguration = dependencies.diagnosticSnapshotConfiguration
         degradationPolicy = dependencies.degradationPolicy
         promptHistoryRegistry = dependencies.sharedRegistry
@@ -222,7 +221,6 @@ public final class PositronicKit: Sendable {
             workspaceProfile: dependencies.workspaceProfile,
             workspaceCreator: dependencies.workspaceCreator,
             runtimeToolPolicy: dependencies.runtimeToolPolicy,
-            embeddingService: self.embeddingService,
             promptHistoryRegistry: promptHistoryRegistry
         )
         threadManager = resolvedThreadManager
@@ -305,7 +303,6 @@ public final class PositronicKit: Sendable {
             workspacePersistence: workspacePersistence,
             memoryStore: memoryStore,
             toolPersistence: toolPersistence,
-            embeddingService: embeddingService,
             workspaceProfile: workspaceProfile,
             workspaceCreator: workspaceCreator,
             customization: customization,

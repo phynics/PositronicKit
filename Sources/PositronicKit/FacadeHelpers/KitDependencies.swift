@@ -24,7 +24,6 @@ internal struct KitDependencies: Sendable {
     var workspacePersistence: any WorkspaceStore
     var memoryStore: any MemoryStoreProtocol
     var toolPersistence: any ToolPersistenceProtocol
-    var embeddingService: any EmbeddingServiceProtocol
     var workspaceProfile: WorkspaceProfile
     var workspaceCreator: any WorkspaceFactory
     var customization: RuntimeCustomization

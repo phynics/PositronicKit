@@ -200,9 +200,3 @@ public actor DefaultAgentContextSource: AgentContextSource {
         return output
     }
 }
-
-private extension Date {
-    var iso8601String: String {
-        ISO8601DateFormatter().string(from: self)
-    }
-}
