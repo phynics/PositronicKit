@@ -383,10 +383,7 @@ extension TurnEngine {
                 notes: contextResult.data.notes + contributionNotes,
                 memories: contextResult.data.memories,
                 generatedTags: contextResult.data.generatedTags,
-                queryVector: contextResult.data.queryVector,
                 augmentedQuery: contextResult.data.augmentedQuery,
-                semanticResults: contextResult.data.semanticResults,
-                tagResults: contextResult.data.tagResults,
                 executionTime: contextResult.data.executionTime
             )
 
@@ -436,7 +433,7 @@ extension TurnEngine {
                 userContent: messageContent,
                 turnInstructions: sidecarTurnInstructions,
                 contextNotes: contextData.notes,
-                memories: contextData.memories.map { $0.memory },
+                memories: contextData.memories,
                 chatHistory: history,
                 tools: effectiveTools,
                 workspaces: workspaceResult.attached,

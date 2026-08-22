@@ -25,10 +25,6 @@ public actor InMemoryMemoryStore: MemoryStoreProtocol {
         memories.filter { $0.title.contains(query) || $0.content.contains(query) }
     }
 
-    public func searchMemories(embedding _: [Double], limit _: Int, minSimilarity _: Double) async throws -> [(memory: Memory, similarity: Double)] {
-        []
-    }
-
     public func searchMemories(matchingAnyTag tags: [String]) async throws -> [Memory] {
         memories.filter { memory in
             !Set(memory.tagArray).intersection(tags).isEmpty
@@ -42,16 +38,6 @@ public actor InMemoryMemoryStore: MemoryStoreProtocol {
     public func updateMemory(_ memory: Memory) async throws {
         if let index = memories.firstIndex(where: { $0.id == memory.id }) {
             memories[index] = memory
-        }
-    }
-
-    public func updateMemoryEmbedding(id: UUID, newEmbedding: [Double]) async throws {
-        if let index = memories.firstIndex(where: { $0.id == id }) {
-            var memory = memories[index]
-            if let data = try? JSONEncoder().encode(newEmbedding) {
-                memory.embedding = String(data: data, encoding: .utf8) ?? ""
-                memories[index] = memory
-            }
         }
     }
 

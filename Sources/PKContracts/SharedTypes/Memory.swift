@@ -9,7 +9,6 @@ public struct Memory: Codable, Identifiable, Sendable, Equatable {
     public var updatedAt: Date
     public var tags: String // JSON array stored as string
     public var metadata: String // JSON object stored as string
-    public var embedding: String // JSON array of Doubles stored as string (simulating vector storage)
 
     public init(
         id: UUID = UUID(),
@@ -18,8 +17,7 @@ public struct Memory: Codable, Identifiable, Sendable, Equatable {
         createdAt: Date = Date(),
         updatedAt: Date = Date(),
         tags: [String] = [],
-        metadata: [String: String] = [:],
-        embedding: [Double] = []
+        metadata: [String: String] = [:]
     ) {
         self.id = id
         self.title = title
@@ -39,11 +37,6 @@ public struct Memory: Codable, Identifiable, Sendable, Equatable {
             self.metadata = "{}"
         }
 
-        if let data = try? JSONEncoder().encode(embedding), let str = String(data: data, encoding: .utf8) {
-            self.embedding = str
-        } else {
-            self.embedding = "[]"
-        }
     }
 
     public init(
@@ -53,8 +46,7 @@ public struct Memory: Codable, Identifiable, Sendable, Equatable {
         createdAt: Date,
         updatedAt: Date,
         tags: String,
-        metadata: String,
-        embedding: String
+        metadata: String
     ) {
         self.id = id
         self.title = title
@@ -63,7 +55,6 @@ public struct Memory: Codable, Identifiable, Sendable, Equatable {
         self.updatedAt = updatedAt
         self.tags = tags
         self.metadata = metadata
-        self.embedding = embedding
     }
 
     public var tagArray: [String] {
@@ -73,15 +64,6 @@ public struct Memory: Codable, Identifiable, Sendable, Equatable {
             return []
         }
         return array
-    }
-
-    public var embeddingVector: [Double] {
-        guard let data = embedding.data(using: .utf8),
-              let vector = try? JSONDecoder().decode([Double].self, from: data)
-        else {
-            return []
-        }
-        return vector
     }
 
     public var metadataDict: [String: String] {

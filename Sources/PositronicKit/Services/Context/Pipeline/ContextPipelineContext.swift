@@ -20,16 +20,10 @@ actor ContextPipelineContext {
     private(set) var augmentedQuery: String = ""
     /// Discovered filesystem notes.
     private(set) var notes: [ContextFile] = []
-    /// Final merged semantic memories.
-    private(set) var memories: [SemanticSearchResult] = []
+    /// Final tagged memories.
+    private(set) var memories: [Memory] = []
     /// Tags generated for the current query.
     private(set) var generatedTags: [String] = []
-    /// Vector representation of the query.
-    private(set) var queryVector: [Double] = []
-    /// Raw semantic search results before ranking.
-    private(set) var semanticResults: [SemanticSearchResult] = []
-    /// Raw tag-based search results before ranking.
-    private(set) var tagResults: [Memory] = []
     /// The final assembled context data.
     private(set) var contextData: ContextData?
 
@@ -55,10 +49,7 @@ actor ContextPipelineContext {
             notes: notes,
             memories: memories,
             generatedTags: generatedTags,
-            queryVector: queryVector,
             augmentedQuery: augmentedQuery,
-            semanticResults: semanticResults,
-            tagResults: tagResults,
             executionTime: executionTime
         )
         contextData = data
@@ -73,17 +64,11 @@ actor ContextPipelineContext {
     /// Updates the gathered results in the context with new data from pipeline stages.
     func setResults(
         notes: [ContextFile]? = nil,
-        memories: [SemanticSearchResult]? = nil,
-        tags: [String]? = nil,
-        vector: [Double]? = nil,
-        semanticResults: [SemanticSearchResult]? = nil,
-        tagResults: [Memory]? = nil
+        memories: [Memory]? = nil,
+        tags: [String]? = nil
     ) {
         if let notes { self.notes = notes }
         if let memories { self.memories = memories }
         if let tags { generatedTags = tags }
-        if let vector { queryVector = vector }
-        if let semanticResults { self.semanticResults = semanticResults }
-        if let tagResults { self.tagResults = tagResults }
     }
 }

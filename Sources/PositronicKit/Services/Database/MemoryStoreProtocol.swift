@@ -1,7 +1,7 @@
 import PKContracts
 import PKUtilities
 
-// Protocol for managing semantic memories and vector search.
+// Protocol for managing tagged memories.
 
 import Foundation
 
@@ -11,13 +11,9 @@ public protocol MemoryStoreProtocol: DurabilityAware {
     func fetchAllMemories() async throws -> [Memory]
     func hasAnyMemory() async throws -> Bool
     func searchMemories(query: String) async throws -> [Memory]
-    func searchMemories(
-        embedding: [Double], limit: Int, minSimilarity: Double
-    ) async throws -> [(memory: Memory, similarity: Double)]
     func searchMemories(matchingAnyTag tags: [String]) async throws -> [Memory]
     func deleteMemory(id: UUID) async throws
     func updateMemory(_ memory: Memory) async throws
-    func updateMemoryEmbedding(id: UUID, newEmbedding: [Double]) async throws
     func vacuumMemories(threshold: Double) async throws -> Int
     /// Deletes (or previews deleting) memories matching `query`.
     ///

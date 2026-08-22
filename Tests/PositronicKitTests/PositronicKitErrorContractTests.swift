@@ -161,20 +161,9 @@ struct PositronicKitErrorContractTests {
     struct TurnBriefingBuilderErrorTests {
         @Test("Every case maps to a unique non-zero error code in the context domain")
         func uniqueErrorCodes() {
-            let embedding = TurnBriefingBuilderError.embeddingFailed(NSError(domain: "x", code: 1))
             let persistence = TurnBriefingBuilderError.persistenceFailed(NSError(domain: "x", code: 2))
-            let codes = [embedding.errorCode, persistence.errorCode]
-            #expect(Set(codes).count == 2)
-            #expect(codes == [2001, 2002])
-            #expect(embedding.errorDomain == PKErrorDomain.context)
+            #expect(persistence.errorCode == 2002)
             #expect(persistence.errorDomain == PKErrorDomain.context)
-        }
-
-        @Test("embeddingFailed produces a user-facing retrieval message")
-        func embeddingFailedMessage() {
-            let error = TurnBriefingBuilderError.embeddingFailed(NSError(domain: "x", code: 1))
-            #expect(error.userFriendlyMessage.contains("analyze"))
-            #expect(error.userFriendlyMessage.contains("context"))
         }
 
         @Test("persistenceFailed produces a user-facing retrieval message")
@@ -185,69 +174,4 @@ struct PositronicKitErrorContractTests {
         }
     }
 
-    // MARK: - EmbeddingError
-
-    @Suite("EmbeddingError")
-    struct EmbeddingErrorTests {
-        @Test("Every case maps to a unique non-zero error code in the embedding domain")
-        func uniqueErrorCodes() {
-            let cases: [EmbeddingError] = [
-                .modelUnavailable,
-                .generationFailed,
-                .modelDirectoryMissing,
-                .modelFilesMissing,
-                .modelChecksumMismatch,
-                .nativeInitializationFailed,
-                .batchTextCountLimitExceeded(max: 64, actual: 100),
-                .perTextByteLimitExceeded(max: 100, actual: 200),
-                .totalBatchByteLimitExceeded(max: 1000, actual: 2000),
-            ]
-            let codes = cases.map(\.errorCode)
-            #expect(Set(codes).count == codes.count)
-            #expect(codes == [8001, 8002, 8003, 8004, 8005, 8006, 8007, 8008, 8009])
-            #expect(cases.allSatisfy { $0.errorDomain == PKErrorDomain.embedding })
-        }
-
-        @Test("batchTextCountLimitExceeded includes both max and actual in the message")
-        func batchCountMessage() {
-            let error = EmbeddingError.batchTextCountLimitExceeded(max: 64, actual: 100)
-            #expect(error.userFriendlyMessage.contains("64"))
-            #expect(error.userFriendlyMessage.contains("100"))
-            #expect(error.userFriendlyMessage.contains("batch text-count"))
-        }
-
-        @Test("perTextByteLimitExceeded includes both max and actual in the message")
-        func perTextByteMessage() {
-            let error = EmbeddingError.perTextByteLimitExceeded(max: 100, actual: 200)
-            #expect(error.userFriendlyMessage.contains("100"))
-            #expect(error.userFriendlyMessage.contains("200"))
-            #expect(error.userFriendlyMessage.contains("per-text byte"))
-        }
-
-        @Test("totalBatchByteLimitExceeded includes both max and actual in the message")
-        func totalBatchByteMessage() {
-            let error = EmbeddingError.totalBatchByteLimitExceeded(max: 1000, actual: 2000)
-            #expect(error.userFriendlyMessage.contains("1000"))
-            #expect(error.userFriendlyMessage.contains("2000"))
-            #expect(error.userFriendlyMessage.contains("total batch byte"))
-        }
-
-        @Test("modelUnavailable message references device availability")
-        func modelUnavailableMessage() {
-            #expect(EmbeddingError.modelUnavailable.userFriendlyMessage.contains("not available"))
-        }
-
-        @Test("Equatable conformance compares associated values")
-        func equatable() {
-            #expect(EmbeddingError.modelUnavailable == .modelUnavailable)
-            #expect(
-                EmbeddingError.batchTextCountLimitExceeded(max: 1, actual: 2)
-                == .batchTextCountLimitExceeded(max: 1, actual: 2)
-            )
-            #expect(
-                EmbeddingError.batchTextCountLimitExceeded(max: 1, actual: 2)
-                != .batchTextCountLimitExceeded(max: 1, actual: 3)
-            )
-        }
-    }
 }

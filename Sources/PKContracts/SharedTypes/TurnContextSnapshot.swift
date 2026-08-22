@@ -12,13 +12,13 @@ public struct TurnContextSnapshot: Sendable, Codable, Equatable {
     /// Files retrieved and injected into the prompt.
     public let files: [FileEntry]
 
-    /// Memories retrieved via semantic or tag search.
+    /// Memories retrieved via tag search.
     public let memories: [MemoryEntry]
 
     /// Tags generated from the user query for retrieval.
     public let generatedTags: [String]
 
-    /// The augmented query used for semantic search (if any).
+    /// The augmented query used for tag generation (if any).
     public let augmentedQuery: String?
 
     /// Time spent gathering context (seconds).
@@ -65,16 +65,13 @@ public struct TurnContextSnapshot: Sendable, Codable, Equatable {
         }
     }
 
-    /// A memory retrieved for context, with its similarity score.
+    /// A memory retrieved for context.
     public struct MemoryEntry: Sendable, Codable, Equatable {
         public let id: UUID
         public let content: String
-        public let similarity: Double?
-
-        public init(id: UUID, content: String, similarity: Double? = nil) {
+        public init(id: UUID, content: String) {
             self.id = id
             self.content = content
-            self.similarity = similarity
         }
     }
 }

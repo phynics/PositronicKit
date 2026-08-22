@@ -37,19 +37,12 @@ private actor ArchiveFaultInjectingPersistence:
         []
     }
 
-    func searchMemories(
-        embedding _: [Double], limit _: Int, minSimilarity _: Double
-    ) async throws -> [(memory: Memory, similarity: Double)] {
-        []
-    }
-
     func searchMemories(matchingAnyTag _: [String]) async throws -> [Memory] {
         []
     }
 
     func deleteMemory(id _: UUID) async throws {}
     func updateMemory(_: Memory) async throws {}
-    func updateMemoryEmbedding(id _: UUID, newEmbedding _: [Double]) async throws {}
     func vacuumMemories(threshold _: Double) async throws -> Int { 0 }
     func pruneMemories(matching _: String, dryRun _: Bool) async throws -> Int { 0 }
     func pruneMemories(olderThan _: TimeInterval, dryRun _: Bool) async throws -> Int { 0 }
@@ -110,21 +103,18 @@ struct ThreadArchiverTests {
     let persistence: MockPersistenceService
     let mockLLM: MockLLMService
     let archiver: ThreadArchiver
-    let mockEmbeddingService: MockEmbeddingService
     let runtimeRepository: InMemoryThreadRuntimeRepository
     let threadAuthorityCoordinator: ThreadAuthorityCoordinator
 
     init() async throws {
         persistence = MockPersistenceService()
         mockLLM = MockLLMService()
-        mockEmbeddingService = MockEmbeddingService()
         runtimeRepository = InMemoryThreadRuntimeRepository()
         threadAuthorityCoordinator = ThreadAuthorityCoordinator()
 
         archiver = ThreadArchiver(
             persistence: persistence,
             llmService: mockLLM,
-            embeddingService: mockEmbeddingService,
             runtimeRepository: runtimeRepository,
             threadAuthorityCoordinator: threadAuthorityCoordinator
         )
@@ -167,7 +157,6 @@ struct ThreadArchiverTests {
     func archive_indexesLongMessagesAsMemories() async throws {
         // Given
         mockLLM.mockClient.nextResponse = #"{"title":"Swift Title"}"#
-        mockEmbeddingService.mockEmbedding = [0.1, 0.2, 0.3]
 
         let longMessage = "This is a very long message that should be indexed as a memory because it is longer than 20 characters."
         let messages = [
@@ -181,9 +170,7 @@ struct ThreadArchiverTests {
         let memories = try await persistence.fetchAllMemories()
         #expect(memories.count == 1)
         #expect(memories.first?.content == longMessage)
-        let vector = memories.first?.embeddingVector ?? []
-        #expect(vector.count == 3)
-        #expect(abs(vector[0] - 0.1) < 0.001)
+        #expect(memories.first?.tags == "[]")
     }
 
     @Test
@@ -267,7 +254,6 @@ struct ThreadArchiverTests {
         let createArchiver = ThreadArchiver(
             persistence: createPersistence,
             llmService: MockLLMService(),
-            embeddingService: MockEmbeddingService(),
             runtimeRepository: InMemoryThreadRuntimeRepository(),
             threadAuthorityCoordinator: ThreadAuthorityCoordinator()
         )
@@ -306,7 +292,6 @@ struct ThreadArchiverTests {
         let updateArchiver = ThreadArchiver(
             persistence: updatePersistence,
             llmService: MockLLMService(),
-            embeddingService: MockEmbeddingService(),
             runtimeRepository: InMemoryThreadRuntimeRepository(),
             threadAuthorityCoordinator: ThreadAuthorityCoordinator()
         )

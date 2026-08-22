@@ -24,12 +24,10 @@ final class MemoryModelTests {
             createdAt: Date(timeIntervalSince1970: 1000),
             updatedAt: Date(timeIntervalSince1970: 1000),
             tags: ["swift", "preference", "user-profile"],
-            metadata: ["context": "Discussing programming languages"],
-            embedding: [0.1, 0.2, 0.3]
+            metadata: ["context": "Discussing programming languages"]
         )
         try assertCodable(memory)
         #expect(memory.tagArray.count == 3)
-        #expect(memory.embedding == "[0.1,0.2,0.3]")
     }
 
     @Test
@@ -37,8 +35,7 @@ final class MemoryModelTests {
     func memoryUpdate() {
         var memory = Memory(
             title: "Test",
-            content: "Test",
-            embedding: []
+            content: "Test"
         )
         let oldDate = memory.updatedAt
 
@@ -103,19 +100,9 @@ final class MemoryModelTests {
         let memory = Memory(
             id: UUID(), title: "T", content: "C",
             createdAt: Date(), updatedAt: Date(),
-            tags: "not-json", metadata: "{}", embedding: "[]"
+            tags: "not-json", metadata: "{}"
         )
         #expect(memory.tagArray == [])
-    }
-
-    @Test("embeddingVector returns empty for malformed JSON")
-    func embeddingVectorMalformedJSON() {
-        let memory = Memory(
-            id: UUID(), title: "T", content: "C",
-            createdAt: Date(), updatedAt: Date(),
-            tags: "[]", metadata: "{}", embedding: "not-json"
-        )
-        #expect(memory.embeddingVector == [])
     }
 
     @Test("metadataDict returns empty for malformed JSON")
@@ -123,7 +110,7 @@ final class MemoryModelTests {
         let memory = Memory(
             id: UUID(), title: "T", content: "C",
             createdAt: Date(), updatedAt: Date(),
-            tags: "[]", metadata: "not-json", embedding: "[]"
+            tags: "[]", metadata: "not-json"
         )
         #expect(memory.metadataDict == [:])
     }

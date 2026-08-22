@@ -14,26 +14,23 @@ actor TurnBriefingBuilder {
     init(
         workspace: (any Workspace)? = nil,
         memoryStore: any MemoryStoreProtocol = InMemoryMemoryStore(),
-        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
         pipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil
     ) {
         self.workspace = workspace
         self.pipeline = pipeline ?? Pipeline(stages: Self.defaultStages(
             workspace: workspace,
-            memoryStore: memoryStore,
-            embeddingService: embeddingService
+            memoryStore: memoryStore
         ))
     }
 
     /// Provides the standard stages for context gathering.
     static func defaultStages(
         workspace: (any Workspace)? = nil,
-        memoryStore: any MemoryStoreProtocol = InMemoryMemoryStore(),
-        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService()
+        memoryStore: any MemoryStoreProtocol = InMemoryMemoryStore()
     ) -> [any PipelineStage<ContextPipelineContext, ContextGatheringEvent>] {
         return [
             QueryAugmentationStage(),
-            MemoryRetrievalStage(memoryStore: memoryStore, embeddingService: embeddingService),
+            MemoryRetrievalStage(memoryStore: memoryStore),
             NoteDiscoveryStage(workspace: workspace),
             ContextAssemblyStage(logger: Logger.module(named: "context-assembly")),
         ]

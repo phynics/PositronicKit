@@ -12,19 +12,17 @@ public enum MemoryVacuumPolicy: Sendable {
     case run(threshold: Double)
 }
 
-/// Service to archive threads and index their messages for semantic recall.
+/// Service to archive threads and index their messages for tagged recall.
 actor ThreadArchiver {
     private let persistence: any ThreadPersistenceProtocol & MemoryStoreProtocol & ThreadMessageStoreProtocol
     private let runtimeRepository: (any ThreadRuntimeRepository)?
     private let threadAuthorityCoordinator: ThreadAuthorityCoordinator?
     private let llmService: any LLMStreamClient
-    private let embeddingService: any EmbeddingServiceProtocol
     private let logger = Logger.module(named: "thread-archiver")
 
     public init(
         persistence: any ThreadPersistenceProtocol & MemoryStoreProtocol & ThreadMessageStoreProtocol,
         llmService: any LLMStreamClient,
-        embeddingService: any EmbeddingServiceProtocol,
         runtimeRepository: (any ThreadRuntimeRepository)? = nil,
         threadAuthorityCoordinator: ThreadAuthorityCoordinator? = nil
     ) {
@@ -32,11 +30,10 @@ actor ThreadArchiver {
         self.runtimeRepository = runtimeRepository
         self.threadAuthorityCoordinator = threadAuthorityCoordinator
         self.llmService = llmService
-        self.embeddingService = embeddingService
     }
 
 
-    /// Archive a thread and index its messages as semantic memories
+    /// Archive a thread and index its messages as memories.
     @discardableResult
     public func archive(
         messages: [Message],
@@ -187,13 +184,11 @@ actor ThreadArchiver {
             // failure this actor owns (see `resolveTitle(from:)`).
             let tags = await BestEffortLLMUtilities(streamClient: llmService, logger: logger)
                 .bestEffortTags(for: msg.content)
-            let embedding = try await embeddingService.generateEmbedding(for: msg.content)
 
             let memory = Memory(
                 title: title,
                 content: msg.content,
-                tags: tags,
-                embedding: embedding.map { Double($0) }
+                tags: tags
             )
             _ = try await persistence.saveMemory(memory, policy: .deduplicating(threshold: 0.92))
         } catch {

@@ -1,84 +1,17 @@
 import Foundation
 import PKContracts
-import PKUtilities
 
-/// Handles ranking of semantic search results
+/// Handles deterministic ordering of tagged memories.
 public struct ContextRanker: Sendable {
     public init() {}
 
-    /// Rank memories based on semantic similarity, tag matches, and time decay
-    /// - Parameters:
-    ///   - semantic: Initial semantic search results
-    ///   - tagBased: Results found via tag matching
-    ///   - queryEmbedding: The embedding vector of the query
-    ///   - now: Closure producing the current time, used for time-decay calculation.
-    ///     Defaults to `Date.init`; tests can inject a fixed clock for deterministic decay.
-    /// - Returns: Ranked and combined results
-    public func rankMemories(
-        semantic: [SemanticSearchResult],
-        tagBased: [Memory],
-        queryEmbedding: [Double],
-        now: @escaping () -> Date = Date.init
-    ) -> [SemanticSearchResult] {
-        // Tag matches are explicit and highly relevant, give them a significant boost
-        // A boost of 0.5 ensures they rank highly but don't strictly override strong semantic matches
-        let tagBoost = 0.5
-
-        // Time decay configuration
-        // Half-life of 42 days: memories lose half their freshness boost every 42 days
-        let halfLifeDays = 42.0
-        let now = now()
-
-        var results: [SemanticSearchResult] = semantic.map {
-            SemanticSearchResult(memory: $0.memory, similarity: $0.similarity)
-        }
-
-        let existingIds = Set(results.map { $0.memory.id })
-
-        // Boost existing semantic results if they also match tags
-        let tagIds = Set(tagBased.map { $0.id })
-        results = results.map { res in
-            if tagIds.contains(res.memory.id) {
-                return SemanticSearchResult(
-                    memory: res.memory, similarity: (res.similarity ?? 0) + tagBoost
-                )
+    /// Orders memories newest-first with a stable UUID tie-breaker.
+    public func rankMemories(_ memories: [Memory]) -> [Memory] {
+        return memories.sorted { lhs, rhs in
+            if lhs.updatedAt != rhs.updatedAt {
+                return lhs.updatedAt > rhs.updatedAt
             }
-            return res
+            return lhs.id.uuidString < rhs.id.uuidString
         }
-
-        // Add tag results that aren't already included, with boost
-        for memory in tagBased where !existingIds.contains(memory.id) {
-            let sim = VectorMath.cosineSimilarity(
-                between: queryEmbedding,
-                and: memory.embeddingVector
-            )
-            results.append(SemanticSearchResult(memory: memory, similarity: sim + tagBoost))
-        }
-
-        // Apply time decay to all results
-        // Decay formula: decayFactor = 2^(-ageInDays / halfLifeDays)
-        // This gives: age=0 -> 1.0, age=42 -> 0.5, age=84 -> 0.25, etc.
-        results = results.map { result in
-            let ageInDays = now.timeIntervalSince(result.memory.updatedAt) / 86400.0
-            let decayFactor = pow(2.0, -ageInDays / halfLifeDays)
-            let decayedScore = (result.similarity ?? 0) * decayFactor
-            return SemanticSearchResult(memory: result.memory, similarity: decayedScore)
-        }
-
-        // Re-sort by decayed similarity. Equal scores use stable memory fields so
-        // selection from the ranked results is independent of backend ordering.
-        // Newer memories win first; UUID strings provide the final deterministic tie-break.
-        results.sort { lhs, rhs in
-            let lhsScore = lhs.similarity ?? 0
-            let rhsScore = rhs.similarity ?? 0
-
-            if lhsScore > rhsScore { return true }
-            if lhsScore < rhsScore { return false }
-            if lhs.memory.updatedAt != rhs.memory.updatedAt {
-                return lhs.memory.updatedAt > rhs.memory.updatedAt
-            }
-            return lhs.memory.id.uuidString < rhs.memory.id.uuidString
-        }
-        return results
     }
 }

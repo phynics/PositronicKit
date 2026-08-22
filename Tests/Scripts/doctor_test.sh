@@ -53,7 +53,7 @@ run_case() {
       FAKE_FOUNDATION_OK="$foundation_ok" \
       DOCTOR_HOST_OS=Darwin \
       PATH="$fake_bin:$PATH" \
-      bash "$doctor" "" "$tmp_dir/pkfastembed" 2>&1
+      bash "$doctor" "" 2>&1
   )"
   status=$?
   set -e
@@ -79,7 +79,7 @@ run_missing_swift_case() {
   output="$(
     PATH="$path_without_swift" \
       DOCTOR_HOST_OS=Darwin \
-      "$bash_path" "$doctor" "" "$tmp_dir/pkfastembed" 2>&1
+      "$bash_path" "$doctor" "" 2>&1
   )"
   status=$?
   set -e
@@ -112,7 +112,7 @@ run_linux_case() {
     DOCTOR_HOST_OS=Linux \
       FAKE_PODMAN_INFO_OK="$podman_info_ok" \
       PATH="$fake_bin:$path_without_swift" \
-      "$bash_path" "$doctor" "$podman_argument" "$tmp_dir/pkfastembed" 2>&1
+      "$bash_path" "$doctor" "$podman_argument" 2>&1
   )"
   status=$?
   set -e

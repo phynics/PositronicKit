@@ -519,8 +519,7 @@ private extension ThreadManager {
 
         let turnBriefingBuilder = TurnBriefingBuilder(
             workspace: contextWorkspace,
-            memoryStore: memoryStore,
-            embeddingService: embeddingService
+            memoryStore: memoryStore
         )
         turnBriefingBuilders[thread.id] = turnBriefingBuilder
 

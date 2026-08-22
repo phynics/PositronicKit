@@ -130,7 +130,7 @@ struct MessagePersistenceStage: PipelineStage {
         if hasPendingToolCalls {
             recalledMemories = "[]"
         } else {
-            let memories = context.contextData.memories.map { $0.memory }
+            let memories = context.contextData.memories
             recalledMemories = (try? SerializationUtils.jsonEncoder.encode(memories))
                 .flatMap { String(bytes: $0, encoding: .utf8) } ?? "[]"
         }
@@ -209,9 +209,8 @@ struct MessagePersistenceStage: PipelineStage {
             },
             memories: context.contextData.memories.map {
                 TurnContextSnapshot.MemoryEntry(
-                    id: $0.memory.id,
-                    content: $0.memory.content,
-                    similarity: $0.similarity
+                    id: $0.id,
+                    content: $0.content
                 )
             },
             generatedTags: context.contextData.generatedTags,
@@ -288,7 +287,7 @@ private enum DiagnosticSnapshotEncoder {
                 },
                 files: context.files.map { .init(name: clean($0.name), source: clean($0.source)) },
                 memories: context.memories.map {
-                    .init(id: $0.id, content: clean($0.content), similarity: $0.similarity)
+                    .init(id: $0.id, content: clean($0.content))
                 },
                 generatedTags: context.generatedTags.map(clean),
                 augmentedQuery: context.augmentedQuery.map(clean),

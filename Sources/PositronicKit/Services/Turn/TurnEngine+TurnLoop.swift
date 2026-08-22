@@ -46,7 +46,7 @@ extension TurnEngine {
 
         // 1. Emit initial RAG context for frontend observability
         continuation.yield(.generationContext(GenerationMetadata(
-            memories: context.contextData.memories.map { $0.memory.id },
+            memories: context.contextData.memories.map(\.id),
             files: context.contextData.notes.map { $0.name },
             diagnostics: context.diagnostics
         )))

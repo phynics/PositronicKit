@@ -15,7 +15,7 @@ import Synchronization
 /// Configurable: `mockHealthStatus`/`mockHealthDetails`; `saveOriginMock`/`fetchOriginMock`/
 /// `fetchAllOriginsMock`/`deleteOriginMock` (closures overriding `RequestOriginStoreProtocol`
 /// behavior — unset closures make origin operations no-ops/return empty). Inspectable:
-/// `memories`, `searchResults`, `messages`, `threads`, `agentTemplates`, `workspaces`,
+/// `memories`, `messages`, `threads`, `agentTemplates`, `workspaces`,
 /// `agents` all forward to the underlying focused mocks. `resetDatabase()` clears
 /// every backing store.
 ///
@@ -101,11 +101,6 @@ public final class MockPersistenceService: MemoryStoreProtocol, ThreadMessageSto
         set { memoriesMock.memories = newValue }
     }
 
-    public var searchResults: [(memory: Memory, similarity: Double)] {
-        get { memoriesMock.searchResults }
-        set { memoriesMock.searchResults = newValue }
-    }
-
     public func saveMemory(_ memory: Memory, policy: MemorySavePolicy) async throws -> UUID {
         try await memoriesMock.saveMemory(memory, policy: policy)
     }
@@ -122,10 +117,6 @@ public final class MockPersistenceService: MemoryStoreProtocol, ThreadMessageSto
         try await memoriesMock.searchMemories(query: query)
     }
 
-    public func searchMemories(embedding: [Double], limit: Int, minSimilarity: Double) async throws -> [(memory: Memory, similarity: Double)] {
-        try await memoriesMock.searchMemories(embedding: embedding, limit: limit, minSimilarity: minSimilarity)
-    }
-
     public func searchMemories(matchingAnyTag tags: [String]) async throws -> [Memory] {
         try await memoriesMock.searchMemories(matchingAnyTag: tags)
     }
@@ -136,10 +127,6 @@ public final class MockPersistenceService: MemoryStoreProtocol, ThreadMessageSto
 
     public func updateMemory(_ memory: Memory) async throws {
         try await memoriesMock.updateMemory(memory)
-    }
-
-    public func updateMemoryEmbedding(id: UUID, newEmbedding: [Double]) async throws {
-        try await memoriesMock.updateMemoryEmbedding(id: id, newEmbedding: newEmbedding)
     }
 
     public func vacuumMemories(threshold: Double) async throws -> Int {
@@ -353,7 +340,6 @@ public final class MockPersistenceService: MemoryStoreProtocol, ThreadMessageSto
 
     public func resetDatabase() async throws {
         memories = []
-        searchResults = []
         messages = []
         threads = []
         agentTemplates = []

@@ -100,11 +100,9 @@ public struct Message: Identifiable, Equatable, Sendable, Codable {
         case augmenting = "Augmenting Query"
         /// Generating tags used to filter or bias memory search.
         case tagging = "Generating Tags"
-        /// Generating the query embedding for similarity search.
-        case embedding = "Generating Embedding"
-        /// Running the memory similarity search.
+        /// Searching tagged memories.
         case searching = "Searching Memories"
-        /// Ranking/scoring the search results.
+        /// Ordering the retrieved memories.
         case ranking = "Ranking Results"
         /// Locating relevant notes/documents outside of memory search.
         case discoveringNotes = "Discovering Notes"

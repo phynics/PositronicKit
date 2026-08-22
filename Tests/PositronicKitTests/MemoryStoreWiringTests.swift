@@ -6,11 +6,7 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-/// Regression coverage for memory/embedding wiring.
-///
-/// The runtime previously dropped the injected `memoryStore` / `embeddingService`: the default
-/// context pipeline always constructed `MemoryRetrievalStage()` with empty in-memory defaults, so
-/// memories persisted through the facade were never retrieved during context gathering.
+/// Regression coverage for memory store wiring.
 @Suite("Memory Store Wiring")
 struct MemoryStoreWiringTests {
     private func completeContext(
@@ -29,23 +25,21 @@ struct MemoryStoreWiringTests {
     @Test("TurnBriefingBuilder default pipeline honors the injected memory store")
     func defaultPipelineUsesInjectedMemoryStore() async throws {
         let memoryStore = MockMemoryStore()
-        let embedding = MockEmbeddingService()
-        let memory = Memory.fixture(title: "Wired Memory", content: "Important fact", tags: [])
-        memoryStore.searchResults = [(memory, 0.95)]
+        let memory = Memory.fixture(title: "Wired Memory", content: "Important fact", tags: ["swift"])
+        memoryStore.memories = [memory]
 
-        let turnBriefingBuilder = TurnBriefingBuilder(memoryStore: memoryStore, embeddingService: embedding)
-        let events = try await turnBriefingBuilder.gatherContext(for: "any query").collect()
+        let turnBriefingBuilder = TurnBriefingBuilder(memoryStore: memoryStore)
+        let tagGenerator: @Sendable (String) async throws -> [String] = { _ in ["swift"] }
+        let events = try await turnBriefingBuilder.gatherContext(for: "any query", tagGenerator: tagGenerator).collect()
 
         let context = try #require(completeContext(from: events))
-        #expect(context.memories.contains { $0.memory.id == memory.id })
-        #expect(embedding.lastInput == "any query")
+        #expect(context.memories.contains { $0.id == memory.id })
     }
 
     @Test("TurnBriefingBuilder default pipeline short-circuits empty memory corpora")
     func defaultPipelineShortCircuitsEmptyMemoryCorpus() async throws {
         let memoryStore = MockMemoryStore()
-        let embedding = MockEmbeddingService()
-        let turnBriefingBuilder = TurnBriefingBuilder(memoryStore: memoryStore, embeddingService: embedding)
+        let turnBriefingBuilder = TurnBriefingBuilder(memoryStore: memoryStore)
         let tagProbe = TagProbe()
         let tagGenerator: @Sendable (String) async throws -> [String] = { _ in
             await tagProbe.recordCall()
@@ -60,7 +54,6 @@ struct MemoryStoreWiringTests {
         let context = try #require(completeContext(from: events))
         #expect(progressSequence(from: events) == [.augmenting, .discoveringNotes, .complete])
         #expect(await tagProbe.calls == 0)
-        #expect(embedding.lastInput == nil)
         #expect(context.memories.isEmpty)
     }
 
@@ -68,9 +61,8 @@ struct MemoryStoreWiringTests {
     func facadeWiresMemoryStoreIntoRAG() async throws {
         let workspace = TestWorkspace()
         let memoryStore = MockMemoryStore()
-        let embedding = MockEmbeddingService()
-        let memory = Memory.fixture(title: "Persisted Memory", content: "User prefers dark mode", tags: [])
-        memoryStore.searchResults = [(memory, 0.92)]
+        let memory = Memory.fixture(title: "Persisted Memory", content: "User prefers dark mode", tags: ["mode"])
+        memoryStore.memories = [memory]
 
         let persistence = PositronicKit.PersistenceConfiguration(
             messageStore: InMemoryMessageStore(),
@@ -81,14 +73,15 @@ struct MemoryStoreWiringTests {
             agentStore: InMemoryAgentStore(),
             requestOriginStore: InMemoryRequestOriginStore()
         )
-        let core = PositronicKit(configuration: .init(provider: .init(languageModel: UnconfiguredLLMService(), embeddingService: embedding), persistence: persistence, runtime: .init(workspaceRoot: workspace.root)))
+        let core = PositronicKit(configuration: .init(provider: .init(languageModel: UnconfiguredLLMService()), persistence: persistence, runtime: .init(workspaceRoot: workspace.root)))
 
         let thread = try await core.threadManager.createThread()
         let turnBriefingBuilder = try #require(await core.threadManager.getTurnBriefingBuilder(for: thread.id))
-        let events = try await turnBriefingBuilder.gatherContext(for: "what are my preferences?").collect()
+        let tagGenerator: @Sendable (String) async throws -> [String] = { _ in ["mode"] }
+        let events = try await turnBriefingBuilder.gatherContext(for: "what are my preferences?", tagGenerator: tagGenerator).collect()
 
         let context = try #require(completeContext(from: events))
-        #expect(context.memories.contains { $0.memory.id == memory.id })
+        #expect(context.memories.contains { $0.id == memory.id })
     }
 }
 

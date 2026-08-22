@@ -295,34 +295,6 @@ struct InMemoryStoresContractTests {
             #expect(try await store.fetchAllMemories().isEmpty)
         }
 
-        @Test("updateMemoryEmbedding serializes the new embedding vector")
-        func updateEmbeddingSerializes() async throws {
-            let store = InMemoryMemoryStore()
-            let memory = makeMemory()
-            _ = try await store.saveMemory(memory, policy: .immediate)
-
-            try await store.updateMemoryEmbedding(id: memory.id, newEmbedding: [0.1, 0.2, 0.3])
-
-            let fetched = try await store.fetchMemory(id: memory.id)
-            #expect(fetched?.embeddingVector == [0.1, 0.2, 0.3])
-        }
-
-        @Test("updateMemoryEmbedding is a no-op for an unknown id")
-        func updateEmbeddingUnknownIsNoOp() async throws {
-            let store = InMemoryMemoryStore()
-            try await store.updateMemoryEmbedding(id: UUID(), newEmbedding: [1.0])
-            #expect(try await store.fetchAllMemories().isEmpty)
-        }
-
-        @Test("embedding-based search always returns empty (no vector index)")
-        func embeddingSearchReturnsEmpty() async throws {
-            let store = InMemoryMemoryStore()
-            _ = try await store.saveMemory(makeMemory(), policy: .immediate)
-
-            let results = try await store.searchMemories(embedding: [0.5], limit: 10, minSimilarity: 0.0)
-            #expect(results.isEmpty)
-        }
-
         @Test("vacuum and prune are no-ops returning zero")
         func vacuumAndPruneAreNoOps() async throws {
             let store = InMemoryMemoryStore()

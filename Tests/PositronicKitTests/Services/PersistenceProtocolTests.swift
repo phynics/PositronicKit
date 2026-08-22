@@ -49,17 +49,12 @@ final class MockPersistenceStore:
         []
     }
 
-    func searchMemories(embedding _: [Double], limit _: Int, minSimilarity _: Double) async throws -> [(memory: Memory, similarity: Double)] {
-        []
-    }
-
     func searchMemories(matchingAnyTag _: [String]) async throws -> [Memory] {
         []
     }
 
     func deleteMemory(id _: UUID) async throws {}
     func updateMemory(_: Memory) async throws {}
-    func updateMemoryEmbedding(id _: UUID, newEmbedding _: [Double]) async throws {}
     func vacuumMemories(threshold _: Double) async throws -> Int {
         0
     }

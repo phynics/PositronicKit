@@ -108,7 +108,6 @@ actor ThreadManager {
     let runtimeRepository: (any ThreadRuntimeRepository)?
     let toolPersistence: any ToolPersistenceProtocol
     let memoryStore: any MemoryStoreProtocol
-    let embeddingService: any EmbeddingServiceProtocol
 
     /// Persists a workspace reference into the store this manager validates,
     /// so an import followed by `attachWorkspace(_:to:)` succeeds.
@@ -168,7 +167,6 @@ actor ThreadManager {
         workspaceProfile: WorkspaceProfile,
         resolver: any WorkspaceResolver,
         runtimeToolPolicy: RuntimeToolPolicy = .default,
-        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
         promptHistoryRegistry: ThreadPromptJournals? = nil,
         taskRegistry: ThreadTaskRegistry? = nil,
         workspaceExecutionCoordinator: WorkspaceExecutionCoordinator? = nil,
@@ -181,7 +179,6 @@ actor ThreadManager {
         runtimeRepository = stores.runtimeRepository
         toolPersistence = stores.toolPersistence
         memoryStore = stores.memoryStore
-        self.embeddingService = embeddingService
         self.workspaceProfile = workspaceProfile
         self.runtimeToolPolicy = runtimeToolPolicy
         self.promptHistoryRegistry = promptHistoryRegistry

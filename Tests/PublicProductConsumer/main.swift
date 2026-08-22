@@ -2,7 +2,6 @@ import Foundation
 import PKAnthropicProvider
 import PKContracts
 import PKFoundationModelsProvider
-import PKLocalEmbeddings
 import PKObservable
 import PKOllamaProvider
 import PKOpenAIProvider
@@ -17,7 +16,6 @@ _ = String(describing: PositronicKit.self)
 _ = String(describing: (any Prompt).self)
 _ = String(describing: Message.self)
 _ = String(describing: ThreadController.self)
-_ = String(describing: LocalEmbeddingService.self)
 _ = String(describing: PKOpenAIProvider.self)
 _ = String(describing: PKOpenRouterProvider.self)
 _ = String(describing: PKOllamaProvider.self)

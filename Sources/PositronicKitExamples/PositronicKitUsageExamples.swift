@@ -95,7 +95,7 @@ public enum PositronicKitUsageExamples {
         )
 
         return PositronicKit(configuration: .init(
-            provider: .init(languageModel: UnconfiguredLLMService(), embeddingService: NoOpEmbeddingService()),
+            provider: .init(languageModel: UnconfiguredLLMService()),
             persistence: .inMemory(),
             runtime: runtime
         ))
@@ -155,7 +155,7 @@ public enum PositronicKitUsageExamples {
         )
 
         return PositronicKit(configuration: .init(
-            provider: .init(languageModel: UnconfiguredLLMService(), embeddingService: NoOpEmbeddingService()),
+            provider: .init(languageModel: UnconfiguredLLMService()),
             persistence: .init(
                 messageStore: InMemoryMessageStore(),
                 threadPersistence: InMemoryThreadPersistence(),

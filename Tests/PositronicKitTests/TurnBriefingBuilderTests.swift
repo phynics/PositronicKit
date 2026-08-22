@@ -10,23 +10,21 @@ import Testing
 struct TurnBriefingBuilderTests {
     private func makeTurnBriefingBuilder(
         workspace: (any Workspace)? = nil,
-        persistence: MockPersistenceService,
-        embedding: MockEmbeddingService
+        persistence: MockPersistenceService
     ) -> TurnBriefingBuilder {
         let stages: [any PipelineStage<ContextPipelineContext, ContextGatheringEvent>] = [
             QueryAugmentationStage(),
-            MemoryRetrievalStage(memoryStore: persistence, embeddingService: embedding),
+            MemoryRetrievalStage(memoryStore: persistence),
             NoteDiscoveryStage(workspace: workspace),
             ContextAssemblyStage(logger: Logger(label: "test.context-assembly")),
         ]
         return TurnBriefingBuilder(workspace: workspace, pipeline: Pipeline(stages: stages))
     }
 
-    @Test("Gather Context: Semantic Retrieval")
-    func gatherContextSemanticRetrieval() async throws {
+    @Test("Gather Context: Tag-based Retrieval")
+    func gatherContextTagRetrieval() async throws {
         let mockPersistence = MockPersistenceService()
-        let mockEmbedding = MockEmbeddingService()
-        let turnBriefingBuilder = makeTurnBriefingBuilder(persistence: mockPersistence, embedding: mockEmbedding)
+        let turnBriefingBuilder = makeTurnBriefingBuilder(persistence: mockPersistence)
 
         let expectedMemory = Memory.fixture(
             title: "SwiftUI Guide",
@@ -34,9 +32,10 @@ struct TurnBriefingBuilderTests {
             tags: ["swiftui"]
         )
         mockPersistence.memories = [expectedMemory]
-        mockPersistence.searchResults = [(expectedMemory, 0.9)]
 
-        let stream = await turnBriefingBuilder.gatherContext(for: "How to use SwiftUI?")
+        let tagGenerator: @Sendable (String) async throws -> [String] = { _ in ["swiftui"] }
+
+        let stream = await turnBriefingBuilder.gatherContext(for: "How to use SwiftUI?", tagGenerator: tagGenerator)
         let events = try await stream.collect()
 
         let context = events.compactMap { if case let .complete(data) = $0 { return data } else { return nil } }.first
@@ -47,21 +46,16 @@ struct TurnBriefingBuilderTests {
         }
 
         #expect(context.memories.count == 1)
-        #expect(context.memories.first?.memory.id == expectedMemory.id)
-        let similarity = context.memories.first?.similarity ?? 0
-        #expect(abs(similarity - 0.9) < 0.001, "Expected similarity ~0.9, got \(similarity)")
-        #expect(mockEmbedding.lastInput == "How to use SwiftUI?")
+        #expect(context.memories.first?.id == expectedMemory.id)
     }
 
-    @Test("Gather Context: Uses History for Tags but Query for Embedding")
-    func gatherContextUsesHistoryForTagsButQueryForEmbedding() async throws {
+    @Test("Gather Context: Uses History for Tags")
+    func gatherContextUsesHistoryForTags() async throws {
         let mockPersistence = MockPersistenceService()
-        let mockEmbedding = MockEmbeddingService()
-        let turnBriefingBuilder = makeTurnBriefingBuilder(persistence: mockPersistence, embedding: mockEmbedding)
+        let turnBriefingBuilder = makeTurnBriefingBuilder(persistence: mockPersistence)
 
         let memory = Memory.fixture(title: "Project Alpha", tags: ["alpha"])
         mockPersistence.memories = [memory]
-        mockPersistence.searchResults = [(memory, 0.85)]
 
         let tagGenerator: @Sendable (String) async throws -> [String] = { text in
             if text.contains("Previous") { return ["alpha"] }
@@ -84,14 +78,12 @@ struct TurnBriefingBuilderTests {
         }
 
         #expect(context.augmentedQuery?.contains("Previous message") == true)
-        #expect(mockEmbedding.lastInput == "Current query")
     }
 
-    @Test("Empty memory store skips LLM tag generation and embedding")
-    func emptyMemoryStoreSkipsLLMTagGenerationAndEmbedding() async throws {
+    @Test("Empty memory store skips LLM tag generation")
+    func emptyMemoryStoreSkipsLLMTagGeneration() async throws {
         let mockPersistence = MockPersistenceService()
-        let mockEmbedding = MockEmbeddingService()
-        let turnBriefingBuilder = makeTurnBriefingBuilder(persistence: mockPersistence, embedding: mockEmbedding)
+        let turnBriefingBuilder = makeTurnBriefingBuilder(persistence: mockPersistence)
         let tagProbe = TagProbe()
         let tagGenerator: @Sendable (String) async throws -> [String] = { _ in
             await tagProbe.recordCall()
@@ -112,20 +104,16 @@ struct TurnBriefingBuilderTests {
         #expect(context != nil)
         #expect(progresses == [.augmenting, .discoveringNotes, .complete])
         #expect(await tagProbe.calls == 0)
-        #expect(mockEmbedding.lastInput == nil)
     }
 
     @Test("Ranking Logic with Tag Boost")
     func rankingLogicWithTagBoost() async throws {
         let mockPersistence = MockPersistenceService()
-        let mockEmbedding = MockEmbeddingService()
-        let turnBriefingBuilder = makeTurnBriefingBuilder(persistence: mockPersistence, embedding: mockEmbedding)
+        let turnBriefingBuilder = makeTurnBriefingBuilder(persistence: mockPersistence)
 
         let memory1 = Memory.fixture(title: "Tag Match", tags: ["swift"])
-        let memory2 = Memory.fixture(title: "Semantic Match")
 
         mockPersistence.memories = [memory1]
-        mockPersistence.searchResults = [(memory2, 0.8)]
 
         let tagGenerator: @Sendable (String) async throws -> [String] = { _ in ["swift"] }
 
@@ -141,19 +129,13 @@ struct TurnBriefingBuilderTests {
             return
         }
 
-        #expect(context.memories.count == 2)
-        #expect(context.memories.first?.memory.title == "Semantic Match")
-
-        let tagMatch = context.memories.last
-        #expect(tagMatch?.memory.title == "Tag Match")
-        let tagSimilarity = tagMatch?.similarity ?? 0
-        #expect(abs(tagSimilarity - 0.5) < 0.001, "Expected similarity ~0.5, got \(tagSimilarity)") // 0.0 base + 0.5 boost
+        #expect(context.memories.count == 1)
+        #expect(context.memories.first?.title == "Tag Match")
     }
 
     @Test("Filesystem Notes Retrieval")
     func filesystemNotesRetrieval() async throws {
         let mockPersistence = MockPersistenceService()
-        let mockEmbedding = MockEmbeddingService()
 
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let notesDir = tempURL.appendingPathComponent("Notes", isDirectory: true)
@@ -175,8 +157,7 @@ struct TurnBriefingBuilderTests {
 
         let manager = makeTurnBriefingBuilder(
             workspace: workspace,
-            persistence: mockPersistence,
-            embedding: mockEmbedding
+            persistence: mockPersistence
         )
 
         let stream = await manager.gatherContext(for: "some query")
@@ -253,13 +234,11 @@ struct TurnBriefingBuilderTests {
         }
 
         let mockPersistence = MockPersistenceService()
-        let mockEmbedding = MockEmbeddingService()
         let workspace = FailingWorkspace()
 
         let manager = makeTurnBriefingBuilder(
             workspace: workspace,
-            persistence: mockPersistence,
-            embedding: mockEmbedding
+            persistence: mockPersistence
         )
 
         let stream = await manager.gatherContext(for: "some query")

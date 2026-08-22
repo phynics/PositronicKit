@@ -16,7 +16,6 @@ extension ThreadManager {
         workspaceRoot: URL,
         resolver: any WorkspaceResolver,
         runtimeToolPolicy: RuntimeToolPolicy = .default,
-        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
         promptHistoryRegistry: ThreadPromptJournals? = nil,
         taskRegistry: ThreadTaskRegistry? = nil
     ) {
@@ -25,7 +24,6 @@ extension ThreadManager {
             workspaceProfile: .hostManaged(root: workspaceRoot, seedNotes: .default),
             resolver: resolver,
             runtimeToolPolicy: runtimeToolPolicy,
-            embeddingService: embeddingService,
             promptHistoryRegistry: promptHistoryRegistry,
             taskRegistry: taskRegistry
         )
@@ -36,15 +34,13 @@ extension ThreadManager {
         stores: Stores,
         workspaceRoot: URL,
         resolver: any WorkspaceResolver,
-        runtimeToolPolicy: RuntimeToolPolicy = .default,
-        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService()
+        runtimeToolPolicy: RuntimeToolPolicy = .default
     ) {
         self.init(
             stores: stores,
             workspaceProfile: .hostManaged(root: workspaceRoot, seedNotes: .default),
             resolver: resolver,
-            runtimeToolPolicy: runtimeToolPolicy,
-            embeddingService: embeddingService
+            runtimeToolPolicy: runtimeToolPolicy
         )
     }
 
@@ -57,15 +53,13 @@ extension ThreadManager {
         stores: Stores,
         workspaceProfile: WorkspaceProfile,
         resolver: any WorkspaceResolver,
-        runtimeToolPolicy: RuntimeToolPolicy = .default,
-        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService()
+        runtimeToolPolicy: RuntimeToolPolicy = .default
     ) {
         self.init(
             stores: stores,
             workspaceProfile: workspaceProfile,
             resolver: resolver,
             runtimeToolPolicy: runtimeToolPolicy,
-            embeddingService: embeddingService,
             promptHistoryRegistry: nil
         )
     }
@@ -79,7 +73,6 @@ extension ThreadManager {
         workspaceProfile: WorkspaceProfile,
         workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
         runtimeToolPolicy: RuntimeToolPolicy = .default,
-        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
         promptHistoryRegistry: ThreadPromptJournals? = nil,
         taskRegistry: ThreadTaskRegistry? = nil
     ) {
@@ -95,7 +88,6 @@ extension ThreadManager {
                 workspaceCreator: workspaceCreator
             ),
             runtimeToolPolicy: runtimeToolPolicy,
-            embeddingService: embeddingService,
             promptHistoryRegistry: promptHistoryRegistry,
             taskRegistry: taskRegistry
         )
@@ -107,7 +99,6 @@ extension ThreadManager {
         workspaceRoot: URL,
         workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
         runtimeToolPolicy: RuntimeToolPolicy = .default,
-        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService(),
         promptHistoryRegistry: ThreadPromptJournals? = nil,
         taskRegistry: ThreadTaskRegistry? = nil
     ) {
@@ -116,7 +107,6 @@ extension ThreadManager {
             workspaceProfile: .hostManaged(root: workspaceRoot, seedNotes: .default),
             workspaceCreator: workspaceCreator,
             runtimeToolPolicy: runtimeToolPolicy,
-            embeddingService: embeddingService,
             promptHistoryRegistry: promptHistoryRegistry,
             taskRegistry: taskRegistry
         )
@@ -126,15 +116,13 @@ extension ThreadManager {
         stores: Stores,
         workspaceRoot: URL,
         workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
-        runtimeToolPolicy: RuntimeToolPolicy = .default,
-        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService()
+        runtimeToolPolicy: RuntimeToolPolicy = .default
     ) {
         self.init(
             stores: stores,
             workspaceRoot: workspaceRoot,
             workspaceCreator: workspaceCreator,
             runtimeToolPolicy: runtimeToolPolicy,
-            embeddingService: embeddingService,
             promptHistoryRegistry: nil
         )
     }
@@ -144,15 +132,13 @@ extension ThreadManager {
         stores: Stores,
         workspaceProfile: WorkspaceProfile,
         workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
-        runtimeToolPolicy: RuntimeToolPolicy = .default,
-        embeddingService: any EmbeddingServiceProtocol = NoOpEmbeddingService()
+        runtimeToolPolicy: RuntimeToolPolicy = .default
     ) {
         self.init(
             stores: stores,
             workspaceProfile: workspaceProfile,
             workspaceCreator: workspaceCreator,
             runtimeToolPolicy: runtimeToolPolicy,
-            embeddingService: embeddingService,
             promptHistoryRegistry: nil
         )
     }
