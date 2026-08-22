@@ -56,7 +56,7 @@ actor ThreadPromptHistoryTests {
         let history = ThreadPromptHistory()
         let rendered = try await PromptAssembler.assemble(LLMPromptRequest(
             userQuery: "Current question",
-            contextNotes: [ContextFile(name: "note.md", content: "Context", source: "Notes")],
+            contextNotes: [ContextNote(name: "note.md", content: "Context", source: "Notes")],
             memories: [],
             chatHistory: [],
             tools: [],

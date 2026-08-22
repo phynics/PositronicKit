@@ -10,8 +10,8 @@ package actor ThreadToolRegistry {
     /// available tools in the system
     public private(set) var availableTools: [AnyTool]
 
-    /// Registered workspaces providing tools
-    private var workspaces: [UUID: any Workspace] = [:]
+    /// Registered workspace providers; tool-capable providers contribute their tools.
+    private var workspaces: [UUID: any WorkspaceProvider] = [:]
 
     /// Cached workspace tools: toolId -> (wrapper, origin)
     private var workspaceTools: [String: (tool: WorkspaceToolWrapper, origin: ToolOrigin)] = [:]
@@ -47,7 +47,7 @@ package actor ThreadToolRegistry {
     }
 
     /// Register a workspace and load its tools
-    public func registerWorkspace(_ workspace: any Workspace) async {
+    public func registerWorkspace(_ workspace: any WorkspaceProvider) async {
         workspaces[workspace.id] = workspace
         await refreshWorkspaceTools()
     }
@@ -77,12 +77,15 @@ package actor ThreadToolRegistry {
         var newKnownOrigin: [String: Set<ToolOrigin>] = [:]
 
         for workspace in workspaces.values {
+            guard let toolProvider = workspace as? any WorkspaceToolProvider else {
+                continue
+            }
             let originTag = ToolOrigin.workspace(
                 id: workspace.id,
                 name: workspace.reference.uri.description
             )
             do {
-                let refs = try await workspace.listTools()
+                let refs = try await toolProvider.listTools()
                 for ref in refs {
                     switch ref {
                     case let .known(toolId):
@@ -95,7 +98,7 @@ package actor ThreadToolRegistry {
                             )
                         }
                     case let .custom(def):
-                        let wrapper = WorkspaceToolWrapper(workspace: workspace, definition: def)
+                        let wrapper = WorkspaceToolWrapper(workspace: toolProvider, definition: def)
                         newTools[wrapper.callName] = (tool: wrapper, origin: originTag)
                     }
                 }

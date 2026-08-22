@@ -11,8 +11,8 @@ struct NoteDiscoveryStage: PipelineStage {
         static let maxTotalBytes = 1_048_576
     }
 
-    /// The workspace to search for notes.
-    let workspace: (any Workspace)?
+    /// The file-capable workspace provider to search for notes.
+    let workspace: (any WorkspaceFileProvider)?
     /// The maximum number of Markdown files to read.
     let maxFileCount: Int
     /// The maximum number of UTF-8 bytes to retain across discovered notes.
@@ -25,7 +25,7 @@ struct NoteDiscoveryStage: PipelineStage {
     ///   - maxFileCount: The maximum number of Markdown files to read.
     ///   - maxTotalBytes: The maximum number of UTF-8 bytes to retain across notes.
     init(
-        workspace: (any Workspace)? = nil,
+        workspace: (any WorkspaceFileProvider)? = nil,
         maxFileCount: Int = Defaults.maxFileCount,
         maxTotalBytes: Int = Defaults.maxTotalBytes
     ) {
@@ -56,10 +56,10 @@ struct NoteDiscoveryStage: PipelineStage {
     }
 
     /// Fetches all Markdown notes from the workspace "Notes" directory.
-    /// - Returns: An array of `ContextFile` objects sorted by name.
+    /// - Returns: An array of `ContextNote` objects sorted by name.
     /// - Throws: An error if the workspace listing or reading fails.
-    private func fetchAllNotes() async throws -> [ContextFile] {
-        var allNotes: [ContextFile] = []
+    private func fetchAllNotes() async throws -> [ContextNote] {
+        var allNotes: [ContextNote] = []
 
         guard let workspace = workspace else {
             return []
@@ -91,7 +91,7 @@ struct NoteDiscoveryStage: PipelineStage {
 
             let name = URL(fileURLWithPath: filePath).deletingPathExtension().lastPathComponent
 
-            let note = ContextFile(
+            let note = ContextNote(
                 name: name,
                 content: loadedContent,
                 source: filePath

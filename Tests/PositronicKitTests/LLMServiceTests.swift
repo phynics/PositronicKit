@@ -149,7 +149,7 @@ struct LLMServiceTests {
     @Test("Test prompt building logic and structure")
     func promptBuilding() async throws {
         let contextFiles = [
-            ContextFile(name: "Test Note", content: "Note Content", source: "note"),
+            ContextNote(name: "Test Note", content: "Note Content", source: "note"),
         ]
         let history = [
             Message(content: "Previous user message", role: .user),

@@ -7,12 +7,12 @@ import PKUtilities
 
 /// Builds the turn briefing — the selected memory/workspace material for one turn.
 actor TurnBriefingBuilder {
-    let workspace: (any Workspace)?
+    let workspace: (any WorkspaceFileProvider)?
     let pipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>
     private let logger = Logger.module(named: "turn-briefing-builder")
 
     init(
-        workspace: (any Workspace)? = nil,
+        workspace: (any WorkspaceFileProvider)? = nil,
         memoryStore: any MemoryStoreProtocol = InMemoryMemoryStore(),
         pipeline: Pipeline<ContextPipelineContext, ContextGatheringEvent>? = nil
     ) {
@@ -25,7 +25,7 @@ actor TurnBriefingBuilder {
 
     /// Provides the standard stages for context gathering.
     static func defaultStages(
-        workspace: (any Workspace)? = nil,
+        workspace: (any WorkspaceFileProvider)? = nil,
         memoryStore: any MemoryStoreProtocol = InMemoryMemoryStore()
     ) -> [any PipelineStage<ContextPipelineContext, ContextGatheringEvent>] {
         return [

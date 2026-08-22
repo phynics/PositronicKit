@@ -44,6 +44,17 @@ A host-owned execution and storage boundary. Ordinary Workspaces bind exclusivel
 an Agent’s primary Workspace is permanently Agent-owned.
 _Avoid_: tool bag, workspace array
 
+**WorkspaceReference**:
+The durable identity and metadata snapshot for a Workspace. It is the runtime’s persisted model;
+it does not imply that the workspace is local, filesystem-backed, or currently connected.
+_Avoid_: live workspace, workspace implementation
+
+**WorkspaceProvider**:
+A live host adapter for a `WorkspaceReference`. It supplies reachability and may opt into
+`WorkspaceToolProvider` or `WorkspaceFileProvider` independently, so non-filesystem and
+non-tool workspaces remain valid.
+_Avoid_: workspace record, universal workspace protocol
+
 **Workspace Binding**:
 The durable exclusive relationship between one ordinary Workspace and one Thread. A Thread may
 hold many bindings; Agent primary Workspace ownership is not a binding.

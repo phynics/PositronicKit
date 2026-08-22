@@ -3,9 +3,9 @@ import struct JSONSchema.Schema
 import PKContracts
 import PKUtilities
 
-/// Wraps a tool from a workspace to conform to the Tool protocol
+/// Wraps a tool from a workspace tool provider to conform to the Tool protocol.
 public struct WorkspaceToolWrapper: Tool, Sendable {
-    public let workspace: any Workspace
+    public let workspace: any WorkspaceToolProvider
     public let definition: WorkspaceToolDefinition
 
     public var callName: String { definition.id }
@@ -20,7 +20,7 @@ public struct WorkspaceToolWrapper: Tool, Sendable {
         Schema(definition.parametersSchema)
     }
 
-    public init(workspace: any Workspace, definition: WorkspaceToolDefinition) {
+    public init(workspace: any WorkspaceToolProvider, definition: WorkspaceToolDefinition) {
         self.workspace = workspace
         self.definition = definition
     }

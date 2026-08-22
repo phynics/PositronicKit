@@ -2,13 +2,13 @@ import Foundation
 import PKContracts
 import PKUtilities
 
-/// Protocol for managing the lifecycle of active Workspace instances.
+/// Protocol for managing the lifecycle of active workspace providers.
 public protocol WorkspaceResolver: Sendable {
     /// Returns the number of currently active/cached workspaces.
     var activeWorkspaceCount: Int { get async }
 
-    /// Retrieves an active workspace instance by its ID, creating and caching it if necessary.
-    func workspace(id: UUID) async throws -> (any Workspace)?
+    /// Retrieves an active workspace provider by its ID, creating and caching it if necessary.
+    func workspace(id: UUID) async throws -> (any WorkspaceProvider)?
 
     /// Closes and removes a workspace from the active cache.
     func closeWorkspace(id: UUID) async

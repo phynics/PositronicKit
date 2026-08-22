@@ -2,13 +2,13 @@ import PKContracts
 import PKUtilities
 import Foundation
 
-public struct ContextFile: Sendable, Codable, CustomStringConvertible {
+public struct ContextNote: Sendable, Codable, CustomStringConvertible {
     public let name: String
     public let content: String
     public let source: String  // e.g. "Notes/Welcome.md"
 
     public var description: String {
-        return "ContextFile(name: \(name), source: \(source))"
+        return "ContextNote(name: \(name), source: \(source))"
     }
 
     public init(name: String, content: String, source: String) {

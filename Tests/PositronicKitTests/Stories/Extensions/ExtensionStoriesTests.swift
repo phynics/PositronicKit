@@ -119,7 +119,7 @@ import Testing
     }
 }
 
-private actor AcceptanceWorkspace: Workspace {
+private actor AcceptanceWorkspace: WorkspaceToolProvider, WorkspaceFileProvider {
     let reference: WorkspaceReference
     nonisolated let id: UUID
 
@@ -155,7 +155,7 @@ private actor AcceptanceWorkspace: Workspace {
 private final class AcceptanceWorkspaceCreator: WorkspaceFactory, Sendable {
     private let created = Mutex<[UUID]>([])
 
-    func create(from reference: WorkspaceReference) throws -> any Workspace {
+    func create(from reference: WorkspaceReference) throws -> any WorkspaceProvider {
         created.withLock { $0.append(reference.id) }
         return AcceptanceWorkspace(reference: reference)
     }

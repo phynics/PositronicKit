@@ -120,7 +120,7 @@ struct PromptIntegrationTests {
         let prompt = try await PromptAssembler.assemble(
             LLMPromptRequest(
                 userQuery: "Current question",
-                contextNotes: [ContextFile(name: "Note", content: "Context note", source: "note")],
+                contextNotes: [ContextNote(name: "Note", content: "Context note", source: "note")],
                 memories: [],
                 chatHistory: [],
                 tools: [],
@@ -163,7 +163,7 @@ struct PromptIntegrationTests {
         let prompt = try await PromptAssembler.assemble(
             LLMPromptRequest(
                 userQuery: "Hello",
-                contextNotes: [ContextFile(name: "Memory", content: "Retrieved note", source: "memory")],
+                contextNotes: [ContextNote(name: "Memory", content: "Retrieved note", source: "memory")],
                 memories: [],
                 chatHistory: [],
                 tools: [],
@@ -193,7 +193,7 @@ struct PromptIntegrationTests {
         let prompt = try await PromptAssembler.assemble(
             LLMPromptRequest(
                 userQuery: "Hello",
-                contextNotes: [ContextFile(name: "Note", content: "Only context", source: "note")],
+                contextNotes: [ContextNote(name: "Note", content: "Only context", source: "note")],
                 memories: [],
                 chatHistory: [],
                 tools: [],

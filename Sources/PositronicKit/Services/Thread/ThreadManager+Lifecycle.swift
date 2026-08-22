@@ -494,10 +494,14 @@ private extension ThreadManager {
             for: thread.id,
             legacyIDs: thread.attachedWorkspaceIDs
         )) ?? thread.attachedWorkspaceIDs
-        let contextWorkspace: (any Workspace)?
+        let contextWorkspace: (any WorkspaceFileProvider)?
         if let firstId = attachedWorkspaceIDs.first {
             do {
-                contextWorkspace = try await workspaceResolver.workspace(id: firstId)
+                if let provider = try await workspaceResolver.workspace(id: firstId) {
+                    contextWorkspace = provider as? any WorkspaceFileProvider
+                } else {
+                    contextWorkspace = nil
+                }
             } catch {
                 logger.warning("""
                 setupThreadComponents: context workspace resolution failed — \

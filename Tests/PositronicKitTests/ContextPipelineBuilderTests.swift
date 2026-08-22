@@ -113,7 +113,7 @@ import Testing
         )
         await context.setResults(tags: ["a", "b"])
         // Calling with nil (default) should preserve tags
-        await context.setResults(notes: [ContextFile(name: "n", content: "c", source: "s")])
+        await context.setResults(notes: [ContextNote(name: "n", content: "c", source: "s")])
 
         #expect(await context.generatedTags == ["a", "b"])
         #expect(await context.notes.count == 1)

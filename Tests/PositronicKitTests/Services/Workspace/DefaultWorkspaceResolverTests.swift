@@ -74,27 +74,14 @@ private actor FakeWorkspaceRepository: WorkspaceCatalog {
 }
 
 /// Minimal workspace whose health check can be controlled from the test.
-private actor FakeWorkspace: Workspace {
+private actor FakeWorkspace: WorkspaceProvider {
     let reference: WorkspaceReference
-    nonisolated let id: UUID
     private let healthy: Bool
 
     init(reference: WorkspaceReference, healthy: Bool = true) {
         self.reference = reference
-        self.id = reference.id
         self.healthy = healthy
     }
-
-    func listTools() async throws -> [ToolReference] { [] }
-
-    func executeTool(id: String, parameters: [String: AnyCodable]) async throws -> ToolResult {
-        throw WorkspaceError.toolExecutionNotSupported
-    }
-
-    func readFile(path: String) async throws -> String { "" }
-    func writeFile(path: String, content: String) async throws {}
-    func listFiles(path: String) async throws -> [String] { [] }
-    func deleteFile(path: String) async throws {}
 
     func healthCheck() async -> Bool { healthy }
 }
@@ -103,7 +90,7 @@ private actor FakeWorkspace: Workspace {
 private struct FakeWorkspaceCreator: WorkspaceFactory {
     var healthByID: [UUID: Bool] = [:]
 
-    func create(from reference: WorkspaceReference) throws -> any Workspace {
+    func create(from reference: WorkspaceReference) throws -> any WorkspaceProvider {
         FakeWorkspace(reference: reference, healthy: healthByID[reference.id] ?? true)
     }
 }

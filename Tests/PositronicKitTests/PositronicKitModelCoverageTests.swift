@@ -52,22 +52,22 @@ struct UnconfiguredLLMServiceCoverageTests {
     }
 }
 
-/// Coverage for `ContextFile.description` and Codable.
-@Suite("ContextFile")
-struct ContextFileCoverageTests {
+/// Coverage for `ContextNote.description` and Codable.
+@Suite("ContextNote")
+struct ContextNoteCoverageTests {
 
     @Test("description includes name and source")
     func descriptionFormat() {
-        let file = ContextFile(name: "Welcome", content: "Hello", source: "Notes/Welcome.md")
+        let file = ContextNote(name: "Welcome", content: "Hello", source: "Notes/Welcome.md")
         #expect(file.description.contains("Welcome"))
         #expect(file.description.contains("Notes/Welcome.md"))
     }
 
-    @Test("ContextFile is Codable")
+    @Test("ContextNote is Codable")
     func codable() throws {
-        let file = ContextFile(name: "test", content: "body", source: "src")
+        let file = ContextNote(name: "test", content: "body", source: "src")
         let data = try JSONEncoder().encode(file)
-        let decoded = try JSONDecoder().decode(ContextFile.self, from: data)
+        let decoded = try JSONDecoder().decode(ContextNote.self, from: data)
         #expect(decoded.name == "test")
         #expect(decoded.content == "body")
         #expect(decoded.source == "src")
@@ -143,7 +143,7 @@ struct WorkspaceToolWrapperCoverageTests {
 
 // MARK: - Stub workspace
 
-private struct StubWorkspace: Workspace {
+private struct StubWorkspace: WorkspaceToolProvider, WorkspaceFileProvider {
     let reference: WorkspaceReference
     let id: UUID
     let healthy: Bool

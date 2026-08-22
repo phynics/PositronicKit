@@ -3,48 +3,46 @@ import Foundation
 import PKContracts
 import PKUtilities
 
-/// Defines the host-owned execution and storage boundary for a workspace.
+/// A live adapter for a persisted `WorkspaceReference`.
 ///
-/// `PositronicKit` depends on this protocol but does not prescribe how a workspace is backed.
-/// Local filesystem workspaces, remote execution environments, or app-specific attachment models
-/// all belong on the host side behind this abstraction.
-public protocol Workspace: Sendable {
-    /// The unique identifier of the workspace
-    var id: UUID { get }
-
-    /// The metadata reference for this workspace
+/// The reference owns workspace identity and metadata. A provider supplies only the operations
+/// available while that workspace is active. Providers may be remote, local, database-backed, or
+/// otherwise host-defined; filesystem and tool operations are separate capabilities below.
+public protocol WorkspaceProvider: Sendable {
+    /// The persisted identity and metadata represented by this provider.
     var reference: WorkspaceReference { get }
 
-    /// List all available tools in this workspace
-    func listTools() async throws -> [ToolReference]
-
-    /// Execute a specific tool in this workspace. Defaults to throwing
-    /// `WorkspaceError.toolExecutionNotSupported`; override for remote or parity-path execution.
-    func executeTool(id: String, parameters: [String: AnyCodable]) async throws -> ToolResult
-
-    /// Read a file from the workspace
-    func readFile(path: String) async throws -> String
-
-    /// Write to a file in the workspace
-    func writeFile(path: String, content: String) async throws
-
-    /// List files in the workspace (optionally recursively)
-    func listFiles(path: String) async throws -> [String]
-
-    /// Delete a file in the workspace
-    func deleteFile(path: String) async throws
-
-    /// Get the health/status of the workspace connection
+    /// Returns whether the provider can currently reach its backing workspace.
     func healthCheck() async -> Bool
 }
 
-public extension Workspace {
-    /// Default tool-execution sink: workspaces that do not implement their own execution
-    /// route (e.g. local filesystem workspaces whose tools are bound instances) throw
-    /// `toolExecutionNotSupported`. Remote or parity-path workspaces may override this.
-    func executeTool(id _: String, parameters _: [String: AnyCodable]) async throws -> ToolResult {
-        throw WorkspaceError.toolExecutionNotSupported
-    }
+public extension WorkspaceProvider {
+    /// Convenience identity derived from the authoritative reference.
+    var id: UUID { reference.id }
+}
+
+/// Optional capability for providers that expose executable tools.
+public protocol WorkspaceToolProvider: WorkspaceProvider {
+    /// Lists the tools currently exposed by the workspace.
+    func listTools() async throws -> [ToolReference]
+
+    /// Executes one workspace-owned tool.
+    func executeTool(id: String, parameters: [String: AnyCodable]) async throws -> ToolResult
+}
+
+/// Optional capability for providers that expose workspace files.
+public protocol WorkspaceFileProvider: WorkspaceProvider {
+    /// Reads a file from the workspace.
+    func readFile(path: String) async throws -> String
+
+    /// Lists files in the workspace, optionally recursively.
+    func listFiles(path: String) async throws -> [String]
+
+    /// Writes a file in the workspace.
+    func writeFile(path: String, content: String) async throws
+
+    /// Deletes a file from the workspace.
+    func deleteFile(path: String) async throws
 }
 
 public enum WorkspaceError: PKError, Sendable {
@@ -67,8 +65,8 @@ public enum WorkspaceError: PKError, Sendable {
     }
 
     /// `accessDenied` represents a blocked/disallowed condition — the caller does
-    /// not have permission to access the workspace, so execution is refused by an
-    /// access gate.
+    /// not have permission to access the workspace, so execution is refused by
+    /// an access gate.
     public var isBlocked: Bool {
         switch self {
         case .accessDenied: return true
@@ -92,16 +90,17 @@ public enum WorkspaceError: PKError, Sendable {
     }
 }
 
-/// Abstracts workspace instantiation so the runtime can stay decoupled from concrete workspace backends.
+/// Abstracts live workspace-provider instantiation so the runtime stays decoupled from concrete
+/// workspace backends.
 public protocol WorkspaceFactory: Sendable {
-    func create(from reference: WorkspaceReference) throws -> any Workspace
+    func create(from reference: WorkspaceReference) throws -> any WorkspaceProvider
 }
 
-/// A no-op workspace creator used when no concrete factory is available (e.g. in unit tests).
+/// A no-op workspace creator used when no concrete provider is available (e.g. in unit tests).
 /// Always throws `WorkspaceError.workspaceNotFound`.
 public struct NullWorkspaceCreator: WorkspaceFactory {
     public init() {}
-    public func create(from reference: WorkspaceReference) throws -> any Workspace {
+    public func create(from reference: WorkspaceReference) throws -> any WorkspaceProvider {
         throw WorkspaceError.workspaceNotFound
     }
 }

@@ -21,7 +21,7 @@ final class ThreadToolRegistryTests {
         }
     }
 
-    struct MockWorkspace: Workspace, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
+    struct MockWorkspace: WorkspaceToolProvider, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
         let id: UUID
         let reference: WorkspaceReference
         let toolsToReturn: [ToolReference]
@@ -34,16 +34,6 @@ final class ThreadToolRegistryTests {
             .success("Workspace tool executed")
         }
 
-        func readFile(path _: String) async throws -> String {
-            ""
-        }
-
-        func writeFile(path _: String, content _: String) async throws {}
-        func listFiles(path _: String) async throws -> [String] {
-            []
-        }
-
-        func deleteFile(path _: String) async throws {}
         func healthCheck() async -> Bool {
             true
         }

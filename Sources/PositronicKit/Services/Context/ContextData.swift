@@ -4,14 +4,14 @@ import PKUtilities
 
 /// Structured context data
 public struct ContextData: Sendable, Codable {
-    public let notes: [ContextFile]
+    public let notes: [ContextNote]
     public let memories: [Memory]
     public let generatedTags: [String]
     public let augmentedQuery: String?
     public let executionTime: TimeInterval
 
     public init(
-        notes: [ContextFile] = [],
+        notes: [ContextNote] = [],
         memories: [Memory] = [],
         generatedTags: [String] = [],
         augmentedQuery: String? = nil,

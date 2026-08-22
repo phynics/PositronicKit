@@ -9,7 +9,7 @@ import Testing
 @Suite("Turn Briefing Builder Tests")
 struct TurnBriefingBuilderTests {
     private func makeTurnBriefingBuilder(
-        workspace: (any Workspace)? = nil,
+        workspace: (any WorkspaceFileProvider)? = nil,
         persistence: MockPersistenceService
     ) -> TurnBriefingBuilder {
         let stages: [any PipelineStage<ContextPipelineContext, ContextGatheringEvent>] = [
@@ -207,16 +207,8 @@ struct TurnBriefingBuilderTests {
 
     @Test("Gather Context: Error Propagation")
     func gatherContextErrorPropagation() async throws {
-        struct FailingWorkspace: Workspace {
-            var id: UUID = .init()
+        struct FailingWorkspace: WorkspaceFileProvider {
             var reference: WorkspaceReference = .fixture()
-            func listTools() async throws -> [ToolReference] {
-                []
-            }
-
-            func executeTool(id _: String, parameters _: [String: AnyCodable]) async throws -> ToolResult {
-                throw WorkspaceError.toolExecutionNotSupported
-            }
 
             func listFiles(path _: String) async throws -> [String] {
                 throw WorkspaceError.connectionFailed
@@ -257,8 +249,7 @@ private actor TagProbe {
     }
 }
 
-private actor NoteDiscoveryProbeWorkspace: Workspace {
-    nonisolated let id: UUID
+private actor NoteDiscoveryProbeWorkspace: WorkspaceFileProvider {
     nonisolated let reference: WorkspaceReference
     private let paths: [String]
     private let contents: [String: String]
@@ -266,18 +257,9 @@ private actor NoteDiscoveryProbeWorkspace: Workspace {
 
     init(paths: [String], contents: [String: String]) {
         let reference = WorkspaceReference.fixture()
-        id = reference.id
         self.reference = reference
         self.paths = paths
         self.contents = contents
-    }
-
-    func listTools() async throws -> [ToolReference] {
-        []
-    }
-
-    func executeTool(id _: String, parameters _: [String: AnyCodable]) async throws -> ToolResult {
-        throw WorkspaceError.toolExecutionNotSupported
     }
 
     func readFile(path: String) async throws -> String {

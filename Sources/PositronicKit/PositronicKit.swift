@@ -17,7 +17,7 @@ import PKUtilities
 /// expected to be provided downstream via injected stores, workspace creators, and connection hooks.
 ///
 /// Intended extension seams for downstream applications are the facade itself plus public runtime
-/// protocols such as persistence stores, `WorkspaceFactory` / `Workspace`,
+/// protocols such as persistence stores, `WorkspaceFactory` / `WorkspaceProvider`,
 /// ``RuntimeCustomization`` and the persistence/workspace protocols. Internal coordinators like `TurnEngine`,
 /// `ThreadPromptHistory`, and the concrete turn pipeline remain runtime implementation details
 /// even when they are visible to tests inside this package.

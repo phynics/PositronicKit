@@ -112,8 +112,10 @@ extension ThreadManager {
             // The primary Agent workspace is not an ordinary Thread binding, so hydrate its
             // wrappers directly. This also fills any custom definitions unavailable in the
             // Thread registry while preserving known system tools where applicable.
-            if let workspace = try? await workspaceResolver.workspace(id: reference.id) {
-                let listed = (try? await workspace.listTools()) ?? []
+            if let workspace = try? await workspaceResolver.workspace(id: reference.id),
+               let toolProvider = workspace as? any WorkspaceToolProvider
+            {
+                let listed = (try? await toolProvider.listTools()) ?? []
                 let available: [AnyTool]
                 if let registry {
                     available = await registry.getAvailableTools()
@@ -128,7 +130,7 @@ extension ThreadManager {
                         }
                     case let .custom(definition):
                         tools.append(AnyTool(
-                            WorkspaceToolWrapper(workspace: workspace, definition: definition),
+                            WorkspaceToolWrapper(workspace: toolProvider, definition: definition),
                             origin: .workspace(id: reference.id, name: reference.uri.description)
                         ))
                     }

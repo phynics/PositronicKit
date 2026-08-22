@@ -2,19 +2,19 @@ import Foundation
 import PKContracts
 import PKUtilities
 
-/// Manages the lifecycle of active Workspace instances.
+/// Manages the lifecycle of active workspace providers.
 ///
 /// DefaultWorkspaceResolver is responsible for resolving WorkspaceReferences into concrete
-/// Workspace implementations, maintaining a cache of active workspaces,
+/// workspace providers, maintaining a cache of active workspaces,
 /// and coordinating their lifecycle (creation, health checks, and shutdown).
 /// It does not define the concrete workspace behavior itself; that remains host-owned via
-/// `WorkspaceFactory` and `Workspace`.
+/// `WorkspaceFactory` and `WorkspaceProvider`.
 public actor DefaultWorkspaceResolver: WorkspaceResolver {
     private let repository: any WorkspaceCatalog
     private let workspaceCreator: any WorkspaceFactory
 
     /// Cache of active workspace instances.
-    private var activeWorkspaces: [UUID: any Workspace] = [:]
+    private var activeWorkspaces: [UUID: any WorkspaceProvider] = [:]
 
     public init(
         repository: any WorkspaceCatalog,
@@ -29,8 +29,8 @@ public actor DefaultWorkspaceResolver: WorkspaceResolver {
         activeWorkspaces.count
     }
 
-    /// Retrieves an active workspace instance by its ID, creating and caching it if necessary.
-    public func workspace(id: UUID) async throws -> (any Workspace)? {
+    /// Retrieves an active workspace provider by its ID, creating and caching it if necessary.
+    public func workspace(id: UUID) async throws -> (any WorkspaceProvider)? {
         // Check cache first
         if let active = activeWorkspaces[id] {
             return active

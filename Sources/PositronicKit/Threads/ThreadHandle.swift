@@ -53,7 +53,7 @@ public struct ThreadHandle: Identifiable, Sendable {
             throw ThreadError.threadNotFound
         }
         guard let attachedAgentID = thread.attachedAgentID else {
-            throw AgentError.managedThreadRequiresAttachedAgent(threadID)
+            throw TurnError.managedExecutionRequiresAttachedAgent(threadID)
         }
         return try await kit.startTurnHandle(
             request,
@@ -91,7 +91,7 @@ public struct ThreadHandle: Identifiable, Sendable {
             throw ThreadError.threadNotFound
         }
         guard thread.attachedAgentID == nil else {
-            throw AgentError.directTurnRequiresDetachedThread(threadID)
+            throw TurnError.directExecutionRequiresDetachedThread(threadID)
         }
         return try await kit.startTurnHandle(
             TurnRequest(
@@ -121,7 +121,7 @@ public struct ThreadHandle: Identifiable, Sendable {
             throw ThreadError.threadNotFound
         }
         guard let attachedAgentID = thread.attachedAgentID else {
-            throw AgentError.managedThreadRequiresAttachedAgent(threadID)
+            throw TurnError.managedExecutionRequiresAttachedAgent(threadID)
         }
         let managedRequest = TurnRequest(
             threadID: threadID,

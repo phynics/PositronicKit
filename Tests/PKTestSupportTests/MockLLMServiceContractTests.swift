@@ -51,7 +51,7 @@ struct MockLLMServiceContractTests {
     func contextRequestAndActualModelTierAreCapturedCompletely() async throws {
         let service = MockLLMService()
         service.mockClient.nextResponse = "ok"
-        let note = ContextFile(name: "note", content: "context", source: "test")
+        let note = ContextNote(name: "note", content: "context", source: "test")
         let memory = Memory.fixture(title: "memory", content: "remember")
         let history = Message.fixture(content: "earlier")
         let workspace = WorkspaceReference.fixture(rootPath: "/tmp/workspace")

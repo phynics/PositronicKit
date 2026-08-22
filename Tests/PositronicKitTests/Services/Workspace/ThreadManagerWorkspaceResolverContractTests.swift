@@ -16,7 +16,7 @@ struct ThreadManagerWorkspaceResolverContractTests {
 
         var activeWorkspaceCount: Int { opened.count }
 
-        func workspace(id: UUID) async throws -> (any Workspace)? {
+        func workspace(id: UUID) async throws -> (any WorkspaceProvider)? {
             opened.insert(id)
             return CustomFixedWorkspace(id: id)
         }
@@ -30,17 +30,16 @@ struct ThreadManagerWorkspaceResolverContractTests {
         }
     }
 
-    private actor CustomFixedWorkspace: Workspace {
-        nonisolated let id: UUID
+    private actor CustomFixedWorkspace: WorkspaceFileProvider {
+        nonisolated private let workspaceID: UUID
         nonisolated var reference: WorkspaceReference {
-            WorkspaceReference(id: id, uri: .threadWorkspace(id), location: .runtime)
+            WorkspaceReference(id: workspaceID, uri: .threadWorkspace(workspaceID), location: .runtime)
         }
 
         init(id: UUID) {
-            self.id = id
+            self.workspaceID = id
         }
 
-        func listTools() async throws -> [ToolReference] { [] }
         func readFile(path: String) async throws -> String { "" }
         func writeFile(path: String, content: String) async throws {}
         func listFiles(path: String) async throws -> [String] { [] }

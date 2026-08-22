@@ -8,7 +8,7 @@ import PKUtilities
 /// Groups the parameters for a high-level LLM generation stream request.
 public struct LLMGenerationRequest: Sendable {
     public let userQuery: String
-    public let contextNotes: [ContextFile]
+    public let contextNotes: [ContextNote]
     public let memories: [Memory]
     public let chatHistory: [Message]
     public let tools: [AnyTool]
@@ -22,7 +22,7 @@ public struct LLMGenerationRequest: Sendable {
 
     public init(
         userQuery: String,
-        contextNotes: [ContextFile] = [],
+        contextNotes: [ContextNote] = [],
         memories: [Memory] = [],
         chatHistory: [Message],
         tools: [AnyTool],
@@ -104,7 +104,7 @@ public struct LLMPromptRequest: Sendable {
     /// NOT with system instructions, so the system prefix stays provider-cache-stable.
     /// Used by `TurnEngine` to inject the sidecar directive instruction block.
     public let turnInstructions: String?
-    public let contextNotes: [ContextFile]
+    public let contextNotes: [ContextNote]
     public let memories: [Memory]
     public let chatHistory: [Message]
     public let tools: [AnyTool]
@@ -117,7 +117,7 @@ public struct LLMPromptRequest: Sendable {
     public init(
         userQuery: String,
         turnInstructions: String? = nil,
-        contextNotes: [ContextFile] = [],
+        contextNotes: [ContextNote] = [],
         memories: [Memory] = [],
         chatHistory: [Message],
         tools: [AnyTool],
@@ -144,7 +144,7 @@ public struct LLMPromptRequest: Sendable {
     public init(
         userContent: MessageContent,
         turnInstructions: String? = nil,
-        contextNotes: [ContextFile] = [],
+        contextNotes: [ContextNote] = [],
         memories: [Memory] = [],
         chatHistory: [Message],
         tools: [AnyTool],

@@ -18,7 +18,7 @@ struct StructuredOutputPromptFlowTests {
 
         let request = LLMGenerationRequest(
             userQuery: "Extract tags",
-            contextNotes: [ContextFile(name: "Note", content: "Prompt note", source: "note")],
+            contextNotes: [ContextNote(name: "Note", content: "Prompt note", source: "note")],
             memories: [],
             chatHistory: [Message(content: "Earlier question", role: .user)],
             tools: [],

@@ -19,7 +19,7 @@ actor ContextPipelineContext {
     /// The query after being augmented with history/context.
     private(set) var augmentedQuery: String = ""
     /// Discovered filesystem notes.
-    private(set) var notes: [ContextFile] = []
+    private(set) var notes: [ContextNote] = []
     /// Final tagged memories.
     private(set) var memories: [Memory] = []
     /// Tags generated for the current query.
@@ -63,7 +63,7 @@ actor ContextPipelineContext {
 
     /// Updates the gathered results in the context with new data from pipeline stages.
     func setResults(
-        notes: [ContextFile]? = nil,
+        notes: [ContextNote]? = nil,
         memories: [Memory]? = nil,
         tags: [String]? = nil
     ) {

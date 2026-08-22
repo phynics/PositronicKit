@@ -132,9 +132,9 @@ public struct ChatHistory: Prompt {
 }
 
 public struct ContextNotes: Prompt {
-    public let notes: [ContextFile]
+    public let notes: [ContextNote]
 
-    public init(_ notes: [ContextFile]) {
+    public init(_ notes: [ContextNote]) {
         self.notes = notes
     }
 

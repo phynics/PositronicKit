@@ -29,7 +29,7 @@ struct PromptBuilderTruncationTests {
     @Test("Context Notes Truncation")
     func contextNotesTruncation() async throws {
         let longNote = String(repeating: "A long note content. ", count: 50)
-        let file = ContextFile(name: "test", content: longNote, source: "test")
+        let file = ContextNote(name: "test", content: longNote, source: "test")
         let section = ContextNotes([file])
         let assembled = try section.assemblePrompt()
         let resolvedSection = assembled.sections[0]

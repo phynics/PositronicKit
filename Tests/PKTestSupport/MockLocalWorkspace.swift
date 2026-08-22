@@ -4,7 +4,7 @@ import PKUtilities
 import PositronicKit
 
 /// A minimal mock workspace for unit testing, backed by a temp directory.
-public actor MockLocalWorkspace: Workspace {
+public actor MockLocalWorkspace: WorkspaceToolProvider, WorkspaceFileProvider {
     public let reference: WorkspaceReference
     public nonisolated let id: UUID
     private let rootURL: URL
@@ -77,7 +77,7 @@ public actor MockLocalWorkspace: Workspace {
 
 public struct MockWorkspaceCreator: WorkspaceFactory {
     public init() {}
-    public func create(from reference: WorkspaceReference) throws -> any Workspace {
+    public func create(from reference: WorkspaceReference) throws -> any WorkspaceProvider {
         return try MockLocalWorkspace(reference: reference)
     }
 }
