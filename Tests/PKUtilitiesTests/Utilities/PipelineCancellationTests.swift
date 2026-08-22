@@ -109,6 +109,14 @@ struct PipelineCancellationTests {
         actor CleanupTracker {
             var ran = false
             func mark() { ran = true }
+
+            func waitUntilRan() async -> Bool {
+                for _ in 0..<1_000 {
+                    if ran { return true }
+                    try? await Task.sleep(nanoseconds: 1_000_000)
+                }
+                return ran
+            }
         }
         let tracker = CleanupTracker()
 
@@ -139,7 +147,7 @@ struct PipelineCancellationTests {
 
         do { try await task.value } catch {}
 
-        #expect(await tracker.ran, "Cleanup should run even after cancellation")
+        #expect(await tracker.waitUntilRan(), "Cleanup should run even after cancellation")
     }
 
     @Test("Compound failure has stable error code and domain")
