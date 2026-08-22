@@ -7,14 +7,9 @@ import PKUtilities
 
 public enum AgentError: PKError, Sendable {
     case agentNotFound(UUID)
-    case threadNotFound(UUID)
-    case managedThreadRequiresAttachedAgent(UUID)
-    case managedThreadAgentOverride(UUID)
-    case directTurnRequiresDetachedThread(UUID)
     case agentRetiring(UUID)
     case agentRetired(UUID)
     case agentNotRetired(UUID)
-    case threadAgentMismatch(threadID: UUID, agentID: UUID, attachedAgentID: UUID?)
     case hasAttachedThreads(count: Int)
     case cannotAttachToPrivateThread(UUID)
     case cannotDetachFromOwnPrivateThread(UUID)
@@ -27,15 +22,10 @@ public enum AgentError: PKError, Sendable {
     public var errorCode: Int {
         switch self {
         case .agentNotFound: return 5001
-        case .threadNotFound: return 5002
-        case .managedThreadRequiresAttachedAgent: return 5010
-        case .managedThreadAgentOverride: return 5011
-        case .directTurnRequiresDetachedThread: return 5012
         case .agentRetiring: return 5013
         case .agentRetired: return 5014
         case .agentNotRetired: return 5015
         case .differentAgentAlreadyAttached: return 5003
-        case .threadAgentMismatch: return 5009
         case .hasAttachedThreads: return 5004
         case .nameTooShort: return 5005
         case .descriptionEmpty: return 5006
@@ -48,14 +38,6 @@ public enum AgentError: PKError, Sendable {
         switch self {
         case .agentNotFound(let id):
             return "Agent not found: \(id)"
-        case .threadNotFound(let id):
-            return "Thread not found: \(id)"
-        case .managedThreadRequiresAttachedAgent(let id):
-            return "Thread \(id) has no attached agent for managed execution."
-        case .managedThreadAgentOverride(let id):
-            return "Thread \(id) resolves its managed Agent from durable attachment state."
-        case .directTurnRequiresDetachedThread(let id):
-            return "Thread \(id) has an attached Agent and cannot run a direct Turn."
         case .agentRetiring(let id):
             return "Agent \(id) is retiring and cannot admit new managed Turns."
         case .agentRetired(let id):
@@ -64,9 +46,6 @@ public enum AgentError: PKError, Sendable {
             return "Agent \(id) must be retired before it can be purged."
         case .differentAgentAlreadyAttached(let id):
             return "A different agent (\(id)) is already attached. Detach it first."
-        case let .threadAgentMismatch(threadID, agentID, attachedAgentID):
-            let attachment = attachedAgentID.map { "agent \($0) is attached" } ?? "no agent is attached"
-            return "Agent \(agentID) is not attached to thread \(threadID); \(attachment)."
         case .hasAttachedThreads(let count):
             return "Cannot delete: \(count) thread(s) still attached. Use force=true to override."
         case .nameTooShort(let name):
@@ -84,19 +63,9 @@ public enum AgentError: PKError, Sendable {
         switch self {
         case .agentNotFound(let id):
             return "The requested agent \(id.uuidString.prefix(8)) could not be found."
-        case .threadNotFound(let id):
-            return "The requested thread \(id.uuidString.prefix(8)) could not be found."
         case .differentAgentAlreadyAttached(let id):
             return "Thread already has agent \(id.uuidString.prefix(8)) attached. "
                 + "Please detach it before attaching a new one."
-        case .threadAgentMismatch:
-            return "The requested agent is not attached to this thread. Attach it before running the turn."
-        case .managedThreadRequiresAttachedAgent:
-            return "Attach an Agent to this Thread before using managed execution, or call startDirectTurn with explicit context."
-        case .managedThreadAgentOverride:
-            return "Do not supply an Agent override to managed Thread execution; attach the Agent first or use startDirectTurn explicitly."
-        case .directTurnRequiresDetachedThread:
-            return "Detach the Agent before using direct execution, or use managed Thread execution."
         case .agentRetiring:
             return "Wait for the Agent's admitted Turns to finish, then attach an active Agent."
         case .agentRetired:

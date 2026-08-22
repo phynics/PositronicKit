@@ -82,10 +82,10 @@ struct ManagedDirectTurnExecutionTests {
         let kit = PositronicKit(languageModel: MockLLMService())
         let thread = try await kit.threads.create(title: "Detached")
 
-        let managedError = await #expect(throws: AgentError.self) {
+        let managedError = await #expect(throws: TurnError.self) {
             _ = try await thread.startTurn(message: "must not persist")
         }
-        if case let .managedThreadRequiresAttachedAgent(threadID)? = managedError {
+        if case let .managedExecutionRequiresAttachedAgent(threadID)? = managedError {
             #expect(threadID == thread.id)
         }
 
@@ -100,13 +100,13 @@ struct ManagedDirectTurnExecutionTests {
         let agent = try await kit.agents.create(name: "Attached Agent", description: "test")
         try await kit.agents.attach(agent.id, to: thread.id)
 
-        let directError = await #expect(throws: AgentError.self) {
+        let directError = await #expect(throws: TurnError.self) {
             _ = try await thread.startDirectTurn(
                 message: "must not persist",
                 context: DirectTurnContext(systemInstructions: "", contributor: .host)
             )
         }
-        if case let .directTurnRequiresDetachedThread(threadID)? = directError {
+        if case let .directExecutionRequiresDetachedThread(threadID)? = directError {
             #expect(threadID == thread.id)
         }
     }

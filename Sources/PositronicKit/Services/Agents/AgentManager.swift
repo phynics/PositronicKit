@@ -185,7 +185,7 @@ actor AgentManager: AgentManagerProtocol {
     private func attachUnlocked(agentID: UUID, to threadID: UUID) async throws {
         try await requireExecutionContextMutable(for: threadID)
         guard let thread = try await threadStore.fetchThread(id: threadID) else {
-            throw AgentError.threadNotFound(threadID)
+            throw ThreadError.threadNotFound
         }
         guard let agent = try await agentStore.fetchAgent(id: agentID) else {
             throw AgentError.agentNotFound(agentID)
@@ -258,7 +258,7 @@ actor AgentManager: AgentManagerProtocol {
     private func detachUnlocked(agentID: UUID, from threadID: UUID) async throws {
         try await requireExecutionContextMutable(for: threadID)
         guard let thread = try await threadStore.fetchThread(id: threadID) else {
-            throw AgentError.threadNotFound(threadID)
+            throw ThreadError.threadNotFound
         }
 
         guard thread.attachedAgentID == agentID else { return }

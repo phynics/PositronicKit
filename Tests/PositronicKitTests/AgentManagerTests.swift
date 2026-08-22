@@ -24,20 +24,21 @@ struct AgentManagerTests {
         #expect(attached.map(\.id).contains(thread.id))
     }
 
-    @Test("Canonical error cases preserve legacy identity")
+    @Test("Canonical error cases use their owning domains")
     func canonicalErrorIdentity() {
         let threadID = UUID()
         let agentID = UUID()
         let threadError = ThreadError.threadNotFound
-        let mismatch = AgentError.threadAgentMismatch(
+        let mismatch = TurnError.managedExecutionAgentMismatch(
             threadID: threadID,
-            agentID: agentID,
+            requestedAgentID: agentID,
             attachedAgentID: nil
         )
 
         #expect(threadError.errorCode == 6001)
         #expect(threadError.errorDomain == PKErrorDomain.thread)
-        #expect(mismatch.errorCode == 5009)
+        #expect(mismatch.errorCode == 9023)
+        #expect(mismatch.errorDomain == PKErrorDomain.turn)
         #expect(mismatch.errorDescription?.contains(threadID.uuidString) == true)
     }
 

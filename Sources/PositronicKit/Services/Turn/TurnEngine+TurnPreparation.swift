@@ -78,9 +78,9 @@ extension TurnEngine {
             throw ThreadError.threadNotFound
         }
         guard thread.attachedAgentID == agentId else {
-            throw AgentError.threadAgentMismatch(
+            throw TurnError.managedExecutionAgentMismatch(
                 threadID: threadID,
-                agentID: agentId,
+                requestedAgentID: agentId,
                 attachedAgentID: thread.attachedAgentID
             )
         }
@@ -373,7 +373,7 @@ extension TurnEngine {
             )
             var turnDiagnostics = contextResult.diagnostics
             let contributionNotes = resolvedContributions.map { contribution in
-                ContextFile(
+                ContextNote(
                     name: contribution.noteName,
                     content: contribution.value.textValue,
                     source: contribution.source
@@ -642,9 +642,9 @@ extension TurnEngine {
             // admission supplies the captured identity; when present it must still match the
             // durable attachment immediately before admission.
             if let agentID, thread.attachedAgentID != agentID {
-                throw AgentError.threadAgentMismatch(
+                throw TurnError.managedExecutionAgentMismatch(
                     threadID: threadID,
-                    agentID: agentID,
+                    requestedAgentID: agentID,
                     attachedAgentID: thread.attachedAgentID
                 )
             }
@@ -664,7 +664,7 @@ extension TurnEngine {
             }
         case .direct:
             guard thread.attachedAgentID == nil else {
-                throw AgentError.directTurnRequiresDetachedThread(threadID)
+                throw TurnError.directExecutionRequiresDetachedThread(threadID)
             }
             return ExecutionAuthority(thread: thread, agent: nil)
         }
@@ -801,7 +801,7 @@ private extension TurnEngine {
         threadID: UUID,
         agentID: UUID?,
         operation: @escaping @Sendable () async throws -> T
-    ) async rethrows -> T {
+    ) async throws -> T {
         if let agentID {
             return try await dependencies.agentAuthorityCoordinator.withAgent(agentID) {
                 try await dependencies.threadAuthorityCoordinator.withThread(

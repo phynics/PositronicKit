@@ -8,6 +8,12 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Breaking
+
+- **Error ownership clarified:** Agent lifecycle and attachment failures remain on `AgentError`,
+  execution-admission failures move to `TurnError`, missing threads use `ThreadError`, and
+  `AgentContextError` now exposes the standard `PKError` identity contract.
+
 ## [4.0.0] - 2026-08-21
 
 ### Breaking

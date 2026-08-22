@@ -43,6 +43,36 @@ struct PositronicKitErrorContractTests {
             requireSendable(error)
         }
 
+        @Test("execution authority cases use stable turn identities")
+        func executionAuthorityIdentities() {
+            let threadID = UUID()
+            let requestedAgentID = UUID()
+            let cases: [TurnError] = [
+                .managedExecutionRequiresAttachedAgent(threadID),
+                .directExecutionRequiresDetachedThread(threadID),
+                .managedExecutionAgentMismatch(
+                    threadID: threadID,
+                    requestedAgentID: requestedAgentID,
+                    attachedAgentID: nil
+                ),
+            ]
+
+            #expect(cases.map(\.errorCode) == [9021, 9022, 9023])
+            #expect(cases.allSatisfy { $0.errorDomain == PKErrorDomain.turn })
+            #expect(cases.allSatisfy { $0.errorDescription?.contains(threadID.uuidString) == true })
+        }
+
+        @Test("execution authority cases provide actionable remediation")
+        func executionAuthorityRemediation() {
+            #expect(TurnError.managedExecutionRequiresAttachedAgent(UUID()).remediation?.contains("Attach") == true)
+            #expect(TurnError.directExecutionRequiresDetachedThread(UUID()).remediation?.contains("Detach") == true)
+            #expect(TurnError.managedExecutionAgentMismatch(
+                threadID: UUID(),
+                requestedAgentID: UUID(),
+                attachedAgentID: nil
+            ).remediation?.contains("currently attached") == true)
+        }
+
         private func requireSendable<T: Sendable>(_: T) {}
     }
 
@@ -54,7 +84,6 @@ struct PositronicKitErrorContractTests {
         func uniqueErrorCodes() {
             let cases: [AgentError] = [
                 .agentNotFound(UUID()),
-                .threadNotFound(UUID()),
                 .differentAgentAlreadyAttached(UUID()),
                 .hasAttachedThreads(count: 3),
                 .nameTooShort("ab"),
@@ -105,6 +134,22 @@ struct PositronicKitErrorContractTests {
         @Test("isBlocked defaults to false (not a permission gate)")
         func isBlockedIsFalse() {
             #expect(AgentError.agentNotFound(UUID()).isBlocked == false)
+        }
+    }
+
+    // MARK: - AgentContextError
+
+    @Suite("AgentContextError")
+    struct AgentContextErrorTests {
+        @Test("identityMismatch exposes a structured context identity")
+        func stableErrorIdentity() {
+            let error = AgentContextError.identityMismatch(expected: UUID(), actual: UUID())
+
+            #expect(error.errorDomain == PKErrorDomain.context)
+            #expect(error.errorCode == 2001)
+            #expect(error.userFriendlyMessage.contains("different Agent"))
+            #expect(error.remediation == nil)
+            #expect(error.isBlocked == false)
         }
     }
 

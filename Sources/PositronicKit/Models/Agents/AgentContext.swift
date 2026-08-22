@@ -1,9 +1,18 @@
 import Foundation
+import ErrorKit
 import PKContracts
 
 /// Errors raised when an authoritative Agent context cannot be used for the admitted identity.
-public enum AgentContextError: Error, Equatable, Sendable, LocalizedError {
+public enum AgentContextError: PKError, Equatable, Sendable {
     case identityMismatch(expected: UUID, actual: UUID)
+
+    public var errorDomain: String { PKErrorDomain.context }
+
+    public var errorCode: Int { 2001 }
+
+    public var userFriendlyMessage: String {
+        "The Agent context source returned context for a different Agent."
+    }
 
     public var errorDescription: String? {
         switch self {

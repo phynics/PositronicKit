@@ -37,7 +37,7 @@ request and preparation work before returning an admitted `TurnHandle`:
   `TurnError.invalidMaxModelRounds` before thread lookup, persistence, or provider work.
 - Thread hydration failures throw their typed `ThreadError` before input is persisted.
 - Managed execution captures the Agent attached to the Thread immediately before durable
-  admission; detached managed execution throws `AgentError.managedThreadRequiresAttachedAgent`.
+  admission; detached managed execution throws `TurnError.managedExecutionRequiresAttachedAgent`.
 - Direct execution requires a detached Thread and an explicit `DirectTurnContext`.
 - A failed preflight does not consume `requestID`; callers may retry the same request after
   repairing the dependency.
