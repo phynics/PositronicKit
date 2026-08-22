@@ -11,6 +11,7 @@ enum TurnPipelineBuilder {
     static func makePipeline(
         llmService: any LLMStreamClient,
         messageStore: any ThreadMessageStoreProtocol,
+        runtimeRepository: (any ThreadRuntimeRepository)? = nil,
         streamTimeout: TimeInterval,
         diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
         loggingConfiguration: LoggingConfiguration = .default,
@@ -21,6 +22,7 @@ enum TurnPipelineBuilder {
             .add(ToolCallExtractionStage())
             .add(MessagePersistenceStage(
                 messageStore: messageStore,
+                runtimeRepository: runtimeRepository,
                 diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
                 loggingConfiguration: loggingConfiguration
             ))

@@ -55,6 +55,22 @@ public struct AgentContextMemory: Codable, Equatable, Hashable, Sendable, Identi
     }
 }
 
+/// A discoverable Markdown resource in an Agent's primary workspace.
+///
+/// The catalog is intentionally metadata-only. The file remains on disk and is read through the
+/// Agent workspace file tools when the model needs its full contents.
+public struct AgentContextResource: Codable, Equatable, Hashable, Sendable, Identifiable {
+    public let id: String
+    public let path: String
+    public let description: String
+
+    public init(path: String, description: String) {
+        self.id = path
+        self.path = path
+        self.description = description
+    }
+}
+
 /// The immutable Agent continuity captured for one managed Turn.
 ///
 /// The runtime owns the reserved prompt section mapping. Sources return typed data rather
@@ -64,6 +80,8 @@ public struct AgentContextSnapshot: Codable, Equatable, Sendable {
     public let identity: AgentContextIdentity
     public let instructions: String
     public let memories: [AgentContextMemory]
+    public let resources: [AgentContextResource]
+    public let diagnostics: [TurnDiagnostic]
     public let primaryThreadSummary: String?
     public let revision: String?
 
@@ -71,12 +89,16 @@ public struct AgentContextSnapshot: Codable, Equatable, Sendable {
         identity: AgentContextIdentity,
         instructions: String = "",
         memories: [AgentContextMemory] = [],
+        resources: [AgentContextResource] = [],
+        diagnostics: [TurnDiagnostic] = [],
         primaryThreadSummary: String? = nil,
         revision: String? = nil
     ) {
         self.identity = identity
         self.instructions = instructions
         self.memories = memories
+        self.resources = resources
+        self.diagnostics = diagnostics
         self.primaryThreadSummary = primaryThreadSummary
         self.revision = revision
     }
@@ -85,6 +107,8 @@ public struct AgentContextSnapshot: Codable, Equatable, Sendable {
         agent: Agent,
         instructions: String = "",
         memories: [AgentContextMemory] = [],
+        resources: [AgentContextResource] = [],
+        diagnostics: [TurnDiagnostic] = [],
         primaryThreadSummary: String? = nil,
         revision: String? = nil
     ) {
@@ -96,10 +120,13 @@ public struct AgentContextSnapshot: Codable, Equatable, Sendable {
             ),
             instructions: instructions,
             memories: memories,
+            resources: resources,
+            diagnostics: diagnostics,
             primaryThreadSummary: primaryThreadSummary,
             revision: revision
         )
     }
+
 }
 
 /// Authoritative typed continuity source for managed Turns.
@@ -126,10 +153,11 @@ public struct IdentityAgentContextSource: AgentContextSource {
 
 /// Default filesystem-backed Agent continuity source.
 ///
-/// The source reads `Notes/system.md` as stable instructions and other Markdown files under
-/// the Agent's primary Workspace as bounded continuity items. If a host uses a non-filesystem
-/// primary Workspace, the source still returns the durable identity and leaves continuity empty;
-/// hosts that need another backing should inject their own ``AgentContextSource``.
+/// The source reads root `SOUL.md` as stable instructions and builds a compact catalog from
+/// recursive Markdown files under `Notes/`. Full note contents remain on disk and are loaded on
+/// demand through generic workspace file tools. If a host uses a non-filesystem primary Workspace,
+/// the source still returns the durable identity and leaves filesystem context empty; hosts that
+/// need another backing should inject their own ``AgentContextSource``.
 public actor DefaultAgentContextSource: AgentContextSource {
     private let workspaceStore: any WorkspaceStore
     private let maxFileCount: Int
@@ -145,56 +173,123 @@ public actor DefaultAgentContextSource: AgentContextSource {
         self.maxBytes = max(0, maxBytes)
     }
 
-    public func snapshot(for agent: Agent, thread _: Thread) async throws -> AgentContextSnapshot {
+    public func snapshot(for agent: Agent, thread: Thread) async throws -> AgentContextSnapshot {
         var instructions = ""
-        var memories: [AgentContextMemory] = []
+        var resources: [AgentContextResource] = []
+        var revision = ""
+        var diagnostics: [TurnDiagnostic] = []
 
         if let workspaceID = agent.primaryWorkspaceID,
            let reference = try await workspaceStore.fetchWorkspace(id: workspaceID, includeTools: false),
            let rootPath = reference.rootPath
         {
+            let rootURL = URL(fileURLWithPath: rootPath, isDirectory: true)
+            let soulURL = rootURL.appendingPathComponent("SOUL.md")
+            if let content = try? String(contentsOf: soulURL, encoding: .utf8) {
+                instructions = utf8Prefix(of: content, byteCount: maxBytes)
+            } else {
+                diagnostics.append(TurnDiagnostic(
+                    dependency: .context,
+                    operation: "readSoul",
+                    entityID: agent.id.uuidString,
+                    errorIdentity: nil,
+                    message: "SOUL.md is missing or unreadable; continuing with Agent identity only."
+                ))
+            }
+
             let notesURL = URL(fileURLWithPath: rootPath, isDirectory: true)
                 .appendingPathComponent("Notes", isDirectory: true)
-            let files = try noteFiles(at: notesURL)
-            var remainingBytes = maxBytes
-            for fileURL in files.prefix(maxFileCount) {
-                guard remainingBytes > 0,
-                      let content = try? String(contentsOf: fileURL, encoding: .utf8)
-                else { continue }
-
-                let bounded = utf8Prefix(of: content, byteCount: remainingBytes)
-                remainingBytes -= bounded.utf8.count
-                let source = fileURL.pathComponents.suffix(2).joined(separator: "/")
-                if fileURL.lastPathComponent.lowercased() == "system.md" {
-                    instructions = bounded
-                } else {
-                    memories.append(AgentContextMemory(content: bounded, source: source))
-                }
+            do {
+                // Catalog metadata is bounded and cheap enough to rebuild for every admitted
+                // Turn. This keeps ordinary filesystem writes, including host-side edits, visible
+                // on the next Turn without requiring a fragile invalidation callback.
+                resources = try discoverCatalog(at: notesURL)
+                revision = stableRevision(resources, soul: instructions)
+            } catch {
+                diagnostics.append(TurnDiagnostic(
+                    dependency: .context,
+                    operation: "catalogNotes",
+                    entityID: agent.id.uuidString,
+                    errorIdentity: nil,
+                    message: "Notes catalog is unavailable: \(error.localizedDescription)"
+                ))
             }
         }
 
         return AgentContextSnapshot(
             agent: agent,
             instructions: instructions,
-            memories: memories,
+            resources: resources,
+            diagnostics: diagnostics,
             primaryThreadSummary: nil,
-            revision: agent.updatedAt.iso8601String
+            revision: revision.isEmpty ? nil : revision
         )
     }
 
     private func noteFiles(at notesURL: URL) throws -> [URL] {
         guard FileManager.default.fileExists(atPath: notesURL.path) else { return [] }
         let keys: [URLResourceKey] = [.isRegularFileKey]
-        return try FileManager.default.contentsOfDirectory(
+        guard let enumerator = FileManager.default.enumerator(
             at: notesURL,
             includingPropertiesForKeys: keys,
-            options: [.skipsHiddenFiles]
-        )
-        .filter { url in
-            url.pathExtension.lowercased() == "md"
-                && ((try? url.resourceValues(forKeys: Set(keys)).isRegularFile) ?? false)
+            options: [.skipsHiddenFiles, .skipsPackageDescendants]
+        ) else { return [] }
+        var files: [URL] = []
+        while let fileURL = enumerator.nextObject() as? URL {
+            guard fileURL.pathExtension.lowercased() == "md",
+                  ((try? fileURL.resourceValues(forKeys: Set(keys)).isRegularFile) ?? false)
+            else { continue }
+            files.append(fileURL)
         }
-        .sorted { $0.path < $1.path }
+        return files.sorted { $0.path < $1.path }
+    }
+
+    private func discoverCatalog(at notesURL: URL) throws -> [AgentContextResource] {
+        let files = try noteFiles(at: notesURL)
+        var resources: [AgentContextResource] = []
+        var remainingBytes = maxBytes
+        let notesRoot = notesURL.resolvingSymlinksInPath().standardizedFileURL.path
+        for fileURL in files.prefix(maxFileCount) {
+            guard remainingBytes > 0 else { continue }
+            let resolvedFile = fileURL.resolvingSymlinksInPath().standardizedFileURL.path
+            guard resolvedFile.hasPrefix(notesRoot + "/") else { continue }
+            let safeFileURL = URL(fileURLWithPath: resolvedFile)
+            guard let content = try? String(contentsOf: safeFileURL, encoding: .utf8)
+            else { continue }
+            let bounded = utf8Prefix(of: content, byteCount: min(remainingBytes, 4_096))
+            remainingBytes -= bounded.utf8.count
+            let path = resolvedFile.replacingOccurrences(of: notesRoot + "/", with: "")
+            resources.append(AgentContextResource(path: "Notes/\(path)", description: description(for: bounded, filename: fileURL.lastPathComponent)))
+        }
+        resources.sort { $0.path < $1.path }
+        return resources
+    }
+
+    private func description(for content: String, filename: String) -> String {
+        let lines = content.components(separatedBy: .newlines)
+        if lines.first?.trimmingCharacters(in: .whitespacesAndNewlines) == "---" {
+            for line in lines.dropFirst() {
+                if line.trimmingCharacters(in: .whitespacesAndNewlines) == "---" { break }
+                let parts = line.split(separator: ":", maxSplits: 1).map(String.init)
+                if parts.count == 2, parts[0].trimmingCharacters(in: .whitespaces) == "description" {
+                    return parts[1].trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
+                }
+            }
+        }
+        if let heading = lines.first(where: { $0.trimmingCharacters(in: .whitespaces).hasPrefix("#") }) {
+            let value = heading.trimmingCharacters(in: .whitespacesAndNewlines).drop { $0 == "#" || $0 == " " }
+            if !value.isEmpty { return String(value) }
+        }
+        return URL(fileURLWithPath: filename).deletingPathExtension().lastPathComponent
+    }
+
+    private func stableRevision(_ resources: [AgentContextResource], soul: String) -> String {
+        var hash: UInt64 = 14_695_981_039_346_656_037
+        for byte in (soul + "\0" + resources.map { "\($0.path)\0\($0.description)\n" }.joined()).utf8 {
+            hash ^= UInt64(byte)
+            hash = hash &* 1_099_511_628_211
+        }
+        return String(hash, radix: 16)
     }
 
     private func utf8Prefix(of content: String, byteCount: Int) -> String {

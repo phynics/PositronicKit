@@ -111,9 +111,6 @@ package enum PromptPrimitiveContent {
     case multimodal(MessageContent)
 }
 
-/// Utility namespace for Primitives
-package enum PromptPrimitives {}
-
 // MARK: - PromptPrimitive
 
 /// Prompt primitives render actual prompt content and lower to leaf prompt nodes.

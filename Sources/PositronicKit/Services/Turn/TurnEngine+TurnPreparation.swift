@@ -331,7 +331,10 @@ extension TurnEngine {
 
             let effectiveTools: [AnyTool]
             if let catalog = resolvedWorkspaceToolCatalog, !catalog.isEmpty {
-                effectiveTools = tools + [catalog.callTool]
+                let directToolNames = Set(catalog.directTools.map(\.callName))
+                effectiveTools = catalog.directTools
+                    + tools.filter { !directToolNames.contains($0.callName) }
+                    + [catalog.callTool]
             } else {
                 effectiveTools = tools
             }
@@ -365,6 +368,7 @@ extension TurnEngine {
             // 7. Resolve preparation diagnostics. Agent context and bounded Turn contributions
             // were captured before this point and are rendered directly into the prompt.
             var turnDiagnostics: [TurnDiagnostic] = []
+            turnDiagnostics += resolvedAgentContext?.diagnostics ?? []
 
             // 8. Resolve session entities. Direct Turns deliberately do not inherit an Agent's
             // primary workspace, attached workspace context, or memory; their contributors are
@@ -808,7 +812,10 @@ private extension TurnEngine {
               let diagnostic = diagnostics.first(where: { diagnostic in
                   switch diagnostic.dependency {
                   case .context, .agent:
-                      return true
+                      // The default filesystem Agent source treats an absent SOUL or Notes
+                      // catalog as an observable degradation: identity-only execution remains
+                      // valid, and the diagnostic is carried on the Turn for host inspection.
+                      return !["readSoul", "catalogNotes"].contains(diagnostic.operation)
                   case .workspace:
                       // A missing optional attachment is observable but does not make the
                       // thread unusable. Store outages and resolver failures remain fatal.

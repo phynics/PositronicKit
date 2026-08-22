@@ -7787,6 +7787,16 @@
       "declaration": "var parametersSchema: Schema { get }"
     },
     {
+      "precise": "s:11PKContracts4ToolP18requiresPermission3forSbSDySSAA10AnyCodableOG_tF",
+      "module": "PKContracts",
+      "kind": "swift.method",
+      "path": [
+        "Tool",
+        "requiresPermission(for:)"
+      ],
+      "declaration": "func requiresPermission(for parameters: [String : AnyCodable]) -> Bool"
+    },
+    {
       "precise": "s:11PKContracts4ToolP18requiresPermissionSbvp",
       "module": "PKContracts",
       "kind": "swift.property",
@@ -7895,6 +7905,16 @@
         "usageExample"
       ],
       "declaration": "var usageExample: String? { get }"
+    },
+    {
+      "precise": "s:11PKContracts4ToolPAAE18requiresPermission3forSbSDySSAA10AnyCodableOG_tF",
+      "module": "PKContracts",
+      "kind": "swift.method",
+      "path": [
+        "Tool",
+        "requiresPermission(for:)"
+      ],
+      "declaration": "func requiresPermission(for parameters: [String : AnyCodable]) -> Bool"
     },
     {
       "precise": "s:11PKContracts4ToolPAAE8identityAA0B9ReferenceOvp",
@@ -8143,6 +8163,16 @@
         "parametersSchema"
       ],
       "declaration": "var parametersSchema: Schema { get }"
+    },
+    {
+      "precise": "s:11PKContracts7AnyToolV18requiresPermission3forSbSDySSAA0B7CodableOG_tF",
+      "module": "PKContracts",
+      "kind": "swift.method",
+      "path": [
+        "AnyTool",
+        "requiresPermission(for:)"
+      ],
+      "declaration": "func requiresPermission(for parameters: [String : AnyCodable]) -> Bool"
     },
     {
       "precise": "s:11PKContracts7AnyToolV18requiresPermissionSbvp",
@@ -18348,6 +18378,65 @@
       "declaration": "init(agentID: UUID, name: String, description: String)"
     },
     {
+      "precise": "s:13PositronicKit20AgentContextResourceV",
+      "module": "PositronicKit",
+      "kind": "swift.struct",
+      "path": [
+        "AgentContextResource"
+      ],
+      "declaration": "struct AgentContextResource"
+    },
+    {
+      "precise": "s:13PositronicKit20AgentContextResourceV11descriptionSSvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "AgentContextResource",
+        "description"
+      ],
+      "declaration": "let description: String"
+    },
+    {
+      "precise": "s:13PositronicKit20AgentContextResourceV2idSSvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "AgentContextResource",
+        "id"
+      ],
+      "declaration": "let id: String"
+    },
+    {
+      "precise": "s:13PositronicKit20AgentContextResourceV4fromACs7Decoder_p_tKcfc",
+      "module": "PositronicKit",
+      "kind": "swift.init",
+      "path": [
+        "AgentContextResource",
+        "init(from:)"
+      ],
+      "declaration": "init(from decoder: any Decoder) throws"
+    },
+    {
+      "precise": "s:13PositronicKit20AgentContextResourceV4path11descriptionACSS_SStcfc",
+      "module": "PositronicKit",
+      "kind": "swift.init",
+      "path": [
+        "AgentContextResource",
+        "init(path:description:)"
+      ],
+      "declaration": "init(path: String, description: String)"
+    },
+    {
+      "precise": "s:13PositronicKit20AgentContextResourceV4pathSSvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "AgentContextResource",
+        "path"
+      ],
+      "declaration": "let path: String"
+    },
+    {
       "precise": "s:13PositronicKit20AgentContextSnapshotV",
       "module": "PositronicKit",
       "kind": "swift.struct",
@@ -18355,6 +18444,16 @@
         "AgentContextSnapshot"
       ],
       "declaration": "struct AgentContextSnapshot"
+    },
+    {
+      "precise": "s:13PositronicKit20AgentContextSnapshotV11diagnosticsSay11PKContracts14TurnDiagnosticVGvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "AgentContextSnapshot",
+        "diagnostics"
+      ],
+      "declaration": "let diagnostics: [TurnDiagnostic]"
     },
     {
       "precise": "s:13PositronicKit20AgentContextSnapshotV12instructionsSSvp",
@@ -18387,24 +18486,24 @@
       "declaration": "init(from decoder: any Decoder) throws"
     },
     {
-      "precise": "s:13PositronicKit20AgentContextSnapshotV5agent12instructions8memories20primaryThreadSummary8revisionAC11PKContracts0C0V_SSSayAA0cD6MemoryVGSSSgAOtcfc",
+      "precise": "s:13PositronicKit20AgentContextSnapshotV5agent12instructions8memories9resources11diagnostics20primaryThreadSummary8revisionAC11PKContracts0C0V_SSSayAA0cD6MemoryVGSayAA0cD8ResourceVGSayAK14TurnDiagnosticVGSSSgAWtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "AgentContextSnapshot",
-        "init(agent:instructions:memories:primaryThreadSummary:revision:)"
+        "init(agent:instructions:memories:resources:diagnostics:primaryThreadSummary:revision:)"
       ],
-      "declaration": "init(agent: Agent, instructions: String = \"\", memories: [AgentContextMemory] = [], primaryThreadSummary: String? = nil, revision: String? = nil)"
+      "declaration": "init(agent: Agent, instructions: String = \"\", memories: [AgentContextMemory] = [], resources: [AgentContextResource] = [], diagnostics: [TurnDiagnostic] = [], primaryThreadSummary: String? = nil, revision: String? = nil)"
     },
     {
-      "precise": "s:13PositronicKit20AgentContextSnapshotV8identity12instructions8memories20primaryThreadSummary8revisionAcA0cD8IdentityV_SSSayAA0cD6MemoryVGSSSgANtcfc",
+      "precise": "s:13PositronicKit20AgentContextSnapshotV8identity12instructions8memories9resources11diagnostics20primaryThreadSummary8revisionAcA0cD8IdentityV_SSSayAA0cD6MemoryVGSayAA0cD8ResourceVGSay11PKContracts14TurnDiagnosticVGSSSgAWtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "AgentContextSnapshot",
-        "init(identity:instructions:memories:primaryThreadSummary:revision:)"
+        "init(identity:instructions:memories:resources:diagnostics:primaryThreadSummary:revision:)"
       ],
-      "declaration": "init(identity: AgentContextIdentity, instructions: String = \"\", memories: [AgentContextMemory] = [], primaryThreadSummary: String? = nil, revision: String? = nil)"
+      "declaration": "init(identity: AgentContextIdentity, instructions: String = \"\", memories: [AgentContextMemory] = [], resources: [AgentContextResource] = [], diagnostics: [TurnDiagnostic] = [], primaryThreadSummary: String? = nil, revision: String? = nil)"
     },
     {
       "precise": "s:13PositronicKit20AgentContextSnapshotV8identityAA0cD8IdentityVvp",
@@ -18435,6 +18534,16 @@
         "revision"
       ],
       "declaration": "let revision: String?"
+    },
+    {
+      "precise": "s:13PositronicKit20AgentContextSnapshotV9resourcesSayAA0cD8ResourceVGvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "AgentContextSnapshot",
+        "resources"
+      ],
+      "declaration": "let resources: [AgentContextResource]"
     },
     {
       "precise": "s:13PositronicKit20AgentIdentityContextV",
@@ -20238,7 +20347,7 @@
         "DefaultAgentContextSource",
         "snapshot(for:thread:)"
       ],
-      "declaration": "func snapshot(for agent: Agent, thread _: Thread) async throws -> AgentContextSnapshot"
+      "declaration": "func snapshot(for agent: Agent, thread: Thread) async throws -> AgentContextSnapshot"
     },
     {
       "precise": "s:13PositronicKit25InMemoryThreadPersistenceC",
@@ -20800,6 +20909,45 @@
         "resolveThread(for:)"
       ],
       "declaration": "func resolveThread(for workspaceID: UUID) async throws -> UUID?"
+    },
+    {
+      "precise": "s:13PositronicKit27AgentResourceCatalogContextV",
+      "module": "PositronicKit",
+      "kind": "swift.struct",
+      "path": [
+        "AgentResourceCatalogContext"
+      ],
+      "declaration": "struct AgentResourceCatalogContext"
+    },
+    {
+      "precise": "s:13PositronicKit27AgentResourceCatalogContextV4bodyQrvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "AgentResourceCatalogContext",
+        "body"
+      ],
+      "declaration": "var body: some Prompt { get }"
+    },
+    {
+      "precise": "s:13PositronicKit27AgentResourceCatalogContextV9resourcesSayAA0cfD0VGvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "AgentResourceCatalogContext",
+        "resources"
+      ],
+      "declaration": "let resources: [AgentContextResource]"
+    },
+    {
+      "precise": "s:13PositronicKit27AgentResourceCatalogContextVyACSayAA0cfD0VGcfc",
+      "module": "PositronicKit",
+      "kind": "swift.init",
+      "path": [
+        "AgentResourceCatalogContext",
+        "init(_:)"
+      ],
+      "declaration": "init(_ resources: [AgentContextResource])"
     },
     {
       "precise": "s:13PositronicKit28ConfigurationServiceProtocolP",
@@ -36693,6 +36841,55 @@
     {
       "module": "PositronicKit",
       "kind": "conformsTo",
+      "source": "s:13PositronicKit20AgentContextResourceV",
+      "target": "s:SE",
+      "targetFallback": "Swift.Encodable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit20AgentContextResourceV",
+      "target": "s:SH",
+      "targetFallback": "Swift.Hashable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit20AgentContextResourceV",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit20AgentContextResourceV",
+      "target": "s:Se",
+      "targetFallback": "Swift.Decodable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit20AgentContextResourceV",
+      "target": "s:s12IdentifiableP",
+      "targetFallback": "Swift.Identifiable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit20AgentContextResourceV",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit20AgentContextResourceV",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit20AgentContextSnapshotV",
       "target": "s:SE",
       "targetFallback": "Swift.Encodable"
@@ -37513,6 +37710,27 @@
     {
       "module": "PositronicKit",
       "kind": "conformsTo",
+      "source": "s:13PositronicKit27AgentResourceCatalogContextV",
+      "target": "s:8PKPrompt6PromptP",
+      "targetFallback": "PKPrompt.Prompt"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit27AgentResourceCatalogContextV",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit27AgentResourceCatalogContextV",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit28ConfigurationServiceProtocolP",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
@@ -38262,6 +38480,16 @@
       "kind": "defaultImplementationOf",
       "source": "s:11PKContracts4ToolPAAE12usageExampleSSSgvp",
       "target": "s:11PKContracts4ToolP12usageExampleSSSgvp"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "defaultImplementationOf",
+      "source": "s:11PKContracts4ToolPAAE18requiresPermission3forSbSDySSAA10AnyCodableOG_tF",
+      "target": "s:11PKContracts4ToolP18requiresPermission3forSbSDySSAA10AnyCodableOG_tF",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts4ToolP18requiresPermission3forSbSDySSAA10AnyCodableOG_tF",
+        "displayName": "Tool.requiresPermission(for:)"
+      }
     },
     {
       "module": "PKContracts",
@@ -43057,6 +43285,16 @@
       "sourceOrigin": {
         "identifier": "s:11PKContracts4ToolP16parametersSchema10JSONSchema0D0Vvp",
         "displayName": "Tool.parametersSchema"
+      }
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts7AnyToolV18requiresPermission3forSbSDySSAA0B7CodableOG_tF",
+      "target": "s:11PKContracts7AnyToolV",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts4ToolP18requiresPermission3forSbSDySSAA10AnyCodableOG_tF",
+        "displayName": "Tool.requiresPermission(for:)"
       }
     },
     {
@@ -51786,6 +52024,50 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit20AgentContextResourceV11descriptionSSvp",
+      "target": "s:13PositronicKit20AgentContextResourceV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit20AgentContextResourceV2idSSvp",
+      "target": "s:13PositronicKit20AgentContextResourceV",
+      "sourceOrigin": {
+        "identifier": "s:s12IdentifiableP2id2IDQzvp",
+        "displayName": "Identifiable.id"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit20AgentContextResourceV4fromACs7Decoder_p_tKcfc",
+      "target": "s:13PositronicKit20AgentContextResourceV",
+      "sourceOrigin": {
+        "identifier": "s:Se4fromxs7Decoder_p_tKcfc",
+        "displayName": "Decodable.init(from:)"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit20AgentContextResourceV4path11descriptionACSS_SStcfc",
+      "target": "s:13PositronicKit20AgentContextResourceV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit20AgentContextResourceV4pathSSvp",
+      "target": "s:13PositronicKit20AgentContextResourceV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit20AgentContextSnapshotV11diagnosticsSay11PKContracts14TurnDiagnosticVGvp",
+      "target": "s:13PositronicKit20AgentContextSnapshotV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit20AgentContextSnapshotV12instructionsSSvp",
       "target": "s:13PositronicKit20AgentContextSnapshotV"
     },
@@ -51808,13 +52090,13 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit20AgentContextSnapshotV5agent12instructions8memories20primaryThreadSummary8revisionAC11PKContracts0C0V_SSSayAA0cD6MemoryVGSSSgAOtcfc",
+      "source": "s:13PositronicKit20AgentContextSnapshotV5agent12instructions8memories9resources11diagnostics20primaryThreadSummary8revisionAC11PKContracts0C0V_SSSayAA0cD6MemoryVGSayAA0cD8ResourceVGSayAK14TurnDiagnosticVGSSSgAWtcfc",
       "target": "s:13PositronicKit20AgentContextSnapshotV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit20AgentContextSnapshotV8identity12instructions8memories20primaryThreadSummary8revisionAcA0cD8IdentityV_SSSayAA0cD6MemoryVGSSSgANtcfc",
+      "source": "s:13PositronicKit20AgentContextSnapshotV8identity12instructions8memories9resources11diagnostics20primaryThreadSummary8revisionAcA0cD8IdentityV_SSSayAA0cD6MemoryVGSayAA0cD8ResourceVGSay11PKContracts14TurnDiagnosticVGSSSgAWtcfc",
       "target": "s:13PositronicKit20AgentContextSnapshotV"
     },
     {
@@ -51833,6 +52115,12 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit20AgentContextSnapshotV8revisionSSSgvp",
+      "target": "s:13PositronicKit20AgentContextSnapshotV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit20AgentContextSnapshotV9resourcesSayAA0cD8ResourceVGvp",
       "target": "s:13PositronicKit20AgentContextSnapshotV"
     },
     {
@@ -52950,6 +53238,28 @@
       "kind": "memberOf",
       "source": "s:13PositronicKit26WorkspaceBindingRepositoryPAAE13resolveThread3for10Foundation4UUIDVSgAH_tYaKF",
       "target": "s:13PositronicKit26WorkspaceBindingRepositoryP"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit27AgentResourceCatalogContextV4bodyQrvp",
+      "target": "s:13PositronicKit27AgentResourceCatalogContextV",
+      "sourceOrigin": {
+        "identifier": "s:8PKPrompt6PromptP4body4BodyQzvp",
+        "displayName": "Prompt.body"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit27AgentResourceCatalogContextV9resourcesSayAA0cfD0VGvp",
+      "target": "s:13PositronicKit27AgentResourceCatalogContextV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit27AgentResourceCatalogContextVyACSayAA0cfD0VGcfc",
+      "target": "s:13PositronicKit27AgentResourceCatalogContextV"
     },
     {
       "module": "PositronicKit",
@@ -54559,6 +54869,12 @@
       "module": "PKContracts",
       "kind": "requirementOf",
       "source": "s:11PKContracts4ToolP16parametersSchema10JSONSchema0D0Vvp",
+      "target": "s:11PKContracts4ToolP"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "requirementOf",
+      "source": "s:11PKContracts4ToolP18requiresPermission3forSbSDySSAA10AnyCodableOG_tF",
       "target": "s:11PKContracts4ToolP"
     },
     {

@@ -414,6 +414,7 @@ private extension TurnEngine {
         let pipeline = TurnPipelineBuilder.makePipeline(
             llmService: dependencies.llmService,
             messageStore: dependencies.messageStore,
+            runtimeRepository: dependencies.runtimeRepository,
             streamTimeout: dependencies.streamTimeout,
             diagnosticSnapshotConfiguration: dependencies.diagnosticSnapshotConfiguration,
             loggingConfiguration: dependencies.loggingConfiguration,

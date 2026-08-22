@@ -94,6 +94,10 @@ public protocol Tool: Sendable, PromptFormattable {
     /// If true, the system will prompt the user to approve the tool call.
     var requiresPermission: Bool { get }
 
+    /// Evaluates permission for one invocation. The default preserves the static tool policy;
+    /// stateful tools may require approval only for particular arguments.
+    func requiresPermission(for parameters: [String: AnyCodable]) -> Bool
+
     /// The side-effect class of this tool, used by the timeout enforcer to decide
     /// whether abandonment after a wall-clock timeout is safe. Defaults to
     /// `.mutating` — the conservative assumption for tools that do not declare
@@ -160,6 +164,11 @@ public protocol Tool: Sendable, PromptFormattable {
 // MARK: - Default Implementation
 
 public extension Tool {
+    func requiresPermission(for parameters: [String: AnyCodable]) -> Bool {
+        _ = parameters
+        return requiresPermission
+    }
+
     /// Default identity derived from ``callName``.
     var identity: ToolReference {
         .known(id: callName)
@@ -306,6 +315,10 @@ public struct AnyTool: Tool, Sendable {
 
     public var requiresPermission: Bool {
         wrapped.requiresPermission
+    }
+
+    public func requiresPermission(for parameters: [String: AnyCodable]) -> Bool {
+        wrapped.requiresPermission(for: parameters)
     }
 
     public var sideEffects: ToolSideEffects {

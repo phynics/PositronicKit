@@ -127,6 +127,11 @@ enum PromptAssembler {
                     AgentMemoryContext(agentContext.memories)
                 })
             }
+            if !agentContext.resources.isEmpty {
+                try sections.append(withLogging("AgentResourceCatalog", logger: logger) {
+                    AgentResourceCatalogContext(agentContext.resources)
+                })
+            }
             if agentContext.primaryThreadSummary != nil {
                 try sections.append(withLogging("AgentPrimaryThreadSummary", logger: logger) {
                     AgentPrimaryThreadSummaryContext(agentContext.primaryThreadSummary)

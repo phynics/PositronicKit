@@ -1,4 +1,5 @@
 import struct Foundation.Date
+import class Foundation.FileManager
 import struct Foundation.UUID
 import PKContracts
 import PKTestSupport
@@ -149,6 +150,40 @@ struct AgentContextLifecycleTests {
         await #expect(throws: AgentContextError.identityMismatch(expected: agent.id, actual: source.otherID)) {
             _ = try await thread.startTurn(message: "must fail")
         }
+    }
+
+    @Test("default Agent context loads SOUL and refreshes a discoverable Notes catalog")
+    func defaultContextCatalog() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root.appendingPathComponent("Notes"), withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try "# Agent identity\nBe concise.".write(to: root.appendingPathComponent("SOUL.md"), atomically: true, encoding: .utf8)
+        try "---\ndescription: Durable preferences\n---\n# Preferences\n".write(
+            to: root.appendingPathComponent("Notes/preferences.md"), atomically: true, encoding: .utf8
+        )
+
+        let agentID = UUID()
+        let workspaceID = UUID()
+        let store = InMemoryWorkspacePersistence()
+        try await store.saveWorkspace(WorkspaceReference(
+            id: workspaceID,
+            uri: .agentWorkspace(agentID),
+            location: .runtime,
+            rootPath: root.path
+        ))
+        let source = DefaultAgentContextSource(workspaceStore: store)
+        let agent = Agent(id: agentID, name: "Catalog", description: "test", primaryWorkspaceID: workspaceID, privateThreadID: UUID())
+        let thread = Thread()
+
+        let first = try await source.snapshot(for: agent, thread: thread)
+        #expect(first.instructions.contains("Agent identity"))
+        #expect(first.memories.isEmpty)
+        #expect(first.resources == [AgentContextResource(path: "Notes/preferences.md", description: "Durable preferences")])
+        #expect(!first.diagnostics.contains(where: { $0.operation == "readSoul" }))
+
+        try "# New note".write(to: root.appendingPathComponent("Notes/new.md"), atomically: true, encoding: .utf8)
+        let refreshed = try await source.snapshot(for: agent, thread: thread)
+        #expect(refreshed.resources.count == 2)
     }
 }
 

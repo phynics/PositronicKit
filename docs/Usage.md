@@ -42,8 +42,8 @@ try await kit.agents.attach(agent.id, to: threadID)
 ```
 
 Managed Turns capture one immutable `AgentContextSnapshot` at admission. The default source
-reads the Agent primary Workspace's `Notes/system.md` as instructions and other Markdown notes
-as bounded continuity; applications with database, remote, or no-memory continuity can inject an
+reads the Agent primary Workspace's root `SOUL.md` as instructions and catalogs other Markdown notes
+for on-demand reading; applications with database, remote, or no-memory continuity can inject an
 `AgentContextSource` through `RuntimeConfiguration`.
 
 Agent lifecycle is explicit. `kit.agents.retire(agent.id)` stops new managed Turns, waits for

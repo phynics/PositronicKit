@@ -28,8 +28,8 @@ public struct Agent: Codable, Sendable, Identifiable, Equatable {
     /// Durable lifecycle state used to gate managed Turn admission.
     public var lifecycle: AgentLifecycleState
 
-    /// The agent's private workspace — where Notes/system.md, Notes/persona.md, and other
-    /// persistent files live. This is the agent's memory across threads.
+    /// The agent's private workspace — where root SOUL.md and persistent Notes/ files live.
+    /// This is the agent's memory across threads.
     public var primaryWorkspaceID: UUID?
 
     /// The agent's private thread (internal monologue / cross-agent inbox).

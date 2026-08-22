@@ -26,8 +26,6 @@ actor TurnOutputs {
     private(set) var streamFinishReason: String?
     private(set) var turnDuration: TimeInterval = 0
     private(set) var tokensPerSecond: Double?
-    private(set) var debugToolCalls: [ToolCallRecord] = []
-    private(set) var debugToolResults: [ToolResultRecord] = []
     private(set) var sidecarResults: [SidecarResult] = []
     private(set) var audioData = Data()
     private(set) var audioFormat: AudioFormat?
@@ -86,14 +84,6 @@ actor TurnOutputs {
         toolCallAccumulators = toolCallAccumulators.filter { _, value in
             !value.name.isEmpty && value.name != sentinel
         }
-    }
-
-    func addDebugToolCall(_ record: ToolCallRecord) {
-        debugToolCalls.append(record)
-    }
-
-    func addDebugToolResult(_ record: ToolResultRecord) {
-        debugToolResults.append(record)
     }
 
     func setSidecarResults(_ results: [SidecarResult]) {

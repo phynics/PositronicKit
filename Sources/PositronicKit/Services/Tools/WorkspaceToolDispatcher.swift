@@ -13,6 +13,21 @@ struct WorkspaceToolCatalog: Sendable {
         let label: String
         let isPrimary: Bool
         let tools: [AnyTool]
+        let directTools: [AnyTool]
+
+        init(
+            workspace: WorkspaceReference,
+            label: String,
+            isPrimary: Bool,
+            tools: [AnyTool],
+            directTools: [AnyTool] = []
+        ) {
+            self.workspace = workspace
+            self.label = label
+            self.isPrimary = isPrimary
+            self.tools = tools
+            self.directTools = directTools
+        }
 
         var candidates: [WorkspaceToolCandidate] {
             tools.map { tool in
@@ -32,6 +47,12 @@ struct WorkspaceToolCatalog: Sendable {
     let entries: [Entry]
 
     var isEmpty: Bool { entries.allSatisfy { $0.tools.isEmpty } }
+
+    /// Generic Agent-primary file tools are exposed directly to the model. Other workspace tools
+    /// remain behind `call_tool` so their workspace routing stays explicit.
+    var directTools: [AnyTool] {
+        entries.first(where: \.isPrimary)?.directTools ?? []
+    }
 
     var callTool: AnyTool {
         AnyTool(WorkspaceCallTool())
@@ -74,6 +95,10 @@ private struct WorkspaceCallTool: Tool, Sendable {
 }
 
 extension ThreadManager {
+    private static let reservedAgentWorkspaceToolNames: Set<String> = [
+        "read_file", "list_files", "search_files", "write_file", "append_file", "edit_file", "delete_file",
+    ]
+
     /// Captures the authorized workspace tools used by a managed Turn.
     ///
     /// The caller invokes this from the same admission authority lane used for Agent and Thread
@@ -112,8 +137,13 @@ extension ThreadManager {
             // The primary Agent workspace is not an ordinary Thread binding, so hydrate its
             // wrappers directly. This also fills any custom definitions unavailable in the
             // Thread registry while preserving known system tools where applicable.
-            if let workspace = try? await workspaceResolver.workspace(id: reference.id),
-               let toolProvider = workspace as? any WorkspaceToolProvider
+            var fileProvider: (any WorkspaceFileProvider)?
+            let liveWorkspace = try? await workspaceResolver.workspace(id: reference.id)
+            fileProvider = liveWorkspace as? any WorkspaceFileProvider
+            if isPrimary, fileProvider == nil, reference.rootPath != nil {
+                fileProvider = try? LocalAgentWorkspaceProvider(reference: reference)
+            }
+            if let toolProvider = liveWorkspace as? any WorkspaceToolProvider
             {
                 let listed = (try? await toolProvider.listTools()) ?? []
                 let available: [AnyTool]
@@ -137,14 +167,33 @@ extension ThreadManager {
                 }
             }
 
+            // Agent primary workspaces always receive the guarded generic filesystem surface.
+            // These names are reserved so a workspace-provided definition cannot silently replace
+            // a path-jailed built-in or bypass SOUL.md approval.
+            var genericTools: [AnyTool] = []
+            if isPrimary, let fileProvider {
+                let origin = ToolOrigin.workspace(id: reference.id, name: reference.uri.description)
+                genericTools = AgentWorkspaceFileTool.Operation.all.map { operation in
+                    AnyTool(
+                        AgentWorkspaceFileTool(operation: operation, provider: fileProvider),
+                        origin: origin
+                    )
+                }
+            }
+
             var seen = Set<String>()
-            tools = tools.filter { seen.insert($0.callName).inserted }
+            tools = (genericTools + tools).filter { tool in
+                if isPrimary, Self.reservedAgentWorkspaceToolNames.contains(tool.callName),
+                   genericTools.isEmpty { return false }
+                return seen.insert(tool.callName).inserted
+            }
             tools.sort { ($0.callName, $0.name) < ($1.callName, $1.name) }
             entries.append(.init(
                 workspace: reference,
                 label: reference.uri.description,
                 isPrimary: isPrimary,
-                tools: tools
+                tools: tools,
+                directTools: genericTools
             ))
         }
 

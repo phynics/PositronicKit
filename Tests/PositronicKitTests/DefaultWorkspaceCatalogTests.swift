@@ -252,6 +252,7 @@ struct AgentWorkspaceServiceTests {
             .appendingPathComponent("agents", isDirectory: true)
             .appendingPathComponent(agentId.uuidString, isDirectory: true)
             .appendingPathComponent("Notes", isDirectory: true)
+        let workspacePath = notesPath.deletingLastPathComponent()
 
         // Verify safe files were created
         let notesFile = notesPath.appendingPathComponent("notes.md")
@@ -259,6 +260,8 @@ struct AgentWorkspaceServiceTests {
 
         #expect(FileManager.default.fileExists(atPath: notesFile.path))
         #expect(FileManager.default.fileExists(atPath: nestedFile.path))
+        #expect(FileManager.default.fileExists(atPath: workspacePath.appendingPathComponent("SOUL.md").path))
+        #expect(FileManager.default.fileExists(atPath: notesPath.appendingPathComponent("MEMORY.md").path))
 
         let notesContent = try String(contentsOf: notesFile, encoding: .utf8)
         #expect(notesContent == "# Notes")
@@ -314,7 +317,7 @@ struct AgentWorkspaceServiceTests {
             name: "Valid Template",
             description: "Persistence failure",
             systemPrompt: "Instructions",
-            workspaceFilesSeed: ["system.md": "content"]
+            workspaceFilesSeed: ["MEMORY.md": "content"]
         )
 
         do {

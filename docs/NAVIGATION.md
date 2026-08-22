@@ -7,7 +7,7 @@ Stable [4.0.0](stable/4.0.0/) is the default immutable channel. [Next / v4](next
 | --- | --- |
 | [Overview and quick start](../README.md) | Release selection, package setup, capability values, examples, and verification. |
 | [Setup](Setup.md) | Provider-neutral configuration, persistence, customization, logging, and errors. |
-| [Usage](Usage.md) | Managed and direct Turns, Agent lifecycle, and Workspace routing. |
+| [Usage](Usage.md) | Managed and direct Turns, SOUL/Notes Agent memory, lifecycle, and Workspace routing. |
 | [Architecture](Architecture.md) | v4 domain boundaries, capability values, durability, and execution authority. |
 | [Prompt composition](PKPromptComposition.md) | Prompt IR, assembly, rendering, compression, and PromptJournal. |
 | [Sidecar directives](SidecarDirectives.md) | Auxiliary structured results carried by the same Turn. |

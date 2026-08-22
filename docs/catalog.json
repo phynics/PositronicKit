@@ -60,7 +60,7 @@
     {
       "title": "Usage",
       "path": "docs/Usage.md",
-      "summary": "Managed and direct Turns, Agent lifecycle, and Workspace routing."
+      "summary": "Managed and direct Turns, SOUL/Notes Agent memory, lifecycle, and Workspace routing."
     },
     {
       "title": "Architecture",

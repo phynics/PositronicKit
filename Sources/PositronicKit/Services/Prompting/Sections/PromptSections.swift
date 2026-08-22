@@ -275,7 +275,7 @@ public struct AgentIdentityContext: Prompt {
         if let threadTitle {
             lines.append("Currently operating on thread: \"\(threadTitle)\"")
         }
-        lines.append("Your private workspace supplies persistent continuity (`Notes/` directory).")
+        lines.append("Your private workspace supplies persistent continuity. Markdown resources are cataloged from `Notes/` and read on demand with workspace file tools.")
         return lines.joined(separator: "\n")
     }
 }
@@ -326,6 +326,33 @@ public struct AgentMemoryContext: Prompt {
             return memory.content
         }.joined(separator: "\n\n")
         return "## Agent Continuity\n\n\(content)"
+    }
+}
+
+/// Compact catalog of discoverable Agent Notes. Full file contents stay out of the prompt until
+/// the model requests them through the generic workspace file tools.
+public struct AgentResourceCatalogContext: Prompt {
+    public let resources: [AgentContextResource]
+
+    public init(_ resources: [AgentContextResource]) {
+        self.resources = resources
+    }
+
+    public var body: some Prompt {
+        TextPrompt(
+            id: "agent.resource-catalog",
+            priority: 89,
+            compression: .summarize,
+            cachePolicy: .semiStable,
+            estimatedTokens: TokenEstimator.estimate(parts: resources.map { "\($0.path) \($0.description)" }),
+            render: renderContent
+        )
+    }
+
+    private func renderContent() async -> String? {
+        guard !resources.isEmpty else { return nil }
+        let lines = resources.map { "- `\($0.path)`: \($0.description)" }.joined(separator: "\n")
+        return "## Agent Notes Catalog\n\nThe following Markdown files are available in the private workspace. Read a file when its contents are relevant; do not assume the catalog is the file contents.\n\n\(lines)"
     }
 }
 

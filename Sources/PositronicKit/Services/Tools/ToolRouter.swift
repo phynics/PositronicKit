@@ -393,14 +393,26 @@ actor ToolRouter {
         // folder workspace (the common case for a fresh thread) would fail every tool call
         // with `toolNotFound`, even though the correct `AnyTool` was right there in `availableTools`.
         if let dynamicTools = availableTools,
-           dynamicTools.contains(where: { $0.toolReference == tool || $0.callName == tool.toolID })
+           let dynamicTool = dynamicTools.first(where: { $0.toolReference == tool || $0.callName == tool.toolID })
         {
-            let output = try await executeLocally(
-                tool: tool,
-                arguments: forwardedArguments,
-                threadId: threadID,
-                dynamicTools: dynamicTools
-            )
+            let executionArguments = forwardedArguments
+            let execute: @Sendable () async throws -> String = { [self] in
+                try await executeLocally(
+                    tool: tool,
+                    arguments: executionArguments,
+                    threadId: threadID,
+                    dynamicTools: dynamicTools
+                )
+            }
+            let output: String
+            if case let .workspace(workspaceID, _) = dynamicTool.origin {
+                // Agent-primary filesystem tools are exposed directly to the model. Keep their
+                // read-modify-write operations under the same Workspace lane as call_tool routes
+                // so concurrent Agent Threads cannot lose updates.
+                output = try await threadManager.withWorkspaceExecution(workspaceID, operation: execute)
+            } else {
+                output = try await execute()
+            }
             return .completed(output)
         }
 
@@ -658,7 +670,7 @@ actor ToolRouter {
         // structured provider tool calls and text-fallback `${tool}` calls reach it — so the
         // approval contract holds regardless of how the call was produced (YAK-31). Non-permissioned
         // tools skip the gate entirely.
-        if resolvedTool.requiresPermission {
+        if resolvedTool.requiresPermission(for: arguments) {
             let decision = await approvalPolicy.requestApproval(tool: resolvedTool, arguments: arguments)
             guard decision == .approve else {
                 logger.warning("Permission denied for \(toolName)")

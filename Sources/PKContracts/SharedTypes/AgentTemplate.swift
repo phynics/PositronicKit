@@ -27,7 +27,7 @@ public struct AgentTemplate: Codable, Sendable, Identifiable, Equatable {
     public var updatedAt: Date
 
     /// Optional seed files to write into a new Agent's workspace Notes/ directory.
-    /// Keys are filenames (e.g. "system.md"), values are file contents.
+    /// Keys are Notes-relative filenames (for example, "MEMORY.md"), values are file contents.
     /// Used only at instance creation time.
     public var workspaceFilesSeed: [String: String]?
 

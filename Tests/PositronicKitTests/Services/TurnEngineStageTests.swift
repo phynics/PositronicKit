@@ -39,9 +39,7 @@ final class TurnEngineStageTests {
 
         // Then
         let accumulators = await context.outputs.toolCallAccumulators
-        let debugToolCalls = await context.outputs.debugToolCalls
         #expect(accumulators.isEmpty)
-        #expect(debugToolCalls.isEmpty)
     }
 
     @Test("Fallback text parsing is skipped when no tools are offered")
@@ -59,9 +57,7 @@ final class TurnEngineStageTests {
 
         // Then — fallback must not produce any tool call accumulators
         let accumulators = await context.outputs.toolCallAccumulators
-        let debugToolCalls = await context.outputs.debugToolCalls
         #expect(accumulators.isEmpty)
-        #expect(debugToolCalls.isEmpty)
     }
 
     @Test

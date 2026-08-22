@@ -14,17 +14,20 @@ import PKUtilities
 /// whether to invoke `ToolRouter.handlePendingToolCalls` and continue the loop.
 struct MessagePersistenceStage: PipelineStage {
     let messageStore: any ThreadMessageStoreProtocol
+    let runtimeRepository: (any ThreadRuntimeRepository)?
     let logger: Logger
     let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
     let loggingConfiguration: LoggingConfiguration
 
     init(
         messageStore: any ThreadMessageStoreProtocol,
+        runtimeRepository: (any ThreadRuntimeRepository)? = nil,
         logger: Logger? = nil,
         diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default
         , loggingConfiguration: LoggingConfiguration = .default
     ) {
         self.messageStore = messageStore
+        self.runtimeRepository = runtimeRepository
         self.logger = logger ?? Logger.module(named: "message-persistence")
         self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
         self.loggingConfiguration = loggingConfiguration
@@ -172,8 +175,7 @@ struct MessagePersistenceStage: PipelineStage {
     }
 
     private func buildTurnSnapshot(from context: TurnContext) async -> TurnSnapshot {
-        let debugToolCalls = await context.outputs.debugToolCalls
-        let debugToolResults = await context.outputs.debugToolResults
+        let durableTools = await durableToolRecords(for: context)
         let fullResponse = await context.outputs.fullResponse
         let fullThinking = await context.outputs.fullThinking
         let audioData = await context.outputs.audioData
@@ -208,8 +210,8 @@ struct MessagePersistenceStage: PipelineStage {
             audioOutput: audioFormat.map {
                 AudioOutputSnapshot(format: $0, byteCount: audioData.count, transcript: audioTranscript)
             },
-            toolCalls: debugToolCalls,
-            toolResults: debugToolResults,
+            toolCalls: durableTools.calls,
+            toolResults: durableTools.results,
             turnDuration: turnDuration,
             tokensPerSecond: tokensPerSecond,
             promptTokens: streamUsage?.promptTokens,
@@ -217,6 +219,27 @@ struct MessagePersistenceStage: PipelineStage {
             totalTokens: streamUsage?.totalTokens,
             cachedTokens: streamUsage?.promptTokensDetails?.cachedTokens
         )
+    }
+
+    private func durableToolRecords(
+        for context: TurnContext
+    ) async -> (calls: [ToolCallRecord], results: [ToolResultRecord]) {
+        guard let runtimeRepository else { return ([], []) }
+        guard let intents = try? await runtimeRepository.fetchToolIntents(turnID: context.turnID) else {
+            return ([], [])
+        }
+        let results = (try? await runtimeRepository.fetchToolResults(turnID: context.turnID)) ?? []
+        let calls = intents.map { ToolCallRecord(name: $0.name, arguments: $0.arguments, turn: $0.modelRoundIndex) }
+        let resultRecords = results.map { result in
+            let intent = intents.first(where: { $0.toolCallID == result.toolCallID })
+            return ToolResultRecord(
+                toolCallID: result.toolCallID,
+                name: intent?.name ?? "(unknown)",
+                output: result.output,
+                turn: intent?.modelRoundIndex ?? context.modelRoundIndex
+            )
+        }
+        return (calls, resultRecords)
     }
 
     // MARK: - Message Extraction

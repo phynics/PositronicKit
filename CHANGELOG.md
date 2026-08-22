@@ -10,6 +10,11 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
+- **Filesystem-backed Agent memory:** replaced the legacy memory store and `Notes/system.md`
+  convention with root `SOUL.md`, a discoverable recursive `Notes/` catalog, and generic primary
+  workspace file tools. `SOUL.md` mutations are argument-gated for user approval.
+- **Diagnostic snapshots use durable tool audit:** removed transient Turn debug tool buffers;
+  snapshots now project tool intents and results from `ThreadRuntimeRepository`.
 - **Dead archival API removed:** removed the unused archival implementation and its archive-only
   policy contract; thread durability remains owned by the runtime repository.
 - **Workspace binding authority is repository-only:** removed the mutable Thread-level

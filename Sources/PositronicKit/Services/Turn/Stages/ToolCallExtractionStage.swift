@@ -11,7 +11,7 @@ private let redactedHash = PKUtilities.redactedHash
 /// This stage does NOT execute tools. It validates and cleans `context.outputs.toolCallAccumulators`
 /// so that `PersistenceStage` and `TurnEngine.runTurnLoop` can rely on it:
 /// - Strips sentinel and empty-named calls.
-/// - Appends records for the debug snapshot.
+/// - Leaves durable tool auditing to `ThreadRuntimeRepository`.
 ///
 /// Actual execution is handled by `ToolRouter.handlePendingToolCalls()`, called from
 /// `TurnEngine.runTurnLoop` after the pipeline completes.
@@ -59,16 +59,10 @@ struct ToolCallExtractionStage: PipelineStage {
             logger.info("Stripped \(beforeFilter - afterFilter) sentinel/empty tool-call accumulator(s)", metadata: meta)
         }
 
-        // Record for the debug snapshot.
         let finalAccumulators = await context.outputs.toolCallAccumulators
         var finalMeta = baseMeta
         finalMeta["finalCount"] = .string("\(finalAccumulators.count)")
         logger.debug("ToolCallExtractionStage: \(finalAccumulators.count) accumulator(s) after cleanup", metadata: finalMeta)
-        for (_, value) in finalAccumulators.sorted(by: { $0.key < $1.key }) {
-            await context.outputs.addDebugToolCall(
-                ToolCallRecord(name: value.name, arguments: value.args, turn: context.modelRoundIndex)
-            )
-        }
 
         return AsyncThrowingStream { continuation in
             for event in eventsToYield {

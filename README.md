@@ -76,7 +76,7 @@ their Thread attachments; and `kit.workspaces` owns the workspace catalog. Concr
 task registries, and the turn pipeline are facade implementation details.
 
 Managed Turns capture typed Agent continuity at admission through `AgentContextSource`. The
-bundled filesystem source reads the Agent primary Workspace's `Notes/` files; inject a source in
+bundled filesystem source reads root `SOUL.md` and catalogs the Agent primary Workspace's `Notes/` files; inject a source in
 `RuntimeConfiguration.customization` for database-backed, remote, or deliberately memory-free
 Agents. The same customization value can supply bounded `TurnContextSource` notes and
 best-effort `AgentActivitySink`/post-terminal `TurnOutcomeSink` integrations. Use
