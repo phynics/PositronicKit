@@ -28,7 +28,7 @@ PLATFORM = platform_name()
 BASELINE = ROOT / "api" / f"4.0-public-api-{PLATFORM}.json"
 
 
-def run(*arguments: str) -> str:
+def run_result(*arguments: str) -> tuple[int, str]:
     result = subprocess.run(
         arguments,
         cwd=ROOT,
@@ -37,10 +37,15 @@ def run(*arguments: str) -> str:
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
     )
-    if result.returncode:
-        print(result.stdout, end="", file=sys.stderr)
-        raise SystemExit(result.returncode)
-    return result.stdout.strip()
+    return result.returncode, result.stdout.strip()
+
+
+def run(*arguments: str) -> str:
+    status, output = run_result(*arguments)
+    if status:
+        print(output, end="", file=sys.stderr)
+        raise SystemExit(status)
+    return output
 
 
 def public_modules() -> list[str]:
@@ -69,13 +74,23 @@ def inventory() -> dict:
     for graph in graph_dir.rglob("*.symbols.json"):
         graph.unlink()
 
-    dump_output = run(
+    dump_status, dump_output = run_result(
         "swift", "package", "dump-symbol-graph",
         "--minimum-access-level", "public",
         "--skip-synthesized-members",
         "--skip-inherited-docs",
     )
-    graph_dir = reported_graph_directory(dump_output)
+    try:
+        graph_dir = reported_graph_directory(dump_output)
+    except SystemExit:
+        print(dump_output, end="", file=sys.stderr)
+        raise SystemExit(
+            f"swift package dump-symbol-graph exited {dump_status} without reporting its output directory"
+        )
+    print(
+        f"swift package dump-symbol-graph output: {graph_dir} (exit status {dump_status})",
+        file=sys.stderr,
+    )
 
     graph_paths = sorted(graph_dir.rglob("*.symbols.json"))
     observed_graph_modules = {
@@ -141,7 +156,15 @@ def inventory() -> dict:
 
     missing = sorted(set(modules) - observed_modules)
     if missing:
+        if dump_status:
+            print(dump_output, end="", file=sys.stderr)
         raise SystemExit("missing public symbol graphs: " + ", ".join(missing))
+    if dump_status:
+        print(
+            "swift package dump-symbol-graph reported non-public-target errors; "
+            "all catalog public symbol graphs were emitted",
+            file=sys.stderr,
+        )
 
     return {
         "schemaVersion": 2,
