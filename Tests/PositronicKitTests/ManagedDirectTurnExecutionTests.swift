@@ -1,4 +1,5 @@
 import Foundation
+import PKContracts
 import PKTestSupport
 @testable import PositronicKit
 import Testing
@@ -49,6 +50,67 @@ struct ManagedDirectTurnExecutionTests {
         let messages = try await repository.fetchMessages(for: thread.id)
         #expect(messages.last?.executionKind == .direct)
         #expect(messages.last?.agentID == nil)
+    }
+
+    @Test("direct Turns route call_tool to Thread-bound Workspaces")
+    func directTurnRoutesThreadWorkspace() async throws {
+        let workspace = TestWorkspace()
+        let persistence = MockPersistenceService()
+        let llm = MockLLMService()
+        let repository = InMemoryThreadRuntimeRepository()
+        let kit = PositronicKit(configuration: .init(
+            provider: .init(languageModel: llm),
+            persistence: .init(
+                workspacePersistence: persistence,
+                toolPersistence: persistence,
+                agentStore: persistence,
+                requestOriginStore: persistence,
+                runtimeRepository: repository,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository()
+            ),
+            runtime: .init(
+                workspaceCreator: MockWorkspaceCreator(),
+                workspaceRoot: workspace.root
+            )
+        )
+        let thread = try await kit.threads.create(title: "Direct Workspace")
+        let attachedWorkspace = WorkspaceReference(
+            uri: WorkspaceURI(host: "remote", path: "/direct"),
+            location: .attached,
+            tools: [.known("read_file")],
+            rootPath: workspace.root.path
+        )
+        try await persistence.saveWorkspace(attachedWorkspace)
+        try await persistence.addToolToWorkspace(
+            workspaceId: attachedWorkspace.id,
+            tool: .known("read_file")
+        )
+        try await kit.threads.attachWorkspace(attachedWorkspace.id, to: thread.id)
+
+        llm.mockClient.nextToolCalls = [[MockToolCall(
+            id: "direct-workspace-call",
+            name: "call_tool",
+            arguments: "{\"tool\":\"read_file\",\"at\":\"\(attachedWorkspace.id.uuidString)\",\"arguments\":{\"path\":\"README.md\"}}"
+        )]]
+        llm.mockClient.nextResponse = ""
+
+        let turn = try await thread.startDirectTurn(
+            message: "Use the attached workspace",
+            context: DirectTurnContext(systemInstructions: "", contributor: .host)
+        )
+        let events = await turn.events().collect()
+
+        #expect(events.contains { event in
+            if case .completion(.deferredForExternalTool) = event { return true }
+            return false
+        })
+        #expect(await turn.outcome() == .interrupted(reason: "External tool execution deferred."))
+
+        let intents = try await repository.fetchToolIntents(turnID: turn.id)
+        #expect(intents.first?.workspaceID == attachedWorkspace.id)
+        #expect(intents.first?.workspaceRouting == .explicit)
+        #expect(intents.first?.name == "call_tool")
+        #expect(llm.mockClient.lastTools?.contains(where: { $0.name == "call_tool" }) == true)
     }
 
     @Test("managed and direct Turns retain provenance in mixed Thread history")
