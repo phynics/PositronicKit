@@ -20,7 +20,11 @@ The tagged version applies to the public products documented in
 
 1. Merge every intended change into `CHANGELOG.md` under `Unreleased` and resolve every release
    milestone P0/P1 blocker.
-2. Review the public API inventory with `make verify-public-api` on Linux and macOS. The platform
+2. Reconcile any evaluated-but-removed runtime experiments with their decision records before
+   reviewing the public API. In particular, primary-Workspace tool activity is durable only on the
+   executing Thread in v4; `AgentActivitySink` is lifecycle-only and must not become a hidden
+   cross-Thread history path without a new issue and an accepted history contract.
+3. Review the public API inventory with `make verify-public-api` on Linux and macOS. The platform
    graphs differ, especially for Apple-only products, so the release requires reviewed
    `api/4.0-public-api-linux.json` and `api/4.0-public-api-macos.json` files. For an intentional
    contract change, inspect the reported symbols and record that platform with
@@ -28,10 +32,10 @@ The tagged version applies to the public products documented in
    checker uses the output directory reported by SwiftPM and validates every catalog module before
    treating extraction status as a failure, so errors for non-public test targets are tooling noise
    only when all reviewed public graphs are present.
-3. Update `docs/catalog.json` when the stable tag, product graph, or navigation changes; regenerate
+4. Update `docs/catalog.json` when the stable tag, product graph, or navigation changes; regenerate
    navigation with `python3 Scripts/generate-doc-navigation.py`.
-4. Confirm the stable landing remains the default and all Next links target `main`.
-5. Run the applicable verification gates:
+5. Confirm the stable landing remains the default and all Next links target `main`.
+6. Run the applicable verification gates:
 
 | Change scope | Required gate |
 | -------------- | --------------- |
@@ -39,7 +43,7 @@ The tagged version applies to the public products documented in
 | Public product graph, examples, or package-layout changes | `make verify` and `make verify-products` |
 | Linux compatibility changes | `make agent-verify` |
 
-6. Re-run any product-specific or platform-specific gates that changed behavior on the host you
+7. Re-run any product-specific or platform-specific gates that changed behavior on the host you
    are releasing from.
 
 On Linux, use `make agent-verify` as the release gate. It runs the product, example,

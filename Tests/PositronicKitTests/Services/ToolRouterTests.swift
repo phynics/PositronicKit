@@ -378,6 +378,50 @@ final class ToolRouterTests {
         #expect(results.first?.workspaceRouting == .explicit)
     }
 
+    @Test("Primary Workspace tool activity remains on the executing Thread")
+    func primaryWorkspaceActivityStaysOnExecutingThread() async throws {
+        let tool = MockTool(callName: "read_file", name: "read_file", result: .success("workspace output"))
+        let runtimeRepository = InMemoryThreadRuntimeRepository()
+        let (router, threadID, persistence) = try await setupRouter(
+            with: tool,
+            approvalPolicy: DenyAllToolApprovalPolicy(),
+            runtimeRepository: runtimeRepository
+        )
+        try await runtimeRepository.saveThread(Thread(id: threadID))
+        let privateThreadID = UUID()
+        try await runtimeRepository.saveThread(Thread(id: privateThreadID, isPrivate: true))
+        let admission = try await runtimeRepository.admitTurn(
+            threadID: threadID,
+            requestID: UUID(),
+            callerIntentFingerprint: "primary-history-boundary"
+        )
+        let workspace = try #require(persistence.workspaces.first)
+        let catalog = WorkspaceToolCatalog(entries: [
+            .init(workspace: workspace, label: workspace.uri.description, isPrimary: true, tools: [tool.toAnyTool()]),
+        ])
+        let call = ParsedToolCall(
+            callId: "call-primary-history-boundary",
+            name: "call_tool",
+            argumentsJSON: "{\"tool\":\"read_file\",\"at\":\"\(workspace.id.uuidString)\",\"arguments\":{}}"
+        )
+
+        _ = try await captureProjectedToolEventsResult { continuation in
+            try await router.handlePendingToolCalls(
+                threadId: threadID,
+                turnID: admission.turn.identity.turnID,
+                calls: [call],
+                availableTools: [catalog.callTool],
+                workspaceToolCatalog: catalog,
+                continuation: continuation
+            )
+        }
+
+        let sourceMessages = try await runtimeRepository.fetchMessages(for: threadID)
+        #expect(sourceMessages.count == 1)
+        #expect(sourceMessages.first?.threadID == threadID)
+        #expect(try await runtimeRepository.fetchMessages(for: privateThreadID).isEmpty)
+    }
+
     @Test("Workspace call_tool failures retain route provenance in events and records")
     func workspaceCallToolFailureProvenance() async throws {
         let tool = MockTool(callName: "read_file", name: "read_file", result: .failure("workspace failed"))
