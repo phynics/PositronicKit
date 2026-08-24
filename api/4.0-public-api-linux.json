@@ -13322,36 +13322,6 @@
       "declaration": "enum AgentError"
     },
     {
-      "precise": "s:13PositronicKit10AgentErrorO013managedThreadC8OverrideyAC20FoundationEssentials4UUIDVcACmF",
-      "module": "PositronicKit",
-      "kind": "swift.enum.case",
-      "path": [
-        "AgentError",
-        "managedThreadAgentOverride(_:)"
-      ],
-      "declaration": "case managedThreadAgentOverride(UUID)"
-    },
-    {
-      "precise": "s:13PositronicKit10AgentErrorO029managedThreadRequiresAttachedC0yAC20FoundationEssentials4UUIDVcACmF",
-      "module": "PositronicKit",
-      "kind": "swift.enum.case",
-      "path": [
-        "AgentError",
-        "managedThreadRequiresAttachedAgent(_:)"
-      ],
-      "declaration": "case managedThreadRequiresAttachedAgent(UUID)"
-    },
-    {
-      "precise": "s:13PositronicKit10AgentErrorO06threadC8MismatchyAC20FoundationEssentials4UUIDV_A2GSgtcACmF",
-      "module": "PositronicKit",
-      "kind": "swift.enum.case",
-      "path": [
-        "AgentError",
-        "threadAgentMismatch(threadID:agentID:attachedAgentID:)"
-      ],
-      "declaration": "case threadAgentMismatch(threadID: UUID, agentID: UUID, attachedAgentID: UUID?)"
-    },
-    {
       "precise": "s:13PositronicKit10AgentErrorO09differentC15AlreadyAttachedyAC20FoundationEssentials4UUIDVcACmF",
       "module": "PositronicKit",
       "kind": "swift.enum.case",
@@ -13410,16 +13380,6 @@
         "agentRetiring(_:)"
       ],
       "declaration": "case agentRetiring(UUID)"
-    },
-    {
-      "precise": "s:13PositronicKit10AgentErrorO14threadNotFoundyAC20FoundationEssentials4UUIDVcACmF",
-      "module": "PositronicKit",
-      "kind": "swift.enum.case",
-      "path": [
-        "AgentError",
-        "threadNotFound(_:)"
-      ],
-      "declaration": "case threadNotFound(UUID)"
     },
     {
       "precise": "s:13PositronicKit10AgentErrorO15agentNotRetiredyAC20FoundationEssentials4UUIDVcACmF",
@@ -13490,16 +13450,6 @@
         "cannotDetachFromOwnPrivateThread(_:)"
       ],
       "declaration": "case cannotDetachFromOwnPrivateThread(UUID)"
-    },
-    {
-      "precise": "s:13PositronicKit10AgentErrorO32directTurnRequiresDetachedThreadyAC20FoundationEssentials4UUIDVcACmF",
-      "module": "PositronicKit",
-      "kind": "swift.enum.case",
-      "path": [
-        "AgentError",
-        "directTurnRequiresDetachedThread(_:)"
-      ],
-      "declaration": "case directTurnRequiresDetachedThread(UUID)"
     },
     {
       "precise": "s:13PositronicKit10AgentErrorO9errorCodeSivp",
@@ -17446,6 +17396,16 @@
       "declaration": "enum AgentContextError"
     },
     {
+      "precise": "s:13PositronicKit17AgentContextErrorO11errorDomainSSvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "AgentContextError",
+        "errorDomain"
+      ],
+      "declaration": "var errorDomain: String { get }"
+    },
+    {
       "precise": "s:13PositronicKit17AgentContextErrorO16errorDescriptionSSSgvp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -17464,6 +17424,26 @@
         "identityMismatch(expected:actual:)"
       ],
       "declaration": "case identityMismatch(expected: UUID, actual: UUID)"
+    },
+    {
+      "precise": "s:13PositronicKit17AgentContextErrorO19userFriendlyMessageSSvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "AgentContextError",
+        "userFriendlyMessage"
+      ],
+      "declaration": "var userFriendlyMessage: String { get }"
+    },
+    {
+      "precise": "s:13PositronicKit17AgentContextErrorO9errorCodeSivp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "AgentContextError",
+        "errorCode"
+      ],
+      "declaration": "var errorCode: Int { get }"
     },
     {
       "precise": "s:13PositronicKit17DirectTurnContextV",
@@ -23036,6 +23016,16 @@
       "declaration": "var remediation: String? { get }"
     },
     {
+      "precise": "s:13PositronicKit9TurnErrorO16errorDescriptionSSSgvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnError",
+        "errorDescription"
+      ],
+      "declaration": "var errorDescription: String? { get }"
+    },
+    {
       "precise": "s:13PositronicKit9TurnErrorO19userFriendlyMessageSSvp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -23054,6 +23044,36 @@
         "invalidMaxModelRounds(_:)"
       ],
       "declaration": "case invalidMaxModelRounds(Int)"
+    },
+    {
+      "precise": "s:13PositronicKit9TurnErrorO29managedExecutionAgentMismatchyAC20FoundationEssentials4UUIDV_A2GSgtcACmF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "TurnError",
+        "managedExecutionAgentMismatch(threadID:requestedAgentID:attachedAgentID:)"
+      ],
+      "declaration": "case managedExecutionAgentMismatch(threadID: UUID, requestedAgentID: UUID, attachedAgentID: UUID?)"
+    },
+    {
+      "precise": "s:13PositronicKit9TurnErrorO37directExecutionRequiresDetachedThreadyAC20FoundationEssentials4UUIDVcACmF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "TurnError",
+        "directExecutionRequiresDetachedThread(_:)"
+      ],
+      "declaration": "case directExecutionRequiresDetachedThread(UUID)"
+    },
+    {
+      "precise": "s:13PositronicKit9TurnErrorO37managedExecutionRequiresAttachedAgentyAC20FoundationEssentials4UUIDVcACmF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "TurnError",
+        "managedExecutionRequiresAttachedAgent(_:)"
+      ],
+      "declaration": "case managedExecutionRequiresAttachedAgent(UUID)"
     },
     {
       "precise": "s:13PositronicKit9TurnErrorO9errorCodeSivp",
@@ -36603,8 +36623,22 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit17AgentContextErrorO",
+      "target": "s:11PKContracts7PKErrorP",
+      "targetFallback": "PKContracts.PKError"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit17AgentContextErrorO",
       "target": "s:20FoundationEssentials14LocalizedErrorP",
       "targetFallback": "FoundationEssentials.LocalizedError"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit17AgentContextErrorO",
+      "target": "s:8ErrorKit9ThrowableP",
+      "targetFallback": "ErrorKit.Throwable"
     },
     {
       "module": "PositronicKit",
@@ -49702,24 +49736,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit10AgentErrorO013managedThreadC8OverrideyAC20FoundationEssentials4UUIDVcACmF",
-      "target": "s:13PositronicKit10AgentErrorO"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit10AgentErrorO029managedThreadRequiresAttachedC0yAC20FoundationEssentials4UUIDVcACmF",
-      "target": "s:13PositronicKit10AgentErrorO"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit10AgentErrorO06threadC8MismatchyAC20FoundationEssentials4UUIDV_A2GSgtcACmF",
-      "target": "s:13PositronicKit10AgentErrorO"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit10AgentErrorO09differentC15AlreadyAttachedyAC20FoundationEssentials4UUIDVcACmF",
       "target": "s:13PositronicKit10AgentErrorO"
     },
@@ -49755,12 +49771,6 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit10AgentErrorO13agentRetiringyAC20FoundationEssentials4UUIDVcACmF",
-      "target": "s:13PositronicKit10AgentErrorO"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit10AgentErrorO14threadNotFoundyAC20FoundationEssentials4UUIDVcACmF",
       "target": "s:13PositronicKit10AgentErrorO"
     },
     {
@@ -49811,12 +49821,6 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit10AgentErrorO32cannotDetachFromOwnPrivateThreadyAC20FoundationEssentials4UUIDVcACmF",
-      "target": "s:13PositronicKit10AgentErrorO"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit10AgentErrorO32directTurnRequiresDetachedThreadyAC20FoundationEssentials4UUIDVcACmF",
       "target": "s:13PositronicKit10AgentErrorO"
     },
     {
@@ -51946,6 +51950,16 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit17AgentContextErrorO11errorDomainSSvp",
+      "target": "s:13PositronicKit17AgentContextErrorO",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts7PKErrorP11errorDomainSSvp",
+        "displayName": "PKError.errorDomain"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit17AgentContextErrorO16errorDescriptionSSSgvp",
       "target": "s:13PositronicKit17AgentContextErrorO",
       "sourceOrigin": {
@@ -51958,6 +51972,26 @@
       "kind": "memberOf",
       "source": "s:13PositronicKit17AgentContextErrorO16identityMismatchyAC20FoundationEssentials4UUIDV_AGtcACmF",
       "target": "s:13PositronicKit17AgentContextErrorO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit17AgentContextErrorO19userFriendlyMessageSSvp",
+      "target": "s:13PositronicKit17AgentContextErrorO",
+      "sourceOrigin": {
+        "identifier": "s:8ErrorKit9ThrowableP19userFriendlyMessageSSvp",
+        "displayName": "Throwable.userFriendlyMessage"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit17AgentContextErrorO9errorCodeSivp",
+      "target": "s:13PositronicKit17AgentContextErrorO",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts7PKErrorP9errorCodeSivp",
+        "displayName": "PKError.errorCode"
+      }
     },
     {
       "module": "PositronicKit",
@@ -54998,6 +55032,16 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit9TurnErrorO16errorDescriptionSSSgvp",
+      "target": "s:13PositronicKit9TurnErrorO",
+      "sourceOrigin": {
+        "identifier": "s:20FoundationEssentials14LocalizedErrorP16errorDescriptionSSSgvp",
+        "displayName": "LocalizedError.errorDescription"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit9TurnErrorO19userFriendlyMessageSSvp",
       "target": "s:13PositronicKit9TurnErrorO",
       "sourceOrigin": {
@@ -55009,6 +55053,24 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit9TurnErrorO21invalidMaxModelRoundsyACSicACmF",
+      "target": "s:13PositronicKit9TurnErrorO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9TurnErrorO29managedExecutionAgentMismatchyAC20FoundationEssentials4UUIDV_A2GSgtcACmF",
+      "target": "s:13PositronicKit9TurnErrorO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9TurnErrorO37directExecutionRequiresDetachedThreadyAC20FoundationEssentials4UUIDVcACmF",
+      "target": "s:13PositronicKit9TurnErrorO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit9TurnErrorO37managedExecutionRequiresAttachedAgentyAC20FoundationEssentials4UUIDVcACmF",
       "target": "s:13PositronicKit9TurnErrorO"
     },
     {
