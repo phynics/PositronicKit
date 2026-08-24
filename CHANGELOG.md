@@ -46,7 +46,9 @@ for tagged releases beginning with `1.0.0`.
   policy contract; thread durability remains owned by the runtime repository.
 - **Workspace binding authority is repository-only:** removed the mutable Thread-level
   compatibility projection and legacy binding import; attachment, lookup, and lifecycle paths
-  now use `WorkspaceBindingRepository` exclusively.
+  now use `WorkspaceBindingRepository` exclusively. Hosts upgrading 4.0.0-era persisted rows must
+  migrate legacy IDs in their persistence adapter or discard those rows; runtime lookup never
+  reconstructs bindings from the removed field.
 - **Terminal event contract narrowed:** removed never-emitted compatibility terminal cases and
   their unused construction and serialization paths; path-specific completion events remain
   canonical.

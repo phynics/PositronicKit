@@ -217,12 +217,40 @@ struct DetachWorkspaceTests {
                     threadStore: fix.persistence,
                     messageStore: fix.persistence,
                     workspaceStore: fix.persistence,
+                    workspaceBindingRepository: fix.bindingRepository,
                     toolPersistence: fix.persistence
                 ),
                 workspaceRoot: fix.workspaceRoot
             )
             let workspaces = try await freshManager.getWorkspaces(for: thread.id)
             #expect(!workspaces.attached.contains { $0.id == fix.clientWS.id })
+        }
+    }
+
+    @Test("legacy Thread workspace data is not imported during lookup")
+    func legacyProjectionIsNotImported() async throws {
+        try await withFixture { fix in
+            let legacyThreadID = UUID()
+            let legacyObject: [String: Any] = [
+                "id": legacyThreadID.uuidString,
+                "title": "Legacy thread",
+                "createdAt": "2026-08-24T00:00:00Z",
+                "updatedAt": "2026-08-24T00:00:00Z",
+                "isArchived": false,
+                "attachedWorkspaceIds": "[\"\(fix.clientWS.id.uuidString)\"]",
+                "isPrivate": false,
+            ]
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            let legacyData = try JSONSerialization.data(withJSONObject: legacyObject)
+            let legacyThread = try decoder.decode(Thread.self, from: legacyData)
+            try await fix.persistence.saveThread(legacyThread)
+
+            let workspaces = try await fix.manager.getWorkspaces(for: legacyThreadID)
+
+            #expect(workspaces.primary == nil)
+            #expect(workspaces.attached.isEmpty)
+            #expect(try await fix.bindingRepository.bindings(for: legacyThreadID).isEmpty)
         }
     }
 
