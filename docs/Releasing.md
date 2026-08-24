@@ -24,7 +24,10 @@ The tagged version applies to the public products documented in
    graphs differ, especially for Apple-only products, so the release requires reviewed
    `api/4.0-public-api-linux.json` and `api/4.0-public-api-macos.json` files. For an intentional
    contract change, inspect the reported symbols and record that platform with
-   `make update-public-api-baseline`; never update a baseline merely to make the gate pass.
+   `make update-public-api-baseline`; never update a baseline merely to make the gate pass. The
+   checker uses the output directory reported by SwiftPM and validates every catalog module before
+   treating extraction status as a failure, so errors for non-public test targets are tooling noise
+   only when all reviewed public graphs are present.
 3. Update `docs/catalog.json` when the stable tag, product graph, or navigation changes; regenerate
    navigation with `python3 Scripts/generate-doc-navigation.py`.
 4. Confirm the stable landing remains the default and all Next links target `main`.
