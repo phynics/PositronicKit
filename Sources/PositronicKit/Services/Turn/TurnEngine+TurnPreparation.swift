@@ -13,6 +13,41 @@ extension TurnEngine {
         let agent: Agent?
     }
 
+    /// The bounded input to Turn admission. Prompt assembly and Model Round configuration remain
+    /// local to `prepareSession`; admission only needs durable identity, authority, and input.
+    struct TurnAdmissionRequest: Sendable {
+        let threadID: UUID
+        let turnID: UUID
+        let requestID: UUID
+        let inputMessage: ThreadMessage?
+        let executionKind: TurnExecutionKind
+        let agentID: UUID?
+        let callerIntentFingerprint: String
+    }
+
+    struct TurnAdmissionResult: Sendable {
+        enum Disposition: Sendable {
+            case admitted
+            case existing(TurnAdmission)
+        }
+
+        let disposition: Disposition
+        let agent: Agent?
+        let agentContext: AgentContextSnapshot?
+        let workspaceToolCatalog: WorkspaceToolCatalog
+    }
+
+    private struct TurnPreparationRecoveryError: Error, Sendable, CustomStringConvertible {
+        let turnID: UUID
+        let failure: String
+        let recoveryFailure: String
+
+        var description: String {
+            "Unable to durably compensate preparation failure for Turn \(turnID): "
+                + "failTurn failed (\(failure)); force interrupt failed (\(recoveryFailure))."
+        }
+    }
+
     enum PreparedSession {
         case ready(TurnContext)
         case existing(TurnAdmission)
@@ -94,12 +129,11 @@ extension TurnEngine {
     /// PKRR-006: Independent-store input persistence is deferred until **after** history
     /// validation, workspace lookup, prompt assembly, and the initial prompt-history transition
     /// all succeed. The v4 runtime repository instead commits the user message with Turn admission
-    /// so an admitted Turn can never be observed without its input.
-    /// The `requestId` gates the in-memory turn and is reused as the user's existing message identity
-    /// for retry-safe persistence. A second call with the same `requestId` is rejected with
-    /// ``TurnEngineError/duplicateRequestID`` while the first is still processed (or has completed
-    /// successfully). Preparation failures release the `requestId` here; stream-loop failures
-    /// release it when their terminal outcome is known.
+    /// so an admitted Turn can never be observed without its input; repeated requests join or
+    /// replay the durable Turn rather than re-executing it. The independent-store compatibility
+    /// path uses the `requestId` as a process-local gate and message identity, rejecting duplicate
+    /// requests while the first is active. Legacy preparation failures release that gate here;
+    /// stream-loop failures release it when their terminal outcome is known.
     func prepareSession(
         threadID: UUID,
         turnID: UUID,
@@ -157,6 +191,12 @@ extension TurnEngine {
             provider: initialConfiguration.activeProvider
         )
 
+        // `call_tool` is owned by the workspace catalog and must never be caller-defined. This is
+        // pure request validation, so reject it before any admission side effect.
+        guard !tools.contains(where: { $0.callName == "call_tool" }) else {
+            throw ToolError.reservedToolName("call_tool")
+        }
+
         // Track validated tool outputs so the catch block can release reservations.
         var validatedToolOutputs: [ToolOutputSubmission] = []
         var repositoryAdmitted = false
@@ -172,127 +212,55 @@ extension TurnEngine {
         var resolvedAgentContext = agentContext
         var resolvedWorkspaceToolCatalog: WorkspaceToolCatalog?
         var resolvedContributions: [TurnContextContribution] = []
+        let admissionRequest = TurnAdmissionRequest(
+            threadID: threadID,
+            turnID: turnID,
+            requestID: requestId,
+            inputMessage: inputMessage,
+            executionKind: executionKind,
+            agentID: agentId,
+            callerIntentFingerprint: Self.callerIntentFingerprint(
+                messageContent: messageContent,
+                tools: tools,
+                toolOutputs: toolOutputs,
+                systemInstructions: systemInstructions,
+                executionKind: executionKind,
+                contributors: contributors,
+                maxModelRounds: maxModelRounds,
+                generationParameters: generationParameters,
+                structuredOutput: structuredOutput,
+                sidecars: sidecars,
+                sidecarCommitPolicy: sidecarCommitPolicy,
+                includeSidecarMechanismPreamble: includeSidecarMechanismPreamble,
+                responseModalities: responseModalities,
+                audioOutput: audioOutput
+            )
+        )
 
         do {
             // 2. Validate thread existence before any preparation proceeds.
             try await dependencies.threadManager.ensureThreadExists(id: threadID)
 
-            // The cohesive repository owns the durable admission barrier when supplied. The
-            // legacy process-local gate remains only for configurations that have not opted into
-            // the v4 repository yet.
-            if let runtimeRepository = dependencies.runtimeRepository {
-                let fingerprint = Self.callerIntentFingerprint(
-                    messageContent: messageContent,
-                    tools: tools,
-                    toolOutputs: toolOutputs,
-                    systemInstructions: systemInstructions,
-                    executionKind: executionKind,
-                    contributors: contributors,
-                    maxModelRounds: maxModelRounds,
-                    generationParameters: generationParameters,
-                    structuredOutput: structuredOutput,
-                    sidecars: sidecars,
-                    sidecarCommitPolicy: sidecarCommitPolicy,
-                    includeSidecarMechanismPreamble: includeSidecarMechanismPreamble,
-                    responseModalities: responseModalities,
-                    audioOutput: audioOutput
-                )
-                let admissionResult = try await withAdmissionAuthority(threadID: threadID, agentID: agentId) { [self] in
-                    // Revalidate the execution authority in the same per-Thread lane as
-                    // admission. The handle's initial lookup is only a convenience preflight;
-                    // an attachment can change while preparation is waiting on provider or
-                    // persistence work. Managed Turns keep the captured Agent identity, while
-                    // direct Turns remain valid only while the Thread is detached.
-                    let authority = try await validateExecutionAuthority(
-                        threadID: threadID,
-                        executionKind: executionKind,
-                        agentID: agentId
-                    )
-                    var context: AgentContextSnapshot?
-                    if let currentAgent = authority.agent {
-                        let snapshot = try await dependencies.agentContextSource.snapshot(
-                            for: currentAgent,
-                            thread: authority.thread
-                        )
-                        guard snapshot.identity.agentID == currentAgent.id else {
-                            throw AgentContextError.identityMismatch(
-                                expected: currentAgent.id,
-                                actual: snapshot.identity.agentID
-                            )
-                        }
-                        context = snapshot
-                    }
-                    let workspaceCatalog = try await dependencies.threadManager.captureWorkspaceToolCatalog(
-                        for: threadID,
-                        primaryWorkspaceID: authority.agent?.primaryWorkspaceID
-                    )
-                    let admission = try await runtimeRepository.admitTurn(
-                        threadID: threadID,
-                        requestID: requestId,
-                        callerIntentFingerprint: fingerprint,
-                        inputMessage: inputMessage,
-                        executionKind: executionKind,
-                        capturedAgentID: agentId,
-                        turnID: turnID,
-                        now: Date()
-                    )
-                    return (admission, authority.agent, context, workspaceCatalog)
-                }
-                resolvedAgent = admissionResult.1 ?? resolvedAgent
-                resolvedAgentContext = admissionResult.2 ?? resolvedAgentContext
-                resolvedWorkspaceToolCatalog = admissionResult.3
-                let admission = admissionResult.0
-                switch admission.disposition {
-                case .admitted:
+            let admissionResult = try await admitTurn(admissionRequest)
+            resolvedAgent = admissionResult.agent ?? resolvedAgent
+            resolvedAgentContext = admissionResult.agentContext ?? resolvedAgentContext
+            resolvedWorkspaceToolCatalog = admissionResult.workspaceToolCatalog
+            switch admissionResult.disposition {
+            case .admitted:
+                if dependencies.runtimeRepository != nil {
                     repositoryAdmitted = true
                     // Publish admission before the remaining preparation work. Joiners for the
                     // same idempotent request can now subscribe to future events instead of
                     // falling back to terminal-only replay while prompt/workspace preparation
                     // is still in progress.
                     await onAdmission?()
-                case .joined, .replayed:
-                    // The repository owns the existing execution. Return its durable record to
-                    // the caller rather than starting a second provider/tool side effect.
-                    return .existing(admission)
                 }
-            } else {
-                let authorityResult = try await withAdmissionAuthority(threadID: threadID, agentID: agentId) { [self] in
-                    let authority = try await validateExecutionAuthority(
-                        threadID: threadID,
-                        executionKind: executionKind,
-                        agentID: agentId
-                    )
-                    var context: AgentContextSnapshot?
-                    if let currentAgent = authority.agent {
-                        let snapshot = try await dependencies.agentContextSource.snapshot(
-                            for: currentAgent,
-                            thread: authority.thread
-                        )
-                        guard snapshot.identity.agentID == currentAgent.id else {
-                            throw AgentContextError.identityMismatch(
-                                expected: currentAgent.id,
-                                actual: snapshot.identity.agentID
-                            )
-                        }
-                        context = snapshot
-                    }
-                    let workspaceCatalog = try await dependencies.threadManager.captureWorkspaceToolCatalog(
-                        for: threadID,
-                        primaryWorkspaceID: authority.agent?.primaryWorkspaceID
-                    )
-                    guard await TurnIdempotencyGate.shared.checkAndMark(requestId: requestId) else {
-                        throw TurnEngineError.duplicateRequestID(requestId)
-                    }
-                    return (authority.agent, context, workspaceCatalog)
-                }
-                resolvedAgent = authorityResult.0 ?? resolvedAgent
-                resolvedAgentContext = authorityResult.1 ?? resolvedAgentContext
-                resolvedWorkspaceToolCatalog = authorityResult.2
+            case let .existing(admission):
+                // The repository owns the existing execution. Return its durable record to the
+                // caller rather than starting a second provider/tool side effect.
+                return .existing(admission)
             }
 
-            guard !tools.contains(where: { $0.callName == "call_tool" }) else {
-                throw ToolError.reservedToolName("call_tool")
-            }
             if let turnContextSource = dependencies.turnContextSource {
                 let request = TurnContextRequest(
                     threadID: threadID,
@@ -580,14 +548,18 @@ extension TurnEngine {
                 audioOutput: audioOutput,
                 outputs: TurnOutputs()
             ))
-        } catch {
+        } catch let preparationError {
+            var recoveryError: Error?
             if let runtimeRepository = dependencies.runtimeRepository, repositoryAdmitted {
-                _ = try? await runtimeRepository.failTurn(
+                recoveryError = await compensatePreparationFailure(
+                    repository: runtimeRepository,
                     turnID: turnID,
-                    message: "Turn preparation failed before execution.",
-                    now: Date()
+                    preparationError: preparationError
                 )
-                await dependencies.eventHub.finish(turnID: turnID, error: error)
+                await dependencies.eventHub.finish(
+                    turnID: turnID,
+                    error: recoveryError ?? preparationError
+                )
             } else {
                 // Release the idempotency marker so the caller can retry with the same requestId.
                 await TurnIdempotencyGate.shared.release(requestId: requestId)
@@ -597,7 +569,84 @@ extension TurnEngine {
                 threadID: threadID,
                 toolCallIds: validatedToolOutputs.map(\.toolCallID)
             )
-            throw error
+            if let recoveryError {
+                throw recoveryError
+            }
+            throw preparationError
+        }
+    }
+
+    /// Captures all authority-bearing state and then crosses either the cohesive repository's
+    /// atomic admission barrier or the explicitly isolated legacy process-local gate.
+    func admitTurn(_ request: TurnAdmissionRequest) async throws -> TurnAdmissionResult {
+        try await withAdmissionAuthority(threadID: request.threadID, agentID: request.agentID) { [self] in
+            // Revalidate the execution authority in the same per-Thread lane as admission. The
+            // handle's initial lookup is only a convenience preflight; an attachment can change
+            // while preparation is waiting on provider or persistence work.
+            let authority = try await validateExecutionAuthority(
+                threadID: request.threadID,
+                executionKind: request.executionKind,
+                agentID: request.agentID
+            )
+            var context: AgentContextSnapshot?
+            if let currentAgent = authority.agent {
+                let snapshot = try await dependencies.agentContextSource.snapshot(
+                    for: currentAgent,
+                    thread: authority.thread
+                )
+                guard snapshot.identity.agentID == currentAgent.id else {
+                    throw AgentContextError.identityMismatch(
+                        expected: currentAgent.id,
+                        actual: snapshot.identity.agentID
+                    )
+                }
+                context = snapshot
+            }
+            let workspaceCatalog = try await dependencies.threadManager.captureWorkspaceToolCatalog(
+                for: request.threadID,
+                primaryWorkspaceID: authority.agent?.primaryWorkspaceID
+            )
+
+            if let runtimeRepository = dependencies.runtimeRepository {
+                let admission = try await runtimeRepository.admitTurn(
+                    threadID: request.threadID,
+                    requestID: request.requestID,
+                    callerIntentFingerprint: request.callerIntentFingerprint,
+                    inputMessage: request.inputMessage,
+                    executionKind: request.executionKind,
+                    capturedAgentID: authority.agent?.id,
+                    turnID: request.turnID,
+                    now: Date()
+                )
+                switch admission.disposition {
+                case .admitted:
+                    return TurnAdmissionResult(
+                        disposition: .admitted,
+                        agent: authority.agent,
+                        agentContext: context,
+                        workspaceToolCatalog: workspaceCatalog
+                    )
+                case .joined, .replayed:
+                    return TurnAdmissionResult(
+                        disposition: .existing(admission),
+                        agent: authority.agent,
+                        agentContext: context,
+                        workspaceToolCatalog: workspaceCatalog
+                    )
+                }
+            }
+
+            // Compatibility path for independent Thread/message stores. It is deliberately not
+            // atomic with input persistence; the cohesive repository above is the v4 path.
+            guard await TurnIdempotencyGate.shared.checkAndMark(requestId: request.requestID) else {
+                throw TurnEngineError.duplicateRequestID(request.requestID)
+            }
+            return TurnAdmissionResult(
+                disposition: .admitted,
+                agent: authority.agent,
+                agentContext: context,
+                workspaceToolCatalog: workspaceCatalog
+            )
         }
     }
 
@@ -768,6 +817,50 @@ extension TurnEngine {
 // MARK: - Preparation Steps
 
 private extension TurnEngine {
+    func compensatePreparationFailure(
+        repository: any ThreadRuntimeRepository,
+        turnID: UUID,
+        preparationError: Error
+    ) async -> TurnPreparationRecoveryError? {
+        do {
+            _ = try await repository.failTurn(
+                turnID: turnID,
+                message: "Turn preparation failed before execution.",
+                now: Date()
+            )
+            return nil
+        } catch let failure {
+            logger.error("Unable to record failed Turn preparation for \(turnID): \(failure)", metadata: [
+                LogKeys.turnID: .string(turnID.uuidString),
+                "preparationError": .string(String(describing: preparationError)),
+            ])
+            do {
+                _ = try await repository.interruptTurn(
+                    turnID: turnID,
+                    reason: "Turn preparation compensation failed: \(failure)",
+                    force: true,
+                    now: Date()
+                )
+                logger.error("Force-interrupted Turn \(turnID) after failed preparation compensation", metadata: [
+                    LogKeys.turnID: .string(turnID.uuidString),
+                    "failure": .string(String(describing: failure)),
+                ])
+                return nil
+            } catch let recoveryFailure {
+                let error = TurnPreparationRecoveryError(
+                    turnID: turnID,
+                    failure: String(describing: failure),
+                    recoveryFailure: String(describing: recoveryFailure)
+                )
+                logger.error("\(error)", metadata: [
+                    LogKeys.turnID: .string(turnID.uuidString),
+                    "preparationError": .string(String(describing: preparationError)),
+                ])
+                return error
+            }
+        }
+    }
+
     /// Serializes managed admission with Agent lifecycle/identity mutations. Direct turns have
     /// no Agent authority and therefore only use their per-Thread lane.
     func withAdmissionAuthority<T: Sendable>(

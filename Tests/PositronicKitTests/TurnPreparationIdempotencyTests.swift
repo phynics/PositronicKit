@@ -5,11 +5,13 @@ import PKTestSupport
 @testable import PositronicKit
 import Testing
 
-/// PKRR-006: Turn input persistence is deferred until history validation, context gathering,
-/// workspace lookup, and prompt assembly all succeed. The `requestId` is an in-memory
-/// idempotency key — a second call with the same `requestId` is rejected. Tool-output batches
-/// are resumable: already-persisted outputs are skipped on retry.
-@Suite("Turn preparation idempotency and atomicity (PKRR-006)")
+/// PKRR-006: These fixtures deliberately exercise the independent-store compatibility path, where
+/// input persistence is deferred until history validation, context gathering, workspace lookup,
+/// and prompt assembly all succeed. The cohesive repository path admits input atomically and is
+/// covered by `TurnAdmissionSeamTests`; its terminal request behavior is replay, not same-request
+/// re-execution. Legacy `requestId` reservations are released on preparation failure, and
+/// tool-output batches remain resumable.
+@Suite("Legacy Turn preparation idempotency (PKRR-006)")
 struct TurnPreparationIdempotencyTests {
 
     private func drain(_ stream: AsyncThrowingStream<TurnEvent, Error>) async throws {
@@ -85,9 +87,9 @@ struct TurnPreparationIdempotencyTests {
         #expect(userMessages.isEmpty, "No user message should be persisted when history validation fails")
     }
 
-    // MARK: - AC: Retrying the same requestId cannot duplicate user or tool messages
+    // MARK: - Legacy AC: Retrying the same requestId cannot duplicate user or tool messages
 
-    @Test("Retrying the same requestId is rejected as duplicate")
+    @Test("Legacy retrying the same requestId is rejected as duplicate")
     func retryingSameRequestIDIsRejected() async throws {
         let (kit, persistence, llm) = makeKit()
         let threadID = try await setupThread(on: persistence, threadManager: kit.threadManager)
@@ -120,9 +122,9 @@ struct TurnPreparationIdempotencyTests {
         #expect(userMessages.first?.content == "First turn")
     }
 
-    // MARK: - AC: Failed turn releases requestId for retry
+    // MARK: - Legacy AC: Failed turn releases requestId for retry
 
-    @Test("Failed turn releases requestId so retry with the same requestId succeeds")
+    @Test("Legacy failed preparation releases requestId so retry succeeds")
     func failedTurnReleasesRequestIDForRetry() async throws {
         let (kit, persistence, llm) = makeKit()
         let threadID = try await setupThread(on: persistence, threadManager: kit.threadManager)
@@ -175,7 +177,7 @@ struct TurnPreparationIdempotencyTests {
         #expect(userMessages.first?.content == "Follow up")
     }
 
-    // MARK: - AC: A failed tool-output batch is safely resumable
+    // MARK: - Legacy AC: A failed tool-output batch is safely resumable
 
     @Test("Tool-output batch is resumable after partial failure")
     func toolOutputBatchIsResumableAfterPartialFailure() async throws {
@@ -239,7 +241,7 @@ struct TurnPreparationIdempotencyTests {
                 "Tool outputs should contain exactly call_1, call_2, call_3 — no duplicates")
     }
 
-    // MARK: - AC: Retrying the same requestId cannot duplicate tool messages
+    // MARK: - Legacy AC: Retrying the same requestId cannot duplicate tool messages
 
     @Test("Successful tool-output turn blocks duplicate retry with the same requestId")
     func successfulToolOutputTurnBlocksDuplicateRetry() async throws {
