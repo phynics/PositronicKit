@@ -16,6 +16,9 @@ cleanup (`9f8d7ee`) was separate and did not remove the activity sink.
 The current `main` source tree, tests, public API baselines, and release records therefore agree:
 there is no primary-Thread activity projector or internal delivery seam. `AgentActivitySink`
 continues to receive lifecycle facts only; it does not mutate Thread history.
+This reconciles the discrepancy tracked by issue [#93](https://github.com/phynics/PositronicKit/issues/93);
+the final delivery records remain on issues [#72](https://github.com/phynics/PositronicKit/issues/72)
+and [#75](https://github.com/phynics/PositronicKit/issues/75).
 
 ## Final v4 decision
 
