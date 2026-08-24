@@ -53,6 +53,11 @@ Before prompt content is consumed by the runtime, composed sections are resolved
 
 This separation keeps the builder API ergonomic while preserving stable prompt semantics for caching and compression.
 
+Primitive leaves are an assembly implementation detail. Public consumers compose `Prompt` values
+with `TextPrompt`, `HistoryPrompt`, and the role-specific convenience prompts; they should not
+depend on the package-internal leaf protocol or a primitive registry. The runtime likewise exposes
+durable tool audit and opt-in logging rather than a transient prompt/debug buffer.
+
 ## Runtime Integration
 
 `PKPrompt` itself stays transport-neutral and does not own a logging backend. The runtime assembles prompts through its internal `PromptAssembler`; verbose assembly diagnostics flow through `swift-log` when you pass a `Logger` to `ThreadHandle.run(..., promptAssemblyLogger:)`.

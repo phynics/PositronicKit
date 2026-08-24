@@ -104,9 +104,17 @@ Runtime tools and request-scoped tools are separate from Workspace dispatch. The
 | `AgentActivitySink` | Best-effort Agent lifecycle projection |
 | `TurnOutcomeSink` | Post-terminal integration after the durable outcome is accepted |
 
-The bundled Agent context source reads bounded notes from the Agent primary Workspace. Filesystem
-memory is an implementation choice, not a mandatory domain dependency. Sink failures are
-recorded for the host and do not rewrite the originating Turn outcome.
+The bundled Agent context source reads stable instructions and a bounded Notes catalog from the
+Agent primary Workspace. Filesystem memory is an implementation choice, not a mandatory domain
+dependency. Sink failures are recorded for the host and do not rewrite the originating Turn
+outcome.
+
+The v4 boundary intentionally has no automatic semantic-memory retrieval stage. Hosts that already
+have a retrieval system provide its bounded result through `AgentContextSource`; per-Turn additions
+use `TurnContextSource`; model-directed note access uses Workspace file tools. The prompt layer's
+primitive leaves and durable tool diagnostics remain implementation details. See the accepted
+[memory and prompt boundaries decision](adr/0006-memory-retrieval-and-prompt-boundaries.md) for
+the downstream audit and migration boundary.
 
 ## Module boundaries
 
