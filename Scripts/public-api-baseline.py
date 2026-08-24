@@ -65,6 +65,7 @@ def inventory() -> dict:
         "--minimum-access-level", "public",
         "--skip-synthesized-members",
         "--skip-inherited-docs",
+        "--output-dir", str(graph_dir),
     )
 
     graph_paths = sorted(graph_dir.rglob("*.symbols.json"))
