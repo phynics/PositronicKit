@@ -42,13 +42,14 @@ actor AgentManager: AgentManagerProtocol {
 
     }
 
-    private let agentStore: any AgentStoreProtocol
-    private let threadStore: any ThreadPersistenceProtocol
-    private let messageStore: any ThreadMessageStoreProtocol
-    private let workspaceStore: any WorkspaceStore
-    private let runtimeRepository: (any ThreadRuntimeRepository)?
-    private let threadAuthorityCoordinator: ThreadAuthorityCoordinator
-    private let agentAuthorityCoordinator: AgentAuthorityCoordinator
+    // Package-internal for assembly tests; consumers use the facade capabilities instead.
+    let agentStore: any AgentStoreProtocol
+    let threadStore: any ThreadPersistenceProtocol
+    let messageStore: any ThreadMessageStoreProtocol
+    let workspaceStore: any WorkspaceStore
+    let runtimeRepository: (any ThreadRuntimeRepository)?
+    let threadAuthorityCoordinator: ThreadAuthorityCoordinator
+    let agentAuthorityCoordinator: AgentAuthorityCoordinator
 
     private let repository: any WorkspaceCatalog
     /// When non-nil, private-thread deletion routes through `ThreadManager.evictThreadFromMemory(id:)`
