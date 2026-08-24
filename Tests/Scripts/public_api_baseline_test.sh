@@ -45,18 +45,7 @@ if [ "${1:-}" = "build" ] && [ "${2:-}" = "--show-bin-path" ]; then
 fi
 
 if [ "${1:-}" = "package" ] && [ "${2:-}" = "dump-symbol-graph" ]; then
-  output_dir=""
-  previous=""
-  for argument in "$@"; do
-    if [ "$previous" = "--output-dir" ]; then
-      output_dir="$argument"
-      break
-    fi
-    previous="$argument"
-  done
-  if [ -z "$output_dir" ]; then
-    output_dir="$fixture/.build/x86_64-unknown-linux-gnu/symbolgraph"
-  fi
+  output_dir="$fixture/.build/x86_64-unknown-linux-gnu/symbolgraph"
   mkdir -p "$output_dir"
   for module in \
     PKAnthropicProvider PKContracts PKFoundationModelsProvider PKObservable \
@@ -89,7 +78,7 @@ if [[ "$success_output" != *'Public API matches'* ]]; then
   printf '%s\n' "$success_output" >&2
   exit 1
 fi
-printf 'ok: uses explicit SwiftPM symbol-graph output directory\n'
+printf 'ok: uses reported SwiftPM symbol-graph output directory\n'
 
 if OMIT_MODULE=PKPrompt run_baseline > "$tmp_dir/missing.log" 2>&1; then
   printf 'FAIL: expected a missing symbol graph to fail\n' >&2

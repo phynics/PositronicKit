@@ -52,21 +52,30 @@ def declaration(symbol: dict) -> str:
     return "".join(fragment.get("spelling", "") for fragment in symbol.get("declarationFragments", []))
 
 
+def reported_graph_directory(output: str) -> Path:
+    marker = "Files written to "
+    paths = [line.removeprefix(marker).strip() for line in output.splitlines() if line.startswith(marker)]
+    if not paths:
+        raise SystemExit("swift package dump-symbol-graph did not report its output directory")
+    path = Path(paths[-1])
+    return path if path.is_absolute() else ROOT / path
+
+
 def inventory() -> dict:
     modules = public_modules()
     bin_path = Path(run("swift", "build", "--show-bin-path").splitlines()[-1])
-    graph_dir = bin_path.parent.parent / "symbolgraph"
+    graph_dir = bin_path.parent / "symbolgraph"
     graph_dir.mkdir(parents=True, exist_ok=True)
     for graph in graph_dir.rglob("*.symbols.json"):
         graph.unlink()
 
-    run(
+    dump_output = run(
         "swift", "package", "dump-symbol-graph",
         "--minimum-access-level", "public",
         "--skip-synthesized-members",
         "--skip-inherited-docs",
-        "--output-dir", str(graph_dir),
     )
+    graph_dir = reported_graph_directory(dump_output)
 
     graph_paths = sorted(graph_dir.rglob("*.symbols.json"))
     observed_graph_modules = {
