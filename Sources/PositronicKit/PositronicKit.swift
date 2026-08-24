@@ -69,7 +69,9 @@ public final class PositronicKit: Sendable {
         get async { await languageModel.isConfigured }
     }
 
-    private let messageStore: any ThreadMessageStoreProtocol
+    // Internal so package tests can assert the facade's resolved graph without exposing stores
+    // through the public capability surface.
+    let messageStore: any ThreadMessageStoreProtocol
     /// Optional cohesive durable owner for Thread history and Turn lifecycle.
     let runtimeRepository: (any ThreadRuntimeRepository)?
     /// Durable authority for ordinary Workspace-to-Thread bindings.
@@ -96,7 +98,8 @@ public final class PositronicKit: Sendable {
 
     let workspaceCatalog: any WorkspaceCatalog
     private let agentStore: any AgentStoreProtocol
-    private let agentAuthorityCoordinator: AgentAuthorityCoordinator
+    // Package-internal for assembly tests; consumers use the facade capabilities instead.
+    let agentAuthorityCoordinator: AgentAuthorityCoordinator
     private let requestOriginStore: any RequestOriginStoreProtocol
     private let customization: RuntimeCustomization
     private let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
@@ -107,11 +110,12 @@ public final class PositronicKit: Sendable {
 
     // MARK: - Transitive dependencies
 
-    private let threadPersistence: any ThreadPersistenceProtocol
-    private let workspacePersistence: any WorkspaceStore
+    // These resolved graph nodes remain package-internal for @testable assembly coverage.
+    let threadPersistence: any ThreadPersistenceProtocol
+    let workspacePersistence: any WorkspaceStore
     private let toolPersistence: any ToolPersistenceProtocol
 
-    private let turnEngine: TurnEngine
+    let turnEngine: TurnEngine
 
     /// Owned internally; every thread driver vended by this instance shares it automatically.
     /// Construct a new `PositronicKit` for a genuinely separate cross-send history.
