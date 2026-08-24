@@ -32,8 +32,31 @@ import PKUtilities
 /// coordinators, task registries, and turn pipeline remain implementation details.
 ///
 /// Construct once and hold for the app's lifetime. `PositronicKit` is a reference type;
-/// constructing a new instance starts a new, independent cross-send history.
+/// constructing one through a regular initializer starts a new, independent cross-send history.
+/// ``reconfigured(languageModel:generationParameters:)`` creates a new view over the current
+/// runtime state instead.
 public final class PositronicKit: Sendable {
+    /// Identity-bearing process-local runtime state shared by facade views created through
+    /// `reconfigured`. Provider-facing configuration remains on each view's `TurnEngine`.
+    private final class RuntimeState: Sendable {
+        let threadManager: ThreadManager
+        let promptHistoryRegistry: ThreadPromptJournals
+        let agentAuthorityCoordinator: AgentAuthorityCoordinator
+        let eventHub: TurnEventHub
+
+        init(
+            threadManager: ThreadManager,
+            promptHistoryRegistry: ThreadPromptJournals,
+            agentAuthorityCoordinator: AgentAuthorityCoordinator,
+            eventHub: TurnEventHub
+        ) {
+            self.threadManager = threadManager
+            self.promptHistoryRegistry = promptHistoryRegistry
+            self.agentAuthorityCoordinator = agentAuthorityCoordinator
+            self.eventHub = eventHub
+        }
+    }
+
     // MARK: - Direct TurnEngine dependencies
 
     let languageModel: any LLMStreamClient & LLMUtilityClient
@@ -54,6 +77,9 @@ public final class PositronicKit: Sendable {
 
     /// Internal coordinator shared by the capability values and turn engine.
     let threadManager: ThreadManager
+
+    /// Runtime-owned identities that must survive provider reconfiguration.
+    private let runtimeState: RuntimeState
 
 
     /// Internal agent coordinator shared by the capability values and turn engine.
@@ -171,21 +197,19 @@ public final class PositronicKit: Sendable {
     /// `TurnEngine`) from it. The provider reconfiguration builder
     /// extract the current dependencies, mutate the single field that changes, and forward
     /// here — eliminating the repeated ~25-line parameter forwarding (PKCR-009).
-    init(dependencies: KitDependencies) {
+    private init(dependencies: KitDependencies, runtimeState: RuntimeState? = nil) {
         languageModel = dependencies.languageModel
         messageStore = dependencies.messageStore
         runtimeRepository = dependencies.runtimeRepository
         workspaceBindingRepository = dependencies.workspaceBindingRepository
         agentStore = dependencies.agentStore
         customization = dependencies.customization
-        agentAuthorityCoordinator = dependencies.agentAuthorityCoordinator ?? AgentAuthorityCoordinator()
         requestOriginStore = dependencies.requestOriginStore
         threadPersistence = dependencies.threadPersistence
         workspacePersistence = dependencies.workspacePersistence
         toolPersistence = dependencies.toolPersistence
         diagnosticSnapshotConfiguration = dependencies.diagnosticSnapshotConfiguration
         degradationPolicy = dependencies.degradationPolicy
-        promptHistoryRegistry = dependencies.sharedRegistry
         workspaceProfile = dependencies.workspaceProfile
         workspaceCreator = dependencies.workspaceCreator
         runtimeToolPolicy = dependencies.runtimeToolPolicy
@@ -193,32 +217,51 @@ public final class PositronicKit: Sendable {
         loggingConfiguration = dependencies.loggingConfiguration
         defaultGenerationParameters = dependencies.generationParameters
 
+        let resolvedAgentAuthorityCoordinator = runtimeState?.agentAuthorityCoordinator
+            ?? dependencies.agentAuthorityCoordinator
+            ?? AgentAuthorityCoordinator()
+        agentAuthorityCoordinator = resolvedAgentAuthorityCoordinator
+
+        let resolvedPromptHistoryRegistry = runtimeState?.promptHistoryRegistry
+            ?? dependencies.sharedRegistry
+        promptHistoryRegistry = resolvedPromptHistoryRegistry
+
         // The catalog root anchors agent-private workspace provisioning (a separate, opt-in
         // path from thread workspaces). For `.noWorkspace` there is no profile root, so fall
         // back to a process-temporary path so the catalog still has somewhere to anchor if a
         // host later creates agent workspaces. Thread creation itself is unaffected: `.noWorkspace`
         // provisions no thread directory regardless of this value.
+        let resolvedThreadManager: ThreadManager
+        let resolvedEventHub: TurnEventHub
+
+        if let runtimeState {
+            resolvedThreadManager = runtimeState.threadManager
+            resolvedEventHub = runtimeState.eventHub
+        } else {
+            // The facade is the only place a ThreadManager gets built: every store it wraps
+            // comes from the same `persistence` surface the rest of the facade uses, so there is
+            // no seam where TurnEngine and ThreadManager can end up looking at different stores.
+            let newThreadManager = ThreadManager(
+                stores: .init(
+                    threadStore: self.threadPersistence,
+                    messageStore: self.messageStore,
+                    workspaceStore: self.workspacePersistence,
+                    workspaceBindingRepository: self.workspaceBindingRepository,
+                    runtimeRepository: self.runtimeRepository,
+                    toolPersistence: self.toolPersistence
+                ),
+                workspaceProfile: dependencies.workspaceProfile,
+                workspaceCreator: dependencies.workspaceCreator,
+                runtimeToolPolicy: dependencies.runtimeToolPolicy,
+                promptHistoryRegistry: resolvedPromptHistoryRegistry
+            )
+            resolvedThreadManager = newThreadManager
+            resolvedEventHub = TurnEventHub()
+        }
+
         let resolvedCatalogRoot = dependencies.workspaceProfile.catalogRoot
             ?? FileManager.default.temporaryDirectory
                 .appendingPathComponent("positronickit-workspaces", isDirectory: true)
-        // The facade is the only place a ThreadManager gets built: every store it wraps
-        // comes from the same `persistence` surface the rest of the facade uses, so there is
-        // no seam where TurnEngine and ThreadManager can end up looking at different stores.
-        let resolvedThreadManager = ThreadManager(
-            stores: .init(
-                threadStore: self.threadPersistence,
-                messageStore: self.messageStore,
-                workspaceStore: self.workspacePersistence,
-                workspaceBindingRepository: self.workspaceBindingRepository,
-                runtimeRepository: self.runtimeRepository,
-                toolPersistence: self.toolPersistence
-            ),
-            workspaceProfile: dependencies.workspaceProfile,
-            workspaceCreator: dependencies.workspaceCreator,
-            runtimeToolPolicy: dependencies.runtimeToolPolicy,
-            promptHistoryRegistry: promptHistoryRegistry
-        )
-        threadManager = resolvedThreadManager
         let resolvedWorkspaceCatalog = DefaultWorkspaceCatalog(
             workspaceRoot: resolvedCatalogRoot,
             workspacePersistence: self.workspacePersistence,
@@ -226,8 +269,7 @@ public final class PositronicKit: Sendable {
             runtimeRepository: self.runtimeRepository,
             threadAuthorityCoordinator: resolvedThreadManager.threadAuthorityCoordinator
         )
-        workspaceCatalog = resolvedWorkspaceCatalog
-        agentManager = AgentManager(
+        let resolvedAgentManager = AgentManager(
             repository: resolvedWorkspaceCatalog,
             stores: .init(
                 agentStore: self.agentStore,
@@ -236,10 +278,29 @@ public final class PositronicKit: Sendable {
                 workspaceStore: self.workspacePersistence,
                 runtimeRepository: self.runtimeRepository,
                 threadAuthorityCoordinator: resolvedThreadManager.threadAuthorityCoordinator,
-                agentAuthorityCoordinator: self.agentAuthorityCoordinator
+                agentAuthorityCoordinator: resolvedAgentAuthorityCoordinator
             ),
             threadManager: resolvedThreadManager
         )
+        let resolvedToolRouter = ToolRouter(
+            threadManager: resolvedThreadManager,
+            messageStore: self.messageStore,
+            runtimeRepository: self.runtimeRepository,
+            approvalPolicy: dependencies.toolApprovalPolicy,
+            loggingConfiguration: dependencies.loggingConfiguration
+        )
+
+        let resolvedRuntimeState = runtimeState ?? RuntimeState(
+            threadManager: resolvedThreadManager,
+            promptHistoryRegistry: resolvedPromptHistoryRegistry,
+            agentAuthorityCoordinator: resolvedAgentAuthorityCoordinator,
+            eventHub: resolvedEventHub
+        )
+        self.runtimeState = resolvedRuntimeState
+        threadManager = resolvedRuntimeState.threadManager
+        workspaceCatalog = resolvedWorkspaceCatalog
+        agentManager = resolvedAgentManager
+        toolRouter = resolvedToolRouter
 
         var activitySinks: [any AgentActivitySink] = []
         if let hostActivitySink = self.customization.agentActivitySink {
@@ -249,13 +310,6 @@ public final class PositronicKit: Sendable {
             ? nil
             : AgentActivityFanout(sinks: activitySinks)
 
-        toolRouter = ToolRouter(
-            threadManager: resolvedThreadManager,
-            messageStore: self.messageStore,
-            runtimeRepository: self.runtimeRepository,
-            approvalPolicy: dependencies.toolApprovalPolicy,
-            loggingConfiguration: dependencies.loggingConfiguration
-        )
         var engine = TurnEngine(
             dependencies: .init(
                 threadManager: resolvedThreadManager,
@@ -276,7 +330,8 @@ public final class PositronicKit: Sendable {
                 diagnosticSnapshotConfiguration: dependencies.diagnosticSnapshotConfiguration,
                 loggingConfiguration: dependencies.loggingConfiguration,
                 degradationPolicy: dependencies.degradationPolicy,
-                promptHistoryRegistry: promptHistoryRegistry
+                promptHistoryRegistry: promptHistoryRegistry,
+                eventHub: resolvedEventHub
             )
         )
         engine.additionalStages = dependencies.additionalStages
@@ -325,7 +380,7 @@ public final class PositronicKit: Sendable {
         var deps = dependencies
         deps.languageModel = languageModel
         deps.generationParameters = generationParameters ?? defaultGenerationParameters
-        return PositronicKit(dependencies: deps)
+        return PositronicKit(dependencies: deps, runtimeState: runtimeState)
     }
 
     // MARK: - Builder
@@ -339,7 +394,7 @@ public final class PositronicKit: Sendable {
     func addingStage(_ stage: any PipelineStage<TurnContext, TurnEvent>) -> PositronicKit {
         var deps = dependencies
         deps.additionalStages += [stage]
-        return PositronicKit(dependencies: deps)
+        return PositronicKit(dependencies: deps, runtimeState: runtimeState)
     }
 
     // MARK: - Execution
