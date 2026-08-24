@@ -82,9 +82,15 @@ printf 'ok: uses reported SwiftPM symbol-graph output directory\n'
 
 DUMP_STATUS=1 run_baseline > "$tmp_dir/nonzero.log" 2> "$tmp_dir/nonzero-error.log"
 nonzero_output="$(<"$tmp_dir/nonzero.log")"
+nonzero_error="$(<"$tmp_dir/nonzero-error.log")"
 if [[ "$nonzero_output" != *'Public API matches'* ]]; then
   printf 'FAIL: expected complete public graphs to tolerate unrelated extraction errors\n' >&2
   printf '%s\n' "$nonzero_output" >&2
+  exit 1
+fi
+if [[ "$nonzero_error" != *'exit status 1'* || "$nonzero_error" != *'reported non-public-target errors'* ]]; then
+  printf 'FAIL: expected the extraction status to be recorded\n' >&2
+  printf '%s\n' "$nonzero_error" >&2
   exit 1
 fi
 printf 'ok: tolerates nonzero extraction status when catalog graphs are complete\n'
