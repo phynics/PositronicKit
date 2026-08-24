@@ -57,6 +57,23 @@ struct ManagedDirectTurnExecutionTests {
         #expect(llm.mockClient.generationCaptureHistory.count == 1)
     }
 
+    @Test("admitted input is not duplicated in the first provider prompt")
+    func admittedInputAppearsOnceInProviderPrompt() async throws {
+        let llm = MockLLMService()
+        llm.mockClient.nextResponse = "reply"
+        let kit = PositronicKit(languageModel: llm)
+        let thread = try await kit.threads.create(title: "Single input")
+
+        let turn = try await thread.startDirectTurn(
+            message: "one copy",
+            context: DirectTurnContext(systemInstructions: "", contributor: .host)
+        )
+        _ = await turn.events().collect()
+
+        let firstRequest = try #require(llm.mockClient.generationCaptureHistory.first)
+        #expect(firstRequest.messages.filter { $0.role == .user }.map(\.content) == ["one copy"])
+    }
+
     @Test("direct admission requires explicit context and preserves direct provenance")
     func directTurnUsesExplicitContext() async throws {
         let llm = MockLLMService()

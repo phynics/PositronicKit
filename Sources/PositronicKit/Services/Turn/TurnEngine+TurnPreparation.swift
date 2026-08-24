@@ -344,19 +344,22 @@ extension TurnEngine {
                 messageStore: dependencies.messageStore
             )
 
-            // 4. Load existing thread history (before new inputs are persisted).
+            // 4. Load existing thread history. Cohesive repositories already include the input
+            //    committed at admission; independent stores still need the in-memory projection
+            //    below until their legacy persistence step.
             let threadMessages = try await dependencies.messageStore.fetchMessages(for: threadID)
             var history = threadMessages.map { $0.toMessage() }
             let currentRemoteDepth = threadMessages.map(\.remoteDepth).max() ?? 0
 
-            // 5. Build an in-memory augmented history that includes the new tool outputs and
-            //    user message, so validation and prompt assembly see the
-            //    same history they would after persistence — without actually persisting yet.
+            // 5. Build an in-memory augmented history that includes new tool outputs and, for
+            //    legacy stores, the not-yet-persisted user message.
             for output in validatedToolOutputs {
                 history.append(Message(content: output.output, role: .tool, toolCallID: output.toolCallID))
             }
-            if hasMessage {
-                history.append(Message(content: messageContent, role: .user))
+            if let inputMessage,
+               !threadMessages.contains(where: { $0.id == inputMessage.id })
+            {
+                history.append(inputMessage.toMessage())
             }
 
             // 6. Validate the augmented tool-call history.
