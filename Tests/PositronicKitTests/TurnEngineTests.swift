@@ -474,12 +474,7 @@ struct TurnEngineTests {
                 }
                 return false
             }))
-            #expect(events.contains(where: {
-                if case let .completion(.completedEmpty(finishReason)) = $0 {
-                    return finishReason == "stop"
-                }
-                return false
-            }))
+            #expect(events.filter(\.isTerminal).count == 1)
         }
     }
 

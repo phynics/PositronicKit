@@ -4,9 +4,10 @@ import PKPrompt
 import PKContracts
 import PKUtilities
 
-/// Pipeline stage responsible for persisting the assistant message and emitting the completion event.
+/// Pipeline stage responsible for persisting the assistant message and preparing completion data.
 ///
-/// Always saves the assistant message produced by the LLM turn:
+/// Persists the assistant message produced by the LLM turn when it is not owned by the runtime
+/// repository. The stage:
 /// - With `toolCalls` JSON when the LLM requested tool calls (pending execution).
 /// - Without `toolCalls` when the response is a plain text reply.
 ///
@@ -35,7 +36,6 @@ struct MessagePersistenceStage: PipelineStage {
 
     func process(_ context: TurnContext) async throws -> AsyncThrowingStream<TurnEvent, Error> {
         let hasPendingToolCalls = await !context.outputs.toolCallAccumulators.isEmpty
-        let fullResponse = await context.outputs.fullResponse
         let streamFinishReason = await context.outputs.streamFinishReason
 
         let assistantMsg = await Self.buildAssistantMessage(
@@ -44,43 +44,53 @@ struct MessagePersistenceStage: PipelineStage {
             status: nil,
             logger: logger
         )
-        if runtimeRepository != nil, !hasPendingToolCalls {
-            // The terminal assistant row is committed by completeTurn together with the outcome.
-            // Pending tool-call rows still have to be durable before ToolRouter can execute them.
+        var completionMetadata: APIResponseMetadata?
+        if !hasPendingToolCalls {
+            // The terminal assistant row is committed by completeTurn when a runtime repository is
+            // present. The terminal coordinator owns the event so it cannot precede that commit.
             await context.outputs.setTerminalAssistantMessage(assistantMsg)
+            let streamUsage = await context.outputs.streamUsage
+            let turnDuration = await context.outputs.turnDuration
+            let tokensPerSecond = await context.outputs.tokensPerSecond
+            let snapshotData = await buildSnapshotData(from: context)
+            let metadata = APIResponseMetadata(
+                model: context.modelName,
+                promptTokens: streamUsage?.promptTokens,
+                completionTokens: streamUsage?.completionTokens,
+                totalTokens: streamUsage?.totalTokens,
+                cachedTokens: streamUsage?.promptTokensDetails?.cachedTokens,
+                finishReason: streamFinishReason,
+                duration: turnDuration,
+                tokensPerSecond: tokensPerSecond,
+                turnSnapshotData: snapshotData
+            )
+            completionMetadata = metadata
+            await context.outputs.setTerminalCompletionMetadata(metadata)
+            if runtimeRepository == nil {
+                try await messageStore.saveMessage(assistantMsg)
+                await context.outputs.markAssistantResponseDurable()
+            }
         } else {
             try await messageStore.saveMessage(assistantMsg)
             await context.outputs.markAssistantResponseDurable()
         }
 
-        let streamUsage = await context.outputs.streamUsage
-        let turnDuration = await context.outputs.turnDuration
-        let tokensPerSecond = await context.outputs.tokensPerSecond
-
-        let snapshotData = await buildSnapshotData(from: context)
-
-        return AsyncThrowingStream { continuation in
-            if !hasPendingToolCalls {
+        if runtimeRepository == nil,
+           !hasPendingToolCalls,
+           let completionMetadata
+        {
+            // Legacy independent-store configurations have no durable terminal boundary. Keep
+            // their established stage-level completion event; repository-backed Turns deliver it
+            // from TurnEngine only after completeTurn succeeds.
+            return AsyncThrowingStream { continuation in
                 continuation.yield(.generationCompleted(
                     message: assistantMsg.toMessage(),
-                    metadata: APIResponseMetadata(
-                        model: context.modelName,
-                        promptTokens: streamUsage?.promptTokens,
-                        completionTokens: streamUsage?.completionTokens,
-                        totalTokens: streamUsage?.totalTokens,
-                        cachedTokens: streamUsage?.promptTokensDetails?.cachedTokens,
-                        finishReason: streamFinishReason,
-                        duration: turnDuration,
-                        tokensPerSecond: tokensPerSecond,
-                        turnSnapshotData: snapshotData
-                    )
+                    metadata: completionMetadata
                 ))
-                if fullResponse.isEmpty, let streamFinishReason {
-                    continuation.yield(.completedEmpty(finishReason: streamFinishReason))
-                }
+                continuation.finish()
             }
-            continuation.finish()
         }
+        return AsyncThrowingStream { continuation in continuation.finish() }
     }
 
     private func buildSnapshotData(from context: TurnContext) async -> Data? {

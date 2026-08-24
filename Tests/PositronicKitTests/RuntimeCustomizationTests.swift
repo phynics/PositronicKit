@@ -49,7 +49,9 @@ struct RuntimeCustomizationTests {
             )
         }
         #expect(model.mockClient.streamCallCount == 0)
-        #expect(try await repository.fetchMessages(for: thread.id).isEmpty)
+        let messages = try await repository.fetchMessages(for: thread.id)
+        #expect(messages.count == 1)
+        #expect(messages.first?.content == "must fail")
     }
 
     @Test("optional context-source failure persists a notice and continues")
