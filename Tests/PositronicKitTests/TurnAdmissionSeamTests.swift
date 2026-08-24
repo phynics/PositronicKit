@@ -1,0 +1,327 @@
+import Foundation
+import PKContracts
+import PKTestSupport
+import PKUtilities
+@testable import PositronicKit
+import Testing
+
+@Suite(.serialized)
+struct TurnAdmissionSeamTests {
+    @Test("managed admission captures authoritative Agent context")
+    func managedAdmissionCapturesAuthority() async throws {
+        let agent = Agent(name: "Managed", description: "test", privateThreadID: UUID())
+        let harness = try await makeHarness(attachedAgent: agent)
+        let requestID = UUID()
+        let turnID = UUID()
+        let result = try await harness.engine.admitTurn(TurnEngine.TurnAdmissionRequest(
+            threadID: harness.threadID,
+            turnID: turnID,
+            requestID: requestID,
+            inputMessage: ThreadMessage(
+                id: requestID,
+                threadID: harness.threadID,
+                role: .user,
+                content: "managed"
+            ),
+            executionKind: .agentManaged,
+            agentID: agent.id,
+            callerIntentFingerprint: "managed"
+        ))
+
+        #expect(result.agent?.id == agent.id)
+        #expect(result.agentContext?.identity.agentID == agent.id)
+        if case .admitted = result.disposition {} else {
+            Issue.record("Expected a new managed Turn admission")
+        }
+        let record = try #require(try await harness.repository.fetchTurn(id: turnID))
+        #expect(record.executionKind == .agentManaged)
+        #expect(record.capturedAgentID == agent.id)
+    }
+
+    @Test("direct admission captures detached Thread authority without Agent context")
+    func directAdmissionCapturesDetachedAuthority() async throws {
+        let harness = try await makeHarness()
+        let requestID = UUID()
+        let turnID = UUID()
+        let result = try await harness.engine.admitTurn(TurnEngine.TurnAdmissionRequest(
+            threadID: harness.threadID,
+            turnID: turnID,
+            requestID: requestID,
+            inputMessage: nil,
+            executionKind: .direct,
+            agentID: nil,
+            callerIntentFingerprint: "direct"
+        ))
+
+        #expect(result.agent == nil)
+        #expect(result.agentContext == nil)
+        if case .admitted = result.disposition {} else {
+            Issue.record("Expected a new direct Turn admission")
+        }
+        let record = try #require(try await harness.repository.fetchTurn(id: turnID))
+        #expect(record.executionKind == .direct)
+        #expect(record.capturedAgentID == nil)
+    }
+
+    @Test("repeated caller intent joins the atomically admitted Turn")
+    func repeatedCallerIntentJoins() async throws {
+        let harness = try await makeHarness()
+        let requestID = UUID()
+        let firstTurnID = UUID()
+        let first = try await harness.engine.admitTurn(makeRequest(
+            threadID: harness.threadID,
+            turnID: firstTurnID,
+            requestID: requestID,
+            content: "same"
+        ))
+        let joined = try await harness.engine.admitTurn(makeRequest(
+            threadID: harness.threadID,
+            turnID: UUID(),
+            requestID: requestID,
+            content: "same"
+        ))
+
+        if case .admitted = first.disposition {} else {
+            Issue.record("Expected the first request to be admitted")
+        }
+        if case let .existing(admission) = joined.disposition {
+            if case .joined = admission.disposition {} else {
+                Issue.record("Expected an idempotent join disposition")
+            }
+            #expect(admission.turn.identity.turnID == firstTurnID)
+        } else {
+            Issue.record("Expected the second request to join the first Turn")
+        }
+        #expect(try await harness.repository.fetchMessages(for: harness.threadID).count == 1)
+    }
+
+    @Test("a terminal repository Turn is replayed, not re-executed, for the same request")
+    func terminalRequestReplays() async throws {
+        let harness = try await makeHarness()
+        let requestID = UUID()
+        let turnID = UUID()
+        _ = try await harness.engine.admitTurn(makeRequest(
+            threadID: harness.threadID,
+            turnID: turnID,
+            requestID: requestID,
+            content: "terminal"
+        ))
+        _ = try await harness.repository.failTurn(
+            turnID: turnID,
+            message: "preparation failed",
+            now: Date()
+        )
+
+        let replayed = try await harness.engine.admitTurn(makeRequest(
+            threadID: harness.threadID,
+            turnID: UUID(),
+            requestID: requestID,
+            content: "terminal"
+        ))
+        if case let .existing(admission) = replayed.disposition {
+            if case .replayed = admission.disposition {} else {
+                Issue.record("Expected a terminal replay disposition")
+            }
+            #expect(admission.turn.identity.turnID == turnID)
+        } else {
+            Issue.record("Expected the terminal Turn to be replayed")
+        }
+        #expect(try await harness.repository.fetchMessages(for: harness.threadID).count == 1)
+    }
+
+    @Test("reserved call_tool validation happens before admission")
+    func reservedToolIsRejectedBeforeAdmission() async throws {
+        let harness = try await makeHarness()
+
+        await #expect(throws: ToolError.reservedToolName("call_tool")) {
+            _ = try await harness.engine.prepareSession(
+                threadID: harness.threadID,
+                turnID: UUID(),
+                requestId: UUID(),
+                messageContent: MessageContent("must not admit"),
+                tools: [ReservedCallTool().toAnyTool()],
+                toolOutputs: nil,
+                systemInstructions: "",
+                agentId: nil,
+                executionKind: .direct,
+                contributors: [.host],
+                agent: nil,
+                agentDiagnostics: [],
+                maxModelRounds: 1,
+                generationParameters: nil,
+                structuredOutput: nil
+            )
+        }
+
+        #expect(try await harness.repository.fetchMessages(for: harness.threadID).isEmpty)
+        #expect(try await harness.repository.fetchActiveTurn(for: harness.threadID) == nil)
+    }
+
+    @Test("post-admission preparation failure retains input and records a failed Turn")
+    func preparationFailureRetainsAtomicInput() async throws {
+        let harness = try await makeHarness()
+        let requestID = UUID()
+        let turnID = UUID()
+
+        await #expect(throws: Error.self) {
+            _ = try await harness.engine.prepareSession(
+                threadID: harness.threadID,
+                turnID: turnID,
+                requestId: requestID,
+                messageContent: MessageContent("retained input"),
+                tools: [],
+                toolOutputs: [ToolOutputSubmission(toolCallID: "missing", output: "result")],
+                systemInstructions: "",
+                agentId: nil,
+                executionKind: .direct,
+                contributors: [.host],
+                agent: nil,
+                agentDiagnostics: [],
+                maxModelRounds: 1,
+                generationParameters: nil,
+                structuredOutput: nil
+            )
+        }
+
+        let messages = try await harness.repository.fetchMessages(for: harness.threadID)
+        #expect(messages.filter { $0.role == "user" }.map(\.content) == ["retained input"])
+        let record = try #require(try await harness.repository.fetchTurn(id: turnID))
+        #expect(record.outcome == .failed(message: "Turn preparation failed before execution."))
+        #expect(try await harness.repository.fetchActiveTurn(for: harness.threadID) == nil)
+    }
+
+    @Test("preparation failure releases reserved external tool output IDs")
+    func preparationFailureReleasesToolReservation() async throws {
+        let harness = try await makeHarness()
+        let callID = "release-me"
+        let danglingID = "still-dangling"
+        let calls = try SerializationUtils.jsonEncoder.encode([
+            ToolCall(id: callID, name: "external_tool", arguments: [:]),
+            ToolCall(id: danglingID, name: "external_tool", arguments: [:]),
+        ])
+        try await harness.repository.saveMessage(ThreadMessage(
+            threadID: harness.threadID,
+            role: .assistant,
+            content: "",
+            toolCalls: String(decoding: calls, as: UTF8.self)
+        ))
+
+        await #expect(throws: Error.self) {
+            _ = try await harness.engine.prepareSession(
+                threadID: harness.threadID,
+                turnID: UUID(),
+                requestId: UUID(),
+                messageContent: MessageContent(""),
+                tools: [],
+                toolOutputs: [ToolOutputSubmission(toolCallID: callID, output: "result")],
+                systemInstructions: "",
+                agentId: nil,
+                executionKind: .direct,
+                contributors: [.host],
+                agent: nil,
+                agentDiagnostics: [],
+                maxModelRounds: 1,
+                generationParameters: nil,
+                structuredOutput: nil
+            )
+        }
+
+        let retryable = try await ExternalToolOutputSubmissionGate.shared.validate(
+            [ToolOutputSubmission(toolCallID: callID, output: "result")],
+            threadID: harness.threadID,
+            messageStore: harness.repository
+        )
+        #expect(retryable.map(\.toolCallID) == [callID])
+        await ExternalToolOutputSubmissionGate.shared.releaseReservations(
+            threadID: harness.threadID,
+            toolCallIds: [callID]
+        )
+    }
+
+    private func makeRequest(
+        threadID: UUID,
+        turnID: UUID,
+        requestID: UUID,
+        content: String
+    ) -> TurnEngine.TurnAdmissionRequest {
+        TurnEngine.TurnAdmissionRequest(
+            threadID: threadID,
+            turnID: turnID,
+            requestID: requestID,
+            inputMessage: ThreadMessage(
+                id: requestID,
+                threadID: threadID,
+                role: .user,
+                content: content
+            ),
+            executionKind: .direct,
+            agentID: nil,
+            callerIntentFingerprint: "same-intent"
+        )
+    }
+
+    private func makeHarness(attachedAgent: Agent? = nil) async throws -> AdmissionHarness {
+        let repository = InMemoryThreadRuntimeRepository()
+        let backing = MockPersistenceService()
+        let threadManager = ThreadManager(
+            stores: .init(
+                threadStore: repository,
+                messageStore: repository,
+                workspaceStore: backing,
+                workspaceBindingRepository: repository,
+                runtimeRepository: repository,
+                toolPersistence: backing
+            ),
+            workspaceRoot: URL(fileURLWithPath: "/tmp/pk-admission"),
+            workspaceCreator: MockWorkspaceCreator()
+        )
+        let toolRouter = ToolRouter(
+            threadManager: threadManager,
+            messageStore: repository,
+            runtimeRepository: repository
+        )
+        let engine = TurnEngine(
+            dependencies: .init(
+                threadManager: threadManager,
+                agentStore: backing,
+                requestOriginStore: backing,
+                messageStore: repository,
+                runtimeRepository: repository,
+                llmService: MockLLMService(),
+                toolRouter: toolRouter
+            )
+        )
+        let threadID = UUID()
+        try await repository.saveThread(Thread(id: threadID, attachedAgentID: attachedAgent?.id))
+        if let attachedAgent {
+            try await backing.saveAgent(attachedAgent)
+        }
+        try await threadManager.hydrateThread(id: threadID)
+        return AdmissionHarness(
+            engine: engine,
+            repository: repository,
+            threadID: threadID
+        )
+    }
+
+}
+
+private struct AdmissionHarness {
+    let engine: TurnEngine
+    let repository: InMemoryThreadRuntimeRepository
+    let threadID: UUID
+}
+
+private struct ReservedCallTool: PKContracts.Tool, Sendable {
+    let callName = "call_tool"
+    let name = "Reserved call tool"
+    let description = "Test-only reserved tool"
+    let requiresPermission = false
+    let parametersSchema = makeEmptyObjectSchema()
+
+    func canExecute() async -> Bool { true }
+
+    func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
+        .success("unused")
+    }
+}

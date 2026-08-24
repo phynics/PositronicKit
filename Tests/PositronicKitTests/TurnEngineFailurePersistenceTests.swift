@@ -13,7 +13,9 @@ import Testing
 /// cancellation), the partial assistant text/thinking the user already watched stream in must
 /// still be persisted — tagged so it's distinguishable from a complete turn. These tests drive
 /// the full `TurnEngine` turn loop (not a bare stage) so the error-path persistence in
-/// `runOneTurn` is exercised end to end.
+/// `runOneTurn` is exercised end to end. The helpers intentionally omit a
+/// `ThreadRuntimeRepository`, so retry assertions describe the independent-store compatibility
+/// path; atomic admission and terminal replay are covered by `TurnAdmissionSeamTests`.
 @Suite(.serialized) @MainActor
 struct TurnEngineFailurePersistenceTests {
     private let threadID = UUID()
