@@ -30,18 +30,47 @@ private enum LoopContinuation {
     case deferredExternally
 }
 
-/// Terminal delivery is deliberately smaller than the loop policy. The surrounding branches
-/// still choose the durable outcome, partial-persistence status, and reservation behavior; this
-/// value only describes what may be delivered after the repository transition succeeds.
-private enum TerminalDelivery {
-    case none
-    case completion
-    case event(TurnEvent)
-}
+/// The loop chooses the terminal outcome and any path-specific policy. This value carries only the
+/// mechanics that are safe to apply after the repository has accepted that outcome.
+private struct TerminalDecision {
+    enum Delivery {
+        case none
+        case completion
+        case event(TurnEvent)
+    }
 
-private enum TerminalRepositoryResult {
-    case committed(TurnOutcome)
-    case failed(Error)
+    let outcome: TurnOutcome
+    let delivery: Delivery
+    let releaseReservationOnSuccess: Bool
+    let releaseReservationOnFailure: Bool
+    let streamError: Error?
+
+    init(
+        outcome: TurnOutcome,
+        delivery: Delivery,
+        releaseReservationOnSuccess: Bool = false,
+        releaseReservationOnFailure: Bool = true,
+        streamError: Error? = nil
+    ) {
+        self.outcome = outcome
+        self.delivery = delivery
+        self.releaseReservationOnSuccess = releaseReservationOnSuccess
+        self.releaseReservationOnFailure = releaseReservationOnFailure
+        self.streamError = streamError
+    }
+
+    static func delivery(for outcome: TurnOutcome) -> Delivery {
+        switch outcome {
+        case .completed:
+            return .completion
+        case .cancelled:
+            return .event(.generationCancelled())
+        case let .failed(message):
+            return .event(.error(message))
+        case let .interrupted(reason):
+            return .event(.error(reason))
+        }
+    }
 }
 
 private enum TerminalRepositoryError: Error, Sendable {
@@ -100,11 +129,13 @@ extension TurnEngine {
 
             switch signal {
             case .completed:
-                await finishTerminalTurn(
+                await commitTerminal(
+                    decision: TerminalDecision(
+                        outcome: .completed,
+                        delivery: .completion
+                    ),
                     context: turnContext,
-                    outcome: .completed,
-                    continuation: continuation,
-                    delivery: .completion
+                    continuation: continuation
                 )
                 return
 
@@ -129,13 +160,15 @@ extension TurnEngine {
                 } catch {
                     // Snapshot failures terminate the send after preparation, so the caller may
                     // retry with the same request ID.
-                    await finishTerminalTurn(
+                    await commitTerminal(
+                        decision: TerminalDecision(
+                            outcome: .failed(message: String(describing: error)),
+                            delivery: .none,
+                            releaseReservationOnSuccess: true,
+                            streamError: wrapForeignError(error)
+                        ),
                         context: turnContext,
-                        outcome: .failed(message: String(describing: error)),
-                        continuation: continuation,
-                        delivery: .none,
-                        releaseReservationOnSuccess: true,
-                        error: wrapForeignError(error)
+                        continuation: continuation
                     )
                     return
                 }
@@ -162,14 +195,16 @@ extension TurnEngine {
                 // so consumers can distinguish deferred external tool work from normal
                 // completion, then finish without another LLM turn
                 // (PKRR-011).
-                await finishTerminalTurn(
+                // Keep the durable active Turn visible when terminal persistence fails so a host
+                // can recover it instead of retrying against an unknown state.
+                await commitTerminal(
+                    decision: TerminalDecision(
+                        outcome: .interrupted(reason: "External tool execution deferred."),
+                        delivery: .event(.deferredForExternalTool()),
+                        releaseReservationOnFailure: false
+                    ),
                     context: turnContext,
-                    outcome: .interrupted(reason: "External tool execution deferred."),
-                    continuation: continuation,
-                    delivery: .event(.deferredForExternalTool()),
-                    // Keep the durable active Turn visible when terminal persistence fails so a
-                    // host can recover it instead of retrying against an unknown state.
-                    releaseReservationOnFailure: false
+                    continuation: continuation
                 )
                 return
 
@@ -177,12 +212,14 @@ extension TurnEngine {
                 // Terminal but recoverable: the router emitted `.persistenceFailed` and left the
                 // assistant's pending tool call in durable history. Release the turn reservation
                 // so the caller can retry with the existing pending-call submission semantics.
-                await finishTerminalTurn(
+                await commitTerminal(
+                    decision: TerminalDecision(
+                        outcome: .failed(message: "Tool result persistence failed."),
+                        delivery: .none,
+                        releaseReservationOnSuccess: true
+                    ),
                     context: turnContext,
-                    outcome: .failed(message: "Tool result persistence failed."),
-                    continuation: continuation,
-                    delivery: .none,
-                    releaseReservationOnSuccess: true
+                    continuation: continuation
                 )
                 return
             }
@@ -198,136 +235,21 @@ extension TurnEngine {
         // Emit a distinct terminal event so consumers can distinguish model-round exhaustion from
         // normal completion instead of the stream silently finishing as if it succeeded
         // (PKRR-011).
-        await finishTerminalTurn(
+        await commitTerminal(
+            decision: TerminalDecision(
+                outcome: .failed(message: "model-round-limit"),
+                delivery: .event(.maxModelRoundsReached()),
+                releaseReservationOnSuccess: true
+            ),
             context: terminalContext,
-            outcome: .failed(message: "model-round-limit"),
-            continuation: continuation,
-            delivery: .event(.maxModelRoundsReached()),
-            releaseReservationOnSuccess: true
+            continuation: continuation
         )
-    }
-
-    func emitTerminalSidecarCompletionIfNeeded(
-        context: TurnContext,
-        continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
-    ) async {
-        guard context.sidecarCommitPolicy == .terminalModelRound else { return }
-        let results = await context.outputs.sidecarResults
-        guard !results.isEmpty else { return }
-        continuation.yield(.sidecarsCompleted(SidecarCompletion(
-            identity: TurnIdentity(turnID: context.turnID, requestID: context.requestId, modelRoundIndex: max(context.modelRoundIndex - 1, 0)),
-            results: results
-        )))
     }
 }
 
 // MARK: - Turn Execution
 
 private extension TurnEngine {
-    /// Commits terminal truth first, then delivers host observations and the one terminal stream
-    /// signal. A repository failure suppresses all terminal events because durable truth is not
-    /// known; callers choose whether that failure releases the request reservation.
-    func finishTerminalTurn(
-        context: TurnContext,
-        outcome: TurnOutcome,
-        continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation,
-        delivery: TerminalDelivery,
-        releaseReservationOnSuccess: Bool = false,
-        releaseReservationOnFailure: Bool = true,
-        error: Error? = nil
-    ) async {
-        let repositoryResult = await finishRepositoryTurn(context: context, outcome: outcome)
-        if case let .failed(persistenceError) = repositoryResult {
-            if releaseReservationOnFailure {
-                await releaseTurnReservation(for: context)
-            }
-            continuation.finish(throwing: persistenceError)
-            return
-        }
-
-        let durableOutcome: TurnOutcome
-        switch repositoryResult {
-        case let .committed(committedOutcome):
-            durableOutcome = committedOutcome
-        case .failed:
-            return
-        }
-
-        let releaseReservation = durableOutcome == outcome
-            ? releaseReservationOnSuccess
-            : shouldReleaseReservation(for: durableOutcome)
-        if releaseReservation {
-            await releaseTurnReservation(for: context)
-        }
-
-        let effectiveDelivery: TerminalDelivery
-        let effectiveError: Error?
-        if durableOutcome == outcome {
-            effectiveDelivery = delivery
-            effectiveError = error
-        } else {
-            // A repository may return an already-terminal record after a recovery or force
-            // interruption raced this task. Never deliver the requested outcome over that truth.
-            effectiveDelivery = terminalDelivery(for: durableOutcome)
-            effectiveError = nil
-        }
-
-        switch effectiveDelivery {
-        case .none:
-            break
-        case let .event(event):
-            continuation.yield(event)
-        case .completion:
-            await emitTerminalSidecarCompletionIfNeeded(
-                context: context,
-                continuation: continuation
-            )
-            guard dependencies.runtimeRepository != nil else { break }
-            let message = await context.outputs.terminalAssistantMessage
-            let metadata = await context.outputs.terminalCompletionMetadata
-            if let message {
-                continuation.yield(.generationCompleted(
-                    message: message.toMessage(),
-                    metadata: metadata ?? APIResponseMetadata()
-                ))
-            } else {
-                // A completed Turn normally has the assistant row captured by the persistence
-                // stage. Keep the existing empty fallback only for a missing terminal row.
-                continuation.yield(.completedEmpty(finishReason: metadata?.finishReason))
-            }
-        }
-
-        if let effectiveError {
-            continuation.finish(throwing: effectiveError)
-        } else {
-            continuation.finish()
-        }
-    }
-
-    func terminalDelivery(for outcome: TurnOutcome) -> TerminalDelivery {
-        switch outcome {
-        case .completed:
-            return .completion
-        case .cancelled:
-            return .event(.generationCancelled())
-        case let .failed(message):
-            return .event(.error(message))
-        case let .interrupted(reason):
-            return .event(.error(reason))
-        }
-    }
-
-    func shouldReleaseReservation(for outcome: TurnOutcome) -> Bool {
-        switch outcome {
-        case .completed:
-            return false
-        case .interrupted:
-            return true
-        case .cancelled, .failed:
-            return true
-        }
-    }
-
     func runOneTurn(
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation,
         context: TurnContext,
@@ -367,12 +289,14 @@ private extension TurnEngine {
             // tool calls) the user already watched stream in, tagged `.cancelled`. The cancel
             // event is still surfaced below — the UI needs it (STAB-5 handles retry separately).
             await partialPersistence.persistPartialAssistantIfNeeded(context: context, status: .cancelled)
-            await finishTerminalTurn(
+            await commitTerminal(
+                decision: TerminalDecision(
+                    outcome: .cancelled(reason: "Turn task cancelled."),
+                    delivery: .event(.generationCancelled()),
+                    releaseReservationOnSuccess: true
+                ),
                 context: context,
-                outcome: .cancelled(reason: "Turn task cancelled."),
-                continuation: continuation,
-                delivery: .event(.generationCancelled()),
-                releaseReservationOnSuccess: true
+                continuation: continuation
             )
             return .cancelled
         } catch {
@@ -390,89 +314,22 @@ private extension TurnEngine {
             let isCancellation = Self.isCancellationOrigin(error)
             let status: Message.MessageStatus = isCancellation ? .cancelled : .partial
             await partialPersistence.persistPartialAssistantIfNeeded(context: context, status: status)
-            await finishTerminalTurn(
+            await commitTerminal(
+                decision: TerminalDecision(
+                    outcome: isCancellation
+                        ? .cancelled(reason: "Turn task cancelled.")
+                        : .failed(message: String(describing: error)),
+                    delivery: .none,
+                    releaseReservationOnSuccess: true,
+                    streamError: error
+                ),
                 context: context,
-                outcome: isCancellation
-                    ? .cancelled(reason: "Turn task cancelled.")
-                    : .failed(message: String(describing: error)),
-                continuation: continuation,
-                delivery: .none,
-                releaseReservationOnSuccess: true,
-                error: error
+                continuation: continuation
             )
             // Terminal outcome: a wrapped cancellation is still a cancellation for loop-control
             // purposes, so the outer loop skips any follow-up either way.
             return isCancellation ? .cancelled : .failed
         }
-    }
-
-    func finishRepositoryTurn(context: TurnContext, outcome: TurnOutcome) async -> TerminalRepositoryResult {
-        var durableOutcome = outcome
-        if let runtimeRepository = dependencies.runtimeRepository {
-            do {
-                let finalMessage: ThreadMessage?
-                if case .completed = outcome {
-                    if let terminalMessage = await context.outputs.terminalAssistantMessage {
-                        finalMessage = terminalMessage
-                    } else {
-                        let messages = try await runtimeRepository.fetchMessages(for: context.threadID)
-                        let userIndex = messages.firstIndex(where: { $0.id == context.requestId })
-                        finalMessage = userIndex.flatMap { index in
-                            messages.dropFirst(index + 1).last(where: { $0.role == Message.MessageRole.assistant.rawValue })
-                        }
-                    }
-                } else {
-                    finalMessage = nil
-                }
-                let record = try await runtimeRepository.completeTurn(
-                    turnID: context.turnID,
-                    outcome: outcome,
-                    finalMessage: finalMessage,
-                    terminalHandle: TurnTerminalHandle(turnID: context.turnID),
-                    now: Date()
-                )
-                guard let persistedOutcome = record.outcome else {
-                    return .failed(TerminalRepositoryError.missingOutcome(context.turnID))
-                }
-                durableOutcome = persistedOutcome
-            } catch {
-                logger.error("Unable to durably record terminal Turn outcome: \(error)")
-                return .failed(error)
-            }
-        }
-
-        await emitAgentActivity(
-            AgentActivity(
-                kind: activityKind(for: durableOutcome),
-                threadID: context.threadID,
-                turnID: context.turnID,
-                requestID: context.requestId,
-                agentID: context.agentId,
-                modelRoundIndex: context.modelRoundIndex,
-                detail: outcomeDescription(durableOutcome)
-            ),
-            context: context
-        )
-        if dependencies.runtimeRepository != nil {
-            await emitTurnOutcome(
-                TurnOutcomeRecord(
-                    threadID: context.threadID,
-                    turnID: context.turnID,
-                    requestID: context.requestId,
-                    agentID: context.agentId,
-                    executionKind: context.executionKind,
-                    modelRoundIndex: context.modelRoundIndex,
-                    outcome: durableOutcome
-                ),
-                context: context
-            )
-        } else {
-            logger.warning("Skipping TurnOutcomeSink because no durable runtime repository is configured", metadata: [
-                LogKeys.turnID: .string(context.turnID.uuidString),
-                LogKeys.requestID: .string(context.requestId.uuidString),
-            ])
-        }
-        return .committed(durableOutcome)
     }
 
     /// Returns `true` if `error` represents cancellation, unwrapping `PipelineError` stage
@@ -558,26 +415,6 @@ private extension TurnEngine {
         }
     }
 
-    /// Preparation owns the reservation until the stream loop reaches a terminal outcome. Only
-    /// unsuccessful outcomes call this helper; successful and externally deferred sends remain
-    /// reserved by `TurnIdempotencyGate`.
-    func releaseTurnReservation(for context: TurnContext) async {
-        await TurnIdempotencyGate.shared.release(requestId: context.requestId)
-    }
-
-    func emitAgentActivity(_ activity: AgentActivity, context: TurnContext) async {
-        guard let sink = dependencies.agentActivitySink else { return }
-        do {
-            try await sink.record(activity)
-        } catch {
-            await appendCustomizationNotice(
-                code: .agentActivitySinkFailed,
-                turnID: context.turnID,
-                message: ErrorKit.userFriendlyMessage(for: error)
-            )
-        }
-    }
-
     /// Starts best-effort activity delivery without putting provider execution behind a host sink.
     func scheduleAgentActivity(_ activity: AgentActivity, context: TurnContext) {
         guard let sink = dependencies.agentActivitySink else { return }
@@ -596,6 +433,199 @@ private extension TurnEngine {
                     message: ErrorKit.userFriendlyMessage(for: error)
                 )
             }
+        }
+    }
+
+}
+
+// MARK: - Terminal Delivery
+
+private extension TurnEngine {
+    /// Applies terminal mechanics in one order: durable truth, best-effort observations,
+    /// reservation release, and finally the consumer-facing terminal signal.
+    func commitTerminal(
+        decision: TerminalDecision,
+        context: TurnContext,
+        continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
+    ) async {
+        let durableOutcome: TurnOutcome
+        do {
+            durableOutcome = try await completeTerminalOutcome(
+                context: context,
+                outcome: decision.outcome
+            )
+        } catch {
+            logger.error("Unable to durably record terminal Turn outcome: \(error)")
+            if decision.releaseReservationOnFailure {
+                await releaseTurnReservation(for: context)
+            }
+            continuation.finish(throwing: error)
+            return
+        }
+
+        await emitTerminalSinks(context: context, outcome: durableOutcome)
+
+        let usesRequestedOutcome = durableOutcome == decision.outcome
+        if usesRequestedOutcome {
+            if decision.releaseReservationOnSuccess {
+                await releaseTurnReservation(for: context)
+            }
+        } else if shouldReleaseReservation(for: durableOutcome) {
+            // A recovery or force interruption may have won the repository race. Respect that
+            // durable truth rather than applying the request's reservation policy.
+            await releaseTurnReservation(for: context)
+        }
+
+        let delivery = usesRequestedOutcome
+            ? decision.delivery
+            : TerminalDecision.delivery(for: durableOutcome)
+        switch delivery {
+        case .none:
+            break
+        case let .event(event):
+            continuation.yield(event)
+        case .completion:
+            await emitTerminalSidecarCompletionIfNeeded(
+                context: context,
+                continuation: continuation
+            )
+            guard dependencies.runtimeRepository != nil else { break }
+            let message = await context.outputs.terminalAssistantMessage
+            let metadata = await context.outputs.terminalCompletionMetadata
+            if let message {
+                continuation.yield(.generationCompleted(
+                    message: message.toMessage(),
+                    metadata: metadata ?? APIResponseMetadata()
+                ))
+            } else {
+                // A completed Turn normally has the assistant row captured by the persistence
+                // stage. Keep the existing empty fallback only for a missing terminal row.
+                continuation.yield(.completedEmpty(finishReason: metadata?.finishReason))
+            }
+        }
+
+        if usesRequestedOutcome, let streamError = decision.streamError {
+            continuation.finish(throwing: streamError)
+        } else {
+            continuation.finish()
+        }
+    }
+
+    func completeTerminalOutcome(
+        context: TurnContext,
+        outcome: TurnOutcome
+    ) async throws -> TurnOutcome {
+        guard let runtimeRepository = dependencies.runtimeRepository else {
+            return outcome
+        }
+
+        let finalMessage: ThreadMessage?
+        if case .completed = outcome {
+            if let terminalMessage = await context.outputs.terminalAssistantMessage {
+                finalMessage = terminalMessage
+            } else {
+                let messages = try await runtimeRepository.fetchMessages(for: context.threadID)
+                let userIndex = messages.firstIndex(where: { $0.id == context.requestId })
+                finalMessage = userIndex.flatMap { index in
+                    messages.dropFirst(index + 1).last(where: {
+                        $0.role == Message.MessageRole.assistant.rawValue
+                    })
+                }
+            }
+        } else {
+            finalMessage = nil
+        }
+
+        let record = try await runtimeRepository.completeTurn(
+            turnID: context.turnID,
+            outcome: outcome,
+            finalMessage: finalMessage,
+            terminalHandle: TurnTerminalHandle(turnID: context.turnID),
+            now: Date()
+        )
+        guard let persistedOutcome = record.outcome else {
+            throw TerminalRepositoryError.missingOutcome(context.turnID)
+        }
+        return persistedOutcome
+    }
+
+    func emitTerminalSidecarCompletionIfNeeded(
+        context: TurnContext,
+        continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation
+    ) async {
+        guard context.sidecarCommitPolicy == .terminalModelRound else { return }
+        let results = await context.outputs.sidecarResults
+        guard !results.isEmpty else { return }
+        continuation.yield(.sidecarsCompleted(SidecarCompletion(
+            identity: TurnIdentity(
+                turnID: context.turnID,
+                requestID: context.requestId,
+                modelRoundIndex: max(context.modelRoundIndex - 1, 0)
+            ),
+            results: results
+        )))
+    }
+
+    func emitTerminalSinks(context: TurnContext, outcome: TurnOutcome) async {
+        await emitAgentActivity(
+            AgentActivity(
+                kind: activityKind(for: outcome),
+                threadID: context.threadID,
+                turnID: context.turnID,
+                requestID: context.requestId,
+                agentID: context.agentId,
+                modelRoundIndex: context.modelRoundIndex,
+                detail: outcomeDescription(outcome)
+            ),
+            context: context
+        )
+        if dependencies.runtimeRepository != nil {
+            await emitTurnOutcome(
+                TurnOutcomeRecord(
+                    threadID: context.threadID,
+                    turnID: context.turnID,
+                    requestID: context.requestId,
+                    agentID: context.agentId,
+                    executionKind: context.executionKind,
+                    modelRoundIndex: context.modelRoundIndex,
+                    outcome: outcome
+                ),
+                context: context
+            )
+        } else {
+            logger.warning("Skipping TurnOutcomeSink because no durable runtime repository is configured", metadata: [
+                LogKeys.turnID: .string(context.turnID.uuidString),
+                LogKeys.requestID: .string(context.requestId.uuidString),
+            ])
+        }
+    }
+
+    func shouldReleaseReservation(for outcome: TurnOutcome) -> Bool {
+        switch outcome {
+        case .completed:
+            return false
+        case .interrupted, .cancelled, .failed:
+            return true
+        }
+    }
+
+    /// Preparation owns the reservation until the stream loop reaches a terminal outcome. Only
+    /// unsuccessful outcomes call this helper; successful and externally deferred sends remain
+    /// reserved by `TurnIdempotencyGate`.
+    func releaseTurnReservation(for context: TurnContext) async {
+        await TurnIdempotencyGate.shared.release(requestId: context.requestId)
+    }
+
+    func emitAgentActivity(_ activity: AgentActivity, context: TurnContext) async {
+        guard let sink = dependencies.agentActivitySink else { return }
+        do {
+            try await sink.record(activity)
+        } catch {
+            await appendCustomizationNotice(
+                code: .agentActivitySinkFailed,
+                turnID: context.turnID,
+                message: ErrorKit.userFriendlyMessage(for: error)
+            )
         }
     }
 
