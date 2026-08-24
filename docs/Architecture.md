@@ -61,14 +61,18 @@ context entirely.
 ## Durability
 
 `ThreadRuntimeRepository` is the atomic owner for Thread history and Turn transitions. Admission,
-tool intent and result ordering, terminal outcomes, notices, and Request-ID uniqueness cross one
-repository boundary. History is append-only; state changes are represented by new durable facts,
-not edits to earlier entries.
+including the optional input `ThreadMessage`, tool intent and result ordering, terminal outcomes,
+notices, and Request-ID uniqueness cross one repository boundary. A failed admission exposes
+neither the Turn nor its input; retrying the same Request ID and fingerprint joins or replays the
+existing record without duplicating the input. `completeTurn` atomically appends a normal terminal
+assistant message with its outcome. History is append-only; state changes are represented by new
+durable facts, not edits to earlier entries.
 
 `PositronicKit.PersistenceConfiguration` accepts the cohesive repository and the remaining stores.
-The in-memory configuration implements the same contracts for tests and prototypes. Production
-hosts provide durable implementations and should reject mixed durability through their deployment
-policy even though the facade reports it as a warning.
+The in-memory configuration implements the same contracts for tests and prototypes. Independent
+Thread/message stores remain a legacy path without the v4 admission guarantee; production hosts
+must provide a cohesive repository for crash-safe Turns and should reject mixed durability through
+their deployment policy even though the facade reports it as a warning.
 
 ## Workspace authority and tool routing
 

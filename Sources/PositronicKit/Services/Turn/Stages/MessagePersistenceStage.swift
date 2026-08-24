@@ -44,8 +44,14 @@ struct MessagePersistenceStage: PipelineStage {
             status: nil,
             logger: logger
         )
-        try await messageStore.saveMessage(assistantMsg)
-        await context.outputs.markAssistantResponseDurable()
+        if runtimeRepository != nil, !hasPendingToolCalls {
+            // The terminal assistant row is committed by completeTurn together with the outcome.
+            // Pending tool-call rows still have to be durable before ToolRouter can execute them.
+            await context.outputs.setTerminalAssistantMessage(assistantMsg)
+        } else {
+            try await messageStore.saveMessage(assistantMsg)
+            await context.outputs.markAssistantResponseDurable()
+        }
 
         let streamUsage = await context.outputs.streamUsage
         let turnDuration = await context.outputs.turnDuration

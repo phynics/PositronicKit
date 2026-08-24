@@ -34,6 +34,9 @@ actor TurnOutputs {
     /// Set only after the complete assistant message has been accepted by the message store.
     /// This lets failure recovery distinguish a pre-persistence failure from a later stage error.
     private(set) var assistantResponseDurable = false
+    /// The normal terminal assistant message is held until `completeTurn` can commit it with the
+    /// terminal outcome in the runtime repository.
+    private(set) var terminalAssistantMessage: ThreadMessage?
 
     init() {}
 
@@ -92,6 +95,10 @@ actor TurnOutputs {
 
     func markAssistantResponseDurable() {
         assistantResponseDurable = true
+    }
+
+    func setTerminalAssistantMessage(_ message: ThreadMessage) {
+        terminalAssistantMessage = message
     }
 
     /// Finalizes the turn: computes timing and throughput metrics.

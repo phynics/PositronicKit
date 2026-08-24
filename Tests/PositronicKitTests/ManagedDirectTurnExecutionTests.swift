@@ -28,8 +28,33 @@ struct ManagedDirectTurnExecutionTests {
         #expect(outcome == .completed)
         let repository = try #require(kit.runtimeRepository)
         let messages = try await repository.fetchMessages(for: thread.id)
+        #expect(messages.first?.role == "user")
         #expect(messages.last?.executionKind == .agentManaged)
         #expect(messages.last?.agentID == agent.id)
+        let record = try #require(try await repository.fetchTurn(id: turn.id))
+        #expect(record.terminalMessageID == messages.last?.id)
+    }
+
+    @Test("provider work starts only after the input Turn admission is durable")
+    func providerFailureRetainsAtomicallyAdmittedInput() async throws {
+        let llm = MockLLMService()
+        llm.shouldThrowError = true
+        let kit = PositronicKit(languageModel: llm)
+        let thread = try await kit.threads.create(title: "Admission failure")
+
+        let turn = try await thread.startDirectTurn(
+            message: "must be durable first",
+            context: DirectTurnContext(systemInstructions: "", contributor: .host)
+        )
+        _ = await turn.events().collect()
+
+        let repository = try #require(kit.runtimeRepository)
+        let record = try #require(try await repository.fetchTurn(id: turn.id))
+        let messages = try await repository.fetchMessages(for: thread.id)
+        #expect(record.outcome != nil)
+        #expect(messages.first?.role == "user")
+        #expect(messages.first?.content == "must be durable first")
+        #expect(llm.mockClient.generationCaptureHistory.count == 1)
     }
 
     @Test("direct admission requires explicit context and preserves direct provenance")

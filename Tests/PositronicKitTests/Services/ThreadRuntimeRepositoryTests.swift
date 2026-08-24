@@ -51,6 +51,142 @@ final class ThreadRuntimeRepositoryTests: XCTestCase {
         }
     }
 
+    func testAdmissionCommitsInputMessageWithTurnAndDoesNotDuplicateOnRetry() async throws {
+        let repository = InMemoryThreadRuntimeRepository()
+        let threadID = UUID()
+        try await repository.saveThread(Thread(id: threadID))
+        let requestID = UUID()
+        let input = ThreadMessage(
+            id: requestID,
+            threadID: threadID,
+            role: .user,
+            content: "hello"
+        )
+
+        let first = try await repository.admitTurn(
+            threadID: threadID,
+            requestID: requestID,
+            callerIntentFingerprint: "hello",
+            inputMessage: input,
+            now: Date(timeIntervalSince1970: 10)
+        )
+        XCTAssertEqual(first.disposition, .admitted)
+        let firstMessages = try await repository.fetchMessages(for: threadID)
+        XCTAssertEqual(firstMessages, [input])
+
+        let retry = try await repository.admitTurn(
+            threadID: threadID,
+            requestID: requestID,
+            callerIntentFingerprint: "hello",
+            inputMessage: input,
+            now: Date(timeIntervalSince1970: 20)
+        )
+        XCTAssertEqual(retry.disposition, .joined)
+        XCTAssertEqual(retry.turn.identity.turnID, first.turn.identity.turnID)
+        let retriedMessages = try await repository.fetchMessages(for: threadID)
+        XCTAssertEqual(retriedMessages, [input])
+    }
+
+    func testFailedInputValidationLeavesAdmissionUnchangedAndAllowsRetry() async throws {
+        let repository = InMemoryThreadRuntimeRepository()
+        let threadID = UUID()
+        try await repository.saveThread(Thread(id: threadID))
+        let requestID = UUID()
+        let wrongThreadID = UUID()
+        let wrongInput = ThreadMessage(
+            id: requestID,
+            threadID: wrongThreadID,
+            role: .user,
+            content: "hello"
+        )
+
+        do {
+            _ = try await repository.admitTurn(
+                threadID: threadID,
+                requestID: requestID,
+                callerIntentFingerprint: "hello",
+                inputMessage: wrongInput,
+                now: Date(timeIntervalSince1970: 10)
+            )
+            XCTFail("Admission must reject an input message from another Thread")
+        } catch let error as ThreadRuntimeRepositoryError {
+            XCTAssertEqual(
+                error,
+                .inputMessageThreadMismatch(
+                    messageID: requestID,
+                    expectedThreadID: threadID,
+                    actualThreadID: wrongThreadID
+                )
+            )
+        }
+
+        let activeTurn = try await repository.fetchActiveTurn(for: threadID)
+        let messagesAfterFailure = try await repository.fetchMessages(for: threadID)
+        XCTAssertNil(activeTurn)
+        XCTAssertTrue(messagesAfterFailure.isEmpty)
+
+        let input = ThreadMessage(id: requestID, threadID: threadID, role: .user, content: "hello")
+        let retry = try await repository.admitTurn(
+            threadID: threadID,
+            requestID: requestID,
+            callerIntentFingerprint: "hello",
+            inputMessage: input,
+            now: Date(timeIntervalSince1970: 20)
+        )
+        XCTAssertEqual(retry.disposition, .admitted)
+        let messagesAfterRetry = try await repository.fetchMessages(for: threadID)
+        XCTAssertEqual(messagesAfterRetry, [input])
+    }
+
+    func testAdmitRetryPersistsItsInputAndLinksThePreviousTurn() async throws {
+        let repository = InMemoryThreadRuntimeRepository()
+        let threadID = UUID()
+        try await repository.saveThread(Thread(id: threadID))
+        let firstRequestID = UUID()
+        let first = try await repository.admitTurn(
+            threadID: threadID,
+            requestID: firstRequestID,
+            callerIntentFingerprint: "first",
+            inputMessage: ThreadMessage(
+                id: firstRequestID,
+                threadID: threadID,
+                role: .user,
+                content: "first"
+            )
+        )
+        _ = try await repository.failTurn(
+            turnID: first.turn.identity.turnID,
+            message: "provider failed",
+            now: Date(timeIntervalSince1970: 10)
+        )
+
+        let retryRequestID = UUID()
+        let retryInput = ThreadMessage(
+            id: retryRequestID,
+            threadID: threadID,
+            role: .user,
+            content: "retry"
+        )
+        let retry = try await repository.admitRetry(
+            threadID: threadID,
+            previousTurnID: first.turn.identity.turnID,
+            requestID: retryRequestID,
+            callerIntentFingerprint: "retry",
+            inputMessage: retryInput,
+            executionKind: .agentManaged,
+            capturedAgentID: nil,
+            turnID: UUID(),
+            attempt: 2,
+            now: Date(timeIntervalSince1970: 20)
+        )
+
+        XCTAssertEqual(retry.disposition, .admitted)
+        XCTAssertEqual(retry.turn.retryRelation?.retriedTurnID, first.turn.identity.turnID)
+        XCTAssertEqual(retry.turn.retryRelation?.attempt, 2)
+        let messages = try await repository.fetchMessages(for: threadID)
+        XCTAssertEqual(messages.map(\.id), [firstRequestID, retryRequestID])
+    }
+
     func testToolIntentAndResultAreOrderingBarriersForNextRound() async throws {
         let repository = InMemoryThreadRuntimeRepository()
         let threadID = UUID()
@@ -157,10 +293,13 @@ final class ThreadRuntimeRepositoryTests: XCTestCase {
         let repository = InMemoryThreadRuntimeRepository(staleAfter: 1)
         let threadID = UUID()
         try await repository.saveThread(Thread(id: threadID))
+        let requestID = UUID()
+        let input = ThreadMessage(id: requestID, threadID: threadID, role: .user, content: "recover")
         let admission = try await repository.admitTurn(
             threadID: threadID,
-            requestID: UUID(),
+            requestID: requestID,
             callerIntentFingerprint: "recover",
+            inputMessage: input,
             now: Date(timeIntervalSince1970: 10)
         )
         let intent = RuntimeToolIntent(
@@ -183,6 +322,31 @@ final class ThreadRuntimeRepositoryTests: XCTestCase {
         let activeTurn = try await repository.fetchActiveTurn(for: threadID)
         XCTAssertEqual(intents, [intent])
         XCTAssertNil(activeTurn)
+        let recoveredMessages = try await repository.fetchMessages(for: threadID)
+        XCTAssertEqual(recoveredMessages, [input])
+
+        let replay = try await repository.admitTurn(
+            threadID: threadID,
+            requestID: requestID,
+            callerIntentFingerprint: "recover",
+            inputMessage: input,
+            now: Date(timeIntervalSince1970: 21)
+        )
+        XCTAssertEqual(replay.disposition, .joined)
+        XCTAssertEqual(replay.turn.identity.turnID, record.identity.turnID)
+
+        do {
+            _ = try await repository.admitTurn(
+                threadID: threadID,
+                requestID: UUID(),
+                callerIntentFingerprint: "new-request",
+                inputMessage: ThreadMessage(threadID: threadID, role: .user, content: "new"),
+                now: Date(timeIntervalSince1970: 21)
+            )
+            XCTFail("A distinct request must not bypass stale recovery")
+        } catch let error as ThreadRuntimeRepositoryError {
+            XCTAssertEqual(error, .recoveryRequired(threadID: threadID, turnID: record.identity.turnID))
+        }
 
         guard case let .recoveryRequired(secondRecovery) = try await repository.recover(
             threadID: threadID,
@@ -224,5 +388,46 @@ final class ThreadRuntimeRepositoryTests: XCTestCase {
         guard case .recoveryRequired = forceClearRecovery else {
             return XCTFail("Force clear must preserve the recovery-required marker")
         }
+    }
+
+    func testCompleteTurnCommitsTerminalMessageAndOutcomeTogether() async throws {
+        let repository = InMemoryThreadRuntimeRepository()
+        let threadID = UUID()
+        try await repository.saveThread(Thread(id: threadID))
+        let admission = try await repository.admitTurn(
+            threadID: threadID,
+            requestID: UUID(),
+            callerIntentFingerprint: "terminal"
+        )
+        let terminalMessage = ThreadMessage(
+            threadID: threadID,
+            role: .assistant,
+            content: "done"
+        )
+
+        let completed = try await repository.completeTurn(
+            turnID: admission.turn.identity.turnID,
+            outcome: .completed,
+            finalMessage: terminalMessage,
+            terminalHandle: TurnTerminalHandle(turnID: admission.turn.identity.turnID),
+            now: Date(timeIntervalSince1970: 10)
+        )
+
+        XCTAssertEqual(completed.outcome, .completed)
+        XCTAssertEqual(completed.terminalMessageID, terminalMessage.id)
+        let terminalMessages = try await repository.fetchMessages(for: threadID)
+        let activeTurn = try await repository.fetchActiveTurn(for: threadID)
+        XCTAssertEqual(terminalMessages, [terminalMessage])
+        XCTAssertNil(activeTurn)
+
+        _ = try await repository.completeTurn(
+            turnID: admission.turn.identity.turnID,
+            outcome: .completed,
+            finalMessage: terminalMessage,
+            terminalHandle: TurnTerminalHandle(turnID: admission.turn.identity.turnID),
+            now: Date(timeIntervalSince1970: 20)
+        )
+        let retriedTerminalMessages = try await repository.fetchMessages(for: threadID)
+        XCTAssertEqual(retriedTerminalMessages, [terminalMessage])
     }
 }

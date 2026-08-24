@@ -94,8 +94,8 @@ diagnostic or terminal handle associated with that result.
 _Avoid_: stream finished, best-effort completion
 
 **Thread Runtime Repository**:
-The single transactional owner of Thread metadata, append-only history, Turn admission, tool
-intent/results, terminal outcomes, and stale-Turn recovery.
+The single transactional owner of Thread metadata, append-only history, Turn admission with its
+input message, tool intent/results, terminal outcomes, and stale-Turn recovery.
 _Avoid_: persistence coordinator, prompt journal
 
 ## History and continuity
