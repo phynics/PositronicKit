@@ -70,6 +70,12 @@ actor ExternalToolOutputSubmissionGate {
 
     /// Persists validated tool output messages. Already-persisted outputs are skipped so a
     /// partially failed batch can be retried without duplication (resumable batch support).
+    ///
+    /// External output is intentionally message-only. The source Turn has already become terminal
+    /// after external deferral, and `ToolOutputSubmission` does not carry its originating Turn ID;
+    /// recording a `RuntimeToolResult` here would either attach it to the wrong Turn or reopen the
+    /// terminal lifecycle. Runtime-local results use `ThreadRuntimeRepository`'s atomic result plus
+    /// message boundary in `ToolRouter` instead.
     func commit(
         _ validatedOutputs: [ToolOutputSubmission],
         threadID: UUID,

@@ -118,6 +118,7 @@ struct TurnEngineFailurePersistenceTests {
             uri: WorkspaceURI(parsing: "pk://local")!,
             location: .runtimeThread,
             originID: nil,
+            tools: [.known(PersistenceTestTool.toolID)],
             rootPath: "/tmp"
         )
         try await backing.saveWorkspace(workspaceRef)
@@ -126,6 +127,9 @@ struct TurnEngineFailurePersistenceTests {
         try await threadManager.hydrateThread(id: threadID)
         if let toolManager = await threadManager.getToolManager(for: threadID) {
             await toolManager.updateAvailableTools([PersistenceTestTool().toAnyTool()])
+            if let workspace = try await threadManager.workspaceResolver.workspace(id: wsId) {
+                await toolManager.registerWorkspace(workspace)
+            }
         }
 
         return try await test(engine, mockLLM, messageStore)
@@ -246,6 +250,46 @@ struct TurnEngineFailurePersistenceTests {
             let recoveredMessages = try await messageStore.fetchMessages(for: threadID)
             #expect(recoveredMessages.filter { $0.role == "tool" && $0.toolCallID == "persist_retry_call" }.count == 1)
             #expect(recoveredMessages.filter { $0.role == "assistant" }.count == 2)
+        }
+    }
+
+    @Test("A Workspace Tool Result persistence failure prevents success and follow-up rounds")
+    func workspaceToolResultPersistenceFailureStopsLoop() async throws {
+        try await withToolResultPersistenceFailureDependencies { engine, mockLLM, messageStore in
+            mockLLM.mockClient.nextResponses = [""]
+            mockLLM.mockClient.nextToolCalls = [[
+                MockToolCall(
+                    id: "workspace_persist_retry_call",
+                    name: "call_tool",
+                    arguments: "{\"tool\":\"\(PersistenceTestTool.toolID)\",\"arguments\":{}}"
+                ),
+            ]]
+
+            let stream = try await engine.execute(
+                threadID: threadID,
+                requestId: UUID(),
+                message: "run the workspace tool",
+                tools: []
+            )
+            let events = try await collect(stream)
+
+            #expect(events.contains(where: {
+                if case let .completion(.toolExecution(toolCallId, status)) = $0,
+                   case .workspacePersistenceFailed = status
+                {
+                    return toolCallId == "workspace_persist_retry_call"
+                }
+                return false
+            }))
+            #expect(!events.contains(where: {
+                if case .completion(.generationCompleted) = $0 { return true }
+                return false
+            }))
+            #expect(mockLLM.generationCaptureHistory.count == 1)
+
+            let pendingMessages = try await messageStore.fetchMessages(for: threadID)
+            #expect(pendingMessages.filter { $0.role == "assistant" }.count == 1)
+            #expect(pendingMessages.filter { $0.role == "tool" }.isEmpty)
         }
     }
 

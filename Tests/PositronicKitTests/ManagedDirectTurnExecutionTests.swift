@@ -153,6 +153,33 @@ struct ManagedDirectTurnExecutionTests {
         #expect(intents.first?.workspaceRouting == .explicit)
         #expect(intents.first?.name == "call_tool")
         #expect(llm.mockClient.lastTools?.contains(where: { $0.name == "call_tool" }) == true)
+
+        // External continuation is intentionally message-only: the interrupted source Turn keeps
+        // its intent, while the submitted output is appended through the same cohesive repository.
+        llm.mockClient.nextToolCalls = []
+        llm.mockClient.nextResponse = "External result processed"
+        let continuation = try await kit.run(
+            TurnRequest(
+                threadID: thread.id,
+                message: "",
+                toolOutputs: [ToolOutputSubmission(
+                    toolCallID: "direct-workspace-call",
+                    output: "host result"
+                )],
+                systemInstructions: ""
+            ),
+            agentID: nil,
+            executionKind: .direct,
+            contributors: [.host]
+        )
+        let continuationEvents = try await continuation.collect()
+        #expect(continuationEvents.contains { event in
+            if case .completion(.generationCompleted) = event { return true }
+            return false
+        })
+        let persistedMessages = try await repository.fetchMessages(for: thread.id)
+        #expect(persistedMessages.contains { $0.role == "tool" && $0.toolCallID == "direct-workspace-call" })
+        #expect(try await repository.fetchToolResults(turnID: turn.id).isEmpty)
     }
 
     @Test("managed and direct Turns retain provenance in mixed Thread history")
