@@ -10,3 +10,11 @@ stale-Turn recovery through atomic behavioral transitions. We reject coordinatin
 low-level stores from the Turn engine because durable-before-side-effect ordering, idempotency,
 and terminal truth need one transaction boundary; PromptJournal remains separate cache/emission
 state.
+
+Turn admission is specifically a transaction over the new Turn, its active pointer, Request-ID
+record, and the optional input `ThreadMessage`. A successful admission makes all of them visible
+together; a failed admission exposes none, and retrying an uncertain result with the same Request
+ID and caller-intent fingerprint joins or replays the existing Turn without appending the input
+again. `completeTurn` is the corresponding boundary for a normal terminal assistant message and
+its `TurnOutcome`. Independent Thread and message stores remain a legacy, non-atomic path and are
+not a v4 crash guarantee.

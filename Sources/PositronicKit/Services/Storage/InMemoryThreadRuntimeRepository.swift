@@ -127,6 +127,7 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
         threadID: UUID,
         requestID: UUID,
         callerIntentFingerprint: String,
+        inputMessage: ThreadMessage?,
         executionKind: TurnExecutionKind,
         capturedAgentID: UUID?,
         turnID: UUID,
@@ -156,6 +157,21 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
             throw ThreadRuntimeRepositoryError.threadBusy(threadID: threadID, activeTurnID: activeTurnID)
         }
 
+        // Validate every part of admission before exposing the Turn or active pointer. The actor
+        // makes the final assignments below one serialized state transition, mirroring the
+        // database transaction required from durable implementations.
+        var inputHistory = messages[threadID, default: []]
+        if let inputMessage {
+            guard inputMessage.threadID == threadID else {
+                throw ThreadRuntimeRepositoryError.inputMessageThreadMismatch(
+                    messageID: inputMessage.id,
+                    expectedThreadID: threadID,
+                    actualThreadID: inputMessage.threadID
+                )
+            }
+            try validateAppend(inputMessage, into: &inputHistory)
+        }
+
         let identity = TurnIdentity(turnID: turnID, requestID: requestID, modelRoundIndex: 0)
         let record = TurnRecord(
             identity: identity,
@@ -170,6 +186,9 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
         )
         turns[turnID] = record
         activeTurns[threadID] = turnID
+        if inputMessage != nil {
+            messages[threadID] = inputHistory
+        }
         return TurnAdmission(disposition: .admitted, turn: record)
     }
 
@@ -187,6 +206,7 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
         previousTurnID: UUID,
         requestID: UUID,
         callerIntentFingerprint: String,
+        inputMessage: ThreadMessage?,
         executionKind: TurnExecutionKind,
         capturedAgentID: UUID?,
         turnID: UUID,
@@ -200,6 +220,7 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
             threadID: threadID,
             requestID: requestID,
             callerIntentFingerprint: callerIntentFingerprint,
+            inputMessage: inputMessage,
             executionKind: executionKind,
             capturedAgentID: capturedAgentID,
             turnID: turnID,

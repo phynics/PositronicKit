@@ -62,7 +62,8 @@ public extension PositronicKit {
         public let requestOriginStore: any RequestOriginStoreProtocol
 
         /// Legacy compatibility path: independent Thread/message stores do not provide v4
-        /// atomic Turn semantics. Supply `runtimeRepository` for the supported v4 configuration.
+        /// atomic Turn admission or terminal-message semantics. Supply `runtimeRepository` for
+        /// the supported v4 configuration.
         public init(
             messageStore: (any ThreadMessageStoreProtocol)? = nil,
             threadPersistence: (any ThreadPersistenceProtocol)? = nil,
@@ -91,7 +92,8 @@ public extension PositronicKit {
 
         /// Creates a persistence configuration from the canonical thread store.
         /// Legacy compatibility path: independent Thread/message stores do not provide v4
-        /// atomic Turn semantics. Supply `runtimeRepository` for the supported v4 configuration.
+        /// atomic Turn admission or terminal-message semantics. Supply `runtimeRepository` for
+        /// the supported v4 configuration.
         public init(
             messageStore: (any ThreadMessageStoreProtocol)? = nil,
             threadPersistence: any ThreadPersistenceProtocol,
@@ -124,8 +126,8 @@ public extension PositronicKit {
         /// Requires all six stores explicitly — the "full durability" entry point for
         /// production hosts (Monad, Shuttle). Unlike the optional-store init, no store can
         /// silently default to in-memory.
-        /// Legacy compatibility path: independent stores cannot provide atomic v4 Turn
-        /// transitions. Supply a `ThreadRuntimeRepository` instead.
+        /// Legacy compatibility path: independent stores cannot provide atomic v4 Turn admission
+        /// or terminal-message transitions. Supply a `ThreadRuntimeRepository` instead.
         public static func fullyPersistent(
             messageStore: any ThreadMessageStoreProtocol,
             threadPersistence: any ThreadPersistenceProtocol,

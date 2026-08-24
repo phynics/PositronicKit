@@ -379,6 +379,7 @@ public enum ThreadRuntimeRepositoryError: Error, Equatable, Sendable, CustomStri
     case confirmationRequired
     case runtimeRepositoryRequired(threadID: UUID)
     case authorityCoordinatorRequired(threadID: UUID)
+    case inputMessageThreadMismatch(messageID: UUID, expectedThreadID: UUID, actualThreadID: UUID)
 
     public var description: String {
         switch self {
@@ -397,6 +398,8 @@ public enum ThreadRuntimeRepositoryError: Error, Equatable, Sendable, CustomStri
         case .confirmationRequired: return "This administrative operation requires explicit FORCE_CLEAR confirmation."
         case let .runtimeRepositoryRequired(threadID): return "A ThreadRuntimeRepository is required to archive Thread \(threadID)."
         case let .authorityCoordinatorRequired(threadID): return "A ThreadAuthorityCoordinator is required to archive Thread \(threadID) safely."
+        case let .inputMessageThreadMismatch(messageID, expectedThreadID, actualThreadID):
+            return "Input message \(messageID) belongs to Thread \(actualThreadID), not Thread \(expectedThreadID)."
         }
     }
 }
@@ -405,14 +408,20 @@ public enum ThreadRuntimeRepositoryError: Error, Equatable, Sendable, CustomStri
 
 /// The single behavioral owner of durable Thread history and Turn transitions.
 ///
-/// Implementations must make each operation atomic at their storage boundary. Callers use the
-/// returned success as the durable-before-side-effect barrier: provider requests and tool
-/// execution begin only after their corresponding repository operation succeeds.
+/// Implementations must make each operation atomic at their storage boundary. Admission is one
+/// transaction: when `inputMessage` is non-nil, the new Turn, its active pointer, Request-ID
+/// uniqueness record, and input message become visible together. A failed admission must expose
+/// none of those records. If a caller loses the response after the transaction commits, retrying
+/// the same Request ID and fingerprint must return the existing Turn and must not append the input
+/// message again. Callers use the returned success as the durable-before-side-effect barrier:
+/// provider requests and tool execution begin only after their corresponding repository operation
+/// succeeds.
 public protocol ThreadRuntimeRepository: ThreadPersistenceProtocol, ThreadMessageStoreProtocol {
     func admitTurn(
         threadID: UUID,
         requestID: UUID,
         callerIntentFingerprint: String,
+        inputMessage: ThreadMessage?,
         executionKind: TurnExecutionKind,
         capturedAgentID: UUID?,
         turnID: UUID,
@@ -423,6 +432,7 @@ public protocol ThreadRuntimeRepository: ThreadPersistenceProtocol, ThreadMessag
         previousTurnID: UUID,
         requestID: UUID,
         callerIntentFingerprint: String,
+        inputMessage: ThreadMessage?,
         executionKind: TurnExecutionKind,
         capturedAgentID: UUID?,
         turnID: UUID,
@@ -448,6 +458,10 @@ public protocol ThreadRuntimeRepository: ThreadPersistenceProtocol, ThreadMessag
     func fetchToolIntents(turnID: UUID) async throws -> [RuntimeToolIntent]
     func fetchToolResults(turnID: UUID) async throws -> [RuntimeToolResult]
 
+    /// Atomically appends `finalMessage` (when supplied) and records the terminal outcome.
+    /// Normal terminal assistant messages must use this boundary rather than a separate message
+    /// store write. Repeating the operation for an already-terminal Turn returns its durable
+    /// record without appending a second message.
     func completeTurn(
         turnID: UUID,
         outcome: TurnOutcome,
@@ -470,12 +484,14 @@ public extension ThreadRuntimeRepository {
         threadID: UUID,
         requestID: UUID,
         callerIntentFingerprint: String,
+        inputMessage: ThreadMessage? = nil,
         now: Date = Date()
     ) async throws -> TurnAdmission {
         try await admitTurn(
             threadID: threadID,
             requestID: requestID,
             callerIntentFingerprint: callerIntentFingerprint,
+            inputMessage: inputMessage,
             executionKind: .agentManaged,
             capturedAgentID: nil,
             turnID: UUID(),

@@ -288,10 +288,14 @@ private extension TurnEngine {
             do {
                 let finalMessage: ThreadMessage?
                 if case .completed = outcome {
-                    let messages = try await runtimeRepository.fetchMessages(for: context.threadID)
-                    let userIndex = messages.firstIndex(where: { $0.id == context.requestId })
-                    finalMessage = userIndex.flatMap { index in
-                        messages.dropFirst(index + 1).last(where: { $0.role == Message.MessageRole.assistant.rawValue })
+                    if let terminalMessage = await context.outputs.terminalAssistantMessage {
+                        finalMessage = terminalMessage
+                    } else {
+                        let messages = try await runtimeRepository.fetchMessages(for: context.threadID)
+                        let userIndex = messages.firstIndex(where: { $0.id == context.requestId })
+                        finalMessage = userIndex.flatMap { index in
+                            messages.dropFirst(index + 1).last(where: { $0.role == Message.MessageRole.assistant.rawValue })
+                        }
                     }
                 } else {
                     finalMessage = nil

@@ -64,10 +64,15 @@ let kit = PositronicKit(configuration: .init(
 ```
 
 The grouped `configuration:` path is the supported production setup. A
-`ThreadRuntimeRepository` is the atomic owner for Thread history and Turn transitions;
+`ThreadRuntimeRepository` is the atomic owner for Thread history and Turn transitions, including
+Turn admission with the input message and normal terminal message/outcome completion;
 `RuntimeConfiguration` groups Workspace provisioning, tool policy, diagnostics, degradation, and
 `RuntimeCustomization`. Consumers use `kit.threads`, `kit.agents`, `kit.workspaces`, and
 `kit.model`; concrete coordinators and the model-round machinery remain internal.
+
+Supplying independent `messageStore` and `threadPersistence` values is a legacy compatibility path.
+It can persist the two records separately but cannot provide the v4 crash guarantee, so production
+Turn execution should always inject a cohesive `ThreadRuntimeRepository`.
 
 Use `RuntimeCustomization` for the four bounded integration roles. Managed identity continuity is
 provided by `AgentContextSource`; additive, namespaced prompt context comes from

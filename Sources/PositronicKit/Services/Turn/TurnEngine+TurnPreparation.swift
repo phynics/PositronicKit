@@ -91,10 +91,10 @@ extension TurnEngine {
     /// Consolidates all pre-turn logic: saving inputs, resolving entities,
     /// and building the initial prompt.
     ///
-    /// PKRR-006: Input persistence is deferred until **after** history validation,
-    /// workspace lookup, prompt assembly, and the initial prompt-history transition
-    /// all succeed. If any preparation step throws, no new user message or tool output is
-    /// persisted, preventing orphan inputs on retry.
+    /// PKRR-006: Independent-store input persistence is deferred until **after** history
+    /// validation, workspace lookup, prompt assembly, and the initial prompt-history transition
+    /// all succeed. The v4 runtime repository instead commits the user message with Turn admission
+    /// so an admitted Turn can never be observed without its input.
     /// The `requestId` gates the in-memory turn and is reused as the user's existing message identity
     /// for retry-safe persistence. A second call with the same `requestId` is rejected with
     /// ``TurnEngineError/duplicateRequestID`` while the first is still processed (or has completed
@@ -160,6 +160,14 @@ extension TurnEngine {
         // Track validated tool outputs so the catch block can release reservations.
         var validatedToolOutputs: [ToolOutputSubmission] = []
         var repositoryAdmitted = false
+        let inputMessage = hasMessage
+            ? ThreadMessage(
+                id: requestId,
+                threadID: threadID,
+                role: .user,
+                content: messageContent
+            )
+            : nil
         var resolvedAgent = agent
         var resolvedAgentContext = agentContext
         var resolvedWorkspaceToolCatalog: WorkspaceToolCatalog?
@@ -222,6 +230,7 @@ extension TurnEngine {
                         threadID: threadID,
                         requestID: requestId,
                         callerIntentFingerprint: fingerprint,
+                        inputMessage: inputMessage,
                         executionKind: executionKind,
                         capturedAgentID: agentId,
                         turnID: turnID,
@@ -495,24 +504,17 @@ extension TurnEngine {
                 }
             }
 
-            // 12. Commit persistence after all fallible preparation succeeds. Tool outputs are
-            //     committed first (resumable batch), then the user message. The user row uses the
-            //     request ID as its existing message identity, so a later preparation failure can
-            //     retry without inserting the same input twice.
+            // 12. Commit legacy tool and message persistence after all fallible preparation
+            //     succeeds. The v4 repository already committed the user message atomically with
+            //     Turn admission above; only independent-store configurations use this path.
             try await ExternalToolOutputSubmissionGate.shared.commit(
                 validatedToolOutputs,
                 threadID: threadID,
                 messageStore: dependencies.messageStore
             )
-            if hasMessage {
-                let userMsg = ThreadMessage(
-                    id: requestId,
-                    threadID: threadID,
-                    role: .user,
-                    content: messageContent
-                )
+            if dependencies.runtimeRepository == nil, let inputMessage {
                 try await dependencies.messageStore.saveMessageIfAbsent(
-                    userMsg,
+                    inputMessage,
                     idempotencyKey: requestId
                 )
             }
