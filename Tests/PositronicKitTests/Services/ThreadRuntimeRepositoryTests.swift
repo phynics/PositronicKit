@@ -183,6 +183,20 @@ final class ThreadRuntimeRepositoryTests: XCTestCase {
         XCTAssertEqual(retry.disposition, .admitted)
         XCTAssertEqual(retry.turn.retryRelation?.retriedTurnID, first.turn.identity.turnID)
         XCTAssertEqual(retry.turn.retryRelation?.attempt, 2)
+        let replay = try await repository.admitRetry(
+            threadID: threadID,
+            previousTurnID: first.turn.identity.turnID,
+            requestID: retryRequestID,
+            callerIntentFingerprint: "retry",
+            inputMessage: retryInput,
+            executionKind: .agentManaged,
+            capturedAgentID: nil,
+            turnID: UUID(),
+            attempt: 2,
+            now: Date(timeIntervalSince1970: 30)
+        )
+        XCTAssertEqual(replay.disposition, .joined)
+        XCTAssertEqual(replay.turn.retryRelation, retry.turn.retryRelation)
         let messages = try await repository.fetchMessages(for: threadID)
         XCTAssertEqual(messages.map(\.id), [firstRequestID, retryRequestID])
     }
@@ -429,5 +443,53 @@ final class ThreadRuntimeRepositoryTests: XCTestCase {
         )
         let retriedTerminalMessages = try await repository.fetchMessages(for: threadID)
         XCTAssertEqual(retriedTerminalMessages, [terminalMessage])
+    }
+
+    func testCompleteTurnRejectsFinalMessageFromAnotherThreadWithoutChangingState() async throws {
+        let repository = InMemoryThreadRuntimeRepository()
+        let threadID = UUID()
+        let otherThreadID = UUID()
+        try await repository.saveThread(Thread(id: threadID))
+        try await repository.saveThread(Thread(id: otherThreadID))
+        let admission = try await repository.admitTurn(
+            threadID: threadID,
+            requestID: UUID(),
+            callerIntentFingerprint: "wrong-thread"
+        )
+        let finalMessage = ThreadMessage(
+            threadID: otherThreadID,
+            role: .assistant,
+            content: "wrong history"
+        )
+
+        do {
+            _ = try await repository.completeTurn(
+                turnID: admission.turn.identity.turnID,
+                outcome: .completed,
+                finalMessage: finalMessage,
+                now: Date(timeIntervalSince1970: 10)
+            )
+            XCTFail("A terminal message must belong to its Turn's Thread")
+        } catch let error as ThreadRuntimeRepositoryError {
+            XCTAssertEqual(
+                error,
+                .finalMessageThreadMismatch(
+                    messageID: finalMessage.id,
+                    expectedThreadID: threadID,
+                    actualThreadID: otherThreadID
+                )
+            )
+        }
+
+        guard let persistedTurn = try await repository.fetchTurn(id: admission.turn.identity.turnID) else {
+            return XCTFail("The admitted Turn must remain durable after a rejected terminal message")
+        }
+        XCTAssertNil(persistedTurn.outcome)
+        let threadMessages = try await repository.fetchMessages(for: threadID)
+        let otherThreadMessages = try await repository.fetchMessages(for: otherThreadID)
+        let activeTurn = try await repository.fetchActiveTurn(for: threadID)
+        XCTAssertTrue(threadMessages.isEmpty)
+        XCTAssertTrue(otherThreadMessages.isEmpty)
+        XCTAssertEqual(activeTurn?.identity.turnID, admission.turn.identity.turnID)
     }
 }

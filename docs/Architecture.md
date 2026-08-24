@@ -64,7 +64,8 @@ context entirely.
 including the optional input `ThreadMessage`, tool intent and result ordering, terminal outcomes,
 notices, and Request-ID uniqueness cross one repository boundary. A failed admission exposes
 neither the Turn nor its input; retrying the same Request ID and fingerprint joins or replays the
-existing record without duplicating the input. `completeTurn` atomically appends a normal terminal
+existing record without duplicating the input. The prompt builder recognizes an input already
+committed by admission and includes it once. `completeTurn` atomically appends a normal terminal
 assistant message with its outcome. History is append-only; state changes are represented by new
 durable facts, not edits to earlier entries. Pending tool-call and partial assistant rows are
 intermediate recovery records and remain separate from the normal terminal message boundary.

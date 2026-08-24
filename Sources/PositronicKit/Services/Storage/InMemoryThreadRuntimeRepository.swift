@@ -133,6 +133,30 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
         turnID: UUID,
         now: Date
     ) async throws -> TurnAdmission {
+        return try admitTurn(
+            threadID: threadID,
+            requestID: requestID,
+            callerIntentFingerprint: callerIntentFingerprint,
+            inputMessage: inputMessage,
+            executionKind: executionKind,
+            capturedAgentID: capturedAgentID,
+            turnID: turnID,
+            retryRelation: nil,
+            now: now
+        )
+    }
+
+    private func admitTurn(
+        threadID: UUID,
+        requestID: UUID,
+        callerIntentFingerprint: String,
+        inputMessage: ThreadMessage?,
+        executionKind: TurnExecutionKind,
+        capturedAgentID: UUID?,
+        turnID: UUID,
+        retryRelation: TurnRetryRelation?,
+        now: Date
+    ) throws -> TurnAdmission {
         guard threads[threadID] != nil else {
             throw ThreadRuntimeRepositoryError.threadNotFound(threadID)
         }
@@ -180,6 +204,7 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
             executionKind: executionKind,
             capturedAgentID: capturedAgentID,
             lifecycle: .admitted,
+            retryRelation: retryRelation,
             notices: [TurnNotice(kind: "turn-admitted", createdAt: now)],
             createdAt: now,
             updatedAt: now
@@ -216,7 +241,7 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
         guard let previous = turns[previousTurnID], previous.threadID == threadID else {
             throw ThreadRuntimeRepositoryError.turnNotFound(previousTurnID)
         }
-        var admission = try await admitTurn(
+        return try admitTurn(
             threadID: threadID,
             requestID: requestID,
             callerIntentFingerprint: callerIntentFingerprint,
@@ -224,14 +249,9 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
             executionKind: executionKind,
             capturedAgentID: capturedAgentID,
             turnID: turnID,
+            retryRelation: TurnRetryRelation(retriedTurnID: previousTurnID, attempt: attempt),
             now: now
         )
-        guard admission.disposition == .admitted else { return admission }
-        var record = admission.turn
-        record.retryRelation = TurnRetryRelation(retriedTurnID: previousTurnID, attempt: attempt)
-        turns[turnID] = record
-        admission = TurnAdmission(disposition: .admitted, turn: record)
-        return admission
     }
 
     public func appendNotice(turnID: UUID, notice: TurnNotice) async throws {
@@ -383,6 +403,13 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
             throw ThreadRuntimeRepositoryError.toolIntentRequired(turnID: turnID, toolCallID: pending.toolCallID)
         }
         if let finalMessage {
+            guard finalMessage.threadID == turn.threadID else {
+                throw ThreadRuntimeRepositoryError.finalMessageThreadMismatch(
+                    messageID: finalMessage.id,
+                    expectedThreadID: turn.threadID,
+                    actualThreadID: finalMessage.threadID
+                )
+            }
             try appendMessage(finalMessage)
         }
         turn.outcome = outcome

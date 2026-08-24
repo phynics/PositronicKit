@@ -380,6 +380,7 @@ public enum ThreadRuntimeRepositoryError: Error, Equatable, Sendable, CustomStri
     case runtimeRepositoryRequired(threadID: UUID)
     case authorityCoordinatorRequired(threadID: UUID)
     case inputMessageThreadMismatch(messageID: UUID, expectedThreadID: UUID, actualThreadID: UUID)
+    case finalMessageThreadMismatch(messageID: UUID, expectedThreadID: UUID, actualThreadID: UUID)
 
     public var description: String {
         switch self {
@@ -400,6 +401,8 @@ public enum ThreadRuntimeRepositoryError: Error, Equatable, Sendable, CustomStri
         case let .authorityCoordinatorRequired(threadID): return "A ThreadAuthorityCoordinator is required to archive Thread \(threadID) safely."
         case let .inputMessageThreadMismatch(messageID, expectedThreadID, actualThreadID):
             return "Input message \(messageID) belongs to Thread \(actualThreadID), not Thread \(expectedThreadID)."
+        case let .finalMessageThreadMismatch(messageID, expectedThreadID, actualThreadID):
+            return "Final message \(messageID) belongs to Thread \(actualThreadID), not Thread \(expectedThreadID)."
         }
     }
 }
@@ -460,8 +463,8 @@ public protocol ThreadRuntimeRepository: ThreadPersistenceProtocol, ThreadMessag
 
     /// Atomically appends `finalMessage` (when supplied) and records the terminal outcome.
     /// Normal terminal assistant messages must use this boundary rather than a separate message
-    /// store write. Repeating the operation for an already-terminal Turn returns its durable
-    /// record without appending a second message.
+    /// store write, and the message must belong to the Turn's Thread. Repeating the operation for
+    /// an already-terminal Turn returns its durable record without appending a second message.
     func completeTurn(
         turnID: UUID,
         outcome: TurnOutcome,

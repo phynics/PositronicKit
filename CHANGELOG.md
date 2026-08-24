@@ -11,8 +11,9 @@ for tagged releases beginning with `1.0.0`.
 - **Direct Turn Workspace routing:** direct Turns now capture and route to ordinary Workspaces
   attached to their Thread while continuing to bypass Agent identity and context.
 - **Atomic Turn admission:** `ThreadRuntimeRepository` admission now commits the optional input
-  message with the Turn and active pointer. Normal terminal assistant messages are committed with
-  their terminal outcome; independent Thread/message stores remain a legacy non-atomic path.
+  message with the Turn and active pointer. Prompt assembly reuses that committed input exactly
+  once, and normal terminal assistant messages are committed with their terminal outcome;
+  independent Thread/message stores remain a legacy non-atomic path.
 
 ### Breaking
 
