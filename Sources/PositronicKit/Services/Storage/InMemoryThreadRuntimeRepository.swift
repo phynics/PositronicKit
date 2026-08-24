@@ -204,8 +204,8 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
             executionKind: executionKind,
             capturedAgentID: capturedAgentID,
             lifecycle: .admitted,
-            retryRelation: retryRelation,
             notices: [TurnNotice(kind: "turn-admitted", createdAt: now)],
+            retryRelation: retryRelation,
             createdAt: now,
             updatedAt: now
         )

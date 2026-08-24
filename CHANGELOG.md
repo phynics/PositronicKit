@@ -8,6 +8,13 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+- **Linux public API baseline gate:** symbol-graph verification now consumes SwiftPM's reported
+  output directory and validates catalog modules before considering unrelated test-target
+  extraction errors. The refreshed Linux baseline records the reviewed v4 removal of embedding,
+  vector, and legacy Workspace surfaces plus the intentional Turn, Workspace-provider,
+  context/resource, and permission additions; no unreviewed API drift remains.
+- **DefaultAgentContextSource migration:** `snapshot(for:thread:)` now requires the `thread:`
+  argument label; callers using the previous unlabeled second argument must add that label.
 - **Memory and prompt boundaries:** documented the Gnostic and Yakamoz downstream audit. Current
   v4 uses typed `AgentContextSource`/`TurnContextSource` and Workspace file tools instead of an
   automatic retrieval stage, keeps primitive leaves internal to `PKPrompt`, and derives tool

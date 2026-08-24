@@ -28,7 +28,7 @@ PLATFORM = platform_name()
 BASELINE = ROOT / "api" / f"4.0-public-api-{PLATFORM}.json"
 
 
-def run(*arguments: str) -> str:
+def run_result(*arguments: str) -> tuple[int, str]:
     result = subprocess.run(
         arguments,
         cwd=ROOT,
@@ -37,10 +37,15 @@ def run(*arguments: str) -> str:
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
     )
-    if result.returncode:
-        print(result.stdout, end="", file=sys.stderr)
-        raise SystemExit(result.returncode)
-    return result.stdout.strip()
+    return result.returncode, result.stdout.strip()
+
+
+def run(*arguments: str) -> str:
+    status, output = run_result(*arguments)
+    if status:
+        print(output, end="", file=sys.stderr)
+        raise SystemExit(status)
+    return output
 
 
 def public_modules() -> list[str]:
@@ -52,19 +57,39 @@ def declaration(symbol: dict) -> str:
     return "".join(fragment.get("spelling", "") for fragment in symbol.get("declarationFragments", []))
 
 
+def reported_graph_directory(output: str) -> Path:
+    marker = "Files written to "
+    paths = [line.removeprefix(marker).strip() for line in output.splitlines() if line.startswith(marker)]
+    if not paths:
+        raise SystemExit("swift package dump-symbol-graph did not report its output directory")
+    path = Path(paths[-1])
+    return path if path.is_absolute() else ROOT / path
+
+
 def inventory() -> dict:
     modules = public_modules()
     bin_path = Path(run("swift", "build", "--show-bin-path").splitlines()[-1])
-    graph_dir = bin_path.parent.parent / "symbolgraph"
+    graph_dir = bin_path.parent / "symbolgraph"
     graph_dir.mkdir(parents=True, exist_ok=True)
     for graph in graph_dir.rglob("*.symbols.json"):
         graph.unlink()
 
-    run(
+    dump_status, dump_output = run_result(
         "swift", "package", "dump-symbol-graph",
         "--minimum-access-level", "public",
         "--skip-synthesized-members",
         "--skip-inherited-docs",
+    )
+    try:
+        graph_dir = reported_graph_directory(dump_output)
+    except SystemExit:
+        print(dump_output, end="", file=sys.stderr)
+        raise SystemExit(
+            f"swift package dump-symbol-graph exited {dump_status} without reporting its output directory"
+        )
+    print(
+        f"swift package dump-symbol-graph output: {graph_dir} (exit status {dump_status})",
+        file=sys.stderr,
     )
 
     graph_paths = sorted(graph_dir.rglob("*.symbols.json"))
@@ -131,7 +156,15 @@ def inventory() -> dict:
 
     missing = sorted(set(modules) - observed_modules)
     if missing:
+        if dump_status:
+            print(dump_output, end="", file=sys.stderr)
         raise SystemExit("missing public symbol graphs: " + ", ".join(missing))
+    if dump_status:
+        print(
+            "swift package dump-symbol-graph reported non-public-target errors; "
+            "all catalog public symbol graphs were emitted",
+            file=sys.stderr,
+        )
 
     return {
         "schemaVersion": 2,

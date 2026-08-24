@@ -199,6 +199,7 @@ verify-tests: test
 verify-agent-harness:
 	@bash Tests/Scripts/doctor_test.sh
 	@bash Tests/Scripts/run_linux_container_test.sh
+	@bash Tests/Scripts/public_api_baseline_test.sh
 
 # Linux testing intentionally has no native or Docker fallback. The shared
 # runner performs the deeper access check and prints the sandbox-escalation
