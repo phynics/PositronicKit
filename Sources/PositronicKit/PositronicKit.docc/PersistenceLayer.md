@@ -32,6 +32,14 @@ concurrently; multi-process hosts provide stronger coordination in their backend
 prompt history. A `ThreadSummary` is a separate projection that may reference only message IDs already
 accepted into append-only history.
 
+Attached Workspace execution is intentionally a message-only external continuation. The source Turn
+records its Tool Intent, emits the external-deferral terminal outcome, and becomes interrupted before
+the host performs the side effect. A later submission persists the host's Tool message through the
+Thread message boundary, but does not record a `RuntimeToolResult`: the submission contract has no
+originating Turn ID, and the interrupted source Turn cannot accept a result without reopening its
+terminal lifecycle. `fetchToolResults` therefore describes runtime-executed calls only; this contract
+avoids inventing a second lifecycle or weakening the atomic local result boundary.
+
 PositronicKit does not ship a canonical database backend. Hosts provide the storage implementation that fits their environment, whether that is in-memory state, SQLite, cloud storage, or another persistence layer that conforms to the store protocols.
 
 ### Composition
