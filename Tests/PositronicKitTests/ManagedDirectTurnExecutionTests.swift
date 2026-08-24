@@ -38,7 +38,7 @@ struct ManagedDirectTurnExecutionTests {
     @Test("provider work starts only after the input Turn admission is durable")
     func providerFailureRetainsAtomicallyAdmittedInput() async throws {
         let llm = MockLLMService()
-        llm.shouldThrowError = true
+        llm.mockClient.shouldThrowError = true
         let kit = PositronicKit(languageModel: llm)
         let thread = try await kit.threads.create(title: "Admission failure")
 
@@ -114,25 +114,25 @@ struct ManagedDirectTurnExecutionTests {
                 workspaceCreator: MockWorkspaceCreator(),
                 workspaceRoot: workspace.root
             )
-        )
+        ))
         let thread = try await kit.threads.create(title: "Direct Workspace")
         let attachedWorkspace = WorkspaceReference(
             uri: WorkspaceURI(host: "remote", path: "/direct"),
             location: .attached,
-            tools: [.known("read_file")],
+            tools: [.known("cat")],
             rootPath: workspace.root.path
         )
         try await persistence.saveWorkspace(attachedWorkspace)
         try await persistence.addToolToWorkspace(
             workspaceId: attachedWorkspace.id,
-            tool: .known("read_file")
+            tool: .known("cat")
         )
         try await kit.threads.attachWorkspace(attachedWorkspace.id, to: thread.id)
 
         llm.mockClient.nextToolCalls = [[MockToolCall(
             id: "direct-workspace-call",
             name: "call_tool",
-            arguments: "{\"tool\":\"read_file\",\"at\":\"\(attachedWorkspace.id.uuidString)\",\"arguments\":{\"path\":\"README.md\"}}"
+            arguments: "{\"tool\":\"cat\",\"at\":\"\(attachedWorkspace.id.uuidString)\",\"arguments\":{\"path\":\"README.md\"}}"
         )]]
         llm.mockClient.nextResponse = ""
 
@@ -262,5 +262,37 @@ struct ManagedDirectTurnExecutionTests {
         })
         let outcome = await joined.outcome()
         #expect(outcome == .cancelled(reason: "Turn task cancelled."))
+    }
+
+    @Test("a completed request replays one durable terminal event")
+    func completedTurnReplaysOneTerminal() async throws {
+        let llm = MockLLMService()
+        llm.mockClient.nextResponse = "replayed reply"
+        let kit = PositronicKit(languageModel: llm)
+        let thread = try await kit.threads.create(title: "Replay")
+        let requestID = UUID()
+        let request = TurnRequest(threadID: thread.id, requestID: requestID, message: "same")
+
+        let first = try await thread.startDirectTurn(
+            message: request.message,
+            context: DirectTurnContext(systemInstructions: "", contributor: .host),
+            requestID: requestID
+        )
+        _ = await first.events().collect()
+
+        let replay = try await thread.startDirectTurn(
+            message: request.message,
+            context: DirectTurnContext(systemInstructions: "", contributor: .host),
+            requestID: requestID
+        )
+        let events = await replay.events().collect()
+
+        #expect(events.filter(\.isTerminal).count == 1)
+        #expect(events.contains { event in
+            if case let .completion(.generationCompleted(message, _)) = event {
+                return message.content == "replayed reply"
+            }
+            return false
+        })
     }
 }

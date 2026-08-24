@@ -37,6 +37,9 @@ actor TurnOutputs {
     /// The normal terminal assistant message is held until `completeTurn` can commit it with the
     /// terminal outcome in the runtime repository.
     private(set) var terminalAssistantMessage: ThreadMessage?
+    /// Completion metadata is assembled before the terminal repository transition but is exposed
+    /// only by the terminal coordinator after that transition succeeds.
+    private(set) var terminalCompletionMetadata: APIResponseMetadata?
 
     init() {}
 
@@ -99,6 +102,10 @@ actor TurnOutputs {
 
     func setTerminalAssistantMessage(_ message: ThreadMessage) {
         terminalAssistantMessage = message
+    }
+
+    func setTerminalCompletionMetadata(_ metadata: APIResponseMetadata) {
+        terminalCompletionMetadata = metadata
     }
 
     /// Finalizes the turn: computes timing and throughput metrics.

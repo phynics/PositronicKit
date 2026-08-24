@@ -17,11 +17,19 @@ actor TurnEventHub {
         activeTurns.insert(turnID)
     }
 
-    func isActive(turnID: UUID) -> Bool {
-        activeTurns.contains(turnID)
+    func subscribe(turnID: UUID) -> AsyncThrowingStream<TurnEvent, Error> {
+        makeSubscription(turnID: turnID)
     }
 
-    func subscribe(turnID: UUID) -> AsyncThrowingStream<TurnEvent, Error> {
+    /// Selects the live lane and registers its subscriber in one actor operation. A caller that
+    /// gets `nil` must use durable replay; there is no check/subscribe gap in which a finished lane
+    /// can leave the returned stream waiting forever.
+    func subscribeIfActive(turnID: UUID) -> AsyncThrowingStream<TurnEvent, Error>? {
+        guard activeTurns.contains(turnID) else { return nil }
+        return makeSubscription(turnID: turnID)
+    }
+
+    private func makeSubscription(turnID: UUID) -> AsyncThrowingStream<TurnEvent, Error> {
         let (stream, continuation) = AsyncThrowingStream<TurnEvent, Error>.makeStream()
         let subscriberID = UUID()
         subscribers[turnID, default: [:]][subscriberID] = Subscriber(continuation: continuation)

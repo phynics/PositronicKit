@@ -411,10 +411,17 @@ struct TurnEngine {
 
         if case let .existing(admission) = prepared {
             let stream: AsyncThrowingStream<TurnEvent, Error>
-            if await dependencies.eventHub.isActive(turnID: admission.turn.identity.turnID) {
-                stream = await dependencies.eventHub.subscribe(turnID: admission.turn.identity.turnID)
-            } else {
+            switch admission.disposition {
+            case .replayed:
                 stream = try await replayExistingTurn(admission)
+            case .joined, .admitted:
+                if let liveStream = await dependencies.eventHub.subscribeIfActive(
+                    turnID: admission.turn.identity.turnID
+                ) {
+                    stream = liveStream
+                } else {
+                    stream = try await replayExistingTurn(admission)
+                }
             }
             return TurnExecution(
                 turnID: admission.turn.identity.turnID,
@@ -495,6 +502,12 @@ struct TurnEngine {
                 } else if case .completed = record.outcome {
                     continuation.yield(.completedEmpty(finishReason: nil))
                 }
+                // Replay preserves the existing durable-outcome mapping. Recoverable tool-result
+                // persistence, model-round exhaustion, and external deferral are represented by
+                // ordinary failed/interrupted outcomes, so replay surfaces their error text; the
+                // original live persistence path intentionally clean-closes so the caller can
+                // retry. A wrapped provider cancellation replays as durable cancellation because
+                // wrapper identity is not part of TurnOutcome.
                 switch record.outcome {
                 case let .failed(message):
                     continuation.yield(.error(message))

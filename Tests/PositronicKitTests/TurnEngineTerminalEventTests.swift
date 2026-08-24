@@ -8,8 +8,8 @@ import Testing
 
 // MARK: - PKRR-011: Terminal event uniqueness
 
-/// Every execution path through `TurnEngine.execute` must emit exactly one terminal event
-/// before the stream closes, and that terminal event must identify the path's outcome:
+/// Every execution path through `TurnEngine.execute` emits at most one terminal event before the
+/// stream closes, and any terminal event identifies the path's outcome:
 /// - Normal completion → `.completion(.generationCompleted)`
 /// - Model-round exhaustion → `.completion(.maxModelRoundsReached)` (not a silent success)
 /// - Deferred external tool → `.completion(.deferredForExternalTool)`
@@ -270,6 +270,31 @@ struct TurnEngineTerminalEventTests {
                 return false
             }
             #expect(deferred.isEmpty, "Normal completion must not emit .deferredForExternalTool")
+
+            #expect(events.filter(\.isTerminal).count == 1, "Each consumer must receive one terminal event")
+        }
+    }
+
+    @Test("Empty completion emits exactly one terminal event (PKRR-011)")
+    func emptyCompletionEmitsExactlyOneTerminal() async throws {
+        try await withTurnEngineDependencies { engine, mockLLM, _ in
+            mockLLM.mockClient.nextResponse = ""
+
+            let stream = try await engine.execute(
+                threadID: threadID,
+                message: "Return nothing",
+                tools: []
+            )
+
+            let events = try await collect(stream)
+
+            #expect(events.contains(where: {
+                if case let .completion(.generationCompleted(message, metadata)) = $0 {
+                    return message.content.isEmpty && metadata.finishReason == "stop"
+                }
+                return false
+            }))
+            #expect(events.filter(\.isTerminal).count == 1, "Empty completion must not emit two terminal events")
         }
     }
 

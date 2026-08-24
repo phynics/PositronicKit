@@ -26,6 +26,9 @@ for tagged releases beginning with `1.0.0`.
   message with the Turn and active pointer. Prompt assembly reuses that committed input exactly
   once, and normal terminal assistant messages are committed with their terminal outcome;
   independent Thread/message stores remain a legacy non-atomic path.
+- **Terminal Turn delivery:** terminal stream events are now withheld until durable terminal
+  commit and post-durable customization sinks complete; empty completions emit one terminal
+  payload, and live join selection is atomic with the active-lane check.
 - **Primary-Thread activity reconciliation:** confirmed that the internal primary-Workspace activity
   experiment from PR #86 was removed before the v4 public API freeze by PR #87. Workspace tool
   history remains durable only on the Thread whose Turn executed it; `AgentActivitySink` remains a

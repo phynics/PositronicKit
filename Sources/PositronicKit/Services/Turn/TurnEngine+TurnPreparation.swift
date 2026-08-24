@@ -411,8 +411,14 @@ extension TurnEngine {
             }
 
             // 9. Build the initial prompt messages
+            // The runtime repository has already admitted the input into ChatHistory. Do not add
+            // it again as UserQuery; an empty query still allows per-turn instructions to render.
+            let promptUserContent = inputMessage != nil
+                && threadMessages.contains(where: { $0.id == inputMessage?.id })
+                ? MessageContent(parts: [])
+                : messageContent
             let promptRequest = LLMPromptRequest(
-                userContent: messageContent,
+                userContent: promptUserContent,
                 turnInstructions: sidecarTurnInstructions,
                 contextContributions: resolvedContributions,
                 chatHistory: history,
