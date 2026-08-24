@@ -121,7 +121,7 @@ struct TurnContext {
     let maxModelRounds: Int
     let systemInstructions: String?
     let availableTools: [AnyTool]
-    /// Workspace authority captured at admission; nil for detached/direct Turns.
+    /// Workspace authority captured at admission; an empty catalog means no workspace exposes tools.
     let workspaceToolCatalog: WorkspaceToolCatalog?
     let remoteDepth: Int
     let generationParameters: GenerationParameters?

@@ -3,7 +3,7 @@ import struct JSONSchema.Schema
 import JSONSchemaBuilder
 import PKContracts
 
-/// The immutable workspace/tool authority captured for one admitted managed Turn.
+/// The immutable workspace/tool authority captured for one admitted Turn.
 ///
 /// This snapshot is deliberately independent of the live workspace catalog. Attachment or tool
 /// changes made after admission therefore affect the next Turn, never a Turn already in flight.
@@ -99,7 +99,8 @@ extension ThreadManager {
         "read_file", "list_files", "search_files", "write_file", "append_file", "edit_file", "delete_file",
     ]
 
-    /// Captures the authorized workspace tools used by a managed Turn.
+    /// Captures the authorized workspace tools used by an admitted Turn. When no Agent primary
+    /// Workspace is supplied, this contains only ordinary Workspaces bound to the Thread.
     ///
     /// The caller invokes this from the same admission authority lane used for Agent and Thread
     /// mutations. Workspace references and tool wrappers are copied into the returned value before

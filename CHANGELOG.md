@@ -8,6 +8,9 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+- **Direct Turn Workspace routing:** direct Turns now capture and route to ordinary Workspaces
+  attached to their Thread while continuing to bypass Agent identity and context.
+
 ### Breaking
 
 - **Filesystem-backed Agent memory:** replaced the legacy memory store and `Notes/system.md`

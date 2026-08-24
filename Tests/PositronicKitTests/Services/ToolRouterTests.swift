@@ -425,6 +425,71 @@ final class ToolRouterTests {
         #expect(results.first?.workspaceRouting == .explicit)
     }
 
+    @Test("Workspace call_tool rejects a released Thread binding")
+    func workspaceCallToolReleasedBindingFailsClosed() async throws {
+        let (threadManager, persistence) = try await setupThreadManager()
+        let runtimeRepository = InMemoryThreadRuntimeRepository()
+        let router = ToolRouter(
+            threadManager: threadManager,
+            messageStore: persistence,
+            runtimeRepository: runtimeRepository
+        )
+        let thread = try await threadManager.createThread()
+        let tool = MockTool(callName: "read_file", name: "read_file", result: .success("workspace output"))
+        let workspace = try WorkspaceReference(
+            id: UUID(),
+            uri: #require(WorkspaceURI(parsing: "pk://local")),
+            location: .runtime,
+            originID: nil
+        )
+        try await persistence.saveWorkspace(workspace)
+        try await threadManager.attachWorkspace(workspace.id, to: thread.id)
+        try await persistence.addToolToWorkspace(workspaceId: workspace.id, tool: .known(tool.callName))
+        let toolManager = try #require(await threadManager.getToolManager(for: thread.id))
+        await toolManager.updateAvailableTools([tool.toAnyTool()])
+
+        try await runtimeRepository.saveThread(thread)
+        let admission = try await runtimeRepository.admitTurn(
+            threadID: thread.id,
+            requestID: UUID(),
+            callerIntentFingerprint: "released-binding"
+        )
+        let catalog = WorkspaceToolCatalog(entries: [
+            .init(
+                workspace: workspace,
+                label: workspace.uri.description,
+                isPrimary: false,
+                tools: [tool.toAnyTool()]
+            ),
+        ])
+
+        // Keep the admission snapshot but remove its durable authority before the side effect.
+        try await threadManager.detachWorkspace(workspace.id, from: thread.id)
+
+        let call = ParsedToolCall(
+            callId: "call-released",
+            name: "call_tool",
+            argumentsJSON: "{\"tool\":\"read_file\",\"at\":\"\(workspace.id.uuidString)\",\"arguments\":{}}"
+        )
+        let result = try await captureProjectedToolEventsResult { continuation in
+            try await router.handlePendingToolCalls(
+                threadId: thread.id,
+                turnID: admission.turn.identity.turnID,
+                calls: [call],
+                availableTools: [catalog.callTool],
+                workspaceToolCatalog: catalog,
+                continuation: continuation
+            )
+        }
+
+        #expect(result.hasDeferred == false)
+        #expect(result.resolvedToolParams.count == 1)
+        let results = try await runtimeRepository.fetchToolResults(turnID: admission.turn.identity.turnID)
+        #expect(results.first?.succeeded == false)
+        #expect(results.first?.workspaceID == workspace.id)
+        #expect(results.first?.workspaceRouting == .explicit)
+    }
+
     @Test("A disabled tool is rejected at the execution sink and projected as a failure")
     func disabledToolIsRejectedAtExecutionSink() async throws {
         let tool = PermissionedTool(id: "disabled_tool")

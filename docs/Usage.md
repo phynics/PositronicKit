@@ -274,13 +274,16 @@ the originating outcome.
 
 ### Workspace tool dispatch
 
-Managed Turns expose one provider-facing workspace dispatcher, `call_tool`. The runtime captures
-the Agent primary Workspace and Thread-bound Workspaces at Turn admission, including each tool's
-label, description, and schema. A model may call `call_tool` with `tool`, optional `at` (a Workspace
-UUID), and `arguments`; `at` may be omitted only when exactly one authorized Workspace provides the
-requested tool. If more than one matches, the model receives the authorized IDs and labels, tool
-descriptions and schemas, and an explicit corrected call. Routing is evaluated against the admission
-snapshot, so Workspace attachment or catalog changes affect the next Turn only.
+Managed and direct Turns expose one provider-facing workspace dispatcher, `call_tool`. The runtime
+captures Thread-bound Workspaces at Turn admission, and managed Turns additionally capture the Agent
+primary Workspace, including each tool's label, description, and schema. A model may call `call_tool`
+with `tool`, optional `at` (a Workspace UUID), and `arguments`; `at` may be omitted only when exactly
+one authorized Workspace provides the requested tool. If more than one matches, the model receives
+the authorized IDs and labels, tool descriptions and schemas, and an explicit corrected call. Routing
+is evaluated against the admission snapshot, so Workspace attachment or catalog changes affect the
+next Turn only. Direct Turns use only Thread-bound Workspaces and never inherit Agent context.
+The runtime revalidates ordinary bindings immediately before a side effect, so a released or
+transferred binding fails closed.
 
 Runtime and request-scoped tools remain separate from `call_tool`; callers cannot register a tool
 with that reserved name. Tool intent/result records and successful tool events retain the resolved

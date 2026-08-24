@@ -47,7 +47,8 @@ There are two explicit execution paths:
    snapshot atomically.
 2. `ThreadHandle.startDirectTurn(message:context:)` admits a direct Turn on a detached Thread. The
    caller supplies the complete `DirectTurnContext`, including an intentional empty system prompt
-   when appropriate.
+   when appropriate. Direct Turns still capture ordinary Workspaces bound to the Thread for
+   `call_tool` routing; they bypass Agent identity and Agent context.
 
 Both return a `TurnHandle`. `events()` is a nonthrowing future-event stream, `outcome()` joins the
 durable terminal result, and `cancel()` targets that Turn. The advanced request-shaped `run(_:)`
@@ -75,11 +76,13 @@ An ordinary Workspace may be bound to only one Thread. Binding, transfer, and re
 operations. Execution is serialized per Workspace inside the process, so two admitted calls cannot
 mutate the same Workspace concurrently.
 
-Managed Turns expose one provider-facing dispatcher named `call_tool`. At admission the runtime
-captures the authorized Workspace IDs, labels, tool descriptions, and schemas. A call names a tool,
+Managed and direct Turns expose one provider-facing dispatcher named `call_tool`. At admission the
+runtime captures the authorized ordinary Thread-bound Workspace IDs, labels, tool descriptions, and
+schemas. Managed Turns additionally capture the Agent primary Workspace. A call names a tool,
 optionally names its Workspace with `at`, and supplies `arguments`. The Workspace may be omitted
 only when exactly one captured Workspace provides that tool. Ambiguity produces a corrective result
-and a durable notice; it never selects a Workspace by iteration order.
+and a durable notice; it never selects a Workspace by iteration order. Ordinary bindings are
+revalidated immediately before a side effect, so a released or transferred binding fails closed.
 
 Runtime tools and request-scoped tools are separate from Workspace dispatch. The reserved
 `call_tool` name cannot be registered by a consumer.
