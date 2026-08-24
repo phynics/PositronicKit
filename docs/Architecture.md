@@ -101,7 +101,7 @@ Runtime tools and request-scoped tools are separate from Workspace dispatch. The
 | --- | --- |
 | `AgentContextSource` | Authoritative managed-Agent context; failure aborts preparation |
 | `TurnContextSource` | Optional bounded, namespaced additions for an admitted Turn |
-| `AgentActivitySink` | Best-effort Agent lifecycle projection |
+| `AgentActivitySink` | Best-effort Agent lifecycle integration; does not mutate Thread history |
 | `TurnOutcomeSink` | Post-terminal integration after the durable outcome is accepted |
 
 The bundled Agent context source reads stable instructions and a bounded Notes catalog from the

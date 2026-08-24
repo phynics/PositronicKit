@@ -269,8 +269,9 @@ Agent-owned history boundary. Managed Turn preparation fails closed when a requi
 source fails; direct Turns do not load Agent context. Other runtime integrations belong in
 `RuntimeConfiguration.customization`: `TurnContextSource` contributes bounded namespaced notes,
 `AgentActivitySink` receives best-effort lifecycle facts, and `TurnOutcomeSink` runs only after a
-terminal outcome is durable. Sink failures are persisted as host-facing notices and do not change
-the originating outcome.
+terminal outcome is durable. These integrations do not mirror Workspace activity into the Agent's
+primary Thread: tool history remains on the Thread whose Turn executed it. Sink failures are
+persisted as host-facing notices and do not change the originating outcome.
 
 ### Workspace tool dispatch
 
