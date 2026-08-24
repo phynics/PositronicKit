@@ -8,6 +8,11 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+- **Memory and prompt boundaries:** documented the Gnostic and Yakamoz downstream audit. Current
+  v4 uses typed `AgentContextSource`/`TurnContextSource` and Workspace file tools instead of an
+  automatic retrieval stage, keeps primitive leaves internal to `PKPrompt`, and derives tool
+  diagnostics from durable runtime records. In-memory stores remain supported examples and
+  convenience defaults. See ADR 0006 for the migration boundary.
 - **Direct Turn Workspace routing:** direct Turns now capture and route to ordinary Workspaces
   attached to their Thread while continuing to bypass Agent identity and context.
 - **Atomic Turn admission:** `ThreadRuntimeRepository` admission now commits the optional input
