@@ -22,6 +22,39 @@ coordinators, task registries, prompt-history registries, model-round machinery,
 remain implementation details. The complete product-to-guide map is generated in
 [Documentation navigation](NAVIGATION.md) from `docs/catalog.json`.
 
+## Runtime assembly
+
+`PositronicKit` remains the single composition root. Its internal initializer resolves the
+configuration once and wires the resulting graph without exposing a dependency container or a
+second runtime-assembly product:
+
+| Resolved value | Shared consumers |
+| --- | --- |
+| `ThreadRuntimeRepository` | `ThreadManager`, `AgentManager`, `ToolRouter`, `TurnEngine`, and Turn pipelines |
+| `ThreadAuthorityCoordinator` | `ThreadManager`, Workspace catalog, `AgentManager`, and Turn admission |
+| `AgentAuthorityCoordinator` | `AgentManager` and Turn admission |
+| `ThreadPromptJournals` | `ThreadManager` and `TurnEngine`; prompt cache state, not Thread history |
+| `TurnEventHub` | `TurnEngine` views that join the same live Turn |
+
+An explicit cohesive repository wins over separately supplied legacy Thread and message stores.
+When no cohesive repository is supplied, those independent stores remain a compatibility path and
+do not provide atomic v4 Turn admission. Workspace binding resolution is explicit binding
+repository first, then a binding-capable cohesive repository, then a binding-capable workspace
+store, and finally an in-memory fallback.
+
+The fallback is intentional because `WorkspaceBindingRepository` has no durability declaration.
+Hosts that supply a custom cohesive repository without binding conformance must also supply the
+durable binding repository explicitly; `validateDurability()` cannot classify that boundary.
+
+`reconfigured(languageModel:generationParameters:)` creates a new provider-facing view while
+preserving the Thread manager, its task and Workspace execution coordinators, authority
+coordinators, PromptJournal registry, and Turn event hub. `AgentManager`, `ToolRouter`, and
+`TurnEngine` are rebuilt so the view can carry its replacement provider and other view-specific
+configuration while retaining those shared identities. A separate `RuntimeAssembly` module is not
+justified until it owns a semantic normalized graph and has an independent implementation or test
+seam; extracting a wrapper around `KitDependencies` would only rename the existing transport
+snapshot.
+
 ## Domain model
 
 - A **Thread** is the durable, append-only history boundary.

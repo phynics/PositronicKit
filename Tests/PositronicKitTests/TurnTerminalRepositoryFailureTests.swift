@@ -40,7 +40,7 @@ private enum TerminalRepositoryTestError: Error, Sendable {
     case unavailable
 }
 
-private actor FailingTerminalRepository: ThreadRuntimeRepository {
+actor FailingTerminalRepository: ThreadRuntimeRepository {
     private let base = InMemoryThreadRuntimeRepository()
 
     nonisolated var isDurable: Bool { false }

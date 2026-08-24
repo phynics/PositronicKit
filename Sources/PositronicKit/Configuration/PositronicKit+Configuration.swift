@@ -56,6 +56,9 @@ public extension PositronicKit {
         public let messageStore: any ThreadMessageStoreProtocol
         public let threadPersistence: any ThreadPersistenceProtocol
         public let workspacePersistence: any WorkspaceStore
+        /// Durable authority for ordinary Workspace-to-Thread bindings. Because this protocol
+        /// has no durability declaration, hosts supplying a custom runtime repository that does
+        /// not conform to it must provide their durable binding repository explicitly.
         public let workspaceBindingRepository: any WorkspaceBindingRepository
         public let toolPersistence: any ToolPersistenceProtocol
         public let agentStore: any AgentStoreProtocol
@@ -154,7 +157,9 @@ public extension PositronicKit {
         ///
         /// Use `report.isMixed` to detect configurations where some stores survive restart
         /// and others do not — a data-consistency risk. Use `report.ephemeralStoreNames` to
-        /// identify which specific stores are ephemeral.
+        /// identify which specific stores are ephemeral. The report intentionally excludes
+        /// `workspaceBindingRepository` because that protocol does not declare durability; hosts
+        /// must validate that boundary separately.
         public func validateDurability() -> DurabilityReport {
             DurabilityReport(
                 messageStore: messageStore.isDurable ? .durable : .ephemeral,
