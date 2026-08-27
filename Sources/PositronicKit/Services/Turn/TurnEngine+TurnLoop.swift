@@ -418,20 +418,21 @@ private extension TurnEngine {
     /// Starts best-effort activity delivery without putting provider execution behind a host sink.
     func scheduleAgentActivity(_ activity: AgentActivity, context: TurnContext) {
         guard let sink = dependencies.agentActivitySink else { return }
-        let repository = dependencies.runtimeRepository
         let turnID = context.turnID
         let logger = self.logger
         Task {
             do {
                 try await sink.record(activity)
             } catch {
-                await TurnEngine.persistCustomizationNotice(
-                    repository: repository,
-                    logger: logger,
-                    code: .agentActivitySinkFailed,
-                    turnID: turnID,
-                    message: ErrorKit.userFriendlyMessage(for: error)
-                )
+                if let repository = self.dependencies.runtimeRepository {
+                    await TurnEngine.persistCustomizationNotice(
+                        repository: repository,
+                        logger: logger,
+                        code: .agentActivitySinkFailed,
+                        turnID: turnID,
+                        message: ErrorKit.userFriendlyMessage(for: error)
+                    )
+                }
             }
         }
     }

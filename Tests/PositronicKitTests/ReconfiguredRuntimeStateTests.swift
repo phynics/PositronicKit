@@ -72,21 +72,19 @@ struct ReconfiguredRuntimeStateTests {
     }
 
     @Test("reconfiguration shares the Thread manager and its process-local coordinators")
-    func sharesRuntimeCoordinatorIdentity() {
+    func sharesRuntimeCoordinatorIdentity() async {
         let originalKit = PositronicKit(languageModel: MockLLMService())
         let reconfiguredKit = originalKit.reconfigured(languageModel: MockLLMService())
+        let originalTaskRegistry = await originalKit.threadManager.taskRegistry
+        let reconfiguredTaskRegistry = await reconfiguredKit.threadManager.taskRegistry
+        let originalWorkspaceCoordinator = await originalKit.threadManager.workspaceExecutionCoordinator
+        let reconfiguredWorkspaceCoordinator = await reconfiguredKit.threadManager.workspaceExecutionCoordinator
+        let originalAuthorityCoordinator = await originalKit.threadManager.threadAuthorityCoordinator
+        let reconfiguredAuthorityCoordinator = await reconfiguredKit.threadManager.threadAuthorityCoordinator
 
         #expect(originalKit.threadManager === reconfiguredKit.threadManager)
-        #expect(
-            originalKit.threadManager.taskRegistry === reconfiguredKit.threadManager.taskRegistry
-        )
-        #expect(
-            originalKit.threadManager.workspaceExecutionCoordinator
-                === reconfiguredKit.threadManager.workspaceExecutionCoordinator
-        )
-        #expect(
-            originalKit.threadManager.threadAuthorityCoordinator
-                === reconfiguredKit.threadManager.threadAuthorityCoordinator
-        )
+        #expect(originalTaskRegistry === reconfiguredTaskRegistry)
+        #expect(originalWorkspaceCoordinator === reconfiguredWorkspaceCoordinator)
+        #expect(originalAuthorityCoordinator === reconfiguredAuthorityCoordinator)
     }
 }

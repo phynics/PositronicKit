@@ -18,15 +18,14 @@ import Testing
         let workspace = TestWorkspace()
 
         let persistence = PositronicKit.PersistenceConfiguration(
-            messageStore: mockPersistence,
-            threadPersistence: mockPersistence,
+            runtimeRepository: mockPersistence,
             workspacePersistence: mockPersistence,
             toolPersistence: mockPersistence,
             agentStore: mockPersistence,
             requestOriginStore: mockPersistence
         )
 
-        let chat = PositronicKit(configuration: .init(provider: .init(languageModel: UnconfiguredLLMService()), persistence: persistence, runtime: .init(workspaceCreator: MockWorkspaceCreator(), workspaceRoot: workspace.root)))
+        let chat = PositronicKit(configuration: .init(provider: .init(languageModel: UnconfiguredLLMService()), persistence: persistence, runtime: .init(workspaceProfile: .hostManaged(root: workspace.root), workspaceCreator: MockWorkspaceCreator())))
 
         let thread = try await chat.threads.create(title: "Unconfigured")
 

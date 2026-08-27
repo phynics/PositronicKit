@@ -2,8 +2,8 @@ import Foundation
 import Logging
 import OpenAI
 @testable import PKContracts
-import PKUtilities
 import PKTestSupport
+import PKUtilities
 @testable import PositronicKit
 import Testing
 
@@ -35,14 +35,16 @@ struct TurnEngineFailurePersistenceTests {
                 threadStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
+                runtimeRepository: mockPersistence,
                 toolPersistence: mockPersistence
             ),
-            workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
+            workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp/pk-test")),
             workspaceCreator: MockWorkspaceCreator()
         )
         let toolRouter = ToolRouter(
             threadManager: threadManager,
-            messageStore: mockPersistence
+            messageStore: mockPersistence,
+            runtimeRepository: mockPersistence
         )
         let engine = TurnEngine(
             dependencies: .init(
@@ -50,6 +52,7 @@ struct TurnEngineFailurePersistenceTests {
                 agentStore: mockPersistence,
                 requestOriginStore: mockPersistence,
                 messageStore: mockPersistence,
+                runtimeRepository: mockPersistence,
                 llmService: mockLLM,
                 toolRouter: toolRouter,
                 promptHistoryRegistry: registry,
@@ -77,35 +80,37 @@ struct TurnEngineFailurePersistenceTests {
         return try await test(engine, mockLLM, mockPersistence)
     }
 
-    /// Uses a message store that admits the user and assistant rows, then fails the first tool
-    /// result save. The same store can be reopened for the retry assertion below.
+    /// Uses the cohesive runtime repository and fails the first atomic tool-result transition.
+    /// The same repository can be reopened for the retry assertion below.
     private func withToolResultPersistenceFailureDependencies<T>(
-        _ test: @Sendable (TurnEngine, MockLLMService, BatchFailingMessageStore) async throws -> T
+        _ test: @Sendable (TurnEngine, MockLLMService, MockPersistenceService) async throws -> T
     ) async throws -> T {
         let mockLLM = MockLLMService()
-        let backing = MockPersistenceService()
-        let messageStore = BatchFailingMessageStore()
-        messageStore.failAfterSaveCount = 2
+        let persistence = MockPersistenceService()
+        persistence.recordToolResultFailureAfter = 0
         let threadManager = ThreadManager(
             stores: .init(
-                threadStore: backing,
-                messageStore: messageStore,
-                workspaceStore: backing,
-                toolPersistence: backing
+                threadStore: persistence,
+                messageStore: persistence,
+                workspaceStore: persistence,
+                runtimeRepository: persistence,
+                toolPersistence: persistence
             ),
-            workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
+            workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp/pk-test")),
             workspaceCreator: MockWorkspaceCreator()
         )
         let toolRouter = ToolRouter(
             threadManager: threadManager,
-            messageStore: messageStore
+            messageStore: persistence,
+            runtimeRepository: persistence
         )
         let engine = TurnEngine(
             dependencies: .init(
                 threadManager: threadManager,
-                agentStore: backing,
-                requestOriginStore: backing,
-                messageStore: messageStore,
+                agentStore: persistence,
+                requestOriginStore: persistence,
+                messageStore: persistence,
+                runtimeRepository: persistence,
                 llmService: mockLLM,
                 toolRouter: toolRouter,
                 streamTimeout: 60
@@ -113,7 +118,7 @@ struct TurnEngineFailurePersistenceTests {
         )
 
         let session = Thread(id: threadID, title: "Tool persistence failure")
-        try await backing.saveThread(session)
+        try await persistence.saveThread(session)
         let wsId = UUID()
         let workspaceRef = WorkspaceReference(
             id: wsId,
@@ -123,9 +128,9 @@ struct TurnEngineFailurePersistenceTests {
             tools: [.known(PersistenceTestTool.toolID)],
             rootPath: "/tmp"
         )
-        try await backing.saveWorkspace(workspaceRef)
+        try await persistence.saveWorkspace(workspaceRef)
         try await threadManager.attachWorkspace(wsId, to: threadID)
-        try await backing.addToolToWorkspace(workspaceId: wsId, tool: .known(PersistenceTestTool.toolID))
+        try await persistence.addToolToWorkspace(workspaceId: wsId, tool: .known(PersistenceTestTool.toolID))
         try await threadManager.hydrateThread(id: threadID)
         if let toolManager = await threadManager.getToolManager(for: threadID) {
             await toolManager.updateAvailableTools([PersistenceTestTool().toAnyTool()])
@@ -134,7 +139,7 @@ struct TurnEngineFailurePersistenceTests {
             }
         }
 
-        return try await test(engine, mockLLM, messageStore)
+        return try await test(engine, mockLLM, persistence)
     }
 
     private func collect(_ stream: AsyncThrowingStream<TurnEvent, Error>) async throws -> [TurnEvent] {
@@ -196,7 +201,7 @@ struct TurnEngineFailurePersistenceTests {
             let tool = PersistenceTestTool()
             mockLLM.mockClient.nextResponses = [""]
             mockLLM.mockClient.nextToolCalls = [[
-                MockToolCall(id: "persist_retry_call", name: tool.callName)
+                MockToolCall(id: "persist_retry_call", name: tool.callName),
             ]]
 
             let failedStream = try await engine.execute(
@@ -229,7 +234,7 @@ struct TurnEngineFailurePersistenceTests {
 
             // The failed send released its reservation. Persist the same output through the
             // existing pending-call submission path and verify the loop can recover.
-            messageStore.failAfterSaveCount = nil
+            messageStore.recordToolResultFailureAfter = nil
             mockLLM.mockClient.nextToolCalls = []
             mockLLM.mockClient.nextResponse = "Recovered after retry"
             let retryStream = try await engine.execute(
@@ -384,7 +389,8 @@ struct TurnEngineFailurePersistenceTests {
             }
 
             let messagesAfterFailure = try await mockPersistence.fetchMessages(for: threadID)
-            #expect(messagesAfterFailure.filter { $0.role == "user" }.isEmpty)
+            #expect(messagesAfterFailure.filter { $0.role == "user" }.count == 1)
+            #expect(messagesAfterFailure.first(where: { $0.role == "user" })?.content == "retry after history failure")
             #expect(messagesAfterFailure.filter { $0.role == "tool" }.isEmpty)
 
             mockLLM.mockClient.nextResponse = "Recovered reply"
@@ -676,7 +682,9 @@ private struct PersistenceTestTool: PKContracts.Tool, @unchecked Sendable { // s
     let requiresPermission = false
     let parametersSchema = makeEmptyObjectSchema()
 
-    func canExecute() async -> Bool { true }
+    func canExecute() async -> Bool {
+        true
+    }
 
     func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
         .success("tool output")

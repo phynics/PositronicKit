@@ -36,7 +36,7 @@ Add PositronicKit as a Swift Package dependency:
 Public products follow semver. Continue with the tagged README for stable API examples. The
 examples below describe the current Next public story and may advance beyond `4.0.0`.
 
-## Next / v4 quick start
+## Next / v5 quick start
 
 Import the modules you need:
 

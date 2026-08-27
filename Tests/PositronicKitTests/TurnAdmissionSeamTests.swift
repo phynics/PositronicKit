@@ -106,9 +106,11 @@ struct TurnAdmissionSeamTests {
             requestID: requestID,
             content: "terminal"
         ))
-        _ = try await harness.repository.failTurn(
+        _ = try await harness.repository.completeTurn(
             turnID: turnID,
-            message: "preparation failed",
+            outcome: .completed,
+            finalMessage: nil,
+            terminalHandle: nil,
             now: Date()
         )
 
@@ -272,7 +274,7 @@ struct TurnAdmissionSeamTests {
                 runtimeRepository: repository,
                 toolPersistence: backing
             ),
-            workspaceRoot: URL(fileURLWithPath: "/tmp/pk-admission"),
+            workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp/pk-admission")),
             workspaceCreator: MockWorkspaceCreator()
         )
         let toolRouter = ToolRouter(

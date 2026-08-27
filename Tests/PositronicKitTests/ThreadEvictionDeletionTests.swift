@@ -89,7 +89,7 @@ struct ThreadEvictionDeletionTests {
                 workspaceStore: persistence,
                 toolPersistence: persistence
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
         let thread = try await threadManager.createThread()
         try await persistence.saveMessage(ThreadMessage(
@@ -105,31 +105,6 @@ struct ThreadEvictionDeletionTests {
         #expect(messages.count == 1)
     }
 
-    // MARK: - Deprecated alias
-
-    @Test("deleteThread(id:) is a deprecated alias that still evicts memory (PKRR-023)")
-    func deleteThreadDeprecatedAliasEvicts() async throws {
-        let persistence = MockPersistenceService()
-        let workspace = TestWorkspace()
-        let threadManager = ThreadManager(
-            stores: .init(
-                threadStore: persistence,
-                messageStore: persistence,
-                workspaceStore: persistence,
-                toolPersistence: persistence
-            ),
-            workspaceRoot: workspace.root
-        )
-        let thread = try await threadManager.createThread()
-
-        await threadManager.evictThreadFromMemory(id: thread.id)
-
-        #expect(await threadManager.thread(id: thread.id) == nil)
-        // Persistence untouched.
-        let persisted = try #require(await persistence.fetchThread(id: thread.id))
-        #expect(persisted.id == thread.id)
-    }
-
     // MARK: - Permanent deletion
 
     @Test("deleteThreadPermanently removes thread, messages, and workspace records (PKRR-023)")
@@ -143,7 +118,7 @@ struct ThreadEvictionDeletionTests {
                 workspaceStore: persistence,
                 toolPersistence: persistence
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
         let thread = try await threadManager.createThread()
         let workspaceId = try #require(
@@ -183,7 +158,7 @@ struct ThreadEvictionDeletionTests {
                 workspaceStore: persistence,
                 toolPersistence: persistence
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
         let thread = Thread()
         let canonicalWorkspace = WorkspaceReference(
@@ -292,7 +267,7 @@ struct ThreadEvictionDeletionTests {
                 workspaceStore: backing,
                 toolPersistence: backing
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
         let thread = try await threadManager.createThread()
         let workspaceId = try #require(
@@ -335,7 +310,7 @@ struct ThreadEvictionDeletionTests {
                 workspaceStore: persistence,
                 toolPersistence: persistence
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
         let unknownId = UUID()
 

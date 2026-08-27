@@ -156,7 +156,7 @@ extension ThreadManager {
                 for toolReference in listed {
                     switch toolReference {
                     case let .known(id):
-                        if let known = available.first(where: { $0.callName == id && $0.origin == .global }) {
+                        if let known = available.first(where: { $0.callName == id }) {
                             tools.append(known.withOrigin(.workspace(id: reference.id, name: reference.uri.description)))
                         }
                     case let .custom(definition):

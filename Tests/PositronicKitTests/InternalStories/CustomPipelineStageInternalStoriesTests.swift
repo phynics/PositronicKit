@@ -37,14 +37,13 @@ struct CustomPipelineStageInternalStoriesTests {
     }
 
     private func makeChat(
-        llmService languageModel: any LanguageModel,
+        llmService languageModel: any LLMStreamClient,
         persistence: MockPersistenceService
     ) -> PositronicKit {
         PositronicKit(configuration: .init(
             provider: .init(languageModel: languageModel),
             persistence: .init(
-                messageStore: persistence,
-                threadPersistence: persistence,
+                runtimeRepository: persistence,
                 workspacePersistence: persistence,
                 toolPersistence: persistence,
                 agentStore: persistence,

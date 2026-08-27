@@ -9,7 +9,7 @@ import Testing
 @Suite(.serialized) struct ThreadManagerConcurrencyTests {
     private func makeThreadManager() async throws -> ThreadManager {
         let workspace = TestWorkspace()
-        return ThreadManager(workspaceRoot: workspace.root)
+        return ThreadManager(workspaceProfile: .hostManaged(root: workspace.root))
     }
 
     @Test("Concurrent createThread calls each produce a unique thread ID")

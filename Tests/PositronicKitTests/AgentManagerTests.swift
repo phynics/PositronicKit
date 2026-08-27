@@ -310,7 +310,7 @@ struct AgentManagerTests {
                 workspaceStore: workspaceStore,
                 toolPersistence: InMemoryToolPersistence()
             ),
-            workspaceRoot: workspaceRoot,
+            workspaceProfile: .hostManaged(root: workspaceRoot),
             promptHistoryRegistry: registry
         )
 

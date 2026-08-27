@@ -13,14 +13,16 @@ public enum ToolExecutionOutcome: Sendable {
 }
 
 /// The workspace selected by the admission snapshot for one `call_tool` invocation.
-struct WorkspaceToolRoute: Sendable {
+struct WorkspaceToolRoute {
     let workspaceID: UUID
     let tool: AnyTool
     let explicit: Bool
     let isPrimary: Bool
     let location: WorkspaceReference.WorkspaceLocation
 
-    var routing: WorkspaceToolRouting { explicit ? .explicit : .implicit }
+    var routing: WorkspaceToolRouting {
+        explicit ? .explicit : .implicit
+    }
 }
 
 /// A fully parsed tool call from the LLM response, ready for routing.
@@ -84,28 +86,30 @@ actor ToolRouter {
 
     private let threadManager: ThreadManager
     private let messageStore: any ThreadMessageStoreProtocol
-    private let runtimeRepository: (any ThreadRuntimeRepository)?
+    private let runtimeRepository: any ThreadRuntimeRepository
     private let toolExecutionTimeout: TimeInterval
     private let approvalPolicy: any ToolApprovalPolicy
     private let sleep: @Sendable (UInt64) async throws -> Void
 
-    public init(
+    init(
         threadManager: ThreadManager,
         messageStore: any ThreadMessageStoreProtocol,
         runtimeRepository: (any ThreadRuntimeRepository)? = nil,
         toolExecutionTimeout: TimeInterval = 60,
         approvalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
-        sleep: (@Sendable (UInt64) async throws -> Void)? = nil
-        , loggingConfiguration: LoggingConfiguration = .default
+        sleep: (@Sendable (UInt64) async throws -> Void)? = nil,
+        loggingConfiguration: LoggingConfiguration = .default
     ) {
         self.threadManager = threadManager
         self.messageStore = messageStore
         self.runtimeRepository = runtimeRepository
+            ?? (messageStore as? any ThreadRuntimeRepository)
+            ?? InMemoryThreadRuntimeRepository()
         self.toolExecutionTimeout = toolExecutionTimeout
         self.approvalPolicy = approvalPolicy
         self.sleep = sleep ?? ToolTimeoutEnforcer.defaultSleep
         self.loggingConfiguration = loggingConfiguration
-        self.logger = loggingConfiguration.logger(named: "tool-router")
+        logger = loggingConfiguration.logger(named: "tool-router")
     }
 
     // MARK: - Turn-Level API
@@ -225,7 +229,7 @@ actor ToolRouter {
                     )
                     effectiveToolRef = workspaceRoute?.tool.toolReference ?? toolRef
                 }
-                if let runtimeRepository, let turnID {
+                if let turnID {
                     try await runtimeRepository.recordToolIntent(RuntimeToolIntent(
                         turnID: turnID,
                         threadID: threadId,
@@ -278,7 +282,7 @@ actor ToolRouter {
                 // ambiguous dispatcher call). Persist a route-neutral intent before projecting
                 // the model-visible error so the error itself cannot be mistaken for an
                 // undurable tool result.
-                if !intentRecorded, let runtimeRepository, let turnID {
+                if !intentRecorded, let turnID {
                     do {
                         try await runtimeRepository.recordToolIntent(RuntimeToolIntent(
                             turnID: turnID,
@@ -301,7 +305,6 @@ actor ToolRouter {
                 }
                 if let ambiguity = error as? ToolError,
                    case .ambiguousWorkspaceTool = ambiguity,
-                   let runtimeRepository,
                    let turnID
                 {
                     let correction = ambiguity.userFriendlyMessage
@@ -367,7 +370,7 @@ actor ToolRouter {
     // MARK: - Core Routing
 
     /// Routes a single tool call to local or external execution.
-    public func execute(
+    func execute(
         tool: ToolReference,
         arguments: [String: AnyCodable],
         threadID: UUID,
@@ -449,7 +452,7 @@ actor ToolRouter {
             return .completed(output)
 
         case .deferExternally:
-        return .deferredExternally
+            return .deferredExternally
         }
     }
 
@@ -731,7 +734,7 @@ actor ToolRouter {
                 threadID: threadId, role: .tool, content: output, toolCallID: call.callId
             )
             do {
-                if let runtimeRepository, let turnID {
+                if let turnID {
                     try await runtimeRepository.recordToolResult(RuntimeToolResult(
                         turnID: turnID,
                         threadID: threadId,
@@ -809,7 +812,7 @@ actor ToolRouter {
             threadID: threadId, role: .tool, content: errorOutput, toolCallID: call.callId
         )
         do {
-            if let runtimeRepository, let turnID {
+            if let turnID {
                 try await runtimeRepository.recordToolResult(RuntimeToolResult(
                     turnID: turnID,
                     threadID: threadId,

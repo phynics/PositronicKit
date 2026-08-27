@@ -30,7 +30,7 @@ def git(*arguments: str) -> str:
 
 def main() -> int:
     if len(sys.argv) != 2 or not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", sys.argv[1]):
-        fail("pass VERSION as a bare semantic version, for example `make verify-release VERSION=4.0.0`")
+        fail("pass VERSION as a bare semantic version, for example `make verify-release VERSION=5.0.0`")
     version = sys.argv[1]
 
     catalog = json.loads((ROOT / "docs" / "catalog.json").read_text())
@@ -46,12 +46,13 @@ def main() -> int:
     if unreleased is None or unreleased.group(1).strip():
         fail("CHANGELOG.md Unreleased must be empty after cutting the release section")
 
+    baseline_release = ".".join(version.split(".")[:2])
     for platform_name in ("linux", "macos"):
-        baseline_path = ROOT / "api" / f"4.0-public-api-{platform_name}.json"
+        baseline_path = ROOT / "api" / f"{baseline_release}-public-api-{platform_name}.json"
         if not baseline_path.exists():
             fail(f"missing reviewed {platform_name} public API baseline: {baseline_path.relative_to(ROOT)}")
         baseline = json.loads(baseline_path.read_text())
-        if baseline.get("release") != "4.0" or baseline.get("platform") != platform_name:
+        if baseline.get("release") != baseline_release or baseline.get("platform") != platform_name:
             fail(f"invalid release/platform metadata in {baseline_path.relative_to(ROOT)}")
 
     tag_ref = f"refs/tags/{version}"

@@ -125,43 +125,4 @@ struct MockLLMServiceContractTests {
         #expect(service.generationCaptureHistory.count == 1)
     }
 
-    @Test("send calls preserve complete capture records")
-    func sendCallsPreserveCompleteCaptureRecords() async throws {
-        let service = MockLLMService()
-        service.nextResponse = "ok"
-        let parameters = GenerationParameters(maxTokens: 12)
-
-        _ = try await service.sendMessage("simple")
-        _ = try await service.sendMessage(
-            "configured",
-            responseFormat: .jsonObject,
-            generationParameters: parameters,
-            modelTier: .utility
-        )
-
-        #expect(service.sendMessageCaptureHistory.count == 2)
-        #expect(service.lastSendMessageCapture?.content == "configured")
-        #expect(service.lastSendMessageCapture?.responseFormat == .jsonObject)
-        #expect(service.lastSendMessageCapture?.generationParameters == parameters)
-        #expect(service.lastSendMessageCapture?.modelTier == .utility)
-    }
-
-    @Test("concurrent title generation loses no captures")
-    func concurrentTitleGenerationLosesNoCaptures() async throws {
-        let service = MockLLMService()
-        let expected = Set((0 ..< 100).map { "title-input-\($0)" })
-
-        try await withThrowingTaskGroup(of: Void.self) { group in
-            for content in expected {
-                group.addTask {
-                    _ = await service.bestEffortTitle(for: [.fixture(content: content)])
-                }
-            }
-            try await group.waitForAll()
-        }
-
-        let actual = service.generatedTitleInputs.compactMap { $0.first?.content }
-        #expect(actual.count == expected.count)
-        #expect(Set(actual) == expected)
-    }
 }

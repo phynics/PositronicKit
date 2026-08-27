@@ -299,7 +299,7 @@ struct ThreadCancellationTests {
     @Test("A second active Turn registration is rejected without cancelling the first (PKRR-002)")
     func secondActiveTurnRegistrationIsRejected() async throws {
         let workspaceRoot = getTestWorkspaceRoot().appendingPathComponent(UUID().uuidString)
-        let threadManager = ThreadManager(workspaceRoot: workspaceRoot)
+        let threadManager = ThreadManager(workspaceProfile: .hostManaged(root: workspaceRoot))
         let threadID = UUID()
 
         let taskACancelled = Mutex(false)
@@ -346,7 +346,7 @@ struct ThreadCancellationTests {
     @Test("A stale send's terminal cleanup does not evict a newer send's registry entry (PKRR-002)")
     func staleTerminalCleanupDoesNotEvictNewerSend() async throws {
         let workspaceRoot = getTestWorkspaceRoot().appendingPathComponent(UUID().uuidString)
-        let threadManager = ThreadManager(workspaceRoot: workspaceRoot)
+        let threadManager = ThreadManager(workspaceProfile: .hostManaged(root: workspaceRoot))
         let threadID = UUID()
 
         let turnA = UUID()

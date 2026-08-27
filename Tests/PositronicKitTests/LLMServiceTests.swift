@@ -1,69 +1,10 @@
 import Foundation
-import Logging
 import PKPrompt
 @testable import PKContracts
 import PKUtilities
 import PKTestSupport
 @testable import PositronicKit
-import Synchronization
 import Testing
-
-private final class CapturingLogSink: Sendable {
-    private struct State: Sendable {
-        var messages: [String] = []
-    }
-
-    private let state = Mutex(State())
-
-    func append(_ message: String) {
-        state.withLock {
-            $0.messages.append(message)
-        }
-    }
-
-    func all() -> [String] {
-        state.withLock { $0.messages }
-    }
-}
-
-private struct CapturingLogHandler: LogHandler {
-    let sink: CapturingLogSink
-    var logLevel: Logger.Level = .debug
-    var metadata = Logger.Metadata()
-
-    subscript(metadataKey key: String) -> Logger.MetadataValue? {
-        get { metadata[key] }
-        set { metadata[key] = newValue }
-    }
-
-    func log(
-        level _: Logger.Level,
-        message: Logger.Message,
-        metadata _: Logger.Metadata?,
-        source _: String,
-        file _: String,
-        function _: String,
-        line _: UInt
-    ) {
-        sink.append(message.description)
-    }
-}
-
-private enum TestUtilityError: Error, PKError, Sendable {
-    case failure
-
-    var errorDomain: String {
-        PKErrorDomain.llm
-    }
-
-    var errorCode: Int {
-        9999
-    }
-
-    var userFriendlyMessage: String {
-        "Friendly utility failure"
-    }
-}
 
 /// Storage that suspends `load()` until `release()` is called, so tests can observe whether the
 /// first public call awaits the preparation task.
@@ -289,17 +230,25 @@ struct LLMServiceTests {
         }
     }
 
-    @Test("Test LLMService error when not configured")
+    @Test("LLMService streaming fails when not configured")
     func unconfiguredServiceError() async throws {
         let service = LLMService(storage: MockConfigurationService(), clientResolver: FixedClientsResolver.empty)
         // No configuration provided
 
+        let stream = await service.generationStream(
+            messages: [LLMMessage(role: .user, content: "Hello")],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: nil,
+            modelTier: .primary
+        )
         await #expect(throws: LLMServiceError.notConfigured) {
-            _ = try await service.sendMessage("Hello")
+            _ = try await stream.collect()
         }
     }
 
-    @Test("Test generateTitle method")
+    @Test("Strict title generation uses schema-backed structured output")
     func titleGeneration() async throws {
         let mockClient = MockLLMClient()
         mockClient.nextResponse = #"{"title":"SwiftUI Basics"}"#
@@ -314,10 +263,10 @@ struct LLMServiceTests {
             Message(content: "You use it by declaring views.", role: .assistant),
         ]
 
-        let title = await service.bestEffortTitle(for: messages)
+        let title = try await LLMUtilityGenerator(streamClient: service).generateTitle(for: messages)
         #expect(title == "SwiftUI Basics")
         guard case let .jsonSchema(schema) = mockClient.lastResponseFormat else {
-            Issue.record("Expected bestEffortTitle to use a JSON schema response format")
+            Issue.record("Expected generateTitle to use a JSON schema response format")
             return
         }
         #expect(schema.name == "llm_title")
@@ -341,11 +290,12 @@ struct LLMServiceTests {
         )
 
         mockClient.nextResponse = #"{"tags":["Swift","Tests"]}"#
-        let tags = await service.bestEffortTags(for: "Swift tests are great")
+        let generator = LLMUtilityGenerator(streamClient: service)
+        let tags = try await generator.generateTags(for: "Swift tests are great")
         #expect(tags == ["swift", "tests"])
 
         guard case let .jsonSchema(tagSchema) = mockClient.lastResponseFormat else {
-            Issue.record("Expected bestEffortTags to use a JSON schema response format")
+            Issue.record("Expected generateTags to use a JSON schema response format")
             return
         }
         #expect(tagSchema.name == "llm_tags")
@@ -353,13 +303,13 @@ struct LLMServiceTests {
         #expect(tagSchemaText.contains("\"tags\""))
 
         mockClient.nextResponse = #"{"title":"Condensed Title"}"#
-        let title = await service.bestEffortTitle(for: [
+        let title = try await generator.generateTitle(for: [
             Message(content: "Summarize this discussion", role: .user),
         ])
         #expect(title == "Condensed Title")
 
         guard case let .jsonSchema(titleSchema) = mockClient.lastResponseFormat else {
-            Issue.record("Expected bestEffortTitle to use a JSON schema response format")
+            Issue.record("Expected generateTitle to use a JSON schema response format")
             return
         }
         #expect(titleSchema.name == "llm_title")
@@ -367,35 +317,25 @@ struct LLMServiceTests {
         #expect(titleSchemaText.contains("\"title\""))
     }
 
-    @Test("Utility generations return defaults and log friendly failure messages")
-    func utilityGenerationsReturnDefaultsAndLogFriendlyFailureMessages() async throws {
-        let sink = CapturingLogSink()
-        let logger = Logger(label: "test.llm.utilities") { _ in
-            CapturingLogHandler(sink: sink)
-        }
-
+    @Test("Strict utility generations propagate provider failures")
+    func utilityGenerationsPropagateProviderFailures() async throws {
         let mockClient = MockLLMClient()
         mockClient.shouldThrowError = true
-        mockClient.errorToThrow = TestUtilityError.failure
 
         let service = LLMService(
             configuration: .fixture(apiKey: "test-key"),
-            clients: .init(primary: mockClient),
-            logger: logger
+            clients: .init(primary: mockClient)
         )
 
-        let tags = await service.bestEffortTags(for: "Tag this text")
-        #expect(tags.isEmpty)
-
-        let title = await service.bestEffortTitle(for: [
-            Message(content: "A thread", role: .user),
-        ])
-        #expect(title == "New Thread")
-
-        let messages = sink.all()
-        #expect(messages.contains(where: { $0.contains("Friendly utility failure") }))
-        #expect(messages.contains(where: { $0.contains("Failed to generate tags") }))
-        #expect(messages.contains(where: { $0.contains("Failed to generate title") }))
+        let generator = LLMUtilityGenerator(streamClient: service)
+        await #expect(throws: Error.self) {
+            _ = try await generator.generateTags(for: "Tag this text")
+        }
+        await #expect(throws: Error.self) {
+            _ = try await generator.generateTitle(for: [
+                Message(content: "A thread", role: .user),
+            ])
+        }
     }
 
     @Test("Health details report typed provider identity, not endpoint substrings")
@@ -480,9 +420,17 @@ struct LLMServiceTests {
         #expect(await service.isReady, "isReady is true when configuration is valid and a primary client is resolved")
         #expect(await service.isConfigured, "isConfigured is also true here")
 
-        // A primary send must succeed when isReady is true.
-        let response = try await service.sendMessage("ping")
-        #expect(response == "ok")
+        // A primary stream must succeed when isReady is true.
+        let stream = await service.generationStream(
+            messages: [LLMMessage(role: .user, content: "ping")],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: nil,
+            modelTier: .primary
+        )
+        let chunks = try await stream.collect()
+        #expect(chunks.compactMap { $0.choices.first?.delta.content }.joined() == "ok")
     }
 
     @Test("Health details explain invalid configuration versus missing client factory (PKRR-018)")
@@ -525,8 +473,8 @@ struct LLMServiceTests {
         #expect(await readyService.isReady == true)
     }
 
-    @Test("sendMessage throws clientNotResolved when configured but no client exists (PKRR-018)")
-    func sendMessageThrowsClientNotResolvedWhenNoClient() async {
+    @Test("generationStream fails clientNotResolved when configured but no client exists (PKRR-018)")
+    func generationStreamThrowsClientNotResolvedWhenNoClient() async {
         let config = LLMConfiguration.fixture(
             endpoint: "https://test.api.com",
             modelName: "test-model",
@@ -537,8 +485,16 @@ struct LLMServiceTests {
 
         // Config is valid but no client factory → the more specific clientNotResolved error,
         // not the generic notConfigured.
+        let stream = await service.generationStream(
+            messages: [LLMMessage(role: .user, content: "Hello")],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: nil,
+            modelTier: .primary
+        )
         let thrown = await #expect(throws: LLMServiceError.self) {
-            _ = try await service.sendMessage("Hello")
+            _ = try await stream.collect()
         }
         #expect(thrown == .clientNotResolved(provider: "OpenAI"))
     }
@@ -571,12 +527,20 @@ struct LLMServiceTests {
         #expect(capturedError as? LLMServiceError == .clientNotResolved(provider: "OpenAI"))
     }
 
-    @Test("sendMessage still throws notConfigured when configuration is invalid (PKRR-018)")
-    func sendMessageThrowsNotConfiguredWhenConfigInvalid() async {
+    @Test("generationStream still throws notConfigured when configuration is invalid (PKRR-018)")
+    func generationStreamThrowsNotConfiguredWhenConfigInvalid() async {
         // Storage-backed service with default (invalid) config and no client.
         let service = LLMService(storage: MockConfigurationService(), clientResolver: FixedClientsResolver.empty)
+        let stream = await service.generationStream(
+            messages: [LLMMessage(role: .user, content: "Hello")],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: nil,
+            modelTier: .primary
+        )
         let thrown = await #expect(throws: LLMServiceError.self) {
-            _ = try await service.sendMessage("Hello")
+            _ = try await stream.collect()
         }
         #expect(thrown == .notConfigured)
     }
@@ -593,7 +557,15 @@ struct LLMServiceTests {
 
         // Case 1: Custom parameters passed
         let customParams = GenerationParameters(temperature: 0.5, maxTokens: 100)
-        _ = try await service.sendMessage("Hello", responseFormat: nil, generationParameters: customParams)
+        let customStream = await service.generationStream(
+            messages: [LLMMessage(role: .user, content: "Hello")],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: customParams,
+            modelTier: .primary
+        )
+        _ = try await customStream.collect()
 
         #expect(mockClient.lastParameters?.temperature == 0.5)
         #expect(mockClient.lastParameters?.maxTokens == 100)
@@ -616,7 +588,15 @@ struct LLMServiceTests {
         )
         try await service.updateConfiguration(config)
 
-        _ = try await service.sendMessage("Hello")
+        let defaultStream = await service.generationStream(
+            messages: [LLMMessage(role: .user, content: "Hello")],
+            tools: nil,
+            toolChoice: nil,
+            responseFormat: nil,
+            generationParameters: nil,
+            modelTier: .primary
+        )
+        _ = try await defaultStream.collect()
         #expect(mockClient.lastParameters?.temperature == 0.8)
         #expect(mockClient.lastParameters?.maxTokens == 500)
     }
@@ -769,11 +749,6 @@ struct LLMServiceTests {
     func missingClientProducesClientNotResolvedEverywhere() async {
         let service = LLMService(configuration: .fixture(apiKey: "test-key"), clients: .empty)
 
-        let sendError = await #expect(throws: LLMServiceError.self) {
-            _ = try await service.sendMessage("Hi")
-        }
-        #expect(sendError == .clientNotResolved(provider: "OpenAI"))
-
         await #expect(throws: LLMServiceError.self) {
             let stream = await service.generationStream(
                 messages: [LLMMessage(role: .user, content: "Hi")],
@@ -798,11 +773,6 @@ struct LLMServiceTests {
     func invalidConfigurationProducesNotConfiguredEverywhere() async {
         let invalid = LLMConfiguration.fixture(modelName: "", apiKey: "")
         let service = LLMService(configuration: invalid, clients: .init(primary: MockLLMClient()))
-
-        let sendError = await #expect(throws: LLMServiceError.self) {
-            _ = try await service.sendMessage("Hi")
-        }
-        #expect(sendError == .notConfigured)
 
         await #expect(throws: LLMServiceError.self) {
             let stream = await service.generationStream(
@@ -855,12 +825,18 @@ struct LLMServiceTests {
             clients: .init(primary: primary, utility: utility, fast: fast)
         )
 
-        _ = try await service.sendMessage("p", responseFormat: nil, generationParameters: nil, modelTier: .primary)
-        _ = try await service.sendMessage("u", responseFormat: nil, generationParameters: nil, modelTier: .utility)
-        _ = try await service.sendMessage("f", responseFormat: nil, generationParameters: nil, modelTier: .fast)
-        #expect(primary.sendMessageCaptureHistory.map(\.content) == ["p"])
-        #expect(utility.sendMessageCaptureHistory.map(\.content) == ["u"])
-        #expect(fast.sendMessageCaptureHistory.map(\.content) == ["f"])
+        for (client, content, tier) in [(primary, "p", ModelTier.primary), (utility, "u", .utility), (fast, "f", .fast)] {
+            let stream = await service.generationStream(
+                messages: [LLMMessage(role: .user, content: content)],
+                tools: nil,
+                toolChoice: nil,
+                responseFormat: nil,
+                generationParameters: nil,
+                modelTier: tier
+            )
+            _ = try await stream.collect()
+            #expect(client.lastMessages.first?.content == content)
+        }
 
         // Fallback: utility/fast tiers without a dedicated client route to primary.
         let fallback = MockLLMClient()
@@ -868,9 +844,18 @@ struct LLMServiceTests {
             configuration: .fixture(apiKey: "test-key"),
             clients: .init(primary: fallback)
         )
-        _ = try await fallbackService.sendMessage("u2", responseFormat: nil, generationParameters: nil, modelTier: .utility)
-        _ = try await fallbackService.sendMessage("f2", responseFormat: nil, generationParameters: nil, modelTier: .fast)
-        #expect(fallback.sendMessageCaptureHistory.map(\.content) == ["u2", "f2"])
+        for (content, tier) in [("u2", ModelTier.utility), ("f2", .fast)] {
+            let stream = await fallbackService.generationStream(
+                messages: [LLMMessage(role: .user, content: content)],
+                tools: nil,
+                toolChoice: nil,
+                responseFormat: nil,
+                generationParameters: nil,
+                modelTier: tier
+            )
+            _ = try await stream.collect()
+        }
+        #expect(fallback.messageHistory.map { $0.first?.content ?? "" } == ["u2", "f2"])
     }
 
     @Test("Concurrent first operations perform one migration/load sequence")

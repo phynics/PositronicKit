@@ -77,7 +77,7 @@ struct ThreadManagerTests {
 
     @Test("canonical thread manager exposes store and runtime policy names")
     func canonicalThreadManagerTypes() {
-        let policy = ThreadManager.RuntimeToolPolicy(
+        let policy = RuntimeToolPolicy(
             installThreadObservationTools: false,
             installThreadSendTool: false
         )
@@ -122,7 +122,7 @@ struct ThreadManagerTests {
     @Test("Test Session Creation")
     func sessionCreation() async throws {
         let workspace = TestWorkspace()
-        let threadManager = ThreadManager(workspaceRoot: workspace.root)
+        let threadManager = ThreadManager(workspaceProfile: .hostManaged(root: workspace.root))
 
         let session = try await threadManager.createThread()
 
@@ -137,7 +137,7 @@ struct ThreadManagerTests {
     @Test("Test Stale Session Cleanup")
     func cleanup() async throws {
         let workspace = TestWorkspace()
-        let threadManager = ThreadManager(workspaceRoot: workspace.root)
+        let threadManager = ThreadManager(workspaceProfile: .hostManaged(root: workspace.root))
 
         let session = try await threadManager.createThread()
 
@@ -152,7 +152,7 @@ struct ThreadManagerTests {
         let workspace = TestWorkspace()
         let registry = ThreadPromptJournals()
         let threadManager = ThreadManager(
-            workspaceRoot: workspace.root,
+            workspaceProfile: .hostManaged(root: workspace.root),
             promptHistoryRegistry: registry
         )
 
@@ -181,7 +181,7 @@ struct ThreadManagerTests {
         let workspace = TestWorkspace()
         let registry = ThreadPromptJournals()
         let threadManager = ThreadManager(
-            workspaceRoot: workspace.root,
+            workspaceProfile: .hostManaged(root: workspace.root),
             promptHistoryRegistry: registry
         )
 
@@ -203,7 +203,7 @@ struct ThreadManagerTests {
     @Test("evictThreadFromMemory(id:) with no injected registry still evicts the cache")
     func deleteThreadWithoutRegistry() async throws {
         let workspace = TestWorkspace()
-        let threadManager = ThreadManager(workspaceRoot: workspace.root)
+        let threadManager = ThreadManager(workspaceProfile: .hostManaged(root: workspace.root))
 
         let session = try await threadManager.createThread()
 
@@ -215,7 +215,7 @@ struct ThreadManagerTests {
     @Test("Test Task Registration and Cancellation")
     func taskCancellation() async {
         let workspaceRoot = getTestWorkspaceRoot().appendingPathComponent(UUID().uuidString)
-        let threadManager = ThreadManager(workspaceRoot: workspaceRoot)
+        let threadManager = ThreadManager(workspaceProfile: .hostManaged(root: workspaceRoot))
         let threadID = UUID()
 
         let isCancelled = Mutex(false)
@@ -255,7 +255,7 @@ struct ThreadManagerTests {
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 toolPersistence: persistence
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
 
         let thread = try await threadManager.createThread()
@@ -268,7 +268,7 @@ struct ThreadManagerTests {
     @Test("hydrateThread throws threadNotFound when persistence has no thread")
     func hydrateMissing() async throws {
         let workspace = TestWorkspace()
-        let threadManager = ThreadManager(workspaceRoot: workspace.root)
+        let threadManager = ThreadManager(workspaceProfile: .hostManaged(root: workspace.root))
 
         do {
             try await threadManager.hydrateThread(id: UUID())
@@ -290,7 +290,7 @@ struct ThreadManagerTests {
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 toolPersistence: persistence
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
 
         let thread = try await threadManager.createThread()
@@ -306,7 +306,7 @@ struct ThreadManagerTests {
     @Test("updateThreadTitle for a missing thread throws threadNotFound")
     func updateTitleMissing() async throws {
         let workspace = TestWorkspace()
-        let threadManager = ThreadManager(workspaceRoot: workspace.root)
+        let threadManager = ThreadManager(workspaceProfile: .hostManaged(root: workspace.root))
 
         do {
             try await threadManager.updateThreadTitle(UUID(), title: "x")
@@ -328,7 +328,7 @@ struct ThreadManagerTests {
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 toolPersistence: persistence
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
 
         let thread = try await threadManager.createThread()
@@ -343,7 +343,7 @@ struct ThreadManagerTests {
     @Test("createThread creates Notes/Welcome.md and Notes/Project.md in the working directory")
     func createThreadWritesDefaultNotes() async throws {
         let workspace = TestWorkspace()
-        let threadManager = ThreadManager(workspaceRoot: workspace.root)
+        let threadManager = ThreadManager(workspaceProfile: .hostManaged(root: workspace.root))
 
         let thread = try await threadManager.createThread()
 

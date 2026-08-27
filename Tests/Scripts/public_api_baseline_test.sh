@@ -12,10 +12,10 @@ mkdir -p "$fixture/Scripts" "$fixture/docs" "$fixture/api" "$fake_bin"
 cp "$repo_root/Scripts/public-api-baseline.py" "$fixture/Scripts/"
 cp "$repo_root/docs/catalog.json" "$fixture/docs/"
 
-cat > "$fixture/api/4.0-public-api-linux.json" <<'EOF'
+cat > "$fixture/api/5.0-public-api-linux.json" <<'EOF'
 {
   "schemaVersion": 2,
-  "release": "4.0",
+  "release": "5.0",
   "platform": "linux",
   "modules": [
     "PKAnthropicProvider",

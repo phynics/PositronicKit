@@ -15,8 +15,7 @@ struct FacadeOneShotTests {
         let llm = MockLLMService()
         llm.stubbedStream = Self.stream(contents: ["hel", "lo"])
         let persistence = PositronicKit.PersistenceConfiguration(
-            messageStore: InMemoryMessageStore(),
-            threadPersistence: InMemoryThreadPersistence(),
+            runtimeRepository: InMemoryThreadRuntimeRepository(),
             workspacePersistence: InMemoryWorkspacePersistence(),
             toolPersistence: InMemoryToolPersistence(),
             agentStore: InMemoryAgentStore(),
@@ -30,8 +29,8 @@ struct FacadeOneShotTests {
         let result = try await kit.complete("hi")
 
         #expect(result == "hello")
-        #expect(try await persistence.messageStore.fetchMessages(for: UUID()).isEmpty)
-        #expect(try await persistence.threadPersistence.fetchAllThreads(includeArchived: true).isEmpty)
+        #expect(try await persistence.runtimeRepository.fetchMessages(for: UUID()).isEmpty)
+        #expect(try await persistence.runtimeRepository.fetchAllThreads(includeArchived: true).isEmpty)
         #expect(try await persistence.workspacePersistence.fetchAllWorkspaces().isEmpty)
         #expect(try await persistence.toolPersistence.fetchTools(forWorkspaces: []).isEmpty)
         #expect(try await persistence.agentStore.fetchAllAgents().isEmpty)
@@ -47,8 +46,7 @@ struct FacadeOneShotTests {
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: llm),
             persistence: .init(
-                messageStore: messageStore,
-                threadPersistence: threadPersistence
+                runtimeRepository: InMemoryThreadRuntimeRepository()
             )
         ))
 
@@ -103,8 +101,7 @@ struct FacadeOneShotTests {
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: llm),
             persistence: .init(
-                messageStore: InMemoryMessageStore(),
-                threadPersistence: InMemoryThreadPersistence()
+                runtimeRepository: InMemoryThreadRuntimeRepository()
             )
         ))
         let parameters = GenerationParameters(temperature: 0.2, maxTokens: 12)
@@ -126,8 +123,7 @@ struct FacadeOneShotTests {
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: llm),
             persistence: .init(
-                messageStore: InMemoryMessageStore(),
-                threadPersistence: InMemoryThreadPersistence()
+                runtimeRepository: InMemoryThreadRuntimeRepository()
             )
         ))
 
@@ -151,8 +147,7 @@ struct FacadeOneShotTests {
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: llm),
             persistence: .init(
-                messageStore: InMemoryMessageStore(),
-                threadPersistence: InMemoryThreadPersistence()
+                runtimeRepository: InMemoryThreadRuntimeRepository()
             )
         ))
         let task = Task {
@@ -209,8 +204,7 @@ struct FacadeOneShotTests {
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: llm),
             persistence: PositronicKit.PersistenceConfiguration(
-                messageStore: InMemoryMessageStore(),
-                threadPersistence: InMemoryThreadPersistence(),
+                runtimeRepository: InMemoryThreadRuntimeRepository(),
                 workspacePersistence: InMemoryWorkspacePersistence(),
                 toolPersistence: InMemoryToolPersistence(),
                 agentStore: InMemoryAgentStore(),
@@ -333,8 +327,7 @@ struct FacadeOneShotTests {
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: llm),
             persistence: PositronicKit.PersistenceConfiguration(
-                messageStore: InMemoryMessageStore(),
-                threadPersistence: InMemoryThreadPersistence(),
+                runtimeRepository: InMemoryThreadRuntimeRepository(),
                 workspacePersistence: InMemoryWorkspacePersistence(),
                 toolPersistence: InMemoryToolPersistence(),
                 agentStore: InMemoryAgentStore(),
@@ -363,8 +356,7 @@ struct FacadeOneShotTests {
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: llm),
             persistence: PositronicKit.PersistenceConfiguration(
-                messageStore: InMemoryMessageStore(),
-                threadPersistence: InMemoryThreadPersistence(),
+                runtimeRepository: InMemoryThreadRuntimeRepository(),
                 workspacePersistence: InMemoryWorkspacePersistence(),
                 toolPersistence: InMemoryToolPersistence(),
                 agentStore: InMemoryAgentStore(),
@@ -390,8 +382,7 @@ struct FacadeOneShotTests {
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: llm),
             persistence: PositronicKit.PersistenceConfiguration(
-                messageStore: InMemoryMessageStore(),
-                threadPersistence: InMemoryThreadPersistence()
+                runtimeRepository: InMemoryThreadRuntimeRepository()
             )
         ))
 
@@ -423,8 +414,7 @@ struct FacadeOneShotTests {
         PositronicKit(configuration: .init(
             provider: .init(languageModel: languageModel),
             persistence: .init(
-                messageStore: InMemoryMessageStore(),
-                threadPersistence: InMemoryThreadPersistence()
+                runtimeRepository: InMemoryThreadRuntimeRepository()
             ),
             generationParameters: generationParameters
         ))

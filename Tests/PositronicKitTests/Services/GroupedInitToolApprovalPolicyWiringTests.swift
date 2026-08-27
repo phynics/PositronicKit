@@ -66,8 +66,7 @@ struct GroupedInitToolApprovalPolicyWiringTests {
         let workspace = TestWorkspace()
 
         let persistence = PositronicKit.PersistenceConfiguration(
-            messageStore: mockPersistence,
-            threadPersistence: mockPersistence,
+            runtimeRepository: mockPersistence,
             workspacePersistence: mockPersistence,
             toolPersistence: mockPersistence,
             agentStore: mockPersistence,
@@ -77,8 +76,8 @@ struct GroupedInitToolApprovalPolicyWiringTests {
             provider: .init(languageModel: UnconfiguredLLMService()),
             persistence: persistence,
             runtime: .init(
+                workspaceProfile: .hostManaged(root: workspace.root),
                 workspaceCreator: MockWorkspaceCreator(),
-                workspaceRoot: workspace.root,
                 toolApprovalPolicy: gate
             )
         ))
@@ -97,8 +96,7 @@ struct GroupedInitToolApprovalPolicyWiringTests {
         let workspace = TestWorkspace()
 
         let persistence = PositronicKit.PersistenceConfiguration(
-            messageStore: mockPersistence,
-            threadPersistence: mockPersistence,
+            runtimeRepository: mockPersistence,
             workspacePersistence: mockPersistence,
             toolPersistence: mockPersistence,
             agentStore: mockPersistence,
@@ -107,7 +105,7 @@ struct GroupedInitToolApprovalPolicyWiringTests {
         let chat = PositronicKit(configuration: .init(
             provider: .init(languageModel: UnconfiguredLLMService()),
             persistence: persistence,
-            runtime: .init(workspaceRoot: workspace.root, toolApprovalPolicy: gate)
+            runtime: .init(workspaceProfile: .hostManaged(root: workspace.root), toolApprovalPolicy: gate)
         ))
         let threadID = try await register(tool, on: chat, persistence: mockPersistence)
         return (chat, threadID, tool)

@@ -7,48 +7,10 @@ import PKUtilities
 // MARK: - Initialization
 
 extension ThreadManager {
-    /// Designated initializer taking a `workspaceRoot` (legacy / backward-compatible).
-    ///
-    /// Maps to `.hostManaged(root: seedNotes: .default)`, preserving the pre-PKRR-029 behavior
-    /// of callers that pass an explicit `workspaceRoot`.
-    init(
-        stores: Stores,
-        workspaceRoot: URL,
-        resolver: any WorkspaceResolver,
-        runtimeToolPolicy: RuntimeToolPolicy = .default,
-        promptHistoryRegistry: ThreadPromptJournals? = nil,
-        taskRegistry: ThreadTaskRegistry? = nil
-    ) {
-        self.init(
-            stores: stores,
-            workspaceProfile: .hostManaged(root: workspaceRoot, seedNotes: .default),
-            resolver: resolver,
-            runtimeToolPolicy: runtimeToolPolicy,
-            promptHistoryRegistry: promptHistoryRegistry,
-            taskRegistry: taskRegistry
-        )
-    }
-
-    /// Public designated initializer: accepts a fully-formed `any WorkspaceResolver` directly.
-    public init(
-        stores: Stores,
-        workspaceRoot: URL,
-        resolver: any WorkspaceResolver,
-        runtimeToolPolicy: RuntimeToolPolicy = .default
-    ) {
-        self.init(
-            stores: stores,
-            workspaceProfile: .hostManaged(root: workspaceRoot, seedNotes: .default),
-            resolver: resolver,
-            runtimeToolPolicy: runtimeToolPolicy
-        )
-    }
-
     /// Public designated initializer with an explicit workspace profile (PKRR-029).
     ///
     /// Use `.noWorkspace` for a side-effect-free default, `.ephemeralWorkspace` for a
-    /// self-cleaning scratch directory, or `.hostManaged` to preserve the pre-PKRR-029
-    /// explicit-`workspaceRoot` behavior.
+    /// self-cleaning scratch directory, or `.hostManaged` for a host-owned directory.
     public init(
         stores: Stores,
         workspaceProfile: WorkspaceProfile,
@@ -93,40 +55,6 @@ extension ThreadManager {
         )
     }
 
-    /// Convenience initializer (legacy `workspaceRoot` form). Maps to `.hostManaged`.
-    init(
-        stores: Stores,
-        workspaceRoot: URL,
-        workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
-        runtimeToolPolicy: RuntimeToolPolicy = .default,
-        promptHistoryRegistry: ThreadPromptJournals? = nil,
-        taskRegistry: ThreadTaskRegistry? = nil
-    ) {
-        self.init(
-            stores: stores,
-            workspaceProfile: .hostManaged(root: workspaceRoot, seedNotes: .default),
-            workspaceCreator: workspaceCreator,
-            runtimeToolPolicy: runtimeToolPolicy,
-            promptHistoryRegistry: promptHistoryRegistry,
-            taskRegistry: taskRegistry
-        )
-    }
-
-    public init(
-        stores: Stores,
-        workspaceRoot: URL,
-        workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
-        runtimeToolPolicy: RuntimeToolPolicy = .default
-    ) {
-        self.init(
-            stores: stores,
-            workspaceRoot: workspaceRoot,
-            workspaceCreator: workspaceCreator,
-            runtimeToolPolicy: runtimeToolPolicy,
-            promptHistoryRegistry: nil
-        )
-    }
-
     /// Public convenience initializer with an explicit workspace profile (PKRR-029).
     public init(
         stores: Stores,
@@ -154,43 +82,6 @@ extension ThreadManager {
             workspaceCreator: workspaceCreator,
             runtimeToolPolicy: runtimeToolPolicy,
             promptHistoryRegistry: nil
-        )
-    }
-
-    public init(
-        workspaceRoot: URL,
-        workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
-        runtimeToolPolicy: RuntimeToolPolicy = .default
-    ) {
-        self.init(
-            workspaceRoot: workspaceRoot,
-            workspaceCreator: workspaceCreator,
-            runtimeToolPolicy: runtimeToolPolicy,
-            promptHistoryRegistry: nil
-        )
-    }
-
-    init(
-        workspaceRoot: URL,
-        workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
-        runtimeToolPolicy: RuntimeToolPolicy = .default,
-        promptHistoryRegistry: ThreadPromptJournals? = nil,
-        taskRegistry: ThreadTaskRegistry? = nil
-    ) {
-        let workspaceStore = InMemoryWorkspacePersistence()
-        self.init(
-            stores: .init(
-                threadStore: InMemoryThreadPersistence(),
-                messageStore: InMemoryMessageStore(),
-                workspaceStore: workspaceStore,
-                workspaceBindingRepository: workspaceStore,
-                toolPersistence: InMemoryToolPersistence()
-            ),
-            workspaceRoot: workspaceRoot,
-            workspaceCreator: workspaceCreator,
-            runtimeToolPolicy: runtimeToolPolicy,
-            promptHistoryRegistry: promptHistoryRegistry,
-            taskRegistry: taskRegistry
         )
     }
 

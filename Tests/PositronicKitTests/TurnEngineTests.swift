@@ -1,8 +1,8 @@
 import Foundation
 import OpenAI
 @testable import PKContracts
-import PKUtilities
 import PKTestSupport
+import PKUtilities
 @testable import PositronicKit
 import Testing
 
@@ -23,14 +23,16 @@ struct TurnEngineTests {
                 threadStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
+                runtimeRepository: mockPersistence,
                 toolPersistence: mockPersistence
             ),
-            workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
+            workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp/pk-test")),
             workspaceCreator: MockWorkspaceCreator()
         )
         let toolRouter = ToolRouter(
             threadManager: threadManager,
-            messageStore: mockPersistence
+            messageStore: mockPersistence,
+            runtimeRepository: mockPersistence
         )
         let engine = TurnEngine(
             dependencies: .init(
@@ -38,6 +40,7 @@ struct TurnEngineTests {
                 agentStore: mockPersistence,
                 requestOriginStore: mockPersistence,
                 messageStore: mockPersistence,
+                runtimeRepository: mockPersistence,
                 llmService: mockLLM,
                 toolRouter: toolRouter,
                 streamTimeout: streamTimeout
@@ -925,7 +928,7 @@ struct TurnEngineTests {
             }
 
             let messages = try await mockPersistence.fetchMessages(for: threadID)
-            #expect(messages.isEmpty)
+            #expect(messages.filter { $0.role == "tool" }.isEmpty)
         }
     }
 
@@ -985,6 +988,8 @@ struct TurnEngineTests {
                             _ = try await collect(stream)
                             return true
                         } catch ToolError.unmatchedToolOutput {
+                            return false
+                        } catch ThreadRuntimeRepositoryError.threadBusy {
                             return false
                         } catch {
                             Issue.record("Unexpected error: \(error)")
@@ -1075,14 +1080,16 @@ struct TurnEngineTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
-            workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
+            workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp/pk-test")),
             workspaceCreator: MockWorkspaceCreator()
         )
         let toolRouter = ToolRouter(
             threadManager: threadManager,
-            messageStore: persistence
+            messageStore: persistence,
+            runtimeRepository: persistence
         )
         let engine = TurnEngine(
             dependencies: .init(
@@ -1090,6 +1097,7 @@ struct TurnEngineTests {
                 agentStore: persistence,
                 requestOriginStore: persistence,
                 messageStore: persistence,
+                runtimeRepository: persistence,
                 llmService: mockLLM,
                 toolRouter: toolRouter,
                 streamTimeout: 60
@@ -1163,6 +1171,7 @@ struct TurnEngineTests {
                 agentStore: persistence,
                 requestOriginStore: persistence,
                 messageStore: persistence,
+                runtimeRepository: persistence,
                 llmService: reloadLLM,
                 toolRouter: toolRouter,
                 streamTimeout: 60
@@ -1183,7 +1192,7 @@ struct TurnEngineTests {
         #expect(reloadLLM.mockClient.streamCallCount == 1)
     }
 
-    @Test("Tool outputs matching pending assistant calls are persisted before user message")
+    @Test("Tool outputs matching pending assistant calls remain durable with the admitted user message")
     func matchedToolOutputsPersistedBeforeUserMessage() async throws {
         try await withTurnEngineDependencies { engine, mockLLM, mockPersistence in
             try await mockPersistence.saveMessage(ThreadMessage(
@@ -1204,11 +1213,12 @@ struct TurnEngineTests {
             _ = try await collect(stream)
 
             let messages = try await mockPersistence.fetchMessages(for: threadID)
-            // pending assistant → tool output → user message → assistant message
+            // Admission durably records the user before preparation commits tool outputs.
+            // The sequence is therefore pending assistant → user message → tool output → assistant.
             #expect(messages.count == 4)
             #expect(messages[0].role == "assistant")
-            #expect(messages[1].role == "tool")
-            #expect(messages[2].role == "user")
+            #expect(messages[1].role == "user")
+            #expect(messages[2].role == "tool")
             #expect(messages[3].role == "assistant")
         }
     }
@@ -1269,9 +1279,10 @@ struct TurnEngineTests {
                     threadStore: MockPersistenceService(),
                     messageStore: MockPersistenceService(),
                     workspaceStore: MockPersistenceService(),
+                    runtimeRepository: MockPersistenceService(),
                     toolPersistence: MockPersistenceService()
                 ),
-                workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
+                workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp/pk-test")),
                 workspaceCreator: MockWorkspaceCreator()
             ),
             agentStore: MockPersistenceService(),
@@ -1286,11 +1297,11 @@ struct TurnEngineTests {
                         workspaceStore: MockPersistenceService(),
                         toolPersistence: MockPersistenceService()
                     ),
-                    workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
+                    workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp/pk-test")),
                     workspaceCreator: MockWorkspaceCreator()
                 ),
                 messageStore: MockPersistenceService()
-            ),
+            )
         )
 
         #expect(dependencies.streamTimeout == TurnEngine.Dependencies.defaultStreamTimeout)
@@ -1397,5 +1408,4 @@ struct TurnEngineTests {
             #expect(assistantMsg?.agentID == agentId)
         }
     }
-
 }

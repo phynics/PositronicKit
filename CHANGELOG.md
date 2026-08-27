@@ -34,6 +34,20 @@ for tagged releases beginning with `1.0.0`.
   history remains durable only on the Thread whose Turn executed it; `AgentActivitySink` remains a
   lifecycle-only integration.
 
+### Breaking — target 5.0.0
+
+- Removed the unused `ThreadManager.deleteThread(id:)` forwarding API and compatibility test.
+- Renamed `RuntimeToolPolicyConfiguration` to `RuntimeToolPolicy`; removed its global and nested
+  aliases. `RuntimeConfiguration.workspaceProfile` is now the sole workspace input; remove
+  `workspaceRoot` and use `.hostManaged(root:)`, `.ephemeralWorkspace`, or `.noWorkspace`.
+- `PersistenceConfiguration.runtimeRepository` is required. Removed public `messageStore` and
+  `threadPersistence` assembly; derive those seams from one `ThreadRuntimeRepository` and use
+  `.inMemory()` for prototyping. `DurabilityReport` now reports `runtimeRepository` as one entry.
+- Replaced the aggregate `LanguageModel` and `LLMUtilityClient` composition surface with
+  `any LLMStreamClient`. Removed `LLMService+Compatibility.swift`, `BestEffortLLMUtilities`, and
+  `LLMService.sendMessage`; use `kit.model.generate`/`stream` and strict
+  `LLMUtilityGenerator(streamClient:)` with caller-owned fallback handling.
+
 ### Breaking
 
 - **ThreadRuntimeRepository admission contract:** custom v4 repositories must implement the

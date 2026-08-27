@@ -14,8 +14,10 @@ import PKUtilities
 ///
 /// Not part of the public API surface.
 internal struct KitDependencies: Sendable {
-    var languageModel: any LLMStreamClient & LLMUtilityClient
+    var languageModel: any LLMStreamClient
     var messageStore: any ThreadMessageStoreProtocol
+    /// Optional for package-internal legacy assembly helpers; public facade configuration always
+    /// supplies a cohesive repository.
     var runtimeRepository: (any ThreadRuntimeRepository)?
     var workspaceBindingRepository: any WorkspaceBindingRepository
     var agentStore: any AgentStoreProtocol

@@ -18,6 +18,7 @@ actor ExternalToolOutputSubmissionGate {
     func validate(
         _ toolOutputs: [ToolOutputSubmission],
         threadID: UUID,
+        inputMessageID: UUID? = nil,
         messageStore: any ThreadMessageStoreProtocol
     ) async throws -> [ToolOutputSubmission] {
         guard !toolOutputs.isEmpty else { return [] }
@@ -27,6 +28,10 @@ actor ExternalToolOutputSubmissionGate {
 
         // Only the latest uninterrupted assistant tool-call set is externally resumable.
         for message in existingMessages.sorted(by: { $0.timestamp < $1.timestamp }) {
+            // Admission durably appends the current user input before preparation. That input is
+            // part of the same request as these tool outputs and must not clear the pending call
+            // set that precedes it; unrelated user messages still clear pending calls below.
+            if message.id == inputMessageID { continue }
             switch message.messageRole {
             case .assistant:
                 pendingToolCallIds = Set(Self.decodeToolCalls(from: message.toolCalls).map(\.id))

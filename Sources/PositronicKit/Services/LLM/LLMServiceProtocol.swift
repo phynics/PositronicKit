@@ -163,10 +163,6 @@ public struct LLMPromptRequest: Sendable {
 /// Parsed endpoint components.
 // MARK: - Narrow LLM seams
 
-/// The complete language-model capability required by the PositronicKit facade.
-/// Hosts inject one provider-selected value at their composition root.
-public protocol LanguageModel: LLMStreamClient, LLMConfigStore, LLMUtilityClient {}
-
 /// Streaming generation seam: a consumer that drives LLM generation by streaming
 /// completions. This is the narrowest seam the runtime turn loop needs.
 public protocol LLMStreamClient: Sendable {
@@ -220,48 +216,6 @@ public protocol LLMConfigStore: Sendable {
     func restoreFromBackup() async throws
     func exportConfiguration() async throws -> Data
     func importConfiguration(from data: Data) async throws
-}
-
-/// Utility LLM task seam: one-shot message sends, best-effort tag/title generation, and
-/// model listing. These are non-streaming helper tasks that some hosts drive independently
-/// of the turn loop.
-///
-/// `bestEffortTags(for:)` and `bestEffortTitle(for:)` are explicitly best-effort: they never
-/// throw, log failures, and return documented defaults. Hosts that own their own fallback
-/// policy should use the strict ``LLMUtilityGenerator`` instead.
-public protocol LLMUtilityClient: Sendable {
-    func sendMessage(_ content: String) async throws -> String
-    func sendMessage(
-        _ content: String,
-        responseFormat: LLMResponseFormat?,
-        generationParameters: GenerationParameters?,
-        modelTier: ModelTier
-    ) async throws -> String
-
-    /// Generates tags/keywords for the given text, returning an empty array on failure.
-    func bestEffortTags(for text: String) async -> [String]
-
-    /// Generates a concise thread title, returning `"New Thread"` on failure.
-    func bestEffortTitle(for messages: [Message]) async -> String
-
-    func fetchAvailableModels() async throws -> [String]?
-}
-
-public extension LLMUtilityClient {
-    /// Sends a one-shot message using the given model tier, defaulting to the primary model.
-    func sendMessage(
-        _ content: String,
-        responseFormat: LLMResponseFormat?,
-        generationParameters: GenerationParameters?,
-        modelTier: ModelTier = .primary
-    ) async throws -> String {
-        try await sendMessage(
-            content,
-            responseFormat: responseFormat,
-            generationParameters: generationParameters,
-            modelTier: modelTier
-        )
-    }
 }
 
 public extension LLMStreamClient {

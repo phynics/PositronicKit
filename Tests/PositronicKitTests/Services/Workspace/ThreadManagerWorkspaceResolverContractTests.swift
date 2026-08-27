@@ -58,7 +58,7 @@ struct ThreadManagerWorkspaceResolverContractTests {
                 workspaceStore: InMemoryWorkspacePersistence(),
                 toolPersistence: InMemoryToolPersistence()
             ),
-            workspaceRoot: workspace.root,
+            workspaceProfile: .hostManaged(root: workspace.root),
             resolver: FixedWorkspaceResolver()
         )
 

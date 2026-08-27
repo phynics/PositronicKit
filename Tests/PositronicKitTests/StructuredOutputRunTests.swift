@@ -30,8 +30,7 @@ struct StructuredOutputRunTests {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
         let chat = PositronicKit(configuration: .init(provider: .init(languageModel: mockLLM), persistence: .init(
-                messageStore: mockPersistence,
-                threadPersistence: mockPersistence,
+                runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
                 toolPersistence: mockPersistence,
                 agentStore: mockPersistence,
@@ -70,8 +69,7 @@ struct StructuredOutputRunTests {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
         let chat = PositronicKit(configuration: .init(provider: .init(languageModel: mockLLM), persistence: .init(
-                messageStore: mockPersistence,
-                threadPersistence: mockPersistence,
+                runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
                 toolPersistence: mockPersistence,
                 agentStore: mockPersistence,
@@ -94,8 +92,7 @@ struct StructuredOutputRunTests {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
         let chat = PositronicKit(configuration: .init(provider: .init(languageModel: mockLLM), persistence: .init(
-                messageStore: mockPersistence,
-                threadPersistence: mockPersistence,
+                runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
                 toolPersistence: mockPersistence,
                 agentStore: mockPersistence,
@@ -121,8 +118,7 @@ struct StructuredOutputRunTests {
         let mockLLM = MockLLMService()
         let mockPersistence = MockPersistenceService()
         let chat = PositronicKit(configuration: .init(provider: .init(languageModel: mockLLM), persistence: .init(
-                messageStore: mockPersistence,
-                threadPersistence: mockPersistence,
+                runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
                 toolPersistence: mockPersistence,
                 agentStore: mockPersistence,

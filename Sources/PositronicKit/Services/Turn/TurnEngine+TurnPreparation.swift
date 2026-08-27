@@ -309,6 +309,7 @@ extension TurnEngine {
             validatedToolOutputs = try await ExternalToolOutputSubmissionGate.shared.validate(
                 toolOutputs ?? [],
                 threadID: threadID,
+                inputMessageID: inputMessage?.id,
                 messageStore: dependencies.messageStore
             )
 
@@ -316,7 +317,13 @@ extension TurnEngine {
             //    committed at admission; independent stores still need the in-memory projection
             //    below until their legacy persistence step.
             let threadMessages = try await dependencies.messageStore.fetchMessages(for: threadID)
-            var history = threadMessages.map { $0.toMessage() }
+            // The repository commits the current input before preparation, while external tool
+            // outputs are committed later. Project the request-local input after those outputs
+            // for prompt validation: provider history must keep an assistant tool call adjacent
+            // to its tool result even though durable append order is input-before-output.
+            var history = threadMessages
+                .filter { $0.id != inputMessage?.id }
+                .map { $0.toMessage() }
             let currentRemoteDepth = threadMessages.map(\.remoteDepth).max() ?? 0
 
             // 5. Build an in-memory augmented history that includes new tool outputs and, for
@@ -324,14 +331,15 @@ extension TurnEngine {
             for output in validatedToolOutputs {
                 history.append(Message(content: output.output, role: .tool, toolCallID: output.toolCallID))
             }
-            if let inputMessage,
-               !threadMessages.contains(where: { $0.id == inputMessage.id })
-            {
-                history.append(inputMessage.toMessage())
-            }
 
-            // 6. Validate the augmented tool-call history.
-            try validateToolHistory(history)
+            // Validate the augmented tool-call history, including the just-admitted input. The
+            // input remains the prompt's explicit UserQuery so sidecar instructions and the user
+            // text stay in one final user message instead of being split across history.
+            var validationHistory = history
+            if let inputMessage {
+                validationHistory.append(inputMessage.toMessage())
+            }
+            try validateToolHistory(validationHistory)
 
             // 7. Resolve preparation diagnostics. Agent context and bounded Turn contributions
             // were captured before this point and are rendered directly into the prompt.
@@ -379,14 +387,8 @@ extension TurnEngine {
             }
 
             // 9. Build the initial prompt messages
-            // The runtime repository has already admitted the input into ChatHistory. Do not add
-            // it again as UserQuery; an empty query still allows per-turn instructions to render.
-            let promptUserContent = inputMessage != nil
-                && threadMessages.contains(where: { $0.id == inputMessage?.id })
-                ? MessageContent(parts: [])
-                : messageContent
             let promptRequest = LLMPromptRequest(
-                userContent: promptUserContent,
+                userContent: messageContent,
                 turnInstructions: sidecarTurnInstructions,
                 contextContributions: resolvedContributions,
                 chatHistory: history,
@@ -490,10 +492,9 @@ extension TurnEngine {
                 messageStore: dependencies.messageStore
             )
             if dependencies.runtimeRepository == nil, let inputMessage {
-                try await dependencies.messageStore.saveMessageIfAbsent(
-                    inputMessage,
-                    idempotencyKey: requestId
-                )
+                // Package-internal legacy assembly has no atomic repository boundary. The public
+                // configuration path always admits the input through ThreadRuntimeRepository.
+                try await dependencies.messageStore.saveMessage(inputMessage)
             }
 
             if let report = renderedPrompt.compressionReport {
@@ -823,7 +824,7 @@ extension TurnEngine {
 // MARK: - Preparation Steps
 
 private extension TurnEngine {
-    func compensatePreparationFailure(
+    private func compensatePreparationFailure(
         repository: any ThreadRuntimeRepository,
         turnID: UUID,
         preparationError: Error
@@ -853,16 +854,16 @@ private extension TurnEngine {
                 ])
                 return nil
             } catch let recoveryFailure {
-                let error = TurnPreparationRecoveryError(
+                let recoveryError = TurnPreparationRecoveryError(
                     turnID: turnID,
                     failure: String(describing: failure),
                     recoveryFailure: String(describing: recoveryFailure)
                 )
-                logger.error("\(error)", metadata: [
+                logger.error(Logger.Message(stringLiteral: recoveryError.description), metadata: [
                     LogKeys.turnID: .string(turnID.uuidString),
                     "preparationError": .string(String(describing: preparationError)),
                 ])
-                return error
+                return recoveryError
             }
         }
     }

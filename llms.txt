@@ -1,6 +1,6 @@
 # PositronicKit documentation
 
-> Stable 4.0.0 is the default, immutable channel. Next / v4 follows main and is unreleased.
+> Stable 4.0.0 is the default, immutable channel. Next / v5 follows main and is unreleased.
 
 ## Stable
 
@@ -12,12 +12,12 @@
 - [Sidecar directives](https://github.com/phynics/PositronicKit/blob/4.0.0/docs/SidecarDirectives.md): Stable auxiliary structured-result behavior.
 - [Changelog](https://github.com/phynics/PositronicKit/blob/4.0.0/CHANGELOG.md): Published release history through this immutable tag.
 
-## Next / v4
+## Next / v5
 
 - [Overview and quick start](README.md): Release selection, package setup, capability values, examples, and verification.
 - [Setup](docs/Setup.md): Provider-neutral configuration, persistence, customization, logging, and errors.
 - [Usage](docs/Usage.md): Managed and direct Turns, SOUL/Notes Agent memory, lifecycle, and Workspace routing.
-- [Architecture](docs/Architecture.md): v4 domain boundaries, capability values, durability, and execution authority.
+- [Architecture](docs/Architecture.md): v5 domain boundaries, capability values, durability, and execution authority.
 - [Prompt composition](docs/PKPromptComposition.md): Prompt IR, assembly, rendering, compression, and PromptJournal.
 - [Sidecar directives](docs/SidecarDirectives.md): Auxiliary structured results carried by the same Turn.
 - [Development](docs/Development.md): Supported platform gates, Podman workflow, and dependency checks.

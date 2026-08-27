@@ -60,9 +60,10 @@ struct LoggingRedactionTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                runtimeRepository: persistence,
                 toolPersistence: persistence,
             ),
-            workspaceRoot: workspaceRoot
+            workspaceProfile: .hostManaged(root: workspaceRoot)
         )
         let router = ToolRouter(
             threadManager: threadManager,

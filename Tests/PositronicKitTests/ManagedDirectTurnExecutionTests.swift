@@ -26,7 +26,7 @@ struct ManagedDirectTurnExecutionTests {
             return false
         })
         #expect(outcome == .completed)
-        let repository = try #require(kit.runtimeRepository)
+        let repository = kit.runtimeRepository
         let messages = try await repository.fetchMessages(for: thread.id)
         #expect(messages.first?.role == "user")
         #expect(messages.last?.executionKind == .agentManaged)
@@ -48,7 +48,7 @@ struct ManagedDirectTurnExecutionTests {
         )
         _ = await turn.events().collect()
 
-        let repository = try #require(kit.runtimeRepository)
+        let repository = kit.runtimeRepository
         let record = try #require(try await repository.fetchTurn(id: turn.id))
         let messages = try await repository.fetchMessages(for: thread.id)
         #expect(record.outcome != nil)
@@ -88,7 +88,7 @@ struct ManagedDirectTurnExecutionTests {
         _ = await turn.events().collect()
 
         #expect(await turn.outcome() == .completed)
-        let repository = try #require(kit.runtimeRepository)
+        let repository = kit.runtimeRepository
         let messages = try await repository.fetchMessages(for: thread.id)
         #expect(messages.last?.executionKind == .direct)
         #expect(messages.last?.agentID == nil)
@@ -103,16 +103,16 @@ struct ManagedDirectTurnExecutionTests {
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: llm),
             persistence: .init(
+                runtimeRepository: repository,
                 workspacePersistence: persistence,
                 toolPersistence: persistence,
                 agentStore: persistence,
                 requestOriginStore: persistence,
-                runtimeRepository: repository,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository()
             ),
             runtime: .init(
-                workspaceCreator: MockWorkspaceCreator(),
-                workspaceRoot: workspace.root
+                workspaceProfile: .hostManaged(root: workspace.root),
+                workspaceCreator: MockWorkspaceCreator()
             )
         ))
         let thread = try await kit.threads.create(title: "Direct Workspace")
@@ -167,10 +167,7 @@ struct ManagedDirectTurnExecutionTests {
                     output: "host result"
                 )],
                 systemInstructions: ""
-            ),
-            agentID: nil,
-            executionKind: .direct,
-            contributors: [.host]
+            )
         )
         let continuationEvents = try await continuation.collect()
         #expect(continuationEvents.contains { event in
@@ -201,7 +198,7 @@ struct ManagedDirectTurnExecutionTests {
         let managed = try await thread.startTurn(message: "managed")
         _ = await managed.events().collect()
 
-        let repository = try #require(kit.runtimeRepository)
+        let repository = kit.runtimeRepository
         let assistantKinds = try await repository.fetchMessages(for: thread.id)
             .filter { $0.role == "assistant" }
             .map(\.executionKind)
@@ -220,7 +217,7 @@ struct ManagedDirectTurnExecutionTests {
             #expect(threadID == thread.id)
         }
 
-        let repository = try #require(kit.runtimeRepository)
+        let repository = kit.runtimeRepository
         #expect(try await repository.fetchMessages(for: thread.id).isEmpty)
     }
 
@@ -276,7 +273,7 @@ struct ManagedDirectTurnExecutionTests {
         }
         let joined = try await thread.startTurn(request)
         #expect(joined.id == first.id)
-        let repository = try #require(kit.runtimeRepository)
+        let repository = kit.runtimeRepository
         let admitted = try #require(try await repository.fetchTurn(id: first.id))
         #expect(admitted.outcome == nil)
         await first.cancel()

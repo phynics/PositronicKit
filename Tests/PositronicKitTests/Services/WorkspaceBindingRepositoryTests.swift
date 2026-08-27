@@ -78,7 +78,10 @@ final class WorkspaceBindingRepositoryTests: XCTestCase {
         let bindings = InMemoryWorkspaceBindingRepository()
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: UnconfiguredLLMService()),
-            persistence: .init(workspaceBindingRepository: bindings)
+            persistence: .init(
+                runtimeRepository: InMemoryThreadRuntimeRepository(),
+                workspaceBindingRepository: bindings
+            )
         ))
         let agent = try await kit.agents.create(
             name: "Binding Agent",

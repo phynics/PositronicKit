@@ -3,6 +3,70 @@ import PositronicKit
 import XCTest
 
 final class ThreadRuntimeRepositoryTests: XCTestCase {
+    func testAdmissionAtomicallyPersistsInputMessage() async throws {
+        let repository = InMemoryThreadRuntimeRepository()
+        let threadID = UUID()
+        let requestID = UUID()
+        try await repository.saveThread(Thread(id: threadID))
+        let input = ThreadMessage(
+            id: requestID,
+            threadID: threadID,
+            role: .user,
+            content: "hello"
+        )
+
+        let admission = try await repository.admitTurn(
+            threadID: threadID,
+            requestID: requestID,
+            callerIntentFingerprint: "message:hello",
+            inputMessage: input,
+            executionKind: .direct,
+            capturedAgentID: nil,
+            turnID: UUID(),
+            now: Date()
+        )
+
+        XCTAssertEqual(admission.disposition, .admitted)
+        let admittedMessages = try await repository.fetchMessages(for: threadID)
+        XCTAssertEqual(admittedMessages.map(\.id), [input.id])
+        XCTAssertEqual(admittedMessages.first?.content, input.content)
+
+        let joined = try await repository.admitTurn(
+            threadID: threadID,
+            requestID: requestID,
+            callerIntentFingerprint: "message:hello",
+            inputMessage: input,
+            executionKind: .direct,
+            capturedAgentID: nil,
+            turnID: UUID(),
+            now: Date()
+        )
+        XCTAssertEqual(joined.disposition, .joined)
+        let joinedMessages = try await repository.fetchMessages(for: threadID)
+        XCTAssertEqual(joinedMessages.map(\.id), [input.id])
+        XCTAssertEqual(joinedMessages.first?.content, input.content)
+    }
+
+    func testMessageFreeAdmissionDoesNotInventInputHistory() async throws {
+        let repository = InMemoryThreadRuntimeRepository()
+        let threadID = UUID()
+        try await repository.saveThread(Thread(id: threadID))
+
+        _ = try await repository.admitTurn(
+            threadID: threadID,
+            requestID: UUID(),
+            callerIntentFingerprint: "tool-output-only",
+            inputMessage: nil,
+            executionKind: .direct,
+            capturedAgentID: nil,
+            turnID: UUID(),
+            now: Date()
+        )
+
+        let messages = try await repository.fetchMessages(for: threadID)
+        XCTAssertTrue(messages.isEmpty)
+    }
+
     func testAdmissionSerializesThreadAndIsIdempotentByFingerprint() async throws {
         let repository = InMemoryThreadRuntimeRepository()
         let threadID = UUID()

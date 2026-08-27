@@ -240,11 +240,11 @@ struct MessagePersistenceStage: PipelineStage {
     private func durableToolRecords(
         for context: TurnContext
     ) async -> (calls: [ToolCallRecord], results: [ToolResultRecord]) {
-        guard let runtimeRepository else { return ([], []) }
-        guard let intents = try? await runtimeRepository.fetchToolIntents(turnID: context.turnID) else {
+        guard let repository = runtimeRepository else { return ([], []) }
+        guard let intents = try? await repository.fetchToolIntents(turnID: context.turnID) else {
             return ([], [])
         }
-        let results = (try? await runtimeRepository.fetchToolResults(turnID: context.turnID)) ?? []
+        let results = (try? await repository.fetchToolResults(turnID: context.turnID)) ?? []
         let calls = intents.map { ToolCallRecord(name: $0.name, arguments: $0.arguments, turn: $0.modelRoundIndex) }
         let resultRecords = results.map { result in
             let intent = intents.first(where: { $0.toolCallID == result.toolCallID })

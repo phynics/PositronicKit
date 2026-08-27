@@ -67,7 +67,7 @@ struct WorkspaceProfileLifecycleTests {
         #expect(thread.workingDirectory == nil)
     }
 
-    @Test("A minimal PositronicKit facade (no workspaceRoot) has no filesystem side effects")
+    @Test("A minimal PositronicKit facade (no workspace profile) has no filesystem side effects")
     func minimalFacadeHasNoFilesystemSideEffects() async throws {
         let kit = PositronicKit(languageModel: UnconfiguredLLMService())
 
@@ -83,19 +83,6 @@ struct WorkspaceProfileLifecycleTests {
             // ok
         } else {
             Issue.record("Expected .noWorkspace, got \(config.workspaceProfile)")
-        }
-        #expect(config.workspaceRoot == nil)
-    }
-
-    @Test("RuntimeConfiguration(workspaceRoot:) maps to .hostManaged for backward compatibility")
-    func runtimeConfigurationLegacyWorkspaceRootMapsToHostManaged() {
-        let root = URL(fileURLWithPath: "/tmp/pk-legacy")
-        let config = PositronicKit.RuntimeConfiguration(workspaceRoot: root)
-        if case let .hostManaged(resolvedRoot, seedNotes) = config.workspaceProfile {
-            #expect(resolvedRoot == root)
-            #expect(seedNotes == .default)
-        } else {
-            Issue.record("Expected .hostManaged, got \(config.workspaceProfile)")
         }
     }
 

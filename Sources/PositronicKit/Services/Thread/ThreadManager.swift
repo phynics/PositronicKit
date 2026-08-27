@@ -8,7 +8,7 @@ import PKUtilities
 ///
 /// This is a facade configuration value. The cache-owning coordinator that applies
 /// it is intentionally not part of the consumer-facing entry point.
-public struct RuntimeToolPolicyConfiguration: Sendable, Equatable {
+public struct RuntimeToolPolicy: Sendable, Equatable {
     public let installFilesystemTools: Bool
     public let installThreadObservationTools: Bool
     public let installThreadSendTool: Bool
@@ -23,27 +23,22 @@ public struct RuntimeToolPolicyConfiguration: Sendable, Equatable {
         self.installThreadSendTool = installThreadSendTool
     }
 
-    public static let `default` = RuntimeToolPolicyConfiguration()
-    public static let denyAll = RuntimeToolPolicyConfiguration(
+    public static let `default` = RuntimeToolPolicy()
+    public static let denyAll = RuntimeToolPolicy(
         installFilesystemTools: false,
         installThreadObservationTools: false,
         installThreadSendTool: false
     )
 }
 
-/// Short spelling for the public facade configuration value.
-public typealias RuntimeToolPolicy = RuntimeToolPolicyConfiguration
-
 /// Internal coordinator/cache owner for Threads and their execution environments.
 actor ThreadManager {
-    typealias RuntimeToolPolicy = RuntimeToolPolicyConfiguration
-
-    struct Stores: Sendable {
+    struct Stores {
         let threadStore: any ThreadPersistenceProtocol
         let messageStore: any ThreadMessageStoreProtocol
         let workspaceStore: any WorkspaceStore
         let workspaceBindingRepository: any WorkspaceBindingRepository
-        let runtimeRepository: (any ThreadRuntimeRepository)?
+        let runtimeRepository: any ThreadRuntimeRepository
         let toolPersistence: any ToolPersistenceProtocol
 
         init(
@@ -61,6 +56,8 @@ actor ThreadManager {
                 ?? (workspaceStore as? any WorkspaceBindingRepository)
                 ?? InMemoryWorkspaceBindingRepository()
             self.runtimeRepository = runtimeRepository
+                ?? (threadStore as? any ThreadRuntimeRepository)
+                ?? InMemoryThreadRuntimeRepository()
             self.toolPersistence = toolPersistence
         }
     }
@@ -99,7 +96,7 @@ actor ThreadManager {
     let messageStore: any ThreadMessageStoreProtocol
     let workspaceStore: any WorkspaceStore
     let workspaceBindingRepository: any WorkspaceBindingRepository
-    let runtimeRepository: (any ThreadRuntimeRepository)?
+    let runtimeRepository: any ThreadRuntimeRepository
     let toolPersistence: any ToolPersistenceProtocol
 
     /// Persists a workspace reference into the store this manager validates,
@@ -108,7 +105,7 @@ actor ThreadManager {
     /// Hosts that construct their runtime through the `PositronicKit` facade
     /// (whose stores are not injectable) use this to import advertised
     /// workspace references; it runs on the actor, so it is Sendable-safe.
-    public func importWorkspace(_ reference: WorkspaceReference) async throws {
+    func importWorkspace(_ reference: WorkspaceReference) async throws {
         try await workspaceStore.saveWorkspace(reference)
     }
 
@@ -116,7 +113,7 @@ actor ThreadManager {
     ///
     /// `.noWorkspace` (the default) creates no directory, writes no notes, and persists no
     /// workspace record. `.ephemeralWorkspace` owns a self-cleaning scratch directory.
-    /// `.hostManaged` preserves the pre-PKRR-029 behavior of an explicit `workspaceRoot`.
+    /// `.hostManaged` uses a host-owned directory selected by the caller.
     let workspaceProfile: WorkspaceProfile
 
     /// The filesystem root thread workspace directories are anchored under.
@@ -127,7 +124,7 @@ actor ThreadManager {
     var workspaceRoot: URL {
         workspaceProfile.catalogRoot
             ?? FileManager.default.temporaryDirectory
-                .appendingPathComponent("positronickit-workspaces", isDirectory: true)
+            .appendingPathComponent("positronickit-workspaces", isDirectory: true)
     }
 
     /// Not `public` (PKV3-010): resolution internals stay behind the lifecycle/attachment/query
@@ -186,32 +183,32 @@ actor ThreadManager {
     /// The `turnID` scopes the registration so a stale turn's terminal cleanup cannot evict a
     /// newer turn's entry.
     @discardableResult
-    public func registerTask(_ task: Task<Void, Never>, turnID: UUID, for threadID: UUID) async -> Bool {
+    func registerTask(_ task: Task<Void, Never>, turnID: UUID, for threadID: UUID) async -> Bool {
         await taskRegistry.register(task, turnID: turnID, for: threadID)
     }
 
     /// Explicitly cancels an ongoing generation task for a thread. The entry is removed by
     /// the task's own terminal path.
-    public func cancelGeneration(for threadID: UUID) async {
+    func cancelGeneration(for threadID: UUID) async {
         await taskRegistry.cancelActive(for: threadID)
     }
 
     /// Removes the task entry on a terminal path, but only if `turnID` is still the active turn.
     /// A stale turn (superseded by a newer one) is a no-op.
-    public func removeTask(turnID: UUID, for threadID: UUID) async {
+    func removeTask(turnID: UUID, for threadID: UUID) async {
         await taskRegistry.removeIfActive(turnID: turnID, for: threadID)
     }
 
     /// Turn-scoped cancellation: only cancels if `turnID` is still the active turn. Returns
     /// `false` for a stale turn that has been superseded.
     @discardableResult
-    public func cancelGeneration(turnID: UUID, for threadID: UUID) async -> Bool {
+    func cancelGeneration(turnID: UUID, for threadID: UUID) async -> Bool {
         await taskRegistry.cancel(turnID: turnID, for: threadID)
     }
 
     /// Cancels any active task for the thread and awaits its termination (bounded cleanup
     /// for eviction/deletion).
-    public func cancelActiveTaskAndAwait(for threadID: UUID) async {
+    func cancelActiveTaskAndAwait(for threadID: UUID) async {
         await taskRegistry.cancelAndAwait(for: threadID)
     }
 
@@ -227,25 +224,18 @@ actor ThreadManager {
     }
 
     /// Rejects authority-changing operations while a Turn still owns this Thread's execution
-    /// context. Reads remain available. The durable repository is authoritative when present;
-    /// the task registry is retained as the legacy compatibility fallback.
-    public func requireExecutionContextMutable(for threadID: UUID) async throws {
-        if let runtimeRepository = runtimeRepository
-            ?? (workspaceBindingRepository as? any ThreadRuntimeRepository)
-        {
-            if let active = try await runtimeRepository.fetchActiveTurn(for: threadID) {
-                throw ThreadRuntimeRepositoryError.threadBusy(
-                    threadID: threadID,
-                    activeTurnID: active.identity.turnID
-                )
-            }
-        } else if await hasActiveTask(for: threadID) {
-            throw ThreadError.invalidState("Thread has an active Turn.")
+    /// context. Reads remain available. The durable repository is authoritative.
+    func requireExecutionContextMutable(for threadID: UUID) async throws {
+        if let active = try await runtimeRepository.fetchActiveTurn(for: threadID) {
+            throw ThreadRuntimeRepositoryError.threadBusy(
+                threadID: threadID,
+                activeTurnID: active.identity.turnID
+            )
         }
     }
 
     /// Revalidates the durable Workspace binding immediately before tool execution.
-    public func requireWorkspaceBinding(_ workspaceID: UUID, for threadID: UUID) async throws {
+    func requireWorkspaceBinding(_ workspaceID: UUID, for threadID: UUID) async throws {
         if let owner = try await workspaceBindingRepository.threadID(for: workspaceID) {
             guard owner == threadID else {
                 throw WorkspaceBindingRepositoryError.workspaceAlreadyBound(
@@ -263,7 +253,7 @@ actor ThreadManager {
     }
 
     /// Executes work under the process-local FIFO lane for an ordinary Workspace.
-    public func withWorkspaceExecution<T: Sendable>(
+    func withWorkspaceExecution<T: Sendable>(
         _ workspaceID: UUID,
         operation: @escaping @Sendable () async throws -> T
     ) async rethrows -> T {
@@ -406,8 +396,8 @@ extension ThreadManager {
     /// Throws when a thread was permanently deleted after an operation captured its version.
     func requireThreadLiveness(for threadID: UUID, version: UInt64) throws {
         guard !threadsBeingPermanentlyDeleted.contains(threadID),
-              threadLivenessVersion(for: threadID) == version else
-        {
+              threadLivenessVersion(for: threadID) == version
+        else {
             throw ThreadError.threadNotFound
         }
     }

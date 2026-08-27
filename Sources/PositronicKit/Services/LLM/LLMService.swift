@@ -10,7 +10,7 @@ import PKUtilities
 /// internal `apply(_:)`, and every dispatch path resolves clients through the single
 /// `resolve(tier:)` operation, so the service never runs with stale clients,
 /// conflicting readiness, or duplicated tier fallback rules.
-public actor LLMService: LanguageModel, HealthCheckable {
+public actor LLMService: LLMStreamClient, LLMConfigStore, HealthCheckable {
     /// The current configuration. Read-only projection of the runtime snapshot.
     public var configuration: LLMConfiguration {
         snapshot.configuration
@@ -134,8 +134,8 @@ public actor LLMService: LanguageModel, HealthCheckable {
     /// Resolves the client and generation defaults for a model tier.
     ///
     /// The single implementation of tier selection, fallback, and missing-client error
-    /// mapping. Used by send, both stream overloads, structured-output adapters, model
-    /// listing, and health checks.
+    /// mapping. Used by both stream overloads, structured-output adapters, model listing,
+    /// and health checks.
     func resolve(tier: ModelTier) throws -> ResolvedLLMClient {
         let snapshot = self.snapshot
         guard snapshot.configuration.isValid else {
@@ -272,29 +272,6 @@ public actor LLMService: LanguageModel, HealthCheckable {
             return nil
         }
         return try await resolved.client.fetchAvailableModels()
-    }
-
-    public func sendMessage(_ content: String) async throws -> String {
-        try await sendMessage(content, responseFormat: nil, generationParameters: nil)
-    }
-
-    public func sendMessage(
-        _ content: String,
-        responseFormat: LLMResponseFormat?,
-        generationParameters: GenerationParameters?,
-        modelTier: ModelTier = .primary
-    ) async throws -> String {
-        await prepareIfNeeded()
-        let resolved = try resolve(tier: modelTier)
-
-        // Use provided parameters or default from configuration
-        let params = generationParameters ?? resolved.generationParameters
-
-        return try await resolved.client.sendMessage(
-            content,
-            responseFormat: responseFormat,
-            generationParameters: params
-        )
     }
 
     // MARK: - Helpers

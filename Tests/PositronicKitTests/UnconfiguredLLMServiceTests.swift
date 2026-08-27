@@ -20,42 +20,6 @@ struct UnconfiguredLLMServiceTests {
         )
     }
 
-    @Test("Throwing configuration methods return notConfigured")
-    func throwingConfigurationMethodsReturnNotConfigured() async throws {
-        let config = LLMConfiguration.fixture(endpoint: "https://example.com", modelName: "model", apiKey: "key")
-
-        await #expect(throws: LLMServiceError.notConfigured) {
-            try await service.updateConfiguration(config)
-        }
-        await #expect(throws: LLMServiceError.notConfigured) {
-            try await service.restoreFromBackup()
-        }
-        await #expect(throws: LLMServiceError.notConfigured) {
-            _ = try await service.exportConfiguration()
-        }
-        await #expect(throws: LLMServiceError.notConfigured) {
-            try await service.importConfiguration(from: Data())
-        }
-    }
-
-    @Test("Message and model methods return notConfigured")
-    func messageAndModelMethodsReturnNotConfigured() async throws {
-        await #expect(throws: LLMServiceError.notConfigured) {
-            _ = try await service.sendMessage("hello")
-        }
-        await #expect(throws: LLMServiceError.notConfigured) {
-            _ = try await service.sendMessage(
-                "hello",
-                responseFormat: .jsonObject,
-                generationParameters: nil,
-                modelTier: .utility
-            )
-        }
-        await #expect(throws: LLMServiceError.notConfigured) {
-            _ = try await service.fetchAvailableModels()
-        }
-    }
-
     @Test("generationStream terminates immediately with notConfigured")
     func generationStreamTerminatesImmediately() async throws {
         let stream = await service.generationStream(

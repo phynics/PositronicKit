@@ -24,11 +24,17 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
     private var workspaceBindingsByWorkspace: [UUID: WorkspaceBinding] = [:]
     private var workspaceIDsByThread: [UUID: Set<UUID>] = [:]
     private let staleAfter: TimeInterval
+    private let durable: Bool
+
+    public nonisolated var isDurable: Bool {
+        durable
+    }
 
     /// - Parameter staleAfter: Age after which an active Turn is lazily interrupted during
     ///   recovery. A non-positive value makes every active Turn eligible for recovery.
-    public init(staleAfter: TimeInterval = 300) {
+    public init(staleAfter: TimeInterval = 300, isDurable: Bool = false) {
         self.staleAfter = staleAfter
+        durable = isDurable
     }
 
     // MARK: ThreadPersistenceProtocol
@@ -77,6 +83,12 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
     // MARK: ThreadMessageStoreProtocol
 
     public func saveMessage(_ message: ThreadMessage) async throws {
+        try appendMessage(message)
+    }
+
+    /// Appends a message without an actor suspension. Admission uses this helper so the input
+    /// message and Turn record become visible as one actor-isolated transition.
+    private func appendMessage(_ message: ThreadMessage) throws {
         var history = messages[message.threadID, default: []]
         if let existing = history.first(where: { $0.id == message.id }) {
             let encoder = JSONEncoder()
@@ -133,42 +145,54 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
         turnID: UUID,
         now: Date
     ) async throws -> TurnAdmission {
-        return try admitTurn(
-            threadID: threadID,
-            requestID: requestID,
-            callerIntentFingerprint: callerIntentFingerprint,
-            inputMessage: inputMessage,
-            executionKind: executionKind,
-            capturedAgentID: capturedAgentID,
-            turnID: turnID,
-            retryRelation: nil,
-            now: now
-        )
-    }
-
-    private func admitTurn(
-        threadID: UUID,
-        requestID: UUID,
-        callerIntentFingerprint: String,
-        inputMessage: ThreadMessage?,
-        executionKind: TurnExecutionKind,
-        capturedAgentID: UUID?,
-        turnID: UUID,
-        retryRelation: TurnRetryRelation?,
-        now: Date
-    ) throws -> TurnAdmission {
         guard threads[threadID] != nil else {
             throw ThreadRuntimeRepositoryError.threadNotFound(threadID)
         }
 
+        if let inputMessage, inputMessage.threadID != threadID {
+            throw ThreadRuntimeRepositoryError.inputMessageThreadMismatch(
+                messageID: inputMessage.id,
+                expectedThreadID: threadID,
+                actualThreadID: inputMessage.threadID
+            )
+        }
+
         let callerIntent = TurnCallerIntent(requestID: requestID, fingerprint: callerIntentFingerprint)
-        let matching = turns.values.first { $0.threadID == threadID && $0.callerIntent.requestID == requestID }
+        let matching = turns.values
+            .filter { $0.threadID == threadID && $0.callerIntent.requestID == requestID }
+            .max { $0.createdAt < $1.createdAt }
+        var retryRelation: TurnRetryRelation?
         if let matching {
-            guard matching.callerIntent.fingerprint == callerIntentFingerprint else {
+            if matching.callerIntent.fingerprint == callerIntentFingerprint, !matching.isTerminal {
+                return TurnAdmission(disposition: .joined, turn: matching)
+            }
+            if matching.callerIntent.fingerprint == callerIntentFingerprint,
+               isCompleted(matching.outcome)
+            {
+                return TurnAdmission(disposition: .replayed, turn: matching)
+            }
+            if matching.callerIntent.fingerprint == callerIntentFingerprint,
+               matching.recoveryRequired
+            {
+                // A force-interrupted attempt remains visible as a replay of the original
+                // request while recovery is pending. Distinct requests are rejected below until
+                // the host explicitly clears the recovery marker.
+                return TurnAdmission(disposition: .replayed, turn: matching)
+            }
+            // A failed/cancelled/interrupted attempt may be retried with the same request ID,
+            // whether the retry repeats the exact input or supplies changed tool outputs. The
+            // retry is a new durable Turn linked to the failed attempt; completed Turns and
+            // active attempts remain strict idempotency conflicts.
+            guard matching.isTerminal,
+                  matching.recoveryRequired == false,
+                  !isCompleted(matching.outcome)
+            else {
                 throw ThreadRuntimeRepositoryError.idempotencyConflict(requestID: requestID)
             }
-            let disposition: TurnAdmissionDisposition = matching.isTerminal ? .replayed : .joined
-            return TurnAdmission(disposition: disposition, turn: matching)
+            retryRelation = TurnRetryRelation(
+                retriedTurnID: matching.identity.turnID,
+                attempt: (matching.retryRelation?.attempt ?? 0) + 1
+            )
         }
 
         if let recoveryTurnID = recoveryRequiredTurns[threadID] {
@@ -179,21 +203,6 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
                 throw ThreadRuntimeRepositoryError.recoveryRequired(threadID: threadID, turnID: activeTurnID)
             }
             throw ThreadRuntimeRepositoryError.threadBusy(threadID: threadID, activeTurnID: activeTurnID)
-        }
-
-        // Validate every part of admission before exposing the Turn or active pointer. The actor
-        // makes the final assignments below one serialized state transition, mirroring the
-        // database transaction required from durable implementations.
-        var inputHistory = messages[threadID, default: []]
-        if let inputMessage {
-            guard inputMessage.threadID == threadID else {
-                throw ThreadRuntimeRepositoryError.inputMessageThreadMismatch(
-                    messageID: inputMessage.id,
-                    expectedThreadID: threadID,
-                    actualThreadID: inputMessage.threadID
-                )
-            }
-            try validateAppend(inputMessage, into: &inputHistory)
         }
 
         let identity = TurnIdentity(turnID: turnID, requestID: requestID, modelRoundIndex: 0)
@@ -209,11 +218,17 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
             createdAt: now,
             updatedAt: now
         )
+        if let inputMessage {
+            if let existing = messages[threadID]?.first(where: { $0.id == inputMessage.id }) {
+                guard messagesEquivalentIgnoringTimestamp(existing, inputMessage) else {
+                    throw ThreadRuntimeRepositoryError.appendOnlyViolation(messageID: inputMessage.id)
+                }
+            } else {
+                try appendMessage(inputMessage)
+            }
+        }
         turns[turnID] = record
         activeTurns[threadID] = turnID
-        if inputMessage != nil {
-            messages[threadID] = inputHistory
-        }
         return TurnAdmission(disposition: .admitted, turn: record)
     }
 
@@ -241,7 +256,7 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
         guard let previous = turns[previousTurnID], previous.threadID == threadID else {
             throw ThreadRuntimeRepositoryError.turnNotFound(previousTurnID)
         }
-        return try admitTurn(
+        var admission = try await admitTurn(
             threadID: threadID,
             requestID: requestID,
             callerIntentFingerprint: callerIntentFingerprint,
@@ -249,9 +264,14 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
             executionKind: executionKind,
             capturedAgentID: capturedAgentID,
             turnID: turnID,
-            retryRelation: TurnRetryRelation(retriedTurnID: previousTurnID, attempt: attempt),
             now: now
         )
+        guard admission.disposition == .admitted else { return admission }
+        var record = admission.turn
+        record.retryRelation = TurnRetryRelation(retriedTurnID: previousTurnID, attempt: attempt)
+        turns[turnID] = record
+        admission = TurnAdmission(disposition: .admitted, turn: record)
+        return admission
     }
 
     public func appendNotice(turnID: UUID, notice: TurnNotice) async throws {
@@ -301,7 +321,7 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
 
     public func recordProviderRequest(
         turnID: UUID,
-        modelRoundIndex: Int,
+        modelRoundIndex _: Int,
         correlation: TurnCorrelation?,
         now: Date
     ) async throws {
@@ -610,22 +630,6 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
             .first { results[ToolKey(turnID: turnID, toolCallID: $0.toolCallID)] == nil }
     }
 
-    private func appendMessage(_ message: ThreadMessage) throws {
-        var history = messages[message.threadID, default: []]
-        if let existing = history.first(where: { $0.id == message.id }) {
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = [.sortedKeys]
-            let existingData = try encoder.encode(existing)
-            let newData = try encoder.encode(message)
-            guard existingData == newData else {
-                throw ThreadRuntimeRepositoryError.appendOnlyViolation(messageID: message.id)
-            }
-            return
-        }
-        history.append(message)
-        messages[message.threadID] = history
-    }
-
     private func validateAppend(_ message: ThreadMessage, into history: inout [ThreadMessage]) throws {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
@@ -648,6 +652,27 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
         case .cancelled: return .cancelled
         case .interrupted: return .interrupted
         }
+    }
+
+    private func isCompleted(_ outcome: TurnOutcome?) -> Bool {
+        if case .completed? = outcome { return true }
+        return false
+    }
+
+    private func messagesEquivalentIgnoringTimestamp(_ lhs: ThreadMessage, _ rhs: ThreadMessage) -> Bool {
+        lhs.id == rhs.id
+            && lhs.threadID == rhs.threadID
+            && lhs.role == rhs.role
+            && lhs.messageContent == rhs.messageContent
+            && lhs.parentID == rhs.parentID
+            && lhs.reasoning == rhs.reasoning
+            && lhs.toolCalls == rhs.toolCalls
+            && lhs.toolCallID == rhs.toolCallID
+            && lhs.agentID == rhs.agentID
+            && lhs.executionKind == rhs.executionKind
+            && lhs.remoteDepth == rhs.remoteDepth
+            && lhs.snapshotData == rhs.snapshotData
+            && lhs.status == rhs.status
     }
 
     private func terminalMessage(for outcome: TurnOutcome) -> String {

@@ -71,7 +71,7 @@ def validate_release_channels() -> None:
     pins = set(re.findall(r'\.package\([^\n]+from:\s*"([0-9]+\.[0-9]+\.[0-9]+)"', readme))
     if pins != {stable}:
         error(f"README SwiftPM pin must be exactly stable {stable}; found {sorted(pins)}")
-    for phrase in (f"Latest stable: `{stable}`", "Next / v4"):
+    for phrase in (f"Latest stable: `{stable}`", CATALOG["next"]["label"]):
         if phrase not in readme:
             error(f"README does not clearly declare release channel: {phrase}")
     try:

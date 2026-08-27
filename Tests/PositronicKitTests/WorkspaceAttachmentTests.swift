@@ -52,7 +52,7 @@ private struct AttachmentFixture {
                     workspaceBindingRepository: bindingRepository,
                     toolPersistence: persistence
                 ),
-                workspaceRoot: workspaceRoot
+                workspaceProfile: .hostManaged(root: workspaceRoot)
             ),
             persistence: persistence,
             bindingRepository: bindingRepository,
@@ -131,7 +131,7 @@ struct AttachWorkspaceTests {
                     workspaceBindingRepository: fix.bindingRepository,
                     toolPersistence: fix.persistence
                 ),
-                workspaceRoot: fix.workspaceRoot
+                workspaceProfile: .hostManaged(root: fix.workspaceRoot)
             )
             let workspaces = try await freshManager.getWorkspaces(for: thread.id)
             #expect(workspaces.attached.contains { $0.id == fix.clientWS.id })
@@ -218,9 +218,10 @@ struct DetachWorkspaceTests {
                     messageStore: fix.persistence,
                     workspaceStore: fix.persistence,
                     workspaceBindingRepository: fix.bindingRepository,
+                    runtimeRepository: fix.persistence,
                     toolPersistence: fix.persistence
                 ),
-                workspaceRoot: fix.workspaceRoot
+                workspaceProfile: .hostManaged(root: fix.workspaceRoot)
             )
             let workspaces = try await freshManager.getWorkspaces(for: thread.id)
             #expect(!workspaces.attached.contains { $0.id == fix.clientWS.id })

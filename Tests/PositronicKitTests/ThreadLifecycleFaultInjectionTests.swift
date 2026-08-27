@@ -205,7 +205,7 @@ struct ThreadLifecycleFaultInjectionTests {
                 workspaceStore: workspaceStore,
                 toolPersistence: persistence
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
 
         do {
@@ -237,7 +237,7 @@ struct ThreadLifecycleFaultInjectionTests {
                 workspaceStore: failingWorkspaceStore,
                 toolPersistence: persistence
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
 
         var createdThreadId: UUID?
@@ -279,7 +279,7 @@ struct ThreadLifecycleFaultInjectionTests {
                 workspaceStore: workspaceStore,
                 toolPersistence: persistence
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
 
         let thread = try await manager.createThread(title: "Healthy Thread")
@@ -318,7 +318,7 @@ struct ThreadLifecycleFaultInjectionTests {
                 workspaceStore: workspaceStore,
                 toolPersistence: persistence
             ),
-            workspaceRoot: invalidRoot
+            workspaceProfile: .hostManaged(root: invalidRoot)
         )
 
         do {
@@ -348,7 +348,7 @@ struct ThreadLifecycleFaultInjectionTests {
                 workspaceStore: persistence,
                 toolPersistence: persistence
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
 
         let thread = try await manager.createThread()
@@ -380,7 +380,7 @@ struct ThreadLifecycleFaultInjectionTests {
                 workspaceStore: failingWorkspaceStore,
                 toolPersistence: persistence
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
 
         let thread = try await manager.createThread()
@@ -410,7 +410,7 @@ struct ThreadLifecycleFaultInjectionTests {
                 workspaceStore: persistence,
                 toolPersistence: persistence
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
 
         let thread = try await manager.createThread()
@@ -440,7 +440,7 @@ struct ThreadLifecycleFaultInjectionTests {
                 workspaceStore: persistence,
                 toolPersistence: persistence
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
 
         let thread = try await manager.createThread()
@@ -482,7 +482,7 @@ struct ThreadLifecycleFaultInjectionTests {
                 workspaceStore: workspaceStore,
                 toolPersistence: persistence
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
 
         do {
@@ -502,7 +502,7 @@ struct ThreadLifecycleFaultInjectionTests {
                 workspaceStore: workspaceStore,
                 toolPersistence: persistence
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
 
         let thread = try await healthyManager.createThread(title: "Retry Attempt")

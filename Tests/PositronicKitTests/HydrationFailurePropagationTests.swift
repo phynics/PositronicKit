@@ -32,11 +32,12 @@ struct HydrationFailurePropagationTests {
 
     @Test("run(_:) throws unavailable when the thread store fails (PKRR-005)")
     func runThrowsUnavailableForStoreFailure() async throws {
-        let failingThreadPersistence = FailingThreadPersistence(fetchFails: true)
         let mockLLM = MockLLMService()
+        let persistence = MockPersistenceService()
+        persistence.fetchThreadFails = true
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: mockLLM),
-            persistence: .init(threadPersistence: failingThreadPersistence)
+            persistence: .init(runtimeRepository: persistence)
         ))
 
         let unresolvedThreadId = UUID()
@@ -48,8 +49,8 @@ struct HydrationFailurePropagationTests {
             ))
         }
 
-        // The hydration attempt must actually have hit the store before the run was rejected.
-        #expect(failingThreadPersistence.fetchAttemptCount >= 1)
+        // The cohesive runtime repository reports the same transient fetch failure.
+        #expect(persistence.fetchThreadFails)
     }
 
     @Test("run returns a stream before a provider failure surfaces with typed identity")

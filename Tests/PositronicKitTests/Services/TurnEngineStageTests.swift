@@ -64,8 +64,11 @@ final class TurnEngineStageTests {
     func persistenceStage_SavesMessage() async throws {
         // Given
         let persistence = MockPersistenceService()
-        _ = ThreadManager(workspaceRoot: URL(fileURLWithPath: "/tmp"))
-        let stage = MessagePersistenceStage(messageStore: persistence, logger: logger)
+        _ = ThreadManager(workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp")))
+        let stage = MessagePersistenceStage(
+            messageStore: persistence,
+            logger: logger
+        )
 
         let context = createTestContext()
         await context.outputs.appendResponse("Hello world")

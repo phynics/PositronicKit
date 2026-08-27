@@ -20,8 +20,13 @@ struct ToolParametersTests {
     func testRequireMissing() {
         let params = ToolParameters(["path": "/tmp/test"])
 
-        #expect(throws: ToolError.self) {
-            try params.require("count", as: Int.self)
+        do {
+            _ = try params.require("count", as: Int.self)
+            Issue.record("Should have thrown missingArgument")
+        } catch ToolError.missingArgument("count") {
+            // Expected.
+        } catch {
+            Issue.record("Unexpected error: \(error)")
         }
     }
 
@@ -29,18 +34,27 @@ struct ToolParametersTests {
     func testRequireInvalidType() {
         let params = ToolParameters(["count": "not an int"])
 
-        #expect(throws: ToolError.self) {
-            try params.require("count", as: Int.self)
+        do {
+            _ = try params.require("count", as: Int.self)
+            Issue.record("Should have thrown invalidArgument")
+        } catch let ToolError.invalidArgument(key, expected, got) {
+            #expect(key == "count")
+            #expect(expected == "Int")
+            #expect(got == "String")
+        } catch {
+            Issue.record("Unexpected error: \(error)")
         }
     }
 
     @Test("Optional Parameters")
     func testOptional() {
-        let params = ToolParameters(["path": "/tmp/test"])
+        let params = ToolParameters(["path": "/tmp/test", "limit": 10])
 
         #expect(params.optional("path", as: String.self) == "/tmp/test")
         #expect(params.optional("count", as: Int.self) == nil)
         #expect(params.optional("path", as: Int.self) == nil)
+        #expect(params.optional("missing", as: String.self) == nil)
+        #expect(params.optional("limit", as: Int.self) == 10)
     }
 
     @Test("Require Int from out-of-range Double throws instead of trapping")

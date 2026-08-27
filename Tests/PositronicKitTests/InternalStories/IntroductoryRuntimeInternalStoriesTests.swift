@@ -37,15 +37,14 @@ struct IntroductoryRuntimeInternalStoriesTests {
         mockLLM.mockClient.nextResponses = ["", "I greeted Taylor successfully."]
 
         let runtime = PositronicKit(configuration: .init(provider: .init(languageModel: mockLLM), persistence: PositronicKit.PersistenceConfiguration(
-                messageStore: persistence,
-                threadPersistence: persistence,
+                runtimeRepository: persistence,
                 workspacePersistence: persistence,
                 toolPersistence: persistence,
                 agentStore: persistence,
                 requestOriginStore: persistence
             ), runtime: .init(
-                workspaceCreator: MockWorkspaceCreator(),
-                workspaceRoot: workspace.root
+                workspaceProfile: .hostManaged(root: workspace.root),
+                workspaceCreator: MockWorkspaceCreator()
             )))
         let threadManager = runtime.threadManager
 

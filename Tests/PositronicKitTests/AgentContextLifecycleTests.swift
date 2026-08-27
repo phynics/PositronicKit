@@ -46,7 +46,7 @@ struct AgentContextLifecycleTests {
             _ = try await thread.startTurn(message: "must not persist")
         }
 
-        let repository = try #require(kit.runtimeRepository)
+        let repository = kit.runtimeRepository
         #expect(try await repository.fetchMessages(for: thread.id).isEmpty)
     }
 
@@ -111,7 +111,7 @@ struct AgentContextLifecycleTests {
     func retirementDrainsPrimaryThread() async throws {
         let kit = PositronicKit(languageModel: MockLLMService())
         let agent = try await kit.agents.create(name: "Primary Drain", description: "drain")
-        let repository = try #require(kit.runtimeRepository)
+        let repository = kit.runtimeRepository
         let admission = try await repository.admitTurn(
             threadID: agent.privateThreadID,
             requestID: UUID(),

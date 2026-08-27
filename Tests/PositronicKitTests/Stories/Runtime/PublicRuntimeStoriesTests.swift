@@ -8,7 +8,7 @@ import Synchronization
 import Testing
 
 private final class CapturingLogSink: Sendable {
-    private struct State: Sendable {
+    private struct State {
         var messages: [String] = []
     }
 
@@ -268,7 +268,7 @@ struct PublicRuntimeStoriesTests {
             threadID: threadID,
             role: .assistant,
             content: "",
-            toolCalls: try pendingToolCallsJSON(ids: ["call_1"])
+            toolCalls: pendingToolCallsJSON(ids: ["call_1"])
         ))
         mockLLM.mockClient.nextResponse = "Continuation complete"
 
@@ -286,9 +286,9 @@ struct PublicRuntimeStoriesTests {
         }))
 
         let messages = try await mockPersistence.fetchMessages(for: threadID)
-        #expect(messages.map(\.role) == ["assistant", "tool", "user", "assistant"])
-        #expect(messages.dropFirst().first?.toolCallID == "call_1")
-        #expect(messages.dropFirst().first?.content == "Tool result")
+        #expect(messages.map(\.role) == ["assistant", "user", "tool", "assistant"])
+        #expect(messages.dropFirst(2).first?.toolCallID == "call_1")
+        #expect(messages.dropFirst(2).first?.content == "Tool result")
     }
 
     @Test
@@ -304,7 +304,7 @@ struct PublicRuntimeStoriesTests {
         }
 
         let messages = try await mockPersistence.fetchMessages(for: threadID)
-        #expect(messages.isEmpty)
+        #expect(messages.filter { $0.role == "tool" }.isEmpty)
     }
 
     // MARK: - Helpers
@@ -321,8 +321,7 @@ struct PublicRuntimeStoriesTests {
         let chat: PositronicKit
         if useGroupedPersistence {
             let persistence = PositronicKit.PersistenceConfiguration(
-                messageStore: mockPersistence,
-                threadPersistence: mockPersistence,
+                runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
                 toolPersistence: mockPersistence,
                 agentStore: mockPersistence,
@@ -334,29 +333,28 @@ struct PublicRuntimeStoriesTests {
                     provider: .init(languageModel: mockLLM),
                     persistence: persistence,
                     runtime: .init(
-                        workspaceCreator: MockWorkspaceCreator(),
-                        workspaceRoot: workspace.root
+                        workspaceProfile: .hostManaged(root: workspace.root),
+                        workspaceCreator: MockWorkspaceCreator()
                     )
                 ))
             } else {
                 chat = PositronicKit(configuration: .init(
                     provider: .init(languageModel: mockLLM),
                     persistence: persistence,
-                    runtime: .init(workspaceRoot: workspace.root)
+                    runtime: .init(workspaceProfile: .hostManaged(root: workspace.root))
                 ))
             }
         } else {
             chat = PositronicKit(configuration: .init(
                 provider: .init(languageModel: mockLLM),
                 persistence: .init(
-                    messageStore: mockPersistence,
-                    threadPersistence: mockPersistence,
+                    runtimeRepository: mockPersistence,
                     workspacePersistence: mockPersistence,
                     toolPersistence: mockPersistence,
                     agentStore: mockPersistence,
                     requestOriginStore: mockPersistence
                 ),
-                runtime: .init(workspaceCreator: MockWorkspaceCreator(), workspaceRoot: workspace.root)
+                runtime: .init(workspaceProfile: .hostManaged(root: workspace.root), workspaceCreator: MockWorkspaceCreator())
             ))
         }
 

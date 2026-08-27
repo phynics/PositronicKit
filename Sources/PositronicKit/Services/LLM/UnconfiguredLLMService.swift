@@ -2,7 +2,7 @@ import Foundation
 import PKContracts
 import PKUtilities
 
-public struct UnconfiguredLLMService: LanguageModel {
+public struct UnconfiguredLLMService: LLMStreamClient, HealthCheckable {
     public init() {}
 
     private var error: LLMServiceError {
@@ -44,37 +44,6 @@ public struct UnconfiguredLLMService: LanguageModel {
         .down
     }
 
-    public func loadConfiguration() async {}
-    public func updateConfiguration(_: LLMConfiguration) async throws {
-        throw error
-    }
-
-    public func clearConfiguration() async {}
-    public func restoreFromBackup() async throws {
-        throw error
-    }
-
-    public func exportConfiguration() async throws -> Data {
-        throw error
-    }
-
-    public func importConfiguration(from _: Data) async throws {
-        throw error
-    }
-
-    public func sendMessage(_: String) async throws -> String {
-        throw error
-    }
-
-    public func sendMessage(
-        _: String,
-        responseFormat _: LLMResponseFormat?,
-        generationParameters _: GenerationParameters?,
-        modelTier _: ModelTier = .primary
-    ) async throws -> String {
-        throw error
-    }
-
     public func generationStreamWithContext(_: LLMGenerationRequest) async throws -> LLMStreamResult {
         LLMStreamResult(stream: failingStream(), rawPrompt: "")
     }
@@ -90,7 +59,4 @@ public struct UnconfiguredLLMService: LanguageModel {
         failingStream()
     }
 
-    public func fetchAvailableModels() async throws -> [String]? {
-        throw error
-    }
 }

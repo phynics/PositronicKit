@@ -1,6 +1,30 @@
 import Testing
+import PKContracts
 import PKTestSupport
-@testable import PositronicKit
+import PositronicKit
+
+private struct StreamOnlyClient: LLMStreamClient {
+    var isConfigured: Bool {
+        get async { true }
+    }
+
+    var configuration: LLMConfiguration {
+        get async { .openAI }
+    }
+
+    func generationStream(
+        messages _: [LLMMessage],
+        tools _: [LLMToolDefinition]?,
+        toolChoice _: LLMToolChoice?,
+        responseFormat _: LLMResponseFormat?,
+        generationParameters _: GenerationParameters?,
+        modelTier _: ModelTier
+    ) async -> AsyncThrowingStream<LLMStreamChunk, Error> {
+        AsyncThrowingStream { continuation in
+            continuation.finish()
+        }
+    }
+}
 
 @Suite("Language model composition")
 struct LanguageModelCompositionTests {
@@ -10,7 +34,7 @@ struct LanguageModelCompositionTests {
         languageModel.mockIsConfigured = true
         let kit = PositronicKit(languageModel: languageModel)
 
-        #expect(await kit.isLanguageModelConfigured)
+        #expect(await kit.model.isConfigured)
     }
 
     @Test("the facade reports an unconfigured language model")
@@ -19,7 +43,7 @@ struct LanguageModelCompositionTests {
         languageModel.mockIsConfigured = false
         let kit = PositronicKit(languageModel: languageModel)
 
-        #expect(await !kit.isLanguageModelConfigured)
+        #expect(await !kit.model.isConfigured)
     }
 
     @Test("the facade reflects live language-model readiness changes")
@@ -28,29 +52,36 @@ struct LanguageModelCompositionTests {
         languageModel.mockIsConfigured = false
         let kit = PositronicKit(languageModel: languageModel)
 
-        #expect(await !kit.isLanguageModelConfigured)
+        #expect(await !kit.model.isConfigured)
 
         languageModel.mockIsConfigured = true
 
-        #expect(await kit.isLanguageModelConfigured)
+        #expect(await kit.model.isConfigured)
     }
 
-    @Test("the facade accepts an explicitly injected LanguageModel")
-    func acceptsInjectedLanguageModel() async throws {
+    @Test("the facade accepts an explicitly injected stream client")
+    func acceptsInjectedStreamClient() async throws {
         let languageModel = MockLLMService()
         languageModel.mockClient.nextResponse = "injected"
         let kit = PositronicKit(languageModel: languageModel)
 
-        let response = try await kit.complete("hello")
+        let response = try await kit.model.generate("hello")
 
-        #expect(response == "injected")
+        #expect(response.content == "injected")
     }
 
-    @Test("provider configuration exposes the injected LanguageModel")
-    func providerConfigurationExposesLanguageModel() {
+    @Test("provider configuration exposes the injected stream client")
+    func providerConfigurationExposesStreamClient() {
         let languageModel = MockLLMService()
         let configuration = PositronicKit.ProviderConfiguration(languageModel: languageModel)
 
         #expect(configuration.languageModel is MockLLMService)
+    }
+
+    @Test("the facade accepts a stream-only client")
+    func acceptsStreamOnlyClient() async {
+        let kit = PositronicKit(languageModel: StreamOnlyClient())
+
+        #expect(await kit.model.isConfigured)
     }
 }

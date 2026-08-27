@@ -30,14 +30,16 @@ struct TurnEngineTerminalEventTests {
                 threadStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
+                runtimeRepository: mockPersistence,
                 toolPersistence: mockPersistence
             ),
-            workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
+            workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp/pk-test")),
             workspaceCreator: MockWorkspaceCreator()
         )
         let toolRouter = ToolRouter(
             threadManager: threadManager,
-            messageStore: mockPersistence
+            messageStore: mockPersistence,
+            runtimeRepository: mockPersistence
         )
         let engine = TurnEngine(
             dependencies: .init(
@@ -45,6 +47,7 @@ struct TurnEngineTerminalEventTests {
                 agentStore: mockPersistence,
                 requestOriginStore: mockPersistence,
                 messageStore: mockPersistence,
+                runtimeRepository: mockPersistence,
                 llmService: mockLLM,
                 toolRouter: toolRouter,
                 streamTimeout: 60
@@ -95,14 +98,16 @@ struct TurnEngineTerminalEventTests {
                 threadStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
+                runtimeRepository: mockPersistence,
                 toolPersistence: mockPersistence
             ),
-            workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
+            workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp/pk-test")),
             workspaceCreator: MockWorkspaceCreator()
         )
         let toolRouter = ToolRouter(
             threadManager: threadManager,
-            messageStore: mockPersistence
+            messageStore: mockPersistence,
+            runtimeRepository: mockPersistence
         )
         let engine = TurnEngine(
             dependencies: .init(
@@ -110,6 +115,7 @@ struct TurnEngineTerminalEventTests {
                 agentStore: mockPersistence,
                 requestOriginStore: mockPersistence,
                 messageStore: mockPersistence,
+                runtimeRepository: mockPersistence,
                 llmService: mockLLM,
                 toolRouter: toolRouter,
                 streamTimeout: 60

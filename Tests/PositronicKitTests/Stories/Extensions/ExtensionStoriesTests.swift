@@ -85,15 +85,14 @@ import Testing
         let workspace = TestWorkspace()
 
         let chat = PositronicKit(configuration: .init(provider: .init(languageModel: mockLLM), persistence: .init(
-                messageStore: mockPersistence,
-                threadPersistence: mockPersistence,
+                runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
                 toolPersistence: mockPersistence,
                 agentStore: mockPersistence,
                 requestOriginStore: mockPersistence
             ), runtime: .init(
-                workspaceCreator: workspaceCreator,
-                workspaceRoot: workspace.root
+                workspaceProfile: .hostManaged(root: workspace.root),
+                workspaceCreator: workspaceCreator
         )))
         let threads = chat.threads
         let thread = try await threads.create(title: "Extension Acceptance")

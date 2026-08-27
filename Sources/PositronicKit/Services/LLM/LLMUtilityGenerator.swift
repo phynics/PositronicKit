@@ -1,6 +1,4 @@
-import ErrorKit
 import Foundation
-import Logging
 import JSONSchemaBuilder
 import PKContracts
 import PKUtilities
@@ -8,9 +6,7 @@ import PKUtilities
 /// Strict utility-generation operations.
 ///
 /// Failures propagate to the caller so policy stays at the boundary that owns it (for
-/// example, a caller's title fallback). The compatibility surface
-/// `BestEffortLLMUtilities` re-introduces the log-and-return-default behavior for
-/// `LLMUtilityClient` conformance (`bestEffortTags(for:)` / `bestEffortTitle(for:)`).
+/// example, a caller's title fallback).
 public struct LLMUtilityGenerator {
     private let streamClient: any LLMStreamClient
 
@@ -54,50 +50,16 @@ public struct LLMUtilityGenerator {
     }
 }
 
-/// Best-effort utility operations that log failures and return documented defaults.
-///
-/// Backs the `LLMUtilityClient` compatibility surface during the current major version.
-struct BestEffortLLMUtilities {
-    private let streamClient: any LLMStreamClient
-    private let logger: Logger
-
-    init(streamClient: any LLMStreamClient, logger: Logger) {
-        self.streamClient = streamClient
-        self.logger = logger
-    }
-
-    func bestEffortTags(for text: String) async -> [String] {
-        do {
-            return try await LLMUtilityGenerator(streamClient: streamClient).generateTags(for: text)
-        } catch {
-            logger.error("Failed to generate tags: \(ErrorKit.userFriendlyMessage(for: error))")
-            return []
-        }
-    }
-
-    func bestEffortTitle(for messages: [Message]) async -> String {
-        do {
-            return try await LLMUtilityGenerator(streamClient: streamClient).generateTitle(for: messages)
-        } catch {
-            logger.error("Failed to generate title: \(ErrorKit.userFriendlyMessage(for: error))")
-            return "New Thread"
-        }
-    }
-}
-
 private struct UtilityGenerationDirective<Payload: Decodable & Sendable, Output: Sendable> {
-    let logLabel: String
     let prompt: String
     let structuredOutput: StructuredOutputRequest
     let payloadType: Payload.Type
-    let defaultValue: Output
     let map: @Sendable (Payload) -> Output
 }
 
 private extension UtilityGenerationDirective where Payload == LLMTagResponse, Output == [String] {
     static func tags(text: String) -> Self {
         Self(
-            logLabel: "generate tags",
             prompt: """
             Extract 3-5 relevant keywords or tags from the following text.
             Return ONLY a JSON object with a key "tags" containing an array of strings.
@@ -111,7 +73,6 @@ private extension UtilityGenerationDirective where Payload == LLMTagResponse, Ou
                 schema: LLMTagResponse.schema.definition()
             )),
             payloadType: LLMTagResponse.self,
-            defaultValue: [],
             map: { $0.tags.map { $0.lowercased() } }
         )
     }
@@ -120,7 +81,6 @@ private extension UtilityGenerationDirective where Payload == LLMTagResponse, Ou
 private extension UtilityGenerationDirective where Payload == LLMTitleResponse, Output == String {
     static func title(transcript: String) -> Self {
         Self(
-            logLabel: "generate title",
             prompt: """
             Based on the following thread transcript, generate a concise, descriptive title (maximum 6 words).
             Return ONLY a JSON object with a key "title" containing the title text, with no surrounding quotes or additional formatting.
@@ -134,7 +94,6 @@ private extension UtilityGenerationDirective where Payload == LLMTitleResponse, 
                 schema: LLMTitleResponse.schema.definition()
             )),
             payloadType: LLMTitleResponse.self,
-            defaultValue: "New Thread",
             map: { payload in
                 let title = payload.title
                     .trimmingCharacters(in: .whitespacesAndNewlines)

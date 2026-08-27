@@ -5,10 +5,6 @@ import PKUtilities
 import Testing
 
 /// Coverage for `UnconfiguredLLMService` non-throwing methods and health checks.
-///
-/// The throwing methods are already covered by `UnconfiguredLLMServiceTests`; these tests
-/// cover the no-op / non-throwing paths: `isConfigured`, `configuration`, `getHealthDetails`,
-/// `checkHealth`, `loadConfiguration`, `clearConfiguration`.
 @Suite("UnconfiguredLLMService non-throwing methods")
 struct UnconfiguredLLMServiceCoverageTests {
     private let service = UnconfiguredLLMService()
@@ -38,18 +34,6 @@ struct UnconfiguredLLMServiceCoverageTests {
         #expect(await service.checkHealth() == .down)
     }
 
-    @Test("loadConfiguration is a no-op")
-    func loadConfigurationIsNoOp() async {
-        await service.loadConfiguration()
-        // Still unconfigured.
-        #expect(await service.isConfigured == false)
-    }
-
-    @Test("clearConfiguration is a no-op")
-    func clearConfigurationIsNoOp() async {
-        await service.clearConfiguration()
-        #expect(await service.isConfigured == false)
-    }
 }
 
 /// Coverage for `WorkspaceToolWrapper` — the adapter that wraps a workspace-provided

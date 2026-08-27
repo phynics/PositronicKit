@@ -7,8 +7,9 @@ import PKUtilities
 /// The caller-owned identity used to make turn admission idempotent.
 ///
 /// A fingerprint is deliberately opaque to the repository. The caller computes it from the
-/// complete intent that it considers retry-equivalent; the repository only compares it byte for
-/// byte when a Request ID is presented again.
+/// complete intent that it considers retry-equivalent; the repository compares it byte for byte
+/// for active and successfully completed requests, while unsuccessful terminal attempts may be
+/// admitted again as linked retries.
 public struct TurnCallerIntent: Codable, Hashable, Sendable {
     public let requestID: UUID
     public let fingerprint: String

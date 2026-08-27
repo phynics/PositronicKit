@@ -40,6 +40,22 @@ struct PartialAssistantPersistence {
             return
         }
 
+        // The built-in persistence stage constructs the terminal assistant before package
+        // extension stages run. If a later extension fails, retain that complete response rather
+        // than manufacturing a `.partial` duplicate. The terminal Turn will still be recorded as
+        // failed by the coordinator, but the already-generated assistant content remains usable
+        // for inspection and retry.
+        if let terminalMessage = await context.outputs.terminalAssistantMessage {
+            do {
+                try await messageStore.saveMessage(terminalMessage)
+            } catch {
+                logger.error(
+                    "Failed to persist terminal assistant after extension failure for thread \(context.threadID): \(error)"
+                )
+            }
+            return
+        }
+
         let fullResponse = await context.outputs.fullResponse
         let fullThinking = await context.outputs.fullThinking
         let hasAudio = await !context.outputs.audioData.isEmpty

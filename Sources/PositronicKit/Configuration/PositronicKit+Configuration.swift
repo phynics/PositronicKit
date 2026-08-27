@@ -7,10 +7,10 @@ public extension PositronicKit {
     /// Groups provider-facing services used by the runtime.
     /// Provider configuration for the language model used by the runtime.
     struct ProviderConfiguration: Sendable {
-        public let languageModel: any LLMStreamClient & LLMUtilityClient
+        public let languageModel: any LLMStreamClient
 
         public init(
-            languageModel: any LLMStreamClient & LLMUtilityClient
+            languageModel: any LLMStreamClient
         ) {
             self.languageModel = languageModel
         }
@@ -39,82 +39,35 @@ public extension PositronicKit {
         }
     }
 
-    /// Groups the persistence stores the runtime writes to. Every store is optional;
-    /// omitted stores default to their in-memory implementation, so partial persistence
-    /// setups (e.g. only a real message store) work without boilerplate. Supplying a runtime
-    /// repository makes one cohesive owner the Thread and message store used by Turn admission
-    /// and tool ordering.
+    /// Groups the persistence stores the runtime writes to. A cohesive runtime repository is
+    /// required because it is the atomic owner of Thread history and Turn transitions.
     ///
     /// Use ``validateDurability()`` to detect mixed-durability configurations (some stores
     /// durable, others in-memory) that can lose data on restart. Use
-    /// `fullyPersistent(messageStore:threadPersistence:workspacePersistence:toolPersistence:agentStore:requestOriginStore:runtimeRepository:workspaceBindingRepository:)`
-    /// when all six stores must be explicitly provided for full durability.
+    /// ``fullyPersistent(runtimeRepository:workspacePersistence:toolPersistence:agentStore:requestOriginStore:workspaceBindingRepository:)``
+    /// when all stores must be explicitly provided for full durability.
     struct PersistenceConfiguration: Sendable {
-        /// Optional cohesive owner for Thread history and Turn transitions. When supplied
-        /// without explicit low-level stores, it is used for both thread and message access.
-        public let runtimeRepository: (any ThreadRuntimeRepository)?
-        public let messageStore: any ThreadMessageStoreProtocol
-        public let threadPersistence: any ThreadPersistenceProtocol
+        /// Cohesive owner for Thread history and Turn lifecycle.
+        public let runtimeRepository: any ThreadRuntimeRepository
         public let workspacePersistence: any WorkspaceStore
-        /// Durable authority for ordinary Workspace-to-Thread bindings. Because this protocol
-        /// has no durability declaration, hosts supplying a custom runtime repository that does
-        /// not conform to it must provide their durable binding repository explicitly.
         public let workspaceBindingRepository: any WorkspaceBindingRepository
         public let toolPersistence: any ToolPersistenceProtocol
         public let agentStore: any AgentStoreProtocol
         public let requestOriginStore: any RequestOriginStoreProtocol
 
-        /// Legacy compatibility path: independent Thread/message stores do not provide v4
-        /// atomic Turn admission or terminal-message semantics. Supply `runtimeRepository` for
-        /// the supported v4 configuration.
         public init(
-            messageStore: (any ThreadMessageStoreProtocol)? = nil,
-            threadPersistence: (any ThreadPersistenceProtocol)? = nil,
+            runtimeRepository: any ThreadRuntimeRepository,
             workspacePersistence: (any WorkspaceStore)? = nil,
             toolPersistence: (any ToolPersistenceProtocol)? = nil,
             agentStore: (any AgentStoreProtocol)? = nil,
             requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
-            runtimeRepository: (any ThreadRuntimeRepository)? = nil,
-            workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil
-        ) {
-            let resolvedRepository = runtimeRepository
-                ?? (messageStore == nil && threadPersistence == nil ? InMemoryThreadRuntimeRepository() : nil)
-            let resolvedWorkspaceStore = workspacePersistence ?? InMemoryWorkspacePersistence()
-            self.runtimeRepository = resolvedRepository
-            self.messageStore = resolvedRepository ?? messageStore ?? InMemoryMessageStore()
-            self.threadPersistence = resolvedRepository ?? threadPersistence ?? InMemoryThreadPersistence()
-            self.workspacePersistence = resolvedWorkspaceStore
-            self.workspaceBindingRepository = workspaceBindingRepository
-                ?? (resolvedRepository as? any WorkspaceBindingRepository)
-                ?? (resolvedWorkspaceStore as? any WorkspaceBindingRepository)
-                ?? InMemoryWorkspaceBindingRepository()
-            self.toolPersistence = toolPersistence ?? InMemoryToolPersistence()
-            self.agentStore = agentStore ?? InMemoryAgentStore()
-            self.requestOriginStore = requestOriginStore ?? InMemoryRequestOriginStore()
-        }
-
-        /// Creates a persistence configuration from the canonical thread store.
-        /// Legacy compatibility path: independent Thread/message stores do not provide v4
-        /// atomic Turn admission or terminal-message semantics. Supply `runtimeRepository` for
-        /// the supported v4 configuration.
-        public init(
-            messageStore: (any ThreadMessageStoreProtocol)? = nil,
-            threadPersistence: any ThreadPersistenceProtocol,
-            workspacePersistence: (any WorkspaceStore)? = nil,
-            toolPersistence: (any ToolPersistenceProtocol)? = nil,
-            agentStore: (any AgentStoreProtocol)? = nil,
-            requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
-            runtimeRepository: (any ThreadRuntimeRepository)? = nil,
             workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil
         ) {
             let resolvedWorkspaceStore = workspacePersistence ?? InMemoryWorkspacePersistence()
             self.runtimeRepository = runtimeRepository
-            self.messageStore = runtimeRepository ?? messageStore ?? InMemoryMessageStore()
-            self.threadPersistence = runtimeRepository ?? threadPersistence
             self.workspacePersistence = resolvedWorkspaceStore
             self.workspaceBindingRepository = workspaceBindingRepository
                 ?? (runtimeRepository as? any WorkspaceBindingRepository)
-                ?? (resolvedWorkspaceStore as? any WorkspaceBindingRepository)
                 ?? InMemoryWorkspaceBindingRepository()
             self.toolPersistence = toolPersistence ?? InMemoryToolPersistence()
             self.agentStore = agentStore ?? InMemoryAgentStore()
@@ -126,29 +79,24 @@ public extension PositronicKit {
             PersistenceConfiguration(runtimeRepository: InMemoryThreadRuntimeRepository())
         }
 
-        /// Requires all six stores explicitly — the "full durability" entry point for
-        /// production hosts (Monad, Shuttle). Unlike the optional-store init, no store can
+        /// Requires the runtime, workspace, tool, agent, and request-origin stores explicitly —
+        /// the "full durability" entry point for production hosts (Monad, Shuttle). Unlike the
+        /// optional-store init, no required store can
         /// silently default to in-memory.
-        /// Legacy compatibility path: independent stores cannot provide atomic v4 Turn admission
-        /// or terminal-message transitions. Supply a `ThreadRuntimeRepository` instead.
         public static func fullyPersistent(
-            messageStore: any ThreadMessageStoreProtocol,
-            threadPersistence: any ThreadPersistenceProtocol,
+            runtimeRepository: any ThreadRuntimeRepository,
             workspacePersistence: any WorkspaceStore,
             toolPersistence: any ToolPersistenceProtocol,
             agentStore: any AgentStoreProtocol,
             requestOriginStore: any RequestOriginStoreProtocol,
-            runtimeRepository: (any ThreadRuntimeRepository)? = nil,
             workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil
         ) -> PersistenceConfiguration {
             PersistenceConfiguration(
-                messageStore: messageStore,
-                threadPersistence: threadPersistence,
+                runtimeRepository: runtimeRepository,
                 workspacePersistence: workspacePersistence,
                 toolPersistence: toolPersistence,
                 agentStore: agentStore,
                 requestOriginStore: requestOriginStore,
-                runtimeRepository: runtimeRepository,
                 workspaceBindingRepository: workspaceBindingRepository
             )
         }
@@ -157,13 +105,10 @@ public extension PositronicKit {
         ///
         /// Use `report.isMixed` to detect configurations where some stores survive restart
         /// and others do not — a data-consistency risk. Use `report.ephemeralStoreNames` to
-        /// identify which specific stores are ephemeral. The report intentionally excludes
-        /// `workspaceBindingRepository` because that protocol does not declare durability; hosts
-        /// must validate that boundary separately.
+        /// identify which specific stores are ephemeral.
         public func validateDurability() -> DurabilityReport {
             DurabilityReport(
-                messageStore: messageStore.isDurable ? .durable : .ephemeral,
-                threadPersistence: threadPersistence.isDurable ? .durable : .ephemeral,
+                runtimeRepository: runtimeRepository.isDurable ? .durable : .ephemeral,
                 workspacePersistence: workspacePersistence.isDurable ? .durable : .ephemeral,
                 toolPersistence: toolPersistence.isDurable ? .durable : .ephemeral,
                 agentStore: agentStore.isDurable ? .durable : .ephemeral,
@@ -188,23 +133,20 @@ public extension PositronicKit {
     /// stores — a data-consistency risk because durable stores may reference entities
     /// (threads, workspaces, agents) that will be missing after restart.
     struct DurabilityReport: Sendable, Equatable {
-        public let messageStore: StoreDurability
-        public let threadPersistence: StoreDurability
+        public let runtimeRepository: StoreDurability
         public let workspacePersistence: StoreDurability
         public let toolPersistence: StoreDurability
         public let agentStore: StoreDurability
         public let requestOriginStore: StoreDurability
 
         public init(
-            messageStore: StoreDurability,
-            threadPersistence: StoreDurability,
+            runtimeRepository: StoreDurability,
             workspacePersistence: StoreDurability,
             toolPersistence: StoreDurability,
             agentStore: StoreDurability,
             requestOriginStore: StoreDurability
         ) {
-            self.messageStore = messageStore
-            self.threadPersistence = threadPersistence
+            self.runtimeRepository = runtimeRepository
             self.workspacePersistence = workspacePersistence
             self.toolPersistence = toolPersistence
             self.agentStore = agentStore
@@ -213,7 +155,7 @@ public extension PositronicKit {
 
         public var isMixed: Bool {
             let all: [StoreDurability] = [
-                messageStore, threadPersistence, workspacePersistence,
+                runtimeRepository, workspacePersistence,
                 toolPersistence, agentStore, requestOriginStore,
             ]
             return all.contains(.durable) && all.contains(.ephemeral)
@@ -222,8 +164,7 @@ public extension PositronicKit {
         /// The label of each store classified as `.ephemeral`, in declaration order.
         public var ephemeralStoreNames: [String] {
             var names: [String] = []
-            if messageStore == .ephemeral { names.append("messageStore") }
-            if threadPersistence == .ephemeral { names.append("threadPersistence") }
+            if runtimeRepository == .ephemeral { names.append("runtimeRepository") }
             if workspacePersistence == .ephemeral { names.append("workspacePersistence") }
             if toolPersistence == .ephemeral { names.append("toolPersistence") }
             if agentStore == .ephemeral { names.append("agentStore") }
@@ -249,19 +190,11 @@ public extension PositronicKit {
         public let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
         public let degradationPolicy: TurnDegradationPolicy
 
-        /// The workspace root this configuration resolves to, if any (PKRR-029).
-        ///
-        /// Returns `nil` for `.noWorkspace`. Preserved for backward compatibility with callers
-        /// that read the resolved root; prefer reading `workspaceProfile` directly.
-        public var workspaceRoot: URL? { workspaceProfile.catalogRoot }
-
         /// - Parameters:
         ///   - workspaceProfile: How the per-thread filesystem workspace is provisioned.
         ///     Defaults to `.noWorkspace` (no filesystem side effects). Pass `.hostManaged(root:)`
-        ///     to preserve the pre-PKRR-029 behavior of an explicit workspace root, or
+        ///     to use a host-owned directory, or
         ///     `.ephemeralWorkspace(root:)` for a self-cleaning scratch directory.
-        ///   - workspaceRoot: Legacy shorthand. When non-`nil` and `workspaceProfile` is omitted,
-        ///     maps to `.hostManaged(root: workspaceRoot, seedNotes: .default)`.
         ///   - workspaceCreator: Creates per-thread workspace directories when the selected
         ///     profile requires them.
         ///   - customization: The bounded Agent context, Turn context, activity, and outcome roles.
@@ -270,22 +203,15 @@ public extension PositronicKit {
         ///   - diagnosticSnapshotConfiguration: Controls diagnostic response snapshots.
         ///   - degradationPolicy: Controls whether required turn degradations fail the turn.
         public init(
-            workspaceProfile: WorkspaceProfile? = nil,
+            workspaceProfile: WorkspaceProfile = .noWorkspace,
             workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
             customization: RuntimeCustomization = .default,
             runtimeToolPolicy: RuntimeToolPolicy = .default,
-            workspaceRoot: URL? = nil,
             toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
             diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
             degradationPolicy: TurnDegradationPolicy = .failRequired
         ) {
-            if let workspaceProfile {
-                self.workspaceProfile = workspaceProfile
-            } else if let workspaceRoot {
-                self.workspaceProfile = .hostManaged(root: workspaceRoot, seedNotes: .default)
-            } else {
-                self.workspaceProfile = .noWorkspace
-            }
+            self.workspaceProfile = workspaceProfile
             self.workspaceCreator = workspaceCreator
             self.customization = customization
             self.runtimeToolPolicy = runtimeToolPolicy
@@ -310,12 +236,10 @@ public extension PositronicKit {
     convenience init(configuration: Configuration) {
         self.init(
             languageModel: configuration.provider.languageModel,
-            messageStore: configuration.persistence.messageStore,
             runtimeRepository: configuration.persistence.runtimeRepository,
             workspaceBindingRepository: configuration.persistence.workspaceBindingRepository,
             agentStore: configuration.persistence.agentStore,
             requestOriginStore: configuration.persistence.requestOriginStore,
-            threadPersistence: configuration.persistence.threadPersistence,
             workspacePersistence: configuration.persistence.workspacePersistence,
             toolPersistence: configuration.persistence.toolPersistence,
             workspaceProfile: configuration.runtime.workspaceProfile,

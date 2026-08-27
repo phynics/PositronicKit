@@ -46,15 +46,14 @@ import PositronicKit
             self.llm = llm
 
             core = PositronicKit(configuration: .init(provider: .init(languageModel: llm), persistence: .init(
-                    messageStore: persistence,
-                    threadPersistence: persistence,
+                    runtimeRepository: persistence,
                     workspacePersistence: persistence,
                     toolPersistence: persistence,
                     agentStore: persistence,
                     requestOriginStore: persistence
                 ), runtime: .init(
-                    workspaceCreator: workspaceCreator,
-                    workspaceRoot: workspaceRoot
+                    workspaceProfile: .hostManaged(root: workspaceRoot),
+                    workspaceCreator: workspaceCreator
                 )))
 
         }

@@ -43,9 +43,10 @@ final class ToolApprovalPolicyFilesystemToolsTests {
                 threadStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
+                runtimeRepository: mockPersistence,
                 toolPersistence: mockPersistence
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
         return (threadManager, mockPersistence)
     }

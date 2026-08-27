@@ -1,6 +1,6 @@
 # PositronicKit Usage Guide
 
-This guide documents the unreleased Next / v4 runtime. For production, start from the
+This guide documents the unreleased Next / v5 runtime. For production, start from the
 [stable tagged README](https://github.com/phynics/PositronicKit/blob/4.0.0/README.md).
 
 ## 1. Managing Agents
@@ -59,26 +59,26 @@ construction, run, and event-handling shapes here are type-checked against the c
 
 ### Simplified Initialization (Prototyping)
 
-The facade's prototyping initializer takes a `languageModel` and defaults every store to
-in-memory. Construct a provider-backed `LanguageModel` from your provider's configuration,
-wrap it in an `LLMService`, then hand it to `PositronicKit`.
+The facade's prototyping initializer takes a `languageModel` conforming to
+`LLMStreamClient` and defaults every store to in-memory. Construct a provider-backed stream
+client from your provider's configuration, wrap it in an `LLMService`, then hand it to
+`PositronicKit`.
 
 ```swift
 import PositronicKit
 import PKContracts
 import PKOpenAIProvider
 
-// OpenAI: configure the provider, build its client, and wrap it as a LanguageModel.
+// OpenAI: configure the provider, build its client, and wrap it as an LLMStreamClient.
 var openAIConfig = ProviderConfiguration.makeDefault(for: .openAI)
 openAIConfig.apiKey = "sk-..."
 let configuration = LLMConfiguration(activeProvider: .openAI, providers: [.openAI: openAIConfig])
 let client = PKOpenAIProvider.makeClient(configuration: configuration)
-let languageModel = LLMService(
-    storage: InMemoryConfigurationService(config: configuration),
-    client: client,
-    utilityClient: client,
-    fastClient: client
-)
+let languageModel = LLMService(configuration: configuration, clients: .init(
+    primary: client,
+    utility: client,
+    fast: client
+))
 let kit = PositronicKit(languageModel: languageModel)
 ```
 
@@ -93,12 +93,11 @@ var ollamaConfig = ProviderConfiguration.makeDefault(for: .ollama)
 ollamaConfig.modelName = "llama3"
 let configuration = LLMConfiguration(activeProvider: .ollama, providers: [.ollama: ollamaConfig])
 let client = PKOllamaProvider.makeClient(configuration: configuration)
-let languageModel = LLMService(
-    storage: InMemoryConfigurationService(config: configuration),
-    client: client,
-    utilityClient: client,
-    fastClient: client
-)
+let languageModel = LLMService(configuration: configuration, clients: .init(
+    primary: client,
+    utility: client,
+    fast: client
+))
 let kit = PositronicKit(languageModel: languageModel)
 ```
 
@@ -108,8 +107,9 @@ and wrapped in an `LLMService` before being passed to `PositronicKit`.
 ### Full Initialization (Production)
 
 For production, assemble a `PositronicKit.Configuration` and construct via
-`PositronicKit(configuration:)`. Every store in `PersistenceConfiguration` is optional and
-defaults to in-memory, so provide only the durable stores your host needs.
+`PositronicKit(configuration:)`. The runtime repository is required because it atomically owns
+Thread history and Turn transitions; the remaining stores may use in-memory defaults for local
+development.
 
 ```swift
 import PositronicKit
@@ -117,17 +117,17 @@ import PKContracts
 
 let kit = PositronicKit(configuration: .init(
     provider: .init(
-        languageModel: myLLM
+        languageModel: streamClient
     ),
     persistence: .init(
-        messageStore: myMessageStore,
-        threadPersistence: myThreadPersistence,
+        runtimeRepository: myRuntimeRepository,
         workspacePersistence: myWorkspacePersistence,
         toolPersistence: myToolPersistence,
         agentStore: myAgentStore,
         requestOriginStore: myRequestOriginStore
     ),
     runtime: .init(
+        workspaceProfile: .hostManaged(root: myWorkspaceRoot),
         workspaceCreator: myWorkspaceCreator
     )
 ))

@@ -18,8 +18,7 @@ struct SidecarTurnIntegrationTests {
 
     private func makeChat(llmService: MockLLMService, persistence: MockPersistenceService) -> PositronicKit {
         PositronicKit(configuration: .init(provider: .init(languageModel: llmService), persistence: .init(
-                messageStore: persistence,
-                threadPersistence: persistence,
+                runtimeRepository: persistence,
                 workspacePersistence: persistence,
                 toolPersistence: persistence,
                 agentStore: persistence,

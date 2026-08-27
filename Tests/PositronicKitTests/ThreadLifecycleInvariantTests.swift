@@ -17,8 +17,7 @@ struct ThreadLifecycleInvariantTests {
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: mockLLM),
             persistence: .init(
-                messageStore: mockPersistence,
-                threadPersistence: mockPersistence,
+                runtimeRepository: mockPersistence,
                 workspacePersistence: mockPersistence,
                 toolPersistence: mockPersistence,
                 agentStore: mockPersistence,
@@ -41,14 +40,13 @@ struct ThreadLifecycleInvariantTests {
 
     @Test("Store failure during hydration throws unavailable and no message is persisted")
     func storeFailureThrowsUnavailableBeforePersisting() async throws {
-        let failingStore = FailingThreadPersistence(fetchFails: true)
         let mockLLM = MockLLMService()
         let mockMessages = MockPersistenceService()
+        mockMessages.fetchThreadFails = true
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: mockLLM),
             persistence: .init(
-                messageStore: mockMessages,
-                threadPersistence: failingStore,
+                runtimeRepository: mockMessages,
                 workspacePersistence: mockMessages,
                 toolPersistence: mockMessages,
                 agentStore: mockMessages,

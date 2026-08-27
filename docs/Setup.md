@@ -1,6 +1,6 @@
-# PositronicKit Next / v4 Setup Guide
+# PositronicKit Next / v5 Setup Guide
 
-This guide follows `main` and describes unreleased v4 APIs. The
+This guide follows `main` and describes unreleased v5 APIs. The
 [stable `4.0.0` documentation](https://github.com/phynics/PositronicKit/blob/4.0.0/docs/Setup.md)
 is immutable and remains the production default.
 
@@ -22,10 +22,10 @@ Pick the smallest surface that matches your need:
 `PositronicKit` is configured through its initializers. The runtime composes its internal graph from explicit services and stores, so callers do not rely on a shared dependency container.
 
 ### Required Services
-The only required service is a value conforming to both `LLMStreamClient` and
-`LLMUtilityClient`, passed as `languageModel`.
-
-Everything else has in-memory defaults suitable for local development and tests.
+The provider requires a value conforming to `LLMStreamClient`, passed as `languageModel`. A
+grouped production configuration also requires one `ThreadRuntimeRepository`, which atomically
+owns Thread history and Turn transitions. Other stores have in-memory defaults suitable for local
+development and tests.
 
 ### Minimal Configuration
 
@@ -112,8 +112,8 @@ let configuration = LLMConfiguration(
 
 let core = PositronicKit(
     languageModel: LLMService(
-        storage: InMemoryConfigurationService(config: configuration),
-        client: PKOpenAIProvider.makeClient(configuration: configuration)
+        configuration: configuration,
+        clients: .init(primary: PKOpenAIProvider.makeClient(configuration: configuration))
     )
 )
 ```

@@ -25,7 +25,19 @@ def platform_name() -> str:
 
 
 PLATFORM = platform_name()
-BASELINE = ROOT / "api" / f"4.0-public-api-{PLATFORM}.json"
+
+
+def target_release() -> str:
+    """Return the major.minor release represented by the Next API surface."""
+    catalog = json.loads(CATALOG.read_text())
+    version = catalog["next"].get("version")
+    if not version:
+        raise SystemExit("docs/catalog.json next.version is required for public API baselines")
+    return ".".join(version.split(".")[:2])
+
+
+BASELINE_RELEASE = target_release()
+BASELINE = ROOT / "api" / f"{BASELINE_RELEASE}-public-api-{PLATFORM}.json"
 
 
 def run_result(*arguments: str) -> tuple[int, str]:
@@ -69,6 +81,9 @@ def reported_graph_directory(output: str) -> Path:
 def inventory() -> dict:
     modules = public_modules()
     bin_path = Path(run("swift", "build", "--show-bin-path").splitlines()[-1])
+    # SwiftPM places the graphs beside the configuration directory (for
+    # example `.build/x86_64-unknown-linux-gnu/symbolgraph`), so resolve from
+    # the bin directory rather than the package `.build` root.
     graph_dir = bin_path.parent / "symbolgraph"
     graph_dir.mkdir(parents=True, exist_ok=True)
     for graph in graph_dir.rglob("*.symbols.json"):
@@ -168,7 +183,7 @@ def inventory() -> dict:
 
     return {
         "schemaVersion": 2,
-        "release": "4.0",
+        "release": BASELINE_RELEASE,
         "platform": PLATFORM,
         "modules": modules,
         "symbols": [dict(precise=precise, **symbols[precise]) for precise in sorted(symbols)],
@@ -205,7 +220,7 @@ def check(actual: dict) -> int:
         json.dumps(relationship, sort_keys=True)
         for relationship in actual["relationships"]
     }
-    print("Public API differs from the reviewed 4.0 baseline.", file=sys.stderr)
+    print(f"Public API differs from the reviewed {BASELINE_RELEASE} baseline.", file=sys.stderr)
     for heading, identifiers, source in (
         ("removed", removed, expected_symbols),
         ("added", added, actual_symbols),

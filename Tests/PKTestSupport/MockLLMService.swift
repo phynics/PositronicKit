@@ -422,34 +422,27 @@ public final class MockLLMClient: LLMClientProtocol, Sendable {
     }
 }
 
-/// In-memory test double for the full LLM service surface (`LLMStreamClient`,
-/// `LLMConfigStore`, `LLMUtilityClient`, `HealthCheckable`), backed internally by a
+/// In-memory test double for the LLM service surface (`LLMStreamClient`,
+/// `LLMConfigStore`, `HealthCheckable`), backed internally by a
 /// ``MockLLMClient`` (`mockClient`) for its streaming behavior.
 ///
 /// Configurable: `mockConfig`/`mockIsConfigured` (configuration state),
-/// `mockHealthStatus`/`mockHealthDetails` (health-check responses), `nextResponse`
-/// (non-streamed reply text), `nextTags`/`nextGeneratedTitle` (tagging/title-generation
-/// stubs), `stubbedStream` (override the stream returned by `generationStream`, bypassing
-/// `mockClient`).
+/// `mockHealthStatus`/`mockHealthDetails` (health-check responses), and `stubbedStream`
+/// (override the stream returned by `generationStream`, bypassing `mockClient`).
 ///
-/// `generationCaptureHistory`, `sendMessageCaptureHistory`, `generationRequestHistory`, and
-/// `modelTierHistory` capture calls before delegation or `stubbedStream` selection, so errors and
-/// stubs remain observable; `generatedTitleInputs` records every title request. The service starts
+/// `generationCaptureHistory`, `generationRequestHistory`, and `modelTierHistory` capture calls
+/// before delegation or `stubbedStream` selection, so errors and stubs remain observable. The service starts
 /// configured with `.openAI`; `updateConfiguration` and successful import mark it configured,
 /// while `clearConfiguration` restores `.openAI` and marks it unconfigured. Export/import performs
 /// JSON work after taking a state snapshot and before committing decoded state;
 /// `loadConfiguration` and `restoreFromBackup` are no-op hooks. No lock crosses JSON work,
 /// delegated streaming, stream iteration, or caller-provided execution.
-public final class MockLLMService: LanguageModel, HealthCheckable {
+public final class MockLLMService: LLMStreamClient, LLMConfigStore, HealthCheckable {
     private struct State: Sendable {
         var mockHealthStatus: HealthStatus = .ok
         var mockHealthDetails: [String: String]? = ["mock": "true"]
         var mockIsConfigured = true
         var mockConfig: LLMConfiguration = .openAI
-        var nextResponse = ""
-        var nextTags: [String] = []
-        var nextGeneratedTitle = "Mock Title"
-        var generatedTitleInputs: [[Message]] = []
         var mockClient = MockLLMClient()
         var stubbedStream: AsyncThrowingStream<LLMStreamChunk, Error>?
         var lastGenerationRequest: LLMGenerationRequest?
@@ -458,8 +451,6 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
         var modelTierHistory: [ModelTier] = []
         var lastGenerationCapture: MockLLMGenerationCapture?
         var generationCaptureHistory: [MockLLMGenerationCapture] = []
-        var lastSendMessageCapture: MockLLMSendMessageCapture?
-        var sendMessageCaptureHistory: [MockLLMSendMessageCapture] = []
     }
 
     private let state = Mutex(State())
@@ -498,26 +489,6 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
     public var mockConfig: LLMConfiguration {
         get { state.withLock { $0.mockConfig } }
         set { state.withLock { $0.mockConfig = newValue } }
-    }
-
-    public var nextResponse: String {
-        get { state.withLock { $0.nextResponse } }
-        set { state.withLock { $0.nextResponse = newValue } }
-    }
-
-    public var nextTags: [String] {
-        get { state.withLock { $0.nextTags } }
-        set { state.withLock { $0.nextTags = newValue } }
-    }
-
-    public var nextGeneratedTitle: String {
-        get { state.withLock { $0.nextGeneratedTitle } }
-        set { state.withLock { $0.nextGeneratedTitle = newValue } }
-    }
-
-    public var generatedTitleInputs: [[Message]] {
-        get { state.withLock { $0.generatedTitleInputs } }
-        set { state.withLock { $0.generatedTitleInputs = newValue } }
     }
 
     public var mockClient: MockLLMClient {
@@ -562,15 +533,6 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
         state.withLock { $0.generationCaptureHistory }
     }
 
-    public var lastSendMessageCapture: MockLLMSendMessageCapture? {
-        state.withLock { $0.lastSendMessageCapture }
-    }
-
-    /// Complete service-level non-streaming send captures.
-    public var sendMessageCaptureHistory: [MockLLMSendMessageCapture] {
-        state.withLock { $0.sendMessageCaptureHistory }
-    }
-
     public init() {}
 
     public func loadConfiguration() async {}
@@ -601,39 +563,6 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
         state.withLock {
             $0.mockConfig = configuration
             $0.mockIsConfigured = true
-        }
-    }
-
-    public func sendMessage(_ content: String) async throws -> String {
-        state.withLock { state in
-            let capture = MockLLMSendMessageCapture(
-                content: content,
-                responseFormat: nil,
-                generationParameters: nil,
-                modelTier: .primary
-            )
-            state.lastSendMessageCapture = capture
-            state.sendMessageCaptureHistory.append(capture)
-            return state.nextResponse
-        }
-    }
-
-    public func sendMessage(
-        _ content: String,
-        responseFormat: LLMResponseFormat?,
-        generationParameters: GenerationParameters?,
-        modelTier: ModelTier = .primary
-    ) async throws -> String {
-        state.withLock { state in
-            let capture = MockLLMSendMessageCapture(
-                content: content,
-                responseFormat: responseFormat,
-                generationParameters: generationParameters,
-                modelTier: modelTier
-            )
-            state.lastSendMessageCapture = capture
-            state.sendMessageCaptureHistory.append(capture)
-            return state.nextResponse
         }
     }
 
@@ -710,22 +639,6 @@ public final class MockLLMService: LanguageModel, HealthCheckable {
             generationParameters: generationParameters,
             modelTier: modelTier
         )
-    }
-
-    public func bestEffortTags(for _: String) async -> [String] {
-        let tags = state.withLock { $0.nextTags }
-        return tags.map { $0.lowercased() }
-    }
-
-    public func bestEffortTitle(for messages: [Message]) async -> String {
-        let scriptedTitle = state.withLock { state in
-            state.generatedTitleInputs.append(messages)
-            return state.nextGeneratedTitle
-        }
-        let title = scriptedTitle
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .replacingOccurrences(of: "\"", with: "")
-        return title.isEmpty ? "New Thread" : title
     }
 
     public func fetchAvailableModels() async throws -> [String]? {

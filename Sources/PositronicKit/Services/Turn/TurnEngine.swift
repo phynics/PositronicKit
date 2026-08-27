@@ -1,8 +1,8 @@
 import ErrorKit
 import Foundation
 import Logging
-import PKPrompt
 import PKContracts
+import PKPrompt
 import PKUtilities
 
 /// Errors thrown by `TurnEngine` during setup and execution.
@@ -79,8 +79,14 @@ enum TurnDegradationError: PKError {
         }
     }
 
-    var errorDomain: String { PKErrorDomain.turn }
-    var errorCode: Int { 9010 }
+    var errorDomain: String {
+        PKErrorDomain.turn
+    }
+
+    var errorCode: Int {
+        9010
+    }
+
     var userFriendlyMessage: String {
         "Required \(diagnostic.dependency.rawValue) dependency failed during turn preparation: \(diagnostic.message)"
     }
@@ -100,7 +106,7 @@ enum TurnDegradationError: PKError {
 /// external callers are expected to integrate through `PositronicKit` and the higher-level
 /// extension protocols rather than depending on this concrete orchestrator directly.
 struct TurnEngine {
-    struct TurnExecution: Sendable {
+    struct TurnExecution {
         let turnID: UUID
         let stream: AsyncThrowingStream<TurnEvent, Error>
     }
@@ -141,7 +147,7 @@ struct TurnEngine {
             runtimeRepository: (any ThreadRuntimeRepository)? = nil,
             threadAuthorityCoordinator: ThreadAuthorityCoordinator? = nil,
             agentAuthorityCoordinator: AgentAuthorityCoordinator? = nil,
-            llmService: any LLMStreamClient & LLMUtilityClient,
+            llmService: any LLMStreamClient,
             toolRouter: ToolRouter,
             turnContextSource: (any TurnContextSource)? = nil,
             agentActivitySink: (any AgentActivitySink)? = nil,
@@ -184,7 +190,7 @@ struct TurnEngine {
         /// Response tokens reserved for the model's output when the caller leaves
         /// `GenerationParameters.maxTokens` nil. Matches Anthropic's `defaultMaxTokens` and is a
         /// conservative default across providers.
-        static let defaultOutputReserve = 4_096
+        static let defaultOutputReserve = 4096
         /// Extra tokens withheld from the context window for provider-side framing/overhead
         /// that is neither prompt nor response (e.g. message wrappers, tool-call scaffolding).
         static let providerOverhead = 512
@@ -202,8 +208,9 @@ struct TurnEngine {
         turnID: UUID,
         message: String
     ) async {
+        guard let repository = dependencies.runtimeRepository else { return }
         await Self.persistCustomizationNotice(
-            repository: dependencies.runtimeRepository,
+            repository: repository,
             logger: logger,
             code: code,
             turnID: turnID,
@@ -212,16 +219,12 @@ struct TurnEngine {
     }
 
     static func persistCustomizationNotice(
-        repository: (any ThreadRuntimeRepository)?,
+        repository: any ThreadRuntimeRepository,
         logger: Logger,
         code: TurnNoticeCode,
         turnID: UUID,
         message: String
     ) async {
-        guard let repository else {
-            logger.warning("Runtime customization notice: \(code.rawValue): \(message)")
-            return
-        }
         do {
             try await repository.appendNotice(
                 turnID: turnID,
@@ -433,11 +436,7 @@ struct TurnEngine {
         }
 
         let (sourceStream, continuation) = AsyncThrowingStream<TurnEvent, Error>.makeStream()
-        // Legacy configurations without a runtime repository do not have a durable admission
-        // callback; begin their process-local live lane once preparation succeeds.
-        if dependencies.runtimeRepository == nil {
-            await dependencies.eventHub.begin(turnID: turnID)
-        }
+        // Durable admission starts the live event lane before preparation continues.
         let stream = await dependencies.eventHub.subscribe(turnID: turnID)
 
         let bridge = Task {
@@ -477,7 +476,7 @@ struct TurnEngine {
 
     private func replayExistingTurn(_ admission: TurnAdmission) async throws -> AsyncThrowingStream<TurnEvent, Error> {
         guard let repository = dependencies.runtimeRepository else {
-            throw TurnEngineError.promptHistoryInconsistent("Turn replay requires a runtime repository.")
+            throw TurnEngineError.promptHistoryInconsistent("Cannot replay a Turn without a runtime repository.")
         }
         let (stream, continuation) = AsyncThrowingStream<TurnEvent, Error>.makeStream()
         let task = Task {

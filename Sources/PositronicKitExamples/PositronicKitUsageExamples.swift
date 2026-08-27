@@ -91,7 +91,7 @@ public enum PositronicKitUsageExamples {
         let workspaceRoot = FileManager.default.temporaryDirectory
             .appendingPathComponent("positronickit-examples", isDirectory: true)
         let runtime = PositronicKit.RuntimeConfiguration(
-            workspaceRoot: workspaceRoot
+            workspaceProfile: .hostManaged(root: workspaceRoot)
         )
 
         return PositronicKit(configuration: .init(
@@ -151,14 +151,13 @@ public enum PositronicKitUsageExamples {
         let workspaceRoot = FileManager.default.temporaryDirectory
             .appendingPathComponent("positronickit-examples-production", isDirectory: true)
         let runtime = PositronicKit.RuntimeConfiguration(
-            workspaceRoot: workspaceRoot
+            workspaceProfile: .hostManaged(root: workspaceRoot)
         )
 
         return PositronicKit(configuration: .init(
             provider: .init(languageModel: UnconfiguredLLMService()),
             persistence: .init(
-                messageStore: InMemoryMessageStore(),
-                threadPersistence: InMemoryThreadPersistence(),
+                runtimeRepository: InMemoryThreadRuntimeRepository(),
                 workspacePersistence: InMemoryWorkspacePersistence(),
                 toolPersistence: InMemoryToolPersistence(),
                 agentStore: InMemoryAgentStore(),

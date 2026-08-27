@@ -59,7 +59,7 @@ public final class PositronicKit: Sendable {
 
     // MARK: - Direct TurnEngine dependencies
 
-    let languageModel: any LLMStreamClient & LLMUtilityClient
+    let languageModel: any LLMStreamClient
 
     /// Whether the injected language model currently has usable provider configuration.
     ///
@@ -72,8 +72,8 @@ public final class PositronicKit: Sendable {
     // Internal so package tests can assert the facade's resolved graph without exposing stores
     // through the public capability surface.
     let messageStore: any ThreadMessageStoreProtocol
-    /// Optional cohesive durable owner for Thread history and Turn lifecycle.
-    let runtimeRepository: (any ThreadRuntimeRepository)?
+    /// Cohesive durable owner for Thread history and Turn lifecycle.
+    let runtimeRepository: any ThreadRuntimeRepository
     /// Durable authority for ordinary Workspace-to-Thread bindings.
     let workspaceBindingRepository: any WorkspaceBindingRepository
 
@@ -130,7 +130,7 @@ public final class PositronicKit: Sendable {
 
     /// Creates a provider-agnostic facade with in-memory persistence and default runtime policy.
     public convenience init(
-        languageModel: any LLMStreamClient & LLMUtilityClient = UnconfiguredLLMService()
+        languageModel: any LLMStreamClient = UnconfiguredLLMService()
     ) {
         self.init(
             configuration: .init(
@@ -141,7 +141,7 @@ public final class PositronicKit: Sendable {
     }
 
     convenience init(
-        languageModel: any LLMStreamClient & LLMUtilityClient,
+        languageModel: any LLMStreamClient,
         messageStore: (any ThreadMessageStoreProtocol)? = nil,
         runtimeRepository: (any ThreadRuntimeRepository)? = nil,
         workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil,
@@ -204,7 +204,10 @@ public final class PositronicKit: Sendable {
     private init(dependencies: KitDependencies, runtimeState: RuntimeState? = nil) {
         languageModel = dependencies.languageModel
         messageStore = dependencies.messageStore
-        runtimeRepository = dependencies.runtimeRepository
+        let resolvedRuntimeRepository = dependencies.runtimeRepository
+            ?? (dependencies.messageStore as? any ThreadRuntimeRepository)
+            ?? InMemoryThreadRuntimeRepository()
+        runtimeRepository = resolvedRuntimeRepository
         workspaceBindingRepository = dependencies.workspaceBindingRepository
         agentStore = dependencies.agentStore
         customization = dependencies.customization
@@ -378,7 +381,7 @@ public final class PositronicKit: Sendable {
     /// This is the supported path for hosts that must refresh provider settings between sends
     /// without silently resetting per-thread prompt-history state.
     public func reconfigured(
-        languageModel: any LLMStreamClient & LLMUtilityClient,
+        languageModel: any LLMStreamClient,
         generationParameters: GenerationParameters? = nil
     ) -> PositronicKit {
         var deps = dependencies
@@ -466,9 +469,6 @@ public final class PositronicKit: Sendable {
     }
 
     func waitForTurnOutcome(id turnID: UUID) async -> TurnOutcome {
-        guard let runtimeRepository else {
-            return .failed(message: "Turn outcome is unavailable without a runtime repository.")
-        }
         while !Task.isCancelled {
             if let record = try? await runtimeRepository.fetchTurn(id: turnID),
                let outcome = record.outcome

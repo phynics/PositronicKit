@@ -184,8 +184,7 @@ struct FacadeRunValidationTests {
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: languageModel),
             persistence: .init(
-                messageStore: messageStore,
-                threadPersistence: threadStore,
+                runtimeRepository: InMemoryThreadRuntimeRepository(),
             ),
         ))
 
@@ -201,7 +200,6 @@ struct FacadeRunValidationTests {
         #expect(messageStore.attemptedMessages.isEmpty)
         #expect(languageModel.generationRequestHistory.isEmpty)
         #expect(languageModel.generationCaptureHistory.isEmpty)
-        #expect(languageModel.sendMessageCaptureHistory.isEmpty)
     }
 
     private func makeAgentHarness(
@@ -214,8 +212,7 @@ struct FacadeRunValidationTests {
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: languageModel),
             persistence: .init(
-                messageStore: persistence,
-                threadPersistence: persistence,
+                runtimeRepository: persistence,
                 workspacePersistence: persistence,
                 toolPersistence: persistence,
                 agentStore: agentStore,

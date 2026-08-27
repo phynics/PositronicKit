@@ -94,8 +94,7 @@ public struct WorkspaceSeedNotes: Sendable, Equatable {
 ///   `deleteThreadPermanently(id:)`. Use this when the runtime needs transient filesystem
 ///   state that must not outlive the thread.
 /// - `.hostManaged`: PositronicKit creates per-thread directories under `root` (and seeds
-///   notes) but does **not** remove them — the host owns retention and cleanup. This preserves
-///   the behavior of callers that pass an explicit `workspaceRoot`.
+///   notes) but does **not** remove them — the host owns retention and cleanup.
 public enum WorkspaceProfile: Sendable {
     /// No filesystem workspace is created for threads. `createThread` skips directory
     /// creation, note seeding, and workspace-record persistence; `Thread.workingDirectory`
@@ -113,8 +112,7 @@ public enum WorkspaceProfile: Sendable {
     ///
     /// PositronicKit creates per-thread directories under `root` (and seeds notes per
     /// `seedNotes`) but does not remove them on eviction or deletion — the host is responsible
-    /// for cleanup. This is the behavior callers got before PKRR-029 when passing an explicit
-    /// `workspaceRoot`.
+    /// for cleanup. Directory retention is explicit and remains under host control.
     case hostManaged(root: URL, seedNotes: WorkspaceSeedNotes = .default)
 }
 

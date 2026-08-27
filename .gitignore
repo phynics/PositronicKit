@@ -11,3 +11,4 @@ DerivedData/
 .vscode/
 build/
 .worktrees/
+/native/**/target/

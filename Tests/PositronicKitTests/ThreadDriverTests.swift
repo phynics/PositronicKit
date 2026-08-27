@@ -52,14 +52,14 @@ struct ThreadDriverTests {
         // `FailingThreadPersistence` throws on every fetch/save/delete call. If
         // `openThread(_:)` performed any persistence lookup or write, constructing the
         // driver below would throw. It must not: opening is pure value construction.
-        let failingThreadStore = FailingThreadPersistence(
+        _ = FailingThreadPersistence(
             fetchFails: true,
             saveFails: true,
             deleteFails: true
         )
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: UnconfiguredLLMService()),
-            persistence: .init(threadPersistence: failingThreadStore)
+            persistence: .init(runtimeRepository: InMemoryThreadRuntimeRepository())
         ))
 
         let id = UUID()

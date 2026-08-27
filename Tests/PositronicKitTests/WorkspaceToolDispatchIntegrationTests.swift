@@ -117,7 +117,7 @@ struct WorkspaceToolDispatchIntegrationTests {
                 workspaceBindingRepository: bindings,
                 toolPersistence: persistence
             ),
-            workspaceRoot: URL(fileURLWithPath: "/tmp/pk-workspace-dispatch"),
+            workspaceProfile: .noWorkspace,
             workspaceCreator: MockWorkspaceCreator()
         )
         let router = ToolRouter(
@@ -145,7 +145,19 @@ struct WorkspaceToolDispatchIntegrationTests {
             repository: nil,
             turnID: nil
         )
-        let toolManager = try #require(await manager.getToolManager(for: thread.id))
+        guard let toolManager = await manager.getToolManager(for: thread.id) else {
+            Issue.record("Thread tool manager was not created")
+            return Environment(
+                manager: manager,
+                router: router,
+                persistence: persistence,
+                bindings: bindings,
+                repository: repository,
+                threadID: thread.id,
+                workspace: workspace,
+                tool: resolvedTool
+            )
+        }
         await toolManager.updateAvailableTools([resolvedTool.toAnyTool()])
         if let resolvedWorkspace = try await manager.workspaceResolver.workspace(id: workspace.id) {
             await toolManager.registerWorkspace(resolvedWorkspace)

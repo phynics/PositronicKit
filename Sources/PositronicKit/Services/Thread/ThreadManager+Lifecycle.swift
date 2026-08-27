@@ -241,13 +241,6 @@ extension ThreadManager {
         await promptHistoryRegistry?.removeHistory(for: id)
     }
 
-    /// Evicts in-memory state without deleting persisted thread records.
-    ///
-    /// Use ``deleteThreadPermanently(id:)`` when durable deletion is required.
-    func deleteThread(id: UUID) async {
-        await evictThreadFromMemory(id: id)
-    }
-
     /// Permanently deletes a thread and all related persisted records: the thread row, its
     /// messages, and thread-owned runtime workspace records. Caller-owned `.attached` and
     /// shared runtime workspaces are preserved. Active generation work is cancelled and drained

@@ -26,7 +26,7 @@ struct StoreErrorClassificationTests {
                 workspaceStore: MockPersistenceService(),
                 toolPersistence: MockPersistenceService()
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
 
         let id = UUID()
@@ -48,7 +48,7 @@ struct StoreErrorClassificationTests {
     @Test("updateThreadTitle throws threadNotFound when the thread genuinely does not exist")
     func updateTitleMissingThrowsNotFound() async throws {
         let workspace = TestWorkspace()
-        let manager = ThreadManager(workspaceRoot: workspace.root)
+        let manager = ThreadManager(workspaceProfile: .hostManaged(root: workspace.root))
 
         do {
             try await manager.updateThreadTitle(UUID(), title: "x")
@@ -73,7 +73,7 @@ struct StoreErrorClassificationTests {
                 workspaceStore: MockPersistenceService(),
                 toolPersistence: MockPersistenceService()
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
 
         let id = UUID()
@@ -106,7 +106,7 @@ struct StoreErrorClassificationTests {
                 workspaceStore: MockPersistenceService(),
                 toolPersistence: MockPersistenceService()
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
 
         let id = UUID()
@@ -139,7 +139,7 @@ struct StoreErrorClassificationTests {
                 workspaceStore: MockPersistenceService(),
                 toolPersistence: MockPersistenceService()
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
 
         let id = UUID()
@@ -161,7 +161,7 @@ struct StoreErrorClassificationTests {
     @Test("getWorkspaces throws threadNotFound when the thread genuinely does not exist")
     func getWorkspacesMissingThrowsNotFound() async throws {
         let workspace = TestWorkspace()
-        let manager = ThreadManager(workspaceRoot: workspace.root)
+        let manager = ThreadManager(workspaceProfile: .hostManaged(root: workspace.root))
 
         do {
             _ = try await manager.getWorkspaces(for: UUID())
@@ -187,7 +187,7 @@ struct StoreErrorClassificationTests {
                 workspaceStore: failingWorkspaceStore,
                 toolPersistence: persistence
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
 
         let thread = try await manager.createThread()
@@ -225,7 +225,7 @@ struct StoreErrorClassificationTests {
                 workspaceStore: persistence,
                 toolPersistence: failingToolPersistence
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
 
         let thread = try await manager.createThread()
@@ -253,7 +253,7 @@ struct StoreErrorClassificationTests {
                 workspaceStore: persistence,
                 toolPersistence: persistence
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
 
         let thread = try await manager.createThread()
@@ -276,7 +276,7 @@ struct StoreErrorClassificationTests {
                 workspaceStore: failingWorkspaceStore,
                 toolPersistence: persistence
             ),
-            workspaceRoot: workspace.root
+            workspaceProfile: .hostManaged(root: workspace.root)
         )
 
         // createThread should succeed even if workspace resolution fails internally —
