@@ -1,7 +1,7 @@
 # PositronicKit Next / v5 Architecture
 
 This guide describes the unreleased v5 architecture on `main`. The
-[stable `4.0.0` architecture](https://github.com/phynics/PositronicKit/blob/4.0.0/docs/Architecture.md)
+[stable `5.0.0` architecture](https://github.com/phynics/PositronicKit/blob/5.0.0/docs/Architecture.md)
 is immutable. Accepted rationale lives in the [architecture decisions](adr/); canonical terms live
 in the [context map](../CONTEXT-MAP.md).
 

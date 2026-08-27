@@ -1,7 +1,7 @@
 # PositronicKit Next / v5 Setup Guide
 
 This guide follows `main` and describes unreleased v5 APIs. The
-[stable `4.0.0` documentation](https://github.com/phynics/PositronicKit/blob/4.0.0/docs/Setup.md)
+[stable `5.0.0` documentation](https://github.com/phynics/PositronicKit/blob/5.0.0/docs/Setup.md)
 is immutable and remains the production default.
 
 ## 1. Choosing An Entry Point

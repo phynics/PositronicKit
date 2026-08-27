@@ -8,7 +8,7 @@ See [CHANGELOG.md](CHANGELOG.md) for release notes and tagged compatibility hist
 
 ## Choose a documentation channel
 
-- Latest stable: `4.0.0`. Use the [immutable tagged documentation](https://github.com/phynics/PositronicKit/blob/4.0.0/README.md) and the semver dependency below for production.
+- Latest stable: `5.0.0`. Use the [immutable tagged documentation](https://github.com/phynics/PositronicKit/blob/5.0.0/README.md) and the semver dependency below for production.
 - Next: this `main` README and the [Next documentation landing](docs/next/) describe unreleased follow-up work. Use a branch or local-path dependency only for coordinated evaluation.
 
 The [documentation landing](docs/) defaults to stable and keeps stable links separate from the
@@ -30,11 +30,11 @@ Next channel.
 Add PositronicKit as a Swift Package dependency:
 
 ```swift
-.package(url: "https://github.com/phynics/PositronicKit.git", from: "4.0.0")
+.package(url: "https://github.com/phynics/PositronicKit.git", from: "5.0.0")
 ```
 
 Public products follow semver. Continue with the tagged README for stable API examples. The
-examples below describe the current Next public story and may advance beyond `4.0.0`.
+examples below describe the current Next public story and may advance beyond `5.0.0`.
 
 ## Next / v5 quick start
 
@@ -303,7 +303,7 @@ Once `journal.compact()` is called, these delta operations are merged directly b
 `PKTestSupport` is a public library product for downstream test targets. Import it normally—never
 with `@testable`—to use its mocks, fixtures, stream factories, and `TestRuntime` composition root.
 
-> Release availability: this section documents the current Next channel. It is not part of the stable `4.0.0`
+> Release availability: this section documents the current Next channel. It is not part of the stable `5.0.0`
 > channel. Use a local-path override only for coordinated unreleased work, as described in
 > [Releasing](docs/Releasing.md#downstream-cadence).
 

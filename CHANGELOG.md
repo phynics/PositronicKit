@@ -8,6 +8,8 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+## [5.0.0] - 2026-08-27
+
 - **Linux public API baseline gate:** symbol-graph verification now consumes SwiftPM's reported
   output directory and validates catalog modules before considering unrelated test-target
   extraction errors. The refreshed Linux baseline records the reviewed v4 removal of embedding,
@@ -34,7 +36,7 @@ for tagged releases beginning with `1.0.0`.
   history remains durable only on the Thread whose Turn executed it; `AgentActivitySink` remains a
   lifecycle-only integration.
 
-### Breaking — target 5.0.0
+### Breaking
 
 - Removed the unused `ThreadManager.deleteThread(id:)` forwarding API and compatibility test.
 - Renamed `RuntimeToolPolicyConfiguration` to `RuntimeToolPolicy`; removed its global and nested
