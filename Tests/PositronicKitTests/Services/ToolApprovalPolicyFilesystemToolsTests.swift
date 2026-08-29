@@ -62,13 +62,13 @@ final class ToolApprovalPolicyFilesystemToolsTests {
         let toolRouter = if let approvalPolicy {
             ToolRouter(
                 threadManager: threadManager,
-                messageStore: mockPersistence,
+                runtimeRepository: mockPersistence,
                 approvalPolicy: approvalPolicy
             )
         } else {
             ToolRouter(
                 threadManager: threadManager,
-                messageStore: mockPersistence
+                runtimeRepository: mockPersistence
             )
         }
 

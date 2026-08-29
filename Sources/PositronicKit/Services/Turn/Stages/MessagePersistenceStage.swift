@@ -6,28 +6,24 @@ import PKUtilities
 
 /// Pipeline stage responsible for persisting the assistant message and preparing completion data.
 ///
-/// Persists the assistant message produced by the LLM turn when it is not owned by the runtime
-/// repository. The stage:
+/// Prepares the assistant message produced by the LLM turn. The stage:
 /// - With `toolCalls` JSON when the LLM requested tool calls (pending execution).
 /// - Without `toolCalls` when the response is a plain text reply.
 ///
 /// After this stage, `TurnEngine.runTurnLoop` inspects `context.outputs.toolCallAccumulators` to decide
 /// whether to invoke `ToolRouter.handlePendingToolCalls` and continue the loop.
 struct MessagePersistenceStage: PipelineStage {
-    let messageStore: any ThreadMessageStoreProtocol
-    let runtimeRepository: (any ThreadRuntimeRepository)?
+    let runtimeRepository: any ThreadRuntimeRepository
     let logger: Logger
     let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
     let loggingConfiguration: LoggingConfiguration
 
     init(
-        messageStore: any ThreadMessageStoreProtocol,
-        runtimeRepository: (any ThreadRuntimeRepository)? = nil,
+        runtimeRepository: any ThreadRuntimeRepository,
         logger: Logger? = nil,
         diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default
         , loggingConfiguration: LoggingConfiguration = .default
     ) {
-        self.messageStore = messageStore
         self.runtimeRepository = runtimeRepository
         self.logger = logger ?? Logger.module(named: "message-persistence")
         self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
@@ -44,10 +40,9 @@ struct MessagePersistenceStage: PipelineStage {
             status: nil,
             logger: logger
         )
-        var completionMetadata: APIResponseMetadata?
         if !hasPendingToolCalls {
-            // The terminal assistant row is committed by completeTurn when a runtime repository is
-            // present. The terminal coordinator owns the event so it cannot precede that commit.
+            // The terminal assistant row is committed by completeTurn. The terminal coordinator
+            // owns the event so it cannot precede that commit.
             await context.outputs.setTerminalAssistantMessage(assistantMsg)
             let streamUsage = await context.outputs.streamUsage
             let turnDuration = await context.outputs.turnDuration
@@ -64,32 +59,12 @@ struct MessagePersistenceStage: PipelineStage {
                 tokensPerSecond: tokensPerSecond,
                 turnSnapshotData: snapshotData
             )
-            completionMetadata = metadata
             await context.outputs.setTerminalCompletionMetadata(metadata)
-            if runtimeRepository == nil {
-                try await messageStore.saveMessage(assistantMsg)
-                await context.outputs.markAssistantResponseDurable()
-            }
         } else {
-            try await messageStore.saveMessage(assistantMsg)
+            try await runtimeRepository.saveMessage(assistantMsg)
             await context.outputs.markAssistantResponseDurable()
         }
 
-        if runtimeRepository == nil,
-           !hasPendingToolCalls,
-           let completionMetadata
-        {
-            // Legacy independent-store configurations have no durable terminal boundary. Keep
-            // their established stage-level completion event; repository-backed Turns deliver it
-            // from TurnEngine only after completeTurn succeeds.
-            return AsyncThrowingStream { continuation in
-                continuation.yield(.generationCompleted(
-                    message: assistantMsg.toMessage(),
-                    metadata: completionMetadata
-                ))
-                continuation.finish()
-            }
-        }
         return AsyncThrowingStream { continuation in continuation.finish() }
     }
 
@@ -240,11 +215,10 @@ struct MessagePersistenceStage: PipelineStage {
     private func durableToolRecords(
         for context: TurnContext
     ) async -> (calls: [ToolCallRecord], results: [ToolResultRecord]) {
-        guard let repository = runtimeRepository else { return ([], []) }
-        guard let intents = try? await repository.fetchToolIntents(turnID: context.turnID) else {
+        guard let intents = try? await runtimeRepository.fetchToolIntents(turnID: context.turnID) else {
             return ([], [])
         }
-        let results = (try? await repository.fetchToolResults(turnID: context.turnID)) ?? []
+        let results = (try? await runtimeRepository.fetchToolResults(turnID: context.turnID)) ?? []
         let calls = intents.map { ToolCallRecord(name: $0.name, arguments: $0.arguments, turn: $0.modelRoundIndex) }
         let resultRecords = results.map { result in
             let intent = intents.first(where: { $0.toolCallID == result.toolCallID })

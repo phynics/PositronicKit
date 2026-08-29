@@ -231,7 +231,7 @@ struct TurnAdmissionSeamTests {
         let retryable = try await ExternalToolOutputSubmissionGate.shared.validate(
             [ToolOutputSubmission(toolCallID: callID, output: "result")],
             threadID: harness.threadID,
-            messageStore: harness.repository
+            runtimeRepository: harness.repository
         )
         #expect(retryable.map(\.toolCallID) == [callID])
         await ExternalToolOutputSubmissionGate.shared.releaseReservations(
@@ -279,7 +279,6 @@ struct TurnAdmissionSeamTests {
         )
         let toolRouter = ToolRouter(
             threadManager: threadManager,
-            messageStore: repository,
             runtimeRepository: repository
         )
         let engine = TurnEngine(
@@ -287,7 +286,6 @@ struct TurnAdmissionSeamTests {
                 threadManager: threadManager,
                 agentStore: backing,
                 requestOriginStore: backing,
-                messageStore: repository,
                 runtimeRepository: repository,
                 llmService: MockLLMService(),
                 toolRouter: toolRouter

@@ -41,21 +41,15 @@ private struct TerminalDecision {
 
     let outcome: TurnOutcome
     let delivery: Delivery
-    let releaseReservationOnSuccess: Bool
-    let releaseReservationOnFailure: Bool
     let streamError: Error?
 
     init(
         outcome: TurnOutcome,
         delivery: Delivery,
-        releaseReservationOnSuccess: Bool = false,
-        releaseReservationOnFailure: Bool = true,
         streamError: Error? = nil
     ) {
         self.outcome = outcome
         self.delivery = delivery
-        self.releaseReservationOnSuccess = releaseReservationOnSuccess
-        self.releaseReservationOnFailure = releaseReservationOnFailure
         self.streamError = streamError
     }
 
@@ -88,7 +82,7 @@ extension TurnEngine {
     ) async {
         let snapshotBuilder = PromptSnapshotBuilder()
         let partialPersistence = PartialAssistantPersistence(
-            messageStore: dependencies.messageStore
+            runtimeRepository: dependencies.runtimeRepository
         )
 
         var loopMessages = context.currentMessages
@@ -164,7 +158,6 @@ extension TurnEngine {
                         decision: TerminalDecision(
                             outcome: .failed(message: String(describing: error)),
                             delivery: .none,
-                            releaseReservationOnSuccess: true,
                             streamError: wrapForeignError(error)
                         ),
                         context: turnContext,
@@ -200,8 +193,7 @@ extension TurnEngine {
                 await commitTerminal(
                     decision: TerminalDecision(
                         outcome: .interrupted(reason: "External tool execution deferred."),
-                        delivery: .event(.deferredForExternalTool()),
-                        releaseReservationOnFailure: false
+                        delivery: .event(.deferredForExternalTool())
                     ),
                     context: turnContext,
                     continuation: continuation
@@ -215,8 +207,7 @@ extension TurnEngine {
                 await commitTerminal(
                     decision: TerminalDecision(
                         outcome: .failed(message: "Tool result persistence failed."),
-                        delivery: .none,
-                        releaseReservationOnSuccess: true
+                        delivery: .none
                     ),
                     context: turnContext,
                     continuation: continuation
@@ -238,8 +229,7 @@ extension TurnEngine {
         await commitTerminal(
             decision: TerminalDecision(
                 outcome: .failed(message: "model-round-limit"),
-                delivery: .event(.maxModelRoundsReached()),
-                releaseReservationOnSuccess: true
+                delivery: .event(.maxModelRoundsReached())
             ),
             context: terminalContext,
             continuation: continuation
@@ -261,19 +251,17 @@ private extension TurnEngine {
 
         do {
             try Task.checkCancellation()
-            if let runtimeRepository = dependencies.runtimeRepository {
-                try await runtimeRepository.beginModelRound(
-                    turnID: context.turnID,
-                    modelRoundIndex: context.modelRoundIndex,
-                    now: Date()
-                )
-                try await runtimeRepository.recordProviderRequest(
-                    turnID: context.turnID,
-                    modelRoundIndex: context.modelRoundIndex,
-                    correlation: TurnCorrelation(kind: "model-round", value: "\(context.modelRoundIndex)"),
-                    now: Date()
-                )
-            }
+            try await dependencies.runtimeRepository.beginModelRound(
+                turnID: context.turnID,
+                modelRoundIndex: context.modelRoundIndex,
+                now: Date()
+            )
+            try await dependencies.runtimeRepository.recordProviderRequest(
+                turnID: context.turnID,
+                modelRoundIndex: context.modelRoundIndex,
+                correlation: TurnCorrelation(kind: "model-round", value: "\(context.modelRoundIndex)"),
+                now: Date()
+            )
             logger.trace("Turn \(turnLabel): starting pipeline for \(sid)")
             try await processTurn(context: context, continuation: continuation)
             // Pipeline stages expose streams backed by their own producer tasks. If this Turn is
@@ -292,8 +280,7 @@ private extension TurnEngine {
             await commitTerminal(
                 decision: TerminalDecision(
                     outcome: .cancelled(reason: "Turn task cancelled."),
-                    delivery: .event(.generationCancelled()),
-                    releaseReservationOnSuccess: true
+                    delivery: .event(.generationCancelled())
                 ),
                 context: context,
                 continuation: continuation
@@ -320,7 +307,6 @@ private extension TurnEngine {
                         ? .cancelled(reason: "Turn task cancelled.")
                         : .failed(message: String(describing: error)),
                     delivery: .none,
-                    releaseReservationOnSuccess: true,
                     streamError: error
                 ),
                 context: context,
@@ -402,7 +388,6 @@ private extension TurnEngine {
     ) async throws {
         let pipeline = TurnPipelineBuilder.makePipeline(
             llmService: dependencies.llmService,
-            messageStore: dependencies.messageStore,
             runtimeRepository: dependencies.runtimeRepository,
             streamTimeout: dependencies.streamTimeout,
             diagnosticSnapshotConfiguration: dependencies.diagnosticSnapshotConfiguration,
@@ -424,15 +409,13 @@ private extension TurnEngine {
             do {
                 try await sink.record(activity)
             } catch {
-                if let repository = self.dependencies.runtimeRepository {
-                    await TurnEngine.persistCustomizationNotice(
-                        repository: repository,
-                        logger: logger,
-                        code: .agentActivitySinkFailed,
-                        turnID: turnID,
-                        message: ErrorKit.userFriendlyMessage(for: error)
-                    )
-                }
+                await TurnEngine.persistCustomizationNotice(
+                    repository: self.dependencies.runtimeRepository,
+                    logger: logger,
+                    code: .agentActivitySinkFailed,
+                    turnID: turnID,
+                    message: ErrorKit.userFriendlyMessage(for: error)
+                )
             }
         }
     }
@@ -457,9 +440,6 @@ private extension TurnEngine {
             )
         } catch {
             logger.error("Unable to durably record terminal Turn outcome: \(error)")
-            if decision.releaseReservationOnFailure {
-                await releaseTurnReservation(for: context)
-            }
             continuation.finish(throwing: error)
             return
         }
@@ -467,16 +447,6 @@ private extension TurnEngine {
         await emitTerminalSinks(context: context, outcome: durableOutcome)
 
         let usesRequestedOutcome = durableOutcome == decision.outcome
-        if usesRequestedOutcome {
-            if decision.releaseReservationOnSuccess {
-                await releaseTurnReservation(for: context)
-            }
-        } else if shouldReleaseReservation(for: durableOutcome) {
-            // A recovery or force interruption may have won the repository race. Respect that
-            // durable truth rather than applying the request's reservation policy.
-            await releaseTurnReservation(for: context)
-        }
-
         let delivery = usesRequestedOutcome
             ? decision.delivery
             : TerminalDecision.delivery(for: durableOutcome)
@@ -490,7 +460,6 @@ private extension TurnEngine {
                 context: context,
                 continuation: continuation
             )
-            guard dependencies.runtimeRepository != nil else { break }
             let message = await context.outputs.terminalAssistantMessage
             let metadata = await context.outputs.terminalCompletionMetadata
             if let message {
@@ -516,16 +485,12 @@ private extension TurnEngine {
         context: TurnContext,
         outcome: TurnOutcome
     ) async throws -> TurnOutcome {
-        guard let runtimeRepository = dependencies.runtimeRepository else {
-            return outcome
-        }
-
         let finalMessage: ThreadMessage?
         if case .completed = outcome {
             if let terminalMessage = await context.outputs.terminalAssistantMessage {
                 finalMessage = terminalMessage
             } else {
-                let messages = try await runtimeRepository.fetchMessages(for: context.threadID)
+                let messages = try await dependencies.runtimeRepository.fetchMessages(for: context.threadID)
                 let userIndex = messages.firstIndex(where: { $0.id == context.requestId })
                 finalMessage = userIndex.flatMap { index in
                     messages.dropFirst(index + 1).last(where: {
@@ -537,7 +502,7 @@ private extension TurnEngine {
             finalMessage = nil
         }
 
-        let record = try await runtimeRepository.completeTurn(
+        let record = try await dependencies.runtimeRepository.completeTurn(
             turnID: context.turnID,
             outcome: outcome,
             finalMessage: finalMessage,
@@ -580,41 +545,18 @@ private extension TurnEngine {
             ),
             context: context
         )
-        if dependencies.runtimeRepository != nil {
-            await emitTurnOutcome(
-                TurnOutcomeRecord(
-                    threadID: context.threadID,
-                    turnID: context.turnID,
-                    requestID: context.requestId,
-                    agentID: context.agentId,
-                    executionKind: context.executionKind,
-                    modelRoundIndex: context.modelRoundIndex,
-                    outcome: outcome
-                ),
-                context: context
-            )
-        } else {
-            logger.warning("Skipping TurnOutcomeSink because no durable runtime repository is configured", metadata: [
-                LogKeys.turnID: .string(context.turnID.uuidString),
-                LogKeys.requestID: .string(context.requestId.uuidString),
-            ])
-        }
-    }
-
-    func shouldReleaseReservation(for outcome: TurnOutcome) -> Bool {
-        switch outcome {
-        case .completed:
-            return false
-        case .interrupted, .cancelled, .failed:
-            return true
-        }
-    }
-
-    /// Preparation owns the reservation until the stream loop reaches a terminal outcome. Only
-    /// unsuccessful outcomes call this helper; successful and externally deferred sends remain
-    /// reserved by `TurnIdempotencyGate`.
-    func releaseTurnReservation(for context: TurnContext) async {
-        await TurnIdempotencyGate.shared.release(requestId: context.requestId)
+        await emitTurnOutcome(
+            TurnOutcomeRecord(
+                threadID: context.threadID,
+                turnID: context.turnID,
+                requestID: context.requestId,
+                agentID: context.agentId,
+                executionKind: context.executionKind,
+                modelRoundIndex: context.modelRoundIndex,
+                outcome: outcome
+            ),
+            context: context
+        )
     }
 
     func emitAgentActivity(_ activity: AgentActivity, context: TurnContext) async {

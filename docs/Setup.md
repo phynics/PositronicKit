@@ -70,9 +70,9 @@ Turn admission with the input message and normal terminal message/outcome comple
 `RuntimeCustomization`. Consumers use `kit.threads`, `kit.agents`, `kit.workspaces`, and
 `kit.model`; concrete coordinators and the model-round machinery remain internal.
 
-Supplying independent `messageStore` and `threadPersistence` values is a legacy compatibility path.
-It can persist the two records separately but cannot provide the v4 crash guarantee, so production
-Turn execution should always inject a cohesive `ThreadRuntimeRepository`.
+Turn execution always uses the configured `ThreadRuntimeRepository`. Independent `messageStore`
+and `threadPersistence` values are not accepted by the facade or its Turn machinery; standalone
+managers that cannot execute a Turn may still use their narrower persistence seams.
 
 Use `RuntimeCustomization` for the four bounded integration roles. Managed identity continuity is
 provided by `AgentContextSource`; additive, namespaced prompt context comes from

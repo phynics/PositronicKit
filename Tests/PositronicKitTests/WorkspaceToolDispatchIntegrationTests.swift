@@ -122,7 +122,6 @@ struct WorkspaceToolDispatchIntegrationTests {
         )
         let router = ToolRouter(
             threadManager: manager,
-            messageStore: persistence,
             runtimeRepository: repository
         )
         let thread = try await manager.createThread(title: "Workspace dispatch")

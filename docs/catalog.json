@@ -91,7 +91,7 @@
     {
       "title": "Architecture decisions",
       "path": "docs/adr/",
-      "summary": "Accepted v4 decisions and their trade-offs."
+      "summary": "Accepted runtime architecture decisions and their trade-offs."
     },
     {
       "title": "Changelog",

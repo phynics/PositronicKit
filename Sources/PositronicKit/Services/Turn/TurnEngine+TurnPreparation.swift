@@ -126,14 +126,9 @@ extension TurnEngine {
     /// Consolidates all pre-turn logic: saving inputs, resolving entities,
     /// and building the initial prompt.
     ///
-    /// PKRR-006: Independent-store input persistence is deferred until **after** history
-    /// validation, workspace lookup, prompt assembly, and the initial prompt-history transition
-    /// all succeed. The v4 runtime repository instead commits the user message with Turn admission
-    /// so an admitted Turn can never be observed without its input; repeated requests join or
-    /// replay the durable Turn rather than re-executing it. The independent-store compatibility
-    /// path uses the `requestId` as a process-local gate and message identity, rejecting duplicate
-    /// requests while the first is active. Legacy preparation failures release that gate here;
-    /// stream-loop failures release it when their terminal outcome is known.
+    /// The runtime repository commits the user message with Turn admission so an admitted Turn
+    /// can never be observed without its input. Repeated requests join or replay the durable Turn
+    /// rather than re-executing provider or tool side effects.
     func prepareSession(
         threadID: UUID,
         turnID: UUID,
@@ -247,14 +242,12 @@ extension TurnEngine {
             resolvedWorkspaceToolCatalog = admissionResult.workspaceToolCatalog
             switch admissionResult.disposition {
             case .admitted:
-                if dependencies.runtimeRepository != nil {
-                    repositoryAdmitted = true
-                    // Publish admission before the remaining preparation work. Joiners for the
-                    // same idempotent request can now subscribe to future events instead of
-                    // falling back to terminal-only replay while prompt/workspace preparation
-                    // is still in progress.
-                    await onAdmission?()
-                }
+                repositoryAdmitted = true
+                // Publish admission before the remaining preparation work. Joiners for the
+                // same idempotent request can now subscribe to future events instead of
+                // falling back to terminal-only replay while prompt/workspace preparation
+                // is still in progress.
+                await onAdmission?()
             case let .existing(admission):
                 // The repository owns the existing execution. Return its durable record to the
                 // caller rather than starting a second provider/tool side effect.
@@ -310,13 +303,11 @@ extension TurnEngine {
                 toolOutputs ?? [],
                 threadID: threadID,
                 inputMessageID: inputMessage?.id,
-                messageStore: dependencies.messageStore
+                runtimeRepository: dependencies.runtimeRepository
             )
 
-            // 4. Load existing thread history. Cohesive repositories already include the input
-            //    committed at admission; independent stores still need the in-memory projection
-            //    below until their legacy persistence step.
-            let threadMessages = try await dependencies.messageStore.fetchMessages(for: threadID)
+            // 4. Load existing thread history, including the input committed at admission.
+            let threadMessages = try await dependencies.runtimeRepository.fetchMessages(for: threadID)
             // The repository commits the current input before preparation, while external tool
             // outputs are committed later. Project the request-local input after those outputs
             // for prompt validation: provider history must keep an assistant tool call adjacent
@@ -326,8 +317,7 @@ extension TurnEngine {
                 .map { $0.toMessage() }
             let currentRemoteDepth = threadMessages.map(\.remoteDepth).max() ?? 0
 
-            // 5. Build an in-memory augmented history that includes new tool outputs and, for
-            //    legacy stores, the not-yet-persisted user message.
+            // 5. Build an in-memory augmented history that includes new tool outputs.
             for output in validatedToolOutputs {
                 history.append(Message(content: output.output, role: .tool, toolCallID: output.toolCallID))
             }
@@ -483,19 +473,13 @@ extension TurnEngine {
                 }
             }
 
-            // 12. Commit legacy tool and message persistence after all fallible preparation
-            //     succeeds. The v4 repository already committed the user message atomically with
-            //     Turn admission above; only independent-store configurations use this path.
+            // 12. Commit external tool outputs after all fallible preparation succeeds. The
+            //     repository already committed the user message atomically with Turn admission.
             try await ExternalToolOutputSubmissionGate.shared.commit(
                 validatedToolOutputs,
                 threadID: threadID,
-                messageStore: dependencies.messageStore
+                runtimeRepository: dependencies.runtimeRepository
             )
-            if dependencies.runtimeRepository == nil, let inputMessage {
-                // Package-internal legacy assembly has no atomic repository boundary. The public
-                // configuration path always admits the input through ThreadRuntimeRepository.
-                try await dependencies.messageStore.saveMessage(inputMessage)
-            }
 
             if let report = renderedPrompt.compressionReport {
                 let metrics = StructuredCompressionMetrics(
@@ -557,9 +541,9 @@ extension TurnEngine {
             ))
         } catch let preparationError {
             var recoveryError: Error?
-            if let runtimeRepository = dependencies.runtimeRepository, repositoryAdmitted {
+            if repositoryAdmitted {
                 recoveryError = await compensatePreparationFailure(
-                    repository: runtimeRepository,
+                    repository: dependencies.runtimeRepository,
                     turnID: turnID,
                     preparationError: preparationError
                 )
@@ -567,9 +551,6 @@ extension TurnEngine {
                     turnID: turnID,
                     error: recoveryError ?? preparationError
                 )
-            } else {
-                // Release the idempotency marker so the caller can retry with the same requestId.
-                await TurnIdempotencyGate.shared.release(requestId: requestId)
             }
             // Release any tool-output reservations made during validation.
             await ExternalToolOutputSubmissionGate.shared.releaseReservations(
@@ -583,8 +564,8 @@ extension TurnEngine {
         }
     }
 
-    /// Captures all authority-bearing state and then crosses either the cohesive repository's
-    /// atomic admission barrier or the explicitly isolated legacy process-local gate.
+    /// Captures all authority-bearing state and then crosses the repository's atomic admission
+    /// barrier.
     func admitTurn(_ request: TurnAdmissionRequest) async throws -> TurnAdmissionResult {
         try await withAdmissionAuthority(threadID: request.threadID, agentID: request.agentID) { [self] in
             // Revalidate the execution authority in the same per-Thread lane as admission. The
@@ -614,46 +595,32 @@ extension TurnEngine {
                 primaryWorkspaceID: authority.agent?.primaryWorkspaceID
             )
 
-            if let runtimeRepository = dependencies.runtimeRepository {
-                let admission = try await runtimeRepository.admitTurn(
-                    threadID: request.threadID,
-                    requestID: request.requestID,
-                    callerIntentFingerprint: request.callerIntentFingerprint,
-                    inputMessage: request.inputMessage,
-                    executionKind: request.executionKind,
-                    capturedAgentID: authority.agent?.id,
-                    turnID: request.turnID,
-                    now: Date()
-                )
-                switch admission.disposition {
-                case .admitted:
-                    return TurnAdmissionResult(
-                        disposition: .admitted,
-                        agent: authority.agent,
-                        agentContext: context,
-                        workspaceToolCatalog: workspaceCatalog
-                    )
-                case .joined, .replayed:
-                    return TurnAdmissionResult(
-                        disposition: .existing(admission),
-                        agent: authority.agent,
-                        agentContext: context,
-                        workspaceToolCatalog: workspaceCatalog
-                    )
-                }
-            }
-
-            // Compatibility path for independent Thread/message stores. It is deliberately not
-            // atomic with input persistence; the cohesive repository above is the v4 path.
-            guard await TurnIdempotencyGate.shared.checkAndMark(requestId: request.requestID) else {
-                throw TurnEngineError.duplicateRequestID(request.requestID)
-            }
-            return TurnAdmissionResult(
-                disposition: .admitted,
-                agent: authority.agent,
-                agentContext: context,
-                workspaceToolCatalog: workspaceCatalog
+            let admission = try await dependencies.runtimeRepository.admitTurn(
+                threadID: request.threadID,
+                requestID: request.requestID,
+                callerIntentFingerprint: request.callerIntentFingerprint,
+                inputMessage: request.inputMessage,
+                executionKind: request.executionKind,
+                capturedAgentID: authority.agent?.id,
+                turnID: request.turnID,
+                now: Date()
             )
+            switch admission.disposition {
+            case .admitted:
+                return TurnAdmissionResult(
+                    disposition: .admitted,
+                    agent: authority.agent,
+                    agentContext: context,
+                    workspaceToolCatalog: workspaceCatalog
+                )
+            case .joined, .replayed:
+                return TurnAdmissionResult(
+                    disposition: .existing(admission),
+                    agent: authority.agent,
+                    agentContext: context,
+                    workspaceToolCatalog: workspaceCatalog
+                )
+            }
         }
     }
 

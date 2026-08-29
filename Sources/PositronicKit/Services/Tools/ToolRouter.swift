@@ -85,7 +85,6 @@ actor ToolRouter {
     private let loggingConfiguration: LoggingConfiguration
 
     private let threadManager: ThreadManager
-    private let messageStore: any ThreadMessageStoreProtocol
     private let runtimeRepository: any ThreadRuntimeRepository
     private let toolExecutionTimeout: TimeInterval
     private let approvalPolicy: any ToolApprovalPolicy
@@ -93,18 +92,14 @@ actor ToolRouter {
 
     init(
         threadManager: ThreadManager,
-        messageStore: any ThreadMessageStoreProtocol,
-        runtimeRepository: (any ThreadRuntimeRepository)? = nil,
+        runtimeRepository: any ThreadRuntimeRepository,
         toolExecutionTimeout: TimeInterval = 60,
         approvalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
         sleep: (@Sendable (UInt64) async throws -> Void)? = nil,
         loggingConfiguration: LoggingConfiguration = .default
     ) {
         self.threadManager = threadManager
-        self.messageStore = messageStore
         self.runtimeRepository = runtimeRepository
-            ?? (messageStore as? any ThreadRuntimeRepository)
-            ?? InMemoryThreadRuntimeRepository()
         self.toolExecutionTimeout = toolExecutionTimeout
         self.approvalPolicy = approvalPolicy
         self.sleep = sleep ?? ToolTimeoutEnforcer.defaultSleep
@@ -744,7 +739,7 @@ actor ToolRouter {
                         workspaceRouting: workspaceRoute?.routing
                     ), message: message)
                 } else {
-                    try await messageStore.saveMessage(message)
+                    try await runtimeRepository.saveMessage(message)
                 }
                 continuation.yield(.toolCompleted(
                     toolCallID: call.callId,
@@ -824,7 +819,7 @@ actor ToolRouter {
                     workspaceRouting: workspaceRoute?.routing
                 ), message: message)
             } else {
-                try await messageStore.saveMessage(message)
+                try await runtimeRepository.saveMessage(message)
             }
             continuation.yield(.toolCompleted(
                 toolCallID: call.callId,

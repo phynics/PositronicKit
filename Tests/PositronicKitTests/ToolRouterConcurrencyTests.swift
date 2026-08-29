@@ -20,7 +20,7 @@ import Testing
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
         )
-        let router = ToolRouter(threadManager: manager, messageStore: persistence)
+        let router = ToolRouter(threadManager: manager, runtimeRepository: persistence)
         return (router, manager, persistence)
     }
 

@@ -10,8 +10,7 @@ import PKUtilities
 enum TurnPipelineBuilder {
     static func makePipeline(
         llmService: any LLMStreamClient,
-        messageStore: any ThreadMessageStoreProtocol,
-        runtimeRepository: (any ThreadRuntimeRepository)? = nil,
+        runtimeRepository: any ThreadRuntimeRepository,
         streamTimeout: TimeInterval,
         diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
         loggingConfiguration: LoggingConfiguration = .default,
@@ -21,7 +20,6 @@ enum TurnPipelineBuilder {
             .add(LLMStreamingStage(llmService: llmService, streamTimeout: streamTimeout))
             .add(ToolCallExtractionStage())
             .add(MessagePersistenceStage(
-                messageStore: messageStore,
                 runtimeRepository: runtimeRepository,
                 diagnosticSnapshotConfiguration: diagnosticSnapshotConfiguration,
                 loggingConfiguration: loggingConfiguration
@@ -33,5 +31,4 @@ enum TurnPipelineBuilder {
 
         return pipeline
     }
-
 }

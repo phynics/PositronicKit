@@ -142,12 +142,10 @@ public final class PositronicKit: Sendable {
 
     convenience init(
         languageModel: any LLMStreamClient,
-        messageStore: (any ThreadMessageStoreProtocol)? = nil,
-        runtimeRepository: (any ThreadRuntimeRepository)? = nil,
+        runtimeRepository: any ThreadRuntimeRepository = InMemoryThreadRuntimeRepository(),
         workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil,
         agentStore: (any AgentStoreProtocol)? = nil,
         requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
-        threadPersistence: (any ThreadPersistenceProtocol)? = nil,
         workspacePersistence: (any WorkspaceStore)? = nil,
         toolPersistence: (any ToolPersistenceProtocol)? = nil,
         workspaceProfile: WorkspaceProfile = .noWorkspace,
@@ -162,22 +160,18 @@ public final class PositronicKit: Sendable {
         sharedRegistry: ThreadPromptJournals,
         additionalStages: [any PipelineStage<TurnContext, TurnEvent>]
     ) {
-        let resolvedRepository = runtimeRepository
-            ?? (messageStore == nil && threadPersistence == nil ? InMemoryThreadRuntimeRepository() : nil)
         let resolvedWorkspaceStore = workspacePersistence ?? InMemoryWorkspacePersistence()
         let resolvedBindingRepository = workspaceBindingRepository
-            ?? (resolvedRepository as? any WorkspaceBindingRepository)
+            ?? (runtimeRepository as? any WorkspaceBindingRepository)
             ?? (resolvedWorkspaceStore as? any WorkspaceBindingRepository)
             ?? InMemoryWorkspaceBindingRepository()
         self.init(
             dependencies: KitDependencies(
                 languageModel: languageModel,
-                messageStore: resolvedRepository ?? messageStore ?? InMemoryMessageStore(),
-                runtimeRepository: resolvedRepository,
+                runtimeRepository: runtimeRepository,
                 workspaceBindingRepository: resolvedBindingRepository,
                 agentStore: agentStore ?? InMemoryAgentStore(),
                 requestOriginStore: requestOriginStore ?? InMemoryRequestOriginStore(),
-                threadPersistence: resolvedRepository ?? threadPersistence ?? InMemoryThreadPersistence(),
                 workspacePersistence: resolvedWorkspaceStore,
                 toolPersistence: toolPersistence ?? InMemoryToolPersistence(),
                 workspaceProfile: workspaceProfile,
@@ -203,16 +197,13 @@ public final class PositronicKit: Sendable {
     /// here — eliminating the repeated ~25-line parameter forwarding (PKCR-009).
     private init(dependencies: KitDependencies, runtimeState: RuntimeState? = nil) {
         languageModel = dependencies.languageModel
-        messageStore = dependencies.messageStore
-        let resolvedRuntimeRepository = dependencies.runtimeRepository
-            ?? (dependencies.messageStore as? any ThreadRuntimeRepository)
-            ?? InMemoryThreadRuntimeRepository()
-        runtimeRepository = resolvedRuntimeRepository
+        runtimeRepository = dependencies.runtimeRepository
+        messageStore = dependencies.runtimeRepository
         workspaceBindingRepository = dependencies.workspaceBindingRepository
         agentStore = dependencies.agentStore
         customization = dependencies.customization
         requestOriginStore = dependencies.requestOriginStore
-        threadPersistence = dependencies.threadPersistence
+        threadPersistence = dependencies.runtimeRepository
         workspacePersistence = dependencies.workspacePersistence
         toolPersistence = dependencies.toolPersistence
         diagnosticSnapshotConfiguration = dependencies.diagnosticSnapshotConfiguration
@@ -291,7 +282,6 @@ public final class PositronicKit: Sendable {
         )
         let resolvedToolRouter = ToolRouter(
             threadManager: resolvedThreadManager,
-            messageStore: self.messageStore,
             runtimeRepository: self.runtimeRepository,
             approvalPolicy: dependencies.toolApprovalPolicy,
             loggingConfiguration: dependencies.loggingConfiguration
@@ -325,7 +315,6 @@ public final class PositronicKit: Sendable {
                     workspaceStore: dependencies.workspacePersistence
                 ),
                 requestOriginStore: self.requestOriginStore,
-                messageStore: self.messageStore,
                 runtimeRepository: self.runtimeRepository,
                 threadAuthorityCoordinator: resolvedThreadManager.threadAuthorityCoordinator,
                 agentAuthorityCoordinator: self.agentAuthorityCoordinator,
@@ -351,12 +340,10 @@ public final class PositronicKit: Sendable {
     var dependencies: KitDependencies {
         KitDependencies(
             languageModel: languageModel,
-            messageStore: messageStore,
             runtimeRepository: runtimeRepository,
             workspaceBindingRepository: workspaceBindingRepository,
             agentStore: agentStore,
             requestOriginStore: requestOriginStore,
-            threadPersistence: threadPersistence,
             workspacePersistence: workspacePersistence,
             toolPersistence: toolPersistence,
             workspaceProfile: workspaceProfile,

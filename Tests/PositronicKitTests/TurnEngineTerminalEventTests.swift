@@ -38,7 +38,6 @@ struct TurnEngineTerminalEventTests {
         )
         let toolRouter = ToolRouter(
             threadManager: threadManager,
-            messageStore: mockPersistence,
             runtimeRepository: mockPersistence
         )
         let engine = TurnEngine(
@@ -46,7 +45,6 @@ struct TurnEngineTerminalEventTests {
                 threadManager: threadManager,
                 agentStore: mockPersistence,
                 requestOriginStore: mockPersistence,
-                messageStore: mockPersistence,
                 runtimeRepository: mockPersistence,
                 llmService: mockLLM,
                 toolRouter: toolRouter,
@@ -106,7 +104,6 @@ struct TurnEngineTerminalEventTests {
         )
         let toolRouter = ToolRouter(
             threadManager: threadManager,
-            messageStore: mockPersistence,
             runtimeRepository: mockPersistence
         )
         let engine = TurnEngine(
@@ -114,7 +111,6 @@ struct TurnEngineTerminalEventTests {
                 threadManager: threadManager,
                 agentStore: mockPersistence,
                 requestOriginStore: mockPersistence,
-                messageStore: mockPersistence,
                 runtimeRepository: mockPersistence,
                 llmService: mockLLM,
                 toolRouter: toolRouter,
