@@ -169,12 +169,14 @@ struct TurnEngineTerminalEventTests {
             ]
             mockLLM.mockClient.nextResponses = ["", ""]
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Infinite tools",
-                tools: [mockTool.toAnyTool()],
-                maxModelRounds: 2
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "Infinite tools",
+                    tools: [mockTool.toAnyTool()],
+                    maxModelRounds: 2
+                )
+            ))
 
             let events = try await collect(stream)
 
@@ -210,11 +212,13 @@ struct TurnEngineTerminalEventTests {
             mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "call_def", name: "mock_tool")]]
             mockLLM.mockClient.nextResponses = ["Pausing for external tool"]
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Run attached tool",
-                tools: []
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "Run attached tool",
+                    tools: []
+                )
+            ))
 
             let events = try await collect(stream)
 
@@ -247,11 +251,13 @@ struct TurnEngineTerminalEventTests {
         try await withTurnEngineDependencies { engine, mockLLM, _ in
             mockLLM.mockClient.nextResponse = "All done"
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Hi",
-                tools: []
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "Hi",
+                    tools: []
+                )
+            ))
 
             let events = try await collect(stream)
 
@@ -282,11 +288,13 @@ struct TurnEngineTerminalEventTests {
         try await withTurnEngineDependencies { engine, mockLLM, _ in
             mockLLM.mockClient.nextResponse = ""
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Return nothing",
-                tools: []
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "Return nothing",
+                    tools: []
+                )
+            ))
 
             let events = try await collect(stream)
 
@@ -316,11 +324,13 @@ struct TurnEngineTerminalEventTests {
                 continuation.finish(throwing: CancellationError())
             }
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "stream then cancel",
-                tools: []
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "stream then cancel",
+                    tools: []
+                )
+            ))
 
             // The provider-stream CancellationError is wrapped as a PipelineError and the
             // stream throws — the throw is the terminal signal. Collect events up to the throw.

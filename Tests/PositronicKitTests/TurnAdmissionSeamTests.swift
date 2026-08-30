@@ -137,21 +137,21 @@ struct TurnAdmissionSeamTests {
 
         await #expect(throws: ToolError.reservedToolName("call_tool")) {
             _ = try await harness.engine.prepareSession(
-                threadID: harness.threadID,
+                TurnExecutionRequest(
+                    TurnRequest(
+                        threadID: harness.threadID,
+                        requestID: UUID(),
+                        message: "must not admit",
+                        tools: [ReservedCallTool()],
+                        systemInstructions: "",
+                        maxModelRounds: 1
+                    ),
+                    executionKind: .direct,
+                    contributors: [.host]
+                ),
                 turnID: UUID(),
-                requestId: UUID(),
-                messageContent: MessageContent("must not admit"),
-                tools: [ReservedCallTool().toAnyTool()],
-                toolOutputs: nil,
-                systemInstructions: "",
-                agentId: nil,
-                executionKind: .direct,
-                contributors: [.host],
                 agent: nil,
-                agentDiagnostics: [],
-                maxModelRounds: 1,
-                generationParameters: nil,
-                structuredOutput: nil
+                agentDiagnostics: []
             )
         }
 
@@ -167,21 +167,21 @@ struct TurnAdmissionSeamTests {
 
         await #expect(throws: Error.self) {
             _ = try await harness.engine.prepareSession(
-                threadID: harness.threadID,
+                TurnExecutionRequest(
+                    TurnRequest(
+                        threadID: harness.threadID,
+                        requestID: requestID,
+                        message: "retained input",
+                        toolOutputs: [ToolOutputSubmission(toolCallID: "missing", output: "result")],
+                        systemInstructions: "",
+                        maxModelRounds: 1
+                    ),
+                    executionKind: .direct,
+                    contributors: [.host]
+                ),
                 turnID: turnID,
-                requestId: requestID,
-                messageContent: MessageContent("retained input"),
-                tools: [],
-                toolOutputs: [ToolOutputSubmission(toolCallID: "missing", output: "result")],
-                systemInstructions: "",
-                agentId: nil,
-                executionKind: .direct,
-                contributors: [.host],
                 agent: nil,
-                agentDiagnostics: [],
-                maxModelRounds: 1,
-                generationParameters: nil,
-                structuredOutput: nil
+                agentDiagnostics: []
             )
         }
 
@@ -210,21 +210,21 @@ struct TurnAdmissionSeamTests {
 
         await #expect(throws: Error.self) {
             _ = try await harness.engine.prepareSession(
-                threadID: harness.threadID,
+                TurnExecutionRequest(
+                    TurnRequest(
+                        threadID: harness.threadID,
+                        requestID: UUID(),
+                        message: "",
+                        toolOutputs: [ToolOutputSubmission(toolCallID: callID, output: "result")],
+                        systemInstructions: "",
+                        maxModelRounds: 1
+                    ),
+                    executionKind: .direct,
+                    contributors: [.host]
+                ),
                 turnID: UUID(),
-                requestId: UUID(),
-                messageContent: MessageContent(""),
-                tools: [],
-                toolOutputs: [ToolOutputSubmission(toolCallID: callID, output: "result")],
-                systemInstructions: "",
-                agentId: nil,
-                executionKind: .direct,
-                contributors: [.host],
                 agent: nil,
-                agentDiagnostics: [],
-                maxModelRounds: 1,
-                generationParameters: nil,
-                structuredOutput: nil
+                agentDiagnostics: []
             )
         }
 

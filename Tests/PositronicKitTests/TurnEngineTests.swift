@@ -97,11 +97,13 @@ struct TurnEngineTests {
         try await withTurnEngineDependencies { engine, mockLLM, _ in
             mockLLM.mockClient.nextResponse = "Hello, world!"
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Hi",
-                tools: []
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "Hi",
+                    tools: []
+                )
+            ))
 
             let events = try await collect(stream)
 
@@ -116,11 +118,13 @@ struct TurnEngineTests {
         try await withTurnEngineDependencies { engine, mockLLM, mockPersistence in
             mockLLM.mockClient.nextResponse = "Persisted reply."
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Persistence test",
-                tools: []
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "Persistence test",
+                    tools: []
+                )
+            ))
 
             _ = try await collect(stream)
 
@@ -137,11 +141,13 @@ struct TurnEngineTests {
     func emptyMessageThrows() async throws {
         _ = try await withTurnEngineDependencies { engine, _, _ in
             await #expect(throws: TurnEngineError.self) {
-                _ = try await engine.execute(
-                    threadID: threadID,
-                    message: "",
-                    tools: []
-                )
+                _ = try await engine.execute(TurnExecutionRequest(
+                    TurnRequest(
+                        threadID: threadID,
+                        message: "",
+                        tools: []
+                    )
+                ))
             }
         }
     }
@@ -154,11 +160,13 @@ struct TurnEngineTests {
             ])
 
             await #expect(throws: MultimodalContentError.self) {
-                _ = try await engine.execute(
-                    threadID: threadID,
-                    messageContent: content,
-                    tools: []
-                )
+                _ = try await engine.execute(TurnExecutionRequest(
+                    TurnRequest(
+                        threadID: threadID,
+                        content: content,
+                        tools: []
+                    )
+                ))
             }
 
             #expect(mockLLM.mockClient.streamCallCount == 0)
@@ -202,13 +210,15 @@ struct TurnEngineTests {
                 ),
             ]]
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                messageContent: MessageContent("speak"),
-                tools: [],
-                responseModalities: [.text, .audio],
-                audioOutput: AudioOutputOptions(format: .wav, voice: "alloy")
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    content: MessageContent("speak"),
+                    tools: [],
+                    responseModalities: [.text, .audio],
+                    audioOutput: AudioOutputOptions(format: .wav, voice: "alloy")
+                )
+            ))
             let events = try await collect(stream)
 
             #expect(events.compactMap(\.audioDelta).map(\.data) == [Data([0x01, 0x02]), Data([0x03, 0x04])])
@@ -247,13 +257,15 @@ struct TurnEngineTests {
                 ),
             ]]
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                messageContent: MessageContent("speak without transcript"),
-                tools: [],
-                responseModalities: [.audio],
-                audioOutput: AudioOutputOptions(format: .wav, voice: "alloy")
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    content: MessageContent("speak without transcript"),
+                    tools: [],
+                    responseModalities: [.audio],
+                    audioOutput: AudioOutputOptions(format: .wav, voice: "alloy")
+                )
+            ))
             await #expect(throws: Error.self) {
                 _ = try await collect(stream)
             }
@@ -277,11 +289,13 @@ struct TurnEngineTests {
         try await withTurnEngineDependencies { engine, mockLLM, _ in
             mockLLM.mockClient.nextChunks = [["<think>", "Reasoning...", "</think>", "Answer"]]
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Why?",
-                tools: []
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "Why?",
+                    tools: []
+                )
+            ))
 
             let events = try await collect(stream)
 
@@ -335,11 +349,13 @@ struct TurnEngineTests {
             mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "call_1", name: "mock_tool")]]
             mockLLM.mockClient.nextResponses = ["", "Processed result"]
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Run tool",
-                tools: [mockTool.toAnyTool()]
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "Run tool",
+                    tools: [mockTool.toAnyTool()]
+                )
+            ))
 
             let events = try await collect(stream)
 
@@ -374,11 +390,13 @@ struct TurnEngineTests {
             mockLLM.mockClient.nextResponses = [""]
             mockLLM.mockClient.neverFinishingStreamCallIndices = [2]
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Run tool then hang",
-                tools: [mockTool.toAnyTool()]
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "Run tool then hang",
+                    tools: [mockTool.toAnyTool()]
+                )
+            ))
 
             var sawToolSuccess = false
             do {
@@ -410,11 +428,13 @@ struct TurnEngineTests {
         try await withTurnEngineDependencies(streamTimeout: 0.05) { engine, mockLLM, _ in
             mockLLM.mockClient.neverFinishingStreamCallIndices = [1]
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Hang immediately",
-                tools: []
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "Hang immediately",
+                    tools: []
+                )
+            ))
 
             do {
                 for try await _ in stream {}
@@ -441,11 +461,13 @@ struct TurnEngineTests {
             mockLLM.mockClient.nextChunks = [["Hel", "lo ", "wor", "ld", "!"]]
             mockLLM.mockClient.nextStreamWait = 0.1
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "stream slowly",
-                tools: []
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "stream slowly",
+                    tools: []
+                )
+            ))
 
             // A throw here (e.g. streamTimedOut) would fail the test; draining must complete.
             var sawGeneration = false
@@ -461,11 +483,13 @@ struct TurnEngineTests {
         try await withTurnEngineDependencies { engine, mockLLM, _ in
             mockLLM.mockClient.nextResponse = ""
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Return nothing",
-                tools: []
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "Return nothing",
+                    tools: []
+                )
+            ))
 
             let events = try await collect(stream)
 
@@ -486,11 +510,13 @@ struct TurnEngineTests {
             mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "call_1", name: "tool_call")]]
             mockLLM.mockClient.nextResponses = ["Ignored tool name"]
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Run sentinel",
-                tools: [MockTool().toAnyTool()]
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "Run sentinel",
+                    tools: [MockTool().toAnyTool()]
+                )
+            ))
 
             let events = try await collect(stream)
 
@@ -507,11 +533,13 @@ struct TurnEngineTests {
             mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "call_1", name: "unknown_tool")]]
             mockLLM.mockClient.nextResponses = ["", "Unknown tool call"]
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Run unknown",
-                tools: [MockTool().toAnyTool()]
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "Run unknown",
+                    tools: [MockTool().toAnyTool()]
+                )
+            ))
 
             let events = try await collect(stream)
 
@@ -539,11 +567,13 @@ struct TurnEngineTests {
             mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "call_1", name: "mock_tool")]]
             mockLLM.mockClient.nextResponses = ["Pause here"]
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Run attached tool",
-                tools: [mockTool.toAnyTool()]
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "Run attached tool",
+                    tools: [mockTool.toAnyTool()]
+                )
+            ))
 
             let events = try await collect(stream)
 
@@ -581,11 +611,13 @@ struct TurnEngineTests {
             mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "call_1", name: "mock_tool")]]
             mockLLM.mockClient.nextResponses = ["", "It failed."]
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Fail tool",
-                tools: [mockTool.toAnyTool()]
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "Fail tool",
+                    tools: [mockTool.toAnyTool()]
+                )
+            ))
 
             let events = try await collect(stream)
 
@@ -611,11 +643,13 @@ struct TurnEngineTests {
                 "Fallback worked",
             ]
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Run XML tool",
-                tools: [mockTool.toAnyTool()]
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "Run XML tool",
+                    tools: [mockTool.toAnyTool()]
+                )
+            ))
 
             let events = try await collect(stream)
 
@@ -677,11 +711,13 @@ struct TurnEngineTests {
             ]]
             mockLLM.mockClient.nextResponses = ["Processed fragmented tool"]
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Run fragmented tool",
-                tools: [mockTool.toAnyTool()]
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "Run fragmented tool",
+                    tools: [mockTool.toAnyTool()]
+                )
+            ))
 
             let events = try await collect(stream)
 
@@ -760,11 +796,13 @@ struct TurnEngineTests {
             ]]
             mockLLM.mockClient.nextResponses = ["Recovered tool handled"]
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Recover omitted tool call",
-                tools: [mockTool.toAnyTool()]
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "Recover omitted tool call",
+                    tools: [mockTool.toAnyTool()]
+                )
+            ))
 
             let events = try await collect(stream)
 
@@ -821,11 +859,13 @@ struct TurnEngineTests {
                 ),
             ]]
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "No recovered tool call",
-                tools: [mockTool.toAnyTool()]
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "No recovered tool call",
+                    tools: [mockTool.toAnyTool()]
+                )
+            ))
 
             let events = try await collect(stream)
 
@@ -859,12 +899,14 @@ struct TurnEngineTests {
             ]
             mockLLM.mockClient.nextResponses = ["", "", ""]
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Infinite tools",
-                tools: [mockTool.toAnyTool()],
-                maxModelRounds: 2 // Limit to 2 turns
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "Infinite tools",
+                    tools: [mockTool.toAnyTool()],
+                    maxModelRounds: 2 // Limit to 2 turns
+                )
+            ))
 
             let events = try await collect(stream)
 
@@ -899,11 +941,13 @@ struct TurnEngineTests {
         try await withTurnEngineDependencies { engine, mockLLM, _ in
             mockLLM.mockClient.shouldThrowError = true
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Trigger error",
-                tools: []
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "Trigger error",
+                    tools: []
+                )
+            ))
 
             await #expect(throws: (any Error).self) {
                 for try await _ in stream {}
@@ -917,12 +961,14 @@ struct TurnEngineTests {
     func unmatchedToolOutputsAreRejectedAndNotPersisted() async throws {
         try await withTurnEngineDependencies { engine, _, mockPersistence in
             await #expect(throws: ToolError.self) {
-                _ = try await engine.execute(
-                    threadID: threadID,
-                    message: "Next question",
-                    tools: [],
-                    toolOutputs: [ToolOutputSubmission(toolCallID: "forged_call", output: "tool result")]
-                )
+                _ = try await engine.execute(TurnExecutionRequest(
+                    TurnRequest(
+                        threadID: threadID,
+                        message: "Next question",
+                        tools: [],
+                        toolOutputs: [ToolOutputSubmission(toolCallID: "forged_call", output: "tool result")]
+                    )
+                ))
             }
 
             let messages = try await mockPersistence.fetchMessages(for: threadID)
@@ -941,15 +987,17 @@ struct TurnEngineTests {
             ))
 
             await #expect(throws: ToolError.self) {
-                _ = try await engine.execute(
-                    threadID: threadID,
-                    message: "",
-                    tools: [],
-                    toolOutputs: [
-                        ToolOutputSubmission(toolCallID: "call_1", output: "first"),
-                        ToolOutputSubmission(toolCallID: "call_1", output: "duplicate"),
-                    ]
-                )
+                _ = try await engine.execute(TurnExecutionRequest(
+                    TurnRequest(
+                        threadID: threadID,
+                        message: "",
+                        tools: [],
+                        toolOutputs: [
+                            ToolOutputSubmission(toolCallID: "call_1", output: "first"),
+                            ToolOutputSubmission(toolCallID: "call_1", output: "duplicate"),
+                        ]
+                    )
+                ))
             }
 
             let messages = try await mockPersistence.fetchMessages(for: threadID)
@@ -972,17 +1020,19 @@ struct TurnEngineTests {
                 for index in 0 ..< 2 {
                     group.addTask {
                         do {
-                            let stream = try await engine.execute(
-                                threadID: threadID,
-                                message: "",
-                                tools: [],
-                                toolOutputs: [
-                                    ToolOutputSubmission(
-                                        toolCallID: "call_race",
-                                        output: "tool result \(index)"
-                                    ),
-                                ]
-                            )
+                            let stream = try await engine.execute(TurnExecutionRequest(
+                                TurnRequest(
+                                    threadID: threadID,
+                                    message: "",
+                                    tools: [],
+                                    toolOutputs: [
+                                        ToolOutputSubmission(
+                                            toolCallID: "call_race",
+                                            output: "tool result \(index)"
+                                        ),
+                                    ]
+                                )
+                            ))
                             _ = try await collect(stream)
                             return true
                         } catch ToolError.unmatchedToolOutput {
@@ -1028,12 +1078,14 @@ struct TurnEngineTests {
             ))
 
             await #expect(throws: ToolError.self) {
-                _ = try await engine.execute(
-                    threadID: threadID,
-                    message: "",
-                    tools: [],
-                    toolOutputs: [ToolOutputSubmission(toolCallID: "stale_call", output: "stale result")]
-                )
+                _ = try await engine.execute(TurnExecutionRequest(
+                    TurnRequest(
+                        threadID: threadID,
+                        message: "",
+                        tools: [],
+                        toolOutputs: [ToolOutputSubmission(toolCallID: "stale_call", output: "stale result")]
+                    )
+                ))
             }
 
             let messages = try await mockPersistence.fetchMessages(for: threadID)
@@ -1052,11 +1104,13 @@ struct TurnEngineTests {
             ))
 
             do {
-                _ = try await engine.execute(
-                    threadID: threadID,
-                    message: "Follow up",
-                    tools: [MockTool().toAnyTool()]
-                )
+                _ = try await engine.execute(TurnExecutionRequest(
+                    TurnRequest(
+                        threadID: threadID,
+                        message: "Follow up",
+                        tools: [MockTool().toAnyTool()]
+                    )
+                ))
                 Issue.record("Expected dangling tool call error")
             } catch let error as TurnEngineError {
                 #expect(error.userFriendlyMessage.contains("assistant tool call"))
@@ -1141,11 +1195,13 @@ struct TurnEngineTests {
         ))
 
         mockLLM.mockClient.nextResponse = "First reply"
-        _ = try await collect(await engine.execute(
-            threadID: threadID,
-            message: "First follow up",
-            tools: []
-        ))
+        _ = try await collect(await engine.execute(TurnExecutionRequest(
+            TurnRequest(
+                threadID: threadID,
+                message: "First follow up",
+                tools: []
+            )
+        )))
 
         let firstReloadPromptPreservedProviderID = mockLLM.mockClient.messageHistory.first?.contains(where: { message in
             message.role == .assistant && message.toolCalls?.first?.id == "provider_call"
@@ -1174,11 +1230,13 @@ struct TurnEngineTests {
         )
 
         reloadLLM.mockClient.nextResponse = "Second reply"
-        _ = try await collect(await reloadEngine.execute(
-            threadID: threadID,
-            message: "Second follow up",
-            tools: []
-        ))
+        _ = try await collect(await reloadEngine.execute(TurnExecutionRequest(
+            TurnRequest(
+                threadID: threadID,
+                message: "Second follow up",
+                tools: []
+            )
+        )))
 
         let secondReloadPromptPreservedProviderID = reloadLLM.mockClient.messageHistory.first?.contains(where: { message in
             message.role == .assistant && message.toolCalls?.first?.id == "provider_call"
@@ -1198,12 +1256,14 @@ struct TurnEngineTests {
             ))
             mockLLM.mockClient.nextResponse = "Continuing."
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Next question",
-                tools: [],
-                toolOutputs: [ToolOutputSubmission(toolCallID: "prev_call", output: "tool result")]
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "Next question",
+                    tools: [],
+                    toolOutputs: [ToolOutputSubmission(toolCallID: "prev_call", output: "tool result")]
+                )
+            ))
 
             _ = try await collect(stream)
 
@@ -1229,12 +1289,14 @@ struct TurnEngineTests {
             ))
             mockLLM.mockClient.nextResponse = "Reply."
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "",
-                tools: [],
-                toolOutputs: [ToolOutputSubmission(toolCallID: "c1", output: "output")]
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "",
+                    tools: [],
+                    toolOutputs: [ToolOutputSubmission(toolCallID: "c1", output: "output")]
+                )
+            ))
 
             _ = try await collect(stream)
 
@@ -1257,11 +1319,13 @@ struct TurnEngineTests {
         _ = try await withTurnEngineDependencies { engine, mockLLM, _ in
             mockLLM.mockIsConfigured = false
             await #expect(throws: TurnEngineError.self) {
-                _ = try await engine.execute(
-                    threadID: threadID,
-                    message: "Hello",
-                    tools: []
-                )
+                _ = try await engine.execute(TurnExecutionRequest(
+                    TurnRequest(
+                        threadID: threadID,
+                        message: "Hello",
+                        tools: []
+                    )
+                ))
             }
         }
     }
@@ -1308,11 +1372,13 @@ struct TurnEngineTests {
             ]]
             mockLLM.mockClient.nextResponses = ["", "Both done"]
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Run two tools",
-                tools: [mockTool.toAnyTool()]
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "Run two tools",
+                    tools: [mockTool.toAnyTool()]
+                )
+            ))
 
             let events = try await collect(stream)
 
@@ -1334,11 +1400,13 @@ struct TurnEngineTests {
         try await withTurnEngineDependencies { engine, mockLLM, _ in
             mockLLM.mockClient.nextResponse = "Done"
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Hi",
-                tools: []
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "Hi",
+                    tools: []
+                )
+            ))
 
             let events = try await collect(stream)
             let count = events.filter { if case .completion(.generationCompleted) = $0 { return true }; return false }.count
@@ -1353,11 +1421,13 @@ struct TurnEngineTests {
             mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "c1", name: "mock_tool")]]
             mockLLM.mockClient.nextResponses = ["", "Final answer"]
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Use tool",
-                tools: [mockTool.toAnyTool()]
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "Use tool",
+                    tools: [mockTool.toAnyTool()]
+                )
+            ))
 
             let events = try await collect(stream)
             // Turn 1 had pending tool calls — no generationCompleted emitted.
@@ -1382,12 +1452,14 @@ struct TurnEngineTests {
             try await mockPersistence.saveAgent(agent)
             mockLLM.mockClient.nextResponse = "Agent reply"
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "Hi agent",
-                tools: [],
-                agentId: agentId
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "Hi agent",
+                    tools: []
+                ),
+                agentID: agentId
+            ))
 
             _ = try await collect(stream)
 

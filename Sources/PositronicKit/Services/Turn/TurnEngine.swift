@@ -254,149 +254,34 @@ struct TurnEngine {
 
     // MARK: - API
 
-    /// Execute a turn and return a stream of deltas.
-    /// - Parameters:
-    ///   - threadID: The unique identifier for the thread.
-    ///   - message: The user's input message.
-    ///   - tools: Pre-resolved tools available for this turn.
-    ///   - toolOutputs: Optional list of tool outputs submitted from a previous externally executed turn.
-    ///   - systemInstructions: Optional system instructions to override the default.
-    ///   - agentId: Optional identifier for the agent.
-    ///   - maxModelRounds: Maximum number of LLM turns before stopping. Defaults to 5.
-    /// - Returns: An asynchronous stream of turn events.
-    func execute(
-        threadID: UUID,
-        requestId: UUID? = nil,
-        messageContent: MessageContent,
-        tools: [AnyTool],
-        toolOutputs: [ToolOutputSubmission]? = nil,
-        systemInstructions: String? = nil,
-        agentId: UUID? = nil,
-        executionKind: TurnExecutionKind = .agentManaged,
-        contributors: [TurnContributor] = [],
-        maxModelRounds: Int = Constants.defaultMaxModelRounds,
-        generationParameters: GenerationParameters? = nil,
-        structuredOutput: StructuredOutputRequest? = nil,
-        sidecars: [SidecarDirective] = [],
-        sidecarCommitPolicy: SidecarCommitPolicy = .everyModelRound,
-        includeSidecarMechanismPreamble: Bool = false,
-        assemblyLogger: Logger? = nil,
-        responseModalities: Set<ResponseModality> = [.text],
-        audioOutput: AudioOutputOptions? = nil
-    ) async throws -> AsyncThrowingStream<TurnEvent, Error> {
-        try await startExecution(
-            threadID: threadID,
-            requestId: requestId,
-            messageContent: messageContent,
-            tools: tools,
-            toolOutputs: toolOutputs,
-            systemInstructions: systemInstructions,
-            agentId: agentId,
-            executionKind: executionKind,
-            contributors: contributors,
-            maxModelRounds: maxModelRounds,
-            generationParameters: generationParameters,
-            structuredOutput: structuredOutput,
-            sidecars: sidecars,
-            sidecarCommitPolicy: sidecarCommitPolicy,
-            includeSidecarMechanismPreamble: includeSidecarMechanismPreamble,
-            assemblyLogger: assemblyLogger,
-            responseModalities: responseModalities,
-            audioOutput: audioOutput
-        ).stream
+    /// Executes one normalized Turn request and returns its event stream.
+    func execute(_ executionRequest: TurnExecutionRequest) async throws -> AsyncThrowingStream<TurnEvent, Error> {
+        try await startExecution(executionRequest).stream
     }
 
-    func execute(
-        threadID: UUID,
-        requestId: UUID? = nil,
-        message: String,
-        tools: [AnyTool],
-        toolOutputs: [ToolOutputSubmission]? = nil,
-        systemInstructions: String? = nil,
-        agentId: UUID? = nil,
-        executionKind: TurnExecutionKind = .agentManaged,
-        contributors: [TurnContributor] = [],
-        maxModelRounds: Int = Constants.defaultMaxModelRounds,
-        generationParameters: GenerationParameters? = nil,
-        structuredOutput: StructuredOutputRequest? = nil,
-        sidecars: [SidecarDirective] = [],
-        sidecarCommitPolicy: SidecarCommitPolicy = .everyModelRound,
-        includeSidecarMechanismPreamble: Bool = false,
-        assemblyLogger: Logger? = nil
-    ) async throws -> AsyncThrowingStream<TurnEvent, Error> {
-        try await execute(
-            threadID: threadID,
-            requestId: requestId,
-            messageContent: MessageContent(message),
-            tools: tools,
-            toolOutputs: toolOutputs,
-            systemInstructions: systemInstructions,
-            agentId: agentId,
-            executionKind: executionKind,
-            contributors: contributors,
-            maxModelRounds: maxModelRounds,
-            generationParameters: generationParameters,
-            structuredOutput: structuredOutput,
-            sidecars: sidecars,
-            sidecarCommitPolicy: sidecarCommitPolicy,
-            includeSidecarMechanismPreamble: includeSidecarMechanismPreamble,
-            assemblyLogger: assemblyLogger
-        )
-    }
+    func startExecution(_ executionRequest: TurnExecutionRequest) async throws -> TurnExecution {
+        let request = executionRequest.request
+        guard request.maxModelRounds >= 1 else {
+            throw TurnError.invalidMaxModelRounds(request.maxModelRounds)
+        }
 
-    func startExecution(
-        threadID: UUID,
-        requestId: UUID? = nil,
-        messageContent: MessageContent,
-        tools: [AnyTool],
-        toolOutputs: [ToolOutputSubmission]? = nil,
-        systemInstructions: String? = nil,
-        agentId: UUID? = nil,
-        executionKind: TurnExecutionKind = .agentManaged,
-        contributors: [TurnContributor] = [],
-        maxModelRounds: Int = Constants.defaultMaxModelRounds,
-        generationParameters: GenerationParameters? = nil,
-        structuredOutput: StructuredOutputRequest? = nil,
-        sidecars: [SidecarDirective] = [],
-        sidecarCommitPolicy: SidecarCommitPolicy = .everyModelRound,
-        includeSidecarMechanismPreamble: Bool = false,
-        assemblyLogger: Logger? = nil,
-        responseModalities: Set<ResponseModality> = [.text],
-        audioOutput: AudioOutputOptions? = nil
-    ) async throws -> TurnExecution {
+        let threadID = request.threadID
         let sid = threadID.uuidString.prefix(8).lowercased()
         logger.info("Starting generation stream for thread \(sid)")
 
-        let agentPreflight = try await preflightAgent(id: agentId, threadID: threadID)
+        let agentPreflight = try await preflightAgent(id: executionRequest.context.agentID, threadID: threadID)
         guard await dependencies.llmService.isConfigured else { throw TurnEngineError.llmServiceNotConfigured }
-        guard structuredOutput == nil || sidecars.isEmpty else {
+        guard request.structuredOutput == nil || request.sidecars.isEmpty else {
             throw SidecarError.conflictsWithExplicitStructuredOutput
         }
-        try SidecarSchemaComposer.validate(sidecars)
+        try SidecarSchemaComposer.validate(request.sidecars)
 
         let turnID = UUID()
         let prepared = try await prepareSession(
-            threadID: threadID,
+            executionRequest,
             turnID: turnID,
-            requestId: requestId ?? UUID(),
-            messageContent: messageContent,
-            tools: tools,
-            toolOutputs: toolOutputs,
-            systemInstructions: systemInstructions,
-            agentId: agentId,
-            executionKind: executionKind,
-            contributors: contributors,
             agent: agentPreflight.instance,
             agentDiagnostics: agentPreflight.diagnostics,
-            maxModelRounds: maxModelRounds,
-            generationParameters: generationParameters,
-            structuredOutput: structuredOutput,
-            sidecars: sidecars,
-            sidecarCommitPolicy: sidecarCommitPolicy,
-            includeSidecarMechanismPreamble: includeSidecarMechanismPreamble,
-            assemblyLogger: assemblyLogger,
-            responseModalities: responseModalities,
-            audioOutput: audioOutput,
             onAdmission: { [eventHub = dependencies.eventHub] in
                 await eventHub.begin(turnID: turnID)
             }

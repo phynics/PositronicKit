@@ -162,11 +162,13 @@ struct TurnEngineFailurePersistenceTests {
                 ))
             }
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "stream then fail",
-                tools: []
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "stream then fail",
+                    tools: []
+                )
+            ))
 
             // The turn is recorded as failed: the stream surfaces the error (re-thrown), it is
             // NOT swallowed.
@@ -200,12 +202,14 @@ struct TurnEngineFailurePersistenceTests {
                 MockToolCall(id: "persist_retry_call", name: tool.callName),
             ]]
 
-            let failedStream = try await engine.execute(
-                threadID: threadID,
-                requestId: requestID,
-                message: "run the retryable tool",
-                tools: [tool.toAnyTool()]
-            )
+            let failedStream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    requestID: requestID,
+                    message: "run the retryable tool",
+                    tools: [tool.toAnyTool()]
+                )
+            ))
             let failedEvents = try await collect(failedStream)
 
             #expect(failedEvents.contains(where: {
@@ -233,16 +237,18 @@ struct TurnEngineFailurePersistenceTests {
             messageStore.recordToolResultFailureAfter = nil
             mockLLM.mockClient.nextToolCalls = []
             mockLLM.mockClient.nextResponse = "Recovered after retry"
-            let retryStream = try await engine.execute(
-                threadID: threadID,
-                requestId: requestID,
-                message: "",
-                tools: [tool.toAnyTool()],
-                toolOutputs: [ToolOutputSubmission(
-                    toolCallID: "persist_retry_call",
-                    output: "durable retry result"
-                )]
-            )
+            let retryStream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    requestID: requestID,
+                    message: "",
+                    tools: [tool.toAnyTool()],
+                    toolOutputs: [ToolOutputSubmission(
+                        toolCallID: "persist_retry_call",
+                        output: "durable retry result"
+                    )]
+                )
+            ))
             let retryEvents = try await collect(retryStream)
 
             #expect(retryEvents.contains(where: {
@@ -268,12 +274,14 @@ struct TurnEngineFailurePersistenceTests {
                 ),
             ]]
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                requestId: UUID(),
-                message: "run the workspace tool",
-                tools: []
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    requestID: UUID(),
+                    message: "run the workspace tool",
+                    tools: []
+                )
+            ))
             let events = try await collect(stream)
 
             #expect(events.contains(where: {
@@ -312,12 +320,14 @@ struct TurnEngineFailurePersistenceTests {
                 ))
             }
 
-            let failedStream = try await engine.execute(
-                threadID: threadID,
-                requestId: requestID,
-                message: "start external work",
-                tools: []
-            )
+            let failedStream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    requestID: requestID,
+                    message: "start external work",
+                    tools: []
+                )
+            ))
             await #expect(throws: Error.self) {
                 _ = try await collect(failedStream)
             }
@@ -326,13 +336,15 @@ struct TurnEngineFailurePersistenceTests {
             // user input must remain a singleton while the retry reaches the provider.
             mockLLM.stubbedStream = nil
             mockLLM.mockClient.nextResponse = "retry succeeded"
-            let retryStream = try await engine.execute(
-                threadID: threadID,
-                requestId: requestID,
-                message: "",
-                tools: [],
-                toolOutputs: [ToolOutputSubmission(toolCallID: "retry_call", output: "done")]
-            )
+            let retryStream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    requestID: requestID,
+                    message: "",
+                    tools: [],
+                    toolOutputs: [ToolOutputSubmission(toolCallID: "retry_call", output: "done")]
+                )
+            ))
             let retryEvents = try await collect(retryStream)
 
             #expect(retryEvents.contains(where: {
@@ -366,13 +378,15 @@ struct TurnEngineFailurePersistenceTests {
             await history.failNextUpdate(with: .duplicateSectionIDs(["fail-once"]))
 
             do {
-                _ = try await engine.execute(
-                    threadID: threadID,
-                    requestId: requestID,
-                    message: "retry after history failure",
-                    tools: [],
-                    toolOutputs: [ToolOutputSubmission(toolCallID: toolCallID, output: "tool result")]
-                )
+                _ = try await engine.execute(TurnExecutionRequest(
+                    TurnRequest(
+                        threadID: threadID,
+                        requestID: requestID,
+                        message: "retry after history failure",
+                        tools: [],
+                        toolOutputs: [ToolOutputSubmission(toolCallID: toolCallID, output: "tool result")]
+                    )
+                ))
                 Issue.record("Expected the fail-once prompt-history update to throw")
             } catch let error as TurnEngineError {
                 guard case let .promptHistoryInconsistent(detail) = error else {
@@ -390,13 +404,15 @@ struct TurnEngineFailurePersistenceTests {
             #expect(messagesAfterFailure.filter { $0.role == "tool" }.isEmpty)
 
             mockLLM.mockClient.nextResponse = "Recovered reply"
-            let retryStream = try await engine.execute(
-                threadID: threadID,
-                requestId: requestID,
-                message: "retry after history failure",
-                tools: [],
-                toolOutputs: [ToolOutputSubmission(toolCallID: toolCallID, output: "tool result")]
-            )
+            let retryStream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    requestID: requestID,
+                    message: "retry after history failure",
+                    tools: [],
+                    toolOutputs: [ToolOutputSubmission(toolCallID: toolCallID, output: "tool result")]
+                )
+            ))
             _ = try await collect(retryStream)
 
             let messagesAfterRetry = try await mockPersistence.fetchMessages(for: threadID)
@@ -422,11 +438,13 @@ struct TurnEngineFailurePersistenceTests {
                 continuation.finish(throwing: CancellationError())
             }
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "stream then cancel",
-                tools: []
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "stream then cancel",
+                    tools: []
+                )
+            ))
 
             // The error event is still surfaced (do NOT swallow) — the stream re-throws.
             await #expect(throws: Error.self) {
@@ -459,25 +477,29 @@ struct TurnEngineFailurePersistenceTests {
                 continuation.finish(throwing: CancellationError())
             }
 
-            let cancelledStream = try await engine.execute(
-                threadID: threadID,
-                requestId: requestID,
-                message: "start cancellable work",
-                tools: []
-            )
+            let cancelledStream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    requestID: requestID,
+                    message: "start cancellable work",
+                    tools: []
+                )
+            ))
             await #expect(throws: Error.self) {
                 _ = try await collect(cancelledStream)
             }
 
             mockLLM.stubbedStream = nil
             mockLLM.mockClient.nextResponse = "retry after cancellation"
-            let retryStream = try await engine.execute(
-                threadID: threadID,
-                requestId: requestID,
-                message: "",
-                tools: [],
-                toolOutputs: [ToolOutputSubmission(toolCallID: "cancel_retry_call", output: "done")]
-            )
+            let retryStream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    requestID: requestID,
+                    message: "",
+                    tools: [],
+                    toolOutputs: [ToolOutputSubmission(toolCallID: "cancel_retry_call", output: "done")]
+                )
+            ))
             _ = try await collect(retryStream)
 
             #expect(mockLLM.generationCaptureHistory.count == 2, "Cancellation retry must reach the provider")
@@ -494,11 +516,13 @@ struct TurnEngineFailurePersistenceTests {
         try await withTurnEngineDependencies { engine, mockLLM, mockPersistence in
             mockLLM.mockClient.nextResponse = "Clean complete reply"
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "succeed cleanly",
-                tools: []
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "succeed cleanly",
+                    tools: []
+                )
+            ))
 
             let events = try await collect(stream)
 
@@ -529,11 +553,13 @@ struct TurnEngineFailurePersistenceTests {
             engine.additionalStages = [ThrowingExtensionStage()]
             mockLLM.mockClient.nextResponse = "Complete before extension failure"
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "extension stage fails",
-                tools: []
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "extension stage fails",
+                    tools: []
+                )
+            ))
 
             await #expect(throws: Error.self) {
                 _ = try await collect(stream)
@@ -561,11 +587,13 @@ struct TurnEngineFailurePersistenceTests {
                 ))
             }
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "fail immediately",
-                tools: []
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "fail immediately",
+                    tools: []
+                )
+            ))
 
             await #expect(throws: Error.self) {
                 _ = try await collect(stream)
@@ -594,11 +622,13 @@ struct TurnEngineFailurePersistenceTests {
                 continuation.finish(throwing: foreignError)
             }
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "foreign drop",
-                tools: []
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "foreign drop",
+                    tools: []
+                )
+            ))
 
             do {
                 _ = try await collect(stream)
@@ -628,11 +658,13 @@ struct TurnEngineFailurePersistenceTests {
                 continuation.finish(throwing: CancellationError())
             }
 
-            let stream = try await engine.execute(
-                threadID: threadID,
-                message: "cancel stream",
-                tools: []
-            )
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "cancel stream",
+                    tools: []
+                )
+            ))
 
             do {
                 _ = try await collect(stream)
