@@ -212,7 +212,8 @@ final class ToolRouterTests {
             _ = try await router.execute(
                 tool: .known("needs_permission"),
                 arguments: [:],
-                threadID: threadID
+                threadID: threadID,
+                availableTools: [tool.toAnyTool()]
             )
             Issue.record("Expected permissionDenied to be thrown")
         } catch ToolError.permissionDenied("needs_permission") {
@@ -234,7 +235,8 @@ final class ToolRouterTests {
         let result = try await router.execute(
             tool: .known("needs_permission"),
             arguments: [:],
-            threadID: threadID
+            threadID: threadID,
+            availableTools: [tool.toAnyTool()]
         )
 
         guard case let .completed(output) = result else {
@@ -260,7 +262,7 @@ final class ToolRouterTests {
             try await router.handlePendingToolCalls(
                 threadId: threadID,
                 calls: [call],
-                availableTools: [],
+                availableTools: [tool.toAnyTool()],
                 continuation: continuation
             )
         }
@@ -547,7 +549,7 @@ final class ToolRouterTests {
             let result = try await router.handlePendingToolCalls(
                 threadId: threadID,
                 calls: [call],
-                availableTools: [],
+                availableTools: [tool.toAnyTool()],
                 continuation: continuation
             )
 
@@ -620,7 +622,8 @@ final class ToolRouterTests {
         let result = try await router.execute(
             tool: .known("free_tool"),
             arguments: [:],
-            threadID: threadID
+            threadID: threadID,
+            availableTools: [tool.toAnyTool()]
         )
 
         guard case let .completed(output) = result else {
@@ -715,74 +718,17 @@ final class ToolRouterTests {
         let toolRef = ToolReference.known(toolId)
         let arguments: [String: AnyCodable] = ["param": AnyCodable("value")]
 
-        let result = try await toolRouter.execute(tool: toolRef, arguments: arguments, threadID: session.id)
+        let result = try await toolRouter.execute(
+            tool: toolRef,
+            arguments: arguments,
+            threadID: session.id,
+            availableTools: [mockTool.toAnyTool()]
+        )
         guard case let .completed(output) = result else {
             Issue.record("Expected .completed outcome")
             return
         }
         #expect(output == "Local success")
-    }
-
-    @Test
-
-    func attachedWorkspaceToolDefersExternalExecution() async throws {
-        let (threadManager, mockPersistence) = try await setupThreadManager()
-        let toolRouter = ToolRouter(threadManager: threadManager, runtimeRepository: mockPersistence)
-
-        let session = try await threadManager.createThread()
-        let workspaceId = UUID()
-
-        // Setup attached workspace
-        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://remote")), location: .attached, originID: UUID())
-        try await mockPersistence.saveWorkspace(workspaceRef)
-        try await threadManager.attachWorkspace(workspaceId, to: session.id)
-
-        let toolId = "attached_tool"
-        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known(toolId))
-
-        let toolRef = ToolReference.known(toolId)
-        let arguments: [String: AnyCodable] = [:]
-
-        do {
-            let result = try await toolRouter.execute(tool: toolRef, arguments: arguments, threadID: session.id)
-            guard case .deferredExternally = result else {
-                Issue.record("Expected .deferredExternally")
-                return
-            }
-        } catch {
-            Issue.record("Unexpected error: \(error)")
-        }
-    }
-
-    @Test
-
-    func attachedWorkspaceToolWithoutOriginStillDefers() async throws {
-        let (threadManager, mockPersistence) = try await setupThreadManager()
-        let toolRouter = ToolRouter(threadManager: threadManager, runtimeRepository: mockPersistence)
-
-        let session = try await threadManager.createThread()
-        let workspaceId = UUID()
-
-        // Setup attached workspace missing an originId
-        let workspaceRef = try WorkspaceReference(id: workspaceId, uri: #require(WorkspaceURI(parsing: "pk://remote")), location: .attached, originID: nil)
-        try await mockPersistence.saveWorkspace(workspaceRef)
-        try await threadManager.attachWorkspace(workspaceId, to: session.id)
-
-        let toolId = "attached_tool"
-        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known(toolId))
-
-        let toolRef = ToolReference.known(toolId)
-        let arguments: [String: AnyCodable] = [:]
-
-        do {
-            let result = try await toolRouter.execute(tool: toolRef, arguments: arguments, threadID: session.id)
-            guard case .deferredExternally = result else {
-                Issue.record("Expected .deferredExternally")
-                return
-            }
-        } catch {
-            Issue.record("Unexpected error: \(error)")
-        }
     }
 
     @Test("A dynamic per-turn tool (passed via availableTools) executes locally even when the thread has no attached workspace at all (YAK-19)")
@@ -833,82 +779,18 @@ final class ToolRouterTests {
         let arguments: [String: AnyCodable] = [:]
 
         do {
-            _ = try await toolRouter.execute(tool: toolRef, arguments: arguments, threadID: session.id)
+            _ = try await toolRouter.execute(
+                tool: toolRef,
+                arguments: arguments,
+                threadID: session.id,
+                availableTools: []
+            )
             Issue.record("Should have thrown toolNotFound")
         } catch ToolError.toolNotFound {
             // Expected
         } catch {
             Issue.record("Unexpected error thrown: \(error)")
         }
-    }
-
-    @Test("Explicit invalid workspaceID fails closed with workspaceNotFound (YAK-33)")
-    func explicitInvalidWorkspaceIDFailsClosed() async throws {
-        let tool = MockTool(callName: "test_tool", name: "test_tool", result: .success("success"))
-        let gate = RecordingGate(decision: .deny)
-        let (router, threadID, _) = try await setupRouter(with: tool, approvalPolicy: gate)
-
-        let invalidWorkspaceId = UUID()
-        let arguments: [String: AnyCodable] = ["workspaceID": AnyCodable(invalidWorkspaceId.uuidString)]
-
-        do {
-            _ = try await router.execute(
-                tool: .known("test_tool"),
-                arguments: arguments,
-                threadID: threadID
-            )
-            Issue.record("Expected workspaceNotFound to be thrown")
-        } catch let ToolError.workspaceNotFound(thrownId) {
-            #expect(thrownId == invalidWorkspaceId)
-        } catch {
-            Issue.record("Unexpected error: \(error)")
-        }
-    }
-
-    @Test("Well-formed but unattached explicit workspaceID fails closed (YAK-33)")
-    func unattachedExplicitWorkspaceIDFailsClosed() async throws {
-        let tool = MockTool(callName: "test_tool", name: "test_tool", result: .success("success"))
-        let gate = RecordingGate(decision: .deny)
-        let (router, threadID, _) = try await setupRouter(with: tool, approvalPolicy: gate)
-
-        // Create a valid UUID that is definitely not attached to this thread
-        let unattachedWorkspaceId = UUID()
-        let arguments: [String: AnyCodable] = ["workspaceID": AnyCodable(unattachedWorkspaceId.uuidString)]
-
-        do {
-            _ = try await router.execute(
-                tool: .known("test_tool"),
-                arguments: arguments,
-                threadID: threadID
-            )
-            Issue.record("Expected workspaceNotFound to be thrown for unattached workspace")
-        } catch let ToolError.workspaceNotFound(thrownId) {
-            #expect(thrownId == unattachedWorkspaceId)
-        } catch {
-            Issue.record("Unexpected error: \(error)")
-        }
-    }
-
-    @Test("Omitted workspaceID still uses default workspace resolution (YAK-33 regression guard)")
-    func omittedWorkspaceIDUsesDefaultResolution() async throws {
-        let tool = MockTool(callName: "test_tool", name: "test_tool", result: .success("default workspace success"))
-        let gate = RecordingGate(decision: .deny)
-        let (router, threadID, _) = try await setupRouter(with: tool, approvalPolicy: gate)
-
-        // No workspaceID in arguments — should proceed with normal default resolution
-        let arguments: [String: AnyCodable] = [:]
-
-        let result = try await router.execute(
-            tool: .known("test_tool"),
-            arguments: arguments,
-            threadID: threadID
-        )
-
-        guard case let .completed(output) = result else {
-            Issue.record("Expected .completed outcome, got \(result)")
-            return
-        }
-        #expect(output == "default workspace success")
     }
 
     @Test("Local tool execution timeout is projected as a tool error")
@@ -934,14 +816,15 @@ final class ToolRouterTests {
 
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
-        await toolManager?.updateAvailableTools([NeverFinishingTool().toAnyTool()])
+        let neverFinishingTool = NeverFinishingTool().toAnyTool()
+        await toolManager?.updateAvailableTools([neverFinishingTool])
 
         let call = ParsedToolCall(callId: "call-timeout", name: "never_finishes", argumentsJSON: "{}")
         let events = try await captureProjectedToolEvents { continuation in
             let result = try await toolRouter.handlePendingToolCalls(
                 threadId: session.id,
                 calls: [call],
-                availableTools: [],
+                availableTools: [neverFinishingTool],
                 continuation: continuation
             )
 
@@ -991,9 +874,8 @@ final class ToolRouterTests {
 
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
-        await toolManager?.updateAvailableTools([
-            UncooperativeTool(started: started, release: release).toAnyTool(),
-        ])
+        let uncooperativeTool = UncooperativeTool(started: started, release: release).toAnyTool()
+        await toolManager?.updateAvailableTools([uncooperativeTool])
 
         let call = ParsedToolCall(callId: "call-timeout", name: "uncooperative", argumentsJSON: "{}")
 
@@ -1001,7 +883,7 @@ final class ToolRouterTests {
             try await toolRouter.handlePendingToolCalls(
                 threadId: session.id,
                 calls: [call],
-                availableTools: [],
+                availableTools: [uncooperativeTool],
                 continuation: continuation
             )
         }
@@ -1010,301 +892,152 @@ final class ToolRouterTests {
     }
 }
 
-// MARK: - Recasted workspace-resolution edge-case tests (formerly ToolRoutingDecision isolation tests)
+// MARK: - Workspace dispatcher interface tests
 
-struct ToolRouterWorkspaceResolutionTests {
-    private func setupThreadManager() async throws -> (ThreadManager, MockPersistenceService) {
-        let mockPersistence = MockPersistenceService()
-        let workspace = TestWorkspace()
-        let threadManager = ThreadManager(
-            stores: .init(
-                threadStore: mockPersistence,
-                messageStore: mockPersistence,
-                workspaceStore: mockPersistence,
-                runtimeRepository: mockPersistence,
-                toolPersistence: mockPersistence
-            ),
-            workspaceProfile: .hostManaged(root: workspace.root)
-        )
-        return (threadManager, mockPersistence)
+@Suite("Workspace tool dispatcher")
+struct WorkspaceToolDispatcherTests {
+    private struct MockTool: PKContracts.Tool {
+        let callName: String
+        var name: String { callName }
+        let description = "A mock Workspace tool"
+        let requiresPermission = false
+        let parametersSchema = makeEmptyObjectSchema()
+
+        func canExecute() async -> Bool { true }
+
+        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
+            .success("done")
+        }
     }
 
-    @Test("Malformed workspaceID string (not a UUID) fails closed with invalidWorkspaceID (PKRR-015)")
-    func malformedWorkspaceIDFailsClosed() async throws {
-        let (threadManager, mockPersistence) = try await setupThreadManager()
-        let toolRouter = ToolRouter(threadManager: threadManager, runtimeRepository: mockPersistence)
-
-        let session = try await threadManager.createThread()
-        let workspaceId = UUID()
-        let workspaceRef = try WorkspaceReference(
-            id: workspaceId,
-            uri: #require(WorkspaceURI(parsing: "pk://local")),
-            location: .runtime,
-            originID: nil
+    private func makeDispatcher() -> WorkspaceToolDispatcher {
+        let persistence = MockPersistenceService()
+        let manager = ThreadManager(
+            stores: .init(
+                threadStore: persistence,
+                messageStore: persistence,
+                workspaceStore: persistence,
+                runtimeRepository: persistence,
+                toolPersistence: persistence
+            ),
+            workspaceProfile: .noWorkspace,
+            workspaceCreator: MockWorkspaceCreator()
         )
-        try await mockPersistence.saveWorkspace(workspaceRef)
-        try await threadManager.attachWorkspace(workspaceId, to: session.id)
-        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("cat"))
+        return WorkspaceToolDispatcher(threadManager: manager)
+    }
 
-        let toolManager = await threadManager.getToolManager(for: session.id)
-        try #require(toolManager != nil)
-        let mockTool = MockTool(callName: "cat", name: "cat", result: .success("meow"))
-        await toolManager?.updateAvailableTools([mockTool.toAnyTool()])
+    private func workspace(
+        path: String,
+        location: WorkspaceReference.WorkspaceLocation = .runtime
+    ) -> WorkspaceReference {
+        WorkspaceReference(
+            uri: WorkspaceURI(host: "dispatcher-tests", path: path),
+            location: location,
+            tools: [.known("cat")],
+            rootPath: "/tmp"
+        )
+    }
 
-        let arguments: [String: AnyCodable] = ["workspaceID": AnyCodable("not-a-uuid")]
+    private func catalog(_ workspaces: [WorkspaceReference]) -> WorkspaceToolCatalog {
+        let tool = MockTool(callName: "cat").toAnyTool()
+        return WorkspaceToolCatalog(entries: workspaces.map {
+            .init(
+                workspace: $0,
+                label: $0.uri.description,
+                isPrimary: false,
+                tools: [tool]
+            )
+        })
+    }
+
+    @Test("Unique captured match prepares an implicit route")
+    func uniqueMatchIsImplicit() throws {
+        let workspace = workspace(path: "/unique")
+        let dispatch = try makeDispatcher().prepare(
+            call: ParsedToolCall(
+                callId: "call-unique",
+                name: WorkspaceToolDispatcher.callName,
+                argumentsJSON: #"{"tool":"cat","arguments":{}}"#
+            ),
+            catalog: catalog([workspace])
+        )
+
+        #expect(dispatch.route.workspaceID == workspace.id)
+        #expect(dispatch.route.routing == .implicit)
+        #expect(dispatch.route.tool.callName == "cat")
+    }
+
+    @Test("Duplicate captured matches fail with candidate provenance")
+    func duplicateMatchesAreAmbiguous() throws {
+        let first = workspace(path: "/first")
+        let second = workspace(path: "/second")
 
         do {
-            _ = try await toolRouter.execute(
-                tool: .known("cat"),
-                arguments: arguments,
-                threadID: session.id
+            _ = try makeDispatcher().prepare(
+                call: ParsedToolCall(
+                    callId: "call-ambiguous",
+                    name: WorkspaceToolDispatcher.callName,
+                    argumentsJSON: #"{"tool":"cat"}"#
+                ),
+                catalog: catalog([first, second])
             )
-            Issue.record("Expected invalidWorkspaceID to be thrown")
+            Issue.record("Expected ambiguousWorkspaceTool")
+        } catch let ToolError.ambiguousWorkspaceTool(tool, candidates) {
+            #expect(tool == "cat")
+            #expect(Set(candidates.map(\.workspaceID)) == Set([first.id, second.id]))
+        }
+    }
+
+    @Test("Explicit at selects one captured Workspace")
+    func explicitAtSelectsWorkspace() throws {
+        let first = workspace(path: "/first")
+        let second = workspace(path: "/second")
+        let arguments = #"{"tool":"cat","at":"\#(second.id.uuidString)"}"#
+
+        let dispatch = try makeDispatcher().prepare(
+            call: ParsedToolCall(
+                callId: "call-explicit",
+                name: WorkspaceToolDispatcher.callName,
+                argumentsJSON: arguments
+            ),
+            catalog: catalog([first, second])
+        )
+
+        #expect(dispatch.route.workspaceID == second.id)
+        #expect(dispatch.route.routing == .explicit)
+    }
+
+    @Test("Malformed explicit at fails closed")
+    func malformedAtFailsClosed() throws {
+        do {
+            _ = try makeDispatcher().prepare(
+                call: ParsedToolCall(
+                    callId: "call-malformed",
+                    name: WorkspaceToolDispatcher.callName,
+                    argumentsJSON: #"{"tool":"cat","at":"not-a-uuid"}"#
+                ),
+                catalog: catalog([workspace(path: "/only")])
+            )
+            Issue.record("Expected invalidWorkspaceID")
         } catch let ToolError.invalidWorkspaceID(value) {
             #expect(value == "not-a-uuid")
-        } catch {
-            Issue.record("Unexpected error: \(error)")
         }
     }
 
-    @Test("Empty-string workspaceID fails closed with invalidWorkspaceID (PKRR-015)")
-    func emptyWorkspaceIDFailsClosed() async throws {
-        let (threadManager, mockPersistence) = try await setupThreadManager()
-        let toolRouter = ToolRouter(threadManager: threadManager, runtimeRepository: mockPersistence)
-
-        let session = try await threadManager.createThread()
-        let workspaceId = UUID()
-        let workspaceRef = try WorkspaceReference(
-            id: workspaceId,
-            uri: #require(WorkspaceURI(parsing: "pk://local")),
-            location: .runtime,
-            originID: nil
-        )
-        try await mockPersistence.saveWorkspace(workspaceRef)
-        try await threadManager.attachWorkspace(workspaceId, to: session.id)
-        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("cat"))
-
-        let toolManager = await threadManager.getToolManager(for: session.id)
-        try #require(toolManager != nil)
-        let mockTool = MockTool(callName: "cat", name: "cat", result: .success("meow"))
-        await toolManager?.updateAvailableTools([mockTool.toAnyTool()])
-
-        let arguments: [String: AnyCodable] = ["workspaceID": AnyCodable("")]
-
+    @Test("Empty admission catalog exposes no Workspace route")
+    func emptyCatalogHasNoRoute() throws {
         do {
-            _ = try await toolRouter.execute(
-                tool: .known("cat"),
-                arguments: arguments,
-                threadID: session.id
-            )
-            Issue.record("Expected invalidWorkspaceID to be thrown")
-        } catch ToolError.invalidWorkspaceID {
-            // expected
-        } catch {
-            Issue.record("Unexpected error: \(error)")
-        }
-    }
-
-    @Test("Non-string workspaceID (number) fails closed with invalidWorkspaceID (PKRR-015)")
-    func nonStringWorkspaceIDFailsClosed() async throws {
-        let (threadManager, mockPersistence) = try await setupThreadManager()
-        let toolRouter = ToolRouter(threadManager: threadManager, runtimeRepository: mockPersistence)
-
-        let session = try await threadManager.createThread()
-        let workspaceId = UUID()
-        let workspaceRef = try WorkspaceReference(
-            id: workspaceId,
-            uri: #require(WorkspaceURI(parsing: "pk://local")),
-            location: .runtime,
-            originID: nil
-        )
-        try await mockPersistence.saveWorkspace(workspaceRef)
-        try await threadManager.attachWorkspace(workspaceId, to: session.id)
-        try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .known("cat"))
-
-        let toolManager = await threadManager.getToolManager(for: session.id)
-        try #require(toolManager != nil)
-        let mockTool = MockTool(callName: "cat", name: "cat", result: .success("meow"))
-        await toolManager?.updateAvailableTools([mockTool.toAnyTool()])
-
-        let arguments: [String: AnyCodable] = ["workspaceID": AnyCodable(123)]
-
-        do {
-            _ = try await toolRouter.execute(
-                tool: .known("cat"),
-                arguments: arguments,
-                threadID: session.id
-            )
-            Issue.record("Expected invalidWorkspaceID to be thrown")
-        } catch ToolError.invalidWorkspaceID {
-            // expected
-        } catch {
-            Issue.record("Unexpected error: \(error)")
-        }
-    }
-
-    @Test("Workspace lookup searches primary then attached in order")
-    func workspaceLookupOrderPrimaryFirst() async throws {
-        let (threadManager, mockPersistence) = try await setupThreadManager()
-        let toolRouter = ToolRouter(threadManager: threadManager, runtimeRepository: mockPersistence)
-
-        let session = try await threadManager.createThread()
-
-        // Attach an additional workspace (attached location) alongside the primary runtime workspace.
-        let attachedWorkspaceId = UUID()
-        let attachedWorkspaceRef = try WorkspaceReference(
-            id: attachedWorkspaceId,
-            uri: #require(WorkspaceURI(parsing: "pk://remote")),
-            location: .attached,
-            originID: UUID()
-        )
-        try await mockPersistence.saveWorkspace(attachedWorkspaceRef)
-        try await threadManager.attachWorkspace(attachedWorkspaceId, to: session.id)
-
-        // Register the tool in BOTH the primary workspace and the attached workspace.
-        // The primary workspace is the runtime workspace created by `createThread`.
-        let workspaces = try await threadManager.getWorkspaces(for: session.id)
-        let primaryId = try #require(workspaces.primary?.id)
-        let toolId = "shared_tool"
-        try await mockPersistence.addToolToWorkspace(workspaceId: primaryId, tool: .known(toolId))
-        try await mockPersistence.addToolToWorkspace(workspaceId: attachedWorkspaceId, tool: .known(toolId))
-
-        let toolManager = await threadManager.getToolManager(for: session.id)
-        try #require(toolManager != nil)
-        let mockTool = MockTool(callName: toolId, name: toolId, result: .success("primary success"))
-        await toolManager?.updateAvailableTools([mockTool.toAnyTool()])
-
-        let result = try await toolRouter.execute(
-            tool: .known(toolId),
-            arguments: [:],
-            threadID: session.id
-        )
-
-        // Primary (runtime) workspace should win → local execution → .completed.
-        guard case .completed = result else {
-            Issue.record("Expected .completed (primary/runtime should win), got \(result)")
-            return
-        }
-    }
-
-    @Test("Explicit valid workspaceID overrides default lookup")
-    func explicitValidWorkspaceIDOverridesDefault() async throws {
-        let (threadManager, mockPersistence) = try await setupThreadManager()
-        let toolRouter = ToolRouter(threadManager: threadManager, runtimeRepository: mockPersistence)
-
-        let session = try await threadManager.createThread()
-
-        // Attach an additional workspace (attached location).
-        let attachedWorkspaceId = UUID()
-        let attachedWorkspaceRef = try WorkspaceReference(
-            id: attachedWorkspaceId,
-            uri: #require(WorkspaceURI(parsing: "pk://remote")),
-            location: .attached,
-            originID: UUID()
-        )
-        try await mockPersistence.saveWorkspace(attachedWorkspaceRef)
-        try await threadManager.attachWorkspace(attachedWorkspaceId, to: session.id)
-
-        // Register the tool in the primary workspace only — default lookup would find it there.
-        let workspaces = try await threadManager.getWorkspaces(for: session.id)
-        let primaryId = try #require(workspaces.primary?.id)
-        let toolId = "tool_a"
-        try await mockPersistence.addToolToWorkspace(workspaceId: primaryId, tool: .known(toolId))
-
-        let toolManager = await threadManager.getToolManager(for: session.id)
-        try #require(toolManager != nil)
-        let mockTool = MockTool(callName: toolId, name: toolId, result: .success("ok"))
-        await toolManager?.updateAvailableTools([mockTool.toAnyTool()])
-
-        // Explicitly request the attached workspace — should override the default primary lookup.
-        let arguments: [String: AnyCodable] = ["workspaceID": AnyCodable(attachedWorkspaceId.uuidString)]
-
-        let result = try await toolRouter.execute(
-            tool: .known(toolId),
-            arguments: arguments,
-            threadID: session.id
-        )
-
-        // Explicit workspaceID points to the attached workspace → defer externally.
-        guard case .deferredExternally = result else {
-            Issue.record("Expected .deferredExternally (explicit attached workspace), got \(result)")
-            return
-        }
-    }
-
-    @Test("No workspaces at all resolves to toolNotFound")
-    func noWorkspacesAtAllResolvesToToolNotFound() async throws {
-        let (threadManager, mockPersistence) = try await setupThreadManager()
-        let toolRouter = ToolRouter(threadManager: threadManager, runtimeRepository: mockPersistence)
-
-        let session = try await threadManager.createThread()
-        // Detach all workspaces to simulate "no workspaces at all."
-        let initialWorkspaces = try await threadManager.getWorkspaces(for: session.id)
-        for workspaceID in ([initialWorkspaces.primary?.id] + initialWorkspaces.attached.map(\.id)).compactMap(\.self) {
-            try await threadManager.detachWorkspace(workspaceID, from: session.id)
-        }
-        let workspaces = try await threadManager.getWorkspaces(for: session.id)
-        #expect(workspaces.primary == nil)
-        #expect(workspaces.attached.isEmpty == true)
-
-        do {
-            _ = try await toolRouter.execute(
-                tool: .known("any_tool"),
-                arguments: [:],
-                threadID: session.id
+            _ = try makeDispatcher().prepare(
+                call: ParsedToolCall(
+                    callId: "call-empty",
+                    name: WorkspaceToolDispatcher.callName,
+                    argumentsJSON: #"{"tool":"cat"}"#
+                ),
+                catalog: WorkspaceToolCatalog(entries: [])
             )
             Issue.record("Expected toolNotFound")
-        } catch ToolError.toolNotFound {
+        } catch ToolError.toolNotFound(WorkspaceToolDispatcher.callName) {
             // expected
-        } catch {
-            Issue.record("Unexpected error: \(error)")
-        }
-    }
-
-    // MARK: - MockTool (shared with ToolRouterTests)
-
-    struct MockTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
-        let callName: String
-        let name: String
-        let description = "A mock tool for testing"
-        let requiresPermission = false
-        let parametersSchema = makeEmptyObjectSchema()
-
-        var result: ToolResult
-
-        func canExecute() async -> Bool {
-            true
-        }
-
-        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
-            if !result.success, result.error == "client_tools_disallowed_on_private_thread" {
-                throw ToolError.attachedToolsDisallowedOnPrivateThread
-            }
-            return result
-        }
-    }
-
-    /// A tool that throws a specific `ToolError` so remediation guidance can be asserted.
-    struct FailingTool: PKContracts.Tool, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
-        let callName: String
-        let name: String
-        let description = "A tool that always fails"
-        let requiresPermission = false
-        let thrownError: any Error
-        let parametersSchema = makeEmptyObjectSchema()
-
-        init(id: String, error: any Error) {
-            self.callName = id
-            name = id
-            thrownError = error
-        }
-
-        func canExecute() async -> Bool {
-            true
-        }
-
-        func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
-            throw thrownError
         }
     }
 }
@@ -1388,7 +1121,8 @@ struct ToolTurnProjectionTests {
 
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
-        await toolManager?.updateAvailableTools([MockTool(callName: "tool", name: "tool", result: .success("done")).toAnyTool()])
+        let tool = MockTool(callName: "tool", name: "tool", result: .success("done")).toAnyTool()
+        await toolManager?.updateAvailableTools([tool])
 
         let call = ParsedToolCall(callId: "call-1", name: "tool", argumentsJSON: "{}")
 
@@ -1396,7 +1130,7 @@ struct ToolTurnProjectionTests {
             let result = try await toolRouter.handlePendingToolCalls(
                 threadId: session.id,
                 calls: [call],
-                availableTools: [],
+                availableTools: [tool],
                 continuation: continuation
             )
 
@@ -1438,7 +1172,8 @@ struct ToolTurnProjectionTests {
 
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
-        await toolManager?.updateAvailableTools([FailingTool(id: "tool", error: ToolError.executionFailed("boom")).toAnyTool()])
+        let tool = FailingTool(id: "tool", error: ToolError.executionFailed("boom")).toAnyTool()
+        await toolManager?.updateAvailableTools([tool])
 
         let call = ParsedToolCall(callId: "call-2", name: "tool", argumentsJSON: "{}")
 
@@ -1446,7 +1181,7 @@ struct ToolTurnProjectionTests {
             let result = try await toolRouter.handlePendingToolCalls(
                 threadId: session.id,
                 calls: [call],
-                availableTools: [],
+                availableTools: [tool],
                 continuation: continuation
             )
 
@@ -1489,7 +1224,8 @@ struct ToolTurnProjectionTests {
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
         let error = ToolError.invalidArgument("count", expected: "Int", got: "4.7")
-        await toolManager?.updateAvailableTools([FailingTool(id: "cat", error: error).toAnyTool()])
+        let tool = FailingTool(id: "cat", error: error).toAnyTool()
+        await toolManager?.updateAvailableTools([tool])
 
         let call = ParsedToolCall(callId: "call-3", name: "cat", argumentsJSON: "{}")
 
@@ -1497,7 +1233,7 @@ struct ToolTurnProjectionTests {
             let result = try await toolRouter.handlePendingToolCalls(
                 threadId: session.id,
                 calls: [call],
-                availableTools: [],
+                availableTools: [tool],
                 continuation: continuation
             )
 
@@ -1609,7 +1345,7 @@ struct ToolDurabilityOrderingTests {
             let result = try await router.handlePendingToolCalls(
                 threadId: threadID,
                 calls: [call],
-                availableTools: [],
+                availableTools: [tool.toAnyTool()],
                 continuation: continuation
             )
 
@@ -1653,7 +1389,7 @@ struct ToolDurabilityOrderingTests {
             let result = try await router.handlePendingToolCalls(
                 threadId: threadID,
                 calls: [call],
-                availableTools: [],
+                availableTools: [tool.toAnyTool()],
                 continuation: continuation
             )
 
@@ -1707,9 +1443,8 @@ struct ToolDurabilityOrderingTests {
 
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
-        await toolManager?.updateAvailableTools([
-            MockTool(callName: "tool", name: "tool", result: .success("done")).toAnyTool()
-        ])
+        let tool = MockTool(callName: "tool", name: "tool", result: .success("done")).toAnyTool()
+        await toolManager?.updateAvailableTools([tool])
 
         let call = ParsedToolCall(callId: "call-3", name: "tool", argumentsJSON: "{}")
 
@@ -1717,7 +1452,7 @@ struct ToolDurabilityOrderingTests {
             _ = try await toolRouter.handlePendingToolCalls(
                 threadId: session.id,
                 calls: [call],
-                availableTools: [],
+                availableTools: [tool],
                 continuation: continuation
             )
         }
@@ -1771,9 +1506,8 @@ struct ToolDurabilityOrderingTests {
 
         let toolManager = await threadManager.getToolManager(for: session.id)
         try #require(toolManager != nil)
-        await toolManager?.updateAvailableTools([
-            MockTool(callName: "tool", name: "tool", result: .success("ok")).toAnyTool()
-        ])
+        let tool = MockTool(callName: "tool", name: "tool", result: .success("ok")).toAnyTool()
+        await toolManager?.updateAvailableTools([tool])
 
         let call1 = ParsedToolCall(callId: "call-a", name: "tool", argumentsJSON: "{}")
         let call2 = ParsedToolCall(callId: "call-b", name: "tool", argumentsJSON: "{}")
@@ -1782,7 +1516,7 @@ struct ToolDurabilityOrderingTests {
             let result = try await toolRouter.handlePendingToolCalls(
                 threadId: session.id,
                 calls: [call1, call2],
-                availableTools: [],
+                availableTools: [tool],
                 continuation: continuation
             )
             #expect(result.hasPersistenceFailure)

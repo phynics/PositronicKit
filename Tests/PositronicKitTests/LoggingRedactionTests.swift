@@ -75,7 +75,8 @@ struct LoggingRedactionTests {
         _ = try? await router.execute(
             tool: .known(id: "calculator"),
             arguments: [:],
-            threadID: threadID
+            threadID: threadID,
+            availableTools: []
         )
 
         let entries = sink.all()

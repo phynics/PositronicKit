@@ -59,12 +59,178 @@ struct WorkspaceToolCatalog: Sendable {
     }
 }
 
+/// The workspace selected from an admitted Turn's immutable catalog.
+struct WorkspaceToolRoute: Sendable {
+    let workspaceID: UUID
+    let tool: AnyTool
+    let explicit: Bool
+    let isPrimary: Bool
+    let location: WorkspaceReference.WorkspaceLocation
+
+    var routing: WorkspaceToolRouting {
+        explicit ? .explicit : .implicit
+    }
+}
+
+/// A validated Workspace dispatch whose intent can be persisted before execution.
+struct WorkspaceToolDispatch: Sendable {
+    let route: WorkspaceToolRoute
+    let arguments: [String: AnyCodable]
+}
+
+/// Owns captured Workspace selection, execution disposition, authority revalidation, and
+/// process-local serialization for `call_tool`.
+struct WorkspaceToolDispatcher: Sendable {
+    typealias LocalExecutor = @Sendable (AnyTool, [String: AnyCodable]) async throws -> String
+
+    static let callName = "call_tool"
+
+    private let threadManager: ThreadManager
+
+    init(threadManager: ThreadManager) {
+        self.threadManager = threadManager
+    }
+
+    /// Resolves a provider-facing dispatcher call exclusively against the admission snapshot.
+    /// The returned value contains everything needed to record durable intent before execution.
+    func prepare(
+        call: ParsedToolCall,
+        catalog: WorkspaceToolCatalog
+    ) throws -> WorkspaceToolDispatch {
+        guard call.name == Self.callName, !catalog.isEmpty else {
+            throw ToolError.toolNotFound(call.name)
+        }
+        guard let arguments = call.arguments else {
+            throw ToolError.malformedArguments("invalid JSON object")
+        }
+        guard let requestedTool = arguments["tool"]?.asString,
+              !requestedTool.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else {
+            throw ToolError.missingArgument("tool")
+        }
+
+        let requestedWorkspace: UUID?
+        let explicit: Bool
+        if let at = arguments["at"] {
+            explicit = true
+            guard let value = at.asString,
+                  let id = UUID(uuidString: value.trimmingCharacters(in: .whitespacesAndNewlines))
+            else {
+                throw ToolError.invalidWorkspaceID(at.description)
+            }
+            requestedWorkspace = id
+        } else {
+            explicit = false
+            requestedWorkspace = nil
+        }
+
+        var matches: [(entry: WorkspaceToolCatalog.Entry, tool: AnyTool)] = []
+        for entry in catalog.entries {
+            guard requestedWorkspace == nil || requestedWorkspace == entry.workspace.id else { continue }
+            for tool in entry.tools where tool.callName == requestedTool || tool.name == requestedTool {
+                matches.append((entry, tool))
+            }
+        }
+
+        if explicit, let requestedWorkspace,
+           !catalog.entries.contains(where: { $0.workspace.id == requestedWorkspace })
+        {
+            throw ToolError.workspaceNotFound(requestedWorkspace)
+        }
+        guard !matches.isEmpty else { throw ToolError.toolNotFound(requestedTool) }
+        guard matches.count == 1 else {
+            throw ToolError.ambiguousWorkspaceTool(
+                tool: requestedTool,
+                candidates: matches.compactMap { match in
+                    match.entry.candidates.first(where: { $0.toolID == match.tool.callName })
+                }
+            )
+        }
+
+        let match = matches[0]
+        return WorkspaceToolDispatch(
+            route: WorkspaceToolRoute(
+                workspaceID: match.entry.workspace.id,
+                tool: match.tool,
+                explicit: explicit,
+                isPrimary: match.entry.isPrimary,
+                location: match.entry.workspace.location
+            ),
+            arguments: arguments
+        )
+    }
+
+    /// Executes a prepared dispatch after its caller has persisted intent.
+    func execute(
+        _ dispatch: WorkspaceToolDispatch,
+        threadID: UUID,
+        using executeLocally: @escaping LocalExecutor
+    ) async throws -> ToolExecutionOutcome {
+        let arguments = dispatch.arguments
+        guard let nested = arguments["arguments"]?.asDictionary ??
+            (arguments["arguments"] == nil ? [:] : nil)
+        else {
+            throw ToolError.invalidArgument(
+                "arguments",
+                expected: "object",
+                got: arguments["arguments"]?.description ?? "null"
+            )
+        }
+
+        let route = dispatch.route
+        switch try executionDisposition(
+            location: route.location,
+            threadIsPrivate: await threadManager.thread(id: threadID)?.isPrivate ?? false
+        ) {
+        case .executeLocally:
+            let output = try await threadManager.withWorkspaceExecution(route.workspaceID) {
+                if !route.isPrimary {
+                    try await threadManager.requireWorkspaceBinding(route.workspaceID, for: threadID)
+                }
+                return try await executeLocally(route.tool, nested)
+            }
+            return .completed(output)
+        case .deferExternally:
+            return .deferredExternally
+        }
+    }
+
+    /// Applies the same Workspace lane to Agent-primary tools exposed directly to the provider.
+    func executeDirect(
+        tool: AnyTool,
+        arguments: [String: AnyCodable],
+        using executeLocally: @escaping LocalExecutor
+    ) async throws -> String {
+        guard case let .workspace(workspaceID, _) = tool.origin else {
+            return try await executeLocally(tool, arguments)
+        }
+        return try await threadManager.withWorkspaceExecution(workspaceID) {
+            try await executeLocally(tool, arguments)
+        }
+    }
+
+    private func executionDisposition(
+        location: WorkspaceReference.WorkspaceLocation,
+        threadIsPrivate: Bool
+    ) throws -> WorkspaceExecutionDisposition {
+        switch location {
+        case .runtime, .runtimeThread:
+            return .executeLocally
+        case .attached:
+            guard !threadIsPrivate else {
+                throw ToolError.attachedToolsDisallowedOnPrivateThread
+            }
+            return .deferExternally
+        }
+    }
+}
+
 /// Marker tool exposed to the model for workspace-only dispatch.
 ///
 /// The router consumes this marker before normal tool execution. Its implementation is a guard
 /// against accidental direct execution if a future call path forgets to use the dispatcher.
 private struct WorkspaceCallTool: Tool, Sendable {
-    let callName = "call_tool"
+    let callName = WorkspaceToolDispatcher.callName
     let name = "Workspace Tool"
     let description = "Call a tool in an authorized workspace. Omit 'at' only when exactly one workspace matches."
     let requiresPermission = false
@@ -92,6 +258,12 @@ private struct WorkspaceCallTool: Tool, Sendable {
     func execute(parameters _: [String: AnyCodable]) async throws -> ToolResult {
         .failure("Workspace call_tool must be routed by the Turn runtime.")
     }
+}
+
+/// Whether a captured Workspace executes locally or defers to its attached host.
+private enum WorkspaceExecutionDisposition {
+    case executeLocally
+    case deferExternally
 }
 
 extension ThreadManager {

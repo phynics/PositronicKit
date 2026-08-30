@@ -115,6 +115,7 @@ verify-concurrency-scan:
 
 verify-runtime-architecture:
 	@python3 Scripts/migrate-turn-execution-request.py --check
+	@python3 Scripts/check-workspace-tool-dispatch.py
 
 # Preflight: report every prerequisite the Makefile gates depend on (Swift,
 # OpenSSL, curl, shasum, container runtime, host platform) with actionable hints for anything missing.

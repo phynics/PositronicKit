@@ -146,7 +146,8 @@ struct GroupedInitToolApprovalPolicyWiringTests {
             _ = try await chat.toolRouter.execute(
                 tool: .known(tool.callName),
                 arguments: [:],
-                threadID: threadID
+                threadID: threadID,
+                availableTools: [tool.toAnyTool()]
             )
             Issue.record("Expected permissionDenied to be thrown")
         } catch ToolError.permissionDenied(tool.name) {
@@ -167,7 +168,8 @@ struct GroupedInitToolApprovalPolicyWiringTests {
         let result = try await chat.toolRouter.execute(
             tool: .known(tool.callName),
             arguments: [:],
-            threadID: threadID
+            threadID: threadID,
+            availableTools: [tool.toAnyTool()]
         )
 
         guard case let .completed(output) = result else {
@@ -190,7 +192,8 @@ struct GroupedInitToolApprovalPolicyWiringTests {
             _ = try await chat.toolRouter.execute(
                 tool: .known(tool.callName),
                 arguments: [:],
-                threadID: threadID
+                threadID: threadID,
+                availableTools: [tool.toAnyTool()]
             )
             Issue.record("Expected permissionDenied to be thrown")
         } catch ToolError.permissionDenied(tool.name) {
@@ -211,7 +214,8 @@ struct GroupedInitToolApprovalPolicyWiringTests {
         let result = try await chat.toolRouter.execute(
             tool: .known(tool.callName),
             arguments: [:],
-            threadID: threadID
+            threadID: threadID,
+            availableTools: [tool.toAnyTool()]
         )
 
         guard case let .completed(output) = result else {

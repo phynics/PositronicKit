@@ -12,19 +12,6 @@ public enum ToolExecutionOutcome: Sendable {
     case deferredExternally
 }
 
-/// The workspace selected by the admission snapshot for one `call_tool` invocation.
-struct WorkspaceToolRoute {
-    let workspaceID: UUID
-    let tool: AnyTool
-    let explicit: Bool
-    let isPrimary: Bool
-    let location: WorkspaceReference.WorkspaceLocation
-
-    var routing: WorkspaceToolRouting {
-        explicit ? .explicit : .implicit
-    }
-}
-
 /// A fully parsed tool call from the LLM response, ready for routing.
 ///
 /// This is a runtime-internal routing detail (`package`-scoped): it is produced and consumed inside
@@ -85,6 +72,7 @@ actor ToolRouter {
     private let loggingConfiguration: LoggingConfiguration
 
     private let threadManager: ThreadManager
+    private let workspaceDispatcher: WorkspaceToolDispatcher
     private let runtimeRepository: any ThreadRuntimeRepository
     private let toolExecutionTimeout: TimeInterval
     private let approvalPolicy: any ToolApprovalPolicy
@@ -99,6 +87,7 @@ actor ToolRouter {
         loggingConfiguration: LoggingConfiguration = .default
     ) {
         self.threadManager = threadManager
+        workspaceDispatcher = WorkspaceToolDispatcher(threadManager: threadManager)
         self.runtimeRepository = runtimeRepository
         self.toolExecutionTimeout = toolExecutionTimeout
         self.approvalPolicy = approvalPolicy
@@ -214,40 +203,57 @@ actor ToolRouter {
             var intentRecorded = false
 
             do {
-                if call.name == "call_tool" {
+                let outcome: ToolExecutionOutcome
+                if call.name == WorkspaceToolDispatcher.callName {
                     guard let workspaceToolCatalog, !workspaceToolCatalog.isEmpty else {
                         throw ToolError.toolNotFound(call.name)
                     }
-                    workspaceRoute = try resolveWorkspaceTool(
+                    let dispatch = try workspaceDispatcher.prepare(
                         call: call,
                         catalog: workspaceToolCatalog
                     )
-                    effectiveToolRef = workspaceRoute?.tool.toolReference ?? toolRef
-                }
-                if let turnID {
-                    try await runtimeRepository.recordToolIntent(RuntimeToolIntent(
-                        turnID: turnID,
+                    workspaceRoute = dispatch.route
+                    effectiveToolRef = dispatch.route.tool.toolReference
+                    if let turnID {
+                        try await runtimeRepository.recordToolIntent(RuntimeToolIntent(
+                            turnID: turnID,
+                            threadID: threadId,
+                            toolCallID: call.callId,
+                            name: call.name,
+                            arguments: call.argumentsJSON,
+                            modelRoundIndex: modelRoundIndex,
+                            workspaceID: dispatch.route.workspaceID,
+                            workspaceRouting: dispatch.route.routing
+                        ))
+                        intentRecorded = true
+                    }
+                    outcome = try await workspaceDispatcher.execute(
+                        dispatch,
                         threadID: threadId,
-                        toolCallID: call.callId,
-                        name: call.name,
-                        arguments: call.argumentsJSON,
-                        modelRoundIndex: modelRoundIndex,
-                        workspaceID: workspaceRoute?.workspaceID,
-                        workspaceRouting: workspaceRoute?.routing
-                    ))
-                    intentRecorded = true
-                }
-                guard let arguments = call.arguments else {
-                    throw ToolError.malformedArguments("invalid JSON object")
-                }
-                let outcome: ToolExecutionOutcome
-                if let workspaceRoute {
-                    outcome = try await executeWorkspaceTool(
-                        route: workspaceRoute,
-                        arguments: arguments,
-                        threadID: threadId
+                        using: { [self] tool, arguments in
+                            try await executeLocally(
+                                tool: tool.toolReference,
+                                arguments: arguments,
+                                threadId: threadId,
+                                dynamicTools: [tool]
+                            )
+                        }
                     )
                 } else {
+                    if let turnID {
+                        try await runtimeRepository.recordToolIntent(RuntimeToolIntent(
+                            turnID: turnID,
+                            threadID: threadId,
+                            toolCallID: call.callId,
+                            name: call.name,
+                            arguments: call.argumentsJSON,
+                            modelRoundIndex: modelRoundIndex
+                        ))
+                        intentRecorded = true
+                    }
+                    guard let arguments = call.arguments else {
+                        throw ToolError.malformedArguments("invalid JSON object")
+                    }
                     outcome = try await execute(
                         tool: toolRef, arguments: arguments,
                         threadID: threadId, availableTools: availableTools
@@ -369,7 +375,7 @@ actor ToolRouter {
         tool: ToolReference,
         arguments: [String: AnyCodable],
         threadID: UUID,
-        availableTools: [AnyTool]? = nil
+        availableTools: [AnyTool]
     ) async throws -> ToolExecutionOutcome {
         let toolName = loggingConfiguration.redactionPolicy.sanitizeStructured(tool.displayName)
         let sid = threadID.uuidString.prefix(8).lowercased()
@@ -379,171 +385,27 @@ actor ToolRouter {
             LogKeys.toolName: .string(tool.displayName),
         ])
 
-        // Strip workspaceID — it's a routing-only concern, not a tool parameter
-        var forwardedArguments = arguments
-        forwardedArguments.removeValue(forKey: "workspaceID")
-        let workspaceArguments = forwardedArguments
-
-        // Dynamic/per-turn tools (passed directly via `availableTools`, e.g. workspace-independent
-        // demo tools like `calculator`/`current_datetime`) execute locally unconditionally — they
-        // were explicitly handed to this turn by the caller and need no workspace-tool mapping or
-        // even an attached workspace to resolve. Without this branch, a thread with no attached
-        // folder workspace (the common case for a fresh thread) would fail every tool call
-        // with `toolNotFound`, even though the correct `AnyTool` was right there in `availableTools`.
-        if let dynamicTools = availableTools,
-           let dynamicTool = dynamicTools.first(where: { $0.toolReference == tool || $0.callName == tool.toolID })
-        {
-            let executionArguments = forwardedArguments
-            let execute: @Sendable () async throws -> String = { [self] in
-                try await executeLocally(
-                    tool: tool,
-                    arguments: executionArguments,
-                    threadId: threadID,
-                    dynamicTools: dynamicTools
-                )
-            }
-            let output: String
-            if case let .workspace(workspaceID, _) = dynamicTool.origin {
-                // Agent-primary filesystem tools are exposed directly to the model. Keep their
-                // read-modify-write operations under the same Workspace lane as call_tool routes
-                // so concurrent Agent Threads cannot lose updates.
-                output = try await threadManager.withWorkspaceExecution(workspaceID, operation: execute)
-            } else {
-                output = try await execute()
-            }
-            return .completed(output)
-        }
-
-        // resolveWorkspace returns nil when the tool is not registered in any of the
-        // thread's workspaces, or when the thread has no workspaces at all.
-        guard let workspaceId = try await resolveWorkspace(
-            for: tool,
-            in: threadID,
-            arguments: arguments
-        ) else {
+        // A direct provider call can execute only a runtime/request-scoped tool that preparation
+        // exposed by name. Workspace tools remain behind the captured call_tool dispatcher.
+        guard let directTool = availableTools.first(where: {
+            $0.toolReference == tool || $0.callName == tool.toolID
+        })
+        else {
             throw ToolError.toolNotFound(tool.displayName)
         }
-
-        guard let workspace = try await threadManager.getWorkspace(workspaceId) else {
-            throw ToolError.workspaceNotFound(workspaceId)
-        }
-
-        switch try outcomeForWorkspace(
-            location: workspace.location,
-            threadIsPrivate: await threadManager.thread(id: threadID)?.isPrivate ?? false
-        ) {
-        case .executeLocally:
-            let output = try await threadManager.withWorkspaceExecution(workspaceId) { [self] in
-                // The binding may have been transferred or released while the call waited for
-                // its FIFO lane. Revalidate immediately before the side effect.
-                try await threadManager.requireWorkspaceBinding(workspaceId, for: threadID)
-                return try await executeLocally(
-                    tool: tool,
-                    arguments: workspaceArguments,
+        let output = try await workspaceDispatcher.executeDirect(
+            tool: directTool,
+            arguments: arguments,
+            using: { [self] directTool, directArguments in
+                try await executeLocally(
+                    tool: directTool.toolReference,
+                    arguments: directArguments,
                     threadId: threadID,
                     dynamicTools: availableTools
                 )
             }
-            return .completed(output)
-
-        case .deferExternally:
-            return .deferredExternally
-        }
-    }
-
-    /// Resolves a model-facing `call_tool` invocation exclusively against the admission snapshot.
-    private func resolveWorkspaceTool(
-        call: ParsedToolCall,
-        catalog: WorkspaceToolCatalog
-    ) throws -> WorkspaceToolRoute {
-        guard let arguments = call.arguments else {
-            throw ToolError.malformedArguments("invalid JSON object")
-        }
-        guard let requestedTool = arguments["tool"]?.asString,
-              !requestedTool.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        else {
-            throw ToolError.missingArgument("tool")
-        }
-
-        let requestedWorkspace: UUID?
-        let explicit: Bool
-        if let at = arguments["at"] {
-            explicit = true
-            guard let value = at.asString,
-                  let id = UUID(uuidString: value.trimmingCharacters(in: .whitespacesAndNewlines))
-            else {
-                throw ToolError.invalidWorkspaceID(at.description)
-            }
-            requestedWorkspace = id
-        } else {
-            explicit = false
-            requestedWorkspace = nil
-        }
-
-        var matches: [(entry: WorkspaceToolCatalog.Entry, tool: AnyTool)] = []
-        for entry in catalog.entries {
-            guard requestedWorkspace == nil || requestedWorkspace == entry.workspace.id else { continue }
-            for tool in entry.tools where tool.callName == requestedTool || tool.name == requestedTool {
-                matches.append((entry, tool))
-            }
-        }
-
-        if explicit, let requestedWorkspace,
-           !catalog.entries.contains(where: { $0.workspace.id == requestedWorkspace })
-        {
-            throw ToolError.workspaceNotFound(requestedWorkspace)
-        }
-        guard !matches.isEmpty else { throw ToolError.toolNotFound(requestedTool) }
-        guard matches.count == 1 else {
-            throw ToolError.ambiguousWorkspaceTool(
-                tool: requestedTool,
-                candidates: matches.compactMap { match in
-                    match.entry.candidates.first(where: { $0.toolID == match.tool.callName })
-                }
-            )
-        }
-        return WorkspaceToolRoute(
-            workspaceID: matches[0].entry.workspace.id,
-            tool: matches[0].tool,
-            explicit: explicit,
-            isPrimary: matches[0].entry.isPrimary,
-            location: matches[0].entry.workspace.location
         )
-    }
-
-    /// Executes a selected workspace tool while revalidating ordinary Thread bindings immediately
-    /// before the side effect. Agent primary workspaces are authorized by the captured Agent
-    /// identity and are not ordinary Thread bindings.
-    private func executeWorkspaceTool(
-        route: WorkspaceToolRoute,
-        arguments: [String: AnyCodable],
-        threadID: UUID
-    ) async throws -> ToolExecutionOutcome {
-        guard let nested = arguments["arguments"]?.asDictionary ??
-            (arguments["arguments"] == nil ? [:] : nil)
-        else {
-            throw ToolError.invalidArgument("arguments", expected: "object", got: arguments["arguments"]?.description ?? "null")
-        }
-        switch try outcomeForWorkspace(
-            location: route.location,
-            threadIsPrivate: await threadManager.thread(id: threadID)?.isPrivate ?? false
-        ) {
-        case .executeLocally:
-            let output = try await threadManager.withWorkspaceExecution(route.workspaceID) { [self] in
-                if !route.isPrimary {
-                    try await threadManager.requireWorkspaceBinding(route.workspaceID, for: threadID)
-                }
-                return try await executeLocally(
-                    tool: route.tool.toolReference,
-                    arguments: nested,
-                    threadId: threadID,
-                    dynamicTools: [route.tool]
-                )
-            }
-            return .completed(output)
-        case .deferExternally:
-            return .deferredExternally
-        }
+        return .completed(output)
     }
 
     // MARK: - Tool Reference Resolution
@@ -556,73 +418,6 @@ actor ToolRouter {
     ) -> ToolReference {
         availableTools.first(where: { $0.callName == call.name })?.toolReference
             ?? ToolReference.known(id: call.name)
-    }
-
-    // MARK: - Workspace Resolution
-
-    /// Decides whether a resolved workspace location implies runtime-local execution or external
-    /// deferral. Private threads reject externally hosted tools.
-    private func outcomeForWorkspace(
-        location: WorkspaceReference.WorkspaceLocation,
-        threadIsPrivate: Bool
-    ) throws -> WorkspaceExecutionDisposition {
-        switch location {
-        case .runtime, .runtimeThread:
-            return .executeLocally
-        case .attached:
-            guard !threadIsPrivate else {
-                throw ToolError.attachedToolsDisallowedOnPrivateThread
-            }
-            return .deferExternally
-        }
-    }
-
-    /// Resolves the workspace to execute `tool` against for a given thread.
-    ///
-    /// Resolution order:
-    /// 1. If the caller supplied an explicit `workspaceID` argument, it must be a string that
-    ///    parses as a UUID and match one of the thread's candidate workspace ids. A malformed
-    ///    value throws `ToolError.invalidWorkspaceID`; a valid UUID that is not attached throws
-    ///    `ToolError.workspaceNotFound` (PKRR-015 fail-closed — presence signals explicit
-    ///    intent, so a malformed value is an error, not a hint to auto-route).
-    /// 2. Otherwise, defer to `ThreadManager.findWorkspaceForTool(_:in:)` over the candidate
-    ///    list (primary first, then attached in declared order).
-    /// 3. Returns `nil` if the thread has no workspaces, or if no candidate workspace
-    ///    registers the tool. `execute` interprets `nil` as `toolNotFound`.
-    private func resolveWorkspace(
-        for tool: ToolReference,
-        in threadId: UUID,
-        arguments: [String: AnyCodable]
-    ) async throws -> UUID? {
-        let wsList: WorkspaceQueryResult
-        do {
-            wsList = try await threadManager.getWorkspaces(for: threadId)
-        } catch ThreadError.threadNotFound {
-            return nil
-        }
-
-        let candidates = ([wsList.primary].compactMap { $0?.id }) + wsList.attached.map { $0.id }
-
-        // Check for explicit intent in arguments. Presence of `workspaceID` signals explicit
-        // routing intent: a malformed value is an error, not a hint to fall back to
-        // auto-routing (PKRR-015).
-        if let explicitAnyCodable = arguments["workspaceID"] {
-            let explicitValue = explicitAnyCodable.value
-            guard let explicitIdString = explicitValue as? String,
-                  let explicitId = UUID(uuidString: explicitIdString.trimmingCharacters(in: .whitespacesAndNewlines))
-            else {
-                throw ToolError.invalidWorkspaceID(explicitAnyCodable.description)
-            }
-
-            guard candidates.contains(explicitId) else {
-                throw ToolError.workspaceNotFound(explicitId)
-            }
-
-            logger.debug("Routing to explicitly requested workspace: \(explicitId)")
-            return explicitId
-        }
-
-        return try await threadManager.findWorkspaceForTool(tool, in: candidates)
     }
 
     // MARK: - Local Execution
@@ -867,12 +662,4 @@ private func safeErrorMessage(_ error: Error) -> String {
         return "The tool execution failed."
     }
     return "Tool execution failed (\(identity.domain):\(identity.code))."
-}
-
-// MARK: - Workspace Execution Disposition
-
-/// Whether a resolved workspace should execute its tool locally or defer to an external host.
-private enum WorkspaceExecutionDisposition {
-    case executeLocally
-    case deferExternally
 }
