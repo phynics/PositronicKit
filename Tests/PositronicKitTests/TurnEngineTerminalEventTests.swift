@@ -82,10 +82,9 @@ struct TurnEngineTerminalEventTests {
         return try await test(engine, mockLLM, mockPersistence)
     }
 
-    /// Dependencies wired with an `.attached` workspace so a workspace-registered tool call
-    /// defers for external execution instead of executing locally. The tool is registered only
-    /// to the workspace (not passed as a per-turn dynamic tool), so the router reaches the
-    /// workspace-resolution path and returns `.deferredExternally`.
+    /// Dependencies wired with an `.attached` workspace so `call_tool` defers for external
+    /// execution instead of executing locally. The admitted Workspace catalog is the only source
+    /// for selecting the workspace-owned tool.
     private func withAttachedWorkspaceDependencies<T>(
         _ test: @Sendable (TurnEngine, MockLLMService, MockPersistenceService) async throws -> T
     ) async throws -> T {
@@ -207,9 +206,11 @@ struct TurnEngineTerminalEventTests {
     @Test("Deferred external tool emits exactly one deferredForExternalTool terminal event (PKRR-011)")
     func deferredExternalToolEmitsDistinctTerminal() async throws {
         try await withAttachedWorkspaceDependencies { engine, mockLLM, _ in
-            // Tool call resolves to the attached workspace and defers. Pass no dynamic tools so
-            // the router reaches workspace resolution instead of unconditional local execution.
-            mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "call_def", name: "mock_tool")]]
+            mockLLM.mockClient.nextToolCalls = [[MockToolCall(
+                id: "call_def",
+                name: "call_tool",
+                arguments: #"{"tool":"mock_tool","arguments":{}}"#
+            )]]
             mockLLM.mockClient.nextResponses = ["Pausing for external tool"]
 
             let stream = try await engine.execute(TurnExecutionRequest(

@@ -37,7 +37,12 @@ import Testing
             for _ in 0 ..< concurrency {
                 group.addTask {
                     do {
-                        _ = try await router.execute(tool: tool, arguments: [:], threadID: threadID)
+                        _ = try await router.execute(
+                            tool: tool,
+                            arguments: [:],
+                            threadID: threadID,
+                            availableTools: []
+                        )
                         return nil
                     } catch {
                         return error
@@ -65,7 +70,12 @@ import Testing
         let tool = ToolReference.known(id: "some-tool")
 
         do {
-            _ = try await router.execute(tool: tool, arguments: [:], threadID: unknownThreadId)
+            _ = try await router.execute(
+                tool: tool,
+                arguments: [:],
+                threadID: unknownThreadId,
+                availableTools: []
+            )
             Issue.record("Expected error to be thrown")
         } catch {
             // Any ToolError is acceptable (toolNotFound, workspaceNotFound)

@@ -119,7 +119,12 @@ final class ToolApprovalPolicyFilesystemToolsTests {
         let (router, threadID) = try await setupRouter(with: tool, approvalPolicy: gate)
 
         do {
-            _ = try await router.execute(tool: .known(tool.callName), arguments: [:], threadID: threadID)
+            _ = try await router.execute(
+                tool: .known(tool.callName),
+                arguments: [:],
+                threadID: threadID,
+                availableTools: [tool.toAnyTool()]
+            )
             Issue.record("Expected permissionDenied to be thrown for \(tool.callName)")
         } catch ToolError.permissionDenied(tool.name) {
             // expected
@@ -146,7 +151,8 @@ final class ToolApprovalPolicyFilesystemToolsTests {
         let result = try await router.execute(
             tool: .known(tool.callName),
             arguments: ["path": AnyCodable("hello.txt")],
-            threadID: threadID
+            threadID: threadID,
+            availableTools: [tool.toAnyTool()]
         )
 
         guard case let .completed(output) = result else {
@@ -169,7 +175,8 @@ final class ToolApprovalPolicyFilesystemToolsTests {
             _ = try await router.execute(
                 tool: .known(tool.callName),
                 arguments: ["path": AnyCodable(NSTemporaryDirectory())],
-                threadID: threadID
+                threadID: threadID,
+                availableTools: [tool.toAnyTool()]
             )
         } catch ToolError.permissionDenied {
             Issue.record("ChangeDirectoryTool must never be blocked by the approval gate")
@@ -187,7 +194,12 @@ final class ToolApprovalPolicyFilesystemToolsTests {
         let (router, threadID) = try await setupRouter(with: tool, approvalPolicy: nil)
 
         do {
-            _ = try await router.execute(tool: .known(tool.callName), arguments: [:], threadID: threadID)
+            _ = try await router.execute(
+                tool: .known(tool.callName),
+                arguments: [:],
+                threadID: threadID,
+                availableTools: [tool.toAnyTool()]
+            )
             Issue.record("Expected permissionDenied to be thrown under the default gate")
         } catch ToolError.permissionDenied(tool.name) {
             // expected — confirms ToolRouter's default approvalPolicy is DenyAllToolApprovalPolicy

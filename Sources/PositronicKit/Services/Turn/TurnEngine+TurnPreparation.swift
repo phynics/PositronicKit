@@ -191,8 +191,8 @@ extension TurnEngine {
 
         // `call_tool` is owned by the workspace catalog and must never be caller-defined. This is
         // pure request validation, so reject it before any admission side effect.
-        guard !tools.contains(where: { $0.callName == "call_tool" }) else {
-            throw ToolError.reservedToolName("call_tool")
+        guard !tools.contains(where: { $0.callName == WorkspaceToolDispatcher.callName }) else {
+            throw ToolError.reservedToolName(WorkspaceToolDispatcher.callName)
         }
 
         // Track validated tool outputs so the catch block can release reservations.

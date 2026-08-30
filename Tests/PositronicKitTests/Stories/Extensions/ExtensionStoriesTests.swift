@@ -31,7 +31,11 @@ import Testing
         try await mockPersistence.addToolToWorkspace(workspaceId: workspaceId, tool: .custom(workspaceTool))
         try await threads.attachWorkspace(workspaceId, to: threadID)
 
-        mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "call_ws", name: "workspace_echo")]]
+        mockLLM.mockClient.nextToolCalls = [[MockToolCall(
+            id: "call_ws",
+            name: "call_tool",
+            arguments: #"{"tool":"workspace_echo","at":"\#(workspaceId.uuidString)","arguments":{}}"#
+        )]]
         mockLLM.mockClient.nextResponses = ["", "Workspace tool completed"]
 
         let events = try await chat.threads.open(threadID).run(TurnRequest(
