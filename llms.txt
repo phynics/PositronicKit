@@ -14,7 +14,7 @@
 
 ## Next / v5
 
-- [Overview and quick start](README.md): Release selection, package setup, capability values, examples, and verification.
+- [Overview and quick start](README.md): Release selection, current runtime contracts, provider setup, examples, products, and verification.
 - [Setup](docs/Setup.md): Provider-neutral configuration, persistence, customization, logging, and errors.
 - [Usage](docs/Usage.md): Managed and direct Turns, SOUL/Notes Agent memory, lifecycle, and Workspace routing.
 - [Architecture](docs/Architecture.md): v5 domain boundaries, capability values, durability, and execution authority.

@@ -14,16 +14,30 @@ See [CHANGELOG.md](CHANGELOG.md) for release notes and tagged compatibility hist
 The [documentation landing](docs/) defaults to stable and keeps stable links separate from the
 Next channel.
 
-## Key Strengths
+## Current state
 
-*   **SwiftUI-Style Declarative Prompts (`PKPrompt`):** Author complex prompts as structured trees using a familiar body-composition DSL. Enjoy automatic modifier inheritance for properties like `.priority(...)`, `.cachePolicy(...)`, and `.compression(...)`.
-*   **Smart Context Caching (Prompt Journaling):** Dynamic prompt tracking with `PromptJournal` automatically computes stable prefixes and volatile/semi-stable overlays. This minimizes LLM latency and API costs by maximizing prompt cache hit rates.
-*   **Zero-Latency Auxiliary Tasks (Sidecar Directives):** Fetch parallel metadata (e.g., thread titles, sentiment classification, summaries) piggy-backed on the *same single LLM request* as the user-visible response. The user sees a standard streamed response, while directives stream or buffer in the background with zero extra round-trips.
-*   **Swift 6 Structured Concurrency & Actor Isolation:** Fully thread-safe runtime architecture leveraging Swift 6 actors and structured concurrency. Composable execution stages guarantee resource cleanup (e.g., persisting telemetry, closing resources) even on failures.
-*   **Completely Pluggable & Decoupled:** Downstream independence is a core invariant. Easily swap persistence engines, custom tool routers, and workspace resolvers. Supports Anthropic, OpenAI, Ollama, and OpenRouter out of the box with zero runtime dependencies.
-*   **First-Class Linux Support:** Built to compile and test seamlessly on both Apple platforms and Linux via the pinned Swift/Podman development path.
+The package requires Swift 6.2 and targets macOS 15 and iOS 18. The repository also maintains a
+pinned Linux development environment with Swift 6.3.3.
 
----
+The current runtime has four consumer-facing capability values: `model`, `threads`, `agents`, and
+`workspaces`. A managed Turn captures its Agent and Workspace authority at admission. A direct Turn
+runs on a detached Thread with caller-supplied context. Both paths persist admission, history,
+tool audit records, and the terminal outcome through one required `ThreadRuntimeRepository`.
+
+Workspace-specific tools are exposed through the reserved `call_tool` dispatcher. Generic file
+tools for an Agent's primary Workspace remain direct model tools. The runtime resolves dispatched
+calls against the immutable Workspace catalog captured for that Turn, rejects ambiguous routing,
+revalidates ordinary bindings before side effects, and serializes local execution per Workspace.
+
+The package also includes:
+
+- `PKPrompt` for prompt composition, compression, rendering, and prompt journaling.
+- Structured output and sidecar directives on provider-neutral Turn contracts.
+- Separate adapters for OpenAI, OpenRouter, Ollama, Anthropic, and Apple's Foundation Models.
+- `PKObservable` for UI-facing Thread state and `PKTestSupport` for downstream tests.
+
+Embedding generation, vector retrieval, provider discovery, and a public plugin bus are outside the
+current package.
 
 ## Stable package dependency
 
@@ -38,48 +52,70 @@ examples below describe the current Next public story and may advance beyond `5.
 
 ## Next / v5 quick start
 
-Import the modules you need:
+Build the language model in its provider module, then pass it to the provider-neutral runtime. This
+OpenAI setup uses the same client for all model tiers:
 
 ```swift
-import PositronicKit    // runtime orchestration
-import PKPrompt         // prompt composition
-import PKContracts       // shared contracts
-import PKOpenAIProvider  // optional concrete provider
+import Foundation
+import PKContracts
+import PKOpenAIProvider
+import PositronicKit
+
+var provider = ProviderConfiguration.makeDefault(for: .openAI)
+provider.apiKey = ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? ""
+
+let configuration = LLMConfiguration(
+    activeProvider: .openAI,
+    providers: [.openAI: provider]
+)
+let client = PKOpenAIProvider.makeClient(configuration: configuration)
+let languageModel = LLMService(
+    configuration: configuration,
+    clients: .init(primary: client)
+)
+let kit = PositronicKit(languageModel: languageModel)
 ```
 
-Convenience runtime initializers like `PositronicKit(openAIKey:)` or `PositronicKit(ollamaModel:)` live in the matching provider target, not in the core `PositronicKit` module.
+Provider modules expose compile-time factories. They do not register themselves at runtime. See the
+[setup guide](docs/Setup.md) for other providers and grouped production configuration.
 
 Choose the smallest operation tier that fits the feature:
 
 ```swift
-let kit = PositronicKit(languageModel: myLLM)
-let answer = try await kit.model.generate("Summarize this note.") // tier 1: raw model
-let thread = try await kit.threads.create()                        // tier 2: durable Thread
-let turn = try await thread.startDirectTurn(                      // tier 3: explicit direct Turn
+let answer = try await kit.model.generate("Summarize this note.")
+print(answer.content) // thread-free inference
+
+let directThread = try await kit.threads.create(title: "Scratchpad")
+let directTurn = try await directThread.startDirectTurn(
     message: "Continue the summary.",
     context: DirectTurnContext(systemInstructions: "", contributor: .host)
 )
-let stream = turn.events()
-let agent = try await kit.agents.create(                            // tier 4: managed identity
+for await event in directTurn.events() {
+    // Render deltas or inspect terminal events.
+}
+
+let agent = try await kit.agents.create(
     name: "Researcher",
     description: "Summarizes source material."
 )
-try await kit.agents.attach(agent.id, to: thread.id)
-let managedTurn = try await thread.startTurn(message: "Use the attached identity.")
-let managedStream = managedTurn.events()
-let workspaces = try await kit.workspaces.list()                    // tier 5: workspace catalog
+let managedThread = try await kit.threads.create(title: "Research")
+try await kit.agents.attach(agent.id, to: managedThread.id)
+let managedTurn = try await managedThread.startTurn(
+    message: "Use the attached identity."
+)
+let outcome = await managedTurn.outcome()
 ```
 
 The capability values are the supported consumer entry points. `kit.model` is thread-free
 inference; `kit.threads` returns a stateful `ThreadHandle`; `kit.agents` manages identities and
 their Thread attachments; and `kit.workspaces` owns the workspace catalog. Concrete managers,
-task registries, and the turn pipeline are facade implementation details.
+registries, and the Turn pipeline are implementation details.
 
 Managed Turns capture typed Agent continuity at admission through `AgentContextSource`. The
-bundled filesystem source reads root `SOUL.md` and catalogs the Agent primary Workspace's `Notes/` files; inject a source in
-`RuntimeConfiguration.customization` for database-backed, remote, or deliberately memory-free
-Agents. The same customization value can supply bounded `TurnContextSource` notes and
-best-effort `AgentActivitySink`/post-terminal `TurnOutcomeSink` integrations. Use
+bundled filesystem source reads root `SOUL.md` and catalogs the Agent primary Workspace's `Notes/`
+files. Inject a source in `RuntimeConfiguration.customization` for database-backed, remote, or
+memory-free Agents. The same customization value can supply bounded `TurnContextSource` notes,
+a best-effort `AgentActivitySink`, and a post-terminal `TurnOutcomeSink`. Use
 `kit.agents.retire` to drain an identity and `kit.agents.purge` only after retirement.
 
 ### Facade readiness, validation, and error delivery
@@ -114,8 +150,9 @@ let json = try await kit.model.generateStructured(
 
 Errors arrive at the boundary where the work occurs:
 
-- Request and preparation failures—invalid `maxModelRounds`, Thread hydration, required-Agent
-  preflight, provider configuration, sidecar validation, and input/history preparation—throw from
+- Request and preparation failures include an invalid `maxModelRounds`, Thread hydration,
+  required-Agent preflight, provider configuration, sidecar validation, and input or history
+  preparation. They throw from
   `try await kit.threads.open(threadID).run(request)` before a stream is returned.
 - Provider and pipeline failures after a `TurnHandle` is admitted arrive as terminal events on
   its nonthrowing `events()` stream. The durable `outcome()` remains authoritative for every
@@ -135,18 +172,20 @@ handles it vends to the subsystems that use them.
 
 ## Documentation
 
-Detailed documentation has been split into focused guides:
+Use these guides for details:
 
-- **[Setup Guide](docs/Setup.md)**: Configuration, logging, required services, and choosing your entry point.
-- **[Usage Guide](docs/Usage.md)**: Managed and direct Turns, Agents, and Workspaces.
-- **[Architecture](docs/Architecture.md)**: v4 domain boundaries, capability values, durability, and execution authority.
-- **[Development](docs/Development.md)**: Contributor platform setup and Linux/Podman gates.
-- **[Context map](CONTEXT-MAP.md)**: Canonical v4 vocabulary and ownership boundaries.
-- **[Architecture decisions](docs/adr/)**: Accepted v4 decisions and their trade-offs.
-- **[Prompt Composition](docs/PKPromptComposition.md)**: Authoring models, caching, and prompt journaling.
-- **[Sidecar Directives](docs/SidecarDirectives.md)**: Requesting auxiliary generations piggy-backed on the same LLM request.
+- [Setup](docs/Setup.md) covers providers, persistence, customization, logging, and errors.
+- [Usage](docs/Usage.md) covers managed and direct Turns, Agents, and Workspaces.
+- [Architecture](docs/Architecture.md) covers v5 boundaries, durability, and execution authority.
+- [Development](docs/Development.md) covers contributor setup and the Linux Podman gates.
+- [Context map](CONTEXT-MAP.md) defines the canonical runtime vocabulary and ownership boundaries.
+- [Architecture decisions](docs/adr/) record accepted decisions and their trade-offs.
+- [Prompt composition](docs/PKPromptComposition.md) covers assembly, rendering, compression, and
+  prompt journaling.
+- [Sidecar directives](docs/SidecarDirectives.md) covers auxiliary structured results carried by
+  the same Turn.
 
-## Code Examples
+## Code examples
 
 All snippets below are compiled as part of `PositronicKitExamples`.
 
@@ -248,13 +287,13 @@ let initialPlan = try journal.observe(first)
 print(initialPlan.baseSections.map(\.section.id))
 // ["system", "tool-build", "tool-test"]
 print(initialPlan.overlaySections.isEmpty)
-// true — nothing has changed yet
+// true, because nothing has changed yet
 
 let updatedPlan = try journal.observe(second)
 print(updatedPlan.baseSections.map(\.section.id))
-// ["system", "tool-build", "tool-test"] — unchanged stable prefix stays materialized
+// ["system", "tool-build", "tool-test"], so the stable prefix remains materialized
 print(updatedPlan.overlaySections.map(\.section.id))
-// ["tool-test", "tool-lint"] — only the modified / new semi-stable sections
+// ["tool-test", "tool-lint"], the changed and new semi-stable sections
 
 for overlay in updatedPlan.overlaySections {
     if case let .text(text) = overlay.section.content {
@@ -266,14 +305,16 @@ for overlay in updatedPlan.overlaySections {
 
 let compactedPlan = journal.compact()
 print(compactedPlan?.baseSections.map(\.section.id) ?? [])
-// ["system", "tool-build", "tool-test", "tool-lint"] — overlays folded back into base
+// ["system", "tool-build", "tool-test", "tool-lint"], with overlays folded into the base
 print(compactedPlan?.overlaySections.isEmpty ?? false)
 // true
 ```
 
-### How Overlays are Represented in the LLM Context
+### How overlays are represented in model context
 
-Under the hood, `PromptJournalPlan` renders these state transitions into provider-neutral thread messages using a set of structured XML tags. This allows the LLM to cleanly track how sections evolve without having to resend unchanged stable blocks:
+`PromptJournalPlan` renders these state transitions as provider-neutral Thread messages with
+structured XML tags. The model receives section changes without another copy of each unchanged
+stable block:
 
 *   **Snapshot Mode (`.snapshot`):** Emitted at the beginning of a session, establishing the initial state of the prompt's baseline sections:
     ```xml
@@ -300,16 +341,16 @@ Once `journal.compact()` is called, these delta operations are merged directly b
 
 ## Testing downstream with PKTestSupport
 
-`PKTestSupport` is a public library product for downstream test targets. Import it normally—never
-with `@testable`—to use its mocks, fixtures, stream factories, and `TestRuntime` composition root.
+`PKTestSupport` is a public library product for downstream test targets. Import it normally. Do not
+use `@testable` to access its mocks, fixtures, stream factories, or `TestRuntime` composition root.
 
 > Release availability: this section documents the current Next channel. It is not part of the stable `5.0.0`
 > channel. Use a local-path override only for coordinated unreleased work, as described in
 > [Releasing](docs/Releasing.md#downstream-cadence).
 
 This example compiles in an ordinary downstream test target with `PKContracts`, `PositronicKit`, and
-`PKTestSupport` product dependencies. It uses the single-response fallback deliberately; scripted
-queues are covered separately below.
+`PKTestSupport` product dependencies. This example uses the single-response fallback. The harness
+also supports the scripted queues described below.
 
 ```swift
 import PKContracts
@@ -338,7 +379,7 @@ func capturesDownstreamRequest() async throws {
 }
 ```
 
-The harness contracts are intentionally explicit:
+The harness follows these contracts:
 
 - `MockLLMClient` chooses one stream plan atomically in this precedence order: configured
   never-finishing call index, configured error, one raw-chunk script, one text-chunk script, one
@@ -362,27 +403,34 @@ The harness contracts are intentionally explicit:
   read/modify/write operations. `BatchFailingMessageStore` increments its count and decides
   threshold admission together, and composite request-origin callbacks are snapshotted under lock
   then awaited after unlocking.
-- `TestWorkspace` creates a unique directory and removes it best-effort on deinitialization. Retain
-  the `TestWorkspace` object—not only its `root` URL—for the entire time the directory is needed.
+- `TestWorkspace` creates a unique directory and tries to remove it on deinitialization. Retain
+  the `TestWorkspace` object, not only its `root` URL, for the entire time the directory is needed.
 - `TestRuntime.threads`, `agents`, and `workspaces` exercise the same facade capability values
   used by consumers; concrete coordinators remain internal to the runtime.
 
-## Package Layout
+## Package layout
 
 Core modules:
 
-- **PositronicKit** — the runtime layer: turn engine, orchestration stages, tool routing, thread and workspace management, and provider-neutral LLM orchestration.
-- **PKPrompt** — the prompt layer: a SwiftUI-style `@PromptBuilder` DSL, structured compression, cache-aware assembly, and prompt journaling for stable-prefix workflows.
-- **PKContracts** — the contract layer: API models, tool protocols, provider contracts, structured-output types, and diagnostic errors.
+- `PositronicKit` contains Turn execution, Thread and Agent capabilities, Workspace management, tool
+  routing, and provider-neutral model orchestration.
+- `PKPrompt` contains the `@PromptBuilder` DSL, structured compression, cache-aware assembly, and
+  prompt journaling.
+- `PKContracts` contains provider-neutral messages, tools, structured output, and diagnostics.
+
 Provider targets ship separately so you opt in only to the integrations you want:
 
-- **PKOpenAIProvider**, **PKOpenRouterProvider**, **PKOllamaProvider**, **PKAnthropicProvider**, **PKFoundationModelsProvider** — concrete adapters plus convenience registration APIs. `PKAnthropicProvider` speaks the Anthropic Messages API natively (event-based SSE, `input_schema` tools, top-level `system` param); structured output uses the forced synthetic-tool path since the API has no `response_format`.
+- `PKOpenAIProvider`, `PKOpenRouterProvider`, `PKOllamaProvider`, `PKAnthropicProvider`, and
+  `PKFoundationModelsProvider` contain concrete clients and compile-time factories. The Anthropic
+  client uses the Messages API and maps structured output through a forced synthetic tool because
+  that API has no `response_format` field.
 
 Supporting targets:
 
-- **PKObservable** — opt-in `@Observable` wrappers for UI-facing consumers; `ThreadController` mirrors `ThreadHandle` streaming state for SwiftUI clients.
-- **PositronicKitExamples** — runnable examples that double as living documentation.
-- **PKTestSupport** — shared mocks, fixtures, and test helpers for downstream test targets.
+- `PKObservable` contains opt-in `@Observable` wrappers. `ThreadController` mirrors
+  `ThreadHandle` stream state for SwiftUI clients.
+- `PositronicKitExamples` contains runnable, compile-checked examples.
+- `PKTestSupport` contains public mocks, fixtures, stream factories, and `TestRuntime`.
 
 All declared products are cataloged in [docs/catalog.json](docs/catalog.json). The generated
 [documentation navigation](docs/NAVIGATION.md) records the owning guide and compiled consumer gate
@@ -406,9 +454,7 @@ the C/C++ toolchain, and native dependencies. If an agent sandbox blocks Podman,
 rerun the same command with escalated container-runtime permissions; do not fall back
 to host Swift.
 
-Embeddings and vector retrieval are intentionally outside the current package surface and remain a future direction.
-
-## Linux Development
+## Linux development
 
 PositronicKit uses one reproducible Linux development path: the pinned Podman image.
 
@@ -430,6 +476,8 @@ edits are visible immediately and reusable artifacts stay under the gitignored `
 directory. See [`docs/Development.md`](docs/Development.md) for focused-test and concurrency
 details.
 
-## Companion App
+## Companion app
 
-[`Yakamoz`](https://github.com/phynics/Yakamoz) is the native macOS showcase app for PositronicKit. It drives the runtime from a SwiftUI chat client and exposes the prompt pipeline, sent provider payloads, prompt journal, response metadata, tool traces, and local workspace state through an inspector drawer.
+[`Yakamoz`](https://github.com/phynics/Yakamoz) is the native macOS reference app for
+PositronicKit. Its SwiftUI chat client exposes the prompt pipeline, provider payloads, prompt
+journal, response metadata, tool traces, and local Workspace state in an inspector drawer.

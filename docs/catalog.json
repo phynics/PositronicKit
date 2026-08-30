@@ -51,7 +51,7 @@
     {
       "title": "Overview and quick start",
       "path": "README.md",
-      "summary": "Release selection, package setup, capability values, examples, and verification."
+      "summary": "Release selection, current runtime contracts, provider setup, examples, products, and verification."
     },
     {
       "title": "Setup",

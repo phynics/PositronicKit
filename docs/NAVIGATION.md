@@ -5,7 +5,7 @@ Stable [5.0.0](stable/5.0.0/) is the default immutable channel. [Next / v5](next
 
 | Guide | Purpose |
 | --- | --- |
-| [Overview and quick start](../README.md) | Release selection, package setup, capability values, examples, and verification. |
+| [Overview and quick start](../README.md) | Release selection, current runtime contracts, provider setup, examples, products, and verification. |
 | [Setup](Setup.md) | Provider-neutral configuration, persistence, customization, logging, and errors. |
 | [Usage](Usage.md) | Managed and direct Turns, SOUL/Notes Agent memory, lifecycle, and Workspace routing. |
 | [Architecture](Architecture.md) | v5 domain boundaries, capability values, durability, and execution authority. |
