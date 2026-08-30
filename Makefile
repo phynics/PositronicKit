@@ -1,5 +1,5 @@
 .PHONY: help build clean test test-parallel harden doctor validate-docs verify-documentation verify-doc-snippets \
-	verify verify-concurrency-scan verify-macos-default \
+	verify verify-concurrency-scan verify-runtime-architecture verify-macos-default \
 	verify-linux verify-linux-agent verify-linux-base verify-linux-current verify-linux-filter \
 	verify-linux-scratch verify-linux-suites \
 	verify-agent-harness verify-products verify-examples verify-tests verify-pktestsupport verify-public-consumers verify-dependency-direction verify-v4-vocabulary \
@@ -41,6 +41,7 @@ help:
 	@echo "  make harden                Run build and parallel hardening test gate"
 	@echo "  make verify                Run docs, linkage, products, examples, and test gates (macOS)"
 	@echo "  make verify-concurrency-scan Run the concurrency inline-annotation scan"
+	@echo "  make verify-runtime-architecture Check enforced runtime ownership seams"
 	@echo "  make verify-macos-default  Run the default macOS gate"
 	@echo "  make verify-linux          Run the current Linux gate"
 	@echo "  make verify-linux-base     Run the shared Linux verification body"
@@ -112,6 +113,9 @@ verify-concurrency-scan:
 	@echo "Running concurrency guardrail scan..."
 	@swiftlint lint --strict
 
+verify-runtime-architecture:
+	@python3 Scripts/migrate-turn-execution-request.py --check
+
 # Preflight: report every prerequisite the Makefile gates depend on (Swift,
 # OpenSSL, curl, shasum, container runtime, host platform) with actionable hints for anything missing.
 doctor:
@@ -119,7 +123,7 @@ doctor:
 
 verify-macos-default: verify
 
-verify: verify-concurrency-scan verify-dependency-direction validate-docs verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers verify-tests
+verify: verify-concurrency-scan verify-runtime-architecture verify-dependency-direction validate-docs verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers verify-tests
 
 verify-linux-suites:
 	@echo "Running comprehensive Linux test suite..."
@@ -137,7 +141,7 @@ verify-linux: verify-linux-current
 # example, support, and test command so callers cannot accidentally omit it.
 verify-linux-agent:
 	@echo "Running agent/CI Linux verification contract..."
-	@$(MAKE) verify-agent-harness verify-dependency-direction verify-documentation verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers verify-linux-suites
+	@$(MAKE) verify-agent-harness verify-runtime-architecture verify-dependency-direction verify-documentation verify-products verify-public-api verify-examples verify-pktestsupport verify-public-consumers verify-linux-suites
 
 verify-linux-filter:
 	@if [ -z "$(LINUX_TEST_FILTER)" ]; then \

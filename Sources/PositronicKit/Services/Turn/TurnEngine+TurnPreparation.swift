@@ -130,30 +130,33 @@ extension TurnEngine {
     /// can never be observed without its input. Repeated requests join or replay the durable Turn
     /// rather than re-executing provider or tool side effects.
     func prepareSession(
-        threadID: UUID,
+        _ executionRequest: TurnExecutionRequest,
         turnID: UUID,
-        requestId: UUID,
-        messageContent: MessageContent,
-        tools: [AnyTool],
-        toolOutputs: [ToolOutputSubmission]?,
-        systemInstructions: String?,
-        agentId: UUID?,
-        executionKind: TurnExecutionKind,
-        contributors: [TurnContributor],
         agent: Agent?,
         agentContext: AgentContextSnapshot? = nil,
         agentDiagnostics: [TurnDiagnostic],
-        maxModelRounds: Int,
-        generationParameters: GenerationParameters?,
-        structuredOutput: StructuredOutputRequest?,
-        sidecars: [SidecarDirective] = [],
-        sidecarCommitPolicy: SidecarCommitPolicy = .everyModelRound,
-        includeSidecarMechanismPreamble: Bool = false,
-        assemblyLogger: Logger? = nil,
-        responseModalities: Set<ResponseModality> = [.text],
-        audioOutput: AudioOutputOptions? = nil,
         onAdmission: (@Sendable () async -> Void)? = nil
     ) async throws -> PreparedSession {
+        let request = executionRequest.request
+        let threadID = request.threadID
+        let requestId = executionRequest.requestID
+        let messageContent = request.messageContent
+        let tools = request.tools
+        let toolOutputs = request.toolOutputs
+        let systemInstructions = request.systemInstructions
+        let agentId = executionRequest.context.agentID
+        let executionKind = executionRequest.context.kind
+        let contributors = executionRequest.context.contributors
+        let maxModelRounds = request.maxModelRounds
+        let generationParameters = executionRequest.generationParameters
+        let structuredOutput = request.structuredOutput
+        let sidecars = request.sidecars
+        let sidecarCommitPolicy = request.sidecarCommitPolicy
+        let includeSidecarMechanismPreamble = request.includeSidecarMechanismPreamble
+        let assemblyLogger = request.promptAssemblyLogger
+        let responseModalities = request.responseModalities
+        let audioOutput = request.audioOutput
+
         // Sidecar directives steer generation only through prompt text (SDC-7). The per-turn
         // directive list is volatile (consumer-scheduled, changes turn-to-turn), so it rides
         // with the user query — the LAST prompt section — keeping the system prefix byte-stable
@@ -214,22 +217,7 @@ extension TurnEngine {
             inputMessage: inputMessage,
             executionKind: executionKind,
             agentID: agentId,
-            callerIntentFingerprint: Self.callerIntentFingerprint(
-                messageContent: messageContent,
-                tools: tools,
-                toolOutputs: toolOutputs,
-                systemInstructions: systemInstructions,
-                executionKind: executionKind,
-                contributors: contributors,
-                maxModelRounds: maxModelRounds,
-                generationParameters: generationParameters,
-                structuredOutput: structuredOutput,
-                sidecars: sidecars,
-                sidecarCommitPolicy: sidecarCommitPolicy,
-                includeSidecarMechanismPreamble: includeSidecarMechanismPreamble,
-                responseModalities: responseModalities,
-                audioOutput: audioOutput
-            )
+            callerIntentFingerprint: executionRequest.callerIntentFingerprint
         )
 
         do {
@@ -664,60 +652,6 @@ extension TurnEngine {
             }
             return ExecutionAuthority(thread: thread, agent: nil)
         }
-    }
-
-    private static func callerIntentFingerprint(
-        messageContent: MessageContent,
-        tools: [AnyTool],
-        toolOutputs: [ToolOutputSubmission]?,
-        systemInstructions: String?,
-        executionKind: TurnExecutionKind,
-        contributors: [TurnContributor],
-        maxModelRounds: Int,
-        generationParameters: GenerationParameters?,
-        structuredOutput: StructuredOutputRequest?,
-        sidecars: [SidecarDirective],
-        sidecarCommitPolicy: SidecarCommitPolicy,
-        includeSidecarMechanismPreamble: Bool,
-        responseModalities: Set<ResponseModality>,
-        audioOutput: AudioOutputOptions?
-    ) -> String {
-        let toolIntent = tools.map { tool in
-            [
-                tool.callName,
-                tool.name,
-                tool.description,
-                tool.usageExample ?? "",
-                String(tool.requiresPermission),
-                String(describing: tool.sideEffects),
-                canonicalFingerprint(tool.toolReference),
-                canonicalFingerprint(tool.origin),
-                canonicalFingerprint(tool.parametersSchema),
-            ].joined(separator: "\u{1E}")
-        }.joined(separator: "\u{1F}")
-        return [
-            canonicalFingerprint(messageContent),
-            toolIntent,
-            canonicalFingerprint(toolOutputs),
-            systemInstructions ?? "",
-            executionKind.rawValue,
-            canonicalFingerprint(contributors),
-            "\(maxModelRounds)",
-            canonicalFingerprint(generationParameters),
-            canonicalFingerprint(structuredOutput),
-            canonicalFingerprint(sidecars),
-            canonicalFingerprint(sidecarCommitPolicy),
-            String(includeSidecarMechanismPreamble),
-            canonicalFingerprint(responseModalities.map(\.rawValue).sorted()),
-            canonicalFingerprint(audioOutput),
-        ].joined(separator: "\u{1F}")
-    }
-
-    private static func canonicalFingerprint<T: Encodable>(_ value: T) -> String {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.sortedKeys]
-        guard let data = try? encoder.encode(value) else { return String(describing: value) }
-        return data.base64EncodedString()
     }
 
     func validateMultimodalRequest(

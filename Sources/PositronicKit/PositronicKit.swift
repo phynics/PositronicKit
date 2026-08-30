@@ -259,7 +259,7 @@ public final class PositronicKit: Sendable {
 
         let resolvedCatalogRoot = dependencies.workspaceProfile.catalogRoot
             ?? FileManager.default.temporaryDirectory
-                .appendingPathComponent("positronickit-workspaces", isDirectory: true)
+            .appendingPathComponent("positronickit-workspaces", isDirectory: true)
         let resolvedWorkspaceCatalog = DefaultWorkspaceCatalog(
             workspaceRoot: resolvedCatalogRoot,
             workspacePersistence: self.workspacePersistence,
@@ -399,30 +399,14 @@ public final class PositronicKit: Sendable {
         executionKind: TurnExecutionKind,
         contributors: [TurnContributor] = []
     ) async throws -> TurnHandle {
-        guard request.maxModelRounds >= 1 else {
-            throw TurnError.invalidMaxModelRounds(request.maxModelRounds)
-        }
-
-        let execution = try await turnEngine.startExecution(
-            threadID: request.threadID,
-            requestId: request.requestID,
-            messageContent: request.messageContent,
-            tools: request.tools,
-            toolOutputs: request.toolOutputs,
-            systemInstructions: request.systemInstructions,
-            agentId: agentID,
+        let executionRequest = TurnExecutionRequest(
+            request,
+            defaultGenerationParameters: defaultGenerationParameters,
+            agentID: agentID,
             executionKind: executionKind,
-            contributors: contributors,
-            maxModelRounds: request.maxModelRounds,
-            generationParameters: request.generationParameters ?? defaultGenerationParameters,
-            structuredOutput: request.structuredOutput,
-            sidecars: request.sidecars,
-            sidecarCommitPolicy: request.sidecarCommitPolicy,
-            includeSidecarMechanismPreamble: request.includeSidecarMechanismPreamble,
-            assemblyLogger: request.promptAssemblyLogger,
-            responseModalities: request.responseModalities,
-            audioOutput: request.audioOutput
+            contributors: contributors
         )
+        let execution = try await turnEngine.startExecution(executionRequest)
         return TurnHandle(
             id: execution.turnID,
             threadID: request.threadID,
@@ -480,30 +464,14 @@ public final class PositronicKit: Sendable {
         executionKind: TurnExecutionKind = .direct,
         contributors: [TurnContributor] = []
     ) async throws -> AsyncThrowingStream<TurnEvent, Error> {
-        guard request.maxModelRounds >= 1 else {
-            throw TurnError.invalidMaxModelRounds(request.maxModelRounds)
-        }
-
-        return try await turnEngine.execute(
-            threadID: request.threadID,
-            requestId: request.requestID,
-            messageContent: request.messageContent,
-            tools: request.tools,
-            toolOutputs: request.toolOutputs,
-            systemInstructions: request.systemInstructions,
-            agentId: agentID,
+        let executionRequest = TurnExecutionRequest(
+            request,
+            defaultGenerationParameters: defaultGenerationParameters,
+            agentID: agentID,
             executionKind: executionKind,
-            contributors: contributors,
-            maxModelRounds: request.maxModelRounds,
-            generationParameters: request.generationParameters ?? defaultGenerationParameters,
-            structuredOutput: request.structuredOutput,
-            sidecars: request.sidecars,
-            sidecarCommitPolicy: request.sidecarCommitPolicy,
-            includeSidecarMechanismPreamble: request.includeSidecarMechanismPreamble,
-            assemblyLogger: request.promptAssemblyLogger,
-            responseModalities: request.responseModalities,
-            audioOutput: request.audioOutput
+            contributors: contributors
         )
+        return try await turnEngine.execute(executionRequest)
     }
 
 }
