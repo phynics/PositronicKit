@@ -13,7 +13,7 @@ Stable [5.0.0](stable/5.0.0/) is the default immutable channel. [Next / v5](next
 | [Sidecar directives](SidecarDirectives.md) | Auxiliary structured results carried by the same Turn. |
 | [Development](Development.md) | Supported platform gates, Podman workflow, and dependency checks. |
 | [Context map](../CONTEXT-MAP.md) | Canonical Thread, Turn, Agent, Workspace, prompt, and contract vocabulary. |
-| [Architecture decisions](adr/) | Accepted v4 decisions and their trade-offs. |
+| [Architecture decisions](adr/) | Accepted runtime architecture decisions and their trade-offs. |
 | [Changelog](../CHANGELOG.md) | Published release deltas and the unreleased Next change set. |
 
 ## Public products

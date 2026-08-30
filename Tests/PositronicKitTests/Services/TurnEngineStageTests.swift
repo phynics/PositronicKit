@@ -61,12 +61,12 @@ final class TurnEngineStageTests {
     }
 
     @Test
-    func persistenceStage_SavesMessage() async throws {
+    func persistenceStage_PreparesTerminalMessage() async throws {
         // Given
         let persistence = MockPersistenceService()
         _ = ThreadManager(workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp")))
         let stage = MessagePersistenceStage(
-            messageStore: persistence,
+            runtimeRepository: persistence,
             logger: logger
         )
 
@@ -78,8 +78,8 @@ final class TurnEngineStageTests {
         for try await _ in stream {}
 
         // Then
-        #expect(persistence.messages.count == 1)
-        #expect(persistence.messages[0].content == "Hello world")
+        #expect(persistence.messages.isEmpty)
+        #expect(await context.outputs.terminalAssistantMessage?.content == "Hello world")
     }
 
     // MARK: - Helpers

@@ -44,7 +44,7 @@ struct ToolCallRegressionTests {
     @Test("TurnOutputs accumulates complex JSON arguments from native tool call deltas")
     func testAccumulatesComplexNativeToolCallDeltas() async throws {
         let persistence = MockPersistenceService()
-        let stage = MessagePersistenceStage(messageStore: persistence, logger: logger)
+        let stage = MessagePersistenceStage(runtimeRepository: persistence, logger: logger)
         let context = TurnContext(
             threadID: UUID(),
             agentId: nil,

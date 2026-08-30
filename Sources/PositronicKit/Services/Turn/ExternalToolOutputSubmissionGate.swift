@@ -19,11 +19,11 @@ actor ExternalToolOutputSubmissionGate {
         _ toolOutputs: [ToolOutputSubmission],
         threadID: UUID,
         inputMessageID: UUID? = nil,
-        messageStore: any ThreadMessageStoreProtocol
+        runtimeRepository: any ThreadRuntimeRepository
     ) async throws -> [ToolOutputSubmission] {
         guard !toolOutputs.isEmpty else { return [] }
 
-        let existingMessages = try await messageStore.fetchMessages(for: threadID)
+        let existingMessages = try await runtimeRepository.fetchMessages(for: threadID)
         var pendingToolCallIds = Set<String>()
 
         // Only the latest uninterrupted assistant tool-call set is externally resumable.
@@ -84,13 +84,13 @@ actor ExternalToolOutputSubmissionGate {
     func commit(
         _ validatedOutputs: [ToolOutputSubmission],
         threadID: UUID,
-        messageStore: any ThreadMessageStoreProtocol
+        runtimeRepository: any ThreadRuntimeRepository
     ) async throws {
         guard !validatedOutputs.isEmpty else { return }
 
         // Re-check for already-persisted outputs — a prior partial batch may have persisted
         // some messages before failing.
-        let existingMessages = try await messageStore.fetchMessages(for: threadID)
+        let existingMessages = try await runtimeRepository.fetchMessages(for: threadID)
         let persistedToolCallIds = Set(
             existingMessages
                 .filter { $0.messageRole == .tool }
@@ -105,7 +105,7 @@ actor ExternalToolOutputSubmissionGate {
                 content: output.output,
                 toolCallID: output.toolCallID
             )
-            try await messageStore.saveMessage(msg)
+            try await runtimeRepository.saveMessage(msg)
         }
 
         // Release reservations for all validated outputs (persisted or already-present).

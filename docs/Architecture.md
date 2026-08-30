@@ -36,11 +36,11 @@ second runtime-assembly product:
 | `ThreadPromptJournals` | `ThreadManager` and `TurnEngine`; prompt cache state, not Thread history |
 | `TurnEventHub` | `TurnEngine` views that join the same live Turn |
 
-An explicit cohesive repository wins over separately supplied legacy Thread and message stores.
-When no cohesive repository is supplied, those independent stores remain a compatibility path and
-do not provide atomic v4 Turn admission. Workspace binding resolution is explicit binding
-repository first, then a binding-capable cohesive repository, then a binding-capable workspace
-store, and finally an in-memory fallback.
+Every Turn execution path receives the same cohesive repository. Independent Thread and message
+stores may still support standalone managers that cannot execute a Turn, but they cannot be
+assembled into `PositronicKit`, `TurnEngine`, `ToolRouter`, or a Turn pipeline. Workspace binding
+resolution is explicit binding repository first, then a binding-capable cohesive repository, then
+a binding-capable workspace store, and finally an in-memory fallback.
 
 The fallback is intentional because `WorkspaceBindingRepository` has no durability declaration.
 Hosts that supply a custom cohesive repository without binding conformance must also supply the
@@ -103,11 +103,10 @@ assistant message with its outcome. History is append-only; state changes are re
 durable facts, not edits to earlier entries. Pending tool-call and partial assistant rows are
 intermediate recovery records and remain separate from the normal terminal message boundary.
 
-`PositronicKit.PersistenceConfiguration` accepts the cohesive repository and the remaining stores.
-The in-memory configuration implements the same contracts for tests and prototypes. Independent
-Thread/message stores remain a legacy path without the v4 admission guarantee; production hosts
-must provide a cohesive repository for crash-safe Turns and should reject mixed durability through
-their deployment policy even though the facade reports it as a warning.
+`PositronicKit.PersistenceConfiguration` requires the cohesive repository and accepts the remaining
+stores. The in-memory configuration implements the same contracts for tests and prototypes. The
+runtime has no independent Thread/message-store Turn path, so admission, history, replay, and
+terminal truth always share one atomic owner.
 
 ## Workspace authority and tool routing
 

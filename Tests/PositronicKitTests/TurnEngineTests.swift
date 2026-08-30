@@ -31,7 +31,6 @@ struct TurnEngineTests {
         )
         let toolRouter = ToolRouter(
             threadManager: threadManager,
-            messageStore: mockPersistence,
             runtimeRepository: mockPersistence
         )
         let engine = TurnEngine(
@@ -39,7 +38,6 @@ struct TurnEngineTests {
                 threadManager: threadManager,
                 agentStore: mockPersistence,
                 requestOriginStore: mockPersistence,
-                messageStore: mockPersistence,
                 runtimeRepository: mockPersistence,
                 llmService: mockLLM,
                 toolRouter: toolRouter,
@@ -1088,7 +1086,6 @@ struct TurnEngineTests {
         )
         let toolRouter = ToolRouter(
             threadManager: threadManager,
-            messageStore: persistence,
             runtimeRepository: persistence
         )
         let engine = TurnEngine(
@@ -1096,7 +1093,6 @@ struct TurnEngineTests {
                 threadManager: threadManager,
                 agentStore: persistence,
                 requestOriginStore: persistence,
-                messageStore: persistence,
                 runtimeRepository: persistence,
                 llmService: mockLLM,
                 toolRouter: toolRouter,
@@ -1170,7 +1166,6 @@ struct TurnEngineTests {
                 threadManager: threadManager,
                 agentStore: persistence,
                 requestOriginStore: persistence,
-                messageStore: persistence,
                 runtimeRepository: persistence,
                 llmService: reloadLLM,
                 toolRouter: toolRouter,
@@ -1273,34 +1268,27 @@ struct TurnEngineTests {
 
     @Test("Production turn engine wiring uses a bounded stream timeout by default")
     func productionTurnEngineUsesBoundedStreamTimeout() {
-        let dependencies = TurnEngine.Dependencies(
-            threadManager: ThreadManager(
-                stores: .init(
-                    threadStore: MockPersistenceService(),
-                    messageStore: MockPersistenceService(),
-                    workspaceStore: MockPersistenceService(),
-                    runtimeRepository: MockPersistenceService(),
-                    toolPersistence: MockPersistenceService()
-                ),
-                workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp/pk-test")),
-                workspaceCreator: MockWorkspaceCreator()
+        let repository = MockPersistenceService()
+        let threadManager = ThreadManager(
+            stores: .init(
+                threadStore: repository,
+                messageStore: repository,
+                workspaceStore: repository,
+                runtimeRepository: repository,
+                toolPersistence: repository
             ),
-            agentStore: MockPersistenceService(),
-            requestOriginStore: MockPersistenceService(),
-            messageStore: MockPersistenceService(),
+            workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp/pk-test")),
+            workspaceCreator: MockWorkspaceCreator()
+        )
+        let dependencies = TurnEngine.Dependencies(
+            threadManager: threadManager,
+            agentStore: repository,
+            requestOriginStore: repository,
+            runtimeRepository: repository,
             llmService: MockLLMService(),
             toolRouter: ToolRouter(
-                threadManager: ThreadManager(
-                    stores: .init(
-                        threadStore: MockPersistenceService(),
-                        messageStore: MockPersistenceService(),
-                        workspaceStore: MockPersistenceService(),
-                        toolPersistence: MockPersistenceService()
-                    ),
-                    workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp/pk-test")),
-                    workspaceCreator: MockWorkspaceCreator()
-                ),
-                messageStore: MockPersistenceService()
+                threadManager: threadManager,
+                runtimeRepository: repository
             )
         )
 

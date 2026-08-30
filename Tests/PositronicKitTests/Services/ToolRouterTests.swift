@@ -170,13 +170,12 @@ final class ToolRouterTests {
         with tool: any PKContracts.Tool,
         approvalPolicy: any ToolApprovalPolicy,
         disabledToolIDs: Set<String> = [],
-        runtimeRepository: any ThreadRuntimeRepository = InMemoryThreadRuntimeRepository()
+        runtimeRepository: (any ThreadRuntimeRepository)? = nil
     ) async throws -> (ToolRouter, UUID, MockPersistenceService) {
         let (threadManager, mockPersistence) = try await setupThreadManager()
         let toolRouter = ToolRouter(
             threadManager: threadManager,
-            messageStore: mockPersistence,
-            runtimeRepository: runtimeRepository,
+            runtimeRepository: runtimeRepository ?? mockPersistence,
             approvalPolicy: approvalPolicy
         )
 
@@ -475,7 +474,6 @@ final class ToolRouterTests {
         let runtimeRepository = InMemoryThreadRuntimeRepository()
         let router = ToolRouter(
             threadManager: threadManager,
-            messageStore: persistence,
             runtimeRepository: runtimeRepository
         )
         let thread = try await threadManager.createThread()
@@ -691,7 +689,7 @@ final class ToolRouterTests {
 
     func executeLocally() async throws {
         let (threadManager, mockPersistence) = try await setupThreadManager()
-        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
+        let toolRouter = ToolRouter(threadManager: threadManager, runtimeRepository: mockPersistence)
 
         // Setup session and local workspace
         let session = try await threadManager.createThread()
@@ -729,7 +727,7 @@ final class ToolRouterTests {
 
     func attachedWorkspaceToolDefersExternalExecution() async throws {
         let (threadManager, mockPersistence) = try await setupThreadManager()
-        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
+        let toolRouter = ToolRouter(threadManager: threadManager, runtimeRepository: mockPersistence)
 
         let session = try await threadManager.createThread()
         let workspaceId = UUID()
@@ -760,7 +758,7 @@ final class ToolRouterTests {
 
     func attachedWorkspaceToolWithoutOriginStillDefers() async throws {
         let (threadManager, mockPersistence) = try await setupThreadManager()
-        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
+        let toolRouter = ToolRouter(threadManager: threadManager, runtimeRepository: mockPersistence)
 
         let session = try await threadManager.createThread()
         let workspaceId = UUID()
@@ -790,7 +788,7 @@ final class ToolRouterTests {
     @Test("A dynamic per-turn tool (passed via availableTools) executes locally even when the thread has no attached workspace at all (YAK-19)")
     func dynamicToolExecutesWithoutAnyWorkspace() async throws {
         let (threadManager, mockPersistence) = try await setupThreadManager()
-        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
+        let toolRouter = ToolRouter(threadManager: threadManager, runtimeRepository: mockPersistence)
 
         // A freshly created thread still gets its own runtime workspace from `createThread`,
         // so to reproduce "no workspace at all" we must detach it — mirroring a thread that
@@ -828,7 +826,7 @@ final class ToolRouterTests {
 
     func executeToolNotFound() async throws {
         let (threadManager, mockPersistence) = try await setupThreadManager()
-        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
+        let toolRouter = ToolRouter(threadManager: threadManager, runtimeRepository: mockPersistence)
 
         let session = try await threadManager.createThread()
         let toolRef = ToolReference.known("unknown")
@@ -918,7 +916,7 @@ final class ToolRouterTests {
         let (threadManager, mockPersistence) = try await setupThreadManager()
         let toolRouter = ToolRouter(
             threadManager: threadManager,
-            messageStore: mockPersistence,
+            runtimeRepository: mockPersistence,
             toolExecutionTimeout: 0.01
         )
 
@@ -974,7 +972,7 @@ final class ToolRouterTests {
 
         let toolRouter = ToolRouter(
             threadManager: threadManager,
-            messageStore: mockPersistence,
+            runtimeRepository: mockPersistence,
             toolExecutionTimeout: 60,
             sleep: { _ in await started.wait() }
         )
@@ -1034,7 +1032,7 @@ struct ToolRouterWorkspaceResolutionTests {
     @Test("Malformed workspaceID string (not a UUID) fails closed with invalidWorkspaceID (PKRR-015)")
     func malformedWorkspaceIDFailsClosed() async throws {
         let (threadManager, mockPersistence) = try await setupThreadManager()
-        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
+        let toolRouter = ToolRouter(threadManager: threadManager, runtimeRepository: mockPersistence)
 
         let session = try await threadManager.createThread()
         let workspaceId = UUID()
@@ -1072,7 +1070,7 @@ struct ToolRouterWorkspaceResolutionTests {
     @Test("Empty-string workspaceID fails closed with invalidWorkspaceID (PKRR-015)")
     func emptyWorkspaceIDFailsClosed() async throws {
         let (threadManager, mockPersistence) = try await setupThreadManager()
-        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
+        let toolRouter = ToolRouter(threadManager: threadManager, runtimeRepository: mockPersistence)
 
         let session = try await threadManager.createThread()
         let workspaceId = UUID()
@@ -1110,7 +1108,7 @@ struct ToolRouterWorkspaceResolutionTests {
     @Test("Non-string workspaceID (number) fails closed with invalidWorkspaceID (PKRR-015)")
     func nonStringWorkspaceIDFailsClosed() async throws {
         let (threadManager, mockPersistence) = try await setupThreadManager()
-        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
+        let toolRouter = ToolRouter(threadManager: threadManager, runtimeRepository: mockPersistence)
 
         let session = try await threadManager.createThread()
         let workspaceId = UUID()
@@ -1148,7 +1146,7 @@ struct ToolRouterWorkspaceResolutionTests {
     @Test("Workspace lookup searches primary then attached in order")
     func workspaceLookupOrderPrimaryFirst() async throws {
         let (threadManager, mockPersistence) = try await setupThreadManager()
-        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
+        let toolRouter = ToolRouter(threadManager: threadManager, runtimeRepository: mockPersistence)
 
         let session = try await threadManager.createThread()
 
@@ -1192,7 +1190,7 @@ struct ToolRouterWorkspaceResolutionTests {
     @Test("Explicit valid workspaceID overrides default lookup")
     func explicitValidWorkspaceIDOverridesDefault() async throws {
         let (threadManager, mockPersistence) = try await setupThreadManager()
-        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
+        let toolRouter = ToolRouter(threadManager: threadManager, runtimeRepository: mockPersistence)
 
         let session = try await threadManager.createThread()
 
@@ -1237,7 +1235,7 @@ struct ToolRouterWorkspaceResolutionTests {
     @Test("No workspaces at all resolves to toolNotFound")
     func noWorkspacesAtAllResolvesToToolNotFound() async throws {
         let (threadManager, mockPersistence) = try await setupThreadManager()
-        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
+        let toolRouter = ToolRouter(threadManager: threadManager, runtimeRepository: mockPersistence)
 
         let session = try await threadManager.createThread()
         // Detach all workspaces to simulate "no workspaces at all."
@@ -1374,7 +1372,7 @@ struct ToolTurnProjectionTests {
     @Test("Completed outcomes persist tool messages and emit success events")
     func completedOutcomeProjection() async throws {
         let (threadManager, mockPersistence) = try await setupThreadManager()
-        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
+        let toolRouter = ToolRouter(threadManager: threadManager, runtimeRepository: mockPersistence)
 
         let session = try await threadManager.createThread()
         let workspaceId = UUID()
@@ -1424,7 +1422,7 @@ struct ToolTurnProjectionTests {
     @Test("Error projection persists error output and emits failed events")
     func errorProjection() async throws {
         let (threadManager, mockPersistence) = try await setupThreadManager()
-        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
+        let toolRouter = ToolRouter(threadManager: threadManager, runtimeRepository: mockPersistence)
 
         let session = try await threadManager.createThread()
         let workspaceId = UUID()
@@ -1474,7 +1472,7 @@ struct ToolTurnProjectionTests {
     @Test("Error projection appends the error's remediation as model-facing recovery guidance")
     func errorProjectionSurfacesRemediation() async throws {
         let (threadManager, mockPersistence) = try await setupThreadManager()
-        let toolRouter = ToolRouter(threadManager: threadManager, messageStore: mockPersistence)
+        let toolRouter = ToolRouter(threadManager: threadManager, runtimeRepository: mockPersistence)
 
         let session = try await threadManager.createThread()
         let workspaceId = UUID()
@@ -1568,16 +1566,17 @@ struct ToolDurabilityOrderingTests {
         }
     }
 
-    /// Sets up a thread with a single registered tool and returns the router (backed by a
-    /// `FailingMessageStore`) plus the thread ID and the store for assertions.
+    /// Sets up a thread with a single registered tool and returns the router backed by a cohesive
+    /// repository configured to fail message persistence.
     private func setupRouterWithFailingStore(
         tool: any PKContracts.Tool
-    ) async throws -> (ToolRouter, FailingMessageStore, UUID) {
+    ) async throws -> (ToolRouter, MockPersistenceService, UUID) {
         let (threadManager, mockPersistence) = try await setupThreadManager()
-        let failingStore = FailingMessageStore()
+        let failingStore = MockPersistenceService()
+        failingStore.saveMessageFailureAfter = 0
         let toolRouter = ToolRouter(
             threadManager: threadManager,
-            messageStore: failingStore
+            runtimeRepository: failingStore
         )
 
         let session = try await threadManager.createThread()
@@ -1619,10 +1618,7 @@ struct ToolDurabilityOrderingTests {
             #expect(result.resolvedToolParams.isEmpty)
         }
 
-        // Persistence was attempted (the store received the message before throwing).
-        #expect(failingStore.attemptedMessages.count == 1)
-        #expect(failingStore.attemptedMessages.first?.content == "done")
-        #expect(failingStore.attemptedMessages.first?.toolCallID == "call-1")
+        #expect(failingStore.messages.isEmpty)
 
         // The stream must NOT contain a terminal .success event — persistence failed, so
         // success was never emitted.
@@ -1666,10 +1662,7 @@ struct ToolDurabilityOrderingTests {
             #expect(result.resolvedToolParams.isEmpty)
         }
 
-        // Persistence was attempted.
-        #expect(failingStore.attemptedMessages.count == 1)
-        #expect(failingStore.attemptedMessages.first?.content.contains("Error:") == true)
-        #expect(failingStore.attemptedMessages.first?.toolCallID == "call-2")
+        #expect(failingStore.messages.isEmpty)
 
         // The stream must NOT contain a terminal .failed event.
         #expect(!events.contains(where: {
@@ -1697,7 +1690,7 @@ struct ToolDurabilityOrderingTests {
         let (threadManager, mockPersistence) = try await setupThreadManager()
         let toolRouter = ToolRouter(
             threadManager: threadManager,
-            messageStore: mockPersistence
+            runtimeRepository: mockPersistence
         )
 
         let session = try await threadManager.createThread()
@@ -1757,11 +1750,11 @@ struct ToolDurabilityOrderingTests {
     @Test("Batch with one succeeding and one failing store: first emits success, second emits persistenceFailed (PKRR-016)")
     func batchMixedPersistenceResults() async throws {
         let (threadManager, mockPersistence) = try await setupThreadManager()
-        let batchStore = BatchFailingMessageStore()
-        batchStore.failAfterSaveCount = 1
+        let batchStore = MockPersistenceService()
+        batchStore.saveMessageFailureAfter = 1
         let toolRouter = ToolRouter(
             threadManager: threadManager,
-            messageStore: batchStore
+            runtimeRepository: batchStore
         )
 
         let session = try await threadManager.createThread()
@@ -1797,7 +1790,6 @@ struct ToolDurabilityOrderingTests {
         }
 
         // First save succeeds, second fails.
-        #expect(batchStore.saveCallCount == 2)
         #expect(batchStore.messages.count == 1)
 
         // First tool call: terminal .success.

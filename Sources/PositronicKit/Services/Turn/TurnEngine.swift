@@ -12,7 +12,6 @@ enum TurnEngineError: PKError {
     case streamTimedOut(TimeInterval)
     case danglingToolCall(id: String)
     case danglingToolResult(id: String)
-    case duplicateRequestID(UUID)
     case promptHistoryInconsistent(String)
 
     var errorDomain: String {
@@ -26,7 +25,6 @@ enum TurnEngineError: PKError {
         case .streamTimedOut: return 9003
         case .danglingToolCall: return 9004
         case .danglingToolResult: return 9005
-        case .duplicateRequestID: return 9006
         case .promptHistoryInconsistent: return 9007
         }
     }
@@ -43,8 +41,6 @@ enum TurnEngineError: PKError {
             return "Thread history contains an assistant tool call with id '\(id)' that has no matching tool result."
         case let .danglingToolResult(id):
             return "Thread history contains a tool result with id '\(id)' that has no matching assistant tool call."
-        case let .duplicateRequestID(requestId):
-            return "Turn \(requestId.uuidString.prefix(8)) has already been processed. Use a new requestId to start a new turn."
         case let .promptHistoryInconsistent(detail):
             return "The prompt history could not record this turn safely: \(detail)"
         }
@@ -54,8 +50,6 @@ enum TurnEngineError: PKError {
         switch self {
         case .danglingToolCall, .danglingToolResult:
             return "Repair the persisted thread history so assistant tool calls and tool results are paired before retrying."
-        case .duplicateRequestID:
-            return "The previous turn with this requestId completed successfully. Use a new requestId for a new turn, or if the previous attempt failed it is safe to retry with the same requestId."
         case .llmServiceNotConfigured, .missingInput, .streamTimedOut, .promptHistoryInconsistent:
             return nil
         }
@@ -120,8 +114,7 @@ struct TurnEngine {
         let agentStore: any AgentStoreProtocol
         let agentContextSource: any AgentContextSource
         let requestOriginStore: any RequestOriginStoreProtocol
-        let messageStore: any ThreadMessageStoreProtocol
-        let runtimeRepository: (any ThreadRuntimeRepository)?
+        let runtimeRepository: any ThreadRuntimeRepository
         let threadAuthorityCoordinator: ThreadAuthorityCoordinator
         let agentAuthorityCoordinator: AgentAuthorityCoordinator
         /// Streaming chat seam: the runtime turn loop, `LLMStreamingStage`, and the
@@ -143,8 +136,7 @@ struct TurnEngine {
             agentStore: any AgentStoreProtocol,
             agentContextSource: (any AgentContextSource)? = nil,
             requestOriginStore: any RequestOriginStoreProtocol,
-            messageStore: any ThreadMessageStoreProtocol,
-            runtimeRepository: (any ThreadRuntimeRepository)? = nil,
+            runtimeRepository: any ThreadRuntimeRepository,
             threadAuthorityCoordinator: ThreadAuthorityCoordinator? = nil,
             agentAuthorityCoordinator: AgentAuthorityCoordinator? = nil,
             llmService: any LLMStreamClient,
@@ -163,7 +155,6 @@ struct TurnEngine {
             self.agentStore = agentStore
             self.agentContextSource = agentContextSource ?? IdentityAgentContextSource()
             self.requestOriginStore = requestOriginStore
-            self.messageStore = messageStore
             self.runtimeRepository = runtimeRepository
             self.threadAuthorityCoordinator = threadAuthorityCoordinator ?? threadManager.threadAuthorityCoordinator
             self.agentAuthorityCoordinator = agentAuthorityCoordinator ?? AgentAuthorityCoordinator()
@@ -208,9 +199,8 @@ struct TurnEngine {
         turnID: UUID,
         message: String
     ) async {
-        guard let repository = dependencies.runtimeRepository else { return }
         await Self.persistCustomizationNotice(
-            repository: repository,
+            repository: dependencies.runtimeRepository,
             logger: logger,
             code: code,
             turnID: turnID,
@@ -475,9 +465,7 @@ struct TurnEngine {
     }
 
     private func replayExistingTurn(_ admission: TurnAdmission) async throws -> AsyncThrowingStream<TurnEvent, Error> {
-        guard let repository = dependencies.runtimeRepository else {
-            throw TurnEngineError.promptHistoryInconsistent("Cannot replay a Turn without a runtime repository.")
-        }
+        let repository = dependencies.runtimeRepository
         let (stream, continuation) = AsyncThrowingStream<TurnEvent, Error>.makeStream()
         let task = Task {
             do {

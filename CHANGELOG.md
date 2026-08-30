@@ -8,6 +8,13 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Changed
+
+- **Cohesive Turn durability:** every Turn execution path now requires one
+  `ThreadRuntimeRepository`; the package-internal independent Thread/message-store path and its
+  process-local idempotency gate are removed. Standalone managers that cannot execute a Turn keep
+  their narrower optional persistence seams. See ADR 0007 and issue #117.
+
 ## [5.0.0] - 2026-08-27
 
 - **Linux public API baseline gate:** symbol-graph verification now consumes SwiftPM's reported

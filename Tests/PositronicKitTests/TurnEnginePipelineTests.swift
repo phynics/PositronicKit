@@ -101,22 +101,23 @@ private struct MarkerStage: PipelineStage {
 
 final class MessagePersistenceStageBehavior {
     @Test
-    func completedEventEmittedOnFinalTurn() async throws {
+    func finalTurnIsPreparedForTerminalCommit() async throws {
         let store = MockPersistenceService()
-        let stage = MessagePersistenceStage(messageStore: store, logger: testLogger)
+        let stage = MessagePersistenceStage(runtimeRepository: store, logger: testLogger)
         let context = await makeContext(fullResponse: "Hello!")
 
         let events = try await drain(await stage.process(context))
 
-        let completions = events.compactMap { $0.completedMessage }
-        #expect(completions.count == 1)
-        #expect(completions[0].message.content == "Hello!")
+        #expect(events.isEmpty)
+        #expect(store.messages.isEmpty)
+        #expect(await context.outputs.terminalAssistantMessage?.content == "Hello!")
+        #expect(await context.outputs.terminalCompletionMetadata != nil)
     }
 
     @Test
     func noCompletedEventOnToolCallTurn() async throws {
         let store = MockPersistenceService()
-        let stage = MessagePersistenceStage(messageStore: store, logger: testLogger)
+        let stage = MessagePersistenceStage(runtimeRepository: store, logger: testLogger)
         let context = await makeContext(
             toolCallAccumulators: [0: (id: "call-1", name: "my_tool", args: "{}")]
         )
@@ -131,7 +132,7 @@ final class MessagePersistenceStageBehavior {
     func turnSnapshotCapturesRenderedPromptOnFinalTurn() async throws {
         let store = MockPersistenceService()
         let stage = MessagePersistenceStage(
-            messageStore: store,
+            runtimeRepository: store,
             logger: testLogger,
             diagnosticSnapshotConfiguration: .init(policy: .full)
         )
@@ -140,36 +141,36 @@ final class MessagePersistenceStageBehavior {
             currentMessages: [LLMMessage(role: .user, content: "query")]
         )
 
-        let events = try await drain(await stage.process(context))
+        _ = try await drain(await stage.process(context))
 
-        let completed = events.compactMap { $0.completedMessage }.first
-        let data = try #require(completed?.metadata.turnSnapshotData)
+        let data = try #require(await context.outputs.terminalCompletionMetadata?.turnSnapshotData)
         let snapshot = try SerializationUtils.jsonDecoder.decode(TurnSnapshot.self, from: data)
         #expect(snapshot.fullResponse == "done")
     }
 
     @Test("Successful events do not contain diagnostic snapshots by default")
     func defaultPolicyOmitsSnapshot() async throws {
-        let stage = MessagePersistenceStage(messageStore: MockPersistenceService(), logger: testLogger)
-        let events = try await drain(await stage.process(await makeContext(fullResponse: "private prompt context")))
-        let completed = try #require(events.compactMap { $0.completedMessage }.first)
+        let stage = MessagePersistenceStage(runtimeRepository: MockPersistenceService(), logger: testLogger)
+        let context = await makeContext(fullResponse: "private prompt context")
+        _ = try await drain(await stage.process(context))
 
-        #expect(completed.metadata.turnSnapshotData == nil)
+        #expect(await context.outputs.terminalCompletionMetadata?.turnSnapshotData == nil)
     }
 
     @Test("Redacted snapshots mask secrets and obey their byte limit")
     func redactedSnapshotMasksSecretsAndIsBounded() async throws {
         let prompt = "api_key=sk-test-secret password=hunter2 " + String(repeating: "large prompt ", count: 1_000)
         let stage = MessagePersistenceStage(
-            messageStore: MockPersistenceService(),
+            runtimeRepository: MockPersistenceService(),
             logger: testLogger,
             diagnosticSnapshotConfiguration: .init(policy: .redacted, maxBytes: 2_000)
         )
-        let events = try await drain(await stage.process(await makeContext(
+        let context = await makeContext(
             fullResponse: prompt,
             currentMessages: [LLMMessage(role: .user, content: prompt)]
-        )))
-        let data = try #require(events.compactMap { $0.completedMessage }.first?.metadata.turnSnapshotData)
+        )
+        _ = try await drain(await stage.process(context))
+        let data = try #require(await context.outputs.terminalCompletionMetadata?.turnSnapshotData)
         let encoded = try #require(String(data: data, encoding: .utf8))
 
         #expect(data.count <= 2_000)
@@ -182,14 +183,15 @@ final class MessagePersistenceStageBehavior {
     @Test("Full snapshots require explicit opt-in and remain bounded")
     func fullSnapshotIsExplicitAndBounded() async throws {
         let stage = MessagePersistenceStage(
-            messageStore: MockPersistenceService(),
+            runtimeRepository: MockPersistenceService(),
             logger: testLogger,
             diagnosticSnapshotConfiguration: .init(policy: .full, maxBytes: 1_500)
         )
-        let events = try await drain(await stage.process(await makeContext(
+        let context = await makeContext(
             fullResponse: String(repeating: "response ", count: 1_000)
-        )))
-        let data = try #require(events.compactMap { $0.completedMessage }.first?.metadata.turnSnapshotData)
+        )
+        _ = try await drain(await stage.process(context))
+        let data = try #require(await context.outputs.terminalCompletionMetadata?.turnSnapshotData)
 
         #expect(data.count <= 1_500)
     }
@@ -197,7 +199,7 @@ final class MessagePersistenceStageBehavior {
     @Test
     func persistedToolCallsPreserveAccumulatedArguments() async throws {
         let store = MockPersistenceService()
-        let stage = MessagePersistenceStage(messageStore: store, logger: testLogger)
+        let stage = MessagePersistenceStage(runtimeRepository: store, logger: testLogger)
         let context = await makeContext(
             toolCallAccumulators: [
                 0: (
@@ -225,7 +227,7 @@ final class MessagePersistenceStageBehavior {
     @Test("Malformed tool-call args fall back to empty arguments (STAB-12)")
     func malformedToolCallArgsFallBackToEmpty() async throws {
         let store = MockPersistenceService()
-        let stage = MessagePersistenceStage(messageStore: store, logger: testLogger)
+        let stage = MessagePersistenceStage(runtimeRepository: store, logger: testLogger)
         // Malformed JSON (single quoted key) must not crash the stage; the prior `try? ... ?? [:]`
         // fallback persisted an empty-args tool call. We now also emit a warning — behavior is
         // otherwise unchanged.
@@ -260,7 +262,7 @@ final class TurnPipelineBuilderTests {
 
         let pipeline = TurnPipelineBuilder.makePipeline(
             llmService: llm,
-            messageStore: persistence,
+            runtimeRepository: persistence,
             streamTimeout: 5,
             additionalStages: [MarkerStage(tracker: tracker)]
         )
@@ -269,7 +271,8 @@ final class TurnPipelineBuilderTests {
         _ = try await drain(pipeline.execute(context))
 
         #expect(await tracker.didRun)
-        #expect(persistence.messages.last?.content == "pipeline")
+        #expect(persistence.messages.isEmpty)
+        #expect(await context.outputs.terminalAssistantMessage?.content == "pipeline")
     }
 }
 

@@ -67,7 +67,7 @@ struct LoggingRedactionTests {
         )
         let router = ToolRouter(
             threadManager: threadManager,
-            messageStore: persistence,
+            runtimeRepository: persistence,
             loggingConfiguration: configuration
         )
 

@@ -18,8 +18,8 @@ struct RuntimeAssemblyTests {
         #expect(try await repository.fetchThread(id: thread.id) != nil)
     }
 
-    @Test("explicit cohesive repository wins over separate legacy Thread and message stores")
-    func explicitRepositoryWinsOverLegacyStores() async throws {
+    @Test("explicit cohesive repository reaches every Turn durability consumer")
+    func explicitRepositoryReachesEveryTurnConsumer() async throws {
         let repository = InMemoryThreadRuntimeRepository()
         let workspaceStore = MockWorkspacePersistence()
         let bindingRepository = InMemoryWorkspaceBindingRepository()
@@ -453,12 +453,7 @@ struct RuntimeAssemblyTests {
         #expect(kit.runtimeRepository as AnyObject === repository as AnyObject)
         #expect(kit.messageStore as AnyObject === repository as AnyObject)
         #expect(kit.threadPersistence as AnyObject === repository as AnyObject)
-        if let engineRepository = kit.turnEngine.dependencies.runtimeRepository {
-            #expect(engineRepository as AnyObject === repository as AnyObject)
-        } else {
-            Issue.record("TurnEngine lost the cohesive runtime repository")
-        }
-        #expect(kit.turnEngine.dependencies.messageStore as AnyObject === repository as AnyObject)
+        #expect(kit.turnEngine.dependencies.runtimeRepository as AnyObject === repository as AnyObject)
         #expect(kit.turnEngine.dependencies.threadManager === kit.threadManager)
         #expect(kit.turnEngine.dependencies.toolRouter === kit.toolRouter)
 

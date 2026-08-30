@@ -22,11 +22,11 @@ import PKUtilities
 /// misrepresent the turn (the already-persisted user message remains the turn's record).
 /// A failed turn that emitted *anything* (even a single content char) is still persisted.
 struct PartialAssistantPersistence {
-    let messageStore: any ThreadMessageStoreProtocol
+    let runtimeRepository: any ThreadRuntimeRepository
     let logger: Logger
 
-    init(messageStore: any ThreadMessageStoreProtocol, logger: Logger? = nil) {
-        self.messageStore = messageStore
+    init(runtimeRepository: any ThreadRuntimeRepository, logger: Logger? = nil) {
+        self.runtimeRepository = runtimeRepository
         self.logger = logger ?? Logger.module(named: "partial-assistant-persistence")
     }
 
@@ -47,7 +47,7 @@ struct PartialAssistantPersistence {
         // for inspection and retry.
         if let terminalMessage = await context.outputs.terminalAssistantMessage {
             do {
-                try await messageStore.saveMessage(terminalMessage)
+                try await runtimeRepository.saveMessage(terminalMessage)
             } catch {
                 logger.error(
                     "Failed to persist terminal assistant after extension failure for thread \(context.threadID): \(error)"
@@ -72,7 +72,7 @@ struct PartialAssistantPersistence {
                 status: status,
                 logger: logger
             )
-            try await messageStore.saveMessage(assistantMsg)
+            try await runtimeRepository.saveMessage(assistantMsg)
             logger.warning(
                 "Persisted partial assistant turn for thread \(context.threadID) status=\(status.rawValue) contentChars=\(fullResponse.count) thinkingChars=\(fullThinking.count) toolCalls=\(hasToolCalls)"
             )
