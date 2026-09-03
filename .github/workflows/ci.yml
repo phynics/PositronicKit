@@ -9,6 +9,13 @@ on:
 permissions:
   contents: read
 
+# Every `run:` step uses an explicit `bash` shell so GitHub Actions applies `-eo pipefail`.
+# The implicit default is `bash -e` WITHOUT pipefail, under which a gate piped into `tee`
+# reports tee's exit status (always 0) instead of the gate's.
+defaults:
+  run:
+    shell: bash
+
 jobs:
   linux-current:
     name: "Linux — Swift 6.3.3 (Ubuntu 24.04)"
