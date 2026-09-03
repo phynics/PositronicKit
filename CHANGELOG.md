@@ -116,6 +116,18 @@ for tagged releases beginning with `1.0.0`.
   `operation` — including a cancellation `operation` never itself observes — via
   `withTaskCancellationHandler`, not merely a `do`/`catch`.
 
+- **The partial/cancelled assistant row now commits inside `completeTurn`'s terminal transaction
+  (F-01):** `PartialAssistantPersistence` used to call `runtimeRepository.saveMessage(...)`
+  directly, before `commitTerminal` recorded the Turn's outcome -- two separate writes, so a crash
+  between them could leave an assistant row on a Thread whose Turn was still active, the exact
+  state ADR 0003's and ADR 0007's single-transaction boundary excludes.
+  `ThreadRuntimeRepository.completeTurn`'s `finalMessage` parameter already atomically appends a
+  message for *any* outcome, not only `.completed` -- `TurnEngine.completeTerminalOutcome` now
+  resolves the partial/cancelled message the same way it already resolved the normal terminal
+  message, and passes it through that same `finalMessage` parameter instead of a standalone
+  `saveMessage` call ahead of it. `PartialAssistantPersistence` is now a pure builder
+  (`partialAssistantMessage(context:status:)`); it no longer persists anything itself.
+
 ### Changed
 
 - **Cohesive Turn durability:** every Turn execution path now requires one
