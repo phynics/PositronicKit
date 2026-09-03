@@ -337,19 +337,22 @@ struct TurnEngine {
             await dependencies.threadManager.removeTask(turnID: turnID, for: threadID)
             _ = await bridge.value
         }
+        // Installed before any possible `continuation.finish(...)` below so a termination that
+        // races the not-registered branch can never observe the handler unset.
+        continuation.onTermination = { @Sendable _ in task.cancel() }
         let registered = await dependencies.threadManager.registerTask(task, turnID: turnID, for: threadID)
         if !registered {
             task.cancel()
+            // `task` returns before reaching `runTurnLoop`, which is the only other place that
+            // finishes `continuation`. Without this, `bridge` — already iterating `sourceStream`
+            // — would suspend forever waiting for an event that never comes, leaking one Task per
+            // `threadBusy` collision for the process lifetime. Finishing here with the busy error
+            // makes `bridge`'s catch branch the single path that reports it to the event hub, so
+            // the external stream still surfaces `threadBusy` once `bridge` relays it.
+            continuation.finish(throwing: ThreadRuntimeRepositoryError.threadBusy(threadID: threadID, activeTurnID: turnID))
         }
         startContinuation.yield(registered)
         startContinuation.finish()
-        if !registered {
-            await dependencies.eventHub.finish(
-                turnID: turnID,
-                error: ThreadRuntimeRepositoryError.threadBusy(threadID: threadID, activeTurnID: turnID)
-            )
-        }
-        continuation.onTermination = { @Sendable _ in task.cancel() }
         return TurnExecution(turnID: turnID, stream: stream)
     }
 

@@ -91,6 +91,14 @@ for tagged releases beginning with `1.0.0`.
   admitted by another process. `TurnEngine.replayExistingTurn`'s fallback timeout surfaces as the
   new `TurnEngineError.turnReplayTimedOut`; `AgentManager.waitForIdle`'s surfaces as the new
   `AgentError.turnStillActive`.
+- **`startExecution` no longer leaks a bridge task on a `threadBusy` collision (E-03):** when
+  `ThreadManager.registerTask` returned `false` for a Turn that had already begun durable
+  admission, the driving task returned before ever finishing the source stream's continuation —
+  the only other place that happened was inside `runTurnLoop`, which this path never reaches. The
+  private task relaying that source stream into the event hub was already suspended awaiting its
+  next event, so it hung forever: one leaked `Task` per collision for the life of the process. The
+  not-registered branch now finishes the source stream with the `threadBusy` error itself, so the
+  relay task's own catch branch reports it to the event hub and completes normally.
 
 ### Changed
 
