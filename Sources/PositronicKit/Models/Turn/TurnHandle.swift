@@ -1,7 +1,21 @@
 import Foundation
 import PKContracts
 
-/// A stable, nonthrowing handle for one admitted Turn.
+/// Thrown by ``TurnHandle/outcome()`` when the bounded wait for a Turn's durable outcome elapses
+/// before one was observed.
+///
+/// This is deliberately not a `TurnOutcome` case: the Turn was never confirmed to reach a
+/// terminal state, durable or otherwise. It may still be running.
+public struct TurnOutcomeTimedOut: Error, Sendable {
+    /// The Turn whose outcome was not observed in time.
+    public let turnID: UUID
+
+    public init(turnID: UUID) {
+        self.turnID = turnID
+    }
+}
+
+/// A stable handle for one admitted Turn.
 ///
 /// The event stream carries future events only. Terminal state is read from the durable runtime
 /// repository by outcome() and can therefore be replayed after the live stream has ended.
@@ -25,8 +39,12 @@ public struct TurnHandle: Identifiable, Sendable {
     }
 
     /// Waits for and returns the same durable terminal outcome seen by every joiner.
-    public func outcome() async -> TurnOutcome {
-        await kit.waitForTurnOutcome(id: id)
+    ///
+    /// - Throws: `CancellationError` if the calling task is cancelled before the Turn reaches a
+    ///   terminal state, or ``TurnOutcomeTimedOut`` if the bounded wait elapses first. Neither
+    ///   case is a durable outcome -- the Turn may still be running.
+    public func outcome() async throws -> TurnOutcome {
+        try await kit.waitForTurnOutcome(id: id)
     }
 
     /// Requests cancellation of exactly this Turn.

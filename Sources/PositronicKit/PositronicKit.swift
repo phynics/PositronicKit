@@ -439,20 +439,16 @@ public final class PositronicKit: Sendable {
         }
     }
 
-    func waitForTurnOutcome(id turnID: UUID) async -> TurnOutcome {
+    func waitForTurnOutcome(id turnID: UUID) async throws -> TurnOutcome {
         let waiter = TurnTerminationWaiter(hub: runtimeState.eventHub)
-        do {
-            let observation = try await waiter.awaitResult(turnID: turnID) {
-                try await self.runtimeRepository.fetchTurn(id: turnID)?.outcome
-            }
-            switch observation {
-            case let .value(outcome):
-                return outcome
-            case .timedOut:
-                return .cancelled(reason: "Outcome wait cancelled.")
-            }
-        } catch {
-            return .cancelled(reason: "Outcome wait cancelled.")
+        let observation = try await waiter.awaitResult(turnID: turnID) {
+            try await self.runtimeRepository.fetchTurn(id: turnID)?.outcome
+        }
+        switch observation {
+        case let .value(outcome):
+            return outcome
+        case .timedOut:
+            throw TurnOutcomeTimedOut(turnID: turnID)
         }
     }
 

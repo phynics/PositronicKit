@@ -31,6 +31,15 @@ for tagged releases beginning with `1.0.0`.
 - **`WorkspaceBindingRepository` now refines `DurabilityAware`** instead of `Sendable`. Existing
   conformers keep compiling through the protocol's default `isDurable == false`, but a durable
   adapter must override it to `true` or `validateDurability()` will report it as ephemeral.
+- **`TurnHandle.outcome()` now `throws` (B-02):** it used to return `.cancelled(reason: "Outcome
+  wait cancelled.")` when the *caller's* task was cancelled while waiting — a `TurnOutcome` value
+  indistinguishable from one the repository actually recorded, even though the Turn itself could
+  still be running and could still complete normally. `outcome()` now rethrows `CancellationError`
+  on caller cancellation and throws the new `TurnOutcomeTimedOut` error if the bounded wait (see
+  below) elapses first; neither case fabricates a durable outcome. Callers that only awaited a
+  successful outcome need `try` added; callers that need to distinguish "cancelled" from
+  "genuinely not observed yet" now can.
+
 ### Fixed
 
 - **Permanent thread deletion no longer orphans message history:** `deleteThreadPermanently` used

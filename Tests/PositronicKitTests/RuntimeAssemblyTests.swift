@@ -47,7 +47,7 @@ struct RuntimeAssemblyTests {
         )
         _ = await turn.events().collect()
 
-        #expect(await turn.outcome() == .completed)
+        #expect(try await turn.outcome() == .completed)
         #expect(try await repository.fetchThread(id: thread.id) != nil)
         #expect(try await repository.fetchMessages(for: thread.id).map(\.content) == [
             "persist through the repository", "cohesive reply",
@@ -178,7 +178,7 @@ struct RuntimeAssemblyTests {
         let turn = try await kit.openThread(thread.id).startTurn(message: "custom context")
         _ = await turn.events().collect()
 
-        #expect(await turn.outcome() == .completed)
+        #expect(try await turn.outcome() == .completed)
         #expect(await agentContextSource.callCount == 1)
         #expect(await turnContextSource.callCount == 1)
         #expect(await activitySink.waitUntilAtLeastOne())
@@ -267,7 +267,7 @@ struct RuntimeAssemblyTests {
             if case .completion(.deferredForExternalTool) = event { return true }
             return false
         })
-        #expect(await turn.outcome() == .interrupted(reason: "External tool execution deferred."))
+        #expect(try await turn.outcome() == .interrupted(reason: "External tool execution deferred."))
         let intents = try await repository.fetchToolIntents(turnID: turn.id)
         #expect(intents.map(\.toolCallID) == ["durable-tool-call"])
         let notices = try await repository.fetchNotices(turnID: turn.id)
@@ -343,7 +343,7 @@ struct RuntimeAssemblyTests {
         await joined.cancel()
         let events = await eventsTask.value
         #expect(events.filter { $0.isTerminal }.count == 1)
-        #expect(await original.outcome() == .cancelled(reason: "Turn task cancelled."))
+        #expect(try await original.outcome() == .cancelled(reason: "Turn task cancelled."))
 
         replacementModel.mockClient.nextResponse = "replacement reply"
         let replacementTurn = try await reconfiguredKit.openThread(thread.id).startDirectTurn(
@@ -351,7 +351,7 @@ struct RuntimeAssemblyTests {
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
         )
         _ = await replacementTurn.events().collect()
-        #expect(await replacementTurn.outcome() == .completed)
+        #expect(try await replacementTurn.outcome() == .completed)
         #expect(replacementModel.generationCaptureHistory.count == 1)
     }
 

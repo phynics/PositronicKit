@@ -35,7 +35,7 @@ struct ReconfiguredRuntimeStateTests {
         #expect(joined.id == original.id)
         await joined.cancel()
 
-        #expect(await original.outcome() == .cancelled(reason: "Turn task cancelled."))
+        #expect(try await original.outcome() == .cancelled(reason: "Turn task cancelled."))
         let events = await joined.events().collect()
         #expect(events.filter(\.isTerminal).count == 1)
     }
@@ -68,7 +68,7 @@ struct ReconfiguredRuntimeStateTests {
         #expect(joined.id == active.id)
         await joined.cancel()
 
-        #expect(await active.outcome() == .cancelled(reason: "Turn task cancelled."))
+        #expect(try await active.outcome() == .cancelled(reason: "Turn task cancelled."))
     }
 
     @Test("reconfiguration shares the Thread manager and its process-local coordinators")
