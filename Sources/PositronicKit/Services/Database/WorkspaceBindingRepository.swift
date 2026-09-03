@@ -47,7 +47,7 @@ public enum WorkspaceBindingRepositoryError: Error, Equatable, Sendable, CustomS
 /// Each mutating operation is the conditional-claim boundary. Implementations backed by a
 /// database must enforce the same uniqueness constraint in their transaction, not by reading
 /// and then writing in separate calls.
-public protocol WorkspaceBindingRepository: Sendable {
+public protocol WorkspaceBindingRepository: DurabilityAware {
     func claim(
         workspaceID: UUID,
         for threadID: UUID,

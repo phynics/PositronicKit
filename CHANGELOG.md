@@ -38,6 +38,15 @@ for tagged releases beginning with `1.0.0`.
   facade's internal assembly all receive the already-resolved repository instead of re-deriving
   it. `WorkspaceResolverFactory.makeDefault(...)` gained a `bindingRepository:` parameter so the
   default resolver's catalog no longer diverges from the rest of the runtime's binding wiring.
+- **`validateDurability()` now classifies the workspace binding repository (C-03):** `WorkspaceBindingRepository`
+  refined `Sendable` rather than `DurabilityAware`, so `PersistenceConfiguration.validateDurability()`
+  could not see it at all — a host could conform every other store durably, call
+  `fullyPersistent(...)`, receive an all-durable `DurabilityReport`, and still silently lose every
+  workspace binding on restart (it is exactly the store C-02 shows silently defaults to
+  `InMemoryWorkspaceBindingRepository`). `WorkspaceBindingRepository` now refines `DurabilityAware`
+  (existing conformers keep compiling via its default `isDurable == false`), and
+  `DurabilityReport` / `validateDurability()` / `ephemeralStoreNames` gained a sixth
+  `workspaceBindingRepository` field alongside the five they already reported.
 
 ### Changed
 

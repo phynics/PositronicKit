@@ -110,6 +110,7 @@ public extension PositronicKit {
             DurabilityReport(
                 runtimeRepository: runtimeRepository.isDurable ? .durable : .ephemeral,
                 workspacePersistence: workspacePersistence.isDurable ? .durable : .ephemeral,
+                workspaceBindingRepository: workspaceBindingRepository.isDurable ? .durable : .ephemeral,
                 toolPersistence: toolPersistence.isDurable ? .durable : .ephemeral,
                 agentStore: agentStore.isDurable ? .durable : .ephemeral,
                 requestOriginStore: requestOriginStore.isDurable ? .durable : .ephemeral
@@ -135,6 +136,7 @@ public extension PositronicKit {
     struct DurabilityReport: Sendable, Equatable {
         public let runtimeRepository: StoreDurability
         public let workspacePersistence: StoreDurability
+        public let workspaceBindingRepository: StoreDurability
         public let toolPersistence: StoreDurability
         public let agentStore: StoreDurability
         public let requestOriginStore: StoreDurability
@@ -142,12 +144,14 @@ public extension PositronicKit {
         public init(
             runtimeRepository: StoreDurability,
             workspacePersistence: StoreDurability,
+            workspaceBindingRepository: StoreDurability,
             toolPersistence: StoreDurability,
             agentStore: StoreDurability,
             requestOriginStore: StoreDurability
         ) {
             self.runtimeRepository = runtimeRepository
             self.workspacePersistence = workspacePersistence
+            self.workspaceBindingRepository = workspaceBindingRepository
             self.toolPersistence = toolPersistence
             self.agentStore = agentStore
             self.requestOriginStore = requestOriginStore
@@ -155,7 +159,7 @@ public extension PositronicKit {
 
         public var isMixed: Bool {
             let all: [StoreDurability] = [
-                runtimeRepository, workspacePersistence,
+                runtimeRepository, workspacePersistence, workspaceBindingRepository,
                 toolPersistence, agentStore, requestOriginStore,
             ]
             return all.contains(.durable) && all.contains(.ephemeral)
@@ -166,6 +170,7 @@ public extension PositronicKit {
             var names: [String] = []
             if runtimeRepository == .ephemeral { names.append("runtimeRepository") }
             if workspacePersistence == .ephemeral { names.append("workspacePersistence") }
+            if workspaceBindingRepository == .ephemeral { names.append("workspaceBindingRepository") }
             if toolPersistence == .ephemeral { names.append("toolPersistence") }
             if agentStore == .ephemeral { names.append("agentStore") }
             if requestOriginStore == .ephemeral { names.append("requestOriginStore") }

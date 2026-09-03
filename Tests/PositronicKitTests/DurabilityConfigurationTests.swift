@@ -6,13 +6,14 @@ import Testing
 
 @Suite("Persistence durability validation")
 struct DurabilityConfigurationTests {
-    @Test("in-memory configuration reports five ephemeral stores")
+    @Test("in-memory configuration reports six ephemeral stores")
     func inMemoryStoresAreEphemeral() {
         let report = PositronicKit.PersistenceConfiguration.inMemory().validateDurability()
         #expect(!report.isMixed)
-        #expect(report.ephemeralStoreNames.count == 5)
+        #expect(report.ephemeralStoreNames.count == 6)
         #expect(report.runtimeRepository == .ephemeral)
         #expect(report.workspacePersistence == .ephemeral)
+        #expect(report.workspaceBindingRepository == .ephemeral)
         #expect(report.toolPersistence == .ephemeral)
         #expect(report.agentStore == .ephemeral)
         #expect(report.requestOriginStore == .ephemeral)
@@ -59,6 +60,7 @@ struct DurabilityConfigurationTests {
         let first = PositronicKit.DurabilityReport(
             runtimeRepository: .durable,
             workspacePersistence: .durable,
+            workspaceBindingRepository: .durable,
             toolPersistence: .durable,
             agentStore: .ephemeral,
             requestOriginStore: .durable
@@ -66,6 +68,7 @@ struct DurabilityConfigurationTests {
         #expect(first == PositronicKit.DurabilityReport(
             runtimeRepository: .durable,
             workspacePersistence: .durable,
+            workspaceBindingRepository: .durable,
             toolPersistence: .durable,
             agentStore: .ephemeral,
             requestOriginStore: .durable
