@@ -339,16 +339,10 @@ extension ThreadManager {
             }
         }
 
-        // Delete messages (best-effort).
-        do {
-            try await messageStore.deleteMessages(for: id)
-        } catch {
-            degradations.append(StoreDegradation(
-                operation: "deleteThreadPermanently.deleteMessages",
-                entityID: "thread:\(id.uuidString.prefix(8))",
-                error: error
-            ))
-        }
+        // Message history is no longer deleted here: `threadStore.deleteThread(id:)` below
+        // cascades history deletion as part of destroying the thread record (see the
+        // `ThreadRuntimeRepository` cascade contract). Ordinary append-only history remains
+        // immutable while the thread is alive; only destroying the thread destroys its history.
 
         // Resolve ownership before deleting workspace records. `.attached` workspaces belong to
         // the caller, while runtime workspaces can be shared; only thread-specific runtime

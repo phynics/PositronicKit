@@ -420,6 +420,20 @@ public enum ThreadRuntimeRepositoryError: Error, Equatable, Sendable, CustomStri
 /// message again. Callers use the returned success as the durable-before-side-effect barrier:
 /// provider requests and tool execution begin only after their corresponding repository operation
 /// succeeds.
+///
+/// ## History deletion cascade
+///
+/// `deleteThread(id:)` (inherited from ``ThreadPersistenceProtocol``) MUST cascade: destroying a
+/// Thread destroys its durable history and summary projections along with it. Append-only (ADR
+/// 0003) means a Thread's history is immutable *while the Thread lives*, not that it survives the
+/// Thread's own deletion — a conformer that drops the thread row but leaves `messages`/summaries
+/// behind creates an unbounded, unreachable-by-ID storage leak and a data-retention problem for
+/// any content the deleted Thread carried. `deleteMessages(for:)` remains forbidden for ordinary
+/// in-place history pruning (`ThreadRuntimeRepositoryError.historyDeletionForbidden`); the only
+/// sanctioned path to removing a Thread's messages is deleting the Thread itself. A SQL-backed
+/// conformer typically satisfies this with `ON DELETE CASCADE` foreign keys from messages/summary
+/// tables to the thread row; an in-memory or other keyed-store conformer must remove the
+/// corresponding per-thread entries explicitly inside `deleteThread(id:)`.
 public protocol ThreadRuntimeRepository: ThreadPersistenceProtocol, ThreadMessageStoreProtocol {
     func admitTurn(
         threadID: UUID,

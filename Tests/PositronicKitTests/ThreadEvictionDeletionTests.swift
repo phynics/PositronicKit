@@ -287,9 +287,19 @@ struct ThreadEvictionDeletionTests {
         let degradation = try #require(result.degradations.first)
         #expect(degradation.operation.contains("deleteThread"))
 
-        // Messages and workspaces were still cleaned up despite the thread failure.
-        #expect(try await backing.fetchMessages(for: thread.id).isEmpty)
+        // Workspaces are still cleaned up despite the thread failure — that cleanup is a
+        // separate, independent step in `deleteThreadPermanently`.
         #expect(try await backing.fetchWorkspace(id: workspaceId, includeTools: false) == nil)
+
+        // Messages are NOT cleaned up here: history deletion is now solely the cascade that
+        // `threadStore.deleteThread(id:)` performs internally (H-01), and this test wires a
+        // `threadStore` (`failingThreadStore`) that is a different object from `messageStore`
+        // (`backing`) and throws before doing anything. `ThreadManager` no longer has a separate
+        // `messageStore.deleteMessages(for:)` step to fall back on, so a host that splits its
+        // thread store from its message store no longer gets an independent best-effort message
+        // cleanup — it must use one `ThreadRuntimeRepository` for both, as the default facade
+        // wiring now does.
+        #expect(try await backing.fetchMessages(for: thread.id).count == 1)
 
         // Thread row was NOT removed (delete threw before delegating to backing).
         #expect(failingThreadStore.deleteAttemptCount == 1)
@@ -318,5 +328,27 @@ struct ThreadEvictionDeletionTests {
 
         #expect(result.isComplete)
         #expect(result.degradations.isEmpty)
+    }
+
+    // MARK: - H-01 regression: default facade wiring must not orphan message history
+
+    @Test("deleteThreadPermanently through the default public facade cascades message history (H-01)")
+    func permanentDeleteThroughDefaultFacadeCascadesHistory() async throws {
+        // Regression for H-01: `PositronicKit()` wires `messageStore` to the same
+        // `InMemoryThreadRuntimeRepository` as `runtimeRepository` (append-only history), so
+        // `deleteThreadPermanently` must no longer rely on `messageStore.deleteMessages(for:)` —
+        // that call always throws `historyDeletionForbidden` there. Deleting the thread must
+        // cascade the message history instead of silently leaving it orphaned and unreachable.
+        let kit = PositronicKit()
+        let handle = try await kit.threads.create(title: "probe")
+        try await kit.runtimeRepository.saveMessage(ThreadMessage(
+            threadID: handle.id, role: .user, content: "secret user text"
+        ))
+
+        let result = await kit.threadManager.deleteThreadPermanently(id: handle.id)
+
+        #expect(result.isComplete, "deletion should fully succeed; degradations: \(result.degradations)")
+        #expect(result.degradations.isEmpty)
+        #expect(try await kit.runtimeRepository.fetchMessages(for: handle.id).isEmpty)
     }
 }

@@ -192,6 +192,13 @@ public final class MockPersistenceService: ThreadRuntimeRepository, WorkspaceSto
     }
 
     public func deleteThread(id: UUID) async throws {
+        // `ThreadRuntimeRepository.deleteThread(id:)` must cascade history deletion (see the
+        // protocol's doc comment). This mock backs message reads with two stores — a focused
+        // `messagesMock` and the cohesive `turnRuntime` — so both must drop the thread's
+        // messages here for `fetchMessages(for:)` to reflect the same cascade a real conformer
+        // guarantees.
+        try await messagesMock.deleteMessages(for: id)
+        _ = state.withLock { $0.deletedMessageThreadIDs.insert(id) }
         try await threadsMock.deleteThread(id: id)
         try await turnRuntime.deleteThread(id: id)
     }

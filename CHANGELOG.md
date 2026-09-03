@@ -8,6 +8,24 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Permanent thread deletion no longer orphans message history:** `deleteThreadPermanently` used
+  to remove the thread record while leaving its durable messages behind under a threadID that no
+  longer existed, because `ThreadManager` called the append-only-history repository's
+  `deleteMessages(for:)` (which always fails: `ThreadRuntimeRepositoryError.historyDeletionForbidden`,
+  per ADR 0003) instead of relying on thread deletion itself. The result was silent data
+  retention: `deleteThreadPermanently` reported success (a `degradations` entry most callers never
+  inspect) while every message the thread ever held stayed reachable from the storage layer
+  indefinitely — a privacy problem and an unbounded storage leak. `deleteThread(id:)` now cascades:
+  destroying a Thread destroys its message history and summary projections with it.
+  `ThreadManager` no longer calls `deleteMessages(for:)` during deletion.
+- **New conformer requirement:** every `ThreadRuntimeRepository` conformer MUST cascade history
+  deletion from `deleteThread(id:)` — see the doc comment on `ThreadRuntimeRepository`. A
+  SQL-backed adapter using `ON DELETE CASCADE` already satisfies this; a custom in-memory or
+  keyed-store conformer must remove its per-thread entries explicitly. `deleteMessages(for:)`
+  remains forbidden for ordinary append-only history pruning.
+
 ### Changed
 
 - **Cohesive Turn durability:** every Turn execution path now requires one
