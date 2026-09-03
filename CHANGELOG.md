@@ -99,6 +99,22 @@ for tagged releases beginning with `1.0.0`.
   next event, so it hung forever: one leaked `Task` per collision for the life of the process. The
   not-registered branch now finishes the source stream with the `threadBusy` error itself, so the
   relay task's own catch branch reports it to the event hub and completes normally.
+- **External tool-output submission reservations are runtime-scoped and cancellation-safe
+  (D-03):** `ExternalToolOutputSubmissionGate` exposed a `static let shared` singleton keyed only
+  by `(threadID, toolCallId)`, so two independent `PositronicKit` instances in one process —
+  documented to start independent histories — contended over identical reservation keys; it was
+  the last process-global mutable state in the runtime (`TurnIdempotencyGate` was removed in
+  ced84e9). It is now constructed once per runtime identity in `PositronicKit.RuntimeState` and
+  threaded through `TurnEngine.Dependencies.submissionGate`, the same way `TurnEventHub` already
+  is. Separately, `validate` reserved a call ID but only `commit`/`releaseReservations` freed it:
+  a batch that reserved several outputs and then failed validation partway through left the
+  earlier, already-reserved outputs permanently stuck (the caller only receives the reservation
+  list on success, so it had no way to release what a partially-failed call already reserved).
+  `validate` now releases everything it reserved during its own call before rethrowing. The actor
+  also gained `withReservation(_:threadID:inputMessageID:runtimeRepository:operation:)`, a
+  scope-bound alternative to a bare `validate`/`commit` pair that releases on every exit from
+  `operation` — including a cancellation `operation` never itself observes — via
+  `withTaskCancellationHandler`, not merely a `do`/`catch`.
 
 ### Changed
 

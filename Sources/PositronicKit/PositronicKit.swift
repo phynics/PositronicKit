@@ -43,17 +43,23 @@ public final class PositronicKit: Sendable {
         let promptHistoryRegistry: ThreadPromptJournals
         let agentAuthorityCoordinator: AgentAuthorityCoordinator
         let eventHub: TurnEventHub
+        /// Scoped to this runtime identity (not process-global) so two `PositronicKit`
+        /// instances — documented to start independent histories — never contend over the
+        /// same `(threadID, toolCallId)` reservation keys (D-03).
+        let submissionGate: ExternalToolOutputSubmissionGate
 
         init(
             threadManager: ThreadManager,
             promptHistoryRegistry: ThreadPromptJournals,
             agentAuthorityCoordinator: AgentAuthorityCoordinator,
-            eventHub: TurnEventHub
+            eventHub: TurnEventHub,
+            submissionGate: ExternalToolOutputSubmissionGate
         ) {
             self.threadManager = threadManager
             self.promptHistoryRegistry = promptHistoryRegistry
             self.agentAuthorityCoordinator = agentAuthorityCoordinator
             self.eventHub = eventHub
+            self.submissionGate = submissionGate
         }
     }
 
@@ -230,10 +236,12 @@ public final class PositronicKit: Sendable {
         // provisions no thread directory regardless of this value.
         let resolvedThreadManager: ThreadManager
         let resolvedEventHub: TurnEventHub
+        let resolvedSubmissionGate: ExternalToolOutputSubmissionGate
 
         if let runtimeState {
             resolvedThreadManager = runtimeState.threadManager
             resolvedEventHub = runtimeState.eventHub
+            resolvedSubmissionGate = runtimeState.submissionGate
         } else {
             // The facade is the only place a ThreadManager gets built: every store it wraps
             // comes from the same `persistence` surface the rest of the facade uses, so there is
@@ -254,6 +262,7 @@ public final class PositronicKit: Sendable {
             )
             resolvedThreadManager = newThreadManager
             resolvedEventHub = TurnEventHub()
+            resolvedSubmissionGate = ExternalToolOutputSubmissionGate()
         }
 
         let resolvedCatalogRoot = dependencies.workspaceProfile.catalogRoot
@@ -291,7 +300,8 @@ public final class PositronicKit: Sendable {
             threadManager: resolvedThreadManager,
             promptHistoryRegistry: resolvedPromptHistoryRegistry,
             agentAuthorityCoordinator: resolvedAgentAuthorityCoordinator,
-            eventHub: resolvedEventHub
+            eventHub: resolvedEventHub,
+            submissionGate: resolvedSubmissionGate
         )
         self.runtimeState = resolvedRuntimeState
         threadManager = resolvedRuntimeState.threadManager
@@ -327,7 +337,8 @@ public final class PositronicKit: Sendable {
                 loggingConfiguration: dependencies.loggingConfiguration,
                 degradationPolicy: dependencies.degradationPolicy,
                 promptHistoryRegistry: promptHistoryRegistry,
-                eventHub: resolvedEventHub
+                eventHub: resolvedEventHub,
+                submissionGate: resolvedSubmissionGate
             )
         )
         engine.additionalStages = dependencies.additionalStages

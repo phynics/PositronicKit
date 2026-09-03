@@ -228,16 +228,122 @@ struct TurnAdmissionSeamTests {
             )
         }
 
-        let retryable = try await ExternalToolOutputSubmissionGate.shared.validate(
+        let retryable = try await harness.engine.dependencies.submissionGate.validate(
             [ToolOutputSubmission(toolCallID: callID, output: "result")],
             threadID: harness.threadID,
             runtimeRepository: harness.repository
         )
         #expect(retryable.map(\.toolCallID) == [callID])
-        await ExternalToolOutputSubmissionGate.shared.releaseReservations(
+        await harness.engine.dependencies.submissionGate.releaseReservations(
             threadID: harness.threadID,
             toolCallIds: [callID]
         )
+    }
+
+    /// Regression for D-03(b): a `validate` call that reserves several outputs and then throws
+    /// partway through the batch used to leave the earlier, already-reserved outputs stranded —
+    /// the caller only receives the reservation list on success, so it has no way to release
+    /// what a partially-failed call already reserved internally. `validate` now self-cleans: on
+    /// its own throw, it releases everything it reserved during that same call before rethrowing.
+    @Test("A partially invalid validate batch releases its own earlier reservations")
+    func partiallyInvalidValidateBatchReleasesEarlierReservations() async throws {
+        let harness = try await makeHarness()
+        let goodCallID = "reserved-then-batch-fails"
+        let calls = try SerializationUtils.jsonEncoder.encode([
+            ToolCall(id: goodCallID, name: "external_tool", arguments: [:]),
+        ])
+        try await harness.repository.saveMessage(ThreadMessage(
+            threadID: harness.threadID,
+            role: .assistant,
+            content: "",
+            toolCalls: String(decoding: calls, as: UTF8.self)
+        ))
+
+        let gate = harness.engine.dependencies.submissionGate
+        await #expect(throws: ToolError.self) {
+            _ = try await gate.validate(
+                [
+                    ToolOutputSubmission(toolCallID: goodCallID, output: "result"),
+                    ToolOutputSubmission(toolCallID: "no-such-call", output: "result"),
+                ],
+                threadID: harness.threadID,
+                runtimeRepository: harness.repository
+            )
+        }
+
+        // If the first output's reservation leaked, this second validate would see it as already
+        // reserved and drop it from the pending set, so `retryable` would come back empty.
+        let retryable = try await gate.validate(
+            [ToolOutputSubmission(toolCallID: goodCallID, output: "result")],
+            threadID: harness.threadID,
+            runtimeRepository: harness.repository
+        )
+        #expect(retryable.map(\.toolCallID) == [goodCallID])
+        await gate.releaseReservations(threadID: harness.threadID, toolCallIds: [goodCallID])
+    }
+
+    /// Regression for D-03(b): a reservation must not strand when the caller is cancelled between
+    /// `validate` and `commit`. `withReservation` wraps that window and releases on every exit —
+    /// including a cancellation `operation` never itself observes or checks — via
+    /// `withTaskCancellationHandler`, not merely a `do`/`catch` around `operation`.
+    @Test("withReservation releases its reservation when cancelled before commit")
+    func withReservationReleasesOnCancellationBeforeCommit() async throws {
+        let harness = try await makeHarness()
+        let callID = "cancelled-before-commit"
+        let calls = try SerializationUtils.jsonEncoder.encode([
+            ToolCall(id: callID, name: "external_tool", arguments: [:]),
+        ])
+        try await harness.repository.saveMessage(ThreadMessage(
+            threadID: harness.threadID,
+            role: .assistant,
+            content: "",
+            toolCalls: String(decoding: calls, as: UTF8.self)
+        ))
+
+        let gate = harness.engine.dependencies.submissionGate
+        let (enteredOperation, signalEntered) = AsyncStream<Void>.makeStream()
+        let (releaseOperation, signalRelease) = AsyncStream<Void>.makeStream()
+
+        let task = Task {
+            try await gate.withReservation(
+                [ToolOutputSubmission(toolCallID: callID, output: "result")],
+                threadID: harness.threadID,
+                runtimeRepository: harness.repository
+            ) { validated -> Void in
+                signalEntered.yield()
+                // `operation` never checks cancellation itself, standing in for a caller whose
+                // work between reservation and commit doesn't happen to surface a thrown error —
+                // exactly the gap a bare `do`/`catch` around `operation` would miss.
+                for await _ in releaseOperation {}
+                #expect(validated.map(\.toolCallID) == [callID])
+            }
+        }
+
+        var entered = enteredOperation.makeAsyncIterator()
+        _ = await entered.next()
+        task.cancel()
+        signalRelease.finish()
+        _ = try? await task.value
+
+        // The cancellation handler releases from its own detached cleanup Task (see
+        // `withReservation`'s doc comment on why `operation` completing isn't itself the release
+        // signal), so give it a bounded window to land instead of asserting on the very next
+        // scheduler tick.
+        var retryable: [ToolOutputSubmission] = []
+        for _ in 0 ..< 50 {
+            retryable = try await gate.validate(
+                [ToolOutputSubmission(toolCallID: callID, output: "result")],
+                threadID: harness.threadID,
+                runtimeRepository: harness.repository
+            )
+            if !retryable.isEmpty { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+
+        // If the reservation had leaked, `retryable` stays empty for the whole bounded window
+        // because `validate` sees the call ID as already reserved.
+        #expect(retryable.map(\.toolCallID) == [callID])
+        await gate.releaseReservations(threadID: harness.threadID, toolCallIds: [callID])
     }
 
     private func makeRequest(

@@ -133,6 +133,7 @@ struct TurnEngine {
         let degradationPolicy: TurnDegradationPolicy
         let promptHistoryRegistry: ThreadPromptJournals
         let eventHub: TurnEventHub
+        let submissionGate: ExternalToolOutputSubmissionGate
         let streamTimeout: TimeInterval
 
         init(
@@ -153,6 +154,7 @@ struct TurnEngine {
             degradationPolicy: TurnDegradationPolicy = .failRequired,
             promptHistoryRegistry: ThreadPromptJournals? = nil,
             eventHub: TurnEventHub? = nil,
+            submissionGate: ExternalToolOutputSubmissionGate? = nil,
             streamTimeout: TimeInterval = Self.defaultStreamTimeout
         ) {
             self.threadManager = threadManager
@@ -172,6 +174,7 @@ struct TurnEngine {
             self.degradationPolicy = degradationPolicy
             self.promptHistoryRegistry = promptHistoryRegistry ?? ThreadPromptJournals()
             self.eventHub = eventHub ?? TurnEventHub()
+            self.submissionGate = submissionGate ?? ExternalToolOutputSubmissionGate()
             self.streamTimeout = streamTimeout
         }
     }
