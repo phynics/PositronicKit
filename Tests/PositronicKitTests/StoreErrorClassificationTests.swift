@@ -24,6 +24,7 @@ struct StoreErrorClassificationTests {
                 threadStore: failingStore,
                 messageStore: MockPersistenceService(),
                 workspaceStore: MockPersistenceService(),
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: InMemoryThreadRuntimeRepository(),
                 toolPersistence: MockPersistenceService()
             ),
@@ -72,6 +73,7 @@ struct StoreErrorClassificationTests {
                 threadStore: failingStore,
                 messageStore: MockPersistenceService(),
                 workspaceStore: MockPersistenceService(),
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: InMemoryThreadRuntimeRepository(),
                 toolPersistence: MockPersistenceService()
             ),
@@ -106,6 +108,7 @@ struct StoreErrorClassificationTests {
                 threadStore: failingStore,
                 messageStore: MockPersistenceService(),
                 workspaceStore: MockPersistenceService(),
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: InMemoryThreadRuntimeRepository(),
                 toolPersistence: MockPersistenceService()
             ),
@@ -140,6 +143,7 @@ struct StoreErrorClassificationTests {
                 threadStore: failingStore,
                 messageStore: MockPersistenceService(),
                 workspaceStore: MockPersistenceService(),
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: InMemoryThreadRuntimeRepository(),
                 toolPersistence: MockPersistenceService()
             ),
@@ -189,6 +193,7 @@ struct StoreErrorClassificationTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: failingWorkspaceStore,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
@@ -228,6 +233,7 @@ struct StoreErrorClassificationTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: persistence,
                 toolPersistence: failingToolPersistence
             ),
@@ -257,6 +263,7 @@ struct StoreErrorClassificationTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
@@ -281,6 +288,7 @@ struct StoreErrorClassificationTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: failingWorkspaceStore,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: persistence,
                 toolPersistence: persistence
             ),

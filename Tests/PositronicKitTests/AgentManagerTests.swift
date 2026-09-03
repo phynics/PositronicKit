@@ -308,6 +308,7 @@ struct AgentManagerTests {
                 threadStore: threadStore,
                 messageStore: messageStore,
                 workspaceStore: workspaceStore,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: InMemoryThreadRuntimeRepository(),
                 toolPersistence: InMemoryToolPersistence()
             ),

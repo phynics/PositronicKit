@@ -26,6 +26,19 @@ for tagged releases beginning with `1.0.0`.
   keyed-store conformer must remove its per-thread entries explicitly. `deleteMessages(for:)`
   remains forbidden for ordinary append-only history pruning.
 
+- **Workspace binding repository resolved once, not re-inferred per seam (C-02):** the runtime
+  used to infer the workspace binding repository independently at four different assembly points,
+  each with its own `as?` downcast fallback chain over a different store — `PositronicKit`'s
+  internal graph assembly, `ThreadManager.Stores`, `DefaultWorkspaceCatalog`, and
+  `PersistenceConfiguration`. A host that conformed one candidate store to
+  `WorkspaceBindingRepository` but not another could get different binding wiring depending on
+  which internal path happened to build the graph, contradicting ADR 0004's requirement that
+  binding authority be repository-only. `PersistenceConfiguration` is now the single place the
+  binding repository is resolved; `ThreadManager.Stores`, `DefaultWorkspaceCatalog`, and the
+  facade's internal assembly all receive the already-resolved repository instead of re-deriving
+  it. `WorkspaceResolverFactory.makeDefault(...)` gained a `bindingRepository:` parameter so the
+  default resolver's catalog no longer diverges from the rest of the runtime's binding wiring.
+
 ### Changed
 
 - **Cohesive Turn durability:** every Turn execution path now requires one

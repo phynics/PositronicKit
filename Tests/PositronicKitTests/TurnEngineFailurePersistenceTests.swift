@@ -35,6 +35,7 @@ struct TurnEngineFailurePersistenceTests {
                 threadStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: mockPersistence,
                 toolPersistence: mockPersistence
             ),
@@ -91,6 +92,7 @@ struct TurnEngineFailurePersistenceTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: persistence,
                 toolPersistence: persistence
             ),

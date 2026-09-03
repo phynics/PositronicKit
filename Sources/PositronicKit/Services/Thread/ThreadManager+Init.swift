@@ -47,6 +47,7 @@ extension ThreadManager {
             resolver: WorkspaceResolverFactory.makeDefault(
                 workspaceRoot: catalogRoot,
                 workspaceStore: stores.workspaceStore,
+                bindingRepository: stores.workspaceBindingRepository,
                 workspaceCreator: workspaceCreator
             ),
             runtimeToolPolicy: runtimeToolPolicy,

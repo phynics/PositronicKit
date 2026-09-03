@@ -680,6 +680,7 @@ final class ToolRouterTests {
                 threadStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: mockPersistence,
                 toolPersistence: mockPersistence
             ),
@@ -917,6 +918,7 @@ struct WorkspaceToolDispatcherTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
@@ -1053,6 +1055,7 @@ struct ToolTurnProjectionTests {
                 threadStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: mockPersistence,
                 toolPersistence: mockPersistence
             ),
@@ -1258,6 +1261,7 @@ struct ToolDurabilityOrderingTests {
                 threadStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: mockPersistence,
                 toolPersistence: mockPersistence
             ),

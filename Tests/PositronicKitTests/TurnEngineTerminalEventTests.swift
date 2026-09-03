@@ -30,6 +30,7 @@ struct TurnEngineTerminalEventTests {
                 threadStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: mockPersistence,
                 toolPersistence: mockPersistence
             ),
@@ -95,6 +96,7 @@ struct TurnEngineTerminalEventTests {
                 threadStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: mockPersistence,
                 toolPersistence: mockPersistence
             ),

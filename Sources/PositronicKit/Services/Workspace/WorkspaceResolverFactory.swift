@@ -14,12 +14,14 @@ public enum WorkspaceResolverFactory {
     public static func makeDefault(
         workspaceRoot: URL,
         workspaceStore: any WorkspaceStore,
+        bindingRepository: (any WorkspaceBindingRepository)? = nil,
         workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator()
     ) -> any WorkspaceResolver {
         DefaultWorkspaceResolver(
             repository: DefaultWorkspaceCatalog(
                 workspaceRoot: workspaceRoot,
-                workspacePersistence: workspaceStore
+                workspacePersistence: workspaceStore,
+                bindingRepository: bindingRepository
             ),
             workspaceCreator: workspaceCreator
         )

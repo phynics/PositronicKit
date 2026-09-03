@@ -143,7 +143,7 @@ public final class PositronicKit: Sendable {
     convenience init(
         languageModel: any LLMStreamClient,
         runtimeRepository: any ThreadRuntimeRepository,
-        workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil,
+        workspaceBindingRepository: any WorkspaceBindingRepository,
         agentStore: (any AgentStoreProtocol)? = nil,
         requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
         workspacePersistence: (any WorkspaceStore)? = nil,
@@ -160,16 +160,15 @@ public final class PositronicKit: Sendable {
         sharedRegistry: ThreadPromptJournals,
         additionalStages: [any PipelineStage<TurnContext, TurnEvent>]
     ) {
+        // The binding repository is resolved exactly once, by `PersistenceConfiguration`
+        // (ADR 0004: binding authority is repository-only). This seam receives it rather than
+        // re-deriving it from an `as?` downcast of another store (C-02).
         let resolvedWorkspaceStore = workspacePersistence ?? InMemoryWorkspacePersistence()
-        let resolvedBindingRepository = workspaceBindingRepository
-            ?? (runtimeRepository as? any WorkspaceBindingRepository)
-            ?? (resolvedWorkspaceStore as? any WorkspaceBindingRepository)
-            ?? InMemoryWorkspaceBindingRepository()
         self.init(
             dependencies: KitDependencies(
                 languageModel: languageModel,
                 runtimeRepository: runtimeRepository,
-                workspaceBindingRepository: resolvedBindingRepository,
+                workspaceBindingRepository: workspaceBindingRepository,
                 agentStore: agentStore ?? InMemoryAgentStore(),
                 requestOriginStore: requestOriginStore ?? InMemoryRequestOriginStore(),
                 workspacePersistence: resolvedWorkspaceStore,

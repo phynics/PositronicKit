@@ -43,6 +43,7 @@ final class ToolApprovalPolicyFilesystemToolsTests {
                 threadStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: mockPersistence,
                 toolPersistence: mockPersistence
             ),

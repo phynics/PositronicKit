@@ -23,6 +23,7 @@ struct TurnEngineTests {
                 threadStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: mockPersistence,
                 toolPersistence: mockPersistence
             ),
@@ -1132,6 +1133,7 @@ struct TurnEngineTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
@@ -1338,6 +1340,7 @@ struct TurnEngineTests {
                 threadStore: repository,
                 messageStore: repository,
                 workspaceStore: repository,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: repository,
                 toolPersistence: repository
             ),

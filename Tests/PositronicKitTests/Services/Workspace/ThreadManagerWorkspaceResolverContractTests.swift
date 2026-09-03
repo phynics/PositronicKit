@@ -50,12 +50,14 @@ struct ThreadManagerWorkspaceResolverContractTests {
     @Test("ThreadManager built with a custom WorkspaceResolver creates and hydrates threads")
     func createAndHydrateWithCustomResolver() async throws {
         let workspace = TestWorkspace()
+        let workspaceStore = InMemoryWorkspacePersistence()
 
         let manager = ThreadManager(
             stores: .init(
                 threadStore: InMemoryThreadPersistence(),
                 messageStore: InMemoryMessageStore(),
-                workspaceStore: InMemoryWorkspacePersistence(),
+                workspaceStore: workspaceStore,
+                workspaceBindingRepository: workspaceStore,
                 runtimeRepository: InMemoryThreadRuntimeRepository(),
                 toolPersistence: InMemoryToolPersistence()
             ),

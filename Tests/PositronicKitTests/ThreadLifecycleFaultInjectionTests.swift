@@ -117,6 +117,7 @@ struct ThreadLifecycleFaultInjectionTests {
                 threadStore: threadStore,
                 messageStore: threadStore,
                 workspaceStore: workspaceStore,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: threadStore,
                 toolPersistence: threadStore
             ),
@@ -151,6 +152,7 @@ struct ThreadLifecycleFaultInjectionTests {
                 threadStore: threadStore,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: InMemoryThreadRuntimeRepository(),
                 toolPersistence: persistence
             ),
@@ -205,6 +207,7 @@ struct ThreadLifecycleFaultInjectionTests {
                 threadStore: failingThreadStore,
                 messageStore: persistence,
                 workspaceStore: workspaceStore,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: InMemoryThreadRuntimeRepository(),
                 toolPersistence: persistence
             ),
@@ -238,6 +241,7 @@ struct ThreadLifecycleFaultInjectionTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: failingWorkspaceStore,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
@@ -281,6 +285,7 @@ struct ThreadLifecycleFaultInjectionTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: workspaceStore,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
@@ -321,6 +326,7 @@ struct ThreadLifecycleFaultInjectionTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: workspaceStore,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
@@ -352,6 +358,7 @@ struct ThreadLifecycleFaultInjectionTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
@@ -385,6 +392,7 @@ struct ThreadLifecycleFaultInjectionTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: failingWorkspaceStore,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
@@ -416,6 +424,7 @@ struct ThreadLifecycleFaultInjectionTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
@@ -447,6 +456,7 @@ struct ThreadLifecycleFaultInjectionTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
@@ -490,6 +500,7 @@ struct ThreadLifecycleFaultInjectionTests {
                 threadStore: failingThreadStore,
                 messageStore: persistence,
                 workspaceStore: workspaceStore,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: InMemoryThreadRuntimeRepository(),
                 toolPersistence: persistence
             ),
@@ -511,6 +522,7 @@ struct ThreadLifecycleFaultInjectionTests {
                 threadStore: healthyStore,
                 messageStore: persistence,
                 workspaceStore: workspaceStore,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: InMemoryThreadRuntimeRepository(),
                 toolPersistence: persistence
             ),

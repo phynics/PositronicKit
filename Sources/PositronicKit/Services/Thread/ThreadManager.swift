@@ -41,11 +41,15 @@ actor ThreadManager {
         let runtimeRepository: any ThreadRuntimeRepository
         let toolPersistence: any ToolPersistenceProtocol
 
+        // The binding repository is resolved exactly once, by `PersistenceConfiguration`
+        // (ADR 0004: binding authority is repository-only). This seam receives it rather than
+        // re-deriving it from an `as?` downcast of `workspaceStore` (C-02) — every caller must
+        // pass one explicitly.
         init(
             threadStore: any ThreadPersistenceProtocol,
             messageStore: any ThreadMessageStoreProtocol,
             workspaceStore: any WorkspaceStore,
-            workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil,
+            workspaceBindingRepository: any WorkspaceBindingRepository,
             runtimeRepository: any ThreadRuntimeRepository,
             toolPersistence: any ToolPersistenceProtocol
         ) {
@@ -53,8 +57,6 @@ actor ThreadManager {
             self.messageStore = messageStore
             self.workspaceStore = workspaceStore
             self.workspaceBindingRepository = workspaceBindingRepository
-                ?? (workspaceStore as? any WorkspaceBindingRepository)
-                ?? InMemoryWorkspaceBindingRepository()
             self.runtimeRepository = runtimeRepository
             self.toolPersistence = toolPersistence
         }

@@ -87,6 +87,7 @@ struct ThreadEvictionDeletionTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
@@ -117,6 +118,7 @@ struct ThreadEvictionDeletionTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
@@ -158,6 +160,7 @@ struct ThreadEvictionDeletionTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
@@ -201,6 +204,7 @@ struct ThreadEvictionDeletionTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
@@ -269,6 +273,7 @@ struct ThreadEvictionDeletionTests {
                 threadStore: failingThreadStore,
                 messageStore: backing,
                 workspaceStore: backing,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: InMemoryThreadRuntimeRepository(),
                 toolPersistence: backing
             ),
@@ -323,6 +328,7 @@ struct ThreadEvictionDeletionTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
