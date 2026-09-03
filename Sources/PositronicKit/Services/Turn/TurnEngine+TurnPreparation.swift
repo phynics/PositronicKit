@@ -287,6 +287,12 @@ extension TurnEngine {
 
             // 3. Validate tool output submissions and reserve pending call IDs — no persistence.
             //    Already-persisted outputs are skipped (resumable batch support).
+            //
+            //    Reservation/release symmetry is provided by this method's own `do`/`catch`: every
+            //    exit from the span between this call and `commit` below either throws — landing
+            //    in the catch, which calls `releaseReservations` — or falls through to `commit`,
+            //    which releases. There is no non-throwing early return in between, and a cancelled
+            //    task throws at the next cancellation-aware await, so a reservation cannot strand.
             validatedToolOutputs = try await dependencies.submissionGate.validate(
                 toolOutputs ?? [],
                 threadID: threadID,

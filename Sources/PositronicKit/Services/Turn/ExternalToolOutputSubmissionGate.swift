@@ -91,50 +91,6 @@ actor ExternalToolOutputSubmissionGate {
         return validated
     }
 
-    /// Reserves `toolOutputs` via ``validate(_:threadID:inputMessageID:runtimeRepository:)`` and
-    /// guarantees the reservation is released on every exit from `operation` — including a throw
-    /// and cancellation — so the caller cannot strand it by abandoning the work between
-    /// reservation and commit. `operation` remains responsible for calling
-    /// ``commit(_:threadID:runtimeRepository:)`` itself on success; this only guards the failure
-    /// and cancellation paths `operation` does not clean up on its own.
-    ///
-    /// This is the scope-bound alternative to a bare `validate` + `commit` pair. It fits call
-    /// sites that can wrap their post-validation work in a single closure; a caller whose
-    /// post-validation work spans multiple early-return branches (as `TurnEngine.prepareSession`
-    /// does) instead keeps its own `do`/`catch` and reserve/release symmetry, since flattening
-    /// that control flow into one closure would be a much larger, riskier change than this fix.
-    func withReservation<T: Sendable>(
-        _ toolOutputs: [ToolOutputSubmission],
-        threadID: UUID,
-        inputMessageID: UUID? = nil,
-        runtimeRepository: any ThreadRuntimeRepository,
-        operation: @Sendable (_ validated: [ToolOutputSubmission]) async throws -> T
-    ) async throws -> T {
-        let validated = try await validate(
-            toolOutputs,
-            threadID: threadID,
-            inputMessageID: inputMessageID,
-            runtimeRepository: runtimeRepository
-        )
-        // `operation` is not required to check cancellation itself, so a plain do/catch around it
-        // would miss a cancellation that `operation` silently absorbs. The cancellation handler
-        // releases synchronously with the calling task's cancellation instead of depending on
-        // `operation` to notice and rethrow — the same pattern `TurnEventHub.awaitTerminal` uses
-        // to resume a waiter from `onCancel` without an unstructured cleanup task owning the
-        // resource itself. `releaseReservations` is idempotent, so a release from `onCancel`
-        // racing a release already performed by `operation` (e.g. via `commit`) is harmless.
-        return try await withTaskCancellationHandler {
-            do {
-                return try await operation(validated)
-            } catch {
-                releaseReservations(threadID: threadID, toolCallIds: validated.map(\.toolCallID))
-                throw error
-            }
-        } onCancel: {
-            Task { await self.releaseReservations(threadID: threadID, toolCallIds: validated.map(\.toolCallID)) }
-        }
-    }
-
     /// Persists validated tool output messages. Already-persisted outputs are skipped so a
     /// partially failed batch can be retried without duplication (resumable batch support).
     ///
