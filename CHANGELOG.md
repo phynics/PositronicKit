@@ -49,6 +49,13 @@ for tagged releases beginning with `1.0.0`.
   product and the leaf context per ADR 0002. `PKUtilities` still depends on `PKContracts` and
   continues to use both types unchanged. Code that referenced either type via `import PKUtilities`
   now needs `import PKContracts` instead.
+- **`WorkspaceBindingRepository`'s descriptive-alias extension is removed (D-04):** `claimWorkspace`,
+  `releaseWorkspace`, `transferWorkspace`, `listBindings`, and `resolveThread` forwarded to the
+  protocol's five requirements (`claim`, `release`, `transfer`, `bindings`, `threadID`) with no
+  behavior difference and had zero callers anywhere in the tree. They doubled the public API for
+  no semantics and left a host implementer guessing which spelling was canonical, which AGENTS.md's
+  compatibility-alias policy does not allow without an owning issue and a justified consumer story.
+  Use the protocol's own method names directly.
 
 ### Fixed
 
