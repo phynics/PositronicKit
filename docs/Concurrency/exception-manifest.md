@@ -62,6 +62,16 @@ subscriber state. The actor is the sole owner of subscription, publication,
 termination, and cancellation cleanup, so the continuation has an explicit
 lifecycle rather than being shared through an unmanaged reference.
 
+`TurnEventHub` also stores keyed `CheckedContinuation<Void, Never>` values for
+`awaitTerminal(turnID:)` callers waiting on a Turn's terminal signal. Registration
+happens fully inside the actor-isolated call before it can suspend, so a concurrent
+`finish(turnID:)` can never miss a waiter that is mid-registration, and a
+cancellation handler that removes a waiter can never race ahead of it being added —
+both paths serialize through the same actor. `finish(turnID:)` resumes and clears
+every waiter for that Turn; `awaitTerminal`'s `onCancel` hands cleanup to a Task
+that re-enters the actor to resume and remove exactly its own waiter, the same
+pattern already used by this file's subscriber `onTermination` cleanup.
+
 ## Cancellation-aware permit boundaries
 
 `FIFOLane` (`Sources/PositronicKit/Services/Concurrency/FIFOLane.swift`) stores keyed lane state

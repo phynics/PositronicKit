@@ -21,6 +21,10 @@ actor AgentManager: AgentManagerProtocol {
         public let runtimeRepository: (any ThreadRuntimeRepository)?
         public let threadAuthorityCoordinator: ThreadAuthorityCoordinator?
         public let agentAuthorityCoordinator: AgentAuthorityCoordinator?
+        /// The process-local Turn terminal signal. When supplied, `waitForIdle` wakes as soon as
+        /// the hub observes a thread's active Turn finish instead of relying solely on its
+        /// bounded fallback poll. `nil` (the default) makes every wait use that fallback poll.
+        let eventHub: TurnEventHub?
 
         public init(
             agentStore: any AgentStoreProtocol,
@@ -29,7 +33,8 @@ actor AgentManager: AgentManagerProtocol {
             workspaceStore: any WorkspaceStore,
             runtimeRepository: (any ThreadRuntimeRepository)? = nil,
             threadAuthorityCoordinator: ThreadAuthorityCoordinator? = nil,
-            agentAuthorityCoordinator: AgentAuthorityCoordinator? = nil
+            agentAuthorityCoordinator: AgentAuthorityCoordinator? = nil,
+            eventHub: TurnEventHub? = nil
         ) {
             self.agentStore = agentStore
             self.threadStore = threadStore
@@ -38,6 +43,7 @@ actor AgentManager: AgentManagerProtocol {
             self.runtimeRepository = runtimeRepository
             self.threadAuthorityCoordinator = threadAuthorityCoordinator
             self.agentAuthorityCoordinator = agentAuthorityCoordinator
+            self.eventHub = eventHub
         }
 
     }
@@ -50,6 +56,7 @@ actor AgentManager: AgentManagerProtocol {
     let runtimeRepository: (any ThreadRuntimeRepository)?
     let threadAuthorityCoordinator: ThreadAuthorityCoordinator
     let agentAuthorityCoordinator: AgentAuthorityCoordinator
+    let eventHub: TurnEventHub?
 
     private let repository: any WorkspaceCatalog
     /// When non-nil, private-thread deletion routes through `ThreadManager.evictThreadFromMemory(id:)`
@@ -73,6 +80,7 @@ actor AgentManager: AgentManagerProtocol {
             ?? threadManager?.threadAuthorityCoordinator
             ?? ThreadAuthorityCoordinator()
         self.agentAuthorityCoordinator = stores.agentAuthorityCoordinator ?? AgentAuthorityCoordinator()
+        self.eventHub = stores.eventHub
         self.threadManager = threadManager
     }
 
@@ -552,12 +560,29 @@ actor AgentManager: AgentManagerProtocol {
         try await deleteAgentUnlocked(id: id, force: true)
     }
 
+    /// Waits until `threadID` has no active Turn.
+    ///
+    /// Each loop iteration waits out exactly one active Turn: the hub wakes it immediately if
+    /// this process admitted that Turn, or a single bounded poll covers one admitted elsewhere
+    /// (including when no hub was wired into this manager at all). The outer loop then re-checks
+    /// the repository, since a new Turn can in principle be admitted for the thread between one
+    /// Turn finishing and this call observing it idle.
     private func waitForIdle(threadID: UUID) async throws {
         guard let runtimeRepository else { return }
+        // A manager constructed without an event hub (e.g. in a unit test) still gets a correct,
+        // bounded wait: an empty hub never tracks any turn as active, so `awaitResult` always
+        // takes its single-poll fallback path with the same timeout policy.
+        let waiter = TurnTerminationWaiter(hub: eventHub ?? TurnEventHub())
         while let activeTurn = try await runtimeRepository.fetchActiveTurn(for: threadID) {
             try Task.checkCancellation()
-            try await Task.sleep(nanoseconds: 25_000_000)
-            _ = activeTurn
+            let turnID = activeTurn.identity.turnID
+            let observation = try await waiter.awaitResult(turnID: turnID) {
+                let refreshed = try await runtimeRepository.fetchTurn(id: turnID)
+                return (refreshed == nil || refreshed?.isTerminal == true) ? true : nil
+            }
+            if case .timedOut = observation {
+                throw AgentError.turnStillActive(turnID: turnID)
+            }
         }
     }
 

@@ -13,6 +13,7 @@ enum TurnEngineError: PKError {
     case danglingToolCall(id: String)
     case danglingToolResult(id: String)
     case promptHistoryInconsistent(String)
+    case turnReplayTimedOut(turnID: UUID)
 
     var errorDomain: String {
         PKErrorDomain.turn
@@ -26,6 +27,7 @@ enum TurnEngineError: PKError {
         case .danglingToolCall: return 9004
         case .danglingToolResult: return 9005
         case .promptHistoryInconsistent: return 9007
+        case .turnReplayTimedOut: return 9008
         }
     }
 
@@ -43,6 +45,8 @@ enum TurnEngineError: PKError {
             return "Thread history contains a tool result with id '\(id)' that has no matching assistant tool call."
         case let .promptHistoryInconsistent(detail):
             return "The prompt history could not record this turn safely: \(detail)"
+        case let .turnReplayTimedOut(turnID):
+            return "Turn \(turnID) did not reach a terminal state while waiting to replay it. Please try again."
         }
     }
 
@@ -50,7 +54,7 @@ enum TurnEngineError: PKError {
         switch self {
         case .danglingToolCall, .danglingToolResult:
             return "Repair the persisted thread history so assistant tool calls and tool results are paired before retrying."
-        case .llmServiceNotConfigured, .missingInput, .streamTimedOut, .promptHistoryInconsistent:
+        case .llmServiceNotConfigured, .missingInput, .streamTimedOut, .promptHistoryInconsistent, .turnReplayTimedOut:
             return nil
         }
     }
@@ -351,17 +355,28 @@ struct TurnEngine {
 
     private func replayExistingTurn(_ admission: TurnAdmission) async throws -> AsyncThrowingStream<TurnEvent, Error> {
         let repository = dependencies.runtimeRepository
+        let waiter = TurnTerminationWaiter(hub: dependencies.eventHub)
+        let turnID = admission.turn.identity.turnID
         let (stream, continuation) = AsyncThrowingStream<TurnEvent, Error>.makeStream()
         let task = Task {
             do {
                 var record = admission.turn
-                while !record.isTerminal {
-                    try Task.checkCancellation()
-                    try await Task.sleep(nanoseconds: 50_000_000)
-                    guard let refreshed = try await repository.fetchTurn(id: record.identity.turnID) else {
-                        throw TurnEngineError.promptHistoryInconsistent("Admitted Turn disappeared during replay.")
+                if !record.isTerminal {
+                    // The hub wakes this immediately if it is tracking the Turn as active in this
+                    // process; otherwise a single bounded poll covers a Turn admitted by another
+                    // process, or one that finished before this call started.
+                    let observation = try await waiter.awaitResult(turnID: turnID) {
+                        guard let refreshed = try await repository.fetchTurn(id: turnID) else {
+                            throw TurnEngineError.promptHistoryInconsistent("Admitted Turn disappeared during replay.")
+                        }
+                        return refreshed.isTerminal ? refreshed : nil
                     }
-                    record = refreshed
+                    switch observation {
+                    case let .value(refreshed):
+                        record = refreshed
+                    case .timedOut:
+                        throw TurnEngineError.turnReplayTimedOut(turnID: turnID)
+                    }
                 }
                 let messages = try await repository.fetchMessages(for: record.threadID)
                 if let messageID = record.terminalMessageID,

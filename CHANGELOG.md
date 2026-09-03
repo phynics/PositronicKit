@@ -31,7 +31,6 @@ for tagged releases beginning with `1.0.0`.
 - **`WorkspaceBindingRepository` now refines `DurabilityAware`** instead of `Sendable`. Existing
   conformers keep compiling through the protocol's default `isDurable == false`, but a durable
   adapter must override it to `true` or `validateDurability()` will report it as ephemeral.
-
 ### Fixed
 
 - **Permanent thread deletion no longer orphans message history:** `deleteThreadPermanently` used
@@ -71,6 +70,18 @@ for tagged releases beginning with `1.0.0`.
   (existing conformers keep compiling via its default `isDurable == false`), and
   `DurabilityReport` / `validateDurability()` / `ephemeralStoreNames` gained a sixth
   `workspaceBindingRepository` field alongside the five they already reported.
+- **Turn-completion waiters no longer poll unboundedly (B-01):** `PositronicKit.waitForTurnOutcome`,
+  `TurnEngine.replayExistingTurn`, and `AgentManager.waitForIdle` each hand-rolled a fixed-interval
+  poll loop against the runtime repository (25ms, 50ms, and 25ms respectively) with no timeout, so
+  a Turn that never reached a terminal outcome — a stuck provider stream, or a repository that
+  silently swallowed `completeTurn` — spun one of these loops for the life of the process, and
+  correctness in tests depended on winning a race against a tick. All three now route through
+  `TurnEventHub.awaitTerminal(turnID:)`, which wakes a waiter the instant the hub observes the Turn
+  finish, with a single bounded poll (50ms interval, 30s timeout, configurable per call via the new
+  `TurnTerminationWaiter`) as the fallback for a Turn the hub never tracked as active — e.g. one
+  admitted by another process. `TurnEngine.replayExistingTurn`'s fallback timeout surfaces as the
+  new `TurnEngineError.turnReplayTimedOut`; `AgentManager.waitForIdle`'s surfaces as the new
+  `AgentError.turnStillActive`.
 
 ### Changed
 

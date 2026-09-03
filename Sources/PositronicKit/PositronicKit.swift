@@ -275,7 +275,8 @@ public final class PositronicKit: Sendable {
                 workspaceStore: self.workspacePersistence,
                 runtimeRepository: self.runtimeRepository,
                 threadAuthorityCoordinator: resolvedThreadManager.threadAuthorityCoordinator,
-                agentAuthorityCoordinator: resolvedAgentAuthorityCoordinator
+                agentAuthorityCoordinator: resolvedAgentAuthorityCoordinator,
+                eventHub: resolvedEventHub
             ),
             threadManager: resolvedThreadManager
         )
@@ -439,15 +440,20 @@ public final class PositronicKit: Sendable {
     }
 
     func waitForTurnOutcome(id turnID: UUID) async -> TurnOutcome {
-        while !Task.isCancelled {
-            if let record = try? await runtimeRepository.fetchTurn(id: turnID),
-               let outcome = record.outcome
-            {
-                return outcome
+        let waiter = TurnTerminationWaiter(hub: runtimeState.eventHub)
+        do {
+            let observation = try await waiter.awaitResult(turnID: turnID) {
+                try await self.runtimeRepository.fetchTurn(id: turnID)?.outcome
             }
-            try? await Task.sleep(nanoseconds: 25_000_000)
+            switch observation {
+            case let .value(outcome):
+                return outcome
+            case .timedOut:
+                return .cancelled(reason: "Outcome wait cancelled.")
+            }
+        } catch {
+            return .cancelled(reason: "Outcome wait cancelled.")
         }
-        return .cancelled(reason: "Outcome wait cancelled.")
     }
 
     func cancelTurn(id turnID: UUID, threadID: UUID) async {
