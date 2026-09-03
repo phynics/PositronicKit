@@ -30,8 +30,13 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
         durable
     }
 
-    /// - Parameter staleAfter: Age after which an active Turn is lazily interrupted during
-    ///   recovery. A non-positive value makes every active Turn eligible for recovery.
+    /// - Parameters:
+    ///   - staleAfter: Age after which an active Turn is lazily interrupted during
+    ///     recovery. A non-positive value makes every active Turn eligible for recovery.
+    ///   - isDurable: What this store reports through ``DurabilityAware/isDurable``. Defaults to
+    ///     `false`, since an in-memory repository does not survive process restart; pass `true`
+    ///     only in tests that need a store which classifies as durable in a
+    ///     ``PositronicKit/DurabilityReport``.
     public init(staleAfter: TimeInterval = 300, isDurable: Bool = false) {
         self.staleAfter = staleAfter
         durable = isDurable
