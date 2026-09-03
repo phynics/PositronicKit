@@ -64,8 +64,12 @@ lifecycle rather than being shared through an unmanaged reference.
 
 ## Cancellation-aware permit boundaries
 
-`AgentAuthorityCoordinator` stores keyed FIFO lane state in `Synchronization.Mutex`, and its
-`PermitWaiter` stores one checked continuation inside a separate mutex-protected lifecycle state.
+`FIFOLane` (`Sources/PositronicKit/Services/Concurrency/FIFOLane.swift`) stores keyed lane state
+in `Synchronization.Mutex`, and its `PermitWaiter` stores one checked continuation inside a
+separate mutex-protected lifecycle state. It is the single implementation behind every keyed
+FIFO coordinator in the runtime — `AgentAuthorityCoordinator`, `ThreadAuthorityCoordinator`, and
+`WorkspaceExecutionCoordinator` are thin typed wrappers over it, so this is now the one annotated
+continuation site for all three.
 Each waiter transitions exactly once from `pending` to `granted` or `cancelled`; cancellation
 removes it from the lane and resumes its suspended task synchronously. This avoids an
 unstructured cleanup task, prevents canceled waiters from being retained behind a hung operation,

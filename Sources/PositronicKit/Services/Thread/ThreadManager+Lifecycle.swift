@@ -255,8 +255,24 @@ extension ThreadManager {
     /// - Returns: A ``ThreadDeletionResult`` reporting any per-store cleanup failures.
     @discardableResult
     func deleteThreadPermanently(id: UUID) async -> ThreadDeletionResult {
-        await threadAuthorityCoordinator.withThread(id) {
-            await self.deleteThreadPermanentlyLocked(id: id)
+        do {
+            return try await threadAuthorityCoordinator.withThread(id) {
+                await self.deleteThreadPermanentlyLocked(id: id)
+            }
+        } catch {
+            // The Thread authority lane throws `CancellationError` when the calling task is
+            // cancelled while queued (or immediately after acquiring the lane), and never runs
+            // `deleteThreadPermanentlyLocked` in that case. Report it as a degradation rather
+            // than silently completing the deletion despite the caller's cancellation, or
+            // propagating a throw from a documented non-throwing API.
+            return ThreadDeletionResult(
+                threadID: id,
+                degradations: [StoreDegradation(
+                    operation: "deleteThreadPermanently.cancelled",
+                    entityID: "thread:\(id.uuidString.prefix(8))",
+                    error: error
+                )]
+            )
         }
     }
 

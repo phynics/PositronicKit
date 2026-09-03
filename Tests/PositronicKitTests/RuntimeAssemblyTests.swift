@@ -363,7 +363,7 @@ struct RuntimeAssemblyTests {
         let probe = LaneProbe()
 
         let first = Task {
-            await originalKit.threadManager.withWorkspaceExecution(workspaceID) {
+            try await originalKit.threadManager.withWorkspaceExecution(workspaceID) {
                 await probe.enter(1)
                 await probe.waitForRelease()
                 await probe.leave()
@@ -372,7 +372,7 @@ struct RuntimeAssemblyTests {
         #expect(await probe.waitUntilEntryCount(1))
         let second = Task {
             await probe.markSecondReady()
-            await reconfiguredKit.threadManager.withWorkspaceExecution(workspaceID) {
+            try await reconfiguredKit.threadManager.withWorkspaceExecution(workspaceID) {
                 await probe.enter(2)
                 await probe.leave()
             }
@@ -382,8 +382,11 @@ struct RuntimeAssemblyTests {
         #expect(await probe.order == [1])
 
         await probe.releaseFirst()
-        _ = await first.value
-        _ = await second.value
+        // Both lane closures are throwing now that the FIFO lane is cancellation-aware, so the
+        // task values are throwing too. Neither should actually throw here: nothing cancels
+        // these tasks, so a thrown error is a real failure and must surface, not be swallowed.
+        try await first.value
+        try await second.value
         #expect(await probe.maximumConcurrent == 1)
         #expect(await probe.order == [1, 2])
     }

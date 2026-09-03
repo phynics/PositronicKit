@@ -280,7 +280,7 @@ struct WorkspaceToolDispatchIntegrationTests {
         let manager = environment.manager
         let workspaceID = environment.workspace.id
         let lane = Task {
-            await manager.withWorkspaceExecution(workspaceID) {
+            try await manager.withWorkspaceExecution(workspaceID) {
                 laneStarted.open()
                 await releaseLane.wait()
             }
@@ -316,7 +316,7 @@ struct WorkspaceToolDispatchIntegrationTests {
             now: Date()
         )
         releaseLane.open()
-        await lane.value
+        try await lane.value
         try await pending.value
 
         #expect(await executionProbe.executionCount == 0)

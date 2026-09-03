@@ -34,7 +34,7 @@ final class WorkspaceExecutionCoordinatorTests: XCTestCase {
         }
         try await Task.sleep(for: .milliseconds(2))
         let second = Task {
-            await coordinator.withWorkspace(workspaceID) {
+            try await coordinator.withWorkspace(workspaceID) {
                 await probe.enter(2)
                 await probe.leave()
                 return 2
@@ -42,7 +42,7 @@ final class WorkspaceExecutionCoordinatorTests: XCTestCase {
         }
 
         let firstValue = try await first.value
-        let secondValue = await second.value
+        let secondValue = try await second.value
         XCTAssertEqual(firstValue, 1)
         XCTAssertEqual(secondValue, 2)
         let maximumActive = await probe.maximumActive

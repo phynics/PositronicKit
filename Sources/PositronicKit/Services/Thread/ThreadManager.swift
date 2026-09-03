@@ -256,7 +256,7 @@ actor ThreadManager {
     func withWorkspaceExecution<T: Sendable>(
         _ workspaceID: UUID,
         operation: @escaping @Sendable () async throws -> T
-    ) async rethrows -> T {
+    ) async throws -> T {
         try await workspaceExecutionCoordinator.withWorkspace(workspaceID, operation: operation)
     }
 
@@ -264,7 +264,7 @@ actor ThreadManager {
     func withThreadAuthority<T: Sendable>(
         _ threadID: UUID,
         operation: @escaping @Sendable () async throws -> T
-    ) async rethrows -> T {
+    ) async throws -> T {
         try await threadAuthorityCoordinator.withThread(threadID, operation: operation)
     }
 }
