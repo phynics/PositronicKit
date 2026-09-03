@@ -117,6 +117,8 @@ struct ThreadLifecycleFaultInjectionTests {
                 threadStore: threadStore,
                 messageStore: threadStore,
                 workspaceStore: workspaceStore,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
+                runtimeRepository: threadStore,
                 toolPersistence: threadStore
             ),
             workspaceProfile: .noWorkspace
@@ -150,6 +152,8 @@ struct ThreadLifecycleFaultInjectionTests {
                 threadStore: threadStore,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
+                runtimeRepository: InMemoryThreadRuntimeRepository(),
                 toolPersistence: persistence
             ),
             workspaceProfile: .noWorkspace
@@ -203,6 +207,8 @@ struct ThreadLifecycleFaultInjectionTests {
                 threadStore: failingThreadStore,
                 messageStore: persistence,
                 workspaceStore: workspaceStore,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
+                runtimeRepository: InMemoryThreadRuntimeRepository(),
                 toolPersistence: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
@@ -235,6 +241,8 @@ struct ThreadLifecycleFaultInjectionTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: failingWorkspaceStore,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
+                runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
@@ -277,6 +285,8 @@ struct ThreadLifecycleFaultInjectionTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: workspaceStore,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
+                runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
@@ -316,6 +326,8 @@ struct ThreadLifecycleFaultInjectionTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: workspaceStore,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
+                runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
             workspaceProfile: .hostManaged(root: invalidRoot)
@@ -346,6 +358,8 @@ struct ThreadLifecycleFaultInjectionTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
+                runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
@@ -378,6 +392,8 @@ struct ThreadLifecycleFaultInjectionTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: failingWorkspaceStore,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
+                runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
@@ -408,6 +424,8 @@ struct ThreadLifecycleFaultInjectionTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
+                runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
@@ -438,6 +456,8 @@ struct ThreadLifecycleFaultInjectionTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
+                runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
@@ -480,6 +500,8 @@ struct ThreadLifecycleFaultInjectionTests {
                 threadStore: failingThreadStore,
                 messageStore: persistence,
                 workspaceStore: workspaceStore,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
+                runtimeRepository: InMemoryThreadRuntimeRepository(),
                 toolPersistence: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
@@ -500,6 +522,8 @@ struct ThreadLifecycleFaultInjectionTests {
                 threadStore: healthyStore,
                 messageStore: persistence,
                 workspaceStore: workspaceStore,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
+                runtimeRepository: InMemoryThreadRuntimeRepository(),
                 toolPersistence: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)

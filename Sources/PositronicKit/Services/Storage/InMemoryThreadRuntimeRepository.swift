@@ -30,8 +30,13 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
         durable
     }
 
-    /// - Parameter staleAfter: Age after which an active Turn is lazily interrupted during
-    ///   recovery. A non-positive value makes every active Turn eligible for recovery.
+    /// - Parameters:
+    ///   - staleAfter: Age after which an active Turn is lazily interrupted during
+    ///     recovery. A non-positive value makes every active Turn eligible for recovery.
+    ///   - isDurable: What this store reports through ``DurabilityAware/isDurable``. Defaults to
+    ///     `false`, since an in-memory repository does not survive process restart; pass `true`
+    ///     only in tests that need a store which classifies as durable in a
+    ///     ``PositronicKit/DurabilityReport``.
     public init(staleAfter: TimeInterval = 300, isDurable: Bool = false) {
         self.staleAfter = staleAfter
         durable = isDurable
@@ -55,6 +60,13 @@ public actor InMemoryThreadRuntimeRepository: ThreadRuntimeRepository, Workspace
 
     public func deleteThread(id: UUID) async throws {
         threads.removeValue(forKey: id)
+        // Cascade: destroying the Thread destroys its history. Append-only means "immutable
+        // while the Thread lives," not "retained forever" — once the Thread row is gone, its
+        // messages and summary projections become unreachable, so this conformer removes them
+        // here rather than leaving them as an orphaned, unbounded leak. See the cascade contract
+        // documented on `ThreadRuntimeRepository`.
+        messages.removeValue(forKey: id)
+        summaries.removeValue(forKey: id)
         for workspaceID in workspaceIDsByThread.removeValue(forKey: id) ?? [] {
             workspaceBindingsByWorkspace.removeValue(forKey: workspaceID)
         }

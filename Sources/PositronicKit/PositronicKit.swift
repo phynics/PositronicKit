@@ -43,17 +43,23 @@ public final class PositronicKit: Sendable {
         let promptHistoryRegistry: ThreadPromptJournals
         let agentAuthorityCoordinator: AgentAuthorityCoordinator
         let eventHub: TurnEventHub
+        /// Scoped to this runtime identity (not process-global) so two `PositronicKit`
+        /// instances — documented to start independent histories — never contend over the
+        /// same `(threadID, toolCallId)` reservation keys (D-03).
+        let submissionGate: ExternalToolOutputSubmissionGate
 
         init(
             threadManager: ThreadManager,
             promptHistoryRegistry: ThreadPromptJournals,
             agentAuthorityCoordinator: AgentAuthorityCoordinator,
-            eventHub: TurnEventHub
+            eventHub: TurnEventHub,
+            submissionGate: ExternalToolOutputSubmissionGate
         ) {
             self.threadManager = threadManager
             self.promptHistoryRegistry = promptHistoryRegistry
             self.agentAuthorityCoordinator = agentAuthorityCoordinator
             self.eventHub = eventHub
+            self.submissionGate = submissionGate
         }
     }
 
@@ -142,8 +148,8 @@ public final class PositronicKit: Sendable {
 
     convenience init(
         languageModel: any LLMStreamClient,
-        runtimeRepository: any ThreadRuntimeRepository = InMemoryThreadRuntimeRepository(),
-        workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil,
+        runtimeRepository: any ThreadRuntimeRepository,
+        workspaceBindingRepository: any WorkspaceBindingRepository,
         agentStore: (any AgentStoreProtocol)? = nil,
         requestOriginStore: (any RequestOriginStoreProtocol)? = nil,
         workspacePersistence: (any WorkspaceStore)? = nil,
@@ -160,16 +166,15 @@ public final class PositronicKit: Sendable {
         sharedRegistry: ThreadPromptJournals,
         additionalStages: [any PipelineStage<TurnContext, TurnEvent>]
     ) {
+        // The binding repository is resolved exactly once, by `PersistenceConfiguration`
+        // (ADR 0004: binding authority is repository-only). This seam receives it rather than
+        // re-deriving it from an `as?` downcast of another store (C-02).
         let resolvedWorkspaceStore = workspacePersistence ?? InMemoryWorkspacePersistence()
-        let resolvedBindingRepository = workspaceBindingRepository
-            ?? (runtimeRepository as? any WorkspaceBindingRepository)
-            ?? (resolvedWorkspaceStore as? any WorkspaceBindingRepository)
-            ?? InMemoryWorkspaceBindingRepository()
         self.init(
             dependencies: KitDependencies(
                 languageModel: languageModel,
                 runtimeRepository: runtimeRepository,
-                workspaceBindingRepository: resolvedBindingRepository,
+                workspaceBindingRepository: workspaceBindingRepository,
                 agentStore: agentStore ?? InMemoryAgentStore(),
                 requestOriginStore: requestOriginStore ?? InMemoryRequestOriginStore(),
                 workspacePersistence: resolvedWorkspaceStore,
@@ -231,10 +236,12 @@ public final class PositronicKit: Sendable {
         // provisions no thread directory regardless of this value.
         let resolvedThreadManager: ThreadManager
         let resolvedEventHub: TurnEventHub
+        let resolvedSubmissionGate: ExternalToolOutputSubmissionGate
 
         if let runtimeState {
             resolvedThreadManager = runtimeState.threadManager
             resolvedEventHub = runtimeState.eventHub
+            resolvedSubmissionGate = runtimeState.submissionGate
         } else {
             // The facade is the only place a ThreadManager gets built: every store it wraps
             // comes from the same `persistence` surface the rest of the facade uses, so there is
@@ -255,6 +262,7 @@ public final class PositronicKit: Sendable {
             )
             resolvedThreadManager = newThreadManager
             resolvedEventHub = TurnEventHub()
+            resolvedSubmissionGate = ExternalToolOutputSubmissionGate()
         }
 
         let resolvedCatalogRoot = dependencies.workspaceProfile.catalogRoot
@@ -276,7 +284,8 @@ public final class PositronicKit: Sendable {
                 workspaceStore: self.workspacePersistence,
                 runtimeRepository: self.runtimeRepository,
                 threadAuthorityCoordinator: resolvedThreadManager.threadAuthorityCoordinator,
-                agentAuthorityCoordinator: resolvedAgentAuthorityCoordinator
+                agentAuthorityCoordinator: resolvedAgentAuthorityCoordinator,
+                eventHub: resolvedEventHub
             ),
             threadManager: resolvedThreadManager
         )
@@ -291,7 +300,8 @@ public final class PositronicKit: Sendable {
             threadManager: resolvedThreadManager,
             promptHistoryRegistry: resolvedPromptHistoryRegistry,
             agentAuthorityCoordinator: resolvedAgentAuthorityCoordinator,
-            eventHub: resolvedEventHub
+            eventHub: resolvedEventHub,
+            submissionGate: resolvedSubmissionGate
         )
         self.runtimeState = resolvedRuntimeState
         threadManager = resolvedRuntimeState.threadManager
@@ -327,7 +337,8 @@ public final class PositronicKit: Sendable {
                 loggingConfiguration: dependencies.loggingConfiguration,
                 degradationPolicy: dependencies.degradationPolicy,
                 promptHistoryRegistry: promptHistoryRegistry,
-                eventHub: resolvedEventHub
+                eventHub: resolvedEventHub,
+                submissionGate: resolvedSubmissionGate
             )
         )
         engine.additionalStages = dependencies.additionalStages
@@ -439,16 +450,17 @@ public final class PositronicKit: Sendable {
         }
     }
 
-    func waitForTurnOutcome(id turnID: UUID) async -> TurnOutcome {
-        while !Task.isCancelled {
-            if let record = try? await runtimeRepository.fetchTurn(id: turnID),
-               let outcome = record.outcome
-            {
-                return outcome
-            }
-            try? await Task.sleep(nanoseconds: 25_000_000)
+    func waitForTurnOutcome(id turnID: UUID) async throws -> TurnOutcome {
+        let waiter = TurnTerminationWaiter(hub: runtimeState.eventHub)
+        let observation = try await waiter.awaitResult(turnID: turnID) {
+            try await self.runtimeRepository.fetchTurn(id: turnID)?.outcome
         }
-        return .cancelled(reason: "Outcome wait cancelled.")
+        switch observation {
+        case let .value(outcome):
+            return outcome
+        case .timedOut:
+            throw TurnOutcomeTimedOut(turnID: turnID)
+        }
     }
 
     func cancelTurn(id turnID: UUID, threadID: UUID) async {

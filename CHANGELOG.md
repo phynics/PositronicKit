@@ -8,6 +8,143 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Breaking
+
+- **Keyed FIFO lanes are cancellation-aware, and two coordinator methods became `throws`:**
+  `ThreadAuthorityCoordinator` and `WorkspaceExecutionCoordinator` parked queued callers in a bare
+  `withCheckedContinuation` with no cancellation handling and no post-acquire cancellation check,
+  so a cancelled task queued behind either one stayed suspended until the lane was handed over and
+  then ran its operation anyway. `ThreadAuthorityCoordinator` sits on the Turn admission path, so a
+  cancelled Turn could still perform admission work. All three keyed coordinators now share one
+  cancellation-aware `FIFOLane` — the design `AgentAuthorityCoordinator` already used — and throw
+  `CancellationError` instead of running the operation. `ThreadManager.withWorkspaceExecution` and
+  `withThreadAuthority` changed from `rethrows` to `throws` as a result.
+- **`WorkspaceExecutionCoordinator` exposes one spelling of its lane operation:** the redundant
+  `withWorkspace(_:operation:)` and `withWorkspace(id:operation:)` aliases are removed; use
+  `withWorkspaceExecution(workspaceID:operation:)`.
+
+- **`DurabilityReport` gained a required `workspaceBindingRepository` parameter:** its public
+  memberwise initializer now takes `workspaceBindingRepository: StoreDurability` third, after
+  `workspacePersistence:`. Code that only *reads* a report returned by `validateDurability()` is
+  unaffected; code that constructs a `DurabilityReport` directly must pass the new argument.
+  `ephemeralStoreNames` can now return six names instead of five.
+- **`WorkspaceBindingRepository` now refines `DurabilityAware`** instead of `Sendable`. Existing
+  conformers keep compiling through the protocol's default `isDurable == false`, but a durable
+  adapter must override it to `true` or `validateDurability()` will report it as ephemeral.
+- **`TurnHandle.outcome()` now `throws` (B-02):** it used to return `.cancelled(reason: "Outcome
+  wait cancelled.")` when the *caller's* task was cancelled while waiting — a `TurnOutcome` value
+  indistinguishable from one the repository actually recorded, even though the Turn itself could
+  still be running and could still complete normally. `outcome()` now rethrows `CancellationError`
+  on caller cancellation and throws the new `TurnOutcomeTimedOut` error if the bounded wait (see
+  below) elapses first; neither case fabricates a durable outcome. Callers that only awaited a
+  successful outcome need `try` added; callers that need to distinguish "cancelled" from
+  "genuinely not observed yet" now can.
+- **`LoggingConfiguration` and `LogRedactionPolicy` moved from `PKUtilities` to `PKContracts`
+  (E-01):** `Configuration.logging` accepted a `LoggingConfiguration` value, but the type lived in
+  `PKUtilities`, which is deliberately not a public library product (`Scripts/check-dependency-direction.sh`
+  fails the build if it is ever added to `Package.swift`'s products list). A consumer importing
+  only `PositronicKit` could not name `LoggingConfiguration` or `LogRedactionPolicy` and could
+  therefore only ever accept `.default` — the parameter existed but was not actually consumer
+  constructible. Both types are runtime-neutral and now live in `PKContracts`, which is a public
+  product and the leaf context per ADR 0002. `PKUtilities` still depends on `PKContracts` and
+  continues to use both types unchanged. Code that referenced either type via `import PKUtilities`
+  now needs `import PKContracts` instead.
+- **`WorkspaceBindingRepository`'s descriptive-alias extension is removed (D-04):** `claimWorkspace`,
+  `releaseWorkspace`, `transferWorkspace`, `listBindings`, and `resolveThread` forwarded to the
+  protocol's five requirements (`claim`, `release`, `transfer`, `bindings`, `threadID`) with no
+  behavior difference and had zero callers anywhere in the tree. They doubled the public API for
+  no semantics and left a host implementer guessing which spelling was canonical, which AGENTS.md's
+  compatibility-alias policy does not allow without an owning issue and a justified consumer story.
+  Use the protocol's own method names directly.
+
+### Fixed
+
+- **Permanent thread deletion no longer orphans message history:** `deleteThreadPermanently` used
+  to remove the thread record while leaving its durable messages behind under a threadID that no
+  longer existed, because `ThreadManager` called the append-only-history repository's
+  `deleteMessages(for:)` (which always fails: `ThreadRuntimeRepositoryError.historyDeletionForbidden`,
+  per ADR 0003) instead of relying on thread deletion itself. The result was silent data
+  retention: `deleteThreadPermanently` reported success (a `degradations` entry most callers never
+  inspect) while every message the thread ever held stayed reachable from the storage layer
+  indefinitely — a privacy problem and an unbounded storage leak. `deleteThread(id:)` now cascades:
+  destroying a Thread destroys its message history and summary projections with it.
+  `ThreadManager` no longer calls `deleteMessages(for:)` during deletion.
+- **New conformer requirement:** every `ThreadRuntimeRepository` conformer MUST cascade history
+  deletion from `deleteThread(id:)` — see the doc comment on `ThreadRuntimeRepository`. A
+  SQL-backed adapter using `ON DELETE CASCADE` already satisfies this; a custom in-memory or
+  keyed-store conformer must remove its per-thread entries explicitly. `deleteMessages(for:)`
+  remains forbidden for ordinary append-only history pruning.
+
+- **Workspace binding repository resolved once, not re-inferred per seam (C-02):** the runtime
+  used to infer the workspace binding repository independently at four different assembly points,
+  each with its own `as?` downcast fallback chain over a different store — `PositronicKit`'s
+  internal graph assembly, `ThreadManager.Stores`, `DefaultWorkspaceCatalog`, and
+  `PersistenceConfiguration`. A host that conformed one candidate store to
+  `WorkspaceBindingRepository` but not another could get different binding wiring depending on
+  which internal path happened to build the graph, contradicting ADR 0004's requirement that
+  binding authority be repository-only. `PersistenceConfiguration` is now the single place the
+  binding repository is resolved; `ThreadManager.Stores`, `DefaultWorkspaceCatalog`, and the
+  facade's internal assembly all receive the already-resolved repository instead of re-deriving
+  it. `WorkspaceResolverFactory.makeDefault(...)` gained a `bindingRepository:` parameter so the
+  default resolver's catalog no longer diverges from the rest of the runtime's binding wiring.
+- **`validateDurability()` now classifies the workspace binding repository (C-03):** `WorkspaceBindingRepository`
+  refined `Sendable` rather than `DurabilityAware`, so `PersistenceConfiguration.validateDurability()`
+  could not see it at all — a host could conform every other store durably, call
+  `fullyPersistent(...)`, receive an all-durable `DurabilityReport`, and still silently lose every
+  workspace binding on restart (it is exactly the store C-02 shows silently defaults to
+  `InMemoryWorkspaceBindingRepository`). `WorkspaceBindingRepository` now refines `DurabilityAware`
+  (existing conformers keep compiling via its default `isDurable == false`), and
+  `DurabilityReport` / `validateDurability()` / `ephemeralStoreNames` gained a sixth
+  `workspaceBindingRepository` field alongside the five they already reported.
+- **Turn-completion waiters no longer poll unboundedly (B-01):** `PositronicKit.waitForTurnOutcome`,
+  `TurnEngine.replayExistingTurn`, and `AgentManager.waitForIdle` each hand-rolled a fixed-interval
+  poll loop against the runtime repository (25ms, 50ms, and 25ms respectively) with no timeout, so
+  a Turn that never reached a terminal outcome — a stuck provider stream, or a repository that
+  silently swallowed `completeTurn` — spun one of these loops for the life of the process, and
+  correctness in tests depended on winning a race against a tick. All three now route through
+  `TurnEventHub.awaitTerminal(turnID:)`, which wakes a waiter the instant the hub observes the Turn
+  finish, with a single bounded poll (50ms interval, 30s timeout, configurable per call via the new
+  `TurnTerminationWaiter`) as the fallback for a Turn the hub never tracked as active — e.g. one
+  admitted by another process. `TurnEngine.replayExistingTurn`'s fallback timeout surfaces as the
+  new `TurnEngineError.turnReplayTimedOut`; `AgentManager.waitForIdle`'s surfaces as the new
+  `AgentError.turnStillActive`.
+- **`startExecution` no longer leaks a bridge task on a `threadBusy` collision (E-03):** when
+  `ThreadManager.registerTask` returned `false` for a Turn that had already begun durable
+  admission, the driving task returned before ever finishing the source stream's continuation —
+  the only other place that happened was inside `runTurnLoop`, which this path never reaches. The
+  private task relaying that source stream into the event hub was already suspended awaiting its
+  next event, so it hung forever: one leaked `Task` per collision for the life of the process. The
+  not-registered branch now finishes the source stream with the `threadBusy` error itself, so the
+  relay task's own catch branch reports it to the event hub and completes normally.
+- **External tool-output submission reservations are runtime-scoped and cancellation-safe
+  (D-03):** `ExternalToolOutputSubmissionGate` exposed a `static let shared` singleton keyed only
+  by `(threadID, toolCallId)`, so two independent `PositronicKit` instances in one process —
+  documented to start independent histories — contended over identical reservation keys; it was
+  the last process-global mutable state in the runtime (`TurnIdempotencyGate` was removed in
+  ced84e9). It is now constructed once per runtime identity in `PositronicKit.RuntimeState` and
+  threaded through `TurnEngine.Dependencies.submissionGate`, the same way `TurnEventHub` already
+  is. Separately, `validate` reserved a call ID but only `commit`/`releaseReservations` freed it:
+  a batch that reserved several outputs and then failed validation partway through left the
+  earlier, already-reserved outputs permanently stuck (the caller only receives the reservation
+  list on success, so it had no way to release what a partially-failed call already reserved).
+  `validate` now releases everything it reserved during its own call before rethrowing. The actor
+  also gained `withReservation(_:threadID:inputMessageID:runtimeRepository:operation:)`, a
+  scope-bound alternative to a bare `validate`/`commit` pair that releases on every exit from
+  `operation` — including a cancellation `operation` never itself observes — via
+  `withTaskCancellationHandler`, not merely a `do`/`catch`.
+
+- **The partial/cancelled assistant row now commits inside `completeTurn`'s terminal transaction
+  (F-01):** `PartialAssistantPersistence` used to call `runtimeRepository.saveMessage(...)`
+  directly, before `commitTerminal` recorded the Turn's outcome -- two separate writes, so a crash
+  between them could leave an assistant row on a Thread whose Turn was still active, the exact
+  state ADR 0003's and ADR 0007's single-transaction boundary excludes.
+  `ThreadRuntimeRepository.completeTurn`'s `finalMessage` parameter already atomically appends a
+  message for *any* outcome, not only `.completed` -- `TurnEngine.completeTerminalOutcome` now
+  resolves the partial/cancelled message the same way it already resolved the normal terminal
+  message, and passes it through that same `finalMessage` parameter instead of a standalone
+  `saveMessage` call ahead of it. `PartialAssistantPersistence` is now a pure builder
+  (`partialAssistantMessage(context:status:)`); it no longer persists anything itself.
+
 ### Changed
 
 - **Cohesive Turn durability:** every Turn execution path now requires one

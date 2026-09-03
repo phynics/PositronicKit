@@ -62,3 +62,18 @@ let streamConfiguredKit = PositronicKit(configuration: .init(
 ))
 _ = streamConfiguredKit.model
 _ = LLMUtilityGenerator(streamClient: streamOnly)
+
+// E-01 regression gate: `Configuration.logging` must be constructible by a consumer that only
+// imports PositronicKit — `LoggingConfiguration` and `LogRedactionPolicy` must be nameable
+// without @testable access. A non-default value (custom redaction policy and logger factory)
+// is required here; naming the type alone is not enough to catch a type that consumers can only
+// ever default.
+let customLoggingConfiguration = LoggingConfiguration(
+    redactionPolicy: LogRedactionPolicy(logsPayloads: true)
+)
+let loggingConfiguredKit = PositronicKit(configuration: .init(
+    provider: .init(languageModel: streamOnly),
+    persistence: .inMemory(),
+    logging: customLoggingConfiguration
+))
+_ = loggingConfiguredKit.model

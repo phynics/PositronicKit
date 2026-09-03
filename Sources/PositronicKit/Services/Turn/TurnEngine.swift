@@ -13,6 +13,7 @@ enum TurnEngineError: PKError {
     case danglingToolCall(id: String)
     case danglingToolResult(id: String)
     case promptHistoryInconsistent(String)
+    case turnReplayTimedOut(turnID: UUID)
 
     var errorDomain: String {
         PKErrorDomain.turn
@@ -26,6 +27,7 @@ enum TurnEngineError: PKError {
         case .danglingToolCall: return 9004
         case .danglingToolResult: return 9005
         case .promptHistoryInconsistent: return 9007
+        case .turnReplayTimedOut: return 9008
         }
     }
 
@@ -43,6 +45,8 @@ enum TurnEngineError: PKError {
             return "Thread history contains a tool result with id '\(id)' that has no matching assistant tool call."
         case let .promptHistoryInconsistent(detail):
             return "The prompt history could not record this turn safely: \(detail)"
+        case let .turnReplayTimedOut(turnID):
+            return "Turn \(turnID) did not reach a terminal state while waiting to replay it. Please try again."
         }
     }
 
@@ -50,7 +54,7 @@ enum TurnEngineError: PKError {
         switch self {
         case .danglingToolCall, .danglingToolResult:
             return "Repair the persisted thread history so assistant tool calls and tool results are paired before retrying."
-        case .llmServiceNotConfigured, .missingInput, .streamTimedOut, .promptHistoryInconsistent:
+        case .llmServiceNotConfigured, .missingInput, .streamTimedOut, .promptHistoryInconsistent, .turnReplayTimedOut:
             return nil
         }
     }
@@ -129,6 +133,7 @@ struct TurnEngine {
         let degradationPolicy: TurnDegradationPolicy
         let promptHistoryRegistry: ThreadPromptJournals
         let eventHub: TurnEventHub
+        let submissionGate: ExternalToolOutputSubmissionGate
         let streamTimeout: TimeInterval
 
         init(
@@ -149,6 +154,7 @@ struct TurnEngine {
             degradationPolicy: TurnDegradationPolicy = .failRequired,
             promptHistoryRegistry: ThreadPromptJournals? = nil,
             eventHub: TurnEventHub? = nil,
+            submissionGate: ExternalToolOutputSubmissionGate? = nil,
             streamTimeout: TimeInterval = Self.defaultStreamTimeout
         ) {
             self.threadManager = threadManager
@@ -168,6 +174,7 @@ struct TurnEngine {
             self.degradationPolicy = degradationPolicy
             self.promptHistoryRegistry = promptHistoryRegistry ?? ThreadPromptJournals()
             self.eventHub = eventHub ?? TurnEventHub()
+            self.submissionGate = submissionGate ?? ExternalToolOutputSubmissionGate()
             self.streamTimeout = streamTimeout
         }
     }
@@ -333,35 +340,49 @@ struct TurnEngine {
             await dependencies.threadManager.removeTask(turnID: turnID, for: threadID)
             _ = await bridge.value
         }
+        // Installed before any possible `continuation.finish(...)` below so a termination that
+        // races the not-registered branch can never observe the handler unset.
+        continuation.onTermination = { @Sendable _ in task.cancel() }
         let registered = await dependencies.threadManager.registerTask(task, turnID: turnID, for: threadID)
         if !registered {
             task.cancel()
+            // `task` returns before reaching `runTurnLoop`, which is the only other place that
+            // finishes `continuation`. Without this, `bridge` — already iterating `sourceStream`
+            // — would suspend forever waiting for an event that never comes, leaking one Task per
+            // `threadBusy` collision for the process lifetime. Finishing here with the busy error
+            // makes `bridge`'s catch branch the single path that reports it to the event hub, so
+            // the external stream still surfaces `threadBusy` once `bridge` relays it.
+            continuation.finish(throwing: ThreadRuntimeRepositoryError.threadBusy(threadID: threadID, activeTurnID: turnID))
         }
         startContinuation.yield(registered)
         startContinuation.finish()
-        if !registered {
-            await dependencies.eventHub.finish(
-                turnID: turnID,
-                error: ThreadRuntimeRepositoryError.threadBusy(threadID: threadID, activeTurnID: turnID)
-            )
-        }
-        continuation.onTermination = { @Sendable _ in task.cancel() }
         return TurnExecution(turnID: turnID, stream: stream)
     }
 
     private func replayExistingTurn(_ admission: TurnAdmission) async throws -> AsyncThrowingStream<TurnEvent, Error> {
         let repository = dependencies.runtimeRepository
+        let waiter = TurnTerminationWaiter(hub: dependencies.eventHub)
+        let turnID = admission.turn.identity.turnID
         let (stream, continuation) = AsyncThrowingStream<TurnEvent, Error>.makeStream()
         let task = Task {
             do {
                 var record = admission.turn
-                while !record.isTerminal {
-                    try Task.checkCancellation()
-                    try await Task.sleep(nanoseconds: 50_000_000)
-                    guard let refreshed = try await repository.fetchTurn(id: record.identity.turnID) else {
-                        throw TurnEngineError.promptHistoryInconsistent("Admitted Turn disappeared during replay.")
+                if !record.isTerminal {
+                    // The hub wakes this immediately if it is tracking the Turn as active in this
+                    // process; otherwise a single bounded poll covers a Turn admitted by another
+                    // process, or one that finished before this call started.
+                    let observation = try await waiter.awaitResult(turnID: turnID) {
+                        guard let refreshed = try await repository.fetchTurn(id: turnID) else {
+                            throw TurnEngineError.promptHistoryInconsistent("Admitted Turn disappeared during replay.")
+                        }
+                        return refreshed.isTerminal ? refreshed : nil
                     }
-                    record = refreshed
+                    switch observation {
+                    case let .value(refreshed):
+                        record = refreshed
+                    case .timedOut:
+                        throw TurnEngineError.turnReplayTimedOut(turnID: turnID)
+                    }
                 }
                 let messages = try await repository.fetchMessages(for: record.threadID)
                 if let messageID = record.terminalMessageID,

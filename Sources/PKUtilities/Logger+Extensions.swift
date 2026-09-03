@@ -1,5 +1,6 @@
 import Foundation
 import Logging
+import PKContracts
 
 /// Standard PositronicKit logging subsystem for all host-independent loggers.
 public enum PKLogSubsystem {

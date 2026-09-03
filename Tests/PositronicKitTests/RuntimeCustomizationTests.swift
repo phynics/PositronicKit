@@ -73,7 +73,7 @@ struct RuntimeCustomizationTests {
         )
         _ = await turn.events().collect()
 
-        #expect(await turn.outcome() == .completed)
+        #expect(try await turn.outcome() == .completed)
         let notices = try await repository.fetchNotices(turnID: turn.id)
         #expect(notices.contains { $0.kind == TurnNoticeCode.contextContributionFailed.rawValue })
         #expect(model.mockClient.streamCallCount == 1)
@@ -100,7 +100,7 @@ struct RuntimeCustomizationTests {
 
         let prompt = model.mockClient.lastMessages.map(\.content).joined(separator: "\n")
         #expect(prompt.contains("tenant=berlin"))
-        #expect(await turn.outcome() == .completed)
+        #expect(try await turn.outcome() == .completed)
     }
 
     @Test("activity and outcome sinks cannot change a durable terminal outcome")
@@ -133,7 +133,7 @@ struct RuntimeCustomizationTests {
         _ = await turn.events().collect()
         await activitySink.waitUntilFinished()
 
-        #expect(await turn.outcome() == .completed)
+        #expect(try await turn.outcome() == .completed)
         #expect(await outcomeSink.wasDurableAtCallback)
         let notices = try await repository.fetchNotices(turnID: turn.id)
         #expect(notices.contains { $0.kind == TurnNoticeCode.agentActivitySinkFailed.rawValue })

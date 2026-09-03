@@ -47,7 +47,7 @@ public enum WorkspaceBindingRepositoryError: Error, Equatable, Sendable, CustomS
 /// Each mutating operation is the conditional-claim boundary. Implementations backed by a
 /// database must enforce the same uniqueness constraint in their transaction, not by reading
 /// and then writing in separate calls.
-public protocol WorkspaceBindingRepository: Sendable {
+public protocol WorkspaceBindingRepository: DurabilityAware {
     func claim(
         workspaceID: UUID,
         for threadID: UUID,
@@ -69,45 +69,4 @@ public protocol WorkspaceBindingRepository: Sendable {
 
     func bindings(for threadID: UUID) async throws -> [WorkspaceBinding]
     func threadID(for workspaceID: UUID) async throws -> UUID?
-}
-
-public extension WorkspaceBindingRepository {
-    /// Descriptive aliases for hosts that prefer verb-first repository names.
-    func claimWorkspace(
-        _ workspaceID: UUID,
-        for threadID: UUID,
-        now: Date = Date()
-    ) async throws -> WorkspaceBinding {
-        try await claim(workspaceID: workspaceID, for: threadID, now: now)
-    }
-
-    func releaseWorkspace(
-        _ workspaceID: UUID,
-        from threadID: UUID,
-        now: Date = Date()
-    ) async throws {
-        try await release(workspaceID: workspaceID, from: threadID, now: now)
-    }
-
-    func transferWorkspace(
-        _ workspaceID: UUID,
-        from sourceThreadID: UUID,
-        to destinationThreadID: UUID,
-        now: Date = Date()
-    ) async throws -> WorkspaceBinding {
-        try await transfer(
-            workspaceID: workspaceID,
-            from: sourceThreadID,
-            to: destinationThreadID,
-            now: now
-        )
-    }
-
-    func listBindings(for threadID: UUID) async throws -> [WorkspaceBinding] {
-        try await bindings(for: threadID)
-    }
-
-    func resolveThread(for workspaceID: UUID) async throws -> UUID? {
-        try await threadID(for: workspaceID)
-    }
 }

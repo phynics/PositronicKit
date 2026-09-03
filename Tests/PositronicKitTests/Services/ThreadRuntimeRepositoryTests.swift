@@ -362,12 +362,14 @@ final class ThreadRuntimeRepositoryTests: XCTestCase {
         let summaries = try await repository.fetchSummaries(for: threadID)
         XCTAssertEqual(summaries, [summary])
 
+        // Deleting the Thread cascades its history and summary projections: append-only means
+        // "immutable while the Thread lives," not "retained after the Thread itself is gone."
+        // See the cascade contract documented on `ThreadRuntimeRepository`.
         try await repository.deleteThread(id: threadID)
         let retainedMessages = try await repository.fetchMessages(for: threadID)
         let retainedSummaries = try await repository.fetchSummaries(for: threadID)
-        XCTAssertEqual(retainedMessages.map(\.id), [message.id])
-        XCTAssertEqual(retainedMessages.first?.content, message.content)
-        XCTAssertEqual(retainedSummaries, [summary])
+        XCTAssertTrue(retainedMessages.isEmpty)
+        XCTAssertTrue(retainedSummaries.isEmpty)
     }
 
     func testStaleRecoveryAndForceClearPreserveDurableRecords() async throws {

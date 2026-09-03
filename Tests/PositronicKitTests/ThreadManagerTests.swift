@@ -53,6 +53,7 @@ struct ThreadManagerTests {
                 messageStore: persistence,
                 workspaceStore: persistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
+                runtimeRepository: InMemoryThreadRuntimeRepository(),
                 toolPersistence: persistence
             ),
             workspaceProfile: .noWorkspace
@@ -90,6 +91,7 @@ struct ThreadManagerTests {
             messageStore: InMemoryMessageStore(),
             workspaceStore: workspaceStore,
             workspaceBindingRepository: workspaceStore,
+            runtimeRepository: InMemoryThreadRuntimeRepository(),
             toolPersistence: InMemoryToolPersistence()
         )
         _ = stores.threadStore
@@ -104,6 +106,7 @@ struct ThreadManagerTests {
                 messageStore: InMemoryMessageStore(),
                 workspaceStore: store,
                 workspaceBindingRepository: store,
+                runtimeRepository: InMemoryThreadRuntimeRepository(),
                 toolPersistence: InMemoryToolPersistence()
             ),
             workspaceProfile: .noWorkspace
@@ -253,6 +256,7 @@ struct ThreadManagerTests {
                 messageStore: persistence,
                 workspaceStore: persistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
+                runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
@@ -288,6 +292,7 @@ struct ThreadManagerTests {
                 messageStore: persistence,
                 workspaceStore: persistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
+                runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
@@ -326,6 +331,7 @@ struct ThreadManagerTests {
                 messageStore: persistence,
                 workspaceStore: persistence,
                 workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
+                runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)

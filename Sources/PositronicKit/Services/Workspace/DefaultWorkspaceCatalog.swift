@@ -26,7 +26,12 @@ actor DefaultWorkspaceCatalog: WorkspaceCatalog {
         threadAuthorityCoordinator: ThreadAuthorityCoordinator? = nil
     ) {
         persistenceService = workspacePersistence
-        self.bindingRepository = bindingRepository ?? (workspacePersistence as? any WorkspaceBindingRepository)
+        // The binding repository is resolved exactly once, by `PersistenceConfiguration`
+        // (ADR 0004: binding authority is repository-only). This seam receives it rather than
+        // inferring it from an `as?` downcast of `workspacePersistence` (C-02) — a caller that
+        // wants binding-aware behavior (ownership checks before workspace deletion) must pass
+        // one explicitly.
+        self.bindingRepository = bindingRepository
         self.runtimeRepository = runtimeRepository
         self.threadAuthorityCoordinator = threadAuthorityCoordinator
         self.workspaceRoot = workspaceRoot

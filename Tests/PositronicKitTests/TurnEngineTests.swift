@@ -23,6 +23,7 @@ struct TurnEngineTests {
                 threadStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: mockPersistence,
                 toolPersistence: mockPersistence
             ),
@@ -1060,6 +1061,95 @@ struct TurnEngineTests {
         }
     }
 
+    /// Regression for E-03: a `threadBusy` collision must not leak the private bridge task that
+    /// relays the colliding Turn's source stream into the event hub.
+    ///
+    /// The durable repository's admission gate (`ThreadRuntimeRepository.admitTurn`) is itself
+    /// serialized per thread, so two genuinely concurrent `execute()` calls almost always resolve
+    /// the collision there, before `TurnEngine.startExecution` ever reaches its own
+    /// `ThreadManager.registerTask` check. The registerTask check exists for the narrower window
+    /// this reproduces directly: the durable repository has no active Turn for the thread (so
+    /// admission succeeds), but `ThreadManager`'s in-memory task registry still holds a stale
+    /// entry for the thread — e.g. because a prior Turn's task hasn't reached its own
+    /// `removeTask` cleanup yet. Pre-occupying the registry below simulates exactly that window
+    /// deterministically, without depending on real scheduler timing.
+    ///
+    /// Before the fix, `startExecution` left the not-registered branch without ever finishing the
+    /// source stream's continuation, so the private `bridge` task — already iterating that
+    /// stream — suspended forever. Racing the returned stream against a bounded timeout turns
+    /// that leak into a loud, deterministic test failure instead of a silently forever-suspended
+    /// Task: if `bridge` never completed, the stream would never terminate and this would time
+    /// out instead of observing `threadBusy`.
+    @Test("A threadBusy collision from a stale task-registry entry finishes the bridge task")
+    func threadBusyCollisionDoesNotLeakBridgeTask() async throws {
+        let mockLLM = MockLLMService()
+        let mockPersistence = MockPersistenceService()
+        let threadManager = ThreadManager(
+            stores: .init(
+                threadStore: mockPersistence,
+                messageStore: mockPersistence,
+                workspaceStore: mockPersistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
+                runtimeRepository: mockPersistence,
+                toolPersistence: mockPersistence
+            ),
+            workspaceProfile: .hostManaged(root: URL(fileURLWithPath: "/tmp/pk-test")),
+            workspaceCreator: MockWorkspaceCreator()
+        )
+        let toolRouter = ToolRouter(threadManager: threadManager, runtimeRepository: mockPersistence)
+        let engine = TurnEngine(
+            dependencies: .init(
+                threadManager: threadManager,
+                agentStore: mockPersistence,
+                requestOriginStore: mockPersistence,
+                runtimeRepository: mockPersistence,
+                llmService: mockLLM,
+                toolRouter: toolRouter,
+                streamTimeout: 60
+            )
+        )
+        try await mockPersistence.saveThread(Thread(id: threadID, title: "Test Session"))
+        try await threadManager.hydrateThread(id: threadID)
+
+        mockLLM.mockClient.nextResponse = "Hello, world!"
+
+        // Simulates the race window: the durable repository has no active Turn for this thread
+        // (so admission below will succeed), but the in-memory registry is already occupied by a
+        // stale entry, exactly as `registerTask` would find it mid-race.
+        let staleEntry = Task<Void, Never> {
+            try? await Task.sleep(for: .seconds(60))
+        }
+        defer { staleEntry.cancel() }
+        let stalePreRegistered = await threadManager.registerTask(staleEntry, turnID: UUID(), for: threadID)
+        #expect(stalePreRegistered)
+
+        let stream = try await engine.execute(TurnExecutionRequest(
+            TurnRequest(threadID: threadID, message: "Collides with the stale entry", tools: [])
+        ))
+
+        let outcome = await withTaskGroup(of: String.self, returning: String.self) { group in
+            group.addTask {
+                do {
+                    for try await _ in stream {}
+                    return "completed-without-error"
+                } catch ThreadRuntimeRepositoryError.threadBusy {
+                    return "threadBusy"
+                } catch {
+                    return "unexpected: \(error)"
+                }
+            }
+            group.addTask {
+                try? await Task.sleep(for: .seconds(5))
+                return "timed-out"
+            }
+            let first = await group.next() ?? "timed-out"
+            group.cancelAll()
+            return first
+        }
+
+        #expect(outcome == "threadBusy")
+    }
+
     @Test("Stale dangling assistant tool calls are not accepted after later history")
     func staleDanglingAssistantToolCallsAreRejected() async throws {
         try await withTurnEngineDependencies { engine, _, mockPersistence in
@@ -1132,6 +1222,7 @@ struct TurnEngineTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
@@ -1338,6 +1429,7 @@ struct TurnEngineTests {
                 threadStore: repository,
                 messageStore: repository,
                 workspaceStore: repository,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: repository,
                 toolPersistence: repository
             ),

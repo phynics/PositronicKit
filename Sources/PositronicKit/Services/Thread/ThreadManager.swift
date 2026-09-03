@@ -41,23 +41,23 @@ actor ThreadManager {
         let runtimeRepository: any ThreadRuntimeRepository
         let toolPersistence: any ToolPersistenceProtocol
 
+        // The binding repository is resolved exactly once, by `PersistenceConfiguration`
+        // (ADR 0004: binding authority is repository-only). This seam receives it rather than
+        // re-deriving it from an `as?` downcast of `workspaceStore` (C-02) — every caller must
+        // pass one explicitly.
         init(
             threadStore: any ThreadPersistenceProtocol,
             messageStore: any ThreadMessageStoreProtocol,
             workspaceStore: any WorkspaceStore,
-            workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil,
-            runtimeRepository: (any ThreadRuntimeRepository)? = nil,
+            workspaceBindingRepository: any WorkspaceBindingRepository,
+            runtimeRepository: any ThreadRuntimeRepository,
             toolPersistence: any ToolPersistenceProtocol
         ) {
             self.threadStore = threadStore
             self.messageStore = messageStore
             self.workspaceStore = workspaceStore
             self.workspaceBindingRepository = workspaceBindingRepository
-                ?? (workspaceStore as? any WorkspaceBindingRepository)
-                ?? InMemoryWorkspaceBindingRepository()
             self.runtimeRepository = runtimeRepository
-                ?? (threadStore as? any ThreadRuntimeRepository)
-                ?? InMemoryThreadRuntimeRepository()
             self.toolPersistence = toolPersistence
         }
     }
@@ -256,15 +256,15 @@ actor ThreadManager {
     func withWorkspaceExecution<T: Sendable>(
         _ workspaceID: UUID,
         operation: @escaping @Sendable () async throws -> T
-    ) async rethrows -> T {
-        try await workspaceExecutionCoordinator.withWorkspace(workspaceID, operation: operation)
+    ) async throws -> T {
+        try await workspaceExecutionCoordinator.withWorkspaceExecution(workspaceID: workspaceID, operation: operation)
     }
 
     /// Serializes Turn admission and Thread authority mutations under one per-Thread lane.
     func withThreadAuthority<T: Sendable>(
         _ threadID: UUID,
         operation: @escaping @Sendable () async throws -> T
-    ) async rethrows -> T {
+    ) async throws -> T {
         try await threadAuthorityCoordinator.withThread(threadID, operation: operation)
     }
 }

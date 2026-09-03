@@ -47,6 +47,7 @@ extension ThreadManager {
             resolver: WorkspaceResolverFactory.makeDefault(
                 workspaceRoot: catalogRoot,
                 workspaceStore: stores.workspaceStore,
+                bindingRepository: stores.workspaceBindingRepository,
                 workspaceCreator: workspaceCreator
             ),
             runtimeToolPolicy: runtimeToolPolicy,
@@ -93,12 +94,14 @@ extension ThreadManager {
         taskRegistry: ThreadTaskRegistry? = nil
     ) {
         let workspaceStore = InMemoryWorkspacePersistence()
+        let runtimeRepository = InMemoryThreadRuntimeRepository()
         self.init(
             stores: .init(
-                threadStore: InMemoryThreadPersistence(),
-                messageStore: InMemoryMessageStore(),
+                threadStore: runtimeRepository,
+                messageStore: runtimeRepository,
                 workspaceStore: workspaceStore,
                 workspaceBindingRepository: workspaceStore,
+                runtimeRepository: runtimeRepository,
                 toolPersistence: InMemoryToolPersistence()
             ),
             workspaceProfile: workspaceProfile,

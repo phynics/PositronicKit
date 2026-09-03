@@ -16,6 +16,7 @@ public enum AgentError: PKError, Sendable {
     case differentAgentAlreadyAttached(UUID)
     case nameTooShort(String)
     case descriptionEmpty
+    case turnStillActive(turnID: UUID)
 
     public var errorDomain: String { PKErrorDomain.agent }
 
@@ -31,6 +32,7 @@ public enum AgentError: PKError, Sendable {
         case .descriptionEmpty: return 5006
         case .cannotAttachToPrivateThread: return 5007
         case .cannotDetachFromOwnPrivateThread: return 5008
+        case .turnStillActive: return 5016
         }
     }
 
@@ -56,6 +58,8 @@ public enum AgentError: PKError, Sendable {
             return "Cannot attach an agent to a private thread it doesn't own (\(id))."
         case .cannotDetachFromOwnPrivateThread(let id):
             return "Cannot detach an agent from its own private thread (\(id))."
+        case .turnStillActive(let turnID):
+            return "Turn \(turnID) did not reach a terminal state within the bounded wait for idle."
         }
     }
 
@@ -82,6 +86,8 @@ public enum AgentError: PKError, Sendable {
             return "Agents can only be attached to their own private threads."
         case .cannotDetachFromOwnPrivateThread:
             return "An agent must remain attached to its own private thread."
+        case .turnStillActive:
+            return "The active Turn is taking longer than expected to finish. Please try again shortly."
         }
     }
 }

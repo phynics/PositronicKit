@@ -81,9 +81,6 @@ extension TurnEngine {
         context: TurnContext
     ) async {
         let snapshotBuilder = PromptSnapshotBuilder()
-        let partialPersistence = PartialAssistantPersistence(
-            runtimeRepository: dependencies.runtimeRepository
-        )
 
         var loopMessages = context.currentMessages
         var loopRenderedPrompt = context.renderedPrompt
@@ -117,8 +114,7 @@ extension TurnEngine {
             // Execute one turn (LLM call + automatic runtime tool routing)
             let signal = await runOneTurn(
                 continuation: continuation,
-                context: turnContext,
-                partialPersistence: partialPersistence
+                context: turnContext
             )
 
             switch signal {
@@ -242,8 +238,7 @@ extension TurnEngine {
 private extension TurnEngine {
     func runOneTurn(
         continuation: AsyncThrowingStream<TurnEvent, Error>.Continuation,
-        context: TurnContext,
-        partialPersistence: PartialAssistantPersistence
+        context: TurnContext
     ) async -> LoopContinuation {
         let sid = context.threadID.uuidString.prefix(8).lowercased()
         let turnLabel = "\(context.modelRoundIndex)"
@@ -273,10 +268,10 @@ private extension TurnEngine {
             return try await handleToolCallsAfterTurn(context: context, continuation: continuation)
         } catch is CancellationError {
             // STAB-1: the stream was cancelled mid-flight. `MessagePersistenceStage` only runs on
-            // success, so persist whatever partial assistant text/thinking (and any accumulated
-            // tool calls) the user already watched stream in, tagged `.cancelled`. The cancel
+            // success, so `commitTerminal` attaches whatever partial assistant text/thinking (and
+            // any accumulated tool calls) the user already watched stream in, tagged `.cancelled`,
+            // to the same terminal transaction below (see `completeTerminalOutcome`). The cancel
             // event is still surfaced below — the UI needs it (STAB-5 handles retry separately).
-            await partialPersistence.persistPartialAssistantIfNeeded(context: context, status: .cancelled)
             await commitTerminal(
                 decision: TerminalDecision(
                     outcome: .cancelled(reason: "Turn task cancelled."),
@@ -296,11 +291,10 @@ private extension TurnEngine {
             // STAB-1: same data-loss fix for the failure path (network drop, provider 4xx/5xx,
             // idle timeout). A stage-thrown `CancellationError` is wrapped by `Pipeline` as
             // `PipelineError.stageFailed` and lands here — unwrap it so a mid-stream
-            // cancellation is still tagged `.cancelled` rather than `.partial`. The error event
-            // is still surfaced to the UI (re-thrown below); STAB-5 handles retry separately.
+            // cancellation is still tagged `.cancelled` rather than `.partial` (`commitTerminal`
+            // derives the same tag from this outcome below). The error event is still surfaced to
+            // the UI (re-thrown below); STAB-5 handles retry separately.
             let isCancellation = Self.isCancellationOrigin(error)
-            let status: Message.MessageStatus = isCancellation ? .cancelled : .partial
-            await partialPersistence.persistPartialAssistantIfNeeded(context: context, status: status)
             await commitTerminal(
                 decision: TerminalDecision(
                     outcome: isCancellation
@@ -486,7 +480,8 @@ private extension TurnEngine {
         outcome: TurnOutcome
     ) async throws -> TurnOutcome {
         let finalMessage: ThreadMessage?
-        if case .completed = outcome {
+        switch outcome {
+        case .completed:
             if let terminalMessage = await context.outputs.terminalAssistantMessage {
                 finalMessage = terminalMessage
             } else {
@@ -498,7 +493,20 @@ private extension TurnEngine {
                     })
                 }
             }
-        } else {
+        case .cancelled, .failed:
+            // STAB-1: attach whatever partial assistant text/thinking/tool calls the user
+            // already watched stream in to this same terminal transaction (ADR 0003, ADR 0007),
+            // instead of persisting it with a separate `saveMessage` call before this — a crash
+            // between the two used to leave that row on a Thread whose Turn was still active.
+            let status: Message.MessageStatus = {
+                if case .cancelled = outcome { return .cancelled }
+                return .partial
+            }()
+            finalMessage = await PartialAssistantPersistence().partialAssistantMessage(
+                context: context,
+                status: status
+            )
+        case .interrupted:
             finalMessage = nil
         }
 

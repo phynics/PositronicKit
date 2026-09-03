@@ -50,6 +50,7 @@ private struct AttachmentFixture {
                     messageStore: persistence,
                     workspaceStore: persistence,
                     workspaceBindingRepository: bindingRepository,
+                    runtimeRepository: persistence,
                     toolPersistence: persistence
                 ),
                 workspaceProfile: .hostManaged(root: workspaceRoot)
@@ -129,6 +130,7 @@ struct AttachWorkspaceTests {
                     messageStore: fix.persistence,
                     workspaceStore: fix.persistence,
                     workspaceBindingRepository: fix.bindingRepository,
+                    runtimeRepository: fix.persistence,
                     toolPersistence: fix.persistence
                 ),
                 workspaceProfile: .hostManaged(root: fix.workspaceRoot)

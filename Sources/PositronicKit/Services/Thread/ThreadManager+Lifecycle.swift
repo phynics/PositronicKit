@@ -255,8 +255,24 @@ extension ThreadManager {
     /// - Returns: A ``ThreadDeletionResult`` reporting any per-store cleanup failures.
     @discardableResult
     func deleteThreadPermanently(id: UUID) async -> ThreadDeletionResult {
-        await threadAuthorityCoordinator.withThread(id) {
-            await self.deleteThreadPermanentlyLocked(id: id)
+        do {
+            return try await threadAuthorityCoordinator.withThread(id) {
+                await self.deleteThreadPermanentlyLocked(id: id)
+            }
+        } catch {
+            // The Thread authority lane throws `CancellationError` when the calling task is
+            // cancelled while queued (or immediately after acquiring the lane), and never runs
+            // `deleteThreadPermanentlyLocked` in that case. Report it as a degradation rather
+            // than silently completing the deletion despite the caller's cancellation, or
+            // propagating a throw from a documented non-throwing API.
+            return ThreadDeletionResult(
+                threadID: id,
+                degradations: [StoreDegradation(
+                    operation: "deleteThreadPermanently.cancelled",
+                    entityID: "thread:\(id.uuidString.prefix(8))",
+                    error: error
+                )]
+            )
         }
     }
 
@@ -339,16 +355,10 @@ extension ThreadManager {
             }
         }
 
-        // Delete messages (best-effort).
-        do {
-            try await messageStore.deleteMessages(for: id)
-        } catch {
-            degradations.append(StoreDegradation(
-                operation: "deleteThreadPermanently.deleteMessages",
-                entityID: "thread:\(id.uuidString.prefix(8))",
-                error: error
-            ))
-        }
+        // Message history is no longer deleted here: `threadStore.deleteThread(id:)` below
+        // cascades history deletion as part of destroying the thread record (see the
+        // `ThreadRuntimeRepository` cascade contract). Ordinary append-only history remains
+        // immutable while the thread is alive; only destroying the thread destroys its history.
 
         // Resolve ownership before deleting workspace records. `.attached` workspaces belong to
         // the caller, while runtime workspaces can be shared; only thread-specific runtime

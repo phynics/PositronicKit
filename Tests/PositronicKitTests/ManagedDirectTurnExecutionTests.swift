@@ -17,7 +17,7 @@ struct ManagedDirectTurnExecutionTests {
 
         let turn = try await thread.startTurn(message: "hello")
         let events = await turn.events().collect()
-        let outcome = await turn.outcome()
+        let outcome = try await turn.outcome()
 
         #expect(events.contains { event in
             if case let .completion(.generationCompleted(message, _)) = event {
@@ -87,7 +87,7 @@ struct ManagedDirectTurnExecutionTests {
         )
         _ = await turn.events().collect()
 
-        #expect(await turn.outcome() == .completed)
+        #expect(try await turn.outcome() == .completed)
         let repository = kit.runtimeRepository
         let messages = try await repository.fetchMessages(for: thread.id)
         #expect(messages.last?.executionKind == .direct)
@@ -146,7 +146,7 @@ struct ManagedDirectTurnExecutionTests {
             if case .completion(.deferredForExternalTool) = event { return true }
             return false
         })
-        #expect(await turn.outcome() == .interrupted(reason: "External tool execution deferred."))
+        #expect(try await turn.outcome() == .interrupted(reason: "External tool execution deferred."))
 
         let intents = try await repository.fetchToolIntents(turnID: turn.id)
         #expect(intents.first?.workspaceID == attachedWorkspace.id)
@@ -191,7 +191,7 @@ struct ManagedDirectTurnExecutionTests {
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
         )
         _ = await direct.events().collect()
-        #expect(await direct.outcome() == .completed)
+        #expect(try await direct.outcome() == .completed)
 
         let agent = try await kit.agents.create(name: "Mixed Agent", description: "test")
         try await kit.agents.attach(agent.id, to: thread.id)
@@ -284,7 +284,7 @@ struct ManagedDirectTurnExecutionTests {
             if case .error(.generationCancelled) = event { return true }
             return false
         })
-        let outcome = await joined.outcome()
+        let outcome = try await joined.outcome()
         #expect(outcome == .cancelled(reason: "Turn task cancelled."))
     }
 

@@ -35,6 +35,7 @@ struct TurnEngineFailurePersistenceTests {
                 threadStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: mockPersistence,
                 toolPersistence: mockPersistence
             ),
@@ -91,6 +92,7 @@ struct TurnEngineFailurePersistenceTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
                 runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
@@ -188,6 +190,52 @@ struct TurnEngineFailurePersistenceTests {
             #expect(assistantMessages.count == 1)
             let assistant = try #require(assistantMessages.first)
             #expect(assistant.content == "Hello partial world")
+            #expect(assistant.status == .partial)
+        }
+    }
+
+    /// Regression for F-01: the partial assistant row must be attached to `completeTurn`'s
+    /// terminal transaction, not written through a separate `saveMessage` call ahead of it.
+    /// Breaking the standalone `saveMessage` path with `saveMessageFailureAfter` proves it: if
+    /// the fix regressed to persisting the partial row through `saveMessage` again, this row
+    /// would silently fail to persist (the old code only logged that failure) while the Turn
+    /// still recorded as terminal. With the fix, the row rides inside `completeTurn`'s
+    /// `finalMessage`, which does not go through the mock's intercepted `saveMessage`, so it
+    /// persists successfully even though `saveMessage` itself is made to always fail.
+    @Test("A partial assistant row persists through completeTurn even when saveMessage always fails (F-01)")
+    func partialAssistantRidesTheTerminalTransactionNotSaveMessage() async throws {
+        try await withTurnEngineDependencies { engine, mockLLM, mockPersistence in
+            mockLLM.stubbedStream = AsyncThrowingStream { continuation in
+                continuation.yield(GenerationStreamResultFactory.textChunk("Atomic partial "))
+                continuation.yield(GenerationStreamResultFactory.textChunk("row"))
+                continuation.finish(throwing: NSError(
+                    domain: "F01ProviderDrop", code: 503,
+                    userInfo: [NSLocalizedDescriptionKey: "simulated provider 5xx"]
+                ))
+            }
+
+            // The admission-time user message append does not go through this interception (it
+            // rides `admitTurn`'s own transaction), so only the standalone partial-persistence
+            // write this regression targets is affected.
+            mockPersistence.saveMessageFailureAfter = 0
+
+            let stream = try await engine.execute(TurnExecutionRequest(
+                TurnRequest(
+                    threadID: threadID,
+                    message: "stream then fail with saveMessage broken",
+                    tools: []
+                )
+            ))
+
+            await #expect(throws: Error.self) {
+                _ = try await collect(stream)
+            }
+
+            let messages = try await mockPersistence.fetchMessages(for: threadID)
+            let assistantMessages = messages.filter { $0.role == "assistant" }
+            #expect(assistantMessages.count == 1)
+            let assistant = try #require(assistantMessages.first)
+            #expect(assistant.content == "Atomic partial row")
             #expect(assistant.status == .partial)
         }
     }

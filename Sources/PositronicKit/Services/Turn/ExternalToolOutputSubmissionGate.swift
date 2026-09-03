@@ -3,16 +3,27 @@ import PKContracts
 
 // MARK: - External Tool Output Submission Gate
 
+/// Runtime-scoped guard against duplicate external tool-output submission.
+///
+/// Reservations are keyed by `(threadID, toolCallId)` only, so this type must never be shared
+/// across independent runtime instances — two `PositronicKit` instances constructed in one
+/// process are documented to start independent histories, and a process-global gate would let
+/// them contend over identical keys. `PositronicKit` owns exactly one instance per runtime
+/// identity (see `PositronicKit.RuntimeState`) and threads it through
+/// `TurnEngine.Dependencies`, the same way `TurnEventHub` is threaded through.
 actor ExternalToolOutputSubmissionGate {
-    static let shared = ExternalToolOutputSubmissionGate()
-
     private var reservedToolOutputs: Set<ReservedToolOutput> = []
 
-    private init() {}
+    init() {}
 
     /// Validates that each tool output matches a pending assistant tool call and reserves the
     /// call ID — **without persisting**. Already-persisted outputs are skipped so a partially
     /// failed batch can be safely retried (resumable batch support).
+    ///
+    /// Self-cleaning: if a later output in `toolOutputs` fails validation, any earlier output in
+    /// the same call already reserved is released before this throws, so a partially invalid
+    /// batch never leaves phantom reservations the caller has no way to release (it never
+    /// received them back).
     ///
     /// - Returns: The subset of `toolOutputs` that are validated and still need persistence.
     func validate(
@@ -57,17 +68,24 @@ actor ExternalToolOutputSubmissionGate {
         )
 
         var validated: [ToolOutputSubmission] = []
-        for output in toolOutputs {
-            // Skip outputs already persisted by a previous (partial) batch.
-            if persistedToolCallIds.contains(output.toolCallID) {
-                continue
+        do {
+            for output in toolOutputs {
+                // Skip outputs already persisted by a previous (partial) batch.
+                if persistedToolCallIds.contains(output.toolCallID) {
+                    continue
+                }
+                guard pendingToolCallIds.remove(output.toolCallID) != nil else {
+                    throw ToolError.unmatchedToolOutput(output.toolCallID)
+                }
+                let reservation = ReservedToolOutput(threadID: threadID, toolCallId: output.toolCallID)
+                reservedToolOutputs.insert(reservation)
+                validated.append(output)
             }
-            guard pendingToolCallIds.remove(output.toolCallID) != nil else {
-                throw ToolError.unmatchedToolOutput(output.toolCallID)
+        } catch {
+            for output in validated {
+                reservedToolOutputs.remove(ReservedToolOutput(threadID: threadID, toolCallId: output.toolCallID))
             }
-            let reservation = ReservedToolOutput(threadID: threadID, toolCallId: output.toolCallID)
-            reservedToolOutputs.insert(reservation)
-            validated.append(output)
+            throw error
         }
 
         return validated
