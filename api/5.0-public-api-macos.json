@@ -4613,6 +4613,75 @@
       "declaration": "associatedtype Client : LLMClientProtocol"
     },
     {
+      "precise": "s:11PKContracts18LogRedactionPolicyV",
+      "module": "PKContracts",
+      "kind": "swift.struct",
+      "path": [
+        "LogRedactionPolicy"
+      ],
+      "declaration": "struct LogRedactionPolicy"
+    },
+    {
+      "precise": "s:11PKContracts18LogRedactionPolicyV12logsPayloadsACSb_tcfc",
+      "module": "PKContracts",
+      "kind": "swift.init",
+      "path": [
+        "LogRedactionPolicy",
+        "init(logsPayloads:)"
+      ],
+      "declaration": "init(logsPayloads: Bool = false)"
+    },
+    {
+      "precise": "s:11PKContracts18LogRedactionPolicyV12logsPayloadsSbvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "LogRedactionPolicy",
+        "logsPayloads"
+      ],
+      "declaration": "let logsPayloads: Bool"
+    },
+    {
+      "precise": "s:11PKContracts18LogRedactionPolicyV18sanitizeStructuredyS2SF",
+      "module": "PKContracts",
+      "kind": "swift.method",
+      "path": [
+        "LogRedactionPolicy",
+        "sanitizeStructured(_:)"
+      ],
+      "declaration": "func sanitizeStructured(_ value: String) -> String"
+    },
+    {
+      "precise": "s:11PKContracts18LogRedactionPolicyV7defaultACvpZ",
+      "module": "PKContracts",
+      "kind": "swift.type.property",
+      "path": [
+        "LogRedactionPolicy",
+        "default"
+      ],
+      "declaration": "static let `default`: LogRedactionPolicy"
+    },
+    {
+      "precise": "s:11PKContracts18LogRedactionPolicyV7payloadyS2SF",
+      "module": "PKContracts",
+      "kind": "swift.method",
+      "path": [
+        "LogRedactionPolicy",
+        "payload(_:)"
+      ],
+      "declaration": "func payload(_ value: String) -> String"
+    },
+    {
+      "precise": "s:11PKContracts18LogRedactionPolicyV8sanitizeyS2SF",
+      "module": "PKContracts",
+      "kind": "swift.method",
+      "path": [
+        "LogRedactionPolicy",
+        "sanitize(_:)"
+      ],
+      "declaration": "func sanitize(_ value: String) -> String"
+    },
+    {
       "precise": "s:11PKContracts18MessageContentPartO",
       "module": "PKContracts",
       "kind": "swift.enum",
@@ -5646,6 +5715,65 @@
         "maxTokens"
       ],
       "declaration": "var maxTokens: Int?"
+    },
+    {
+      "precise": "s:11PKContracts20LoggingConfigurationV",
+      "module": "PKContracts",
+      "kind": "swift.struct",
+      "path": [
+        "LoggingConfiguration"
+      ],
+      "declaration": "struct LoggingConfiguration"
+    },
+    {
+      "precise": "s:11PKContracts20LoggingConfigurationV13loggerFactoryy0B06LoggerVSSYbcvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "LoggingConfiguration",
+        "loggerFactory"
+      ],
+      "declaration": "let loggerFactory: @Sendable (String) -> Logger"
+    },
+    {
+      "precise": "s:11PKContracts20LoggingConfigurationV15redactionPolicy13loggerFactoryAcA012LogRedactionE0V_0B06LoggerVSSYbctcfc",
+      "module": "PKContracts",
+      "kind": "swift.init",
+      "path": [
+        "LoggingConfiguration",
+        "init(redactionPolicy:loggerFactory:)"
+      ],
+      "declaration": "init(redactionPolicy: LogRedactionPolicy = .default, loggerFactory: @escaping @Sendable (String) -> Logger = { .init(label: \"com.positronickit.\\($0)\") })"
+    },
+    {
+      "precise": "s:11PKContracts20LoggingConfigurationV15redactionPolicyAA012LogRedactionE0Vvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "LoggingConfiguration",
+        "redactionPolicy"
+      ],
+      "declaration": "let redactionPolicy: LogRedactionPolicy"
+    },
+    {
+      "precise": "s:11PKContracts20LoggingConfigurationV6logger5named0B06LoggerVSS_tF",
+      "module": "PKContracts",
+      "kind": "swift.method",
+      "path": [
+        "LoggingConfiguration",
+        "logger(named:)"
+      ],
+      "declaration": "func logger(named name: String) -> Logger"
+    },
+    {
+      "precise": "s:11PKContracts20LoggingConfigurationV7defaultACvpZ",
+      "module": "PKContracts",
+      "kind": "swift.type.property",
+      "path": [
+        "LoggingConfiguration",
+        "default"
+      ],
+      "declaration": "static let `default`: LoggingConfiguration"
     },
     {
       "precise": "s:11PKContracts20ToolApprovalDecisionO",
@@ -20912,56 +21040,6 @@
       "declaration": "func transfer(workspaceID: UUID, from sourceThreadID: UUID, to destinationThreadID: UUID, now: Date) async throws -> WorkspaceBinding"
     },
     {
-      "precise": "s:13PositronicKit26WorkspaceBindingRepositoryPAAE05claimC0_3for3nowAA0cD0V10Foundation4UUIDV_AkI4DateVtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "WorkspaceBindingRepository",
-        "claimWorkspace(_:for:now:)"
-      ],
-      "declaration": "func claimWorkspace(_ workspaceID: UUID, for threadID: UUID, now: Date = Date()) async throws -> WorkspaceBinding"
-    },
-    {
-      "precise": "s:13PositronicKit26WorkspaceBindingRepositoryPAAE07releaseC0_4from3nowy10Foundation4UUIDV_AiG4DateVtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "WorkspaceBindingRepository",
-        "releaseWorkspace(_:from:now:)"
-      ],
-      "declaration": "func releaseWorkspace(_ workspaceID: UUID, from threadID: UUID, now: Date = Date()) async throws"
-    },
-    {
-      "precise": "s:13PositronicKit26WorkspaceBindingRepositoryPAAE08transferC0_4from2to3nowAA0cD0V10Foundation4UUIDV_A2lJ4DateVtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "WorkspaceBindingRepository",
-        "transferWorkspace(_:from:to:now:)"
-      ],
-      "declaration": "func transferWorkspace(_ workspaceID: UUID, from sourceThreadID: UUID, to destinationThreadID: UUID, now: Date = Date()) async throws -> WorkspaceBinding"
-    },
-    {
-      "precise": "s:13PositronicKit26WorkspaceBindingRepositoryPAAE12listBindings3forSayAA0cD0VG10Foundation4UUIDV_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "WorkspaceBindingRepository",
-        "listBindings(for:)"
-      ],
-      "declaration": "func listBindings(for threadID: UUID) async throws -> [WorkspaceBinding]"
-    },
-    {
-      "precise": "s:13PositronicKit26WorkspaceBindingRepositoryPAAE13resolveThread3for10Foundation4UUIDVSgAH_tYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "WorkspaceBindingRepository",
-        "resolveThread(for:)"
-      ],
-      "declaration": "func resolveThread(for workspaceID: UUID) async throws -> UUID?"
-    },
-    {
       "precise": "s:13PositronicKit27AgentResourceCatalogContextV",
       "module": "PositronicKit",
       "kind": "swift.struct",
@@ -22646,7 +22724,7 @@
       "declaration": "let generationParameters: GenerationParameters?"
     },
     {
-      "precise": "s:13PositronicKitAAC13ConfigurationV7logging11PKUtilities07LoggingC0Vvp",
+      "precise": "s:13PositronicKitAAC13ConfigurationV7logging11PKContracts07LoggingC0Vvp",
       "module": "PositronicKit",
       "kind": "swift.property",
       "path": [
@@ -22668,7 +22746,7 @@
       "declaration": "let runtime: RuntimeConfiguration"
     },
     {
-      "precise": "s:13PositronicKitAAC13ConfigurationV8provider11persistence7runtime20generationParameters7loggingAdB08ProviderC0V_AB011PersistenceC0VAB07RuntimeC0V11PKContracts010GenerationH0VSg11PKUtilities07LoggingC0Vtcfc",
+      "precise": "s:13PositronicKitAAC13ConfigurationV8provider11persistence7runtime20generationParameters7loggingAdB08ProviderC0V_AB011PersistenceC0VAB07RuntimeC0V11PKContracts010GenerationH0VSgAP07LoggingC0Vtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
@@ -29958,6 +30036,27 @@
     {
       "module": "PKContracts",
       "kind": "conformsTo",
+      "source": "s:11PKContracts18LogRedactionPolicyV",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts18LogRedactionPolicyV",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts18LogRedactionPolicyV",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts18MessageContentPartO",
       "target": "s:SE",
       "targetFallback": "Swift.Encodable"
@@ -30449,6 +30548,20 @@
       "module": "PKContracts",
       "kind": "conformsTo",
       "source": "s:11PKContracts20GenerationParametersV",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts20LoggingConfigurationV",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts20LoggingConfigurationV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -41294,6 +41407,42 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
+      "source": "s:11PKContracts18LogRedactionPolicyV12logsPayloadsACSb_tcfc",
+      "target": "s:11PKContracts18LogRedactionPolicyV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts18LogRedactionPolicyV12logsPayloadsSbvp",
+      "target": "s:11PKContracts18LogRedactionPolicyV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts18LogRedactionPolicyV18sanitizeStructuredyS2SF",
+      "target": "s:11PKContracts18LogRedactionPolicyV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts18LogRedactionPolicyV7defaultACvpZ",
+      "target": "s:11PKContracts18LogRedactionPolicyV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts18LogRedactionPolicyV7payloadyS2SF",
+      "target": "s:11PKContracts18LogRedactionPolicyV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts18LogRedactionPolicyV8sanitizeyS2SF",
+      "target": "s:11PKContracts18LogRedactionPolicyV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts18MessageContentPartO4fromACs7Decoder_p_tKcfc",
       "target": "s:11PKContracts18MessageContentPartO",
       "sourceOrigin": {
@@ -41892,6 +42041,36 @@
       "kind": "memberOf",
       "source": "s:11PKContracts20GenerationParametersV9maxTokensSiSgvp",
       "target": "s:11PKContracts20GenerationParametersV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts20LoggingConfigurationV13loggerFactoryy0B06LoggerVSSYbcvp",
+      "target": "s:11PKContracts20LoggingConfigurationV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts20LoggingConfigurationV15redactionPolicy13loggerFactoryAcA012LogRedactionE0V_0B06LoggerVSSYbctcfc",
+      "target": "s:11PKContracts20LoggingConfigurationV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts20LoggingConfigurationV15redactionPolicyAA012LogRedactionE0Vvp",
+      "target": "s:11PKContracts20LoggingConfigurationV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts20LoggingConfigurationV6logger5named0B06LoggerVSS_tF",
+      "target": "s:11PKContracts20LoggingConfigurationV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts20LoggingConfigurationV7defaultACvpZ",
+      "target": "s:11PKContracts20LoggingConfigurationV"
     },
     {
       "module": "PKContracts",
@@ -53286,36 +53465,6 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit26WorkspaceBindingRepositoryPAAE05claimC0_3for3nowAA0cD0V10Foundation4UUIDV_AkI4DateVtYaKF",
-      "target": "s:13PositronicKit26WorkspaceBindingRepositoryP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit26WorkspaceBindingRepositoryPAAE07releaseC0_4from3nowy10Foundation4UUIDV_AiG4DateVtYaKF",
-      "target": "s:13PositronicKit26WorkspaceBindingRepositoryP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit26WorkspaceBindingRepositoryPAAE08transferC0_4from2to3nowAA0cD0V10Foundation4UUIDV_A2lJ4DateVtYaKF",
-      "target": "s:13PositronicKit26WorkspaceBindingRepositoryP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit26WorkspaceBindingRepositoryPAAE12listBindings3forSayAA0cD0VG10Foundation4UUIDV_tYaKF",
-      "target": "s:13PositronicKit26WorkspaceBindingRepositoryP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit26WorkspaceBindingRepositoryPAAE13resolveThread3for10Foundation4UUIDVSgAH_tYaKF",
-      "target": "s:13PositronicKit26WorkspaceBindingRepositoryP"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
       "source": "s:13PositronicKit27AgentResourceCatalogContextV4bodyQrvp",
       "target": "s:13PositronicKit27AgentResourceCatalogContextV",
       "sourceOrigin": {
@@ -54494,7 +54643,7 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKitAAC13ConfigurationV7logging11PKUtilities07LoggingC0Vvp",
+      "source": "s:13PositronicKitAAC13ConfigurationV7logging11PKContracts07LoggingC0Vvp",
       "target": "s:13PositronicKitAAC13ConfigurationV"
     },
     {
@@ -54506,7 +54655,7 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKitAAC13ConfigurationV8provider11persistence7runtime20generationParameters7loggingAdB08ProviderC0V_AB011PersistenceC0VAB07RuntimeC0V11PKContracts010GenerationH0VSg11PKUtilities07LoggingC0Vtcfc",
+      "source": "s:13PositronicKitAAC13ConfigurationV8provider11persistence7runtime20generationParameters7loggingAdB08ProviderC0V_AB011PersistenceC0VAB07RuntimeC0V11PKContracts010GenerationH0VSgAP07LoggingC0Vtcfc",
       "target": "s:13PositronicKitAAC13ConfigurationV"
     },
     {
