@@ -142,7 +142,7 @@ public final class PositronicKit: Sendable {
 
     convenience init(
         languageModel: any LLMStreamClient,
-        runtimeRepository: any ThreadRuntimeRepository = InMemoryThreadRuntimeRepository(),
+        runtimeRepository: any ThreadRuntimeRepository,
         workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil,
         agentStore: (any AgentStoreProtocol)? = nil,
         requestOriginStore: (any RequestOriginStoreProtocol)? = nil,

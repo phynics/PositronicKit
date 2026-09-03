@@ -1258,6 +1258,7 @@ struct ToolDurabilityOrderingTests {
                 threadStore: mockPersistence,
                 messageStore: mockPersistence,
                 workspaceStore: mockPersistence,
+                runtimeRepository: mockPersistence,
                 toolPersistence: mockPersistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)

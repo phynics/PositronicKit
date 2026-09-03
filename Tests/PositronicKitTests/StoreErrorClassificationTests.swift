@@ -24,6 +24,7 @@ struct StoreErrorClassificationTests {
                 threadStore: failingStore,
                 messageStore: MockPersistenceService(),
                 workspaceStore: MockPersistenceService(),
+                runtimeRepository: InMemoryThreadRuntimeRepository(),
                 toolPersistence: MockPersistenceService()
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
@@ -71,6 +72,7 @@ struct StoreErrorClassificationTests {
                 threadStore: failingStore,
                 messageStore: MockPersistenceService(),
                 workspaceStore: MockPersistenceService(),
+                runtimeRepository: InMemoryThreadRuntimeRepository(),
                 toolPersistence: MockPersistenceService()
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
@@ -104,6 +106,7 @@ struct StoreErrorClassificationTests {
                 threadStore: failingStore,
                 messageStore: MockPersistenceService(),
                 workspaceStore: MockPersistenceService(),
+                runtimeRepository: InMemoryThreadRuntimeRepository(),
                 toolPersistence: MockPersistenceService()
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
@@ -137,6 +140,7 @@ struct StoreErrorClassificationTests {
                 threadStore: failingStore,
                 messageStore: MockPersistenceService(),
                 workspaceStore: MockPersistenceService(),
+                runtimeRepository: InMemoryThreadRuntimeRepository(),
                 toolPersistence: MockPersistenceService()
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
@@ -185,6 +189,7 @@ struct StoreErrorClassificationTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: failingWorkspaceStore,
+                runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
@@ -223,6 +228,7 @@ struct StoreErrorClassificationTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                runtimeRepository: persistence,
                 toolPersistence: failingToolPersistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
@@ -251,6 +257,7 @@ struct StoreErrorClassificationTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
@@ -274,6 +281,7 @@ struct StoreErrorClassificationTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: failingWorkspaceStore,
+                runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)

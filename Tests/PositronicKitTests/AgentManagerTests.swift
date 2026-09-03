@@ -308,6 +308,7 @@ struct AgentManagerTests {
                 threadStore: threadStore,
                 messageStore: messageStore,
                 workspaceStore: workspaceStore,
+                runtimeRepository: InMemoryThreadRuntimeRepository(),
                 toolPersistence: InMemoryToolPersistence()
             ),
             workspaceProfile: .hostManaged(root: workspaceRoot),

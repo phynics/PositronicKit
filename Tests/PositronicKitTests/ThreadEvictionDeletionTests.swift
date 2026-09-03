@@ -87,6 +87,7 @@ struct ThreadEvictionDeletionTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
@@ -116,6 +117,7 @@ struct ThreadEvictionDeletionTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
@@ -156,6 +158,7 @@ struct ThreadEvictionDeletionTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
@@ -198,6 +201,7 @@ struct ThreadEvictionDeletionTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
             workspaceProfile: .noWorkspace
@@ -265,6 +269,7 @@ struct ThreadEvictionDeletionTests {
                 threadStore: failingThreadStore,
                 messageStore: backing,
                 workspaceStore: backing,
+                runtimeRepository: InMemoryThreadRuntimeRepository(),
                 toolPersistence: backing
             ),
             workspaceProfile: .hostManaged(root: workspace.root)
@@ -318,6 +323,7 @@ struct ThreadEvictionDeletionTests {
                 threadStore: persistence,
                 messageStore: persistence,
                 workspaceStore: persistence,
+                runtimeRepository: persistence,
                 toolPersistence: persistence
             ),
             workspaceProfile: .hostManaged(root: workspace.root)

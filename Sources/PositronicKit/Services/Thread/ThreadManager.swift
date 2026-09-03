@@ -46,7 +46,7 @@ actor ThreadManager {
             messageStore: any ThreadMessageStoreProtocol,
             workspaceStore: any WorkspaceStore,
             workspaceBindingRepository: (any WorkspaceBindingRepository)? = nil,
-            runtimeRepository: (any ThreadRuntimeRepository)? = nil,
+            runtimeRepository: any ThreadRuntimeRepository,
             toolPersistence: any ToolPersistenceProtocol
         ) {
             self.threadStore = threadStore
@@ -56,8 +56,6 @@ actor ThreadManager {
                 ?? (workspaceStore as? any WorkspaceBindingRepository)
                 ?? InMemoryWorkspaceBindingRepository()
             self.runtimeRepository = runtimeRepository
-                ?? (threadStore as? any ThreadRuntimeRepository)
-                ?? InMemoryThreadRuntimeRepository()
             self.toolPersistence = toolPersistence
         }
     }
