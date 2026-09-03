@@ -8,6 +8,17 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Breaking
+
+- **`DurabilityReport` gained a required `workspaceBindingRepository` parameter:** its public
+  memberwise initializer now takes `workspaceBindingRepository: StoreDurability` third, after
+  `workspacePersistence:`. Code that only *reads* a report returned by `validateDurability()` is
+  unaffected; code that constructs a `DurabilityReport` directly must pass the new argument.
+  `ephemeralStoreNames` can now return six names instead of five.
+- **`WorkspaceBindingRepository` now refines `DurabilityAware`** instead of `Sendable`. Existing
+  conformers keep compiling through the protocol's default `isDurable == false`, but a durable
+  adapter must override it to `true` or `validateDurability()` will report it as ephemeral.
+
 ### Fixed
 
 - **Permanent thread deletion no longer orphans message history:** `deleteThreadPermanently` used
