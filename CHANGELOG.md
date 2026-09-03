@@ -39,6 +39,16 @@ for tagged releases beginning with `1.0.0`.
   below) elapses first; neither case fabricates a durable outcome. Callers that only awaited a
   successful outcome need `try` added; callers that need to distinguish "cancelled" from
   "genuinely not observed yet" now can.
+- **`LoggingConfiguration` and `LogRedactionPolicy` moved from `PKUtilities` to `PKContracts`
+  (E-01):** `Configuration.logging` accepted a `LoggingConfiguration` value, but the type lived in
+  `PKUtilities`, which is deliberately not a public library product (`Scripts/check-dependency-direction.sh`
+  fails the build if it is ever added to `Package.swift`'s products list). A consumer importing
+  only `PositronicKit` could not name `LoggingConfiguration` or `LogRedactionPolicy` and could
+  therefore only ever accept `.default` — the parameter existed but was not actually consumer
+  constructible. Both types are runtime-neutral and now live in `PKContracts`, which is a public
+  product and the leaf context per ADR 0002. `PKUtilities` still depends on `PKContracts` and
+  continues to use both types unchanged. Code that referenced either type via `import PKUtilities`
+  now needs `import PKContracts` instead.
 
 ### Fixed
 

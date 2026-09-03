@@ -1,6 +1,5 @@
 import Foundation
 import Logging
-import PKContracts
 
 /// Controls logger construction and the amount of user-controlled data allowed in logs.
 /// Payloads are disabled by default; hosts must explicitly opt in for diagnostics.
@@ -10,7 +9,7 @@ public struct LoggingConfiguration: Sendable {
 
     public init(
         redactionPolicy: LogRedactionPolicy = .default,
-        loggerFactory: @escaping @Sendable (String) -> Logger = { Logger.module(named: $0) }
+        loggerFactory: @escaping @Sendable (String) -> Logger = { .init(label: "com.positronickit.\($0)") }
     ) {
         self.loggerFactory = loggerFactory
         self.redactionPolicy = redactionPolicy
@@ -59,18 +58,4 @@ public struct LogRedactionPolicy: Sendable, Equatable {
     public func sanitizeStructured(_ value: String) -> String {
         sanitize(value)
     }
-}
-
-/// Stable metadata shared by all error log sites.
-package enum LoggingMetadata {
-    /// Creates structured logging metadata for an error and its correlation identifier.
-    package static func makeMetadata(for error: Error, correlationID: String) -> Logger.Metadata {
-        let identity = TurnEvent.ErrorIdentity.extracting(from: error)
-        return [
-            LogKeys.errorDomain: .string(identity?.domain ?? "com.positronickit.unknown"),
-            LogKeys.errorCode: .string(String(identity?.code ?? 0)),
-            LogKeys.correlationID: .string(correlationID),
-        ]
-    }
-
 }
