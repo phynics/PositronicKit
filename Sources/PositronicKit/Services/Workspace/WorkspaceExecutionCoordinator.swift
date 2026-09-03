@@ -25,21 +25,6 @@ final class WorkspaceExecutionCoordinator: Sendable {
         try await lane.run(workspaceID, operation: operation)
     }
 
-    /// Descriptive aliases retained for existing callers.
-    public func withWorkspace<T: Sendable>(
-        _ workspaceID: UUID,
-        operation: @escaping @Sendable () async throws -> T
-    ) async throws -> T {
-        try await withWorkspaceExecution(workspaceID: workspaceID, operation: operation)
-    }
-
-    public func withWorkspace<T: Sendable>(
-        id workspaceID: UUID,
-        operation: @escaping @Sendable () async throws -> T
-    ) async throws -> T {
-        try await withWorkspaceExecution(workspaceID: workspaceID, operation: operation)
-    }
-
     /// Whether a Workspace currently has an executing or queued operation.
     public func isBusy(_ workspaceID: UUID) -> Bool {
         lane.isBusy(workspaceID)

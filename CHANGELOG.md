@@ -10,6 +10,19 @@ for tagged releases beginning with `1.0.0`.
 
 ### Breaking
 
+- **Keyed FIFO lanes are cancellation-aware, and two coordinator methods became `throws`:**
+  `ThreadAuthorityCoordinator` and `WorkspaceExecutionCoordinator` parked queued callers in a bare
+  `withCheckedContinuation` with no cancellation handling and no post-acquire cancellation check,
+  so a cancelled task queued behind either one stayed suspended until the lane was handed over and
+  then ran its operation anyway. `ThreadAuthorityCoordinator` sits on the Turn admission path, so a
+  cancelled Turn could still perform admission work. All three keyed coordinators now share one
+  cancellation-aware `FIFOLane` — the design `AgentAuthorityCoordinator` already used — and throw
+  `CancellationError` instead of running the operation. `ThreadManager.withWorkspaceExecution` and
+  `withThreadAuthority` changed from `rethrows` to `throws` as a result.
+- **`WorkspaceExecutionCoordinator` exposes one spelling of its lane operation:** the redundant
+  `withWorkspace(_:operation:)` and `withWorkspace(id:operation:)` aliases are removed; use
+  `withWorkspaceExecution(workspaceID:operation:)`.
+
 - **`DurabilityReport` gained a required `workspaceBindingRepository` parameter:** its public
   memberwise initializer now takes `workspaceBindingRepository: StoreDurability` third, after
   `workspacePersistence:`. Code that only *reads* a report returned by `validateDurability()` is

@@ -25,7 +25,7 @@ final class WorkspaceExecutionCoordinatorTests: XCTestCase {
         let workspaceID = UUID()
 
         let first = Task {
-            try await coordinator.withWorkspace(workspaceID) {
+            try await coordinator.withWorkspaceExecution(workspaceID: workspaceID) {
                 await probe.enter(1)
                 try await Task.sleep(for: .milliseconds(20))
                 await probe.leave()
@@ -34,7 +34,7 @@ final class WorkspaceExecutionCoordinatorTests: XCTestCase {
         }
         try await Task.sleep(for: .milliseconds(2))
         let second = Task {
-            try await coordinator.withWorkspace(workspaceID) {
+            try await coordinator.withWorkspaceExecution(workspaceID: workspaceID) {
                 await probe.enter(2)
                 await probe.leave()
                 return 2
@@ -57,12 +57,12 @@ final class WorkspaceExecutionCoordinatorTests: XCTestCase {
         let firstWorkspace = UUID()
         let secondWorkspace = UUID()
 
-        async let first: Void = coordinator.withWorkspace(firstWorkspace) {
+        async let first: Void = coordinator.withWorkspaceExecution(workspaceID: firstWorkspace) {
             await probe.enter(1)
             try await Task.sleep(for: .milliseconds(20))
             await probe.leave()
         }
-        async let second: Void = coordinator.withWorkspace(secondWorkspace) {
+        async let second: Void = coordinator.withWorkspaceExecution(workspaceID: secondWorkspace) {
             await probe.enter(2)
             try await Task.sleep(for: .milliseconds(20))
             await probe.leave()

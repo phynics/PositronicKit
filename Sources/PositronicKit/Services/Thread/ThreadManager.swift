@@ -257,7 +257,7 @@ actor ThreadManager {
         _ workspaceID: UUID,
         operation: @escaping @Sendable () async throws -> T
     ) async throws -> T {
-        try await workspaceExecutionCoordinator.withWorkspace(workspaceID, operation: operation)
+        try await workspaceExecutionCoordinator.withWorkspaceExecution(workspaceID: workspaceID, operation: operation)
     }
 
     /// Serializes Turn admission and Thread authority mutations under one per-Thread lane.
