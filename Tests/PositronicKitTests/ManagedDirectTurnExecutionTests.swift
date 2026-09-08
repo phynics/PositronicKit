@@ -288,6 +288,56 @@ struct ManagedDirectTurnExecutionTests {
         #expect(outcome == .cancelled(reason: "Turn task cancelled."))
     }
 
+    @Test("identical submissions join while the first Turn is preparing")
+    func identicalSubmissionsJoinDuringPreparation() async throws {
+        let llm = MockLLMService()
+        llm.mockClient.nextResponse = "prepared reply"
+        let preparation = AdmissionPreparationGate()
+        let kit = PositronicKit(configuration: .init(
+            provider: .init(languageModel: llm),
+            persistence: .inMemory(),
+            runtime: .init(customization: RuntimeCustomization(turnContextSource: preparation))
+        ))
+        let thread = try await kit.threads.create(title: "Admission join")
+        let requestID = UUID()
+
+        let firstTask = Task {
+            try await thread.startDirectTurn(
+                message: "same request",
+                context: DirectTurnContext(systemInstructions: "", contributor: .host),
+                requestID: requestID
+            )
+        }
+        guard await preparation.waitUntilEntered() else {
+            await preparation.release()
+            _ = try? await firstTask.value
+            Issue.record("The first Turn did not reach preparation.")
+            return
+        }
+
+        let repository = kit.runtimeRepository
+        let admitted = try await repository.fetchMessages(for: thread.id)
+        #expect(admitted.map(\.content) == ["same request"])
+        #expect(llm.mockClient.generationCaptureHistory.isEmpty)
+
+        let joined = try await thread.startDirectTurn(
+            message: "same request",
+            context: DirectTurnContext(systemInstructions: "", contributor: .host),
+            requestID: requestID
+        )
+        #expect((try await repository.fetchTurn(id: joined.id))?.identity.turnID == joined.id)
+        #expect(try await repository.fetchMessages(for: thread.id).count == 1)
+        #expect(llm.mockClient.generationCaptureHistory.isEmpty)
+
+        await preparation.release()
+        let first = try await firstTask.value
+        _ = await first.events().collect()
+
+        #expect(joined.id == first.id)
+        #expect(llm.mockClient.generationCaptureHistory.count == 1)
+        #expect(try await first.outcome() == .completed)
+    }
+
     @Test("a completed request replays one durable terminal event")
     func completedTurnReplaysOneTerminal() async throws {
         let llm = MockLLMService()
@@ -318,5 +368,30 @@ struct ManagedDirectTurnExecutionTests {
             }
             return false
         })
+    }
+}
+
+private actor AdmissionPreparationGate: TurnContextSource {
+    private var entered = false
+    private var released = false
+
+    func contributions(for _: TurnContextRequest) async throws -> [TurnContextContribution] {
+        entered = true
+        while !released {
+            await Task.yield()
+        }
+        return []
+    }
+
+    func waitUntilEntered() async -> Bool {
+        for _ in 0..<100 {
+            if entered { return true }
+            await Task.yield()
+        }
+        return false
+    }
+
+    func release() {
+        released = true
     }
 }
