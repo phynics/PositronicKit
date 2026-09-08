@@ -62,7 +62,7 @@ extension ThreadManager {
             // The initial lookup above only validates the request. Re-read after acquiring the
             // authority lane so metadata committed by another Thread mutation is not overwritten.
             var candidate = try await self.authoritativeThread(for: threadID)
-            try self.requireThreadLiveness(for: threadID, version: livenessVersion)
+            try await self.requireThreadLiveness(for: threadID, version: livenessVersion)
             let existingOwner = try await self.workspaceBindingRepository.threadID(for: workspaceId)
             if let existingOwner, existingOwner != threadID {
                 throw WorkspaceBindingRepositoryError.workspaceAlreadyBound(
