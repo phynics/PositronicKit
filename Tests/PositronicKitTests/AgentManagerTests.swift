@@ -229,6 +229,75 @@ struct AgentManagerTests {
         #expect(await stores.cleanupOperations() == expectedCleanup)
     }
 
+    @Test("Concurrent attachments resolve conflicts from the authoritative Thread state")
+    func concurrentAttachmentsDoNotOverwriteEachOther() async throws {
+        let agentStore = InMemoryAgentStore()
+        let threadStore = AgentAttachmentRaceThreadStore()
+        let messageStore = InMemoryMessageStore()
+        let workspaceStore = InMemoryWorkspacePersistence()
+        let repository = DefaultWorkspaceCatalog(
+            workspaceRoot: URL(fileURLWithPath: "/tmp/pk-test"),
+            workspacePersistence: workspaceStore
+        )
+        let manager = AgentManager(
+            repository: repository,
+            stores: .init(
+                agentStore: agentStore,
+                threadStore: threadStore,
+                messageStore: messageStore,
+                workspaceStore: workspaceStore
+            )
+        )
+
+        let firstAgent = Agent(
+            id: UUID(), name: "First Agent", description: "First",
+            primaryWorkspaceID: UUID(), privateThreadID: UUID()
+        )
+        let secondAgent = Agent(
+            id: UUID(), name: "Second Agent", description: "Second",
+            primaryWorkspaceID: UUID(), privateThreadID: UUID()
+        )
+        let thread = Thread(id: UUID(), title: "Shared")
+        try await agentStore.saveAgent(firstAgent)
+        try await agentStore.saveAgent(secondAgent)
+        try await threadStore.saveThread(thread)
+        await threadStore.blockNextSave()
+
+        // Hold the first mutation after it has entered the Thread lane. The second call can
+        // reach its preflight read in the old implementation, capturing the same stale snapshot.
+        let first = Task {
+            do {
+                try await manager.attach(agentID: firstAgent.id, to: thread.id)
+                return true
+            } catch {
+                return false
+            }
+        }
+        await threadStore.waitUntilBlockedSave()
+
+        let second = Task {
+            do {
+                try await manager.attach(agentID: secondAgent.id, to: thread.id)
+                return true
+            } catch {
+                return false
+            }
+        }
+
+        // Let a stale preflight read happen if one exists, without assuming any ordering between
+        // the two manager tasks. The first save remains blocked until this bounded handoff ends.
+        for _ in 0..<1_000 {
+            if await threadStore.fetchCount >= 2 { break }
+            await Task.yield()
+        }
+        await threadStore.releaseBlockedSave()
+
+        let outcomes = [await first.value, await second.value]
+        #expect(outcomes.filter { $0 }.count == 1)
+        let attachedAgentID = try await threadStore.fetchThread(id: thread.id)?.attachedAgentID
+        #expect(attachedAgentID == firstAgent.id || attachedAgentID == secondAgent.id)
+    }
+
     @Test("Default in-memory stores protect attached agents")
     func defaultInMemoryStorePreventsDeletingAttachedAgentWithoutForce() async throws {
         let kit = PositronicKit()
@@ -479,6 +548,65 @@ struct AgentManagerTests {
         let workspaceID = try #require(instance.primaryWorkspaceID)
         #expect(try await workspaceStore.fetchWorkspace(id: workspaceID, includeTools: false) != nil)
         #expect(try await threadStore.fetchThread(id: instance.privateThreadID) != nil)
+    }
+}
+
+private actor AgentAttachmentRaceThreadStore: ThreadPersistenceProtocol {
+    private var threads: [UUID: Thread] = [:]
+    private var blockNextSaveRequest = false
+    private var saveBlocked = false
+    private var blockedSaveContinuation: CheckedContinuation<Void, Never>? // swiftlint:disable:this concurrency_stored_continuation -- Test-only actor gate.
+    private var saveReleaseContinuation: CheckedContinuation<Void, Never>? // swiftlint:disable:this concurrency_stored_continuation -- Test-only actor gate.
+    private(set) var fetchCount = 0
+
+    func saveThread(_ thread: Thread) async throws {
+        if blockNextSaveRequest {
+            blockNextSaveRequest = false
+            saveBlocked = true
+            blockedSaveContinuation?.resume()
+            blockedSaveContinuation = nil
+            await withCheckedContinuation { continuation in
+                saveReleaseContinuation = continuation
+            }
+        }
+        threads[thread.id] = thread
+    }
+
+    func fetchThread(id: UUID) async throws -> Thread? {
+        fetchCount += 1
+        return threads[id]
+    }
+
+    func fetchAllThreads(includeArchived _: Bool) async throws -> [Thread] {
+        Array(threads.values)
+    }
+
+    func deleteThread(id: UUID) async throws {
+        threads.removeValue(forKey: id)
+    }
+
+    func pruneThreads(
+        olderThan _: TimeInterval,
+        excluding _: [UUID],
+        dryRun _: Bool
+    ) async throws -> Int {
+        0
+    }
+
+    func blockNextSave() {
+        blockNextSaveRequest = true
+    }
+
+    func waitUntilBlockedSave() async {
+        guard !saveBlocked else { return }
+        await withCheckedContinuation { continuation in
+            blockedSaveContinuation = continuation
+        }
+    }
+
+    func releaseBlockedSave() {
+        saveReleaseContinuation?.resume()
+        saveReleaseContinuation = nil
     }
 }
 

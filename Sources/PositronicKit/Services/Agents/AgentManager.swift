@@ -191,10 +191,10 @@ actor AgentManager: AgentManagerProtocol {
     }
 
     private func attachUnlocked(agentID: UUID, to threadID: UUID) async throws {
-        try await requireExecutionContextMutable(for: threadID)
-        guard let thread = try await threadStore.fetchThread(id: threadID) else {
-            throw ThreadError.threadNotFound
-        }
+        // Agent lifecycle is serialized by the caller's agent lane. Resolve it before entering
+        // the Thread lane, then resolve the Thread itself inside that lane. In particular, do
+        // not carry a pre-lane Thread snapshot into the mutation: another attachment may commit
+        // while this operation is waiting for the per-Thread authority coordinator.
         guard let agent = try await agentStore.fetchAgent(id: agentID) else {
             throw AgentError.agentNotFound(agentID)
         }
@@ -207,36 +207,44 @@ actor AgentManager: AgentManagerProtocol {
             throw AgentError.agentRetired(agentID)
         }
 
-        // Idempotent
-        if thread.attachedAgentID == agentID { return }
-
-        // Prevent attaching an agent to a private thread owned by another agent
-        if thread.isPrivate {
-            if let currentOwner = thread.attachedAgentID, currentOwner != agentID {
-                throw AgentError.cannotAttachToPrivateThread(threadID)
-            }
-        }
-
-        // Check for existing attachment
-        if let existingId = thread.attachedAgentID {
-            if try await agentStore.fetchAgent(id: existingId) != nil {
-                throw AgentError.differentAgentAlreadyAttached(existingId)
-            }
-            // Dangling reference — clear it with a warning
-            logger.warning(
-                "Clearing dangling agent reference \(existingId) on thread \(threadID)")
-        }
-
-        let originalThread = thread
-        let updatedThread = try await threadAuthorityCoordinator.withThread(threadID) { [self, originalThread] in
+        let result: (thread: Thread, didAttach: Bool) = try await threadAuthorityCoordinator.withThread(threadID) { [self] in
             try await self.requireExecutionContextMutable(for: threadID)
-            var updated = originalThread
+            guard let thread = try await self.threadStore.fetchThread(id: threadID) else {
+                throw ThreadError.threadNotFound
+            }
+
+            // Idempotent
+            if thread.attachedAgentID == agentID {
+                return (thread: thread, didAttach: false)
+            }
+
+            // Prevent attaching an agent to a private thread owned by another agent
+            if thread.isPrivate {
+                if let currentOwner = thread.attachedAgentID, currentOwner != agentID {
+                    throw AgentError.cannotAttachToPrivateThread(threadID)
+                }
+            }
+
+            // Check for existing attachment while holding the same lane as the mutation. This
+            // makes the conflict decision authoritative when two agents attach concurrently.
+            if let existingId = thread.attachedAgentID {
+                if try await self.agentStore.fetchAgent(id: existingId) != nil {
+                    throw AgentError.differentAgentAlreadyAttached(existingId)
+                }
+                // Dangling reference — clear it with a warning
+                self.logger.warning(
+                    "Clearing dangling agent reference \(existingId) on thread \(threadID)")
+            }
+
+            var updated = thread
             updated.attachedAgentID = agentID
             updated.updatedAt = Date()
             try await self.threadStore.saveThread(updated)
-            return updated
+            return (thread: updated, didAttach: true)
         }
-        await threadManager?.replaceCachedThreadIfPresent(updatedThread)
+        guard result.didAttach else { return }
+        await threadManager?.replaceCachedThreadIfPresent(result.thread)
+        let thread = result.thread
 
         // Log to agent's private thread
         let logMsg = ThreadMessage(
