@@ -110,22 +110,23 @@ mkdir -p "$CWD_SAFE"
   cd "$CWD_SAFE"
   converted_modules=""
   for module_name in $PUBLIC_MODULES; do
-    dependencies=()
+    docc_arguments=(
+      --additional-symbol-graph-dir "$SYMBOLS_DIR/$module_name"
+    )
     for dependency in $converted_modules; do
-      dependencies+=(--dependency "$OUTPUT_DIR/$dependency.doccarchive")
+      docc_arguments+=(--dependency "$OUTPUT_DIR/$dependency.doccarchive")
     done
-    catalog=()
-    if [[ "$module_name" == "PositronicKit" ]]; then
-      catalog+=("$ROOT/Sources/PositronicKit/PositronicKit.docc")
-    fi
-    "$DOCC_BIN" convert "${catalog[@]}" \
-      --additional-symbol-graph-dir "$SYMBOLS_DIR/$module_name" \
-      "${dependencies[@]}" \
-      --output-dir "$OUTPUT_DIR/$module_name.doccarchive" \
-      --warnings-as-errors \
-      --enable-experimental-external-link-support \
-      --fallback-display-name "$module_name" \
+    docc_arguments+=(
+      --output-dir "$OUTPUT_DIR/$module_name.doccarchive"
+      --warnings-as-errors
+      --enable-experimental-external-link-support
+      --fallback-display-name "$module_name"
       --fallback-bundle-identifier "com.phynics.$module_name"
+    )
+    if [[ "$module_name" == "PositronicKit" ]]; then
+      docc_arguments=("$ROOT/Sources/PositronicKit/PositronicKit.docc" "${docc_arguments[@]}")
+    fi
+    "$DOCC_BIN" convert "${docc_arguments[@]}"
     converted_modules="$converted_modules $module_name"
   done
 )
