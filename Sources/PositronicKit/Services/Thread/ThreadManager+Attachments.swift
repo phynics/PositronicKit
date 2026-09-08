@@ -58,9 +58,11 @@ extension ThreadManager {
 
         try requireThreadLiveness(for: threadID, version: livenessVersion)
 
-        let originalThread = thread
-        let attachmentMutation: (Thread, Bool) = try await withThreadAuthority(threadID) { [self, originalThread] in
-            var candidate = originalThread
+        let attachmentMutation: (Thread, Bool) = try await withThreadAuthority(threadID) { [self] in
+            // The initial lookup above only validates the request. Re-read after acquiring the
+            // authority lane so metadata committed by another Thread mutation is not overwritten.
+            var candidate = try await self.authoritativeThread(for: threadID)
+            try await self.requireThreadLiveness(for: threadID, version: livenessVersion)
             let existingOwner = try await self.workspaceBindingRepository.threadID(for: workspaceId)
             if let existingOwner, existingOwner != threadID {
                 throw WorkspaceBindingRepositoryError.workspaceAlreadyBound(
@@ -157,9 +159,10 @@ extension ThreadManager {
             }
         }
 
-        let originalThread = thread
-        thread = try await withThreadAuthority(threadID) { [self, originalThread] in
-            var candidate = originalThread
+        thread = try await withThreadAuthority(threadID) { [self] in
+            // The initial lookup above only validates the request. Re-read after acquiring the
+            // authority lane so metadata committed by another Thread mutation is not overwritten.
+            var candidate = try await self.authoritativeThread(for: threadID)
             let owner = try await self.workspaceBindingRepository.threadID(for: workspaceId)
             try await self.requireExecutionContextMutable(for: threadID)
             if owner == threadID {
@@ -272,6 +275,25 @@ extension ThreadManager {
 // MARK: - Workspace Status Normalization
 
 private extension ThreadManager {
+    /// Reads the Thread after its authority lane is acquired. A pre-lane snapshot is only a
+    /// validation read; this read is the one that may be persisted by an attachment mutation.
+    func authoritativeThread(for threadID: UUID) async throws -> Thread {
+        do {
+            guard let thread = try await threadStore.fetchThread(id: threadID) else {
+                throw ThreadError.threadNotFound
+            }
+            return thread
+        } catch let error as ThreadError {
+            throw error
+        } catch {
+            logger.error("""
+            workspace attachment Thread refresh failed — thread: \(threadID.uuidString.prefix(8)), \
+            operation: fetchThread, error: \(ErrorKit.userFriendlyMessage(for: error))
+            """)
+            throw ThreadError.unavailable
+        }
+    }
+
     /// Returns `.missing` for a `.runtime` workspace whose `rootPath` no longer exists on disk;
     /// leaves other workspaces (including `.attached` and `.runtimeThread`) unchanged.
     func normalizeWorkspaceStatus(_ workspace: WorkspaceReference) -> WorkspaceReference {
