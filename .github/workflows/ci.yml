@@ -97,18 +97,6 @@ jobs:
       - name: Install SwiftLint
         run: brew install swiftlint
 
-      - name: Generate macOS public API baseline (diagnostic)
-        id: generate-macos-public-api-baseline
-        run: make update-public-api-baseline
-
-      - name: Upload generated macOS public API baseline (diagnostic)
-        if: success()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: macos-public-api-baseline
-          path: api/5.0-public-api-macos.json
-          if-no-files-found: error
-
       - name: Verify macOS gate (make verify)
         run: |
           mkdir -p .build

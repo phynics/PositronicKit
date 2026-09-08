@@ -3433,7 +3433,7 @@
         "LLMConfiguration",
         "activeProviderConfiguration"
       ],
-      "declaration": "var activeProviderConfiguration: ProviderConfiguration { get }"
+      "declaration": "var activeProviderConfiguration: ProviderConfiguration { get set }"
     },
     {
       "precise": "s:11PKContracts16LLMConfigurationV4fromACs7Decoder_p_tKcfc",
