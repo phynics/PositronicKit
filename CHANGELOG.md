@@ -8,6 +8,8 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+## [5.1.0] - 2026-09-08
+
 ### Breaking
 
 - **Keyed FIFO lanes are cancellation-aware, and two coordinator methods became `throws`:**
