@@ -65,6 +65,80 @@ private struct AttachmentFixture {
     }
 }
 
+/// A gate that pauses the first persistence read after it obtains its snapshot. This makes the
+/// stale-snapshot window deterministic without relying on timing or sleeps.
+private actor ThreadFetchGate {
+    private var entered = false
+    private var released = false
+    private var shouldPause = true
+
+    func pauseFirstFetch() async {
+        guard shouldPause else { return }
+        shouldPause = false
+        entered = true
+        while !released {
+            await Task.yield()
+        }
+    }
+
+    func hasEntered() -> Bool { entered }
+    func release() { released = true }
+}
+
+private struct GatedThreadStore: ThreadPersistenceProtocol {
+    let base: any ThreadPersistenceProtocol
+    let gate: ThreadFetchGate
+
+    func saveThread(_ thread: Thread) async throws { try await base.saveThread(thread) }
+
+    func fetchThread(id: UUID) async throws -> Thread? {
+        let snapshot = try await base.fetchThread(id: id)
+        await gate.pauseFirstFetch()
+        return snapshot
+    }
+
+    func fetchAllThreads(includeArchived: Bool) async throws -> [Thread] {
+        try await base.fetchAllThreads(includeArchived: includeArchived)
+    }
+
+    func deleteThread(id: UUID) async throws { try await base.deleteThread(id: id) }
+
+    func pruneThreads(
+        olderThan timeInterval: TimeInterval,
+        excluding excludedThreadIDs: [UUID],
+        dryRun: Bool
+    ) async throws -> Int {
+        try await base.pruneThreads(
+            olderThan: timeInterval,
+            excluding: excludedThreadIDs,
+            dryRun: dryRun
+        )
+    }
+}
+
+private func makeGatedManager(
+    fixture: AttachmentFixture,
+    threadStore: any ThreadPersistenceProtocol
+) -> ThreadManager {
+    let resolver = WorkspaceResolverFactory.makeDefault(
+        workspaceRoot: fixture.workspaceRoot,
+        workspaceStore: fixture.persistence,
+        bindingRepository: fixture.bindingRepository
+    )
+    return ThreadManager(
+        stores: .init(
+            threadStore: threadStore,
+            messageStore: fixture.persistence,
+            workspaceStore: fixture.persistence,
+            workspaceBindingRepository: fixture.bindingRepository,
+            runtimeRepository: fixture.persistence,
+            toolPersistence: fixture.persistence
+        ),
+        workspaceProfile: .hostManaged(root: fixture.workspaceRoot),
+        resolver: resolver
+    )
+}
+
 private func withFixture(
     _ body: @Sendable (AttachmentFixture) async throws -> Void
 ) async throws {
@@ -161,6 +235,32 @@ struct AttachWorkspaceTests {
             #expect(bindings.map(\.workspaceID).contains(fix.clientWS.id))
         }
     }
+
+    @Test("attach preserves metadata committed during its authoritative refresh")
+    func attachPreservesConcurrentMetadata() async throws {
+        let fix = try await AttachmentFixture.make()
+        let thread = Thread()
+        try await fix.persistence.saveThread(thread)
+
+        let gate = ThreadFetchGate()
+        let manager = makeGatedManager(
+            fixture: fix,
+            threadStore: GatedThreadStore(base: fix.persistence, gate: gate)
+        )
+        let attachTask = Task {
+            try await manager.attachWorkspace(fix.clientWS.id, to: thread.id)
+        }
+
+        while !(await gate.hasEntered()) { await Task.yield() }
+        var renamed = try #require(await fix.persistence.fetchThread(id: thread.id))
+        renamed.title = "renamed while attaching"
+        try await fix.persistence.saveThread(renamed)
+        await gate.release()
+        try await attachTask.value
+
+        let persisted = try #require(await fix.persistence.fetchThread(id: thread.id))
+        #expect(persisted.title == "renamed while attaching")
+    }
 }
 
 // MARK: - detachWorkspace
@@ -178,6 +278,36 @@ struct DetachWorkspaceTests {
             let workspaces = try await fix.manager.getWorkspaces(for: thread.id)
             #expect(!workspaces.attached.contains { $0.id == fix.clientWS.id })
         }
+    }
+
+    @Test("detach preserves metadata committed during its authoritative refresh")
+    func detachPreservesConcurrentMetadata() async throws {
+        let fix = try await AttachmentFixture.make()
+        let thread = Thread()
+        try await fix.persistence.saveThread(thread)
+        _ = try await fix.bindingRepository.claim(
+            workspaceID: fix.clientWS.id,
+            for: thread.id
+        )
+
+        let gate = ThreadFetchGate()
+        let manager = makeGatedManager(
+            fixture: fix,
+            threadStore: GatedThreadStore(base: fix.persistence, gate: gate)
+        )
+        let detachTask = Task {
+            try await manager.detachWorkspace(fix.clientWS.id, from: thread.id)
+        }
+
+        while !(await gate.hasEntered()) { await Task.yield() }
+        var renamed = try #require(await fix.persistence.fetchThread(id: thread.id))
+        renamed.title = "renamed while detaching"
+        try await fix.persistence.saveThread(renamed)
+        await gate.release()
+        try await detachTask.value
+
+        let persisted = try #require(await fix.persistence.fetchThread(id: thread.id))
+        #expect(persisted.title == "renamed while detaching")
     }
 
     @Test("detaching workspace not in list does not throw")
