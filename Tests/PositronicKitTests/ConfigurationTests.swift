@@ -73,6 +73,50 @@ struct LLMConfigurationTests {
         #expect(config.activeProviderConfiguration.maxRetries == 10)
     }
 
+    @Test("Active provider configuration setter stores under the active provider")
+    func activeProviderConfigurationSetter() throws {
+        var config = try JSONDecoder().decode(
+            LLMConfiguration.self,
+            from: Data(#"{"activeProvider":"OpenAI","providers":{}}"#.utf8)
+        )
+        var replacement = ProviderConfiguration.makeDefault(for: .openAI)
+        replacement.modelName = "custom-model"
+
+        config.activeProviderConfiguration = replacement
+
+        #expect(config.providers == [.openAI: replacement])
+        #expect(config.activeProviderConfiguration == replacement)
+    }
+
+    @Test("Active provider configuration falls back for sparse providers")
+    func activeProviderConfigurationSparseProviders() throws {
+        var config = try JSONDecoder().decode(
+            LLMConfiguration.self,
+            from: Data(#"""
+                {"activeProvider":"Anthropic","providers":{"OpenAI":{
+                    "endpoint":"https://api.openai.com",
+                    "apiKey":"sk-test",
+                    "modelName":"gpt-4",
+                    "utilityModel":"gpt-4-mini",
+                    "fastModel":"gpt-4-mini",
+                    "toolFormat":"Native (OpenAI)"
+                }}}
+                """#.utf8)
+        )
+
+        #expect(config.providers.count == 1)
+        #expect(config.activeProviderConfiguration == .makeDefault(for: .anthropic))
+
+        var replacement = config.activeProviderConfiguration
+        replacement.modelName = "claude-test"
+        config.activeProviderConfiguration = replacement
+
+        let encoded = try JSONEncoder().encode(config)
+        let decoded = try JSONDecoder().decode(LLMConfiguration.self, from: encoded)
+        #expect(decoded.providers.count == 2)
+        #expect(decoded.activeProviderConfiguration == replacement)
+    }
+
     @Test("Legacy JSON Decoding")
     func legacyJSONDecoding() throws {
         // Simulating JSON (dictionary format)
