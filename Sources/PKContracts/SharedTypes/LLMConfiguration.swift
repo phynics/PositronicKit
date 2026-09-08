@@ -13,11 +13,15 @@ public struct LLMConfiguration: Codable, Sendable, Equatable {
     // MARK: - Active Provider Access
 
     /// The `ProviderConfiguration` for `activeProvider`, falling back to that provider's
-    /// defaults if `providers` has no entry for it. This is the canonical way to read the
-    /// currently active provider's settings — construct/mutate `providers[activeProvider]`
-    /// directly to write.
+    /// defaults if `providers` has no entry for it. Assigning a value stores it under
+    /// `activeProvider`.
     public var activeProviderConfiguration: ProviderConfiguration {
-        providers[activeProvider] ?? .makeDefault(for: activeProvider)
+        get {
+            providers[activeProvider] ?? .makeDefault(for: activeProvider)
+        }
+        set {
+            providers[activeProvider] = newValue
+        }
     }
 
     public init(from decoder: Decoder) throws {
