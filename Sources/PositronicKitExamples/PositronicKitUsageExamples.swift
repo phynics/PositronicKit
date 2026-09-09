@@ -50,12 +50,14 @@ public enum PositronicKitUsageExamples {
     /// Tier 4: a Thread handle plus an attached agent identity.
     public static func makeManagedThreadExample() async throws -> (ThreadHandle, Agent) {
         let kit = makeOneShotRuntime()
-        let thread = try await kit.threads.create(title: "Managed Example")
         let agent = try await kit.agents.create(
             name: "Example Agent",
             description: "Demonstrates managed Thread-addressed execution."
         )
-        try await kit.agents.attach(agent.id, to: thread.id)
+        let thread = try await kit.threads.create(
+            title: "Managed Example",
+            attaching: agent.id
+        )
         return (thread, agent)
     }
 
