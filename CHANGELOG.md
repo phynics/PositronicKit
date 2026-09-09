@@ -17,6 +17,9 @@ for tagged releases beginning with `1.0.0`.
   configuration, a missing usable client, and local readiness without network I/O. The separate
   `kit.model.checkHealth()` operation delegates optional provider connectivity checks and reports
   unsupported custom clients with `ModelHealthError.unsupported`.
+- Added `ConfiguredLLMProvider` and provider-specific `makeConfiguredProvider(...)` factories so
+  common OpenAI, OpenRouter, Ollama, and Anthropic setup can pass one value to
+  `PositronicKit(provider:)` without exposing service or client-set assembly.
 
 ## [5.1.0] - 2026-09-08
 

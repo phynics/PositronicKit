@@ -463,4 +463,47 @@ struct ProviderInitializationTests {
         )
 
     }
+
+    @Test("configured provider factories produce ready runtime-neutral values")
+    func configuredProviderFactoriesProduceReadyValues() async {
+        let invalidOpenAI = PKOpenAIProvider.makeConfiguredProvider(apiKey: "")
+        #expect(invalidOpenAI.configuration.isValid == false)
+        #expect(throws: ConfigurationError.self) {
+            try invalidOpenAI.configuration.validate()
+        }
+
+        let openAI = PKOpenAIProvider.makeConfiguredProvider(
+            apiKey: "openai-key",
+            model: "gpt-test",
+            endpoint: "https://openai.example.com"
+        )
+        #expect(openAI.configuration.activeProvider == .openAI)
+        #expect(openAI.configuration.activeProviderConfiguration.apiKey == "openai-key")
+        #expect(openAI.configuration.activeProviderConfiguration.modelName == "gpt-test")
+        #expect(openAI.configuration.activeProviderConfiguration.endpoint == "https://openai.example.com")
+        #expect(openAI.configuration.isValid)
+
+        let openRouter = PKOpenRouterProvider.makeConfiguredProvider(
+            apiKey: "router-key",
+            model: "router/model"
+        )
+        #expect(openRouter.configuration.activeProvider == .openRouter)
+        #expect(openRouter.configuration.activeProviderConfiguration.modelName == "router/model")
+        #expect(openRouter.configuration.isValid)
+
+        let ollama = PKOllamaProvider.makeConfiguredProvider(model: "local-model")
+        #expect(ollama.configuration.activeProvider == .ollama)
+        #expect(ollama.configuration.activeProviderConfiguration.modelName == "local-model")
+        #expect(ollama.configuration.isValid)
+
+        let anthropic = PKAnthropicProvider.makeConfiguredProvider(
+            apiKey: "anthropic-key",
+            model: "claude-test"
+        )
+        #expect(anthropic.configuration.activeProvider == .anthropic)
+        #expect(anthropic.configuration.activeProviderConfiguration.modelName == "claude-test")
+        #expect(anthropic.configuration.isValid)
+
+        _ = PositronicKit(provider: openAI)
+    }
 }

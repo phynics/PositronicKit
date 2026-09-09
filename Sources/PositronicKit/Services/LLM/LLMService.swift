@@ -191,6 +191,18 @@ public actor LLMService: LLMStreamClient, LLMConfigStore, HealthCheckable {
         )
     }
 
+    /// Creates a service from a configured provider value.
+    init(
+        provider: ConfiguredLLMProvider,
+        logger: Logger = Logger.module(named: "llm")
+    ) {
+        self.init(
+            configuration: provider.configuration,
+            clients: LLMClientSet(primary: provider.client),
+            logger: logger
+        )
+    }
+
     /// Designated: load the configuration from storage, resolving clients through a resolver.
     ///
     /// The first public operation waits for migration + load; the resolved configuration

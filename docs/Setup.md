@@ -13,7 +13,7 @@ Pick the smallest surface that matches your need:
 | Prompt composition, rendering, journaling — no runtime | `PKPrompt` |
 | Single-process app or CLI agent runtime | The `PositronicKit` facade |
 | Runtime + OpenAI/OpenRouter/Ollama/Anthropic convenience setup | Add the matching provider package |
-| On-device Apple Intelligence models (no key, no network) | Add `PKFoundationModelsProvider` and construct `FoundationModelsClient`; requires macOS 26+/Apple Silicon with Apple Intelligence enabled, and reports unavailability as a typed `PKError` |
+| On-device Apple Intelligence models (no key, no network) | Add `PKFoundationModelsProvider` and pass `FoundationModelsClient` as the language model; requires macOS 26+/Apple Silicon with Apple Intelligence enabled, surfaces unavailability as a typed error |
 | Host-owned workspace execution/attachment behavior | `PositronicKit` + your own `WorkspaceFactory` / `WorkspaceProvider` (optionally `WorkspaceToolProvider` and `WorkspaceFileProvider`) |
 | Typed JSON / schema-first integrations | `PKContracts` structured output types, optionally with the runtime later |
 
@@ -123,27 +123,31 @@ Use `RuntimeToolPolicy` to disable any category or start with no runtime tools.
 ### Provider Factories
 
 Provider modules expose compile-time factories conforming to `LLMProviderFactory`. There is no
-provider registry or runtime discovery. Import the provider your application uses, build its
-client, and pass the client to `LLMService`. Structured-output behavior is carried by the client.
+provider registry or runtime discovery. Import and select the concrete provider your application
+uses, then pass its configured value to `PositronicKit`. Structured-output behavior is carried by
+the client; no provider or adapter registration is needed.
 
 ```swift
 import PositronicKit
-import PKContracts
 import PKOpenAIProvider
 
-var providerConfig = ProviderConfiguration.makeDefault(for: .openAI)
-providerConfig.apiKey = ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? ""
-let configuration = LLMConfiguration(
-    activeProvider: .openAI,
-    providers: [.openAI: providerConfig]
+let provider = PKOpenAIProvider.makeConfiguredProvider(
+    apiKey: ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? "",
+    model: "gpt-4o"
 )
+let core = PositronicKit(provider: provider)
+```
 
-let core = PositronicKit(
-    languageModel: LLMService(
-        configuration: configuration,
-        clients: .init(primary: PKOpenAIProvider.makeClient(configuration: configuration))
-    )
+The same shape is available for OpenRouter, Ollama, and Anthropic:
+
+```swift
+import PKAnthropicProvider
+
+let provider = PKAnthropicProvider.makeConfiguredProvider(
+    apiKey: "sk-ant-...",
+    model: "claude-sonnet-4-5"
 )
+let core = PositronicKit(provider: provider)
 ```
 
 ### Run a local example
@@ -154,6 +158,16 @@ exercise the full Thread and Turn path without an API key or network access:
 ```bash
 swift run PositronicKitExamples
 ```
+```
+
+For custom timeouts, generation parameters, attribution, or multiple model-tier clients, keep using
+the advanced `ProviderConfiguration`, `LLMClientSet`, and `LLMService` initializers. Ordinary
+consumers do not need to construct that client topology.
+
+Foundation Models is intentionally separate from this HTTP-provider value. Its on-device session
+has no API key, endpoint, or selectable network model, so construct `FoundationModelsClient` from
+`PKFoundationModelsProvider` and pass it through `PositronicKit(languageModel:)`. The client
+reports unsupported platforms and unavailable model sessions through its typed errors.
 
 ## 3. Logging And Errors
 
@@ -170,6 +184,11 @@ LoggingSystem.bootstrap { label in
     handler.logLevel = .debug   // raise to surface runtime + prompt-assembly diagnostics
     return handler
 }
+
+let provider = PKOpenAIProvider.makeConfiguredProvider(
+    apiKey: ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? ""
+)
+let core = PositronicKit(provider: provider)
 ```
 
 Long-lived runtime services log through `Logger.module(...)` in the package-internal utility layer; prompt-assembly diagnostics are opt-in per turn via `promptAssemblyLogger` (see above).
