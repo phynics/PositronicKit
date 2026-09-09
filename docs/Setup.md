@@ -37,6 +37,35 @@ import PositronicKit
 let kit = PositronicKit(languageModel: myLanguageModel)
 ```
 
+Before enabling a generation control, use the local readiness snapshot. It does not read
+credentials, mutate configuration, or perform network I/O:
+
+```swift
+switch await kit.model.readiness() {
+case .ready:
+    enableGeneration()
+case .unavailable(let reason):
+    show(reason)
+}
+```
+
+Use health separately when you want an explicit provider connectivity check:
+
+```swift
+do {
+    let health = try await kit.model.checkHealth()
+    print("Model health: \(health.rawValue)")
+} catch ModelHealthError.unsupported {
+    print("This custom model does not provide a connectivity check.")
+}
+```
+
+`checkHealth()` may perform network I/O and reports the provider's state at that moment. A custom
+`LLMStreamClient` gets a configuration-based readiness fallback. Implement its `readiness`
+property when it can distinguish a configured but unusable client; conform to `HealthCheckable`
+to provide explicit health checks. Neither operation guarantees that a later generation request
+will succeed.
+
 ### Production Configuration
 
 When you have a real persistence layer, prefer the grouped persistence initializer so the supported facade stays explicit:

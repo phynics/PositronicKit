@@ -6,7 +6,7 @@ Stable [5.1.0](stable/5.1.0/) is the default immutable channel. [Next / v5](next
 | Guide | Purpose |
 | --- | --- |
 | [Overview and quick start](../README.md) | Release selection, current runtime contracts, provider setup, runnable examples, products, and verification. |
-| [Setup](Setup.md) | Provider-neutral configuration, offline examples, persistence, customization, logging, and errors. |
+| [Setup](Setup.md) | Provider-neutral configuration, readiness and health, offline examples, persistence, customization, logging, and errors. |
 | [Usage](Usage.md) | Managed and direct Turns, SOUL/Notes Agent memory, lifecycle, and Workspace routing. |
 | [Architecture](Architecture.md) | v5 domain boundaries, capability values, durability, and execution authority. |
 | [Prompt composition](PKPromptComposition.md) | Prompt IR, assembly, rendering, compression, and PromptJournal. |

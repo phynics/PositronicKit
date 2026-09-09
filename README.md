@@ -122,11 +122,24 @@ a best-effort `AgentActivitySink`, and a post-terminal `TurnOutcomeSink`. Use
 
 ### Facade readiness, validation, and error delivery
 
-`await kit.model.isConfigured` is a live, read-only configuration-readiness signal from the
-injected language model. It does not expose credentials or provider configuration, and it is not
-a connectivity probe or a guarantee that a later request will succeed. Treat `ThreadHandle.run`,
-`kit.model.stream`, or `kit.model.generate` as authoritative because model state can change after
-the check.
+`await kit.model.readiness()` is a live, non-network readiness snapshot. It distinguishes invalid
+configuration from a missing usable client and does not expose credentials or provider
+configuration:
+
+```swift
+switch await kit.model.readiness() {
+case .ready:
+    enableGeneration()
+case .unavailable(let reason):
+    show(reason)
+}
+```
+
+Use `try await kit.model.checkHealth()` separately for provider connectivity. A health check may
+perform network I/O; it throws `ModelHealthError.unsupported` when a custom client does not
+conform to `HealthCheckable`. Neither check guarantees that a later request will succeed. Treat
+`ThreadHandle.run`, `kit.model.stream`, or `kit.model.generate` as authoritative because model
+state can change after the check.
 
 `ThreadHandle.startTurn(_:)` validates the request and captures the Agent from durable Thread
 attachment state. A detached Thread uses `startDirectTurn(message:context:)`, where the caller

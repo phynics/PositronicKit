@@ -2816,6 +2816,35 @@
       "declaration": "init(_ text: String)"
     },
     {
+      "precise": "s:11PKContracts14ModelReadinessO",
+      "module": "PKContracts",
+      "kind": "swift.enum",
+      "path": [
+        "ModelReadiness"
+      ],
+      "declaration": "enum ModelReadiness"
+    },
+    {
+      "precise": "s:11PKContracts14ModelReadinessO11unavailableyAcA0bC6ReasonOcACmF",
+      "module": "PKContracts",
+      "kind": "swift.enum.case",
+      "path": [
+        "ModelReadiness",
+        "unavailable(_:)"
+      ],
+      "declaration": "case unavailable(ModelReadinessReason)"
+    },
+    {
+      "precise": "s:11PKContracts14ModelReadinessO5readyyA2CmF",
+      "module": "PKContracts",
+      "kind": "swift.enum.case",
+      "path": [
+        "ModelReadiness",
+        "ready"
+      ],
+      "declaration": "case ready"
+    },
+    {
       "precise": "s:11PKContracts14ToolCallFormatO",
       "module": "PKContracts",
       "kind": "swift.enum",
@@ -5774,6 +5803,35 @@
         "default"
       ],
       "declaration": "static let `default`: LoggingConfiguration"
+    },
+    {
+      "precise": "s:11PKContracts20ModelReadinessReasonO",
+      "module": "PKContracts",
+      "kind": "swift.enum",
+      "path": [
+        "ModelReadinessReason"
+      ],
+      "declaration": "enum ModelReadinessReason"
+    },
+    {
+      "precise": "s:11PKContracts20ModelReadinessReasonO17clientUnavailableyA2CmF",
+      "module": "PKContracts",
+      "kind": "swift.enum.case",
+      "path": [
+        "ModelReadinessReason",
+        "clientUnavailable"
+      ],
+      "declaration": "case clientUnavailable"
+    },
+    {
+      "precise": "s:11PKContracts20ModelReadinessReasonO20invalidConfigurationyA2CmF",
+      "module": "PKContracts",
+      "kind": "swift.enum.case",
+      "path": [
+        "ModelReadinessReason",
+        "invalidConfiguration"
+      ],
+      "declaration": "case invalidConfiguration"
     },
     {
       "precise": "s:11PKContracts20ToolApprovalDecisionO",
@@ -13416,6 +13474,16 @@
       "declaration": "init(storage: any ConfigurationServiceProtocol, clientResolver: any LLMClientResolving, logger: Logger = Logger.module(named: \"llm\"))"
     },
     {
+      "precise": "s:13PositronicKit10LLMServiceC9readiness11PKContracts14ModelReadinessOvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "LLMService",
+        "readiness"
+      ],
+      "declaration": "var readiness: ModelReadiness { get }"
+    },
+    {
       "precise": "s:13PositronicKit10TurnHandleV",
       "module": "PositronicKit",
       "kind": "swift.struct",
@@ -15991,6 +16059,16 @@
       "declaration": "func generationStreamWithContext(_ request: LLMGenerationRequest) async throws -> LLMStreamResult"
     },
     {
+      "precise": "s:13PositronicKit15LLMStreamClientP9readiness11PKContracts14ModelReadinessOvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "LLMStreamClient",
+        "readiness"
+      ],
+      "declaration": "var readiness: ModelReadiness { get async }"
+    },
+    {
       "precise": "s:13PositronicKit15LLMStreamClientPAAE14sendStructured_16structuredOutput2as7decoder20generationParameters9modelTierqd__SS_11PKContracts0fH7RequestOqd__m20FoundationEssentials11JSONDecoderCAJ010GenerationL0VSgAA05ModelN0OtYaKSeRd__s8SendableRd__lF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -16069,6 +16147,16 @@
         "generationStreamWithContext(_:)"
       ],
       "declaration": "func generationStreamWithContext(_ request: LLMGenerationRequest) async throws -> LLMStreamResult"
+    },
+    {
+      "precise": "s:13PositronicKit15LLMStreamClientPAAE9readiness11PKContracts14ModelReadinessOvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "LLMStreamClient",
+        "readiness"
+      ],
+      "declaration": "var readiness: ModelReadiness { get async }"
     },
     {
       "precise": "s:13PositronicKit15LLMStreamResultV",
@@ -16423,6 +16511,55 @@
         "immediate"
       ],
       "declaration": "case immediate"
+    },
+    {
+      "precise": "s:13PositronicKit16ModelHealthErrorO",
+      "module": "PositronicKit",
+      "kind": "swift.enum",
+      "path": [
+        "ModelHealthError"
+      ],
+      "declaration": "enum ModelHealthError"
+    },
+    {
+      "precise": "s:13PositronicKit16ModelHealthErrorO11errorDomainSSvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "ModelHealthError",
+        "errorDomain"
+      ],
+      "declaration": "var errorDomain: String { get }"
+    },
+    {
+      "precise": "s:13PositronicKit16ModelHealthErrorO11unsupportedyA2CmF",
+      "module": "PositronicKit",
+      "kind": "swift.enum.case",
+      "path": [
+        "ModelHealthError",
+        "unsupported"
+      ],
+      "declaration": "case unsupported"
+    },
+    {
+      "precise": "s:13PositronicKit16ModelHealthErrorO19userFriendlyMessageSSvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "ModelHealthError",
+        "userFriendlyMessage"
+      ],
+      "declaration": "var userFriendlyMessage: String { get }"
+    },
+    {
+      "precise": "s:13PositronicKit16ModelHealthErrorO9errorCodeSivp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "ModelHealthError",
+        "errorCode"
+      ],
+      "declaration": "var errorCode: Int { get }"
     },
     {
       "precise": "s:13PositronicKit16StoreDegradationV",
@@ -20363,6 +20500,16 @@
       "declaration": "struct ModelInferenceCapability"
     },
     {
+      "precise": "s:13PositronicKit24ModelInferenceCapabilityV11checkHealth11PKContracts0G6StatusOyYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "ModelInferenceCapability",
+        "checkHealth()"
+      ],
+      "declaration": "func checkHealth() async throws -> HealthStatus"
+    },
+    {
       "precise": "s:13PositronicKit24ModelInferenceCapabilityV12isConfiguredSbvp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -20401,6 +20548,16 @@
         "generate(_:generationParameters:idleTimeout:)"
       ],
       "declaration": "func generate(_ prompt: String, generationParameters: GenerationParameters? = nil, idleTimeout: TimeInterval = 60) async throws -> OneShotResult"
+    },
+    {
+      "precise": "s:13PositronicKit24ModelInferenceCapabilityV9readiness11PKContracts0C9ReadinessOyYaF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "ModelInferenceCapability",
+        "readiness()"
+      ],
+      "declaration": "func readiness() async -> ModelReadiness"
     },
     {
       "precise": "s:13PositronicKit24TurnAdmissionDispositionO",
@@ -28784,6 +28941,27 @@
     {
       "module": "PKContracts",
       "kind": "conformsTo",
+      "source": "s:11PKContracts14ModelReadinessO",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts14ModelReadinessO",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts14ModelReadinessO",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
       "source": "s:11PKContracts14ToolCallFormatO",
       "target": "s:SE",
       "targetFallback": "Swift.Encodable"
@@ -30247,6 +30425,34 @@
       "module": "PKContracts",
       "kind": "conformsTo",
       "source": "s:11PKContracts20LoggingConfigurationV",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts20ModelReadinessReasonO",
+      "target": "s:SH",
+      "targetFallback": "Swift.Hashable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts20ModelReadinessReasonO",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts20ModelReadinessReasonO",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts20ModelReadinessReasonO",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -35509,6 +35715,62 @@
     {
       "module": "PositronicKit",
       "kind": "conformsTo",
+      "source": "s:13PositronicKit16ModelHealthErrorO",
+      "target": "s:11PKContracts7PKErrorP",
+      "targetFallback": "PKContracts.PKError"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit16ModelHealthErrorO",
+      "target": "s:20FoundationEssentials14LocalizedErrorP",
+      "targetFallback": "FoundationEssentials.LocalizedError"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit16ModelHealthErrorO",
+      "target": "s:8ErrorKit9ThrowableP",
+      "targetFallback": "ErrorKit.Throwable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit16ModelHealthErrorO",
+      "target": "s:SH",
+      "targetFallback": "Swift.Hashable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit16ModelHealthErrorO",
+      "target": "s:SQ",
+      "targetFallback": "Swift.Equatable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit16ModelHealthErrorO",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit16ModelHealthErrorO",
+      "target": "s:s5ErrorP",
+      "targetFallback": "Swift.Error"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit16ModelHealthErrorO",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit16StoreDegradationV",
       "target": "s:s16SendableMetatypeP",
       "targetFallback": "Swift.SendableMetatype"
@@ -38238,6 +38500,16 @@
     {
       "module": "PositronicKit",
       "kind": "defaultImplementationOf",
+      "source": "s:13PositronicKit15LLMStreamClientPAAE9readiness11PKContracts14ModelReadinessOvp",
+      "target": "s:13PositronicKit15LLMStreamClientP9readiness11PKContracts14ModelReadinessOvp",
+      "sourceOrigin": {
+        "identifier": "s:13PositronicKit15LLMStreamClientP9readiness11PKContracts14ModelReadinessOvp",
+        "displayName": "LLMStreamClient.readiness"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "defaultImplementationOf",
       "source": "s:13PositronicKit16WorkspaceCatalogPAAE011createAgentC07agentID8template11PKContracts0C9ReferenceV20FoundationEssentials4UUIDV_AG0F8TemplateVSgtYaKF",
       "target": "s:13PositronicKit16WorkspaceCatalogP011createAgentC07agentID8template11PKContracts0C9ReferenceV20FoundationEssentials4UUIDV_AG0F8TemplateVSgtYaKF"
     },
@@ -39966,6 +40238,18 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
+      "source": "s:11PKContracts14ModelReadinessO11unavailableyAcA0bC6ReasonOcACmF",
+      "target": "s:11PKContracts14ModelReadinessO"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts14ModelReadinessO5readyyA2CmF",
+      "target": "s:11PKContracts14ModelReadinessO"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts14ToolCallFormatO2idSSvp",
       "target": "s:11PKContracts14ToolCallFormatO",
       "sourceOrigin": {
@@ -41588,6 +41872,18 @@
       "kind": "memberOf",
       "source": "s:11PKContracts20LoggingConfigurationV7defaultACvpZ",
       "target": "s:11PKContracts20LoggingConfigurationV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts20ModelReadinessReasonO17clientUnavailableyA2CmF",
+      "target": "s:11PKContracts20ModelReadinessReasonO"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts20ModelReadinessReasonO20invalidConfigurationyA2CmF",
+      "target": "s:11PKContracts20ModelReadinessReasonO"
     },
     {
       "module": "PKContracts",
@@ -49020,6 +49316,16 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit10LLMServiceC9readiness11PKContracts14ModelReadinessOvp",
+      "target": "s:13PositronicKit10LLMServiceC",
+      "sourceOrigin": {
+        "identifier": "s:13PositronicKit15LLMStreamClientP9readiness11PKContracts14ModelReadinessOvp",
+        "displayName": "LLMStreamClient.readiness"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit10TurnHandleV2id20FoundationEssentials4UUIDVvp",
       "target": "s:13PositronicKit10TurnHandleV",
       "sourceOrigin": {
@@ -50690,6 +50996,42 @@
       "kind": "memberOf",
       "source": "s:13PositronicKit16MemorySavePolicyO9immediateyA2CmF",
       "target": "s:13PositronicKit16MemorySavePolicyO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit16ModelHealthErrorO11errorDomainSSvp",
+      "target": "s:13PositronicKit16ModelHealthErrorO",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts7PKErrorP11errorDomainSSvp",
+        "displayName": "PKError.errorDomain"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit16ModelHealthErrorO11unsupportedyA2CmF",
+      "target": "s:13PositronicKit16ModelHealthErrorO"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit16ModelHealthErrorO19userFriendlyMessageSSvp",
+      "target": "s:13PositronicKit16ModelHealthErrorO",
+      "sourceOrigin": {
+        "identifier": "s:8ErrorKit9ThrowableP19userFriendlyMessageSSvp",
+        "displayName": "Throwable.userFriendlyMessage"
+      }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit16ModelHealthErrorO9errorCodeSivp",
+      "target": "s:13PositronicKit16ModelHealthErrorO",
+      "sourceOrigin": {
+        "identifier": "s:11PKContracts7PKErrorP9errorCodeSivp",
+        "displayName": "PKError.errorCode"
+      }
     },
     {
       "module": "PositronicKit",
@@ -52608,6 +52950,12 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit24ModelInferenceCapabilityV11checkHealth11PKContracts0G6StatusOyYaKF",
+      "target": "s:13PositronicKit24ModelInferenceCapabilityV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit24ModelInferenceCapabilityV12isConfiguredSbvp",
       "target": "s:13PositronicKit24ModelInferenceCapabilityV"
     },
@@ -52627,6 +52975,12 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit24ModelInferenceCapabilityV8generate_20generationParameters11idleTimeoutAA13OneShotResultVSS_11PKContracts010GenerationH0VSgSdtYaKF",
+      "target": "s:13PositronicKit24ModelInferenceCapabilityV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit24ModelInferenceCapabilityV9readiness11PKContracts0C9ReadinessOyYaF",
       "target": "s:13PositronicKit24ModelInferenceCapabilityV"
     },
     {
@@ -54688,6 +55042,12 @@
         "identifier": "s:13PositronicKit15LLMStreamClientPAAE27generationStreamWithContextyAA0C6ResultVAA20LLMGenerationRequestVYaKF",
         "displayName": "LLMStreamClient.generationStreamWithContext(_:)"
       }
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "requirementOf",
+      "source": "s:13PositronicKit15LLMStreamClientP9readiness11PKContracts14ModelReadinessOvp",
+      "target": "s:13PositronicKit15LLMStreamClientP"
     },
     {
       "module": "PositronicKit",

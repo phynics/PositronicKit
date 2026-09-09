@@ -13,6 +13,10 @@ for tagged releases beginning with `1.0.0`.
 - **Atomic managed Thread creation:** `kit.threads.create(title:attaching:)` validates an active
   Agent before creating an ordinary Thread and returns a handle whose attachment is ready for
   managed execution. Creation failures roll back the Thread's durable state.
+- **Provider-neutral model readiness:** `kit.model.readiness()` distinguishes invalid
+  configuration, a missing usable client, and local readiness without network I/O. The separate
+  `kit.model.checkHealth()` operation delegates optional provider connectivity checks and reports
+  unsupported custom clients with `ModelHealthError.unsupported`.
 
 ## [5.1.0] - 2026-09-08
 

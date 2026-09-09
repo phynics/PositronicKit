@@ -34,6 +34,18 @@ public actor LLMService: LLMStreamClient, LLMConfigStore, HealthCheckable {
         snapshot.readiness == .ready
     }
 
+    /// A non-network snapshot of the service's operational readiness.
+    public var readiness: ModelReadiness {
+        switch snapshot.readiness {
+        case .invalidConfiguration:
+            return .unavailable(.invalidConfiguration)
+        case .clientUnavailable:
+            return .unavailable(.clientUnavailable)
+        case .ready:
+            return .ready
+        }
+    }
+
     // MARK: - HealthCheckable
 
     public func getHealthDetails() async -> [String: String]? {
