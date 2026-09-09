@@ -35982,7 +35982,7 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit16ModelHealthErrorO",
-      "target": "s:20Foundation14LocalizedErrorP",
+      "target": "s:10Foundation14LocalizedErrorP",
       "targetFallback": "Foundation.LocalizedError"
     },
     {
