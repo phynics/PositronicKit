@@ -4,6 +4,11 @@ import PKContracts
 import PKUtilities
 import PositronicKit
 
+private enum ExampleExecutionError: Error {
+    case offlineTurnDidNotComplete
+    case offlineTurnProducedNoText
+}
+
 func runExamples() async throws {
     let prompt = PKPromptExamples.makeToolingPrompt(
         tools: ["swift build", "swift test", "swift package dump-package"],
@@ -40,14 +45,21 @@ func runExamples() async throws {
     _ = PositronicKitUsageExamples.makePrototypeRuntime()
     _ = PositronicKitUsageExamples.makeConfiguredRuntime()
 
-    let kit = PositronicKitUsageExamples.makeOneShotRuntime()
+    let kit = PositronicKitUsageExamples.makeOfflineRuntime()
     let handle = try await kit.threads.create(title: "Docs agent")
     let directTurn = try await handle.startDirectTurn(
         message: "Hello",
         context: DirectTurnContext(systemInstructions: "", contributor: .host)
     )
+    var offlineResponse = ""
     for await event in directTurn.events() {
-        print(event)
+        offlineResponse += event.textContent ?? ""
+    }
+    guard try await directTurn.outcome() == .completed else {
+        throw ExampleExecutionError.offlineTurnDidNotComplete
+    }
+    guard !offlineResponse.isEmpty else {
+        throw ExampleExecutionError.offlineTurnProducedNoText
     }
     let threadCapability = PositronicKitUsageExamples.makeThreadCapabilityExample()
     let (managedThread, agent) = try await PositronicKitUsageExamples.makeManagedThreadExample()
@@ -56,7 +68,7 @@ func runExamples() async throws {
     print(renderedPrompt)
     print("\nPrompt sections: \(assembled.sections.map(\.id))")
     print("\n# PositronicKit Example\n")
-    print("Prototype runtime and fully configured runtime both initialized successfully.")
+    print("Offline Turn completed: \(offlineResponse)")
     print("Capability examples: thread \(handle.id), thread capability \(threadCapability), managed agent \(agent.id)")
     _ = managedThread
     print(toolPrompt)

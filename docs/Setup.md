@@ -13,7 +13,7 @@ Pick the smallest surface that matches your need:
 | Prompt composition, rendering, journaling — no runtime | `PKPrompt` |
 | Single-process app or CLI agent runtime | The `PositronicKit` facade |
 | Runtime + OpenAI/OpenRouter/Ollama/Anthropic convenience setup | Add the matching provider package |
-| On-device Apple Intelligence models (no key, no network) | Add `PKFoundationModelsProvider` — `PositronicKit(foundationModelsTools:)`; requires macOS 26+/Apple Silicon with Apple Intelligence enabled, surfaces unavailability as a typed `PKError` |
+| On-device Apple Intelligence models (no key, no network) | Add `PKFoundationModelsProvider` and construct `FoundationModelsClient`; requires macOS 26+/Apple Silicon with Apple Intelligence enabled, and reports unavailability as a typed `PKError` |
 | Host-owned workspace execution/attachment behavior | `PositronicKit` + your own `WorkspaceFactory` / `WorkspaceProvider` (optionally `WorkspaceToolProvider` and `WorkspaceFileProvider`) |
 | Typed JSON / schema-first integrations | `PKContracts` structured output types, optionally with the runtime later |
 
@@ -94,9 +94,8 @@ Use `RuntimeToolPolicy` to disable any category or start with no runtime tools.
 ### Provider Factories
 
 Provider modules expose compile-time factories conforming to `LLMProviderFactory`. There is no
-provider registry or runtime discovery; import and select the concrete provider your application
-uses, then pass the resulting client to `LLMService`. Structured-output behavior is carried by the
-client; no provider or adapter registration is needed.
+provider registry or runtime discovery. Import the provider your application uses, build its
+client, and pass the client to `LLMService`. Structured-output behavior is carried by the client.
 
 ```swift
 import PositronicKit
@@ -118,12 +117,13 @@ let core = PositronicKit(
 )
 ```
 
-Or use the provider target's convenience initializer:
+### Run a local example
 
-```swift
-import PKOpenAIProvider
+The repository's `PositronicKitExamples` executable uses a deterministic local model, so you can
+exercise the full Thread and Turn path without an API key or network access:
 
-let core = PositronicKit(openAIKey: "sk-...")
+```bash
+swift run PositronicKitExamples
 ```
 
 ## 3. Logging And Errors
@@ -141,8 +141,6 @@ LoggingSystem.bootstrap { label in
     handler.logLevel = .debug   // raise to surface runtime + prompt-assembly diagnostics
     return handler
 }
-
-let core = PositronicKit(openAIKey: ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? "")
 ```
 
 Long-lived runtime services log through `Logger.module(...)` in the package-internal utility layer; prompt-assembly diagnostics are opt-in per turn via `promptAssemblyLogger` (see above).

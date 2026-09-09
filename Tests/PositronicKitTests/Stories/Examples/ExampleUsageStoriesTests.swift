@@ -1,6 +1,7 @@
 import Foundation
 import PKContracts
 import PKUtilities
+import PositronicKit
 import PositronicKitExamples
 import Testing
 
@@ -134,6 +135,24 @@ struct ExampleUsageStoriesTests {
 
         _ = convenienceCore
         _ = providerNeutralCore
+    }
+
+    @Test
+    func offlineRuntimeCompletesATurnWithoutNetwork() async throws {
+        let kit = PositronicKitUsageExamples.makeOfflineRuntime()
+        let thread = try await kit.threads.create(title: "Offline example")
+        let turn = try await thread.startDirectTurn(
+            message: "Hello",
+            context: DirectTurnContext(systemInstructions: "", contributor: .host)
+        )
+
+        var response = ""
+        for await event in turn.events() {
+            response += event.textContent ?? ""
+        }
+
+        #expect(try await turn.outcome() == .completed)
+        #expect(response == "PositronicKit is running offline.")
     }
 
     @Test
