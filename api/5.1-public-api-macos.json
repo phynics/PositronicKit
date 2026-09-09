@@ -16553,7 +16553,7 @@
       "declaration": "func open(_ threadID: UUID) -> ThreadHandle"
     },
     {
-      "precise": "s:13PositronicKit16ThreadCapabilityV6create5title9attachingAA0C6HandleVSS_20FoundationEssentials4UUIDVtYaKF",
+      "precise": "s:13PositronicKit16ThreadCapabilityV6create5title9attachingAA0C6HandleVSS_10Foundation4UUIDVtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
@@ -51133,7 +51133,7 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit16ThreadCapabilityV6create5title9attachingAA0C6HandleVSS_20FoundationEssentials4UUIDVtYaKF",
+      "source": "s:13PositronicKit16ThreadCapabilityV6create5title9attachingAA0C6HandleVSS_10Foundation4UUIDVtYaKF",
       "target": "s:13PositronicKit16ThreadCapabilityV"
     },
     {
