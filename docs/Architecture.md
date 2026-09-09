@@ -75,17 +75,18 @@ prefixes; it never becomes semantic history.
 
 There are two explicit execution paths:
 
-1. `ThreadHandle.startTurn(message:)` admits a managed Turn. The Thread must have an attached,
+1. `ThreadHandle.startTurn(_:options:)` admits a managed Turn. The Thread must have an attached,
    active Agent. Core resolves the Agent, captures identity and context, and records the authority
    snapshot atomically.
-2. `ThreadHandle.startDirectTurn(message:context:)` admits a direct Turn on a detached Thread. The
+2. `ThreadHandle.startDirectTurn(_:context:options:)` admits a direct Turn on a detached Thread. The
    caller supplies the complete `DirectTurnContext`, including an intentional empty system prompt
    when appropriate. Direct Turns still capture ordinary Workspaces bound to the Thread for
    `call_tool` routing; they bypass Agent identity and Agent context.
 
 Both return a `TurnHandle`. `events()` is a nonthrowing future-event stream, `outcome()` joins the
-durable terminal result, and `cancel()` targets that Turn. The advanced request-shaped `run(_:)`
-seam remains available for sidecars and other per-Turn options.
+durable terminal result, and `cancel()` targets that Turn. Per-Turn options such as sidecars,
+tools, and generation parameters are supplied through `TurnOptions`; the handle supplies the
+Thread identity.
 
 Managed preparation fails closed when required Agent context cannot be produced. Identity or
 instruction changes affect the next admitted Turn, never an active one. Direct Turns bypass Agent

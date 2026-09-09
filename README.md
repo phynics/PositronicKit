@@ -87,7 +87,7 @@ print(answer.content) // thread-free inference
 
 let directThread = try await kit.threads.create(title: "Scratchpad")
 let directTurn = try await directThread.startDirectTurn(
-    message: "Continue the summary.",
+    "Continue the summary.",
     context: DirectTurnContext(systemInstructions: "", contributor: .host)
 )
 for await event in directTurn.events() {
@@ -100,10 +100,8 @@ let agent = try await kit.agents.create(
 )
 let managedThread = try await kit.threads.create(title: "Research")
 try await kit.agents.attach(agent.id, to: managedThread.id)
-let managedTurn = try await managedThread.startTurn(
-    message: "Use the attached identity."
-)
-let outcome = await managedTurn.outcome()
+let managedTurn = try await managedThread.startTurn("Use the attached identity.")
+let outcome = try await managedTurn.outcome()
 ```
 
 The capability values are the supported consumer entry points. `kit.model` is thread-free
@@ -122,16 +120,18 @@ a best-effort `AgentActivitySink`, and a post-terminal `TurnOutcomeSink`. Use
 
 `await kit.model.isConfigured` is a live, read-only configuration-readiness signal from the
 injected language model. It does not expose credentials or provider configuration, and it is not
-a connectivity probe or a guarantee that a later request will succeed. Treat `ThreadHandle.run`,
+a connectivity probe or a guarantee that a later request will succeed. Treat
+`ThreadHandle.startTurn(_:options:)`,
 `kit.model.stream`, or `kit.model.generate` as authoritative because model state can change after
 the check.
 
-`ThreadHandle.startTurn(_:)` validates the request and captures the Agent from durable Thread
-attachment state. A detached Thread uses `startDirectTurn(message:context:)`, where the caller
-supplies the complete system prompt (including an intentional empty prompt) and contributors.
-Both return a `TurnHandle`: `events()` is a nonthrowing future-event stream, `outcome()` replays
-the durable terminal result, and `cancel()` targets exactly that Turn. Use the advanced managed
-`run(_:)` request-shaped seam for options such as sidecars.
+`ThreadHandle.startTurn(_:options:)` validates the message and captures the Agent from durable
+Thread attachment state. Per-Turn options such as sidecars, tools, and generation parameters go
+in `TurnOptions`, which does not repeat the handle's Thread identity. A detached Thread uses
+`startDirectTurn(_:context:options:)`, where the caller supplies the complete system prompt
+(including an intentional empty prompt) and contributors. Both return a `TurnHandle`:
+`events()` is a nonthrowing future-event stream, `outcome()` replays the durable terminal result,
+and `cancel()` targets exactly that Turn.
 
 One-shot text, result, stream, and structured-output calls all accept per-call generation
 parameters and an inactivity timeout on their configurable overloads. Per-call parameters override
@@ -152,12 +152,11 @@ Errors arrive at the boundary where the work occurs:
 
 - Request and preparation failures include an invalid `maxModelRounds`, Thread hydration,
   required-Agent preflight, provider configuration, sidecar validation, and input or history
-  preparation. They throw from
-  `try await kit.threads.open(threadID).run(request)` before a stream is returned.
+  preparation. They throw from `try await kit.threads.open(threadID).startTurn(...)` before a
+  handle is returned.
 - Provider and pipeline failures after a `TurnHandle` is admitted arrive as terminal events on
   its nonthrowing `events()` stream. The durable `outcome()` remains authoritative for every
-  joiner; advanced `ThreadHandle.run(_:)` retains the throwing stream contract for request-shaped
-  options.
+  joiner.
 - `kit.model.generate` and `generateStructured` consume provider streams internally, so preparation
   and provider failures both throw from the one-shot call. `kit.model.stream` returns immediately
   and reports provider failures during iteration.

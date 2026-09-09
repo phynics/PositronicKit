@@ -145,7 +145,8 @@ import PKContracts
 
 // `kit` is the PositronicKit instance from the initialization example above.
 let turn = try await kit.threads.open(threadID).startTurn(
-    message: "What are the latest trends in Swift concurrency?"
+    "What are the latest trends in Swift concurrency?",
+    options: TurnOptions(generationParameters: GenerationParameters(temperature: 0.2))
 )
 let stream = turn.events()
 
@@ -162,7 +163,7 @@ for await event in stream {
         case .toolExecution(let toolCallId, let status):
             print("\nTool execution [\(toolCallId)]: \(status)")
         case .sidecar(let delta):
-            // Only emitted on turns passed `sidecars:` — see docs/SidecarDirectives.md.
+            // Only emitted on turns passed `TurnOptions(sidecars:)` — see docs/SidecarDirectives.md.
             print("\n[\(delta.name)] \(delta.partialText)")
         }
 
@@ -179,7 +180,7 @@ for await event in stream {
         case .deferredForExternalTool:
             print("\nTool calls deferred for external execution; stream paused for host-side work.")
         case .sidecarsCompleted(let completion):
-            // Only emitted on turns passed `sidecars:` — see docs/SidecarDirectives.md.
+            // Only emitted on turns passed `TurnOptions(sidecars:)` — see docs/SidecarDirectives.md.
             for result in completion.results {
                 print("\n[\(result.name)] \(result.outcome)")
             }
@@ -202,7 +203,7 @@ for await event in stream {
 
 The runtime emits prompt-assembly diagnostics through `swift-log`. `PromptAssembler` and
 `PromptAssemblyOptions` are internal runtime types, so you don't call them directly — instead pass a
-`Logger` as `TurnRequest(promptAssemblyLogger:)` to enable diagnostics for that turn.
+`Logger` as `TurnOptions(promptAssemblyLogger:)` to enable diagnostics for that turn.
 
 ```swift
 import Logging
@@ -216,11 +217,11 @@ LoggingSystem.bootstrap { label in
 }
 
 let logger = Logger(label: "com.example.prompt-assembly")
-let events = try await kit.threads.open(threadID).run(TurnRequest(
-    threadID: threadID,
-    message: "…",
-    promptAssemblyLogger: logger
-))
+let turn = try await kit.threads.open(threadID).startTurn(
+    "…",
+    options: TurnOptions(promptAssemblyLogger: logger)
+)
+let events = turn.events()
 ```
 
 ### Handling Tool Outputs
@@ -232,12 +233,11 @@ let toolOutputs = [
     ToolOutputSubmission(toolCallID: "call_123", output: "File contents...")
 ]
 
-let stream = try await kit.threads.open(threadID).run(TurnRequest(
-    threadID: threadID,
-    message: "", // Empty message as we're continuing from a tool call
-    tools: tools,
-    toolOutputs: toolOutputs
-))
+let turn = try await kit.threads.open(threadID).startTurn(
+    "", // Empty message as we're continuing from a tool call
+    options: TurnOptions(tools: tools, toolOutputs: toolOutputs)
+)
+let stream = turn.events()
 ```
 
 ## 3. Core Concepts
@@ -247,7 +247,7 @@ The stream provides a rich set of events:
 - `.delta(.reasoning)` and `.delta(.generation)` for streaming text.
 - `.delta(.toolCall)` and `.delta(.toolExecution)` for tool progress.
 - `.delta(.sidecar)` and `.completion(.sidecarsCompleted)` for piggy-backed directive results on
-  turns passed `sidecars:` (see [Sidecar Directives](SidecarDirectives.md)).
+  turns passed `TurnOptions(sidecars:)` (see [Sidecar Directives](SidecarDirectives.md)).
 - `.completion(.generationCompleted)` for the terminal event on normal completion (one per
   completed turn; the final one closes the stream).
 - `.completion(.completedEmpty)` for a successful but empty assistant response.

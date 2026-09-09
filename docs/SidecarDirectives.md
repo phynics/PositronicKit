@@ -53,13 +53,12 @@ let tone = SidecarDirective(
 ## Running a turn with sidecars
 
 ```swift
-let stream = try await chat.threads.open(threadID).run(TurnRequest(
-    threadID: threadID,
-    message: "What's the deal with actors in Swift 6?",
-    sidecars: [title, tone]
-))
+let turn = try await chat.threads.open(threadID).startTurn(
+    "What's the deal with actors in Swift 6?",
+    options: TurnOptions(sidecars: [title, tone])
+)
 
-for try await event in stream {
+for await event in turn.events() {
     if let text = event.textContent {
         // Stream to the UI exactly like a normal turn — no raw JSON ever appears here.
         print(text, terminator: "")

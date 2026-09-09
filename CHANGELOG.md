@@ -8,6 +8,14 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Breaking
+
+- **Thread execution now admits Turns through `TurnHandle`:** use
+  `ThreadHandle.startTurn(_:options:)` for managed execution and
+  `ThreadHandle.startDirectTurn(_:context:options:)` for explicit detached execution. The new
+  `TurnOptions` value carries per-Turn configuration without repeating the handle's `threadID`;
+  the former public stream-shaped Thread entry points are no longer part of the consumer API.
+
 ## [5.1.0] - 2026-09-08
 
 ### Breaking

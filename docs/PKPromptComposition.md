@@ -60,7 +60,7 @@ durable tool audit and opt-in logging rather than a transient prompt/debug buffe
 
 ## Runtime Integration
 
-`PKPrompt` itself stays transport-neutral and does not own a logging backend. The runtime assembles prompts through its internal `PromptAssembler`; verbose assembly diagnostics flow through `swift-log` when you pass a `Logger` to `ThreadHandle.run(..., promptAssemblyLogger:)`.
+`PKPrompt` itself stays transport-neutral and does not own a logging backend. The runtime assembles prompts through its internal `PromptAssembler`; verbose assembly diagnostics flow through `swift-log` when you pass a `Logger` to `TurnOptions(promptAssemblyLogger:)`.
 
 ## Journaling vs. Runtime Prompt History
 

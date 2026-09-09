@@ -43,7 +43,7 @@ func runExamples() async throws {
     let kit = PositronicKitUsageExamples.makeOneShotRuntime()
     let handle = try await kit.threads.create(title: "Docs agent")
     let directTurn = try await handle.startDirectTurn(
-        message: "Hello",
+        "Hello",
         context: DirectTurnContext(systemInstructions: "", contributor: .host)
     )
     for await event in directTurn.events() {
@@ -69,7 +69,7 @@ func runExamples() async throws {
     for directive in sidecarDirectives {
         print("  - \(directive.name): \(directive.instruction)")
     }
-    print("  Consume via ThreadHandle.run(_:) — see makeSidecarDirectives() doc comment.")
+    print("  Consume via ThreadHandle.startTurn(_:options:) — see makeSidecarDirectives() doc comment.")
     print("Cadence example at turn 5 with an existing title: \(cadenceDirectives.map(\.name))")
     print("One-shot title request: \(oneShotTitleRequest)")
     print("Decoded one-shot title payload: \(oneShotTitle.title ?? "nil")")

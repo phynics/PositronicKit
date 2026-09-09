@@ -64,8 +64,8 @@ public final class ThreadController {
             }
         }
 
-        let stream = try await driver.send(content)
-        for try await event in stream {
+        let turn = try await driver.startTurn(content)
+        for await event in turn.events() {
             try Task.checkCancellation()
             guard activeSendGeneration == generation else { return }
             if let text = event.textContent {

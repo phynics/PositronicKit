@@ -24,12 +24,9 @@ public struct ThreadHandle: Identifiable, Sendable {
         self.kit = kit
     }
 
-    /// Sends a message through the Thread's managed execution path.
-    ///
-    /// The attached Agent identity is resolved from durable Thread state immediately before
-    /// admission. Call ``startDirectTurn(message:context:tools:requestID:maxModelRounds:)`` when
-    /// the caller explicitly wants a direct, identity-free Thread turn.
-    public func send(
+    /// Legacy stream-shaped managed execution retained for package tests while consumers migrate
+    /// to ``startTurn(_:options:)``.
+    internal func send(
         _ message: String,
         tools: [any Tool] = [],
         maxModelRounds: Int = 5,
@@ -45,7 +42,7 @@ public struct ThreadHandle: Identifiable, Sendable {
     }
 
     /// Starts a managed Turn whose Agent is captured from this Thread at admission.
-    public func startTurn(_ request: TurnRequest) async throws -> TurnHandle {
+    internal func startTurn(_ request: TurnRequest) async throws -> TurnHandle {
         guard request.threadID == threadID else {
             throw ThreadError.threadNotFound
         }
@@ -63,7 +60,20 @@ public struct ThreadHandle: Identifiable, Sendable {
     }
 
     /// Starts a managed Turn from the common message-shaped call site.
+    ///
+    /// - Parameters:
+    ///   - message: The user message to admit.
+    ///   - options: Per-Turn configuration that does not repeat this handle's Thread identity.
     public func startTurn(
+        _ message: String,
+        options: TurnOptions = .init()
+    ) async throws -> TurnHandle {
+        try await startTurn(options.makeRequest(threadID: threadID, message: message))
+    }
+
+    /// Legacy labeled form retained for package tests while consumers migrate to
+    /// ``startTurn(_:options:)``.
+    internal func startTurn(
         message: String,
         tools: [any Tool] = [],
         maxModelRounds: Int = 5,
@@ -80,12 +90,15 @@ public struct ThreadHandle: Identifiable, Sendable {
 
     /// Starts an explicit direct Turn. Direct execution is valid only while this Thread has no
     /// attached Agent; the caller supplies the complete system prompt and contributor selection.
+    ///
+    /// - Parameters:
+    ///   - message: The user message to admit.
+    ///   - context: Explicit direct-execution authority and system instructions.
+    ///   - options: Per-Turn configuration that does not repeat this handle's Thread identity.
     public func startDirectTurn(
-        message: String,
+        _ message: String,
         context: DirectTurnContext,
-        tools: [any Tool] = [],
-        requestID: UUID? = nil,
-        maxModelRounds: Int = 5
+        options: TurnOptions = .init()
     ) async throws -> TurnHandle {
         guard let thread = try await kit.threadManager.threadStore.fetchThread(id: threadID) else {
             throw ThreadError.threadNotFound
@@ -94,13 +107,10 @@ public struct ThreadHandle: Identifiable, Sendable {
             throw TurnError.directExecutionRequiresDetachedThread(threadID)
         }
         return try await kit.startTurnHandle(
-            TurnRequest(
+            options.makeRequest(
                 threadID: threadID,
-                requestID: requestID,
                 message: message,
-                tools: tools,
-                systemInstructions: context.systemInstructions,
-                maxModelRounds: maxModelRounds
+                systemInstructionsOverride: context.systemInstructions
             ),
             agentID: nil,
             executionKind: .direct,
@@ -108,12 +118,31 @@ public struct ThreadHandle: Identifiable, Sendable {
         )
     }
 
+    /// Legacy labeled form retained for package tests while consumers migrate to
+    /// ``startDirectTurn(_:context:options:)``.
+    internal func startDirectTurn(
+        message: String,
+        context: DirectTurnContext,
+        tools: [any Tool] = [],
+        requestID: UUID? = nil,
+        maxModelRounds: Int = 5
+    ) async throws -> TurnHandle {
+        try await startDirectTurn(
+            message,
+            context: context,
+            options: TurnOptions(
+                requestID: requestID,
+                tools: tools,
+                maxModelRounds: maxModelRounds
+            )
+        )
+    }
+
     /// Runs an advanced managed request already addressed to this Thread.
     ///
-    /// Most consumers should use ``send(_:tools:maxModelRounds:systemInstructions:)``. This
-    /// request-shaped seam remains for sidecars and other explicit turn configuration; the
-    /// request's `threadID` must identify this handle's Thread.
-    public func run(_ request: TurnRequest) async throws -> AsyncThrowingStream<TurnEvent, Error> {
+    /// This package-internal request-shaped seam remains for runtime tests and migration work;
+    /// consumers should use ``startTurn(_:options:)`` so the handle supplies the Thread identity.
+    internal func run(_ request: TurnRequest) async throws -> AsyncThrowingStream<TurnEvent, Error> {
         guard request.threadID == threadID else {
             throw ThreadError.threadNotFound
         }
