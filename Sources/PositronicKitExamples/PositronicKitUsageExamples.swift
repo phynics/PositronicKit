@@ -70,28 +70,15 @@ public enum PositronicKitUsageExamples {
     }
 
     public static func makeOpenAIRuntime(apiKey: String = "sk-example") -> PositronicKit {
-        var openAIConfig = ProviderConfiguration.makeDefault(for: .openAI)
-        openAIConfig.modelName = "gpt-4o"
-        openAIConfig.apiKey = apiKey
-        let config = LLMConfiguration(activeProvider: .openAI, providers: [.openAI: openAIConfig])
-        let client = PKOpenAIProvider.makeClient(configuration: config)
-        let model = LLMService(
-            configuration: config,
-            clients: .init(primary: client, utility: client, fast: client)
+        let provider = PKOpenAIProvider.makeConfiguredProvider(
+            apiKey: apiKey,
+            model: "gpt-4o"
         )
-        return PositronicKit(languageModel: model)
+        return PositronicKit(provider: provider)
     }
 
     public static func makeOllamaRuntime(model: String = "llama3") -> PositronicKit {
-        var ollamaConfig = ProviderConfiguration.makeDefault(for: .ollama)
-        ollamaConfig.modelName = model
-        let config = LLMConfiguration(activeProvider: .ollama, providers: [.ollama: ollamaConfig])
-        let client = PKOllamaProvider.makeClient(configuration: config)
-        let languageModel = LLMService(
-            configuration: config,
-            clients: .init(primary: client, utility: client, fast: client)
-        )
-        return PositronicKit(languageModel: languageModel)
+        PositronicKit(provider: PKOllamaProvider.makeConfiguredProvider(model: model))
     }
 
     public static func makeConfiguredRuntime() -> PositronicKit {
@@ -109,39 +96,19 @@ public enum PositronicKitUsageExamples {
     }
 
     public static func makeConfiguredOpenAIRuntime(apiKey: String = "sk-example") -> PositronicKit {
-        var openAIConfig = ProviderConfiguration.makeDefault(for: .openAI)
-        openAIConfig.apiKey = apiKey
-        let configuration = LLMConfiguration(activeProvider: .openAI, providers: [.openAI: openAIConfig])
-        let client = PKOpenAIProvider.makeClient(configuration: configuration)
-        let languageModel = LLMService(
-            configuration: configuration,
-            clients: .init(primary: client, utility: client, fast: client)
-        )
-        return PositronicKit(configuration: .init(
-            provider: .init(languageModel: languageModel),
-            persistence: .inMemory()
-        ))
+        let provider = PKOpenAIProvider.makeConfiguredProvider(apiKey: apiKey)
+        return PositronicKit(provider: provider)
     }
 
-    /// PKPOST-001: configure Anthropic through its compile-time provider factory.
+    /// The native Anthropic adapter uses the same configured-provider path as the other
+    /// network providers.
     public static func makeConfiguredAnthropicRuntime(apiKey: String = "sk-ant-example") -> PositronicKit {
-        var anthropicConfig = ProviderConfiguration.makeDefault(for: .anthropic)
-        anthropicConfig.apiKey = apiKey
-        let configuration = LLMConfiguration(activeProvider: .anthropic, providers: [.anthropic: anthropicConfig])
-        let client = PKAnthropicProvider.makeClient(configuration: configuration)
-        let languageModel = LLMService(
-            configuration: configuration,
-            clients: .init(primary: client, utility: client, fast: client)
-        )
-        return PositronicKit(languageModel: languageModel)
+        PositronicKit(provider: PKAnthropicProvider.makeConfiguredProvider(apiKey: apiKey))
     }
 
-    /// PKPOST-003: Apple's on-device Foundation Models provider. It needs no API key or network.
-    /// `FoundationModelsClient` accepts executable tools during construction because the
-    /// Foundation Models session executes tools while it produces a response. This path bypasses
-    /// `LLMConfiguration`, which models HTTP-family providers. The type compiles on every host;
-    /// on hosts without the `FoundationModels` framework or with pre-26 macOS, its
-    /// `generationStream` throws `FoundationModelsPlatformError.unsupportedPlatform`.
+    /// Apple's on-device Foundation Models provider remains separate because its session has no
+    /// API key, endpoint, or network provider configuration. It bypasses `LLMConfiguration`
+    /// directly; see `PKFoundationModelsProvider.swift` for the platform-specific behavior.
     public static func makeFoundationModelsRuntime(tools: [AnyTool] = []) -> PositronicKit {
         let client = FoundationModelsClient(tools: tools.map { $0.toAnyTool() })
         let languageModel = LLMService(

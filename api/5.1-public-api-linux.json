@@ -5893,6 +5893,45 @@
       "declaration": "init?(rawValue: String)"
     },
     {
+      "precise": "s:11PKContracts21ConfiguredLLMProviderV",
+      "module": "PKContracts",
+      "kind": "swift.struct",
+      "path": [
+        "ConfiguredLLMProvider"
+      ],
+      "declaration": "struct ConfiguredLLMProvider"
+    },
+    {
+      "precise": "s:11PKContracts21ConfiguredLLMProviderV13configuration6clientAcA16LLMConfigurationV_AA17LLMClientProtocol_ptcfc",
+      "module": "PKContracts",
+      "kind": "swift.init",
+      "path": [
+        "ConfiguredLLMProvider",
+        "init(configuration:client:)"
+      ],
+      "declaration": "init(configuration: LLMConfiguration, client: any LLMClientProtocol)"
+    },
+    {
+      "precise": "s:11PKContracts21ConfiguredLLMProviderV13configurationAA16LLMConfigurationVvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "ConfiguredLLMProvider",
+        "configuration"
+      ],
+      "declaration": "let configuration: LLMConfiguration"
+    },
+    {
+      "precise": "s:11PKContracts21ConfiguredLLMProviderV6clientAA17LLMClientProtocol_pvp",
+      "module": "PKContracts",
+      "kind": "swift.property",
+      "path": [
+        "ConfiguredLLMProvider",
+        "client"
+      ],
+      "declaration": "let client: any LLMClientProtocol"
+    },
+    {
       "precise": "s:11PKContracts21ProviderConfigurationV",
       "module": "PKContracts",
       "kind": "swift.struct",
@@ -23241,6 +23280,16 @@
       "declaration": "var threads: ThreadCapability { get }"
     },
     {
+      "precise": "s:13PositronicKitAAC8providerAB11PKContracts21ConfiguredLLMProviderV_tcfc",
+      "module": "PositronicKit",
+      "kind": "swift.init",
+      "path": [
+        "PositronicKit",
+        "init(provider:)"
+      ],
+      "declaration": "convenience init(provider: ConfiguredLLMProvider)"
+    },
+    {
       "precise": "s:16PKOllamaProvider12OllamaClientC",
       "module": "PKOllamaProvider",
       "kind": "swift.class",
@@ -23307,6 +23356,16 @@
         "PKOllamaProvider"
       ],
       "declaration": "enum PKOllamaProvider"
+    },
+    {
+      "precise": "s:16PKOllamaProviderAAO014makeConfiguredB05model8endpoint11PKContracts0D11LLMProviderVSS_SSSgtFZ",
+      "module": "PKOllamaProvider",
+      "kind": "swift.type.method",
+      "path": [
+        "PKOllamaProvider",
+        "makeConfiguredProvider(model:endpoint:)"
+      ],
+      "declaration": "static func makeConfiguredProvider(model: String = \"llama3\", endpoint: String? = nil) -> ConfiguredLLMProvider"
     },
     {
       "precise": "s:16PKOllamaProviderAAO10makeClient13configurationAA06OllamaD0C11PKContracts16LLMConfigurationV_tFZ",
@@ -23407,6 +23466,16 @@
       "declaration": "static func makeClient(configuration: LLMConfiguration) -> OpenAIClient"
     },
     {
+      "precise": "s:16PKOpenAIProviderAAO22makeConfiguredProvider6apiKey5model8endpoint11PKContracts0D11LLMProviderVSS_S2SSgtFZ",
+      "module": "PKOpenAIProvider",
+      "kind": "swift.type.method",
+      "path": [
+        "PKOpenAIProvider",
+        "makeConfiguredProvider(apiKey:model:endpoint:)"
+      ],
+      "declaration": "static func makeConfiguredProvider(apiKey: String, model: String = \"gpt-4o\", endpoint: String? = nil) -> ConfiguredLLMProvider"
+    },
+    {
       "precise": "s:19PKAnthropicProvider15AnthropicClientC",
       "module": "PKAnthropicProvider",
       "kind": "swift.class",
@@ -23483,6 +23552,16 @@
         "PKAnthropicProvider"
       ],
       "declaration": "enum PKAnthropicProvider"
+    },
+    {
+      "precise": "s:19PKAnthropicProviderAAO014makeConfiguredB06apiKey5model8endpoint11PKContracts0D11LLMProviderVSS_S2SSgtFZ",
+      "module": "PKAnthropicProvider",
+      "kind": "swift.type.method",
+      "path": [
+        "PKAnthropicProvider",
+        "makeConfiguredProvider(apiKey:model:endpoint:)"
+      ],
+      "declaration": "static func makeConfiguredProvider(apiKey: String, model: String = \"claude-sonnet-4-5\", endpoint: String? = nil) -> ConfiguredLLMProvider"
     },
     {
       "precise": "s:19PKAnthropicProviderAAO10makeClient13configurationAA09AnthropicD0C11PKContracts16LLMConfigurationV_tFZ",
@@ -23614,6 +23693,16 @@
         "PKOpenRouterProvider"
       ],
       "declaration": "enum PKOpenRouterProvider"
+    },
+    {
+      "precise": "s:20PKOpenRouterProviderAAO014makeConfiguredC06apiKey5model8endpoint11PKContracts0E11LLMProviderVSS_S2SSgtFZ",
+      "module": "PKOpenRouterProvider",
+      "kind": "swift.type.method",
+      "path": [
+        "PKOpenRouterProvider",
+        "makeConfiguredProvider(apiKey:model:endpoint:)"
+      ],
+      "declaration": "static func makeConfiguredProvider(apiKey: String, model: String = \"openai/gpt-4o\", endpoint: String? = nil) -> ConfiguredLLMProvider"
     },
     {
       "precise": "s:20PKOpenRouterProviderAAO10makeClient13configurationAA04OpenbE0C11PKContracts16LLMConfigurationV_tFZ",
@@ -30352,6 +30441,20 @@
       "module": "PKContracts",
       "kind": "conformsTo",
       "source": "s:11PKContracts20WorkspaceToolRoutingO",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts21ConfiguredLLMProviderV",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "conformsTo",
+      "source": "s:11PKContracts21ConfiguredLLMProviderV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -38332,6 +38435,12 @@
     {
       "module": "PKAnthropicProvider",
       "kind": "memberOf",
+      "source": "s:19PKAnthropicProviderAAO014makeConfiguredB06apiKey5model8endpoint11PKContracts0D11LLMProviderVSS_S2SSgtFZ",
+      "target": "s:19PKAnthropicProviderAAO"
+    },
+    {
+      "module": "PKAnthropicProvider",
+      "kind": "memberOf",
       "source": "s:19PKAnthropicProviderAAO10makeClient13configurationAA09AnthropicD0C11PKContracts16LLMConfigurationV_tFZ",
       "target": "s:19PKAnthropicProviderAAO",
       "sourceOrigin": {
@@ -41654,6 +41763,24 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
+      "source": "s:11PKContracts21ConfiguredLLMProviderV13configuration6clientAcA16LLMConfigurationV_AA17LLMClientProtocol_ptcfc",
+      "target": "s:11PKContracts21ConfiguredLLMProviderV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts21ConfiguredLLMProviderV13configurationAA16LLMConfigurationVvp",
+      "target": "s:11PKContracts21ConfiguredLLMProviderV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts21ConfiguredLLMProviderV6clientAA17LLMClientProtocol_pvp",
+      "target": "s:11PKContracts21ConfiguredLLMProviderV"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts21ProviderConfigurationV10maxRetriesSivp",
       "target": "s:11PKContracts21ProviderConfigurationV"
     },
@@ -44151,6 +44278,12 @@
     {
       "module": "PKOllamaProvider",
       "kind": "memberOf",
+      "source": "s:16PKOllamaProviderAAO014makeConfiguredB05model8endpoint11PKContracts0D11LLMProviderVSS_SSSgtFZ",
+      "target": "s:16PKOllamaProviderAAO"
+    },
+    {
+      "module": "PKOllamaProvider",
+      "kind": "memberOf",
       "source": "s:16PKOllamaProviderAAO10makeClient13configurationAA06OllamaD0C11PKContracts16LLMConfigurationV_tFZ",
       "target": "s:16PKOllamaProviderAAO",
       "sourceOrigin": {
@@ -44253,6 +44386,12 @@
       }
     },
     {
+      "module": "PKOpenAIProvider",
+      "kind": "memberOf",
+      "source": "s:16PKOpenAIProviderAAO22makeConfiguredProvider6apiKey5model8endpoint11PKContracts0D11LLMProviderVSS_S2SSgtFZ",
+      "target": "s:16PKOpenAIProviderAAO"
+    },
+    {
       "module": "PKOpenRouterProvider",
       "kind": "memberOf",
       "source": "s:20PKOpenRouterProvider04OpenB6ClientC10chatStream8messages5tools10toolChoice14responseFormat20generationParameters0L10Modalities11audioOutputScsy11PKContracts14LLMStreamChunkVs5Error_pGSayAL10LLMMessageVG_SayAL17LLMToolDefinitionVGSgAL0xK0OSgAL011LLMResponseM0OSgAL010GenerationO0VSgShyAL16ResponseModalityOGAL05AudioR7OptionsVSgtYaF",
@@ -44331,6 +44470,12 @@
       "kind": "memberOf",
       "source": "s:20PKOpenRouterProvider04OpenB6ClientC6apiKey9modelName4host4port6scheme15timeoutInterval10maxRetries11attributionACSS_S2SSiSSSdSiAC11AttributionVtcfc",
       "target": "s:20PKOpenRouterProvider04OpenB6ClientC"
+    },
+    {
+      "module": "PKOpenRouterProvider",
+      "kind": "memberOf",
+      "source": "s:20PKOpenRouterProviderAAO014makeConfiguredC06apiKey5model8endpoint11PKContracts0E11LLMProviderVSS_S2SSgtFZ",
+      "target": "s:20PKOpenRouterProviderAAO"
     },
     {
       "module": "PKOpenRouterProvider",
@@ -54333,6 +54478,12 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKitAAC7threadsAA16ThreadCapabilityVvp",
+      "target": "s:13PositronicKitAAC"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKitAAC8providerAB11PKContracts21ConfiguredLLMProviderV_tcfc",
       "target": "s:13PositronicKitAAC"
     },
     {

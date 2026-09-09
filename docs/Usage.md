@@ -61,50 +61,33 @@ construction, run, and event-handling shapes here are type-checked against the c
 
 ### Simplified Initialization (Prototyping)
 
-The facade's prototyping initializer takes a `languageModel` conforming to
-`LLMStreamClient` and defaults every store to in-memory. Construct a provider-backed stream
-client from your provider's configuration, wrap it in an `LLMService`, then hand it to
-`PositronicKit`.
+Provider packages expose a configured-provider factory for the common path. It creates the client
+and configuration once, while `PositronicKit` keeps service assembly internal.
 
 ```swift
 import PositronicKit
-import PKContracts
 import PKOpenAIProvider
 
-// OpenAI: configure the provider, build its client, and wrap it as an LLMStreamClient.
-var openAIConfig = ProviderConfiguration.makeDefault(for: .openAI)
-openAIConfig.apiKey = "sk-..."
-let configuration = LLMConfiguration(activeProvider: .openAI, providers: [.openAI: openAIConfig])
-let client = PKOpenAIProvider.makeClient(configuration: configuration)
-let languageModel = LLMService(configuration: configuration, clients: .init(
-    primary: client,
-    utility: client,
-    fast: client
-))
-let kit = PositronicKit(languageModel: languageModel)
+let provider = PKOpenAIProvider.makeConfiguredProvider(
+    apiKey: "sk-...",
+    model: "gpt-4o"
+)
+let kit = PositronicKit(provider: provider)
 ```
 
-For Ollama, use `PKOllamaProvider` and `ProviderConfiguration.makeDefault(for: .ollama)`:
+For Ollama, use the provider factory without an API key:
 
 ```swift
 import PositronicKit
-import PKContracts
 import PKOllamaProvider
 
-var ollamaConfig = ProviderConfiguration.makeDefault(for: .ollama)
-ollamaConfig.modelName = "llama3"
-let configuration = LLMConfiguration(activeProvider: .ollama, providers: [.ollama: ollamaConfig])
-let client = PKOllamaProvider.makeClient(configuration: configuration)
-let languageModel = LLMService(configuration: configuration, clients: .init(
-    primary: client,
-    utility: client,
-    fast: client
-))
-let kit = PositronicKit(languageModel: languageModel)
+let provider = PKOllamaProvider.makeConfiguredProvider(model: "llama3")
+let kit = PositronicKit(provider: provider)
 ```
 
-The core facade stays provider-neutral: provider clients are built in their provider module
-and wrapped in an `LLMService` before being passed to `PositronicKit`.
+OpenRouter and Anthropic use the same configured-provider pattern. Foundation Models is the
+documented exception: it has no API key, endpoint, or network model selection, so pass a
+`FoundationModelsClient` through `PositronicKit(languageModel:)` instead.
 
 ### Full Initialization (Production)
 
