@@ -179,6 +179,38 @@ actor AgentManager: AgentManagerProtocol {
 
     // MARK: - Attach / Detach
 
+    /// Creates an ordinary Thread already attached to an active Agent.
+    ///
+    /// Agent lifecycle changes are serialized for the full operation. Thread creation owns its
+    /// own durable rollback, so a workspace or persistence failure cannot leave the new Thread
+    /// or its attachment behind.
+    func createThread(title: String, attaching agentID: UUID) async throws -> Thread {
+        guard let threadManager else {
+            throw ThreadError.unavailable
+        }
+
+        return try await agentAuthorityCoordinator.withAgent(agentID) { [self, threadManager] in
+            guard let agent = try await agentStore.fetchAgent(id: agentID) else {
+                throw AgentError.agentNotFound(agentID)
+            }
+            switch agent.lifecycle {
+            case .active:
+                break
+            case .retiring:
+                throw AgentError.agentRetiring(agentID)
+            case .retired:
+                throw AgentError.agentRetired(agentID)
+            }
+
+            let thread = try await threadManager.createThread(
+                title: title,
+                attachedAgentID: agentID
+            )
+            await recordAttachment(agent: agent, to: thread)
+            return thread
+        }
+    }
+
     /// Attaches an agent to a thread.
     ///
     /// - Idempotent: no-op if the same agent is already attached.
@@ -246,18 +278,21 @@ actor AgentManager: AgentManagerProtocol {
         await threadManager?.replaceCachedThreadIfPresent(result.thread)
         let thread = result.thread
 
-        // Log to agent's private thread
+        await recordAttachment(agent: agent, to: thread)
+    }
+
+    private func recordAttachment(agent: Agent, to thread: Thread) async {
         let logMsg = ThreadMessage(
             threadID: agent.privateThreadID,
             role: .system,
-            content: "[ATTACH] Agent '\(agent.name)' (\(agentID.uuidString.prefix(8))) "
-                + "attached to thread \"\(thread.title)\" (\(threadID.uuidString.prefix(8)))"
+            content: "[ATTACH] Agent '\(agent.name)' (\(agent.id.uuidString.prefix(8))) "
+                + "attached to thread \"\(thread.title)\" (\(thread.id.uuidString.prefix(8)))"
         )
         do {
             try await messageStore.saveMessage(logMsg)
         } catch {
             logger.warning(
-                "Failed to persist attach audit log for agent \(agentID) on thread \(threadID) (private thread \(agent.privateThreadID)): \(ErrorKit.userFriendlyMessage(for: error))")
+                "Failed to persist attach audit log for agent \(agent.id) on thread \(thread.id) (private thread \(agent.privateThreadID)): \(ErrorKit.userFriendlyMessage(for: error))")
         }
 
         logger.info("Agent '\(agent.name)' attached to thread '\(thread.title)'")

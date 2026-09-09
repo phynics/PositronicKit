@@ -24,6 +24,54 @@ struct AgentManagerTests {
         #expect(attached.map(\.id).contains(thread.id))
     }
 
+    @Test("combined Thread creation leaves no row when durable creation fails")
+    func combinedCreationRollsBackOnThreadStoreFailure() async throws {
+        let threadStore = FailingThreadPersistence(saveFails: true)
+        let agentStore = MockPersistenceService()
+        let workspaceStore = MockWorkspacePersistence()
+        let messageStore = MockPersistenceService()
+        let threadManager = ThreadManager(
+            stores: .init(
+                threadStore: threadStore,
+                messageStore: messageStore,
+                workspaceStore: workspaceStore,
+                workspaceBindingRepository: InMemoryWorkspaceBindingRepository(),
+                runtimeRepository: InMemoryThreadRuntimeRepository(),
+                toolPersistence: messageStore
+            ),
+            workspaceProfile: .noWorkspace
+        )
+        let repository = DefaultWorkspaceCatalog(
+            workspaceRoot: FileManager.default.temporaryDirectory,
+            workspacePersistence: workspaceStore
+        )
+        let manager = AgentManager(
+            repository: repository,
+            stores: .init(
+                agentStore: agentStore,
+                threadStore: threadStore,
+                messageStore: messageStore,
+                workspaceStore: workspaceStore
+            ),
+            threadManager: threadManager
+        )
+        let agent = Agent(
+            name: "Atomic Agent",
+            description: "Tests combined Thread creation.",
+            privateThreadID: UUID()
+        )
+        try await agentStore.saveAgent(agent)
+
+        let error = await #expect(throws: ThreadError.self) {
+            _ = try await manager.createThread(title: "Should not persist", attaching: agent.id)
+        }
+
+        if case .unavailable? = error {
+            // Expected: the Thread store rejected the durable creation.
+        }
+        #expect(try await threadStore.fetchAllThreads(includeArchived: true).isEmpty)
+    }
+
     @Test("Canonical error cases use their owning domains")
     func canonicalErrorIdentity() {
         let threadID = UUID()

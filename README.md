@@ -98,8 +98,10 @@ let agent = try await kit.agents.create(
     name: "Researcher",
     description: "Summarizes source material."
 )
-let managedThread = try await kit.threads.create(title: "Research")
-try await kit.agents.attach(agent.id, to: managedThread.id)
+<let managedThread = try await kit.threads.create(
+    title: "Research",
+    attaching: agent.id
+)
 let managedTurn = try await managedThread.startTurn("Use the attached identity.")
 let outcome = try await managedTurn.outcome()
 ```

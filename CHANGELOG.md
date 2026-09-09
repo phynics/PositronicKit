@@ -16,6 +16,12 @@ for tagged releases beginning with `1.0.0`.
   `TurnOptions` value carries per-Turn configuration without repeating the handle's `threadID`;
   the former public stream-shaped Thread entry points are no longer part of the consumer API.
 
+### Added
+
+- **Atomic managed Thread creation:** `kit.threads.create(title:attaching:)` validates an active
+  Agent before creating an ordinary Thread and returns a handle whose attachment is ready for
+  managed execution. Creation failures roll back the Thread's durable state.
+
 ## [5.1.0] - 2026-09-08
 
 ### Breaking
