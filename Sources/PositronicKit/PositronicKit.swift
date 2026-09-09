@@ -146,6 +146,15 @@ public final class PositronicKit: Sendable {
         )
     }
 
+    /// Creates a facade from a configured provider value.
+    ///
+    /// Provider packages expose the concrete factory methods that create this
+    /// value. Applications do not need to assemble ``LLMService`` or
+    /// ``LLMClientSet`` for the common setup path.
+    public convenience init(provider: ConfiguredLLMProvider) {
+        self.init(languageModel: LLMService(provider: provider))
+    }
+
     convenience init(
         languageModel: any LLMStreamClient,
         runtimeRepository: any ThreadRuntimeRepository,

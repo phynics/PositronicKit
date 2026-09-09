@@ -70,6 +70,11 @@ func exercisePublicTurnAdmission(_ thread: ThreadHandle) async {
         context: DirectTurnContext(systemInstructions: "Be concise.", contributor: .host))
 }
 
+// Provider packages return one runtime-neutral value for ordinary application setup.
+let configuredProvider = PKOpenAIProvider.makeConfiguredProvider(apiKey: "test-key")
+let configuredKit = PositronicKit(provider: configuredProvider)
+_ = configuredKit.model
+
 // A stream-only implementation is sufficient for the facade and strict utility generator;
 // configuration administration and health capabilities are deliberately not required here.
 private let streamOnly = StreamOnlyLLMClient()

@@ -2,6 +2,26 @@ import Foundation
 import PKContracts
 
 public enum PKOpenAIProvider: LLMProviderFactory {
+    /// Creates a configured OpenAI provider for the common runtime setup path.
+    public static func makeConfiguredProvider(
+        apiKey: String,
+        model: String = "gpt-4o",
+        endpoint: String? = nil
+    ) -> ConfiguredLLMProvider {
+        var configuration = LLMConfiguration.openAI
+        configuration.activeProviderConfiguration.apiKey = apiKey
+        configuration.activeProviderConfiguration.modelName = model
+        configuration.activeProviderConfiguration.utilityModel = model
+        configuration.activeProviderConfiguration.fastModel = model
+        if let endpoint {
+            configuration.activeProviderConfiguration.endpoint = endpoint
+        }
+        return ConfiguredLLMProvider(
+            configuration: configuration,
+            client: makeClient(configuration: configuration)
+        )
+    }
+
     /// Creates an OpenAI or OpenAI-compatible client with its structured-output adapter.
     public static func makeClient(
         configuration: LLMConfiguration
