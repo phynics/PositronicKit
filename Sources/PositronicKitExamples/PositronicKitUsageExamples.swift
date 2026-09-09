@@ -31,6 +31,11 @@ public enum PositronicKitUsageExamples {
         PositronicKit(languageModel: UnconfiguredLLMService())
     }
 
+    /// Creates a deterministic runtime for the executable example. It performs no network I/O.
+    public static func makeOfflineRuntime() -> PositronicKit {
+        PositronicKit(languageModel: OfflineLLMClient())
+    }
+
     /// Tier 2: a handle for a freshly created, persisted Thread.
     public static func makeThreadHandleExample() async throws -> ThreadHandle {
         let kit = makeOneShotRuntime()
@@ -116,8 +121,7 @@ public enum PositronicKitUsageExamples {
         ))
     }
 
-    /// PKPOST-001: the native Anthropic adapter registers exactly like the other providers;
-    /// `PositronicKit(anthropicKey:)` wraps registration + configuration in one call.
+    /// PKPOST-001: configure Anthropic through its compile-time provider factory.
     public static func makeConfiguredAnthropicRuntime(apiKey: String = "sk-ant-example") -> PositronicKit {
         var anthropicConfig = ProviderConfiguration.makeDefault(for: .anthropic)
         anthropicConfig.apiKey = apiKey
@@ -130,14 +134,12 @@ public enum PositronicKitUsageExamples {
         return PositronicKit(languageModel: languageModel)
     }
 
-    /// PKPOST-003: Apple's on-device Foundation Models provider — no API key, no network.
-    /// `PositronicKit(foundationModelsTools:)` wraps `FoundationModelsClient` construction (with
-    /// tools bridged into the session up front, since the framework executes tools itself while
-    /// producing a response) directly, bypassing `ExternalLLMProviderRegistry`/`LLMConfiguration`
-    /// entirely — see `PKFoundationModelsProvider.swift` for why that registry shape doesn't fit
-    /// an on-device session. Compiles unconditionally; on hosts without the `FoundationModels`
-    /// framework (or pre-26 macOS), the resulting runtime's `generationStream` throws
-    /// `FoundationModelsPlatformError.unsupportedPlatform` rather than crashing.
+    /// PKPOST-003: Apple's on-device Foundation Models provider. It needs no API key or network.
+    /// `FoundationModelsClient` accepts executable tools during construction because the
+    /// Foundation Models session executes tools while it produces a response. This path bypasses
+    /// `LLMConfiguration`, which models HTTP-family providers. The type compiles on every host;
+    /// on hosts without the `FoundationModels` framework or with pre-26 macOS, its
+    /// `generationStream` throws `FoundationModelsPlatformError.unsupportedPlatform`.
     public static func makeFoundationModelsRuntime(tools: [AnyTool] = []) -> PositronicKit {
         let client = FoundationModelsClient(tools: tools.map { $0.toAnyTool() })
         let languageModel = LLMService(

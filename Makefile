@@ -47,7 +47,7 @@ help:
 	@echo "  make verify-linux-base     Run the shared Linux verification body"
 	@echo "  make verify-linux-current  Run the current Linux gate"
 	@echo "  make verify-products       Build every library product declared by Package.swift"
-	@echo "  make verify-examples       Build the PositronicKitExamples executable"
+	@echo "  make verify-examples       Build and run the PositronicKitExamples executable"
 	@echo "  make verify-tests          Run the test suite"
 	@echo "  make verify-pktestsupport  Build PKTestSupport and an ordinary-import consumer in release mode"
 	@echo "  make verify-public-consumers  Compile ordinary imports for every public library product"
@@ -173,6 +173,8 @@ verify-products:
 verify-examples:
 	@echo "Building PositronicKitExamples..."
 	@swift build $(SWIFT_BUILD_FLAGS) --product PositronicKitExamples
+	@echo "Running PositronicKitExamples..."
+	@swift run --skip-build PositronicKitExamples
 
 verify-pktestsupport:
 	@echo "Building PKTestSupport in release configuration..."
