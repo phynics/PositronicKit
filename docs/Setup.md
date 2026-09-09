@@ -109,7 +109,7 @@ let provider = PKOpenAIProvider.makeConfiguredProvider(
 let core = PositronicKit(provider: provider)
 ```
 
-<The same shape is available for OpenRouter, Ollama, and Anthropic:
+The same shape is available for OpenRouter, Ollama, and Anthropic:
 
 ```swift
 import PKAnthropicProvider

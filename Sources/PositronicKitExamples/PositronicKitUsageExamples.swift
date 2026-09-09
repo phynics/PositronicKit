@@ -100,13 +100,13 @@ public enum PositronicKitUsageExamples {
         return PositronicKit(provider: provider)
     }
 
-<    /// The native Anthropic adapter uses the same configured-provider path as the other
+    /// The native Anthropic adapter uses the same configured-provider path as the other
     /// network providers.
     public static func makeConfiguredAnthropicRuntime(apiKey: String = "sk-ant-example") -> PositronicKit {
         PositronicKit(provider: PKAnthropicProvider.makeConfiguredProvider(apiKey: apiKey))
     }
 
-<    /// Apple's on-device Foundation Models provider remains separate because its session has no
+    /// Apple's on-device Foundation Models provider remains separate because its session has no
     /// API key, endpoint, or network provider configuration. It bypasses `LLMConfiguration`
     /// directly; see `PKFoundationModelsProvider.swift` for the platform-specific behavior.
     public static func makeFoundationModelsRuntime(tools: [AnyTool] = []) -> PositronicKit {
