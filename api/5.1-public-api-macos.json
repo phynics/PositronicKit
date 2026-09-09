@@ -12226,16 +12226,6 @@
       "declaration": "func fetchToolResults(turnID: UUID) async throws -> [RuntimeToolResult]"
     },
     {
-      "precise": "s:13PKTestSupport22MockPersistenceServiceC17completeTurnFailsSbvp",
-      "module": "PKTestSupport",
-      "kind": "swift.property",
-      "path": [
-        "MockPersistenceService",
-        "completeTurnFails"
-      ],
-      "declaration": "var completeTurnFails: Bool { get set }"
-    },
-    {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC16getHealthDetailsSDyS2SGSgyYaF",
       "module": "PKTestSupport",
       "kind": "swift.method",
@@ -12304,6 +12294,16 @@
         "appendCorrelation(turnID:correlation:now:)"
       ],
       "declaration": "func appendCorrelation(turnID: UUID, correlation: TurnCorrelation, now: Date) async throws"
+    },
+    {
+      "precise": "s:13PKTestSupport22MockPersistenceServiceC17completeTurnFailsSbvp",
+      "module": "PKTestSupport",
+      "kind": "swift.property",
+      "path": [
+        "MockPersistenceService",
+        "completeTurnFails"
+      ],
+      "declaration": "var completeTurnFails: Bool { get set }"
     },
     {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC17fetchCorrelations6turnIDSay13PositronicKit15TurnCorrelationVG10Foundation4UUIDV_tYaKF",
@@ -48587,12 +48587,6 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
-      "source": "s:13PKTestSupport22MockPersistenceServiceC17completeTurnFailsSbvp",
-      "target": "s:13PKTestSupport22MockPersistenceServiceC"
-    },
-    {
-      "module": "PKTestSupport",
-      "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC16getHealthDetailsSDyS2SGSgyYaF",
       "target": "s:13PKTestSupport22MockPersistenceServiceC",
       "sourceOrigin": {
@@ -48655,6 +48649,12 @@
         "identifier": "s:13PositronicKit23ThreadRuntimeRepositoryP17appendCorrelation6turnID11correlation3nowy10Foundation4UUIDV_AA04TurnG0VAH4DateVtYaKF",
         "displayName": "ThreadRuntimeRepository.appendCorrelation(turnID:correlation:now:)"
       }
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport22MockPersistenceServiceC17completeTurnFailsSbvp",
+      "target": "s:13PKTestSupport22MockPersistenceServiceC"
     },
     {
       "module": "PKTestSupport",
