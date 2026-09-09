@@ -103,7 +103,7 @@ try await kit.agents.attach(agent.id, to: managedThread.id)
 let managedTurn = try await managedThread.startTurn(
     message: "Use the attached identity."
 )
-let outcome = await managedTurn.outcome()
+let outcome = try await managedTurn.outcome()
 ```
 
 The capability values are the supported consumer entry points. `kit.model` is thread-free
@@ -169,6 +169,10 @@ wrapping.
 
 In an application, hold `kit` in an app-owned `Service` class and pass the capability values or
 handles it vends to the subsystems that use them.
+
+The repository includes a deterministic executable that exercises a complete offline Turn. Run
+`swift run PositronicKitExamples` on macOS. Linux agents run the same check through
+`make agent-verify`.
 
 ## Documentation
 
