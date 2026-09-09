@@ -36078,15 +36078,15 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit16ModelHealthErrorO",
-      "target": "s:11PKContracts7PKErrorP",
-      "targetFallback": "PKContracts.PKError"
+      "target": "s:10Foundation14LocalizedErrorP",
+      "targetFallback": "Foundation.LocalizedError"
     },
     {
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit16ModelHealthErrorO",
-      "target": "s:10Foundation14LocalizedErrorP",
-      "targetFallback": "Foundation.LocalizedError"
+      "target": "s:11PKContracts7PKErrorP",
+      "targetFallback": "PKContracts.PKError"
     },
     {
       "module": "PositronicKit",
