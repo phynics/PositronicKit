@@ -98,7 +98,7 @@ let agent = try await kit.agents.create(
     name: "Researcher",
     description: "Summarizes source material."
 )
-<let managedThread = try await kit.threads.create(
+let managedThread = try await kit.threads.create(
     title: "Research",
     attaching: agent.id
 )
