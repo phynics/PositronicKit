@@ -25,8 +25,10 @@ let agent = try await kit.agents.create(
     description: "An agent specialized in technical research."
 )
 
-let thread = try await kit.threads.create(title: "Research")
-try await kit.agents.attach(agent.id, to: thread.id)
+let thread = try await kit.threads.create(
+    title: "Research",
+    attaching: agent.id
+)
 print("Created agent with ID: \(agent.id)")
 ```
 

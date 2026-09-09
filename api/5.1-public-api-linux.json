@@ -16592,6 +16592,16 @@
       "declaration": "func open(_ threadID: UUID) -> ThreadHandle"
     },
     {
+      "precise": "s:13PositronicKit16ThreadCapabilityV6create5title9attachingAA0C6HandleVSS_20FoundationEssentials4UUIDVtYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "ThreadCapability",
+        "create(title:attaching:)"
+      ],
+      "declaration": "func create(title: String = \"New Thread\", attaching agentID: UUID) async throws -> ThreadHandle"
+    },
+    {
       "precise": "s:13PositronicKit16ThreadCapabilityV6create5titleAA0C6HandleVSS_tYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
@@ -50890,6 +50900,12 @@
       "module": "PositronicKit",
       "kind": "memberOf",
       "source": "s:13PositronicKit16ThreadCapabilityV4openyAA0C6HandleV20FoundationEssentials4UUIDVF",
+      "target": "s:13PositronicKit16ThreadCapabilityV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit16ThreadCapabilityV6create5title9attachingAA0C6HandleVSS_20FoundationEssentials4UUIDVtYaKF",
       "target": "s:13PositronicKit16ThreadCapabilityV"
     },
     {

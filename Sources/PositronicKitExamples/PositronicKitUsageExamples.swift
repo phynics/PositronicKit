@@ -31,6 +31,11 @@ public enum PositronicKitUsageExamples {
         PositronicKit(languageModel: UnconfiguredLLMService())
     }
 
+    /// Creates a deterministic runtime for the executable example. It performs no network I/O.
+    public static func makeOfflineRuntime() -> PositronicKit {
+        PositronicKit(languageModel: OfflineLLMClient())
+    }
+
     /// Tier 2: a handle for a freshly created, persisted Thread.
     public static func makeThreadHandleExample() async throws -> ThreadHandle {
         let kit = makeOneShotRuntime()
@@ -45,12 +50,14 @@ public enum PositronicKitUsageExamples {
     /// Tier 4: a Thread handle plus an attached agent identity.
     public static func makeManagedThreadExample() async throws -> (ThreadHandle, Agent) {
         let kit = makeOneShotRuntime()
-        let thread = try await kit.threads.create(title: "Managed Example")
         let agent = try await kit.agents.create(
             name: "Example Agent",
             description: "Demonstrates managed Thread-addressed execution."
         )
-        try await kit.agents.attach(agent.id, to: thread.id)
+        let thread = try await kit.threads.create(
+            title: "Managed Example",
+            attaching: agent.id
+        )
         return (thread, agent)
     }
 
@@ -93,13 +100,13 @@ public enum PositronicKitUsageExamples {
         return PositronicKit(provider: provider)
     }
 
-    /// The native Anthropic adapter uses the same configured-provider path as the other
+<    /// The native Anthropic adapter uses the same configured-provider path as the other
     /// network providers.
     public static func makeConfiguredAnthropicRuntime(apiKey: String = "sk-ant-example") -> PositronicKit {
         PositronicKit(provider: PKAnthropicProvider.makeConfiguredProvider(apiKey: apiKey))
     }
 
-    /// Apple's on-device Foundation Models provider remains separate because its session has no
+<    /// Apple's on-device Foundation Models provider remains separate because its session has no
     /// API key, endpoint, or network provider configuration. It bypasses `LLMConfiguration`
     /// directly; see `PKFoundationModelsProvider.swift` for the platform-specific behavior.
     public static func makeFoundationModelsRuntime(tools: [AnyTool] = []) -> PositronicKit {

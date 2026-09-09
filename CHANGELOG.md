@@ -10,6 +10,9 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- **Atomic managed Thread creation:** `kit.threads.create(title:attaching:)` validates an active
+  Agent before creating an ordinary Thread and returns a handle whose attachment is ready for
+  managed execution. Creation failures roll back the Thread's durable state.
 - Added `ConfiguredLLMProvider` and provider-specific `makeConfiguredProvider(...)` factories so
   common OpenAI, OpenRouter, Ollama, and Anthropic setup can pass one value to
   `PositronicKit(provider:)` without exposing service or client-set assembly.

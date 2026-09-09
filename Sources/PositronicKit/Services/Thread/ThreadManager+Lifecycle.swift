@@ -20,7 +20,10 @@ extension ThreadManager {
     /// - `.ephemeralWorkspace`: a scratch directory is created under `root` and removed on
     ///   eviction/deletion.
     /// - `.hostManaged`: a directory is created under `root` (the host owns its retention).
-    func createThread(title: String = "New Thread") async throws -> Thread {
+    func createThread(
+        title: String = "New Thread",
+        attachedAgentID: UUID? = nil
+    ) async throws -> Thread {
         let threadID = UUID()
 
         let threadWorkspaceURL = workspaceRoot.appendingPathComponent(
@@ -33,7 +36,8 @@ extension ThreadManager {
         guard workspaceProfile.provisionsThreadWorkspace else {
             let thread = Thread(
                 id: threadID,
-                title: title
+                title: title,
+                attachedAgentID: attachedAgentID
             )
             // workingDirectory stays nil: there is no workspace to point at.
 
@@ -61,7 +65,8 @@ extension ThreadManager {
 
         var thread = Thread(
             id: threadID,
-            title: title
+            title: title,
+            attachedAgentID: attachedAgentID
         )
         thread.workingDirectory = threadWorkspaceURL.path
 

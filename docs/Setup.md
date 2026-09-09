@@ -109,7 +109,7 @@ let provider = PKOpenAIProvider.makeConfiguredProvider(
 let core = PositronicKit(provider: provider)
 ```
 
-The same shape is available for OpenRouter, Ollama, and Anthropic:
+<The same shape is available for OpenRouter, Ollama, and Anthropic:
 
 ```swift
 import PKAnthropicProvider
@@ -119,6 +119,16 @@ let provider = PKAnthropicProvider.makeConfiguredProvider(
     model: "claude-sonnet-4-5"
 )
 let core = PositronicKit(provider: provider)
+```
+
+### Run a local example
+
+The repository's `PositronicKitExamples` executable uses a deterministic local model, so you can
+exercise the full Thread and Turn path without an API key or network access:
+
+```bash
+swift run PositronicKitExamples
+```
 ```
 
 For custom timeouts, generation parameters, attribution, or multiple model-tier clients, keep using
