@@ -283,11 +283,16 @@ public enum TurnEvent: Sendable, Codable {
         /// `.error` event (or any non-`PKError` error) yields `identity == nil`, in
         /// which case the turn is classified as a plain failure rather than blocked.
         case error(message: String, identity: ErrorIdentity?)
+        /// The terminal outcome could not be persisted, so the Turn has no durable outcome.
+        ///
+        /// This is intentionally distinct from ``error(message:identity:)``: consumers can
+        /// retry or surface a durability problem without treating it as a provider failure.
+        case durabilityFailure(message: String, identity: ErrorIdentity?)
         /// Generation was explicitly cancelled
         case generationCancelled
 
         private enum CodingKeys: String, CodingKey {
-            case toolCallError, error, generationCancelled
+            case toolCallError, error, durabilityFailure, generationCancelled
         }
 
         private enum ToolCallErrorCodingKeys: String, CodingKey {
@@ -329,6 +334,18 @@ public enum TurnEvent: Sendable, Codable {
                 return
             }
 
+            if container.contains(.durabilityFailure) {
+                let values = try container.nestedContainer(
+                    keyedBy: ErrorCodingKeys.self,
+                    forKey: .durabilityFailure
+                )
+                self = .durabilityFailure(
+                    message: try values.decode(String.self, forKey: .message),
+                    identity: try values.decodeIfPresent(TurnEvent.ErrorIdentity.self, forKey: .identity)
+                )
+                return
+            }
+
             if container.contains(.generationCancelled) {
                 _ = try container.decode(EmptyPayload.self, forKey: .generationCancelled)
                 self = .generationCancelled
@@ -355,6 +372,13 @@ public enum TurnEvent: Sendable, Codable {
                 try values.encode(error, forKey: .error)
             case let .error(message, identity):
                 var values = container.nestedContainer(keyedBy: ErrorCodingKeys.self, forKey: .error)
+                try values.encode(message, forKey: .message)
+                try values.encodeIfPresent(identity, forKey: .identity)
+            case let .durabilityFailure(message, identity):
+                var values = container.nestedContainer(
+                    keyedBy: ErrorCodingKeys.self,
+                    forKey: .durabilityFailure
+                )
                 try values.encode(message, forKey: .message)
                 try values.encodeIfPresent(identity, forKey: .identity)
             case .generationCancelled:
@@ -578,6 +602,13 @@ public extension TurnEvent {
 
     static func error(_ msg: String) -> TurnEvent {
         .error(.error(message: msg, identity: nil))
+    }
+
+    static func durabilityFailure(_ err: Error) -> TurnEvent {
+        .error(.durabilityFailure(
+            message: ErrorKit.userFriendlyMessage(for: err),
+            identity: ErrorIdentity.extracting(from: err)
+        ))
     }
 
     static func generationCancelled() -> TurnEvent {

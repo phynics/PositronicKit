@@ -43,7 +43,7 @@ struct ManagedDirectTurnExecutionTests {
         let thread = try await kit.threads.create(title: "Admission failure")
 
         let turn = try await thread.startDirectTurn(
-            message: "must be durable first",
+            "must be durable first",
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
         )
         _ = await turn.events().collect()
@@ -65,7 +65,7 @@ struct ManagedDirectTurnExecutionTests {
         let thread = try await kit.threads.create(title: "Single input")
 
         let turn = try await thread.startDirectTurn(
-            message: "one copy",
+            "one copy",
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
         )
         _ = await turn.events().collect()
@@ -82,7 +82,7 @@ struct ManagedDirectTurnExecutionTests {
         let thread = try await kit.threads.create(title: "Direct")
 
         let turn = try await thread.startDirectTurn(
-            message: "hello",
+            "hello",
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
         )
         _ = await turn.events().collect()
@@ -137,7 +137,7 @@ struct ManagedDirectTurnExecutionTests {
         llm.mockClient.nextResponse = ""
 
         let turn = try await thread.startDirectTurn(
-            message: "Use the attached workspace",
+            "Use the attached workspace",
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
         )
         let events = await turn.events().collect()
@@ -187,7 +187,7 @@ struct ManagedDirectTurnExecutionTests {
         let thread = try await kit.threads.create(title: "Mixed")
 
         let direct = try await thread.startDirectTurn(
-            message: "direct",
+            "direct",
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
         )
         _ = await direct.events().collect()
@@ -230,7 +230,7 @@ struct ManagedDirectTurnExecutionTests {
 
         let directError = await #expect(throws: TurnError.self) {
             _ = try await thread.startDirectTurn(
-                message: "must not persist",
+                "must not persist",
                 context: DirectTurnContext(systemInstructions: "", contributor: .host)
             )
         }
@@ -265,13 +265,13 @@ struct ManagedDirectTurnExecutionTests {
         let agent = try await kit.agents.create(name: "Join Agent", description: "test")
         try await kit.agents.attach(agent.id, to: thread.id)
         let requestID = UUID()
-        let request = TurnRequest(threadID: thread.id, requestID: requestID, message: "same")
 
-        let first = try await thread.startTurn(request)
+        let options = TurnOptions(requestID: requestID)
+        let first = try await thread.startTurn("same", options: options)
         while llm.mockClient.neverFinishingStreamStartCount < 1 {
             await Task.yield()
         }
-        let joined = try await thread.startTurn(request)
+        let joined = try await thread.startTurn("same", options: options)
         #expect(joined.id == first.id)
         let repository = kit.runtimeRepository
         let admitted = try #require(try await repository.fetchTurn(id: first.id))
@@ -303,9 +303,9 @@ struct ManagedDirectTurnExecutionTests {
 
         let firstTask = Task {
             try await thread.startDirectTurn(
-                message: "same request",
+                "same request",
                 context: DirectTurnContext(systemInstructions: "", contributor: .host),
-                requestID: requestID
+                options: TurnOptions(requestID: requestID)
             )
         }
         guard await preparation.waitUntilEntered() else {
@@ -321,9 +321,9 @@ struct ManagedDirectTurnExecutionTests {
         #expect(llm.mockClient.generationCaptureHistory.isEmpty)
 
         let joined = try await thread.startDirectTurn(
-            message: "same request",
+            "same request",
             context: DirectTurnContext(systemInstructions: "", contributor: .host),
-            requestID: requestID
+            options: TurnOptions(requestID: requestID)
         )
         #expect((try await repository.fetchTurn(id: joined.id))?.identity.turnID == joined.id)
         #expect(try await repository.fetchMessages(for: thread.id).count == 1)
@@ -345,19 +345,18 @@ struct ManagedDirectTurnExecutionTests {
         let kit = PositronicKit(languageModel: llm)
         let thread = try await kit.threads.create(title: "Replay")
         let requestID = UUID()
-        let request = TurnRequest(threadID: thread.id, requestID: requestID, message: "same")
 
         let first = try await thread.startDirectTurn(
-            message: request.message,
+            "same",
             context: DirectTurnContext(systemInstructions: "", contributor: .host),
-            requestID: requestID
+            options: TurnOptions(requestID: requestID)
         )
         _ = await first.events().collect()
 
         let replay = try await thread.startDirectTurn(
-            message: request.message,
+            "same",
             context: DirectTurnContext(systemInstructions: "", contributor: .host),
-            requestID: requestID
+            options: TurnOptions(requestID: requestID)
         )
         let events = await replay.events().collect()
 

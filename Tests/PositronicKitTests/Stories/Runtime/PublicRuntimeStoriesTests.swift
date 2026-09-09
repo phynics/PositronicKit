@@ -85,6 +85,62 @@ struct PublicRuntimeStoriesTests {
         }))
     }
 
+    @Test("public managed admission preserves multimodal content and instructions")
+    func managedMultimodalAdmissionUsesPublicOverload() async throws {
+        let (chat, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime()
+        var configuration = mockLLM.mockConfig
+        configuration.providers[.openAI]?.capabilities = [.imageInput]
+        mockLLM.mockConfig = configuration
+        mockLLM.mockClient.nextResponse = "managed image reply"
+        let content = MessageContent(parts: [
+            .text("Describe this image."),
+            .image(ImageContent(data: Data([0x01]), mediaType: "image/png")),
+        ])
+
+        let turn = try await chat.threads.open(threadID).startTurn(
+            content,
+            systemInstructions: "Be concise.")
+        let events = await turn.events().collect()
+
+        #expect(events.contains { event in
+            if case let .completion(.generationCompleted(message, _)) = event {
+                return message.content == "managed image reply"
+            }
+            return false
+        })
+        let persisted = try await mockPersistence.fetchMessages(for: threadID)
+        #expect(persisted.first?.messageContent == content)
+        #expect(mockLLM.mockClient.lastMessages.first(where: { $0.role == .system })?.content.contains("Be concise.") == true)
+    }
+
+    @Test("public direct admission preserves multimodal content and direct context")
+    func directMultimodalAdmissionUsesPublicOverload() async throws {
+        let (chat, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime(attachAgent: false)
+        var configuration = mockLLM.mockConfig
+        configuration.providers[.openAI]?.capabilities = [.imageInput]
+        mockLLM.mockConfig = configuration
+        mockLLM.mockClient.nextResponse = "direct image reply"
+        let content = MessageContent(parts: [
+            .text("Describe this image."),
+            .image(ImageContent(data: Data([0x02]), mediaType: "image/png")),
+        ])
+
+        let turn = try await chat.threads.open(threadID).startDirectTurn(
+            content,
+            context: DirectTurnContext(systemInstructions: "Use direct context.", contributor: .host))
+        let events = await turn.events().collect()
+
+        #expect(events.contains { event in
+            if case let .completion(.generationCompleted(message, _)) = event {
+                return message.content == "direct image reply"
+            }
+            return false
+        })
+        let persisted = try await mockPersistence.fetchMessages(for: threadID)
+        #expect(persisted.first?.messageContent == content)
+        #expect(mockLLM.mockClient.lastMessages.first(where: { $0.role == .system })?.content.contains("Use direct context.") == true)
+    }
+
     @Test("explicit agent requests reject an unattached agent before side effects")
     func managedThreadRejectsUnattachedAgent() async throws {
         let (kit, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime(attachAgent: false)

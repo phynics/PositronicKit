@@ -194,6 +194,8 @@ for await event in stream {
             print("\nTool call error [\(toolCallId)] for \(name): \(error)")
         case .error(let message, let identity):
             print("\nError: \(message) (blocked: \(identity?.isBlocked ?? false))")
+        case .durabilityFailure(let message, let identity):
+            print("\nDurability failure: \(message) (identity: \(String(describing: identity)))")
         case .generationCancelled:
             print("\nGeneration cancelled.")
         }
@@ -260,9 +262,9 @@ The stream provides a rich set of events:
   deferred for external (host-side) execution — the stream pauses for the host to submit tool
   outputs in a follow-up turn.
 - `.error(.toolCallError)`, `.error(.error)`, and `.error(.generationCancelled)` for failure and
-  cancellation handling. `TurnHandle.events()` is nonthrowing; its durable `outcome()` is the
-  authoritative terminal result. The advanced request-shaped `run(_:)` seam retains a throwing
-  stream for preparation and pipeline failures.
+  cancellation handling. `.error(.durabilityFailure)` identifies a terminal persistence failure.
+  `TurnHandle.events()` is nonthrowing; its durable `outcome()` is the authoritative terminal
+  result.
 
 ### Agent Persistence
 Agents are persistent. Their primary Workspace (`primaryWorkspaceId`) supplies continuity through

@@ -224,6 +224,8 @@ public enum PositronicKitUsageExamples {
                     print("\nTool call error [\(toolCallID)] for \(name): \(error)")
                 case .error(let message, let identity):
                     print("\nError: \(message) (blocked: \(identity?.isBlocked ?? false))")
+                case .durabilityFailure(let message, let identity):
+                    print("\nDurability failure: \(message) (identity: \(String(describing: identity)))")
                 case .generationCancelled:
                     print("\nGeneration cancelled.")
                 }

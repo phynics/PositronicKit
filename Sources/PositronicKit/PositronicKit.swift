@@ -467,8 +467,12 @@ public final class PositronicKit: Sendable {
         _ = await threadManager.cancelGeneration(turnID: turnID, for: threadID)
     }
 
-    /// Run a turn and return a stream of events.
-    /// - Parameter request: The full turn configuration.
+    /// Runs the package-internal engine request and returns its throwing event stream.
+    ///
+    /// This is reserved for runtime-owned engine tests. Public callers admit Turns through a
+    /// ``ThreadHandle`` and receive a ``TurnHandle`` instead.
+    ///
+    /// - Parameter request: The package-internal turn configuration.
     /// - Returns: An asynchronous stream of turn events.
     func run(
         _ request: TurnRequest,

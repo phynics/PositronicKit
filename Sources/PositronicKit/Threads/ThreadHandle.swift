@@ -24,25 +24,8 @@ public struct ThreadHandle: Identifiable, Sendable {
         self.kit = kit
     }
 
-    /// Legacy stream-shaped managed execution retained for package tests while consumers migrate
-    /// to ``startTurn(_:options:)``.
-    internal func send(
-        _ message: String,
-        tools: [any Tool] = [],
-        maxModelRounds: Int = 5,
-        systemInstructions: String? = nil
-    ) async throws -> AsyncThrowingStream<TurnEvent, Error> {
-        return try await run(TurnRequest(
-            threadID: threadID,
-            message: message,
-            tools: tools,
-            systemInstructions: systemInstructions,
-            maxModelRounds: maxModelRounds
-        ))
-    }
-
     /// Starts a managed Turn whose Agent is captured from this Thread at admission.
-    internal func startTurn(_ request: TurnRequest) async throws -> TurnHandle {
+    private func admitManagedTurn(_ request: TurnRequest) async throws -> TurnHandle {
         guard request.threadID == threadID else {
             throw ThreadError.threadNotFound
         }
@@ -68,23 +51,49 @@ public struct ThreadHandle: Identifiable, Sendable {
         _ message: String,
         options: TurnOptions = .init()
     ) async throws -> TurnHandle {
-        try await startTurn(options.makeRequest(threadID: threadID, message: message))
+        try await startTurn(MessageContent(message), options: options)
     }
 
-    /// Legacy labeled form retained for package tests while consumers migrate to
-    /// ``startTurn(_:options:)``.
-    internal func startTurn(
-        message: String,
-        tools: [any Tool] = [],
-        maxModelRounds: Int = 5,
-        systemInstructions: String? = nil
+    /// Starts a managed Turn with ordered text and media content.
+    ///
+    /// - Parameters:
+    ///   - content: The ordered text and media content to admit.
+    ///   - options: Per-Turn configuration that does not repeat this handle's Thread identity.
+    public func startTurn(
+        _ content: MessageContent,
+        options: TurnOptions = .init()
     ) async throws -> TurnHandle {
-        try await startTurn(TurnRequest(
-            threadID: threadID,
-            message: message,
-            tools: tools,
+        try await admitManagedTurn(options.makeRequest(threadID: threadID, content: content))
+    }
+
+    /// Starts a managed Turn with explicit system instructions.
+    public func startTurn(
+        _ message: String,
+        systemInstructions: String,
+        options: TurnOptions = .init()
+    ) async throws -> TurnHandle {
+        try await startTurn(
+            MessageContent(message),
             systemInstructions: systemInstructions,
-            maxModelRounds: maxModelRounds
+            options: options
+        )
+    }
+
+    /// Starts a managed Turn with ordered text and media content and explicit system instructions.
+    ///
+    /// - Parameters:
+    ///   - content: The ordered text and media content to admit.
+    ///   - systemInstructions: Instructions included in the managed Agent prompt.
+    ///   - options: Per-Turn configuration that does not repeat this handle's Thread identity.
+    public func startTurn(
+        _ content: MessageContent,
+        systemInstructions: String,
+        options: TurnOptions = .init()
+    ) async throws -> TurnHandle {
+        try await admitManagedTurn(options.makeRequest(
+            threadID: threadID,
+            content: content,
+            systemInstructions: systemInstructions
         ))
     }
 
@@ -100,6 +109,20 @@ public struct ThreadHandle: Identifiable, Sendable {
         context: DirectTurnContext,
         options: TurnOptions = .init()
     ) async throws -> TurnHandle {
+        try await startDirectTurn(MessageContent(message), context: context, options: options)
+    }
+
+    /// Starts an explicit direct Turn with ordered text and media content.
+    ///
+    /// - Parameters:
+    ///   - content: The ordered text and media content to admit.
+    ///   - context: Explicit direct-execution authority and system instructions.
+    ///   - options: Per-Turn configuration that does not repeat this handle's Thread identity.
+    public func startDirectTurn(
+        _ content: MessageContent,
+        context: DirectTurnContext,
+        options: TurnOptions = .init()
+    ) async throws -> TurnHandle {
         guard let thread = try await kit.threadManager.threadStore.fetchThread(id: threadID) else {
             throw ThreadError.threadNotFound
         }
@@ -109,67 +132,13 @@ public struct ThreadHandle: Identifiable, Sendable {
         return try await kit.startTurnHandle(
             options.makeRequest(
                 threadID: threadID,
-                message: message,
-                systemInstructionsOverride: context.systemInstructions
+                content: content,
+                systemInstructions: context.systemInstructions
             ),
             agentID: nil,
             executionKind: .direct,
             contributors: context.contributors
         )
-    }
-
-    /// Legacy labeled form retained for package tests while consumers migrate to
-    /// ``startDirectTurn(_:context:options:)``.
-    internal func startDirectTurn(
-        message: String,
-        context: DirectTurnContext,
-        tools: [any Tool] = [],
-        requestID: UUID? = nil,
-        maxModelRounds: Int = 5
-    ) async throws -> TurnHandle {
-        try await startDirectTurn(
-            message,
-            context: context,
-            options: TurnOptions(
-                requestID: requestID,
-                tools: tools,
-                maxModelRounds: maxModelRounds
-            )
-        )
-    }
-
-    /// Runs an advanced managed request already addressed to this Thread.
-    ///
-    /// This package-internal request-shaped seam remains for runtime tests and migration work;
-    /// consumers should use ``startTurn(_:options:)`` so the handle supplies the Thread identity.
-    internal func run(_ request: TurnRequest) async throws -> AsyncThrowingStream<TurnEvent, Error> {
-        guard request.threadID == threadID else {
-            throw ThreadError.threadNotFound
-        }
-        guard let thread = try await kit.threadManager.threadStore.fetchThread(id: threadID) else {
-            throw ThreadError.threadNotFound
-        }
-        guard let attachedAgentID = thread.attachedAgentID else {
-            throw TurnError.managedExecutionRequiresAttachedAgent(threadID)
-        }
-        let managedRequest = TurnRequest(
-            threadID: threadID,
-            requestID: request.requestID,
-            content: request.messageContent,
-            tools: request.tools,
-            toolOutputs: request.toolOutputs,
-            systemInstructions: request.systemInstructions,
-            maxModelRounds: request.maxModelRounds,
-            generationParameters: request.generationParameters,
-            structuredOutput: request.structuredOutput,
-            sidecars: request.sidecars,
-            sidecarCommitPolicy: request.sidecarCommitPolicy,
-            includeSidecarMechanismPreamble: request.includeSidecarMechanismPreamble,
-            promptAssemblyLogger: request.promptAssemblyLogger,
-            responseModalities: request.responseModalities,
-            audioOutput: request.audioOutput
-        )
-        return try await kit.run(managedRequest, agentID: attachedAgentID, executionKind: .agentManaged)
     }
 
     /// Cancels any in-flight generation for this handle's Thread.

@@ -17,9 +17,6 @@ public struct TurnOptions: Sendable {
     /// Tool results submitted as the next model input.
     public let toolOutputs: [ToolOutputSubmission]?
 
-    /// Optional system instructions for this Turn.
-    public let systemInstructions: String?
-
     /// Maximum number of model/tool rounds allowed for this Turn.
     public let maxModelRounds: Int
 
@@ -52,7 +49,6 @@ public struct TurnOptions: Sendable {
         requestID: UUID? = nil,
         tools: [any Tool] = [],
         toolOutputs: [ToolOutputSubmission]? = nil,
-        systemInstructions: String? = nil,
         maxModelRounds: Int = 5,
         generationParameters: GenerationParameters? = nil,
         structuredOutput: StructuredOutputRequest? = nil,
@@ -66,7 +62,6 @@ public struct TurnOptions: Sendable {
         self.requestID = requestID
         self.tools = tools.map { $0.toAnyTool() }
         self.toolOutputs = toolOutputs
-        self.systemInstructions = systemInstructions
         self.maxModelRounds = maxModelRounds
         self.generationParameters = generationParameters
         self.structuredOutput = structuredOutput
@@ -78,14 +73,18 @@ public struct TurnOptions: Sendable {
         self.audioOutput = audioOutput
     }
 
-    func makeRequest(threadID: UUID, message: String, systemInstructionsOverride: String? = nil) -> TurnRequest {
+    func makeRequest(
+        threadID: UUID,
+        content: MessageContent,
+        systemInstructions: String? = nil
+    ) -> TurnRequest {
         TurnRequest(
             threadID: threadID,
             requestID: requestID,
-            message: message,
+            content: content,
             tools: tools,
             toolOutputs: toolOutputs,
-            systemInstructions: systemInstructionsOverride ?? systemInstructions,
+            systemInstructions: systemInstructions,
             maxModelRounds: maxModelRounds,
             generationParameters: generationParameters,
             structuredOutput: structuredOutput,

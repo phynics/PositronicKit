@@ -10,25 +10,25 @@ public enum SidecarCommitPolicy: Sendable, Codable, Equatable {
 }
 
 /// Transport-neutral configuration for a single turn.
-public struct TurnRequest: Sendable, CustomStringConvertible {
-    public let threadID: UUID
-    public let requestID: UUID?
-    public let messageContent: MessageContent
-    public var message: String { messageContent.text }
-    public let tools: [AnyTool]
-    public let toolOutputs: [ToolOutputSubmission]?
-    public let systemInstructions: String?
-    public let maxModelRounds: Int
-    public let generationParameters: GenerationParameters?
-    public let structuredOutput: StructuredOutputRequest?
-    public let sidecars: [SidecarDirective]
-    public let sidecarCommitPolicy: SidecarCommitPolicy
-    public let includeSidecarMechanismPreamble: Bool
-    public let promptAssemblyLogger: Logger?
-    public let responseModalities: Set<ResponseModality>
-    public let audioOutput: AudioOutputOptions?
+struct TurnRequest: Sendable, CustomStringConvertible {
+    let threadID: UUID
+    let requestID: UUID?
+    let messageContent: MessageContent
+    var message: String { messageContent.text }
+    let tools: [AnyTool]
+    let toolOutputs: [ToolOutputSubmission]?
+    let systemInstructions: String?
+    let maxModelRounds: Int
+    let generationParameters: GenerationParameters?
+    let structuredOutput: StructuredOutputRequest?
+    let sidecars: [SidecarDirective]
+    let sidecarCommitPolicy: SidecarCommitPolicy
+    let includeSidecarMechanismPreamble: Bool
+    let promptAssemblyLogger: Logger?
+    let responseModalities: Set<ResponseModality>
+    let audioOutput: AudioOutputOptions?
 
-    public init(
+    init(
         threadID: UUID,
         requestID: UUID? = nil,
         message: String,
@@ -63,7 +63,7 @@ public struct TurnRequest: Sendable, CustomStringConvertible {
     }
 
     /// Creates a turn with ordered multimodal user content.
-    public init(
+    init(
         threadID: UUID,
         requestID: UUID? = nil,
         content: MessageContent,
@@ -97,7 +97,7 @@ public struct TurnRequest: Sendable, CustomStringConvertible {
         self.audioOutput = audioOutput
     }
 
-    public var description: String {
+    var description: String {
         let toolOutputCount = toolOutputs?.count ?? 0
         let requestIDDescription = requestID?.uuidString ?? "nil"
         let systemInstructionsDescription = systemInstructions.map { "set(\($0.count) chars)" } ?? "nil"

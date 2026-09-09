@@ -53,6 +53,23 @@ _ = kit.agents
 _ = kit.workspaces
 _ = String(describing: ThreadHandle.self)
 
+// Ordinary-import compile coverage for the canonical managed/direct admission overloads.
+func exercisePublicTurnAdmission(_ thread: ThreadHandle) async {
+    let content = MessageContent(parts: [
+        .text("Describe this image."),
+        .image(ImageContent(data: Data([0x01]), mediaType: "image/png")),
+    ])
+    _ = try? await thread.startTurn("Hello", options: TurnOptions())
+    _ = try? await thread.startTurn(content, systemInstructions: "Be concise.")
+    _ = try? await thread.startDirectTurn(
+        "Hello directly",
+        context: DirectTurnContext(systemInstructions: "Be concise.", contributor: .host),
+        options: TurnOptions())
+    _ = try? await thread.startDirectTurn(
+        content,
+        context: DirectTurnContext(systemInstructions: "Be concise.", contributor: .host))
+}
+
 // A stream-only implementation is sufficient for the facade and strict utility generator;
 // configuration administration and health capabilities are deliberately not required here.
 private let streamOnly = StreamOnlyLLMClient()

@@ -29,6 +29,7 @@ public final class MockPersistenceService: ThreadRuntimeRepository, WorkspaceSto
         var mockHealthDetails: [String: String]? = ["mock": "true"]
         var mockIsDurable = false
         var fetchThreadFails = false
+        var completeTurnFails = false
         var deletedMessageThreadIDs: Set<UUID> = []
         var saveMessageFailureAfter: Int?
         var saveMessageCallCount = 0
@@ -74,6 +75,12 @@ public final class MockPersistenceService: ThreadRuntimeRepository, WorkspaceSto
     public var fetchThreadFails: Bool {
         get { state.withLock { $0.fetchThreadFails } }
         set { state.withLock { $0.fetchThreadFails = newValue } }
+    }
+
+    /// Causes terminal outcome persistence to fail, after the Turn has been admitted.
+    public var completeTurnFails: Bool {
+        get { state.withLock { $0.completeTurnFails } }
+        set { state.withLock { $0.completeTurnFails = newValue } }
     }
 
     /// Causes message persistence to fail after the specified number of successful calls. This
@@ -407,6 +414,9 @@ extension MockPersistenceService {
     public func fetchToolIntents(turnID: UUID) async throws -> [RuntimeToolIntent] { try await turnRuntime.fetchToolIntents(turnID: turnID) }
     public func fetchToolResults(turnID: UUID) async throws -> [RuntimeToolResult] { try await turnRuntime.fetchToolResults(turnID: turnID) }
     public func completeTurn(turnID: UUID, outcome: TurnOutcome, finalMessage: ThreadMessage?, terminalHandle: TurnTerminalHandle?, now: Date) async throws -> TurnRecord {
+        if state.withLock({ $0.completeTurnFails }) {
+            throw FailingStoreError.saveFailed
+        }
         let record = try await turnRuntime.completeTurn(
             turnID: turnID,
             outcome: outcome,
