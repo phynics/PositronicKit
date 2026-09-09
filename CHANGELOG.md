@@ -8,6 +8,12 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Added
+
+- Added `ConfiguredLLMProvider` and provider-specific `makeConfiguredProvider(...)` factories so
+  common OpenAI, OpenRouter, Ollama, and Anthropic setup can pass one value to
+  `PositronicKit(provider:)` without exposing service or client-set assembly.
+
 ## [5.1.0] - 2026-09-08
 
 ### Breaking

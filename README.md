@@ -52,32 +52,24 @@ examples below describe the current Next public story and may advance beyond `5.
 
 ## Next / v5 quick start
 
-Build the language model in its provider module, then pass it to the provider-neutral runtime. This
-OpenAI setup uses the same client for all model tiers:
+Build one configured provider value in its provider module, then pass it to the provider-neutral
+runtime:
 
 ```swift
 import Foundation
-import PKContracts
 import PKOpenAIProvider
 import PositronicKit
 
-var provider = ProviderConfiguration.makeDefault(for: .openAI)
-provider.apiKey = ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? ""
-
-let configuration = LLMConfiguration(
-    activeProvider: .openAI,
-    providers: [.openAI: provider]
+let provider = PKOpenAIProvider.makeConfiguredProvider(
+    apiKey: ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? "",
+    model: "gpt-4o"
 )
-let client = PKOpenAIProvider.makeClient(configuration: configuration)
-let languageModel = LLMService(
-    configuration: configuration,
-    clients: .init(primary: client)
-)
-let kit = PositronicKit(languageModel: languageModel)
+let kit = PositronicKit(provider: provider)
 ```
 
 Provider modules expose compile-time factories. They do not register themselves at runtime. See the
-[setup guide](docs/Setup.md) for other providers and grouped production configuration.
+[setup guide](docs/Setup.md) for other providers, Foundation Models, and grouped production
+configuration.
 
 Choose the smallest operation tier that fits the feature:
 

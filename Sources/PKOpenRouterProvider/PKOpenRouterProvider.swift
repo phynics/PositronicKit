@@ -2,6 +2,26 @@ import Foundation
 import PKContracts
 
 public enum PKOpenRouterProvider: LLMProviderFactory {
+    /// Creates a configured OpenRouter provider for the common runtime setup path.
+    public static func makeConfiguredProvider(
+        apiKey: String,
+        model: String = "openai/gpt-4o",
+        endpoint: String? = nil
+    ) -> ConfiguredLLMProvider {
+        var configuration = LLMConfiguration.openRouter
+        configuration.activeProviderConfiguration.apiKey = apiKey
+        configuration.activeProviderConfiguration.modelName = model
+        configuration.activeProviderConfiguration.utilityModel = model
+        configuration.activeProviderConfiguration.fastModel = model
+        if let endpoint {
+            configuration.activeProviderConfiguration.endpoint = endpoint
+        }
+        return ConfiguredLLMProvider(
+            configuration: configuration,
+            client: makeClient(configuration: configuration)
+        )
+    }
+
     /// Creates an OpenRouter client with its structured-output adapter.
     public static func makeClient(
         configuration: LLMConfiguration
