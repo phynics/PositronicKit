@@ -14040,7 +14040,7 @@
       "declaration": "let sidecars: [SidecarDirective]"
     },
     {
-      "precise": "s:13PositronicKit11TurnOptionsV9requestID20FoundationEssentials4UUIDVSgvp",
+      "precise": "s:13PositronicKit11TurnOptionsV9requestID10Foundation4UUIDVSgvp",
       "module": "PositronicKit",
       "kind": "swift.property",
       "path": [
@@ -14050,7 +14050,7 @@
       "declaration": "let requestID: UUID?"
     },
     {
-      "precise": "s:13PositronicKit11TurnOptionsV9requestID5tools11toolOutputs18systemInstructions14maxModelRounds20generationParameters16structuredOutput8sidecars19sidecarCommitPolicy31includeSidecarMechanismPreamble20promptAssemblyLogger18responseModalities05audioR0AC20FoundationEssentials4UUIDVSg_Say11PKContracts4Tool_pGSayAU04ToolR10SubmissionVGSgSSSgSiAU010GenerationP0VSgAU010StructuredR7RequestOSgSayAU0X9DirectiveVGAA0xuV0OSb7Logging6LoggerVSgShyAU16ResponseModalityOGAU05AudiorD0VSgtcfc",
+      "precise": "s:13PositronicKit11TurnOptionsV9requestID5tools11toolOutputs18systemInstructions14maxModelRounds20generationParameters16structuredOutput8sidecars19sidecarCommitPolicy31includeSidecarMechanismPreamble20promptAssemblyLogger18responseModalities05audioR0AC10Foundation4UUIDVSg_Say11PKContracts4Tool_pGSayAU04ToolR10SubmissionVGSgSSSgSiAU010GenerationP0VSgAU010StructuredR7RequestOSgSayAU0X9DirectiveVGAA0xuV0OSb7Logging6LoggerVSgShyAU16ResponseModalityOGAU05AudiorD0VSgtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
@@ -14532,16 +14532,6 @@
         "ThreadHandle"
       ],
       "declaration": "struct ThreadHandle"
-    },
-    {
-      "precise": "s:13PositronicKit12ThreadHandleV15startDirectTurn7message7context5tools9requestID14maxModelRoundsAA0gD0VSS_AA0fG7ContextVSay11PKContracts4Tool_pG10Foundation4UUIDVSgSitYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "ThreadHandle",
-        "startDirectTurn(message:context:tools:requestID:maxModelRounds:)"
-      ],
-      "declaration": "func startDirectTurn(message: String, context: DirectTurnContext, tools: [any Tool] = [], requestID: UUID? = nil, maxModelRounds: Int = 5) async throws -> TurnHandle"
     },
     {
       "precise": "s:13PositronicKit12ThreadHandleV15startDirectTurn_7context7optionsAA0gD0VSS_AA0fG7ContextVAA0G7OptionsVtYaKF",
@@ -49900,13 +49890,13 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit11TurnOptionsV9requestID20FoundationEssentials4UUIDVSgvp",
+      "source": "s:13PositronicKit11TurnOptionsV9requestID10Foundation4UUIDVSgvp",
       "target": "s:13PositronicKit11TurnOptionsV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit11TurnOptionsV9requestID5tools11toolOutputs18systemInstructions14maxModelRounds20generationParameters16structuredOutput8sidecars19sidecarCommitPolicy31includeSidecarMechanismPreamble20promptAssemblyLogger18responseModalities05audioR0AC20FoundationEssentials4UUIDVSg_Say11PKContracts4Tool_pGSayAU04ToolR10SubmissionVGSgSSSgSiAU010GenerationP0VSgAU010StructuredR7RequestOSgSayAU0X9DirectiveVGAA0xuV0OSb7Logging6LoggerVSgShyAU16ResponseModalityOGAU05AudiorD0VSgtcfc",
+      "source": "s:13PositronicKit11TurnOptionsV9requestID5tools11toolOutputs18systemInstructions14maxModelRounds20generationParameters16structuredOutput8sidecars19sidecarCommitPolicy31includeSidecarMechanismPreamble20promptAssemblyLogger18responseModalities05audioR0AC10Foundation4UUIDVSg_Say11PKContracts4Tool_pGSayAU04ToolR10SubmissionVGSgSSSgSiAU010GenerationP0VSgAU010StructuredR7RequestOSgSayAU0X9DirectiveVGAA0xuV0OSb7Logging6LoggerVSgShyAU16ResponseModalityOGAU05AudiorD0VSgtcfc",
       "target": "s:13PositronicKit11TurnOptionsV"
     },
     {
@@ -50188,12 +50178,6 @@
         "identifier": "s:11PKContracts7PKErrorP9errorCodeSivp",
         "displayName": "PKError.errorCode"
       }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit12ThreadHandleV15startDirectTurn7message7context5tools9requestID14maxModelRoundsAA0gD0VSS_AA0fG7ContextVSay11PKContracts4Tool_pG10Foundation4UUIDVSgSitYaKF",
-      "target": "s:13PositronicKit12ThreadHandleV"
     },
     {
       "module": "PositronicKit",
