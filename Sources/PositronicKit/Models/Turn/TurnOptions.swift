@@ -5,8 +5,8 @@ import PKContracts
 /// Configuration for admitting one Turn through a ``ThreadHandle``.
 ///
 /// A ``ThreadHandle`` already identifies the destination Thread, so this type contains only
-/// per-Turn options. Use it with ``ThreadHandle/startTurn(_:options:)`` or
-/// ``ThreadHandle/startDirectTurn(_:context:options:)``.
+/// per-Turn options. Use it with `ThreadHandle.startTurn` or
+/// `ThreadHandle.startDirectTurn`.
 public struct TurnOptions: Sendable {
     /// An optional idempotency key for joining or replaying a submission.
     public let requestID: UUID?
