@@ -142,7 +142,7 @@ struct ExampleUsageStoriesTests {
         let kit = PositronicKitUsageExamples.makeOfflineRuntime()
         let thread = try await kit.threads.create(title: "Offline example")
         let turn = try await thread.startDirectTurn(
-            message: "Hello",
+            "Hello",
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
         )
 
