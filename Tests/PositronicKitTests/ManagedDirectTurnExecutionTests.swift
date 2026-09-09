@@ -15,7 +15,7 @@ struct ManagedDirectTurnExecutionTests {
         let agent = try await kit.agents.create(name: "Managed Agent", description: "test")
         try await kit.agents.attach(agent.id, to: thread.id)
 
-        let turn = try await thread.startTurn(message: "hello")
+        let turn = try await thread.startTurn("hello")
         let events = await turn.events().collect()
         let outcome = try await turn.outcome()
 
@@ -195,7 +195,7 @@ struct ManagedDirectTurnExecutionTests {
 
         let agent = try await kit.agents.create(name: "Mixed Agent", description: "test")
         try await kit.agents.attach(agent.id, to: thread.id)
-        let managed = try await thread.startTurn(message: "managed")
+        let managed = try await thread.startTurn("managed")
         _ = await managed.events().collect()
 
         let repository = kit.runtimeRepository
@@ -211,7 +211,7 @@ struct ManagedDirectTurnExecutionTests {
         let thread = try await kit.threads.create(title: "Detached")
 
         let managedError = await #expect(throws: TurnError.self) {
-            _ = try await thread.startTurn(message: "must not persist")
+            _ = try await thread.startTurn("must not persist")
         }
         if case let .managedExecutionRequiresAttachedAgent(threadID)? = managedError {
             #expect(threadID == thread.id)
@@ -248,9 +248,9 @@ struct ManagedDirectTurnExecutionTests {
         let agent = try await kit.agents.create(name: "Busy Agent", description: "test")
         try await kit.agents.attach(agent.id, to: thread.id)
 
-        let first = try await thread.startTurn(message: "first")
+        let first = try await thread.startTurn("first")
         await #expect(throws: ThreadRuntimeRepositoryError.self) {
-            _ = try await thread.startTurn(message: "second")
+            _ = try await thread.startTurn("second")
         }
         await first.cancel()
         _ = await first.events().collect()

@@ -175,7 +175,7 @@ struct RuntimeAssemblyTests {
 
         let thread = try await kit.threads.create(title: "Customization")
         try await kit.agents.attach(agent.id, to: thread.id)
-        let turn = try await kit.openThread(thread.id).startTurn(message: "custom context")
+        let turn = try await kit.openThread(thread.id).startTurn("custom context")
         _ = await turn.events().collect()
 
         #expect(try await turn.outcome() == .completed)
