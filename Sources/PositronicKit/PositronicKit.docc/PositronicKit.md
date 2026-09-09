@@ -21,12 +21,26 @@ integrate through normal Swift initializers instead of configuring a dependency 
 
 ### Language Model Readiness
 
-Await ``ModelInferenceCapability/isConfigured`` to determine whether the injected language
-model currently reports usable provider configuration. The value is read live from the model;
-the facade does not expose provider details, credentials, or configuration mutation. This is a
-configuration-readiness hint, not a connectivity probe or a guarantee that a subsequent request
-will succeed. The operation itself remains authoritative because model state can change after the
-check.
+Await ``ModelInferenceCapability/readiness()`` to get a local, non-network snapshot:
+
+```swift
+switch await kit.model.readiness() {
+case .ready:
+    enableGeneration()
+case .unavailable(let reason):
+    show(reason)
+}
+```
+
+The snapshot distinguishes invalid configuration from a missing usable client. It does not read
+credentials, mutate configuration, or guarantee that a later request will succeed. The operation
+itself remains authoritative because model state can change after the check.
+
+Use ``ModelInferenceCapability/checkHealth()`` separately when you need provider connectivity.
+Health checks may perform network I/O and report only the provider's state at the time of the
+check. The method throws ``ModelHealthError/unsupported`` for a custom ``LLMStreamClient`` that
+does not also conform to ``HealthCheckable``. Custom clients get a configuration-based readiness
+fallback; implement ``LLMStreamClient/readiness`` when the client can report a more precise state.
 
 ### Run Validation And Agent Preflight
 

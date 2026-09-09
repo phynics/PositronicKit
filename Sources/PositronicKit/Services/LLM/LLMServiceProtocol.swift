@@ -169,6 +169,14 @@ public protocol LLMStreamClient: Sendable {
     var isConfigured: Bool { get async }
     var configuration: LLMConfiguration { get async }
 
+    /// A non-network snapshot of whether this client can accept inference work.
+    ///
+    /// Custom clients that can distinguish a usable client from configuration validity should
+    /// implement this property. The default maps `isConfigured == false` to invalid
+    /// configuration and treats a configured custom client as ready because the runtime cannot
+    /// inspect its private client state.
+    var readiness: ModelReadiness { get async }
+
     /// Returns the structured-output preparation behavior for the selected model tier.
     func structuredOutputAdapter(for modelTier: ModelTier) async -> any StructuredOutputAdapter
 
@@ -219,6 +227,12 @@ public protocol LLMConfigStore: Sendable {
 }
 
 public extension LLMStreamClient {
+    var readiness: ModelReadiness {
+        get async {
+            await isConfigured ? .ready : .unavailable(.invalidConfiguration)
+        }
+    }
+
     func structuredOutputAdapter(for modelTier: ModelTier) async -> any StructuredOutputAdapter {
         DefaultStructuredOutputAdapter()
     }

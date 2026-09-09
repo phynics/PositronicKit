@@ -30,6 +30,10 @@ for tagged releases beginning with `1.0.0`.
 - **Atomic managed Thread creation:** `kit.threads.create(title:attaching:)` validates an active
   Agent before creating an ordinary Thread and returns a handle whose attachment is ready for
   managed execution. Creation failures roll back the Thread's durable state.
+- **Provider-neutral model readiness:** `kit.model.readiness()` distinguishes invalid
+  configuration, a missing usable client, and local readiness without network I/O. The separate
+  `kit.model.checkHealth()` operation delegates optional provider connectivity checks and reports
+  unsupported custom clients with `ModelHealthError.unsupported`.
 - Added `ConfiguredLLMProvider` and provider-specific `makeConfiguredProvider(...)` factories so
   common OpenAI, OpenRouter, Ollama, and Anthropic setup can pass one value to
   `PositronicKit(provider:)` without exposing service or client-set assembly.
