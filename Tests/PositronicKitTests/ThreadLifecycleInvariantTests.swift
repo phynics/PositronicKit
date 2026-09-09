@@ -67,8 +67,8 @@ struct ThreadLifecycleInvariantTests {
         #expect(messages.isEmpty, "No user input should be persisted when the store is unavailable")
     }
 
-    @Test("ThreadHandle.send to a missing thread throws threadNotFound")
-    func driverSendToMissingThreadThrows() async throws {
+    @Test("ThreadHandle.startTurn to a missing thread throws threadNotFound")
+    func startTurnToMissingThreadThrows() async throws {
         let mockLLM = MockLLMService()
         let kit = PositronicKit(configuration: .init(
             provider: .init(languageModel: mockLLM),
@@ -78,7 +78,7 @@ struct ThreadLifecycleInvariantTests {
         let driver = kit.openThread(UUID())
 
         await #expect(throws: ThreadError.threadNotFound) {
-            _ = try await driver.send("hello").collect()
+            _ = try await driver.startTurn("hello")
         }
     }
 
@@ -93,7 +93,8 @@ struct ThreadLifecycleInvariantTests {
         try await kit.agents.attach(agent.id, to: thread.id)
         let driver = kit.openThread(thread.id)
 
-        let events = try await driver.send("hello").collect()
+        let turn = try await driver.startTurn("hello")
+        let events = await turn.events().collect()
 
         #expect(events.contains(where: {
             if case let .completion(.generationCompleted(message, _)) = $0 {

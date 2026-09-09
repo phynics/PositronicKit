@@ -191,6 +191,8 @@ public enum PositronicKitUsageExamples {
                     print("\nTool call error [\(toolCallID)] for \(name): \(error)")
                 case .error(let message, let identity):
                     print("\nError: \(message) (blocked: \(identity?.isBlocked ?? false))")
+                case .durabilityFailure(let message, let identity):
+                    print("\nDurability failure: \(message) (identity: \(String(describing: identity)))")
                 case .generationCancelled:
                     print("\nGeneration cancelled.")
                 }
@@ -247,15 +249,14 @@ public enum PositronicKitUsageExamples {
 
     /// Sidecar directives (piggy-backed requests): auxiliary generations riding the same
     /// request as a turn's response. `title` is nullable so the model can decline once
-    /// a thread already has one. Consume via `ThreadHandle.run(_:)`:
+    /// a thread already has one. Consume via the canonical `TurnHandle` path:
     ///
     /// ```swift
-    /// let stream = try await chat.threads.open(id).run(.init(
-    ///     threadID: id,
-    ///     message: text,
-    ///     sidecars: makeSidecarDirectives()
-    /// ))
-    /// for try await event in stream {
+    /// let turn = try await chat.threads.open(id).startTurn(
+    ///     text,
+    ///     options: TurnOptions(sidecars: makeSidecarDirectives())
+    /// )
+    /// for await event in turn.events() {
     ///     if let text = event.textContent { /* stream to UI */ }
     ///     if let delta = event.sidecarDelta { /* route delta.name -> delta.partialText */ }
     ///     if let results = event.sidecarResults { /* persist final title/tone per turn */ }

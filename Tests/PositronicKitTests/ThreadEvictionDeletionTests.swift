@@ -37,10 +37,11 @@ struct ThreadEvictionDeletionTests {
         try await runtime.persistence.saveMessage(seededMessage)
 
         // Start an active stream.
-        let stream = try await driver.send("hello")
+        let turn = try await driver.startTurn("hello")
+        let stream = turn.events()
         let streamTerminated = Mutex(false)
         let consumeTask = Task {
-            do { for try await _ in stream {} } catch {}
+            for await _ in stream {}
             streamTerminated.withLock { $0 = true }
         }
         try await Task.sleep(for: .milliseconds(150))
@@ -235,10 +236,11 @@ struct ThreadEvictionDeletionTests {
         try await kit.agents.attach(agent.id, to: thread.id)
         let driver = kit.openThread(thread.id)
 
-        let stream = try await driver.send("hello")
+        let turn = try await driver.startTurn("hello")
+        let stream = turn.events()
         let streamTerminated = Mutex(false)
         let consumeTask = Task {
-            do { for try await _ in stream {} } catch {}
+            for await _ in stream {}
             streamTerminated.withLock { $0 = true }
         }
         try await Task.sleep(for: .milliseconds(150))

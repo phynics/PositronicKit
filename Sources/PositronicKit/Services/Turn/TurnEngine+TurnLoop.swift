@@ -434,7 +434,8 @@ private extension TurnEngine {
             )
         } catch {
             logger.error("Unable to durably record terminal Turn outcome: \(error)")
-            continuation.finish(throwing: error)
+            continuation.yield(.durabilityFailure(error))
+            continuation.finish()
             return
         }
 

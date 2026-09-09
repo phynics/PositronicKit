@@ -8,6 +8,23 @@ for tagged releases beginning with `1.0.0`.
 
 ## [Unreleased]
 
+### Breaking
+
+- **Thread execution now admits Turns through `TurnHandle`:** use
+  `ThreadHandle.startTurn(_:options:)` for managed execution and
+  `ThreadHandle.startDirectTurn(_:context:options:)` for explicit detached execution. The new
+  `TurnOptions` value carries per-Turn configuration without repeating the handle's `threadID`;
+  managed multimodal content uses the corresponding `MessageContent` overload, and managed
+  system instructions are supplied as a required admission argument. Direct instructions remain
+  in `DirectTurnContext`; the former public stream-shaped Thread entry points and `TurnRequest`
+  are no longer part of the consumer API.
+
+- **Turn failures retain their terminal event shape:** admitted Turns expose terminal provider,
+  runtime, cancellation, and durability failures through `TurnHandle.events()`. A terminal
+  persistence failure is now `.error(.durabilityFailure(...))` and does not fabricate a durable
+  `TurnOutcome`. `ThreadController.send(_:)` throws `ThreadControllerError` for runtime and
+  durability events and `CancellationError` for cancellation.
+
 ### Added
 
 - **Atomic managed Thread creation:** `kit.threads.create(title:attaching:)` validates an active

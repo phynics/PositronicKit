@@ -98,13 +98,12 @@ public enum READMEExamples {
             streaming: .buffered
         )
 
-        let stream = try await chat.threads.open(threadID).run(.init(
-            threadID: threadID,
-            message: "What's the deal with actors in Swift 6?",
-            sidecars: [title]
-        ))
+        let turn = try await chat.threads.open(threadID).startTurn(
+            "What's the deal with actors in Swift 6?",
+            options: TurnOptions(sidecars: [title])
+        )
 
-        for try await event in stream {
+        for await event in turn.events() {
             if let text = event.textContent {
                 print(text, terminator: "")
             }

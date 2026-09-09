@@ -18,7 +18,11 @@ let answer = try await kit.model.generate("Summarize this note.")
 let thread = try await kit.threads.create(title: "Research")
 let agent = try await kit.agents.create(name: "Researcher", description: "Summarizes sources.")
 try await kit.agents.attach(agent.id, to: thread.id)
-let stream = try await thread.send("Summarize the attached sources.")
+let turn = try await thread.startTurn("Summarize the attached sources.")
+for await event in turn.events() {
+    // Render future Turn events.
+    _ = event
+}
 ```
 
 ## Data Flow

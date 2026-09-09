@@ -2,13 +2,14 @@ import Foundation
 import PKContracts
 import PKTestSupport
 @testable import PositronicKit
+import struct PositronicKit.DirectTurnContext
 import struct PositronicKit.Thread
 import Testing
 
 @Suite("Turn terminal repository failure")
 struct TurnTerminalRepositoryFailureTests {
-    @Test("terminal repository failure suppresses terminal delivery")
-    func terminalFailureDoesNotExposeCompletion() async throws {
+    @Test("terminal repository failure is exposed as a distinct terminal event")
+    func terminalFailureExposesDurabilityFailure() async throws {
         let llm = MockLLMService()
         llm.mockClient.nextResponse = "must not be delivered"
         let repository = FailingTerminalRepository()
@@ -18,19 +19,17 @@ struct TurnTerminalRepositoryFailureTests {
         ))
         let thread = try await kit.threads.create(title: "Terminal failure")
 
-        let stream = try await kit.run(TurnRequest(
-            threadID: thread.id,
-            message: "finish this turn"
-        ))
+        let turn = try await kit.threads.open(thread.id).startDirectTurn(
+            "finish this turn",
+            context: DirectTurnContext(systemInstructions: "", contributor: .host)
+        )
+        let events = await turn.events().collect()
 
-        var events: [TurnEvent] = []
-        await #expect(throws: Error.self) {
-            for try await event in stream {
-                events.append(event)
-            }
-        }
-
-        #expect(events.filter(\.isTerminal).isEmpty)
+        #expect(events.filter(\.isTerminal).count == 1)
+        #expect(events.contains { event in
+            if case .error(.durabilityFailure) = event { return true }
+            return false
+        })
         let record = try #require(try await repository.fetchActiveTurn(for: thread.id))
         #expect(record.outcome == nil)
     }

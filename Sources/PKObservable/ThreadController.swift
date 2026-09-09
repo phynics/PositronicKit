@@ -2,6 +2,16 @@ import Observation
 import PKContracts
 import PositronicKit
 
+/// The terminal error event emitted by a Turn that failed while a controller was consuming it.
+public struct ThreadControllerError: Error, Sendable {
+    /// The terminal event that describes the Turn failure.
+    public let event: TurnEvent.ErrorEvent
+
+    public init(event: TurnEvent.ErrorEvent) {
+        self.event = event
+    }
+}
+
 /// A SwiftUI-friendly controller for a PositronicKit thread handle.
 ///
 /// Issuing a new `send(_:)` while one is already in flight cancels/supersedes it: the prior
@@ -64,10 +74,16 @@ public final class ThreadController {
             }
         }
 
-        let stream = try await driver.send(content)
-        for try await event in stream {
+        let turn = try await driver.startTurn(content)
+        for await event in turn.events() {
             try Task.checkCancellation()
             guard activeSendGeneration == generation else { return }
+            if case let .error(errorEvent) = event {
+                if case .generationCancelled = errorEvent {
+                    throw CancellationError()
+                }
+                throw ThreadControllerError(event: errorEvent)
+            }
             if let text = event.textContent {
                 streamingText += text
             }

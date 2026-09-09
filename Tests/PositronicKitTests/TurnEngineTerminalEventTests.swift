@@ -14,7 +14,8 @@ import Testing
 /// - Model-round exhaustion → `.completion(.maxModelRoundsReached)` (not a silent success)
 /// - Deferred external tool → `.completion(.deferredForExternalTool)`
 /// - Cancellation → `.error(.generationCancelled)`
-/// - Failure → the stream throws
+/// - Provider or pipeline failure → the stream throws for the package-internal engine seam
+/// - Terminal persistence failure → `.error(.durabilityFailure)` and a normally closed stream
 @Suite(.serialized) @MainActor
 struct TurnEngineTerminalEventTests {
     private let threadID = UUID()

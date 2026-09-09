@@ -44,7 +44,7 @@ struct RuntimeCustomizationTests {
         let thread = try await kit.threads.create(title: "Required context")
         await #expect(throws: TurnDegradationError.self) {
             _ = try await thread.startDirectTurn(
-                message: "must fail",
+                "must fail",
                 context: DirectTurnContext(systemInstructions: "", contributor: .host)
             )
         }
@@ -68,7 +68,7 @@ struct RuntimeCustomizationTests {
 
         let thread = try await kit.threads.create(title: "Optional context")
         let turn = try await thread.startDirectTurn(
-            message: "continue",
+            "continue",
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
         )
         _ = await turn.events().collect()
@@ -93,7 +93,7 @@ struct RuntimeCustomizationTests {
 
         let thread = try await kit.threads.create(title: "Contribution")
         let turn = try await thread.startDirectTurn(
-            message: "use context",
+            "use context",
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
         )
         _ = await turn.events().collect()
@@ -121,7 +121,7 @@ struct RuntimeCustomizationTests {
 
         let thread = try await kit.threads.create(title: "Sinks")
         let turn = try await thread.startDirectTurn(
-            message: "sink",
+            "sink",
             context: DirectTurnContext(systemInstructions: "", contributor: .host)
         )
         await activitySink.waitUntilEntered()

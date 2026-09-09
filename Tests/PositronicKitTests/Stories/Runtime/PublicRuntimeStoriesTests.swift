@@ -62,7 +62,11 @@ struct PublicRuntimeStoriesTests {
         let mockTool = AcceptanceMockTool()
         mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "agent_call", name: "mock_tool")]]
         mockLLM.mockClient.nextResponses = ["", "Agent response"]
-        let events = try await thread.send("Act", tools: [mockTool.toAnyTool()]).collect()
+        let turn = try await thread.startTurn(
+            "Act",
+            options: TurnOptions(tools: [mockTool.toAnyTool()])
+        )
+        let events = await turn.events().collect()
 
         #expect(events.contains(where: {
             if case let .completion(.toolExecution(id, status)) = $0,
@@ -81,11 +85,67 @@ struct PublicRuntimeStoriesTests {
         }))
     }
 
+    @Test("public managed admission preserves multimodal content and instructions")
+    func managedMultimodalAdmissionUsesPublicOverload() async throws {
+        let (chat, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime()
+        var configuration = mockLLM.mockConfig
+        configuration.providers[.openAI]?.capabilities = [.imageInput]
+        mockLLM.mockConfig = configuration
+        mockLLM.mockClient.nextResponse = "managed image reply"
+        let content = MessageContent(parts: [
+            .text("Describe this image."),
+            .image(ImageContent(data: Data([0x01]), mediaType: "image/png")),
+        ])
+
+        let turn = try await chat.threads.open(threadID).startTurn(
+            content,
+            systemInstructions: "Be concise.")
+        let events = await turn.events().collect()
+
+        #expect(events.contains { event in
+            if case let .completion(.generationCompleted(message, _)) = event {
+                return message.content == "managed image reply"
+            }
+            return false
+        })
+        let persisted = try await mockPersistence.fetchMessages(for: threadID)
+        #expect(persisted.first?.messageContent == content)
+        #expect(mockLLM.mockClient.lastMessages.first(where: { $0.role == .system })?.content.contains("Be concise.") == true)
+    }
+
+    @Test("public direct admission preserves multimodal content and direct context")
+    func directMultimodalAdmissionUsesPublicOverload() async throws {
+        let (chat, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime(attachAgent: false)
+        var configuration = mockLLM.mockConfig
+        configuration.providers[.openAI]?.capabilities = [.imageInput]
+        mockLLM.mockConfig = configuration
+        mockLLM.mockClient.nextResponse = "direct image reply"
+        let content = MessageContent(parts: [
+            .text("Describe this image."),
+            .image(ImageContent(data: Data([0x02]), mediaType: "image/png")),
+        ])
+
+        let turn = try await chat.threads.open(threadID).startDirectTurn(
+            content,
+            context: DirectTurnContext(systemInstructions: "Use direct context.", contributor: .host))
+        let events = await turn.events().collect()
+
+        #expect(events.contains { event in
+            if case let .completion(.generationCompleted(message, _)) = event {
+                return message.content == "direct image reply"
+            }
+            return false
+        })
+        let persisted = try await mockPersistence.fetchMessages(for: threadID)
+        #expect(persisted.first?.messageContent == content)
+        #expect(mockLLM.mockClient.lastMessages.first(where: { $0.role == .system })?.content.contains("Use direct context.") == true)
+    }
+
     @Test("explicit agent requests reject an unattached agent before side effects")
     func managedThreadRejectsUnattachedAgent() async throws {
         let (kit, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime(attachAgent: false)
         let managedError = await #expect(throws: TurnError.self) {
-            _ = try await kit.threads.open(threadID).startTurn(message: "Should fail")
+            _ = try await kit.threads.open(threadID).startTurn("Should fail")
         }
         if case let .managedExecutionRequiresAttachedAgent(actualThreadID)? = managedError {
             #expect(actualThreadID == threadID)
@@ -106,7 +166,7 @@ struct PublicRuntimeStoriesTests {
 
         let directError = await #expect(throws: TurnError.self) {
             _ = try await kit.threads.open(threadID).startDirectTurn(
-                message: "Should fail",
+                "Should fail",
                 context: DirectTurnContext(systemInstructions: "", contributor: .host)
             )
         }
@@ -127,9 +187,8 @@ struct PublicRuntimeStoriesTests {
         )
         mockLLM.mockClient.nextResponse = "Private response"
 
-        let events = try await kit.threads.open(agent.privateThreadID)
-            .send("Think privately")
-            .collect()
+        let turn = try await kit.threads.open(agent.privateThreadID).startTurn("Think privately")
+        let events = await turn.events().collect()
 
         #expect(events.contains(where: {
             if case let .completion(.generationCompleted(message, _)) = $0 {
@@ -150,11 +209,11 @@ struct PublicRuntimeStoriesTests {
             CapturingLogHandler(sink: sink)
         }
 
-        _ = try await chat.threads.open(threadID).run(TurnRequest(
-            threadID: threadID,
-            message: "Diagnose assembly",
-            promptAssemblyLogger: logger
-        )).collect()
+        let turn = try await chat.threads.open(threadID).startTurn(
+            "Diagnose assembly",
+            options: TurnOptions(promptAssemblyLogger: logger)
+        )
+        _ = await turn.events().collect()
 
         // PromptAssembler logs section resolution at .debug when a logger is supplied.
         #expect(sink.all().contains(where: { $0.contains("prompt section") }))
@@ -165,10 +224,8 @@ struct PublicRuntimeStoriesTests {
         let (chat, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime()
         mockLLM.mockClient.nextResponse = "Hello, Morty!"
 
-        let events = try await chat.threads.open(threadID).run(TurnRequest(
-            threadID: threadID,
-            message: "Hello, Morty!"
-        )).collect()
+        let turn = try await chat.threads.open(threadID).startTurn("Hello, Morty!")
+        let events = await turn.events().collect()
 
         #expect(events.contains(where: {
             if case let .completion(.generationCompleted(message, _)) = $0 {
@@ -187,10 +244,8 @@ struct PublicRuntimeStoriesTests {
         let (chat, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime(useGroupedPersistence: true)
         mockLLM.mockClient.nextResponse = "Grouped persistence reply"
 
-        let events = try await chat.threads.open(threadID).run(TurnRequest(
-            threadID: threadID,
-            message: "Use grouped persistence"
-        )).collect()
+        let turn = try await chat.threads.open(threadID).startTurn("Use grouped persistence")
+        let events = await turn.events().collect()
 
         #expect(events.contains(where: {
             if case let .completion(.generationCompleted(message, _)) = $0 {
@@ -209,10 +264,8 @@ struct PublicRuntimeStoriesTests {
         let (chat, mockLLM, mockPersistence, threadID, _) = try await makeAcceptanceRuntime(useGroupedPersistence: true, useGroupedRuntime: true)
         mockLLM.mockClient.nextResponse = "Grouped runtime reply"
 
-        let events = try await chat.threads.open(threadID).run(TurnRequest(
-            threadID: threadID,
-            message: "Use grouped runtime"
-        )).collect()
+        let turn = try await chat.threads.open(threadID).startTurn("Use grouped runtime")
+        let events = await turn.events().collect()
 
         #expect(events.contains(where: {
             if case let .completion(.generationCompleted(message, _)) = $0 {
@@ -233,11 +286,11 @@ struct PublicRuntimeStoriesTests {
         mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "call_1", name: "mock_tool")]]
         mockLLM.mockClient.nextResponses = ["", "Tool result processed"]
 
-        let events = try await chat.threads.open(threadID).run(TurnRequest(
-            threadID: threadID,
-            message: "Run the tool",
-            tools: [mockTool.toAnyTool()]
-        )).collect()
+        let turn = try await chat.threads.open(threadID).startTurn(
+            "Run the tool",
+            options: TurnOptions(tools: [mockTool.toAnyTool()])
+        )
+        let events = await turn.events().collect()
 
         #expect(events.contains(where: {
             if case let .delta(.toolCall(delta)) = $0 {
@@ -272,11 +325,14 @@ struct PublicRuntimeStoriesTests {
         ))
         mockLLM.mockClient.nextResponse = "Continuation complete"
 
-        let events = try await chat.threads.open(threadID).run(TurnRequest(
-            threadID: threadID,
-            message: "Continue",
-            toolOutputs: [ToolOutputSubmission(toolCallID: "call_1", output: "Tool result")]
-        )).collect()
+        let turn = try await chat.threads.open(threadID).startTurn(
+            "Continue",
+            options: TurnOptions(toolOutputs: [ToolOutputSubmission(
+                toolCallID: "call_1",
+                output: "Tool result"
+            )])
+        )
+        let events = await turn.events().collect()
 
         #expect(events.contains(where: {
             if case let .completion(.generationCompleted(message, _)) = $0 {
@@ -296,11 +352,13 @@ struct PublicRuntimeStoriesTests {
         let (chat, _, mockPersistence, threadID, _) = try await makeAcceptanceRuntime()
 
         await #expect(throws: ToolError.self) {
-            _ = try await chat.threads.open(threadID).run(TurnRequest(
-                threadID: threadID,
-                message: "Continue",
-                toolOutputs: [ToolOutputSubmission(toolCallID: "forged_call", output: "forged output")]
-            ))
+            _ = try await chat.threads.open(threadID).startTurn(
+                "Continue",
+                options: TurnOptions(toolOutputs: [ToolOutputSubmission(
+                    toolCallID: "forged_call",
+                    output: "forged output"
+                )])
+            )
         }
 
         let messages = try await mockPersistence.fetchMessages(for: threadID)
@@ -411,10 +469,8 @@ extension PublicRuntimeStoriesTests {
         mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "call_1", name: "mock_tool", arguments: "not valid json")]]
         mockLLM.mockClient.nextResponse = "Recovered after tool error"
 
-        let events = try await chat.threads.open(threadID).run(TurnRequest(
-            threadID: threadID,
-            message: "Call tool"
-        )).collect()
+        let turn = try await chat.threads.open(threadID).startTurn("Call tool")
+        let events = await turn.events().collect()
 
         // Should have tool execution events (progress or completion)
         let toolEvent = events.first(where: {
@@ -439,10 +495,8 @@ extension PublicRuntimeStoriesTests {
         mockLLM.mockClient.nextToolCalls = [[MockToolCall(id: "call_1", name: "nonexistent_tool", arguments: "{}")]]
         mockLLM.mockClient.nextResponse = "Recovered after tool error"
 
-        let events = try await chat.threads.open(threadID).run(TurnRequest(
-            threadID: threadID,
-            message: "Call nonexistent tool"
-        )).collect()
+        let turn = try await chat.threads.open(threadID).startTurn("Call nonexistent tool")
+        let events = await turn.events().collect()
 
         // Should have tool completed with failure status
         let toolErrorEvent = events.first(where: {

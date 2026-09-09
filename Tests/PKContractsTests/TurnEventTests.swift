@@ -208,6 +208,25 @@ import ErrorKit
     }
 
     @Test
+    func durabilityFailureRoundTripsThroughCodable() throws {
+        let identity = TurnEvent.ErrorIdentity(domain: "com.example.persistence", code: 17)
+        let event = TurnEvent.error(.durabilityFailure(
+            message: "The terminal outcome was not persisted.",
+            identity: identity
+        ))
+
+        let data = try JSONEncoder().encode(event)
+        let decoded = try JSONDecoder().decode(TurnEvent.self, from: data)
+
+        if case let .error(.durabilityFailure(message: message, identity: decodedIdentity)) = decoded {
+            #expect(message == "The terminal outcome was not persisted.")
+            #expect(decodedIdentity == identity)
+        } else {
+            Issue.record("Expected decoded durability failure event, got \(decoded)")
+        }
+    }
+
+    @Test
     func blockedIdentityContractRecognizesKnownBlockedErrors() {
         // Blocked-error classification now lives on PKError.isBlocked, so we verify
         // via ErrorIdentity.extracting(from:) with actual error instances rather than
