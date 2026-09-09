@@ -38,10 +38,8 @@ import Testing
         )]]
         mockLLM.mockClient.nextResponses = ["", "Workspace tool completed"]
 
-        let events = try await chat.threads.open(threadID).run(TurnRequest(
-            threadID: threadID,
-            message: "Use the attached workspace tool"
-        )).collect()
+        let turn = try await chat.threads.open(threadID).startTurn("Use the attached workspace tool")
+        let events = await turn.events().collect()
 
         #expect(events.contains(where: {
             if case let .completion(.toolExecution(id, status)) = $0,
@@ -64,11 +62,11 @@ import Testing
         ]]
         mockLLM.mockClient.nextResponses = ["", "Custom tool completed"]
 
-        let events = try await chat.threads.open(threadID).run(TurnRequest(
-            threadID: threadID,
-            message: "Run the custom tool",
-            tools: [tool.toAnyTool()]
-        )).collect()
+        let turn = try await chat.threads.open(threadID).startTurn(
+            "Run the custom tool",
+            options: TurnOptions(tools: [tool.toAnyTool()])
+        )
+        let events = await turn.events().collect()
 
         #expect(events.contains(where: {
             if case let .completion(.toolExecution(id, status)) = $0,

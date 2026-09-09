@@ -9466,6 +9466,17 @@
       "declaration": "case toolCallError(toolCallID: String, name: String, error: String)"
     },
     {
+      "precise": "s:11PKContracts9TurnEventO05ErrorC0O17durabilityFailureyAESS_AC0D8IdentityVSgtcAEmF",
+      "module": "PKContracts",
+      "kind": "swift.enum.case",
+      "path": [
+        "TurnEvent",
+        "ErrorEvent",
+        "durabilityFailure(message:identity:)"
+      ],
+      "declaration": "case durabilityFailure(message: String, identity: TurnEvent.ErrorIdentity?)"
+    },
+    {
       "precise": "s:11PKContracts9TurnEventO05ErrorC0O19generationCancelledyA2EmF",
       "module": "PKContracts",
       "kind": "swift.enum.case",
@@ -9749,6 +9760,16 @@
       "declaration": "var reasoningContent: String? { get }"
     },
     {
+      "precise": "s:11PKContracts9TurnEventO17durabilityFailureyACs5Error_pFZ",
+      "module": "PKContracts",
+      "kind": "swift.type.method",
+      "path": [
+        "TurnEvent",
+        "durabilityFailure(_:)"
+      ],
+      "declaration": "static func durabilityFailure(_ err: any Error) -> TurnEvent"
+    },
+    {
       "precise": "s:11PKContracts9TurnEventO17sidecarCompletionAA07SidecarE0VSgvp",
       "module": "PKContracts",
       "kind": "swift.property",
@@ -9986,6 +10007,35 @@
         "init(_:messages:)"
       ],
       "declaration": "@MainActor init(_ driver: ThreadHandle, messages: [Message] = [])"
+    },
+    {
+      "precise": "s:12PKObservable21ThreadControllerErrorV",
+      "module": "PKObservable",
+      "kind": "swift.struct",
+      "path": [
+        "ThreadControllerError"
+      ],
+      "declaration": "struct ThreadControllerError"
+    },
+    {
+      "precise": "s:12PKObservable21ThreadControllerErrorV5event11PKContracts9TurnEventO0dH0Ovp",
+      "module": "PKObservable",
+      "kind": "swift.property",
+      "path": [
+        "ThreadControllerError",
+        "event"
+      ],
+      "declaration": "let event: TurnEvent.ErrorEvent"
+    },
+    {
+      "precise": "s:12PKObservable21ThreadControllerErrorV5eventAC11PKContracts9TurnEventO0dH0O_tcfc",
+      "module": "PKObservable",
+      "kind": "swift.init",
+      "path": [
+        "ThreadControllerError",
+        "init(event:)"
+      ],
+      "declaration": "init(event: TurnEvent.ErrorEvent)"
     },
     {
       "precise": "s:13PKTestSupport11TestRuntimeV",
@@ -12304,6 +12354,16 @@
       "declaration": "func appendCorrelation(turnID: UUID, correlation: TurnCorrelation, now: Date) async throws"
     },
     {
+      "precise": "s:13PKTestSupport22MockPersistenceServiceC17completeTurnFailsSbvp",
+      "module": "PKTestSupport",
+      "kind": "swift.property",
+      "path": [
+        "MockPersistenceService",
+        "completeTurnFails"
+      ],
+      "declaration": "var completeTurnFails: Bool { get set }"
+    },
+    {
       "precise": "s:13PKTestSupport22MockPersistenceServiceC17fetchCorrelations6turnIDSay13PositronicKit15TurnCorrelationVG20FoundationEssentials4UUIDV_tYaKF",
       "module": "PKTestSupport",
       "kind": "swift.method",
@@ -14018,6 +14078,145 @@
       "declaration": "var errorCode: Int { get }"
     },
     {
+      "precise": "s:13PositronicKit11TurnOptionsV",
+      "module": "PositronicKit",
+      "kind": "swift.struct",
+      "path": [
+        "TurnOptions"
+      ],
+      "declaration": "struct TurnOptions"
+    },
+    {
+      "precise": "s:13PositronicKit11TurnOptionsV11audioOutput11PKContracts05AudiofD0VSgvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnOptions",
+        "audioOutput"
+      ],
+      "declaration": "let audioOutput: AudioOutputOptions?"
+    },
+    {
+      "precise": "s:13PositronicKit11TurnOptionsV11toolOutputsSay11PKContracts20ToolOutputSubmissionVGSgvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnOptions",
+        "toolOutputs"
+      ],
+      "declaration": "let toolOutputs: [ToolOutputSubmission]?"
+    },
+    {
+      "precise": "s:13PositronicKit11TurnOptionsV14maxModelRoundsSivp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnOptions",
+        "maxModelRounds"
+      ],
+      "declaration": "let maxModelRounds: Int"
+    },
+    {
+      "precise": "s:13PositronicKit11TurnOptionsV16structuredOutput11PKContracts010StructuredF7RequestOSgvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnOptions",
+        "structuredOutput"
+      ],
+      "declaration": "let structuredOutput: StructuredOutputRequest?"
+    },
+    {
+      "precise": "s:13PositronicKit11TurnOptionsV18responseModalitiesShy11PKContracts16ResponseModalityOGvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnOptions",
+        "responseModalities"
+      ],
+      "declaration": "let responseModalities: Set<ResponseModality>"
+    },
+    {
+      "precise": "s:13PositronicKit11TurnOptionsV19sidecarCommitPolicyAA07SidecarfG0Ovp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnOptions",
+        "sidecarCommitPolicy"
+      ],
+      "declaration": "let sidecarCommitPolicy: SidecarCommitPolicy"
+    },
+    {
+      "precise": "s:13PositronicKit11TurnOptionsV20generationParameters11PKContracts010GenerationF0VSgvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnOptions",
+        "generationParameters"
+      ],
+      "declaration": "let generationParameters: GenerationParameters?"
+    },
+    {
+      "precise": "s:13PositronicKit11TurnOptionsV20promptAssemblyLogger7Logging0G0VSgvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnOptions",
+        "promptAssemblyLogger"
+      ],
+      "declaration": "let promptAssemblyLogger: Logger?"
+    },
+    {
+      "precise": "s:13PositronicKit11TurnOptionsV31includeSidecarMechanismPreambleSbvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnOptions",
+        "includeSidecarMechanismPreamble"
+      ],
+      "declaration": "let includeSidecarMechanismPreamble: Bool"
+    },
+    {
+      "precise": "s:13PositronicKit11TurnOptionsV5toolsSay11PKContracts7AnyToolVGvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnOptions",
+        "tools"
+      ],
+      "declaration": "let tools: [AnyTool]"
+    },
+    {
+      "precise": "s:13PositronicKit11TurnOptionsV8sidecarsSay11PKContracts16SidecarDirectiveVGvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnOptions",
+        "sidecars"
+      ],
+      "declaration": "let sidecars: [SidecarDirective]"
+    },
+    {
+      "precise": "s:13PositronicKit11TurnOptionsV9requestID20FoundationEssentials4UUIDVSgvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "TurnOptions",
+        "requestID"
+      ],
+      "declaration": "let requestID: UUID?"
+    },
+    {
+      "precise": "s:13PositronicKit11TurnOptionsV9requestID5tools11toolOutputs14maxModelRounds20generationParameters16structuredOutput8sidecars19sidecarCommitPolicy31includeSidecarMechanismPreamble20promptAssemblyLogger18responseModalities05audioP0AC20FoundationEssentials4UUIDVSg_Say11PKContracts4Tool_pGSayAT04ToolP10SubmissionVGSgSiAT010GenerationN0VSgAT010StructuredP7RequestOSgSayAT0V9DirectiveVGAA0vsT0OSb7Logging6LoggerVSgShyAT16ResponseModalityOGAT05AudiopD0VSgtcfc",
+      "module": "PositronicKit",
+      "kind": "swift.init",
+      "path": [
+        "TurnOptions",
+        "init(requestID:tools:toolOutputs:maxModelRounds:generationParameters:structuredOutput:sidecars:sidecarCommitPolicy:includeSidecarMechanismPreamble:promptAssemblyLogger:responseModalities:audioOutput:)"
+      ],
+      "declaration": "init(requestID: UUID? = nil, tools: [any Tool] = [], toolOutputs: [ToolOutputSubmission]? = nil, maxModelRounds: Int = 5, generationParameters: GenerationParameters? = nil, structuredOutput: StructuredOutputRequest? = nil, sidecars: [SidecarDirective] = [], sidecarCommitPolicy: SidecarCommitPolicy = .everyModelRound, includeSidecarMechanismPreamble: Bool = false, promptAssemblyLogger: Logger? = nil, responseModalities: Set<ResponseModality> = [.text], audioOutput: AudioOutputOptions? = nil)"
+    },
+    {
       "precise": "s:13PositronicKit11TurnOutcomeO",
       "module": "PositronicKit",
       "kind": "swift.enum",
@@ -14085,205 +14284,6 @@
         "completed"
       ],
       "declaration": "case completed"
-    },
-    {
-      "precise": "s:13PositronicKit11TurnRequestV",
-      "module": "PositronicKit",
-      "kind": "swift.struct",
-      "path": [
-        "TurnRequest"
-      ],
-      "declaration": "struct TurnRequest"
-    },
-    {
-      "precise": "s:13PositronicKit11TurnRequestV11audioOutput11PKContracts05AudioF7OptionsVSgvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "TurnRequest",
-        "audioOutput"
-      ],
-      "declaration": "let audioOutput: AudioOutputOptions?"
-    },
-    {
-      "precise": "s:13PositronicKit11TurnRequestV11descriptionSSvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "TurnRequest",
-        "description"
-      ],
-      "declaration": "var description: String { get }"
-    },
-    {
-      "precise": "s:13PositronicKit11TurnRequestV11toolOutputsSay11PKContracts20ToolOutputSubmissionVGSgvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "TurnRequest",
-        "toolOutputs"
-      ],
-      "declaration": "let toolOutputs: [ToolOutputSubmission]?"
-    },
-    {
-      "precise": "s:13PositronicKit11TurnRequestV14maxModelRoundsSivp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "TurnRequest",
-        "maxModelRounds"
-      ],
-      "declaration": "let maxModelRounds: Int"
-    },
-    {
-      "precise": "s:13PositronicKit11TurnRequestV14messageContent11PKContracts07MessageF0Vvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "TurnRequest",
-        "messageContent"
-      ],
-      "declaration": "let messageContent: MessageContent"
-    },
-    {
-      "precise": "s:13PositronicKit11TurnRequestV16structuredOutput11PKContracts010StructuredfD0OSgvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "TurnRequest",
-        "structuredOutput"
-      ],
-      "declaration": "let structuredOutput: StructuredOutputRequest?"
-    },
-    {
-      "precise": "s:13PositronicKit11TurnRequestV18responseModalitiesShy11PKContracts16ResponseModalityOGvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "TurnRequest",
-        "responseModalities"
-      ],
-      "declaration": "let responseModalities: Set<ResponseModality>"
-    },
-    {
-      "precise": "s:13PositronicKit11TurnRequestV18systemInstructionsSSSgvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "TurnRequest",
-        "systemInstructions"
-      ],
-      "declaration": "let systemInstructions: String?"
-    },
-    {
-      "precise": "s:13PositronicKit11TurnRequestV19sidecarCommitPolicyAA07SidecarfG0Ovp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "TurnRequest",
-        "sidecarCommitPolicy"
-      ],
-      "declaration": "let sidecarCommitPolicy: SidecarCommitPolicy"
-    },
-    {
-      "precise": "s:13PositronicKit11TurnRequestV20generationParameters11PKContracts010GenerationF0VSgvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "TurnRequest",
-        "generationParameters"
-      ],
-      "declaration": "let generationParameters: GenerationParameters?"
-    },
-    {
-      "precise": "s:13PositronicKit11TurnRequestV20promptAssemblyLogger7Logging0G0VSgvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "TurnRequest",
-        "promptAssemblyLogger"
-      ],
-      "declaration": "let promptAssemblyLogger: Logger?"
-    },
-    {
-      "precise": "s:13PositronicKit11TurnRequestV31includeSidecarMechanismPreambleSbvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "TurnRequest",
-        "includeSidecarMechanismPreamble"
-      ],
-      "declaration": "let includeSidecarMechanismPreamble: Bool"
-    },
-    {
-      "precise": "s:13PositronicKit11TurnRequestV5toolsSay11PKContracts7AnyToolVGvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "TurnRequest",
-        "tools"
-      ],
-      "declaration": "let tools: [AnyTool]"
-    },
-    {
-      "precise": "s:13PositronicKit11TurnRequestV7messageSSvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "TurnRequest",
-        "message"
-      ],
-      "declaration": "var message: String { get }"
-    },
-    {
-      "precise": "s:13PositronicKit11TurnRequestV8sidecarsSay11PKContracts16SidecarDirectiveVGvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "TurnRequest",
-        "sidecars"
-      ],
-      "declaration": "let sidecars: [SidecarDirective]"
-    },
-    {
-      "precise": "s:13PositronicKit11TurnRequestV8threadID07requestF07content5tools11toolOutputs18systemInstructions14maxModelRounds20generationParameters16structuredOutput8sidecars19sidecarCommitPolicy31includeSidecarMechanismPreamble20promptAssemblyLogger18responseModalities05audioT0AC20FoundationEssentials4UUIDV_AUSg11PKContracts14MessageContentVSayAW4Tool_pGSayAW04ToolT10SubmissionVGSgSSSgSiAW010GenerationR0VSgAW010StructuredtD0OSgSayAW0Z9DirectiveVGAA0zwX0OSb7Logging6LoggerVSgShyAW16ResponseModalityOGAW05AudioT7OptionsVSgtcfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "TurnRequest",
-        "init(threadID:requestID:content:tools:toolOutputs:systemInstructions:maxModelRounds:generationParameters:structuredOutput:sidecars:sidecarCommitPolicy:includeSidecarMechanismPreamble:promptAssemblyLogger:responseModalities:audioOutput:)"
-      ],
-      "declaration": "init(threadID: UUID, requestID: UUID? = nil, content: MessageContent, tools: [any Tool] = [], toolOutputs: [ToolOutputSubmission]? = nil, systemInstructions: String? = nil, maxModelRounds: Int = 5, generationParameters: GenerationParameters? = nil, structuredOutput: StructuredOutputRequest? = nil, sidecars: [SidecarDirective] = [], sidecarCommitPolicy: SidecarCommitPolicy = .everyModelRound, includeSidecarMechanismPreamble: Bool = false, promptAssemblyLogger: Logger? = nil, responseModalities: Set<ResponseModality> = [.text], audioOutput: AudioOutputOptions? = nil)"
-    },
-    {
-      "precise": "s:13PositronicKit11TurnRequestV8threadID07requestF07message5tools11toolOutputs18systemInstructions14maxModelRounds20generationParameters16structuredOutput8sidecars19sidecarCommitPolicy31includeSidecarMechanismPreamble20promptAssemblyLogger18responseModalities05audioT0AC20FoundationEssentials4UUIDV_AUSgSSSay11PKContracts4Tool_pGSayAW04ToolT10SubmissionVGSgSSSgSiAW010GenerationR0VSgAW010StructuredtD0OSgSayAW0Z9DirectiveVGAA0zwX0OSb7Logging6LoggerVSgShyAW16ResponseModalityOGAW05AudioT7OptionsVSgtcfc",
-      "module": "PositronicKit",
-      "kind": "swift.init",
-      "path": [
-        "TurnRequest",
-        "init(threadID:requestID:message:tools:toolOutputs:systemInstructions:maxModelRounds:generationParameters:structuredOutput:sidecars:sidecarCommitPolicy:includeSidecarMechanismPreamble:promptAssemblyLogger:responseModalities:audioOutput:)"
-      ],
-      "declaration": "init(threadID: UUID, requestID: UUID? = nil, message: String, tools: [any Tool] = [], toolOutputs: [ToolOutputSubmission]? = nil, systemInstructions: String? = nil, maxModelRounds: Int = 5, generationParameters: GenerationParameters? = nil, structuredOutput: StructuredOutputRequest? = nil, sidecars: [SidecarDirective] = [], sidecarCommitPolicy: SidecarCommitPolicy = .everyModelRound, includeSidecarMechanismPreamble: Bool = false, promptAssemblyLogger: Logger? = nil, responseModalities: Set<ResponseModality> = [.text], audioOutput: AudioOutputOptions? = nil)"
-    },
-    {
-      "precise": "s:13PositronicKit11TurnRequestV8threadID20FoundationEssentials4UUIDVvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "TurnRequest",
-        "threadID"
-      ],
-      "declaration": "let threadID: UUID"
-    },
-    {
-      "precise": "s:13PositronicKit11TurnRequestV9requestID20FoundationEssentials4UUIDVSgvp",
-      "module": "PositronicKit",
-      "kind": "swift.property",
-      "path": [
-        "TurnRequest",
-        "requestID"
-      ],
-      "declaration": "let requestID: UUID?"
     },
     {
       "precise": "s:13PositronicKit12AgentContextV",
@@ -14492,14 +14492,24 @@
       "declaration": "struct ThreadHandle"
     },
     {
-      "precise": "s:13PositronicKit12ThreadHandleV15startDirectTurn7message7context5tools9requestID14maxModelRoundsAA0gD0VSS_AA0fG7ContextVSay11PKContracts4Tool_pG20FoundationEssentials4UUIDVSgSitYaKF",
+      "precise": "s:13PositronicKit12ThreadHandleV15startDirectTurn_7context7optionsAA0gD0V11PKContracts14MessageContentV_AA0fG7ContextVAA0G7OptionsVtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "ThreadHandle",
-        "startDirectTurn(message:context:tools:requestID:maxModelRounds:)"
+        "startDirectTurn(_:context:options:)"
       ],
-      "declaration": "func startDirectTurn(message: String, context: DirectTurnContext, tools: [any Tool] = [], requestID: UUID? = nil, maxModelRounds: Int = 5) async throws -> TurnHandle"
+      "declaration": "func startDirectTurn(_ content: MessageContent, context: DirectTurnContext, options: TurnOptions = .init()) async throws -> TurnHandle"
+    },
+    {
+      "precise": "s:13PositronicKit12ThreadHandleV15startDirectTurn_7context7optionsAA0gD0VSS_AA0fG7ContextVAA0G7OptionsVtYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "ThreadHandle",
+        "startDirectTurn(_:context:options:)"
+      ],
+      "declaration": "func startDirectTurn(_ message: String, context: DirectTurnContext, options: TurnOptions = .init()) async throws -> TurnHandle"
     },
     {
       "precise": "s:13PositronicKit12ThreadHandleV2id20FoundationEssentials4UUIDVvp",
@@ -14510,26 +14520,6 @@
         "id"
       ],
       "declaration": "var id: UUID { get }"
-    },
-    {
-      "precise": "s:13PositronicKit12ThreadHandleV3runyScsy11PKContracts9TurnEventOs5Error_pGAA0G7RequestVYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "ThreadHandle",
-        "run(_:)"
-      ],
-      "declaration": "func run(_ request: TurnRequest) async throws -> AsyncThrowingStream<TurnEvent, any Error>"
-    },
-    {
-      "precise": "s:13PositronicKit12ThreadHandleV4send_5tools14maxModelRounds18systemInstructionsScsy11PKContracts9TurnEventOs5Error_pGSS_SayAH4Tool_pGSiSSSgtYaKF",
-      "module": "PositronicKit",
-      "kind": "swift.method",
-      "path": [
-        "ThreadHandle",
-        "send(_:tools:maxModelRounds:systemInstructions:)"
-      ],
-      "declaration": "func send(_ message: String, tools: [any Tool] = [], maxModelRounds: Int = 5, systemInstructions: String? = nil) async throws -> AsyncThrowingStream<TurnEvent, any Error>"
     },
     {
       "precise": "s:13PositronicKit12ThreadHandleV6cancelyyYaF",
@@ -14552,24 +14542,44 @@
       "declaration": "let threadID: UUID"
     },
     {
-      "precise": "s:13PositronicKit12ThreadHandleV9startTurn7message5tools14maxModelRounds18systemInstructionsAA0fD0VSS_Say11PKContracts4Tool_pGSiSSSgtYaKF",
+      "precise": "s:13PositronicKit12ThreadHandleV9startTurn_18systemInstructions7optionsAA0fD0V11PKContracts14MessageContentV_SSAA0F7OptionsVtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "ThreadHandle",
-        "startTurn(message:tools:maxModelRounds:systemInstructions:)"
+        "startTurn(_:systemInstructions:options:)"
       ],
-      "declaration": "func startTurn(message: String, tools: [any Tool] = [], maxModelRounds: Int = 5, systemInstructions: String? = nil) async throws -> TurnHandle"
+      "declaration": "func startTurn(_ content: MessageContent, systemInstructions: String, options: TurnOptions = .init()) async throws -> TurnHandle"
     },
     {
-      "precise": "s:13PositronicKit12ThreadHandleV9startTurnyAA0fD0VAA0F7RequestVYaKF",
+      "precise": "s:13PositronicKit12ThreadHandleV9startTurn_18systemInstructions7optionsAA0fD0VSS_SSAA0F7OptionsVtYaKF",
       "module": "PositronicKit",
       "kind": "swift.method",
       "path": [
         "ThreadHandle",
-        "startTurn(_:)"
+        "startTurn(_:systemInstructions:options:)"
       ],
-      "declaration": "func startTurn(_ request: TurnRequest) async throws -> TurnHandle"
+      "declaration": "func startTurn(_ message: String, systemInstructions: String, options: TurnOptions = .init()) async throws -> TurnHandle"
+    },
+    {
+      "precise": "s:13PositronicKit12ThreadHandleV9startTurn_7optionsAA0fD0V11PKContracts14MessageContentV_AA0F7OptionsVtYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "ThreadHandle",
+        "startTurn(_:options:)"
+      ],
+      "declaration": "func startTurn(_ content: MessageContent, options: TurnOptions = .init()) async throws -> TurnHandle"
+    },
+    {
+      "precise": "s:13PositronicKit12ThreadHandleV9startTurn_7optionsAA0fD0VSS_AA0F7OptionsVtYaKF",
+      "module": "PositronicKit",
+      "kind": "swift.method",
+      "path": [
+        "ThreadHandle",
+        "startTurn(_:options:)"
+      ],
+      "declaration": "func startTurn(_ message: String, options: TurnOptions = .init()) async throws -> TurnHandle"
     },
     {
       "precise": "s:13PositronicKit13AgentActivityV",
@@ -32382,6 +32392,27 @@
       "targetFallback": "Swift.Escapable"
     },
     {
+      "module": "PKObservable",
+      "kind": "conformsTo",
+      "source": "s:12PKObservable21ThreadControllerErrorV",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKObservable",
+      "kind": "conformsTo",
+      "source": "s:12PKObservable21ThreadControllerErrorV",
+      "target": "s:s5ErrorP",
+      "targetFallback": "Swift.Error"
+    },
+    {
+      "module": "PKObservable",
+      "kind": "conformsTo",
+      "source": "s:12PKObservable21ThreadControllerErrorV",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
       "module": "PKOllamaProvider",
       "kind": "conformsTo",
       "source": "s:16PKOllamaProvider12OllamaClientC",
@@ -34888,6 +34919,20 @@
     {
       "module": "PositronicKit",
       "kind": "conformsTo",
+      "source": "s:13PositronicKit11TurnOptionsV",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
+      "source": "s:13PositronicKit11TurnOptionsV",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "conformsTo",
       "source": "s:13PositronicKit11TurnOutcomeO",
       "target": "s:SE",
       "targetFallback": "Swift.Encodable"
@@ -34924,27 +34969,6 @@
       "module": "PositronicKit",
       "kind": "conformsTo",
       "source": "s:13PositronicKit11TurnOutcomeO",
-      "target": "s:s8SendableP",
-      "targetFallback": "Swift.Sendable"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit11TurnRequestV",
-      "target": "s:s16SendableMetatypeP",
-      "targetFallback": "Swift.SendableMetatype"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit11TurnRequestV",
-      "target": "s:s23CustomStringConvertibleP",
-      "targetFallback": "Swift.CustomStringConvertible"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "conformsTo",
-      "source": "s:13PositronicKit11TurnRequestV",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -44013,6 +44037,12 @@
     {
       "module": "PKContracts",
       "kind": "memberOf",
+      "source": "s:11PKContracts9TurnEventO05ErrorC0O17durabilityFailureyAESS_AC0D8IdentityVSgtcAEmF",
+      "target": "s:11PKContracts9TurnEventO05ErrorC0O"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
       "source": "s:11PKContracts9TurnEventO05ErrorC0O19generationCancelledyA2EmF",
       "target": "s:11PKContracts9TurnEventO05ErrorC0O"
     },
@@ -44194,6 +44224,12 @@
       "module": "PKContracts",
       "kind": "memberOf",
       "source": "s:11PKContracts9TurnEventO16reasoningContentSSSgvp",
+      "target": "s:11PKContracts9TurnEventO"
+    },
+    {
+      "module": "PKContracts",
+      "kind": "memberOf",
+      "source": "s:11PKContracts9TurnEventO17durabilityFailureyACs5Error_pFZ",
       "target": "s:11PKContracts9TurnEventO"
     },
     {
@@ -44524,6 +44560,18 @@
       "kind": "memberOf",
       "source": "s:12PKObservable16ThreadControllerC_8messagesAC13PositronicKit0B6HandleV_Say11PKContracts7MessageVGtcfc",
       "target": "s:12PKObservable16ThreadControllerC"
+    },
+    {
+      "module": "PKObservable",
+      "kind": "memberOf",
+      "source": "s:12PKObservable21ThreadControllerErrorV5event11PKContracts9TurnEventO0dH0Ovp",
+      "target": "s:12PKObservable21ThreadControllerErrorV"
+    },
+    {
+      "module": "PKObservable",
+      "kind": "memberOf",
+      "source": "s:12PKObservable21ThreadControllerErrorV5eventAC11PKContracts9TurnEventO0dH0O_tcfc",
+      "target": "s:12PKObservable21ThreadControllerErrorV"
     },
     {
       "module": "PKOllamaProvider",
@@ -48528,6 +48576,12 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
+      "source": "s:13PKTestSupport22MockPersistenceServiceC17completeTurnFailsSbvp",
+      "target": "s:13PKTestSupport22MockPersistenceServiceC"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport22MockPersistenceServiceC17fetchCorrelations6turnIDSay13PositronicKit15TurnCorrelationVG20FoundationEssentials4UUIDV_tYaKF",
       "target": "s:13PKTestSupport22MockPersistenceServiceC",
       "sourceOrigin": {
@@ -49773,6 +49827,84 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKit11TurnOptionsV11audioOutput11PKContracts05AudiofD0VSgvp",
+      "target": "s:13PositronicKit11TurnOptionsV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit11TurnOptionsV11toolOutputsSay11PKContracts20ToolOutputSubmissionVGSgvp",
+      "target": "s:13PositronicKit11TurnOptionsV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit11TurnOptionsV14maxModelRoundsSivp",
+      "target": "s:13PositronicKit11TurnOptionsV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit11TurnOptionsV16structuredOutput11PKContracts010StructuredF7RequestOSgvp",
+      "target": "s:13PositronicKit11TurnOptionsV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit11TurnOptionsV18responseModalitiesShy11PKContracts16ResponseModalityOGvp",
+      "target": "s:13PositronicKit11TurnOptionsV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit11TurnOptionsV19sidecarCommitPolicyAA07SidecarfG0Ovp",
+      "target": "s:13PositronicKit11TurnOptionsV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit11TurnOptionsV20generationParameters11PKContracts010GenerationF0VSgvp",
+      "target": "s:13PositronicKit11TurnOptionsV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit11TurnOptionsV20promptAssemblyLogger7Logging0G0VSgvp",
+      "target": "s:13PositronicKit11TurnOptionsV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit11TurnOptionsV31includeSidecarMechanismPreambleSbvp",
+      "target": "s:13PositronicKit11TurnOptionsV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit11TurnOptionsV5toolsSay11PKContracts7AnyToolVGvp",
+      "target": "s:13PositronicKit11TurnOptionsV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit11TurnOptionsV8sidecarsSay11PKContracts16SidecarDirectiveVGvp",
+      "target": "s:13PositronicKit11TurnOptionsV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit11TurnOptionsV9requestID20FoundationEssentials4UUIDVSgvp",
+      "target": "s:13PositronicKit11TurnOptionsV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit11TurnOptionsV9requestID5tools11toolOutputs14maxModelRounds20generationParameters16structuredOutput8sidecars19sidecarCommitPolicy31includeSidecarMechanismPreamble20promptAssemblyLogger18responseModalities05audioP0AC20FoundationEssentials4UUIDVSg_Say11PKContracts4Tool_pGSayAT04ToolP10SubmissionVGSgSiAT010GenerationN0VSgAT010StructuredP7RequestOSgSayAT0V9DirectiveVGAA0vsT0OSb7Logging6LoggerVSgShyAT16ResponseModalityOGAT05AudiopD0VSgtcfc",
+      "target": "s:13PositronicKit11TurnOptionsV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKit11TurnOutcomeO11interruptedyACSS_tcACmF",
       "target": "s:13PositronicKit11TurnOutcomeO"
     },
@@ -49813,124 +49945,6 @@
       "kind": "memberOf",
       "source": "s:13PositronicKit11TurnOutcomeO9completedyA2CmF",
       "target": "s:13PositronicKit11TurnOutcomeO"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11TurnRequestV11audioOutput11PKContracts05AudioF7OptionsVSgvp",
-      "target": "s:13PositronicKit11TurnRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11TurnRequestV11descriptionSSvp",
-      "target": "s:13PositronicKit11TurnRequestV",
-      "sourceOrigin": {
-        "identifier": "s:s23CustomStringConvertibleP11descriptionSSvp",
-        "displayName": "CustomStringConvertible.description"
-      }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11TurnRequestV11toolOutputsSay11PKContracts20ToolOutputSubmissionVGSgvp",
-      "target": "s:13PositronicKit11TurnRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11TurnRequestV14maxModelRoundsSivp",
-      "target": "s:13PositronicKit11TurnRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11TurnRequestV14messageContent11PKContracts07MessageF0Vvp",
-      "target": "s:13PositronicKit11TurnRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11TurnRequestV16structuredOutput11PKContracts010StructuredfD0OSgvp",
-      "target": "s:13PositronicKit11TurnRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11TurnRequestV18responseModalitiesShy11PKContracts16ResponseModalityOGvp",
-      "target": "s:13PositronicKit11TurnRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11TurnRequestV18systemInstructionsSSSgvp",
-      "target": "s:13PositronicKit11TurnRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11TurnRequestV19sidecarCommitPolicyAA07SidecarfG0Ovp",
-      "target": "s:13PositronicKit11TurnRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11TurnRequestV20generationParameters11PKContracts010GenerationF0VSgvp",
-      "target": "s:13PositronicKit11TurnRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11TurnRequestV20promptAssemblyLogger7Logging0G0VSgvp",
-      "target": "s:13PositronicKit11TurnRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11TurnRequestV31includeSidecarMechanismPreambleSbvp",
-      "target": "s:13PositronicKit11TurnRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11TurnRequestV5toolsSay11PKContracts7AnyToolVGvp",
-      "target": "s:13PositronicKit11TurnRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11TurnRequestV7messageSSvp",
-      "target": "s:13PositronicKit11TurnRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11TurnRequestV8sidecarsSay11PKContracts16SidecarDirectiveVGvp",
-      "target": "s:13PositronicKit11TurnRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11TurnRequestV8threadID07requestF07content5tools11toolOutputs18systemInstructions14maxModelRounds20generationParameters16structuredOutput8sidecars19sidecarCommitPolicy31includeSidecarMechanismPreamble20promptAssemblyLogger18responseModalities05audioT0AC20FoundationEssentials4UUIDV_AUSg11PKContracts14MessageContentVSayAW4Tool_pGSayAW04ToolT10SubmissionVGSgSSSgSiAW010GenerationR0VSgAW010StructuredtD0OSgSayAW0Z9DirectiveVGAA0zwX0OSb7Logging6LoggerVSgShyAW16ResponseModalityOGAW05AudioT7OptionsVSgtcfc",
-      "target": "s:13PositronicKit11TurnRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11TurnRequestV8threadID07requestF07message5tools11toolOutputs18systemInstructions14maxModelRounds20generationParameters16structuredOutput8sidecars19sidecarCommitPolicy31includeSidecarMechanismPreamble20promptAssemblyLogger18responseModalities05audioT0AC20FoundationEssentials4UUIDV_AUSgSSSay11PKContracts4Tool_pGSayAW04ToolT10SubmissionVGSgSSSgSiAW010GenerationR0VSgAW010StructuredtD0OSgSayAW0Z9DirectiveVGAA0zwX0OSb7Logging6LoggerVSgShyAW16ResponseModalityOGAW05AudioT7OptionsVSgtcfc",
-      "target": "s:13PositronicKit11TurnRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11TurnRequestV8threadID20FoundationEssentials4UUIDVvp",
-      "target": "s:13PositronicKit11TurnRequestV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit11TurnRequestV9requestID20FoundationEssentials4UUIDVSgvp",
-      "target": "s:13PositronicKit11TurnRequestV"
     },
     {
       "module": "PositronicKit",
@@ -50053,7 +50067,13 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit12ThreadHandleV15startDirectTurn7message7context5tools9requestID14maxModelRoundsAA0gD0VSS_AA0fG7ContextVSay11PKContracts4Tool_pG20FoundationEssentials4UUIDVSgSitYaKF",
+      "source": "s:13PositronicKit12ThreadHandleV15startDirectTurn_7context7optionsAA0gD0V11PKContracts14MessageContentV_AA0fG7ContextVAA0G7OptionsVtYaKF",
+      "target": "s:13PositronicKit12ThreadHandleV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit12ThreadHandleV15startDirectTurn_7context7optionsAA0gD0VSS_AA0fG7ContextVAA0G7OptionsVtYaKF",
       "target": "s:13PositronicKit12ThreadHandleV"
     },
     {
@@ -50065,18 +50085,6 @@
         "identifier": "s:s12IdentifiableP2id2IDQzvp",
         "displayName": "Identifiable.id"
       }
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit12ThreadHandleV3runyScsy11PKContracts9TurnEventOs5Error_pGAA0G7RequestVYaKF",
-      "target": "s:13PositronicKit12ThreadHandleV"
-    },
-    {
-      "module": "PositronicKit",
-      "kind": "memberOf",
-      "source": "s:13PositronicKit12ThreadHandleV4send_5tools14maxModelRounds18systemInstructionsScsy11PKContracts9TurnEventOs5Error_pGSS_SayAH4Tool_pGSiSSSgtYaKF",
-      "target": "s:13PositronicKit12ThreadHandleV"
     },
     {
       "module": "PositronicKit",
@@ -50093,13 +50101,25 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit12ThreadHandleV9startTurn7message5tools14maxModelRounds18systemInstructionsAA0fD0VSS_Say11PKContracts4Tool_pGSiSSSgtYaKF",
+      "source": "s:13PositronicKit12ThreadHandleV9startTurn_18systemInstructions7optionsAA0fD0V11PKContracts14MessageContentV_SSAA0F7OptionsVtYaKF",
       "target": "s:13PositronicKit12ThreadHandleV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKit12ThreadHandleV9startTurnyAA0fD0VAA0F7RequestVYaKF",
+      "source": "s:13PositronicKit12ThreadHandleV9startTurn_18systemInstructions7optionsAA0fD0VSS_SSAA0F7OptionsVtYaKF",
+      "target": "s:13PositronicKit12ThreadHandleV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit12ThreadHandleV9startTurn_7optionsAA0fD0V11PKContracts14MessageContentV_AA0F7OptionsVtYaKF",
+      "target": "s:13PositronicKit12ThreadHandleV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
+      "source": "s:13PositronicKit12ThreadHandleV9startTurn_7optionsAA0fD0VSS_AA0F7OptionsVtYaKF",
       "target": "s:13PositronicKit12ThreadHandleV"
     },
     {

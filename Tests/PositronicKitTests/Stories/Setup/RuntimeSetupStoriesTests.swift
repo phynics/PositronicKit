@@ -31,7 +31,7 @@ import Testing
 
         do {
             _ = try await thread.startDirectTurn(
-                message: "hello",
+                "hello",
                 context: DirectTurnContext(systemInstructions: "", contributor: .host)
             )
             Issue.record("Expected the unconfigured run to fail synchronously")

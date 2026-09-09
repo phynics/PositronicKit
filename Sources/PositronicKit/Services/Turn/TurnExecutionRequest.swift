@@ -3,8 +3,8 @@ import PKContracts
 
 /// The normalized input for one Turn execution.
 ///
-/// The public request remains intact. The facade adds only the values it resolves before the
-/// runtime admits the Turn, so execution and idempotency share one representation of caller intent.
+/// The package-internal request is paired with the values resolved before the runtime admits the
+/// Turn, so execution and idempotency share one representation of caller intent.
 struct TurnExecutionRequest: Sendable {
     struct Context: Sendable {
         let agentID: UUID?

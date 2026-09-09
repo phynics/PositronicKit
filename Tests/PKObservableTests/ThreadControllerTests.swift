@@ -44,6 +44,86 @@ struct ThreadControllerTests {
         #expect(releasedController == nil)
     }
 
+    @Test("a provider failure is thrown with its terminal event and clears state")
+    func providerFailurePropagatesAsControllerError() async throws {
+        let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString))
+        runtime.llm.mockClient.shouldThrowError = true
+        let kit = runtime.positronicKit
+        let driver = try await kit.threads.create(title: "Controller")
+        let agent = try await kit.agents.create(name: "Controller Agent", description: "test")
+        try await kit.agents.attach(agent.id, to: driver.id)
+        let controller = ThreadController(driver)
+
+        let error = await #expect(throws: ThreadControllerError.self) {
+            try await controller.send("Hi")
+        }
+
+        #expect(controller.isStreaming == false)
+        #expect(controller.streamingText.isEmpty)
+        if let event = error?.event, case .error = event {
+            // The provider/runtime failure remains distinguishable from cancellation.
+        } else {
+            Issue.record("Expected the controller error to carry a general runtime error event")
+        }
+    }
+
+    @Test("cancellation is thrown as CancellationError and clears state")
+    func cancellationPropagatesAsCancellationError() async throws {
+        let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString))
+        runtime.llm.mockClient.neverFinishingStreamCallIndices = [1]
+        let kit = runtime.positronicKit
+        let driver = try await kit.threads.create(title: "Controller")
+        let agent = try await kit.agents.create(name: "Controller Agent", description: "test")
+        try await kit.agents.attach(agent.id, to: driver.id)
+        let controller = ThreadController(driver)
+
+        let sendTask = Task { try await controller.send("Hi") }
+        while controller.isStreaming == false {
+            await Task.yield()
+        }
+        while runtime.llm.mockClient.streamCallCount < 1 {
+            await Task.yield()
+        }
+        sendTask.cancel()
+        await driver.cancel()
+
+        let result = await sendTask.result
+        if case .failure(let error) = result {
+            #expect(error is CancellationError)
+        } else {
+            Issue.record("Expected cancellation to fail the controller send")
+        }
+        #expect(controller.isStreaming == false)
+    }
+
+    @Test("a terminal persistence failure is thrown with its durability event")
+    func terminalPersistenceFailurePropagatesAsControllerError() async throws {
+        let persistence = MockPersistenceService()
+        persistence.completeTurnFails = true
+        let runtime = TestRuntime(
+            workspaceRoot: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString),
+            persistence: persistence
+        )
+        let kit = runtime.positronicKit
+        let driver = try await kit.threads.create(title: "Controller")
+        let agent = try await kit.agents.create(name: "Controller Agent", description: "test")
+        try await kit.agents.attach(agent.id, to: driver.id)
+        let controller = ThreadController(driver)
+
+        let error = await #expect(throws: ThreadControllerError.self) {
+            try await controller.send("Hi")
+        }
+
+        #expect(controller.isStreaming == false)
+        if let event = error?.event, case .durabilityFailure = event {
+            // Terminal persistence remains distinguishable from provider/runtime failure.
+        } else {
+            Issue.record("Expected the controller error to carry a durability failure event")
+        }
+    }
+
     @Test("a superseding send cancels the previous stream")
     func supersedingSendCancelsPreviousStream() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
@@ -57,7 +137,7 @@ struct ThreadControllerTests {
         let controller = ThreadController(driver)
 
         let first = Task { try await controller.send("first") }
-        // `isStreaming` flips inside `consume` *before* `driver.send` reaches the LLM,
+        // `isStreaming` flips inside `consume` *before* `driver.startTurn` reaches the LLM,
         // so it is not enough to guarantee "first" has claimed a `chatStream` call. Without the
         // second gate, a superseding "second" can be cancelled-in and reach `chatStream` first,
         // taking call index 1 — the never-finishing stream keyed to that index — and hanging on

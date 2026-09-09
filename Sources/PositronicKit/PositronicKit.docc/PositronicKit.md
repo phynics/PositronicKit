@@ -44,10 +44,10 @@ fallback; implement ``LLMStreamClient/readiness`` when the client can report a m
 
 ### Run Validation And Agent Preflight
 
-`ThreadHandle.startTurn(_:)` and `ThreadHandle.startDirectTurn(message:context:)` perform all
+`ThreadHandle.startTurn(_:options:)` and `ThreadHandle.startDirectTurn(_:context:options:)` perform all
 request and preparation work before returning an admitted `TurnHandle`:
 
-- `TurnRequest.maxModelRounds` must be at least `1`. Invalid values throw
+- `TurnOptions.maxModelRounds` must be at least `1`. Invalid values throw
   `TurnError.invalidMaxModelRounds` before thread lookup, persistence, or provider work.
 - Thread hydration failures throw their typed `ThreadError` before input is persisted.
 - Managed execution captures the Agent attached to the Thread immediately before durable
@@ -87,7 +87,7 @@ wrapped as a foreign provider failure.
 
 - Runtime diagnostics use `swift-log`.
 - Hosts own logging bootstrap and log-level configuration.
-- Prompt assembly diagnostics are enabled per turn with `ThreadHandle.run(_:)` via `TurnRequest.promptAssemblyLogger`.
+- Prompt assembly diagnostics are enabled per turn with `TurnOptions.promptAssemblyLogger`.
 - Package-defined errors conform to `PKError` and surface user-facing messages through `ErrorKit`.
 
 ## Topics

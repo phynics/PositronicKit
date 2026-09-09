@@ -22,7 +22,7 @@ struct AgentContextLifecycleTests {
         let agent = try await kit.agents.create(name: "Context Agent", description: "typed")
         try await kit.agents.attach(agent.id, to: thread.id)
 
-        let turn = try await thread.startTurn(message: "hello")
+        let turn = try await thread.startTurn("hello")
         _ = await turn.events().collect()
 
         #expect(await source.callCount == 1)
@@ -43,7 +43,7 @@ struct AgentContextLifecycleTests {
         try await kit.agents.attach(agent.id, to: thread.id)
 
         await #expect(throws: ContextSourceFailure.self) {
-            _ = try await thread.startTurn(message: "must not persist")
+            _ = try await thread.startTurn("must not persist")
         }
 
         let repository = kit.runtimeRepository
@@ -89,7 +89,7 @@ struct AgentContextLifecycleTests {
         let agent = try await kit.agents.create(name: "Before", description: "initial")
         try await kit.agents.attach(agent.id, to: thread.id)
 
-        let turnTask = Task { try await thread.startTurn(message: "hello") }
+        let turnTask = Task { try await thread.startTurn("hello") }
         await source.waitUntilEntered()
 
         var changed = agent
@@ -148,7 +148,7 @@ struct AgentContextLifecycleTests {
         try await kit.agents.attach(agent.id, to: thread.id)
 
         await #expect(throws: AgentContextError.identityMismatch(expected: agent.id, actual: source.otherID)) {
-            _ = try await thread.startTurn(message: "must fail")
+            _ = try await thread.startTurn("must fail")
         }
     }
 

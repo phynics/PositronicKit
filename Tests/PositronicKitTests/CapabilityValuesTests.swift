@@ -47,7 +47,7 @@ struct CapabilityValuesTests {
         )
 
         #expect(try await kit.threads.get(thread.id)?.attachedAgentID == agent.id)
-        let turn = try await thread.startTurn(message: "Start immediately")
+        let turn = try await thread.startTurn("Start immediately")
         _ = await turn.events().collect()
         #expect(try await turn.outcome() == .completed)
     }

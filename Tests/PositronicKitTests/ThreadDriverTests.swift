@@ -67,8 +67,8 @@ struct ThreadDriverTests {
         #expect(driver.id == id)
     }
 
-    @Test("send delegates through the facade run path")
-    func sendDelegatesThroughFacadeRunPath() async throws {
+    @Test("startTurn delegates through the canonical TurnHandle path")
+    func startTurnUsesCanonicalTurnHandlePath() async throws {
         let runtime = TestRuntime(workspaceRoot: FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString))
         runtime.llm.mockClient.nextResponse = "reply"
@@ -78,7 +78,8 @@ struct ThreadDriverTests {
         try await kit.agents.attach(agent.id, to: thread.id)
         let driver = kit.openThread(thread.id)
 
-        let events = try await driver.send("hello").collect()
+        let turn = try await driver.startTurn("hello")
+        let events = await turn.events().collect()
 
         #expect(events.contains(where: {
             if case let .completion(.generationCompleted(message, _)) = $0 {
@@ -88,7 +89,8 @@ struct ThreadDriverTests {
         }))
 
         runtime.llm.mockClient.nextResponse = "second reply"
-        _ = try await driver.send("follow up").collect()
+        let followUp = try await driver.startTurn("follow up")
+        _ = await followUp.events().collect()
 
         #expect(try await runtime.persistence.fetchMessages(for: driver.id).map(\.content) == [
             "hello", "reply", "follow up", "second reply"

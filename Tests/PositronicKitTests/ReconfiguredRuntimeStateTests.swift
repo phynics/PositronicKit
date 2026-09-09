@@ -16,9 +16,9 @@ struct ReconfiguredRuntimeStateTests {
         let context = DirectTurnContext(systemInstructions: "", contributor: .host)
 
         let original = try await originalKit.openThread(thread.id).startDirectTurn(
-            message: "same request",
+            "same request",
             context: context,
-            requestID: requestID
+            options: TurnOptions(requestID: requestID)
         )
         while originalModel.mockClient.neverFinishingStreamStartCount < 1 {
             await Task.yield()
@@ -27,9 +27,9 @@ struct ReconfiguredRuntimeStateTests {
         let replacementModel = MockLLMService()
         let reconfiguredKit = originalKit.reconfigured(languageModel: replacementModel)
         let joined = try await reconfiguredKit.openThread(thread.id).startDirectTurn(
-            message: "same request",
+            "same request",
             context: context,
-            requestID: requestID
+            options: TurnOptions(requestID: requestID)
         )
 
         #expect(joined.id == original.id)
@@ -52,18 +52,18 @@ struct ReconfiguredRuntimeStateTests {
         replacementModel.mockClient.neverFinishingStreamCallIndices = [1]
         let reconfiguredKit = originalKit.reconfigured(languageModel: replacementModel)
         let active = try await reconfiguredKit.openThread(thread.id).startDirectTurn(
-            message: "same request",
+            "same request",
             context: context,
-            requestID: requestID
+            options: TurnOptions(requestID: requestID)
         )
         while replacementModel.mockClient.neverFinishingStreamStartCount < 1 {
             await Task.yield()
         }
 
         let joined = try await originalKit.openThread(thread.id).startDirectTurn(
-            message: "same request",
+            "same request",
             context: context,
-            requestID: requestID
+            options: TurnOptions(requestID: requestID)
         )
         #expect(joined.id == active.id)
         await joined.cancel()

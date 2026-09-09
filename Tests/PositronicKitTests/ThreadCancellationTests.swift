@@ -25,24 +25,21 @@ struct ThreadCancellationTests {
         try await kit.agents.attach(agent.id, to: thread.id)
         let driver = kit.openThread(thread.id)
 
-        let stream = try await driver.send("hello")
+        let turn = try await driver.startTurn("hello")
+        let stream = turn.events()
 
         let sawFirstChunk = Mutex(false)
         let streamTerminated = Mutex(false)
         let chunkCount = Mutex(0)
 
         let consumeTask = Task {
-            do {
-                for try await event in stream {
-                    if event.textContent != nil {
-                        sawFirstChunk.withLock { $0 = true }
-                        chunkCount.withLock { $0 += 1 }
-                    }
+            for await event in stream {
+                if event.textContent != nil {
+                    sawFirstChunk.withLock { $0 = true }
+                    chunkCount.withLock { $0 += 1 }
                 }
-                streamTerminated.withLock { $0 = true }
-            } catch {
-                streamTerminated.withLock { $0 = true }
             }
+            streamTerminated.withLock { $0 = true }
         }
 
         // Wait for at least one chunk to prove the stream is active.
@@ -56,7 +53,7 @@ struct ThreadCancellationTests {
         // Cancel — this was a no-op before the fix.
         await driver.cancel()
 
-        // The stream must terminate (either via .generationCancelled or a thrown error).
+        // The public TurnHandle stream must terminate after delivering its cancellation event.
         let terminateDeadline = ContinuousClock.now + .seconds(10)
         while !streamTerminated.withLock({ $0 }), ContinuousClock.now < terminateDeadline {
             await Task.yield()
@@ -86,24 +83,19 @@ struct ThreadCancellationTests {
         try await kit.agents.attach(agent.id, to: thread.id)
         let driver = kit.openThread(thread.id)
 
-        let stream = try await driver.send("hello")
+        let turn = try await driver.startTurn("hello")
+        let stream = turn.events()
 
         let streamTerminated = Mutex(false)
         let chunkCount = Mutex(0)
 
         let consumeTask = Task {
-            do {
-                for try await event in stream {
-                    if event.textContent != nil {
-                        chunkCount.withLock { $0 += 1 }
-                    }
+            for await event in stream {
+                if event.textContent != nil {
+                    chunkCount.withLock { $0 += 1 }
                 }
-                streamTerminated.withLock { $0 = true }
-            } catch is CancellationError {
-                streamTerminated.withLock { $0 = true }
-            } catch {
-                streamTerminated.withLock { $0 = true }
             }
+            streamTerminated.withLock { $0 = true }
         }
 
         // Let the stream start producing.
@@ -141,7 +133,8 @@ struct ThreadCancellationTests {
         let activeBefore = await kit.threadManager.hasActiveTask(for: thread.id)
         #expect(!activeBefore)
 
-        let events = try await driver.send("hello").collect()
+        let turn = try await driver.startTurn("hello")
+        let events = await turn.events().collect()
 
         #expect(!events.isEmpty)
         if let activeTask = await kit.threadManager.activeTaskCompletion(for: thread.id) {
@@ -164,13 +157,12 @@ struct ThreadCancellationTests {
         try await kit.agents.attach(agent.id, to: thread.id)
         let driver = kit.openThread(thread.id)
 
-        let stream = try await driver.send("hello")
+        let turn = try await driver.startTurn("hello")
+        let stream = turn.events()
 
         let streamTerminated = Mutex(false)
         let consumeTask = Task {
-            do {
-                for try await _ in stream {}
-            } catch {}
+            for await _ in stream {}
             streamTerminated.withLock { $0 = true }
         }
 
@@ -216,18 +208,17 @@ struct ThreadCancellationTests {
         try await kit.agents.attach(agent.id, to: thread.id)
         let driver = kit.openThread(thread.id)
 
-        let stream = try await driver.send("hello")
+        let turn = try await driver.startTurn("hello")
+        let stream = turn.events()
 
         let streamTerminated = Mutex(false)
         let chunkCount = Mutex(0)
         let consumeTask = Task {
-            do {
-                for try await event in stream {
-                    if event.textContent != nil {
-                        chunkCount.withLock { $0 += 1 }
-                    }
+            for await event in stream {
+                if event.textContent != nil {
+                    chunkCount.withLock { $0 += 1 }
                 }
-            } catch {}
+            }
             streamTerminated.withLock { $0 = true }
         }
 
@@ -262,18 +253,17 @@ struct ThreadCancellationTests {
         try await kit.agents.attach(agent.id, to: thread.id)
         let driver = kit.openThread(thread.id)
 
-        let stream = try await driver.send("hello")
+        let turn = try await driver.startTurn("hello")
+        let stream = turn.events()
 
         let streamTerminated = Mutex(false)
         let chunkCount = Mutex(0)
         let consumeTask = Task {
-            do {
-                for try await event in stream {
-                    if event.textContent != nil {
-                        chunkCount.withLock { $0 += 1 }
-                    }
+            for await event in stream {
+                if event.textContent != nil {
+                    chunkCount.withLock { $0 += 1 }
                 }
-            } catch {}
+            }
             streamTerminated.withLock { $0 = true }
         }
 
