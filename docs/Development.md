@@ -13,6 +13,7 @@ Linux verification runs only through the repository-owned Podman runner:
 make doctor
 make agent-verify
 make agent-test FILTER='MessageContentTests'
+make linux-coverage
 ```
 
 The runner owns image selection, rootless identity, checkout mounts,
@@ -28,6 +29,18 @@ refresh it with `make linux-image`; compile in it with `make linux-build`.
 ## Focused checks
 
 Use `make agent-test FILTER='…'` for a focused Linux test.
+
+## Linux coverage reports
+
+Run `make linux-coverage` in the pinned Linux environment to execute the tests with
+`--enable-code-coverage` and write the reports to `.build/linux-coverage/`.
+
+The target writes the raw `llvm-cov` JSON, a normalized summary for `PositronicKit`,
+`PKContracts`, `PKPrompt`, `PKUtilities`, and `PKObservable`, and a platform-asymmetry report.
+Provider targets, `PKTestSupport`, executables, and test targets are excluded.
+
+This milestone reports Linux coverage only. It does not set floors, compare changed lines,
+commit a baseline, or enforce macOS parity. A follow-up issue owns those decisions.
 
 ## Target boundaries
 

@@ -11,7 +11,7 @@ Stable [5.1.0](stable/5.1.0/) is the default immutable channel. [Next / v5](next
 | [Architecture](Architecture.md) | v5 domain boundaries, capability values, durability, and execution authority. |
 | [Prompt composition](PKPromptComposition.md) | Prompt IR, assembly, rendering, compression, and PromptJournal. |
 | [Sidecar directives](SidecarDirectives.md) | Auxiliary structured results carried by the same Turn. |
-| [Development](Development.md) | Supported platform gates, Podman workflow, and dependency checks. |
+| [Development](Development.md) | Supported platform gates, Podman workflow, Linux coverage reports, and dependency checks. |
 | [Context map](../CONTEXT-MAP.md) | Canonical Thread, Turn, Agent, Workspace, prompt, and contract vocabulary. |
 | [Architecture decisions](adr/) | Accepted runtime architecture decisions and their trade-offs. |
 | [Changelog](../CHANGELOG.md) | Published release deltas and the unreleased Next change set. |
