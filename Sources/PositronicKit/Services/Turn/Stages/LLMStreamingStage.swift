@@ -10,15 +10,18 @@ struct LLMStreamingStage: PipelineStage {
     let llmService: any LLMStreamClient
     let logger: Logger
     let streamTimeout: TimeInterval
+    let clock: any RuntimeClock
 
     init(
         llmService: any LLMStreamClient,
         logger: Logger? = nil,
-        streamTimeout: TimeInterval
+        streamTimeout: TimeInterval,
+        clock: any RuntimeClock = ContinuousRuntimeClock()
     ) {
         self.llmService = llmService
         self.logger = logger ?? Logger.module(named: "llm-streaming")
         self.streamTimeout = streamTimeout
+        self.clock = clock
     }
 
     func process(_ context: TurnContext) async throws -> AsyncThrowingStream<TurnEvent, Error> {
@@ -87,7 +90,7 @@ struct LLMStreamingStage: PipelineStage {
                     // progressing long generation (or a reasoning model that streams steadily for
                     // minutes) is never killed — only a genuine hang where no data arrives for
                     // `streamTimeout` triggers `streamTimedOut`.
-                    try await StreamIdleTimeout.run(timeout: streamTimeout) { deadline in
+                    try await StreamIdleTimeout.run(timeout: streamTimeout, clock: clock) { deadline in
                         try await streamResponse(
                             streamData,
                             context: context,

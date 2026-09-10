@@ -1,4 +1,5 @@
 import Foundation
+import PKUtilities
 
 /// Bounded wait policy for observing a Turn's terminal state.
 ///
@@ -26,6 +27,7 @@ struct TurnTerminationWaiter: Sendable {
     let hub: TurnEventHub
     var pollInterval: Duration = defaultPollInterval
     var pollTimeout: Duration = defaultPollTimeout
+    var clock: any RuntimeClock = ContinuousRuntimeClock()
 
     /// Waits for `turnID` to reach a terminal state and returns the durable value `fetch`
     /// produces once it does.
@@ -53,16 +55,16 @@ struct TurnTerminationWaiter: Sendable {
     private func poll<Value: Sendable>(
         fetch: @Sendable () async throws -> Value?
     ) async throws -> Observation<Value> {
-        let deadline = ContinuousClock.now.advanced(by: pollTimeout)
+        let deadline = (await clock.now()).advanced(by: pollTimeout)
         while true {
             try Task.checkCancellation()
             if let value = try await fetch() {
                 return .value(value)
             }
-            if ContinuousClock.now >= deadline {
+            if await clock.now() >= deadline {
                 return .timedOut
             }
-            try await Task.sleep(for: pollInterval)
+            try await clock.sleep(for: pollInterval)
         }
     }
 }

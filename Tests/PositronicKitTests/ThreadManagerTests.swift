@@ -223,11 +223,14 @@ struct ThreadManagerTests {
 
         let isCancelled = Mutex(false)
 
+        let (waitStream, waitContinuation) = AsyncStream<Void>.makeStream()
         let task = Task {
-            while !Task.isCancelled {
-                await Task.yield()
+            await withTaskCancellationHandler {
+                var iterator = waitStream.makeAsyncIterator()
+                _ = await iterator.next()
+            } onCancel: {
+                isCancelled.withLock { $0 = true }
             }
-            isCancelled.withLock { $0 = true }
         }
 
         await threadManager.registerTask(task, turnID: UUID(), for: threadID)
@@ -235,12 +238,8 @@ struct ThreadManagerTests {
         // Verify it's in the registry (using internal access if possible, or just through behavior)
         await threadManager.cancelGeneration(for: threadID)
 
-        // Poll until the task observes cancellation, with a generous CI-safe deadline
-        // (guards only against a genuine hang, not normal scheduling variance).
-        let deadline = ContinuousClock.now + .seconds(5)
-        while !isCancelled.withLock({ $0 }), ContinuousClock.now < deadline {
-            await Task.yield()
-        }
+        waitContinuation.finish()
+        _ = await task.value
 
         let cancelledFinal = isCancelled.withLock { $0 }
         #expect(cancelledFinal, "Task should have been cancelled")

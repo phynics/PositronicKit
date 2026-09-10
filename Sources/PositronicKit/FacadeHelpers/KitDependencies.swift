@@ -33,4 +33,6 @@ internal struct KitDependencies: Sendable {
     var loggingConfiguration: LoggingConfiguration
     var sharedRegistry: ThreadPromptJournals
     var additionalStages: [any PipelineStage<TurnContext, TurnEvent>]
+    var streamTimeout: TimeInterval
+    var clock: any RuntimeClock
 }

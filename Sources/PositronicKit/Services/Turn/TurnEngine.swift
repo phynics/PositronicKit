@@ -135,6 +135,7 @@ struct TurnEngine {
         let eventHub: TurnEventHub
         let submissionGate: ExternalToolOutputSubmissionGate
         let streamTimeout: TimeInterval
+        let clock: any RuntimeClock
 
         init(
             threadManager: ThreadManager,
@@ -155,7 +156,8 @@ struct TurnEngine {
             promptHistoryRegistry: ThreadPromptJournals? = nil,
             eventHub: TurnEventHub? = nil,
             submissionGate: ExternalToolOutputSubmissionGate? = nil,
-            streamTimeout: TimeInterval = Self.defaultStreamTimeout
+            streamTimeout: TimeInterval = Self.defaultStreamTimeout,
+            clock: any RuntimeClock = ContinuousRuntimeClock()
         ) {
             self.threadManager = threadManager
             self.agentStore = agentStore
@@ -176,6 +178,7 @@ struct TurnEngine {
             self.eventHub = eventHub ?? TurnEventHub()
             self.submissionGate = submissionGate ?? ExternalToolOutputSubmissionGate()
             self.streamTimeout = streamTimeout
+            self.clock = clock
         }
     }
 
@@ -263,7 +266,28 @@ struct TurnEngine {
 
     /// Executes one normalized Turn request and returns its event stream.
     func execute(_ executionRequest: TurnExecutionRequest) async throws -> AsyncThrowingStream<TurnEvent, Error> {
-        try await startExecution(executionRequest).stream
+        let execution = try await startExecution(executionRequest)
+        let threadManager = dependencies.threadManager
+        let threadID = executionRequest.request.threadID
+        let (stream, continuation) = AsyncThrowingStream<TurnEvent, Error>.makeStream()
+        let relay = Task {
+            do {
+                for try await event in execution.stream {
+                    continuation.yield(event)
+                }
+                continuation.finish()
+            } catch {
+                continuation.finish(throwing: error)
+            }
+        }
+        continuation.onTermination = { @Sendable termination in
+            relay.cancel()
+            guard case .cancelled = termination else { return }
+            Task {
+                _ = await threadManager.cancelGeneration(turnID: execution.turnID, for: threadID)
+            }
+        }
+        return stream
     }
 
     func startExecution(_ executionRequest: TurnExecutionRequest) async throws -> TurnExecution {
@@ -361,7 +385,7 @@ struct TurnEngine {
 
     private func replayExistingTurn(_ admission: TurnAdmission) async throws -> AsyncThrowingStream<TurnEvent, Error> {
         let repository = dependencies.runtimeRepository
-        let waiter = TurnTerminationWaiter(hub: dependencies.eventHub)
+        let waiter = TurnTerminationWaiter(hub: dependencies.eventHub, clock: dependencies.clock)
         let turnID = admission.turn.identity.turnID
         let (stream, continuation) = AsyncThrowingStream<TurnEvent, Error>.makeStream()
         let task = Task {

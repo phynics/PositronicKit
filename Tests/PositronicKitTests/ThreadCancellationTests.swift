@@ -28,45 +28,33 @@ struct ThreadCancellationTests {
         let turn = try await driver.startTurn("hello")
         let stream = turn.events()
 
-        let sawFirstChunk = Mutex(false)
-        let streamTerminated = Mutex(false)
+        let (startedStream, startedContinuation) = AsyncStream<Void>.makeStream()
         let chunkCount = Mutex(0)
 
         let consumeTask = Task {
             for await event in stream {
                 if event.textContent != nil {
-                    sawFirstChunk.withLock { $0 = true }
                     chunkCount.withLock { $0 += 1 }
+                    startedContinuation.yield(())
+                    startedContinuation.finish()
                 }
             }
-            streamTerminated.withLock { $0 = true }
         }
 
-        // Wait for at least one chunk to prove the stream is active.
-        let firstChunkDeadline = ContinuousClock.now + .seconds(5)
-        while !sawFirstChunk.withLock({ $0 }), ContinuousClock.now < firstChunkDeadline {
-            await Task.yield()
-        }
-        let gotFirstChunk = sawFirstChunk.withLock { $0 }
-        #expect(gotFirstChunk, "Should receive at least one chunk before cancel")
+        var startedIterator = startedStream.makeAsyncIterator()
+        #expect(await startedIterator.next() != nil, "Should receive at least one chunk before cancel")
 
         // Cancel — this was a no-op before the fix.
         await driver.cancel()
 
         // The public TurnHandle stream must terminate after delivering its cancellation event.
-        let terminateDeadline = ContinuousClock.now + .seconds(10)
-        while !streamTerminated.withLock({ $0 }), ContinuousClock.now < terminateDeadline {
-            await Task.yield()
-        }
-        let terminated = streamTerminated.withLock { $0 }
+        await consumeTask.value
         let finalChunkCount = chunkCount.withLock { $0 }
 
-        #expect(terminated, "Stream should terminate after cancel")
         // The stream was configured for 50 chunks with 50ms delays (~2.5s total).
         // After cancellation, only a handful should arrive — not all 50.
         #expect(finalChunkCount < 50, "Stream should stop producing chunks after cancel (got \(finalChunkCount))")
 
-        consumeTask.cancel()
     }
 
     // MARK: - 2. Provider stream task receives cancellation
@@ -86,34 +74,28 @@ struct ThreadCancellationTests {
         let turn = try await driver.startTurn("hello")
         let stream = turn.events()
 
-        let streamTerminated = Mutex(false)
+        let (startedStream, startedContinuation) = AsyncStream<Void>.makeStream()
         let chunkCount = Mutex(0)
 
         let consumeTask = Task {
             for await event in stream {
                 if event.textContent != nil {
                     chunkCount.withLock { $0 += 1 }
+                    startedContinuation.yield(())
+                    startedContinuation.finish()
                 }
             }
-            streamTerminated.withLock { $0 = true }
         }
 
-        // Let the stream start producing.
-        try await Task.sleep(for: .milliseconds(150))
+        var startedIterator = startedStream.makeAsyncIterator()
+        #expect(await startedIterator.next() != nil, "Provider stream should start before cancel")
 
         await driver.cancel()
 
-        let deadline = ContinuousClock.now + .seconds(10)
-        while !streamTerminated.withLock({ $0 }), ContinuousClock.now < deadline {
-            await Task.yield()
-        }
-        let terminated = streamTerminated.withLock { $0 }
+        await consumeTask.value
         let finalChunkCount = chunkCount.withLock { $0 }
 
-        #expect(terminated, "Stream should terminate after cancel")
         #expect(finalChunkCount < 50, "Provider stream should stop after cancel (got \(finalChunkCount) chunks)")
-
-        consumeTask.cancel()
     }
 
     // MARK: - 3. Registry entry removed on every terminal path
@@ -160,38 +142,27 @@ struct ThreadCancellationTests {
         let turn = try await driver.startTurn("hello")
         let stream = turn.events()
 
-        let streamTerminated = Mutex(false)
+        let (startedStream, startedContinuation) = AsyncStream<Void>.makeStream()
         let consumeTask = Task {
-            for await _ in stream {}
-            streamTerminated.withLock { $0 = true }
+            for await event in stream {
+                if event.textContent != nil {
+                    startedContinuation.yield(())
+                    startedContinuation.finish()
+                }
+            }
         }
 
-        // Let the stream start.
-        try await Task.sleep(for: .milliseconds(150))
+        var startedIterator = startedStream.makeAsyncIterator()
+        #expect(await startedIterator.next() != nil, "Stream should start before cancellation")
 
         let activeDuring = await kit.threadManager.hasActiveTask(for: thread.id)
         #expect(activeDuring, "Task should be active during streaming")
+        let activeTask = try #require(await kit.threadManager.activeTaskCompletion(for: thread.id))
 
         await driver.cancel()
-
-        let deadline = ContinuousClock.now + .seconds(10)
-        while !streamTerminated.withLock({ $0 }), ContinuousClock.now < deadline {
-            await Task.yield()
-        }
-        let terminated = streamTerminated.withLock { $0 }
-        #expect(terminated, "Stream should terminate after cancel")
-
-        // Stream termination can become visible to the consumer just before the producer's
-        // terminal cleanup removes its registry entry. Wait for that cleanup explicitly.
-        let cleanupDeadline = ContinuousClock.now + .seconds(10)
-        var activeAfter = await kit.threadManager.hasActiveTask(for: thread.id)
-        while activeAfter, ContinuousClock.now < cleanupDeadline {
-            await Task.yield()
-            activeAfter = await kit.threadManager.hasActiveTask(for: thread.id)
-        }
-        #expect(!activeAfter, "Registry entry should be removed after cancellation")
-
-        consumeTask.cancel()
+        await consumeTask.value
+        _ = await activeTask.value
+        #expect(await kit.threadManager.hasActiveTask(for: thread.id) == false, "Registry entry should be removed after cancellation")
     }
 
     // MARK: - 4. Eviction/deletion cancels active work
@@ -211,34 +182,33 @@ struct ThreadCancellationTests {
         let turn = try await driver.startTurn("hello")
         let stream = turn.events()
 
-        let streamTerminated = Mutex(false)
+        let (startedStream, startedContinuation) = AsyncStream<Void>.makeStream()
         let chunkCount = Mutex(0)
         let consumeTask = Task {
             for await event in stream {
                 if event.textContent != nil {
                     chunkCount.withLock { $0 += 1 }
+                    startedContinuation.yield(())
+                    startedContinuation.finish()
                 }
             }
-            streamTerminated.withLock { $0 = true }
         }
 
-        // Let the stream start.
-        try await Task.sleep(for: .milliseconds(150))
+        var startedIterator = startedStream.makeAsyncIterator()
+        #expect(await startedIterator.next() != nil, "Stream should start before eviction")
 
         // Delete the thread — this must cancel and await the active task.
         await kit.threadManager.evictThreadFromMemory(id: thread.id)
 
         // evictThreadFromMemory awaits bounded cleanup, so the stream should already be done.
-        let terminated = streamTerminated.withLock { $0 }
+        await consumeTask.value
         let finalChunkCount = chunkCount.withLock { $0 }
-        #expect(terminated, "Stream should terminate after thread eviction")
         #expect(finalChunkCount < 50, "Stream should stop after eviction (got \(finalChunkCount) chunks)")
 
         // Thread is evicted from cache.
         let evicted = await kit.threadManager.thread(id: thread.id)
         #expect(evicted == nil)
 
-        consumeTask.cancel()
     }
 
     @Test("cleanupStaleThreads cancels active generation and awaits cleanup (PKRR-002)")
@@ -256,32 +226,31 @@ struct ThreadCancellationTests {
         let turn = try await driver.startTurn("hello")
         let stream = turn.events()
 
-        let streamTerminated = Mutex(false)
+        let (startedStream, startedContinuation) = AsyncStream<Void>.makeStream()
         let chunkCount = Mutex(0)
         let consumeTask = Task {
             for await event in stream {
                 if event.textContent != nil {
                     chunkCount.withLock { $0 += 1 }
+                    startedContinuation.yield(())
+                    startedContinuation.finish()
                 }
             }
-            streamTerminated.withLock { $0 = true }
         }
 
-        // Let the stream start.
-        try await Task.sleep(for: .milliseconds(150))
+        var startedIterator = startedStream.makeAsyncIterator()
+        #expect(await startedIterator.next() != nil, "Stream should start before stale cleanup")
 
         // cleanupStaleThreads(maxAge: 0) evicts all threads (updatedAt > 0 seconds ago).
         await kit.threadManager.cleanupStaleThreads(maxAge: 0)
 
-        let terminated = streamTerminated.withLock { $0 }
+        await consumeTask.value
         let finalChunkCount = chunkCount.withLock { $0 }
-        #expect(terminated, "Stream should terminate after cleanupStaleThreads")
         #expect(finalChunkCount < 50, "Stream should stop after eviction (got \(finalChunkCount) chunks)")
 
         let evicted = await kit.threadManager.thread(id: thread.id)
         #expect(evicted == nil)
 
-        consumeTask.cancel()
     }
 
     // MARK: - 5. Active Turn registration and stale cleanup
@@ -298,18 +267,24 @@ struct ThreadCancellationTests {
         let turnA = UUID()
         let turnB = UUID()
 
+        let (taskAWaitStream, taskAWaitContinuation) = AsyncStream<Void>.makeStream()
         let taskA = Task {
-            while !Task.isCancelled {
-                await Task.yield()
+            await withTaskCancellationHandler {
+                var iterator = taskAWaitStream.makeAsyncIterator()
+                _ = await iterator.next()
+            } onCancel: {
+                taskACancelled.withLock { $0 = true }
             }
-            taskACancelled.withLock { $0 = true }
         }
 
+        let (taskBWaitStream, taskBWaitContinuation) = AsyncStream<Void>.makeStream()
         let taskB = Task {
-            while !Task.isCancelled {
-                await Task.yield()
+            await withTaskCancellationHandler {
+                var iterator = taskBWaitStream.makeAsyncIterator()
+                _ = await iterator.next()
+            } onCancel: {
+                taskBCancelled.withLock { $0 = true }
             }
-            taskBCancelled.withLock { $0 = true }
         }
 
         let registeredA = await threadManager.registerTask(taskA, turnID: turnA, for: threadID)
@@ -321,14 +296,13 @@ struct ThreadCancellationTests {
         #expect(!rejectedCancelResult, "A rejected Turn must not gain cancellation authority")
 
         await threadManager.cancelGeneration(for: threadID)
-        let aDeadline = ContinuousClock.now + .seconds(5)
-        while !taskACancelled.withLock({ $0 }), ContinuousClock.now < aDeadline {
-            await Task.yield()
-        }
+        taskAWaitContinuation.finish()
+        _ = await taskA.value
         #expect(taskACancelled.withLock { $0 })
         #expect(!taskBCancelled.withLock { $0 })
 
         taskB.cancel()
+        taskBWaitContinuation.finish()
         _ = await taskB.value
         await threadManager.removeTask(turnID: turnA, for: threadID)
     }
@@ -342,17 +316,22 @@ struct ThreadCancellationTests {
         let turnA = UUID()
         let turnB = UUID()
 
+        let (taskAWaitStream, taskAWaitContinuation) = AsyncStream<Void>.makeStream()
         let taskA = Task {
-            while !Task.isCancelled { await Task.yield() }
+            var iterator = taskAWaitStream.makeAsyncIterator()
+            _ = await iterator.next()
         }
 
+        let (taskBWaitStream, taskBWaitContinuation) = AsyncStream<Void>.makeStream()
         let taskB = Task {
-            while !Task.isCancelled { await Task.yield() }
+            var iterator = taskBWaitStream.makeAsyncIterator()
+            _ = await iterator.next()
         }
 
         await threadManager.registerTask(taskA, turnID: turnA, for: threadID)
         await threadManager.removeTask(turnID: turnA, for: threadID)
         taskA.cancel()
+        taskAWaitContinuation.finish()
         _ = await taskA.value
         await threadManager.registerTask(taskB, turnID: turnB, for: threadID)
 
@@ -366,5 +345,8 @@ struct ThreadCancellationTests {
         // Clean up.
         await threadManager.cancelGeneration(for: threadID)
         await threadManager.removeTask(turnID: turnB, for: threadID)
+        taskBWaitContinuation.finish()
+        taskB.cancel()
+        _ = await taskB.value
     }
 }

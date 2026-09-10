@@ -40,8 +40,13 @@ annotation reasons around `concurrency_unchecked_sendable` matches). Categories:
   fixture tools in story tests): the tooling protocols are not `Sendable`-refined;
   the conformance is compiler-forced and stateless or capture-only.
 - **Middleware/harness doubles** (`CapturingMiddleware`, `RecordingGate`,
-  `LocalHTTPServer`, `BatchHarness`): bounded by `Mutex<State>` captures.
+  `LocalHTTPServer`, `BatchHarness`): bounded by `Mutex<State>` captures. The
+  `RecordingOpenAIMiddleware` request signal is a one-shot `AsyncStream` continuation used only
+  to stop the request consumer after the middleware has observed the outgoing request; its inline
+  annotation documents that lifecycle.
 - **Pipe/lint fixtures** (`TestContext`): isolated per-test instances.
+- **ManualClock** (`Tests/PKTestSupport/ManualClock.swift`): actor-owned virtual-time waiters
+  resume exactly once when a test advances the clock.
 
 These doubles keep synchronous ergonomics deliberately (see AGENTS.md — test
 doubles are not actorized solely to satisfy `Sendable`).

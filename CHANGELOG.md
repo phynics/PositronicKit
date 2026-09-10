@@ -27,6 +27,10 @@ for tagged releases beginning with `1.0.0`.
 
 ### Added
 
+- **Deterministic Turn timing and cancellation:** `RuntimeConfiguration.streamTimeout` configures
+  the existing 60-second streamed-response idle default, while retry, idle-timeout, and
+  termination-wait timing use internal injectable seams for deterministic tests. Cancelling a
+  facade run now propagates to the admitted provider task and clears its Thread registration.
 - **Atomic managed Thread creation:** `kit.threads.create(title:attaching:)` validates an active
   Agent before creating an ordinary Thread and returns a handle whose attachment is ready for
   managed execution. Creation failures roll back the Thread's durable state.

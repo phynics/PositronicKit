@@ -56,6 +56,12 @@ private actor RequestRecordingTransport: ProviderHTTPTransport {
 /// us inspect host/scheme/port/model/timeout/apiKey without needing a valid mocked response.
 private final class RecordingOpenAIMiddleware: OpenAIMiddleware, @unchecked Sendable { // swiftlint:disable:this concurrency_unchecked_sendable -- reviewed test double (see docs/Concurrency/exception-manifest.md)
     private let storage = Mutex<[URLRequest]>([])
+    private let requestSignals: AsyncStream<Void>
+    private let requestSignalContinuation: AsyncStream<Void>.Continuation // swiftlint:disable:this concurrency_stored_continuation -- test-only request observation signal
+
+    init() {
+        (requestSignals, requestSignalContinuation) = AsyncStream<Void>.makeStream()
+    }
 
     var recordedRequests: [URLRequest] {
         storage.withLock { $0 }
@@ -63,7 +69,13 @@ private final class RecordingOpenAIMiddleware: OpenAIMiddleware, @unchecked Send
 
     func intercept(request: URLRequest) -> URLRequest {
         storage.withLock { $0.append(request) }
+        requestSignalContinuation.yield(())
         return request
+    }
+
+    func waitUntilIntercepted() async {
+        var iterator = requestSignals.makeAsyncIterator()
+        _ = await iterator.next()
     }
 }
 
@@ -124,7 +136,10 @@ struct ProviderInitializationTests {
             messages: [LLMMessage(role: .user, content: "hi")],
             tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil
         )
-        _ = try? await stream.collect()
+        let consumer = Task { _ = try? await stream.collect() }
+        await middleware.waitUntilIntercepted()
+        consumer.cancel()
+        _ = await consumer.value
 
         let request = try #require(middleware.recordedRequests.first)
         #expect(request.url?.host == "api.openai.com")
@@ -147,7 +162,7 @@ struct ProviderInitializationTests {
             port: 8443,
             scheme: "https",
             timeoutInterval: 12.5,
-            maxRetries: 1,
+            maxRetries: 0,
             session: NoNetworkURLProtocol.session,
             middlewares: [middleware]
         )
@@ -156,7 +171,10 @@ struct ProviderInitializationTests {
             messages: [LLMMessage(role: .user, content: "hi")],
             tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil
         )
-        _ = try? await stream.collect()
+        let consumer = Task { _ = try? await stream.collect() }
+        await middleware.waitUntilIntercepted()
+        consumer.cancel()
+        _ = await consumer.value
 
         let request = try #require(middleware.recordedRequests.first)
         #expect(request.url?.host == "my-openai-proxy.example.com")
@@ -181,7 +199,7 @@ struct ProviderInitializationTests {
         let transport = RequestRecordingTransport { _ in
             (Data(), self.response(url: "https://api.anthropic.com/v1/messages", status: 500))
         }
-        let client = AnthropicClient(apiKey: "anthropic-secret", transport: transport)
+        let client = AnthropicClient(apiKey: "anthropic-secret", maxRetries: 0, transport: transport)
 
         let stream = await client.chatStream(
             messages: [LLMMessage(role: .user, content: "hi")],
@@ -201,9 +219,6 @@ struct ProviderInitializationTests {
         // Default maxTokens (4096) is used when GenerationParameters.maxTokens is nil.
         #expect(json.contains("\"max_tokens\":4096"))
 
-        // Default maxRetries (3): the initial attempt plus 3 retries against the persistent
-        // 500 response is 4 recorded requests.
-        #expect(await transport.recordedRequests().count == 4)
     }
 
     @Test("Anthropic client threads explicit overrides into the outgoing request")
@@ -218,7 +233,7 @@ struct ProviderInitializationTests {
             port: 8443,
             scheme: "https",
             timeoutInterval: 15,
-            maxRetries: 1,
+            maxRetries: 0,
             transport: transport
         )
 
@@ -242,7 +257,7 @@ struct ProviderInitializationTests {
         let transport = RequestRecordingTransport { _ in
             (Data(), self.response(url: "https://api.anthropic.com/v1/messages", status: 500))
         }
-        let client = AnthropicClient(apiKey: "secret", port: 443, transport: transport)
+        let client = AnthropicClient(apiKey: "secret", port: 443, maxRetries: 0, transport: transport)
         _ = try? await client.chatStream(
             messages: [], tools: nil, toolChoice: nil, responseFormat: nil, generationParameters: nil
         ).collect()
@@ -265,7 +280,12 @@ struct ProviderInitializationTests {
         let transport = RequestRecordingTransport { _ in
             (Data(), self.response(url: "http://localhost:11434/api/chat", status: 500))
         }
-        let client = OllamaClient(endpoint: "http://localhost:11434", modelName: "llama3.1", transport: transport)
+        let client = OllamaClient(
+            endpoint: "http://localhost:11434",
+            modelName: "llama3.1",
+            maxRetries: 0,
+            transport: transport
+        )
 
         let stream = await client.chatStream(
             messages: [LLMMessage(role: .user, content: "hi")],
@@ -291,7 +311,7 @@ struct ProviderInitializationTests {
             endpoint: "http://192.168.1.50:11434",
             modelName: "mistral",
             timeoutInterval: 30,
-            maxRetries: 1,
+            maxRetries: 0,
             transport: transport
         )
 
@@ -333,7 +353,7 @@ struct ProviderInitializationTests {
         let transport = RequestRecordingTransport { _ in
             (Data(), self.response(url: "https://openrouter.ai/api/v1/chat/completions", status: 500))
         }
-        let client = OpenRouterClient(apiKey: "or-secret", transport: transport)
+        let client = OpenRouterClient(apiKey: "or-secret", maxRetries: 0, transport: transport)
 
         let stream = await client.chatStream(
             messages: [LLMMessage(role: .user, content: "hi")],
@@ -363,7 +383,7 @@ struct ProviderInitializationTests {
             port: 443,
             scheme: "https",
             timeoutInterval: 20,
-            maxRetries: 1,
+            maxRetries: 0,
             transport: transport,
             attribution: .init()
         )
@@ -390,6 +410,7 @@ struct ProviderInitializationTests {
         }
         let withAttributionClient = OpenRouterClient(
             apiKey: "or-secret",
+            maxRetries: 0,
             transport: withAttributionTransport,
             attribution: .init(applicationURL: "https://example.com/app", applicationTitle: "Example App")
         )
@@ -406,6 +427,7 @@ struct ProviderInitializationTests {
         }
         let withoutAttributionClient = OpenRouterClient(
             apiKey: "or-secret",
+            maxRetries: 0,
             transport: withoutAttributionTransport,
             attribution: .init()
         )

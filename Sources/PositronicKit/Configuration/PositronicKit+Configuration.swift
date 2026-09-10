@@ -194,6 +194,7 @@ public extension PositronicKit {
         public let toolApprovalPolicy: any ToolApprovalPolicy
         public let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
         public let degradationPolicy: TurnDegradationPolicy
+        public let streamTimeout: TimeInterval
 
         /// - Parameters:
         ///   - workspaceProfile: How the per-thread filesystem workspace is provisioned.
@@ -207,6 +208,7 @@ public extension PositronicKit {
         ///   - toolApprovalPolicy: Controls whether runtime tool calls require approval.
         ///   - diagnosticSnapshotConfiguration: Controls diagnostic response snapshots.
         ///   - degradationPolicy: Controls whether required turn degradations fail the turn.
+        ///   - streamTimeout: Maximum idle time between streamed model chunks.
         public init(
             workspaceProfile: WorkspaceProfile = .noWorkspace,
             workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
@@ -214,7 +216,8 @@ public extension PositronicKit {
             runtimeToolPolicy: RuntimeToolPolicy = .default,
             toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
             diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
-            degradationPolicy: TurnDegradationPolicy = .failRequired
+            degradationPolicy: TurnDegradationPolicy = .failRequired,
+            streamTimeout: TimeInterval = 60
         ) {
             self.workspaceProfile = workspaceProfile
             self.workspaceCreator = workspaceCreator
@@ -223,6 +226,7 @@ public extension PositronicKit {
             self.toolApprovalPolicy = toolApprovalPolicy
             self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
             self.degradationPolicy = degradationPolicy
+            self.streamTimeout = streamTimeout
         }
 
         /// The default runtime configuration: no workspaces or customization, deny-all tool approval.
@@ -257,7 +261,8 @@ public extension PositronicKit {
             toolApprovalPolicy: configuration.runtime.toolApprovalPolicy,
             loggingConfiguration: configuration.logging,
             sharedRegistry: ThreadPromptJournals(),
-            additionalStages: []
+            additionalStages: [],
+            streamTimeout: configuration.runtime.streamTimeout
         )
         if let warning = configuration.persistence.validateDurability().mixedDurabilityWarning {
             configuration.logging.logger(named: "positronickit-facade").warning(

@@ -79,6 +79,7 @@ struct WorkspaceProfileLifecycleTests {
     @Test("RuntimeConfiguration.default resolves to .noWorkspace")
     func runtimeConfigurationDefaultIsNoWorkspace() {
         let config = PositronicKit.RuntimeConfiguration.default
+        #expect(config.streamTimeout == 60)
         if case .noWorkspace = config.workspaceProfile {
             // ok
         } else {

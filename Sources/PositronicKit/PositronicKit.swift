@@ -173,7 +173,9 @@ public final class PositronicKit: Sendable {
         toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
         loggingConfiguration: LoggingConfiguration = .default,
         sharedRegistry: ThreadPromptJournals,
-        additionalStages: [any PipelineStage<TurnContext, TurnEvent>]
+        additionalStages: [any PipelineStage<TurnContext, TurnEvent>],
+        streamTimeout: TimeInterval = TurnEngine.Dependencies.defaultStreamTimeout,
+        clock: any RuntimeClock = ContinuousRuntimeClock()
     ) {
         // The binding repository is resolved exactly once, by `PersistenceConfiguration`
         // (ADR 0004: binding authority is repository-only). This seam receives it rather than
@@ -199,7 +201,9 @@ public final class PositronicKit: Sendable {
                 toolApprovalPolicy: toolApprovalPolicy,
                 loggingConfiguration: loggingConfiguration,
                 sharedRegistry: sharedRegistry,
-                additionalStages: additionalStages
+                additionalStages: additionalStages,
+                streamTimeout: streamTimeout,
+                clock: clock
             )
         )
     }
@@ -347,7 +351,9 @@ public final class PositronicKit: Sendable {
                 degradationPolicy: dependencies.degradationPolicy,
                 promptHistoryRegistry: promptHistoryRegistry,
                 eventHub: resolvedEventHub,
-                submissionGate: resolvedSubmissionGate
+                submissionGate: resolvedSubmissionGate,
+                streamTimeout: dependencies.streamTimeout,
+                clock: dependencies.clock
             )
         )
         engine.additionalStages = dependencies.additionalStages
@@ -377,7 +383,9 @@ public final class PositronicKit: Sendable {
             toolApprovalPolicy: toolApprovalPolicy,
             loggingConfiguration: loggingConfiguration,
             sharedRegistry: promptHistoryRegistry,
-            additionalStages: turnEngine.additionalStages
+            additionalStages: turnEngine.additionalStages,
+            streamTimeout: turnEngine.dependencies.streamTimeout,
+            clock: turnEngine.dependencies.clock
         )
     }
 
@@ -460,7 +468,10 @@ public final class PositronicKit: Sendable {
     }
 
     func waitForTurnOutcome(id turnID: UUID) async throws -> TurnOutcome {
-        let waiter = TurnTerminationWaiter(hub: runtimeState.eventHub)
+        let waiter = TurnTerminationWaiter(
+            hub: runtimeState.eventHub,
+            clock: turnEngine.dependencies.clock
+        )
         let observation = try await waiter.awaitResult(turnID: turnID) {
             try await self.runtimeRepository.fetchTurn(id: turnID)?.outcome
         }
