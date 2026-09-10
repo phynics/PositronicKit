@@ -3,6 +3,7 @@ import Logging
 import PKPrompt
 import PKContracts
 import PKUtilities
+import Synchronization
 
 /// The public facade for PositronicKit's agent runtime subsystem.
 ///
@@ -173,7 +174,9 @@ public final class PositronicKit: Sendable {
         toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
         loggingConfiguration: LoggingConfiguration = .default,
         sharedRegistry: ThreadPromptJournals,
-        additionalStages: [any PipelineStage<TurnContext, TurnEvent>]
+        additionalStages: [any PipelineStage<TurnContext, TurnEvent>],
+        streamTimeout: TimeInterval = TurnEngine.Dependencies.defaultStreamTimeout,
+        clock: any RuntimeClock = ContinuousRuntimeClock()
     ) {
         // The binding repository is resolved exactly once, by `PersistenceConfiguration`
         // (ADR 0004: binding authority is repository-only). This seam receives it rather than
@@ -199,7 +202,9 @@ public final class PositronicKit: Sendable {
                 toolApprovalPolicy: toolApprovalPolicy,
                 loggingConfiguration: loggingConfiguration,
                 sharedRegistry: sharedRegistry,
-                additionalStages: additionalStages
+                additionalStages: additionalStages,
+                streamTimeout: streamTimeout,
+                clock: clock
             )
         )
     }
@@ -347,7 +352,9 @@ public final class PositronicKit: Sendable {
                 degradationPolicy: dependencies.degradationPolicy,
                 promptHistoryRegistry: promptHistoryRegistry,
                 eventHub: resolvedEventHub,
-                submissionGate: resolvedSubmissionGate
+                submissionGate: resolvedSubmissionGate,
+                streamTimeout: dependencies.streamTimeout,
+                clock: dependencies.clock
             )
         )
         engine.additionalStages = dependencies.additionalStages
@@ -377,7 +384,9 @@ public final class PositronicKit: Sendable {
             toolApprovalPolicy: toolApprovalPolicy,
             loggingConfiguration: loggingConfiguration,
             sharedRegistry: promptHistoryRegistry,
-            additionalStages: turnEngine.additionalStages
+            additionalStages: turnEngine.additionalStages,
+            streamTimeout: turnEngine.dependencies.streamTimeout,
+            clock: turnEngine.dependencies.clock
         )
     }
 
@@ -430,22 +439,39 @@ public final class PositronicKit: Sendable {
         return TurnHandle(
             id: execution.turnID,
             threadID: request.threadID,
-            eventStream: nonThrowingEvents(from: execution.stream),
+            eventStream: nonThrowingEvents(
+                from: execution.stream,
+                // Consumer cancellation must reach the Turn on the public path too, not only on
+                // the engine-test `TurnEngine.execute(_:)` path.
+                relay: turnEngine.consumerCancellationRelay(for: execution, threadID: request.threadID)
+            ),
             kit: self
         )
     }
 
+    /// Bridges the Turn's throwing event stream onto the nonthrowing stream a `TurnHandle`
+    /// hands out, and relays consumer abandonment back to the Turn.
+    ///
+    /// This is the only hop between the Turn and its public consumer: the relay rides on this
+    /// bridge rather than wrapping `source` in a second stream, so an abandoned consumer is
+    /// observed without adding a task to every Turn.
     private func nonThrowingEvents(
-        from source: AsyncThrowingStream<TurnEvent, Error>
+        from source: AsyncThrowingStream<TurnEvent, Error>,
+        relay: TurnEngine.ConsumerCancellationRelay
     ) -> AsyncStream<TurnEvent> {
         AsyncStream { continuation in
-            Task {
+            let reachedTerminalState = Mutex(false)
+            let bridge = Task {
                 var terminalDelivered = false
                 do {
                     for try await event in source {
                         if event.isTerminal {
                             if terminalDelivered { continue }
                             terminalDelivered = true
+                            // Set before the yield below: a consumer must not be able to observe
+                            // the terminal event and break while the relay still thinks the Turn
+                            // is live.
+                            reachedTerminalState.withLock { $0 = true }
                         }
                         continuation.yield(event)
                     }
@@ -454,13 +480,24 @@ public final class PositronicKit: Sendable {
                         continuation.yield(.error(error))
                     }
                 }
+                reachedTerminalState.withLock { $0 = true }
                 continuation.finish()
+            }
+            continuation.onTermination = { @Sendable termination in
+                // Without this the bridge outlives an abandoned consumer and keeps draining
+                // `source` for events nobody will read.
+                bridge.cancel()
+                guard case .cancelled = termination else { return }
+                relay.consumerAbandoned(reachedTerminalState: reachedTerminalState.withLock { $0 })
             }
         }
     }
 
     func waitForTurnOutcome(id turnID: UUID) async throws -> TurnOutcome {
-        let waiter = TurnTerminationWaiter(hub: runtimeState.eventHub)
+        let waiter = TurnTerminationWaiter(
+            hub: runtimeState.eventHub,
+            clock: turnEngine.dependencies.clock
+        )
         let observation = try await waiter.awaitResult(turnID: turnID) {
             try await self.runtimeRepository.fetchTurn(id: turnID)?.outcome
         }

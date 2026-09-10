@@ -12,12 +12,13 @@ enum TurnPipelineBuilder {
         llmService: any LLMStreamClient,
         runtimeRepository: any ThreadRuntimeRepository,
         streamTimeout: TimeInterval,
+        clock: any RuntimeClock = ContinuousRuntimeClock(),
         diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
         loggingConfiguration: LoggingConfiguration = .default,
         additionalStages: [any PipelineStage<TurnContext, TurnEvent>] = []
     ) -> Pipeline<TurnContext, TurnEvent> {
         var pipeline = Pipeline<TurnContext, TurnEvent>()
-            .add(LLMStreamingStage(llmService: llmService, streamTimeout: streamTimeout))
+            .add(LLMStreamingStage(llmService: llmService, streamTimeout: streamTimeout, clock: clock))
             .add(ToolCallExtractionStage())
             .add(MessagePersistenceStage(
                 runtimeRepository: runtimeRepository,

@@ -99,6 +99,10 @@ Turn admission with the input message and normal terminal message/outcome comple
 `RuntimeCustomization`. Consumers use `kit.threads`, `kit.agents`, `kit.workspaces`, and
 `kit.model`; concrete coordinators and the model-round machinery remain internal.
 
+Set `RuntimeConfiguration.streamTimeout` to control the maximum idle interval between streamed
+model chunks. It defaults to 60 seconds and applies only while a provider stream is active; it is
+not a total Turn duration limit.
+
 Turn execution always uses the configured `ThreadRuntimeRepository`. Independent `messageStore`
 and `threadPersistence` values are not accepted by the facade or its Turn machinery; standalone
 managers that cannot execute a Turn may still use their narrower persistence seams.

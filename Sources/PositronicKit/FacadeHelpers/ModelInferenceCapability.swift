@@ -50,6 +50,18 @@ public struct ModelInferenceCapability: Sendable {
         return await healthCheckable.checkHealth()
     }
 
+    /// Generates a complete response for a single prompt, without creating or updating a Thread.
+    ///
+    /// - Parameters:
+    ///   - prompt: The user prompt to send.
+    ///   - generationParameters: Per-call generation parameters. Defaults to the facade's
+    ///     configured parameters when `nil`.
+    ///   - idleTimeout: Maximum idle time between streamed chunks, in seconds. This defaults to
+    ///     60 seconds rather than the runtime's configured `RuntimeConfiguration.streamTimeout`:
+    ///     a default argument is baked in at the call site, so honouring the configured value
+    ///     here would change this method's public signature. Pass the value explicitly to match
+    ///     a non-default runtime configuration.
+    /// - Returns: The assembled content plus the provider's terminal metadata.
     public func generate(
         _ prompt: String,
         generationParameters: GenerationParameters? = nil,
@@ -62,6 +74,19 @@ public struct ModelInferenceCapability: Sendable {
         )
     }
 
+    /// Streams a response for a single prompt, without creating or updating a Thread.
+    ///
+    /// - Parameters:
+    ///   - prompt: The user prompt to send.
+    ///   - generationParameters: Per-call generation parameters. Defaults to the facade's
+    ///     configured parameters when `nil`.
+    ///   - idleTimeout: Maximum idle time between streamed chunks, in seconds. This defaults to
+    ///     60 seconds rather than the runtime's configured `RuntimeConfiguration.streamTimeout`:
+    ///     a default argument is baked in at the call site, so honouring the configured value
+    ///     here would change this method's public signature. Pass the value explicitly to match
+    ///     a non-default runtime configuration.
+    /// - Returns: The provider's raw chunk stream. Cancelling the consuming task cancels the
+    ///   underlying provider request.
     public func stream(
         _ prompt: String,
         generationParameters: GenerationParameters? = nil,
@@ -74,6 +99,20 @@ public struct ModelInferenceCapability: Sendable {
         )
     }
 
+    /// Generates a structured response for a single prompt, without creating or updating a
+    /// Thread.
+    ///
+    /// - Parameters:
+    ///   - prompt: The user prompt to send.
+    ///   - structuredOutput: The schema the response must conform to.
+    ///   - generationParameters: Per-call generation parameters. Defaults to the facade's
+    ///     configured parameters when `nil`.
+    ///   - idleTimeout: Maximum idle time between streamed chunks, in seconds. This defaults to
+    ///     60 seconds rather than the runtime's configured `RuntimeConfiguration.streamTimeout`:
+    ///     a default argument is baked in at the call site, so honouring the configured value
+    ///     here would change this method's public signature. Pass the value explicitly to match
+    ///     a non-default runtime configuration.
+    /// - Returns: The raw structured payload (JSON), decodable via `StructuredOutputDecoder`.
     public func generateStructured(
         _ prompt: String,
         structuredOutput: StructuredOutputRequest,

@@ -10,36 +10,14 @@ public extension LLMStreamClient {
         idleTimeout: TimeInterval = 60,
         modelTier: ModelTier = .primary
     ) async throws -> String {
-        let stream = await generationStream(
-            messages: [LLMMessage(role: .user, content: content)],
-            tools: nil,
+        try await sendStructuredMessage(
+            content,
             structuredOutput: structuredOutput,
             generationParameters: generationParameters,
+            idleTimeout: idleTimeout,
+            clock: ContinuousRuntimeClock(),
             modelTier: modelTier
         )
-
-        let provider = await configuration.activeProvider
-        let content: String
-        do {
-            content = try await StreamIdleTimeout.run(timeout: idleTimeout) { deadline in
-                var fullContent = ""
-                for try await chunk in stream {
-                    if Task.isCancelled { throw CancellationError() }
-                    await deadline.reset()
-                    if let delta = chunk.choices.first?.delta.content {
-                        fullContent += delta
-                    }
-                }
-                if Task.isCancelled { throw CancellationError() }
-                return fullContent
-            }
-        } catch {
-            throw wrapForeignError(error)
-        }
-        guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw LLMServiceError.emptyResponse(provider: provider.rawValue)
-        }
-        return content
     }
 
     func generationStream(
@@ -117,6 +95,51 @@ public extension LLMStreamClient {
         )
 
         return try StructuredOutputDecoder.decode(type, from: response, decoder: decoder)
+    }
+}
+
+package extension LLMStreamClient {
+    /// Structured send with the runtime clock injected, so callers inside the package can run
+    /// the idle watchdog on virtual time. `RuntimeClock` is package-scoped, which is why this
+    /// cannot simply be a defaulted parameter on the public entry point above.
+    func sendStructuredMessage(
+        _ content: String,
+        structuredOutput: StructuredOutputRequest,
+        generationParameters: GenerationParameters? = nil,
+        idleTimeout: TimeInterval = 60,
+        clock: any RuntimeClock,
+        modelTier: ModelTier = .primary
+    ) async throws -> String {
+        let stream = await generationStream(
+            messages: [LLMMessage(role: .user, content: content)],
+            tools: nil,
+            structuredOutput: structuredOutput,
+            generationParameters: generationParameters,
+            modelTier: modelTier
+        )
+
+        let provider = await configuration.activeProvider
+        let content: String
+        do {
+            content = try await StreamIdleTimeout.run(timeout: idleTimeout, clock: clock) { deadline in
+                var fullContent = ""
+                for try await chunk in stream {
+                    if Task.isCancelled { throw CancellationError() }
+                    await deadline.reset()
+                    if let delta = chunk.choices.first?.delta.content {
+                        fullContent += delta
+                    }
+                }
+                if Task.isCancelled { throw CancellationError() }
+                return fullContent
+            }
+        } catch {
+            throw wrapForeignError(error)
+        }
+        guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw LLMServiceError.emptyResponse(provider: provider.rawValue)
+        }
+        return content
     }
 }
 

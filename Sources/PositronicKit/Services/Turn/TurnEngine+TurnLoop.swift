@@ -384,6 +384,7 @@ private extension TurnEngine {
             llmService: dependencies.llmService,
             runtimeRepository: dependencies.runtimeRepository,
             streamTimeout: dependencies.streamTimeout,
+            clock: dependencies.clock,
             diagnosticSnapshotConfiguration: dependencies.diagnosticSnapshotConfiguration,
             loggingConfiguration: dependencies.loggingConfiguration,
             additionalStages: additionalStages

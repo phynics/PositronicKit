@@ -195,6 +195,16 @@ public extension PositronicKit {
         public let diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration
         public let degradationPolicy: TurnDegradationPolicy
 
+        /// Maximum idle time, in seconds, between streamed model chunks before a Turn fails
+        /// with `streamTimedOut`.
+        ///
+        /// Clamped to one millisecond ... one day. The bounds exist only to keep unusable values
+        /// out of the stream watchdog: a zero or negative timeout would fail every Turn the
+        /// instant it starts, and a huge or infinite one would trap in `Duration.seconds(_:)`.
+        /// This initializer is not failable, so out-of-range values are clamped and non-finite
+        /// ones fall back to the 60-second default.
+        public let streamTimeout: TimeInterval
+
         /// - Parameters:
         ///   - workspaceProfile: How the per-thread filesystem workspace is provisioned.
         ///     Defaults to `.noWorkspace` (no filesystem side effects). Pass `.hostManaged(root:)`
@@ -207,6 +217,8 @@ public extension PositronicKit {
         ///   - toolApprovalPolicy: Controls whether runtime tool calls require approval.
         ///   - diagnosticSnapshotConfiguration: Controls diagnostic response snapshots.
         ///   - degradationPolicy: Controls whether required turn degradations fail the turn.
+        ///   - streamTimeout: Maximum idle time between streamed model chunks, in seconds.
+        ///     Clamped to one millisecond ... one day; a non-finite value falls back to 60.
         public init(
             workspaceProfile: WorkspaceProfile = .noWorkspace,
             workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(),
@@ -214,7 +226,8 @@ public extension PositronicKit {
             runtimeToolPolicy: RuntimeToolPolicy = .default,
             toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(),
             diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default,
-            degradationPolicy: TurnDegradationPolicy = .failRequired
+            degradationPolicy: TurnDegradationPolicy = .failRequired,
+            streamTimeout: TimeInterval = 60
         ) {
             self.workspaceProfile = workspaceProfile
             self.workspaceCreator = workspaceCreator
@@ -223,6 +236,7 @@ public extension PositronicKit {
             self.toolApprovalPolicy = toolApprovalPolicy
             self.diagnosticSnapshotConfiguration = diagnosticSnapshotConfiguration
             self.degradationPolicy = degradationPolicy
+            self.streamTimeout = TurnEngine.Dependencies.resolvedStreamTimeout(streamTimeout)
         }
 
         /// The default runtime configuration: no workspaces or customization, deny-all tool approval.
@@ -257,7 +271,8 @@ public extension PositronicKit {
             toolApprovalPolicy: configuration.runtime.toolApprovalPolicy,
             loggingConfiguration: configuration.logging,
             sharedRegistry: ThreadPromptJournals(),
-            additionalStages: []
+            additionalStages: [],
+            streamTimeout: configuration.runtime.streamTimeout
         )
         if let warning = configuration.persistence.validateDurability().mixedDurabilityWarning {
             configuration.logging.logger(named: "positronickit-facade").warning(

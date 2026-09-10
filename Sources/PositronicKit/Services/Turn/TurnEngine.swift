@@ -4,6 +4,7 @@ import Logging
 import PKContracts
 import PKPrompt
 import PKUtilities
+import Synchronization
 
 /// Errors thrown by `TurnEngine` during setup and execution.
 enum TurnEngineError: PKError {
@@ -107,12 +108,30 @@ struct TurnEngine {
     struct TurnExecution {
         let turnID: UUID
         let stream: AsyncThrowingStream<TurnEvent, Error>
+        /// Whether this caller admitted `turnID`, as opposed to joining or replaying a Turn
+        /// that another caller owns. Only the admitting caller may cancel the generation.
+        let ownsGeneration: Bool
     }
 
     struct Dependencies {
         /// Production default for the per-stream idle watchdog. Callers must pass an explicit
         /// bounded value through `Dependencies` when they need to override it.
         static let defaultStreamTimeout: TimeInterval = 60
+
+        /// The accepted range for `streamTimeout`, in seconds: one millisecond to one day.
+        ///
+        /// The bounds exist only to keep unusable values out of the watchdog — a zero or
+        /// negative timeout would fail every Turn the instant it starts, and a huge one would
+        /// overflow `Duration.seconds(_:)` in `StreamIdleDeadline`. They are deliberately wide,
+        /// so ordinary sub-second timeouts pass through untouched.
+        static let streamTimeoutRange: ClosedRange<TimeInterval> = 0.001...86_400
+
+        /// Clamps `requested` into ``streamTimeoutRange``, substituting the default for a
+        /// non-finite value (`.nan` compares false against every bound, so it cannot be clamped).
+        static func resolvedStreamTimeout(_ requested: TimeInterval) -> TimeInterval {
+            guard requested.isFinite else { return defaultStreamTimeout }
+            return min(max(requested, streamTimeoutRange.lowerBound), streamTimeoutRange.upperBound)
+        }
 
         let threadManager: ThreadManager
         let agentStore: any AgentStoreProtocol
@@ -135,6 +154,7 @@ struct TurnEngine {
         let eventHub: TurnEventHub
         let submissionGate: ExternalToolOutputSubmissionGate
         let streamTimeout: TimeInterval
+        let clock: any RuntimeClock
 
         init(
             threadManager: ThreadManager,
@@ -155,7 +175,8 @@ struct TurnEngine {
             promptHistoryRegistry: ThreadPromptJournals? = nil,
             eventHub: TurnEventHub? = nil,
             submissionGate: ExternalToolOutputSubmissionGate? = nil,
-            streamTimeout: TimeInterval = Self.defaultStreamTimeout
+            streamTimeout: TimeInterval = Self.defaultStreamTimeout,
+            clock: any RuntimeClock = ContinuousRuntimeClock()
         ) {
             self.threadManager = threadManager
             self.agentStore = agentStore
@@ -175,7 +196,8 @@ struct TurnEngine {
             self.promptHistoryRegistry = promptHistoryRegistry ?? ThreadPromptJournals()
             self.eventHub = eventHub ?? TurnEventHub()
             self.submissionGate = submissionGate ?? ExternalToolOutputSubmissionGate()
-            self.streamTimeout = streamTimeout
+            self.streamTimeout = Self.resolvedStreamTimeout(streamTimeout)
+            self.clock = clock
         }
     }
 
@@ -262,8 +284,82 @@ struct TurnEngine {
     // MARK: - API
 
     /// Executes one normalized Turn request and returns its event stream.
+    ///
+    /// Reserved for runtime-owned engine tests; public callers reach a Turn through
+    /// ``PositronicKit`` and get a `TurnHandle`. Both paths share
+    /// ``ConsumerCancellationRelay`` so the cancellation policy is stated once.
     func execute(_ executionRequest: TurnExecutionRequest) async throws -> AsyncThrowingStream<TurnEvent, Error> {
-        try await startExecution(executionRequest).stream
+        let execution = try await startExecution(executionRequest)
+        let relay = consumerCancellationRelay(for: execution, threadID: executionRequest.request.threadID)
+        guard relay.canCancel else { return execution.stream }
+
+        let reachedTerminalState = Mutex(false)
+        let (stream, continuation) = AsyncThrowingStream<TurnEvent, Error>.makeStream()
+        let bridge = Task {
+            do {
+                for try await event in execution.stream {
+                    if event.isTerminal { reachedTerminalState.withLock { $0 = true } }
+                    continuation.yield(event)
+                }
+                reachedTerminalState.withLock { $0 = true }
+                continuation.finish()
+            } catch {
+                reachedTerminalState.withLock { $0 = true }
+                continuation.finish(throwing: error)
+            }
+        }
+        continuation.onTermination = { @Sendable termination in
+            bridge.cancel()
+            guard case .cancelled = termination else { return }
+            relay.consumerAbandoned(reachedTerminalState: reachedTerminalState.withLock { $0 })
+        }
+        return stream
+    }
+
+    /// The cancellation policy for one execution's consumer, for whichever stream wrapper
+    /// carries its events out to the caller.
+    func consumerCancellationRelay(
+        for execution: TurnExecution,
+        threadID: UUID
+    ) -> ConsumerCancellationRelay {
+        ConsumerCancellationRelay(
+            threadManager: dependencies.threadManager,
+            turnID: execution.turnID,
+            threadID: threadID,
+            ownsGeneration: execution.ownsGeneration
+        )
+    }
+
+    /// Cancels a Turn when the consumer that admitted it walks away mid-generation.
+    ///
+    /// Two conditions gate the relay, and both are load-bearing:
+    ///
+    /// - Only the caller that *admitted* the Turn may cancel it. A `.joined`/`.replayed`
+    ///   execution observes a generation owned by a different caller, and dropping that
+    ///   observation must never terminate the owner's work.
+    /// - The relay stops once the Turn has reached a terminal state. A consumer that `break`s
+    ///   out of its loop right after the terminal event terminates its stream as `.cancelled`,
+    ///   and cancelling there would race the Turn's own cleanup. Callers must set that flag
+    ///   *before* yielding the terminal event, so a consumer cannot observe the event and break
+    ///   while the relay still believes the Turn is live.
+    struct ConsumerCancellationRelay: Sendable {
+        let threadManager: ThreadManager
+        let turnID: UUID
+        let threadID: UUID
+        let ownsGeneration: Bool
+
+        /// Whether abandoning this consumer may cancel anything at all.
+        var canCancel: Bool { ownsGeneration }
+
+        func consumerAbandoned(reachedTerminalState: Bool) {
+            guard canCancel, !reachedTerminalState else { return }
+            let threadManager = self.threadManager
+            let turnID = self.turnID
+            let threadID = self.threadID
+            Task {
+                _ = await threadManager.cancelGeneration(turnID: turnID, for: threadID)
+            }
+        }
     }
 
     func startExecution(_ executionRequest: TurnExecutionRequest) async throws -> TurnExecution {
@@ -308,9 +404,12 @@ struct TurnEngine {
                     stream = try await replayExistingTurn(admission)
                 }
             }
+            // `.existing` is only produced for `.joined`/`.replayed`, so this execution merely
+            // observes a generation the admitting caller owns.
             return TurnExecution(
                 turnID: admission.turn.identity.turnID,
-                stream: stream
+                stream: stream,
+                ownsGeneration: false
             )
         }
         guard case let .ready(context) = prepared else {
@@ -356,12 +455,12 @@ struct TurnEngine {
         }
         startContinuation.yield(registered)
         startContinuation.finish()
-        return TurnExecution(turnID: turnID, stream: stream)
+        return TurnExecution(turnID: turnID, stream: stream, ownsGeneration: true)
     }
 
     private func replayExistingTurn(_ admission: TurnAdmission) async throws -> AsyncThrowingStream<TurnEvent, Error> {
         let repository = dependencies.runtimeRepository
-        let waiter = TurnTerminationWaiter(hub: dependencies.eventHub)
+        let waiter = TurnTerminationWaiter(hub: dependencies.eventHub, clock: dependencies.clock)
         let turnID = admission.turn.identity.turnID
         let (stream, continuation) = AsyncThrowingStream<TurnEvent, Error>.makeStream()
         let task = Task {

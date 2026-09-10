@@ -10038,6 +10038,35 @@
       "declaration": "init(event: TurnEvent.ErrorEvent)"
     },
     {
+      "precise": "s:13PKTestSupport11ManualClockC",
+      "module": "PKTestSupport",
+      "kind": "swift.class",
+      "path": [
+        "ManualClock"
+      ],
+      "declaration": "actor ManualClock"
+    },
+    {
+      "precise": "s:13PKTestSupport11ManualClockC5startAC12_Concurrency010ContinuousD0V7InstantV_tcfc",
+      "module": "PKTestSupport",
+      "kind": "swift.init",
+      "path": [
+        "ManualClock",
+        "init(start:)"
+      ],
+      "declaration": "init(start: ContinuousClock.Instant = ContinuousClock.now)"
+    },
+    {
+      "precise": "s:13PKTestSupport11ManualClockC7advance2byys8DurationV_tF",
+      "module": "PKTestSupport",
+      "kind": "swift.method",
+      "path": [
+        "ManualClock",
+        "advance(by:)"
+      ],
+      "declaration": "func advance(by duration: Duration)"
+    },
+    {
       "precise": "s:13PKTestSupport11TestRuntimeV",
       "module": "PKTestSupport",
       "kind": "swift.struct",
@@ -23188,6 +23217,17 @@
       "declaration": "let customization: RuntimeCustomization"
     },
     {
+      "precise": "s:13PositronicKitAAC20RuntimeConfigurationV13streamTimeoutSdvp",
+      "module": "PositronicKit",
+      "kind": "swift.property",
+      "path": [
+        "PositronicKit",
+        "RuntimeConfiguration",
+        "streamTimeout"
+      ],
+      "declaration": "let streamTimeout: TimeInterval"
+    },
+    {
       "precise": "s:13PositronicKitAAC20RuntimeConfigurationV16workspaceCreatorAA16WorkspaceFactory_pvp",
       "module": "PositronicKit",
       "kind": "swift.property",
@@ -23199,15 +23239,15 @@
       "declaration": "let workspaceCreator: any WorkspaceFactory"
     },
     {
-      "precise": "s:13PositronicKitAAC20RuntimeConfigurationV16workspaceProfile0E7Creator13customization17runtimeToolPolicy012toolApprovalK0018diagnosticSnapshotD0011degradationK0AdA09WorkspaceF0O_AA0Q7Factory_pAA0C13CustomizationVAA0cjK0V11PKContracts0jmK0_pAS010DiagnosticoD0VAS015TurnDegradationK0Otcfc",
+      "precise": "s:13PositronicKitAAC20RuntimeConfigurationV16workspaceProfile0E7Creator13customization17runtimeToolPolicy012toolApprovalK0018diagnosticSnapshotD0011degradationK013streamTimeoutAdA09WorkspaceF0O_AA0S7Factory_pAA0C13CustomizationVAA0cjK0V11PKContracts0jmK0_pAT010DiagnosticoD0VAT015TurnDegradationK0OSdtcfc",
       "module": "PositronicKit",
       "kind": "swift.init",
       "path": [
         "PositronicKit",
         "RuntimeConfiguration",
-        "init(workspaceProfile:workspaceCreator:customization:runtimeToolPolicy:toolApprovalPolicy:diagnosticSnapshotConfiguration:degradationPolicy:)"
+        "init(workspaceProfile:workspaceCreator:customization:runtimeToolPolicy:toolApprovalPolicy:diagnosticSnapshotConfiguration:degradationPolicy:streamTimeout:)"
       ],
-      "declaration": "init(workspaceProfile: WorkspaceProfile = .noWorkspace, workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(), customization: RuntimeCustomization = .default, runtimeToolPolicy: RuntimeToolPolicy = .default, toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(), diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default, degradationPolicy: TurnDegradationPolicy = .failRequired)"
+      "declaration": "init(workspaceProfile: WorkspaceProfile = .noWorkspace, workspaceCreator: any WorkspaceFactory = NullWorkspaceCreator(), customization: RuntimeCustomization = .default, runtimeToolPolicy: RuntimeToolPolicy = .default, toolApprovalPolicy: any ToolApprovalPolicy = DenyAllToolApprovalPolicy(), diagnosticSnapshotConfiguration: DiagnosticSnapshotConfiguration = .default, degradationPolicy: TurnDegradationPolicy = .failRequired, streamTimeout: TimeInterval = 60)"
     },
     {
       "precise": "s:13PositronicKitAAC20RuntimeConfigurationV16workspaceProfileAA09WorkspaceF0Ovp",
@@ -34237,6 +34277,27 @@
       "module": "PKPrompt",
       "kind": "conformsTo",
       "source": "s:8PKPrompt9AnyPromptV",
+      "target": "s:s8SendableP",
+      "targetFallback": "Swift.Sendable"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "conformsTo",
+      "source": "s:13PKTestSupport11ManualClockC",
+      "target": "s:ScA",
+      "targetFallback": "_Concurrency.Actor"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "conformsTo",
+      "source": "s:13PKTestSupport11ManualClockC",
+      "target": "s:s16SendableMetatypeP",
+      "targetFallback": "Swift.SendableMetatype"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "conformsTo",
+      "source": "s:13PKTestSupport11ManualClockC",
       "target": "s:s8SendableP",
       "targetFallback": "Swift.Sendable"
     },
@@ -47229,6 +47290,18 @@
     {
       "module": "PKTestSupport",
       "kind": "memberOf",
+      "source": "s:13PKTestSupport11ManualClockC5startAC12_Concurrency010ContinuousD0V7InstantV_tcfc",
+      "target": "s:13PKTestSupport11ManualClockC"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
+      "source": "s:13PKTestSupport11ManualClockC7advance2byys8DurationV_tF",
+      "target": "s:13PKTestSupport11ManualClockC"
+    },
+    {
+      "module": "PKTestSupport",
+      "kind": "memberOf",
       "source": "s:13PKTestSupport11TestRuntimeV10workspaces13PositronicKit19WorkspaceCapabilityVvp",
       "target": "s:13PKTestSupport11TestRuntimeV"
     },
@@ -55086,13 +55159,19 @@
     {
       "module": "PositronicKit",
       "kind": "memberOf",
+      "source": "s:13PositronicKitAAC20RuntimeConfigurationV13streamTimeoutSdvp",
+      "target": "s:13PositronicKitAAC20RuntimeConfigurationV"
+    },
+    {
+      "module": "PositronicKit",
+      "kind": "memberOf",
       "source": "s:13PositronicKitAAC20RuntimeConfigurationV16workspaceCreatorAA16WorkspaceFactory_pvp",
       "target": "s:13PositronicKitAAC20RuntimeConfigurationV"
     },
     {
       "module": "PositronicKit",
       "kind": "memberOf",
-      "source": "s:13PositronicKitAAC20RuntimeConfigurationV16workspaceProfile0E7Creator13customization17runtimeToolPolicy012toolApprovalK0018diagnosticSnapshotD0011degradationK0AdA09WorkspaceF0O_AA0Q7Factory_pAA0C13CustomizationVAA0cjK0V11PKContracts0jmK0_pAS010DiagnosticoD0VAS015TurnDegradationK0Otcfc",
+      "source": "s:13PositronicKitAAC20RuntimeConfigurationV16workspaceProfile0E7Creator13customization17runtimeToolPolicy012toolApprovalK0018diagnosticSnapshotD0011degradationK013streamTimeoutAdA09WorkspaceF0O_AA0S7Factory_pAA0C13CustomizationVAA0cjK0V11PKContracts0jmK0_pAT010DiagnosticoD0VAT015TurnDegradationK0OSdtcfc",
       "target": "s:13PositronicKitAAC20RuntimeConfigurationV"
     },
     {

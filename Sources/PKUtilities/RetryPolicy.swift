@@ -55,20 +55,21 @@ package enum RetryPolicy {
         configuration: RetryConfiguration,
         shouldRetry: @escaping @Sendable (Error) -> Bool = RetryPolicy.isTransient,
         loggingConfiguration: LoggingConfiguration = .default,
+        clock: any RuntimeClock = ContinuousRuntimeClock(),
         operation: @escaping @Sendable () async throws -> T
     ) async throws -> T {
-        let startTime = ContinuousClock.now
+        let startTime = clock.now()
         return try await retry(
             configuration: configuration,
             shouldRetry: shouldRetry,
             loggingConfiguration: loggingConfiguration,
             elapsedTime: {
-                let components = startTime.duration(to: .now).components
+                let components = startTime.duration(to: clock.now()).components
                 return TimeInterval(components.seconds)
                     + TimeInterval(components.attoseconds) / 1_000_000_000_000_000_000
             },
             sleeper: { delay in
-                try await Task.sleep(nanoseconds: Timeout.nanoseconds(for: delay))
+                try await clock.sleep(for: .seconds(delay))
             },
             operation: operation
         )
@@ -79,7 +80,7 @@ package enum RetryPolicy {
         configuration: RetryConfiguration,
         shouldRetry: @escaping @Sendable (Error) -> Bool,
         loggingConfiguration: LoggingConfiguration,
-        elapsedTime: @escaping @Sendable () -> TimeInterval,
+        elapsedTime: @escaping @Sendable () async -> TimeInterval,
         sleeper: @escaping @Sendable (TimeInterval) async throws -> Void,
         operation: @escaping @Sendable () async throws -> T
     ) async throws -> T {
@@ -101,7 +102,7 @@ package enum RetryPolicy {
 
                 // Total elapsed-time budget: stop retrying if the wall-clock budget is exhausted,
                 // even if the attempt count has not yet hit maxRetries (PKRR-030).
-                let elapsed = elapsedTime()
+                let elapsed = await elapsedTime()
                 if elapsed >= configuration.maxTotalElapsedTime {
                     logger.error(
                         "Retry total elapsed budget exhausted (\(configuration.maxTotalElapsedTime)s) after \(attempts) attempts",
@@ -117,7 +118,8 @@ package enum RetryPolicy {
 
                 let nextAttempt = attempts + 1
                 let plannedDelay = computeDelay(for: error, attempt: nextAttempt, configuration: configuration)
-                let remainingBudget = configuration.maxTotalElapsedTime - elapsedTime()
+                let elapsedAfterDelay = await elapsedTime()
+                let remainingBudget = configuration.maxTotalElapsedTime - elapsedAfterDelay
                 if remainingBudget <= 0 {
                     logger.error(
                         "Retry total elapsed budget exhausted (\(configuration.maxTotalElapsedTime)s) after \(attempts) attempts",
