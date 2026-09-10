@@ -1,8 +1,13 @@
 import Foundation
 
 /// Package-internal clock used by runtime timing policies.
+///
+/// `now()` is deliberately non-suspending. `StreamIdleDeadline` reads and writes its deadline
+/// from inside an actor, and a suspension point between sampling the clock and touching the
+/// deadline would let a watchdog read interleave with a chunk's reset — producing a spurious
+/// idle timeout. Implementations must therefore expose the current instant synchronously.
 package protocol RuntimeClock: Sendable {
-    func now() async -> ContinuousClock.Instant
+    func now() -> ContinuousClock.Instant
     func sleep(for duration: Duration) async throws
 }
 
@@ -13,7 +18,7 @@ package struct ContinuousRuntimeClock: RuntimeClock, Sendable {
         self.clock = clock
     }
 
-    package func now() async -> ContinuousClock.Instant {
+    package func now() -> ContinuousClock.Instant {
         clock.now
     }
 

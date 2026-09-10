@@ -50,6 +50,12 @@ public struct ModelInferenceCapability: Sendable {
         return await healthCheckable.checkHealth()
     }
 
+    /// - Parameter idleTimeout: Maximum idle time between streamed chunks, in seconds.
+    ///
+    ///   This defaults to 60 seconds rather than the runtime's configured
+    ///   `RuntimeConfiguration.streamTimeout`: the default is baked in at the call site, so
+    ///   honouring the configured value here would change this method's public signature. Pass
+    ///   the value explicitly to match a non-default runtime configuration.
     public func generate(
         _ prompt: String,
         generationParameters: GenerationParameters? = nil,
@@ -62,6 +68,12 @@ public struct ModelInferenceCapability: Sendable {
         )
     }
 
+    /// - Parameter idleTimeout: Maximum idle time between streamed chunks, in seconds.
+    ///
+    ///   This defaults to 60 seconds rather than the runtime's configured
+    ///   `RuntimeConfiguration.streamTimeout`: the default is baked in at the call site, so
+    ///   honouring the configured value here would change this method's public signature. Pass
+    ///   the value explicitly to match a non-default runtime configuration.
     public func stream(
         _ prompt: String,
         generationParameters: GenerationParameters? = nil,
@@ -74,6 +86,12 @@ public struct ModelInferenceCapability: Sendable {
         )
     }
 
+    /// - Parameter idleTimeout: Maximum idle time between streamed chunks, in seconds.
+    ///
+    ///   This defaults to 60 seconds rather than the runtime's configured
+    ///   `RuntimeConfiguration.streamTimeout`: the default is baked in at the call site, so
+    ///   honouring the configured value here would change this method's public signature. Pass
+    ///   the value explicitly to match a non-default runtime configuration.
     public func generateStructured(
         _ prompt: String,
         structuredOutput: StructuredOutputRequest,

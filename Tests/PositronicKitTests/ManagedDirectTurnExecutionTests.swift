@@ -288,6 +288,99 @@ struct ManagedDirectTurnExecutionTests {
         #expect(outcome == .cancelled(reason: "Turn task cancelled."))
     }
 
+    /// A `.joined` execution observes a Turn the *first* caller admitted. Walking away from that
+    /// observation must not cancel the owner's generation.
+    ///
+    /// The assertion is deliberately on a *positive* signal — the owner keeps receiving text.
+    /// Cancellation is relayed from a detached task, so asserting that the registry entry merely
+    /// still exists would race that task and pass even when the Turn is about to be killed.
+    @Test("abandoning a joiner's stream leaves the owner's generation running", .timeLimit(.minutes(1)))
+    func abandonedJoinerDoesNotCancelOwner() async throws {
+        let llm = MockLLMService()
+        llm.mockClient.nextChunks = [Array(repeating: "x", count: 200)]
+        llm.mockClient.nextStreamWait = 0.05
+        let kit = PositronicKit(languageModel: llm)
+        let thread = try await kit.threads.create(title: "Join")
+        let agent = try await kit.agents.create(name: "Join Agent", description: "test")
+        try await kit.agents.attach(agent.id, to: thread.id)
+
+        let options = TurnOptions(requestID: UUID())
+        let first = try await thread.startTurn("same", options: options)
+        let joined = try await thread.startTurn("same", options: options)
+        #expect(joined.id == first.id)
+
+        var ownerIterator = first.events().makeAsyncIterator()
+        var ownerIsStreaming = false
+        while !ownerIsStreaming, let event = await ownerIterator.next() {
+            ownerIsStreaming = event.textContent != nil
+        }
+        #expect(ownerIsStreaming, "Owner should be streaming before the joiner attaches")
+
+        let (observed, observedContinuation) = AsyncStream<Void>.makeStream()
+        let abandoning = Task {
+            defer { observedContinuation.finish() }
+            for await event in joined.events() where event.textContent != nil {
+                observedContinuation.yield(())
+            }
+        }
+        var observedIterator = observed.makeAsyncIterator()
+        #expect(await observedIterator.next() != nil, "Joiner should observe the live stream")
+
+        // Cancelling the joiner's consumer terminates its stream as `.cancelled`.
+        abandoning.cancel()
+        _ = await abandoning.value
+
+        var textAfterAbandon = 0
+        var ownerWasCancelled = false
+        while textAfterAbandon < 10, let event = await ownerIterator.next() {
+            if event.textContent != nil { textAfterAbandon += 1 }
+            if case .error(.generationCancelled) = event {
+                ownerWasCancelled = true
+                break
+            }
+        }
+        #expect(!ownerWasCancelled, "A joiner abandoning its stream must not cancel the owner's Turn")
+        #expect(textAfterAbandon == 10, "Owner's generation should keep streaming")
+
+        await first.cancel()
+        while await ownerIterator.next() != nil { }
+    }
+
+    /// The public `TurnHandle` path must relay consumer cancellation to the Turn, not just the
+    /// package-internal engine `run(_:)` path.
+    @Test("cancelling the owner's event consumer cancels the Turn", .timeLimit(.minutes(1)))
+    func cancellingOwnerConsumerCancelsTurn() async throws {
+        let llm = MockLLMService()
+        llm.mockClient.nextChunks = [Array(repeating: "x", count: 200)]
+        llm.mockClient.nextStreamWait = 0.05
+        let kit = PositronicKit(languageModel: llm)
+        let thread = try await kit.threads.create(title: "Owner")
+        let agent = try await kit.agents.create(name: "Owner Agent", description: "test")
+        try await kit.agents.attach(agent.id, to: thread.id)
+
+        let turn = try await thread.startTurn("hello")
+
+        let (observed, observedContinuation) = AsyncStream<Void>.makeStream()
+        let consumer = Task {
+            defer { observedContinuation.finish() }
+            for await event in turn.events() where event.textContent != nil {
+                observedContinuation.yield(())
+            }
+        }
+        var observedIterator = observed.makeAsyncIterator()
+        #expect(await observedIterator.next() != nil, "Consumer should observe the live stream")
+
+        let activeTask = try #require(await kit.threadManager.activeTaskCompletion(for: thread.id))
+
+        // No explicit `cancel()`: dropping the consumer is the only cancellation signal here.
+        consumer.cancel()
+        _ = await consumer.value
+        _ = await activeTask.value
+
+        #expect(await kit.threadManager.hasActiveTask(for: thread.id) == false)
+        #expect(try await turn.outcome() == .cancelled(reason: "Turn task cancelled."))
+    }
+
     @Test("identical submissions join while the first Turn is preparing")
     func identicalSubmissionsJoinDuringPreparation() async throws {
         let llm = MockLLMService()

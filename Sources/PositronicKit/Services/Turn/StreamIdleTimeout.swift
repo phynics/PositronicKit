@@ -8,7 +8,7 @@ package enum StreamIdleTimeout {
         clock: any RuntimeClock = ContinuousRuntimeClock(),
         operation: @escaping @Sendable (StreamIdleDeadline) async throws -> Value
     ) async throws -> Value {
-        let deadline = StreamIdleDeadline(timeout: timeout, clock: clock, start: await clock.now())
+        let deadline = StreamIdleDeadline(timeout: timeout, clock: clock, start: clock.now())
 
         return try await withThrowingTaskGroup(of: Value.self) { group in
             group.addTask {
@@ -44,12 +44,13 @@ package actor StreamIdleDeadline {
         deadline = start.advanced(by: .seconds(timeout))
     }
 
-    func reset() async {
-        deadline = (await clock.now()).advanced(by: .seconds(timeout))
+    /// Non-suspending by construction: the clock read and the deadline write happen in one
+    /// actor step, so a concurrent ``remaining()`` cannot observe a half-applied reset.
+    func reset() {
+        deadline = clock.now().advanced(by: .seconds(timeout))
     }
 
-    func remaining() async -> Duration {
-        let now = await clock.now()
-        return deadline - now
+    func remaining() -> Duration {
+        deadline - clock.now()
     }
 }

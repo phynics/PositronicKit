@@ -58,13 +58,13 @@ package enum RetryPolicy {
         clock: any RuntimeClock = ContinuousRuntimeClock(),
         operation: @escaping @Sendable () async throws -> T
     ) async throws -> T {
-        let startTime = await clock.now()
+        let startTime = clock.now()
         return try await retry(
             configuration: configuration,
             shouldRetry: shouldRetry,
             loggingConfiguration: loggingConfiguration,
             elapsedTime: {
-                let components = startTime.duration(to: await clock.now()).components
+                let components = startTime.duration(to: clock.now()).components
                 return TimeInterval(components.seconds)
                     + TimeInterval(components.attoseconds) / 1_000_000_000_000_000_000
             },

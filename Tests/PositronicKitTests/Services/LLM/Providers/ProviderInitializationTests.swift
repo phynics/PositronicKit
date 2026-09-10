@@ -221,6 +221,20 @@ struct ProviderInitializationTests {
 
     }
 
+    /// The request-shape tests above all pass `maxRetries: 0` so they never sleep, which
+    /// leaves the shipped default unexercised. Pin it here instead: this assertion plus
+    /// `RetryPolicyTests.recordsExactRetrySchedule` (which proves `maxRetries: 3` yields four
+    /// attempts on injected timing seams) together cover what the old
+    /// `recordedRequests().count == 4` assertion covered — without its ~7s of real backoff.
+    @Test("Anthropic client defaults to three retries")
+    func anthropicDefaultsToThreeRetries() {
+        let transport = RequestRecordingTransport { _ in
+            (Data(), self.response(url: "https://api.anthropic.com/v1/messages", status: 500))
+        }
+        let client = AnthropicClient(apiKey: "anthropic-secret", transport: transport)
+        #expect(client.maxRetries == 3)
+    }
+
     @Test("Anthropic client threads explicit overrides into the outgoing request")
     func anthropicOverridesPropagate() async throws {
         let transport = RequestRecordingTransport { _ in

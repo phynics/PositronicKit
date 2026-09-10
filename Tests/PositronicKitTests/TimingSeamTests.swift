@@ -5,7 +5,7 @@ import Testing
 
 @Suite("Runtime timing seams")
 struct TimingSeamTests {
-    @Test("Stream idle timeout fires at the manually advanced deadline")
+    @Test("Stream idle timeout fires at the manually advanced deadline", .timeLimit(.minutes(1)))
     func streamIdleTimeoutUsesInjectedClock() async throws {
         let clock = ManualClock()
         let neverFinishing = AsyncStream<Void> { _ in }
@@ -15,7 +15,9 @@ struct TimingSeamTests {
             }
         }
 
-        await Task.yield()
+        // `StreamIdleTimeout.run` samples its start instant inside the task, so advancing
+        // before the watchdog registers would set the deadline past the new "now".
+        try await clock.waitForSleepers()
         await clock.advance(by: .seconds(5))
 
         await #expect(throws: TurnEngineError.self) {

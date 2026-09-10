@@ -9,7 +9,7 @@ import Testing
 /// PKRR-002 cancellation invariants: `ThreadHandle.cancel()` must actually cancel the
 /// stream-driving task, the registry entry must be removed on every terminal path,
 /// eviction/deletion must cancel active work, and a stale request ID cannot cancel a newer turn.
-@Suite("Thread cancellation invariants (PKRR-002)", .serialized)
+@Suite("Thread cancellation invariants (PKRR-002)", .serialized, .timeLimit(.minutes(1)))
 struct ThreadCancellationTests {
     // MARK: - 1. cancel() stops an active stream
 
@@ -32,6 +32,7 @@ struct ThreadCancellationTests {
         let chunkCount = Mutex(0)
 
         let consumeTask = Task {
+            defer { startedContinuation.finish() }
             for await event in stream {
                 if event.textContent != nil {
                     chunkCount.withLock { $0 += 1 }
@@ -78,6 +79,7 @@ struct ThreadCancellationTests {
         let chunkCount = Mutex(0)
 
         let consumeTask = Task {
+            defer { startedContinuation.finish() }
             for await event in stream {
                 if event.textContent != nil {
                     chunkCount.withLock { $0 += 1 }
@@ -144,6 +146,7 @@ struct ThreadCancellationTests {
 
         let (startedStream, startedContinuation) = AsyncStream<Void>.makeStream()
         let consumeTask = Task {
+            defer { startedContinuation.finish() }
             for await event in stream {
                 if event.textContent != nil {
                     startedContinuation.yield(())
@@ -185,6 +188,7 @@ struct ThreadCancellationTests {
         let (startedStream, startedContinuation) = AsyncStream<Void>.makeStream()
         let chunkCount = Mutex(0)
         let consumeTask = Task {
+            defer { startedContinuation.finish() }
             for await event in stream {
                 if event.textContent != nil {
                     chunkCount.withLock { $0 += 1 }
@@ -229,6 +233,7 @@ struct ThreadCancellationTests {
         let (startedStream, startedContinuation) = AsyncStream<Void>.makeStream()
         let chunkCount = Mutex(0)
         let consumeTask = Task {
+            defer { startedContinuation.finish() }
             for await event in stream {
                 if event.textContent != nil {
                     chunkCount.withLock { $0 += 1 }

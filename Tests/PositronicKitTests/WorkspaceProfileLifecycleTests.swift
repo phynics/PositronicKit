@@ -87,6 +87,27 @@ struct WorkspaceProfileLifecycleTests {
         }
     }
 
+    @Test("RuntimeConfiguration clamps an out-of-range streamTimeout")
+    func runtimeConfigurationClampsStreamTimeout() {
+        // The bounds live on the engine chokepoint every entry point funnels through; the
+        // public configuration deliberately does not re-export them.
+        let range = TurnEngine.Dependencies.streamTimeoutRange
+
+        // `.infinity` used to reach `Duration.seconds(_:)` in the stream watchdog and trap.
+        #expect(PositronicKit.RuntimeConfiguration(streamTimeout: .infinity).streamTimeout
+            == TurnEngine.Dependencies.defaultStreamTimeout)
+        #expect(PositronicKit.RuntimeConfiguration(streamTimeout: .nan).streamTimeout
+            == TurnEngine.Dependencies.defaultStreamTimeout)
+        // A negative value used to fail every Turn with `streamTimedOut` the instant it started.
+        #expect(PositronicKit.RuntimeConfiguration(streamTimeout: -1).streamTimeout
+            == range.lowerBound)
+        #expect(PositronicKit.RuntimeConfiguration(streamTimeout: 1e300).streamTimeout
+            == range.upperBound)
+        // In-range values pass through untouched, including sub-second timeouts.
+        #expect(PositronicKit.RuntimeConfiguration(streamTimeout: 30).streamTimeout == 30)
+        #expect(PositronicKit.RuntimeConfiguration(streamTimeout: 0.05).streamTimeout == 0.05)
+    }
+
     // MARK: - Ephemeral: deterministic cleanup
 
     @Test(".ephemeralWorkspace creates the directory and seeds default notes")

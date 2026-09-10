@@ -25,7 +25,9 @@ public actor AnthropicClient: LLMClientProtocol {
     private let apiKey: String
     private let modelName: String
     private let endpoint: URL
-    private let maxRetries: Int
+    /// Retry attempts this client will make, resolved from the initializer's default.
+    /// Package-visible so tests can pin the default without driving real backoff sleeps.
+    nonisolated package let maxRetries: Int
     private let timeoutInterval: TimeInterval
     private let transport: any ProviderHTTPTransport
     private let logger = Logger.module(named: "anthropic-client")

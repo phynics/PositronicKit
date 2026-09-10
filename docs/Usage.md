@@ -249,8 +249,10 @@ The stream provides a rich set of events:
   `TurnHandle.events()` is nonthrowing; its durable `outcome()` is the authoritative terminal
   result.
 
-Cancelling the task that consumes a facade run cancels the admitted Turn, terminates the provider
-stream, and clears the Thread's active-task registration. A `TurnHandle` also exposes explicit
+Cancelling the task that consumes `TurnHandle.events()` cancels the admitted Turn, terminates the
+provider stream, and clears the Thread's active-task registration. This applies only to the caller
+that admitted the Turn: a consumer that joined or replayed a Turn another caller owns can abandon
+its stream freely, and the owner's generation keeps running. A `TurnHandle` also exposes explicit
 `cancel()` and can be used when cancellation should be tied to the Turn identity rather than to a
 stream consumer.
 

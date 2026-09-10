@@ -31,11 +31,18 @@ extension PositronicKit {
         try await completeResult(prompt).content
     }
 
+    /// The idle timeout applied to the Thread-free `kit.model` paths when a caller does not
+    /// override it: the same `RuntimeConfiguration.streamTimeout` the Turn pipeline uses, so
+    /// one-shot generation and full Turns share a single configured value.
+    var configuredStreamTimeout: TimeInterval {
+        turnEngine.dependencies.streamTimeout
+    }
+
     /// Generates a response with per-call generation parameters.
     func complete(
         _ prompt: String,
         generationParameters: GenerationParameters?,
-        idleTimeout: TimeInterval = 60
+        idleTimeout: TimeInterval? = nil
     ) async throws -> String {
         try await completeResult(
             prompt,
@@ -48,7 +55,7 @@ extension PositronicKit {
     func completeResult(
         _ prompt: String,
         generationParameters: GenerationParameters? = nil,
-        idleTimeout: TimeInterval = 60
+        idleTimeout: TimeInterval? = nil
     ) async throws -> OneShotResult {
         var chunks: [LLMStreamChunk] = []
         do {
@@ -97,29 +104,32 @@ extension PositronicKit {
         _ prompt: String,
         structuredOutput: StructuredOutputRequest,
         generationParameters: GenerationParameters? = nil,
-        idleTimeout: TimeInterval = 60
+        idleTimeout: TimeInterval? = nil
     ) async throws -> String {
         try await languageModel.sendStructuredMessage(
             prompt,
             structuredOutput: structuredOutput,
             generationParameters: generationParameters ?? defaultGenerationParameters,
-            idleTimeout: idleTimeout,
+            idleTimeout: idleTimeout ?? configuredStreamTimeout,
+            clock: turnEngine.dependencies.clock,
             modelTier: .primary
         )
     }
 
     /// Streams a response for a single prompt without creating or updating a thread.
     func stream(_ prompt: String) -> AsyncThrowingStream<LLMStreamChunk, Error> {
-        stream(prompt, generationParameters: nil, idleTimeout: 60)
+        stream(prompt, generationParameters: nil, idleTimeout: nil)
     }
 
     /// Streams a response with per-call generation parameters and an inactivity timeout.
     func stream(
         _ prompt: String,
         generationParameters: GenerationParameters?,
-        idleTimeout: TimeInterval = 60
+        idleTimeout: TimeInterval? = nil
     ) -> AsyncThrowingStream<LLMStreamChunk, Error> {
-        AsyncThrowingStream { continuation in
+        let resolvedTimeout = idleTimeout ?? configuredStreamTimeout
+        let clock = turnEngine.dependencies.clock
+        return AsyncThrowingStream { continuation in
             let task = Task {
                 do {
                     let stream = await languageModel.generationStream(
@@ -130,7 +140,7 @@ extension PositronicKit {
                         generationParameters: generationParameters ?? defaultGenerationParameters,
                         modelTier: .primary
                     )
-                    try await StreamIdleTimeout.run(timeout: idleTimeout) { deadline in
+                    try await StreamIdleTimeout.run(timeout: resolvedTimeout, clock: clock) { deadline in
                         for try await chunk in stream {
                             if Task.isCancelled { throw CancellationError() }
                             await deadline.reset()

@@ -3,6 +3,7 @@ import Logging
 import PKPrompt
 import PKContracts
 import PKUtilities
+import Synchronization
 
 /// The public facade for PositronicKit's agent runtime subsystem.
 ///
@@ -438,22 +439,39 @@ public final class PositronicKit: Sendable {
         return TurnHandle(
             id: execution.turnID,
             threadID: request.threadID,
-            eventStream: nonThrowingEvents(from: execution.stream),
+            eventStream: nonThrowingEvents(
+                from: execution.stream,
+                // Consumer cancellation must reach the Turn on the public path too, not only on
+                // the engine-test `TurnEngine.execute(_:)` path.
+                relay: turnEngine.consumerCancellationRelay(for: execution, threadID: request.threadID)
+            ),
             kit: self
         )
     }
 
+    /// Bridges the Turn's throwing event stream onto the nonthrowing stream a `TurnHandle`
+    /// hands out, and relays consumer abandonment back to the Turn.
+    ///
+    /// This is the only hop between the Turn and its public consumer: the relay rides on this
+    /// bridge rather than wrapping `source` in a second stream, so an abandoned consumer is
+    /// observed without adding a task to every Turn.
     private func nonThrowingEvents(
-        from source: AsyncThrowingStream<TurnEvent, Error>
+        from source: AsyncThrowingStream<TurnEvent, Error>,
+        relay: TurnEngine.ConsumerCancellationRelay
     ) -> AsyncStream<TurnEvent> {
         AsyncStream { continuation in
-            Task {
+            let reachedTerminalState = Mutex(false)
+            let bridge = Task {
                 var terminalDelivered = false
                 do {
                     for try await event in source {
                         if event.isTerminal {
                             if terminalDelivered { continue }
                             terminalDelivered = true
+                            // Set before the yield below: a consumer must not be able to observe
+                            // the terminal event and break while the relay still thinks the Turn
+                            // is live.
+                            reachedTerminalState.withLock { $0 = true }
                         }
                         continuation.yield(event)
                     }
@@ -462,7 +480,15 @@ public final class PositronicKit: Sendable {
                         continuation.yield(.error(error))
                     }
                 }
+                reachedTerminalState.withLock { $0 = true }
                 continuation.finish()
+            }
+            continuation.onTermination = { @Sendable termination in
+                // Without this the bridge outlives an abandoned consumer and keeps draining
+                // `source` for events nobody will read.
+                bridge.cancel()
+                guard case .cancelled = termination else { return }
+                relay.consumerAbandoned(reachedTerminalState: reachedTerminalState.withLock { $0 })
             }
         }
     }

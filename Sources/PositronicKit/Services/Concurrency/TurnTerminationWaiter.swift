@@ -55,13 +55,13 @@ struct TurnTerminationWaiter: Sendable {
     private func poll<Value: Sendable>(
         fetch: @Sendable () async throws -> Value?
     ) async throws -> Observation<Value> {
-        let deadline = (await clock.now()).advanced(by: pollTimeout)
+        let deadline = clock.now().advanced(by: pollTimeout)
         while true {
             try Task.checkCancellation()
             if let value = try await fetch() {
                 return .value(value)
             }
-            if await clock.now() >= deadline {
+            if clock.now() >= deadline {
                 return .timedOut
             }
             try await clock.sleep(for: pollInterval)
