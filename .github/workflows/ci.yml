@@ -109,3 +109,49 @@ jobs:
           name: macos-verify-log
           path: .build/macos-verify.log
           if-no-files-found: ignore
+
+  linux-coverage:
+    name: "Linux — coverage reports (Ubuntu 24.04)"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Install native prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            pkg-config \
+            libssl-dev \
+            curl \
+            perl \
+            libdigest-sha-perl \
+            python3 \
+            git
+
+      - name: Cache SwiftPM downloads
+        uses: actions/cache@0057852bfaa89a56745cba8c7299d2fc39830 # v4
+        with:
+          path: |
+            .build/checkouts
+            ~/.swiftpm
+          key: swiftpm-${{ runner.os }}-swift-6.3.3-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            swiftpm-${{ runner.os }}-swift-6.3.3-
+
+      - name: Run Linux coverage target
+        run: |
+          mkdir -p .build
+          make verify-linux-coverage 2>&1 | tee .build/linux-coverage.log
+
+      - name: Publish Linux coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: linux-coverage-reports
+          path: |
+            .build/linux-coverage.log
+            .build/linux-coverage/
+          if-no-files-found: ignore
