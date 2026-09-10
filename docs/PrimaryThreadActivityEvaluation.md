@@ -20,13 +20,13 @@ This reconciles the discrepancy tracked by issue [#93](https://github.com/phynic
 the final delivery records remain on issues [#72](https://github.com/phynics/PositronicKit/issues/72)
 and [#75](https://github.com/phynics/PositronicKit/issues/75).
 
-## Final v4 decision
+## Final decision
 
 The experiment was removed before the 4.0 public API freeze. No consumer evidence demonstrated that
 the extra prompt growth and hidden cross-Thread mutation improved behavior, and there was no narrow
 opt-in contract that justified expanding the release surface.
 
-For v4, tool activity is durable only on the Thread whose Turn executed it. Agent private-Thread
-history changes through explicit Agent lifecycle and Turn operations. A future projection feature
-would require its own issue, an explicit consumer story, bounded retention semantics, and an accepted
+Tool activity is durable only on the Thread whose Turn executed it. Agent private-Thread history
+changes through explicit Agent lifecycle and Turn operations. A future projection feature would
+require its own issue, an explicit consumer story, bounded retention semantics, and an accepted
 history contract.

@@ -22,11 +22,11 @@ The tagged version applies to the public products documented in
    milestone P0/P1 blocker.
 2. Reconcile any evaluated-but-removed runtime experiments with their decision records before
    reviewing the public API. In particular, primary-Workspace tool activity is durable only on the
-   executing Thread in v4; `AgentActivitySink` is lifecycle-only and must not become a hidden
-   cross-Thread history path without a new issue and an accepted history contract.
+   executing Thread. `AgentActivitySink` is lifecycle-only and must not become a hidden cross-Thread
+   history path without a new issue and an accepted history contract.
 3. Review the public API inventory with `make verify-public-api` on Linux and macOS. The platform
    graphs differ, especially for Apple-only products, so the release requires reviewed
-   `api/4.0-public-api-linux.json` and `api/4.0-public-api-macos.json` files. For an intentional
+   `api/5.1-public-api-linux.json` and `api/5.1-public-api-macos.json` files. For an intentional
    contract change, inspect the reported symbols and record that platform with
    `make update-public-api-baseline`; never update a baseline merely to make the gate pass. The
    checker uses the output directory reported by SwiftPM and validates every catalog module before
@@ -56,9 +56,9 @@ do not fall back to host Swift or compose an ad hoc container command.
 1. Move the completed `Unreleased` notes into a dated version section, update
    `docs/catalog.json` stable version/ref to the same version, regenerate documentation, and commit
    the release artifacts.
-2. Cut an annotated tag from that verified commit using the bare semver string, for example
-   `git tag -a 4.0.0 -m 'PositronicKit 4.0.0'`.
-3. Run `make verify-release VERSION=4.0.0`. This requires a clean tree, checks that the annotated
+2. Set `VERSION` to the new semver release, then cut an annotated tag from that verified commit:
+   `git tag -a "$VERSION" -m "PositronicKit $VERSION"`.
+3. Run `make verify-release VERSION="$VERSION"`. This requires a clean tree, checks that the annotated
    tag points to `HEAD`, and verifies that the catalog, changelog, and generated stable docs agree.
 4. Push the commit and tag, then publish the GitHub release from the matching changelog entry and
    close the matching milestone.

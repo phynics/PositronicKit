@@ -17,7 +17,7 @@ The persistence layer is split into focused protocols to ensure high cohesion an
 
 ## Implementation
 
-For v4 Turn execution, hosts that need durable admission and recovery inject one
+For Turn execution, hosts that need durable admission and recovery inject one
 `ThreadRuntimeRepository`. It is the transaction boundary for Request-ID uniqueness, active-Turn
 serialization, append-only `ThreadMessage` history, tool intents/results, terminal outcomes, and
 stale-Turn recovery. The repository's successful admission and intent/result operations are the

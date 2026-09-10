@@ -2,33 +2,25 @@
 
 PositronicKit is an embeddable Swift runtime for agentic application features. It combines a
 transport-neutral runtime, prompt composition, provider-neutral contracts, and injectable
-Workspace/persistence boundaries. The v4 effort is architecture convergence: domain vocabulary,
-module boundaries, durable Turn semantics, and a smaller public API take priority over new
-features.
+Workspace and persistence boundaries. Select work from current open issues and their dependencies.
+Release-era epics describe historical delivery, not a standing priority over new work.
 
 ## Source of truth
 
-- Current shipped behavior: source, tests, `Package.swift`, and generated build artifacts.
+- Current checkout behavior: source, tests, `Package.swift`, and generated build artifacts.
+  For shipped behavior, inspect these at the release tag recorded in `docs/catalog.json`.
 - Durable architectural rationale: accepted [ADRs](docs/adr/).
 - Canonical vocabulary: [CONTEXT-MAP.md](CONTEXT-MAP.md) and its linked glossaries.
 - Planned work and historical delivery: GitHub Issues and PRs for
   [phynics/PositronicKit](https://github.com/phynics/PositronicKit).
 - Published claims and release deltas: current guides, [README.md](README.md), and
   [CHANGELOG.md](CHANGELOG.md); tagged release documentation is immutable.
-- Documentation or product changes: edit [docs/catalog.json](docs/catalog.json), then run
-  `make verify-documentation`; generated navigation, landing, and `llms.txt` files are outputs.
+- Documentation or product changes: update [docs/catalog.json](docs/catalog.json) when catalog
+  metadata changes, then run `python3 Scripts/generate-doc-navigation.py` to regenerate navigation,
+  landing pages, and `llms.txt`. Verify documentation with the platform gate below.
 
-When sources disagree, describe current behavior from code/tests and resolve intended v4
-architecture through an ADR or the owning issue. Do not create local ticket archives or private
-planning notes.
-
-## v4 non-goals
-
-This guide records the target vocabulary and accepted trade-offs; it does not claim that the full v4
-runtime or broader new public API is implemented. Issue #63 establishes the `PKContracts` product
-and its dependency boundary; later issues own the remaining runtime convergence. This guide also
-does not add compatibility aliases or migrators, change provider/network/hosting behavior, or create
-a replacement archive; those boundaries remain with their owning issues.
+When sources disagree, describe current behavior from code and tests. Resolve intended changes
+through an ADR or the owning issue. Do not create local ticket archives or private planning notes.
 
 ## Repository map
 
@@ -46,20 +38,22 @@ a replacement archive; those boundaries remain with their owning issues.
 Use the platform gate that matches the environment:
 
 - macOS: `make verify`.
-- Linux: `make agent-verify` inside the pinned Podman environment; use
-  `make agent-test FILTER='…'` for focused tests.
+- Linux: run `make agent-verify` from the host checkout. It launches the pinned Podman environment.
+  Use `make agent-test FILTER='…'` from the host for focused tests.
 - Preflight: `make doctor`.
-- Product/example checks: `make verify-products`, `make verify-examples`, and
-  `make verify-pktestsupport`.
+- macOS focused checks: `make verify-documentation`, `make verify-products`,
+  `make verify-examples`, and `make verify-pktestsupport`. The Linux agent gate includes these checks.
 
 Linux agents use the repository-owned Podman runner. Do not invoke host Swift or invent an ad hoc
 container command; see [Development.md](docs/Development.md) for the supported environment and
-the linker/model-cache gotchas.
+the runner's locking, logs, prerequisites, and sandbox recovery. Documentation snippet checks invoke
+Swift too. A successful syntax check does not prove API correctness. Verify changed example APIs
+through `make verify-examples` on macOS or the Linux agent gate.
 
-## v4 convergence constraints
+## Current architectural constraints
 
-These are the target invariants for v4 work; an issue may not introduce a second vocabulary or
-execution path while the migration is in progress:
+Before changing runtime ownership or module dependencies, read the [architecture guide](docs/Architecture.md)
+and the relevant accepted ADR. Preserve these constraints unless the owning issue changes the contract:
 
 - A Turn runs on a Thread. Managed execution derives Agent context from the Thread; a detached
   Thread uses the explicit direct path.
@@ -67,14 +61,16 @@ execution path while the migration is in progress:
 - Ordinary Workspaces are exclusively bound to Threads and execute through one deterministic
   dispatcher with process-local per-Workspace serialization.
 - Execution authority is captured at Turn admission and is immutable while that Turn is active.
-- Public consumers use shallow capability values and handles; managers, registries, pipeline
+- Public consumers use shallow capability values and handles. Managers, registries, pipeline
   topology, and model-round machinery remain implementation details.
-- PKContracts imports no PositronicKit project target. Providers and external integrations do
-  not import the runtime. PKUtilities is not a public grab-bag product.
+- PKContracts imports no PositronicKit project target. Provider adapters depend on PKContracts
+  without importing the runtime. Observation and downstream runtime integrations may import
+  PositronicKit. PKUtilities is an internal target, not a public product.
 - PromptJournal observes assembled prompt state; it is not semantic Thread history.
 
 The full domain glossary and decision rationale live behind the [context map](CONTEXT-MAP.md) and
-[ADRs](docs/adr/).
+[ADRs](docs/adr/). Older ADRs may refer to v4 because they record decisions made during that
+release transition.
 
 ## Swift concurrency guardrails
 
@@ -92,9 +88,14 @@ documented in `docs/Concurrency/exception-manifest.md` and annotated inline at t
 2. Keep one bounded behavior change per PR and preserve downstream seams.
 3. Add deterministic tests and update current docs for public changes; update `CHANGELOG.md` under
    `Unreleased` for consumer-visible API changes.
+   For public API changes, inspect the platform symbol diff before recording a baseline with
+   `make update-public-api-baseline` in the supported environment. Baseline filenames derive from
+   `docs/catalog.json`'s `next.version`; follow [Releasing.md](docs/Releasing.md).
 4. Before closing an issue, complete its Delivery section with PR(s), merge commit(s), exact
    verification, docs/ADR impact, and follow-ups.
 5. Keep tagged-release documentation immutable and separate from Next/main documentation.
+6. Before handoff, inspect the final diff and report the checks actually run, including skipped or
+   blocked platform checks. Claim verification only for the code and platform checked.
 
 Do not add a public product, protocol, plugin bus, compatibility alias, or migration path without
 an owning issue and an independently justified consumer story.
@@ -106,4 +107,4 @@ an owning issue and an independently justified consumer story.
 - [Consumer setup](docs/Setup.md)
 - [Contributor development guide](docs/Development.md)
 - [Release guide](docs/Releasing.md)
-- [v4 epic and work plan](https://github.com/phynics/PositronicKit/issues/61)
+- [Open issues and current work](https://github.com/phynics/PositronicKit/issues?q=is%3Aissue+is%3Aopen)

@@ -142,7 +142,7 @@ Agent primary Workspace. Filesystem memory is an implementation choice, not a ma
 dependency. Sink failures are recorded for the host and do not rewrite the originating Turn
 outcome.
 
-The v4 boundary intentionally has no automatic semantic-memory retrieval stage. Hosts that already
+The current boundary intentionally has no automatic semantic-memory retrieval stage. Hosts that already
 have a retrieval system provide its bounded result through `AgentContextSource`; per-Turn additions
 use `TurnContextSource`; model-directed note access uses Workspace file tools. The prompt layer's
 primitive leaves and durable tool diagnostics remain implementation details. See the accepted

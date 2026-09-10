@@ -1,6 +1,6 @@
 # Public ID Parameter Inventory
 
-This inventory records the canonical v4 spelling for public identifier parameters. Public APIs
+This inventory records the canonical spelling for public identifier parameters. Public APIs
 use `ID`/`IDs` consistently; the hard cut does not retain source aliases or legacy forwarding
 overloads.
 
@@ -13,6 +13,6 @@ overloads.
 | Tool calls and progress events | `toolCallID` |
 | Workspace URI factories | `agentID`, `threadID` |
 
-Serialized keys follow the same v4 vocabulary (`threadId`, `agentId`, `turnId`, `requestId`, and
+Serialized keys follow the same vocabulary (`threadId`, `agentId`, `turnId`, `requestId`, and
 `toolCallId`). No decoder accepts a retired key, and no public compatibility shim forwards from a
 retired parameter spelling.
