@@ -196,7 +196,8 @@ public protocol LLMStreamClient: Sendable {
     ///   - responseModalities: The output modalities requested for this response.
     ///   - audioOutput: Audio-output options, required when `responseModalities` includes
     ///     `.audio`. Conformers that don't support audio output should fail the stream with
-    ///     ``MultimodalContentError/missingCapability(_:)`` rather than ignoring the request.
+    ///     ``PKContracts/MultimodalContentError/missingCapability(_:)`` rather than ignoring the
+    ///     request.
     func generationStream(
         messages: [LLMMessage],
         tools: [LLMToolDefinition]?,
