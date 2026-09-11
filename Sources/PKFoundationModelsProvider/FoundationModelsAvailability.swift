@@ -25,7 +25,7 @@ public enum FoundationModelsAvailabilityError: PKError, Equatable {
     /// Preserves the raw description rather than losing the information.
     case unknown(String)
 
-    /// Always ``PKErrorDomain/llm``.
+    /// Always `PKErrorDomain.llm`.
     public var errorDomain: String {
         PKErrorDomain.llm
     }

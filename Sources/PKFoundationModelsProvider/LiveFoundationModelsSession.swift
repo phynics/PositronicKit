@@ -162,7 +162,7 @@ import PKUtilities
             }
         }
 
-        /// Always ``PKErrorDomain/llm``.
+        /// Always `PKErrorDomain.llm`.
         public var errorDomain: String {
             PKErrorDomain.llm
         }

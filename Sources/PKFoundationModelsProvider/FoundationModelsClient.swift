@@ -224,7 +224,7 @@ public actor FoundationModelsClient: LLMClientProtocol {
 public enum FoundationModelsPlatformError: PKError, Equatable {
     case unsupportedPlatform
 
-    /// Always ``PKErrorDomain/llm``.
+    /// Always `PKErrorDomain.llm`.
     public var errorDomain: String {
         PKErrorDomain.llm
     }
