@@ -1,7 +1,7 @@
 import Foundation
 import PKContracts
 import PositronicKit
-import Testing
+internal import Testing
 
 /// Runs the documented behavioral checks for a ``WorkspaceStore`` implementation.
 public enum WorkspaceStoreConformanceSuite {
@@ -51,8 +51,8 @@ public enum WorkspaceStoreConformanceSuite {
         makeStore: () async throws -> any WorkspaceStore
     ) async throws {
         let store = try await makeStore()
-        #expect(try await store.fetchWorkspace(id: UUID(), includeTools: false) == nil, "workspace.empty.fetch")
-        #expect(try await store.fetchAllWorkspaces().isEmpty, "workspace.empty.all")
+        try #require(try await store.fetchWorkspace(id: UUID(), includeTools: false) == nil, "workspace.empty.fetch")
+        try #require(try await store.fetchAllWorkspaces().isEmpty, "workspace.empty.all")
     }
 
     private static func savesAndFetches(
@@ -65,7 +65,7 @@ public enum WorkspaceStoreConformanceSuite {
             try await store.fetchWorkspace(id: workspace.id, includeTools: true),
             "workspace.save.fetch"
         )
-        expectEquivalent(fetched, workspace, scenario: "workspace.save.fetch")
+        try expectEquivalent(fetched, workspace, scenario: "workspace.save.fetch")
     }
 
     private static func replacesByID(
@@ -82,8 +82,8 @@ public enum WorkspaceStoreConformanceSuite {
             try await store.fetchWorkspace(id: id, includeTools: false),
             "workspace.replace.fetch"
         )
-        expectEquivalent(fetched, updated, scenario: "workspace.replace.fetch")
-        #expect(try await store.fetchAllWorkspaces().count == 1, "workspace.replace.unique-id")
+        try expectEquivalent(fetched, updated, scenario: "workspace.replace.fetch")
+        try #require(try await store.fetchAllWorkspaces().count == 1, "workspace.replace.unique-id")
     }
 
     private static func fetchesAllWorkspaces(
@@ -96,7 +96,10 @@ public enum WorkspaceStoreConformanceSuite {
         }
 
         let fetched = try await store.fetchAllWorkspaces()
-        #expect(Set(fetched.map(\.id)) == Set(workspaces.map(\.id)), "workspace.fetch-all.membership")
+        try #require(
+            fetched.count == workspaces.count && Set(fetched.map(\.id)) == Set(workspaces.map(\.id)),
+            "workspace.fetch-all.membership"
+        )
     }
 
     private static func deletesOneWorkspace(
@@ -109,11 +112,11 @@ public enum WorkspaceStoreConformanceSuite {
         try await store.saveWorkspace(remove)
 
         try await store.deleteWorkspace(id: remove.id)
-        #expect(try await store.fetchWorkspace(id: remove.id, includeTools: false) == nil, "workspace.delete.removes-target")
-        #expect(try await store.fetchWorkspace(id: keep.id, includeTools: false) != nil, "workspace.delete.preserves-other")
+        try #require(try await store.fetchWorkspace(id: remove.id, includeTools: false) == nil, "workspace.delete.removes-target")
+        try #require(try await store.fetchWorkspace(id: keep.id, includeTools: false) != nil, "workspace.delete.preserves-other")
 
         try await store.deleteWorkspace(id: UUID())
-        #expect(try await store.fetchWorkspace(id: keep.id, includeTools: false) != nil, "workspace.delete.unknown-idempotent")
+        try #require(try await store.fetchWorkspace(id: keep.id, includeTools: false) != nil, "workspace.delete.unknown-idempotent")
     }
 
     private static func makeWorkspace(
@@ -133,17 +136,17 @@ public enum WorkspaceStoreConformanceSuite {
         _ actual: WorkspaceReference,
         _ expected: WorkspaceReference,
         scenario: String
-    ) {
-        #expect(actual.id == expected.id, "\(scenario).id")
-        #expect(actual.uri == expected.uri, "\(scenario).uri")
-        #expect(actual.location == expected.location, "\(scenario).location")
-        #expect(actual.originID == expected.originID, "\(scenario).origin")
-        #expect(actual.tools == expected.tools, "\(scenario).tools")
-        #expect(actual.rootPath == expected.rootPath, "\(scenario).root-path")
-        #expect(actual.trustLevel == expected.trustLevel, "\(scenario).trust")
-        #expect(actual.lastModifiedBy == expected.lastModifiedBy, "\(scenario).last-modified-by")
-        #expect(actual.status == expected.status, "\(scenario).status")
-        #expect(actual.contextInjection == expected.contextInjection, "\(scenario).context")
-        #expect(actual.createdAt == expected.createdAt, "\(scenario).created-at")
+    ) throws {
+        try #require(actual.id == expected.id, "\(scenario).id")
+        try #require(actual.uri == expected.uri, "\(scenario).uri")
+        try #require(actual.location == expected.location, "\(scenario).location")
+        try #require(actual.originID == expected.originID, "\(scenario).origin")
+        try #require(actual.tools == expected.tools, "\(scenario).tools")
+        try #require(actual.rootPath == expected.rootPath, "\(scenario).root-path")
+        try #require(actual.trustLevel == expected.trustLevel, "\(scenario).trust")
+        try #require(actual.lastModifiedBy == expected.lastModifiedBy, "\(scenario).last-modified-by")
+        try #require(actual.status == expected.status, "\(scenario).status")
+        try #require(actual.contextInjection == expected.contextInjection, "\(scenario).context")
+        try #require(actual.createdAt == expected.createdAt, "\(scenario).created-at")
     }
 }

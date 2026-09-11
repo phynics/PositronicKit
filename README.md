@@ -464,8 +464,9 @@ Supporting targets:
 - `PKObservable` contains opt-in `@Observable` wrappers. `ThreadController` mirrors
   `ThreadHandle` stream state for SwiftUI clients.
 - `PositronicKitExamples` contains runnable, compile-checked examples.
-- `PKTestSupport` contains public mocks, fixtures, stream factories, `TestRuntime`, and reusable
-  persistence/workspace conformance suites.
+- `PKTestSupport` is a test-only library product containing public mocks, fixtures, stream
+  factories, `TestRuntime`, and reusable persistence/workspace conformance suites. Its ordinary
+  import and executable behavior are verified by `PKTestSupportConsumer`.
 
 All declared products are cataloged in [docs/catalog.json](docs/catalog.json). The generated
 [documentation navigation](docs/NAVIGATION.md) records the owning guide and compiled consumer gate

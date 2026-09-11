@@ -71,58 +71,89 @@ struct ConformanceSuiteTests {
 
     @Test("broken ThreadRuntimeRepository is reported at terminal completion")
     func brokenThreadRuntimeRepository() async throws {
-        await withKnownIssue("thread.completion.outcome: broken fixture must be observed") {
-            try await ThreadRuntimeRepositoryConformanceSuite.run(staleAfter: 300) {
-                let store = MockPersistenceService()
-                store.completeTurnFails = true
-                return store
-            }
-        }
+        try await withKnownIssue(
+            "broken fixture must be observed",
+            {
+                try await ThreadRuntimeRepositoryConformanceSuite.run(staleAfter: 300) {
+                    let store = MockPersistenceService()
+                    store.completeTurnFails = true
+                    return store
+                }
+            },
+            matching: Self.matchesScenario("thread.completion.outcome")
+        )
     }
 
     @Test("broken WorkspaceStore is reported at save/fetch")
     func brokenWorkspaceStore() async throws {
-        await withKnownIssue("workspace.save.fetch: broken fixture must be observed") {
-            try await WorkspaceStoreConformanceSuite.run {
-                BrokenWorkspaceStore()
-            }
-        }
+        try await withKnownIssue(
+            "broken fixture must be observed",
+            {
+                try await WorkspaceStoreConformanceSuite.run {
+                    BrokenWorkspaceStore()
+                }
+            },
+            matching: Self.matchesScenario("workspace.save.fetch")
+        )
     }
 
     @Test("broken ToolPersistenceProtocol is reported at add/fetch")
     func brokenToolPersistence() async throws {
-        await withKnownIssue("tool.add.fetch: broken fixture must be observed") {
-            try await ToolPersistenceConformanceSuite.run { workspaces in
-                BrokenToolPersistence(workspaces: workspaces)
-            }
-        }
+        try await withKnownIssue(
+            "broken fixture must be observed",
+            {
+                try await ToolPersistenceConformanceSuite.run { workspaces in
+                    BrokenToolPersistence(workspaces: workspaces)
+                }
+            },
+            matching: Self.matchesScenario("tool.add.fetch")
+        )
     }
 
     @Test("broken AgentStoreProtocol is reported at save/fetch")
     func brokenAgentStore() async throws {
-        await withKnownIssue("agent.save.fetch: broken fixture must be observed") {
-            try await AgentStoreConformanceSuite.run { threads in
-                BrokenAgentStore(threads: threads)
-            }
-        }
+        try await withKnownIssue(
+            "broken fixture must be observed",
+            {
+                try await AgentStoreConformanceSuite.run { threads in
+                    BrokenAgentStore(threads: threads)
+                }
+            },
+            matching: Self.matchesScenario("agent.save.fetch")
+        )
     }
 
     @Test("broken RequestOriginStoreProtocol is reported at save/fetch")
     func brokenRequestOriginStore() async throws {
-        await withKnownIssue("origin.save.fetch: broken fixture must be observed") {
-            try await RequestOriginStoreConformanceSuite.run {
-                BrokenRequestOriginStore()
-            }
-        }
+        try await withKnownIssue(
+            "broken fixture must be observed",
+            {
+                try await RequestOriginStoreConformanceSuite.run {
+                    BrokenRequestOriginStore()
+                }
+            },
+            matching: Self.matchesScenario("origin.save.fetch")
+        )
     }
 
     @Test("broken WorkspaceFactory is reported at reference preservation")
     func brokenWorkspaceFactory() throws {
-        withKnownIssue("workspace-factory.reference.id: broken fixture must be observed") {
-            try WorkspaceFactoryConformanceSuite.run(
-                factory: BrokenWorkspaceFactory(),
-                supportedReference: Self.makeWorkspace()
-            )
+        try withKnownIssue(
+            "broken fixture must be observed",
+            {
+                try WorkspaceFactoryConformanceSuite.run(
+                    factory: BrokenWorkspaceFactory(),
+                    supportedReference: Self.makeWorkspace()
+                )
+            },
+            matching: Self.matchesScenario("workspace-factory.reference.id")
+        )
+    }
+
+    private static func matchesScenario(_ scenario: String) -> @Sendable (Issue) -> Bool {
+        { issue in
+            issue.description.contains(scenario)
+                || issue.error.map { String(describing: $0).contains(scenario) } == true
         }
     }
 

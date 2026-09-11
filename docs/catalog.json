@@ -109,7 +109,7 @@
     {"name": "PKOllamaProvider", "kind": "library", "module": "PKOllamaProvider", "docs": "docs/ProviderCapabilityMatrix.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "PKOllamaProvider.self"},
     {"name": "PKAnthropicProvider", "kind": "library", "module": "PKAnthropicProvider", "docs": "docs/ProviderCapabilityMatrix.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "PKAnthropicProvider.self"},
     {"name": "PKFoundationModelsProvider", "kind": "library", "module": "PKFoundationModelsProvider", "docs": "docs/ProviderCapabilityMatrix.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "PKFoundationModelsProvider.self"},
-    {"name": "PKTestSupport", "kind": "library", "module": "PKTestSupport", "docs": "README.md", "docc": true, "consumer": "PublicProductConsumer", "consumerSymbol": "TestRuntime.self"},
+    {"name": "PKTestSupport", "kind": "library", "module": "PKTestSupport", "docs": "README.md", "docc": false, "testOnly": true, "consumer": "PKTestSupportConsumer"},
     {"name": "PositronicKitExamples", "kind": "executable", "module": "PositronicKitExamples", "docs": "Sources/PositronicKitExamples", "docc": false, "consumer": "PositronicKitExamples"},
     {"name": "PKTestSupportConsumer", "kind": "executable", "module": "PKTestSupportConsumer", "docs": "README.md", "docc": false, "consumer": "PKTestSupportConsumer"}
   ]

@@ -1,7 +1,7 @@
 import Foundation
 import PKContracts
 import PositronicKit
-import Testing
+internal import Testing
 
 /// Runs the documented successful-creation check for a ``WorkspaceFactory``.
 public enum WorkspaceFactoryConformanceSuite {
@@ -18,16 +18,16 @@ public enum WorkspaceFactoryConformanceSuite {
             throw ScenarioError(id: "workspace-factory.create", underlying: error)
         }
         try #require(provider.reference.id == supportedReference.id, "workspace-factory.reference.id")
-        #expect(provider.reference.uri == supportedReference.uri, "workspace-factory.reference.uri")
-        #expect(provider.reference.location == supportedReference.location, "workspace-factory.reference.location")
-        #expect(provider.reference.originID == supportedReference.originID, "workspace-factory.reference.origin")
-        #expect(provider.reference.tools == supportedReference.tools, "workspace-factory.reference.tools")
-        #expect(provider.reference.rootPath == supportedReference.rootPath, "workspace-factory.reference.root-path")
-        #expect(provider.reference.trustLevel == supportedReference.trustLevel, "workspace-factory.reference.trust")
-        #expect(provider.reference.lastModifiedBy == supportedReference.lastModifiedBy, "workspace-factory.reference.last-modified-by")
-        #expect(provider.reference.status == supportedReference.status, "workspace-factory.reference.status")
-        #expect(provider.reference.contextInjection == supportedReference.contextInjection, "workspace-factory.reference.context")
-        #expect(provider.reference.createdAt == supportedReference.createdAt, "workspace-factory.reference.created-at")
+        try #require(provider.reference.uri == supportedReference.uri, "workspace-factory.reference.uri")
+        try #require(provider.reference.location == supportedReference.location, "workspace-factory.reference.location")
+        try #require(provider.reference.originID == supportedReference.originID, "workspace-factory.reference.origin")
+        try #require(provider.reference.tools == supportedReference.tools, "workspace-factory.reference.tools")
+        try #require(provider.reference.rootPath == supportedReference.rootPath, "workspace-factory.reference.root-path")
+        try #require(provider.reference.trustLevel == supportedReference.trustLevel, "workspace-factory.reference.trust")
+        try #require(provider.reference.lastModifiedBy == supportedReference.lastModifiedBy, "workspace-factory.reference.last-modified-by")
+        try #require(provider.reference.status == supportedReference.status, "workspace-factory.reference.status")
+        try #require(provider.reference.contextInjection == supportedReference.contextInjection, "workspace-factory.reference.context")
+        try #require(provider.reference.createdAt == supportedReference.createdAt, "workspace-factory.reference.created-at")
     }
 
     private struct ScenarioError: Error, CustomStringConvertible {

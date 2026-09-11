@@ -1,7 +1,7 @@
 import Foundation
 import PKContracts
 import PositronicKit
-import Testing
+internal import Testing
 
 /// Runs the documented CRUD checks for a ``RequestOriginStoreProtocol`` implementation.
 public enum RequestOriginStoreConformanceSuite {
@@ -51,8 +51,8 @@ public enum RequestOriginStoreConformanceSuite {
         makeStore: () async throws -> any RequestOriginStoreProtocol
     ) async throws {
         let store = try await makeStore()
-        #expect(try await store.fetchOrigin(id: UUID()) == nil, "origin.empty.fetch")
-        #expect(try await store.fetchAllOrigins().isEmpty, "origin.empty.all")
+        try #require(try await store.fetchOrigin(id: UUID()) == nil, "origin.empty.fetch")
+        try #require(try await store.fetchAllOrigins().isEmpty, "origin.empty.all")
     }
 
     private static func savesAndFetches(
@@ -61,7 +61,7 @@ public enum RequestOriginStoreConformanceSuite {
         let store = try await makeStore()
         let origin = makeOrigin()
         try await store.saveOrigin(origin)
-        expectEquivalent(
+        try expectEquivalent(
             try #require(try await store.fetchOrigin(id: origin.id), "origin.save.fetch.value"),
             origin,
             scenario: "origin.save.fetch"
@@ -76,8 +76,8 @@ public enum RequestOriginStoreConformanceSuite {
         try await store.saveOrigin(makeOrigin(id: id, displayName: "Original"))
         try await store.saveOrigin(makeOrigin(id: id, displayName: "Updated"))
 
-        #expect(try await store.fetchOrigin(id: id)?.displayName == "Updated", "origin.replace.value")
-        #expect(try await store.fetchAllOrigins().count == 1, "origin.replace.unique-id")
+        try #require(try await store.fetchOrigin(id: id)?.displayName == "Updated", "origin.replace.value")
+        try #require(try await store.fetchAllOrigins().count == 1, "origin.replace.unique-id")
     }
 
     private static func fetchesAllOrigins(
@@ -89,7 +89,11 @@ public enum RequestOriginStoreConformanceSuite {
             try await store.saveOrigin(origin)
         }
 
-        #expect(Set(try await store.fetchAllOrigins().map(\.id)) == Set(origins.map(\.id)), "origin.fetch-all.membership")
+        let fetched = try await store.fetchAllOrigins()
+        try #require(
+            fetched.count == origins.count && Set(fetched.map(\.id)) == Set(origins.map(\.id)),
+            "origin.fetch-all.membership"
+        )
     }
 
     private static func deletesOneOrigin(
@@ -101,14 +105,14 @@ public enum RequestOriginStoreConformanceSuite {
         try await store.saveOrigin(keep)
         try await store.saveOrigin(remove)
 
-        #expect(try await store.deleteOrigin(id: remove.id), "origin.delete.existing")
-        #expect(try await store.fetchOrigin(id: remove.id) == nil, "origin.delete.removes-target")
-        expectEquivalent(
+        try #require(try await store.deleteOrigin(id: remove.id), "origin.delete.existing")
+        try #require(try await store.fetchOrigin(id: remove.id) == nil, "origin.delete.removes-target")
+        try expectEquivalent(
             try #require(try await store.fetchOrigin(id: keep.id), "origin.delete.preserves-other.value"),
             keep,
             scenario: "origin.delete.preserves-other"
         )
-        #expect(try await store.deleteOrigin(id: UUID()) == false, "origin.delete.unknown")
+        try #require(try await store.deleteOrigin(id: UUID()) == false, "origin.delete.unknown")
     }
 
     private static func makeOrigin(
@@ -127,12 +131,12 @@ public enum RequestOriginStoreConformanceSuite {
         _ actual: RequestOriginIdentity,
         _ expected: RequestOriginIdentity,
         scenario: String
-    ) {
-        #expect(actual.id == expected.id, "\(scenario).id")
-        #expect(actual.hostname == expected.hostname, "\(scenario).hostname")
-        #expect(actual.displayName == expected.displayName, "\(scenario).display-name")
-        #expect(actual.platform == expected.platform, "\(scenario).platform")
-        #expect(actual.registeredAt == expected.registeredAt, "\(scenario).registered-at")
-        #expect(actual.lastSeenAt == expected.lastSeenAt, "\(scenario).last-seen")
+    ) throws {
+        try #require(actual.id == expected.id, "\(scenario).id")
+        try #require(actual.hostname == expected.hostname, "\(scenario).hostname")
+        try #require(actual.displayName == expected.displayName, "\(scenario).display-name")
+        try #require(actual.platform == expected.platform, "\(scenario).platform")
+        try #require(actual.registeredAt == expected.registeredAt, "\(scenario).registered-at")
+        try #require(actual.lastSeenAt == expected.lastSeenAt, "\(scenario).last-seen")
     }
 }

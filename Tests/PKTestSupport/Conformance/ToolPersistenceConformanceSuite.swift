@@ -1,7 +1,7 @@
 import Foundation
 import PKContracts
 import PositronicKit
-import Testing
+internal import Testing
 
 /// Runs the documented behavioral checks for a ``ToolPersistenceProtocol`` implementation.
 public enum ToolPersistenceConformanceSuite {
@@ -60,8 +60,11 @@ public enum ToolPersistenceConformanceSuite {
         try await store.addToolToWorkspace(workspaceId: workspaceID, tool: .known("added"))
 
         let tools = try await store.fetchTools(forWorkspaces: [workspaceID])
-        try #require(Set(tools.map(\.toolID)) == Set(["existing", "added"]), "tool.add.fetch")
-        #expect(try await store.fetchTools(forWorkspaces: [UUID()]).isEmpty, "tool.add.scope")
+        try #require(
+            tools.count == 2 && Set(tools.map(\.toolID)) == Set(["existing", "added"]),
+            "tool.add.fetch"
+        )
+        try #require(try await store.fetchTools(forWorkspaces: [UUID()]).isEmpty, "tool.add.scope")
     }
 
     private static func rejectsMissingWorkspace(
@@ -71,6 +74,15 @@ public enum ToolPersistenceConformanceSuite {
         do {
             try await store.addToolToWorkspace(workspaceId: UUID(), tool: .known("missing"))
             Issue.record("tool.missing-workspace.must-fail")
+            return
+        } catch {
+            // The protocol requires failure, but does not require one concrete error type.
+        }
+
+        do {
+            try await store.syncTools(workspaceId: UUID(), tools: [.known("missing")])
+            Issue.record("tool.missing-workspace.sync-must-fail")
+            return
         } catch {
             // The protocol requires failure, but does not require one concrete error type.
         }
@@ -86,7 +98,7 @@ public enum ToolPersistenceConformanceSuite {
         try await store.syncTools(workspaceId: workspaceID, tools: [.known("new")])
 
         let tools = try await store.fetchTools(forWorkspaces: [workspaceID])
-        #expect(tools.map(\.toolID) == ["new"], "tool.sync.replaces-all")
+        try #require(tools.map(\.toolID) == ["new"], "tool.sync.replaces-all")
     }
 
     private static func filtersByOrigin(
@@ -99,7 +111,7 @@ public enum ToolPersistenceConformanceSuite {
         ])
 
         let tools = try await store.fetchOriginTools(originId: originID)
-        #expect(tools.map(\.toolID) == ["origin-tool"], "tool.origin.filter")
+        try #require(tools.map(\.toolID) == ["origin-tool"], "tool.origin.filter")
     }
 
     private static func findsOwnersWithinScope(
@@ -112,15 +124,15 @@ public enum ToolPersistenceConformanceSuite {
             makeWorkspace(id: outsideID, tools: [.known("outside")])
         ])
 
-        #expect(
+        try #require(
             try await store.findWorkspaceId(forToolId: "echo", in: [ownerID]) == ownerID,
             "tool.owner.found"
         )
-        #expect(
+        try #require(
             try await store.findWorkspaceId(forToolId: "outside", in: [ownerID]) == nil,
             "tool.owner.scope"
         )
-        #expect(
+        try #require(
             try await store.findWorkspaceId(forToolId: "missing", in: [ownerID, outsideID]) == nil,
             "tool.owner.unknown"
         )
@@ -134,7 +146,7 @@ public enum ToolPersistenceConformanceSuite {
             makeWorkspace(id: workspaceID, tools: [.known("echo")])
         ])
 
-        #expect(
+        try #require(
             try await store.fetchToolSource(
                 toolId: "echo",
                 workspaceIds: [workspaceID],
@@ -142,7 +154,7 @@ public enum ToolPersistenceConformanceSuite {
             ) != nil,
             "tool.source.known"
         )
-        #expect(
+        try #require(
             try await store.fetchToolSource(
                 toolId: "missing",
                 workspaceIds: [workspaceID],
@@ -156,7 +168,7 @@ public enum ToolPersistenceConformanceSuite {
             makeWorkspace(id: workspaceID, tools: [.known("echo")]),
             makeWorkspace(id: outsideID, tools: [.known("outside")])
         ])
-        #expect(
+        try #require(
             try await scopedStore.fetchToolSource(
                 toolId: "outside",
                 workspaceIds: [workspaceID],

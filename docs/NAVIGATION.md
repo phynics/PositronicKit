@@ -29,6 +29,6 @@ Stable [5.1.0](stable/5.1.0/) is the default immutable channel. [Next / v5](next
 | `PKOllamaProvider` | library | `PublicProductConsumer` | [docs/ProviderCapabilityMatrix.md](ProviderCapabilityMatrix.md) |
 | `PKAnthropicProvider` | library | `PublicProductConsumer` | [docs/ProviderCapabilityMatrix.md](ProviderCapabilityMatrix.md) |
 | `PKFoundationModelsProvider` | library | `PublicProductConsumer` | [docs/ProviderCapabilityMatrix.md](ProviderCapabilityMatrix.md) |
-| `PKTestSupport` | library | `PublicProductConsumer` | [README.md](../README.md) |
+| `PKTestSupport` | library | `PKTestSupportConsumer` | [README.md](../README.md) |
 | `PositronicKitExamples` | executable | `PositronicKitExamples` | [Sources/PositronicKitExamples](../Sources/PositronicKitExamples) |
 | `PKTestSupportConsumer` | executable | `PKTestSupportConsumer` | [README.md](../README.md) |

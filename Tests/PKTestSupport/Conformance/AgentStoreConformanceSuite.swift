@@ -2,7 +2,7 @@ import Foundation
 import PKContracts
 import PositronicKit
 import struct PositronicKit.Thread
-import Testing
+internal import Testing
 
 /// Runs the documented behavioral checks for an ``AgentStoreProtocol`` implementation.
 public enum AgentStoreConformanceSuite {
@@ -56,8 +56,8 @@ public enum AgentStoreConformanceSuite {
         makeStore: ([Thread]) async throws -> any AgentStoreProtocol
     ) async throws {
         let store = try await makeStore([])
-        #expect(try await store.fetchAgent(id: UUID()) == nil, "agent.empty.fetch")
-        #expect(try await store.fetchAllAgents().isEmpty, "agent.empty.all")
+        try #require(try await store.fetchAgent(id: UUID()) == nil, "agent.empty.fetch")
+        try #require(try await store.fetchAllAgents().isEmpty, "agent.empty.all")
     }
 
     private static func savesAndFetches(
@@ -77,8 +77,8 @@ public enum AgentStoreConformanceSuite {
         try await store.saveAgent(makeAgent(id: id, name: "Original"))
         try await store.saveAgent(makeAgent(id: id, name: "Updated"))
 
-        #expect(try await store.fetchAgent(id: id)?.name == "Updated", "agent.replace.value")
-        #expect(try await store.fetchAllAgents().count == 1, "agent.replace.unique-id")
+        try #require(try await store.fetchAgent(id: id)?.name == "Updated", "agent.replace.value")
+        try #require(try await store.fetchAllAgents().count == 1, "agent.replace.unique-id")
     }
 
     private static func fetchesAllAgents(
@@ -90,7 +90,11 @@ public enum AgentStoreConformanceSuite {
             try await store.saveAgent(agent)
         }
 
-        #expect(Set(try await store.fetchAllAgents().map(\.id)) == Set(agents.map(\.id)), "agent.fetch-all.membership")
+        let fetched = try await store.fetchAllAgents()
+        try #require(
+            fetched.count == agents.count && Set(fetched.map(\.id)) == Set(agents.map(\.id)),
+            "agent.fetch-all.membership"
+        )
     }
 
     private static func deletesOneAgent(
@@ -103,11 +107,11 @@ public enum AgentStoreConformanceSuite {
         try await store.saveAgent(remove)
 
         try await store.deleteAgent(id: remove.id)
-        #expect(try await store.fetchAgent(id: remove.id) == nil, "agent.delete.removes-target")
-        #expect(try await store.fetchAgent(id: keep.id) == keep, "agent.delete.preserves-other")
+        try #require(try await store.fetchAgent(id: remove.id) == nil, "agent.delete.removes-target")
+        try #require(try await store.fetchAgent(id: keep.id) == keep, "agent.delete.preserves-other")
 
         try await store.deleteAgent(id: UUID())
-        #expect(try await store.fetchAgent(id: keep.id) != nil, "agent.delete.unknown-idempotent")
+        try #require(try await store.fetchAgent(id: keep.id) != nil, "agent.delete.unknown-idempotent")
     }
 
     private static func fetchesAttachedThreads(
@@ -121,7 +125,7 @@ public enum AgentStoreConformanceSuite {
         let store = try await makeStore([attached, other, detached])
 
         let threads = try await store.fetchThreads(attachedToAgent: agentID)
-        #expect(threads.map(\.id) == [attached.id], "agent.threads.filter")
+        try #require(threads.map(\.id) == [attached.id], "agent.threads.filter")
     }
 
     private static func makeAgent(
